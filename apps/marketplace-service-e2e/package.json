@@ -1,0 +1,26 @@
+{
+  "name": "@r10c/marketplace-service-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@r10c/marketplace-service"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/marketplace-service-e2e/jest.config.cts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "@r10c/marketplace-service:build",
+          "@r10c/marketplace-service:serve"
+        ]
+      }
+    }
+  }
+}

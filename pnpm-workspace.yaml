@@ -1,4 +1,12 @@
 packages:
   - 'apps/*'
   - 'packages/entifix/ts/*'
+  - 'packages/business/ts/*'
+  - 'packages/utils/ts/*'
+  - 'packages/entifix/react/*'
+  - 'packages/implementation/product-configuration-management/*'
+  - 'implementation/product-configuration-management/*'
+  - 'packages/shells/next/*'
+  - 'packages/shells/nest/*'
 autoInstallPeers: true
+ignoreWorkspaceRootCheck: true
