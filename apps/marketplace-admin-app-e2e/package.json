@@ -1,0 +1,10 @@
+{
+  "name": "@r10c/marketplace-admin-app-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@r10c/marketplace-admin-app"
+    ]
+  }
+}

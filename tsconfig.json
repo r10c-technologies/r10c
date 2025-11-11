@@ -11,6 +11,66 @@
     },
     {
       "path": "./packages/entifix/ts/core"
+    },
+    {
+      "path": "./packages/entifix/ts/business"
+    },
+    {
+      "path": "./packages/business/ts/common"
+    },
+    {
+      "path": "./packages/business/ts/product-configuration-management"
+    },
+    {
+      "path": "./packages/utils/ts/array"
+    },
+    {
+      "path": "./packages/utils/ts/date"
+    },
+    {
+      "path": "./packages/utils/ts/object"
+    },
+    {
+      "path": "./packages/utils/ts/type"
+    },
+    {
+      "path": "./packages/entifix/react/controls"
+    },
+    {
+      "path": "./packages/entifix/react/helpers"
+    },
+    {
+      "path": "./packages/implementation/product-configuration-management/react"
+    },
+    {
+      "path": "./apps/marketplace-admin-app-e2e"
+    },
+    {
+      "path": "./apps/marketplace-admin-app"
+    },
+    {
+      "path": "./apps/marketplace-service-e2e"
+    },
+    {
+      "path": "./apps/marketplace-service"
+    },
+    {
+      "path": "./packages/implementation/product-configuration-management/nest"
+    },
+    {
+      "path": "./packages/shells/next/marketplace-admin"
+    },
+    {
+      "path": "./packages/shells/next/common"
+    },
+    {
+      "path": "./packages/shells/next/marketplace"
+    },
+    {
+      "path": "./packages/shells/nest/marketplace-service"
+    },
+    {
+      "path": "./packages/shells/nest/common"
     }
   ]
 }
