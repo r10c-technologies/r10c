@@ -1,0 +1,5 @@
+{
+  "*.+(js|jsx|json|yml|yaml|ts|tsx|md)": [
+    "pnpm nx affected --target=format --files"
+  ]
+}

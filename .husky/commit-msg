@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "┏━━━ husky: commit-msg ━━━━━━━━━━━━━━"
+
+pnpm exec commitlint --edit "$1"
