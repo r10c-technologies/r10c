@@ -1,1 +1,2 @@
-export * from './lib/business-ts-product-configuration-management.js';
+export * from './entities/product-category';
+export * from './entities/product-subcategory';
