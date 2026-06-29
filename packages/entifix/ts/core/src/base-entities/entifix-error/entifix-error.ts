@@ -12,12 +12,18 @@ export abstract class EntifixError extends Error {
   // #region properties
   abstract readonly _tag: string;
   override readonly cause: Error | undefined;
+  readonly details?: Record<string, unknown>;
   // #endregion properties
 
   // #region constructors
-  constructor(message: string, cause?: unknown) {
+  constructor(
+    message: string,
+    cause?: unknown,
+    details?: Record<string, unknown>
+  ) {
     super(message);
     this.cause = assertCause(cause);
+    this.details = details;
   }
   // #endregion constructors
 }
@@ -31,5 +37,11 @@ export class EntifixBuildError extends EntifixError {
 export class EntifixLogicError extends EntifixError {
   // #region properties
   override _tag = 'EntifixLogicError';
+  // #endregion properties
+}
+
+export class EntifixConnError extends EntifixError {
+  // #region properties
+  override _tag = 'EntifixConnError';
   // #endregion properties
 }

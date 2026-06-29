@@ -1,1 +1,2 @@
-export * from './lib/implementation-product-configuration-management-react';
+export * from './ui/organisms/product-category-single';
+export * from './ui/organisms/product-category-table';

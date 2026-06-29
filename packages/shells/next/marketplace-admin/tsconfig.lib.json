@@ -30,5 +30,28 @@
     "eslint.config.cjs",
     "eslint.config.mjs"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"]
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/pages/product-category-single-view"
+  ],
+  "references": [
+    {
+      "path": "../../../implementation/product-configuration-management/react/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/react/integration/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/rest-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/business/tsconfig.lib.json"
+    }
+  ]
 }

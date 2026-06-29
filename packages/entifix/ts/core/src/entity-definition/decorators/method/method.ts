@@ -1,18 +1,12 @@
-import type { MethodDecorator } from '../../meta-types';
-import { MetaMethod } from '../../meta-entities/meta-method';
+import { MetaMethod, MetaMethodOptions } from '../../meta-entities/meta-method';
+import { appendMetaMethod } from '../../helpers';
 
-export function method(): MethodDecorator {
-  return (method, context) => {
-    const metaMethod = MetaMethod.fromContext(context);
-
-    context.metadata = {
-      ...context.metadata,
-      methods: [
-        ...((context.metadata?.methods ?? []) as MetaMethod[]),
-        metaMethod,
-      ],
-    };
-
-    return method;
+export function method(options?: MetaMethodOptions) {
+  return (
+    _value: (...args: unknown[]) => unknown,
+    context: ClassMethodDecoratorContext
+  ) => {
+    const meta = new MetaMethod(context.name, options);
+    appendMetaMethod(context.metadata, meta);
   };
 }

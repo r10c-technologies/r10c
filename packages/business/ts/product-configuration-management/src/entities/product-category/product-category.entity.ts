@@ -1,7 +1,7 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { entity, accessor } from '@r10c/entifix-ts-core';
 
-@entity()
+@entity({ name: 'product-category' })
 export class ProductCategory implements Entity {
   //#region Properties
   #id?: EntityId;
@@ -27,7 +27,6 @@ export class ProductCategory implements Entity {
   get id(): EntityId {
     return this.#id;
   }
-  @accessor()
   set id(value: EntityId) {
     this.#id = value;
   }
@@ -36,7 +35,6 @@ export class ProductCategory implements Entity {
   get code(): string {
     return this.#code;
   }
-  @accessor()
   set code(value: string) {
     this.#code = value;
   }
@@ -45,7 +43,6 @@ export class ProductCategory implements Entity {
   get name(): string {
     return this.#name;
   }
-  @accessor()
   set name(value: string) {
     this.#name = value;
   }
@@ -54,7 +51,6 @@ export class ProductCategory implements Entity {
   get description(): string | undefined {
     return this.#description;
   }
-  @accessor()
   set description(value: string | undefined) {
     this.#description = value;
   }

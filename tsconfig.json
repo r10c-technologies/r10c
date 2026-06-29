@@ -71,6 +71,21 @@
     },
     {
       "path": "./packages/shells/nest/common"
+    },
+    {
+      "path": "./packages/entifix/ts/rest-client"
+    },
+    {
+      "path": "./packages/entifix/react/integration"
+    },
+    {
+      "path": "./apps/marketplace-admin-api-e2e"
+    },
+    {
+      "path": "./apps/marketplace-admin-api"
+    },
+    {
+      "path": "./apps/marketplace-config-api"
     }
   ]
 }

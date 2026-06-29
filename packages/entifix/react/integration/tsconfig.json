@@ -1,0 +1,22 @@
+{
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../../ts/business"
+    },
+    {
+      "path": "../../../utils/ts/object"
+    },
+    {
+      "path": "../../ts/core"
+    },
+    {
+      "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ],
+  "extends": "../../../../tsconfig.base.json"
+}

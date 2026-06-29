@@ -1,43 +1,42 @@
-import type {
-  GetterDecoratorContext,
-  SetterDecoratorContext,
-} from '../../meta-types';
+export type MetaAccessorKind = 'getter' | 'setter';
 
-export class MetaAccessorGet {}
-
-export class MetaAccessorSet {}
+export interface MetaAccessorOptions {
+  alias?: string;
+  type?: string;
+  readonly?: boolean;
+  hidden?: boolean;
+}
 
 export class MetaAccessor {
   //#region Properties
-  getter?: MetaAccessorGet;
-  setter?: MetaAccessorSet;
 
-  name?: string | symbol;
+  readonly name: string | symbol;
+  readonly kind: MetaAccessorKind;
+  readonly alias?: string;
+  readonly type?: string;
+  readonly readonly?: boolean;
+  readonly hidden?: boolean;
+
   //#endregion
 
   //#region Constructors
+  constructor(
+    name: string | symbol,
+    kind: MetaAccessorKind,
+    options?: MetaAccessorOptions
+  ) {
+    this.name = name;
+    this.kind = kind;
+    this.alias = options?.alias;
+    this.type = options?.type;
+    this.readonly = options?.readonly;
+    this.hidden = options?.hidden;
+  }
   //#endregion
 
   //#region Methods
   //#endregion
 
   //#region Accessors
-
-  static fromContext(
-    context: GetterDecoratorContext | SetterDecoratorContext
-  ): MetaAccessor {
-    const metaAccessor = new MetaAccessor();
-    return metaAccessor;
-  }
-
-  static fromGetContext(context: GetterDecoratorContext): MetaAccessorGet {
-    const metaAccessorGet = new MetaAccessorGet();
-    return metaAccessorGet;
-  }
-
-  static fromSetContext(context: SetterDecoratorContext): MetaAccessorSet {
-    const metaAccessorSet = new MetaAccessorSet();
-    return metaAccessorSet;
-  }
   //#endregion
 }
