@@ -1,4 +1,4 @@
-import { EntityId, EntityLoadRequest, Entity } from '@r10c/entifix-ts-core';
+import { Entity,EntityId, EntityLoadRequest } from '@r10c/entifix-ts-core';
 import { Context } from 'effect';
 
 export class EntityIdTag extends Context.Tag('EntityIdTag')<

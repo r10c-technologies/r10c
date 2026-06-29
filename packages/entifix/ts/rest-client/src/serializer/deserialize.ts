@@ -1,10 +1,10 @@
-import { Effect } from 'effect';
 import {
+  EntifixBuildError,
   Entity,
   EntityConstructor,
   extractMetaAccessors,
-  EntifixBuildError,
 } from '@r10c/entifix-ts-core';
+import { Effect } from 'effect';
 
 /**
  * Result of deserializing a value against an entity constructor. A value can be

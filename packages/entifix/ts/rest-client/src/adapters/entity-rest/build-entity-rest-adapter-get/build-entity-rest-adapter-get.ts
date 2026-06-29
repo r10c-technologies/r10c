@@ -1,15 +1,15 @@
-import { Effect } from 'effect';
+import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
 import {
   Entity,
   EntityConstructor,
   extractMetaEntity,
 } from '@r10c/entifix-ts-core';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
-import { HttpRequest } from '../../../clients/types';
-import { performHttpRequestThroughFetch } from '../../../clients/fetch';
-import { buildEntityRestAdapterMixins as adapterMixins } from '../build-entity-rest-adapter-mixins';
-import { deserializeSingleEntity } from '../../../serializer/deserialize';
+import { Effect } from 'effect';
 
+import { performHttpRequestThroughFetch } from '../../../clients/fetch';
+import { HttpRequest } from '../../../clients/types';
+import { deserializeSingleEntity } from '../../../serializer/deserialize';
+import { buildEntityRestAdapterMixins as adapterMixins } from '../build-entity-rest-adapter-mixins';
 import { BuildEntityRestOptions } from '../types';
 
 export const buildEntityRestAdapterGet =

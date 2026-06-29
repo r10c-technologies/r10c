@@ -10,15 +10,12 @@ module.exports = {
     }),
   },
   resolve: {
-    // Resolve workspace libraries (e.g. @r10c/entifix-ts-core) to their TS source
-    // so they are bundled here, matching how the Next apps consume them in dev and
-    // avoiding the libraries' published ESM output at runtime.
     conditionNames: ['@r10c/source', 'import', 'node', 'require', 'default'],
   },
   plugins: [
     new NxAppWebpackPlugin({
       target: 'node',
-      compiler: 'tsc',
+      compiler: 'swc',
       main: './src/main.ts',
       tsConfig: './tsconfig.app.json',
       assets: ['./src/assets'],

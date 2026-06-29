@@ -1,4 +1,5 @@
 import { Effect } from 'effect/Effect';
+
 import { EntifixBuildError } from '../entifix-error';
 
 export type ConfigurationExtractMode = 'exact' | 'match' | 'compose';

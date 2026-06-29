@@ -1,7 +1,8 @@
 import {
-  useAdaptersContext,
   createAdaptersContext,
+  useAdaptersContext,
 } from '@r10c/entifix-react-integration';
+
 import type { MarketplaceAdminAdapters } from '../client-types';
 import type { MarketplaceAdminProviderProps } from './types';
 

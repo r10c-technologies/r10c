@@ -1,5 +1,5 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { entity, accessor } from '@r10c/entifix-ts-core';
+import { accessor,entity } from '@r10c/entifix-ts-core';
 
 @entity({ name: 'product-category' })
 export class ProductCategory implements Entity {

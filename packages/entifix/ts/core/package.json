@@ -37,7 +37,7 @@
     }
   },
   "dependencies": {
-    "@swc/helpers": "0.5.11",
-    "effect": "3.19.3"
+    "@swc/helpers": "0.5.23",
+    "effect": "3.21.4"
   }
 }

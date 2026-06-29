@@ -1,6 +1,6 @@
 import type { Entity, EntityConstructor } from '../../../types/Entity';
-import { MetaEntity, MetaEntityOptions } from '../../meta-entities/meta-entity';
 import { setMetaEntity } from '../../helpers';
+import { MetaEntity, MetaEntityOptions } from '../../meta-entities/meta-entity';
 
 export function entity<TEntity extends Entity>(options?: MetaEntityOptions) {
   return (

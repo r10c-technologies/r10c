@@ -1,7 +1,7 @@
-import { Context } from 'effect';
-import { loadUCFactory } from '@r10c/entifix-ts-business';
 import type { ProductCategory } from '@r10c/business-ts-product-configuration-management';
+import { loadUCFactory } from '@r10c/entifix-ts-business';
 import { ProductCategoryTable } from '@r10c/implementation-product-configuration-management-react';
+import { Context } from 'effect';
 
 import { useMarketplaceAdminAdapters } from '../marketplace-admin-context';
 

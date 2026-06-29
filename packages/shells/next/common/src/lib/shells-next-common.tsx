@@ -1,6 +1,6 @@
 export function R10cShellsNextCommon() {
   return (
-    <div className={styles['container']}>
+    <div className="container">
       <h1>Welcome to R10cShellsNextCommon!</h1>
     </div>
   );

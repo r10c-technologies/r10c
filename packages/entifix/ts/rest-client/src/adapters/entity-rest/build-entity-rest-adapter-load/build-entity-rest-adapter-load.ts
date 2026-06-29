@@ -1,17 +1,17 @@
-import { Effect } from 'effect';
+import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
 import {
   Entity,
-  EntityPage,
   EntityConstructor,
   EntityLoadRequest,
+  EntityPage,
   extractMetaEntity,
 } from '@r10c/entifix-ts-core';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
-import { HttpRequest } from '../../../clients/types';
-import { performHttpRequestThroughFetch } from '../../../clients/fetch';
-import { buildEntityRestAdapterMixins as adapterMixins } from '../build-entity-rest-adapter-mixins';
-import { deserializeEntityCollection } from '../../../serializer/deserialize';
+import { Effect } from 'effect';
 
+import { performHttpRequestThroughFetch } from '../../../clients/fetch';
+import { HttpRequest } from '../../../clients/types';
+import { deserializeEntityCollection } from '../../../serializer/deserialize';
+import { buildEntityRestAdapterMixins as adapterMixins } from '../build-entity-rest-adapter-mixins';
 import { BuildEntityRestOptions } from '../types';
 
 interface EntityPageResponseBody {

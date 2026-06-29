@@ -1,7 +1,7 @@
-import { config as loadEnv } from 'dotenv';
-import { resolve } from 'path';
-import express from 'express';
 import { readConfigurationFromProcess } from '@r10c/entifix-ts-core';
+import { config as loadEnv } from 'dotenv';
+import express from 'express';
+import { resolve } from 'path';
 
 /**
  * Centralized configuration service.

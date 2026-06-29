@@ -3,21 +3,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../entifix/ts/core"
-    },
-    {
-      "path": "../../../business/ts/product-configuration-management"
-    },
-    {
-      "path": "../../../entifix/ts/business"
-    },
-    {
-      "path": "../../../entifix/react/integration"
-    },
-    {
-      "path": "../../../entifix/react/controls"
-    },
-    {
       "path": "./tsconfig.lib.json"
     },
     {

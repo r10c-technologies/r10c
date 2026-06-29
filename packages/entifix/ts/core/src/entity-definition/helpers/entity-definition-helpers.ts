@@ -1,17 +1,14 @@
 (Symbol as { metadata?: symbol }).metadata ??= Symbol.for('Symbol.metadata');
 
-import { Entity, EntityConstructor } from '../../types/Entity';
-import { MetaEntity } from '../meta-entities/meta-entity';
-import { MetaAccessor } from '../meta-entities/meta-accessor';
-import { MetaMethod } from '../meta-entities/meta-method';
 import { EntifixBuildError } from '../../base-entities/entifix-error';
+import { Entity, EntityConstructor } from '../../types/Entity';
+import { MetaAccessor } from '../meta-entities/meta-accessor';
+import { MetaEntity } from '../meta-entities/meta-entity';
+import { MetaMethod } from '../meta-entities/meta-method';
 
 declare global {
   interface SymbolConstructor {
     readonly metadata: unique symbol;
-  }
-  interface Function {
-    [Symbol.metadata]?: DecoratorMetadataObject;
   }
 }
 
@@ -58,7 +55,7 @@ export function appendMetaMethod(
 function readMetadata<TEntity extends Entity>(
   target: EntityConstructor<TEntity>
 ): DecoratorMetadataObject | undefined {
-  return target[Symbol.metadata];
+  return target[Symbol.metadata] ?? undefined;
 }
 
 export function extractMetaEntity<TEntity extends Entity>(

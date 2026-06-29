@@ -1,12 +1,12 @@
-import type { Effect } from 'effect/Effect';
-import type { Context } from 'effect/Context';
-import { EntityLoadRequestTag } from '@r10c/entifix-ts-business';
-import { EntityPage, EntifixError } from '@r10c/entifix-ts-core';
-import {
-  EntityRepositoryTag,
-  ConfigurationRepositoryTag,
-} from '@r10c/entifix-ts-business';
 import { ProductCategory } from '@r10c/business-ts-product-configuration-management';
+import { EntityLoadRequestTag } from '@r10c/entifix-ts-business';
+import {
+  ConfigurationRepositoryTag,
+  EntityRepositoryTag,
+} from '@r10c/entifix-ts-business';
+import { EntifixError,EntityPage } from '@r10c/entifix-ts-core';
+import type { Context } from 'effect/Context';
+import type { Effect } from 'effect/Effect';
 
 export interface ProductCategoryTableProps {
   uc: Effect<

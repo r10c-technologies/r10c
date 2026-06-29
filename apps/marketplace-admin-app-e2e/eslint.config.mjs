@@ -1,4 +1,5 @@
 import playwright from 'eslint-plugin-playwright';
+
 import baseConfig from '../../eslint.config.mjs';
 
 export default [
@@ -6,7 +7,9 @@ export default [
   ...baseConfig,
   {
     files: ['**/*.ts', '**/*.js'],
-    // Override or add rules here
     rules: {},
+  },
+  {
+    ignores: ['**/out-tsc/**'],
   },
 ];
