@@ -1,31 +1,20 @@
-import type { ClassDecoratorContext } from '../../meta-types';
-import { EntifixBuildError } from '../../../base-entities/entifix-error';
-
-const validateContext = (context: ClassDecoratorContext) => {
-  const { kind, name } = context;
-
-  if (kind !== 'class')
-    throw new EntifixBuildError(
-      'MetaEntity can only be created by classes. Check the @entity decorator usage.'
-    );
-  if (!name)
-    throw new EntifixBuildError('context.name for MetaEntity is undefined.');
-
-  return {
-    name,
-  };
-};
+export interface MetaEntityOptions {
+  name?: string;
+  resource?: string;
+}
 
 export class MetaEntity {
   //#region Properties
 
   readonly name: string;
+  readonly resource?: string;
 
   //#endregion
 
   //#region Constructors
-  constructor(name: string) {
+  constructor(name: string, options?: Pick<MetaEntityOptions, 'resource'>) {
     this.name = name;
+    this.resource = options?.resource;
   }
   //#endregion
 
@@ -33,13 +22,5 @@ export class MetaEntity {
   //#endregion
 
   //#region Accessors
-  //#endregion
-
-  //#region Static
-  static fromContext(context: ClassDecoratorContext): MetaEntity {
-    const { name } = validateContext(context);
-    const metaEntity = new MetaEntity(name);
-    return metaEntity;
-  }
   //#endregion
 }

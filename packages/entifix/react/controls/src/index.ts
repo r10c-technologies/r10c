@@ -1,1 +1,1 @@
-export * from './lib/entifix-react-controls';
+export * from './organisms/table';

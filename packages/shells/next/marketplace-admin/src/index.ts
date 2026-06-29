@@ -1,3 +1,4 @@
-// Use this file to export React client components (e.g. those with 'use client' directive) or other non-server utilities
-
-export * from './lib/shells-next-marketplace-admin';
+export * from './client/marketplace-admin-context';
+export * from './client/product-category-list/product-category-list-client-page';
+export * from './client/product-category-single-view/product-category-single-view-client-page';
+export * from './client/adapters/create-client-adapters';

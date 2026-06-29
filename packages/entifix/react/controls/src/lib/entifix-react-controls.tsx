@@ -1,6 +1,6 @@
 export function R10cEntifixReactControls() {
   return (
-    <div className={styles['container']}>
+    <div>
       <h1>Welcome to R10cEntifixReactControls!</h1>
     </div>
   );

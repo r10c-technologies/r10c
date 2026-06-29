@@ -1,0 +1,16 @@
+import { Context } from 'effect';
+import { loadUCFactory } from '@r10c/entifix-ts-business';
+import type { ProductCategory } from '@r10c/business-ts-product-configuration-management';
+import { ProductCategoryTable } from '@r10c/implementation-product-configuration-management-react';
+
+import { useMarketplaceAdminAdapters } from '../marketplace-admin-context';
+
+export function ProductCategoryListClientPage() {
+  const { productCategoryRest, configurationStore } =
+    useMarketplaceAdminAdapters();
+
+  const uc = loadUCFactory<ProductCategory>();
+  const ctx = Context.merge(configurationStore, productCategoryRest);
+
+  return <ProductCategoryTable ctx={ctx} uc={uc} />;
+}
