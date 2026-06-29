@@ -9,14 +9,14 @@
         "options": {
           "command": "webpack-cli build",
           "args": [
-            "--node-env=production"
+            "--config-node-env=production"
           ],
           "cwd": "apps/marketplace-admin-api"
         },
         "configurations": {
           "development": {
             "args": [
-              "--node-env=development"
+              "--config-node-env=development"
             ]
           }
         }
@@ -84,7 +84,7 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17"

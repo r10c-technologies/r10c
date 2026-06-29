@@ -1,4 +1,5 @@
 import { Entity } from '@r10c/entifix-ts-core';
+
 import type { TableProps } from './table.types';
 
 /**

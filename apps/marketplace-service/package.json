@@ -9,14 +9,14 @@
         "options": {
           "command": "webpack-cli build",
           "args": [
-            "--node-env=production"
+            "--config-node-env=production"
           ],
           "cwd": "apps/marketplace-service"
         },
         "configurations": {
           "development": {
             "args": [
-              "--node-env=development"
+              "--config-node-env=development"
             ]
           }
         }
@@ -83,14 +83,14 @@
     }
   },
   "dependencies": {
-    "@nestjs/common": "11.0.0",
-    "@nestjs/core": "11.0.0",
-    "@nestjs/platform-express": "11.0.0",
-    "reflect-metadata": "0.1.13",
-    "rxjs": "7.8.0",
-    "tslib": "2.3.0"
+    "@nestjs/common": "11.1.27",
+    "@nestjs/core": "11.1.27",
+    "@nestjs/platform-express": "11.1.27",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "tslib": "2.8.1"
   },
   "devDependencies": {
-    "@nestjs/testing": "11.0.0"
+    "@nestjs/testing": "11.1.27"
   }
 }

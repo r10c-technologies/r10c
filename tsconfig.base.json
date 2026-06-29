@@ -6,7 +6,9 @@
     "importHelpers": true,
     "isolatedModules": true,
     "lib": [
-      "es2022"
+      "es2022",
+      "decorators",
+      "esnext.decorators"
     ],
     "module": "esnext",
     "moduleResolution": "bundler",

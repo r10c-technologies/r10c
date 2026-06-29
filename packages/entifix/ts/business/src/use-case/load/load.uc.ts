@@ -1,5 +1,6 @@
-import { Effect } from 'effect';
 import { Entity, EntityLoadRequest } from '@r10c/entifix-ts-core';
+import { Effect } from 'effect';
+
 import { EntityRepositoryTag } from '../../repository/entity.repository';
 import { EntityLoadRequestTag } from '../../repository/entity-mixins.repository';
 

@@ -1,20 +1,17 @@
-import { FlatCompat } from '@eslint/eslintrc';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import js from '@eslint/js';
-import { fixupConfigRules } from '@eslint/compat';
 import nx from '@nx/eslint-plugin';
+import nextConfig from 'eslint-config-next';
+import coreWebVitalsConfig from 'eslint-config-next/core-web-vitals';
+
 import baseConfig from '../../eslint.config.mjs';
-const compat = new FlatCompat({
-  baseDirectory: dirname(fileURLToPath(import.meta.url)),
-  recommendedConfig: js.configs.recommended,
-});
 
 export default [
-  ...fixupConfigRules(compat.extends('next')),
-  ...fixupConfigRules(compat.extends('next/core-web-vitals')),
+  ...nextConfig,
+  ...coreWebVitalsConfig,
   ...baseConfig,
   ...nx.configs['flat/react-typescript'],
+  {
+    settings: { react: { version: '19.0.0' } },
+  },
   {
     ignores: ['.next/**/*', '**/out-tsc'],
   },

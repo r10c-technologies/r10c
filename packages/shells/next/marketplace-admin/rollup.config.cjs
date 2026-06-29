@@ -7,13 +7,25 @@ module.exports = withNx(
     main: './src/index.ts',
     outputPath: './dist',
     tsConfig: './tsconfig.lib.json',
-    compiler: 'babel',
-    external: ['react', 'react-dom', 'react/jsx-runtime'],
+    compiler: 'swc',
+    external: [
+      'react',
+      'react-dom',
+      'react/jsx-runtime',
+      '@r10c/business-ts-product-configuration-management',
+      '@r10c/entifix-react-integration',
+      '@r10c/entifix-ts-business',
+      '@r10c/entifix-ts-rest-client',
+      '@r10c/implementation-product-configuration-management-react',
+    ],
     format: ['esm'],
     assets: [{ input: '.', output: '.', glob: 'README.md' }],
   },
   {
     // Provide additional rollup configuration here. See: https://rollupjs.org/configuration-options
+    output: {
+      banner: '"use client";',
+    },
     plugins: [
       svg({
         svgo: false,

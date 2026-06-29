@@ -1,12 +1,12 @@
-import { Effect, Context } from 'effect';
-import { EntityLoadRequest, type Entity } from '@r10c/entifix-ts-core';
-import { useCallback, useEffect, useReducer } from 'react';
 import { EntityLoadRequestTag } from '@r10c/entifix-ts-business';
+import { type Entity,EntityLoadRequest } from '@r10c/entifix-ts-core';
+import { Context,Effect } from 'effect';
+import { useCallback, useEffect, useReducer } from 'react';
 
 import type {
-  UseDataLoadingState,
   UseDataLoadingAction,
   UseDataLoadingOptions,
+  UseDataLoadingState,
 } from './use-data-loading.types';
 
 function getInitialState<T>() {

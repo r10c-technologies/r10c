@@ -1,5 +1,5 @@
-import { MetaMethod, MetaMethodOptions } from '../../meta-entities/meta-method';
 import { appendMetaMethod } from '../../helpers';
+import { MetaMethod, MetaMethodOptions } from '../../meta-entities/meta-method';
 
 export function method(options?: MetaMethodOptions) {
   return (

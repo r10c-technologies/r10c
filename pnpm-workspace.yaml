@@ -8,5 +8,29 @@ packages:
   - 'implementation/product-configuration-management/*'
   - 'packages/shells/next/*'
   - 'packages/shells/nest/*'
+allowBuilds:
+  '@nestjs/core': false
+  '@parcel/watcher': false
+  '@swc/core': false
+  core-js: false
+  core-js-pure: false
+  less: false
+  nx: false
+  sharp: false
+  unrs-resolver: false
 autoInstallPeers: true
 ignoreWorkspaceRootCheck: true
+minimumReleaseAgeExclude:
+  - '@typescript-eslint/eslint-plugin@8.62.1'
+  - '@typescript-eslint/parser@8.62.1'
+  - '@typescript-eslint/project-service@8.62.1'
+  - '@typescript-eslint/scope-manager@8.62.1'
+  - '@typescript-eslint/tsconfig-utils@8.62.1'
+  - '@typescript-eslint/type-utils@8.62.1'
+  - '@typescript-eslint/types@8.62.1'
+  - '@typescript-eslint/typescript-estree@8.62.1'
+  - '@typescript-eslint/utils@8.62.1'
+  - '@typescript-eslint/visitor-keys@8.62.1'
+  - prettier@3.9.3
+  - tailwindcss@4.3.2
+  - typescript-eslint@8.62.1

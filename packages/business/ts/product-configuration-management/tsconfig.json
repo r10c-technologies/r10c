@@ -4,9 +4,6 @@
   "include": [],
   "references": [
     {
-      "path": "../../../entifix/ts/core"
-    },
-    {
       "path": "./tsconfig.lib.json"
     },
     {

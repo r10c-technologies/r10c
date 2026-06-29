@@ -1,7 +1,7 @@
-import { Context } from 'effect';
+import { ProductCategory } from '@r10c/business-ts-product-configuration-management';
 import {
-  EntityRepositoryTag,
   ConfigurationRepositoryTag,
+  EntityRepositoryTag,
 } from '@r10c/entifix-ts-business';
 import {
   buildEntityRestAdapterDelete,
@@ -11,7 +11,8 @@ import {
   BuildEntityRestOptions,
   ConfigurationStoreRestClient,
 } from '@r10c/entifix-ts-rest-client';
-import { ProductCategory } from '@r10c/business-ts-product-configuration-management';
+import { Context } from 'effect';
+
 import type { MarketplaceAdminAdapters } from '../client-types';
 
 const restOptions: BuildEntityRestOptions = {

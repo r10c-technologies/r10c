@@ -1,8 +1,9 @@
-export * from './base-entities/entifix-error';
 export * from './base-entities/configuration-store';
+export * from './base-entities/entifix-error';
 export * from './entity-definition/decorators/accessor';
 export * from './entity-definition/decorators/entity';
 export * from './entity-definition/decorators/method';
+export * from './entity-definition/helpers';
 export * from './entity-definition/meta-entities/meta-accessor';
 export * from './entity-definition/meta-entities/meta-entity';
 export * from './entity-definition/meta-entities/meta-method';
@@ -11,4 +12,3 @@ export * from './types/EntityFiltering';
 export * from './types/EntityLoadRequest';
 export * from './types/EntityPage';
 export * from './types/EntitySorting';
-export * from './entity-definition/helpers';

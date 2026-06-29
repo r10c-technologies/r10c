@@ -1,4 +1,3 @@
-import { Effect } from 'effect';
 import {
   ConfigurationExtractMode,
   ConfigurationPlain,
@@ -7,6 +6,7 @@ import {
   ConfigurationStoreInMemory,
   EntifixBuildError,
 } from '@r10c/entifix-ts-core';
+import { Effect } from 'effect';
 
 export interface ConfigurationStoreRestClientOptions {
   /** Endpoint returning this service's `ConfigurationPlain`. */

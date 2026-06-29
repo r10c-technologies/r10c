@@ -1,5 +1,6 @@
-import { Effect } from 'effect';
 import { ConfigurationStore } from '@r10c/entifix-ts-core';
+import { Effect } from 'effect';
+
 import { BuildEntityRestOptions } from '../types';
 
 const DEFAULT_URI_GROUP = 'restUri';

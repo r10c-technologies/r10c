@@ -1,9 +1,9 @@
+import { appendMetaAccessor } from '../../helpers';
 import {
   MetaAccessor,
   MetaAccessorKind,
   MetaAccessorOptions,
 } from '../../meta-entities/meta-accessor';
-import { appendMetaAccessor } from '../../helpers';
 
 export function accessor(options?: MetaAccessorOptions) {
   return (

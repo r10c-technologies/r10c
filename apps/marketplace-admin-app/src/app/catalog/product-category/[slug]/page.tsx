@@ -1,7 +1,7 @@
-import { ProductCategorySingleViewPage } from '@r10c/shells-next-marketplace-admin';
+import { ProductCategorySingleViewClientPage } from '@r10c/shells-next-marketplace-admin';
 
 function ProductCategoryCatalogPage() {
-  return <ProductCategorySingleViewPage />;
+  return <ProductCategorySingleViewClientPage />;
 }
 
 export default ProductCategoryCatalogPage;

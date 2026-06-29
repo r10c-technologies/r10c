@@ -47,9 +47,5 @@
     "eslint.config.cjs",
     "eslint.config.mjs"
   ],
-  "references": [
-    {
-      "path": "../../packages/entifix/ts/core"
-    }
-  ]
+  "references": []
 }

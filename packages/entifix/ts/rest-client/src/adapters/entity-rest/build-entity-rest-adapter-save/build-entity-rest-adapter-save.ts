@@ -1,14 +1,15 @@
-import { Effect } from 'effect';
-import { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
 import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
+import { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
+import { Effect } from 'effect';
+
 import { BuildEntityRestOptions } from '../types';
 
 export const buildEntityRestAdapterSave =
   <TEntity extends Entity>(
-    entityConstructor: EntityConstructor<TEntity>,
-    { uriConfig }: BuildEntityRestOptions
+    _entityConstructor: EntityConstructor<TEntity>,
+    { uriConfig: _uriConfig }: BuildEntityRestOptions
   ) =>
-  <TEntity extends Entity>(entity: TEntity) =>
+  <TEntity extends Entity>(_entity: TEntity) =>
     Effect.gen(function* () {
       yield* ConfigurationRepositoryTag;
 

@@ -1,5 +1,5 @@
 import { EntityLoadRequestTag } from '@r10c/entifix-ts-business';
-import { Entity, EntityPage, EntifixError } from '@r10c/entifix-ts-core';
+import { EntifixError,Entity, EntityPage } from '@r10c/entifix-ts-core';
 import { Context, Effect } from 'effect';
 
 export interface UseDataLoadingState<T> {
