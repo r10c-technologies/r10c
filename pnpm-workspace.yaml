@@ -4,6 +4,7 @@ packages:
   - 'packages/business/ts/*'
   - 'packages/utils/ts/*'
   - 'packages/entifix/react/*'
+  - 'packages/entifix/style'
   - 'packages/implementation/product-configuration-management/*'
   - 'implementation/product-configuration-management/*'
   - 'packages/shells/next/*'

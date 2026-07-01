@@ -5,6 +5,10 @@
   "main": "./dist/index.esm.js",
   "module": "./dist/index.esm.js",
   "types": "./dist/index.esm.d.ts",
+  "dependencies": {
+    "@headlessui/react": "^2.2.10",
+    "class-variance-authority": "^0.7.1"
+  },
   "exports": {
     "./package.json": "./package.json",
     ".": {

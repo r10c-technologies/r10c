@@ -1,0 +1,11 @@
+/* Aurora — cool blue light palette. Opt-in preset for the color contract. */
+[data-theme='aurora'] {
+  --color-surface: #f7f9fc;
+  --color-surface-elevated: #ffffff;
+  --color-content: #1b2432;
+  --color-content-muted: #5a6b82;
+  --color-primary: #3b6ff5;
+  --color-primary-content: #ffffff;
+  --color-border: #dbe3ef;
+  --color-accent: #7c5cff;
+}

@@ -1,0 +1,72 @@
+/*
+ * @r10c/entifix-style / tokens.css — the shared, immutable base.
+ *
+ * Two things live here and only here:
+ *   1. Structural tokens (spacing, type, radius, shadow, motion) — universal,
+ *      never vary per app.
+ *   2. The color *contract*: the semantic --color-* NAMES, with neutral
+ *      fallback values. Declaring them in @theme is what makes bg-surface,
+ *      text-content, border-border, … exist as utilities. Apps override the
+ *      VALUES per palette (see presets/ or an app-local themes.css); the names
+ *      stay constant so components never care which app they run in.
+ *
+ * Consumed by an app stylesheet that has already run `@import "tailwindcss"`.
+ *
+ * Fluid spacing & type are generated with the Utopia calculator:
+ *   viewport 360px .. 1240px, base 18px/1.2 .. 20px/1.25.
+ */
+
+@theme {
+  /* Fluid spacing — Tailwind's --spacing-* namespace emits p-s, gap-l, m-xl, … */
+  --spacing-3xs: clamp(0.2813rem, 0.2685rem + 0.0568vw, 0.3125rem);
+  --spacing-2xs: clamp(0.5625rem, 0.5369rem + 0.1136vw, 0.625rem);
+  --spacing-xs: clamp(0.8438rem, 0.8054rem + 0.1705vw, 0.9375rem);
+  --spacing-s: clamp(1.125rem, 1.0739rem + 0.2273vw, 1.25rem);
+  --spacing-m: clamp(1.6875rem, 1.6108rem + 0.3409vw, 1.875rem);
+  --spacing-l: clamp(2.25rem, 2.1477rem + 0.4545vw, 2.5rem);
+  --spacing-xl: clamp(3.375rem, 3.2216rem + 0.6818vw, 3.75rem);
+  --spacing-2xl: clamp(4.5rem, 4.2955rem + 0.9091vw, 5rem);
+  --spacing-3xl: clamp(6.75rem, 6.4432rem + 1.3636vw, 7.5rem);
+
+  /* Fluid type — Tailwind's --text-* namespace emits text-step-0 … text-step-3.
+     Down-steps (sm, xs) taper below body for captions/fine print. */
+  --text-step-xs: clamp(0.78125rem, 0.7736rem + 0.0341vw, 0.8rem);
+  --text-step-sm: clamp(0.9375rem, 0.9119rem + 0.1136vw, 1rem);
+  --text-step-0: clamp(1.125rem, 1.0739rem + 0.2273vw, 1.25rem);
+  --text-step-1: clamp(1.35rem, 1.2631rem + 0.3864vw, 1.5625rem);
+  --text-step-2: clamp(1.62rem, 1.4837rem + 0.6057vw, 1.9531rem);
+  --text-step-3: clamp(1.944rem, 1.7405rem + 0.9044vw, 2.4414rem);
+
+  /* Border radius — --radius-* namespace emits rounded-md, rounded-2xl, … */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+
+  /* Elevation — --shadow-* namespace emits shadow-sm, shadow-card, …
+     Palettes may re-tint these (e.g. warm/dark) alongside their colors. */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-card:
+    0 4px 16px -4px rgb(15 23 42 / 0.1), 0 2px 6px -2px rgb(15 23 42 / 0.06);
+  --shadow-lg: 0 16px 40px -12px rgb(15 23 42 / 0.18);
+
+  /* Motion — tunes every `transition` utility + adds a smooth easing token. */
+  --default-transition-duration: 200ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Color CONTRACT — semantic --color-* names with NEUTRAL fallbacks.
+     Unbranded on purpose: an app with no palette still renders legibly, and
+     the fallback signals "no theme applied". Real brands come from a preset
+     or app-local [data-theme] block. */
+  --color-surface: #f4f5f7;
+  --color-surface-elevated: #ffffff;
+  --color-content: #1c2024;
+  --color-content-muted: #626b76;
+  --color-primary: #3d4653;
+  --color-primary-content: #ffffff;
+  --color-border: #dfe3e8;
+  --color-accent: #6b7480;
+}

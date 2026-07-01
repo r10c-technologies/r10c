@@ -1,0 +1,13 @@
+/*
+ * @r10c/entifix-style / theme.css — convenience barrel.
+ *
+ * Pulls the structural tokens + color contract and all three shipped palette
+ * presets in one import. Handy for demos or apps that just want the defaults.
+ *
+ * For per-app personalization, import `tokens.css` plus only the presets you
+ * want (or an app-local themes.css), rather than this file. See tokens.css.
+ */
+@import './tokens.css';
+@import './presets/aurora.css';
+@import './presets/sunset.css';
+@import './presets/midnight.css';

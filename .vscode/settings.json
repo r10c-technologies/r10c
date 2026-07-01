@@ -1,4 +1,10 @@
 {
-    "editor.formatOnSave": true,
-    "editor.tabSize": 2
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "tailwindCSS.experimental.configFile": "apps/marketplace-admin-app/src/app/global.css",
+  "tailwindCSS.classFunctions": ["cn", "cva"],
+  "tailwindCSS.classAttributes": ["class", "className", "classNames"],
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
 }
