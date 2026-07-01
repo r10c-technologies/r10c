@@ -1,0 +1,16 @@
+{
+  "name": "@r10c/entifix-style",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./tokens.css": "./src/tokens.css",
+    "./theme.css": "./src/theme.css",
+    "./presets/aurora.css": "./src/presets/aurora.css",
+    "./presets/sunset.css": "./src/presets/sunset.css",
+    "./presets/midnight.css": "./src/presets/midnight.css"
+  },
+  "files": [
+    "src"
+  ]
+}

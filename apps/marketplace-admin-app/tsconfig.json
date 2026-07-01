@@ -50,6 +50,9 @@
   "references": [
     {
       "path": "../../packages/shells/next/marketplace-admin"
+    },
+    {
+      "path": "../../packages/entifix/react/controls"
     }
   ]
 }

@@ -1,0 +1,19 @@
+/* Midnight — dark palette with deeper elevation. Opt-in preset. */
+[data-theme='midnight'] {
+  color-scheme: dark;
+  --color-surface: #0f141c;
+  --color-surface-elevated: #1a222e;
+  --color-content: #e6ecf5;
+  --color-content-muted: #93a1b5;
+  --color-primary: #5b8cff;
+  --color-primary-content: #0b1220;
+  --color-border: #2a3546;
+  --color-accent: #a17cff;
+
+  /* Deeper elevation for dark surfaces */
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-card:
+    0 8px 24px -6px rgb(0 0 0 / 0.55), 0 2px 8px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 20px 48px -12px rgb(0 0 0 / 0.65);
+}
