@@ -15,7 +15,7 @@ import { BuildEntityRestOptions } from '../types';
 export const buildEntityRestAdapterGet =
   <TEntity extends Entity>(
     entityConstructor: EntityConstructor<TEntity>,
-    { uriConfig }: BuildEntityRestOptions
+    { uriConfig }: BuildEntityRestOptions,
   ) =>
   <TEntity extends Entity>(entityId: string) =>
     Effect.gen(function* () {
@@ -25,8 +25,8 @@ export const buildEntityRestAdapterGet =
       const entityUrl = yield* adapterMixins.buildEntityBaseUrl(
         configurationStore,
         { uriConfig },
-        metaEntity.name,
-        entityId
+        metaEntity.key ?? metaEntity.name,
+        entityId,
       );
 
       const request: HttpRequest = {
@@ -37,7 +37,7 @@ export const buildEntityRestAdapterGet =
       const response = yield* performHttpRequestThroughFetch(request);
       const entity = yield* deserializeSingleEntity(
         entityConstructor,
-        response.body
+        response.body,
       );
       return entity as unknown as TEntity;
     });

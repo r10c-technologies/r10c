@@ -22,7 +22,7 @@ interface EntityPageResponseBody {
 export const buildEntityRestAdapterLoad =
   <TEntity extends Entity>(
     entityConstructor: EntityConstructor<TEntity>,
-    { uriConfig }: BuildEntityRestOptions
+    { uriConfig }: BuildEntityRestOptions,
   ) =>
   <TEntity extends Entity>(request: EntityLoadRequest<TEntity>) =>
     Effect.gen(function* () {
@@ -32,7 +32,7 @@ export const buildEntityRestAdapterLoad =
       const baseUrl = yield* adapterMixins.buildEntityBaseUrl(
         configurationStore,
         { uriConfig },
-        metaEntity.name
+        metaEntity.key ?? metaEntity.name,
       );
 
       const params = new URLSearchParams();
@@ -52,11 +52,11 @@ export const buildEntityRestAdapterLoad =
 
       const response =
         yield* performHttpRequestThroughFetch<EntityPageResponseBody>(
-          httpRequest
+          httpRequest,
         );
       const items = yield* deserializeEntityCollection(
         entityConstructor as unknown as EntityConstructor<TEntity>,
-        response.body.items
+        response.body.items,
       );
 
       return {

@@ -1,3 +1,5 @@
+import { Entity, EntityConstructor } from '../../../types/Entity';
+
 export type MetaAccessorKind = 'getter' | 'setter';
 
 export interface MetaAccessorOptions {
@@ -16,6 +18,7 @@ export class MetaAccessor {
   readonly type?: string;
   readonly readonly?: boolean;
   readonly hidden?: boolean;
+  readonly entityConstructor?: EntityConstructor<Entity>;
 
   //#endregion
 
@@ -23,7 +26,7 @@ export class MetaAccessor {
   constructor(
     name: string | symbol,
     kind: MetaAccessorKind,
-    options?: MetaAccessorOptions
+    options?: MetaAccessorOptions,
   ) {
     this.name = name;
     this.kind = kind;

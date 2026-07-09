@@ -1,14 +1,14 @@
 'use client';
 
 import {
+  type ThemeOption,
+  type ThemePalette,
+  ThemeProvider,
+} from '@r10c/entifix-react-controls';
+import {
   createClientAdapters,
   MarketplaceAdminAdaptersProvider,
 } from '@r10c/shells-next-marketplace-admin';
-import {
-  ThemeProvider,
-  type ThemeOption,
-  type ThemePalette,
-} from '@r10c/entifix-react-controls';
 import type { PropsWithChildren } from 'react';
 
 // Themes this app exposes. aurora/sunset/midnight are static CSS presets

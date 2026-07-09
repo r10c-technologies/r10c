@@ -1,28 +1,27 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { accessor,entity } from '@r10c/entifix-ts-core';
+import { accessor, entity } from '@r10c/entifix-ts-core';
 
-@entity({ name: 'product-category' })
+@entity({ domain: 'product-configuration-management', key: 'product-category' })
 export class ProductCategory implements Entity {
-  //#region Properties
+  //#region properties
   #id?: EntityId;
   #code: string;
   #name: string;
   #description?: string;
-
   //#endregion
 
-  //#region Constructors
+  //#region constructors
   constructor(code: string, name: string) {
     this.#code = code;
     this.#name = name;
   }
   //#endregion
 
-  //#region Methods
+  //#region methods
 
   //#endregion
 
-  //#region Accessors
+  //#region accessors
   @accessor()
   get id(): EntityId {
     return this.#id;

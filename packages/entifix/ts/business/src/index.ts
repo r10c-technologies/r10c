@@ -1,5 +1,6 @@
 export * from './repository/config.repository';
 export * from './repository/entity.repository';
+export * from './repository/entity-link-resolver.repository';
 export * from './repository/entity-mixins.repository';
 export * from './use-case/delete';
 export * from './use-case/get';

@@ -37,9 +37,6 @@
       "path": "./packages/entifix/react/controls"
     },
     {
-      "path": "./packages/entifix/react/helpers"
-    },
-    {
       "path": "./packages/implementation/product-configuration-management/react"
     },
     {

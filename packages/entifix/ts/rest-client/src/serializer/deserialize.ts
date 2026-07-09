@@ -1,7 +1,10 @@
 import {
   EntifixBuildError,
   Entity,
+  EntityCollectionLink,
   EntityConstructor,
+  EntityId,
+  EntityLink,
   extractMetaAccessors,
 } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
@@ -12,15 +15,13 @@ import { Effect } from 'effect';
  * array of those — which lets collections recurse into arrays of arrays.
  */
 type DeserializedEntity<TEntity extends Entity> =
-  | TEntity
-  | undefined
-  | DeserializedEntity<TEntity>[];
+  TEntity | undefined | DeserializedEntity<TEntity>[];
 
 //#region Validations
 
 function assertEntityObject<TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
-  entityData: unknown
+  entityData: unknown,
 ): asserts entityData is object {
   if (typeof entityData !== 'object') {
     throw new EntifixBuildError(
@@ -31,14 +32,14 @@ function assertEntityObject<TEntity extends Entity>(
       {
         entityData,
         entityConstructor: entityConstructor.name,
-      }
+      },
     );
   }
 }
 
 function assertEntityCollection<TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
-  entityCollectionData: unknown
+  entityCollectionData: unknown,
 ): asserts entityCollectionData is unknown[] {
   if (!Array.isArray(entityCollectionData)) {
     throw new EntifixBuildError(
@@ -49,7 +50,7 @@ function assertEntityCollection<TEntity extends Entity>(
       {
         entityCollectionData,
         entityConstructor: entityConstructor.name,
-      }
+      },
     );
   }
 }
@@ -58,9 +59,59 @@ function assertEntityCollection<TEntity extends Entity>(
 
 //#region Recursive deserialization
 
+function isEmbeddedData(value: unknown): value is object {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Populates a to-one relation from its raw value. An object is treated as
+ * embedded data and deserialized into an instance; any scalar is treated as a
+ * foreign key and stored as the link id (resolved lazily via `reload`).
+ */
+function populateEntityLink<TEntity extends Entity>(
+  link: EntityLink<TEntity>,
+  rawValue: unknown,
+): void {
+  if (rawValue == null) {
+    return;
+  }
+  if (isEmbeddedData(rawValue)) {
+    link.setValue(buildEntityInstance(link.entityConstructor, rawValue));
+    return;
+  }
+  link.setId(rawValue as EntityId);
+}
+
+/**
+ * Populates a to-many relation from its raw array, mixing embedded objects
+ * (deserialized) and scalar foreign keys as they appear.
+ */
+function populateEntityCollectionLink<TEntity extends Entity>(
+  link: EntityCollectionLink<TEntity>,
+  rawValue: unknown,
+): void {
+  if (!Array.isArray(rawValue)) {
+    return;
+  }
+  const values: TEntity[] = [];
+  const ids: EntityId[] = [];
+  for (const item of rawValue) {
+    if (isEmbeddedData(item)) {
+      values.push(buildEntityInstance(link.entityConstructor, item));
+    } else if (item != null) {
+      ids.push(item as EntityId);
+    }
+  }
+  if (values.length > 0) {
+    link.setValues(values);
+  } else if (ids.length > 0) {
+    link.setIds(ids);
+  }
+}
+
 function buildEntityInstance<TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
-  entityData: object
+  entityData: object,
 ): TEntity {
   const metaAccessors = extractMetaAccessors(entityConstructor);
 
@@ -73,10 +124,30 @@ function buildEntityInstance<TEntity extends Entity>(
       metaAccessor =>
         !metaAccessor.hidden &&
         !metaAccessor.readonly &&
-        metaAccessor.kind === 'getter'
+        metaAccessor.kind === 'getter',
     )
     .forEach(metaAccessor => {
       const propertyName = metaAccessor.alias ?? metaAccessor.name;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const current = (newInstance as any)[metaAccessor.name];
+
+      // Relations are pre-initialized as link instances by the entity
+      // constructor. Their accessors are read-only getters, so populate the
+      // existing link from the raw value rather than assigning through a setter.
+      if (current instanceof EntityLink) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        populateEntityLink(current, (entityData as any)[propertyName]);
+        return;
+      }
+      if (current instanceof EntityCollectionLink) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        populateEntityCollectionLink(
+          current,
+          (entityData as any)[propertyName],
+        );
+        return;
+      }
+
       if (
         propertyName in entityData &&
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,7 +165,7 @@ function buildEntityInstance<TEntity extends Entity>(
 
 function deserializeEntity<TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
-  entityData: unknown
+  entityData: unknown,
 ): TEntity | undefined {
   if (entityData == null) {
     return undefined;
@@ -106,7 +177,7 @@ function deserializeEntity<TEntity extends Entity>(
 function deserializeCollection<TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
   entityCollectionData: unknown,
-  failOnNull: boolean
+  failOnNull: boolean,
 ): DeserializedEntity<TEntity>[] {
   if (entityCollectionData == null && !failOnNull) {
     return [];
@@ -118,7 +189,7 @@ function deserializeCollection<TEntity extends Entity>(
   return entityCollectionData.map(item =>
     Array.isArray(item)
       ? deserializeCollection(entityConstructor, item, failOnNull)
-      : deserializeEntity(entityConstructor, item)
+      : deserializeEntity(entityConstructor, item),
   );
 }
 
@@ -134,7 +205,7 @@ const toEntifixBuildError =
 
 export const deserializeSingleEntity = <TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
-  entityData: unknown
+  entityData: unknown,
 ) =>
   Effect.try({
     try: () => deserializeEntity(entityConstructor, entityData),
@@ -143,28 +214,28 @@ export const deserializeSingleEntity = <TEntity extends Entity>(
       {
         entityData,
         entityConstructor: entityConstructor.name,
-      }
+      },
     ),
   });
 
 export const deserializeEntityCollection = <TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
   entityCollectionData: unknown,
-  failOnNull = false
+  failOnNull = false,
 ) =>
   Effect.try({
     try: () =>
       deserializeCollection(
         entityConstructor,
         entityCollectionData,
-        failOnNull
+        failOnNull,
       ),
     catch: toEntifixBuildError(
       `Failed to deserialize entity collection of type ${entityConstructor.name}`,
       {
         entityCollectionData,
         entityConstructor: entityConstructor.name,
-      }
+      },
     ),
   });
 

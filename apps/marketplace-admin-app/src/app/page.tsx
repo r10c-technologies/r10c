@@ -21,11 +21,11 @@ import {
   ListItem,
   Overline,
   Small,
+  type SpacingToken,
   Stack,
   Strong,
   Text,
   ThemeSwitcher,
-  type SpacingToken,
 } from '@r10c/entifix-react-controls';
 
 const SPACING_STEPS: SpacingToken[] = [

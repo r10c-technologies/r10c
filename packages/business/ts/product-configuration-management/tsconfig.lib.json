@@ -13,6 +13,9 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../../../entifix/ts/business/tsconfig.lib.json"
+    },
+    {
       "path": "../../../entifix/ts/core/tsconfig.lib.json"
     }
   ],

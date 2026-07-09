@@ -5,12 +5,8 @@ import { MetaEntity, MetaEntityOptions } from '../../meta-entities/meta-entity';
 export function entity<TEntity extends Entity>(options?: MetaEntityOptions) {
   return (
     target: EntityConstructor<TEntity>,
-    context: ClassDecoratorContext
+    context: ClassDecoratorContext,
   ) => {
-    const name = options?.name ?? target.name;
-    setMetaEntity(
-      context.metadata,
-      new MetaEntity(name, { resource: options?.resource })
-    );
+    setMetaEntity(context.metadata, new MetaEntity(target.name, options));
   };
 }

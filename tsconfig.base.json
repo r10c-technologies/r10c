@@ -5,11 +5,7 @@
     "emitDeclarationOnly": true,
     "importHelpers": true,
     "isolatedModules": true,
-    "lib": [
-      "es2022",
-      "decorators",
-      "esnext.decorators"
-    ],
+    "lib": ["es2022", "decorators", "esnext.decorators"],
     "module": "esnext",
     "moduleResolution": "bundler",
     "noEmitOnError": true,
@@ -20,8 +16,6 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
-    "customConditions": [
-      "@r10c/source"
-    ]
+    "customConditions": ["@r10c/source"]
   }
 }
