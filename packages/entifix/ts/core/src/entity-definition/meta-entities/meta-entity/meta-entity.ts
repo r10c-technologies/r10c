@@ -1,20 +1,20 @@
 export interface MetaEntityOptions {
-  name?: string;
-  resource?: string;
+  key?: string;
+  domain?: string;
 }
 
 export class MetaEntity {
   //#region Properties
-
   readonly name: string;
-  readonly resource?: string;
-
+  readonly key?: string;
+  readonly domain?: string;
   //#endregion
 
   //#region Constructors
-  constructor(name: string, options?: Pick<MetaEntityOptions, 'resource'>) {
+  constructor(name: string, options?: MetaEntityOptions) {
     this.name = name;
-    this.resource = options?.resource;
+    this.key = options?.key;
+    this.domain = options?.domain;
   }
   //#endregion
 

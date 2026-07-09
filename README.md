@@ -2,9 +2,41 @@
 
 <a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+Nx + pnpm monorepo for the **entifix** entity framework and the marketplace apps built on it. Everything is layered top-to-bottom and **dependencies only point downward**.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/next?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## Architecture at a glance
+
+```
+apps/                               ← runtime hosts (Next.js / Nest / Express mocks)
+packages/shells/{next,nest}/*       ← framework shells: pages, context providers, adapter wiring
+packages/implementation/<domain>/*  ← domain wired to a delivery mechanism (React organisms, Nest modules)
+packages/business/ts/<domain>       ← pure domain entities & use-cases (no framework)
+packages/entifix/{ts,react}/*       ← the entity framework (core / business / rest-client / react/*)
+packages/utils/ts/*                 ← generic TS helpers
+```
+
+The framework is decorator + [Effect](https://effect.website)-based:
+
+- **`entifix-ts-core`** — `@entity()` / `@accessor()` register metadata on `MetaEntity`. Domain types (`Entity`, `EntityLoadRequest`, `EntityPage`, filtering/sorting). **Entity links** (`EntityLink` / `EntityCollectionLink`) model relations as either a foreign key or embedded data, resolved lazily through an `EntityLinkResolver`.
+- **`entifix-ts-business`** — repository contracts + use-case factories over Effect. Repositories return `Effect<T, EntifixError>`; dependencies are injected as `Context.Tag`s (`EntityRepositoryTag`, `EntityLoadRequestTag`, `EntityLinkResolverTag`).
+- **`entifix-ts-rest-client`** — turns an entity into an `EntityRepository` over HTTP; link-aware deserialization builds embedded relations and records foreign keys.
+- **`entifix-react-*`** — `controls` (UI primitives), `integration` (Effect-aware hooks: `useDataLoading`, `useEntityLinkResolver`).
+
+### How a load flows (products)
+
+```
+Product (business, @entity + EntityLink brand/category)
+  └─ loadProductsUCFactory()  ── loads a page, then reloads any unresolved link via EntityLinkResolverTag
+       └─ ProductTable (implementation/react)  ── renders resolved brand/category
+            └─ ProductListClientPage (shells/next)  ── wires product REST adapter + useEntityLinkResolver
+                 └─ /catalog/product (marketplace-admin-app)
+```
+
+The same use-case runs unchanged in any environment: only the composition root swaps the adapters behind the tags (REST on the web today, Mongo on a backend later). Foreign-key vs embedded links are handled transparently — see `packages/entifix/ts/core/src/entity-definition/links`.
+
+### Catalog validation pages
+
+`marketplace-admin-app` exposes `/catalog/{product,product-brand,product-category}` (nav bar in `app/catalog/layout.tsx`) backed by the `marketplace-admin-api` mock, which serves both link shapes: product `brand` is **embedded**, product `category` is a **foreign key** resolved on demand.
 
 ## Run tasks
 
@@ -89,12 +121,13 @@ Nx Console is an editor extension that enriches your developer experience. It le
 
 Learn more:
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/next?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
+- [Learn more about this workspace setup](https://nx.dev/nx-api/next?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 - [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 - [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 - [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 
 And join the Nx community:
+
 - [Discord](https://go.nx.dev/community)
 - [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
 - [Our Youtube channel](https://www.youtube.com/@nxdevtools)

@@ -15,6 +15,7 @@ module.exports = withNx(
       '@r10c/business-ts-product-configuration-management',
       '@r10c/entifix-react-integration',
       '@r10c/entifix-ts-business',
+      '@r10c/entifix-ts-core',
       '@r10c/entifix-ts-rest-client',
       '@r10c/implementation-product-configuration-management-react',
     ],
@@ -36,5 +37,5 @@ module.exports = withNx(
         limit: 10000, // 10kB
       }),
     ],
-  }
+  },
 );

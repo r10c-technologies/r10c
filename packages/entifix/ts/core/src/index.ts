@@ -4,6 +4,8 @@ export * from './entity-definition/decorators/accessor';
 export * from './entity-definition/decorators/entity';
 export * from './entity-definition/decorators/method';
 export * from './entity-definition/helpers';
+export * from './entity-definition/links/entity-collection-link';
+export * from './entity-definition/links/entity-link';
 export * from './entity-definition/meta-entities/meta-accessor';
 export * from './entity-definition/meta-entities/meta-entity';
 export * from './entity-definition/meta-entities/meta-method';
