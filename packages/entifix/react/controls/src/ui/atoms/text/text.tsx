@@ -1,4 +1,5 @@
 import type { ComponentPropsWithoutRef, ElementType } from 'react';
+
 import { cn } from '../../utils/cn';
 
 /** Fluid type step (Utopia). Negatives taper below body for fine print. */
@@ -193,7 +194,11 @@ export function Kbd({ className, ...props }: ComponentPropsWithoutRef<'kbd'>) {
 }
 
 /** Themed anchor. */
-export function Link({ className, ...props }: ComponentPropsWithoutRef<'a'>) {
+export function Link({
+  className,
+  children,
+  ...props
+}: ComponentPropsWithoutRef<'a'>) {
   return (
     <a
       className={cn(
@@ -203,7 +208,9 @@ export function Link({ className, ...props }: ComponentPropsWithoutRef<'a'>) {
         className,
       )}
       {...props}
-    />
+    >
+      {children}
+    </a>
   );
 }
 
