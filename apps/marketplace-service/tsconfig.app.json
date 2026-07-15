@@ -2,14 +2,15 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "module": "nodenext",
-    "types": ["node"],
     "rootDir": "src",
-    "moduleResolution": "nodenext",
+    "types": ["node"],
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "target": "es2021"
+    "target": "es2022",
+    // Effect-native shell: stage-3 decorators, no legacy Nest DI. See
+    // apps/auth-service for the rationale (single decorator mode across the
+    // whole bundle; entities importable natively).
+    "experimentalDecorators": false,
+    "importHelpers": false
   },
   "include": ["src/**/*.ts"],
   "exclude": [
@@ -22,5 +23,10 @@
     "eslint.config.js",
     "eslint.config.cjs",
     "eslint.config.mjs"
+  ],
+  "references": [
+    {
+      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    }
   ]
 }

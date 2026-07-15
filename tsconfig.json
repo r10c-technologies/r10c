@@ -10,6 +10,12 @@
       "path": "./apps/marketplace-app"
     },
     {
+      "path": "./apps/auth-app-e2e"
+    },
+    {
+      "path": "./apps/auth-app"
+    },
+    {
       "path": "./packages/entifix/ts/core"
     },
     {
@@ -52,9 +58,6 @@
       "path": "./apps/marketplace-service"
     },
     {
-      "path": "./packages/implementation/product-configuration-management/nest"
-    },
-    {
       "path": "./packages/shells/next/marketplace-admin"
     },
     {
@@ -64,25 +67,31 @@
       "path": "./packages/shells/next/marketplace"
     },
     {
-      "path": "./packages/shells/nest/marketplace-service"
-    },
-    {
-      "path": "./packages/shells/nest/common"
-    },
-    {
       "path": "./packages/entifix/ts/rest-client"
     },
     {
       "path": "./packages/entifix/react/integration"
     },
     {
-      "path": "./apps/marketplace-admin-api-e2e"
+      "path": "./apps/marketplace-admin-service-e2e"
     },
     {
-      "path": "./apps/marketplace-admin-api"
+      "path": "./apps/marketplace-admin-service"
     },
     {
-      "path": "./apps/marketplace-config-api"
+      "path": "./apps/config-service"
+    },
+    {
+      "path": "./apps/auth-service-e2e"
+    },
+    {
+      "path": "./apps/auth-service"
+    },
+    {
+      "path": "./packages/business/ts/authn"
+    },
+    {
+      "path": "./packages/shells/effect/service"
     }
   ]
 }

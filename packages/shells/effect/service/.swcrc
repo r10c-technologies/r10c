@@ -1,0 +1,21 @@
+{
+  "jsc": {
+    "target": "es2017",
+    "parser": {
+      "syntax": "typescript",
+      "dynamicImport": true
+    },
+    "keepClassNames": true,
+    "externalHelpers": true,
+    "loose": true
+  },
+  "module": {
+    "type": "es6"
+  },
+  "sourceMaps": true,
+  "exclude": [
+    "jest.config.[ct]s",
+    ".*\\.spec.tsx?$",
+    ".*\\.test.tsx?$"
+  ]
+}

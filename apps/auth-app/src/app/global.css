@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+@import '@r10c/entifix-style/tokens.css';
+/* App-owned brand palettes (no shared presets — this storefront has its own). */
+@import './themes.css';
+
+/* Class detection for workspace UI packages consumed as source (@r10c/source). */
+@source '../../../../packages/entifix/react/controls/src';
+
+html {
+  -webkit-text-size-adjust: 100%;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    Segoe UI,
+    Roboto,
+    Helvetica Neue,
+    Arial,
+    Noto Sans,
+    sans-serif,
+    Apple Color Emoji,
+    Segoe UI Emoji,
+    Segoe UI Symbol,
+    Noto Color Emoji;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-surface);
+  color: var(--color-content);
+}

@@ -1,22 +1,17 @@
+import { HttpRouter } from '@effect/platform';
+import { makeService } from '@r10c/shells-effect-service';
+import { Layer } from 'effect';
+
 /**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
+ * marketplace-service — storefront backend, Effect-native (port 3100).
+ *
+ * Foundation shell: `/api/health` only, provided by the shared service base.
+ * Domain routes + Mongo Layers arrive next iteration; they compose into
+ * `router` / `appLayer` without touching this bootstrap.
  */
-
-import { Logger } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
-
-import { AppModule } from './app/app.module';
-
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const globalPrefix = 'api';
-  app.setGlobalPrefix(globalPrefix);
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  Logger.log(
-    `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
-  );
-}
-
-bootstrap();
+makeService({
+  name: '@r10c/marketplace-service',
+  port: Number(process.env.PORT) || 3100,
+  router: HttpRouter.empty,
+  appLayer: Layer.empty,
+});

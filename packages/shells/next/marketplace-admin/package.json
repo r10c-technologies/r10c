@@ -13,5 +13,14 @@
       "import": "./dist/index.esm.js",
       "default": "./dist/index.esm.js"
     }
+  },
+  "nx": {
+    "targets": {
+      "test": {
+        "options": {
+          "command": "jest --passWithNoTests"
+        }
+      }
+    }
   }
 }

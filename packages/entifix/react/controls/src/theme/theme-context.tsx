@@ -2,13 +2,14 @@
 
 import {
   createContext,
+  type PropsWithChildren,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type PropsWithChildren,
 } from 'react';
+
 import type { ThemeContextValue, ThemeOption, ThemePalette } from './types';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -51,9 +52,13 @@ export function ThemeProvider({
     [themes],
   );
 
-  // Hydrate from a previously stored preference on mount.
+  // Hydrate from a previously stored preference on mount. This intentionally
+  // runs in an effect (not a lazy initializer): localStorage is unavailable
+  // during SSR, so the server renders `initial` and the client corrects after
+  // mount — reading it in render would cause a hydration mismatch.
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot SSR-safe hydration, see comment above
     if (isKnown(stored)) setThemeState(stored);
   }, [storageKey, isKnown]);
 

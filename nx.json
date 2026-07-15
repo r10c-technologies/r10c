@@ -59,7 +59,8 @@
       },
       "exclude": [
         "apps/marketplace-service-e2e/**/*",
-        "apps/marketplace-admin-api-e2e/**/*"
+        "apps/marketplace-admin-api-e2e/**/*",
+        "apps/auth-api-e2e/**/*"
       ]
     },
     {
@@ -93,6 +94,14 @@
         "typecheckTargetName": "typecheck",
         "buildDepsTargetName": "build-deps",
         "watchDepsTargetName": "watch-deps"
+      }
+    },
+    {
+      "plugin": "@nx/vitest",
+      "options": {
+        "testTargetName": "test",
+        "ciTargetName": "test-ci",
+        "testMode": "watch"
       }
     }
   ],

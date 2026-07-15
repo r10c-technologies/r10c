@@ -9,12 +9,16 @@ Nx 22 monorepo with pnpm workspaces. Pinned versions: **Node 25.1**, **pnpm 10.2
 ## Common commands
 
 ```sh
-# Run a Next.js app's dev server (or any inferred dev target)
-pnpm nx dev marketplace-app
-pnpm nx dev marketplace-admin-app
+# Run a Next.js app's dev server (ports pinned: app 300N)
+pnpm nx dev marketplace-app          # :3000
+pnpm nx dev marketplace-admin-app    # :3001 (auto-starts marketplace-admin-service + config-service)
+pnpm nx dev auth-app                 # :3002
 
-# Run the NestJS service (build + node serve, dev config by default)
-pnpm nx serve marketplace-service
+# Run an Effect-native service (build + node serve; port 310N / 319x)
+pnpm nx serve marketplace-service       # :3100
+pnpm nx serve marketplace-admin-service # :3101
+pnpm nx serve auth-service              # :3102
+pnpm nx serve config-service            # :3190
 
 # Build / typecheck / lint a single project
 pnpm nx build <project>
@@ -26,7 +30,7 @@ pnpm nx test <project>                        # all tests in one project
 pnpm nx test <project> -- <pattern>           # single test by name/file pattern
 pnpm nx test <project> -- --watch
 
-# E2E (Playwright for Next apps, Jest for nest)
+# E2E (Playwright for Next apps, Jest for services)
 pnpm nx e2e marketplace-app-e2e
 pnpm nx e2e marketplace-admin-app-e2e
 pnpm nx e2e marketplace-service-e2e
@@ -60,9 +64,9 @@ Commits must follow Conventional Commits with Nx scopes (`@commitlint/config-nx-
 The repo is layered top-to-bottom; **dependencies only point downward**. Library names in package.json are `@r10c/<area>-<lang>-<name>` and that name encodes the layer.
 
 ```
-apps/                               ← runtime hosts (Next.js / Nest)
-  shells/{next,nest}/*              ← framework-specific shells (UI pages, modules, adapter wiring)
-  implementation/<domain>/{react,nest}  ← domain wired to a delivery mechanism (UI organisms, Nest modules)
+apps/                               ← runtime hosts (Next.js frontends / Effect services)
+  shells/{next,effect}/*            ← framework shells (Next pages+adapters / the effect-service base)
+  implementation/<domain>/react     ← domain wired to a delivery mechanism (React UI organisms)
   business/ts/<domain>              ← pure domain entities & use-cases (no framework)
   entifix/{ts,react}/*              ← in-house entity framework (core / business / rest-client / react/*)
   utils/ts/*                        ← generic TS helpers (array, date, object, type)
@@ -108,7 +112,7 @@ Resolution is an Effect that requires a resolver, injected so it stays environme
 
 The shell calls `loadUCFactory<ProductCategory>()` from `entifix-ts-business`, pulls the REST-backed `productCategoryRest` adapter from `MarketplaceAdminContext`, and hands both to the organism, which uses `useDataLoading` to run the Effect.
 
-The `Product` flow additionally exercises links: `loadProductsUCFactory()` → `ProductTable` (renders resolved `brand`/`category`) → `ProductListClientPage` (wires `productRest` + `useEntityLinkResolver([[ProductBrand, productBrandRest], [ProductCategory, productCategoryRest]])`) → `/catalog/product`. The three catalog pages (`product`, `product-brand`, `product-category`) share `app/catalog/layout.tsx` (nav bar) and are backed by the `marketplace-admin-api` mock (product `brand` embedded, `category` a foreign key).
+The `Product` flow additionally exercises links: `loadProductsUCFactory()` → `ProductTable` (renders resolved `brand`/`category`) → `ProductListClientPage` (wires `productRest` + `useEntityLinkResolver([[ProductBrand, productBrandRest], [ProductCategory, productCategoryRest]])`) → `/catalog/product`. The three catalog pages (`product`, `product-brand`, `product-category`) share `app/catalog/layout.tsx` (nav bar) and are backed by `marketplace-admin-service` (:3101, seed catalog data; product `brand` embedded, `category` a foreign key).
 
 When adding a new domain entity, the layered path is: define the entity in `business/ts/<domain>` (decorate with `@entity`/`@accessor`, model relations with `EntityLink`), then build the UI organism in `implementation/<domain>/react`, wire the page in `shells/next/<shell>`, and register the adapter (and any link resolver registrations) in the shell.
 
@@ -126,9 +130,28 @@ Library builds use `@nx/js:swc` (TS-only libs, e.g. `business-ts-product-configu
 
 ### Apps
 
-- `marketplace-app`, `marketplace-admin-app` — Next.js 15 (App Router, React 19, Tailwind). The interesting code lives in the shell packages; apps mostly compose pages.
-- `marketplace-service` — NestJS 11 service, built with webpack via the explicit `build` target (it does **not** use the inferred Nx executor); has additional `prune-lockfile` / `copy-workspace-modules` / `prune` targets that produce a deployable artifact in `dist/`.
-- `*-e2e` projects use Playwright for Next apps and Jest (`supertest`) for the Nest service.
+Frontends are Next.js (App Router, React 19, Tailwind); backends are **Effect-native** services built on the shared `@r10c/shells-effect-service` base (`@effect/platform` HTTP server, `/api/health`, `Layer`/`ManagedRuntime` DI, graceful shutdown). There is **no Nest**: DI is Effect Layers, so a missing dependency is a compile error. Backends compile stage-3 (matching entifix), so they import entity classes natively — see [[node-service-consuming-entifix-libs]].
+
+- Frontends (`-app`): `marketplace-app`, `marketplace-admin-app`, `auth-app`.
+- Backends (`-service`): `marketplace-service`, `marketplace-admin-service`, `auth-service`, plus the cross-cutting `config-service`. The deployable ones keep the explicit webpack `build` + `prune-lockfile` / `copy-workspace-modules` / `prune` targets.
+- `*-e2e` projects use Playwright for Next apps and Jest for services.
+
+#### App & port convention
+
+`-app` frontends bind **300N**; `-service` backends bind **310N**; cross-cutting/platform services use **319x**. The domain index `N` is shared across a frontend/backend pair. Frontends resolve their backend URL through `config-service` (`GET /api/config/:service`, env `SERVICE__GROUP__KEY`); they never hardcode it. Infra (see `infra/local`) exposes minikube NodePorts at `30000 +` the service's canonical port.
+
+| Domain (`N`) | `-app` | `-service` |
+|---|---|---|
+| marketplace (0) | 3000 | 3100 |
+| marketplace-admin (1) | 3001 | 3101 |
+| auth (2) | 3002 | 3102 |
+| — platform — | | config-service 3190 |
+
+Adding a domain = next index → `300N` / `310N`, plus one line in `config-service`'s `.env`.
+
+### Local infrastructure (`infra/local`)
+
+Minikube platform (MongoDB, Redis, PostgreSQL, Zitadel) as per-platform kustomize folders. Postgres exists to back **Zitadel** (which requires it). Secrets are never committed: a kustomize `secretGenerator` reads a git-ignored `.env` (committed `.env.example` holds LOCAL DEV ONLY defaults); `infra/local/apply.sh` generates the Zitadel master key. Bring it up with `minikube start --ports …` then `infra/local/apply.sh`.
 
 ## Notes for code changes
 

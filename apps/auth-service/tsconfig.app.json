@@ -1,0 +1,42 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["node"],
+    "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo",
+    "target": "es2022",
+    // Stage-3 (TC39 standard) decorators — the SAME mode entifix compiles with.
+    // Deliberately NO experimentalDecorators / emitDecoratorMetadata: this shell
+    // never uses legacy param-decorator DI (that is Nest's requirement), so it
+    // can import entity classes from `@r10c/business-ts-authn` (root barrel,
+    // decorators and all) with zero recompile conflict.
+    "experimentalDecorators": false,
+    // Inline SWC/TS helpers instead of importing tslib — avoids the
+    // `Cannot destructure '__extends'` runtime crash when bundling lib source.
+    "importHelpers": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "jest.config.ts",
+    "jest.config.cts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "eslint.config.js",
+    "eslint.config.cjs",
+    "eslint.config.mjs"
+  ],
+  "references": [
+    {
+      "path": "../../packages/entifix/ts/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/business/ts/authn/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    }
+  ]
+}

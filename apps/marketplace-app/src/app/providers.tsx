@@ -1,6 +1,6 @@
 'use client';
 
-import { ThemeProvider, type ThemeOption } from '@r10c/entifix-react-controls';
+import { type ThemeOption,ThemeProvider } from '@r10c/entifix-react-controls';
 import type { PropsWithChildren } from 'react';
 
 // Storefront's own brand set (values in ./themes.css). Distinct from admin's.

@@ -1,0 +1,36 @@
+{
+  "name": "@r10c/auth-app",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@r10c/entifix-react-controls": "workspace:*",
+    "@r10c/entifix-style": "workspace:*",
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "nx": {
+    "targets": {
+      "dev": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "next dev -p 3002",
+          "cwd": "apps/auth-app"
+        }
+      },
+      "start": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "next start -p 3002",
+          "cwd": "apps/auth-app"
+        }
+      },
+      "dev-w-deps": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm nx run-many --projects=auth-app --target=watch-deps,dev --parallel"
+        }
+      }
+    }
+  }
+}

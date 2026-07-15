@@ -34,6 +34,16 @@ yarn-error.log
 testem.log
 /typings
 
+# Environment / secrets — never commit real .env, only .env.example templates
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Claude Code local artifacts (shared settings.json may be committed explicitly)
+.claude/settings.local.json
+.claude/council-cache/
+
 # System Files
 .DS_Store
 Thumbs.db
