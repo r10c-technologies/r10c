@@ -8,7 +8,7 @@ packages:
   - 'packages/implementation/product-configuration-management/*'
   - 'implementation/product-configuration-management/*'
   - 'packages/shells/next/*'
-  - 'packages/shells/nest/*'
+  - 'packages/shells/effect/*'
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false
@@ -16,6 +16,7 @@ allowBuilds:
   core-js: false
   core-js-pure: false
   less: false
+  msgpackr-extract: false
   nx: false
   sharp: false
   unrs-resolver: false
@@ -32,6 +33,6 @@ minimumReleaseAgeExclude:
   - '@typescript-eslint/typescript-estree@8.62.1'
   - '@typescript-eslint/utils@8.62.1'
   - '@typescript-eslint/visitor-keys@8.62.1'
-  - prettier@3.9.3
-  - tailwindcss@4.3.2
-  - typescript-eslint@8.62.1
+  - 'prettier@3.9.3'
+  - 'tailwindcss@4.3.2'
+  - 'typescript-eslint@8.62.1'

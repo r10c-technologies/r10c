@@ -1,0 +1,25 @@
+{
+  "jsc": {
+    "target": "es2022",
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true,
+      "dynamicImport": true
+    },
+    "transform": {
+      "decoratorVersion": "2022-03"
+    },
+    "keepClassNames": true,
+    "externalHelpers": false,
+    "loose": true
+  },
+  "module": {
+    "type": "es6"
+  },
+  "sourceMaps": true,
+  "exclude": [
+    "jest.config.[ct]s",
+    ".*\\.spec.tsx?$",
+    ".*\\.test.tsx?$"
+  ]
+}

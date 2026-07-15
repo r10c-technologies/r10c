@@ -12,15 +12,27 @@
   "nx": {
     "targets": {
       "dev": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "next dev -p 3001",
+          "cwd": "apps/marketplace-admin-app"
+        },
         "dependsOn": [
           {
             "projects": [
-              "@r10c/marketplace-admin-api",
-              "@r10c/marketplace-config-api"
+              "@r10c/marketplace-admin-service",
+              "@r10c/config-service"
             ],
             "target": "serve"
           }
         ]
+      },
+      "start": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "next start -p 3001",
+          "cwd": "apps/marketplace-admin-app"
+        }
       },
       "dev-w-deps": {
         "executor": "nx:run-commands",

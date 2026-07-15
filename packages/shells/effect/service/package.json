@@ -1,0 +1,42 @@
+{
+  "name": "@r10c/shells-effect-service",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "nx": {
+    "sourceRoot": "packages/shells/effect/service/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/effect/service/dist",
+          "main": "packages/shells/effect/service/src/index.ts",
+          "tsConfig": "packages/shells/effect/service/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@swc/helpers": "0.5.23",
+    "@effect/platform": "0.96.2",
+    "@effect/platform-node": "0.107.0",
+    "effect": "3.21.4"
+  }
+}

@@ -22,7 +22,7 @@ import type { MarketplaceAdminAdapters } from '../client-types';
 
 const restOptions: BuildEntityRestOptions = {
   uriConfig: {
-    key: 'marketplace-admin-api-domain.[entity]',
+    key: 'marketplace-admin-service-domain.[entity]',
     group: 'uri',
     extractionMode: 'compose',
   },

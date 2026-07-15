@@ -7,13 +7,23 @@ Nx + pnpm monorepo for the **entifix** entity framework and the marketplace apps
 ## Architecture at a glance
 
 ```
-apps/                               ← runtime hosts (Next.js / Nest / Express mocks)
-packages/shells/{next,nest}/*       ← framework shells: pages, context providers, adapter wiring
-packages/implementation/<domain>/*  ← domain wired to a delivery mechanism (React organisms, Nest modules)
+apps/                               ← runtime hosts (Next.js frontends / Effect-native services)
+packages/shells/{next,effect}/*     ← framework shells: Next pages+adapters / the effect-service base
+packages/implementation/<domain>/*  ← domain wired to a delivery mechanism (React organisms)
 packages/business/ts/<domain>       ← pure domain entities & use-cases (no framework)
 packages/entifix/{ts,react}/*       ← the entity framework (core / business / rest-client / react/*)
 packages/utils/ts/*                 ← generic TS helpers
 ```
+
+Backends are **Effect-native** (no Nest): they compose `@r10c/shells-effect-service`
+(`@effect/platform` HTTP + `/api/health` + `Layer` DI + graceful shutdown) and
+compile stage-3 like entifix, so they import entity classes natively.
+
+**Apps & ports** — frontends `-app` bind `300N`, backends `-service` bind `310N`,
+platform services `319x`; the domain index `N` is shared per pair (0 marketplace,
+1 marketplace-admin, 2 auth). Frontends resolve their backend URL through
+`config-service` (`:3190`), never hardcoded. Local infra (MongoDB, Redis,
+PostgreSQL, Zitadel) runs on minikube — see [`infra/local`](infra/local/README.md).
 
 The framework is decorator + [Effect](https://effect.website)-based:
 
@@ -36,7 +46,7 @@ The same use-case runs unchanged in any environment: only the composition root s
 
 ### Catalog validation pages
 
-`marketplace-admin-app` exposes `/catalog/{product,product-brand,product-category}` (nav bar in `app/catalog/layout.tsx`) backed by the `marketplace-admin-api` mock, which serves both link shapes: product `brand` is **embedded**, product `category` is a **foreign key** resolved on demand.
+`marketplace-admin-app` exposes `/catalog/{product,product-brand,product-category}` (nav bar in `app/catalog/layout.tsx`) backed by `marketplace-admin-service` (:3101), which serves both link shapes: product `brand` is **embedded**, product `category` is a **foreign key** resolved on demand.
 
 ## Run tasks
 

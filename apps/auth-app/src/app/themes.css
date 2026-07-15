@@ -1,0 +1,36 @@
+/*
+ * auth-app brand palettes — app-local, not shared.
+ * Override the color contract from @r10c/entifix-style/tokens.css. This is the
+ * per-app personalization surface: same semantic token names, storefront brand.
+ */
+
+/* Auth — emerald storefront brand (light). */
+[data-theme='auth'] {
+  --color-surface: #f3faf6;
+  --color-surface-elevated: #ffffff;
+  --color-content: #10241b;
+  --color-content-muted: #4e6b5e;
+  --color-primary: #0f9d58;
+  --color-primary-content: #ffffff;
+  --color-border: #cfe8db;
+  --color-accent: #d97706;
+}
+
+/* Auth dark. */
+[data-theme='auth-dark'] {
+  color-scheme: dark;
+  --color-surface: #0c1712;
+  --color-surface-elevated: #14231b;
+  --color-content: #e7f4ec;
+  --color-content-muted: #92b0a1;
+  --color-primary: #2fbd77;
+  --color-primary-content: #06120c;
+  --color-border: #234034;
+  --color-accent: #f59e0b;
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-card:
+    0 8px 24px -6px rgb(0 0 0 / 0.55), 0 2px 8px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 20px 48px -12px rgb(0 0 0 / 0.65);
+}

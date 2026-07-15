@@ -1,0 +1,4 @@
+# Local infra credentials — never commit real secret material.
+# Each platform ships a committed .env.example; developers copy it to .env
+# (done automatically by apply.sh). The real .env stays out of git.
+**/.env

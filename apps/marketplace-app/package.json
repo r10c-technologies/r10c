@@ -11,6 +11,20 @@
   },
   "nx": {
     "targets": {
+      "dev": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "next dev -p 3000",
+          "cwd": "apps/marketplace-app"
+        }
+      },
+      "start": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "next start -p 3000",
+          "cwd": "apps/marketplace-app"
+        }
+      },
       "dev-w-deps": {
         "executor": "nx:run-commands",
         "options": {
