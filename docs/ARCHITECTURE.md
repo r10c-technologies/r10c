@@ -4,9 +4,12 @@
 > framework (entifix), the product-catalog and authn domains, the Next.js
 > frontends, and the Effect-native backends are all in place. Backends are now
 > wired to real datastores: **config-service → PostgreSQL**, **marketplace-admin-service**
-> and **auth-service → MongoDB**. Only the `load`/`get` read paths are exercised
-> end-to-end today; `save`/`delete` exist on the adapters but have no UI/route yet.
-> Zitadel/session auth is still a stub.
+> and **auth-service → MongoDB**. **Full CRUD** runs end-to-end for the
+> marketplace-admin catalog: `load`/`get`/`save`/`delete` over REST on the web and
+> Mongo on the backend, with every message framed as an
+> [EntifixEnvelope](./ENTIFIX.md#6-the-envelope-is-the-message). auth-service is
+> still on the pre-envelope wire shape (read-only, no client consumes it through
+> the REST adapters). Zitadel/session auth is still a stub.
 
 ## Layering
 
@@ -38,10 +41,13 @@ The core idea is **environment-agnostic use-cases**, wired with the
    `get` / `load` / `save` / `delete`, each returning `Effect<T, EntifixError, …>`.
    It is exposed as a `Context.Tag` — `EntityRepositoryTag`.
 
-2. **Use-case** — a factory such as `loadUCFactory<T>()` returns an `Effect.gen`
-   that *yields* the tags it needs (`EntityRepositoryTag`, `EntityLoadRequestTag`,
-   and for link-following loads `EntityLinkResolverTag`) and calls the repository.
-   It imports **no framework and no transport** — only contracts and Effect.
+2. **Use-case** — all four are factories (`loadUCFactory<T>()`, `getUCFactory<T>()`,
+   `saveUCFactory<T>()`, `deleteUCFactory<T>()`) returning an `Effect.gen` that
+   *yields* the tags it needs — `EntityRepositoryTag` plus a per-call input tag
+   (`EntityLoadRequestTag`, `EntityIdTag`, `EntityTag`), and for link-following
+   loads `EntityLinkResolverTag`. They import **no framework and no transport** —
+   only contracts and Effect. The type parameter is what lets a caller get a
+   typed entity back: the input tags carry no entity type of their own.
 
 3. **Adapter** — a concrete `EntityRepository`:
    - `entifix-ts-rest-client` — `buildEntityRestAdapter*` over HTTP (the web).

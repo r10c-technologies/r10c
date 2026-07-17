@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import type { EntityRepository } from '@r10c/entifix-ts-business';
 import {
   deserializeEntityCollection,
@@ -114,14 +116,19 @@ export function makeMongoRepository<TEntity extends Entity>(
         entityConstructor,
         entity as unknown as TEntity,
       );
-      const id = entity.id;
+      // A create arrives without an id, so the store mints one. Entities are
+      // addressed by their own `id` field (never Mongo's `_id`, which reads
+      // project away), so an inserted document without one would be
+      // unreachable by `get` and by any later `replaceOne`.
+      const id = entity.id ?? randomUUID();
       yield* Effect.tryPromise({
+        // `doc` omits `id` when it was undefined (the serializer drops
+        // undefined), hence spreading the resolved id back in.
         try: () =>
-          id == null
-            ? collection.insertOne({ ...doc })
-            : collection.replaceOne({ id }, doc, { upsert: true }),
+          collection.replaceOne({ id }, { ...doc, id }, { upsert: true }),
         catch: error => fail('Failed to save entity to MongoDB', error, { id }),
       });
+      entity.id = id;
       return entity;
     });
 

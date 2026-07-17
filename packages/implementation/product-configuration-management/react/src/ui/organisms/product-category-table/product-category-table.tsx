@@ -3,10 +3,10 @@ import { useDataLoading } from '@r10c/entifix-react-integration';
 
 import type { ProductCategoryTableProps } from './product-category-table.types';
 
-export function ProductCategoryTable({ ctx, uc }: ProductCategoryTableProps) {
+export function ProductCategoryTable({ ctx, uc, hrefFor, newHref }: ProductCategoryTableProps) {
   const pager = useDataLoading({
     uc,
     ctx,
   });
-  return <Table {...pager} />;
+  return <Table {...pager} hrefFor={hrefFor} newHref={newHref} />;
 }

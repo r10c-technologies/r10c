@@ -43,6 +43,8 @@ export function Table<TEntity extends Entity>({
   currentPage,
   pageSize,
   onPageChange,
+  hrefFor,
+  newHref,
 }: TableProps<TEntity>) {
   const columns = items.length > 0 ? getColumns(items[0] as object) : [];
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -52,6 +54,11 @@ export function Table<TEntity extends Entity>({
   return (
     <div>
       {isLoading && <div>Loading…</div>}
+      {newHref && (
+        <div>
+          <a href={newHref}>New</a>
+        </div>
+      )}
       <table>
         <thead>
           <tr>
@@ -60,6 +67,7 @@ export function Table<TEntity extends Entity>({
                 {column}
               </th>
             ))}
+            {hrefFor && <th style={{ textAlign: 'left' }}>actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -70,6 +78,11 @@ export function Table<TEntity extends Entity>({
                   {String((item as Record<string, unknown>)[column] ?? '')}
                 </td>
               ))}
+              {hrefFor && (
+                <td>
+                  <a href={hrefFor(item.id)}>Go</a>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

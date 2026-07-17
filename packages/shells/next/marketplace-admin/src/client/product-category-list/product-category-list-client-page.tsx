@@ -12,5 +12,12 @@ export function ProductCategoryListClientPage() {
   const uc = loadUCFactory<ProductCategory>();
   const ctx = Context.merge(configurationStore, productCategoryRest);
 
-  return <ProductCategoryTable ctx={ctx} uc={uc} />;
+  return (
+    <ProductCategoryTable
+      ctx={ctx}
+      uc={uc}
+      hrefFor={id => `/catalog/product-category/${String(id)}`}
+      newHref="/catalog/product-category/new"
+    />
+  );
 }

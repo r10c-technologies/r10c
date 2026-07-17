@@ -5,11 +5,15 @@ import {
   EntityLoadRequestTag,
   EntityRepositoryTag,
 } from '@r10c/entifix-ts-business';
-import { EntifixError, EntityPage } from '@r10c/entifix-ts-core';
+import { EntifixError, EntityId, EntityPage } from '@r10c/entifix-ts-core';
 import type { Context } from 'effect/Context';
 import type { Effect } from 'effect/Effect';
 
 export interface ProductTableProps {
+  /** Link builder for a row's record. */
+  hrefFor?: (id: EntityId) => string;
+  /** Link to the create form. */
+  newHref?: string;
   uc: Effect<
     EntityPage<Product>,
     EntifixError,

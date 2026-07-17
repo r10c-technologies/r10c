@@ -3,12 +3,11 @@ import {
   Entity,
   EntityConstructor,
   extractMetaEntity,
+  readEntityEnvelope,
 } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 
 import { performHttpRequestThroughFetch } from '../../../clients/fetch';
-import { HttpRequest } from '../../../clients/types';
-import { deserializeSingleEntity } from '../../../serializer/deserialize';
 import { buildEntityRestAdapterMixins as adapterMixins } from '../build-entity-rest-adapter-mixins';
 import { BuildEntityRestOptions } from '../types';
 
@@ -29,15 +28,13 @@ export const buildEntityRestAdapterGet =
         entityId,
       );
 
-      const request: HttpRequest = {
-        method: 'GET',
-        url: entityUrl,
-      };
-
-      const response = yield* performHttpRequestThroughFetch(request);
-      const entity = yield* deserializeSingleEntity(
+      const response = yield* performHttpRequestThroughFetch(
+        adapterMixins.buildEntityRequest({ method: 'GET', url: entityUrl }),
+      );
+      const entity = yield* readEntityEnvelope(
         entityConstructor,
         response.body,
       );
+
       return entity as unknown as TEntity;
     });

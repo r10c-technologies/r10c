@@ -32,5 +32,12 @@ export function ProductListClientPage() {
     entityLinkResolver
   );
 
-  return <ProductTable ctx={ctx} uc={uc} />;
+  return (
+    <ProductTable
+      ctx={ctx}
+      uc={uc}
+      hrefFor={id => `/catalog/product/${String(id)}`}
+      newHref="/catalog/product/new"
+    />
+  );
 }

@@ -5,19 +5,13 @@ import {
   EntityLoadRequest,
   EntityPage,
   extractMetaEntity,
+  readEntityPageEnvelope,
 } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 
 import { performHttpRequestThroughFetch } from '../../../clients/fetch';
-import { HttpRequest } from '../../../clients/types';
-import { deserializeEntityCollection } from '../../../serializer/deserialize';
 import { buildEntityRestAdapterMixins as adapterMixins } from '../build-entity-rest-adapter-mixins';
 import { BuildEntityRestOptions } from '../types';
-
-interface EntityPageResponseBody {
-  items: unknown[];
-  total: number;
-}
 
 export const buildEntityRestAdapterLoad =
   <TEntity extends Entity>(
@@ -45,23 +39,18 @@ export const buildEntityRestAdapterLoad =
       const query = params.toString();
       const url = query ? `${baseUrl}?${query}` : baseUrl;
 
-      const httpRequest: HttpRequest = {
-        method: 'GET',
-        url,
-      };
-
-      const response =
-        yield* performHttpRequestThroughFetch<EntityPageResponseBody>(
-          httpRequest,
-        );
-      const items = yield* deserializeEntityCollection(
-        entityConstructor as unknown as EntityConstructor<TEntity>,
-        response.body.items,
+      const response = yield* performHttpRequestThroughFetch(
+        adapterMixins.buildEntityRequest({ method: 'GET', url }),
+      );
+      const page = yield* readEntityPageEnvelope(
+        entityConstructor,
+        response.body,
       );
 
+      // The envelope echoes the request the service actually served; prefer the
+      // one this call made, which carries the caller's filtering/sorting types.
       return {
-        items,
-        total: response.body.total,
+        ...page,
         request,
       } as unknown as EntityPage<TEntity>;
     });

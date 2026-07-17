@@ -15,7 +15,7 @@ import type { ProductTableProps } from './product-table.types';
  * resolved `value`, demonstrating that a link looks the same to the UI
  * regardless of how it was represented in the payload.
  */
-export function ProductTable({ ctx, uc }: ProductTableProps) {
+export function ProductTable({ ctx, uc, hrefFor, newHref }: ProductTableProps) {
   const { items, isLoading, currentPage, pageSize, totalItems, onPageChange } =
     useDataLoading<
       Product,
@@ -27,6 +27,11 @@ export function ProductTable({ ctx, uc }: ProductTableProps) {
   return (
     <div>
       {isLoading && <div>Loading…</div>}
+      {newHref && (
+        <div>
+          <a href={newHref}>New</a>
+        </div>
+      )}
       <table>
         <thead>
           <tr>
@@ -35,6 +40,7 @@ export function ProductTable({ ctx, uc }: ProductTableProps) {
             <th style={{ textAlign: 'left' }}>name</th>
             <th style={{ textAlign: 'left' }}>brand (embedded)</th>
             <th style={{ textAlign: 'left' }}>category (foreign key)</th>
+            {hrefFor && <th style={{ textAlign: 'left' }}>actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -48,6 +54,11 @@ export function ProductTable({ ctx, uc }: ProductTableProps) {
                 {product.category.value?.name ??
                   String(product.category.id ?? '')}
               </td>
+              {hrefFor && (
+                <td>
+                  <a href={hrefFor(product.id)}>Go</a>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
