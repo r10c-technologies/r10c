@@ -12,5 +12,12 @@ export function ProductBrandListClientPage() {
   const uc = loadUCFactory<ProductBrand>();
   const ctx = Context.merge(configurationStore, productBrandRest);
 
-  return <ProductBrandTable ctx={ctx} uc={uc} />;
+  return (
+    <ProductBrandTable
+      ctx={ctx}
+      uc={uc}
+      hrefFor={id => `/catalog/product-brand/${String(id)}`}
+      newHref="/catalog/product-brand/new"
+    />
+  );
 }

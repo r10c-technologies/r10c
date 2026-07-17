@@ -7,8 +7,7 @@
       "dynamicImport": true
     },
     "transform": {
-      "decoratorMetadata": true,
-      "legacyDecorator": true
+      "decoratorVersion": "2022-03"
     },
     "keepClassNames": true,
     "externalHelpers": true,

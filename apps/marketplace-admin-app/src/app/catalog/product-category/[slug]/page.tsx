@@ -1,3 +1,5 @@
+'use client';
+
 import { ProductCategorySingleViewClientPage } from '@r10c/shells-next-marketplace-admin';
 
 function ProductCategoryCatalogPage() {

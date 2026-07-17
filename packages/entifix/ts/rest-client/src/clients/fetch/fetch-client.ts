@@ -4,7 +4,7 @@ import { Effect } from 'effect';
 import { HttpRequest, HttpResponse } from '../types';
 
 export const performHttpRequestThroughFetch = <TResponseBody>(
-  request: HttpRequest
+  request: HttpRequest<unknown>
 ) =>
   Effect.gen(function* () {
     // Perform the HTTP request using the Fetch API

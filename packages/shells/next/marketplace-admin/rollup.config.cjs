@@ -12,6 +12,11 @@ module.exports = withNx(
       'react',
       'react-dom',
       'react/jsx-runtime',
+      // Must resolve to the host app's copy: the App Router's hooks read a React
+      // context that only the app's own module instance is mounted against.
+      // Bundling a second copy makes useRouter throw "expected app router to be
+      // mounted".
+      'next/navigation',
       '@r10c/business-ts-product-configuration-management',
       '@r10c/entifix-react-integration',
       '@r10c/entifix-ts-business',

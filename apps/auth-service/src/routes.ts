@@ -13,7 +13,7 @@ import {
   EntityIdTag,
   EntityLoadRequestTag,
   EntityRepositoryTag,
-  getUC,
+  getUCFactory,
   loadUCFactory,
 } from '@r10c/entifix-ts-business';
 import {
@@ -78,7 +78,7 @@ const byIdRoute = <T extends Entity>(
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
     const params = yield* HttpRouter.params;
-    const entity = yield* getUC.pipe(
+    const entity = yield* getUCFactory<T>().pipe(
       Effect.provideService(
         EntityRepositoryTag,
         makeMongoRepository(db, entityConstructor)
@@ -86,7 +86,7 @@ const byIdRoute = <T extends Entity>(
       Effect.provideService(EntityIdTag, params.id)
     );
     return yield* HttpServerResponse.json(
-      serializeEntity(entityConstructor, entity as unknown as T)
+      serializeEntity(entityConstructor, entity)
     );
   }).pipe(
     Effect.catchAll(() =>

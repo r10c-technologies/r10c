@@ -4,7 +4,7 @@ import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@r10c/entifix-ts-business';
-import { EntifixError,EntityPage } from '@r10c/entifix-ts-core';
+import { EntifixError, EntityId, EntityPage } from '@r10c/entifix-ts-core';
 import type { Context } from 'effect/Context';
 import type { Effect } from 'effect/Effect';
 
@@ -15,4 +15,8 @@ export interface ProductCategoryTableProps {
     EntityLoadRequestTag | EntityRepositoryTag | ConfigurationRepositoryTag
   >;
   ctx: Context<EntityRepositoryTag | ConfigurationRepositoryTag>;
+  /** Link builder for a row's record; forwarded to the generic Table. */
+  hrefFor?: (id: EntityId) => string;
+  /** Link to the create form. */
+  newHref?: string;
 }
