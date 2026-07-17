@@ -4,12 +4,24 @@
   "private": true,
   "nx": {
     "targets": {
-      "serve": {
+      "ensure-infra": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash infra/local/ensure.sh"
+        }
+      },
+      "dev": {
         "continuous": true,
         "executor": "@nx/js:node",
         "defaultConfiguration": "development",
         "dependsOn": [
-          "build"
+          "build",
+          "ensure-infra",
+          {
+            "projects": "@r10c/config-service",
+            "target": "dev"
+          }
         ],
         "options": {
           "buildTarget": "@r10c/auth-service:build",
@@ -33,11 +45,14 @@
   },
   "dependencies": {
     "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-mongo-client": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@effect/platform": "0.96.2",
     "@effect/platform-node": "0.107.0",
     "effect": "3.21.4",
+    "mongodb": "6.12.0",
     "tslib": "2.8.1"
   }
 }

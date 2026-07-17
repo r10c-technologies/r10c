@@ -28,6 +28,8 @@ module.exports = {
         'effect',
         '@effect/platform',
         '@effect/platform-node',
+        '@effect/sql',
+        '@effect/sql-pg',
         'dotenv',
         'tslib',
       ],

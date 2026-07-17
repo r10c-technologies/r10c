@@ -9,6 +9,7 @@ export * from './entity-definition/links/entity-link';
 export * from './entity-definition/meta-entities/meta-accessor';
 export * from './entity-definition/meta-entities/meta-entity';
 export * from './entity-definition/meta-entities/meta-method';
+export * from './entity-definition/serializer';
 export * from './types/Entity';
 export * from './types/EntityFiltering';
 export * from './types/EntityLoadRequest';

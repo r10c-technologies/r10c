@@ -23,7 +23,7 @@
               "@r10c/marketplace-admin-service",
               "@r10c/config-service"
             ],
-            "target": "serve"
+            "target": "dev"
           }
         ]
       },

@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@swc/helpers": "0.5.23",
+    "@r10c/entifix-ts-core": "workspace:*",
     "@effect/platform": "0.96.2",
     "@effect/platform-node": "0.107.0",
     "effect": "3.21.4"

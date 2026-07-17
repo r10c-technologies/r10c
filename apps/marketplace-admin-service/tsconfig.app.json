@@ -24,6 +24,18 @@
   "references": [
     {
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/business/ts/product-configuration-management/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/business/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/mongo-client/tsconfig.lib.json"
     }
   ]
 }
