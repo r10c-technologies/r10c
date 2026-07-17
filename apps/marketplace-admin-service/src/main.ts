@@ -1,18 +1,19 @@
 import { makeService } from '@r10c/shells-effect-service';
-import { Layer } from 'effect';
 
+import { AppLayer } from './mongo';
 import { router } from './routes';
 
 /**
  * marketplace-admin-service — admin catalog backend, Effect-native (port 3101).
  *
- * Foundation shell: serves seed catalog data (product / brand / category) so
- * the admin app keeps working; Mongo Layers replace the in-memory arrays next
- * iteration without changing the route surface.
+ * Serves the catalog (product / brand / category) from MongoDB through the
+ * entifix use-cases. Mongo connection settings are resolved from config-service
+ * at boot; collections are seeded on first run. The route surface is unchanged
+ * so the admin app is unaffected.
  */
 makeService({
   name: '@r10c/marketplace-admin-service',
   port: Number(process.env.PORT) || 3101,
   router,
-  appLayer: Layer.empty,
+  appLayer: AppLayer,
 });

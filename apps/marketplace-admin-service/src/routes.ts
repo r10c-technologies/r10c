@@ -3,64 +3,138 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
+import {
+  loadProductsUCFactory,
+  Product,
+  ProductBrand,
+  ProductCategory,
+} from '@r10c/business-ts-product-configuration-management';
+import {
+  EntityIdTag,
+  EntityLoadRequestTag,
+  EntityRepositoryTag,
+  getUC,
+  loadUCFactory,
+} from '@r10c/entifix-ts-business';
+import {
+  Entity,
+  EntityConstructor,
+  EntityLoadRequest,
+  serializeEntity,
+  serializeEntityCollection,
+} from '@r10c/entifix-ts-core';
+import {
+  makeMongoLinkResolver,
+  makeMongoRepository,
+  MongoDatabaseTag,
+} from '@r10c/entifix-ts-mongo-client';
+import {
+  LoadedConfigurationTag,
+  redactConfiguration,
+} from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
-import { productBrandTempData } from './product-brand-temp-data';
-import { productCategoryTempData } from './product-category-temp-data';
-import { productTempData } from './product-temp-data';
-
-/**
- * Paginate an in-memory array the way the entifix REST load adapter expects
- * (`items` / `total` / `request`).
- */
-function paginate<T>(data: readonly T[], search: URLSearchParams) {
-  const page = Number(search.get('page')) || 1;
-  const pageSize = Number(search.get('pageSize')) || 10;
-  const start = (page - 1) * pageSize;
+/** Reads `page`/`pageSize` from the request query string. */
+const readLoadRequest = Effect.gen(function* () {
+  const req = yield* HttpServerRequest.HttpServerRequest;
+  const search = new URL(req.url, 'http://localhost').searchParams;
   return {
-    items: data.slice(start, start + pageSize),
-    total: data.length,
-    request: { page, pageSize },
-  };
-}
+    page: Number(search.get('page')) || 1,
+    pageSize: Number(search.get('pageSize')) || 10,
+  } satisfies EntityLoadRequest;
+});
 
-/** List endpoint: read `page`/`pageSize` from the query string, paginate. */
-const list = <T>(data: readonly T[]) =>
+const serverError = (error: unknown) =>
+  HttpServerResponse.json(
+    { error: 'request failed', detail: String(error) },
+    { status: 500 }
+  );
+
+/** Generic list route for an entity, backed by Mongo + the entifix load UC. */
+const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
   Effect.gen(function* () {
-    const req = yield* HttpServerRequest.HttpServerRequest;
-    const search = new URL(req.url, 'http://localhost').searchParams;
-    return yield* HttpServerResponse.json(paginate(data, search));
+    const db = yield* MongoDatabaseTag;
+    const request = yield* readLoadRequest;
+    const page = yield* loadUCFactory<T>().pipe(
+      Effect.provideService(
+        EntityRepositoryTag,
+        makeMongoRepository(db, entityConstructor)
+      ),
+      Effect.provideService(EntityLoadRequestTag, request)
+    );
+    return yield* HttpServerResponse.json({
+      items: serializeEntityCollection(entityConstructor, page.items),
+      total: page.total,
+      request: page.request,
+    });
+  }).pipe(Effect.catchAll(serverError));
+
+/** Product list route: also resolves the `brand`/`category` links via Mongo. */
+const productListRoute = Effect.gen(function* () {
+  const db = yield* MongoDatabaseTag;
+  const request = yield* readLoadRequest;
+  const page = yield* loadProductsUCFactory().pipe(
+    Effect.provideService(EntityRepositoryTag, makeMongoRepository(db, Product)),
+    Effect.provideService(EntityLoadRequestTag, request),
+    Effect.provide(makeMongoLinkResolver(db, [ProductBrand, ProductCategory]))
+  );
+  return yield* HttpServerResponse.json({
+    items: serializeEntityCollection(Product, page.items),
+    total: page.total,
+    request: page.request,
   });
+}).pipe(Effect.catchAll(serverError));
 
-/** Single-record endpoint by `:id`, used when a foreign-key link is resolved. */
-const byId = <T extends { id: string }>(data: readonly T[], label: string) =>
+/** Generic single-record route by `:id`. */
+const byIdRoute = <T extends Entity>(
+  entityConstructor: EntityConstructor<T>,
+  label: string
+) =>
   Effect.gen(function* () {
+    const db = yield* MongoDatabaseTag;
     const params = yield* HttpRouter.params;
-    const found = data.find((item) => item.id === params.id);
-    return found
-      ? yield* HttpServerResponse.json(found)
-      : yield* HttpServerResponse.json(
-          { message: `${label} not found` },
-          { status: 404 }
-        );
+    const entity = yield* getUC.pipe(
+      Effect.provideService(
+        EntityRepositoryTag,
+        makeMongoRepository(db, entityConstructor)
+      ),
+      Effect.provideService(EntityIdTag, params.id)
+    );
+    return yield* HttpServerResponse.json(
+      serializeEntity(entityConstructor, entity as unknown as T)
+    );
+  }).pipe(
+    Effect.catchAll(() =>
+      HttpServerResponse.json({ message: `${label} not found` }, { status: 404 })
+    )
+  );
+
+/** `GET /api/config` — this service's loaded parameters (credentials redacted). */
+const configIntrospectionRoute = Effect.gen(function* () {
+  const plain = yield* LoadedConfigurationTag;
+  return yield* HttpServerResponse.json({
+    service: '@r10c/marketplace-admin-service',
+    store: 'mongo',
+    configuration: redactConfiguration(plain),
   });
+});
 
 /**
- * marketplace-admin-service catalog routes (in-memory seed data). `/api/health`
- * is added by the service base. Live data moves to Mongo next iteration; the
- * route surface stays identical so the admin app is unaffected.
+ * marketplace-admin-service catalog routes, backed by MongoDB through the
+ * entifix use-cases. `/api/health` is added by the service base.
  */
 export const router = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/product-category', list(productCategoryTempData)),
+  HttpRouter.get('/api/config', configIntrospectionRoute),
+  HttpRouter.get('/api/product-category', listRoute(ProductCategory)),
   HttpRouter.get(
     '/api/product-category/:id',
-    byId(productCategoryTempData, 'Product category')
+    byIdRoute(ProductCategory, 'Product category')
   ),
-  HttpRouter.get('/api/product-brand', list(productBrandTempData)),
+  HttpRouter.get('/api/product-brand', listRoute(ProductBrand)),
   HttpRouter.get(
     '/api/product-brand/:id',
-    byId(productBrandTempData, 'Product brand')
+    byIdRoute(ProductBrand, 'Product brand')
   ),
-  HttpRouter.get('/api/product', list(productTempData)),
-  HttpRouter.get('/api/product/:id', byId(productTempData, 'Product'))
+  HttpRouter.get('/api/product', productListRoute),
+  HttpRouter.get('/api/product/:id', byIdRoute(Product, 'Product'))
 );

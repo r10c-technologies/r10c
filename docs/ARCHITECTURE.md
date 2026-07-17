@@ -1,0 +1,153 @@
+# Architecture
+
+> **Status (2026-07)** — Layered monorepo in active development. The entity
+> framework (entifix), the product-catalog and authn domains, the Next.js
+> frontends, and the Effect-native backends are all in place. Backends are now
+> wired to real datastores: **config-service → PostgreSQL**, **marketplace-admin-service**
+> and **auth-service → MongoDB**. Only the `load`/`get` read paths are exercised
+> end-to-end today; `save`/`delete` exist on the adapters but have no UI/route yet.
+> Zitadel/session auth is still a stub.
+
+## Layering
+
+The repo is layered top-to-bottom and **dependencies only point downward**. A
+package's name encodes its layer (`@r10c/<area>-<lang>-<name>`), and the Nx
+ESLint rule `@nx/enforce-module-boundaries` forbids upward edges.
+
+```
+apps/                               ← runtime hosts (Next.js frontends / Effect-native services)
+packages/shells/{next,effect}/*     ← framework shells: Next pages+adapters / the effect-service base
+packages/implementation/<domain>/*  ← a domain wired to a delivery mechanism (React organisms)
+packages/business/ts/<domain>       ← pure domain entities & use-cases (no framework)
+packages/entifix/{ts,react}/*       ← the entity framework (core / business / rest-client / mongo-client / react/*)
+packages/utils/ts/*                 ← generic TS helpers
+```
+
+The value of the layering is substitutability: a use-case in `business` depends
+only on contracts (`entifix-ts-business`), never on a transport. The same
+use-case runs on the web against a REST adapter and on a backend against a Mongo
+adapter, because the transport is injected at the composition root.
+
+## The use-case + adapter mechanism
+
+The core idea is **environment-agnostic use-cases**, wired with the
+[Effect](https://effect.website) library's dependency injection (`Context.Tag` +
+`Layer`).
+
+1. **Contract** — `EntityRepository` (in `entifix-ts-business`) declares
+   `get` / `load` / `save` / `delete`, each returning `Effect<T, EntifixError, …>`.
+   It is exposed as a `Context.Tag` — `EntityRepositoryTag`.
+
+2. **Use-case** — a factory such as `loadUCFactory<T>()` returns an `Effect.gen`
+   that *yields* the tags it needs (`EntityRepositoryTag`, `EntityLoadRequestTag`,
+   and for link-following loads `EntityLinkResolverTag`) and calls the repository.
+   It imports **no framework and no transport** — only contracts and Effect.
+
+3. **Adapter** — a concrete `EntityRepository`:
+   - `entifix-ts-rest-client` — `buildEntityRestAdapter*` over HTTP (the web).
+   - `entifix-ts-mongo-client` — `makeMongoRepository(db, Ctor)` over MongoDB
+     (the backend). Collection/endpoint name = the entity's `key`.
+
+4. **Composition root** — the only place that knows the environment. It provides
+   the tags: the adapter for `EntityRepositoryTag`, the per-call input for
+   `EntityLoadRequestTag` / `EntityIdTag`, and a resolver for
+   `EntityLinkResolverTag`. On the web this is a Next page; on a backend it is
+   the service's `AppLayer` + route handlers.
+
+Because the requirement set lives in the Effect type (`R` channel), a missing
+dependency is a **compile error**, not a runtime surprise.
+
+```
+        ┌──────────────── use-case (business) ────────────────┐
+        │  loadUCFactory<Product>()  yields EntityRepositoryTag │
+        └───────────────────────────┬──────────────────────────┘
+                    provide the tag  │  at the composition root
+        ┌───────────────────────────┴──────────────────────────┐
+   web  │  EntityRepositoryTag = buildEntityRestAdapter*(...)    │  → HTTP
+backend │  EntityRepositoryTag = makeMongoRepository(db, Ctor)   │  → MongoDB
+        └───────────────────────────────────────────────────────┘
+```
+
+See [ENTIFIX.md](./ENTIFIX.md) for how the entities and links make this work.
+
+### A load, end to end (products)
+
+The web and the backend run the **same** `loadProductsUCFactory()`; only the
+adapters behind the tags differ.
+
+```
+Product (business, @entity + EntityLink brand/category)
+  └─ loadProductsUCFactory()  ── loads a page, reloads unresolved links via EntityLinkResolverTag
+       ├─ web: ProductTable → ProductListClientPage → /catalog/product (marketplace-admin-app)
+       │        tags ← REST adapter + useEntityLinkResolver([[ProductBrand, …], [ProductCategory, …]])
+       └─ backend: GET /api/product (marketplace-admin-service)
+                tags ← makeMongoRepository(db, Product) + makeMongoLinkResolver(db, [ProductBrand, ProductCategory])
+                then serializeEntityCollection(...) → JSON
+```
+
+Foreign-key vs embedded relations are handled transparently by the shared
+(de)serializer — see `packages/entifix/ts/core/src/entity-definition`.
+
+## Backends: Effect-native services
+
+Backends compose `@r10c/shells-effect-service` (`@effect/platform` HTTP server,
+`/api/health`, `Layer` DI, graceful shutdown) and compile stage-3 decorators like
+entifix, so they import entity classes natively. There is **no Nest**: DI is
+Effect Layers.
+
+- **config-service** (`:3190`, Postgres) — source of truth for cross-service
+  config. `GET /api/config/:service` returns `ConfigurationPlain` from the
+  `configuration` table (migrated + seeded on first boot). Consumers read it at
+  boot: frontends resolve their backend URL, backends resolve their `mongo.uri`/`db`.
+- **marketplace-admin-service** (`:3101`, Mongo) — serves the product catalog
+  through the entifix use-cases.
+- **auth-service** (`:3102`, Mongo) — serves `UserIdentity`/`EntityIdentifier`;
+  session resolution is still a stub.
+
+Every service also exposes `GET /api/config` returning its own loaded parameters
+(credentials redacted) for diagnostics. Boot order:
+`Postgres → config-service → (mongo services)`.
+
+## App & port convention
+
+`-app` frontends bind **300N**, `-service` backends bind **310N**, cross-cutting
+platform services use **319x**; the domain index `N` is shared per frontend/backend
+pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
+
+| Domain (`N`) | `-app` | `-service` |
+|---|---|---|
+| marketplace (0) | 3000 | 3100 |
+| marketplace-admin (1) | 3001 | 3101 |
+| auth (2) | 3002 | 3102 |
+| — platform — | | config-service 3190 |
+
+## Current domain structure
+
+**Business domains** (`packages/business/ts/*`, pure — entities + use-cases):
+- `business-ts-product-configuration-management` — `Product`, `ProductBrand`,
+  `ProductCategory`; `loadProductsUCFactory` (link-following load).
+- `business-ts-authn` — `UserIdentity`, `EntityIdentifier`; `resolveSession` UC.
+- `business-ts-common` — shared domain primitives.
+
+**Entity framework** (`packages/entifix/*`):
+- `entifix-ts-core` — decorators, metadata, links, types, (de)serializer,
+  configuration store.
+- `entifix-ts-business` — repository/resolver contracts + use-case factories.
+- `entifix-ts-rest-client` — HTTP `EntityRepository` adapter (web).
+- `entifix-ts-mongo-client` — MongoDB `EntityRepository` adapter (backend).
+- `entifix-react-controls` / `entifix-react-integration` — UI primitives +
+  Effect-aware hooks. `entifix-style` — design tokens.
+
+**Delivery** (`packages/implementation/*`, `packages/shells/*`):
+- `implementation-product-configuration-management-react` — React organisms.
+- `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-common`
+  — Next pages + client adapters. `shells-effect-service` — the backend base.
+
+**Apps** — frontends `marketplace-app`, `marketplace-admin-app`, `auth-app`;
+backends `marketplace-service`, `marketplace-admin-service`, `auth-service`,
+`config-service`; plus `*-e2e` projects.
+
+**Utils** — `utils-ts-{array,date,object,type}`.
+
+For Nx specifics, file layout, and commands see [WORKSPACE.md](./WORKSPACE.md).
+For conventions see [CONTRIBUTE.md](./CONTRIBUTE.md).

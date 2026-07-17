@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Deeper docs live in [`docs/`](docs/): [ARCHITECTURE](docs/ARCHITECTURE.md) (layering, use-case + adapter mechanism, domain structure), [ENTIFIX](docs/ENTIFIX.md) (how entities + Effect DI make use-cases agnostic), [WORKSPACE](docs/WORKSPACE.md) (Nx, file layout, commands), [CONTRIBUTE](docs/CONTRIBUTE.md) (conventions). This file is the condensed version — prefer editing `docs/` for prose and keep this in sync.
+
 ## Tooling
 
 Nx 22 monorepo with pnpm workspaces. Pinned versions: **Node 25.1**, **pnpm 10.21** (see `engines` in root `package.json`). Always use `pnpm` (not `npm`/`yarn`) and run Nx via `pnpm nx ...` (or `pnpm exec nx`).
@@ -9,16 +11,21 @@ Nx 22 monorepo with pnpm workspaces. Pinned versions: **Node 25.1**, **pnpm 10.2
 ## Common commands
 
 ```sh
-# Run a Next.js app's dev server (ports pinned: app 300N)
-pnpm nx dev marketplace-app          # :3000
-pnpm nx dev marketplace-admin-app    # :3001 (auto-starts marketplace-admin-service + config-service)
-pnpm nx dev auth-app                 # :3002
+# Unified dev convention for EVERY app/service: `pnpm nx run <artifact>:dev`
+# (each artifact starts its own dependencies).
 
-# Run an Effect-native service (build + node serve; port 310N / 319x)
-pnpm nx serve marketplace-service       # :3100
-pnpm nx serve marketplace-admin-service # :3101
-pnpm nx serve auth-service              # :3102
-pnpm nx serve config-service            # :3190
+# Next.js apps (ports pinned: app 300N)
+pnpm nx run marketplace-app:dev          # :3000
+pnpm nx run marketplace-admin-app:dev    # :3001 (auto-starts marketplace-admin-service + config-service)
+pnpm nx run auth-app:dev                 # :3002
+
+# Effect-native services (build + node; port 310N / 319x). Backend `dev` first
+# runs `ensure-infra` (infra/local/ensure.sh — needs minikube up with the infra
+# datastores); the Mongo services also start config-service (their config source).
+pnpm nx run marketplace-service:dev        # :3100
+pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo; +config-service)
+pnpm nx run auth-service:dev               # :3102 (Mongo; +config-service)
+pnpm nx run config-service:dev             # :3190 (Postgres)
 
 # Build / typecheck / lint a single project
 pnpm nx build <project>
@@ -86,6 +93,8 @@ apps/                               ← runtime hosts (Next.js frontends / Effec
 
 `@r10c/entifix-ts-rest-client` converts an `EntityConstructor` into an `EntityRepository` over HTTP via the `buildEntityRestAdapter*` builders — used by Next shells to back the `EntityRepositoryTag` on the client. The load/get adapters build the endpoint from the entity's **`key`** (`metaEntity.key ?? metaEntity.name`), so keep entity `key`s in kebab-case matching the REST routes.
 
+`@r10c/entifix-ts-mongo-client` is the server-side mirror: `makeMongoRepository(db, Ctor)` returns an `EntityRepository` backed by MongoDB (collection = the entity `key`), with `MongoDatabaseTag`/`MongoDatabaseLayer` for the connection, a `filter-translator` (`EntityFiltering`/`EntitySorting`/pagination → Mongo query), and `makeMongoLinkResolver` for backend link resolution. The shared entity (de)serializer lives in `entifix-ts-core` (`serializeEntity`/`deserializeSingleEntity`) so REST and Mongo adapters round-trip the same wire shape. Backends run the SAME `*UCFactory` use-cases against this adapter, then `serializeEntity`/`serializeEntityCollection` the result for the HTTP response.
+
 `@r10c/entifix-react-controls` / `-integration` are the React side: generic UI primitives (`Table`) and Effect-aware hooks (`useDataLoading({ uc, ctx })`, `useEntityLinkResolver(...)`) that run a UC factory against an adapter context. (There is no `entifix-react-helpers` — it was a duplicate and was removed; use `-integration`.)
 
 #### Entity links (relations)
@@ -138,7 +147,7 @@ Frontends are Next.js (App Router, React 19, Tailwind); backends are **Effect-na
 
 #### App & port convention
 
-`-app` frontends bind **300N**; `-service` backends bind **310N**; cross-cutting/platform services use **319x**. The domain index `N` is shared across a frontend/backend pair. Frontends resolve their backend URL through `config-service` (`GET /api/config/:service`, env `SERVICE__GROUP__KEY`); they never hardcode it. Infra (see `infra/local`) exposes minikube NodePorts at `30000 +` the service's canonical port.
+`-app` frontends bind **300N**; `-service` backends bind **310N**; cross-cutting/platform services use **319x**. The domain index `N` is shared across a frontend/backend pair. Both frontends and backends resolve their runtime config through `config-service` (`GET /api/config/:service` → `ConfigurationPlain`); they never hardcode it. config-service stores config in **PostgreSQL** (the `configuration` table: `service`/`group_name`/`key`/`value`, migrated + seeded on first boot); the Mongo services (`marketplace-admin-service`, `auth-service`) fetch their `mongo.uri`/`mongo.db` from it at boot via `loadRemoteConfiguration` (`@r10c/shells-effect-service`). Every service also exposes `GET /api/config` returning its own loaded parameters (credentials redacted). Infra (see `infra/local`) exposes minikube NodePorts at `30000 +` the service's canonical port; backend `dev` targets run `infra/local/ensure.sh` first.
 
 | Domain (`N`) | `-app` | `-service` |
 |---|---|---|
@@ -147,7 +156,7 @@ Frontends are Next.js (App Router, React 19, Tailwind); backends are **Effect-na
 | auth (2) | 3002 | 3102 |
 | — platform — | | config-service 3190 |
 
-Adding a domain = next index → `300N` / `310N`, plus one line in `config-service`'s `.env`.
+Adding a domain = next index → `300N` / `310N`, plus a seed row in `config-service`'s `configuration` table (`apps/config-service/src/db.ts`).
 
 ### Local infrastructure (`infra/local`)
 
@@ -158,3 +167,5 @@ Minikube platform (MongoDB, Redis, PostgreSQL, Zitadel) as per-platform kustomiz
 - The Nx ESLint rule `@nx/enforce-module-boundaries` is on; don't introduce upward dependencies (e.g. an `entifix` package importing from `business` or `shells`).
 - Effect/Context tags are the dependency-injection mechanism — wire new dependencies as `Context.Tag` subclasses rather than passing instances through constructors.
 - Private fields on entities use `#name` syntax with `@accessor()`-decorated getters/setters; follow that pattern when adding entity members so MetaEntity introspection works.
+- **Backend DB adapters**: a `-service` backing entities with a datastore provides `EntityRepositoryTag` from `makeMongoRepository(db, Ctor)` (`entifix-ts-mongo-client`) and runs the SAME `*UCFactory` use-cases, then `serializeEntity`/`serializeEntityCollection` for the response. Gotchas: (a) add the native driver (`mongodb`, `@effect/sql*`) to the service's `webpack.config.js` `externalDependencies` and keep `tslib` external; (b) `@effect/sql`/`@effect/sql-pg` must match the pinned `@effect/platform` (0.96.2 → `@effect/sql@0.51.1` + `@effect/sql-pg@0.51.0`, which bundles `pg`) or `pnpm install` breaks; (c) `makeMongoRepository` closures give each method `R = never` (assignable to the interface's `ConfigurationRepositoryTag`); (d) resolve DB connection settings from config-service at boot via `loadRemoteConfiguration` — don't hardcode. See [[backend-db-connectivity]] and `docs/ENTIFIX.md`.
+- Services read cross-service config from **config-service** (Postgres, `configuration` table seeded in `apps/config-service/src/db.ts`); every service also exposes `GET /api/config` (own params, credentials redacted via `redactConfiguration`).

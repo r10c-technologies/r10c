@@ -27,6 +27,7 @@ module.exports = {
         'effect',
         '@effect/platform',
         '@effect/platform-node',
+        'mongodb',
         'tslib',
       ],
     }),

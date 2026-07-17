@@ -2,17 +2,17 @@ import { resolve } from 'node:path';
 
 import { makeService } from '@r10c/shells-effect-service';
 import { config as loadEnv } from 'dotenv';
-import { Layer } from 'effect';
 
+import { DbLive } from './db';
 import { router } from './routes';
 
 /**
  * config-service — centralized configuration (port 3190).
  *
- * Configuration is sourced exclusively from environment variables (no db). In
- * development they come from this app's `.env`; in production the real
- * `process.env` is used (dotenv does not override existing values). Frontends
- * resolve their backend URLs through `GET /api/config/:service`.
+ * Configuration is stored in Postgres (`configuration` table) and served via
+ * `GET /api/config/:service`. The connection string comes from `CONFIG_PG_URL`
+ * (this app's `.env` in dev; real `process.env` in prod — dotenv does not
+ * override existing values). The table is migrated + seeded on first boot.
  */
 loadEnv({
   path: resolve(
@@ -25,5 +25,5 @@ makeService({
   name: '@r10c/config-service',
   port: Number(process.env.PORT) || 3190,
   router,
-  appLayer: Layer.empty,
+  appLayer: DbLive,
 });

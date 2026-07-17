@@ -16,5 +16,10 @@
     "vitest.config.ts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../entifix/ts/core/tsconfig.lib.json"
+    }
   ]
 }

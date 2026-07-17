@@ -14,7 +14,7 @@
         ],
         "dependsOn": [
           "@r10c/auth-service:build",
-          "@r10c/auth-service:serve"
+          "@r10c/auth-service:dev"
         ],
         "options": {
           "jestConfig": "apps/auth-service-e2e/jest.config.cts",
