@@ -1,0 +1,44 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "types": ["node"],
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo",
+    "target": "es2022",
+    "experimentalDecorators": false,
+    "importHelpers": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "jest.config.ts",
+    "jest.config.cts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "eslint.config.js",
+    "eslint.config.cjs",
+    "eslint.config.mjs"
+  ],
+  "references": [
+    {
+      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/business/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/transactions/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/mongo-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/amqp-client/tsconfig.lib.json"
+    }
+  ]
+}

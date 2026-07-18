@@ -106,9 +106,13 @@ Effect Layers.
   `configuration` table (migrated + seeded on first boot). Consumers read it at
   boot: frontends resolve their backend URL, backends resolve their `mongo.uri`/`db`.
 - **marketplace-admin-service** (`:3101`, Mongo) — serves the product catalog
-  through the entifix use-cases.
+  through the entifix use-cases. Writes (`POST`) run as transactions (see
+  [Transactions](#transactions-cqrs-writes)); reads/`PUT`/`DELETE` are unchanged.
 - **auth-service** (`:3102`, Mongo) — serves `UserIdentity`/`EntityIdentifier`;
   session resolution is still a stub.
+- **transaction-manager** (`:3103`, Mongo + RabbitMQ) — passive saga tracker:
+  subscribes to the transaction event bus, records each transaction's lifecycle,
+  and flags stalls. `GET /api/transaction/:id` is what a client polls.
 
 Every service also exposes `GET /api/config` returning its own loaded parameters
 (credentials redacted) for diagnostics. Boot order:
@@ -125,7 +129,30 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | marketplace (0) | 3000 | 3100 |
 | marketplace-admin (1) | 3001 | 3101 |
 | auth (2) | 3002 | 3102 |
+| transaction-manager (3) | — | 3103 |
 | — platform — | | config-service 3190 |
+
+## Transactions (CQRS writes)
+
+Reads stay direct; **writes become transactions**. A `POST` is a *command*: the
+service runs a five-step facade — validate → lock → execute → rollback → free —
+over it. `@r10c/entifix-transactions` holds the facade (each step a `*UCFactory`
+in the entity-use-case style), the `runTransaction` engine, and the ports
+(`LockService`, `SequenceService`, `EventBus`, `TransactionStore`,
+`TransactionHandler`). Adapters mirror the entity ones: `entifix-ts-redis-client`
+(lock via `SET NX`, sequences via atomic `INCR`) and `entifix-ts-amqp-client`
+(RabbitMQ fanout event bus).
+
+The engine splits at the `202` boundary: **accept** (validate + lock) is
+synchronous — its failure is the client's `400`/`409`; **execute** (assign the
+result, persist, free — or roll back and free) is forked past the `202` and
+publishes lifecycle events. It is **choreography** — the service owns its
+transaction and emits events; `transaction-manager` only observes and recovers
+(passive). The client polls the manager for the outcome. The first concrete
+transaction assigns a unique incremental `code` (`product-001`, `category-001`,
+`brand-001`) to the catalog entities; `INCR`'s atomicity is what guarantees
+uniqueness across service instances. Websockets and multi-service sagas are
+deferred.
 
 ## Current domain structure
 
@@ -141,6 +168,9 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 - `entifix-ts-business` — repository/resolver contracts + use-case factories.
 - `entifix-ts-rest-client` — HTTP `EntityRepository` adapter (web).
 - `entifix-ts-mongo-client` — MongoDB `EntityRepository` adapter (backend).
+- `entifix-transactions` — transaction facade + engine + ports (framework-free).
+  `entifix-ts-redis-client` (lock + sequence) and `entifix-ts-amqp-client` (event
+  bus) are its transport adapters.
 - `entifix-react-controls` / `entifix-react-integration` — UI primitives +
   Effect-aware hooks. `entifix-style` — design tokens.
 
@@ -151,7 +181,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 
 **Apps** — frontends `marketplace-app`, `marketplace-admin-app`, `auth-app`;
 backends `marketplace-service`, `marketplace-admin-service`, `auth-service`,
-`config-service`; plus `*-e2e` projects.
+`transaction-manager`, `config-service`; plus `*-e2e` projects.
 
 **Utils** — `utils-ts-{array,date,object,type}`.
 

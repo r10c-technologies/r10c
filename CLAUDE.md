@@ -25,6 +25,7 @@ pnpm nx run auth-app:dev                 # :3002
 pnpm nx run marketplace-service:dev        # :3100
 pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo; +config-service)
 pnpm nx run auth-service:dev               # :3102 (Mongo; +config-service)
+pnpm nx run transaction-manager:dev        # :3103 (Mongo + RabbitMQ; passive saga tracker)
 pnpm nx run config-service:dev             # :3190 (Postgres)
 
 # Build / typecheck / lint a single project
@@ -95,6 +96,8 @@ apps/                               ← runtime hosts (Next.js frontends / Effec
 
 `@r10c/entifix-ts-mongo-client` is the server-side mirror: `makeMongoRepository(db, Ctor)` returns an `EntityRepository` backed by MongoDB (collection = the entity `key`), with `MongoDatabaseTag`/`MongoDatabaseLayer` for the connection, a `filter-translator` (`EntityFiltering`/`EntitySorting`/pagination → Mongo query), and `makeMongoLinkResolver` for backend link resolution. The shared entity (de)serializer lives in `entifix-ts-core` (`serializeEntity`/`deserializeSingleEntity`) so REST and Mongo adapters round-trip the same wire shape. Backends run the SAME `*UCFactory` use-cases against this adapter, then `serializeEntity`/`serializeEntityCollection` the result for the HTTP response.
 
+`@r10c/entifix-transactions` layers CQRS transactions on top: a write (`POST`) becomes a *command* run through a five-step facade — validate → lock → execute → rollback → free — each step a `*UCFactory` in the same `Effect.gen` + Context.Tag style. The `runTransaction` engine splits at the `202` boundary: `acceptTransaction` (validate + lock) is synchronous (failure → `400`/`409`), `completeTransaction` (execute + free, or rollback + free) is forked past the `202` and publishes lifecycle events. Ports (`LockService`/`SequenceService`/`EventBus`/`TransactionStore`/`TransactionHandler`) are framework-free; transports mirror the entity adapters — `@r10c/entifix-ts-redis-client` (lock via `SET NX`, sequences via atomic `INCR`) and `@r10c/entifix-ts-amqp-client` (RabbitMQ fanout bus). It is **choreography**: services own their transactions and emit events; the `transaction-manager` service (`:3103`, Mongo + RabbitMQ) is a **passive** tracker (subscribe → record → recover), never a dispatcher. The `EntifixEnvelope` carries commands/events (`meta.type` `'command'`/`'transactionEvent'`). See [[entifix-transactions-phase1]] and `docs/ARCHITECTURE.md`.
+
 `@r10c/entifix-react-controls` / `-integration` are the React side: generic UI primitives (`Table`) and Effect-aware hooks (`useDataLoading({ uc, ctx })`, `useEntityLinkResolver(...)`) that run a UC factory against an adapter context. (There is no `entifix-react-helpers` — it was a duplicate and was removed; use `-integration`.)
 
 #### Entity links (relations)
@@ -154,6 +157,7 @@ Frontends are Next.js (App Router, React 19, Tailwind); backends are **Effect-na
 | marketplace (0) | 3000 | 3100 |
 | marketplace-admin (1) | 3001 | 3101 |
 | auth (2) | 3002 | 3102 |
+| transaction-manager (3) | — | 3103 |
 | — platform — | | config-service 3190 |
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in `config-service`'s `configuration` table (`apps/config-service/src/db.ts`).
@@ -169,3 +173,4 @@ Minikube platform (MongoDB, Redis, PostgreSQL, Zitadel) as per-platform kustomiz
 - Private fields on entities use `#name` syntax with `@accessor()`-decorated getters/setters; follow that pattern when adding entity members so MetaEntity introspection works.
 - **Backend DB adapters**: a `-service` backing entities with a datastore provides `EntityRepositoryTag` from `makeMongoRepository(db, Ctor)` (`entifix-ts-mongo-client`) and runs the SAME `*UCFactory` use-cases, then `serializeEntity`/`serializeEntityCollection` for the response. Gotchas: (a) add the native driver (`mongodb`, `@effect/sql*`) to the service's `webpack.config.js` `externalDependencies` and keep `tslib` external; (b) `@effect/sql`/`@effect/sql-pg` must match the pinned `@effect/platform` (0.96.2 → `@effect/sql@0.51.1` + `@effect/sql-pg@0.51.0`, which bundles `pg`) or `pnpm install` breaks; (c) `makeMongoRepository` closures give each method `R = never` (assignable to the interface's `ConfigurationRepositoryTag`); (d) resolve DB connection settings from config-service at boot via `loadRemoteConfiguration` — don't hardcode. See [[backend-db-connectivity]] and `docs/ENTIFIX.md`.
 - Services read cross-service config from **config-service** (Postgres, `configuration` table seeded in `apps/config-service/src/db.ts`); every service also exposes `GET /api/config` (own params, credentials redacted via `redactConfiguration`).
+- **Transactions**: a `-service` with transactional writes provides the transaction ports from the Redis/AMQP layers (`RedisLayer` + `RedisLockServiceLayer`/`RedisSequenceServiceLayer`, `AmqpLayer` + `AmqpEventBusLayer`) in its `AppLayer`, and resolves `redis.uri`/`rabbitmq.uri` from config-service; add `ioredis`/`amqplib` to `externalDependencies`. The domain half is a `TransactionHandler` closing over its deps (so methods are `R = never`, like `makeMongoRepository`). Gotchas surfaced live: the manager's event fold needs AMQP `prefetch(1)` **and** a unique index on `transactionId` or `accepted`/`completed` events race into duplicate records; `markStale` must filter on non-terminal state; `seedCatalog` is not idempotent across concurrent instances. See [[entifix-transactions-phase1]].

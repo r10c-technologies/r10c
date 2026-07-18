@@ -5,7 +5,7 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NS=marketplace-local-infra
-PLATFORMS=(mongodb redis postgres zitadel)
+PLATFORMS=(mongodb redis rabbitmq postgres zitadel)
 
 # Ensure each platform has a real .env (copied from its committed example).
 ensure_env() {
@@ -38,8 +38,8 @@ ensure_masterkey
 echo "==> Namespace"
 kubectl apply -f "$DIR/00-namespace.yaml"
 
-echo "==> Datastores (mongodb, redis, postgres)"
-for d in mongodb redis postgres; do kubectl apply -k "$DIR/$d"; done
+echo "==> Datastores (mongodb, redis, rabbitmq, postgres)"
+for d in mongodb redis rabbitmq postgres; do kubectl apply -k "$DIR/$d"; done
 
 echo "==> Waiting for postgres (Zitadel depends on it)"
 kubectl -n "$NS" rollout status deploy/postgres --timeout=180s
@@ -51,3 +51,4 @@ echo "==> Current state"
 kubectl -n "$NS" get pods,svc
 echo
 echo "Done. Zitadel console: http://localhost:30080 (may take ~1 min to init)."
+echo "RabbitMQ management UI: http://localhost:31672 (admin/password by default)."

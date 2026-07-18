@@ -61,6 +61,37 @@ function assertEnvelope<TEntity extends Entity, TData>(
   return Effect.succeed(body as EntifixEnvelope<TData>);
 }
 
+/**
+ * Narrows an arbitrary body to an envelope of the expected `meta.type` without
+ * requiring an entity constructor — for `command`/`transactionEvent` messages
+ * whose `data` is not a serialized entity. `label` only sharpens error text.
+ */
+export function readEnvelope<TData>(
+  body: unknown,
+  expected: EntifixEnvelopeType,
+  label = 'message',
+): Effect.Effect<EntifixEnvelope<TData>, EntifixBuildError> {
+  if (!isEntifixEnvelope(body)) {
+    return Effect.fail(
+      new EntifixBuildError(
+        `Expected an EntifixEnvelope for "${label}" but the payload carried no meta.type`,
+        undefined,
+        { label, expected, body },
+      ),
+    );
+  }
+  if (body.meta.type !== expected) {
+    return Effect.fail(
+      new EntifixBuildError(
+        `Expected an EntifixEnvelope of type "${expected}" for "${label}" but got "${body.meta.type}"`,
+        undefined,
+        { label, expected, actual: body.meta.type },
+      ),
+    );
+  }
+  return Effect.succeed(body as EntifixEnvelope<TData>);
+}
+
 export const readEntityEnvelope = <TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
   body: unknown,

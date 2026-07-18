@@ -110,7 +110,7 @@ reads a git-ignored `.env` (committed `.env.example` holds LOCAL DEV ONLY
 defaults). Bring it up:
 
 ```sh
-minikube start --ports 30017:30017,30379:30379,30432:30432,30080:30080
+minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080
 infra/local/apply.sh    # or let a backend `dev` target's ensure-infra do it
 ```
 

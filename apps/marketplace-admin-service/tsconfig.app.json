@@ -36,6 +36,15 @@
     },
     {
       "path": "../../packages/entifix/ts/mongo-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/redis-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/amqp-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/transactions/tsconfig.lib.json"
     }
   ]
 }

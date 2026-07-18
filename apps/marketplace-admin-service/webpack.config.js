@@ -28,6 +28,8 @@ module.exports = {
         '@effect/platform',
         '@effect/platform-node',
         'mongodb',
+        'ioredis',
+        'amqplib',
         'tslib',
       ],
     }),

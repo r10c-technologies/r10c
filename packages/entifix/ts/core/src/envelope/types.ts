@@ -4,8 +4,18 @@ import type { EntityLoadRequest } from '../types/EntityLoadRequest';
 
 /**
  * Discriminates what {@link EntifixEnvelope.data} carries.
+ *
+ * `command`/`transactionEvent` extend the contract for the transactions layer:
+ * a write is issued as a `command` and the saga reports progress as
+ * `transactionEvent`s. Their `data` shapes live in `@r10c/entifix-transactions`
+ * — core only owns the discriminant so every artifact agrees on it.
  */
-export type EntifixEnvelopeType = 'entity' | 'entityCollection' | 'entityPage';
+export type EntifixEnvelopeType =
+  | 'entity'
+  | 'entityCollection'
+  | 'entityPage'
+  | 'command'
+  | 'transactionEvent';
 
 export type EntifixEnvelopeMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 

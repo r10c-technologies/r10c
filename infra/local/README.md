@@ -1,8 +1,9 @@
 # Local infrastructure (`infra/local`)
 
 Local Kubernetes platform for the marketplace fleet, running on Minikube:
-**MongoDB**, **Redis**, **PostgreSQL**, and **Zitadel** (identity, backed by
-Postgres). Everything lives in the `marketplace-local-infra` namespace.
+**MongoDB**, **Redis**, **RabbitMQ** (transaction event bus), **PostgreSQL**, and
+**Zitadel** (identity, backed by Postgres). Everything lives in the
+`marketplace-local-infra` namespace.
 
 > This is the `local` environment. Future environments would sit beside it as
 > `infra/staging`, `infra/prod`, etc.
@@ -33,7 +34,7 @@ All defaults are labelled **LOCAL DEV ONLY** — never reuse them.
 
 ```bash
 # Start cluster, exposing every NodePort to localhost
-minikube start --ports 30017:30017,30379:30379,30432:30432,30080:30080
+minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080
 
 # Stop cluster (data persists)
 minikube stop
@@ -68,6 +69,7 @@ NodePort is reachable on `127.0.0.1`.
 |---|---|---|
 | MongoDB | `mongodb://admin:password@127.0.0.1:30017` | `mongodb/.env` |
 | Redis | `redis://:localdev@127.0.0.1:30379` (`redis-cli -p 30379 -a localdev ping`) | `redis/.env` |
+| RabbitMQ | `amqp://admin:password@127.0.0.1:30672` · management UI `http://localhost:31672` | `rabbitmq/.env` |
 | PostgreSQL | `postgres://postgres:postgres@127.0.0.1:30432/postgres` | `postgres/.env` |
 | Zitadel | console `http://localhost:30080` (admin `zitadel-admin`, pw in `zitadel/.env`) | `zitadel/.env` |
 
