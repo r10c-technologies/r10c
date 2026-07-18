@@ -45,3 +45,24 @@ export class EntifixConnError extends EntifixError {
   override _tag = 'EntifixConnError';
   // #endregion properties
 }
+
+/**
+ * A transaction/saga step failed (validate, execute, rollback, free) — distinct
+ * from a lock acquisition failure, which callers retry, and from a build error,
+ * which is the client's fault.
+ */
+export class EntifixTransactionError extends EntifixError {
+  // #region properties
+  override _tag = 'EntifixTransactionError';
+  // #endregion properties
+}
+
+/**
+ * A resource could not be locked within the allowed retries/TTL — a contention
+ * signal callers surface as a `409`/`423`, not a `500`.
+ */
+export class EntifixLockError extends EntifixError {
+  // #region properties
+  override _tag = 'EntifixLockError';
+  // #endregion properties
+}

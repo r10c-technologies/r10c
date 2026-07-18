@@ -22,6 +22,9 @@
       "path": "./packages/entifix/ts/business"
     },
     {
+      "path": "./packages/entifix/ts/transactions"
+    },
+    {
       "path": "./packages/business/ts/common"
     },
     {
@@ -73,6 +76,12 @@
       "path": "./packages/entifix/ts/mongo-client"
     },
     {
+      "path": "./packages/entifix/ts/redis-client"
+    },
+    {
+      "path": "./packages/entifix/ts/amqp-client"
+    },
+    {
       "path": "./packages/entifix/react/integration"
     },
     {
@@ -83,6 +92,9 @@
     },
     {
       "path": "./apps/config-service"
+    },
+    {
+      "path": "./apps/transaction-manager"
     },
     {
       "path": "./apps/auth-service-e2e"

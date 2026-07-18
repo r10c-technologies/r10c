@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: marketplace-local-infra
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+    # AMQP — the "30000 + last-3-digits" convention gives 5672 -> 30672.
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+      nodePort: 30672
+    # Management UI. 15672 also maps to 672 by the convention, which collides
+    # with AMQP, so it takes the next free NodePort (31672) — documented deviation.
+    - name: management
+      port: 15672
+      targetPort: 15672
+      nodePort: 31672
+  type: NodePort

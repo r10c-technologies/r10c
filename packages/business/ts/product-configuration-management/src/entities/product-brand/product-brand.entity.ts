@@ -5,6 +5,7 @@ import { accessor, entity } from '@r10c/entifix-ts-core';
 export class ProductBrand implements Entity {
   // #region properties
   #id?: EntityId;
+  #code?: string;
   #name: string;
   #description?: string;
   #website?: string;
@@ -26,6 +27,16 @@ export class ProductBrand implements Entity {
   }
   set id(value: EntityId) {
     this.#id = value;
+  }
+
+  // Assigned by the create transaction (`brand-001`, `brand-002`, …); optional
+  // because a raw payload arrives without one.
+  @accessor()
+  get code(): string | undefined {
+    return this.#code;
+  }
+  set code(value: string | undefined) {
+    this.#code = value;
   }
 
   @accessor()

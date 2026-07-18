@@ -1,6 +1,12 @@
+import { AmqpEventBusLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
 import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
 import { ConfigurationStoreInMemory } from '@r10c/entifix-ts-core';
 import { MongoDatabaseLayer } from '@r10c/entifix-ts-mongo-client';
+import {
+  RedisLayer,
+  RedisLockServiceLayer,
+  RedisSequenceServiceLayer,
+} from '@r10c/entifix-ts-redis-client';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
@@ -30,11 +36,28 @@ export const AppLayer = Layer.unwrapEffect(
 
     const uri = yield* store.in('mongo').getString('uri');
     const dbName = yield* store.in('mongo').getString('db');
+    const redisUri = yield* store.in('redis').getString('uri');
+    const amqpUri = yield* store.in('rabbitmq').getString('uri');
 
-    const infra = Layer.mergeAll(
+    // Connections resolved from config-service: Mongo (catalog), Redis (locks +
+    // code sequences), RabbitMQ (transaction event bus).
+    const connections = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
+      RedisLayer({ uri: redisUri }),
+      AmqpLayer({ uri: amqpUri }),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain)
+    );
+
+    // Transaction ports built from those connections (lock/sequence over Redis,
+    // event bus over AMQP), merged back so the routes can use every service.
+    const infra = Layer.provideMerge(
+      Layer.mergeAll(
+        RedisLockServiceLayer,
+        RedisSequenceServiceLayer,
+        AmqpEventBusLayer
+      ),
+      connections
     );
 
     // Seed depends on MongoDatabaseTag from `infra`; provideMerge keeps the

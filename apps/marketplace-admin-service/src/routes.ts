@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import {
   HttpRouter,
   HttpServerRequest,
@@ -10,6 +12,15 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-product-configuration-management';
 import {
+  acceptTransaction,
+  CommandTag,
+  completeTransaction,
+  SequenceServiceTag,
+  type TransactionCommand,
+  TransactionHandlerTag,
+} from '@r10c/entifix-transactions';
+import {
+  ConfigurationRepositoryTag,
   deleteUCFactory,
   EntityIdTag,
   EntityLoadRequestTag,
@@ -22,6 +33,7 @@ import {
 import {
   EntifixBuildError,
   EntifixEnvelopeLink,
+  EntifixLockError,
   Entity,
   EntityConstructor,
   EntityId,
@@ -30,6 +42,7 @@ import {
   makeEntityEnvelope,
   makeEntityPageEnvelope,
   readEntityEnvelope,
+  serializeEntity,
 } from '@r10c/entifix-ts-core';
 import {
   makeMongoLinkResolver,
@@ -41,6 +54,15 @@ import {
   redactConfiguration,
 } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
+
+import {
+  type CatalogHandlerOptions,
+  makeCatalogTransactionHandler,
+} from './catalog-transaction-handler';
+
+/** Where a client polls a transaction it just accepted. */
+const TRANSACTION_MANAGER_URL =
+  process.env.TRANSACTION_MANAGER_URL ?? 'http://localhost:3103';
 
 /** Reads `page`/`pageSize` from the request query string. */
 const readLoadRequest = Effect.gen(function* () {
@@ -67,6 +89,25 @@ const writeError = (error: unknown) =>
   error instanceof EntifixBuildError
     ? HttpServerResponse.json(
         { error: 'invalid request body', detail: error.message },
+        { status: 400 }
+      )
+    : serverError(error);
+
+/**
+ * The synchronous accept phase reports the command's fate to the client: a
+ * malformed command is a `400`, lock contention a `409` (retry), anything else
+ * a `500`. Failures after the `202` are the transaction-manager's concern, not
+ * the client's.
+ */
+const acceptError = (error: unknown) =>
+  error instanceof EntifixLockError
+    ? HttpServerResponse.json(
+        { error: 'resource busy, try again', detail: error.message },
+        { status: 409 }
+      )
+    : error instanceof EntifixBuildError
+    ? HttpServerResponse.json(
+        { error: 'invalid command', detail: error.message },
         { status: 400 }
       )
     : serverError(error);
@@ -186,6 +227,76 @@ const saveRoute = <T extends Entity>(
   }).pipe(Effect.catchAll(writeError));
 
 /**
+ * Transactional create route (the CQRS write path). A `POST` is a *command*:
+ * the service runs the accept phase (validate -> lock) synchronously, answers
+ * `202` with a transaction id, and forks the execute phase (assign code ->
+ * persist -> free, or rollback -> free) as a daemon that publishes lifecycle
+ * events. The client polls the transaction-manager for the outcome.
+ *
+ * The request body is still an entity envelope (the admin app is unchanged on
+ * the wire), which is re-serialized into the command payload.
+ */
+const createTransactionRoute = <T extends Entity & { code?: string; name?: string }>(
+  entityConstructor: EntityConstructor<T>,
+  options: CatalogHandlerOptions
+) =>
+  Effect.gen(function* () {
+    const db = yield* MongoDatabaseTag;
+    const store = yield* ConfigurationRepositoryTag;
+    const sequence = yield* SequenceServiceTag;
+
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const body = yield* request.json;
+    const entity = yield* readEntityEnvelope(entityConstructor, body);
+
+    const transactionId = randomUUID();
+    const command: TransactionCommand = {
+      transactionId,
+      type: 'create',
+      entity: options.key,
+      payload: serializeEntity(entityConstructor, entity),
+    };
+    const handler = makeCatalogTransactionHandler(
+      db,
+      store,
+      sequence,
+      entityConstructor,
+      options
+    );
+
+    // Accept phase — synchronous; its failure is the client's 400/409.
+    const handles = yield* acceptTransaction().pipe(
+      Effect.provideService(CommandTag, command),
+      Effect.provideService(TransactionHandlerTag, handler)
+    );
+
+    // Execute phase — forked past the 202 so the request returns immediately.
+    yield* completeTransaction(handles).pipe(
+      Effect.provideService(CommandTag, command),
+      Effect.provideService(TransactionHandlerTag, handler),
+      Effect.forkDaemon
+    );
+
+    return yield* HttpServerResponse.json(
+      {
+        meta: {
+          type: 'transactionEvent',
+          entity: options.key,
+          links: [
+            {
+              rel: 'status',
+              href: `${TRANSACTION_MANAGER_URL}/api/transaction/${transactionId}`,
+              method: 'GET',
+            },
+          ],
+        },
+        data: { transactionId, state: 'PENDING' },
+      },
+      { status: 202 }
+    );
+  }).pipe(Effect.catchAll(acceptError));
+
+/**
  * Generic delete route. Answers with an envelope rather than a bare `204`: the
  * entifix fetch client always parses the response as JSON, and every message
  * between entifix artifacts is an envelope.
@@ -240,7 +351,11 @@ export const router = HttpRouter.empty.pipe(
   ),
   HttpRouter.post(
     '/api/product-category',
-    saveRoute(ProductCategory, { fromParams: false })
+    createTransactionRoute(ProductCategory, {
+      key: 'product-category',
+      sequenceName: 'product-category',
+      codePrefix: 'category',
+    })
   ),
   HttpRouter.put(
     '/api/product-category/:id',
@@ -255,7 +370,11 @@ export const router = HttpRouter.empty.pipe(
   ),
   HttpRouter.post(
     '/api/product-brand',
-    saveRoute(ProductBrand, { fromParams: false })
+    createTransactionRoute(ProductBrand, {
+      key: 'product-brand',
+      sequenceName: 'product-brand',
+      codePrefix: 'brand',
+    })
   ),
   HttpRouter.put(
     '/api/product-brand/:id',
@@ -265,7 +384,14 @@ export const router = HttpRouter.empty.pipe(
 
   HttpRouter.get('/api/product', productListRoute),
   HttpRouter.get('/api/product/:id', byIdRoute(Product, 'Product')),
-  HttpRouter.post('/api/product', saveRoute(Product, { fromParams: false })),
+  HttpRouter.post(
+    '/api/product',
+    createTransactionRoute(Product, {
+      key: 'product',
+      sequenceName: 'product',
+      codePrefix: 'product',
+    })
+  ),
   HttpRouter.put('/api/product/:id', saveRoute(Product, { fromParams: true })),
   HttpRouter.del('/api/product/:id', deleteRoute(Product))
 );

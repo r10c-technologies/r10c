@@ -6,11 +6,37 @@ import {
 import type { Entity, EntityConstructor } from '../types/Entity';
 import type { EntityPage } from '../types/EntityPage';
 import type {
+  EntifixEnvelope,
   EntifixEnvelopeLink,
+  EntifixEnvelopeType,
   EntityCollectionEnvelope,
   EntityEnvelope,
   EntityPageEnvelope,
 } from './types';
+
+/**
+ * The transport-free envelope builder for payloads that are not serialized
+ * entities — `command`/`transactionEvent` messages carry their own `data`
+ * shapes (defined by the transactions layer), so they cannot go through the
+ * entity builders. `entity` is still the routing label (`meta.entity`): the
+ * target entity's `key` for a command, or the entity/transaction subject for an
+ * event.
+ */
+export function makeEnvelope<TData>(
+  type: EntifixEnvelopeType,
+  entity: string,
+  data: TData,
+  links?: EntifixEnvelopeLink[],
+): EntifixEnvelope<TData> {
+  return {
+    meta: {
+      type,
+      entity,
+      ...(links ? { links } : {}),
+    },
+    data,
+  };
+}
 
 /**
  * The entity name carried in `meta.entity` — the same `key ?? name` resolution

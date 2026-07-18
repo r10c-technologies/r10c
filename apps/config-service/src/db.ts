@@ -61,6 +61,39 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'mongodb://admin:password@127.0.0.1:30017',
   },
   { service: 'auth-service', group_name: 'mongo', key: 'db', value: 'auth' },
+  // Transaction event bus (Redis locks/sequences + RabbitMQ) for the admin
+  // service's transactional writes.
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'redis',
+    key: 'uri',
+    value: 'redis://:localdev@127.0.0.1:30379',
+  },
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+  },
+  // transaction-manager: its own Mongo db + the same RabbitMQ bus it tracks.
+  {
+    service: 'transaction-manager',
+    group_name: 'mongo',
+    key: 'uri',
+    value: 'mongodb://admin:password@127.0.0.1:30017',
+  },
+  {
+    service: 'transaction-manager',
+    group_name: 'mongo',
+    key: 'db',
+    value: 'transaction_manager',
+  },
+  {
+    service: 'transaction-manager',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+  },
 ];
 
 const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
