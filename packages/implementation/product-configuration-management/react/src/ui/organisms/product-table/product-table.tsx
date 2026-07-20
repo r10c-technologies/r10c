@@ -1,4 +1,5 @@
 import { Product } from '@r10c/business-ts-product-configuration-management';
+import { EntityColumn, EntityTable } from '@r10c/entifix-react-controls';
 import { useDataLoading } from '@r10c/entifix-react-integration';
 import {
   ConfigurationRepositoryTag,
@@ -9,80 +10,35 @@ import {
 import type { ProductTableProps } from './product-table.types';
 
 /**
- * Product listing. Unlike the generic {@link Table}, it renders the two
- * relations explicitly: `brand` arrives embedded and `category` as a foreign key
- * resolved by the load use-case — both are read here through the entity links'
- * resolved `value`, demonstrating that a link looks the same to the UI
- * regardless of how it was represented in the payload.
+ * Product listing. Columns come from `Product`'s accessor metadata, so both
+ * relations render through the same default link cell: `brand` arrives embedded
+ * and `category` as a foreign key resolved by the load use-case — a link looks
+ * the same to the UI regardless of how it was represented in the payload.
+ *
+ * `brand` additionally carries an `<EntityColumn>` override, showing the escape
+ * hatch for a column whose presentation the metadata cannot express.
  */
 export function ProductTable({ ctx, uc, hrefFor, newHref }: ProductTableProps) {
-  const { items, isLoading, currentPage, pageSize, totalItems, onPageChange } =
-    useDataLoading<
-      Product,
-      EntityRepositoryTag | ConfigurationRepositoryTag | EntityLinkResolverTag
-    >({ uc, ctx });
-
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const pager = useDataLoading<
+    Product,
+    EntityRepositoryTag | ConfigurationRepositoryTag | EntityLinkResolverTag
+  >({ uc, ctx });
 
   return (
-    <div>
-      {isLoading && <div>Loading…</div>}
-      {newHref && (
-        <div>
-          <a href={newHref}>New</a>
-        </div>
-      )}
-      <table>
-        <thead>
-          <tr>
-            <th style={{ textAlign: 'left' }}>id</th>
-            <th style={{ textAlign: 'left' }}>code</th>
-            <th style={{ textAlign: 'left' }}>name</th>
-            <th style={{ textAlign: 'left' }}>brand (embedded)</th>
-            <th style={{ textAlign: 'left' }}>category (foreign key)</th>
-            {hrefFor && <th style={{ textAlign: 'left' }}>actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(product => (
-            <tr key={String(product.id ?? '')}>
-              <td>{String(product.id ?? '')}</td>
-              <td>{product.code}</td>
-              <td>{product.name}</td>
-              <td>{product.brand.value?.name ?? String(product.brand.id ?? '')}</td>
-              <td>
-                {product.category.value?.name ??
-                  String(product.category.id ?? '')}
-              </td>
-              {hrefFor && (
-                <td>
-                  <a href={hrefFor(product.id)}>Go</a>
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div>
-        <button
-          type="button"
-          disabled={currentPage <= 1}
-          onClick={() => onPageChange(currentPage - 1)}
-        >
-          Previous
-        </button>
-        <span>
-          {' '}
-          Page {currentPage} of {totalPages} ({totalItems} items){' '}
-        </span>
-        <button
-          type="button"
-          disabled={currentPage >= totalPages}
-          onClick={() => onPageChange(currentPage + 1)}
-        >
-          Next
-        </button>
-      </div>
-    </div>
+    <EntityTable
+      entityConstructor={Product}
+      {...pager}
+      hrefFor={hrefFor}
+      newHref={newHref}
+    >
+      <EntityColumn<Product>
+        field="brand"
+        render={product => (
+          <span className="font-medium">
+            {product.brand.value?.name ?? String(product.brand.id ?? '—')}
+          </span>
+        )}
+      />
+    </EntityTable>
   );
 }

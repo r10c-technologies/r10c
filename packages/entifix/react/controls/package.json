@@ -7,7 +7,9 @@
   "types": "./dist/index.esm.d.ts",
   "dependencies": {
     "@headlessui/react": "^2.2.10",
-    "class-variance-authority": "^0.7.1"
+    "@r10c/entifix-ts-core": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "effect": "3.21.4"
   },
   "exports": {
     "./package.json": "./package.json",

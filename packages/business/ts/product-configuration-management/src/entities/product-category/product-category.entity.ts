@@ -22,7 +22,7 @@ export class ProductCategory implements Entity {
   //#endregion
 
   //#region accessors
-  @accessor()
+  @accessor({ type: 'id', label: 'ID' })
   get id(): EntityId {
     return this.#id;
   }
@@ -30,7 +30,7 @@ export class ProductCategory implements Entity {
     this.#id = value;
   }
 
-  @accessor()
+  @accessor({ type: 'string', label: 'Code' })
   get code(): string {
     return this.#code;
   }
@@ -38,7 +38,7 @@ export class ProductCategory implements Entity {
     this.#code = value;
   }
 
-  @accessor()
+  @accessor({ type: 'string', label: 'Name' })
   get name(): string {
     return this.#name;
   }
@@ -46,7 +46,7 @@ export class ProductCategory implements Entity {
     this.#name = value;
   }
 
-  @accessor()
+  @accessor({ type: 'string', label: 'Description' })
   get description(): string | undefined {
     return this.#description;
   }

@@ -21,7 +21,7 @@ export class ProductBrand implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor()
+  @accessor({ type: 'id', label: 'ID' })
   get id(): EntityId {
     return this.#id;
   }
@@ -31,7 +31,7 @@ export class ProductBrand implements Entity {
 
   // Assigned by the create transaction (`brand-001`, `brand-002`, …); optional
   // because a raw payload arrives without one.
-  @accessor()
+  @accessor({ type: 'string', label: 'Code' })
   get code(): string | undefined {
     return this.#code;
   }
@@ -39,7 +39,7 @@ export class ProductBrand implements Entity {
     this.#code = value;
   }
 
-  @accessor()
+  @accessor({ type: 'string', label: 'Name' })
   get name(): string {
     return this.#name;
   }
@@ -47,7 +47,7 @@ export class ProductBrand implements Entity {
     this.#name = value;
   }
 
-  @accessor()
+  @accessor({ type: 'string', label: 'Description' })
   get description(): string | undefined {
     return this.#description;
   }
@@ -55,7 +55,7 @@ export class ProductBrand implements Entity {
     this.#description = value;
   }
 
-  @accessor()
+  @accessor({ type: 'string', label: 'Website' })
   get website(): string | undefined {
     return this.#website;
   }

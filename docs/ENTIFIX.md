@@ -6,7 +6,10 @@
 > `save`/`delete` are implemented on the adapters (and the shared serializer) but
 > not yet driven by a UI/route. To-one links (`EntityLink`) are resolved on both
 > web and backend; to-many (`EntityCollectionLink`) is modeled and deserialized
-> but only served as foreign keys so far.
+> but only served as foreign keys so far. The React side now renders through
+> `EntityTable`, which builds its columns from the accessor metadata; its filter
+> and sort panels produce `EntityFiltering`/`EntitySorting` values but are not yet
+> fed into the load request.
 
 Entifix is a small entity framework whose entire purpose is to let a **single
 use-case** run in any environment. It reaches that goal by combining two ideas:
@@ -26,20 +29,51 @@ back:
 export class Product implements Entity {
   #id?: EntityId;
   #code!: string;
-  #brand = new EntityLink(ProductBrand);      // relation, pre-initialized
+  #brand = new EntityLink(ProductBrand); // relation, pre-initialized
 
-  @accessor() get id() { return this.#id; }  set id(v) { this.#id = v; }
-  @accessor() get code() { return this.#code; } set code(v) { this.#code = v; }
-  @accessor() get brand() { return this.#brand; } // read-only link accessor
+  @accessor({ type: 'id' }) get id() {
+    return this.#id;
+  }
+  set id(v) {
+    this.#id = v;
+  }
+  @accessor({ type: 'string', label: 'Code' })
+  get code() {
+    return this.#code;
+  }
+  set code(v) {
+    this.#code = v;
+  }
+  @accessor({ type: 'link', label: 'Brand' })
+  get brand() {
+    return this.#brand;
+  } // read-only link accessor
 }
 
-extractMetaEntity(Product).key        // → 'product'  (collection / route name)
-extractMetaAccessors(Product)         // → [{ name:'id', kind:'getter', ... }, ...]
+extractMetaEntity(Product).key; // → 'product'  (collection / route name)
+extractMetaAccessors(Product); // → [{ name:'id', kind:'getter', ... }, ...]
 ```
 
 This metadata is what makes an adapter **generic**: given only the constructor,
 it derives the collection/endpoint name (`key ?? name`) and the field list
 (`alias ?? name`, skipping `hidden`). No entity-specific adapter code is needed.
+
+### Presentation metadata
+
+`@accessor()` also carries what generic UI needs to render a member without
+knowing the entity: `type` (`MetaAccessorType`: `string | number | boolean | date
+| enum | id | link | linkCollection`), `label`, `sortable`, `filterable`,
+`order`, `enumValues`, `linkLabelProperty`. All are optional — annotate what the
+UI should not have to guess.
+
+`describeEntityColumns(Ctor, sample?)` resolves them into `EntityFieldDescriptor[]`
+— the contract generic UI builds itself from (a table's columns today, a form's
+fields later). It keeps getter-kind, non-`hidden` accessors (unlike serialization
+it _keeps_ `readonly` ones: a read-only member is still displayable), fills a
+label by humanizing the name, defaults `sortable`/`filterable` on for scalars and
+off for `id`/links, and infers an undeclared `type` from the optional sample row
+(`EntityLink` → `link`, `Date` → `date`, `typeof` → number/boolean, else
+`string`). Declared always beats inferred.
 
 ### Serialization is shared and transport-agnostic
 
@@ -72,7 +106,7 @@ takes the resolver as an argument (a core interface) rather than reading a tag:
 export interface EntityLinkResolver {
   resolve<T extends Entity>(Ctor: EntityConstructor<T>, id: EntityId): Effect<T, EntifixError>;
 }
-link.reload(resolver)   // fetches + caches the target
+link.reload(resolver); // fetches + caches the target
 ```
 
 ## 3. Effect makes the use-case agnostic
@@ -86,14 +120,12 @@ requirement in the type. `entifix-ts-business` defines the tags
 ```ts
 export const loadProductsUCFactory = () =>
   Effect.gen(function* () {
-    const repository = yield* EntityRepositoryTag;     // ← required, not imported
+    const repository = yield* EntityRepositoryTag; // ← required, not imported
     const loadRequest = yield* EntityLoadRequestTag;
     const resolver = yield* EntityLinkResolverTag;
 
     const page = yield* repository.load<Product>(loadRequest);
-    yield* Effect.forEach(page.items, (product) =>
-      product.brand.isLoaded ? Effect.void : product.brand.reload(resolver),
-      { concurrency: 'unbounded', discard: true });
+    yield* Effect.forEach(page.items, product => (product.brand.isLoaded ? Effect.void : product.brand.reload(resolver)), { concurrency: 'unbounded', discard: true });
     return page;
   });
 ```
@@ -142,7 +174,7 @@ interface EntityRepository {
 - **REST adapter** builds the endpoint from `key`, fetches, deserializes; it
   reads its base URL from the `ConfigurationRepositoryTag` store.
 - **Mongo adapter** — `makeMongoRepository(db, Ctor)` closes over the connected
-  `Db` and the constructor, so each method's Effect requires *nothing* (`R = never`,
+  `Db` and the constructor, so each method's Effect requires _nothing_ (`R = never`,
   assignable to the interface). It translates `EntityFiltering`/`EntitySorting`/
   pagination to a Mongo query (`filter-translator`), then reuses the shared
   (de)serializer. `MongoDatabaseLayer` provides the connection as a scoped Layer
@@ -158,14 +190,60 @@ unregistered resolver).
 `entifix-react-integration` runs a use-case against an adapter context inside a
 component: `useDataLoading({ uc, ctx })` executes the Effect and exposes
 loading/data/error; `useEntityLinkResolver(configStore, registrations)` builds the
-resolver context at the page level. `entifix-react-controls` provides the generic
-UI (e.g. `Table`). The page is the composition root; the organism and the
-use-case never learn the transport.
+resolver context at the page level. The page is the composition root; the organism
+and the use-case never learn the transport.
+
+`entifix-react-controls` provides the UI, split in two: entity-agnostic
+primitives (`Table`/`TableRow`/`TableCell`, `Button`, `Select`, `Pagination`, …)
+and the **`EntityTable`** organism built on them.
+
+`EntityTable` takes an `entityConstructor` and derives everything else from
+`describeEntityColumns`: which columns exist, their labels, and how each value
+renders (`CellValue` formats by `type` — a `date` localizes, a `link` reads as
+its target's label or its foreign key). Listing a new entity is one tag.
+
+Three things layer on top of that default:
+
+- **Personalization** — column order and visibility, read/written through the
+  `UiPreferencesStore` port (`read`/`write`/`remove`, all Effect-returning). The
+  shipped adapter is `makeLocalStorageUiPreferencesStore(namespace)`; the port is
+  async-capable on purpose, so a server-backed per-user store is a drop-in swap at
+  `UiPreferencesProvider`. Keys are `<namespace>:<component>:<scope>`, e.g.
+  `r10c-ui:entity-table:product`. A stored layout degrades rather than breaks:
+  stale names are dropped and columns added to the entity later append at the end.
+- **Responsiveness** — below `pivotBreakpoint` (default `md`) rows pivot into
+  label/value cards. Both layouts are rendered and CSS picks one, driven by the
+  same resolved columns; a JS breakpoint hook would have to guess during SSR and
+  correct after mount, which is a hydration mismatch on every load.
+- **Slots** — children are configuration expressed as JSX, matched by component
+  identity (not `displayName`, which minifiers rewrite):
+
+  ```tsx
+  <EntityTable entityConstructor={Product} {...pager}>
+    <EntityColumn<Product> field="brand" label="Maker" render={p => <b>{p.brand.value?.name}</b>} />
+    <EntityTableHeader render={columns => <tr>…</tr>} />
+    <EntityTableRow render={(item, columns) => <tr>…</tr>} />
+    <EntityTableToolbar>
+      <Button>Export</Button>
+    </EntityTableToolbar>
+  </EntityTable>
+  ```
+
+  An `<EntityColumn>` naming a member the entity does not have becomes a computed
+  column. Unmatched children render below the table.
+
+The toolbar's filter and sort panels are also metadata-driven: the member list is
+the `filterable`/`sortable` descriptors, the operators offered come from the
+member's `type` (the const arrays in `EntityFiltering.ts` — no substring matching
+on a number), and the value control follows suit. They emit `FilterGroup<T>` /
+`EntitySorting<T>` through `onFilteringChange`/`onSortingChange`. **Feeding those
+into `EntityLoadRequest` is not wired yet** — the UI produces the values, the
+caller decides what to do with them.
 
 ---
 
 **Layering note.** `core` cannot import `business` or `shells`. That constraint is
 why the resolver is a core interface passed into `reload`, and why the tags live
-in `business`. When bundling a service that imports entity *values*, every entity
+in `business`. When bundling a service that imports entity _values_, every entity
 package must carry a stage-3 `.swcrc` and `tslib` must be externalized — see
 `CLAUDE.md` and the project memory `node-service-consuming-entifix-libs`.
