@@ -43,7 +43,7 @@ The core idea is **environment-agnostic use-cases**, wired with the
 
 2. **Use-case** — all four are factories (`loadUCFactory<T>()`, `getUCFactory<T>()`,
    `saveUCFactory<T>()`, `deleteUCFactory<T>()`) returning an `Effect.gen` that
-   *yields* the tags it needs — `EntityRepositoryTag` plus a per-call input tag
+   _yields_ the tags it needs — `EntityRepositoryTag` plus a per-call input tag
    (`EntityLoadRequestTag`, `EntityIdTag`, `EntityTag`), and for link-following
    loads `EntityLinkResolverTag`. They import **no framework and no transport** —
    only contracts and Effect. The type parameter is what lets a caller get a
@@ -84,8 +84,9 @@ adapters behind the tags differ.
 ```
 Product (business, @entity + EntityLink brand/category)
   └─ loadProductsUCFactory()  ── loads a page, reloads unresolved links via EntityLinkResolverTag
-       ├─ web: ProductTable → ProductListClientPage → /catalog/product (marketplace-admin-app)
+       ├─ web: ProductTable (EntityTable) → ProductListClientPage → /catalog/product (marketplace-admin-app)
        │        tags ← REST adapter + useEntityLinkResolver([[ProductBrand, …], [ProductCategory, …]])
+       │        columns/labels/formatting ← Product's accessor metadata (describeEntityColumns)
        └─ backend: GET /api/product (marketplace-admin-service)
                 tags ← makeMongoRepository(db, Product) + makeMongoLinkResolver(db, [ProductBrand, ProductCategory])
                 then serializeEntityCollection(...) → JSON
@@ -124,17 +125,17 @@ Every service also exposes `GET /api/config` returning its own loaded parameters
 platform services use **319x**; the domain index `N` is shared per frontend/backend
 pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 
-| Domain (`N`) | `-app` | `-service` |
-|---|---|---|
-| marketplace (0) | 3000 | 3100 |
-| marketplace-admin (1) | 3001 | 3101 |
-| auth (2) | 3002 | 3102 |
-| transaction-manager (3) | — | 3103 |
-| — platform — | | config-service 3190 |
+| Domain (`N`)            | `-app` | `-service`          |
+| ----------------------- | ------ | ------------------- |
+| marketplace (0)         | 3000   | 3100                |
+| marketplace-admin (1)   | 3001   | 3101                |
+| auth (2)                | 3002   | 3102                |
+| transaction-manager (3) | —      | 3103                |
+| — platform —            |        | config-service 3190 |
 
 ## Transactions (CQRS writes)
 
-Reads stay direct; **writes become transactions**. A `POST` is a *command*: the
+Reads stay direct; **writes become transactions**. A `POST` is a _command_: the
 service runs a five-step facade — validate → lock → execute → rollback → free —
 over it. `@r10c/entifix-transactions` holds the facade (each step a `*UCFactory`
 in the entity-use-case style), the `runTransaction` engine, and the ports
@@ -157,12 +158,14 @@ deferred.
 ## Current domain structure
 
 **Business domains** (`packages/business/ts/*`, pure — entities + use-cases):
+
 - `business-ts-product-configuration-management` — `Product`, `ProductBrand`,
   `ProductCategory`; `loadProductsUCFactory` (link-following load).
 - `business-ts-authn` — `UserIdentity`, `EntityIdentifier`; `resolveSession` UC.
 - `business-ts-common` — shared domain primitives.
 
 **Entity framework** (`packages/entifix/*`):
+
 - `entifix-ts-core` — decorators, metadata, links, types, (de)serializer,
   configuration store.
 - `entifix-ts-business` — repository/resolver contracts + use-case factories.
@@ -175,6 +178,7 @@ deferred.
   Effect-aware hooks. `entifix-style` — design tokens.
 
 **Delivery** (`packages/implementation/*`, `packages/shells/*`):
+
 - `implementation-product-configuration-management-react` — React organisms.
 - `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-common`
   — Next pages + client adapters. `shells-effect-service` — the backend base.

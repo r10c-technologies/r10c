@@ -594,9 +594,15 @@ importers:
       '@headlessui/react':
         specifier: ^2.2.10
         version: 2.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../ts/core
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
+      effect:
+        specifier: 3.21.4
+        version: 3.21.4
 
   packages/entifix/react/integration: {}
 

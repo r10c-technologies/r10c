@@ -14,6 +14,12 @@ module.exports = withNx(
       'react/jsx-runtime',
       '@headlessui/react',
       'class-variance-authority',
+      // Runtime values are imported from these (describeEntityColumns,
+      // EntityLink, Effect/Context), so they must not be inlined into the
+      // bundle — a second copy of entifix-ts-core would carry its own
+      // MetaEntity registry and see no decorated entities.
+      '@r10c/entifix-ts-core',
+      'effect',
     ],
     format: ['esm'],
     assets: [{ input: '.', output: '.', glob: 'README.md' }],
