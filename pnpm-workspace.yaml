@@ -17,6 +17,8 @@ allowBuilds:
   core-js-pure: false
   less: false
   msgpackr-extract: false
+  # Only needed to emit the browser service worker; tests use `msw/node`.
+  msw: false
   nx: false
   sharp: false
   unrs-resolver: false

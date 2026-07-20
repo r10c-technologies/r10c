@@ -1,16 +1,19 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./out-tsc/jest",
-    "types": ["jest", "node"],
+    "outDir": "./out-tsc/vitest",
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "vite/client",
+      "node"
+    ],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
   "include": [
-    "jest.config.ts",
-    "jest.config.cts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/**/*.d.ts"

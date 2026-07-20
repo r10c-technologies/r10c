@@ -1,18 +1,6 @@
-import { defineConfig } from 'vitest/config';
+import { defineEntifixTest } from '../../../../vitest.shared.mjs';
 
-export default defineConfig(() => ({
+export default defineEntifixTest({
+  name: '@r10c/business-ts-authn',
   root: __dirname,
-  cacheDir: '../../../../node_modules/.vite/packages/business/ts/authn',
-  test: {
-    name: '@r10c/business-ts-authn',
-    watch: false,
-    globals: true,
-    environment: 'node',
-    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    reporters: ['default'],
-    coverage: {
-      reportsDirectory: './test-output/vitest/coverage',
-      provider: 'v8' as const,
-    },
-  },
-}));
+});

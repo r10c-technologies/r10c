@@ -1,6 +1,3 @@
-/**
- * @jest-environment jsdom
- */
 import { Effect } from 'effect';
 
 import { makeLocalStorageUiPreferencesStore } from './local-storage-ui-preferences-store';

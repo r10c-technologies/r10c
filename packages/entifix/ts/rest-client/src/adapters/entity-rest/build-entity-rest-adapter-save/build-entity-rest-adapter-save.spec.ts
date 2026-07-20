@@ -47,7 +47,7 @@ const configurationContext = Context.make(ConfigurationRepositoryTag, {
 } as ConfigurationStore);
 
 function mockFetchReturning(body: unknown) {
-  const fetchMock = jest.fn().mockResolvedValue({
+  const fetchMock = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
     statusText: 'OK',
@@ -79,7 +79,7 @@ const runSave = (widget: Widget) =>
 
 describe('buildEntityRestAdapterSave', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('POSTs to the collection when the entity has no id', async () => {

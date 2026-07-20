@@ -5,8 +5,13 @@
     "esModuleInterop": true,
     "noUnusedLocals": false,
     "noImplicitAny": false,
-    "types": ["node", "jest"]
+    "types": [
+      "node",
+      "vitest/globals"
+    ]
   },
-  "include": ["jest.config.ts", "src/**/*.ts"],
+  "include": [
+    "src/**/*.ts"
+  ],
   "references": []
 }
