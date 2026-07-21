@@ -15,12 +15,14 @@
         "options": {
           "command": "vitest run --config vitest.config.mts --passWithNoTests",
           "cwd": "apps/auth-service-e2e"
-        },
-        "dependsOn": [
-          "@r10c/auth-service:build",
-          "@r10c/auth-service:dev"
-        ]
+        }
       }
     }
+  },
+  "devDependencies": {
+    "@r10c/auth-service": "workspace:*",
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/entifix-ts-testing-e2e": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*"
   }
 }

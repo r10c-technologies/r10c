@@ -40,10 +40,14 @@ pnpm nx test <project> -- --watch
 pnpm nx test <project> --coverage             # every packages/* project is gated at 100%
 pnpm nx run-many -t test --coverage           # the whole gate
 
-# E2E (Playwright for Next apps, Vitest for services)
-pnpm nx e2e marketplace-app-e2e
+# E2E (Playwright for Next apps, Vitest for services).
+# E2E_PROFILE=mock is the DEFAULT and is hermetic — no infra, runs on every PR.
 pnpm nx e2e marketplace-admin-app-e2e
-pnpm nx e2e marketplace-service-e2e
+pnpm nx e2e marketplace-admin-service-e2e
+
+# The same journeys against real infrastructure (start the service first):
+E2E_PROFILE=live MARKETPLACE_ADMIN_SERVICE_URL=http://localhost:3101 \
+  pnpm nx e2e marketplace-admin-app-e2e
 
 # Affected-only (what the pre-commit hook also runs against origin/main)
 pnpm nx affected -t lint,build,test
@@ -160,7 +164,7 @@ Frontends are Next.js (App Router, React 19, Tailwind); backends are **Effect-na
 
 - Frontends (`-app`): `marketplace-app`, `marketplace-admin-app`, `auth-app`.
 - Backends (`-service`): `marketplace-service`, `marketplace-admin-service`, `auth-service`, plus the cross-cutting `config-service`. The deployable ones keep the explicit webpack `build` + `prune-lockfile` / `copy-workspace-modules` / `prune` targets.
-- `*-e2e` projects use Playwright for Next apps and Vitest for services.
+- `*-e2e` projects use Playwright for Next apps and Vitest for services, both driven by `@r10c/entifix-ts-testing-e2e` and its **`E2E_PROFILE`** (`mock` — the default, hermetic, what CI runs; `live` — real infra). `mock` is not a stub of the answers: an app suite talks to msw handlers (`@msw/playwright`, over `page.route()` — nothing added to the app bundle) backed by the production query pipeline (`parseLoadRequestParams` → `loadUCFactory` → `makeMongoRepository` → fake Mongo driver), and a service suite boots the service's REAL router via `serveTestService` (`shells-effect-service`) on an ephemeral port with only the connection Layers faked. So both profiles agree on filtering/sorting/paging and the allowlist `400`, and ONE spec suite serves both. Profile selection is by **filename** (`*.spec.ts` runs in both, `*.mock.spec.ts` / `*.live.spec.ts` in one) enforced by `testIgnore`/`exclude`, never by an in-spec `skip`. See `packages/entifix/ts/testing-e2e/README.md` and `docs/CONTRIBUTE.md`.
 
 #### App & port convention
 

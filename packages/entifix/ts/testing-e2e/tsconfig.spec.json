@@ -1,0 +1,24 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/vitest",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node"],
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../core/tsconfig.lib.json"
+    },
+    {
+      "path": "../business/tsconfig.lib.json"
+    },
+    {
+      "path": "../mongo-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../testing-unit/tsconfig.spec.json"
+    }
+  ]
+}

@@ -15,12 +15,13 @@
         "options": {
           "command": "vitest run --config vitest.config.mts --passWithNoTests",
           "cwd": "apps/marketplace-service-e2e"
-        },
-        "dependsOn": [
-          "@r10c/marketplace-service:build",
-          "@r10c/marketplace-service:dev"
-        ]
+        }
       }
     }
+  },
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-e2e": "workspace:*",
+    "@r10c/marketplace-service": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*"
   }
 }

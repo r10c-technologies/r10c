@@ -1,0 +1,28 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../testing-unit"
+    },
+    {
+      "path": "../redis-client"
+    },
+    {
+      "path": "../mongo-client"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../business"
+    },
+    {
+      "path": "../amqp-client"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}

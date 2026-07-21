@@ -67,6 +67,7 @@ type Panel = 'none' | 'filters' | 'sorting';
 export function EntityTable<TEntity extends Entity>({
   entityConstructor,
   isLoading,
+  error,
   items,
   totalItems,
   currentPage,
@@ -114,6 +115,13 @@ export function EntityTable<TEntity extends Entity>({
 
   const recordLink = (item: TEntity) =>
     hrefFor ? <Link href={hrefFor(item.id)}>Open</Link> : undefined;
+
+  /**
+   * "No records" is a statement about the data; after a failed load it would be
+   * a lie about it. The distinction matters most to the user who is deciding
+   * whether their catalog is empty or their backend is down.
+   */
+  const emptyMessage = error ? 'Could not load records' : 'No records';
 
   return (
     <div className="flex flex-col gap-s">
@@ -180,6 +188,21 @@ export function EntityTable<TEntity extends Entity>({
         />
       )}
 
+      {/*
+        Rendered once, outside both layouts, and independently of whether there
+        are rows: a refetch that fails leaves the previous page on screen, and
+        without this the user would read stale data as current.
+      */}
+      {error && (
+        <p
+          role="alert"
+          data-testid="entity-table-error"
+          className="rounded-sm border border-danger bg-danger-subtle px-s py-2xs text-step-sm text-danger"
+        >
+          {error.message}
+        </p>
+      )}
+
       {/* Wide viewports: a grid. */}
       <div className={pivot.grid}>
         <Table>
@@ -203,7 +226,7 @@ export function EntityTable<TEntity extends Entity>({
             )}
             {!isLoading && items.length === 0 && (
               <TableMessageRow colSpan={columnCount}>
-                No records
+                {emptyMessage}
               </TableMessageRow>
             )}
             {items.map((item, index) =>
@@ -234,7 +257,7 @@ export function EntityTable<TEntity extends Entity>({
           <p className="text-step-sm text-content-muted">Loading…</p>
         )}
         {!isLoading && items.length === 0 && (
-          <p className="text-step-sm text-content-muted">No records</p>
+          <p className="text-step-sm text-content-muted">{emptyMessage}</p>
         )}
         {items.map((item, index) => (
           <EntityRecordCard

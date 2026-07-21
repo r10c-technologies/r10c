@@ -21,7 +21,8 @@ const compare = (left: unknown, right: unknown): number => {
   if (left == null && right == null) return 0;
   if (left == null) return -1;
   if (right == null) return 1;
-  if (typeof left === 'number' && typeof right === 'number') return left - right;
+  if (typeof left === 'number' && typeof right === 'number')
+    return left - right;
   if (left instanceof Date && right instanceof Date) {
     return left.getTime() - right.getTime();
   }
@@ -71,12 +72,10 @@ const matchesCondition = (actual: unknown, condition: unknown): boolean => {
 const matches = (doc: Document, query: QueryDocument): boolean =>
   Object.entries(query).every(([field, condition]) => {
     if (field === '$and') {
-      return (condition as QueryDocument[]).every((child) =>
-        matches(doc, child),
-      );
+      return (condition as QueryDocument[]).every(child => matches(doc, child));
     }
     if (field === '$or') {
-      return (condition as QueryDocument[]).some((child) => matches(doc, child));
+      return (condition as QueryDocument[]).some(child => matches(doc, child));
     }
     return matchesCondition(doc[field], condition);
   });
@@ -118,7 +117,10 @@ export const makeFakeMongoDb = (
   seed: Record<string, Document[]> = {},
 ): FakeMongoDb => {
   const collections = new Map<string, Document[]>(
-    Object.entries(seed).map(([name, docs]) => [name, docs.map((d) => ({ ...d }))]),
+    Object.entries(seed).map(([name, docs]) => [
+      name,
+      docs.map(d => ({ ...d })),
+    ]),
   );
   const operations: Array<{ collection: string; op: string }> = [];
   let failure: unknown;
@@ -168,19 +170,20 @@ export const makeFakeMongoDb = (
         },
         toArray: () =>
           record(name, 'find', () => {
-            const matched = documentsOf(name).filter((doc) =>
+            const matched = documentsOf(name).filter(doc =>
               matches(doc, query),
             );
             const sorted = Object.entries(sortSpec).reduceRight(
               (items, [field, direction]) =>
                 [...items].sort(
-                  (left, right) => compare(left[field], right[field]) * direction,
+                  (left, right) =>
+                    compare(left[field], right[field]) * direction,
                 ),
               matched,
             );
             return sorted
               .slice(skipCount, skipCount + limitCount)
-              .map((doc) => project(doc, options));
+              .map(doc => project(doc, options));
           }),
       };
       return cursor;
@@ -188,14 +191,27 @@ export const makeFakeMongoDb = (
 
     findOne: (query: QueryDocument, options?: { projection?: Document }) =>
       record(name, 'findOne', () => {
-        const found = documentsOf(name).find((doc) => matches(doc, query));
+        const found = documentsOf(name).find(doc => matches(doc, query));
         return found === undefined ? null : project(found, options);
       }),
 
     countDocuments: (query: QueryDocument = {}) =>
-      record(name, 'countDocuments', () =>
-        documentsOf(name).filter((doc) => matches(doc, query)).length,
+      record(
+        name,
+        'countDocuments',
+        () => documentsOf(name).filter(doc => matches(doc, query)).length,
       ),
+
+    // Used by the services' own seeding, which the e2e `mock` profile runs for
+    // real so both profiles serve the same catalog.
+    insertMany: (documents: Document[]) =>
+      record(name, 'insertMany', () => {
+        const stored = documentsOf(name);
+        for (const document of documents) {
+          stored.push({ ...document });
+        }
+        return { insertedCount: documents.length };
+      }),
 
     replaceOne: (
       query: QueryDocument,
@@ -204,7 +220,7 @@ export const makeFakeMongoDb = (
     ) =>
       record(name, 'replaceOne', () => {
         const documents = documentsOf(name);
-        const index = documents.findIndex((doc) => matches(doc, query));
+        const index = documents.findIndex(doc => matches(doc, query));
         if (index === -1) {
           if (!options?.upsert) return { matchedCount: 0, upsertedCount: 0 };
           documents.push({ ...replacement });
@@ -217,7 +233,7 @@ export const makeFakeMongoDb = (
     deleteOne: (query: QueryDocument) =>
       record(name, 'deleteOne', () => {
         const documents = documentsOf(name);
-        const index = documents.findIndex((doc) => matches(doc, query));
+        const index = documents.findIndex(doc => matches(doc, query));
         if (index === -1) return { deletedCount: 0 };
         documents.splice(index, 1);
         return { deletedCount: 1 };
@@ -229,10 +245,13 @@ export const makeFakeMongoDb = (
 
   return {
     seed: (name, documents) => {
-      collections.set(name, documents.map((doc) => ({ ...doc })));
+      collections.set(
+        name,
+        documents.map(doc => ({ ...doc })),
+      );
     },
-    read: (name) => documentsOf(name).map((doc) => ({ ...doc })),
-    failWith: (error) => {
+    read: name => documentsOf(name).map(doc => ({ ...doc })),
+    failWith: error => {
       failure = error;
     },
     failOn: (operation, error) => {

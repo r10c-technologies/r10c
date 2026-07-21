@@ -17,7 +17,10 @@ export type ThemeColorToken =
   | 'primary'
   | 'primary-content'
   | 'border'
-  | 'accent';
+  | 'accent'
+  | 'danger'
+  | 'danger-subtle'
+  | 'danger-content';
 
 /** A runtime palette: token → CSS color. Injected as `[data-theme]` vars for
  *  brands not known at build time (multi-tenant / white-label). */

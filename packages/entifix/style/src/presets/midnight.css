@@ -10,6 +10,10 @@
   --color-border: #2a3546;
   --color-accent: #a17cff;
 
+  --color-danger: #ff8b80;
+  --color-danger-subtle: #2c1a1a;
+  --color-danger-content: #0b1220;
+
   /* Deeper elevation for dark surfaces */
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);

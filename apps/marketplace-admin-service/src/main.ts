@@ -1,5 +1,6 @@
 import { makeService } from '@r10c/shells-effect-service';
 
+import { DEFAULT_PORT, SERVICE_NAME } from './index';
 import { AppLayer } from './mongo';
 import { router } from './routes';
 
@@ -12,8 +13,8 @@ import { router } from './routes';
  * so the admin app is unaffected.
  */
 makeService({
-  name: '@r10c/marketplace-admin-service',
-  port: Number(process.env.PORT) || 3101,
+  name: SERVICE_NAME,
+  port: Number(process.env.PORT) || DEFAULT_PORT,
   router,
   appLayer: AppLayer,
 });

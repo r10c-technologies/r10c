@@ -9,6 +9,10 @@ on:
         description: 'Projects per test worker'
         required: false
         default: '10'
+      build_chunk_size:
+        description: 'Projects per build worker'
+        required: false
+        default: '10'
 
 concurrency:
   group: pr-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -16,6 +20,7 @@ concurrency:
 
 env:
   TEST_CHUNK_SIZE: ${{ github.event.inputs.test_chunk_size || '10' }}
+  BUILD_CHUNK_SIZE: ${{ github.event.inputs.build_chunk_size || '10' }}
 
 jobs:
   initialize:
@@ -24,7 +29,9 @@ jobs:
     outputs:
       base: ${{ steps.shas.outputs.base }}
       head: ${{ steps.shas.outputs.head }}
-      test-chunks: ${{ steps.chunks.outputs.chunks }}
+      test-chunks: ${{ steps.chunks.outputs.test-chunks }}
+      build-chunks: ${{ steps.chunks.outputs.build-chunks }}
+      e2e-projects: ${{ steps.chunks.outputs.e2e-projects }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,16 +48,24 @@ jobs:
       - name: Resolve affected base/head
         id: shas
         uses: nrwl/nx-set-shas@v4
-      - name: Compute test-project chunks
+      - name: Compute affected chunks
         id: chunks
         run: |
-          AFFECTED_TESTS=$(pnpm nx show projects --affected \
-            --base=${{ steps.shas.outputs.base }} \
-            --head=${{ steps.shas.outputs.head }} \
-            --withTarget test --json)
-          CHUNKS=$(echo "$AFFECTED_TESTS" | jq -c --argjson n "$TEST_CHUNK_SIZE" \
-            '[range(0; length; $n) as $i | .[$i:$i+$n] | join(",")]')
-          echo "chunks=$CHUNKS" >> "$GITHUB_OUTPUT"
+          affected() {
+            pnpm nx show projects --affected \
+              --base=${{ steps.shas.outputs.base }} \
+              --head=${{ steps.shas.outputs.head }} \
+              --withTarget "$1" --json
+          }
+          chunk() {
+            jq -c --argjson n "$2" '[range(0; length; $n) as $i | .[$i:$i+$n] | join(",")]' <<<"$1"
+          }
+
+          echo "test-chunks=$(chunk "$(affected test)" "$TEST_CHUNK_SIZE")" >> "$GITHUB_OUTPUT"
+          echo "build-chunks=$(chunk "$(affected build)" "$BUILD_CHUNK_SIZE")" >> "$GITHUB_OUTPUT"
+          # e2e is one job, not a matrix: there are only a handful of these
+          # projects and each one pays for a browser download.
+          echo "e2e-projects=$(affected e2e | jq -r 'join(",")')" >> "$GITHUB_OUTPUT"
 
   lint:
     name: Lint (affected)
@@ -73,6 +88,30 @@ jobs:
           pnpm nx affected -t lint \
             --base=${{ needs.initialize.outputs.base }} \
             --head=${{ needs.initialize.outputs.head }}
+
+  build:
+    name: Build (${{ matrix.chunk }})
+    needs: initialize
+    if: needs.initialize.outputs.build-chunks != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: ${{ fromJson(needs.initialize.outputs.build-chunks) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: nx run-many -t build
+        run: pnpm nx run-many -t build --projects="${{ matrix.chunk }}"
 
   test:
     name: Test (${{ matrix.chunk }})
@@ -98,9 +137,65 @@ jobs:
       - name: nx run-many -t test --coverage
         run: pnpm nx run-many -t test --projects="${{ matrix.chunk }}" --coverage
 
+  e2e:
+    name: E2E (mock profile)
+    needs: initialize
+    if: needs.initialize.outputs.e2e-projects != ''
+    runs-on: ubuntu-latest
+    env:
+      # The hermetic profile: the app and the service under test are real, and
+      # everything they talk to is a fake wired in at the transport boundary. No
+      # minikube, no Mongo, no config-service — none of which exist on a runner.
+      # See packages/entifix/ts/testing-e2e/README.md.
+      E2E_PROFILE: mock
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Resolve the Playwright version
+        id: playwright
+        run: |
+          VERSION=$(node -p "require('@playwright/test/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # Chromium only: the mock profile intercepts through `page.route()`, which
+      # behaves identically across engines, so the other two would triple the
+      # runtime to re-assert the same traffic. Cross-browser rendering is a
+      # `live` concern.
+      - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+      - name: nx run-many -t e2e
+        run: |
+          pnpm nx run-many -t e2e \
+            --projects="${{ needs.initialize.outputs.e2e-projects }}"
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/*-e2e/test-output/playwright
+          retention-days: 7
+
   ci-gate:
     name: CI Gate
-    needs: [lint, test]
+    needs: [lint, build, test, e2e]
     if: always()
     runs-on: ubuntu-latest
     steps:

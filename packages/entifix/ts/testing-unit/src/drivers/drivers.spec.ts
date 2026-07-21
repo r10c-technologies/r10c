@@ -27,13 +27,19 @@ interface FakeCollection {
     options?: Record<string, unknown>,
   ): Promise<Record<string, unknown> | null>;
   countDocuments(query?: Record<string, unknown>): Promise<number>;
+  insertMany(
+    documents: Array<Record<string, unknown>>,
+  ): Promise<{ insertedCount: number }>;
   replaceOne(
     query: Record<string, unknown>,
     replacement: Record<string, unknown>,
     options?: { upsert?: boolean },
   ): Promise<{ matchedCount: number; upsertedCount: number }>;
   deleteOne(query: Record<string, unknown>): Promise<{ deletedCount: number }>;
-  createIndex(spec: Record<string, unknown>, options?: Record<string, unknown>): Promise<unknown>;
+  createIndex(
+    spec: Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ): Promise<unknown>;
 }
 
 const collectionOf = (
@@ -56,20 +62,27 @@ describe('makeFakeMongoDb', () => {
     const documents = [{ id: 'w-1' }];
     const fake = makeFakeMongoDb({ widget: documents });
 
-    await collectionOf(fake, 'widget').replaceOne({ id: 'w-1' }, { id: 'w-1', name: 'x' });
+    await collectionOf(fake, 'widget').replaceOne(
+      { id: 'w-1' },
+      { id: 'w-1', name: 'x' },
+    );
 
     expect(documents[0]).toEqual({ id: 'w-1' });
   });
 
   it('serves an unknown collection as empty', async () => {
-    expect(await collectionOf(makeFakeMongoDb(), 'absent').find().toArray()).toEqual([]);
+    expect(
+      await collectionOf(makeFakeMongoDb(), 'absent').find().toArray(),
+    ).toEqual([]);
   });
 
   describe('find', () => {
     it('matches on equality', async () => {
-      const found = await collectionOf(seeded(), 'widget').find({ id: 'w-2' }).toArray();
+      const found = await collectionOf(seeded(), 'widget')
+        .find({ id: 'w-2' })
+        .toArray();
 
-      expect(found.map((doc) => doc['name'])).toEqual(['Beta']);
+      expect(found.map(doc => doc['name'])).toEqual(['Beta']);
     });
 
     it('sorts ascending and descending', async () => {
@@ -81,8 +94,8 @@ describe('makeFakeMongoDb', () => {
         .sort({ size: -1 })
         .toArray();
 
-      expect(ascending.map((doc) => doc['size'])).toEqual([10, 20, 30]);
-      expect(descending.map((doc) => doc['size'])).toEqual([30, 20, 10]);
+      expect(ascending.map(doc => doc['size'])).toEqual([10, 20, 30]);
+      expect(descending.map(doc => doc['size'])).toEqual([30, 20, 10]);
     });
 
     it('pages with skip and limit', async () => {
@@ -93,7 +106,7 @@ describe('makeFakeMongoDb', () => {
         .limit(1)
         .toArray();
 
-      expect(found.map((doc) => doc['size'])).toEqual([20]);
+      expect(found.map(doc => doc['size'])).toEqual([20]);
     });
 
     // The adapter projects `_id` away on every read, so the fake has to honour
@@ -119,6 +132,19 @@ describe('makeFakeMongoDb', () => {
 
       expect((await collection.findOne({ id: 'w-1' }))?.['name']).toBe('Alpha');
       expect(await collection.findOne({ id: 'missing' })).toBeNull();
+    });
+
+    it('insertMany appends copies, so a seed array cannot be aliased', async () => {
+      const fake = seeded();
+      const collection = collectionOf(fake, 'widget');
+      const incoming = [{ id: 'w-4', name: 'Delta' }];
+
+      const result = await collection.insertMany(incoming);
+      incoming[0]['name'] = 'mutated';
+
+      expect(result).toEqual({ insertedCount: 1 });
+      expect(await collection.countDocuments({})).toBe(4);
+      expect(fake.read('widget')[3]).toEqual({ id: 'w-4', name: 'Delta' });
     });
 
     it('countDocuments counts the whole match', async () => {
@@ -153,7 +179,10 @@ describe('makeFakeMongoDb', () => {
     it('replaceOne does nothing for a missing document without upsert', async () => {
       const fake = seeded();
 
-      const result = await collectionOf(fake, 'widget').replaceOne({ id: 'w-9' }, { id: 'w-9' });
+      const result = await collectionOf(fake, 'widget').replaceOne(
+        { id: 'w-9' },
+        { id: 'w-9' },
+      );
 
       expect(result).toEqual({ matchedCount: 0, upsertedCount: 0 });
       expect(fake.read('widget')).toHaveLength(3);
@@ -163,17 +192,27 @@ describe('makeFakeMongoDb', () => {
       const fake = seeded();
       const collection = collectionOf(fake, 'widget');
 
-      expect(await collection.deleteOne({ id: 'w-1' })).toEqual({ deletedCount: 1 });
-      expect(await collection.deleteOne({ id: 'w-1' })).toEqual({ deletedCount: 0 });
+      expect(await collection.deleteOne({ id: 'w-1' })).toEqual({
+        deletedCount: 1,
+      });
+      expect(await collection.deleteOne({ id: 'w-1' })).toEqual({
+        deletedCount: 0,
+      });
       expect(fake.read('widget')).toHaveLength(2);
     });
 
     it('createIndex records what was asked for', async () => {
       const fake = seeded();
 
-      await collectionOf(fake, 'widget').createIndex({ id: 1 }, { unique: true });
+      await collectionOf(fake, 'widget').createIndex(
+        { id: 1 },
+        { unique: true },
+      );
 
-      expect(fake.operations.at(-1)).toEqual({ collection: 'widget', op: 'createIndex' });
+      expect(fake.operations.at(-1)).toEqual({
+        collection: 'widget',
+        op: 'createIndex',
+      });
     });
   });
 
@@ -182,9 +221,9 @@ describe('makeFakeMongoDb', () => {
       const fake = seeded();
       fake.failWith(new Error('connection refused'));
 
-      await expect(collectionOf(fake, 'widget').find({}).toArray()).rejects.toThrow(
-        'connection refused',
-      );
+      await expect(
+        collectionOf(fake, 'widget').find({}).toArray(),
+      ).rejects.toThrow('connection refused');
     });
 
     // A blanket failure never gets past the first call, so the later error
@@ -195,7 +234,9 @@ describe('makeFakeMongoDb', () => {
       const collection = collectionOf(fake, 'widget');
 
       await expect(collection.find({}).toArray()).resolves.toHaveLength(3);
-      await expect(collection.countDocuments({})).rejects.toThrow('connection refused');
+      await expect(collection.countDocuments({})).rejects.toThrow(
+        'connection refused',
+      );
     });
   });
 
@@ -221,12 +262,18 @@ interface FakeRedisClient {
   get(key: string): Promise<string | null>;
   del(key: string): Promise<number>;
   incr(key: string): Promise<number>;
-  eval(script: string, numKeys: number, key: string, token: string): Promise<number>;
+  eval(
+    script: string,
+    numKeys: number,
+    key: string,
+    token: string,
+  ): Promise<number>;
   quit(): Promise<string>;
 }
 
 describe('makeFakeRedis', () => {
-  const client = (fake: ReturnType<typeof makeFakeRedis>) => fake.redis as FakeRedisClient;
+  const client = (fake: ReturnType<typeof makeFakeRedis>) =>
+    fake.redis as FakeRedisClient;
 
   // `NX` is what makes acquisition atomic across instances, so honouring it is
   // the whole reason this fake exists rather than a plain Map.
@@ -234,7 +281,9 @@ describe('makeFakeRedis', () => {
     const fake = makeFakeRedis();
     await client(fake).set('lock', 'mine', 'PX', 1000, 'NX');
 
-    expect(await client(fake).set('lock', 'theirs', 'PX', 1000, 'NX')).toBeNull();
+    expect(
+      await client(fake).set('lock', 'theirs', 'PX', 1000, 'NX'),
+    ).toBeNull();
     expect(fake.read('lock')).toBe('mine');
   });
 
@@ -337,7 +386,11 @@ describe('makeFakeAmqpChannel', () => {
   it('records what was published, decoded', () => {
     const fake = makeFakeAmqpChannel();
 
-    channelOf(fake).publish('events', '', Buffer.from(JSON.stringify({ a: 1 })));
+    channelOf(fake).publish(
+      'events',
+      '',
+      Buffer.from(JSON.stringify({ a: 1 })),
+    );
 
     expect(fake.published).toEqual([{ exchange: 'events', body: { a: 1 } }]);
   });
@@ -355,7 +408,9 @@ describe('makeFakeAmqpChannel', () => {
   it('asserts an exchange and a named queue', async () => {
     const channel = channelOf(makeFakeAmqpChannel());
 
-    expect(await channel.assertExchange('events')).toEqual({ exchange: 'events' });
+    expect(await channel.assertExchange('events')).toEqual({
+      exchange: 'events',
+    });
     expect(await channel.assertQueue('work')).toEqual({ queue: 'work' });
   });
 
@@ -368,13 +423,15 @@ describe('makeFakeAmqpChannel', () => {
   });
 
   it('binds a queue', async () => {
-    await expect(channelOf(makeFakeAmqpChannel()).bindQueue()).resolves.toBeUndefined();
+    await expect(
+      channelOf(makeFakeAmqpChannel()).bindQueue(),
+    ).resolves.toBeUndefined();
   });
 
   it('delivers to whatever subscribed', async () => {
     const fake = makeFakeAmqpChannel();
     const received: unknown[] = [];
-    await channelOf(fake).consume('work', (message) => {
+    await channelOf(fake).consume('work', message => {
       received.push(JSON.parse(message?.content.toString() ?? 'null'));
     });
 
@@ -386,7 +443,7 @@ describe('makeFakeAmqpChannel', () => {
   it('delivers a raw payload, so a malformed message can be tested', async () => {
     const fake = makeFakeAmqpChannel();
     const received: string[] = [];
-    await channelOf(fake).consume('work', (message) => {
+    await channelOf(fake).consume('work', message => {
       received.push(message?.content.toString() ?? '');
     });
 
@@ -399,7 +456,7 @@ describe('makeFakeAmqpChannel', () => {
   it('delivers a cancellation', async () => {
     const fake = makeFakeAmqpChannel();
     const received: unknown[] = [];
-    await channelOf(fake).consume('work', (message) => received.push(message));
+    await channelOf(fake).consume('work', message => received.push(message));
 
     await fake.deliverCancellation();
 
@@ -407,13 +464,19 @@ describe('makeFakeAmqpChannel', () => {
   });
 
   it.each([
-    ['a delivery', (fake: ReturnType<typeof makeFakeAmqpChannel>) => fake.deliver({ a: 1 })],
+    [
+      'a delivery',
+      (fake: ReturnType<typeof makeFakeAmqpChannel>) => fake.deliver({ a: 1 }),
+    ],
     [
       'a cancellation',
-      (fake: ReturnType<typeof makeFakeAmqpChannel>) => fake.deliverCancellation(),
+      (fake: ReturnType<typeof makeFakeAmqpChannel>) =>
+        fake.deliverCancellation(),
     ],
   ])('refuses %s before anything subscribed', async (_label, deliver) => {
-    await expect(deliver(makeFakeAmqpChannel())).rejects.toThrow(/nothing subscribed/);
+    await expect(deliver(makeFakeAmqpChannel())).rejects.toThrow(
+      /nothing subscribed/,
+    );
   });
 
   it('records acks and nacks', () => {
@@ -428,22 +491,32 @@ describe('makeFakeAmqpChannel', () => {
   });
 
   it('closes', async () => {
-    await expect(channelOf(makeFakeAmqpChannel()).close()).resolves.toBeUndefined();
+    await expect(
+      channelOf(makeFakeAmqpChannel()).close(),
+    ).resolves.toBeUndefined();
   });
 
   it.each([
-    ['publish', (channel: FakeChannel) => channel.publish('e', '', Buffer.from('{}'))],
+    [
+      'publish',
+      (channel: FakeChannel) => channel.publish('e', '', Buffer.from('{}')),
+    ],
     ['prefetch', (channel: FakeChannel) => channel.prefetch(1)],
     ['assertExchange', (channel: FakeChannel) => channel.assertExchange('e')],
     ['assertQueue', (channel: FakeChannel) => channel.assertQueue('q')],
     ['bindQueue', (channel: FakeChannel) => channel.bindQueue()],
-    ['consume', (channel: FakeChannel) => channel.consume('q', () => undefined)],
+    [
+      'consume',
+      (channel: FakeChannel) => channel.consume('q', () => undefined),
+    ],
     ['close', (channel: FakeChannel) => channel.close()],
   ])('fails %s once told to fail', async (_label, run) => {
     const fake = makeFakeAmqpChannel();
     fake.failWith(new Error('channel closed'));
 
-    await expect(async () => run(channelOf(fake))).rejects.toThrow('channel closed');
+    await expect(async () => run(channelOf(fake))).rejects.toThrow(
+      'channel closed',
+    );
   });
 });
 
@@ -459,7 +532,7 @@ describe('makeFakeMongoDb query evaluation', () => {
   const matching = async (query: Record<string, unknown>) => {
     const fake = makeFakeMongoDb({ widget: rows });
     const found = await collectionOf(fake, 'widget').find(query).toArray();
-    return found.map((doc) => doc['id']);
+    return found.map(doc => doc['id']);
   };
 
   it.each([
@@ -482,7 +555,9 @@ describe('makeFakeMongoDb query evaluation', () => {
   });
 
   it('evaluates a case-insensitive $regex', async () => {
-    expect(await matching({ name: { $regex: 'et', $options: 'i' } })).toEqual(['w-2']);
+    expect(await matching({ name: { $regex: 'et', $options: 'i' } })).toEqual([
+      'w-2',
+    ]);
     expect(await matching({ name: { $regex: 'ET' } })).toEqual([]);
   });
 
@@ -504,7 +579,7 @@ describe('makeFakeMongoDb value comparison', () => {
       .find({})
       .sort({ size: 1 })
       .toArray();
-    return found.map((doc) => doc['id']);
+    return found.map(doc => doc['id']);
   };
 
   it('sorts an absent value first', async () => {
@@ -522,7 +597,10 @@ describe('makeFakeMongoDb value comparison', () => {
   });
 
   it('treats two absent values as equal', async () => {
-    expect(await ordered([{ id: 'w-1' }, { id: 'w-2' }])).toEqual(['w-1', 'w-2']);
+    expect(await ordered([{ id: 'w-1' }, { id: 'w-2' }])).toEqual([
+      'w-1',
+      'w-2',
+    ]);
   });
 
   it('sorts dates chronologically', async () => {
@@ -536,7 +614,10 @@ describe('makeFakeMongoDb value comparison', () => {
 
   it('falls back to a lexicographic comparison', async () => {
     expect(
-      await ordered([{ id: 'w-1', size: 'beta' }, { id: 'w-2', size: 'alpha' }]),
+      await ordered([
+        { id: 'w-1', size: 'beta' },
+        { id: 'w-2', size: 'alpha' },
+      ]),
     ).toEqual(['w-2', 'w-1']);
   });
 });

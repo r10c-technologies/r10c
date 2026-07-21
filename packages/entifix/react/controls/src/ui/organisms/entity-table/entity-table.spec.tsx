@@ -1,5 +1,6 @@
 import {
   accessor,
+  EntifixConnError,
   type Entity,
   entity,
   type EntityId,
@@ -370,6 +371,43 @@ describe('EntityTable controls', () => {
       renderTable({ items: [], totalItems: 0 });
 
       expect(screen.getAllByText('No records').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('the failure state', () => {
+    const unreachable = new EntifixConnError('the catalog is unreachable');
+
+    it('announces the failure', () => {
+      renderTable({ items: [], totalItems: 0, error: unreachable });
+
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('the catalog is unreachable');
+    });
+
+    // The whole point: "No records" after a failed load tells the user their
+    // catalog is empty, which is the one conclusion they must not draw.
+    it('does not claim the result set is empty', () => {
+      renderTable({ items: [], totalItems: 0, error: unreachable });
+
+      expect(screen.queryByText('No records')).not.toBeInTheDocument();
+      expect(
+        screen.getAllByText('Could not load records').length,
+      ).toBeGreaterThan(0);
+    });
+
+    // A refetch that fails leaves the previous page on screen; without the
+    // alert the user would read stale rows as current.
+    it('flags stale rows when a reload fails', () => {
+      renderTable({ error: unreachable });
+
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+      expect(screen.getAllByText('Sprocket').length).toBeGreaterThan(0);
+    });
+
+    it('stays silent when nothing failed', () => {
+      renderTable();
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
   });
 

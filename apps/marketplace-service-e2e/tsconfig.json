@@ -5,13 +5,18 @@
     "esModuleInterop": true,
     "noUnusedLocals": false,
     "noImplicitAny": false,
-    "types": [
-      "node",
-      "vitest/globals"
-    ]
+    "types": ["node", "vitest/globals"]
   },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "references": []
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../packages/shells/effect/service"
+    },
+    {
+      "path": "../marketplace-service"
+    },
+    {
+      "path": "../../packages/entifix/ts/testing-e2e"
+    }
+  ]
 }

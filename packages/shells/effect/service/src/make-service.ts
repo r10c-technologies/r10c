@@ -31,27 +31,44 @@ export interface ServiceDefinition<E, R> {
 }
 
 /**
- * Boot an Effect service: mount `/api/health`, serve `router` over an
- * `@effect/platform-node` HTTP server with request logging, provide the
- * domain `appLayer`, and launch under `runMain` (SIGINT/SIGTERM interrupt the
- * fiber, so Layer finalizers — db pools, etc. — release deterministically).
+ * The service as a `Layer`: `/api/health` mounted, `router` served over an
+ * `@effect/platform-node` HTTP server with request logging, `appLayer`
+ * provided.
+ *
+ * Split out of {@link makeService} so the same wiring can be launched more than
+ * one way. `makeService` runs it under `runMain` for production; the e2e mock
+ * profile launches it in-process on an ephemeral port (see `serveTestService`).
+ * Sharing this function is the point — a second assembly of router + health +
+ * middleware would let the thing under test drift from the thing that ships.
+ *
+ * `port` overrides `def.port`, which is what an in-process boot needs.
  */
-export const makeService = <E, R>(def: ServiceDefinition<E, R>): void => {
+export const makeServerLayer = <E, R>(
+  def: ServiceDefinition<E, R>,
+  port: number = def.port,
+) => {
   const router = def.router.pipe(
     HttpRouter.get(
       '/api/health',
-      HttpServerResponse.json({ status: 'ok', service: def.name })
-    )
+      HttpServerResponse.json({ status: 'ok', service: def.name }),
+    ),
   );
 
   // Request logging + permissive CORS (frontends call these services
   // cross-origin from their dev ports). Tighten CORS per-environment later.
-  const serverLive = HttpServer.serve(router, (app) =>
-    HttpMiddleware.logger(HttpMiddleware.cors()(app))
+  return HttpServer.serve(router, app =>
+    HttpMiddleware.logger(HttpMiddleware.cors()(app)),
   ).pipe(
     Layer.provide(def.appLayer),
-    Layer.provide(NodeHttpServer.layer(() => createServer(), { port: def.port }))
+    Layer.provide(NodeHttpServer.layer(() => createServer(), { port })),
   );
+};
 
-  NodeRuntime.runMain(Layer.launch(serverLive));
+/**
+ * Boot an Effect service: build {@link makeServerLayer} and launch it under
+ * `runMain` (SIGINT/SIGTERM interrupt the fiber, so Layer finalizers — db
+ * pools, etc. — release deterministically).
+ */
+export const makeService = <E, R>(def: ServiceDefinition<E, R>): void => {
+  NodeRuntime.runMain(Layer.launch(makeServerLayer(def)));
 };
