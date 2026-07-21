@@ -171,6 +171,11 @@ serve both.
 
 Put a journey in `*.spec.ts` unless it _cannot_ run in both.
 
+**Resolution.** Every `e2e` target gets `NODE_OPTIONS=--conditions=@r10c/source`
+from `nx.json`. Vitest applies that condition itself, but Playwright resolves
+specs with plain Node and would otherwise land on a package's `dist/` — which
+works on a machine with a stale build and fails on a clean checkout.
+
 ## Code style
 
 - Match the surrounding code: comment density, naming, and idiom. Comments

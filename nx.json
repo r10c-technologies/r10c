@@ -104,6 +104,13 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
+    },
+    "e2e": {
+      "options": {
+        "env": {
+          "NODE_OPTIONS": "--conditions=@r10c/source"
+        }
+      }
     }
   },
   "generators": {

@@ -118,6 +118,22 @@ port, with only the `appLayer` swapped for one built from the driver fakes. The
 routes, the use-cases, the repository adapter and the query translation all
 execute — what is absent is the infrastructure, not the service.
 
+## Why the e2e targets set `NODE_OPTIONS`
+
+`nx.json` gives every `e2e` target `NODE_OPTIONS=--conditions=@r10c/source`.
+
+Vitest applies the workspace's `@r10c/source` condition through its own
+`resolve.conditions` (see `vitest.shared.mts`), but Playwright resolves specs
+with plain Node, which knows nothing about it — so a spec importing a workspace
+package would resolve to its `dist/` and fail with `Cannot find module …/dist/index.js`
+on any machine that has not built that package. Passing the condition to Node
+keeps Playwright on the same source-first resolution as everything else, so the
+e2e suites need no prior build.
+
+This is easy to miss locally: a stale `dist/` from an earlier build makes the
+broken resolution look like it works, and it only fails on a clean checkout —
+which is exactly what CI is.
+
 ## Layering note
 
 This package sits under `entifix`, so it must not import from `shells` or
