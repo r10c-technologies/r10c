@@ -3,6 +3,7 @@ import {
   describeEntityColumns,
   Entity,
   entity,
+  EntityCollectionLink,
   EntityId,
   EntityLink,
 } from '../../index.js';
@@ -147,6 +148,7 @@ describe('describeEntityColumns type inference', () => {
     #active = false;
     #createdAt = new Date();
     #brand = new EntityLink(Brand);
+    #brands = new EntityCollectionLink(Brand);
 
     @accessor()
     get id(): EntityId {
@@ -175,6 +177,11 @@ describe('describeEntityColumns type inference', () => {
     get brand(): EntityLink<Brand> {
       return this.#brand;
     }
+
+    @accessor()
+    get brands(): EntityCollectionLink<Brand> {
+      return this.#brands;
+    }
   }
 
   it('reads the type off a sample value', () => {
@@ -189,6 +196,52 @@ describe('describeEntityColumns type inference', () => {
       active: 'boolean',
       createdAt: 'date',
       brand: 'link',
+      brands: 'linkCollection',
     });
+  });
+});
+
+describe('describeEntityColumns deduplication', () => {
+  // Subclass metadata inherits the parent's accessor list, so re-decorating an
+  // overridden member registers it twice. The first entry — the subclass's own,
+  // appended last but reached first via the inherited array — must not produce a
+  // duplicate column.
+  @entity({ key: 'base-widget' })
+  class BaseWidget implements Entity {
+    #id?: EntityId;
+    #label?: string;
+
+    @accessor({ type: 'id' })
+    get id(): EntityId {
+      return this.#id;
+    }
+    set id(value: EntityId) {
+      this.#id = value;
+    }
+
+    @accessor({ label: 'Base label' })
+    get label(): string | undefined {
+      return this.#label;
+    }
+    set label(value: string | undefined) {
+      this.#label = value;
+    }
+  }
+
+  @entity({ key: 'special-widget' })
+  class SpecialWidget extends BaseWidget {
+    @accessor({ label: 'Special label' })
+    override get label(): string | undefined {
+      return super.label;
+    }
+    override set label(value: string | undefined) {
+      super.label = value;
+    }
+  }
+
+  it('emits one column per name even when a member is redeclared', () => {
+    const columns = describeEntityColumns(SpecialWidget);
+
+    expect(columns.filter(column => column.name === 'label')).toHaveLength(1);
   });
 });
