@@ -324,3 +324,49 @@ describe('FilterBuilder', () => {
     });
   });
 });
+
+describe('FilterBuilder enum values', () => {
+  it('emits the chosen enum value', async () => {
+    const { onChange, user } = renderBuilder([
+      descriptor('status', 'enum', { enumValues: ['draft', 'live'] }),
+    ]);
+    await addFilter(user);
+
+    await user.selectOptions(screen.getByLabelText('Filter value'), 'live');
+
+    expect(lastFiltering(onChange)?.values[0]).toEqual({
+      property: 'status',
+      operator: 'eq',
+      value: 'live',
+    });
+  });
+});
+
+// A member can stop being filterable between renders. Its row disappears and
+// its draft is dropped from the emitted filtering, rather than emitting a
+// property the service no longer accepts.
+describe('FilterBuilder when a member disappears', () => {
+  const descriptors = [descriptor('name', 'string'), descriptor('stock', 'number')];
+
+  it('drops the row and its filter', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <FilterBuilder<Product> descriptors={descriptors} onChange={onChange} />,
+    );
+    await addFilter(user);
+    await user.selectOptions(screen.getByLabelText('Filter member'), 'stock');
+    await user.type(screen.getByLabelText('Filter value'), '5');
+    await addFilter(user);
+
+    rerender(
+      <FilterBuilder<Product> descriptors={[descriptors[0]!]} onChange={onChange} />,
+    );
+
+    expect(screen.getAllByLabelText('Filter member')).toHaveLength(1);
+
+    await user.selectOptions(screen.getByLabelText('Match all or any filter'), 'or');
+
+    expect(lastFiltering(onChange)).toEqual({ operator: 'or', values: [] });
+  });
+});

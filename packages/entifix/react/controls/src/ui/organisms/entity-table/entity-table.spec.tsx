@@ -7,9 +7,12 @@ import {
 } from '@r10c/entifix-ts-core';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { UiPreferencesProvider } from '../../../preferences/ui-preferences-context';
+import type { UiPreferencesStore } from '../../../preferences/ui-preferences-store';
 import { EntityTable } from './entity-table';
 import {
   EntityColumn,
@@ -384,7 +387,7 @@ describe('EntityTable controls', () => {
     });
 
     it('uses a custom cell renderer in both layouts', () => {
-      renderTable({}, <EntityColumn field="name" render={(item) => `!${String(item.name)}`} />);
+      renderTable({}, <EntityColumn<Widget> field="name" render={(item) => `!${String(item.name)}`} />);
 
       expect(screen.getAllByText('!Sprocket')).toHaveLength(2);
     });
@@ -416,5 +419,131 @@ describe('EntityTable controls', () => {
         ).toEqual(['Name', 'ID', 'Units in stock', 'Brand']),
       );
     });
+  });
+});
+
+describe('EntityTable keying and personalization scope', () => {
+  beforeEach(() => window.localStorage.clear());
+
+  // Rows are keyed by id; an entity that has not been saved yet has none, so
+  // the list position stands in rather than every row sharing key "undefined".
+  it('renders items that carry no id', () => {
+    const unsaved = new Widget();
+    unsaved.name = 'Draft';
+
+    render(
+      <EntityTable<Widget>
+        entityConstructor={Widget}
+        items={[unsaved]}
+        {...pager}
+      />,
+    );
+
+    expect(screen.getAllByText('Draft').length).toBeGreaterThan(0);
+  });
+
+  it('renders custom rows for items that carry no id', () => {
+    const unsaved = new Widget();
+    unsaved.name = 'Draft';
+
+    render(
+      <EntityTable<Widget> entityConstructor={Widget} items={[unsaved]} {...pager}>
+        <EntityTableRow<Widget> render={(item) => <tr><td>{`Row ${String(item.name)}`}</td></tr>} />
+      </EntityTable>,
+    );
+
+    expect(screen.getByText('Row Draft')).toBeInTheDocument();
+  });
+
+  // Two tables over the same entity — a picker and a full listing, say — need
+  // separate layouts, which is what the explicit key is for.
+  it('scopes personalization to an explicit preferences key', async () => {
+    const user = userEvent.setup();
+    const written: string[] = [];
+    const store: UiPreferencesStore = {
+      read: () => Effect.succeed(undefined),
+      write: (key) => Effect.sync(() => void written.push(key)),
+      remove: () => Effect.void,
+    };
+    render(
+      <UiPreferencesProvider store={store}>
+        <EntityTable<Widget>
+          entityConstructor={Widget}
+          items={[makeWidget()]}
+          preferencesKey="widget-picker"
+          {...pager}
+        />
+      </UiPreferencesProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByLabelText('Units in stock'));
+
+    await waitFor(() => expect(written).toEqual(['entity-table:widget-picker']));
+  });
+
+  it('adds a computed column that the entity has no member for', () => {
+    render(
+      <EntityTable<Widget> entityConstructor={Widget} items={[makeWidget()]} {...pager}>
+        <EntityColumn field="margin" render={() => 'computed'} />
+      </EntityTable>,
+    );
+
+    expect(screen.getByRole('columnheader', { name: 'margin' })).toBeInTheDocument();
+    expect(screen.getAllByText('computed')).toHaveLength(2);
+  });
+});
+
+describe('EntityTable defaults', () => {
+  beforeEach(() => window.localStorage.clear());
+
+  it('closes the sorting panel when its button is pressed again', async () => {
+    const user = userEvent.setup();
+    render(
+      <EntityTable<Widget> entityConstructor={Widget} items={[makeWidget()]} {...pager} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Sorting' }));
+    expect(screen.getByRole('button', { name: 'Add sort' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Sorting' }));
+
+    expect(screen.queryByRole('button', { name: 'Add sort' })).not.toBeInTheDocument();
+  });
+
+  // Personalization is scoped by the entity `key`, falling back to the class
+  // name — so an entity that declares no key still gets its own layout rather
+  // than sharing one keyed "undefined".
+  it('scopes personalization by the class name when the entity declares no key', async () => {
+    @entity()
+    class Unkeyed implements Entity {
+      #id?: EntityId;
+
+      @accessor({ type: 'id' })
+      get id(): EntityId {
+        return this.#id;
+      }
+      set id(value: EntityId) {
+        this.#id = value;
+      }
+    }
+
+    const user = userEvent.setup();
+    const written: string[] = [];
+    const store: UiPreferencesStore = {
+      read: () => Effect.succeed(undefined),
+      write: (key) => Effect.sync(() => void written.push(key)),
+      remove: () => Effect.void,
+    };
+    render(
+      <UiPreferencesProvider store={store}>
+        <EntityTable<Unkeyed> entityConstructor={Unkeyed} items={[]} {...pager} />
+      </UiPreferencesProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('button', { name: 'Reset to default' }));
+
+    await waitFor(() => expect(written).toEqual(['entity-table:Unkeyed']));
   });
 });

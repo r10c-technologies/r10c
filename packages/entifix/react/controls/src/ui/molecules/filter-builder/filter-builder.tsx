@@ -146,6 +146,9 @@ export function FilterBuilder<TEntity extends Entity>({
 
   const addRow = () => {
     const first = descriptors[0];
+    // Defence in depth: the component returns early for an empty descriptor
+    // list, so this button does not exist without a first member.
+    /* v8 ignore next */
     if (!first) return;
     update([
       ...drafts,
@@ -206,6 +209,9 @@ export function FilterBuilder<TEntity extends Entity>({
               value={draft.property}
               onChange={event => {
                 const next = descriptorFor(event.target.value);
+                // Defence in depth: the options are built from `descriptors`,
+                // so a chosen value always resolves.
+                /* v8 ignore next */
                 if (!next) return;
                 patch(draft.key, {
                   property: next.name,
