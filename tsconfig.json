@@ -107,6 +107,9 @@
     },
     {
       "path": "./packages/shells/effect/service"
+    },
+    {
+      "path": "./packages/entifix/ts/testing-unit"
     }
   ]
 }

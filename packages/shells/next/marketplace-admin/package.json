@@ -14,13 +14,7 @@
       "default": "./dist/index.esm.js"
     }
   },
-  "nx": {
-    "targets": {
-      "test": {
-        "options": {
-          "command": "jest --passWithNoTests"
-        }
-      }
-    }
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-unit": "workspace:*"
   }
 }

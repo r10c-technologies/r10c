@@ -1,0 +1,38 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/vitest",
+    "jsx": "react-jsx",
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom",
+      "vitest/importMeta",
+      "vite/client",
+      "node"
+    ],
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "references": [
+    {
+      "path": "../core/tsconfig.lib.json"
+    },
+    {
+      "path": "../business/tsconfig.lib.json"
+    },
+    {
+      "path": "../transactions/tsconfig.lib.json"
+    },
+    {
+      "path": "../../react/controls/tsconfig.lib.json"
+    }
+  ]
+}

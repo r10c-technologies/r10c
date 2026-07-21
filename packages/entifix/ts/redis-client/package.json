@@ -42,5 +42,8 @@
     "ioredis": "5.4.1",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-transactions": "workspace:*"
+  },
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-unit": "workspace:*"
   }
 }

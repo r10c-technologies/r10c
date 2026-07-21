@@ -63,6 +63,10 @@ export function SortBuilder<TEntity extends Entity>({
 
   const shift = (index: number, delta: number) => {
     const target = index + delta;
+    // Defence in depth: the buttons are already disabled at both ends, so this
+    // is unreachable through the UI — but an out-of-range splice would silently
+    // corrupt the list rather than no-op.
+    /* v8 ignore next */
     if (target < 0 || target >= drafts.length) return;
     const next = [...drafts];
     const [moved] = next.splice(index, 1);

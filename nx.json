@@ -8,7 +8,8 @@
       "!{projectRoot}/eslint.config.mjs",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
       "!{projectRoot}/tsconfig.spec.json",
-      "!{projectRoot}/jest.config.[jt]s",
+      "!{projectRoot}/vitest.config.[cm]?[jt]s",
+      "!{projectRoot}/vitest.setup.[jt]s",
       "!{projectRoot}/src/test-setup.[jt]s",
       "!{projectRoot}/test-setup.[jt]s"
     ],
@@ -53,17 +54,6 @@
       }
     },
     {
-      "plugin": "@nx/jest/plugin",
-      "options": {
-        "targetName": "test"
-      },
-      "exclude": [
-        "apps/marketplace-service-e2e/**/*",
-        "apps/marketplace-admin-api-e2e/**/*",
-        "apps/auth-api-e2e/**/*"
-      ]
-    },
-    {
       "plugin": "@nx/rollup/plugin",
       "options": {
         "buildTargetName": "build",
@@ -86,7 +76,6 @@
       "plugin": "@nx/vite/plugin",
       "options": {
         "buildTargetName": "build",
-        "testTargetName": "test",
         "serveTargetName": "serve",
         "devTargetName": "dev",
         "previewTargetName": "preview",
@@ -101,14 +90,16 @@
       "options": {
         "testTargetName": "test",
         "ciTargetName": "test-ci",
-        "testMode": "watch"
-      }
+        "testMode": "run"
+      },
+      "exclude": [
+        "apps/marketplace-service-e2e/**/*",
+        "apps/marketplace-admin-service-e2e/**/*",
+        "apps/auth-service-e2e/**/*"
+      ]
     }
   ],
   "targetDefaults": {
-    "test": {
-      "dependsOn": ["^build"]
-    },
     "@nx/js:swc": {
       "cache": true,
       "dependsOn": ["^build"],

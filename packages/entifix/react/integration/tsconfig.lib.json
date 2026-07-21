@@ -41,6 +41,9 @@
     },
     {
       "path": "../../ts/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../ts/testing-unit"
     }
   ]
 }

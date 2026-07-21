@@ -8,13 +8,13 @@
     ],
     "targets": {
       "e2e": {
-        "executor": "@nx/jest:jest",
+        "executor": "nx:run-commands",
         "outputs": [
-          "{projectRoot}/test-output/jest/coverage"
+          "{projectRoot}/test-output/vitest"
         ],
         "options": {
-          "jestConfig": "apps/marketplace-admin-service-e2e/jest.config.cts",
-          "passWithNoTests": true
+          "command": "vitest run --config vitest.config.mts --passWithNoTests",
+          "cwd": "apps/marketplace-admin-service-e2e"
         },
         "dependsOn": [
           "@r10c/marketplace-admin-service:build",

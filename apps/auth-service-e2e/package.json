@@ -8,18 +8,18 @@
     ],
     "targets": {
       "e2e": {
-        "executor": "@nx/jest:jest",
+        "executor": "nx:run-commands",
         "outputs": [
-          "{projectRoot}/test-output/jest/coverage"
+          "{projectRoot}/test-output/vitest"
         ],
+        "options": {
+          "command": "vitest run --config vitest.config.mts --passWithNoTests",
+          "cwd": "apps/auth-service-e2e"
+        },
         "dependsOn": [
           "@r10c/auth-service:build",
           "@r10c/auth-service:dev"
-        ],
-        "options": {
-          "jestConfig": "apps/auth-service-e2e/jest.config.cts",
-          "passWithNoTests": true
-        }
+        ]
       }
     }
   }

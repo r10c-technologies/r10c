@@ -1,13 +1,22 @@
 {
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "./out-tsc/jest",
+    "outDir": "./out-tsc/vitest",
     "jsx": "react-jsx",
-    "types": ["jest", "node"]
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom",
+      "vitest/importMeta",
+      "vite/client",
+      "node"
+    ]
   },
   "include": [
-    "jest.config.ts",
-    "jest.config.cts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/**/*.test.tsx",

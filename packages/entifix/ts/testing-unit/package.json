@@ -1,0 +1,68 @@
+{
+  "name": "@r10c/entifix-ts-testing-unit",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./drivers": {
+      "@r10c/source": "./src/drivers/index.ts",
+      "default": "./src/drivers/index.ts"
+    },
+    "./http": {
+      "@r10c/source": "./src/http/index.ts",
+      "default": "./src/http/index.ts"
+    },
+    "./contracts": {
+      "@r10c/source": "./src/contracts/index.ts",
+      "default": "./src/contracts/index.ts"
+    },
+    "./react": {
+      "@r10c/source": "./src/react/index.tsx",
+      "default": "./src/react/index.tsx"
+    }
+  },
+  "nx": {
+    "sourceRoot": "packages/entifix/ts/testing-unit/src",
+    "targets": {}
+  },
+  "dependencies": {
+    "@r10c/entifix-transactions": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "3.21.4"
+  },
+  "peerDependencies": {
+    "@testing-library/react": "*",
+    "msw": "*",
+    "react": "*",
+    "vitest": "*",
+    "@r10c/entifix-react-controls": "workspace:*",
+    "@testing-library/user-event": "*"
+  },
+  "peerDependenciesMeta": {
+    "@testing-library/react": {
+      "optional": true
+    },
+    "msw": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    },
+    "@r10c/entifix-react-controls": {
+      "optional": true
+    },
+    "@testing-library/user-event": {
+      "optional": true
+    }
+  }
+}

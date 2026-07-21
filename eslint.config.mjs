@@ -32,6 +32,28 @@ export default [
     },
   },
   {
+    // `@r10c/entifix-ts-testing-unit` is deliberately non-buildable: it is
+    // test-only, never published, and resolves straight to source. Specs are not
+    // part of any build output, so the buildable-lib rule does not apply to them
+    // — it stays fully enforced for source files.
+    files: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      '@nx/enforce-module-boundaries': [
+        'error',
+        {
+          enforceBuildableLibDependency: false,
+          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
+          depConstraints: [
+            {
+              sourceTag: '*',
+              onlyDependOnLibsWithTags: ['*'],
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     settings: {
       react: { version: '19.0.0' },
     },

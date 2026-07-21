@@ -60,6 +60,10 @@ export function ColumnSettings({
 
   const shift = (index: number, delta: number) => {
     const target = index + delta;
+    // Defence in depth: the buttons are already disabled at both ends, so this
+    // is unreachable through the UI — but an out-of-range splice would silently
+    // corrupt the order rather than no-op.
+    /* v8 ignore next */
     if (target < 0 || target >= order.length) return;
     onChange({ order: move(order, index, target), hidden: [...hidden] });
   };

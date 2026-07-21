@@ -44,6 +44,7 @@
     "@r10c/entifix-transactions": "workspace:*"
   },
   "devDependencies": {
-    "@types/amqplib": "0.10.5"
+    "@types/amqplib": "0.10.5",
+    "@r10c/entifix-ts-testing-unit": "workspace:*"
   }
 }
