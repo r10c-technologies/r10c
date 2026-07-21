@@ -207,17 +207,23 @@ describe('EntityTable controls', () => {
   it('hides the controls on request', () => {
     renderTable({ showControls: false });
 
-    expect(screen.queryByRole('button', { name: 'Filters' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Filters' }),
+    ).not.toBeInTheDocument();
   });
 
   it('opens and closes the filter panel', async () => {
     const { user } = renderTable();
 
     await user.click(screen.getByRole('button', { name: 'Filters' }));
-    expect(screen.getByRole('button', { name: 'Add filter' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add filter' }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Filters' }));
-    expect(screen.queryByRole('button', { name: 'Add filter' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Add filter' }),
+    ).not.toBeInTheDocument();
   });
 
   // The two panels share one slot, so opening one has to close the other
@@ -228,28 +234,67 @@ describe('EntityTable controls', () => {
 
     await user.click(screen.getByRole('button', { name: 'Sorting' }));
 
-    expect(screen.getByRole('button', { name: 'Add sort' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Add filter' })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add sort' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Add filter' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('reports the filtering the panel produced', async () => {
+  // The panels commit rather than stream: the value feeds a load request, so
+  // it must not be reported while the user is still composing it.
+  it('reports the filtering only once the panel is applied', async () => {
     const onFilteringChange = vi.fn();
     const { user } = renderTable({ onFilteringChange });
     await user.click(screen.getByRole('button', { name: 'Filters' }));
 
     await user.click(screen.getByRole('button', { name: 'Add filter' }));
+    expect(onFilteringChange).not.toHaveBeenCalled();
 
-    expect(onFilteringChange).toHaveBeenCalledWith({ operator: 'and', values: [] });
+    await user.click(screen.getByRole('button', { name: 'Apply filters' }));
+
+    expect(onFilteringChange).toHaveBeenCalledWith({
+      operator: 'and',
+      values: [],
+    });
   });
 
-  it('reports the sorting the panel produced', async () => {
+  it('reports the sorting only once the panel is applied', async () => {
     const onSortingChange = vi.fn();
     const { user } = renderTable({ onSortingChange });
     await user.click(screen.getByRole('button', { name: 'Sorting' }));
 
     await user.click(screen.getByRole('button', { name: 'Add sort' }));
+    expect(onSortingChange).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Apply sorting' }));
 
     expect(onSortingChange).toHaveBeenCalled();
+  });
+
+  it('seeds the filter panel from the applied filtering', async () => {
+    const { user } = renderTable({
+      filtering: {
+        operator: 'or',
+        values: [{ property: 'name', operator: 'like', value: 'Acme' }],
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+
+    expect(screen.getByLabelText('Filter value')).toHaveValue('Acme');
+    expect(screen.getByLabelText('Match all or any filter')).toHaveValue('or');
+  });
+
+  it('seeds the sort panel from the applied sorting', async () => {
+    const { user } = renderTable({
+      sorting: { 0: { property: 'name', type: 'desc' } },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Sorting' }));
+
+    expect(screen.getByLabelText('Sort direction')).toHaveValue('desc');
   });
 
   it('tolerates panels with no callback wired', async () => {
@@ -268,15 +313,19 @@ describe('EntityTable controls', () => {
     await user.click(screen.getByRole('button', { name: 'Add filter' }));
 
     // `id` and links default to neither sortable nor filterable.
-    expect(screen.queryByRole('option', { name: 'ID' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'ID' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Name' })).toBeInTheDocument();
   });
 
   describe('record links', () => {
     it('adds an actions column when a record href is given', () => {
-      renderTable({ hrefFor: (id) => `/widget/${String(id)}` });
+      renderTable({ hrefFor: id => `/widget/${String(id)}` });
 
-      expect(screen.getByRole('columnheader', { name: 'Actions' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('columnheader', { name: 'Actions' }),
+      ).toBeInTheDocument();
       expect(screen.getAllByRole('link', { name: 'Open' })[0]).toHaveAttribute(
         'href',
         '/widget/widget-1',
@@ -332,20 +381,26 @@ describe('EntityTable controls', () => {
       ['sm', 'hidden sm:block', 'sm:hidden'],
       ['md', 'hidden md:block', 'md:hidden'],
       ['lg', 'hidden lg:block', 'lg:hidden'],
-    ] as const)('renders both layouts at the %s breakpoint', (breakpoint, grid, cards) => {
-      const { container } = render(
-        <EntityTable<Widget>
-          entityConstructor={Widget}
-          items={[makeWidget()]}
-          pivotBreakpoint={breakpoint}
-          {...pager}
-        />,
-      );
+    ] as const)(
+      'renders both layouts at the %s breakpoint',
+      (breakpoint, grid, cards) => {
+        const { container } = render(
+          <EntityTable<Widget>
+            entityConstructor={Widget}
+            items={[makeWidget()]}
+            pivotBreakpoint={breakpoint}
+            {...pager}
+          />,
+        );
 
-      expect(container.querySelector(`.${grid.replace(' ', '.').replace(':', '\\:')}`))
-        .toBeTruthy();
-      expect(container.innerHTML).toContain(cards);
-    });
+        expect(
+          container.querySelector(
+            `.${grid.replace(' ', '.').replace(':', '\\:')}`,
+          ),
+        ).toBeTruthy();
+        expect(container.innerHTML).toContain(cards);
+      },
+    );
 
     it('renders each row twice — once per layout', () => {
       renderTable();
@@ -356,9 +411,20 @@ describe('EntityTable controls', () => {
 
   describe('slots', () => {
     it('replaces the whole header row', () => {
-      renderTable({}, <EntityTableHeader render={() => <tr><th>Custom header</th></tr>} />);
+      renderTable(
+        {},
+        <EntityTableHeader
+          render={() => (
+            <tr>
+              <th>Custom header</th>
+            </tr>
+          )}
+        />,
+      );
 
-      expect(screen.getByRole('columnheader', { name: 'Custom header' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('columnheader', { name: 'Custom header' }),
+      ).toBeInTheDocument();
       expect(
         screen.queryByRole('columnheader', { name: 'Units in stock' }),
       ).not.toBeInTheDocument();
@@ -367,17 +433,32 @@ describe('EntityTable controls', () => {
     it('replaces the whole body row', () => {
       renderTable(
         {},
-        <EntityTableRow render={(item) => <tr><td>{`Row ${String(item.id)}`}</td></tr>} />,
+        <EntityTableRow
+          render={item => (
+            <tr>
+              <td>{`Row ${String(item.id)}`}</td>
+            </tr>
+          )}
+        />,
       );
 
       expect(screen.getByText('Row widget-1')).toBeInTheDocument();
     });
 
     it('adds toolbar actions alongside the built-in ones', () => {
-      renderTable({}, <EntityTableToolbar><button type="button">Export</button></EntityTableToolbar>);
+      renderTable(
+        {},
+        <EntityTableToolbar>
+          <button type="button">Export</button>
+        </EntityTableToolbar>,
+      );
 
-      expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Columns' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Export' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Columns' }),
+      ).toBeInTheDocument();
     });
 
     it('renders unrecognised children below the table', () => {
@@ -387,7 +468,13 @@ describe('EntityTable controls', () => {
     });
 
     it('uses a custom cell renderer in both layouts', () => {
-      renderTable({}, <EntityColumn<Widget> field="name" render={(item) => `!${String(item.name)}`} />);
+      renderTable(
+        {},
+        <EntityColumn<Widget>
+          field="name"
+          render={item => `!${String(item.name)}`}
+        />,
+      );
 
       expect(screen.getAllByText('!Sprocket')).toHaveLength(2);
     });
@@ -415,7 +502,7 @@ describe('EntityTable controls', () => {
 
       await waitFor(() =>
         expect(
-          screen.getAllByRole('columnheader').map((cell) => cell.textContent),
+          screen.getAllByRole('columnheader').map(cell => cell.textContent),
         ).toEqual(['Name', 'ID', 'Units in stock', 'Brand']),
       );
     });
@@ -447,8 +534,18 @@ describe('EntityTable keying and personalization scope', () => {
     unsaved.name = 'Draft';
 
     render(
-      <EntityTable<Widget> entityConstructor={Widget} items={[unsaved]} {...pager}>
-        <EntityTableRow<Widget> render={(item) => <tr><td>{`Row ${String(item.name)}`}</td></tr>} />
+      <EntityTable<Widget>
+        entityConstructor={Widget}
+        items={[unsaved]}
+        {...pager}
+      >
+        <EntityTableRow<Widget>
+          render={item => (
+            <tr>
+              <td>{`Row ${String(item.name)}`}</td>
+            </tr>
+          )}
+        />
       </EntityTable>,
     );
 
@@ -462,7 +559,7 @@ describe('EntityTable keying and personalization scope', () => {
     const written: string[] = [];
     const store: UiPreferencesStore = {
       read: () => Effect.succeed(undefined),
-      write: (key) => Effect.sync(() => void written.push(key)),
+      write: key => Effect.sync(() => void written.push(key)),
       remove: () => Effect.void,
     };
     render(
@@ -479,17 +576,25 @@ describe('EntityTable keying and personalization scope', () => {
     await user.click(screen.getByRole('button', { name: 'Columns' }));
     await user.click(screen.getByLabelText('Units in stock'));
 
-    await waitFor(() => expect(written).toEqual(['entity-table:widget-picker']));
+    await waitFor(() =>
+      expect(written).toEqual(['entity-table:widget-picker']),
+    );
   });
 
   it('adds a computed column that the entity has no member for', () => {
     render(
-      <EntityTable<Widget> entityConstructor={Widget} items={[makeWidget()]} {...pager}>
+      <EntityTable<Widget>
+        entityConstructor={Widget}
+        items={[makeWidget()]}
+        {...pager}
+      >
         <EntityColumn field="margin" render={() => 'computed'} />
       </EntityTable>,
     );
 
-    expect(screen.getByRole('columnheader', { name: 'margin' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'margin' }),
+    ).toBeInTheDocument();
     expect(screen.getAllByText('computed')).toHaveLength(2);
   });
 });
@@ -500,15 +605,23 @@ describe('EntityTable defaults', () => {
   it('closes the sorting panel when its button is pressed again', async () => {
     const user = userEvent.setup();
     render(
-      <EntityTable<Widget> entityConstructor={Widget} items={[makeWidget()]} {...pager} />,
+      <EntityTable<Widget>
+        entityConstructor={Widget}
+        items={[makeWidget()]}
+        {...pager}
+      />,
     );
 
     await user.click(screen.getByRole('button', { name: 'Sorting' }));
-    expect(screen.getByRole('button', { name: 'Add sort' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add sort' }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Sorting' }));
 
-    expect(screen.queryByRole('button', { name: 'Add sort' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Add sort' }),
+    ).not.toBeInTheDocument();
   });
 
   // Personalization is scoped by the entity `key`, falling back to the class
@@ -532,12 +645,16 @@ describe('EntityTable defaults', () => {
     const written: string[] = [];
     const store: UiPreferencesStore = {
       read: () => Effect.succeed(undefined),
-      write: (key) => Effect.sync(() => void written.push(key)),
+      write: key => Effect.sync(() => void written.push(key)),
       remove: () => Effect.void,
     };
     render(
       <UiPreferencesProvider store={store}>
-        <EntityTable<Unkeyed> entityConstructor={Unkeyed} items={[]} {...pager} />
+        <EntityTable<Unkeyed>
+          entityConstructor={Unkeyed}
+          items={[]}
+          {...pager}
+        />
       </UiPreferencesProvider>,
     );
 

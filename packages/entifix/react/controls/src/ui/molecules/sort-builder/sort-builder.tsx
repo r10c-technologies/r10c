@@ -17,9 +17,41 @@ interface SortDraft {
   type: EntitySortType;
 }
 
+/**
+ * Rebuilds the rows from an already-applied sorting, so reopening the panel
+ * shows what is actually in effect. The numeric keys are the precedence, so
+ * they are walked in order.
+ */
+function toDrafts<TEntity extends Entity>(
+  sorting: EntitySorting<TEntity> | undefined,
+  descriptors: readonly EntityFieldDescriptor[],
+): SortDraft[] {
+  if (!sorting) return [];
+
+  return Object.keys(sorting)
+    .map(Number)
+    .sort((left, right) => left - right)
+    .flatMap(priority => {
+      const entry = sorting[priority];
+      if (!entry) return [];
+      // Rows address members by accessor name; an applied value carries the
+      // wire key, which is the same string unless the member declared an alias.
+      const descriptor = descriptors.find(
+        candidate =>
+          candidate.key === String(entry.property) ||
+          candidate.name === String(entry.property),
+      );
+      return descriptor
+        ? [{ property: descriptor.name, type: entry.type }]
+        : [];
+    });
+}
+
 export interface SortBuilderProps<TEntity extends Entity> {
   /** Sortable members, already resolved from the entity metadata. */
   descriptors: readonly EntityFieldDescriptor[];
+  /** The sorting currently applied, used to seed the rows. */
+  value?: EntitySorting<TEntity>;
   onChange: (sorting: EntitySorting<TEntity>) => void;
 }
 
@@ -27,14 +59,20 @@ export interface SortBuilderProps<TEntity extends Entity> {
  * Builds an `EntitySorting` value — a precedence-ordered map, so the list order
  * here *is* the sort priority. Reordering uses explicit buttons for the same
  * reasons as the column settings.
+ *
+ * As in the filter builder, editing is a draft and `onChange` fires only on
+ * **Apply**: each emission is a round trip to the server.
  */
 export function SortBuilder<TEntity extends Entity>({
   descriptors,
+  value: applied,
   onChange,
 }: SortBuilderProps<TEntity>) {
-  const [drafts, setDrafts] = useState<SortDraft[]>([]);
+  const [drafts, setDrafts] = useState<SortDraft[]>(() =>
+    toDrafts(applied, descriptors),
+  );
 
-  const emit = useCallback(
+  const apply = useCallback(
     (next: SortDraft[]) => {
       const sorting = next.reduce<EntitySorting<TEntity>>(
         (accumulator, draft, index) => {
@@ -56,10 +94,8 @@ export function SortBuilder<TEntity extends Entity>({
     [descriptors, onChange],
   );
 
-  const update = (next: SortDraft[]) => {
-    setDrafts(next);
-    emit(next);
-  };
+  /** Edits the draft only — nothing reaches the caller until Apply. */
+  const update = (next: SortDraft[]) => setDrafts(next);
 
   const shift = (index: number, delta: number) => {
     const target = index + delta;
@@ -161,7 +197,7 @@ export function SortBuilder<TEntity extends Entity>({
         </div>
       ))}
 
-      <div>
+      <div className="flex flex-wrap items-center gap-2xs">
         <Button
           type="button"
           variant="secondary"
@@ -171,6 +207,28 @@ export function SortBuilder<TEntity extends Entity>({
           }
         >
           Add sort
+        </Button>
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          aria-label="Apply sorting"
+          onClick={() => apply(drafts)}
+        >
+          Apply
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-label="Clear sorting"
+          onClick={() => {
+            setDrafts([]);
+            // Applying the emptied form is what restores the default order.
+            apply([]);
+          }}
+        >
+          Clear
         </Button>
       </div>
     </div>

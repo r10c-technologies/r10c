@@ -3,7 +3,12 @@ import {
   EntityRepositoryTag,
   loadUCFactory,
 } from '@r10c/entifix-ts-business';
-import { EntifixConnError, type Entity } from '@r10c/entifix-ts-core';
+import {
+  EntifixConnError,
+  type Entity,
+  type EntityLoadRequest,
+  type FilterGroup,
+} from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationStore,
@@ -162,5 +167,155 @@ describe('useDataLoading', () => {
     unmount();
 
     await waitFor(() => expect(result.current.error).toBeUndefined());
+  });
+});
+
+/**
+ * Filtering and sorting reach the repository through the same load request as
+ * paging, so these run the real UC over the in-memory double and assert on what
+ * came back rather than on the request object.
+ */
+describe('useDataLoading filtering and sorting', () => {
+  /** Records every load request the hook issued. */
+  const recording = () => {
+    const requests: Array<EntityLoadRequest<Widget>> = [];
+    const inner = repository;
+    const spy: typeof repository = {
+      ...inner,
+      load: (<T extends Entity>(request: EntityLoadRequest<T>) => {
+        requests.push(request as unknown as EntityLoadRequest<Widget>);
+        return inner.load<T>(request);
+      }) as typeof inner.load,
+    };
+    repository = spy;
+    return requests;
+  };
+
+  const filterByName = (value: string): FilterGroup<Widget> => ({
+    operator: 'and',
+    values: [{ property: 'name', operator: 'eq', value }],
+  });
+
+  it('narrows the result set once filtering is applied', async () => {
+    const { result } = renderLoading();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.onFilteringChange(filterByName('Widget 7')));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.totalItems).toBe(1);
+    expect(result.current.filtering).toEqual(filterByName('Widget 7'));
+  });
+
+  it('orders the result set once sorting is applied', async () => {
+    const { result } = renderLoading();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() =>
+      result.current.onSortingChange({ 0: { property: 'name', type: 'desc' } }),
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.items[0]?.name).toBe('Widget 9');
+    expect(result.current.sorting).toEqual({
+      0: { property: 'name', type: 'desc' },
+    });
+  });
+
+  // Page 3 of the old result is very likely past the end of the narrowed one,
+  // which would strand the user on an empty page.
+  it.each([
+    [
+      'filtering',
+      (hook: ReturnType<typeof renderLoading>['result']['current']) =>
+        hook.onFilteringChange(filterByName('Widget 7')),
+    ],
+    [
+      'sorting',
+      (hook: ReturnType<typeof renderLoading>['result']['current']) =>
+        hook.onSortingChange({ 0: { property: 'name', type: 'desc' } }),
+    ],
+  ])('returns to page 1 when %s changes', async (_label, change) => {
+    const { result } = renderLoading();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => result.current.onPageChange(3));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => change(result.current));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.currentPage).toBe(1);
+  });
+
+  it('sends the applied filtering and sorting in the load request', async () => {
+    const requests = recording();
+    const { result } = renderLoading();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.onFilteringChange(filterByName('Widget 7')));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() =>
+      result.current.onSortingChange({ 0: { property: 'name', type: 'asc' } }),
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(requests.at(-1)).toEqual({
+      page: 1,
+      pageSize: 10,
+      filtering: [filterByName('Widget 7')],
+      sorting: [{ 0: { property: 'name', type: 'asc' } }],
+    });
+  });
+
+  // An empty group matches everything, so sending it would be noise on the
+  // wire — and it is exactly what Clear produces.
+  it('omits an emptied filtering rather than sending a match-all', async () => {
+    const requests = recording();
+    const { result } = renderLoading();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => result.current.onFilteringChange(filterByName('Widget 7')));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() =>
+      result.current.onFilteringChange({ operator: 'and', values: [] }),
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(requests.at(-1)).toEqual({ page: 1, pageSize: 10 });
+    expect(result.current.items).toHaveLength(10);
+  });
+
+  it('omits an emptied sorting', async () => {
+    const requests = recording();
+    const { result } = renderLoading();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() =>
+      result.current.onSortingChange({ 0: { property: 'name', type: 'desc' } }),
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.onSortingChange({}));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(requests.at(-1)).toEqual({ page: 1, pageSize: 10 });
+  });
+
+  // The fetch effect keys on the *serialized* query, not on object identity.
+  // Re-applying an equal filter must therefore not put another request on the
+  // wire — keying on identity here would refetch on every render forever.
+  it('does not refetch when an equal filtering is re-applied', async () => {
+    const requests = recording();
+    const { result } = renderLoading();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => result.current.onFilteringChange(filterByName('Widget 7')));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const before = requests.length;
+
+    // A new object with the same content, as a caller would rebuild it.
+    act(() => result.current.onFilteringChange(filterByName('Widget 7')));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(requests).toHaveLength(before);
   });
 });

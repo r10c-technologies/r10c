@@ -6,6 +6,7 @@ import {
   EntityPage,
   extractMetaEntity,
   readEntityPageEnvelope,
+  serializeLoadRequestParams,
 } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 
@@ -29,14 +30,10 @@ export const buildEntityRestAdapterLoad =
         metaEntity.key ?? metaEntity.name,
       );
 
-      const params = new URLSearchParams();
-      if (request.page != null) {
-        params.set('page', String(request.page));
-      }
-      if (request.pageSize != null) {
-        params.set('pageSize', String(request.pageSize));
-      }
-      const query = params.toString();
+      // Filtering goes out as RSQL and sorting as `sort` — the shared query
+      // protocol in core, so what this composes is exactly what the service
+      // parses back.
+      const query = serializeLoadRequestParams(request).toString();
       const url = query ? `${baseUrl}?${query}` : baseUrl;
 
       const response = yield* performHttpRequestThroughFetch(

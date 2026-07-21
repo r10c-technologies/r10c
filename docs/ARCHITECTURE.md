@@ -54,6 +54,14 @@ The core idea is **environment-agnostic use-cases**, wired with the
    - `entifix-ts-mongo-client` — `makeMongoRepository(db, Ctor)` over MongoDB
      (the backend). Collection/endpoint name = the entity's `key`.
 
+   Both ends of a _read_ share one wire format for filtering and sorting: the
+   **RSQL codec** in `entifix-ts-core` (`?rsql=` + `?sort=`). It lives in `core`
+   rather than in either adapter because both sides need it — the REST client
+   serializes an `EntityLoadRequest` into it, a service parses one back out and
+   validates it against the entity's metadata, and only then does the Mongo
+   adapter's `filter-translator` turn it into a query. See
+   [ENTIFIX §6](ENTIFIX.md#6-the-rsql-query-protocol).
+
 4. **Composition root** — the only place that knows the environment. It provides
    the tags: the adapter for `EntityRepositoryTag`, the per-call input for
    `EntityLoadRequestTag` / `EntityIdTag`, and a resolver for
@@ -167,7 +175,7 @@ deferred.
 **Entity framework** (`packages/entifix/*`):
 
 - `entifix-ts-core` — decorators, metadata, links, types, (de)serializer,
-  configuration store.
+  configuration store, and the **RSQL query codec** (`src/rsql/`).
 - `entifix-ts-business` — repository/resolver contracts + use-case factories.
 - `entifix-ts-rest-client` — HTTP `EntityRepository` adapter (web).
 - `entifix-ts-mongo-client` — MongoDB `EntityRepository` adapter (backend).

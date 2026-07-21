@@ -41,6 +41,7 @@ import {
   envelopeEntityName,
   makeEntityEnvelope,
   makeEntityPageEnvelope,
+  parseLoadRequestParams,
   readEntityEnvelope,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
@@ -64,20 +65,38 @@ import {
 const TRANSACTION_MANAGER_URL =
   process.env.TRANSACTION_MANAGER_URL ?? 'http://localhost:3103';
 
-/** Reads `page`/`pageSize` from the request query string. */
-const readLoadRequest = Effect.gen(function* () {
-  const req = yield* HttpServerRequest.HttpServerRequest;
-  const search = new URL(req.url, 'http://localhost').searchParams;
-  return {
-    page: Number(search.get('page')) || 1,
-    pageSize: Number(search.get('pageSize')) || 10,
-  } satisfies EntityLoadRequest;
-});
+/**
+ * Reads the load request from the query string: `rsql` (filtering), `sort`,
+ * `page` and `pageSize`. Parsing is done by the shared codec in
+ * `entifix-ts-core` — the same one the REST client serializes with — and is
+ * validated against the entity's own metadata, so a client can only name
+ * members the entity declared filterable/sortable.
+ */
+const readLoadRequest = <T extends Entity>(
+  entityConstructor: EntityConstructor<T>,
+) =>
+  Effect.gen(function* () {
+    const req = yield* HttpServerRequest.HttpServerRequest;
+    const search = new URL(req.url, 'http://localhost').searchParams;
+    return yield* Effect.try({
+      try: () =>
+        // `EntityLoadRequestTag` deliberately carries no generic, so the
+        // entity-typed request is cast across it — the same crossing
+        // `loadUCFactory` makes in the opposite direction when it reads it back.
+        parseLoadRequestParams(
+          entityConstructor,
+          search,
+        ) as unknown as EntityLoadRequest,
+      // The codec throws rather than failing an Effect (it is framework-free),
+      // so the build error is caught back into the failure channel here.
+      catch: error => error as EntifixBuildError,
+    });
+  });
 
 const serverError = (error: unknown) =>
   HttpServerResponse.json(
     { error: 'request failed', detail: String(error) },
-    { status: 500 }
+    { status: 500 },
   );
 
 /**
@@ -89,7 +108,20 @@ const writeError = (error: unknown) =>
   error instanceof EntifixBuildError
     ? HttpServerResponse.json(
         { error: 'invalid request body', detail: error.message },
-        { status: 400 }
+        { status: 400 },
+      )
+    : serverError(error);
+
+/**
+ * The read mirror of {@link writeError}: an unparseable `rsql`, a member the
+ * entity never declared filterable, or a value of the wrong type is the
+ * client's mistake, so it is a `400` rather than a `500`.
+ */
+const readError = (error: unknown) =>
+  error instanceof EntifixBuildError
+    ? HttpServerResponse.json(
+        { error: 'invalid query', detail: error.message },
+        { status: 400 },
       )
     : serverError(error);
 
@@ -103,14 +135,14 @@ const acceptError = (error: unknown) =>
   error instanceof EntifixLockError
     ? HttpServerResponse.json(
         { error: 'resource busy, try again', detail: error.message },
-        { status: 409 }
+        { status: 409 },
       )
     : error instanceof EntifixBuildError
-    ? HttpServerResponse.json(
-        { error: 'invalid command', detail: error.message },
-        { status: 400 }
-      )
-    : serverError(error);
+      ? HttpServerResponse.json(
+          { error: 'invalid command', detail: error.message },
+          { status: 400 },
+        )
+      : serverError(error);
 
 /**
  * The HATEOAS affordances for a single record. Only this service knows its own
@@ -133,41 +165,44 @@ const collectionLinks = (key: string): EntifixEnvelopeLink[] => [
 const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
-    const request = yield* readLoadRequest;
+    const request = yield* readLoadRequest(entityConstructor);
     const page = yield* loadUCFactory<T>().pipe(
       Effect.provideService(
         EntityRepositoryTag,
-        makeMongoRepository(db, entityConstructor)
+        makeMongoRepository(db, entityConstructor),
       ),
-      Effect.provideService(EntityLoadRequestTag, request)
+      Effect.provideService(EntityLoadRequestTag, request),
     );
     return yield* HttpServerResponse.json(
       makeEntityPageEnvelope(
         entityConstructor,
         page,
-        collectionLinks(envelopeEntityName(entityConstructor))
-      )
+        collectionLinks(envelopeEntityName(entityConstructor)),
+      ),
     );
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catchAll(readError));
 
 /** Product list route: also resolves the `brand`/`category` links via Mongo. */
 const productListRoute = Effect.gen(function* () {
   const db = yield* MongoDatabaseTag;
-  const request = yield* readLoadRequest;
+  const request = yield* readLoadRequest(Product);
   const page = yield* loadProductsUCFactory().pipe(
-    Effect.provideService(EntityRepositoryTag, makeMongoRepository(db, Product)),
+    Effect.provideService(
+      EntityRepositoryTag,
+      makeMongoRepository(db, Product),
+    ),
     Effect.provideService(EntityLoadRequestTag, request),
-    Effect.provide(makeMongoLinkResolver(db, [ProductBrand, ProductCategory]))
+    Effect.provide(makeMongoLinkResolver(db, [ProductBrand, ProductCategory])),
   );
   return yield* HttpServerResponse.json(
-    makeEntityPageEnvelope(Product, page, collectionLinks('product'))
+    makeEntityPageEnvelope(Product, page, collectionLinks('product')),
   );
-}).pipe(Effect.catchAll(serverError));
+}).pipe(Effect.catchAll(readError));
 
 /** Generic single-record route by `:id`. */
 const byIdRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
-  label: string
+  label: string,
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -175,18 +210,25 @@ const byIdRoute = <T extends Entity>(
     const entity = yield* getUCFactory<T>().pipe(
       Effect.provideService(
         EntityRepositoryTag,
-        makeMongoRepository(db, entityConstructor)
+        makeMongoRepository(db, entityConstructor),
       ),
-      Effect.provideService(EntityIdTag, params.id)
+      Effect.provideService(EntityIdTag, params.id),
     );
     const key = envelopeEntityName(entityConstructor);
     return yield* HttpServerResponse.json(
-      makeEntityEnvelope(entityConstructor, entity, entityLinks(key, params.id))
+      makeEntityEnvelope(
+        entityConstructor,
+        entity,
+        entityLinks(key, params.id),
+      ),
     );
   }).pipe(
     Effect.catchAll(() =>
-      HttpServerResponse.json({ message: `${label} not found` }, { status: 404 })
-    )
+      HttpServerResponse.json(
+        { message: `${label} not found` },
+        { status: 404 },
+      ),
+    ),
   );
 
 /**
@@ -199,7 +241,7 @@ const byIdRoute = <T extends Entity>(
  */
 const saveRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
-  { fromParams }: { fromParams: boolean }
+  { fromParams }: { fromParams: boolean },
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -215,14 +257,14 @@ const saveRoute = <T extends Entity>(
     const saved = yield* saveUCFactory<T>().pipe(
       Effect.provideService(
         EntityRepositoryTag,
-        makeMongoRepository(db, entityConstructor)
+        makeMongoRepository(db, entityConstructor),
       ),
-      Effect.provideService(EntityTag, entity)
+      Effect.provideService(EntityTag, entity),
     );
 
     const key = envelopeEntityName(entityConstructor);
     return yield* HttpServerResponse.json(
-      makeEntityEnvelope(entityConstructor, saved, entityLinks(key, saved.id))
+      makeEntityEnvelope(entityConstructor, saved, entityLinks(key, saved.id)),
     );
   }).pipe(Effect.catchAll(writeError));
 
@@ -236,9 +278,11 @@ const saveRoute = <T extends Entity>(
  * The request body is still an entity envelope (the admin app is unchanged on
  * the wire), which is re-serialized into the command payload.
  */
-const createTransactionRoute = <T extends Entity & { code?: string; name?: string }>(
+const createTransactionRoute = <
+  T extends Entity & { code?: string; name?: string },
+>(
   entityConstructor: EntityConstructor<T>,
-  options: CatalogHandlerOptions
+  options: CatalogHandlerOptions,
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -261,20 +305,20 @@ const createTransactionRoute = <T extends Entity & { code?: string; name?: strin
       store,
       sequence,
       entityConstructor,
-      options
+      options,
     );
 
     // Accept phase — synchronous; its failure is the client's 400/409.
     const handles = yield* acceptTransaction().pipe(
       Effect.provideService(CommandTag, command),
-      Effect.provideService(TransactionHandlerTag, handler)
+      Effect.provideService(TransactionHandlerTag, handler),
     );
 
     // Execute phase — forked past the 202 so the request returns immediately.
     yield* completeTransaction(handles).pipe(
       Effect.provideService(CommandTag, command),
       Effect.provideService(TransactionHandlerTag, handler),
-      Effect.forkDaemon
+      Effect.forkDaemon,
     );
 
     return yield* HttpServerResponse.json(
@@ -292,7 +336,7 @@ const createTransactionRoute = <T extends Entity & { code?: string; name?: strin
         },
         data: { transactionId, state: 'PENDING' },
       },
-      { status: 202 }
+      { status: 202 },
     );
   }).pipe(Effect.catchAll(acceptError));
 
@@ -302,7 +346,7 @@ const createTransactionRoute = <T extends Entity & { code?: string; name?: strin
  * between entifix artifacts is an envelope.
  */
 const deleteRoute = <T extends Entity>(
-  entityConstructor: EntityConstructor<T>
+  entityConstructor: EntityConstructor<T>,
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -311,9 +355,9 @@ const deleteRoute = <T extends Entity>(
     yield* deleteUCFactory<T>().pipe(
       Effect.provideService(
         EntityRepositoryTag,
-        makeMongoRepository(db, entityConstructor)
+        makeMongoRepository(db, entityConstructor),
       ),
-      Effect.provideService(EntityIdTag, params.id)
+      Effect.provideService(EntityIdTag, params.id),
     );
 
     const key = envelopeEntityName(entityConstructor);
@@ -347,7 +391,7 @@ export const router = HttpRouter.empty.pipe(
   HttpRouter.get('/api/product-category', listRoute(ProductCategory)),
   HttpRouter.get(
     '/api/product-category/:id',
-    byIdRoute(ProductCategory, 'Product category')
+    byIdRoute(ProductCategory, 'Product category'),
   ),
   HttpRouter.post(
     '/api/product-category',
@@ -355,18 +399,18 @@ export const router = HttpRouter.empty.pipe(
       key: 'product-category',
       sequenceName: 'product-category',
       codePrefix: 'category',
-    })
+    }),
   ),
   HttpRouter.put(
     '/api/product-category/:id',
-    saveRoute(ProductCategory, { fromParams: true })
+    saveRoute(ProductCategory, { fromParams: true }),
   ),
   HttpRouter.del('/api/product-category/:id', deleteRoute(ProductCategory)),
 
   HttpRouter.get('/api/product-brand', listRoute(ProductBrand)),
   HttpRouter.get(
     '/api/product-brand/:id',
-    byIdRoute(ProductBrand, 'Product brand')
+    byIdRoute(ProductBrand, 'Product brand'),
   ),
   HttpRouter.post(
     '/api/product-brand',
@@ -374,11 +418,11 @@ export const router = HttpRouter.empty.pipe(
       key: 'product-brand',
       sequenceName: 'product-brand',
       codePrefix: 'brand',
-    })
+    }),
   ),
   HttpRouter.put(
     '/api/product-brand/:id',
-    saveRoute(ProductBrand, { fromParams: true })
+    saveRoute(ProductBrand, { fromParams: true }),
   ),
   HttpRouter.del('/api/product-brand/:id', deleteRoute(ProductBrand)),
 
@@ -390,8 +434,8 @@ export const router = HttpRouter.empty.pipe(
       key: 'product',
       sequenceName: 'product',
       codePrefix: 'product',
-    })
+    }),
   ),
   HttpRouter.put('/api/product/:id', saveRoute(Product, { fromParams: true })),
-  HttpRouter.del('/api/product/:id', deleteRoute(Product))
+  HttpRouter.del('/api/product/:id', deleteRoute(Product)),
 );

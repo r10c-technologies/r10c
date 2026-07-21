@@ -3,6 +3,7 @@ import {
   type Entity,
   entity,
   type EntityId,
+  type EntityLoadRequest,
 } from '@r10c/entifix-ts-core';
 import { stubUriConfigurationLayer } from '@r10c/entifix-ts-testing-unit';
 import {
@@ -86,7 +87,11 @@ let rows: Widget[] = [];
 const server = setupEntifixServer();
 
 beforeEach(() => {
-  rows = [makeWidget('w-1', 'Alpha'), makeWidget('w-2', 'Beta'), makeWidget('w-3', 'Gamma')];
+  rows = [
+    makeWidget('w-1', 'Alpha'),
+    makeWidget('w-2', 'Beta'),
+    makeWidget('w-3', 'Gamma'),
+  ];
   server.use(...entityRestHandlers(Widget, { baseUrl: BASE_URL, data: rows }));
 });
 
@@ -98,25 +103,31 @@ const recordRequests = () => {
   return requests;
 };
 
-const runLoad = (request: Parameters<ReturnType<typeof buildEntityRestAdapterLoad<Widget>>>[0]) =>
+// Typed against `Widget` rather than the adapter's own parameter: the load
+// adapter re-declares its entity generic, so its parameter resolves to the base
+// `Entity` and would not accept a filter naming a Widget member.
+const runLoad = (request: EntityLoadRequest<Widget>) =>
   Effect.runPromise(
-    buildEntityRestAdapterLoad(Widget, restOptions)(request).pipe(
-      Effect.provide(configuration),
-    ),
+    buildEntityRestAdapterLoad(
+      Widget,
+      restOptions,
+    )(request).pipe(Effect.provide(configuration)),
   );
 
 const runGet = (id: string): Promise<Widget> =>
   Effect.runPromise(
-    buildEntityRestAdapterGet(Widget, restOptions)<Widget>(id).pipe(
-      Effect.provide(configuration),
-    ),
+    buildEntityRestAdapterGet(
+      Widget,
+      restOptions,
+    )<Widget>(id).pipe(Effect.provide(configuration)),
   );
 
 const runDelete = (entityOrId: EntityId | Widget) =>
   Effect.runPromise(
-    buildEntityRestAdapterDelete(Widget, restOptions)(entityOrId).pipe(
-      Effect.provide(configuration),
-    ),
+    buildEntityRestAdapterDelete(
+      Widget,
+      restOptions,
+    )(entityOrId).pipe(Effect.provide(configuration)),
   );
 
 describe('buildEntityRestAdapterLoad', () => {
@@ -130,12 +141,15 @@ describe('buildEntityRestAdapterLoad', () => {
 
   it('falls back to the class name when the entity declares no key', async () => {
     const requests = recordRequests();
-    server.use(...entityRestHandlers(Unkeyed, { baseUrl: 'http://service/api/Unkeyed' }));
+    server.use(
+      ...entityRestHandlers(Unkeyed, { baseUrl: 'http://service/api/Unkeyed' }),
+    );
 
     await Effect.runPromise(
-      buildEntityRestAdapterLoad(Unkeyed, restOptions)({}).pipe(
-        Effect.provide(configuration),
-      ),
+      buildEntityRestAdapterLoad(
+        Unkeyed,
+        restOptions,
+      )({}).pipe(Effect.provide(configuration)),
     );
 
     expect(requests).toContainEqual({
@@ -171,6 +185,58 @@ describe('buildEntityRestAdapterLoad', () => {
     expect(requests[0]?.url).toBe(`${BASE_URL}?page=2&pageSize=2`);
   });
 
+  it('sends filtering as an RSQL expression', async () => {
+    const requests = recordRequests();
+
+    await runLoad({
+      filtering: [
+        {
+          operator: 'and',
+          values: [
+            { property: 'name', operator: 'like', value: 'Acme' },
+            { property: 'name', operator: 'ne', value: 'Acme 2' },
+          ],
+        },
+      ],
+    });
+
+    expect(new URL(requests[0]?.url ?? '').searchParams.get('rsql')).toBe(
+      "name=like=Acme;name!='Acme 2'",
+    );
+  });
+
+  it('sends sorting as signed, precedence-ordered terms', async () => {
+    const requests = recordRequests();
+
+    await runLoad({
+      sorting: [
+        {
+          0: { property: 'name', type: 'desc' },
+          1: { property: 'id', type: 'asc' },
+        },
+      ],
+    });
+
+    expect(new URL(requests[0]?.url ?? '').searchParams.get('sort')).toBe(
+      '-name,+id',
+    );
+  });
+
+  it('sends filtering, sorting and paging together', async () => {
+    const requests = recordRequests();
+
+    await runLoad({
+      filtering: [{ property: 'name', operator: 'eq', value: 'Acme' }],
+      sorting: [{ 0: { property: 'name', type: 'asc' } }],
+      page: 2,
+      pageSize: 5,
+    });
+
+    expect(requests[0]?.url).toBe(
+      `${BASE_URL}?rsql=name%3D%3DAcme&sort=%2Bname&page=2&pageSize=5`,
+    );
+  });
+
   // The envelope echoes the request the *service* served. The caller's own
   // request carries its filtering/sorting types, so that is what comes back.
   it('returns the caller’s request rather than the echoed one', async () => {
@@ -182,8 +248,16 @@ describe('buildEntityRestAdapterLoad', () => {
   });
 
   it.each([
-    ['a non-envelope body', () => respondWithMalformedEnvelope(BASE_URL), /no meta.type/],
-    ['a non-JSON body', () => respondWithNonJson(BASE_URL), /parse response body/],
+    [
+      'a non-envelope body',
+      () => respondWithMalformedEnvelope(BASE_URL),
+      /no meta.type/,
+    ],
+    [
+      'a non-JSON body',
+      () => respondWithNonJson(BASE_URL),
+      /parse response body/,
+    ],
     ['an error status', () => respondWith500(BASE_URL), /status 500/],
     ['a dropped connection', () => respondWithNetworkError(BASE_URL), /failed/],
   ])('fails on %s', async (_label, handler, message) => {
@@ -226,7 +300,10 @@ describe('buildEntityRestAdapterDelete', () => {
 
     await runDelete('w-1');
 
-    expect(requests).toContainEqual({ method: 'DELETE', url: `${BASE_URL}/w-1` });
+    expect(requests).toContainEqual({
+      method: 'DELETE',
+      url: `${BASE_URL}/w-1`,
+    });
   });
 
   // The repository contract accepts either shape, so the adapter has to reduce
@@ -236,20 +313,26 @@ describe('buildEntityRestAdapterDelete', () => {
 
     await runDelete(makeWidget('w-2', 'Beta'));
 
-    expect(requests).toContainEqual({ method: 'DELETE', url: `${BASE_URL}/w-2` });
+    expect(requests).toContainEqual({
+      method: 'DELETE',
+      url: `${BASE_URL}/w-2`,
+    });
   });
 
   it('removes the entity server-side', async () => {
     await runDelete('w-1');
 
-    expect(rows.map((row) => row.id)).toEqual(['w-2', 'w-3']);
+    expect(rows.map(row => row.id)).toEqual(['w-2', 'w-3']);
   });
 
   it('accepts a numeric id', async () => {
     const requests = recordRequests();
     server.use(
       http.delete(`${BASE_URL}/:id`, () =>
-        HttpResponse.json({ meta: { type: 'entity', entity: 'widget' }, data: {} }),
+        HttpResponse.json({
+          meta: { type: 'entity', entity: 'widget' },
+          data: {},
+        }),
       ),
     );
 
@@ -284,36 +367,49 @@ describe('the entity key fallback', () => {
   const UNKEYED_URL = 'http://service/api/Unkeyed';
 
   beforeEach(() => {
-    server.use(...entityRestHandlers(Unkeyed, { baseUrl: UNKEYED_URL, data: [] }));
+    server.use(
+      ...entityRestHandlers(Unkeyed, { baseUrl: UNKEYED_URL, data: [] }),
+    );
   });
 
   it('routes a get through the class name', async () => {
     const requests = recordRequests();
     server.use(
       http.get(`${UNKEYED_URL}/:id`, () =>
-        HttpResponse.json({ meta: { type: 'entity', entity: 'Unkeyed' }, data: { id: 'u-1' } }),
+        HttpResponse.json({
+          meta: { type: 'entity', entity: 'Unkeyed' },
+          data: { id: 'u-1' },
+        }),
       ),
     );
 
     await Effect.runPromise(
-      buildEntityRestAdapterGet(Unkeyed, restOptions)('u-1').pipe(
-        Effect.provide(configuration),
-      ),
+      buildEntityRestAdapterGet(
+        Unkeyed,
+        restOptions,
+      )('u-1').pipe(Effect.provide(configuration)),
     );
 
-    expect(requests).toContainEqual({ method: 'GET', url: `${UNKEYED_URL}/u-1` });
+    expect(requests).toContainEqual({
+      method: 'GET',
+      url: `${UNKEYED_URL}/u-1`,
+    });
   });
 
   it('routes a delete through the class name', async () => {
     const requests = recordRequests();
 
     await Effect.runPromise(
-      buildEntityRestAdapterDelete(Unkeyed, restOptions)('u-1').pipe(
-        Effect.provide(configuration),
-      ),
+      buildEntityRestAdapterDelete(
+        Unkeyed,
+        restOptions,
+      )('u-1').pipe(Effect.provide(configuration)),
     );
 
-    expect(requests).toContainEqual({ method: 'DELETE', url: `${UNKEYED_URL}/u-1` });
+    expect(requests).toContainEqual({
+      method: 'DELETE',
+      url: `${UNKEYED_URL}/u-1`,
+    });
   });
 
   it('routes a save through the class name', async () => {
@@ -321,9 +417,10 @@ describe('the entity key fallback', () => {
     const unkeyed = new Unkeyed();
 
     await Effect.runPromise(
-      buildEntityRestAdapterSave(Unkeyed, restOptions)(unkeyed).pipe(
-        Effect.provide(configuration),
-      ),
+      buildEntityRestAdapterSave(
+        Unkeyed,
+        restOptions,
+      )(unkeyed).pipe(Effect.provide(configuration)),
     );
 
     expect(requests).toContainEqual({ method: 'POST', url: UNKEYED_URL });
@@ -357,9 +454,10 @@ describe('the URI configuration group', () => {
 
     await expect(
       Effect.runPromise(
-        buildEntityRestAdapterLoad(Widget, restOptions)({}).pipe(
-          Effect.provide(emptyConfiguration),
-        ),
+        buildEntityRestAdapterLoad(
+          Widget,
+          restOptions,
+        )({}).pipe(Effect.provide(emptyConfiguration)),
       ),
     ).rejects.toThrow(/not found/);
   });

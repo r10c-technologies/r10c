@@ -57,10 +57,16 @@ export interface EntityTableProps<TEntity extends Entity> {
   /** Viewport width at which rows stop pivoting into cards. Default `md`. */
   pivotBreakpoint?: EntityTablePivotBreakpoint;
 
-  /** Notified as the filter panel is edited. Wiring the value into the load
-   *  request is the caller's decision. */
+  /** The filtering currently applied, seeding the filter panel so it shows
+   *  what is in effect rather than an empty form. */
+  filtering?: FilterGroup<TEntity>;
+  /** The sorting currently applied, seeding the sort panel. */
+  sorting?: EntitySorting<TEntity>;
+
+  /** Notified when the filter panel is **applied** — not while it is edited, so
+   *  the value can feed a load request directly. */
   onFilteringChange?: (filtering: FilterGroup<TEntity>) => void;
-  /** Notified as the sort panel is edited. */
+  /** Notified when the sort panel is applied. */
   onSortingChange?: (sorting: EntitySorting<TEntity>) => void;
 
   /** Customization slots — see `entity-table-slots`. */

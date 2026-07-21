@@ -78,6 +78,8 @@ export function EntityTable<TEntity extends Entity>({
   preferencesKey,
   showControls = true,
   pivotBreakpoint = 'md',
+  filtering,
+  sorting,
   onFilteringChange,
   onSortingChange,
   children,
@@ -160,15 +162,17 @@ export function EntityTable<TEntity extends Entity>({
             panel === 'filters' ? (
               <FilterBuilder<TEntity>
                 descriptors={columns.filter(column => column.filterable)}
-                onChange={(filtering: FilterGroup<TEntity>) =>
-                  onFilteringChange?.(filtering)
+                value={filtering}
+                onChange={(applied: FilterGroup<TEntity>) =>
+                  onFilteringChange?.(applied)
                 }
               />
             ) : panel === 'sorting' ? (
               <SortBuilder<TEntity>
                 descriptors={columns.filter(column => column.sortable)}
-                onChange={(sorting: EntitySorting<TEntity>) =>
-                  onSortingChange?.(sorting)
+                value={sorting}
+                onChange={(applied: EntitySorting<TEntity>) =>
+                  onSortingChange?.(applied)
                 }
               />
             ) : undefined
