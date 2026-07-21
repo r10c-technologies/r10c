@@ -9,7 +9,7 @@
     "@headlessui/react": "^2.2.10",
     "@r10c/entifix-ts-core": "workspace:*",
     "class-variance-authority": "^0.7.1",
-    "effect": "3.21.4"
+    "effect": "3.22.0"
   },
   "exports": {
     "./package.json": "./package.json",
