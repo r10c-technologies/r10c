@@ -1,0 +1,112 @@
+name: Pull Request Check
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      test_chunk_size:
+        description: 'Projects per test worker'
+        required: false
+        default: '10'
+
+concurrency:
+  group: pr-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TEST_CHUNK_SIZE: ${{ github.event.inputs.test_chunk_size || '10' }}
+
+jobs:
+  initialize:
+    name: Initialize
+    runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.shas.outputs.base }}
+      head: ${{ steps.shas.outputs.head }}
+      test-chunks: ${{ steps.chunks.outputs.chunks }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - name: Install dependencies (primes/reuses pnpm store cache)
+        run: pnpm install --frozen-lockfile
+      - name: Resolve affected base/head
+        id: shas
+        uses: nrwl/nx-set-shas@v4
+      - name: Compute test-project chunks
+        id: chunks
+        run: |
+          AFFECTED_TESTS=$(pnpm nx show projects --affected \
+            --base=${{ steps.shas.outputs.base }} \
+            --head=${{ steps.shas.outputs.head }} \
+            --withTarget test --json)
+          CHUNKS=$(echo "$AFFECTED_TESTS" | jq -c --argjson n "$TEST_CHUNK_SIZE" \
+            '[range(0; length; $n) as $i | .[$i:$i+$n] | join(",")]')
+          echo "chunks=$CHUNKS" >> "$GITHUB_OUTPUT"
+
+  lint:
+    name: Lint (affected)
+    needs: initialize
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: nx affected -t lint
+        run: |
+          pnpm nx affected -t lint \
+            --base=${{ needs.initialize.outputs.base }} \
+            --head=${{ needs.initialize.outputs.head }}
+
+  test:
+    name: Test (${{ matrix.chunk }})
+    needs: initialize
+    if: needs.initialize.outputs.test-chunks != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: ${{ fromJson(needs.initialize.outputs.test-chunks) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: nx run-many -t test --coverage
+        run: pnpm nx run-many -t test --projects="${{ matrix.chunk }}" --coverage
+
+  ci-gate:
+    name: CI Gate
+    needs: [lint, test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required jobs succeeded
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more required jobs failed."
+            exit 1
+          fi

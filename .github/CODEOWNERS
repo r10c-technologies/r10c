@@ -1,0 +1,5 @@
+# CODEOWNERS - https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# Last match wins, so keep this default rule first; add more specific
+# path rules below it as the team grows.
+
+* @Herber230
