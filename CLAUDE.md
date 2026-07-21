@@ -6,7 +6,7 @@ Deeper docs live in [`docs/`](docs/): [ARCHITECTURE](docs/ARCHITECTURE.md) (laye
 
 ## Tooling
 
-Nx 22 monorepo with pnpm workspaces. Pinned versions: **Node 25.1**, **pnpm 10.21** (see `engines` in root `package.json`). Always use `pnpm` (not `npm`/`yarn`) and run Nx via `pnpm nx ...` (or `pnpm exec nx`).
+Nx 23 monorepo with pnpm workspaces. Pinned versions: **Node 26.4**, **pnpm 11.9** (see `engines` in root `package.json`). Always use `pnpm` (not `npm`/`yarn`) and run Nx via `pnpm nx ...` (or `pnpm exec nx`).
 
 ## Common commands
 
@@ -33,12 +33,14 @@ pnpm nx build <project>
 pnpm nx typecheck <project>
 pnpm nx lint <project>
 
-# Tests (Jest, inferred target `test`)
+# Tests (Vitest, inferred target `test`)
 pnpm nx test <project>                        # all tests in one project
 pnpm nx test <project> -- <pattern>           # single test by name/file pattern
 pnpm nx test <project> -- --watch
+pnpm nx test <project> --coverage             # every packages/* project is gated at 100%
+pnpm nx run-many -t test --coverage           # the whole gate
 
-# E2E (Playwright for Next apps, Jest for services)
+# E2E (Playwright for Next apps, Vitest for services)
 pnpm nx e2e marketplace-app-e2e
 pnpm nx e2e marketplace-admin-app-e2e
 pnpm nx e2e marketplace-service-e2e
@@ -106,7 +108,7 @@ apps/                               ← runtime hosts (Next.js frontends / Effec
 
 `EntityTable` (controls, organism) builds a whole listing from that: columns, labels, and per-type value rendering (`CellValue`). It also owns column **personalization** (order/visibility) persisted through the `UiPreferencesStore` port, a CSS-only **columns-to-rows pivot** below `pivotBreakpoint` (default `md` — both layouts render, CSS picks one, so there is no SSR hydration mismatch), and declarative **slots** (`EntityColumn`, `EntityTableHeader`, `EntityTableRow`, `EntityTableToolbar`) matched by component identity. The filter/sort panels emit `FilterGroup`/`EntitySorting` via callbacks; **wiring those into `EntityLoadRequest` is not done yet**.
 
-`UiPreferencesStore` (`controls/src/preferences/`) is the general per-user UI-state seam, not table-specific: `read`/`write`/`remove` returning `Effect`s, `UiPreferencesStoreTag`, `makeLocalStorageUiPreferencesStore(namespace)` + `LocalStorageUiPreferencesLayer`, `UiPreferencesProvider`, `useUiPreference(key, fallback)`. Keys are `<namespace>:<component>:<scope>` (`r10c-ui:entity-table:product`). It is async-capable on purpose so a server-backed store swaps in at the provider. Note: controls' `.spec.swcrc` is stage-3 (`decoratorVersion: 2022-03`) so specs can define entities, and `jest.setup.ts` polyfills `TextEncoder`/`TextDecoder` (jsdom lacks them, `effect` imports them).
+`UiPreferencesStore` (`controls/src/preferences/`) is the general per-user UI-state seam, not table-specific: `read`/`write`/`remove` returning `Effect`s, `UiPreferencesStoreTag`, `makeLocalStorageUiPreferencesStore(namespace)` + `LocalStorageUiPreferencesLayer`, `UiPreferencesProvider`, `useUiPreference(key, fallback)`. Keys are `<namespace>:<component>:<scope>` (`r10c-ui:entity-table:product`). It is async-capable on purpose so a server-backed store swaps in at the provider. Note: decorators are compiled stage-3 by `unplugin-swc` in `vitest.shared.mts` so specs can define entities, and `vitest.setup.dom.ts` polyfills `TextEncoder`/`TextDecoder`/`localStorage` (jsdom lacks them, `effect` imports them).
 
 #### Entity links (relations)
 
@@ -154,7 +156,7 @@ Frontends are Next.js (App Router, React 19, Tailwind); backends are **Effect-na
 
 - Frontends (`-app`): `marketplace-app`, `marketplace-admin-app`, `auth-app`.
 - Backends (`-service`): `marketplace-service`, `marketplace-admin-service`, `auth-service`, plus the cross-cutting `config-service`. The deployable ones keep the explicit webpack `build` + `prune-lockfile` / `copy-workspace-modules` / `prune` targets.
-- `*-e2e` projects use Playwright for Next apps and Jest for services.
+- `*-e2e` projects use Playwright for Next apps and Vitest for services.
 
 #### App & port convention
 

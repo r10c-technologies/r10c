@@ -69,6 +69,62 @@
   `@effect/platform` — mismatched peers break `pnpm install` (see the
   `backend-db-connectivity` note).
 
+## Testing
+
+One runner: **Vitest**, configured once in `vitest.shared.mts`. Every project's
+`vitest.config.mts` is a few lines calling `defineEntifixTest`. Decorators are
+compiled by `unplugin-swc` because Vite's oxc backend does not implement
+stage-3 decorators, and entity metadata depends on them.
+
+Every `packages/*` project is gated at **100%** statements, branches, functions
+and lines. Apps are excluded — their `*-e2e` projects cover them. The shared
+exclusion list lives in `vitest.shared.mts`; adding to it needs a stated
+reason, otherwise the gate erodes. A genuinely unreachable defensive branch
+gets `/* v8 ignore next */` plus a comment saying why, not a contorted test.
+
+```sh
+pnpm nx test <project> --coverage
+pnpm nx run-many -t test --coverage
+```
+
+### Which double to reach for
+
+The kind of double is decided by where it lives, in
+`@r10c/entifix-ts-testing-unit`:
+
+| Kind | What it is | Where |
+| --- | --- | --- |
+| **Stub** | Canned answers, nothing asserted on it | inline, or `makeStub*` |
+| **Fake** | Working in-memory implementation of a driven port | `.` (`makeInMemory*`) |
+| **Driver fake** | Fake of a *third-party client*, one level below an adapter | `./drivers` |
+| **Recording fake** | A fake that records what happened, asserted as state | `.` (`makeRecording*`) |
+| **MSW** | The boundary for everything HTTP | `./http` |
+
+Prefer a recording fake over a mock with call assertions: `expect(bus.published)`
+reads as state, a spy protocol does not. Mocks are for the cases where the
+behaviour *is* the interaction — event publication, lock ordering, rollback.
+
+**Driver fakes, not port fakes, for adapters.** A fake at the port level
+replaces the adapter, so the filter translation, the `SET NX PX`, the envelope
+framing and the error mapping all go unmeasured while coverage still reports
+the port as exercised. The driver fakes sit one level lower so the real adapter
+runs against them.
+
+**No HTTP without MSW.** `setupEntifixServer` sets `onUnhandledRequest: 'error'`
+— a request nobody stubbed fails the test instead of escaping to the network.
+No spec assigns `global.fetch`.
+
+**Contract suites.** Each driven port has one suite in `./contracts`, run
+against *every* implementation: the in-memory fake and the real adapter over
+its driver fake. That is what stops a fake from quietly becoming a more
+forgiving version of the thing it stands in for.
+
+Two packages cannot use the test library: `entifix-ts-business` and
+`entifix-transactions` define the interfaces it is built on, so depending on it
+from them is a cycle. They keep local doubles.
+
+Elsewhere, add it as a `devDependency`, then `pnpm install` and `pnpm nx sync`.
+
 ## Code style
 
 - Match the surrounding code: comment density, naming, and idiom. Comments
@@ -83,6 +139,8 @@
 
 - Static: `pnpm nx affected -t lint,build,typecheck,test` (or `run-many` on the
   touched projects). This is also what pre-commit runs.
+- Coverage: `pnpm nx run-many -t test --coverage` — every `packages/*` project
+  must stay at 100%.
 - Runtime: bring up `infra/local`, then `pnpm nx run <service>:dev` and exercise
   the routes (`/api/health`, `/api/config`, the entity routes). For frontends,
   drive the `/catalog/*` pages.
