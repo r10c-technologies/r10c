@@ -20,6 +20,9 @@
   "references": [
     {
       "path": "../../../entifix/ts/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/testing-unit"
     }
   ]
 }

@@ -17,5 +17,8 @@
   "files": [
     "dist",
     "!**/*.tsbuildinfo"
-  ]
+  ],
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-unit": "workspace:*"
+  }
 }
