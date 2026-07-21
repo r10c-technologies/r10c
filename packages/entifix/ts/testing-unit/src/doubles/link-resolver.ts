@@ -20,7 +20,7 @@ export interface InMemoryEntityLinkResolver extends EntityLinkResolver {
  * `requested` shows whether an already-embedded link was needlessly refetched.
  */
 export const makeInMemoryEntityLinkResolver = (
-  entries: ReadonlyArray<readonly [EntityConstructor<never>, Entity[]]>,
+  entries: ReadonlyArray<readonly [EntityConstructor<Entity>, Entity[]]>,
 ): InMemoryEntityLinkResolver => {
   const tables = new Map<unknown, Entity[]>(
     entries.map(([constructor, items]) => [constructor, items]),

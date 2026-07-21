@@ -576,6 +576,10 @@ importers:
       effect:
         specifier: 3.21.4
         version: 3.21.4
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/testing-unit
 
   packages/entifix/react/controls:
     dependencies:
