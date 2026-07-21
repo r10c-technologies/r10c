@@ -99,9 +99,54 @@ function toFilter<TEntity extends Entity>(
   }
 }
 
+/**
+ * Rebuilds the editable rows from an already-applied filter, so reopening the
+ * panel shows what is actually in effect rather than an empty form. Only the
+ * flat rows this builder can express are restored — a group nested by some
+ * other means is left to the caller to re-enter.
+ */
+function toDrafts<TEntity extends Entity>(
+  filtering: FilterGroup<TEntity> | undefined,
+  idPrefix: string,
+): FilterDraft[] {
+  if (!filtering) return [];
+
+  return filtering.values.flatMap((node, index) => {
+    if (!('property' in node)) return [];
+    const filter = node as {
+      property: unknown;
+      operator: EntityFilterOperator;
+      value?: unknown;
+      values?: unknown[];
+      start?: unknown;
+      end?: unknown;
+    };
+    const text = (value: unknown) =>
+      value instanceof Date
+        ? value.toISOString().slice(0, 10)
+        : value === undefined
+          ? ''
+          : String(value);
+
+    return [
+      {
+        key: `${idPrefix}-applied-${index}`,
+        property: String(filter.property),
+        operator: filter.operator,
+        value: filter.values
+          ? filter.values.map(text).join(', ')
+          : text(filter.start ?? filter.value),
+        end: text(filter.end),
+      },
+    ];
+  });
+}
+
 export interface FilterBuilderProps<TEntity extends Entity> {
   /** Filterable members, already resolved from the entity metadata. */
   descriptors: readonly EntityFieldDescriptor[];
+  /** The filtering currently applied, used to seed the rows. */
+  value?: FilterGroup<TEntity>;
   onChange: (filtering: FilterGroup<TEntity>) => void;
 }
 
@@ -109,21 +154,28 @@ export interface FilterBuilderProps<TEntity extends Entity> {
  * Builds an `EntityFiltering` value from entity metadata: the member list, the
  * operators offered and the shape of the value control all come from each
  * member's descriptor, so no per-entity filter UI has to be written.
+ *
+ * Editing is a draft. `onChange` fires only on **Apply**, because the value
+ * feeds a load request: emitting per keystroke would put one HTTP request on
+ * the wire per character typed.
  */
 export function FilterBuilder<TEntity extends Entity>({
   descriptors,
+  value: applied,
   onChange,
 }: FilterBuilderProps<TEntity>) {
   const idPrefix = useId();
-  const [logic, setLogic] = useState<LogicOperator>('and');
-  const [drafts, setDrafts] = useState<FilterDraft[]>([]);
+  const [logic, setLogic] = useState<LogicOperator>(applied?.operator ?? 'and');
+  const [drafts, setDrafts] = useState<FilterDraft[]>(() =>
+    toDrafts(applied, idPrefix),
+  );
 
   const descriptorFor = useCallback(
     (name: string) => descriptors.find(entry => entry.name === name),
     [descriptors],
   );
 
-  const emit = useCallback(
+  const apply = useCallback(
     (nextDrafts: FilterDraft[], nextLogic: LogicOperator) => {
       const values = nextDrafts
         .map(draft => {
@@ -139,10 +191,8 @@ export function FilterBuilder<TEntity extends Entity>({
     [descriptorFor, onChange],
   );
 
-  const update = (nextDrafts: FilterDraft[]) => {
-    setDrafts(nextDrafts);
-    emit(nextDrafts, logic);
-  };
+  /** Edits the draft only — nothing reaches the caller until Apply. */
+  const update = (nextDrafts: FilterDraft[]) => setDrafts(nextDrafts);
 
   const addRow = () => {
     const first = descriptors[0];
@@ -187,9 +237,7 @@ export function FilterBuilder<TEntity extends Entity>({
           aria-label="Match all or any filter"
           value={logic}
           onChange={event => {
-            const next = event.target.value as LogicOperator;
-            setLogic(next);
-            emit(drafts, next);
+            setLogic(event.target.value as LogicOperator);
           }}
         >
           <option value="and">all</option>
@@ -271,9 +319,33 @@ export function FilterBuilder<TEntity extends Entity>({
         );
       })}
 
-      <div>
+      <div className="flex flex-wrap items-center gap-2xs">
         <Button type="button" variant="secondary" size="sm" onClick={addRow}>
           Add filter
+        </Button>
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          aria-label="Apply filters"
+          onClick={() => apply(drafts, logic)}
+        >
+          Apply
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-label="Clear filters"
+          onClick={() => {
+            setDrafts([]);
+            setLogic('and');
+            // Applying the emptied form is what actually clears the listing;
+            // dropping the rows alone would leave the old filter in effect.
+            apply([], 'and');
+          }}
+        >
+          Clear
         </Button>
       </div>
     </div>

@@ -1,8 +1,9 @@
-import { expect,test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-test('has title', async ({ page }) => {
+// Smoke check only: the home page renders its heading. The generator's original
+// assertion looked for "Welcome", which the app's landing page never said.
+test('renders the landing heading', async ({ page }) => {
   await page.goto('/');
 
-  // Expect h1 to contain a substring.
-  expect(await page.locator('h1').innerText()).toContain('Welcome');
+  await expect(page.locator('h1')).toBeVisible();
 });

@@ -8,8 +8,9 @@
 > web and backend; to-many (`EntityCollectionLink`) is modeled and deserialized
 > but only served as foreign keys so far. The React side now renders through
 > `EntityTable`, which builds its columns from the accessor metadata; its filter
-> and sort panels produce `EntityFiltering`/`EntitySorting` values but are not yet
-> fed into the load request.
+> and sort panels are wired end-to-end into the load request over the **RSQL
+> query protocol** (§6), from the browser to Mongo. Filtering on links is not
+> supported yet.
 
 Entifix is a small entity framework whose entire purpose is to let a **single
 use-case** run in any environment. It reaches that goal by combining two ideas:
@@ -236,9 +237,95 @@ The toolbar's filter and sort panels are also metadata-driven: the member list i
 the `filterable`/`sortable` descriptors, the operators offered come from the
 member's `type` (the const arrays in `EntityFiltering.ts` — no substring matching
 on a number), and the value control follows suit. They emit `FilterGroup<T>` /
-`EntitySorting<T>` through `onFilteringChange`/`onSortingChange`. **Feeding those
-into `EntityLoadRequest` is not wired yet** — the UI produces the values, the
-caller decides what to do with them.
+`EntitySorting<T>` through `onFilteringChange`/`onSortingChange`.
+
+Both panels **commit** rather than stream: editing is local draft state and the
+callback fires only on **Apply** (or **Clear**, which applies the emptied form).
+The value feeds a load request, so emitting per keystroke would put one HTTP
+request on the wire per character typed.
+
+`useDataLoading` holds the applied filtering/sorting and puts them in the load
+request, resetting to page 1 on every change — page 3 of the old result is
+usually past the end of the narrowed one. The fetch effect keys on the
+**serialized** query rather than on object identity: callers rebuild these
+objects on every render, so keying on identity would refetch forever (the same
+trap the `uc`/`ctx` refs in that hook exist to avoid).
+
+## 6. The RSQL query protocol
+
+Filtering and sorting travel from the REST client to the service as query
+parameters, and the codec for them lives in `entifix-ts-core` (`src/rsql/`) —
+the one package both the browser adapter and an Effect service already depend
+on. **RSQL** is the standard for the filtering half; sorting gets a companion
+`sort` parameter, since RSQL standardizes no sort grammar.
+
+```
+GET /api/product-brand?rsql=name%3Dlike%3DAcme%3Bstock%3Dgt%3D10&sort=%2Bname%2C-code&page=1&pageSize=10
+                decoded   rsql=name=like=Acme;stock=gt=10        sort=+name,-code
+```
+
+| entifix | RSQL   | entifix     | RSQL            |
+| ------- | ------ | ----------- | --------------- |
+| `eq`    | `==`   | `in`        | `=in=(a,b)`     |
+| `ne`    | `!=`   | `nin`       | `=out=(a,b)`    |
+| `gt`    | `=gt=` | `between`   | `=btn=(a,b)`    |
+| `gte`   | `=ge=` | `nbetween`  | `=nbtn=(a,b)`   |
+| `lt`    | `=lt=` | `like`      | `=like=`        |
+| `lte`   | `=le=` | `nlike`     | `=nlike=`       |
+|         |        | `isNull`    | `=isnull=true`  |
+|         |        | `isNotNull` | `=isnull=false` |
+
+`;` is and, `,` is or (and binds tighter), `(…)` groups. The first six plus
+`=in=`/`=out=` are standard RSQL; the rest are entifix extensions written in the
+same `=word=` shape so a generic tokenizer still splits them. `isNull` and
+`isNotNull` share one token because RSQL has no unary comparison, and are told
+apart by the boolean argument.
+
+**Values go out untyped.** Numbers and booleans are written bare, everything else
+single-quoted (`\'` and `\\` escaped), dates as ISO-8601. The parser therefore
+returns strings and a separate step re-types them — so the URL stays readable and
+the server never trusts a type the client declared.
+
+`sort=+name,-code`: the sign is the direction, the list position is the
+`EntitySorting` numeric priority.
+
+### The trust boundary
+
+`coerceFiltering(Ctor, parsed)` / `parseSort(Ctor, param)` are where an inbound
+query stops being a string a client chose. Both resolve every property against
+`describeEntityColumns(Ctor)` and reject — as `EntifixBuildError`, which services
+map to a `400` — anything that is not a member the entity declared `filterable`
+(resp. `sortable`). That is what stops a client filtering on a `hidden` member or
+an unindexed field. Values are coerced to the member's declared type and rejected
+if they do not fit; the property is rewritten to the descriptor's `key`, which is
+also the stored field name. The parser additionally caps nesting depth and node
+count, so a crafted URL cannot exhaust the stack or become an enormous query.
+
+### The round trip
+
+```
+FilterBuilder ──emit on Apply──▶ useDataLoading (applied state, page → 1)
+     │
+     ├─ serializeLoadRequestParams ──▶ ?rsql=…&sort=…&page=…&pageSize=…
+     │        (buildEntityRestAdapterLoad)
+     ▼
+  service: parseLoadRequestParams(Ctor, search)
+     = parseRsql → coerceFiltering (allowlist + typing)
+     + parseSort (allowlist)
+     ▼
+  loadUCFactory → makeMongoRepository
+     = translateFiltering / translateSorting → Mongo find + countDocuments
+```
+
+Both ends of the URL are the _same_ module, so what the client composes is by
+construction what the service parses. Adding an operator means adding it to
+`EntityFiltering.ts`, `rsql-operators.ts` and `filter-translator.ts` — and the
+core round-trip spec (`serialize → parse → coerce` deep-equals the original) is
+what catches a half-done addition.
+
+**Not supported yet**: filtering or sorting on a link (`EntityLink` descriptors
+default to `filterable: false`; Mongo would need a join or a denormalized field),
+free-text search across members, and a Postgres translator.
 
 ---
 

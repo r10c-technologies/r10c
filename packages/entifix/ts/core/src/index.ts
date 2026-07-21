@@ -12,6 +12,7 @@ export * from './entity-definition/meta-entities/meta-entity';
 export * from './entity-definition/meta-entities/meta-method';
 export * from './entity-definition/serializer';
 export * from './envelope';
+export * from './rsql';
 export * from './types/Entity';
 export * from './types/EntityFiltering';
 export * from './types/EntityLoadRequest';

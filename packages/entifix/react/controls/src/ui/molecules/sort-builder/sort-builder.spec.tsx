@@ -1,4 +1,8 @@
-import type { Entity, EntityFieldDescriptor } from '@r10c/entifix-ts-core';
+import type {
+  Entity,
+  EntityFieldDescriptor,
+  EntitySorting,
+} from '@r10c/entifix-ts-core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,6 +12,7 @@ import { SortBuilder } from './sort-builder.js';
 interface Product extends Entity {
   name: string;
   stock: number;
+  released_at: string;
 }
 
 const descriptor = (
@@ -25,12 +30,11 @@ const descriptor = (
   linkLabelProperty: 'name',
 });
 
-const descriptors = [
-  descriptor('name', 'Name'),
-  descriptor('stock', 'Stock'),
-];
+const descriptors = [descriptor('name', 'Name'), descriptor('stock', 'Stock')];
 
-const renderBuilder = (list: readonly EntityFieldDescriptor[] = descriptors) => {
+const renderBuilder = (
+  list: readonly EntityFieldDescriptor[] = descriptors,
+) => {
   const onChange = vi.fn();
   const user = userEvent.setup();
   render(<SortBuilder<Product> descriptors={list} onChange={onChange} />);
@@ -40,12 +44,21 @@ const renderBuilder = (list: readonly EntityFieldDescriptor[] = descriptors) => 
 const addSort = async (user: ReturnType<typeof userEvent.setup>) =>
   user.click(screen.getByRole('button', { name: 'Add sort' }));
 
+/**
+ * Editing is a draft; nothing reaches `onChange` until the panel is applied.
+ * Every emission assertion therefore commits first.
+ */
+const apply = async (user: ReturnType<typeof userEvent.setup>) =>
+  user.click(screen.getByRole('button', { name: 'Apply sorting' }));
+
 describe('SortBuilder', () => {
   it('says so when the entity has nothing sortable', () => {
     renderBuilder([]);
 
     expect(screen.getByText(/No sortable members/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Add sort' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Add sort' }),
+    ).not.toBeInTheDocument();
   });
 
   it('starts with no sorts', () => {
@@ -61,7 +74,12 @@ describe('SortBuilder', () => {
 
     expect(screen.getByLabelText('Sort member')).toHaveValue('name');
     expect(screen.getByLabelText('Sort direction')).toHaveValue('asc');
-    expect(onChange).toHaveBeenCalledWith({ 0: { property: 'name', type: 'asc' } });
+
+    await apply(user);
+
+    expect(onChange).toHaveBeenCalledWith({
+      0: { property: 'name', type: 'asc' },
+    });
   });
 
   it('changes the sorted member', async () => {
@@ -69,6 +87,8 @@ describe('SortBuilder', () => {
     await addSort(user);
 
     await user.selectOptions(screen.getByLabelText('Sort member'), 'stock');
+
+    await apply(user);
 
     expect(onChange).toHaveBeenLastCalledWith({
       0: { property: 'stock', type: 'asc' },
@@ -81,6 +101,8 @@ describe('SortBuilder', () => {
 
     await user.selectOptions(screen.getByLabelText('Sort direction'), 'desc');
 
+    await apply(user);
+
     expect(onChange).toHaveBeenLastCalledWith({
       0: { property: 'name', type: 'desc' },
     });
@@ -92,6 +114,8 @@ describe('SortBuilder', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
     await addSort(user);
+
+    await apply(user);
 
     expect(onChange).toHaveBeenLastCalledWith({
       0: { property: 'name', type: 'asc' },
@@ -112,9 +136,16 @@ describe('SortBuilder', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
     await addSort(user);
-    await user.selectOptions(screen.getAllByLabelText('Sort member')[1]!, 'stock');
+    await user.selectOptions(
+      screen.getAllByLabelText('Sort member')[1]!,
+      'stock',
+    );
 
-    await user.click(screen.getAllByRole('button', { name: 'Raise sort priority' })[1]!);
+    await user.click(
+      screen.getAllByRole('button', { name: 'Raise sort priority' })[1]!,
+    );
+
+    await apply(user);
 
     expect(onChange).toHaveBeenLastCalledWith({
       0: { property: 'stock', type: 'asc' },
@@ -126,9 +157,16 @@ describe('SortBuilder', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
     await addSort(user);
-    await user.selectOptions(screen.getAllByLabelText('Sort member')[1]!, 'stock');
+    await user.selectOptions(
+      screen.getAllByLabelText('Sort member')[1]!,
+      'stock',
+    );
 
-    await user.click(screen.getAllByRole('button', { name: 'Lower sort priority' })[0]!);
+    await user.click(
+      screen.getAllByRole('button', { name: 'Lower sort priority' })[0]!,
+    );
+
+    await apply(user);
 
     expect(onChange).toHaveBeenLastCalledWith({
       0: { property: 'stock', type: 'asc' },
@@ -153,9 +191,16 @@ describe('SortBuilder', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
     await addSort(user);
-    await user.selectOptions(screen.getAllByLabelText('Sort member')[1]!, 'stock');
+    await user.selectOptions(
+      screen.getAllByLabelText('Sort member')[1]!,
+      'stock',
+    );
 
-    await user.click(screen.getAllByRole('button', { name: 'Remove sort' })[0]!);
+    await user.click(
+      screen.getAllByRole('button', { name: 'Remove sort' })[0]!,
+    );
+
+    await apply(user);
 
     expect(onChange).toHaveBeenLastCalledWith({
       0: { property: 'stock', type: 'asc' },
@@ -168,6 +213,8 @@ describe('SortBuilder', () => {
 
     await user.click(screen.getByRole('button', { name: 'Remove sort' }));
 
+    await apply(user);
+
     expect(onChange).toHaveBeenLastCalledWith({});
   });
 
@@ -176,7 +223,12 @@ describe('SortBuilder', () => {
     await addSort(user);
     await addSort(user);
 
-    await user.selectOptions(screen.getAllByLabelText('Sort direction')[1]!, 'desc');
+    await user.selectOptions(
+      screen.getAllByLabelText('Sort direction')[1]!,
+      'desc',
+    );
+
+    await apply(user);
 
     expect(onChange).toHaveBeenLastCalledWith({
       0: { property: 'name', type: 'asc' },
@@ -195,12 +247,22 @@ describe('SortBuilder', () => {
     );
     await addSort(user);
     await addSort(user);
-    await user.selectOptions(screen.getAllByLabelText('Sort member')[1]!, 'stock');
+    await user.selectOptions(
+      screen.getAllByLabelText('Sort member')[1]!,
+      'stock',
+    );
 
     rerender(
-      <SortBuilder<Product> descriptors={[descriptors[0]!]} onChange={onChange} />,
+      <SortBuilder<Product>
+        descriptors={[descriptors[0]!]}
+        onChange={onChange}
+      />,
     );
-    await user.click(screen.getAllByRole('button', { name: 'Raise sort priority' })[1]!);
+    await user.click(
+      screen.getAllByRole('button', { name: 'Raise sort priority' })[1]!,
+    );
+
+    await apply(user);
 
     expect(onChange).toHaveBeenLastCalledWith({
       1: { property: 'name', type: 'asc' },
@@ -216,8 +278,109 @@ describe('SortBuilder', () => {
 
     await addSort(user);
 
+    await apply(user);
+
     expect(onChange).toHaveBeenCalledWith({
       0: { property: 'released_at', type: 'asc' },
     });
+  });
+});
+
+/** As in the filter builder, each emission is a round trip to the server. */
+describe('committing', () => {
+  it('emits nothing while the form is being edited', async () => {
+    const { onChange, user } = renderBuilder();
+
+    await addSort(user);
+    await user.selectOptions(screen.getByLabelText('Sort direction'), 'desc');
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('clears the rows and applies the emptied sorting', async () => {
+    const { onChange, user } = renderBuilder();
+    await addSort(user);
+
+    await user.click(screen.getByRole('button', { name: 'Clear sorting' }));
+
+    expect(screen.queryByLabelText('Sort member')).not.toBeInTheDocument();
+    expect(onChange).toHaveBeenLastCalledWith({});
+  });
+});
+
+describe('seeding from the applied value', () => {
+  it('rebuilds the rows in precedence order', () => {
+    render(
+      <SortBuilder<Product>
+        descriptors={descriptors}
+        value={{
+          1: { property: 'stock', type: 'desc' },
+          0: { property: 'name', type: 'asc' },
+        }}
+        onChange={vi.fn()}
+      />,
+    );
+
+    const members = screen.getAllByLabelText('Sort member');
+    expect(members[0]).toHaveValue('name');
+    expect(members[1]).toHaveValue('stock');
+    expect(screen.getAllByLabelText('Sort direction')[1]).toHaveValue('desc');
+  });
+
+  // An applied value carries the wire key; the rows address members by name.
+  it('maps a wire key back to its member', () => {
+    render(
+      <SortBuilder<Product>
+        descriptors={[descriptor('releasedAt', 'Released', 'released_at')]}
+        value={{ 0: { property: 'released_at', type: 'asc' } }}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('Sort member')).toHaveValue('releasedAt');
+  });
+
+  // Both of these are shapes the type system forbids but a persisted or
+  // server-sent value can still arrive as: a member since removed from the
+  // entity, and a gap in the priority record.
+  it('skips a member the entity no longer exposes', () => {
+    render(
+      <SortBuilder<Product>
+        descriptors={descriptors}
+        value={
+          {
+            0: { property: 'gone', type: 'asc' },
+          } as unknown as EntitySorting<Product>
+        }
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Sort member')).not.toBeInTheDocument();
+  });
+
+  it('skips a hole in the precedence record', () => {
+    render(
+      <SortBuilder<Product>
+        descriptors={descriptors}
+        value={
+          {
+            0: undefined,
+            1: { property: 'name', type: 'asc' },
+          } as unknown as EntitySorting<Product>
+        }
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByLabelText('Sort member')).toHaveLength(1);
+  });
+
+  it('starts empty when nothing is applied', () => {
+    render(
+      <SortBuilder<Product> descriptors={descriptors} onChange={vi.fn()} />,
+    );
+
+    expect(screen.queryByLabelText('Sort member')).not.toBeInTheDocument();
   });
 });
