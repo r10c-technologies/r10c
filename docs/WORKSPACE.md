@@ -16,9 +16,10 @@ apps/
   <domain>-app/            Next.js frontend (App Router, React 19, Tailwind)
   <domain>-service/        Effect-native backend (@effect/platform)
   config-service/          Postgres-backed configuration service
-  *-e2e/                   Playwright (Next apps) / Jest (services)
+  *-e2e/                   Playwright (Next apps) / Vitest (services)
 packages/
   entifix/ts/{core,business,rest-client,mongo-client}   entity framework (TS)
+  entifix/ts/{testing-unit,testing-e2e}                 test libraries (private)
   entifix/react/{controls,integration}                  React side of the framework
   entifix/style/                                        design tokens
   business/ts/<domain>/     pure entities + use-cases (no framework)
@@ -65,9 +66,14 @@ pnpm nx test <project>                       # all tests in the project
 pnpm nx test <project> -- <pattern>          # single test by name/file
 pnpm nx test <project> -- --watch
 
-# E2E (Playwright for Next apps, Jest for services)
+# E2E (Playwright for Next apps, Vitest for services).
+# `E2E_PROFILE=mock` (the default) is hermetic — no infra needed.
 pnpm nx e2e marketplace-admin-app-e2e
-pnpm nx e2e marketplace-service-e2e
+pnpm nx e2e marketplace-admin-service-e2e
+
+# The same journeys against real infrastructure (service must be running):
+E2E_PROFILE=live MARKETPLACE_ADMIN_SERVICE_URL=http://localhost:3101 \
+  pnpm nx e2e marketplace-admin-app-e2e
 
 # Affected-only (what the pre-commit hook runs against origin/main)
 pnpm nx affected -t lint,build,test

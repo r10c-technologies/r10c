@@ -1,5 +1,6 @@
 import { makeService } from '@r10c/shells-effect-service';
 
+import { DEFAULT_PORT, SERVICE_NAME } from './index';
 import { AppLayer } from './mongo';
 import { router } from './routes';
 
@@ -12,8 +13,8 @@ import { router } from './routes';
  * Users are persisted in MongoDB; the identity provider remains a stub.
  */
 makeService({
-  name: '@r10c/auth-service',
-  port: Number(process.env.PORT) || 3102,
+  name: SERVICE_NAME,
+  port: Number(process.env.PORT) || DEFAULT_PORT,
   router,
   appLayer: AppLayer,
 });

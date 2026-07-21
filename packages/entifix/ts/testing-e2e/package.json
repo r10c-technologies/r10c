@@ -1,0 +1,63 @@
+{
+  "name": "@r10c/entifix-ts-testing-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./fixtures": {
+      "@r10c/source": "./src/fixtures/index.ts",
+      "default": "./src/fixtures/index.ts"
+    },
+    "./service": {
+      "@r10c/source": "./src/service/index.ts",
+      "default": "./src/service/index.ts"
+    },
+    "./playwright": {
+      "@r10c/source": "./src/playwright/index.ts",
+      "default": "./src/playwright/index.ts"
+    }
+  },
+  "nx": {
+    "sourceRoot": "packages/entifix/ts/testing-e2e/src",
+    "targets": {}
+  },
+  "dependencies": {
+    "@r10c/entifix-ts-amqp-client": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-mongo-client": "workspace:*",
+    "@r10c/entifix-ts-redis-client": "workspace:*",
+    "@r10c/entifix-ts-testing-unit": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "3.22.0"
+  },
+  "peerDependencies": {
+    "@msw/playwright": "*",
+    "@playwright/test": "*",
+    "axios": "*",
+    "msw": "*",
+    "vitest": "*"
+  },
+  "peerDependenciesMeta": {
+    "@msw/playwright": {
+      "optional": true
+    },
+    "@playwright/test": {
+      "optional": true
+    },
+    "axios": {
+      "optional": true
+    },
+    "msw": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
+  }
+}

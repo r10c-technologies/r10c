@@ -69,4 +69,13 @@
   --color-primary-content: #ffffff;
   --color-border: #dfe3e8;
   --color-accent: #6b7480;
+
+  /* Failure. Part of the contract rather than an app-local choice: "this did
+     not work" is the one message a component must never render in the same
+     voice as ordinary content — a listing that reports a dead backend the way
+     it reports an empty result is indistinguishable from a working one.
+     `-subtle` is the surface it sits on; `-content` the text on that surface. */
+  --color-danger: #b42318;
+  --color-danger-subtle: #fef3f2;
+  --color-danger-content: #ffffff;
 }

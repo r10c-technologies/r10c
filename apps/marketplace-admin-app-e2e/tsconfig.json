@@ -22,5 +22,13 @@
     "eslint.config.js",
     "eslint.config.mjs",
     "eslint.config.cjs"
+  ],
+  "references": [
+    {
+      "path": "../../packages/entifix/ts/testing-e2e"
+    },
+    {
+      "path": "../../packages/business/ts/product-configuration-management"
+    }
   ]
 }

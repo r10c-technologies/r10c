@@ -5,6 +5,16 @@
   "nx": {
     "implicitDependencies": [
       "@r10c/auth-app"
-    ]
+    ],
+    "targets": {
+      "e2e": {
+        "dependsOn": [
+          "@r10c/auth-app:build"
+        ]
+      }
+    }
+  },
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-e2e": "workspace:*"
   }
 }

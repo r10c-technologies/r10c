@@ -184,6 +184,10 @@ deferred.
   bus) are its transport adapters.
 - `entifix-react-controls` / `entifix-react-integration` — UI primitives +
   Effect-aware hooks. `entifix-style` — design tokens.
+- `entifix-ts-testing-unit` — doubles, driver fakes and port contract suites for
+  unit specs. `entifix-ts-testing-e2e` — the e2e layer: the `E2E_PROFILE`
+  (`mock` | `live`) seam, a mock backend built from the production query
+  pipeline, and the Playwright/Vitest presets. Both are test-only and private.
 
 **Delivery** (`packages/implementation/*`, `packages/shells/*`):
 

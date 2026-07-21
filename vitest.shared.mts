@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 
 import swc from 'unplugin-swc';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 const workspaceRoot = import.meta.dirname;
 
@@ -88,6 +88,13 @@ export interface EntifixTestOptions {
   thresholds?: boolean;
   /** Project-specific coverage exclusions, appended to the shared list. */
   coverageExclude?: string[];
+  /**
+   * Spec files to leave uncollected. The e2e projects use it to drop the
+   * inactive profile's specs (`*.live.spec.ts` / `*.mock.spec.ts`) — selection
+   * by filename rather than by an in-spec `skip`, so a run with the wrong
+   * environment fails loudly instead of reporting green.
+   */
+  exclude?: string[];
 }
 
 export const defineEntifixTest = ({
@@ -98,6 +105,7 @@ export const defineEntifixTest = ({
   globalSetup = [],
   thresholds = true,
   coverageExclude = [],
+  exclude = [],
 }: EntifixTestOptions) =>
   defineConfig(() => ({
     root,
@@ -134,6 +142,7 @@ export const defineEntifixTest = ({
       include: [
         '{src,specs,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       ],
+      exclude: [...configDefaults.exclude, ...exclude],
       // Packages still awaiting their suite must not fail the run; the coverage
       // thresholds are what actually enforce the goal.
       passWithNoTests: true,

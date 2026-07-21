@@ -14,6 +14,10 @@
   --color-primary-content: #ffffff;
   --color-border: #cfe8db;
   --color-accent: #d97706;
+
+  --color-danger: #b3261e;
+  --color-danger-subtle: #fdf1f0;
+  --color-danger-content: #ffffff;
 }
 
 /* Marketplace dark. */
@@ -27,6 +31,12 @@
   --color-primary-content: #06120c;
   --color-border: #234034;
   --color-accent: #f59e0b;
+
+  /* Dark surface: a light `-subtle` would glare, so it is a deep tint and the
+     danger colour is lifted to stay readable on it. */
+  --color-danger: #ff9c92;
+  --color-danger-subtle: #2a1614;
+  --color-danger-content: #06120c;
 
   --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);

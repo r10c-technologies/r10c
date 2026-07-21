@@ -5,6 +5,16 @@
   "nx": {
     "implicitDependencies": [
       "@r10c/marketplace-app"
-    ]
+    ],
+    "targets": {
+      "e2e": {
+        "dependsOn": [
+          "@r10c/marketplace-app:build"
+        ]
+      }
+    }
+  },
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-e2e": "workspace:*"
   }
 }

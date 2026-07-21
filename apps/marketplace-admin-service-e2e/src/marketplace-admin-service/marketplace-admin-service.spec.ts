@@ -1,4 +1,20 @@
-import axios from 'axios';
+import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
+
+import { startMockService } from '../support/mock-service';
+
+/**
+ * The marketplace-admin-service HTTP surface, in both profiles.
+ *
+ * `mock` boots the service's real router in-process over driver fakes; `live`
+ * talks to the process on `MARKETPLACE_ADMIN_SERVICE_URL`. The routes, the
+ * use-cases, the Mongo repository adapter and the query translation execute
+ * either way — only the connections differ — so this one suite is the whole
+ * contract.
+ */
+const service = defineServiceE2e({
+  liveUrlEnvVar: 'MARKETPLACE_ADMIN_SERVICE_URL',
+  startMock: startMockService,
+});
 
 /**
  * Every collection response is an `EntifixEnvelope`, so the page sits one level
@@ -14,7 +30,7 @@ const namesOf = (res: {
 
 describe('marketplace-admin-service', () => {
   it('GET /api/health reports ok', async () => {
-    const res = await axios.get(`/api/health`);
+    const res = await service.client.get(`/api/health`);
 
     expect(res.status).toBe(200);
     expect(res.data).toEqual({
@@ -24,28 +40,33 @@ describe('marketplace-admin-service', () => {
   });
 
   it('GET /api/product returns a paginated page', async () => {
-    const res = await axios.get(`/api/product`);
+    const res = await service.client.get(`/api/product`);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(pageOf(res).items)).toBe(true);
     expect(typeof pageOf(res).total).toBe('number');
   });
+
+  it('GET /api/config reports its own parameters', async () => {
+    const res = await service.client.get(`/api/config`);
+
+    expect(res.status).toBe(200);
+    expect(res.data.service).toBe('@r10c/marketplace-admin-service');
+  });
 });
 
 /**
- * The query protocol end to end against the real store: `rsql` is parsed and
- * validated against the entity's metadata, then translated into a Mongo query.
+ * The query protocol end to end: `rsql` is parsed and validated against the
+ * entity's metadata, then translated into a Mongo query.
  *
  * Assertions are on the *shape* of the result, never on a record count: the
- * catalog seed is not idempotent across restarts, so a store that has booted
- * twice holds every brand twice.
+ * live catalog seed is not idempotent across restarts, so a store that has
+ * booted twice holds every brand twice. (In `mock` the store is fresh, so the
+ * same assertions simply hold more tightly.)
  */
 describe('the RSQL query protocol', () => {
   const list = (query: string) =>
-    axios.get(`/api/product-brand?${query}`, {
-      // 4xx is an assertion subject here, not a transport failure.
-      validateStatus: () => true,
-    });
+    service.client.get(`/api/product-brand?${query}`);
 
   it('narrows a listing by a substring match', async () => {
     // One page wide enough to hold every match, so `total` and the page length

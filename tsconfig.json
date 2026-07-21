@@ -110,6 +110,9 @@
     },
     {
       "path": "./packages/entifix/ts/testing-unit"
+    },
+    {
+      "path": "./packages/entifix/ts/testing-e2e"
     }
   ]
 }

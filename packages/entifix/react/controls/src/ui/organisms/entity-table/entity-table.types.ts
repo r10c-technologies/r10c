@@ -1,4 +1,5 @@
 import type {
+  EntifixError,
   Entity,
   EntityConstructor,
   EntityFieldDescriptor,
@@ -32,6 +33,17 @@ export interface EntityTableProps<TEntity extends Entity> {
   entityConstructor: EntityConstructor<TEntity>;
 
   isLoading: boolean;
+  /**
+   * The failure of the last load, if it failed.
+   *
+   * A listing that renders an empty table when the service is unreachable tells
+   * the user their catalog is empty — the one thing they must not conclude. So
+   * this is rendered as an alert, and it also changes the empty message.
+   *
+   * It arrives for free from `useDataLoading`, whose whole state is spread into
+   * this component.
+   */
+  error?: EntifixError;
   items: Array<TEntity>;
   totalItems: number;
   currentPage: number;
