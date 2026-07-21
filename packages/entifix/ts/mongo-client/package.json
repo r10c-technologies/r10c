@@ -38,8 +38,8 @@
   },
   "dependencies": {
     "@swc/helpers": "0.5.23",
-    "effect": "3.21.4",
-    "mongodb": "6.12.0",
+    "effect": "3.22.0",
+    "mongodb": "7.5.0",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*"
   },

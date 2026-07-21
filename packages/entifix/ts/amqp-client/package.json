@@ -38,8 +38,8 @@
   },
   "dependencies": {
     "@swc/helpers": "0.5.23",
-    "effect": "3.21.4",
-    "amqplib": "0.10.4",
+    "effect": "3.22.0",
+    "amqplib": "2.0.1",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-transactions": "workspace:*"
   },
