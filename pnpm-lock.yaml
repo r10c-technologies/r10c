@@ -761,7 +761,11 @@ importers:
         specifier: 3.21.4
         version: 3.21.4
 
-  packages/implementation/product-configuration-management/react: {}
+  packages/implementation/product-configuration-management/react:
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/testing-unit
 
   packages/shells/effect/service:
     dependencies:

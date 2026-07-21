@@ -32,19 +32,22 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../../../entifix/react/integration/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/business/tsconfig.lib.json"
+    },
+    {
       "path": "../../../entifix/ts/core/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
     },
     {
-      "path": "../../../entifix/ts/business/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/react/integration/tsconfig.lib.json"
-    },
-    {
       "path": "../../../entifix/react/controls/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/testing-unit"
     }
   ]
 }
