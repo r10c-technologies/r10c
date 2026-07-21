@@ -614,6 +614,9 @@ importers:
         specifier: 3.21.4
         version: 3.21.4
     devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../testing-unit
       '@types/amqplib':
         specifier: 0.10.5
         version: 0.10.5
@@ -656,6 +659,10 @@ importers:
       mongodb:
         specifier: 6.12.0
         version: 6.12.0
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../testing-unit
 
   packages/entifix/ts/redis-client:
     dependencies:
@@ -674,6 +681,10 @@ importers:
       ioredis:
         specifier: 5.4.1
         version: 5.4.1
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../testing-unit
 
   packages/entifix/ts/rest-client:
     dependencies:
@@ -689,6 +700,46 @@ importers:
       effect:
         specifier: 3.21.4
         version: 3.21.4
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../testing-unit
+
+  packages/entifix/ts/testing-unit:
+    dependencies:
+      '@r10c/entifix-react-controls':
+        specifier: workspace:*
+        version: link:../../react/controls
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../transactions
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../business
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../core
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      '@testing-library/react':
+        specifier: '*'
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@testing-library/user-event':
+        specifier: '*'
+        version: 14.6.1(@testing-library/dom@10.4.1)
+      effect:
+        specifier: 3.21.4
+        version: 3.21.4
+      msw:
+        specifier: '*'
+        version: 2.15.0(@types/node@26.0.1)(typescript@6.0.3)
+      react:
+        specifier: '*'
+        version: 19.2.7
+      vitest:
+        specifier: '*'
+        version: 4.1.9(@types/node@26.0.1)(@vitest/coverage-v8@4.1.10)(@vitest/ui@4.1.9)(jsdom@29.1.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(vite@8.1.0(@types/node@26.0.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.48.0)(yaml@2.9.0))
 
   packages/entifix/ts/transactions:
     dependencies:

@@ -54,6 +54,15 @@ const sharedCoverageExclude = [
   '**/*.config.{ts,mts,cts}',
 ];
 
+/** Resolution conditions, with the workspace's source condition winning. */
+const workspaceConditions = [
+  '@r10c/source',
+  'import',
+  'module',
+  'node',
+  'default',
+];
+
 export interface EntifixTestOptions {
   /** Project name, as reported by the Vitest runner (`@r10c/…`). */
   name: string;
@@ -93,6 +102,15 @@ export const defineEntifixTest = ({
     // decorator syntax.
     oxc: false as const,
     plugins: [swcTransform()],
+    resolve: {
+      // Same condition `tsconfig.base.json` sets: cross-package imports resolve
+      // to each package's `src/index.ts`, so tests never need a prior build and
+      // a shared test library can depend on the packages that consume it.
+      conditions: workspaceConditions,
+    },
+    // Vitest runs specs through Vite's SSR pipeline, which resolves with its own
+    // condition list.
+    ssr: { resolve: { conditions: workspaceConditions } },
     test: {
       name,
       watch: false,
@@ -111,6 +129,11 @@ export const defineEntifixTest = ({
       // Packages still awaiting their suite must not fail the run; the coverage
       // thresholds are what actually enforce the goal.
       passWithNoTests: true,
+      server: {
+        // Workspace packages must go through Vite's resolver rather than being
+        // externalized to Node, which knows nothing of `@r10c/source`.
+        deps: { inline: [/@r10c\//] },
+      },
       reporters: ['default'],
       coverage: {
         provider: 'v8' as const,

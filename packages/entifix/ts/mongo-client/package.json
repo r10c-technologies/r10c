@@ -42,5 +42,8 @@
     "mongodb": "6.12.0",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*"
+  },
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-unit": "workspace:*"
   }
 }

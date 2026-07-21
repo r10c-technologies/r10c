@@ -1,0 +1,22 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../business"
+    },
+    {
+      "path": "../transactions"
+    },
+    {
+      "path": "../../react/controls"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}
