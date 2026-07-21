@@ -40,9 +40,8 @@ testem.log
 .env.*.local
 !.env.example
 
-# Claude Code local artifacts (shared settings.json may be committed explicitly)
-.claude/settings.local.json
-.claude/council-cache/
+# Claude Code local artifacts — entire directory excluded
+.claude/
 
 # System Files
 .DS_Store
