@@ -52,6 +52,14 @@ const sharedCoverageExclude = [
   '**/*.spec.{ts,tsx}',
   '**/*.test.{ts,tsx}',
   '**/*.config.{ts,mts,cts}',
+  // Driver connection Layers: they open a real socket to Mongo/Redis/RabbitMQ
+  // and contain no branching of their own. Covering them would mean either
+  // mocking the driver module — which asserts nothing about our code — or
+  // running infrastructure in the unit gate. They are exercised for real by
+  // `entifix-ts-testing-integration` (Phase 4) instead.
+  '**/mongo-database/mongo-database.ts',
+  '**/redis-connection/redis-connection.ts',
+  '**/amqp-connection/amqp-connection.ts',
 ];
 
 /** Resolution conditions, with the workspace's source condition winning. */

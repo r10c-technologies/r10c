@@ -51,6 +51,93 @@ describe('translateFiltering', () => {
     ).toEqual({ name: { $eq: null } });
   });
 
+  // Every operator the entity filtering vocabulary defines has to translate;
+  // an unmapped one would silently widen a query to match everything.
+  it.each([
+    ['eq', { property: 'name', operator: 'eq', value: 'a' }, { name: { $eq: 'a' } }],
+    ['ne', { property: 'name', operator: 'ne', value: 'a' }, { name: { $ne: 'a' } }],
+    ['gt', { property: 'price', operator: 'gt', value: 1 }, { price: { $gt: 1 } }],
+    ['lt', { property: 'price', operator: 'lt', value: 1 }, { price: { $lt: 1 } }],
+    ['lte', { property: 'price', operator: 'lte', value: 1 }, { price: { $lte: 1 } }],
+    [
+      'nin',
+      { property: 'id', operator: 'nin', values: ['a'] },
+      { id: { $nin: ['a'] } },
+    ],
+    [
+      'nbetween',
+      { property: 'price', operator: 'nbetween', start: 1, end: 5 },
+      { price: { $not: { $gte: 1, $lte: 5 } } },
+    ],
+    [
+      'nlike',
+      { property: 'name', operator: 'nlike', value: 'a+b' },
+      { name: { $not: { $regex: 'a\\+b', $options: 'i' } } },
+    ],
+    [
+      'isNotNull',
+      { property: 'name', operator: 'isNotNull' },
+      { name: { $ne: null } },
+    ],
+  ])('maps %s', (_label, filter, expected) => {
+    expect(
+      translateFiltering<Product>([filter as EntityFiltering<Product>]),
+    ).toEqual(expected);
+  });
+
+  // A single entry stays unwrapped: `{ price: {...} }` rather than
+  // `{ $and: [ { price: {...} } ] }`, which Mongo would treat identically but
+  // which reads far worse in a profiler.
+  it('does not wrap a single clause in $and', () => {
+    expect(
+      translateFiltering<Product>([{ property: 'price', operator: 'gte', value: 10 }]),
+    ).toEqual({ price: { $gte: 10 } });
+  });
+
+  it('flattens an entry that is itself an array of filters', () => {
+    expect(
+      translateFiltering<Product>([
+        [
+          { property: 'price', operator: 'gte', value: 10 },
+          { property: 'name', operator: 'eq', value: 'a' },
+        ],
+      ]),
+    ).toEqual({
+      $and: [{ price: { $gte: 10 } }, { name: { $eq: 'a' } }],
+    });
+  });
+
+  it('yields match-all for an entry that is an empty array', () => {
+    expect(translateFiltering<Product>([[]])).toEqual({});
+  });
+
+  it('AND-combines an explicit and-group', () => {
+    expect(
+      translateFiltering<Product>([
+        {
+          operator: 'and',
+          values: [
+            { property: 'price', operator: 'gt', value: 1 },
+            { property: 'price', operator: 'lt', value: 9 },
+          ],
+        },
+      ]),
+    ).toEqual({ $and: [{ price: { $gt: 1 } }, { price: { $lt: 9 } }] });
+  });
+
+  // The `default` arm is an exhaustiveness guard: adding an operator to the
+  // vocabulary without a translation here is a compile error. Reaching it at
+  // runtime takes a cast, and what comes back is the node itself — not a
+  // match-all, which is the outcome that would matter.
+  it('does not degrade to match-all for an operator it does not know', () => {
+    const unknownOperator = {
+      property: 'name',
+      operator: 'unknown',
+    } as unknown as EntityFiltering<Product>;
+
+    expect(translateFiltering<Product>([unknownOperator])).not.toEqual({});
+  });
+
   it('AND-combines multiple top-level entries', () => {
     const filtering: EntityFiltering<Product>[] = [
       { property: 'price', operator: 'gte', value: 10 },
@@ -93,5 +180,22 @@ describe('translateSorting', () => {
 
   it('returns empty for absent sorting', () => {
     expect(translateSorting<Product>()).toEqual({});
+  });
+
+  it('skips a priority slot that carries nothing', () => {
+    const sorting = [
+      { 0: undefined, 1: { property: 'name', type: 'asc' } },
+    ] as unknown as EntitySorting<Product>[];
+
+    expect(translateSorting(sorting)).toEqual({ name: 1 });
+  });
+
+  it('merges several sorting records in order', () => {
+    const sorting: EntitySorting<Product>[] = [
+      { 0: { property: 'price', type: 'desc' } },
+      { 0: { property: 'name', type: 'asc' } },
+    ];
+
+    expect(Object.keys(translateSorting(sorting))).toEqual(['price', 'name']);
   });
 });

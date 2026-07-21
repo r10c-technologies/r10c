@@ -96,6 +96,11 @@ export interface FakeMongoDb {
    * `EntifixConnError` mapping is reachable. Pass `undefined` to restore.
    */
   failWith(error: unknown): void;
+  /**
+   * Makes only `operation` reject, leaving the rest working — the way a read
+   * that succeeds and a count that then fails reaches a distinct error branch.
+   */
+  failOn(operation: string, error: unknown): void;
   /** Every operation performed, for assertions about what the adapter did. */
   readonly operations: ReadonlyArray<{ collection: string; op: string }>;
   /** The object to hand to `makeMongoRepository` in place of a real `Db`. */
@@ -117,6 +122,7 @@ export const makeFakeMongoDb = (
   );
   const operations: Array<{ collection: string; op: string }> = [];
   let failure: unknown;
+  const failuresByOperation = new Map<string, unknown>();
 
   const documentsOf = (name: string): Document[] => {
     if (!collections.has(name)) collections.set(name, []);
@@ -125,6 +131,8 @@ export const makeFakeMongoDb = (
 
   const record = <TValue>(name: string, op: string, produce: () => TValue) => {
     operations.push({ collection: name, op });
+    const scoped = failuresByOperation.get(op);
+    if (scoped !== undefined) return Promise.reject(scoped);
     return failure !== undefined
       ? Promise.reject(failure)
       : Promise.resolve(produce());
@@ -226,6 +234,9 @@ export const makeFakeMongoDb = (
     read: (name) => documentsOf(name).map((doc) => ({ ...doc })),
     failWith: (error) => {
       failure = error;
+    },
+    failOn: (operation, error) => {
+      failuresByOperation.set(operation, error);
     },
     get operations() {
       return operations;

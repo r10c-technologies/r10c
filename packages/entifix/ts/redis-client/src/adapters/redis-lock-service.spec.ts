@@ -102,6 +102,19 @@ describe('makeRedisLockService', () => {
     expect(fake.read('product:code')).toBe(handle.token);
   });
 
+  // A dead Redis during acquisition is not contention — but it still has to
+  // surface as a lock failure, because the caller cannot proceed either way.
+  it('maps a driver failure onto a lock error on acquire', async () => {
+    const { fake, redis } = withFakeRedis();
+    fake.failWith(new Error('connection reset'));
+
+    const exit = await Effect.runPromiseExit(
+      makeRedisLockService(redis).acquire('product:code'),
+    );
+
+    expect(Exit.isFailure(exit)).toBe(true);
+  });
+
   it('maps a driver failure onto EntifixConnError on release', async () => {
     const { fake, redis } = withFakeRedis();
     const locks = makeRedisLockService(redis);

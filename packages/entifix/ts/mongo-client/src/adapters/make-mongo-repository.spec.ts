@@ -1,4 +1,10 @@
-import { serializeEntity } from '@r10c/entifix-ts-core';
+import {
+  accessor,
+  type Entity,
+  entity,
+  type EntityId,
+  serializeEntity,
+} from '@r10c/entifix-ts-core';
 import { runRepository, runRepositoryExit } from '@r10c/entifix-ts-testing-unit';
 import {
   ContractWidget,
@@ -13,6 +19,20 @@ import { describe, expect, it } from 'vitest';
 import { makeMongoRepository } from './make-mongo-repository.js';
 
 const COLLECTION = 'contract-widget';
+
+/** No `key`, so the collection has to be named after the class instead. */
+@entity()
+class UnkeyedWidget implements Entity {
+  #id?: EntityId;
+
+  @accessor()
+  get id(): EntityId {
+    return this.#id;
+  }
+  set id(value: EntityId) {
+    this.#id = value;
+  }
+}
 
 /**
  * The repository runs against a fake mongodb driver rather than a fake port, so
@@ -42,6 +62,15 @@ describe('makeMongoRepository', () => {
     await runRepository(repository.load<ContractWidget>({}));
 
     expect(fake.operations.every((op) => op.collection === COLLECTION)).toBe(true);
+  });
+
+  it('falls back to the class name when the entity declares no key', async () => {
+    const fake = makeFakeMongoDb({});
+    const repository = makeMongoRepository(fake.db as Db, UnkeyedWidget);
+
+    await runRepository(repository.load<UnkeyedWidget>({}));
+
+    expect(fake.operations.every((op) => op.collection === 'UnkeyedWidget')).toBe(true);
   });
 
   it('projects Mongo’s own _id away, so it never reaches an entity', async () => {
@@ -105,5 +134,39 @@ describe('makeMongoRepository', () => {
     const exit = await runRepositoryExit(repository.load<ContractWidget>({}));
 
     expect(Exit.isFailure(exit)).toBe(true);
+  });
+
+  // Each driver call has its own error mapping, and only a per-operation
+  // failure reaches the later ones — a blanket failure never gets past `find`.
+  describe('per-operation failures', () => {
+    const seed = [makeContractWidget('w-1', 'Alpha', 10)];
+
+    it.each([
+      [
+        'countDocuments',
+        (repository: ReturnType<typeof withFakeDb>['repository']) =>
+          repository.load<ContractWidget>({}),
+      ],
+      [
+        'findOne',
+        (repository: ReturnType<typeof withFakeDb>['repository']) =>
+          repository.get<ContractWidget>('w-1'),
+      ],
+      [
+        'replaceOne',
+        (repository: ReturnType<typeof withFakeDb>['repository']) =>
+          repository.save<ContractWidget>(makeContractWidget('w-1', 'Alpha', 10)),
+      ],
+      [
+        'deleteOne',
+        (repository: ReturnType<typeof withFakeDb>['repository']) =>
+          repository.delete<ContractWidget>('w-1'),
+      ],
+    ])('fails when %s rejects', async (operation, run) => {
+      const { fake, repository } = withFakeDb(seed);
+      fake.failOn(operation, new Error('connection refused'));
+
+      expect(Exit.isFailure(await runRepositoryExit(run(repository)))).toBe(true);
+    });
   });
 });
