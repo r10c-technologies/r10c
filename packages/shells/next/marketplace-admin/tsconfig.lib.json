@@ -55,6 +55,9 @@
     },
     {
       "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/testing-unit"
     }
   ]
 }

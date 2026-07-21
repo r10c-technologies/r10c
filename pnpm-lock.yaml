@@ -793,7 +793,11 @@ importers:
 
   packages/shells/next/marketplace: {}
 
-  packages/shells/next/marketplace-admin: {}
+  packages/shells/next/marketplace-admin:
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/testing-unit
 
   packages/utils/ts/array:
     dependencies:
