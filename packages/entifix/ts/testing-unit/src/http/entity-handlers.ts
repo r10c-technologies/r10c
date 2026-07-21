@@ -81,11 +81,19 @@ export const entityRestHandlers = <TEntity extends Entity>(
       return HttpResponse.json(makeEntityEnvelope(entityConstructor, updated));
     }),
 
+    // A delete answers with the removed entity's envelope rather than a bare
+    // `204`: the shared fetch client always parses the response as JSON, so an
+    // empty body would fail that parse — which is what the services do too.
     http.delete(`${baseUrl}/:id`, ({ params }) => {
       const id = String(params['id']);
       const index = rows.findIndex((row) => String(row.id) === id);
-      if (index !== -1) rows.splice(index, 1);
-      return new HttpResponse(null, { status: 204 });
+      const [removed] = index === -1 ? [] : rows.splice(index, 1);
+      return HttpResponse.json(
+        makeEntityEnvelope(
+          entityConstructor,
+          removed ?? (new entityConstructor() as TEntity),
+        ),
+      );
     }),
   ];
 };
