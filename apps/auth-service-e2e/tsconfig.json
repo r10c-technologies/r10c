@@ -10,6 +10,21 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../../packages/entifix/ts/testing-unit"
+    },
+    {
+      "path": "../../packages/entifix/ts/redis-client"
+    },
+    {
+      "path": "../../packages/entifix/ts/mongo-client"
+    },
+    {
+      "path": "../../packages/entifix/ts/jwt-client"
+    },
+    {
+      "path": "../../packages/entifix/ts/business"
+    },
+    {
       "path": "../../packages/shells/effect/service"
     },
     {

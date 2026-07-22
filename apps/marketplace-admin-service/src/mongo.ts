@@ -1,6 +1,14 @@
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
 import { AmqpEventBusLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
+import {
+  ConfigurationRepositoryTag,
+  TokenServiceTag,
+} from '@r10c/entifix-ts-business';
 import { ConfigurationStoreInMemory } from '@r10c/entifix-ts-core';
+import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import { MongoDatabaseLayer } from '@r10c/entifix-ts-mongo-client';
 import {
   RedisLayer,
@@ -38,13 +46,23 @@ export const AppLayer = Layer.unwrapEffect(
     const dbName = yield* store.in('mongo').getString('db');
     const redisUri = yield* store.in('redis').getString('uri');
     const amqpUri = yield* store.in('rabbitmq').getString('uri');
+    const jwtSecret = yield* store.in('jwt').getString('secret');
 
     // Connections resolved from config-service: Mongo (catalog), Redis (locks +
-    // code sequences), RabbitMQ (transaction event bus).
+    // code sequences), RabbitMQ (transaction event bus). The token service
+    // verifies access tokens minted by auth-service (shared HS256 secret).
     const connections = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
       RedisLayer({ uri: redisUri }),
       AmqpLayer({ uri: amqpUri }),
+      Layer.succeed(
+        TokenServiceTag,
+        makeJoseTokenService({
+          secret: jwtSecret,
+          issuer: AUTH_TOKEN_ISSUER,
+          audience: AUTH_TOKEN_AUDIENCE,
+        })
+      ),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain)
     );

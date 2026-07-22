@@ -56,6 +56,7 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
+import { requirePrincipal } from './auth';
 import {
   type CatalogHandlerOptions,
   makeCatalogTransactionHandler,
@@ -387,6 +388,13 @@ const configIntrospectionRoute = Effect.gen(function* () {
  */
 export const router = HttpRouter.empty.pipe(
   HttpRouter.get('/api/config', configIntrospectionRoute),
+
+  // Token-verified backend integration: returns the caller's principal, proving
+  // a downstream service trusts the access token auth-service minted.
+  HttpRouter.get(
+    '/api/me',
+    requirePrincipal((principal) => HttpServerResponse.json(principal)),
+  ),
 
   HttpRouter.get('/api/product-category', listRoute(ProductCategory)),
   HttpRouter.get(

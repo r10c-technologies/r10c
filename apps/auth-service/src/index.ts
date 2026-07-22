@@ -4,6 +4,14 @@
  * `mock` profile launch the SAME router in-process against driver fakes, rather
  * than re-declaring a stand-in that could drift from the real route surface.
  */
+export { makeMongoAccountRepository } from './identity/account-repository';
+export { makeBcryptPasswordHasher } from './identity/password';
+export { makeRedisIdentityProvider } from './identity/redis-identity-provider';
+export {
+  DEV_SEED_PASSWORD,
+  JWT_AUDIENCE,
+  JWT_ISSUER,
+} from './identity/session-policy';
 export { makeStubIdentityProvider } from './identity/stub-identity-provider';
 export {
   entityIdentifierSeedData,

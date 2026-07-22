@@ -16,6 +16,9 @@
       "path": "../transactions/tsconfig.lib.json"
     },
     {
+      "path": "../business/tsconfig.lib.json"
+    },
+    {
       "path": "../core/tsconfig.lib.json"
     },
     {

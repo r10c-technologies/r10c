@@ -43,3 +43,13 @@ export class UserIdTag extends Context.Tag('UserIdTag')<
   UserIdTag,
   EntityId
 >() {}
+
+/**
+ * Request-scoped tag carrying the {@link Principal} a request was authenticated
+ * as. A service's auth middleware verifies the access token and provides it;
+ * downstream handlers yield it instead of re-parsing the token.
+ */
+export class PrincipalTag extends Context.Tag('PrincipalTag')<
+  PrincipalTag,
+  Principal
+>() {}

@@ -1,0 +1,49 @@
+{
+  "name": "@r10c/entifix-ts-jwt-client",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "sourceRoot": "packages/entifix/ts/jwt-client/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/entifix/ts/jwt-client/dist",
+          "main": "packages/entifix/ts/jwt-client/src/index.ts",
+          "tsConfig": "packages/entifix/ts/jwt-client/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@swc/helpers": "0.5.23",
+    "effect": "3.22.0",
+    "jose": "6.2.4",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-unit": "workspace:*"
+  }
+}

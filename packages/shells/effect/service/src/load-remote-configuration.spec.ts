@@ -4,7 +4,7 @@ import {
   HttpResponse,
   setupEntifixServer,
 } from '@r10c/entifix-ts-testing-unit/http';
-import { Context, Effect } from 'effect';
+import { Context, Effect, Schedule } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -15,6 +15,11 @@ import {
 
 const CONFIG_API = 'http://config-service:3190';
 const SERVICE = 'marketplace-admin-service';
+
+// Fail fast in the error-path tests: a single attempt, no boot-retry wait.
+const noRetry = { retrySchedule: Schedule.stop } as const;
+// Retry immediately (no delay) so the recovery test doesn't wait real seconds.
+const instantRetry = { retrySchedule: Schedule.recurs(5) } as const;
 
 const plain = {
   mongo: [
@@ -68,7 +73,7 @@ describe('loadRemoteConfiguration', () => {
     server.use(http.get(`${CONFIG_API}/api/config/${SERVICE}`, respond));
 
     const error = await Effect.runPromise(
-      Effect.flip(loadRemoteConfiguration(CONFIG_API, SERVICE)),
+      Effect.flip(loadRemoteConfiguration(CONFIG_API, SERVICE, noRetry)),
     );
 
     expect(error).toBeInstanceOf(EntifixConnError);
@@ -85,10 +90,44 @@ describe('loadRemoteConfiguration', () => {
     );
 
     const error = await Effect.runPromise(
-      Effect.flip(loadRemoteConfiguration(CONFIG_API, SERVICE)),
+      Effect.flip(loadRemoteConfiguration(CONFIG_API, SERVICE, noRetry)),
     );
 
     expect(error.cause?.message).toContain('404');
+  });
+
+  // A dependent can boot before config-service is HTTP-ready; the bounded
+  // retry rides out the early connection failures instead of crashing.
+  it('retries until config-service answers', async () => {
+    let attempts = 0;
+    server.use(
+      http.get(`${CONFIG_API}/api/config/${SERVICE}`, () => {
+        attempts += 1;
+        if (attempts < 3) return HttpResponse.error();
+        return HttpResponse.json(plain);
+      }),
+    );
+
+    const result = await Effect.runPromise(
+      loadRemoteConfiguration(CONFIG_API, SERVICE, instantRetry),
+    );
+
+    expect(attempts).toBe(3);
+    expect(result).toEqual(plain);
+  });
+
+  // The retry window is bounded — a config-service that never comes back still
+  // surfaces the error rather than hanging forever.
+  it('gives up with EntifixConnError once the retry budget is exhausted', async () => {
+    server.use(
+      http.get(`${CONFIG_API}/api/config/${SERVICE}`, () => HttpResponse.error()),
+    );
+
+    const error = await Effect.runPromise(
+      Effect.flip(loadRemoteConfiguration(CONFIG_API, SERVICE, instantRetry)),
+    );
+
+    expect(error).toBeInstanceOf(EntifixConnError);
   });
 });
 
@@ -113,7 +152,7 @@ describe('loadRemoteConfigurationStore', () => {
     );
 
     const error = await Effect.runPromise(
-      Effect.flip(loadRemoteConfigurationStore(CONFIG_API, SERVICE)),
+      Effect.flip(loadRemoteConfigurationStore(CONFIG_API, SERVICE, noRetry)),
     );
 
     expect(error).toBeInstanceOf(EntifixConnError);

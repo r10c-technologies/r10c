@@ -4,7 +4,14 @@ import {
   HttpServerResponse,
 } from '@effect/platform';
 import {
+  type AuthSubject,
   EntityIdentifier,
+  type IdentifierType,
+  LoginInputTag,
+  loginUCFactory,
+  type Principal,
+  RegisterInputTag,
+  registerUserUCFactory,
   resolveSessionUCFactory,
   SessionIdTag,
   UserIdentity,
@@ -15,8 +22,11 @@ import {
   EntityRepositoryTag,
   getUCFactory,
   loadUCFactory,
+  SessionStoreTag,
+  TokenServiceTag,
 } from '@r10c/entifix-ts-business';
 import {
+  EntifixBuildError,
   Entity,
   EntityConstructor,
   EntityLoadRequest,
@@ -34,6 +44,10 @@ import {
 import { Effect } from 'effect';
 
 import { describeIdentityModel } from './identity/identity-showcase';
+import {
+  ACCESS_TOKEN_TTL_SECONDS,
+  SESSION_TTL_SECONDS,
+} from './identity/session-policy';
 
 /** Reads `page`/`pageSize` from the request query string. */
 const readLoadRequest = Effect.gen(function* () {
@@ -104,15 +118,214 @@ const configIntrospectionRoute = Effect.gen(function* () {
   });
 });
 
+// #region auth flow
+
+/** The JSON an authenticated flow returns; the Next app turns it into cookies. */
+interface AuthResult {
+  readonly accessToken: string;
+  readonly sessionId: string;
+  readonly expiresIn: number;
+  readonly principal: Principal;
+}
+
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+
+/** Read the JSON request body as a record. */
+const readBody = Effect.gen(function* () {
+  const req = yield* HttpServerRequest.HttpServerRequest;
+  const body = yield* req.json;
+  return (body ?? {}) as Record<string, unknown>;
+});
+
+/** Map an authn failure to a status without leaking the cause. */
+const respondAuthError = (error: { _tag?: string }) => {
+  switch (error._tag) {
+    case 'UnauthenticatedError':
+      return HttpServerResponse.json(
+        { error: 'invalid credentials' },
+        { status: 401 }
+      );
+    case 'AuthnError':
+      return HttpServerResponse.json(
+        { error: 'identifier already in use' },
+        { status: 409 }
+      );
+    case 'EntifixBuildError':
+      return HttpServerResponse.json(
+        { error: 'invalid request' },
+        { status: 400 }
+      );
+    default:
+      return HttpServerResponse.json(
+        { error: 'authentication failed' },
+        { status: 500 }
+      );
+  }
+};
+
 /**
- * auth-service routes. `/api/health` is added by the service base.
- *
- * Session resolution stays a framework-free use-case over the (stub) identity
- * provider; the user records are served from MongoDB through the entifix
- * use-cases.
+ * Turn a credential-verified {@link AuthSubject} into a live session + access
+ * token. The session lands in Redis (revocation handle); the token carries only
+ * the small, stable claims a downstream authorization check needs.
+ */
+const establishSession = (
+  subject: AuthSubject
+): Effect.Effect<AuthResult, never, SessionStoreTag | TokenServiceTag> =>
+  Effect.gen(function* () {
+    const sessions = yield* SessionStoreTag;
+    const tokens = yield* TokenServiceTag;
+
+    const sessionId = yield* sessions.create(subject, SESSION_TTL_SECONDS);
+    const accessToken = yield* tokens.sign(
+      {
+        userId: subject.userId,
+        subject: subject.subject,
+        sessionId,
+        roles: subject.roles,
+      },
+      ACCESS_TOKEN_TTL_SECONDS
+    );
+
+    return {
+      accessToken,
+      sessionId,
+      expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+      principal: { ...subject, sessionId },
+    };
+  }).pipe(Effect.orDie);
+
+/** Parse a registration body into the use-case input, or fail 400. */
+const parseRegister = (body: Record<string, unknown>) =>
+  Effect.gen(function* () {
+    const password = asString(body['password']);
+    const rawIdentifiers = Array.isArray(body['identifiers'])
+      ? body['identifiers']
+      : [];
+    const identifiers = rawIdentifiers
+      .map((entry) => entry as Record<string, unknown>)
+      .map((entry) => ({
+        type: asString(entry['type']) as IdentifierType | undefined,
+        value: asString(entry['value']),
+      }))
+      .filter(
+        (entry): entry is { type: IdentifierType; value: string } =>
+          entry.type !== undefined && entry.value !== undefined
+      );
+
+    if (password === undefined || identifiers.length === 0) {
+      return yield* Effect.fail(
+        new EntifixBuildError('registration requires a password and identifier')
+      );
+    }
+
+    return {
+      displayName: asString(body['displayName']),
+      identifiers,
+      password,
+    };
+  });
+
+/** `POST /api/auth/register` — provision an account and log it straight in. */
+const registerRoute = Effect.gen(function* () {
+  const body = yield* readBody;
+  const input = yield* parseRegister(body);
+  const subject = yield* registerUserUCFactory().pipe(
+    Effect.provideService(RegisterInputTag, input)
+  );
+  const result = yield* establishSession(subject);
+  return yield* HttpServerResponse.json(result, { status: 201 });
+}).pipe(Effect.catchAll(respondAuthError));
+
+/** `POST /api/auth/login` — verify credentials and open a session. */
+const loginRoute = Effect.gen(function* () {
+  const body = yield* readBody;
+  const identifier = asString(body['identifier']);
+  const password = asString(body['password']);
+  if (identifier === undefined || password === undefined) {
+    return yield* HttpServerResponse.json(
+      { error: 'invalid request' },
+      { status: 400 }
+    );
+  }
+  const subject = yield* loginUCFactory().pipe(
+    Effect.provideService(LoginInputTag, { identifier, password })
+  );
+  const result = yield* establishSession(subject);
+  return yield* HttpServerResponse.json(result, { status: 200 });
+}).pipe(Effect.catchAll(respondAuthError));
+
+/** `POST /api/auth/logout` — revoke the session so every service sees it gone. */
+const logoutRoute = Effect.gen(function* () {
+  const body = yield* readBody;
+  const sessionId = asString(body['sessionId']);
+  if (sessionId !== undefined) {
+    const sessions = yield* SessionStoreTag;
+    yield* sessions.revoke(sessionId);
+  }
+  return yield* HttpServerResponse.json({ ok: true });
+}).pipe(Effect.catchAll(() => HttpServerResponse.json({ ok: true })));
+
+/**
+ * `POST /api/auth/refresh` — mint a fresh access token from a still-live
+ * session, sliding its TTL. Fails `401` if the session was revoked or expired,
+ * which is where B's short token TTL becomes real revocation.
+ */
+const refreshRoute = Effect.gen(function* () {
+  const body = yield* readBody;
+  const sessionId = asString(body['sessionId']);
+  if (sessionId === undefined) {
+    return yield* HttpServerResponse.json(
+      { error: 'invalid request' },
+      { status: 400 }
+    );
+  }
+  const sessions = yield* SessionStoreTag;
+  const tokens = yield* TokenServiceTag;
+
+  const record = yield* sessions.read(sessionId);
+  yield* sessions.touch(sessionId, SESSION_TTL_SECONDS);
+  const accessToken = yield* tokens.sign(
+    {
+      userId: record.userId,
+      subject: record.subject,
+      sessionId,
+      roles: record.roles,
+    },
+    ACCESS_TOKEN_TTL_SECONDS
+  );
+
+  return yield* HttpServerResponse.json({
+    accessToken,
+    expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+    principal: {
+      userId: record.userId,
+      subject: record.subject,
+      sessionId,
+      roles: record.roles,
+      attributes: record.attributes,
+    } satisfies Principal,
+  });
+}).pipe(
+  Effect.catchAll(() =>
+    HttpServerResponse.json({ error: 'session expired' }, { status: 401 })
+  )
+);
+
+// #endregion auth flow
+
+/**
+ * auth-service routes. `/api/health` is added by the service base. The auth
+ * endpoints return JSON (tokens + principal); the Next app owns turning that
+ * into httpOnly cookies, so this service needs no cookie/CORS handling.
  */
 export const router = HttpRouter.empty.pipe(
   HttpRouter.get('/api/config', configIntrospectionRoute),
+  // Credential flow.
+  HttpRouter.post('/api/auth/register', registerRoute),
+  HttpRouter.post('/api/auth/login', loginRoute),
+  HttpRouter.post('/api/auth/logout', logoutRoute),
+  HttpRouter.post('/api/auth/refresh', refreshRoute),
   // Resolve an opaque session id → principal via the framework-free use-case.
   HttpRouter.get(
     '/api/auth/session/:sessionId',

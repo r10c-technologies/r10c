@@ -54,11 +54,16 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-jwt-client": "workspace:*",
     "@r10c/entifix-ts-mongo-client": "workspace:*",
+    "@r10c/entifix-ts-redis-client": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@effect/platform": "0.97.0",
     "@effect/platform-node": "0.108.0",
+    "bcryptjs": "3.0.2",
     "effect": "3.22.0",
+    "ioredis": "5.11.1",
+    "jose": "6.2.4",
     "mongodb": "7.5.0",
     "tslib": "2.8.1"
   }

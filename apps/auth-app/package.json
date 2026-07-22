@@ -13,10 +13,19 @@
     "targets": {
       "dev": {
         "executor": "nx:run-commands",
+        "continuous": true,
         "options": {
           "command": "next dev -p 3002",
           "cwd": "apps/auth-app"
-        }
+        },
+        "dependsOn": [
+          {
+            "projects": [
+              "@r10c/auth-service"
+            ],
+            "target": "dev"
+          }
+        ]
       },
       "start": {
         "executor": "nx:run-commands",

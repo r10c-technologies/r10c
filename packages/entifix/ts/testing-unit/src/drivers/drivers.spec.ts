@@ -261,6 +261,10 @@ interface FakeRedisClient {
   set(key: string, value: string, ...rest: unknown[]): Promise<string | null>;
   get(key: string): Promise<string | null>;
   del(key: string): Promise<number>;
+  sadd(key: string, member: string): Promise<number>;
+  srem(key: string, member: string): Promise<number>;
+  smembers(key: string): Promise<string[]>;
+  expire(key: string, seconds: number): Promise<number>;
   incr(key: string): Promise<number>;
   eval(
     script: string,
@@ -310,6 +314,50 @@ describe('makeFakeRedis', () => {
 
     expect(await client(fake).incr('seq')).toBe(1);
     expect(await client(fake).incr('seq')).toBe(2);
+  });
+
+  // The session store indexes a user's live session ids in a set so they can be
+  // revoked as a group; the fake has to honour the set semantics that relies on.
+  it('adds set members, ignoring duplicates', async () => {
+    const fake = makeFakeRedis();
+
+    expect(await client(fake).sadd('user:1', 's-1')).toBe(1);
+    expect(await client(fake).sadd('user:1', 's-1')).toBe(0);
+    expect(await client(fake).sadd('user:1', 's-2')).toBe(1);
+    expect(await client(fake).smembers('user:1')).toEqual(['s-1', 's-2']);
+  });
+
+  it('removes a set member and reports a miss', async () => {
+    const fake = makeFakeRedis();
+    await client(fake).sadd('user:1', 's-1');
+
+    expect(await client(fake).srem('user:1', 's-1')).toBe(1);
+    expect(await client(fake).srem('user:1', 's-1')).toBe(0);
+    expect(await client(fake).srem('missing', 's-1')).toBe(0);
+  });
+
+  it('returns an empty array for a missing set', async () => {
+    expect(await client(makeFakeRedis()).smembers('missing')).toEqual([]);
+  });
+
+  it('deletes a set key too', async () => {
+    const fake = makeFakeRedis();
+    await client(fake).sadd('user:1', 's-1');
+
+    expect(await client(fake).del('user:1')).toBe(1);
+    expect(await client(fake).smembers('user:1')).toEqual([]);
+  });
+
+  // `EXPIRE` is how the adapter re-arms a sliding TTL and how it detects that a
+  // session vanished: 1 when the key still exists, 0 when it is gone.
+  it('reports whether a key exists on expire', async () => {
+    const fake = makeFakeRedis();
+    await client(fake).set('rec', 'value');
+    await client(fake).sadd('idx', 'm');
+
+    expect(await client(fake).expire('rec', 60)).toBe(1);
+    expect(await client(fake).expire('idx', 60)).toBe(1);
+    expect(await client(fake).expire('missing', 60)).toBe(0);
   });
 
   // The release script is a compare-and-delete: free the key only when it

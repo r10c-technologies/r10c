@@ -1,4 +1,10 @@
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
 import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client';
+import { TokenServiceTag } from '@r10c/entifix-ts-business';
+import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
@@ -33,7 +39,11 @@ const CONFIGURATION = {
   ],
   redis: [{ key: 'uri', value: 'redis://mock:6379' }],
   rabbitmq: [{ key: 'uri', value: 'amqp://mock:5672' }],
+  jwt: [{ key: 'secret', value: 'mock-secret' }],
 };
+
+/** The HS256 secret the mock verifies with; a spec signs test tokens with it. */
+export const MOCK_JWT_SECRET = 'mock-secret';
 
 /**
  * The `mock` composition root: the same shape as the service's own `AppLayer`
@@ -50,6 +60,14 @@ const MockAppLayer = (() => {
     fakeMongoLayer().layer,
     fakeRedisLayer().layer,
     fakeAmqpLayer().layer,
+    Layer.succeed(
+      TokenServiceTag,
+      makeJoseTokenService({
+        secret: MOCK_JWT_SECRET,
+        issuer: AUTH_TOKEN_ISSUER,
+        audience: AUTH_TOKEN_AUDIENCE,
+      }),
+    ),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   );
