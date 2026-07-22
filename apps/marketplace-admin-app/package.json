@@ -21,6 +21,7 @@
           {
             "projects": [
               "@r10c/marketplace-admin-service",
+              "@r10c/auth-app",
               "@r10c/config-service"
             ],
             "target": "dev"

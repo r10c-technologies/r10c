@@ -23,6 +23,7 @@ export interface FakeRedis {
 
 export const makeFakeRedis = (): FakeRedis => {
   const store = new Map<string, string>();
+  const sets = new Map<string, Set<string>>();
   const commands: Array<{ command: string; args: unknown[] }> = [];
   let failure: unknown;
 
@@ -56,7 +57,43 @@ export const makeFakeRedis = (): FakeRedis => {
     get: (key: string) => record('get', [key], () => store.get(key) ?? null),
 
     del: (key: string) =>
-      record('del', [key], () => (store.delete(key) ? 1 : 0)),
+      record('del', [key], () => {
+        // A key can hold a string or a set; drop whichever is there so the
+        // session store's `del` frees both record keys and index-set keys.
+        const hadString = store.delete(key);
+        const hadSet = sets.delete(key);
+        return hadString || hadSet ? 1 : 0;
+      }),
+
+    /** `SADD`: add a member to a set, returning how many were newly added (0/1). */
+    sadd: (key: string, member: string) =>
+      record('sadd', [key, member], () => {
+        const set = sets.get(key) ?? new Set<string>();
+        const isNew = !set.has(member);
+        set.add(member);
+        sets.set(key, set);
+        return isNew ? 1 : 0;
+      }),
+
+    /** `SREM`: remove a member, returning how many were removed (0/1). */
+    srem: (key: string, member: string) =>
+      record('srem', [key, member], () =>
+        sets.get(key)?.delete(member) ? 1 : 0,
+      ),
+
+    /** `SMEMBERS`: the set's members, or an empty array for a missing set. */
+    smembers: (key: string) =>
+      record('smembers', [key], () => [...(sets.get(key) ?? [])]),
+
+    /**
+     * `EXPIRE`: TTL is not enforced by this fake, so it only reports whether the
+     * key exists (1) or not (0) — which is the branch the session adapter reads
+     * to detect a vanished session on `touch`.
+     */
+    expire: (key: string, seconds: number) =>
+      record('expire', [key, seconds], () =>
+        store.has(key) || sets.has(key) ? 1 : 0,
+      ),
 
     incr: (key: string) =>
       record('incr', [key], () => {

@@ -1,17 +1,40 @@
-import { IdentityProviderTag } from '@r10c/business-ts-authn';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
+import {
+  AccountRepositoryTag,
+  IdentityProviderTag,
+  PasswordHasherTag,
+} from '@r10c/business-ts-authn';
+import {
+  ConfigurationRepositoryTag,
+  SessionStoreTag,
+  TokenServiceTag,
+} from '@r10c/entifix-ts-business';
 import { ConfigurationStoreInMemory } from '@r10c/entifix-ts-core';
+import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
   MongoDatabaseLayer,
   MongoDatabaseTag,
 } from '@r10c/entifix-ts-mongo-client';
+import {
+  RedisLayer,
+  RedisSessionStoreLayer,
+} from '@r10c/entifix-ts-redis-client';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { makeStubIdentityProvider } from './identity/stub-identity-provider';
+import {
+  CREDENTIAL_COLLECTION,
+  makeMongoAccountRepository,
+} from './identity/account-repository';
+import { makeBcryptPasswordHasher } from './identity/password';
+import { makeRedisIdentityProvider } from './identity/redis-identity-provider';
+import {
+  DEV_SEED_PASSWORD,
+  JWT_AUDIENCE,
+  JWT_ISSUER,
+} from './identity/session-policy';
 import {
   entityIdentifierSeedData,
   userIdentitySeedData,
@@ -46,10 +69,50 @@ const seedUsers = Effect.all(
 );
 
 /**
- * auth-service composition root. Resolves Mongo settings from config-service at
- * boot, opens the connection, provides the configuration store + loaded config,
- * seeds the user collections, and keeps the (stub) identity provider. The real
- * Zitadel/Redis adapter would replace the stub here without touching routes.
+ * Give each seeded user a password so local login works out of the box. Hashes
+ * the shared dev password once and writes one credential per seed user, only
+ * when the collection is empty.
+ */
+const seedCredentials = Effect.gen(function* () {
+  const db = yield* MongoDatabaseTag;
+  const hasher = yield* PasswordHasherTag;
+  const collection = db.collection(CREDENTIAL_COLLECTION);
+  const count = yield* Effect.promise(() => collection.countDocuments());
+  if (count === 0) {
+    const passwordHash = yield* hasher.hash(DEV_SEED_PASSWORD);
+    yield* Effect.promise(() =>
+      collection.insertMany(
+        userIdentitySeedData.map((user) => ({
+          userId: user['id'],
+          passwordHash,
+        }))
+      )
+    );
+  }
+});
+
+/** Account repository over the live Mongo connection. */
+const AccountRepositoryLayer = Layer.effect(
+  AccountRepositoryTag,
+  Effect.map(MongoDatabaseTag, makeMongoAccountRepository)
+);
+
+/** The real identity provider, built from the session store + account repo. */
+const IdentityProviderLayer = Layer.effect(
+  IdentityProviderTag,
+  Effect.gen(function* () {
+    const sessionStore = yield* SessionStoreTag;
+    const accounts = yield* AccountRepositoryTag;
+    return makeRedisIdentityProvider(sessionStore, accounts);
+  })
+);
+
+/**
+ * auth-service composition root. Resolves Mongo + Redis + JWT settings from
+ * config-service at boot, then layers: connections (Mongo, Redis) + stateless
+ * services (jose token service, bcrypt hasher) → session store + account repo →
+ * the real identity provider → seed. The stub provider is gone; the same routes
+ * now run over Redis sessions and Mongo-backed credentials.
  */
 export const AppLayer = Layer.unwrapEffect(
   Effect.gen(function* () {
@@ -58,14 +121,38 @@ export const AppLayer = Layer.unwrapEffect(
 
     const uri = yield* store.in('mongo').getString('uri');
     const dbName = yield* store.in('mongo').getString('db');
+    const redisUri = yield* store.in('redis').getString('uri');
+    const jwtSecret = yield* store.in('jwt').getString('secret');
 
     const infra = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
+      RedisLayer({ uri: redisUri }),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
-      Layer.succeed(IdentityProviderTag, makeStubIdentityProvider())
+      Layer.succeed(
+        TokenServiceTag,
+        makeJoseTokenService({
+          secret: jwtSecret,
+          issuer: JWT_ISSUER,
+          audience: JWT_AUDIENCE,
+        })
+      ),
+      Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher())
     );
 
-    return Layer.provideMerge(Layer.effectDiscard(seedUsers), infra);
+    // Session store + account repo build on the connections.
+    const stores = Layer.provideMerge(
+      Layer.mergeAll(RedisSessionStoreLayer(), AccountRepositoryLayer),
+      infra
+    );
+
+    // The identity provider consumes the session store + account repo.
+    const withIdentity = Layer.provideMerge(IdentityProviderLayer, stores);
+
+    // Seed users + their credentials once everything is wired.
+    const seed = Layer.effectDiscard(
+      Effect.all([seedUsers, seedCredentials], { discard: true })
+    );
+    return Layer.provideMerge(seed, withIdentity);
   }).pipe(Effect.orDie)
 ).pipe(Layer.orDie);

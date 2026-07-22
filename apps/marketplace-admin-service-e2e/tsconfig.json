@@ -22,7 +22,16 @@
       "path": "../../packages/entifix/ts/redis-client"
     },
     {
+      "path": "../../packages/entifix/ts/jwt-client"
+    },
+    {
+      "path": "../../packages/entifix/ts/business"
+    },
+    {
       "path": "../../packages/entifix/ts/amqp-client"
+    },
+    {
+      "path": "../../packages/business/ts/authn"
     }
   ]
 }

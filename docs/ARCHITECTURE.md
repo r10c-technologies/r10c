@@ -8,8 +8,11 @@
 > marketplace-admin catalog: `load`/`get`/`save`/`delete` over REST on the web and
 > Mongo on the backend, with every message framed as an
 > [EntifixEnvelope](./ENTIFIX.md#6-the-envelope-is-the-message). auth-service is
-> still on the pre-envelope wire shape (read-only, no client consumes it through
-> the REST adapters). Zitadel/session auth is still a stub.
+> still on the pre-envelope wire shape for its `UserIdentity`/`EntityIdentifier`
+> reads (no client consumes it through the REST adapters), but its credential
+> flow is real: Redis-backed sessions + short-lived HS256 JWTs (see
+> [Auth: sessions + tokens](#auth-sessions--tokens) below). Zitadel/RS256/ABAC
+> are still deferred.
 
 ## Layering
 
@@ -117,8 +120,9 @@ Effect Layers.
 - **marketplace-admin-service** (`:3101`, Mongo) — serves the product catalog
   through the entifix use-cases. Writes (`POST`) run as transactions (see
   [Transactions](#transactions-cqrs-writes)); reads/`PUT`/`DELETE` are unchanged.
-- **auth-service** (`:3102`, Mongo) — serves `UserIdentity`/`EntityIdentifier`;
-  session resolution is still a stub.
+- **auth-service** (`:3102`, Mongo + Redis) — serves `UserIdentity`/`EntityIdentifier`
+  and owns the credential flow: `register`/`login`/`logout`/`refresh` (see
+  [Auth: sessions + tokens](#auth-sessions--tokens)).
 - **transaction-manager** (`:3103`, Mongo + RabbitMQ) — passive saga tracker:
   subscribes to the transaction event bus, records each transaction's lifecycle,
   and flags stalls. `GET /api/transaction/:id` is what a client polls.
@@ -126,6 +130,45 @@ Effect Layers.
 Every service also exposes `GET /api/config` returning its own loaded parameters
 (credentials redacted) for diagnostics. Boot order:
 `Postgres → config-service → (mongo services)`.
+
+## Auth: sessions + tokens
+
+auth-service owns credentials end to end (approach B — opaque session +
+short-lived signed token, chosen over a bare JWT so a session is revocable):
+
+- `POST /api/auth/register` / `/login` run `registerUserUCFactory`/`loginUCFactory`
+  (`business-ts-authn`) against `AccountRepositoryTag` (Mongo credentials
+  collection) and `PasswordHasherTag` (bcrypt), then both routes call the same
+  `establishSession`: `SessionStoreTag.create` mints an opaque session id in
+  Redis (the revocation handle — `entifix-ts-redis-client`'s
+  `RedisSessionStoreLayer`), and `TokenServiceTag.sign` (`entifix-ts-jwt-client`'s
+  jose-backed HS256 service) mints a short-lived access token carrying only
+  `userId`/`subject`/`sessionId`/`roles`.
+- `POST /api/auth/refresh` reads the live session, slides its TTL
+  (`touch`), and mints a fresh access token — this is where the short token TTL
+  becomes real revocation: once `logout` calls `SessionStoreTag.revoke`, the
+  next `refresh` (or direct `read`) 401s even though old tokens haven't expired
+  yet.
+- Every route returns JSON (`accessToken`/`sessionId`/`expiresIn`/`principal`);
+  auth-service itself sets no cookies. Each Next app owns turning that JSON into
+  httpOnly cookies via its own `POST /api/auth/*` route handlers
+  (`apps/*-app/src/app/api/auth/*`, `apps/*-app/src/lib/session.ts`): `r10c_sid`
+  (opaque session id, 7-day) and `r10c_at` (signed access token, TTL-matched). A
+  `middleware.ts` per app does an edge-only presence check on `r10c_at` —
+  auth-app bounces an already-authenticated visitor away from sign-in/sign-up,
+  marketplace-admin-app gates its `/account` area — with the real signature
+  verification left to the backend the page calls (`requirePrincipal` below).
+- Downstream services that need to authorize a request (e.g.
+  marketplace-admin-service) never call auth-service or touch Redis on the hot
+  path: `requirePrincipal` (`apps/marketplace-admin-service/src/auth.ts`) reads
+  `r10c_at` (cookie or `Authorization: Bearer`) and verifies it statelessly via
+  `TokenServiceTag` — a Mongo/Redis-free `401` check. A handler that needs the
+  richer, volatile session `attributes` reads Redis directly by `sessionId`.
+- `SessionStoreTag`/`TokenServiceTag` are framework-free contracts in
+  `entifix-ts-business` (`sessions/`, `tokens/`); `entifix-ts-redis-client` and
+  the new `entifix-ts-jwt-client` are their only concrete adapters today, so a
+  future Zitadel-backed `IdentityProviderTag` can swap in without touching the
+  routes or the use-cases.
 
 ## App & port convention
 
@@ -169,19 +212,25 @@ deferred.
 
 - `business-ts-product-configuration-management` — `Product`, `ProductBrand`,
   `ProductCategory`; `loadProductsUCFactory` (link-following load).
-- `business-ts-authn` — `UserIdentity`, `EntityIdentifier`; `resolveSession` UC.
+- `business-ts-authn` — `UserIdentity`, `EntityIdentifier`; `resolveSession`,
+  `login`, `registerUser` UCs over `AccountRepositoryTag`/`PasswordHasherTag`/
+  `IdentityProviderTag`.
 - `business-ts-common` — shared domain primitives.
 
 **Entity framework** (`packages/entifix/*`):
 
 - `entifix-ts-core` — decorators, metadata, links, types, (de)serializer,
   configuration store, and the **RSQL query codec** (`src/rsql/`).
-- `entifix-ts-business` — repository/resolver contracts + use-case factories.
+- `entifix-ts-business` — repository/resolver contracts + use-case factories,
+  plus the framework-free `SessionStoreTag`/`TokenServiceTag` contracts (see
+  [Auth: sessions + tokens](#auth-sessions--tokens)).
 - `entifix-ts-rest-client` — HTTP `EntityRepository` adapter (web).
 - `entifix-ts-mongo-client` — MongoDB `EntityRepository` adapter (backend).
 - `entifix-transactions` — transaction facade + engine + ports (framework-free).
-  `entifix-ts-redis-client` (lock + sequence) and `entifix-ts-amqp-client` (event
-  bus) are its transport adapters.
+  `entifix-ts-redis-client` (lock + sequence, and now `SessionStoreTag`'s Redis
+  adapter) and `entifix-ts-amqp-client` (event bus) are its transport adapters.
+- `entifix-ts-jwt-client` — `TokenServiceTag`'s jose-backed HS256 adapter
+  (sign/verify short-lived access tokens).
 - `entifix-react-controls` / `entifix-react-integration` — UI primitives +
   Effect-aware hooks. `entifix-style` — design tokens.
 - `entifix-ts-testing-unit` — doubles, driver fakes and port contract suites for

@@ -20,7 +20,10 @@
     }
   },
   "devDependencies": {
+    "@r10c/business-ts-authn": "workspace:*",
     "@r10c/entifix-ts-amqp-client": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-jwt-client": "workspace:*",
     "@r10c/entifix-ts-redis-client": "workspace:*",
     "@r10c/entifix-ts-testing-e2e": "workspace:*",
     "@r10c/marketplace-admin-service": "workspace:*",

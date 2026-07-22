@@ -61,6 +61,28 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'mongodb://admin:password@127.0.0.1:30017',
   },
   { service: 'auth-service', group_name: 'mongo', key: 'db', value: 'auth' },
+  // auth-service session store (Redis) — the single source of truth for live
+  // sessions every service can read.
+  {
+    service: 'auth-service',
+    group_name: 'redis',
+    key: 'uri',
+    value: 'redis://:localdev@127.0.0.1:30379',
+  },
+  // Shared HS256 secret: auth-service signs access tokens with it, every
+  // verifier checks against it. LOCAL DEV ONLY — replace per environment.
+  {
+    service: 'auth-service',
+    group_name: 'jwt',
+    key: 'secret',
+    value: 'dev-jwt-secret-change-me-at-least-32-chars',
+  },
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'jwt',
+    key: 'secret',
+    value: 'dev-jwt-secret-change-me-at-least-32-chars',
+  },
   // Transaction event bus (Redis locks/sequences + RabbitMQ) for the admin
   // service's transactional writes.
   {
@@ -105,7 +127,17 @@ const PgClientLive = PgClient.layerConfig({
   ),
 });
 
-/** Creates the `configuration` table (idempotent) and seeds it when empty. */
+/**
+ * Creates the `configuration` table and reconciles the seed on every boot.
+ *
+ * Seeding is per-row `ON CONFLICT DO NOTHING` (the PK is
+ * `service/group_name/key`), not a one-shot "insert only when the table is
+ * empty". That distinction matters: a table seeded before a new key was added
+ * to {@link SEED_ROWS} would otherwise never gain that key, and a service that
+ * resolves it at boot would crash with `Configuration key "…" not found`.
+ * `DO NOTHING` (not `DO UPDATE`) means an operator's in-place override of a
+ * value is never clobbered — only genuinely missing rows are inserted.
+ */
 const migrateAndSeed = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
 
@@ -119,14 +151,9 @@ const migrateAndSeed = Effect.gen(function* () {
     )
   `;
 
-  const counts = yield* sql<{
-    count: number;
-  }>`SELECT COUNT(*)::int AS count FROM configuration`;
-  if ((counts[0]?.count ?? 0) === 0) {
-    yield* sql`INSERT INTO configuration ${sql.insert(
-      SEED_ROWS as unknown as Record<string, unknown>[]
-    )}`;
-  }
+  yield* sql`INSERT INTO configuration ${sql.insert(
+    SEED_ROWS as unknown as Record<string, unknown>[]
+  )} ON CONFLICT (service, group_name, key) DO NOTHING`;
 });
 
 /**

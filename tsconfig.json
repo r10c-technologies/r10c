@@ -25,6 +25,9 @@
       "path": "./packages/entifix/ts/transactions"
     },
     {
+      "path": "./packages/entifix/ts/jwt-client"
+    },
+    {
       "path": "./packages/business/ts/common"
     },
     {

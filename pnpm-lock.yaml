@@ -354,15 +354,30 @@ importers:
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/core
+      '@r10c/entifix-ts-jwt-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/jwt-client
       '@r10c/entifix-ts-mongo-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/mongo-client
+      '@r10c/entifix-ts-redis-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/redis-client
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
+      bcryptjs:
+        specifier: 3.0.2
+        version: 3.0.2
       effect:
         specifier: 3.22.0
         version: 3.22.0
+      ioredis:
+        specifier: 5.11.1
+        version: 5.11.1
+      jose:
+        specifier: 6.2.4
+        version: 6.2.4
       mongodb:
         specifier: 7.5.0
         version: 7.5.0
@@ -378,9 +393,24 @@ importers:
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/business
+      '@r10c/entifix-ts-jwt-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/jwt-client
+      '@r10c/entifix-ts-mongo-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/mongo-client
+      '@r10c/entifix-ts-redis-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/redis-client
       '@r10c/entifix-ts-testing-e2e':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/testing-e2e
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/testing-unit
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -450,6 +480,9 @@ importers:
       '@effect/platform-node':
         specifier: 0.108.0
         version: 0.108.0(@effect/cluster@0.59.0(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0)
+      '@r10c/business-ts-authn':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authn
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/product-configuration-management
@@ -465,6 +498,9 @@ importers:
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/core
+      '@r10c/entifix-ts-jwt-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/jwt-client
       '@r10c/entifix-ts-mongo-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/mongo-client
@@ -483,6 +519,9 @@ importers:
       ioredis:
         specifier: 5.11.1
         version: 5.11.1
+      jose:
+        specifier: 6.2.4
+        version: 6.2.4
       mongodb:
         specifier: 7.5.0
         version: 7.5.0
@@ -492,9 +531,18 @@ importers:
 
   apps/marketplace-admin-service-e2e:
     devDependencies:
+      '@r10c/business-ts-authn':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authn
       '@r10c/entifix-ts-amqp-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/amqp-client
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/business
+      '@r10c/entifix-ts-jwt-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/jwt-client
       '@r10c/entifix-ts-redis-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/redis-client
@@ -707,6 +755,28 @@ importers:
         specifier: 3.22.0
         version: 3.22.0
 
+  packages/entifix/ts/jwt-client:
+    dependencies:
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../business
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../core
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 3.22.0
+        version: 3.22.0
+      jose:
+        specifier: 6.2.4
+        version: 6.2.4
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../testing-unit
+
   packages/entifix/ts/mongo-client:
     dependencies:
       '@r10c/entifix-ts-business':
@@ -734,6 +804,9 @@ importers:
       '@r10c/entifix-transactions':
         specifier: workspace:*
         version: link:../transactions
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../business
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../core
@@ -5165,6 +5238,10 @@ packages:
   bcryptjs@2.4.3:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
 
+  bcryptjs@3.0.2:
+    resolution: {integrity: sha512-k38b3XOZKv60C4E2hVsXTolJWfkGRMbILBIe2IBITXciy5bOsTKot5kDrf3ZfufQtQOUN5mXceUEpU1rTl9Uog==}
+    hasBin: true
+
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
 
@@ -7372,6 +7449,9 @@ packages:
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
+
+  jose@6.2.4:
+    resolution: {integrity: sha512-N8acGzVsQy6M/fjFcxtysNc4Q379TcM5dM/qKkNtsHFji88yANnXTr7BLeP75iPnFwBfQzM/jg2BZ9+HZrHCZA==}
 
   js-tokens@10.0.0:
     resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
@@ -15847,6 +15927,8 @@ snapshots:
 
   bcryptjs@2.4.3: {}
 
+  bcryptjs@3.0.2: {}
+
   bidi-js@1.0.3:
     dependencies:
       require-from-string: 2.0.2
@@ -18520,6 +18602,8 @@ snapshots:
   jiti@2.6.1: {}
 
   jiti@2.7.0: {}
+
+  jose@6.2.4: {}
 
   js-tokens@10.0.0: {}
 
