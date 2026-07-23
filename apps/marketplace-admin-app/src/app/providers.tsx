@@ -4,6 +4,7 @@ import {
   type ThemeOption,
   type ThemePalette,
   ThemeProvider,
+  UiPreferencesProvider,
 } from '@r10c/entifix-react-controls';
 import {
   createClientAdapters,
@@ -44,9 +45,11 @@ export function Providers({ children }: PropsWithChildren) {
       storageKey="r10c-admin-theme"
       palettes={RUNTIME_PALETTES}
     >
-      <MarketplaceAdminAdaptersProvider adapters={adapters}>
-        {children}
-      </MarketplaceAdminAdaptersProvider>
+      <UiPreferencesProvider>
+        <MarketplaceAdminAdaptersProvider adapters={adapters}>
+          {children}
+        </MarketplaceAdminAdaptersProvider>
+      </UiPreferencesProvider>
     </ThemeProvider>
   );
 }

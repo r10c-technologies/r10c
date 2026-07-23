@@ -1,0 +1,34 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design System/Introduction" />
+
+# r10c Design System
+
+The agnostic UI kit — `@r10c/entifix-react-controls`. Everything here is
+**entity-agnostic**: atoms, molecules, organisms and layout primitives that know
+nothing about any domain. Entity-tight components live in
+`implementation/<domain>/react` and are documented in the apps, not here.
+
+## Foundations
+
+- **Fluid, not stepped.** Spacing (`--spacing-*`) and type (`--text-step-*`) are
+  [Utopia](https://utopia.fyi) `clamp()` scales — they interpolate with the
+  viewport, so there are far fewer breakpoints. `--measure` caps line length and
+  `--grid-min` sizes card columns.
+- **Semantic colour contract.** Components reference `bg-surface`, `text-content`,
+  `border-border`, … — never raw colours. Palettes (Aurora / Sunset / Midnight)
+  override the values behind those names. Flip the theme from the toolbar above.
+- **Tailwind v4, CSS-first.** No config file; tokens are declared in
+  `@r10c/entifix-style/tokens.css` via `@theme`.
+
+## Layout: flex-first
+
+Layout primitives follow [Every Layout](https://every-layout.dev): they lay
+themselves out **intrinsically** with `flex-wrap` / `flex-basis` / `gap` — no
+media queries. There is exactly one CSS-Grid escape hatch, `Grid`, for card
+grids. See **Layout → Overview**.
+
+## Adding a component
+
+See `docs/DESIGN-SYSTEM.md` in the repo for the authoring conventions and the
+new-component checklist.

@@ -13,5 +13,8 @@
       "import": "./dist/index.esm.js",
       "default": "./dist/index.esm.js"
     }
+  },
+  "dependencies": {
+    "@r10c/entifix-react-controls": "workspace:*"
   }
 }

@@ -51,6 +51,9 @@
       "path": "../../packages/shells/next/marketplace-admin"
     },
     {
+      "path": "../../packages/shells/next/common"
+    },
+    {
       "path": "../../packages/entifix/react/controls"
     }
   ]

@@ -14,6 +14,6 @@ export default [
     settings: { react: { version: '19.0.0' } },
   },
   {
-    ignores: ['**/out-tsc'],
+    ignores: ['**/out-tsc', 'storybook-static'],
   },
 ];

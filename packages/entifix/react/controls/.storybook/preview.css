@@ -1,0 +1,17 @@
+/* Mirror of an app's global.css: the Tailwind v4 CSS-first pipeline plus the
+   design-system tokens and every shipped preset, so stories render themed. */
+@import 'tailwindcss';
+@import '@r10c/entifix-style/tokens.css';
+@import '@r10c/entifix-style/presets/aurora.css';
+@import '@r10c/entifix-style/presets/sunset.css';
+@import '@r10c/entifix-style/presets/midnight.css';
+
+/* Scan the controls source so Tailwind detects the utility classes the
+   components emit (they are consumed as source via @r10c/source). */
+@source '../src';
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-content);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
