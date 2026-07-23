@@ -10,8 +10,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NS=marketplace-local-infra
 
 # host:port pairs the services connect to (minikube NodePorts):
-# mongo 30017, redis 30379, rabbitmq 30672, postgres 30432.
-PORTS=(30017 30379 30672 30432)
+# mongo 30017, redis 30379, rabbitmq 30672, postgres 30432, otel-lgtm OTLP 30318.
+PORTS=(30017 30379 30672 30432 30318)
 
 port_open() {
   # nc -z returns 0 when the TCP port accepts a connection.
@@ -33,13 +33,13 @@ fi
 echo "==> Local datastores not reachable — checking minikube"
 if ! command -v minikube >/dev/null 2>&1; then
   echo "ERROR: minikube is not installed. Install it and run:" >&2
-  echo "  minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080" >&2
+  echo "  minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080,30000:30000,30317:30317,30318:30318" >&2
   exit 1
 fi
 
 if ! minikube status >/dev/null 2>&1; then
   echo "ERROR: minikube is not running. Start it with:" >&2
-  echo "  minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080" >&2
+  echo "  minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080,30000:30000,30317:30317,30318:30318" >&2
   exit 1
 fi
 

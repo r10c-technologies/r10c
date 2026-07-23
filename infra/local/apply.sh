@@ -38,8 +38,8 @@ ensure_masterkey
 echo "==> Namespace"
 kubectl apply -f "$DIR/00-namespace.yaml"
 
-echo "==> Datastores (mongodb, redis, rabbitmq, postgres)"
-for d in mongodb redis rabbitmq postgres; do kubectl apply -k "$DIR/$d"; done
+echo "==> Datastores (mongodb, redis, rabbitmq, postgres) + observability (otel-lgtm)"
+for d in mongodb redis rabbitmq postgres otel-lgtm; do kubectl apply -k "$DIR/$d"; done
 
 echo "==> Waiting for postgres (Zitadel depends on it)"
 kubectl -n "$NS" rollout status deploy/postgres --timeout=180s
@@ -52,3 +52,4 @@ kubectl -n "$NS" get pods,svc
 echo
 echo "Done. Zitadel console: http://localhost:30080 (may take ~1 min to init)."
 echo "RabbitMQ management UI: http://localhost:31672 (admin/password by default)."
+echo "Grafana (otel-lgtm): http://localhost:30000 (anonymous admin; OTLP on :30318)."
