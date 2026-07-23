@@ -53,6 +53,13 @@ const makeSink = (config: ObservabilityConfig): LogSink =>
     ? makeOtlpHttpLogSink({
         endpoint: config.otelEndpoint,
         serviceName: config.serviceName,
+        // Flush on a short interval too, so a quiet service's logs reach the
+        // Collector promptly instead of waiting for a full batch.
+        flushIntervalMs: 2000,
+        onError: error =>
+          process.stderr.write(
+            `[otlp-log-sink] export failed: ${String(error)}\n`,
+          ),
       })
     : makeStdoutJsonSink();
 
@@ -114,10 +121,12 @@ export const makeObservabilityLayerWith = (
     level: options.level,
     sink: options.sink,
   });
-  const LoggingLayer = Logger.replace(
-    Logger.defaultLogger,
-    makeEffectLogger(toolingLogger),
-  );
+  // Replace Effect's default logger with the tooling logger. The service boot
+  // (`makeService`) launches under `runMain` with `disablePrettyLogger: true`,
+  // and the e2e boots under `Effect.runFork`; both leave `defaultLogger` in
+  // place, so this single replace takes effect in either runtime.
+  const effectLogger = makeEffectLogger(toolingLogger);
+  const LoggingLayer = Logger.replace(Logger.defaultLogger, effectLogger);
   const TracingLayer = NodeSdk.layer(() => ({
     resource: { serviceName: options.serviceName },
     spanProcessor: options.spanProcessor,

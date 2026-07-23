@@ -70,5 +70,11 @@ export const makeServerLayer = <E, R>(
  * pools, etc. — release deterministically).
  */
 export const makeService = <E, R>(def: ServiceDefinition<E, R>): void => {
-  NodeRuntime.runMain(Layer.launch(makeServerLayer(def)));
+  // `disablePrettyLogger` keeps `runMain` from swapping Effect's `defaultLogger`
+  // for `prettyLoggerDefault`. A service that replaces `defaultLogger` (e.g. to
+  // route logs through `@r10c/entifix-ts-tooling`) needs it present to replace;
+  // services that don't simply keep the structured default logger.
+  NodeRuntime.runMain(Layer.launch(makeServerLayer(def)), {
+    disablePrettyLogger: true,
+  });
 };
