@@ -131,6 +131,37 @@ Every service also exposes `GET /api/config` returning its own loaded parameters
 (credentials redacted) for diagnostics. Boot order:
 `Postgres → config-service → (mongo services)`.
 
+## Observability & tooling
+
+Instrument once against **OTLP** (vendor-neutral), so the storage backend is a
+swappable seam — Grafana Cloud in production (via an OpenTelemetry Collector),
+`grafana/otel-lgtm` locally. The full decision is [ADR 0001](adr/0001-observability-and-tooling.md).
+
+- **`@r10c/entifix-ts-tooling`** is a framework-free leaf (built on the OTel
+  standard, *not* an Effect wrap, so the browser and Next server can use it too).
+  `/logging` exposes `createLogger({ service, level, sink, redact })` over a
+  pluggable `LogSink`; every record carries the service, an OTel `SeverityNumber`,
+  and — when a span is active — the `trace_id`/`span_id`, so logs join their
+  traces. Sinks pick the transport: `makeStdoutJsonSink` (cluster → Collector
+  filelog), `makeOtlpHttpLogSink` (dev → otel-lgtm; batches + interval-flushes),
+  the `LogSink` interface for anything else. `/tracking` holds the `Tracker`
+  interface (product analytics — a *separate* concern from logs, backed by
+  PostHog via `@r10c/entifix-ts-posthog-client`, never routed into Loki/OTel).
+- **Do not wrap OpenTelemetry in a `Context.Tag`** — it is cross-cutting and
+  already vendor-neutral. The product-analytics SDK *is* wrapped (a real vendor).
+- **Composition** happens at the existing roots, never in the shared packages: a
+  service merges an observability layer into its `AppLayer` (replaces Effect's
+  default logger with the tooling logger + stands up the OTel tracer), reading
+  `logging.level`/`logging.sink`/`otel.endpoint` from config-service.
+  `marketplace-admin-service` is the reference wiring (`src/observability.ts`).
+
+Two Effect/OTel gotchas the reference wiring handles: `@effect/opentelemetry`
+does not register an OTel context manager (the service registers
+`AsyncLocalStorageContextManager` so the active span is visible to the logger),
+and `NodeRuntime.runMain` swaps the default logger for the pretty logger before
+the app layer runs (`makeService` passes `disablePrettyLogger: true` so a
+`Logger.replace(defaultLogger, …)` still applies).
+
 ## Auth: sessions + tokens
 
 auth-service owns credentials end to end (approach B — opaque session +

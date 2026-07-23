@@ -110,18 +110,22 @@ pnpm nx local-registry
 
 ## Local infrastructure
 
-`infra/local` is a minikube platform (MongoDB, Redis, PostgreSQL, Zitadel) as
-per-platform kustomize folders. Secrets are never committed: a `secretGenerator`
-reads a git-ignored `.env` (committed `.env.example` holds LOCAL DEV ONLY
-defaults). Bring it up:
+`infra/local` is a minikube platform (MongoDB, Redis, PostgreSQL, Zitadel, and
+`otel-lgtm`) as per-platform kustomize folders. Secrets are never committed: a
+`secretGenerator` reads a git-ignored `.env` (committed `.env.example` holds
+LOCAL DEV ONLY defaults). Bring it up:
 
 ```sh
-minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080
+minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080,30000:30000,30317:30317,30318:30318
 infra/local/apply.sh    # or let a backend `dev` target's ensure-infra do it
 ```
 
 NodePorts follow `30000 + canonical port`: Mongo `30017`, Redis `30379`,
-Postgres `30432`, Zitadel console `30080`.
+Postgres `30432`, Zitadel console `30080`. **`otel-lgtm`** (the local
+OpenTelemetry backend — Collector + Loki + Grafana + Tempo + Prometheus) exposes
+Grafana at `30000` and OTLP at `30317`/`30318`. Host-run `dev` services export
+telemetry straight to `http://127.0.0.1:30318`; open Grafana at
+`http://localhost:30000` (anonymous admin) to see logs/traces.
 
 ## Adding a project
 
