@@ -39,3 +39,6 @@ minimumReleaseAgeExclude:
   - 'tailwindcss@4.3.2'
   - 'typescript-eslint@8.62.1'
   - jose@6.2.4
+  - '@posthog/core@1.45.0'
+  - '@posthog/types@1.398.0'
+  - posthog-js@1.407.0

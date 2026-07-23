@@ -34,7 +34,7 @@ All defaults are labelled **LOCAL DEV ONLY** — never reuse them.
 
 ```bash
 # Start cluster, exposing every NodePort to localhost
-minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080
+minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080,30000:30000,30317:30317,30318:30318
 
 # Stop cluster (data persists)
 minikube stop
@@ -72,6 +72,7 @@ NodePort is reachable on `127.0.0.1`.
 | RabbitMQ | `amqp://admin:password@127.0.0.1:30672` · management UI `http://localhost:31672` | `rabbitmq/.env` |
 | PostgreSQL | `postgres://postgres:postgres@127.0.0.1:30432/postgres` | `postgres/.env` |
 | Zitadel | console `http://localhost:30080` (admin `zitadel-admin`, pw in `zitadel/.env`) | `zitadel/.env` |
+| otel-lgtm | Grafana `http://localhost:30000` (anonymous admin) · OTLP/HTTP `http://127.0.0.1:30318` | — (dev, no creds) |
 
 ---
 

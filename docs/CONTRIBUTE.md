@@ -171,6 +171,16 @@ serve both.
 
 Put a journey in `*.spec.ts` unless it _cannot_ run in both.
 
+**Asserting emitted telemetry.** Because `serveTestService` runs the real
+`AppLayer`, a service can merge an observability layer built with **in-memory
+exporters** and assert on what it emitted. `marketplace-admin-service` exports
+`makeInMemoryObservabilityLayer(serviceName)` (real logger replacement + OTel
+tracer, in-memory sink + span exporter); the mock `mock-service.ts` merges it and
+re-exports `capturedLogRecords`/`capturedSpans`, and `logging.mock.spec.ts`
+asserts a request produces a structured record carrying its span's `trace_id`.
+It is a `*.mock.spec.ts` because it reads an in-process sink; the same guarantee
+against real infra is checked by hand (logs in Loki, the trace in Tempo).
+
 **Resolution.** Every `e2e` target gets `NODE_OPTIONS=--conditions=@r10c/source`
 from `nx.json`. Vitest applies that condition itself, but Playwright resolves
 specs with plain Node and would otherwise land on a package's `dist/` — which

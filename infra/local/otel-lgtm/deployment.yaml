@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-lgtm
+  labels:
+    app: otel-lgtm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-lgtm
+  template:
+    metadata:
+      labels:
+        app: otel-lgtm
+    spec:
+      containers:
+        # Grafana's all-in-one OpenTelemetry backend: OTel Collector + Loki +
+        # Tempo + Prometheus + Grafana in one container. The local mirror of
+        # Grafana Cloud — same LogQL/PromQL/TraceQL — so what is validated here
+        # ports to production unchanged. Dev-only: storage is ephemeral (no PVC),
+        # data resets on restart.
+        - name: otel-lgtm
+          image: grafana/otel-lgtm:0.29.1
+          ports:
+            - name: grafana
+              containerPort: 3000
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+          env:
+            # Frictionless dev access: no Grafana login, anonymous admin, so the
+            # UI and HTTP API are reachable without credentials.
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: Admin
+            - name: GF_AUTH_DISABLE_LOGIN_FORM
+              value: "true"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1536Mi"
+              cpu: "1000m"

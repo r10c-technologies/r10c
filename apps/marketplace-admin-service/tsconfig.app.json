@@ -25,6 +25,9 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/entifix/ts/tooling/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/entifix/ts/transactions/tsconfig.lib.json"
     },
     {

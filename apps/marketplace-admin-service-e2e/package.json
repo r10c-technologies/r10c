@@ -26,6 +26,7 @@
     "@r10c/entifix-ts-jwt-client": "workspace:*",
     "@r10c/entifix-ts-redis-client": "workspace:*",
     "@r10c/entifix-ts-testing-e2e": "workspace:*",
+    "@r10c/entifix-ts-tooling": "workspace:*",
     "@r10c/marketplace-admin-service": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*"
   }

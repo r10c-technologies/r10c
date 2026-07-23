@@ -19,6 +19,12 @@
       "path": "./packages/entifix/ts/core"
     },
     {
+      "path": "./packages/entifix/ts/tooling"
+    },
+    {
+      "path": "./packages/entifix/ts/posthog-client"
+    },
+    {
       "path": "./packages/entifix/ts/business"
     },
     {
