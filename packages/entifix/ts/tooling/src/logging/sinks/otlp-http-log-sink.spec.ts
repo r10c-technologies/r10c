@@ -189,6 +189,45 @@ describe('makeOtlpHttpLogSink', () => {
     expect(onError).toHaveBeenCalledWith(boom);
   });
 
+  it('also flushes on the configured interval for low-volume producers', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(okResponse);
+      const sink = makeOtlpHttpLogSink({
+        endpoint: 'http://otel:4318',
+        serviceName: 'svc',
+        flushIntervalMs: 1000,
+        fetchImpl,
+      });
+
+      sink.emit(record()); // one record, far below the default batch size
+      expect(fetchImpl).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(fetchImpl).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('tolerates a timer handle without unref (browser-like setInterval)', () => {
+    const spy = vi
+      .spyOn(globalThis, 'setInterval')
+      .mockReturnValue(42 as unknown as ReturnType<typeof setInterval>);
+    try {
+      expect(() =>
+        makeOtlpHttpLogSink({
+          endpoint: 'http://otel:4318',
+          serviceName: 'svc',
+          flushIntervalMs: 1000,
+        }),
+      ).not.toThrow();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('swallows errors when no onError is supplied', async () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error('network down');

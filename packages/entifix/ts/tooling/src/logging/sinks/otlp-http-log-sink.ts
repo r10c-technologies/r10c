@@ -13,6 +13,12 @@ export interface OtlpHttpLogSinkOptions {
   readonly serviceName: string;
   /** Flush once the buffer reaches this many records (default 20). */
   readonly batchSize?: number;
+  /**
+   * Also flush on this interval (ms) so low-volume producers are not stuck below
+   * {@link batchSize}. Omit for size-only flushing. The timer is `unref`'d so it
+   * never keeps the process alive.
+   */
+  readonly flushIntervalMs?: number;
   /** `fetch` seam; defaults to the global. */
   readonly fetchImpl?: typeof fetch;
   /** Called when a flush fails (default: swallow — telemetry is best-effort). */
@@ -107,7 +113,11 @@ export const makeOtlpHttpLogSink = (
   options: OtlpHttpLogSinkOptions,
 ): OtlpHttpLogSink => {
   const batchSize = options.batchSize ?? 20;
-  const fetchImpl = options.fetchImpl ?? fetch;
+  // Resolve the global `fetch` at call time (bound to `globalThis`): a bare
+  // `fetch` reference can be dropped by a bundler, whereas `globalThis.fetch`
+  // survives bundling and stays correct in Node and the browser.
+  const fetchImpl =
+    options.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   const onError = options.onError ?? (() => undefined);
   const url = `${options.endpoint}/v1/logs`;
   let buffer: LogRecord[] = [];
@@ -131,6 +141,12 @@ export const makeOtlpHttpLogSink = (
       onError(error);
     }
   };
+
+  if (options.flushIntervalMs !== undefined) {
+    const timer = setInterval(() => void flush(), options.flushIntervalMs);
+    // Never let the flush timer hold the process open.
+    (timer as { unref?: () => void }).unref?.();
+  }
 
   return {
     emit: (record: LogRecord) => {
