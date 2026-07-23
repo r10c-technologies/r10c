@@ -97,6 +97,28 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'uri',
     value: 'amqp://admin:password@127.0.0.1:30672',
   },
+  // Observability: log level + sink, and the OTLP endpoint the tooling logger and
+  // the tracing SDK export to. In local dev the service runs on the host and ships
+  // straight to the `grafana/otel-lgtm` NodePort (there is no pod to tail); in a
+  // cluster this points at the node-local Collector and the sink becomes `stdout`.
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
   // transaction-manager: its own Mongo db + the same RabbitMQ bus it tracks.
   {
     service: 'transaction-manager',
