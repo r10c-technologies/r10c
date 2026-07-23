@@ -1,0 +1,51 @@
+{
+  "name": "@r10c/entifix-ts-posthog-client",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./browser": {
+      "@r10c/source": "./src/browser/index.ts",
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js",
+      "default": "./dist/browser/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "sourceRoot": "packages/entifix/ts/posthog-client/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/entifix/ts/posthog-client/dist",
+          "main": "packages/entifix/ts/posthog-client/src/index.ts",
+          "tsConfig": "packages/entifix/ts/posthog-client/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@swc/helpers": "0.5.23",
+    "@r10c/entifix-ts-tooling": "workspace:*",
+    "posthog-node": "5.46.0",
+    "posthog-js": "1.407.0"
+  }
+}
