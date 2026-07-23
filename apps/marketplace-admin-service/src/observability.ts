@@ -2,11 +2,18 @@ import { NodeSdk } from '@effect/opentelemetry';
 import { context } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import {
+  BatchSpanProcessor,
+  InMemorySpanExporter,
+  type ReadableSpan,
+  SimpleSpanProcessor,
+  type SpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
 import {
   createLogger,
   type Logger as ToolingLogger,
   type LogLevel,
+  type LogRecord,
   type LogSink,
   makeOtlpHttpLogSink,
   makeStdoutJsonSink,
@@ -80,28 +87,82 @@ const makeEffectLogger = (logger: ToolingLogger): Logger.Logger<unknown, void> =
     logger[toToolingLevel(logLevel.label)](messageToString(message));
   });
 
+/** Lower-level inputs to {@link makeObservabilityLayerWith}. */
+export interface ObservabilityLayerOptions {
+  readonly serviceName: string;
+  readonly level: LogLevel;
+  /** Where log records go (a real sink in prod, an in-memory double in tests). */
+  readonly sink: LogSink;
+  /** How spans are exported (batch→OTLP in prod, in-memory in tests). */
+  readonly spanProcessor: SpanProcessor;
+}
+
 /**
- * The observability composition: replace Effect's default logger with the
- * tooling-backed one, and stand up the OTel tracer/exporter so requests produce
- * spans that ship to the Collector (otel-lgtm in dev). Merged into the service
- * `AppLayer`.
+ * The observability composition over explicit sink + span processor: replace
+ * Effect's default logger with the tooling-backed one, and stand up the OTel
+ * tracer so requests produce spans. Keeping sink/processor injectable lets a
+ * test drive the exact same wiring with in-memory exporters (see
+ * {@link makeInMemoryObservabilityLayer}), so the correlation the e2e asserts is
+ * the correlation that ships.
  */
-export const makeObservabilityLayer = (config: ObservabilityConfig) => {
+export const makeObservabilityLayerWith = (
+  options: ObservabilityLayerOptions,
+) => {
   ensureContextManager();
   const toolingLogger = createLogger({
-    service: config.serviceName,
-    level: config.level,
-    sink: makeSink(config),
+    service: options.serviceName,
+    level: options.level,
+    sink: options.sink,
   });
   const LoggingLayer = Logger.replace(
     Logger.defaultLogger,
     makeEffectLogger(toolingLogger),
   );
   const TracingLayer = NodeSdk.layer(() => ({
-    resource: { serviceName: config.serviceName },
+    resource: { serviceName: options.serviceName },
+    spanProcessor: options.spanProcessor,
+  }));
+  return Layer.merge(LoggingLayer, TracingLayer);
+};
+
+/**
+ * The production/dev observability layer: log level + sink and OTLP endpoint
+ * come from config-service. Merged into the service `AppLayer`.
+ */
+export const makeObservabilityLayer = (config: ObservabilityConfig) =>
+  makeObservabilityLayerWith({
+    serviceName: config.serviceName,
+    level: config.level,
+    sink: makeSink(config),
     spanProcessor: new BatchSpanProcessor(
       new OTLPTraceExporter({ url: `${config.otelEndpoint}/v1/traces` }),
     ),
-  }));
-  return Layer.merge(LoggingLayer, TracingLayer);
+  });
+
+/** Captured telemetry from {@link makeInMemoryObservabilityLayer}. */
+export interface InMemoryObservability {
+  readonly layer: ReturnType<typeof makeObservabilityLayerWith>;
+  /** Records the (replaced) logger emitted — the e2e asserts on these. */
+  readonly logRecords: readonly LogRecord[];
+  /** The spans exported so far (used to confirm requests produced traces). */
+  readonly getSpans: () => ReadonlyArray<ReadableSpan>;
+}
+
+/**
+ * Test-support: the real observability wiring with in-memory exporters, so an
+ * e2e can boot the service and assert that logs are structured and carry the
+ * `trace_id` of the request span that produced them.
+ */
+export const makeInMemoryObservabilityLayer = (
+  serviceName: string,
+): InMemoryObservability => {
+  const logRecords: LogRecord[] = [];
+  const spanExporter = new InMemorySpanExporter();
+  const layer = makeObservabilityLayerWith({
+    serviceName,
+    level: 'debug',
+    sink: { emit: record => logRecords.push(record) },
+    spanProcessor: new SimpleSpanProcessor(spanExporter),
+  });
+  return { layer, logRecords, getSpans: () => spanExporter.getFinishedSpans() };
 };

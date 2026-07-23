@@ -5,6 +5,10 @@
  * than re-declaring a stand-in that could drift from the real route surface.
  */
 export { AppLayer } from './mongo';
+export {
+  type InMemoryObservability,
+  makeInMemoryObservabilityLayer,
+} from './observability';
 export { router } from './routes';
 export { seedCatalog } from './seed';
 

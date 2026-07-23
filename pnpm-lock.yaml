@@ -576,6 +576,9 @@ importers:
       '@r10c/entifix-ts-testing-e2e':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/testing-e2e
+      '@r10c/entifix-ts-tooling':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/tooling
       '@r10c/marketplace-admin-service':
         specifier: workspace:*
         version: link:../marketplace-admin-service

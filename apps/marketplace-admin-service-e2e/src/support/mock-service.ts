@@ -16,6 +16,7 @@ import {
   fakeRedisLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import {
+  makeInMemoryObservabilityLayer,
   router,
   seedCatalog,
   SERVICE_NAME,
@@ -86,6 +87,24 @@ const MockAppLayer = (() => {
   return Layer.provideMerge(Layer.effectDiscard(seedCatalog), infra);
 })();
 
+/**
+ * The real observability wiring with in-memory exporters, merged into the mock
+ * app layer. {@link capturedLogRecords} is what the logging spec asserts on: it
+ * proves the shipped logger + tracer produce structured, trace-correlated logs.
+ */
+const observability = makeInMemoryObservabilityLayer(SERVICE_NAME);
+
+/** Log records the service emitted during the in-process mock run. */
+export const capturedLogRecords = observability.logRecords;
+
+/** Spans the service exported during the in-process mock run. */
+export const capturedSpans = observability.getSpans;
+
+const MockAppLayerWithObservability = Layer.merge(
+  observability.layer,
+  MockAppLayer,
+);
+
 /** Boots the service's real router in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
@@ -93,5 +112,5 @@ export const startMockService = (): Promise<RunningTestService> =>
     // Overridden by `serveTestService`, which binds an ephemeral port.
     port: 0,
     router,
-    appLayer: MockAppLayer,
+    appLayer: MockAppLayerWithObservability,
   });
