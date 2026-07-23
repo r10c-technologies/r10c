@@ -1,0 +1,33 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Layout/Overview" />
+
+# Layout primitives
+
+Flex-first, media-query-free composition (Every Layout). Gaps/padding take a
+Utopia **spacing token** (`3xs`…`3xl`); dimensional knobs (widths, thresholds)
+take a CSS length and are applied as an inline custom property, so the Tailwind
+class stays static and scannable.
+
+| Primitive    | Purpose                                                | Key props                                                          |
+| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------ |
+| **Box**      | Padded, themed container                               | `padding`                                                          |
+| **Center**   | Horizontally centre + cap to a readable measure        | `measure`, `gutters`, `intrinsic`                                  |
+| **Cluster**  | Horizontal group that wraps (toolbars, tags)           | `gap`, `justify`, `align`                                          |
+| **Sidebar**  | Fixed side + fluid main, wraps when cramped            | `side`, `gap` + `Sidebar.Side{width}` / `Sidebar.Main{contentMin}` |
+| **Switcher** | Equal columns that switch to a stack below a threshold | `threshold`, `gap`                                                 |
+| **Cover**    | Vertical, centred principal + pinned header/footer     | `minHeight`, `gap` + `Cover.Header/Main/Footer`                    |
+| **Grid**     | The one CSS-Grid escape hatch — auto-fill card grid    | `min`, `gap`                                                       |
+
+`Stack` (vertical rhythm) lives under **Molecules** for historical reasons but is
+the vertical sibling of `Cluster`.
+
+## Composition
+
+Page shells are compositions of these primitives. A back-office shell, for
+example, is `Sidebar( nav , Stack( Cluster(topbar) , content ) )` — built in
+`@r10c/shells-next-common`, not here, because it is Next-coupled (routing,
+breadcrumbs). Keep this package free of framework and domain knowledge.
+
+Every primitive accepts a polymorphic `as` prop — reach for it to emit the right
+semantic element (`Sidebar.Side as="aside"`, `Cluster as="nav"`).

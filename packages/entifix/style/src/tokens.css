@@ -37,6 +37,14 @@
   --text-step-2: clamp(1.62rem, 1.4837rem + 0.6057vw, 1.9531rem);
   --text-step-3: clamp(1.944rem, 1.7405rem + 0.9044vw, 2.4414rem);
 
+  /* Layout — measures for the flex-first layout primitives (Every Layout).
+     `--measure` caps line length (Center); `--grid-min` is the minimum card
+     column before the auto-fill Grid wraps. Consumed via arbitrary-value
+     classes (max-w-[var(--measure)], grid-cols-[repeat(auto-fill,…)]) and
+     overridable per-instance through an inline custom property. */
+  --measure: 65ch;
+  --grid-min: 16rem;
+
   /* Border radius — --radius-* namespace emits rounded-md, rounded-2xl, … */
   --radius-sm: 0.375rem;
   --radius-md: 0.625rem;

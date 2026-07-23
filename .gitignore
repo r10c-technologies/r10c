@@ -56,6 +56,9 @@ Thumbs.db
 .next
 out
 
+# Storybook
+storybook-static
+
 test-output
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
