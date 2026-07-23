@@ -63,13 +63,11 @@ const sharedCoverageExclude = [
 ];
 
 /** Resolution conditions, with the workspace's source condition winning. */
-const workspaceConditions = [
-  '@r10c/source',
-  'import',
-  'module',
-  'node',
-  'default',
-];
+// Note: no `module` condition. It is a bundler-ism that, for
+// `@opentelemetry/api`, selects an ESM entry using extensionless imports that
+// Node's loader rejects; without it OTel packages resolve to their `import`/
+// `default` (working) entries. `@r10c/source` still wins for workspace packages.
+const workspaceConditions = ['@r10c/source', 'import', 'node', 'default'];
 
 export interface EntifixTestOptions {
   /** Project name, as reported by the Vitest runner (`@r10c/…`). */
@@ -148,8 +146,17 @@ export const defineEntifixTest = ({
       passWithNoTests: true,
       server: {
         // Workspace packages must go through Vite's resolver rather than being
-        // externalized to Node, which knows nothing of `@r10c/source`.
-        deps: { inline: [/@r10c\//] },
+        // externalized to Node, which knows nothing of `@r10c/source`. The
+        // OpenTelemetry SDK packages are inlined too: their internal directory
+        // imports (e.g. `@opentelemetry/semantic-conventions`) are rejected by
+        // Node's native ESM resolver when externalized, but Vite handles them.
+        deps: {
+          // OpenTelemetry SDK packages ship bundler-oriented ESM with directory
+          // imports Node's native loader rejects; inline them so Vite resolves
+          // those imports (`@opentelemetry/api` is additionally aliased to its
+          // CommonJS build above).
+          inline: [/@r10c\//, /@opentelemetry\//, /@effect\/opentelemetry/],
+        },
       },
       reporters: ['default'],
       coverage: {

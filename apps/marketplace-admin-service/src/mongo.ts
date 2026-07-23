@@ -15,6 +15,7 @@ import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
 } from '@r10c/entifix-ts-redis-client';
+import type { LogLevel } from '@r10c/entifix-ts-tooling/logging';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
@@ -22,6 +23,7 @@ import {
 import { Layer } from 'effect';
 import { Effect } from 'effect';
 
+import { makeObservabilityLayer } from './observability';
 import { seedCatalog } from './seed';
 
 const SERVICE_NAME = 'marketplace-admin-service';
@@ -47,6 +49,19 @@ export const AppLayer = Layer.unwrapEffect(
     const redisUri = yield* store.in('redis').getString('uri');
     const amqpUri = yield* store.in('rabbitmq').getString('uri');
     const jwtSecret = yield* store.in('jwt').getString('secret');
+
+    // Observability parameters (log level + sink, OTLP endpoint). The tooling
+    // logger replaces Effect's default logger and the OTel tracer exports spans,
+    // so every request logs through one trace-correlated pipeline.
+    const logLevel = yield* store.in('logging').getString('level');
+    const logSink = yield* store.in('logging').getString('sink');
+    const otelEndpoint = yield* store.in('otel').getString('endpoint');
+    const observability = makeObservabilityLayer({
+      serviceName: SERVICE_NAME,
+      level: logLevel as LogLevel,
+      sink: logSink === 'stdout' ? 'stdout' : 'otlp',
+      otelEndpoint,
+    });
 
     // Connections resolved from config-service: Mongo (catalog), Redis (locks +
     // code sequences), RabbitMQ (transaction event bus). The token service
@@ -79,7 +94,11 @@ export const AppLayer = Layer.unwrapEffect(
     );
 
     // Seed depends on MongoDatabaseTag from `infra`; provideMerge keeps the
-    // infra services in the output so the routes can use them.
-    return Layer.provideMerge(Layer.effectDiscard(seedCatalog), infra);
+    // infra services in the output so the routes can use them. Observability
+    // (logger replacement + tracer) is merged so it is active for the server.
+    return Layer.merge(
+      observability,
+      Layer.provideMerge(Layer.effectDiscard(seedCatalog), infra)
+    );
   }).pipe(Effect.orDie)
 ).pipe(Layer.orDie);
