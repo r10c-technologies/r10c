@@ -30,6 +30,8 @@ const descriptor = (
   sortable: true,
   filterable: true,
   order: 0,
+  readonly: false,
+  required: false,
   linkLabelProperty: 'name',
   ...extra,
 });

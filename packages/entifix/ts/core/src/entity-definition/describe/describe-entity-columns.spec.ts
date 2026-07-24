@@ -57,7 +57,7 @@ class Article implements Entity {
     this.#productCode = value;
   }
 
-  @accessor({ type: 'number', label: 'Units in stock', order: 10 })
+  @accessor({ type: 'number', label: 'Units in stock', order: 10, required: true })
   get stock(): number {
     return this.#stock;
   }
@@ -137,6 +137,13 @@ describe('describeEntityColumns', () => {
 
   it('falls back to string when a type is neither declared nor inferable', () => {
     expect(byName('productCode')?.type).toBe('string');
+  });
+
+  it('surfaces readonly and required flags, defaulting both to false', () => {
+    expect(byName('internalNote')?.readonly).toBe(true);
+    expect(byName('stock')?.readonly).toBe(false);
+    expect(byName('stock')?.required).toBe(true);
+    expect(byName('productCode')?.required).toBe(false);
   });
 });
 

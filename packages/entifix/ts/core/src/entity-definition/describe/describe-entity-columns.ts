@@ -20,6 +20,10 @@ export interface EntityFieldDescriptor {
   sortable: boolean;
   filterable: boolean;
   order: number;
+  /** Cannot be written back. A form shows it but disables its input. */
+  readonly: boolean;
+  /** Must hold a value. A form rejects submit while it is empty. */
+  required: boolean;
   enumValues?: readonly string[];
   /** Property of a `link` target used as its display label. */
   linkLabelProperty: string;
@@ -78,6 +82,8 @@ function toDescriptor(
     sortable: metaAccessor.sortable ?? isScalar,
     filterable: metaAccessor.filterable ?? isScalar,
     order: metaAccessor.order ?? index,
+    readonly: metaAccessor.readonly ?? false,
+    required: metaAccessor.required ?? false,
     enumValues: metaAccessor.enumValues,
     linkLabelProperty: metaAccessor.linkLabelProperty ?? 'name',
   };

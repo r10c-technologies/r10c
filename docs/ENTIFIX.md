@@ -64,17 +64,20 @@ it derives the collection/endpoint name (`key ?? name`) and the field list
 `@accessor()` also carries what generic UI needs to render a member without
 knowing the entity: `type` (`MetaAccessorType`: `string | number | boolean | date
 | enum | id | link | linkCollection`), `label`, `sortable`, `filterable`,
-`order`, `enumValues`, `linkLabelProperty`. All are optional — annotate what the
-UI should not have to guess.
+`order`, `enumValues`, `linkLabelProperty`, `readonly`, and `required`. All are
+optional — annotate what the UI should not have to guess. `required` and
+`readonly` are what a form reads: `required` blocks submit while the field is
+empty, `readonly` disables its input (the member still shows).
 
 `describeEntityColumns(Ctor, sample?)` resolves them into `EntityFieldDescriptor[]`
-— the contract generic UI builds itself from (a table's columns today, a form's
-fields later). It keeps getter-kind, non-`hidden` accessors (unlike serialization
-it _keeps_ `readonly` ones: a read-only member is still displayable), fills a
-label by humanizing the name, defaults `sortable`/`filterable` on for scalars and
-off for `id`/links, and infers an undeclared `type` from the optional sample row
-(`EntityLink` → `link`, `Date` → `date`, `typeof` → number/boolean, else
-`string`). Declared always beats inferred.
+— the contract generic UI builds itself from: a table's columns (`EntityTable`)
+and now a form's fields (`EntityForm`). It keeps getter-kind, non-`hidden`
+accessors (unlike serialization it _keeps_ `readonly` ones: a read-only member is
+still displayable, and the descriptor surfaces `readonly`/`required` for the
+form), fills a label by humanizing the name, defaults `sortable`/`filterable` on
+for scalars and off for `id`/links, and infers an undeclared `type` from the
+optional sample row (`EntityLink` → `link`, `Date` → `date`, `typeof` →
+number/boolean, else `string`). Declared always beats inferred.
 
 ### Serialization is shared and transport-agnostic
 

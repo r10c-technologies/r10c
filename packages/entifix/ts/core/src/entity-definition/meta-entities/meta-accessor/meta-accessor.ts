@@ -25,6 +25,8 @@ export interface MetaAccessorOptions {
   type?: MetaAccessorType;
   readonly?: boolean;
   hidden?: boolean;
+  /** Member must hold a value. Drives form validation; defaults to optional. */
+  required?: boolean;
   /** Human label for UI. Falls back to a humanized `name`. */
   label?: string;
   /** Opt in/out of sorting controls. Defaults per `type`. */
@@ -48,6 +50,7 @@ export class MetaAccessor {
   readonly type?: MetaAccessorType;
   readonly readonly?: boolean;
   readonly hidden?: boolean;
+  readonly required?: boolean;
   readonly label?: string;
   readonly sortable?: boolean;
   readonly filterable?: boolean;
@@ -70,6 +73,7 @@ export class MetaAccessor {
     this.type = options?.type;
     this.readonly = options?.readonly;
     this.hidden = options?.hidden;
+    this.required = options?.required;
     this.label = options?.label;
     this.sortable = options?.sortable;
     this.filterable = options?.filterable;

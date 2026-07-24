@@ -129,7 +129,7 @@ describe('the single-record pages', () => {
 
     renderPage(page);
 
-    await waitFor(() => expect(screen.getByLabelText('name')).toHaveValue(name));
+    await waitFor(() => expect(screen.getByLabelText(/name/i)).toHaveValue(name));
   });
 
   // The reserved `new` slug means there is nothing to load, so the form opens
@@ -137,7 +137,7 @@ describe('the single-record pages', () => {
   it.each(cases)('opens an empty %s form on the create slug', async (_label, page) => {
     renderPage(page);
 
-    await waitFor(() => expect(screen.getByLabelText('name')).toHaveValue(''));
+    await waitFor(() => expect(screen.getByLabelText(/name/i)).toHaveValue(''));
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
   });
 
@@ -145,7 +145,7 @@ describe('the single-record pages', () => {
     slug = id;
     const user = userEvent.setup();
     renderPage(page);
-    await waitFor(() => expect(screen.getByLabelText('name')).not.toHaveValue(''));
+    await waitFor(() => expect(screen.getByLabelText(/name/i)).not.toHaveValue(''));
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -156,7 +156,7 @@ describe('the single-record pages', () => {
     slug = id;
     const user = userEvent.setup();
     renderPage(page);
-    await waitFor(() => expect(screen.getByLabelText('name')).not.toHaveValue(''));
+    await waitFor(() => expect(screen.getByLabelText(/name/i)).not.toHaveValue(''));
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
@@ -169,14 +169,14 @@ describe('the single-record pages', () => {
     slug = id;
     const user = userEvent.setup();
     renderPage(page);
-    await waitFor(() => expect(screen.getByLabelText('name')).not.toHaveValue(''));
+    await waitFor(() => expect(screen.getByLabelText(/name/i)).not.toHaveValue(''));
     repositories.product.failNext(new EntifixConnError('unreachable'));
     repositories.brand.failNext(new EntifixConnError('unreachable'));
     repositories.category.failNext(new EntifixConnError('unreachable'));
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(screen.getByTestId('form-error')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId(/form-error$/)).toBeInTheDocument());
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -184,14 +184,14 @@ describe('the single-record pages', () => {
     slug = id;
     const user = userEvent.setup();
     renderPage(page);
-    await waitFor(() => expect(screen.getByLabelText('name')).not.toHaveValue(''));
+    await waitFor(() => expect(screen.getByLabelText(/name/i)).not.toHaveValue(''));
     repositories.product.failNext(new EntifixConnError('unreachable'));
     repositories.brand.failNext(new EntifixConnError('unreachable'));
     repositories.category.failNext(new EntifixConnError('unreachable'));
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(screen.getByTestId('form-error')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId(/form-error$/)).toBeInTheDocument());
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -203,7 +203,7 @@ describe('the single-record pages', () => {
 
     renderPage(page);
 
-    await waitFor(() => expect(screen.getByTestId('form-error')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId(/form-error$/)).toBeInTheDocument());
   });
 });
 
