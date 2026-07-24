@@ -62,6 +62,15 @@ if (typeof globalThis.sessionStorage?.getItem !== 'function') {
   });
 }
 
+// Headless UI's overlay components (Menu/Listbox panels) observe their trigger
+// with a ResizeObserver, which jsdom does not implement. A no-op keeps them
+// from throwing when opened in a test.
+globalThis.ResizeObserver ??= class {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+} as typeof globalThis.ResizeObserver;
+
 // React Testing Library does not auto-clean when `globals` are provided by a
 // setup file rather than by its own auto-cleanup entrypoint.
 afterEach(cleanup);

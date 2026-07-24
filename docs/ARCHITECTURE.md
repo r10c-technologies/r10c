@@ -237,6 +237,19 @@ transaction assigns a unique incremental `code` (`product-001`, `category-001`,
 uniqueness across service instances. Websockets and multi-service sagas are
 deferred.
 
+## Workspace tabs & client data layer
+
+The marketplace-admin frontend is gaining a **browser-like tab workspace**: parallel work
+contexts (catalogs now, operations/wizards later) that persist across refresh and autosave
+their drafts. It rests on a client data layer where **TanStack Query wraps the Entifix
+use-cases** (it caches and orchestrates; the Effect UC/adapter pattern is untouched — the
+`queryFn`/`mutationFn` just run `Effect.runPromise` over the same provided Tags). Client
+state (open tabs, drafts, UI prefs) lives in Zustand + IndexedDB; server state lives in the
+query cache; a framework-free `ReactiveChannel` port lets the coming WebSocket reconcile
+optimistic writes. A page is a pure `PageView({ addr })` rendered by **either** a Next route
+**or** a workspace tab (registered in a `TabKind` registry), so existing `/catalog/*` routes
+keep working. Full design: [WORKSPACE-TABS](WORKSPACE-TABS.md).
+
 ## Current domain structure
 
 **Business domains** (`packages/business/ts/*`, pure — entities + use-cases):

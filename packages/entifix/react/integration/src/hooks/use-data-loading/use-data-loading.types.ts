@@ -40,4 +40,13 @@ export interface UseDataLoadingOptions<TEntity extends Entity, TContext> {
    * set rather than a page — a relation picker, say — raise this.
    */
   initialPageSize?: number;
+  /**
+   * The stable prefix that scopes this list in the shared query cache — pass
+   * {@link entityQueryScope}`(Ctor)` so refetches, optimistic writes, and
+   * reactive invalidation of the same entity all address one cache entry.
+   * Omit it and the hook falls back to a per-instance id: correct in isolation
+   * (no cross-list collisions) but unshared, so nothing outside this hook can
+   * invalidate it.
+   */
+  queryKey?: ReadonlyArray<unknown>;
 }

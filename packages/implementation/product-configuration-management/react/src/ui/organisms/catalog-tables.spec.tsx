@@ -3,6 +3,7 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-product-configuration-management';
+import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import {
   ConfigurationRepositoryTag,
   EntityLinkResolverTag,
@@ -15,13 +16,22 @@ import {
   makeInMemoryEntityRepository,
   makeStubConfigurationStore,
 } from '@r10c/entifix-ts-testing-unit';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { Context } from 'effect';
+import type { ReactElement } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { ProductBrandTable } from './product-brand-table/product-brand-table.js';
 import { ProductCategoryTable } from './product-category-table/product-category-table.js';
 import { ProductTable } from './product-table/product-table.js';
+
+/** The tables run `useDataLoading`, which needs a QueryClient in scope. */
+const render = (ui: ReactElement) =>
+  rtlRender(<EntifixQueryProvider>{ui}</EntifixQueryProvider>);
 
 const makeBrand = (id: string, name: string) => {
   const brand = new ProductBrand(name);

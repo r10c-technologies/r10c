@@ -48,6 +48,12 @@
   ],
   "references": [
     {
+      "path": "../../packages/implementation/product-configuration-management/react"
+    },
+    {
+      "path": "../../packages/entifix/react/integration"
+    },
+    {
       "path": "../../packages/shells/next/marketplace-admin"
     },
     {

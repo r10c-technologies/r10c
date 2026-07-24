@@ -42,6 +42,9 @@ testem.log
 
 # Claude Code local artifacts — entire directory excluded
 .claude/
+# Skills CLI lockfile — the skill itself lives under the ignored .claude/, so
+# the lock is local tooling only (re-fetch via `npx skills add`).
+skills-lock.json
 
 # System Files
 .DS_Store

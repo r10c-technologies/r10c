@@ -7,9 +7,24 @@ const NAV: NavSection[] = [
   {
     title: 'Catalog',
     items: [
-      { label: 'Products', href: '/catalog/product', icon: '▦' },
-      { label: 'Brands', href: '/catalog/product-brand', icon: '◈' },
-      { label: 'Categories', href: '/catalog/product-category', icon: '⊞' },
+      {
+        label: 'Products',
+        href: '/catalog/product',
+        icon: '▦',
+        workspace: 'catalog:product',
+      },
+      {
+        label: 'Brands',
+        href: '/catalog/product-brand',
+        icon: '◈',
+        workspace: 'catalog:product-brand',
+      },
+      {
+        label: 'Categories',
+        href: '/catalog/product-category',
+        icon: '⊞',
+        workspace: 'catalog:product-category',
+      },
     ],
   },
   {

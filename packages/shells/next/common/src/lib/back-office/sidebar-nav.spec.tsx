@@ -22,6 +22,11 @@ const sections: NavSection[] = [
     items: [
       { label: 'Products', href: '/catalog/product', icon: <span>▦</span> },
       { label: 'Brands', href: '/catalog/product-brand' },
+      {
+        label: 'Categories',
+        href: '/catalog/product-category',
+        workspace: 'catalog:product-category',
+      },
     ],
   },
   { items: [{ label: 'Account', href: '/account' }] },
@@ -66,6 +71,34 @@ describe('SidebarNav', () => {
     expect(within(nav).queryByText('Products')).toBeNull();
     // The icon-only link carries the label as a title for hover discovery.
     expect(within(nav).getByTitle('Products')).toBeInTheDocument();
+  });
+
+  it('offers "Open in workspace" for items that set a workspace param', () => {
+    render(<SidebarNav sections={sections} />);
+    const nav = screen.getByRole('navigation', { name: 'Primary' });
+
+    const link = within(nav).getByRole('link', {
+      name: 'Open Categories in workspace',
+    });
+    expect(link).toHaveAttribute(
+      'href',
+      '/workspace?tab=catalog%3Aproduct-category',
+    );
+    // Items without a workspace param get no such affordance.
+    expect(
+      within(nav).queryByRole('link', { name: 'Open Products in workspace' }),
+    ).toBeNull();
+  });
+
+  it('hides the workspace affordance when collapsed', () => {
+    render(<SidebarNav sections={sections} collapsed />);
+    const nav = screen.getByRole('navigation', { name: 'Primary' });
+
+    expect(
+      within(nav).queryByRole('link', {
+        name: 'Open Categories in workspace',
+      }),
+    ).toBeNull();
   });
 
   it('tolerates a null pathname', () => {

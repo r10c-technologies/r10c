@@ -18,7 +18,10 @@ import {
   loadUCFactory,
   saveUCFactory,
 } from '@r10c/entifix-ts-business';
-import { ProductForm } from '@r10c/implementation-product-configuration-management-react';
+import {
+  ProductForm,
+  type ProductFormDraft,
+} from '@r10c/implementation-product-configuration-management-react';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -32,15 +35,37 @@ const RELATION_OPTIONS_LIMIT = 200;
 
 type EntityContext = EntityRepositoryTag | ConfigurationRepositoryTag;
 
+export interface ProductSingleViewClientPageProps {
+  /** The record slug. Defaults to the route param, so a plain route needs no
+   *  props; the workspace tab host passes it explicitly. */
+  slug?: string;
+  /** Runs after a successful save/delete. Defaults to returning to the list
+   *  route; the tab host overrides it to stay in the workspace. */
+  onSaved?: () => void;
+  onDeleted?: () => void;
+  /** Seed the form from a persisted draft (workspace autosave). */
+  initialDraft?: ProductFormDraft;
+  /** Called on every field edit so the host can autosave a draft. */
+  onDraftChange?: (draft: ProductFormDraft) => void;
+}
+
 /**
- * Composition root for a single product.
+ * Composition root for a single product. Dual-host: rendered as a route it reads
+ * its slug from the URL and returns to the list on save; rendered in a workspace
+ * tab it takes the slug and post-save action as props.
  *
  * Unlike the list page this wires no link resolver: the form edits relations by
  * id, and both links expose their id whether or not the target was resolved. The
  * option lists come from the brand/category adapters instead — the same base
  * adapters, pointed at a different entity.
  */
-export function ProductSingleViewClientPage() {
+export function ProductSingleViewClientPage({
+  slug,
+  onSaved,
+  onDeleted,
+  initialDraft,
+  onDraftChange,
+}: ProductSingleViewClientPageProps = {}) {
   const {
     productRest,
     productBrandRest,
@@ -49,7 +74,7 @@ export function ProductSingleViewClientPage() {
   } = useMarketplaceAdminAdapters();
   const router = useRouter();
   const params = useParams<{ slug: string }>();
-  const id = slugToEntityId(params.slug);
+  const id = slugToEntityId(slug ?? params.slug);
 
   const ctx = Context.merge(configurationStore, productRest);
   const brandCtx = Context.merge(configurationStore, productBrandRest);
@@ -91,15 +116,18 @@ export function ProductSingleViewClientPage() {
     ctx,
   });
 
+  const afterSave = onSaved ?? (() => router.push(LIST_HREF));
+  const afterDelete = onDeleted ?? (() => router.push(LIST_HREF));
+
   const handleSave = async (product: Product) => {
     if (await save(product)) {
-      router.push(LIST_HREF);
+      afterSave();
     }
   };
 
   const handleDelete = async () => {
     if (await remove(id)) {
-      router.push(LIST_HREF);
+      afterDelete();
     }
   };
 
@@ -116,6 +144,8 @@ export function ProductSingleViewClientPage() {
       onSave={handleSave}
       onDelete={id == null ? undefined : handleDelete}
       backHref={LIST_HREF}
+      initialDraft={initialDraft}
+      onDraftChange={onDraftChange}
     />
   );
 }
