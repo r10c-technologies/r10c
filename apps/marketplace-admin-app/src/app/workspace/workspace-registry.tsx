@@ -7,6 +7,13 @@ import {
   ProductListClientPage,
 } from '@r10c/shells-next-marketplace-admin';
 
+import {
+  ENTITY_EDITORS,
+  type EntityEditorKey,
+  EntityEditorTab,
+  isEntityEditorKey,
+} from './entity-tab';
+
 /** The catalogs a `catalog:<key>` tab can open — the list client pages. */
 const CATALOGS = {
   product: { title: 'Products', render: () => <ProductListClientPage /> },
@@ -27,5 +34,22 @@ const catalogKind: TabKind<{ key: CatalogKey }> = {
   render: addr => CATALOGS[addr.key].render(),
 };
 
+/** An `entity:<key>:<id>` editor tab. */
+const entityKind: TabKind<{ entityKey: EntityEditorKey; id: string }> = {
+  kind: 'entity',
+  match: payload => {
+    const separator = payload.indexOf(':');
+    if (separator === -1) return null;
+    const entityKey = payload.slice(0, separator);
+    const id = payload.slice(separator + 1);
+    return isEntityEditorKey(entityKey) && id ? { entityKey, id } : null;
+  },
+  toParam: addr => `${addr.entityKey}:${addr.id}`,
+  title: addr => `${ENTITY_EDITORS[addr.entityKey].label} #${addr.id}`,
+  render: addr => <EntityEditorTab entityKey={addr.entityKey} id={addr.id} />,
+};
+
 /** The workspace's tab registry. Adding a tab kind is one `register` call. */
-export const workspaceRegistry = new TabRegistry().register(catalogKind);
+export const workspaceRegistry = new TabRegistry()
+  .register(catalogKind)
+  .register(entityKind);
