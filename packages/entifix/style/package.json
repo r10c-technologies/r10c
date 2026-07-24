@@ -1,5 +1,12 @@
 {
   "name": "@r10c/entifix-style",
+  "nx": {
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "entifix:style"
+    ]
+  },
   "version": "0.0.1",
   "type": "module",
   "exports": {

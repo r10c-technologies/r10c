@@ -1,5 +1,11 @@
 {
   "name": "@r10c/shells-next-marketplace",
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:marketplace"
+    ]
+  },
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.esm.js",

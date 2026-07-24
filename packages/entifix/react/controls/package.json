@@ -32,6 +32,11 @@
     "storybook": "^10.5.3"
   },
   "nx": {
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "entifix:react"
+    ],
     "targets": {
       "storybook": {
         "command": "storybook dev -p 6006 --no-open",

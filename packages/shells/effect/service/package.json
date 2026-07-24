@@ -16,6 +16,10 @@
     }
   },
   "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:shared"
+    ],
     "sourceRoot": "packages/shells/effect/service/src",
     "targets": {
       "build": {

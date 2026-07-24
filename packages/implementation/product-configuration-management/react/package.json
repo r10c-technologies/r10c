@@ -1,5 +1,11 @@
 {
   "name": "@r10c/implementation-product-configuration-management-react",
+  "nx": {
+    "tags": [
+      "layer:implementation",
+      "scope:shared"
+    ]
+  },
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.esm.js",

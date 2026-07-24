@@ -22,6 +22,10 @@
     }
   },
   "nx": {
+    "tags": [
+      "layer:business",
+      "scope:shared"
+    ],
     "sourceRoot": "packages/business/ts/authn/src",
     "targets": {
       "build": {

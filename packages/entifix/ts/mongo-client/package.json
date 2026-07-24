@@ -19,6 +19,11 @@
     "!**/*.tsbuildinfo"
   ],
   "nx": {
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "entifix:client"
+    ],
     "sourceRoot": "packages/entifix/ts/mongo-client/src",
     "targets": {
       "build": {

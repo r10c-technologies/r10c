@@ -10,6 +10,10 @@
     }
   },
   "nx": {
+    "tags": [
+      "layer:app",
+      "scope:marketplace"
+    ],
     "targets": {
       "build": {
         "executor": "nx:run-commands",
