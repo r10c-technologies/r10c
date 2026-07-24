@@ -1,4 +1,4 @@
-import { accessor, entity, type Entity, type EntityId } from '@r10c/entifix-ts-core';
+import { accessor, type Entity, entity, type EntityId } from '@r10c/entifix-ts-core';
 import { describe, expect, it } from 'vitest';
 
 import { entityQueryKey, entityQueryScope } from './entity-query-key.js';

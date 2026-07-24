@@ -23,6 +23,9 @@ importers:
       effect:
         specifier: 3.22.0
         version: 3.22.0
+      idb:
+        specifier: ^8.0.3
+        version: 8.0.3
       next:
         specifier: 16.2.10
         version: 16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.101.0)
@@ -7611,6 +7614,9 @@ packages:
     engines: {node: ^10 || ^12 || >= 14}
     peerDependencies:
       postcss: ^8.1.0
+
+  idb@8.0.3:
+    resolution: {integrity: sha512-LtwtVyVYO5BqRvcsKuB2iUMnHwPVByPCXFXOpuU96IZPPoPN6xjOGxZQ74pgSVVLQWtUOYgyeL4GE98BY5D3wg==}
 
   identity-obj-proxy@3.0.0:
     resolution: {integrity: sha512-00n6YnVHKrinT9t0d9+5yZC6UBNJANpYEQvL2LlX6Ab9lnmxzIRcEmTPuyGScvl1+jKuCICX1Z0Ab1pPKKdikA==}
@@ -19220,6 +19226,8 @@ snapshots:
   icss-utils@5.1.0(postcss@8.5.16):
     dependencies:
       postcss: 8.5.16
+
+  idb@8.0.3: {}
 
   identity-obj-proxy@3.0.0:
     dependencies:
