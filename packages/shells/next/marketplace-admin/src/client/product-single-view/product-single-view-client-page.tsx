@@ -18,7 +18,10 @@ import {
   loadUCFactory,
   saveUCFactory,
 } from '@r10c/entifix-ts-business';
-import { ProductForm } from '@r10c/implementation-product-configuration-management-react';
+import {
+  ProductForm,
+  type ProductFormDraft,
+} from '@r10c/implementation-product-configuration-management-react';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -40,6 +43,10 @@ export interface ProductSingleViewClientPageProps {
    *  route; the tab host overrides it to stay in the workspace. */
   onSaved?: () => void;
   onDeleted?: () => void;
+  /** Seed the form from a persisted draft (workspace autosave). */
+  initialDraft?: ProductFormDraft;
+  /** Called on every field edit so the host can autosave a draft. */
+  onDraftChange?: (draft: ProductFormDraft) => void;
 }
 
 /**
@@ -56,6 +63,8 @@ export function ProductSingleViewClientPage({
   slug,
   onSaved,
   onDeleted,
+  initialDraft,
+  onDraftChange,
 }: ProductSingleViewClientPageProps = {}) {
   const {
     productRest,
@@ -135,6 +144,8 @@ export function ProductSingleViewClientPage({
       onSave={handleSave}
       onDelete={id == null ? undefined : handleDelete}
       backHref={LIST_HREF}
+      initialDraft={initialDraft}
+      onDraftChange={onDraftChange}
     />
   );
 }
