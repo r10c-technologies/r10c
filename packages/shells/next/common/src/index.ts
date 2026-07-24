@@ -2,3 +2,4 @@
 
 export * from './lib/back-office';
 export * from './lib/shells-next-common';
+export * from './lib/workspace';
