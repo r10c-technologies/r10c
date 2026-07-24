@@ -23,17 +23,27 @@ const LIST_HREF = '/catalog/product-category';
 
 type CategoryContext = EntityRepositoryTag | ConfigurationRepositoryTag;
 
+export interface ProductCategorySingleViewClientPageProps {
+  slug?: string;
+  onSaved?: () => void;
+  onDeleted?: () => void;
+}
+
 /**
  * Composition root for a single product category: it picks the adapters, runs
  * the get/save/delete use-cases against them, and owns navigation. The form
- * organism stays unaware of all three.
+ * organism stays unaware of all three. Dual-host via the optional props.
  */
-export function ProductCategorySingleViewClientPage() {
+export function ProductCategorySingleViewClientPage({
+  slug,
+  onSaved,
+  onDeleted,
+}: ProductCategorySingleViewClientPageProps = {}) {
   const { productCategoryRest, configurationStore } =
     useMarketplaceAdminAdapters();
   const router = useRouter();
   const params = useParams<{ slug: string }>();
-  const id = slugToEntityId(params.slug);
+  const id = slugToEntityId(slug ?? params.slug);
 
   const ctx = Context.merge(configurationStore, productCategoryRest);
 
@@ -59,16 +69,19 @@ export function ProductCategorySingleViewClientPage() {
     ctx,
   });
 
+  const afterSave = onSaved ?? (() => router.push(LIST_HREF));
+  const afterDelete = onDeleted ?? (() => router.push(LIST_HREF));
+
   const handleSave = async (category: ProductCategory) => {
     const saved = await save(category);
     if (saved) {
-      router.push(LIST_HREF);
+      afterSave();
     }
   };
 
   const handleDelete = async () => {
     if (await remove(id)) {
-      router.push(LIST_HREF);
+      afterDelete();
     }
   };
 

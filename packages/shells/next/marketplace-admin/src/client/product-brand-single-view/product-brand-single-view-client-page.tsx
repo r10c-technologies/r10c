@@ -23,12 +23,23 @@ const LIST_HREF = '/catalog/product-brand';
 
 type BrandContext = EntityRepositoryTag | ConfigurationRepositoryTag;
 
-/** Composition root for a single product brand. */
-export function ProductBrandSingleViewClientPage() {
+export interface ProductBrandSingleViewClientPageProps {
+  slug?: string;
+  onSaved?: () => void;
+  onDeleted?: () => void;
+}
+
+/** Composition root for a single product brand. Dual-host — see the product
+ *  single view for how the optional props route it to a tab. */
+export function ProductBrandSingleViewClientPage({
+  slug,
+  onSaved,
+  onDeleted,
+}: ProductBrandSingleViewClientPageProps = {}) {
   const { productBrandRest, configurationStore } = useMarketplaceAdminAdapters();
   const router = useRouter();
   const params = useParams<{ slug: string }>();
-  const id = slugToEntityId(params.slug);
+  const id = slugToEntityId(slug ?? params.slug);
 
   const ctx = Context.merge(configurationStore, productBrandRest);
 
@@ -54,15 +65,18 @@ export function ProductBrandSingleViewClientPage() {
     ctx,
   });
 
+  const afterSave = onSaved ?? (() => router.push(LIST_HREF));
+  const afterDelete = onDeleted ?? (() => router.push(LIST_HREF));
+
   const handleSave = async (brand: ProductBrand) => {
     if (await save(brand)) {
-      router.push(LIST_HREF);
+      afterSave();
     }
   };
 
   const handleDelete = async () => {
     if (await remove(id)) {
-      router.push(LIST_HREF);
+      afterDelete();
     }
   };
 
