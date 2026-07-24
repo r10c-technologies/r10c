@@ -257,8 +257,8 @@ describe('ProductForm', () => {
   it('seeds both relation pickers from the record', () => {
     renderForm({ entity: makeProduct() });
 
-    expect(screen.getByLabelText(/brand/)).toHaveValue('b-1');
-    expect(screen.getByLabelText(/category/)).toHaveValue('c-1');
+    expect(screen.getByLabelText(/Brand/)).toHaveValue('b-1');
+    expect(screen.getByLabelText(/Category/)).toHaveValue('c-1');
   });
 
   // The two relations are stored differently, and the form has to build each
@@ -266,11 +266,11 @@ describe('ProductForm', () => {
   it('embeds the chosen brand but stores the category as a foreign key', async () => {
     const { onSave, user } = renderForm();
 
-    await user.type(screen.getByLabelText('code'), 'P-1');
-    await user.type(screen.getByLabelText('name'), 'Widget');
-    await user.type(screen.getByLabelText('description'), 'A product');
-    await user.selectOptions(screen.getByLabelText(/brand/), 'b-2');
-    await user.selectOptions(screen.getByLabelText(/category/), 'c-1');
+    await user.type(screen.getByLabelText('Code'), 'P-1');
+    await user.type(screen.getByLabelText('Name'), 'Widget');
+    await user.type(screen.getByLabelText('Description'), 'A product');
+    await user.selectOptions(screen.getByLabelText(/Brand/), 'b-2');
+    await user.selectOptions(screen.getByLabelText(/Category/), 'c-1');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     const saved = onSave.mock.calls[0]?.[0] as Product;
@@ -283,7 +283,7 @@ describe('ProductForm', () => {
   it('leaves both relations empty when neither was chosen', async () => {
     const { onSave, user } = renderForm();
 
-    await user.type(screen.getByLabelText('code'), 'P-1');
+    await user.type(screen.getByLabelText('Code'), 'P-1');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     const saved = onSave.mock.calls[0]?.[0] as Product;
@@ -302,8 +302,10 @@ describe('ProductForm', () => {
   it('reports loading and failure', () => {
     renderForm({ isLoading: true, error: new EntifixConnError('unreachable') });
 
-    expect(screen.getByTestId('form-loading')).toBeInTheDocument();
-    expect(screen.getByTestId('form-error')).toHaveTextContent('unreachable');
+    expect(screen.getByTestId('entity-form-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('entity-form-error')).toHaveTextContent(
+      'unreachable',
+    );
   });
 
   it('offers delete only when the page provides a handler', () => {

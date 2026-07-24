@@ -45,6 +45,8 @@ function mergeSlots<TEntity extends Entity>(
       sortable: slot.sortable ?? false,
       filterable: slot.filterable ?? false,
       order: slot.order ?? descriptors.length + index,
+      readonly: false,
+      required: false,
       linkLabelProperty: 'name',
       header: slot.header,
       render: slot.render,

@@ -5,14 +5,14 @@ import type {
 } from '@r10c/business-ts-product-configuration-management';
 import type { EntifixError } from '@r10c/entifix-ts-core';
 
-/** The form's serialisable field values — the shape persisted as a draft. */
-export interface ProductFormDraft {
-  code: string;
-  name: string;
-  description: string;
-  brandId: string;
-  categoryId: string;
-}
+/**
+ * The form's serialisable field values — the shape persisted as a draft. Keyed
+ * by the entity's accessor names (`code`, `name`, `description`, `brand`,
+ * `category`, with the relations carrying the target's foreign key), it is the
+ * generic draft `EntityForm`/`useEntityForm` produce, so it round-trips through
+ * both without translation.
+ */
+export type ProductFormDraft = Record<string, string>;
 
 export interface ProductFormProps {
   /** The record being edited; `undefined` means this is a create. */

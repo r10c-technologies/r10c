@@ -16,7 +16,16 @@ The agnostic UI kit and the conventions for extending it. Two homes:
   **entity-agnostic** component: `ui/atoms`, `ui/molecules`, `ui/layout`,
   `ui/organisms`. Knows nothing about any domain.
 - **`implementation/<domain>/react`** — **entity-tight** components (e.g.
-  `ProductTable`), usually thin wrappers over agnostic organisms.
+  `ProductTable`, `ProductForm`), usually thin wrappers over agnostic organisms.
+
+The two metadata-driven organisms are **`EntityTable`** and **`EntityForm`**: both
+build themselves from `describeEntityColumns` (see [ENTIFIX.md](./ENTIFIX.md)), so
+listing or editing a new entity needs no bespoke component. `EntityForm` toggles a
+**read** mode (values as text via `CellValue`) and an **edit** mode (inputs via the
+`FieldControl` atom, the type→input inverse of `CellValue`); relations stay
+read-only unless a host supplies an editor through an `<EntityField>` slot. Both are
+presentational — draft, errors and actions arrive as props — so the same form hosts
+on a plain route and inside a workspace tab.
 
 Styling foundation lives in **`@r10c/entifix-style`** (`packages/entifix/style`,
 CSS-only): `tokens.css` declares the Utopia fluid scales, the layout tokens, and
@@ -237,6 +246,12 @@ client-only cache/orchestration jacket over `Effect.runPromise`.
   `entityQueryKey(Ctor, req) = [envelopeEntityName(Ctor), serializeLoadRequestParams(req).toString()]`.
 - **`useDataLoading` keeps its public `{ uc, ctx }` shape** — only its guts move onto `useQuery`,
   so the domain organisms (`EntityTable`, `ProductTable`, …) are unchanged.
+- **`useEntityForm`** is the write-side companion that feeds `EntityForm`: it owns the string
+  draft (`Record<string, string>`, seeded from the record or a persisted draft) and reports
+  metadata-derived validation (`required`/type/`enum`, plus an optional caller rule). The draft
+  is flat, so a plain `useState` backs it — a form-state lib was deliberately avoided (TanStack
+  Form's `use-sync-external-store` dependency breaks the Next/Turbopack prerender, and it buys
+  nothing here). Saving stays on the Entifix mutation UCs.
 - **Mutations** (`save`/`delete` UCs) are optimistic: `onMutate` patches the cache from the
   Zustand draft and snapshots for rollback, `onError` rolls back, `onSettled` invalidates the
   entity's query key.
@@ -286,8 +301,8 @@ shells, per the design-system rule.
 
 | Concern                                                                                     | Package                               |
 | ------------------------------------------------------------------------------------------- | ------------------------------------- |
-| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts  | `@r10c/entifix-react-integration`     |
-| Agnostic UI: `Skeleton`, `TopBar`, `Menu`, `TabStrip`/`Tab`; IndexedDB `UiPreferencesStore` | `@r10c/entifix-react-controls`        |
+| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm` | `@r10c/entifix-react-integration`     |
+| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`/`Tab`; IndexedDB `UiPreferencesStore` | `@r10c/entifix-react-controls`        |
 | `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome      | `@r10c/shells-next-common`            |
 | `PageView({addr})` pages, registrations, adapters                                           | `@r10c/shells-next-marketplace-admin` |
 | `/workspace` route, `QueryClientProvider`, "Open in workspace" nav                          | `marketplace-admin-app`               |
