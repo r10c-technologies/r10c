@@ -4,6 +4,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useDraftsStore } from './drafts-store.js';
 import { type TabKind, TabRegistry } from './tab-kind.js';
 import { useTabsStore } from './tabs-store.js';
 import { WorkspaceShell } from './workspace-shell.js';
@@ -43,7 +44,9 @@ beforeEach(() => {
   replace.mockClear();
   tabParam = null;
   useTabsStore.setState({ tabs: [], activeParam: null });
+  useDraftsStore.setState({ drafts: {} });
   vi.spyOn(useTabsStore.persist, 'rehydrate').mockResolvedValue(undefined);
+  vi.spyOn(useDraftsStore.persist, 'rehydrate').mockResolvedValue(undefined);
 });
 
 describe('WorkspaceShell', () => {
@@ -100,7 +103,7 @@ describe('WorkspaceShell', () => {
     ).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('closes a tab', async () => {
+  it('closes a clean tab without confirming', async () => {
     tabParam = 'catalog:product';
     const user = userEvent.setup();
     renderShell();
@@ -111,5 +114,55 @@ describe('WorkspaceShell', () => {
     await waitFor(() =>
       expect(screen.queryByRole('tab', { name: /product catalog/ })).not.toBeInTheDocument(),
     );
+  });
+
+  it('marks a tab dirty when its address has a draft', async () => {
+    tabParam = 'catalog:product';
+    renderShell();
+    await screen.findByTestId('body');
+
+    act(() => {
+      useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('tab-indicator')).toBeInTheDocument(),
+    );
+  });
+
+  it('guards closing a dirty tab and keeps it when cancelled', async () => {
+    tabParam = 'catalog:product';
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const user = userEvent.setup();
+    renderShell();
+    await screen.findByTestId('body');
+    act(() => {
+      useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Close product catalog' }));
+
+    expect(confirm).toHaveBeenCalled();
+    expect(screen.getByRole('tab', { name: /product catalog/ })).toBeInTheDocument();
+    confirm.mockRestore();
+  });
+
+  it('closes a dirty tab and clears its draft when confirmed', async () => {
+    tabParam = 'catalog:product';
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    renderShell();
+    await screen.findByTestId('body');
+    act(() => {
+      useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Close product catalog' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('tab', { name: /product catalog/ })).not.toBeInTheDocument(),
+    );
+    expect('catalog:product' in useDraftsStore.getState().drafts).toBe(false);
+    confirm.mockRestore();
   });
 });

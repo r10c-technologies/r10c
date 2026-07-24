@@ -9,6 +9,7 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 
+import { useDraftsStore } from './drafts-store';
 import type { TabRegistry } from './tab-kind';
 import { useTabsStore } from './tabs-store';
 
@@ -53,11 +54,24 @@ export function WorkspaceShell({
   const close = useTabsStore(state => state.close);
   const activate = useTabsStore(state => state.activate);
 
-  // Load the persisted tab set once, on the client (hydration is skipped at
-  // creation so SSR never touches IndexedDB).
+  const drafts = useDraftsStore(state => state.drafts);
+  const clearDraft = useDraftsStore(state => state.clearDraft);
+
+  // Load the persisted tab set and drafts once, on the client (hydration is
+  // skipped at creation so SSR never touches IndexedDB).
   useEffect(() => {
     void useTabsStore.persist.rehydrate();
+    void useDraftsStore.persist.rehydrate();
   }, []);
+
+  // A tab is dirty while its address has an unsaved draft; closing one confirms.
+  const handleClose = (param: string) => {
+    if (param in drafts) {
+      if (!window.confirm('Discard unsaved changes in this tab?')) return;
+      clearDraft(param);
+    }
+    close(param);
+  };
 
   // Deep link → open/focus the addressed tab (ignored when the kind is unknown).
   useEffect(() => {
@@ -107,8 +121,9 @@ export function WorkspaceShell({
               key={tab.param}
               label={tab.title}
               active={tab.param === activeParam}
+              state={tab.param in drafts ? 'dirty' : 'idle'}
               onSelect={() => activate(tab.param)}
-              onClose={() => close(tab.param)}
+              onClose={() => handleClose(tab.param)}
             />
           ))}
         </TabStrip>
