@@ -144,10 +144,22 @@ test.describe('the query the catalog emits', () => {
       .poll(() => lastQuery(requests).get('rsql'))
       .toBe('name=like=Acme');
 
-    const before = requests.length;
     await table.clearFilters();
 
-    expect((await nextQuery(requests, before)).has('rsql')).toBe(false);
+    // Clearing returns to the unfiltered first page — served from the query
+    // cache, so it need not hit the wire again — and never puts a match-all
+    // filter on it. The restored full set is the observable proof.
+    await expect
+      .poll(async () =>
+        (await table.columnValues('Name')).some(
+          name => !name.includes('Acme'),
+        ),
+      )
+      .toBe(true);
+    for (const request of requests) {
+      const rsql = new URL(request.url()).searchParams.get('rsql');
+      expect(rsql === null || rsql === 'name=like=Acme').toBe(true);
+    }
   });
 
   // Wired straight through, the panel would put one request on the wire per
