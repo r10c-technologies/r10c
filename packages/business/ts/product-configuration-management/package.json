@@ -19,6 +19,10 @@
     "!**/*.tsbuildinfo"
   ],
   "nx": {
+    "tags": [
+      "layer:business",
+      "scope:shared"
+    ],
     "sourceRoot": "packages/business/ts/product-configuration-management/src",
     "targets": {
       "build": {

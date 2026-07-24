@@ -31,6 +31,11 @@
     "!**/*.tsbuildinfo"
   ],
   "nx": {
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "entifix:tooling"
+    ],
     "sourceRoot": "packages/entifix/ts/tooling/src",
     "targets": {
       "build": {

@@ -1,5 +1,12 @@
 {
   "name": "@r10c/entifix-react-integration",
+  "nx": {
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "entifix:react"
+    ]
+  },
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",

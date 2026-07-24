@@ -19,6 +19,11 @@
     "!**/*.tsbuildinfo"
   ],
   "nx": {
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "entifix:transactions"
+    ],
     "sourceRoot": "packages/entifix/ts/transactions/src",
     "targets": {
       "build": {

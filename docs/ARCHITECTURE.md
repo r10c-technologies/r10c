@@ -16,23 +16,17 @@
 
 ## Layering
 
-The repo is layered top-to-bottom and **dependencies only point downward**. A
-package's name encodes its layer (`@r10c/<area>-<lang>-<name>`), and the Nx
-ESLint rule `@nx/enforce-module-boundaries` forbids upward edges.
+The repo is layered top-to-bottom and **dependencies only point downward**; the Nx
+ESLint rule `@nx/enforce-module-boundaries` fails the build on any upward edge. The
+layer diagram and the three tag dimensions (`layer` / `scope` / `entifix`) that
+encode the hierarchy are the single source in
+[_shared/layering.md](_shared/layering.md); the constraints are detailed in
+[DEVELOPING.md → Module boundaries](./DEVELOPING.md#module-boundaries).
 
-```
-apps/                               ← runtime hosts (Next.js frontends / Effect-native services)
-packages/shells/{next,effect}/*     ← framework shells: Next pages+adapters / the effect-service base
-packages/implementation/<domain>/*  ← a domain wired to a delivery mechanism (React organisms)
-packages/business/ts/<domain>       ← pure domain entities & use-cases (no framework)
-packages/entifix/{ts,react}/*       ← the entity framework (core / business / rest-client / mongo-client / react/*)
-packages/utils/ts/*                 ← generic TS helpers
-```
-
-The value of the layering is substitutability: a use-case in `business` depends
-only on contracts (`entifix-ts-business`), never on a transport. The same
-use-case runs on the web against a REST adapter and on a backend against a Mongo
-adapter, because the transport is injected at the composition root.
+The value of the layering is substitutability: a use-case in `business` depends only
+on contracts (`entifix-ts-business`), never on a transport, so the same use-case runs
+on the web against a REST adapter and on a backend against a Mongo adapter — the
+transport is injected at the composition root.
 
 ## The use-case + adapter mechanism
 
@@ -138,17 +132,17 @@ swappable seam — Grafana Cloud in production (via an OpenTelemetry Collector),
 `grafana/otel-lgtm` locally. The full decision is [ADR 0001](adr/0001-observability-and-tooling.md).
 
 - **`@r10c/entifix-ts-tooling`** is a framework-free leaf (built on the OTel
-  standard, *not* an Effect wrap, so the browser and Next server can use it too).
+  standard, _not_ an Effect wrap, so the browser and Next server can use it too).
   `/logging` exposes `createLogger({ service, level, sink, redact })` over a
   pluggable `LogSink`; every record carries the service, an OTel `SeverityNumber`,
   and — when a span is active — the `trace_id`/`span_id`, so logs join their
   traces. Sinks pick the transport: `makeStdoutJsonSink` (cluster → Collector
   filelog), `makeOtlpHttpLogSink` (dev → otel-lgtm; batches + interval-flushes),
   the `LogSink` interface for anything else. `/tracking` holds the `Tracker`
-  interface (product analytics — a *separate* concern from logs, backed by
+  interface (product analytics — a _separate_ concern from logs, backed by
   PostHog via `@r10c/entifix-ts-posthog-client`, never routed into Loki/OTel).
 - **Do not wrap OpenTelemetry in a `Context.Tag`** — it is cross-cutting and
-  already vendor-neutral. The product-analytics SDK *is* wrapped (a real vendor).
+  already vendor-neutral. The product-analytics SDK _is_ wrapped (a real vendor).
 - **Composition** happens at the existing roots, never in the shared packages: a
   service merges an observability layer into its `AppLayer` (replaces Effect's
   default logger with the tooling logger + stands up the OTel tracer), reading
@@ -204,16 +198,9 @@ short-lived signed token, chosen over a bare JWT so a session is revocable):
 ## App & port convention
 
 `-app` frontends bind **300N**, `-service` backends bind **310N**, cross-cutting
-platform services use **319x**; the domain index `N` is shared per frontend/backend
-pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
-
-| Domain (`N`)            | `-app` | `-service`          |
-| ----------------------- | ------ | ------------------- |
-| marketplace (0)         | 3000   | 3100                |
-| marketplace-admin (1)   | 3001   | 3101                |
-| auth (2)                | 3002   | 3102                |
-| transaction-manager (3) | —      | 3103                |
-| — platform —            |        | config-service 3190 |
+platform services use **319x** (the domain index `N` is shared per frontend/backend
+pair; infra exposes minikube NodePorts at `30000 +` the canonical port). The full
+port table is the single source in [_shared/ports.md](_shared/ports.md).
 
 ## Transactions (CQRS writes)
 
@@ -239,16 +226,12 @@ deferred.
 
 ## Workspace tabs & client data layer
 
-The marketplace-admin frontend is gaining a **browser-like tab workspace**: parallel work
-contexts (catalogs now, operations/wizards later) that persist across refresh and autosave
-their drafts. It rests on a client data layer where **TanStack Query wraps the Entifix
-use-cases** (it caches and orchestrates; the Effect UC/adapter pattern is untouched — the
-`queryFn`/`mutationFn` just run `Effect.runPromise` over the same provided Tags). Client
-state (open tabs, drafts, UI prefs) lives in Zustand + IndexedDB; server state lives in the
-query cache; a framework-free `ReactiveChannel` port lets the coming WebSocket reconcile
-optimistic writes. A page is a pure `PageView({ addr })` rendered by **either** a Next route
-**or** a workspace tab (registered in a `TabKind` registry), so existing `/catalog/*` routes
-keep working. Full design: [WORKSPACE-TABS](WORKSPACE-TABS.md).
+The marketplace-admin frontend has a **browser-like tab workspace** backed by a
+client data layer where **TanStack Query wraps the Entifix use-cases** (it caches
+and orchestrates; the Effect UC/adapter pattern is untouched). Client state lives
+in Zustand + IndexedDB, server state in the query cache, and a framework-free
+`ReactiveChannel` port lets the coming WebSocket reconcile optimistic writes. Full
+design: [FRONTEND.md → Workspace tabs](./FRONTEND.md#part-2--workspace-tabs--the-client-data-layer).
 
 ## Current domain structure
 
@@ -294,5 +277,6 @@ backends `marketplace-service`, `marketplace-admin-service`, `auth-service`,
 
 **Utils** — `utils-ts-{array,date,object,type}`.
 
-For Nx specifics, file layout, and commands see [WORKSPACE.md](./WORKSPACE.md).
-For conventions see [CONTRIBUTE.md](./CONTRIBUTE.md).
+For Nx specifics, file layout, commands, and conventions see
+[DEVELOPING.md](./DEVELOPING.md). For the client side (design system + workspace
+tabs) see [FRONTEND.md](./FRONTEND.md).

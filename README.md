@@ -13,18 +13,18 @@ Active development. In place today:
 - Frontends (`marketplace-app`, `marketplace-admin-app`, `auth-app`) and Effect-native backends.
 - Backends wired to real datastores: **config-service → PostgreSQL**, **marketplace-admin-service** & **auth-service → MongoDB**, seeded on first boot.
 
-The `load`/`get` read paths run end-to-end over both REST and Mongo. `save`/`delete` exist on the adapters but aren't driven by a UI/route yet; Zitadel/session auth is still a stub.
+Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over both REST and Mongo, writes go through the CQRS **transaction** facade (Redis locks + RabbitMQ events, tracked by `transaction-manager`), and credential auth is real (Redis sessions + cookie-carried HS256 JWTs). Zitadel/RS256/ABAC are still deferred. Observability (OTLP → local `otel-lgtm`) is wired on the services.
 
 ## Documentation
 
-| Doc | What's inside |
-|---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layering, the use-case + adapter mechanism, backends, and the current domain structure. |
-| [docs/ENTIFIX.md](docs/ENTIFIX.md) | Deep dive: how self-describing entities + Effect DI make one use-case run in any environment. |
-| [docs/WORKSPACE.md](docs/WORKSPACE.md) | Nx setup, file structure, `@r10c/source` resolution, and every command. |
-| [docs/CONTRIBUTE.md](docs/CONTRIBUTE.md) | Conventions and good practices (layering, entities, backends, commits). |
-| [infra/local/README.md](infra/local/README.md) | The minikube platform (MongoDB, Redis, Postgres, Zitadel). |
-| [CLAUDE.md](CLAUDE.md) | Condensed guide for AI assistants working in the repo. |
+| Doc                                            | What's inside                                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)   | Layering, the use-case + adapter mechanism, backends, auth, transactions, observability, and the domain structure.             |
+| [docs/ENTIFIX.md](docs/ENTIFIX.md)             | Deep dive: how self-describing entities + Effect DI make one use-case run in any environment.                                  |
+| [docs/FRONTEND.md](docs/FRONTEND.md)           | The client side: design system (tokens, flex-first layout primitives, Storybook) and the workspace tabs + TanStack data layer. |
+| [docs/DEVELOPING.md](docs/DEVELOPING.md)       | Nx setup, file structure, `@r10c/source` resolution, every command, module boundaries, testing, and conventions.               |
+| [infra/local/README.md](infra/local/README.md) | The minikube platform (MongoDB, Redis, Postgres, Zitadel, otel-lgtm).                                                          |
+| [CLAUDE.md](CLAUDE.md)                         | Router guide for AI assistants — imports the shared snippets and links these docs.                                             |
 
 ## Architecture at a glance
 
@@ -50,7 +50,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/ENTIFIX.md](docs/ENTI
 
 ## Quickstart
 
-Requires **Node 25.1** and **pnpm 10.21** (see `engines`).
+Requires **Node 26.4** and **pnpm 11.9** (see `engines`).
 
 ```sh
 pnpm install
@@ -66,4 +66,4 @@ pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo)
 pnpm nx run auth-service:dev               # :3102 (Mongo)
 ```
 
-Full command reference (build, typecheck, lint, test, e2e, affected, graph) is in [docs/WORKSPACE.md](docs/WORKSPACE.md).
+Full command reference (build, typecheck, lint, test, e2e, affected, graph) is in [docs/DEVELOPING.md](docs/DEVELOPING.md).

@@ -10,6 +10,10 @@
     "react-dom": "19.2.7"
   },
   "nx": {
+    "tags": [
+      "layer:app",
+      "scope:auth"
+    ],
     "targets": {
       "dev": {
         "executor": "nx:run-commands",

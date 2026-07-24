@@ -27,6 +27,11 @@
     }
   },
   "nx": {
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "type:testing"
+    ],
     "sourceRoot": "packages/entifix/ts/testing-unit/src",
     "targets": {}
   },
