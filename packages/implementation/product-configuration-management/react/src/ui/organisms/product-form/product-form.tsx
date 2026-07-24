@@ -5,7 +5,10 @@ import { Button, Card, Stack, Text } from '@r10c/entifix-react-controls';
 import { useState } from 'react';
 
 import { fieldStyle, FormField } from '../../molecules/form-field';
-import type { ProductFormProps } from './product-form.types';
+import type {
+  ProductFormDraft,
+  ProductFormProps,
+} from './product-form.types';
 
 /**
  * Create/update form for a {@link Product}, including its two relations.
@@ -30,30 +33,43 @@ export function ProductForm({
   onSave,
   onDelete,
   backHref,
+  initialDraft,
+  onDraftChange,
 }: ProductFormProps) {
-  const [code, setCode] = useState(() => entity?.code ?? '');
-  const [name, setName] = useState(() => entity?.name ?? '');
-  const [description, setDescription] = useState(
-    () => entity?.description ?? ''
+  // One draft object rather than a field-per-`useState`, so the whole thing can
+  // seed from a persisted draft and be emitted on every edit for autosave.
+  const [fields, setFields] = useState<ProductFormDraft>(
+    () =>
+      initialDraft ?? {
+        code: entity?.code ?? '',
+        name: entity?.name ?? '',
+        description: entity?.description ?? '',
+        brandId: String(entity?.brand.id ?? ''),
+        categoryId: String(entity?.category.id ?? ''),
+      },
   );
-  const [brandId, setBrandId] = useState(() =>
-    String(entity?.brand.id ?? '')
-  );
-  const [categoryId, setCategoryId] = useState(() =>
-    String(entity?.category.id ?? '')
-  );
+
+  const update = (patch: Partial<ProductFormDraft>) => {
+    setFields(previous => {
+      const next = { ...previous, ...patch };
+      onDraftChange?.(next);
+      return next;
+    });
+  };
 
   const handleSubmit = () => {
-    const target = new Product(code, name);
+    const target = new Product(fields.code, fields.name);
     target.id = entity?.id;
-    target.description = description === '' ? undefined : description;
+    target.description = fields.description === '' ? undefined : fields.description;
 
     // brand travels embedded, so hand the link the whole instance.
-    const brand = brands.find(candidate => String(candidate.id) === brandId);
+    const brand = brands.find(
+      candidate => String(candidate.id) === fields.brandId,
+    );
     target.brand.setValue(brand);
 
     // category travels as a foreign key, so hand the link only the id.
-    target.category.setId(categoryId === '' ? undefined : categoryId);
+    target.category.setId(fields.categoryId === '' ? undefined : fields.categoryId);
 
     onSave(target);
   };
@@ -72,8 +88,8 @@ export function ProductForm({
           <input
             id="code"
             name="code"
-            value={code}
-            onChange={event => setCode(event.currentTarget.value)}
+            value={fields.code}
+            onChange={event => update({ code: event.currentTarget.value })}
             style={fieldStyle}
           />
         </FormField>
@@ -82,8 +98,8 @@ export function ProductForm({
           <input
             id="name"
             name="name"
-            value={name}
-            onChange={event => setName(event.currentTarget.value)}
+            value={fields.name}
+            onChange={event => update({ name: event.currentTarget.value })}
             style={fieldStyle}
           />
         </FormField>
@@ -92,8 +108,10 @@ export function ProductForm({
           <input
             id="description"
             name="description"
-            value={description}
-            onChange={event => setDescription(event.currentTarget.value)}
+            value={fields.description}
+            onChange={event =>
+              update({ description: event.currentTarget.value })
+            }
             style={fieldStyle}
           />
         </FormField>
@@ -102,8 +120,8 @@ export function ProductForm({
           <select
             id="brand"
             name="brand"
-            value={brandId}
-            onChange={event => setBrandId(event.currentTarget.value)}
+            value={fields.brandId}
+            onChange={event => update({ brandId: event.currentTarget.value })}
             style={fieldStyle}
           >
             <option value="">— none —</option>
@@ -119,8 +137,10 @@ export function ProductForm({
           <select
             id="category"
             name="category"
-            value={categoryId}
-            onChange={event => setCategoryId(event.currentTarget.value)}
+            value={fields.categoryId}
+            onChange={event =>
+              update({ categoryId: event.currentTarget.value })
+            }
             style={fieldStyle}
           >
             <option value="">— none —</option>
