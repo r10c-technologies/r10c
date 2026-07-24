@@ -89,6 +89,12 @@ export function WorkspaceShell({
     }
   }, [activeParam, urlTab, pathname, router]);
 
+  const copyDeepLink = (param: string) => {
+    void navigator.clipboard.writeText(
+      `${window.location.origin}${pathname}?tab=${encodeURIComponent(param)}`,
+    );
+  };
+
   const activeResolved = activeParam ? registry.resolve(activeParam) : null;
   const body = activeResolved
     ? activeResolved.render()
@@ -112,7 +118,18 @@ export function WorkspaceShell({
       <Sidebar.Main as="main" className="flex min-w-0 flex-col">
         <TopBar>
           <TopBar.Brand>{brand}</TopBar.Brand>
-          {actions ? <TopBar.Actions>{actions}</TopBar.Actions> : null}
+          <TopBar.Actions>
+            {activeParam && (
+              <button
+                type="button"
+                onClick={() => copyDeepLink(activeParam)}
+                className="rounded-md px-2xs py-3xs text-step-sm text-content-muted transition hover:bg-surface hover:text-content"
+              >
+                Copy link
+              </button>
+            )}
+            {actions}
+          </TopBar.Actions>
         </TopBar>
 
         <TabStrip>

@@ -15,9 +15,31 @@ export interface TabsSnapshot {
 
 export const emptyTabs: TabsSnapshot = { tabs: [], activeParam: null };
 
+/** Upper bound on open tabs before the oldest inactive one is evicted. */
+export const MAX_TABS = 12;
+
+/**
+ * Trim the set to {@link MAX_TABS} by evicting the oldest tabs first, never the
+ * active one. Evicting a tab does not lose its work — any draft survives in
+ * IndexedDB and is restored when the tab is reopened.
+ */
+export function capTabs(state: TabsSnapshot): TabsSnapshot {
+  let overflow = state.tabs.length - MAX_TABS;
+  if (overflow <= 0) return state;
+
+  const tabs = state.tabs.filter(open => {
+    if (overflow > 0 && open.param !== state.activeParam) {
+      overflow -= 1;
+      return false;
+    }
+    return true;
+  });
+  return { ...state, tabs };
+}
+
 /**
  * Open a tab, or focus and re-title it if its address is already open. The
- * opened/focused tab becomes active.
+ * opened/focused tab becomes active; the set is capped at {@link MAX_TABS}.
  */
 export function openOrFocus(
   state: TabsSnapshot,
@@ -29,7 +51,7 @@ export function openOrFocus(
         open.param === tab.param ? { ...open, title: tab.title } : open,
       )
     : [...state.tabs, tab];
-  return { tabs, activeParam: tab.param };
+  return capTabs({ tabs, activeParam: tab.param });
 }
 
 /**

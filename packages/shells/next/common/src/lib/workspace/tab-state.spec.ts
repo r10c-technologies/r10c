@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  capTabs,
   closeTab,
   emptyTabs,
+  MAX_TABS,
   openOrFocus,
   setActive,
   type TabsSnapshot,
@@ -29,6 +31,41 @@ describe('openOrFocus', () => {
     expect(next.tabs).toHaveLength(2);
     expect(next.tabs.find(t => t.param === 'catalog:product')?.title).toBe('Renamed');
     expect(next.activeParam).toBe('catalog:product');
+  });
+
+  it('caps the set at MAX_TABS, evicting the oldest and keeping the active', () => {
+    let state: TabsSnapshot = emptyTabs;
+    for (let index = 0; index < MAX_TABS; index += 1) {
+      state = openOrFocus(state, { param: `t${index}`, title: `T${index}` });
+    }
+
+    const next = openOrFocus(state, { param: 'newest', title: 'Newest' });
+
+    expect(next.tabs).toHaveLength(MAX_TABS);
+    expect(next.tabs[0]?.param).toBe('t1'); // t0 (oldest) evicted
+    expect(next.tabs.some(t => t.param === 'newest')).toBe(true);
+    expect(next.activeParam).toBe('newest');
+  });
+
+});
+
+describe('capTabs', () => {
+  it('leaves a set within the cap untouched', () => {
+    const state = withTabs('a', 'b');
+    expect(capTabs(state)).toBe(state);
+  });
+
+  it('never evicts the active tab, even when it is the oldest', () => {
+    const tabs = Array.from({ length: MAX_TABS + 1 }, (_, index) => ({
+      param: `t${index}`,
+      title: `T${index}`,
+    }));
+    // t0 is both the oldest and the active tab.
+    const next = capTabs({ tabs, activeParam: 't0' });
+
+    expect(next.tabs).toHaveLength(MAX_TABS);
+    expect(next.tabs.some(t => t.param === 't0')).toBe(true); // active survived
+    expect(next.tabs.some(t => t.param === 't1')).toBe(false); // next-oldest evicted
   });
 });
 

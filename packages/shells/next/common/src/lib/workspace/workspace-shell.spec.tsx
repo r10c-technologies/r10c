@@ -68,6 +68,24 @@ describe('WorkspaceShell', () => {
     expect(screen.getByRole('tab', { name: /product catalog/ })).toBeInTheDocument();
   });
 
+  it('copies a deep link to the active tab', async () => {
+    tabParam = 'catalog:product';
+    const user = userEvent.setup();
+    const writeText = vi.fn();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    renderShell();
+    await screen.findByTestId('body');
+
+    await user.click(screen.getByRole('button', { name: 'Copy link' }));
+
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining('/workspace?tab=catalog%3Aproduct'),
+    );
+  });
+
   it('shows the fallback for an unknown tab kind', async () => {
     tabParam = 'operation:import';
     renderShell();
