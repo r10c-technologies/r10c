@@ -15,9 +15,16 @@ import {
 } from '@r10c/entifix-ts-testing-unit';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Context } from 'effect';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { EntifixQueryProvider } from '../../query/query-provider.js';
 import { useDataLoading } from './use-data-loading.js';
+
+/** A fresh QueryClient per render keeps each test's cache isolated. */
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <EntifixQueryProvider>{children}</EntifixQueryProvider>
+);
 
 interface Widget extends Entity {
   name: string;
@@ -38,12 +45,14 @@ const makeContext = () =>
 
 /** The whole stack a page runs: the real UC over the in-memory repository. */
 const renderLoading = (initialPageSize?: number) =>
-  renderHook(() =>
-    useDataLoading<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>({
-      uc: loadUCFactory<Widget>(),
-      ctx: makeContext(),
-      ...(initialPageSize === undefined ? {} : { initialPageSize }),
-    }),
+  renderHook(
+    () =>
+      useDataLoading<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>({
+        uc: loadUCFactory<Widget>(),
+        ctx: makeContext(),
+        ...(initialPageSize === undefined ? {} : { initialPageSize }),
+      }),
+    { wrapper },
   );
 
 beforeEach(() => {
@@ -269,7 +278,9 @@ describe('useDataLoading filtering and sorting', () => {
   });
 
   // An empty group matches everything, so sending it would be noise on the
-  // wire — and it is exactly what Clear produces.
+  // wire — and it is exactly what Clear produces. Clearing returns to the plain
+  // first page, which is still cached from mount, so nothing new hits the wire
+  // and — crucially — no match-all filter is ever sent.
   it('omits an emptied filtering rather than sending a match-all', async () => {
     const requests = recording();
     const { result } = renderLoading();
@@ -282,7 +293,12 @@ describe('useDataLoading filtering and sorting', () => {
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(requests.at(-1)).toEqual({ page: 1, pageSize: 10 });
+    expect(
+      requests.some(request => {
+        const group = request.filtering?.[0];
+        return group !== undefined && 'values' in group && group.values.length === 0;
+      }),
+    ).toBe(false);
     expect(result.current.items).toHaveLength(10);
   });
 
@@ -298,7 +314,14 @@ describe('useDataLoading filtering and sorting', () => {
     act(() => result.current.onSortingChange({}));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(requests.at(-1)).toEqual({ page: 1, pageSize: 10 });
+    expect(
+      requests.some(
+        request =>
+          request.sorting !== undefined &&
+          Object.keys(request.sorting[0]).length === 0,
+      ),
+    ).toBe(false);
+    expect(result.current.items).toHaveLength(10);
   });
 
   // The fetch effect keys on the *serialized* query, not on object identity.

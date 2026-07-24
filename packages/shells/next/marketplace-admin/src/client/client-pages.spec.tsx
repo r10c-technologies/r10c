@@ -3,6 +3,7 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-product-configuration-management';
+import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
@@ -75,9 +76,11 @@ const adapters = (): MarketplaceAdminAdapters => ({
 
 const renderPage = (page: ReactElement) =>
   render(
-    <MarketplaceAdminAdaptersProvider adapters={adapters()}>
-      {page}
-    </MarketplaceAdminAdaptersProvider>,
+    <EntifixQueryProvider>
+      <MarketplaceAdminAdaptersProvider adapters={adapters()}>
+        {page}
+      </MarketplaceAdminAdaptersProvider>
+    </EntifixQueryProvider>,
   );
 
 beforeEach(() => {
