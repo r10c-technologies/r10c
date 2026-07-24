@@ -1,6 +1,7 @@
 'use client';
 
-import { useTabEntityNav } from '@r10c/shells-next-common';
+import type { ProductFormDraft } from '@r10c/implementation-product-configuration-management-react';
+import { useDraft, useTabEntityNav } from '@r10c/shells-next-common';
 import {
   ProductBrandSingleViewClientPage,
   ProductCategorySingleViewClientPage,
@@ -8,12 +9,9 @@ import {
 } from '@r10c/shells-next-marketplace-admin';
 
 export const ENTITY_EDITORS = {
-  product: { label: 'Product', Editor: ProductSingleViewClientPage },
-  'product-brand': { label: 'Brand', Editor: ProductBrandSingleViewClientPage },
-  'product-category': {
-    label: 'Category',
-    Editor: ProductCategorySingleViewClientPage,
-  },
+  product: { label: 'Product' },
+  'product-brand': { label: 'Brand' },
+  'product-category': { label: 'Category' },
 } as const;
 
 export type EntityEditorKey = keyof typeof ENTITY_EDITORS;
@@ -23,10 +21,50 @@ export function isEntityEditorKey(value: string): value is EntityEditorKey {
 }
 
 /**
- * An entity editor hosted in a workspace tab: the same single-view form used by
- * the `/catalog/*` routes, but told its id via props and pointed back at the
- * workspace (the catalog tab) on save/delete instead of a route push.
+ * The product editor in a workspace tab, with continuous autosave: every field
+ * edit is persisted to the address-keyed draft (IndexedDB), the form seeds from
+ * that draft on mount (so a refresh restores the edit), and the draft is cleared
+ * once the real Save commits to the backend.
  */
+function ProductEditorTab({ id }: { id: string }) {
+  const nav = useTabEntityNav();
+  const { draft, setDraft, clearDraft } = useDraft<ProductFormDraft>(
+    `entity:product:${id}`,
+  );
+
+  const done = () => {
+    clearDraft();
+    nav.toList('product');
+  };
+
+  return (
+    <ProductSingleViewClientPage
+      slug={id}
+      initialDraft={draft}
+      onDraftChange={setDraft}
+      onSaved={done}
+      onDeleted={done}
+    />
+  );
+}
+
+function CatalogEditorTab({
+  entityKey,
+  id,
+}: {
+  entityKey: 'product-brand' | 'product-category';
+  id: string;
+}) {
+  const nav = useTabEntityNav();
+  const done = () => nav.toList(entityKey);
+  const Editor =
+    entityKey === 'product-brand'
+      ? ProductBrandSingleViewClientPage
+      : ProductCategorySingleViewClientPage;
+  return <Editor slug={id} onSaved={done} onDeleted={done} />;
+}
+
+/** An entity editor hosted in a workspace tab. */
 export function EntityEditorTab({
   entityKey,
   id,
@@ -34,13 +72,9 @@ export function EntityEditorTab({
   entityKey: EntityEditorKey;
   id: string;
 }) {
-  const nav = useTabEntityNav();
-  const { Editor } = ENTITY_EDITORS[entityKey];
-  return (
-    <Editor
-      slug={id}
-      onSaved={() => nav.toList(entityKey)}
-      onDeleted={() => nav.toList(entityKey)}
-    />
+  return entityKey === 'product' ? (
+    <ProductEditorTab id={id} />
+  ) : (
+    <CatalogEditorTab entityKey={entityKey} id={id} />
   );
 }
