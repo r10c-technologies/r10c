@@ -12,6 +12,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const UserMenu: Story = {
+  args: { children: null },
   render: () => (
     <Menu>
       <Menu.Trigger>◍ Jordan ▾</Menu.Trigger>
