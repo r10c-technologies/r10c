@@ -1,10 +1,18 @@
 'use client';
 
 import { Menu } from '@r10c/entifix-react-controls';
+import {
+  makeInMemoryReactiveChannel,
+  useReactiveInvalidation,
+} from '@r10c/entifix-react-integration';
 import { WorkspaceShell } from '@r10c/shells-next-common';
 import Link from 'next/link';
 
 import { workspaceRegistry } from './workspace-registry';
+
+// Mock reactive channel until the WebSocket transport lands — the subscription
+// seam is wired so a real socket drops in without touching the workspace.
+const reactiveChannel = makeInMemoryReactiveChannel();
 
 const NAV: Array<{ label: string; param: string }> = [
   { label: 'Products', param: 'catalog:product' },
@@ -14,6 +22,8 @@ const NAV: Array<{ label: string; param: string }> = [
 
 /** The marketplace-admin tab workspace, wired to the catalog registry. */
 export function WorkspaceView() {
+  useReactiveInvalidation(reactiveChannel);
+
   return (
     <WorkspaceShell
       registry={workspaceRegistry}
