@@ -6,3 +6,4 @@ export * from './hooks/use-entity-record';
 export * from './query/entity-query-key';
 export * from './query/query-provider';
 export * from './reactive/reactive-channel';
+export * from './reactive/use-reactive-invalidation';
