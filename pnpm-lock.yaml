@@ -709,6 +709,18 @@ importers:
         specifier: 3.22.0
         version: 3.22.0
 
+  packages/business/ts/authz:
+    dependencies:
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 3.22.0
+        version: 3.22.0
+
   packages/business/ts/common:
     dependencies:
       '@swc/helpers':

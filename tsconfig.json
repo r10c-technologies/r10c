@@ -122,6 +122,9 @@
     },
     {
       "path": "./packages/entifix/ts/testing-e2e"
+    },
+    {
+      "path": "./packages/business/ts/authz"
     }
   ]
 }
