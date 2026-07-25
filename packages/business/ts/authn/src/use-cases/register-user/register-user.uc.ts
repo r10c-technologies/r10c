@@ -5,7 +5,7 @@ import {
 } from '@r10c/business-ts-authz';
 import { Context, Effect } from 'effect';
 
-import { AuthnError } from '../../errors';
+import { AuthnError, ForbiddenError } from '../../errors';
 import {
   AccountRepositoryTag,
   type NewIdentifierInput,
@@ -72,7 +72,7 @@ export function registerUserUCFactory() {
       !canAssignRole(input.actorRoles ?? [], input.role)
     ) {
       return yield* Effect.fail(
-        new AuthnError('not allowed to assign that role', undefined, {
+        new ForbiddenError('not allowed to assign that role', undefined, {
           role: input.role,
         }),
       );

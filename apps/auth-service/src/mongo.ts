@@ -47,7 +47,16 @@ import {
 const SERVICE_NAME = 'auth-service';
 const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 
-/** Inserts seed docs into a collection when it is empty. */
+/**
+ * Reconciles seed docs one at a time: insert what is missing, and bring what is
+ * already there back in line with the seed.
+ *
+ * Per-document rather than "insert only when the collection is empty", because
+ * an empty-collection guard silently skips a store seeded by an earlier version
+ * of the seed — which is exactly how a long-lived dev database ended up with
+ * users that predate the `role` aspect and so logged in as `user` regardless of
+ * the tier they were supposed to have.
+ */
 function seedCollection(
   collectionName: string,
   data: ReadonlyArray<Record<string, unknown>>,
@@ -55,11 +64,17 @@ function seedCollection(
   return Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
     const collection = db.collection(collectionName);
-    const count = yield* Effect.promise(() => collection.countDocuments());
-    if (count === 0 && data.length > 0) {
-      yield* Effect.promise(() =>
-        collection.insertMany(data.map(item => ({ ...item }))),
+    for (const item of data) {
+      const existing = yield* Effect.promise(() =>
+        collection.findOne({ id: item['id'] }),
       );
+      if (existing === null) {
+        yield* Effect.promise(() => collection.insertMany([{ ...item }]));
+      } else {
+        yield* Effect.promise(() =>
+          collection.updateOne({ id: item['id'] }, { $set: { ...item } }),
+        );
+      }
     }
   });
 }
@@ -73,26 +88,40 @@ const seedUsers = Effect.all(
 );
 
 /**
- * Give each seeded user a password so local login works out of the box. Hashes
- * the shared dev password once and writes one credential per seed user, only
- * when the collection is empty.
+ * Give each seeded user a password so local login works out of the box.
+ *
+ * Per user, for the same reason {@link seedCollection} is: a seed user added
+ * after the store was first populated would otherwise never get a credential
+ * and could never sign in. Existing credentials are left alone — rehashing them
+ * on every boot would be pointless work, and would stomp a password a developer
+ * changed on purpose.
  */
 export const seedCredentials = Effect.gen(function* () {
   const db = yield* MongoDatabaseTag;
   const hasher = yield* PasswordHasherTag;
   const collection = db.collection(CREDENTIAL_COLLECTION);
-  const count = yield* Effect.promise(() => collection.countDocuments());
-  if (count === 0) {
-    const passwordHash = yield* hasher.hash(DEV_SEED_PASSWORD);
-    yield* Effect.promise(() =>
-      collection.insertMany(
-        userIdentitySeedData.map(user => ({
-          userId: user['id'],
-          passwordHash,
-        })),
-      ),
+
+  const missing: unknown[] = [];
+  for (const user of userIdentitySeedData) {
+    const userId = user['id'];
+    const existing = yield* Effect.promise(() =>
+      collection.findOne({ userId }),
     );
+    if (existing === null) {
+      missing.push(userId);
+    }
   }
+  if (missing.length === 0) {
+    return;
+  }
+
+  // One hash for all of them: bcrypt is intentionally slow, and the hasher is
+  // pure JS here, so hashing per user pushed service boot past the e2e hook
+  // timeout. They all share the same dev password anyway.
+  const passwordHash = yield* hasher.hash(DEV_SEED_PASSWORD);
+  yield* Effect.promise(() =>
+    collection.insertMany(missing.map(userId => ({ userId, passwordHash }))),
+  );
 });
 
 /** Account repository over the live Mongo connection. */

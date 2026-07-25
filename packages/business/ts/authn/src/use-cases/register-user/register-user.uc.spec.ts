@@ -157,7 +157,8 @@ describe('registerUserUCFactory', () => {
 
       expect(Exit.isFailure(exit)).toBe(true);
       if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
-        expect(exit.cause.error._tag).toBe('AuthnError');
+        // Not an AuthnError: the request is fine, the caller is not allowed.
+        expect(exit.cause.error._tag).toBe('ForbiddenError');
       }
     });
 

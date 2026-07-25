@@ -65,12 +65,20 @@ const runUpdate = (
     ),
   );
 
-const failedWithAuthnError = (exit: Exit.Exit<unknown, unknown>) => {
+const failedWith = (exit: Exit.Exit<unknown, unknown>, tag: string) => {
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
-    expect((exit.cause.error as { _tag: string })._tag).toBe('AuthnError');
+    expect((exit.cause.error as { _tag: string })._tag).toBe(tag);
   }
 };
+
+/** A refusal of the request itself — malformed, or about a user that is gone. */
+const failedWithAuthnError = (exit: Exit.Exit<unknown, unknown>) =>
+  failedWith(exit, 'AuthnError');
+
+/** A refusal of the *caller* — the tier rules. Distinct, and a 403 at the edge. */
+const failedWithForbidden = (exit: Exit.Exit<unknown, unknown>) =>
+  failedWith(exit, 'ForbiddenError');
 
 describe('updateUserAspectsUCFactory', () => {
   it('applies a role change within the actor’s tier', async () => {
@@ -109,7 +117,7 @@ describe('updateUserAspectsUCFactory', () => {
 
   // Without this an admin could demote a super-admin and inherit the system.
   it('rejects modifying a user who outranks the actor', async () => {
-    failedWithAuthnError(
+    failedWithForbidden(
       await runUpdate(stubAccounts(userWith('super-admin')), {
         role: 'user',
         actorRoles: ['admin'],
@@ -118,7 +126,7 @@ describe('updateUserAspectsUCFactory', () => {
   });
 
   it('rejects promoting above the actor’s own tier', async () => {
-    failedWithAuthnError(
+    failedWithForbidden(
       await runUpdate(stubAccounts(userWith('user')), {
         role: 'super-admin',
         actorRoles: ['admin'],
@@ -139,11 +147,11 @@ describe('updateUserAspectsUCFactory', () => {
       });
 
     it('refuses self-demotion', async () => {
-      failedWithAuthnError(await selfUpdate({ role: 'user' }));
+      failedWithForbidden(await selfUpdate({ role: 'user' }));
     });
 
     it('refuses self-deactivation', async () => {
-      failedWithAuthnError(await selfUpdate({ status: UserStatus.Disabled }));
+      failedWithForbidden(await selfUpdate({ status: UserStatus.Disabled }));
     });
 
     it('allows a no-op that reasserts the same role and active status', async () => {

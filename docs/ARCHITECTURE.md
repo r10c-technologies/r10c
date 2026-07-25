@@ -239,9 +239,17 @@ context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
   gate — resolves the principal from auth-service's `/api/me` instead, and fails
   closed when it cannot.
 - **Escalation:** `canAssignRole` allows creating/promoting at or below the
-  actor's own tier. Creating a user always runs `registerUserUCFactory` (hashing
-  - identifier uniqueness + this guard), never a generic entity write; public
-    signup is pinned to `user`.
+  actor's own tier; an edit additionally requires outranking the target's
+  _current_ role and forbids acting on yourself. Creating a user always runs
+  `registerUserUCFactory` (hashing, identifier uniqueness, this guard), never a
+  generic entity write; public signup is pinned to `user`. A refusal is a
+  `ForbiddenError` → **403**, distinct from an identifier conflict (409).
+- **Browser → service traffic is same-origin.** Catalog adapters call
+  marketplace-admin-app's `/api/admin/[...path]` proxy, which forwards the cookie
+  upstream as a bearer token; the app's `/api/config` rewrites the service domain
+  to that path before the browser sees it. A cross-origin `fetch` to `:3101`
+  carries no cookie — host-scoping decides which host _stores_ it, not which
+  requests send it — so the guard would answer 401 to every browser read.
 
 ## App & port convention
 

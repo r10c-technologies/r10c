@@ -3,7 +3,7 @@ import type { EntityId } from '@r10c/entifix-ts-core';
 import { Context, Effect } from 'effect';
 
 import { UserStatus } from '../../entities/user-identity';
-import { AuthnError } from '../../errors';
+import { AuthnError, ForbiddenError } from '../../errors';
 import { AccountRepositoryTag } from '../../repository';
 
 /** An administrative change to another account's authorization aspects. */
@@ -53,7 +53,7 @@ export function updateUserAspectsUCFactory() {
     // Authority over the account as it stands today.
     if (!canAssignRole(input.actorRoles, target.role)) {
       return yield* Effect.fail(
-        new AuthnError('not allowed to modify that user', undefined, {
+        new ForbiddenError('not allowed to modify that user', undefined, {
           role: target.role,
         }),
       );
@@ -65,7 +65,7 @@ export function updateUserAspectsUCFactory() {
       !canAssignRole(input.actorRoles, input.role)
     ) {
       return yield* Effect.fail(
-        new AuthnError('not allowed to assign that role', undefined, {
+        new ForbiddenError('not allowed to assign that role', undefined, {
           role: input.role,
         }),
       );
@@ -77,7 +77,7 @@ export function updateUserAspectsUCFactory() {
         input.status !== undefined && input.status !== UserStatus.Active;
       if (demoting || deactivating) {
         return yield* Effect.fail(
-          new AuthnError('cannot change your own role or status'),
+          new ForbiddenError('cannot change your own role or status'),
         );
       }
     }

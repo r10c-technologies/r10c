@@ -159,9 +159,17 @@ const respondAuthError = (error: { _tag?: string }) => {
         { error: 'invalid credentials' },
         { status: 401 },
       );
+    // Authenticated, but not permitted — the opposite of a 401, and not a
+    // conflict either. Its message is safe to pass through: it says which rule
+    // refused, and knowing that reveals nothing the caller could not infer.
+    case 'ForbiddenError':
+      return HttpServerResponse.json(
+        { error: (error as { message?: string }).message ?? 'forbidden' },
+        { status: 403 },
+      );
     case 'AuthnError':
       return HttpServerResponse.json(
-        { error: 'identifier already in use' },
+        { error: (error as { message?: string }).message ?? 'request refused' },
         { status: 409 },
       );
     case 'EntifixBuildError':

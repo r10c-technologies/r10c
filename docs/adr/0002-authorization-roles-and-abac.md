@@ -136,14 +136,33 @@ still cannot import a sibling domain.
 - A guarded service e2e needs a principal for its ordinary journeys, so
   `defineServiceE2e` takes an `authorization` hook; without it every spec in the
   suite degenerates into an authentication test.
+- An authorization refusal is a `ForbiddenError` → **403**, separate from
+  `AuthnError` → 409. Collapsing them is how a refused promotion first came back
+  as `409 identifier already in use`.
+- Dev seeds are reconciled per document rather than skipped when the collection
+  is non-empty. The empty-collection guard silently left a long-lived dev
+  database full of users that predated the `role` aspect, so every one of them
+  signed in as `user`.
+
+### Browser → service traffic goes through a same-origin proxy
+
+This was planned as a production-only follow-up, on the assumption that a
+host-scoped cookie would be sent across `localhost` ports in dev. **That
+assumption was wrong**, and live verification caught it: a different port is a
+different origin, and a cross-origin `fetch` does not attach the cookie
+regardless of how the cookie is scoped. Host-scoping governs which host _stores_
+it, not which requests carry it. Guarding the catalog therefore broke it
+immediately, in dev.
+
+Catalog traffic now goes through `marketplace-admin-app`'s own
+`/api/admin/[...path]` handler, which forwards the cookie upstream as a bearer
+token — the pattern the credential routes already used, and the reason this repo
+has no CORS configuration anywhere. The app's `/api/config` rewrites the service
+domain to that proxy path before the browser sees it, so the adapters stay
+unaware and config-service remains the single place the real address is stored.
 
 ## Follow-ups (deliberately out of scope)
 
-- **Browser → service auth in production.** Catalog client pages call
-  `http://localhost:3101/api` directly from the browser. In dev the `r10c_at`
-  cookie is host-scoped on `localhost`, so it is sent across ports and the guard
-  works. Different hosts in production will need a same-origin Next proxy or
-  CORS with credentials.
 - Custom/CRUD-able roles, per-record ownership rules, and tenant scoping — all
   reachable through the existing `PolicyRequest` shape without an API change.
 - Zitadel OIDC and RS256/JWKS remain deferred from ADR-less v1.

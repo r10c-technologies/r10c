@@ -93,7 +93,8 @@ describe('auth-service user management', () => {
     });
 
     // The escalation rule. An admin that can mint a super-admin is an admin
-    // that can promote itself by proxy.
+    // that can promote itself by proxy. A 403, not a 409: the request is
+    // well-formed and conflicts with nothing — the caller simply may not.
     it('refuses an admin creating a super-admin', async () => {
       const res = await service.client.post(
         '/api/user-identity',
@@ -106,7 +107,8 @@ describe('auth-service user management', () => {
         await asUser('alan@example.com'),
       );
 
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(403);
+      expect(res.data.error).toContain('not allowed to assign that role');
     });
 
     it('lets a super-admin create a super-admin', async () => {
@@ -187,7 +189,7 @@ describe('auth-service user management', () => {
         await asUser('alan@example.com'),
       );
 
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(403);
     });
 
     it('refuses a plain user outright with 403', async () => {
@@ -216,7 +218,7 @@ describe('auth-service user management', () => {
         await asUser('ada@example.com'),
       );
 
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(403);
     });
   });
 });
