@@ -34,5 +34,5 @@ export const productBrandTempData: ProductBrandRecord[] = Array.from(
       description: `Products manufactured by ${baseName} (#${number})`,
       website: `https://www.${slug}.example.com`,
     };
-  }
+  },
 );

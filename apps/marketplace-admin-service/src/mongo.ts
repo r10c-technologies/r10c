@@ -80,13 +80,13 @@ export const AppLayer = Layer.unwrapEffect(
           secret: jwtSecret,
           issuer: AUTH_TOKEN_ISSUER,
           audience: AUTH_TOKEN_AUDIENCE,
-        })
+        }),
       ),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
-      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision())
+      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
     );
 
     // Transaction ports built from those connections (lock/sequence over Redis,
@@ -95,9 +95,9 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.mergeAll(
         RedisLockServiceLayer,
         RedisSequenceServiceLayer,
-        AmqpEventBusLayer
+        AmqpEventBusLayer,
       ),
-      connections
+      connections,
     );
 
     // Seed depends on MongoDatabaseTag from `infra`; provideMerge keeps the
@@ -105,7 +105,7 @@ export const AppLayer = Layer.unwrapEffect(
     // (logger replacement + tracer) is merged so it is active for the server.
     return Layer.merge(
       observability,
-      Layer.provideMerge(Layer.effectDiscard(seedCatalog), infra)
+      Layer.provideMerge(Layer.effectDiscard(seedCatalog), infra),
     );
-  }).pipe(Effect.orDie)
+  }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

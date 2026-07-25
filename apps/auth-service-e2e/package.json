@@ -33,5 +33,8 @@
     "@r10c/entifix-ts-testing-e2e": "workspace:*",
     "@r10c/entifix-ts-testing-unit": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*"
+  },
+  "dependencies": {
+    "@r10c/business-ts-authz": "workspace:*"
   }
 }

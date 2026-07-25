@@ -48,5 +48,5 @@ export const productTempData: ProductRecord[] = Array.from(
       // Foreign-key relation — category referenced by id only.
       category: category.id,
     };
-  }
+  },
 );

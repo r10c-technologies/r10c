@@ -1,21 +1,14 @@
 import { NextResponse } from 'next/server';
 
+import { workspaceMenu } from '../../../lib/nav';
+import { navRoles } from '../../../lib/roles';
+
 /**
- * The workspace navigation menu. Hardcoded for now (a config-service-backed
- * source can replace it later) — the client fills its nav from this, showing a
- * skeleton until it arrives.
+ * The workspace navigation menu, derived from the same `lib/nav` definition the
+ * sidebar renders and filtered by the caller's roles. Sharing one definition is
+ * the point: these two lists have to agree, and keeping them apart guaranteed
+ * they eventually would not.
  */
-export function GET() {
-  return NextResponse.json({
-    sections: [
-      {
-        title: 'Catalog',
-        items: [
-          { label: 'Products', param: 'catalog:product' },
-          { label: 'Brands', param: 'catalog:product-brand' },
-          { label: 'Categories', param: 'catalog:product-category' },
-        ],
-      },
-    ],
-  });
+export async function GET() {
+  return NextResponse.json({ sections: workspaceMenu(await navRoles()) });
 }

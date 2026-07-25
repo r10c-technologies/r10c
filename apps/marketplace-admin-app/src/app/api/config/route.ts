@@ -15,7 +15,7 @@ export async function GET() {
   if (!res.ok) {
     return NextResponse.json(
       { error: 'Failed to load configuration' },
-      { status: 502 }
+      { status: 502 },
     );
   }
 

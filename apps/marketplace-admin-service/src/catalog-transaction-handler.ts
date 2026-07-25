@@ -50,19 +50,23 @@ export function makeCatalogTransactionHandler<T extends Codeable>(
 
   const deserialize = (command: TransactionCommand) =>
     deserializeSingleEntity(entityConstructor, command.payload).pipe(
-      Effect.flatMap((entity) =>
+      Effect.flatMap(entity =>
         entity === undefined
           ? Effect.fail(
-              new EntifixBuildError('command payload carried no entity', undefined, {
-                key: options.key,
-              }),
+              new EntifixBuildError(
+                'command payload carried no entity',
+                undefined,
+                {
+                  key: options.key,
+                },
+              ),
             )
           : Effect.succeed(entity as T),
       ),
     );
 
   return {
-    validate: (command) =>
+    validate: command =>
       Effect.gen(function* () {
         if (command.entity !== options.key) {
           return yield* Effect.fail(
@@ -81,7 +85,7 @@ export function makeCatalogTransactionHandler<T extends Codeable>(
 
     lockKeys: () => [`lock:code:${options.sequenceName}`],
 
-    execute: (command) =>
+    execute: command =>
       Effect.gen(function* () {
         const entity = yield* deserialize(command);
         const next = yield* sequence.next(options.sequenceName);
@@ -100,7 +104,7 @@ export function makeCatalogTransactionHandler<T extends Codeable>(
         } satisfies TransactionOutcome;
       }),
 
-    rollback: (command) =>
+    rollback: command =>
       repository
         .delete(command.transactionId)
         .pipe(

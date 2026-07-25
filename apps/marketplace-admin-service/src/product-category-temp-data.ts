@@ -33,5 +33,5 @@ export const productCategoryTempData: ProductCategoryRecord[] = Array.from(
       name: `${baseName} ${Math.floor(index / baseNames.length) + 1}`,
       description: `Category for ${baseName.toLowerCase()} products (#${number})`,
     };
-  }
+  },
 );

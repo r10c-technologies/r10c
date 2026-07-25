@@ -13,7 +13,7 @@ import { productTempData } from './product-temp-data';
  */
 function seedCollection(
   collectionName: string,
-  data: ReadonlyArray<Record<string, unknown>>
+  data: ReadonlyArray<Record<string, unknown>>,
 ) {
   return Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -21,7 +21,7 @@ function seedCollection(
     const count = yield* Effect.promise(() => collection.countDocuments());
     if (count === 0 && data.length > 0) {
       yield* Effect.promise(() =>
-        collection.insertMany(data.map((item) => ({ ...item })))
+        collection.insertMany(data.map(item => ({ ...item }))),
       );
     }
   });
@@ -32,7 +32,7 @@ function seedCollection(
  * `product`) on first boot. Collection names match each entity's `key`.
  */
 const asRecords = (
-  data: ReadonlyArray<object>
+  data: ReadonlyArray<object>,
 ): ReadonlyArray<Record<string, unknown>> =>
   data as ReadonlyArray<Record<string, unknown>>;
 
@@ -42,5 +42,5 @@ export const seedCatalog = Effect.all(
     seedCollection('product-brand', asRecords(productBrandTempData)),
     seedCollection('product', asRecords(productTempData)),
   ],
-  { discard: true }
+  { discard: true },
 );

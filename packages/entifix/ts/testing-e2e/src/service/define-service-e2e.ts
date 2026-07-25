@@ -26,6 +26,17 @@ export interface ServiceE2eOptions {
    * package under `entifix` must not depend on a `shells` one.
    */
   startMock: () => Promise<RunningService>;
+  /**
+   * Default `Authorization` header for every request the suite makes, built
+   * once at start-up.
+   *
+   * A guarded service answers `401` to an anonymous request, which would turn
+   * every journey in the suite into an authentication test. Supplying a
+   * principal here keeps the specs about what they are actually asserting;
+   * the guard itself is covered by its own spec, which omits or corrupts the
+   * header on purpose.
+   */
+  authorization?: () => Promise<string>;
 }
 
 /**
@@ -52,6 +63,7 @@ export interface ServiceE2eContext {
 export const defineServiceE2e = ({
   liveUrlEnvVar,
   startMock,
+  authorization,
 }: ServiceE2eOptions): ServiceE2eContext => {
   const profile = resolveE2eProfile();
   let running: RunningService | undefined;
@@ -77,6 +89,10 @@ export const defineServiceE2e = ({
           };
     client = axios.create({
       baseURL: running.baseUrl,
+      headers:
+        authorization === undefined
+          ? undefined
+          : { Authorization: await authorization() },
       // 4xx and 5xx are assertion subjects in these suites, not transport
       // failures — a service e2e that cannot assert on a 400 is missing half
       // its surface.

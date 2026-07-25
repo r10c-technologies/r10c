@@ -6,6 +6,7 @@ import { signAccessToken } from '@r10c/entifix-ts-jwt-client';
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
 import { MOCK_JWT_SECRET, startMockService } from '../support/mock-service';
+import { bearerFor } from '../support/tokens';
 
 /**
  * The token-verified backend integration, mock profile only: signing a valid
@@ -80,5 +81,56 @@ describe('marketplace-admin-service /api/me guard', () => {
     });
 
     expect(res.status).toBe(401);
+  });
+});
+
+/**
+ * The catalog's authorization, which is the point of the whole exercise: the
+ * navigation filtering in the app is presentation, and this is what actually
+ * refuses a request. The 401/403 split matters — one says "sign in", the other
+ * says signing in again will not help.
+ */
+describe('marketplace-admin-service catalog permissions', () => {
+  it('rejects an anonymous read with 401', async () => {
+    const res = await service.client.get('/api/product-brand');
+
+    expect(res.status).toBe(401);
+  });
+
+  it('lets a plain user read the catalog', async () => {
+    const res = await service.client.get('/api/product-brand', {
+      headers: { Authorization: await bearerFor(['user']) },
+    });
+
+    expect(res.status).toBe(200);
+  });
+
+  it('refuses a plain user a catalog write with 403', async () => {
+    const res = await service.client.post(
+      '/api/product-brand',
+      { name: 'Contraband' },
+      { headers: { Authorization: await bearerFor(['user']) } },
+    );
+
+    expect(res.status).toBe(403);
+    expect(res.data.permission).toBe(
+      'product-configuration-management:product-brand:write',
+    );
+  });
+
+  it('refuses a plain user a delete with 403', async () => {
+    const res = await service.client.delete('/api/product-brand/brand-1', {
+      headers: { Authorization: await bearerFor(['user']) },
+    });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('lets a super-admin through on the wildcard grant', async () => {
+    const res = await service.client.get('/api/product-brand', {
+      headers: { Authorization: await bearerFor(['super-admin']) },
+    });
+
+    expect(res.status).toBe(200);
   });
 });

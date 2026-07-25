@@ -66,13 +66,13 @@ export const makeJoseTokenService = (
   sign: (claims, ttlSeconds) =>
     Effect.tryPromise({
       try: () => signAccessToken(claims, options, ttlSeconds),
-      catch: (error) =>
+      catch: error =>
         new EntifixConnError('Access token signing failed', error),
     }),
-  verify: (token) =>
+  verify: token =>
     Effect.tryPromise({
       try: () => verifyAccessToken(token, options),
-      catch: (error) =>
+      catch: error =>
         new EntifixBuildError('Access token verification failed', error),
     }),
 });

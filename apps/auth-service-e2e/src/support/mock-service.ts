@@ -14,6 +14,10 @@ import {
   IdentityProviderTag,
   PasswordHasherTag,
 } from '@r10c/business-ts-authn';
+import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+} from '@r10c/business-ts-authz';
 import { SessionStoreTag, TokenServiceTag } from '@r10c/entifix-ts-business';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
@@ -78,6 +82,9 @@ const base = Layer.mergeAll(
     }),
   ),
   Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher()),
+  // The real grant table, not a fake — it is what `requirePermission` consults,
+  // so stubbing it would make every authorization assertion here meaningless.
+  Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
   // The fake ioredis honours set/get/expire/sadd — enough for the session store.
   Layer.succeed(
     SessionStoreTag,

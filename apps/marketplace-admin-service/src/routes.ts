@@ -5,6 +5,7 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
+import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
 import {
   loadProductsUCFactory,
   Product,
@@ -53,6 +54,7 @@ import {
 import {
   LoadedConfigurationTag,
   redactConfiguration,
+  requirePermission,
   requirePrincipal,
 } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
@@ -386,6 +388,17 @@ const configIntrospectionRoute = Effect.gen(function* () {
  * string the REST client composes its URLs from and the Mongo adapter uses as a
  * collection name.
  */
+/**
+ * Guard a catalog route with the permission its own entity declares. Deriving
+ * it from `@entity({ domain, key })` means adding an entity cannot leave a hole:
+ * there is no separate list of permission strings to forget to extend.
+ */
+const guarded = <T extends Entity, A, E, R>(
+  entityConstructor: EntityConstructor<T>,
+  action: Action,
+  route: () => Effect.Effect<A, E, R>,
+) => requirePermission(permissionForEntity(entityConstructor, action))(route);
+
 export const router = HttpRouter.empty.pipe(
   HttpRouter.get('/api/config', configIntrospectionRoute),
 
@@ -393,57 +406,95 @@ export const router = HttpRouter.empty.pipe(
   // a downstream service trusts the access token auth-service minted.
   HttpRouter.get(
     '/api/me',
-    requirePrincipal((principal) => HttpServerResponse.json(principal)),
+    requirePrincipal(principal => HttpServerResponse.json(principal)),
   ),
 
-  HttpRouter.get('/api/product-category', listRoute(ProductCategory)),
+  HttpRouter.get(
+    '/api/product-category',
+    guarded(ProductCategory, 'read', () => listRoute(ProductCategory)),
+  ),
   HttpRouter.get(
     '/api/product-category/:id',
-    byIdRoute(ProductCategory, 'Product category'),
+    guarded(ProductCategory, 'read', () =>
+      byIdRoute(ProductCategory, 'Product category'),
+    ),
   ),
   HttpRouter.post(
     '/api/product-category',
-    createTransactionRoute(ProductCategory, {
-      key: 'product-category',
-      sequenceName: 'product-category',
-      codePrefix: 'category',
-    }),
+    guarded(ProductCategory, 'write', () =>
+      createTransactionRoute(ProductCategory, {
+        key: 'product-category',
+        sequenceName: 'product-category',
+        codePrefix: 'category',
+      }),
+    ),
   ),
   HttpRouter.put(
     '/api/product-category/:id',
-    saveRoute(ProductCategory, { fromParams: true }),
+    guarded(ProductCategory, 'write', () =>
+      saveRoute(ProductCategory, { fromParams: true }),
+    ),
   ),
-  HttpRouter.del('/api/product-category/:id', deleteRoute(ProductCategory)),
+  HttpRouter.del(
+    '/api/product-category/:id',
+    guarded(ProductCategory, 'delete', () => deleteRoute(ProductCategory)),
+  ),
 
-  HttpRouter.get('/api/product-brand', listRoute(ProductBrand)),
+  HttpRouter.get(
+    '/api/product-brand',
+    guarded(ProductBrand, 'read', () => listRoute(ProductBrand)),
+  ),
   HttpRouter.get(
     '/api/product-brand/:id',
-    byIdRoute(ProductBrand, 'Product brand'),
+    guarded(ProductBrand, 'read', () =>
+      byIdRoute(ProductBrand, 'Product brand'),
+    ),
   ),
   HttpRouter.post(
     '/api/product-brand',
-    createTransactionRoute(ProductBrand, {
-      key: 'product-brand',
-      sequenceName: 'product-brand',
-      codePrefix: 'brand',
-    }),
+    guarded(ProductBrand, 'write', () =>
+      createTransactionRoute(ProductBrand, {
+        key: 'product-brand',
+        sequenceName: 'product-brand',
+        codePrefix: 'brand',
+      }),
+    ),
   ),
   HttpRouter.put(
     '/api/product-brand/:id',
-    saveRoute(ProductBrand, { fromParams: true }),
+    guarded(ProductBrand, 'write', () =>
+      saveRoute(ProductBrand, { fromParams: true }),
+    ),
   ),
-  HttpRouter.del('/api/product-brand/:id', deleteRoute(ProductBrand)),
+  HttpRouter.del(
+    '/api/product-brand/:id',
+    guarded(ProductBrand, 'delete', () => deleteRoute(ProductBrand)),
+  ),
 
-  HttpRouter.get('/api/product', productListRoute),
-  HttpRouter.get('/api/product/:id', byIdRoute(Product, 'Product')),
+  HttpRouter.get(
+    '/api/product',
+    guarded(Product, 'read', () => productListRoute),
+  ),
+  HttpRouter.get(
+    '/api/product/:id',
+    guarded(Product, 'read', () => byIdRoute(Product, 'Product')),
+  ),
   HttpRouter.post(
     '/api/product',
-    createTransactionRoute(Product, {
-      key: 'product',
-      sequenceName: 'product',
-      codePrefix: 'product',
-    }),
+    guarded(Product, 'write', () =>
+      createTransactionRoute(Product, {
+        key: 'product',
+        sequenceName: 'product',
+        codePrefix: 'product',
+      }),
+    ),
   ),
-  HttpRouter.put('/api/product/:id', saveRoute(Product, { fromParams: true })),
-  HttpRouter.del('/api/product/:id', deleteRoute(Product)),
+  HttpRouter.put(
+    '/api/product/:id',
+    guarded(Product, 'write', () => saveRoute(Product, { fromParams: true })),
+  ),
+  HttpRouter.del(
+    '/api/product/:id',
+    guarded(Product, 'delete', () => deleteRoute(Product)),
+  ),
 );

@@ -419,6 +419,10 @@ importers:
         version: 2.8.1
 
   apps/auth-service-e2e:
+    dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
     devDependencies:
       '@r10c/auth-service':
         specifier: workspace:*
@@ -480,12 +484,18 @@ importers:
 
   apps/marketplace-admin-app:
     dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
       '@r10c/entifix-react-controls':
         specifier: workspace:*
         version: link:../../packages/entifix/react/controls
       '@r10c/entifix-style':
         specifier: workspace:*
         version: link:../../packages/entifix/style
+      '@r10c/entifix-ts-jwt-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/jwt-client
       '@r10c/shells-next-common':
         specifier: workspace:*
         version: link:../../packages/shells/next/common
@@ -596,6 +606,10 @@ importers:
         version: 2.8.1
 
   apps/marketplace-admin-service-e2e:
+    dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
     devDependencies:
       '@r10c/business-ts-authn':
         specifier: workspace:*
