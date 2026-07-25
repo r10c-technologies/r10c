@@ -75,7 +75,11 @@ them), and everything deep is a link — loaded only when a task needs it.
   carries only `roles`. Guard a route with `requirePermission(...)` from
   `@r10c/shells-effect-service` (401 vs 403) — **hiding a nav item protects nothing**.
   `PolicyDecisionTag` is the ABAC seam; `canAssignRole` caps role creation at the
-  actor's own tier. See [ADR 0002](docs/adr/0002-authorization-roles-and-abac.md) and
+  actor's own tier. Creating a user always runs `registerUserUCFactory`, never a
+  generic entity write. `unverifiedRoles` reads the cookie **without checking its
+  signature** — nav filtering only, never a decision. Gated Next apps need a
+  `seedSession` e2e fixture and a `readyPath` outside the matcher. See
+  [ADR 0002](docs/adr/0002-authorization-roles-and-abac.md) and
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#authorization-role-aspects--permissions).
 - **Observability**: a `-service` merges an observability layer that replaces Effect's
   default logger with the `@r10c/entifix-ts-tooling` logger and stands up the

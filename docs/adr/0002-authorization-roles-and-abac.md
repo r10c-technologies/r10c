@@ -78,6 +78,21 @@ to `user`, ignoring any caller-supplied role. Creating a user therefore goes
 through `registerUserUCFactory` (hashing + identifier uniqueness + this guard),
 never through a generic entity write.
 
+### Presentation may read the token unverified; decisions may not
+
+Filtering navigation needs the caller's roles on every server render. Verifying
+the token there would mean copying `jwt.secret` out of config-service into the
+Next runtime; calling a service instead would put a network hop on every render
+of every page.
+
+So `unverifiedRoles` (`entifix-ts-jwt-client`) decodes the cookie **without
+checking its signature**, and is used only where being wrong costs a menu item.
+The name is blunt and the warning is at the definition, because the failure mode
+if someone reaches for it in a real decision is silent. auth-app's back-office
+gate — which decides whether to render user management at all — does the
+opposite: it resolves the principal from auth-service `/api/me` and fails closed
+when it cannot.
+
 ### Three enforcement layers, one of which is security
 
 1. **Next middleware** — cookie presence, a fast bounce. Not a check.
@@ -115,6 +130,12 @@ still cannot import a sibling domain.
 - The admin-app middleware matcher widens from `/account/:path*` to the whole
   app, which the catalog Playwright suite must survive — hence a session-seeding
   e2e fixture lands before the matcher changes.
+- Gating an app breaks Playwright's readiness probe: `/` now redirects to an
+  auth-app that is not running during a `mock` run. Apps behind the gate expose
+  a dependency-free `/api/health` and point `readyPath` at it.
+- A guarded service e2e needs a principal for its ordinary journeys, so
+  `defineServiceE2e` takes an `authorization` hook; without it every spec in the
+  suite degenerates into an authentication test.
 
 ## Follow-ups (deliberately out of scope)
 

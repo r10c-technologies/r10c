@@ -230,6 +230,14 @@ context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
   token and asks the policy — `401` unauthenticated, `403` denied. The role gate
   sits in the server layout rather than middleware so `jwt.secret` never has to
   leave config-service for the Next runtime.
+- **How each layer gets the roles** differs, on purpose. A **presentation**
+  decision (which nav entries to render) reads them with `unverifiedRoles`
+  (`entifix-ts-jwt-client`) — the cookie is decoded, _not_ verified. Forging it
+  shows someone a menu; every route behind it still goes to a service that
+  verifies properly. That avoids both a service round trip per server render and
+  copying the secret into the app. A **real** decision — auth-app's back-office
+  gate — resolves the principal from auth-service's `/api/me` instead, and fails
+  closed when it cannot.
 - **Escalation:** `canAssignRole` allows creating/promoting at or below the
   actor's own tier. Creating a user always runs `registerUserUCFactory` (hashing
   - identifier uniqueness + this guard), never a generic entity write; public
@@ -314,9 +322,10 @@ design: [FRONTEND.md → Workspace tabs](./FRONTEND.md#part-2--workspace-tabs--t
 - `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-common`
   — Next pages + client adapters. `shells-effect-service` — the backend base.
 
-**Apps** — frontends `marketplace-app`, `marketplace-admin-app`, `auth-app`;
-backends `marketplace-service`, `marketplace-admin-service`, `auth-service`,
-`transaction-manager`, `config-service`; plus `*-e2e` projects.
+**Apps** — frontends `marketplace-app`, `marketplace-admin-app`, `auth-app`
+(sign-in/sign-up **plus** a `(back-office)` group for user management, gated to
+`admin`+); backends `marketplace-service`, `marketplace-admin-service`,
+`auth-service`, `transaction-manager`, `config-service`; plus `*-e2e` projects.
 
 **Utils** — `utils-ts-{array,date,object,type}`.
 

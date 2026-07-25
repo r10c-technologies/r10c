@@ -310,6 +310,30 @@ asserts a request produces a structured record carrying its span's `trace_id`.
 It is a `*.mock.spec.ts` because it reads an in-process sink; the same guarantee
 against real infra is checked by hand (logs in Loki, the trace in Tempo).
 
+**Signing a suite in.** Both Next apps are behind the auth middleware, so a spec
+that navigates without a session gets a redirect instead of a page. Two things
+follow, and a new gated e2e project needs both:
+
+- **`seedSession(context, { roles })`** (`…/playwright`) puts a session on the
+  browser context before the first navigation. In `mock` it fabricates the
+  cookie — deliberately unsigned, since the only things exercised there are the
+  middleware's presence check and the server-rendered nav filter, and the
+  services are msw fixtures anyway. In `live` it performs a **real sign-in**
+  through auth-app, so the token is one auth-service minted and the downstream
+  `requirePermission` checks are genuinely hit. Wire it as an `auto` fixture
+  (see `marketplace-admin-app-e2e/src/support/fixtures.ts`) so a new spec cannot
+  forget it.
+- **`readyPath`** on `defineEntifixE2eConfig`. Playwright polls a URL to decide
+  the server is up, and that URL has to be outside the gate _and_ free of backend
+  dependencies: probing `/` redirects to an auth-app that is not running, and
+  probing `/api/config` 500s until config-service is. marketplace-admin-app
+  exposes `/api/health` for exactly this and exempts it in the matcher.
+
+A guarded **service** suite takes the same shape: `defineServiceE2e` accepts an
+`authorization` hook so the journeys run as a principal instead of every spec
+turning into an authentication test. The guard itself is asserted separately,
+where omitting or corrupting the header is the point.
+
 **Resolution.** Every `e2e` target gets `NODE_OPTIONS=--conditions=@r10c/source`
 from `nx.json`. Vitest applies that condition itself, but Playwright resolves
 specs with plain Node and would otherwise land on a package's `dist/` — which
