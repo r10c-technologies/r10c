@@ -22,7 +22,7 @@ export interface IdentityProvider {
    */
   resolveIdentifier(
     type: string,
-    value: string
+    value: string,
   ): Effect<UserIdentity, EntifixError>;
 }
 

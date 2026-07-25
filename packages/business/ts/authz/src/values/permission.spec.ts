@@ -1,4 +1,4 @@
-import { EntifixBuildError,entity } from '@r10c/entifix-ts-core';
+import { EntifixBuildError, entity } from '@r10c/entifix-ts-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -81,7 +81,10 @@ describe('permission values', () => {
   describe('permissionMatches', () => {
     it('matches an exact permission', () => {
       expect(
-        permissionMatches('authn:user-identity:read', 'authn:user-identity:read'),
+        permissionMatches(
+          'authn:user-identity:read',
+          'authn:user-identity:read',
+        ),
       ).toBe(true);
     });
 

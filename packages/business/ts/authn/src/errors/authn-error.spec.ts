@@ -20,7 +20,9 @@ describe('the authn errors', () => {
   });
 
   it('keeps the two tags distinct', () => {
-    expect(new UnauthenticatedError('a')._tag).not.toBe(new AuthnError('a')._tag);
+    expect(new UnauthenticatedError('a')._tag).not.toBe(
+      new AuthnError('a')._tag,
+    );
   });
 
   it('carries a cause and details through', () => {

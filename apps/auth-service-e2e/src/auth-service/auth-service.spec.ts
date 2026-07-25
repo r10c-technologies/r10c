@@ -40,7 +40,8 @@ describe('auth-service', () => {
       expect(res.status).toBe(201);
       expect(typeof res.data.accessToken).toBe('string');
       expect(typeof res.data.sessionId).toBe('string');
-      expect(res.data.principal.roles).toEqual([]);
+      // Public signup always lands on the lowest tier, whatever the body says.
+      expect(res.data.principal.roles).toEqual(['user']);
     });
 
     it('logs in with either identifier', async () => {

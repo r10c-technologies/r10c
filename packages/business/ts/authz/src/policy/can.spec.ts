@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { CATALOG_DOMAIN, ROLE_PERMISSIONS } from '../values/role-permissions.js';
+import {
+  CATALOG_DOMAIN,
+  ROLE_PERMISSIONS,
+} from '../values/role-permissions.js';
 import { can, permissionsOf } from './can.js';
 
 describe('permissionsOf', () => {

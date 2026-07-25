@@ -27,14 +27,16 @@ export const makeRedisIdentityProvider = (
   sessionStore: SessionStore,
   accounts: AccountRepository,
 ): IdentityProvider => ({
-  resolveSession: (sessionId) =>
+  resolveSession: sessionId =>
     sessionStore.read(sessionId).pipe(Effect.map(toPrincipal)),
   resolveIdentifier: (_type, value) =>
-    accounts.findByIdentifier(value).pipe(
-      Effect.flatMap((user) =>
-        user === null
-          ? Effect.fail(new UnauthenticatedError('unknown identifier'))
-          : Effect.succeed(user),
+    accounts
+      .findByIdentifier(value)
+      .pipe(
+        Effect.flatMap(user =>
+          user === null
+            ? Effect.fail(new UnauthenticatedError('unknown identifier'))
+            : Effect.succeed(user),
+        ),
       ),
-    ),
 });

@@ -29,6 +29,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${CATALOG_DOMAIN}:*:delete`,
     `${AUTHN_DOMAIN}:user-identity:read`,
     `${AUTHN_DOMAIN}:user-identity:write`,
+    // Reading identifiers is how the user list shows who an account is; it is
+    // granted explicitly rather than as `authn:*:read` so a future sensitive
+    // entity in this domain is not swept in by accident.
+    `${AUTHN_DOMAIN}:entity-identifier:read`,
   ],
   // The developer tier: everything, including future tooling not yet modelled.
   'super-admin': ['*:*:*'],

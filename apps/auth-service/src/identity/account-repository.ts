@@ -4,6 +4,7 @@ import {
   type AccountRepository,
   AuthnError,
   type CreateAccountInput,
+  type UpdateUserAspects,
   UserIdentity,
 } from '@r10c/business-ts-authn';
 import {
@@ -41,7 +42,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
     Effect.gen(function* () {
       const identifierDoc = yield* Effect.tryPromise({
         try: () => identifiers.findOne({ value }, WITHOUT_MONGO_ID),
-        catch: (error) => fail('Failed to read identifier from MongoDB', error),
+        catch: error => fail('Failed to read identifier from MongoDB', error),
       });
       if (identifierDoc === null) {
         return null;
@@ -49,17 +50,53 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       const userDoc = yield* Effect.tryPromise({
         try: () =>
           users.findOne({ id: identifierDoc['userId'] }, WITHOUT_MONGO_ID),
-        catch: (error) => fail('Failed to read user from MongoDB', error),
+        catch: error => fail('Failed to read user from MongoDB', error),
       });
       const user = yield* deserializeSingleEntity(UserIdentity, userDoc);
       return (user as UserIdentity | undefined) ?? null;
+    });
+
+  const findById = (userId: EntityId) =>
+    Effect.gen(function* () {
+      const userDoc = yield* Effect.tryPromise({
+        try: () => users.findOne({ id: userId }, WITHOUT_MONGO_ID),
+        catch: error => fail('Failed to read user from MongoDB', error),
+      });
+      const user = yield* deserializeSingleEntity(UserIdentity, userDoc);
+      return (user as UserIdentity | undefined) ?? null;
+    });
+
+  const updateUserAspects = (userId: EntityId, changes: UpdateUserAspects) =>
+    Effect.gen(function* () {
+      // Only the aspects that were actually supplied are written, so a partial
+      // PATCH never blanks the member it left out.
+      const update: Record<string, unknown> = {};
+      if (changes.role !== undefined) {
+        update['role'] = changes.role;
+      }
+      if (changes.status !== undefined) {
+        update['status'] = changes.status;
+      }
+
+      yield* Effect.tryPromise({
+        try: () => users.updateOne({ id: userId }, { $set: update }),
+        catch: error => fail('Failed to update user in MongoDB', error),
+      });
+
+      const updated = yield* findById(userId);
+      if (updated === null) {
+        return yield* Effect.fail(
+          new AuthnError('user not found', undefined, { userId }),
+        );
+      }
+      return updated;
     });
 
   const readPasswordHash = (userId: EntityId) =>
     Effect.gen(function* () {
       const doc = yield* Effect.tryPromise({
         try: () => credentials.findOne({ userId }, WITHOUT_MONGO_ID),
-        catch: (error) => fail('Failed to read credential from MongoDB', error),
+        catch: error => fail('Failed to read credential from MongoDB', error),
       });
       return (doc?.['passwordHash'] as string | undefined) ?? null;
     });
@@ -71,7 +108,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       for (const identifier of input.identifiers) {
         const existing = yield* Effect.tryPromise({
           try: () => identifiers.findOne({ value: identifier.value }),
-          catch: (error) =>
+          catch: error =>
             fail('Failed to check identifier uniqueness in MongoDB', error),
         });
         if (existing !== null) {
@@ -84,7 +121,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       }
 
       const userId = randomUUID();
-      const identifierDocs = input.identifiers.map((identifier) => ({
+      const identifierDocs = input.identifiers.map(identifier => ({
         id: randomUUID(),
         userId,
         type: identifier.type,
@@ -96,28 +133,38 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
         displayName: input.displayName,
         status: 'active',
         role: input.role,
-        identifiers: identifierDocs.map((doc) => doc.id),
+        identifiers: identifierDocs.map(doc => doc.id),
       };
 
       // `insertMany` (even for a single doc) is the one insert form the shared
       // Mongo fake implements, so the same adapter runs in the hermetic e2e.
       yield* Effect.tryPromise({
         try: () => users.insertMany([{ ...userDoc }]),
-        catch: (error) => fail('Failed to insert user into MongoDB', error),
-      });
-      yield* Effect.tryPromise({
-        try: () => identifiers.insertMany(identifierDocs.map((doc) => ({ ...doc }))),
-        catch: (error) => fail('Failed to insert identifiers into MongoDB', error),
+        catch: error => fail('Failed to insert user into MongoDB', error),
       });
       yield* Effect.tryPromise({
         try: () =>
-          credentials.insertMany([{ userId, passwordHash: input.passwordHash }]),
-        catch: (error) => fail('Failed to insert credential into MongoDB', error),
+          identifiers.insertMany(identifierDocs.map(doc => ({ ...doc }))),
+        catch: error =>
+          fail('Failed to insert identifiers into MongoDB', error),
+      });
+      yield* Effect.tryPromise({
+        try: () =>
+          credentials.insertMany([
+            { userId, passwordHash: input.passwordHash },
+          ]),
+        catch: error => fail('Failed to insert credential into MongoDB', error),
       });
 
       const created = yield* deserializeSingleEntity(UserIdentity, userDoc);
       return created as UserIdentity;
     });
 
-  return { findByIdentifier, readPasswordHash, createAccount };
+  return {
+    findByIdentifier,
+    findById,
+    readPasswordHash,
+    createAccount,
+    updateUserAspects,
+  };
 };

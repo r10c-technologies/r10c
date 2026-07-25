@@ -363,6 +363,9 @@ importers:
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/business

@@ -79,7 +79,10 @@ const base = Layer.mergeAll(
   ),
   Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher()),
   // The fake ioredis honours set/get/expire/sadd — enough for the session store.
-  Layer.succeed(SessionStoreTag, makeRedisSessionStore(fakeRedis.redis as never)),
+  Layer.succeed(
+    SessionStoreTag,
+    makeRedisSessionStore(fakeRedis.redis as never),
+  ),
 );
 
 const withAccounts = Layer.provideMerge(AccountRepositoryLayer, base);

@@ -34,33 +34,34 @@ export const userIdentitySeedData: ReadonlyArray<Record<string, unknown>> = [
   },
 ];
 
-export const entityIdentifierSeedData: ReadonlyArray<Record<string, unknown>> = [
-  {
-    id: 'identifier-1',
-    userId: 'user-1',
-    type: IdentifierType.Email,
-    value: 'ada@example.com',
-    verified: true,
-  },
-  {
-    id: 'identifier-2',
-    userId: 'user-1',
-    type: IdentifierType.Username,
-    value: 'ada',
-    verified: true,
-  },
-  {
-    id: 'identifier-3',
-    userId: 'user-2',
-    type: IdentifierType.Email,
-    value: 'alan@example.com',
-    verified: true,
-  },
-  {
-    id: 'identifier-4',
-    userId: 'user-3',
-    type: IdentifierType.Email,
-    value: 'grace@example.com',
-    verified: true,
-  },
-];
+export const entityIdentifierSeedData: ReadonlyArray<Record<string, unknown>> =
+  [
+    {
+      id: 'identifier-1',
+      userId: 'user-1',
+      type: IdentifierType.Email,
+      value: 'ada@example.com',
+      verified: true,
+    },
+    {
+      id: 'identifier-2',
+      userId: 'user-1',
+      type: IdentifierType.Username,
+      value: 'ada',
+      verified: true,
+    },
+    {
+      id: 'identifier-3',
+      userId: 'user-2',
+      type: IdentifierType.Email,
+      value: 'alan@example.com',
+      verified: true,
+    },
+    {
+      id: 'identifier-4',
+      userId: 'user-3',
+      type: IdentifierType.Email,
+      value: 'grace@example.com',
+      verified: true,
+    },
+  ];

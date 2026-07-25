@@ -18,12 +18,12 @@ describe('ROLE_PERMISSIONS', () => {
   it('gives a plain user catalog reads but no user management', () => {
     const granted = ROLE_PERMISSIONS.user;
     expect(
-      granted.some((permission) =>
+      granted.some(permission =>
         permissionMatches(permission, `${CATALOG_DOMAIN}:product:read`),
       ),
     ).toBe(true);
     expect(
-      granted.some((permission) =>
+      granted.some(permission =>
         permissionMatches(permission, `${AUTHN_DOMAIN}:user-identity:read`),
       ),
     ).toBe(false);
@@ -32,12 +32,12 @@ describe('ROLE_PERMISSIONS', () => {
   it('gives an admin catalog writes and user management', () => {
     const granted = ROLE_PERMISSIONS.admin;
     expect(
-      granted.some((permission) =>
+      granted.some(permission =>
         permissionMatches(permission, `${CATALOG_DOMAIN}:product:write`),
       ),
     ).toBe(true);
     expect(
-      granted.some((permission) =>
+      granted.some(permission =>
         permissionMatches(permission, `${AUTHN_DOMAIN}:user-identity:write`),
       ),
     ).toBe(true);

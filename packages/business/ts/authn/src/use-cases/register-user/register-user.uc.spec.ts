@@ -4,16 +4,16 @@ import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { IdentifierType } from '../../entities/entity-identifier/index.js';
-import { UserIdentity, UserStatus } from '../../entities/user-identity/index.js';
+import {
+  UserIdentity,
+  UserStatus,
+} from '../../entities/user-identity/index.js';
 import {
   AccountRepositoryTag,
   type CreateAccountInput,
   PasswordHasherTag,
 } from '../../repository/index.js';
-import {
-  RegisterInputTag,
-  registerUserUCFactory,
-} from './register-user.uc.js';
+import { RegisterInputTag, registerUserUCFactory } from './register-user.uc.js';
 
 const createdUser = (role: Role = DEFAULT_ROLE): UserIdentity => {
   const user = new UserIdentity();
@@ -29,15 +29,18 @@ const stubAccounts = (
 ) =>
   AccountRepositoryTag.of({
     findByIdentifier: () => Effect.succeed(null),
+    findById: () => Effect.succeed(null),
     readPasswordHash: () => Effect.succeed(null),
-    createAccount: (input) => {
+    createAccount: input => {
       onCreate(input);
       return Effect.succeed(createdUser(input.role));
     },
+    updateUserAspects: () =>
+      Effect.fail(new EntifixLogicError('not used in register')),
   });
 
 const hasher = PasswordHasherTag.of({
-  hash: (plain) => Effect.succeed(`hashed:${plain}`),
+  hash: plain => Effect.succeed(`hashed:${plain}`),
   verify: () => Effect.succeed(false),
 });
 
@@ -59,15 +62,13 @@ const runRegister = (
     ),
   );
 
-const anEmail = [
-  { type: IdentifierType.Email, value: 'grace@example.com' },
-];
+const anEmail = [{ type: IdentifierType.Email, value: 'grace@example.com' }];
 
 describe('registerUserUCFactory', () => {
   it('hashes the password, creates the account, and returns the auth subject', async () => {
     let received: CreateAccountInput | undefined;
     const exit = await runRegister(
-      stubAccounts((input) => {
+      stubAccounts(input => {
         received = input;
       }),
       [
@@ -106,9 +107,12 @@ describe('registerUserUCFactory', () => {
   it('propagates a store conflict', async () => {
     const conflicting = AccountRepositoryTag.of({
       findByIdentifier: () => Effect.succeed(null),
+      findById: () => Effect.succeed(null),
       readPasswordHash: () => Effect.succeed(null),
       createAccount: () =>
         Effect.fail(new EntifixLogicError('identifier already taken')),
+      updateUserAspects: () =>
+        Effect.fail(new EntifixLogicError('not used in register')),
     });
 
     const exit = await runRegister(conflicting, [
@@ -122,7 +126,7 @@ describe('registerUserUCFactory', () => {
     it('defaults to the lowest tier when none is requested', async () => {
       let received: CreateAccountInput | undefined;
       await runRegister(
-        stubAccounts((input) => {
+        stubAccounts(input => {
           received = input;
         }),
         anEmail,
@@ -134,7 +138,7 @@ describe('registerUserUCFactory', () => {
     it('lets an actor grant a role at its own tier', async () => {
       let received: CreateAccountInput | undefined;
       const exit = await runRegister(
-        stubAccounts((input) => {
+        stubAccounts(input => {
           received = input;
         }),
         anEmail,

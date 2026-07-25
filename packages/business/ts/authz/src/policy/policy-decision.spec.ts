@@ -2,7 +2,10 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { CATALOG_DOMAIN } from '../values/role-permissions.js';
-import { makeStaticPolicyDecision, PolicyDecisionTag } from './policy-decision.js';
+import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+} from './policy-decision.js';
 
 describe('makeStaticPolicyDecision', () => {
   const policy = makeStaticPolicyDecision();

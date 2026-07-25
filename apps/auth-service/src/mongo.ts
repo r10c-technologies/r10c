@@ -4,6 +4,10 @@ import {
   PasswordHasherTag,
 } from '@r10c/business-ts-authn';
 import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+} from '@r10c/business-ts-authz';
+import {
   ConfigurationRepositoryTag,
   SessionStoreTag,
   TokenServiceTag,
@@ -46,7 +50,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 /** Inserts seed docs into a collection when it is empty. */
 function seedCollection(
   collectionName: string,
-  data: ReadonlyArray<Record<string, unknown>>
+  data: ReadonlyArray<Record<string, unknown>>,
 ) {
   return Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -54,7 +58,7 @@ function seedCollection(
     const count = yield* Effect.promise(() => collection.countDocuments());
     if (count === 0 && data.length > 0) {
       yield* Effect.promise(() =>
-        collection.insertMany(data.map((item) => ({ ...item })))
+        collection.insertMany(data.map(item => ({ ...item }))),
       );
     }
   });
@@ -65,7 +69,7 @@ const seedUsers = Effect.all(
     seedCollection('user-identity', userIdentitySeedData),
     seedCollection('entity-identifier', entityIdentifierSeedData),
   ],
-  { discard: true }
+  { discard: true },
 );
 
 /**
@@ -82,11 +86,11 @@ const seedCredentials = Effect.gen(function* () {
     const passwordHash = yield* hasher.hash(DEV_SEED_PASSWORD);
     yield* Effect.promise(() =>
       collection.insertMany(
-        userIdentitySeedData.map((user) => ({
+        userIdentitySeedData.map(user => ({
           userId: user['id'],
           passwordHash,
-        }))
-      )
+        })),
+      ),
     );
   }
 });
@@ -94,7 +98,7 @@ const seedCredentials = Effect.gen(function* () {
 /** Account repository over the live Mongo connection. */
 const AccountRepositoryLayer = Layer.effect(
   AccountRepositoryTag,
-  Effect.map(MongoDatabaseTag, makeMongoAccountRepository)
+  Effect.map(MongoDatabaseTag, makeMongoAccountRepository),
 );
 
 /** The real identity provider, built from the session store + account repo. */
@@ -104,7 +108,7 @@ const IdentityProviderLayer = Layer.effect(
     const sessionStore = yield* SessionStoreTag;
     const accounts = yield* AccountRepositoryTag;
     return makeRedisIdentityProvider(sessionStore, accounts);
-  })
+  }),
 );
 
 /**
@@ -135,15 +139,19 @@ export const AppLayer = Layer.unwrapEffect(
           secret: jwtSecret,
           issuer: JWT_ISSUER,
           audience: JWT_AUDIENCE,
-        })
+        }),
       ),
-      Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher())
+      Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher()),
+      // The authorization policy behind `requirePermission`. Static
+      // role→permission table today; an attribute-aware engine would replace
+      // this one line.
+      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
     );
 
     // Session store + account repo build on the connections.
     const stores = Layer.provideMerge(
       Layer.mergeAll(RedisSessionStoreLayer(), AccountRepositoryLayer),
-      infra
+      infra,
     );
 
     // The identity provider consumes the session store + account repo.
@@ -151,8 +159,8 @@ export const AppLayer = Layer.unwrapEffect(
 
     // Seed users + their credentials once everything is wired.
     const seed = Layer.effectDiscard(
-      Effect.all([seedUsers, seedCredentials], { discard: true })
+      Effect.all([seedUsers, seedCredentials], { discard: true }),
     );
     return Layer.provideMerge(seed, withIdentity);
-  }).pipe(Effect.orDie)
+  }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);
