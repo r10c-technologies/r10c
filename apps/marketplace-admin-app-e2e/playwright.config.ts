@@ -11,4 +11,8 @@ export default defineEntifixE2eConfig({
   configFile: __filename,
   appDir: 'apps/marketplace-admin-app',
   port: 3001,
+  // The app is behind the auth middleware, so a probe against `/` redirects to
+  // an auth-app that is not running here. `/api/health` is exempt and depends on
+  // nothing.
+  readyPath: '/api/health',
 });

@@ -19,6 +19,12 @@
   ],
   "references": [
     {
+      "path": "../../../business/ts/authz/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/business/tsconfig.lib.json"
+    },
+    {
       "path": "../../../entifix/ts/core/tsconfig.lib.json"
     },
     {

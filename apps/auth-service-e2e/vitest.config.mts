@@ -18,4 +18,9 @@ export default defineEntifixTest({
   root: __dirname,
   thresholds: false,
   exclude: mock ? ['**/*.live.spec.ts'] : ['**/*.mock.spec.ts'],
+  // Booting the service seeds credentials, which means a bcrypt hash — the
+  // hasher is pure JS and bcrypt is slow by design. That fits in Vitest's 10s
+  // hook budget on a developer machine and does not on a CI runner, where it
+  // failed every spec in the file before one had run.
+  hookTimeout: 60_000,
 });

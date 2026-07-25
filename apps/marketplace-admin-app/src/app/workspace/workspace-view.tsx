@@ -55,9 +55,7 @@ export function WorkspaceView() {
           No open tabs. Pick a catalog from the sidebar to start.
         </p>
       }
-      fallback={
-        <p className="text-danger">This tab can’t be opened here.</p>
-      }
+      fallback={<p className="text-danger">This tab can’t be opened here.</p>}
     />
   );
 }

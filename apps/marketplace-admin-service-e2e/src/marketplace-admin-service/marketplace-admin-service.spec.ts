@@ -1,6 +1,7 @@
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
+import { bearerFor } from '../support/tokens';
 
 /**
  * The marketplace-admin-service HTTP surface, in both profiles.
@@ -14,6 +15,9 @@ import { startMockService } from '../support/mock-service';
 const service = defineServiceE2e({
   liveUrlEnvVar: 'MARKETPLACE_ADMIN_SERVICE_URL',
   startMock: startMockService,
+  // The catalog routes are guarded now, so these journeys run as an admin.
+  // Whether the guard itself works is `auth-guard.mock.spec.ts`'s job.
+  authorization: () => bearerFor(['admin']),
 });
 
 /**

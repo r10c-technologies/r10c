@@ -15,7 +15,7 @@ import { Effect } from 'effect';
 export function makeStubIdentityProvider(): IdentityProvider {
   return {
     resolveSession(
-      sessionId: string
+      sessionId: string,
     ): Effect.Effect<Principal, UnauthenticatedError> {
       if (!sessionId) {
         return Effect.fail(new UnauthenticatedError('empty session id'));
@@ -34,10 +34,12 @@ export function makeStubIdentityProvider(): IdentityProvider {
 
     resolveIdentifier(
       type: string,
-      value: string
+      value: string,
     ): Effect.Effect<never, UnauthenticatedError> {
       return Effect.fail(
-        new UnauthenticatedError(`stub cannot resolve identifier ${type}:${value}`)
+        new UnauthenticatedError(
+          `stub cannot resolve identifier ${type}:${value}`,
+        ),
       );
     },
   };

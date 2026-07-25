@@ -155,7 +155,7 @@ export const describeEventBusContract = (
       const harness = await makeHarness();
       const received: TransactionEvent[] = [];
       await run(
-        harness.bus.subscribe((event) =>
+        harness.bus.subscribe(event =>
           Effect.sync(() => {
             received.push(event);
           }),
@@ -164,7 +164,7 @@ export const describeEventBusContract = (
 
       await harness.deliver(anEvent('tx-2'));
 
-      expect(received.map((event) => event.transactionId)).toEqual(['tx-2']);
+      expect(received.map(event => event.transactionId)).toEqual(['tx-2']);
     });
 
     it('preserves publication order', async () => {
@@ -173,7 +173,7 @@ export const describeEventBusContract = (
       await run(harness.bus.publish(anEvent('tx-3')));
       await run(harness.bus.publish(anEvent('tx-4')));
 
-      expect(harness.published().map((event) => event.transactionId)).toEqual([
+      expect(harness.published().map(event => event.transactionId)).toEqual([
         'tx-3',
         'tx-4',
       ]);

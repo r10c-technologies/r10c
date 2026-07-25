@@ -28,11 +28,14 @@ const NON_TERMINAL: readonly TransactionState[] = ['PENDING'];
 export const makeMongoTransactionStore = (db: Db): TransactionStore => {
   const collection = db.collection<TransactionRecord>(COLLECTION);
 
-  const fail = (message: string, error: unknown, details?: Record<string, unknown>) =>
-    new EntifixConnError(message, error, details);
+  const fail = (
+    message: string,
+    error: unknown,
+    details?: Record<string, unknown>,
+  ) => new EntifixConnError(message, error, details);
 
   return {
-    upsertFromEvent: (event) =>
+    upsertFromEvent: event =>
       Effect.gen(function* () {
         const set: Record<string, unknown> = {
           entity: event.entity,
@@ -56,7 +59,7 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
               },
               { upsert: true },
             ),
-          catch: (error) =>
+          catch: error =>
             fail('Failed to upsert transaction record', error, {
               transactionId: event.transactionId,
             }),
@@ -68,7 +71,7 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
               { transactionId: event.transactionId },
               WITHOUT_MONGO_ID,
             ),
-          catch: (error) =>
+          catch: error =>
             fail('Failed to read back transaction record', error, {
               transactionId: event.transactionId,
             }),
@@ -76,20 +79,20 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
         return record as TransactionRecord;
       }),
 
-    get: (transactionId) =>
+    get: transactionId =>
       Effect.tryPromise({
         try: () => collection.findOne({ transactionId }, WITHOUT_MONGO_ID),
-        catch: (error) =>
+        catch: error =>
           fail('Failed to read transaction record', error, { transactionId }),
-      }).pipe(Effect.map((doc) => doc ?? undefined)),
+      }).pipe(Effect.map(doc => doc ?? undefined)),
 
     list: () =>
       Effect.tryPromise({
         try: () => collection.find({}, WITHOUT_MONGO_ID).toArray(),
-        catch: (error) => fail('Failed to list transaction records', error),
+        catch: error => fail('Failed to list transaction records', error),
       }),
 
-    findStale: (olderThanMs) =>
+    findStale: olderThanMs =>
       Effect.tryPromise({
         try: () => {
           const cutoff = new Date(Date.now() - olderThanMs).toISOString();
@@ -100,10 +103,10 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
             )
             .toArray();
         },
-        catch: (error) => fail('Failed to query stale transactions', error),
+        catch: error => fail('Failed to query stale transactions', error),
       }),
 
-    markStale: (transactionId) =>
+    markStale: transactionId =>
       Effect.tryPromise({
         // Guard on state so a race with a terminal event can never downgrade a
         // COMPLETED/FAILED record back to STALE — only a still-PENDING one.
@@ -112,7 +115,7 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
             { transactionId, state: { $in: NON_TERMINAL } },
             { $set: { state: 'STALE', updatedAt: new Date().toISOString() } },
           ),
-        catch: (error) =>
+        catch: error =>
           fail('Failed to mark transaction stale', error, { transactionId }),
       }).pipe(Effect.asVoid),
   };
@@ -132,7 +135,7 @@ export const MongoTransactionStoreLayer = Layer.effect(
         db
           .collection(COLLECTION)
           .createIndex({ transactionId: 1 }, { unique: true }),
-      catch: (error) =>
+      catch: error =>
         new EntifixConnError('Failed to create transactions index', error),
     });
     return makeMongoTransactionStore(db);

@@ -2,7 +2,10 @@ import { EntifixLogicError } from '@r10c/entifix-ts-core';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { UserIdentity, UserStatus } from '../../entities/user-identity/index.js';
+import {
+  UserIdentity,
+  UserStatus,
+} from '../../entities/user-identity/index.js';
 import {
   AccountRepositoryTag,
   PasswordHasherTag,
@@ -14,6 +17,7 @@ const userNamed = (status: UserStatus = UserStatus.Active): UserIdentity => {
   user.id = 'user-1';
   user.displayName = 'Ada Lovelace';
   user.status = status;
+  user.role = 'super-admin';
   return user;
 };
 
@@ -22,12 +26,16 @@ interface StubAccount {
   hash?: string | null;
 }
 
+const unusedInLogin = () =>
+  Effect.fail(new EntifixLogicError('not used in login'));
+
 const stubAccounts = ({ user = null, hash = null }: StubAccount) =>
   AccountRepositoryTag.of({
     findByIdentifier: () => Effect.succeed(user),
+    findById: () => Effect.succeed(user),
     readPasswordHash: () => Effect.succeed(hash),
-    createAccount: () =>
-      Effect.fail(new EntifixLogicError('not used in login')),
+    createAccount: unusedInLogin,
+    updateUserAspects: unusedInLogin,
   });
 
 const stubHasher = (matches: boolean) =>
@@ -63,7 +71,8 @@ describe('loginUCFactory', () => {
       expect(exit.value).toEqual({
         userId: 'user-1',
         subject: 'user-1',
-        roles: [],
+        // The user's role aspect is what a downstream policy decision reads.
+        roles: ['super-admin'],
         attributes: { displayName: 'Ada Lovelace', status: UserStatus.Active },
       });
     }
@@ -86,12 +95,15 @@ describe('loginUCFactory', () => {
       stubAccounts({ user: userNamed(), hash: 'stored-hash' }),
       stubHasher(false),
     ],
-  ])('fails with UnauthenticatedError for %s', async (_label, accounts, hasher) => {
-    const exit = await runLogin(accounts, hasher);
+  ])(
+    'fails with UnauthenticatedError for %s',
+    async (_label, accounts, hasher) => {
+      const exit = await runLogin(accounts, hasher);
 
-    expect(Exit.isFailure(exit)).toBe(true);
-    if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
-      expect(exit.cause.error._tag).toBe('UnauthenticatedError');
-    }
-  });
+      expect(Exit.isFailure(exit)).toBe(true);
+      if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
+        expect(exit.cause.error._tag).toBe('UnauthenticatedError');
+      }
+    },
+  );
 });

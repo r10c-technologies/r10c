@@ -145,7 +145,7 @@ const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
 /** Postgres client layer; `CONFIG_PG_URL` is the bootstrap connection string. */
 const PgClientLive = PgClient.layerConfig({
   url: Config.redacted('CONFIG_PG_URL').pipe(
-    Config.withDefault(Redacted.make(DEFAULT_PG_URL))
+    Config.withDefault(Redacted.make(DEFAULT_PG_URL)),
   ),
 });
 
@@ -174,7 +174,7 @@ const migrateAndSeed = Effect.gen(function* () {
   `;
 
   yield* sql`INSERT INTO configuration ${sql.insert(
-    SEED_ROWS as unknown as Record<string, unknown>[]
+    SEED_ROWS as unknown as Record<string, unknown>[],
   )} ON CONFLICT (service, group_name, key) DO NOTHING`;
 });
 
@@ -184,5 +184,5 @@ const migrateAndSeed = Effect.gen(function* () {
  */
 export const DbLive = Layer.provideMerge(
   Layer.effectDiscard(migrateAndSeed),
-  PgClientLive
+  PgClientLive,
 ).pipe(Layer.orDie);

@@ -89,7 +89,9 @@ const messageToString = (message: unknown): string =>
  * logs from `HttpMiddleware.logger`) to the tooling logger — so the whole
  * service logs through one structured, trace-correlated pipeline.
  */
-const makeEffectLogger = (logger: ToolingLogger): Logger.Logger<unknown, void> =>
+const makeEffectLogger = (
+  logger: ToolingLogger,
+): Logger.Logger<unknown, void> =>
   Logger.make(({ logLevel, message }) => {
     logger[toToolingLevel(logLevel.label)](messageToString(message));
   });

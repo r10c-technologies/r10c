@@ -33,11 +33,36 @@ const lastQuery = (requests: Request[]): URLSearchParams => {
   return new URL(latest.url()).searchParams;
 };
 
+/**
+ * Wait until the listing stops issuing requests of its own.
+ *
+ * Rows on screen is not the same as the page having gone quiet: the shell now
+ * renders on the server (it reads the session cookie to filter the nav), so
+ * hydration — and any load it kicks off — settles a beat after the first paint.
+ * A spec that measures what the page sends *next* has to start from silence.
+ * `networkidle` is no use here, because msw's interception keeps the page busy
+ * for the whole run.
+ */
+const waitForQuiet = async (requests: Request[]) => {
+  let seen = -1;
+  await expect
+    .poll(
+      () => {
+        const settled = seen === requests.length;
+        seen = requests.length;
+        return settled;
+      },
+      { intervals: [250, 250, 250, 250] },
+    )
+    .toBe(true);
+};
+
 const openBrands = async (page: Page) => {
   const requests = recordRequests(page);
   const table = new EntityTablePage(page);
   await page.goto('/catalog/product-brand');
   await table.waitForRows();
+  await waitForQuiet(requests);
   return { table, requests };
 };
 
@@ -151,9 +176,7 @@ test.describe('the query the catalog emits', () => {
     // filter on it. The restored full set is the observable proof.
     await expect
       .poll(async () =>
-        (await table.columnValues('Name')).some(
-          name => !name.includes('Acme'),
-        ),
+        (await table.columnValues('Name')).some(name => !name.includes('Acme')),
       )
       .toBe(true);
     for (const request of requests) {

@@ -10,7 +10,7 @@ const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
 
 /** Turns flat `configuration` rows into the `ConfigurationPlain` contract. */
 function toConfigurationPlain(
-  rows: ReadonlyArray<Pick<ConfigurationRow, 'group_name' | 'key' | 'value'>>
+  rows: ReadonlyArray<Pick<ConfigurationRow, 'group_name' | 'key' | 'value'>>,
 ): ConfigurationPlain {
   const plain: ConfigurationPlain = {};
   for (const row of rows) {
@@ -22,7 +22,7 @@ function toConfigurationPlain(
 const onSqlError = (error: SqlError.SqlError) =>
   HttpServerResponse.json(
     { error: 'configuration store unavailable', detail: error.message },
-    { status: 500 }
+    { status: 500 },
   );
 
 /**
@@ -50,9 +50,9 @@ export const router = HttpRouter.empty.pipe(
         store: 'postgres',
         pgUrl: redactValue(process.env.CONFIG_PG_URL ?? DEFAULT_PG_URL),
         rowCount: counts[0]?.count ?? 0,
-        services: services.map((row) => row.service),
+        services: services.map(row => row.service),
       });
-    }).pipe(Effect.catchTag('SqlError', onSqlError))
+    }).pipe(Effect.catchTag('SqlError', onSqlError)),
   ),
   HttpRouter.get(
     '/api/config/:service',
@@ -66,6 +66,6 @@ export const router = HttpRouter.empty.pipe(
       >`SELECT group_name, key, value FROM configuration WHERE service = ${service}`;
 
       return yield* HttpServerResponse.json(toConfigurationPlain(rows));
-    }).pipe(Effect.catchTag('SqlError', onSqlError))
-  )
+    }).pipe(Effect.catchTag('SqlError', onSqlError)),
+  ),
 );

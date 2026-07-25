@@ -22,6 +22,9 @@
   ],
   "references": [
     {
+      "path": "../../packages/business/ts/authz/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {

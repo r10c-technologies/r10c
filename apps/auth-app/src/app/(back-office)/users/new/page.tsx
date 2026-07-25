@@ -1,0 +1,133 @@
+'use client';
+
+import { Roles } from '@r10c/business-ts-authz';
+import {
+  Button,
+  Card,
+  Select,
+  Stack,
+  TextInput,
+} from '@r10c/entifix-react-controls';
+import { useRouter } from 'next/navigation';
+import { type FormEvent, type ReactNode, useState } from 'react';
+
+/**
+ * Create a user. Deliberately a hand-written form rather than `EntityForm`:
+ * creation is not an entity write. It carries a password and an identifier that
+ * `UserIdentity` does not model, and it runs the same registration use-case
+ * public signup does — so the fields are that use-case's inputs, not the
+ * entity's members.
+ *
+ * The role select offers every tier; auth-service rejects anything above the
+ * caller's own, which is the check that counts.
+ */
+export default function NewUserPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<string>('user');
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | undefined>(undefined);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setMessage(undefined);
+
+    const res = await fetch('/api/user-identity', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        displayName,
+        password,
+        role,
+        identifiers: [{ type: 'email', value: email }],
+      }),
+    });
+    const body = await res.json();
+    setIsSaving(false);
+
+    if (!res.ok) {
+      setMessage(body?.error ?? 'could not create the user');
+      return;
+    }
+    router.push('/users');
+    router.refresh();
+  };
+
+  const field = (id: string, label: string, control: ReactNode) => (
+    <Stack gap="3xs">
+      <label htmlFor={id} className="text-step-sm text-content-muted">
+        {label}
+      </label>
+      {control}
+    </Stack>
+  );
+
+  return (
+    <Card>
+      <form onSubmit={submit}>
+        <Stack gap="s">
+          <h1 className="text-step-1 font-semibold">New user</h1>
+          {message ? (
+            <p role="alert" className="text-danger">
+              {message}
+            </p>
+          ) : null}
+
+          {field(
+            'new-user-email',
+            'Email',
+            <TextInput
+              id="new-user-email"
+              type="email"
+              value={email}
+              required
+              onChange={event => setEmail(event.currentTarget.value)}
+            />,
+          )}
+          {field(
+            'new-user-display-name',
+            'Display name',
+            <TextInput
+              id="new-user-display-name"
+              value={displayName}
+              onChange={event => setDisplayName(event.currentTarget.value)}
+            />,
+          )}
+          {field(
+            'new-user-password',
+            'Password',
+            <TextInput
+              id="new-user-password"
+              type="password"
+              value={password}
+              required
+              onChange={event => setPassword(event.currentTarget.value)}
+            />,
+          )}
+          {field(
+            'new-user-role',
+            'Role',
+            <Select
+              id="new-user-role"
+              value={role}
+              onChange={event => setRole(event.currentTarget.value)}
+            >
+              {Roles.map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </Select>,
+          )}
+
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? 'Creating…' : 'Create user'}
+          </Button>
+        </Stack>
+      </form>
+    </Card>
+  );
+}

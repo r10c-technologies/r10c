@@ -17,7 +17,7 @@ import { router } from './routes';
 loadEnv({
   path: resolve(
     process.cwd(),
-    process.env.CONFIG_ENV_FILE ?? 'apps/config-service/.env'
+    process.env.CONFIG_ENV_FILE ?? 'apps/config-service/.env',
   ),
 });
 

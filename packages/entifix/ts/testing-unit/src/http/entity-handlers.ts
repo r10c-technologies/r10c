@@ -30,7 +30,7 @@ export const entityRestHandlers = <TEntity extends Entity>(
   const rows = data;
 
   const findById = (id: string): TEntity | undefined =>
-    rows.find((row) => String(row.id) === id);
+    rows.find(row => String(row.id) === id);
 
   return [
     http.get(baseUrl, ({ request }) => {
@@ -71,8 +71,11 @@ export const entityRestHandlers = <TEntity extends Entity>(
     http.put(`${baseUrl}/:id`, async ({ params, request }) => {
       const body = (await request.json()) as { data: Record<string, unknown> };
       const id = String(params['id']);
-      const index = rows.findIndex((row) => String(row.id) === id);
-      const updated = Object.assign(new entityConstructor(), body.data) as TEntity;
+      const index = rows.findIndex(row => String(row.id) === id);
+      const updated = Object.assign(
+        new entityConstructor(),
+        body.data,
+      ) as TEntity;
       if (index === -1) {
         rows.push(updated);
       } else {
@@ -86,7 +89,7 @@ export const entityRestHandlers = <TEntity extends Entity>(
     // empty body would fail that parse — which is what the services do too.
     http.delete(`${baseUrl}/:id`, ({ params }) => {
       const id = String(params['id']);
-      const index = rows.findIndex((row) => String(row.id) === id);
+      const index = rows.findIndex(row => String(row.id) === id);
       const [removed] = index === -1 ? [] : rows.splice(index, 1);
       return HttpResponse.json(
         makeEntityEnvelope(
@@ -136,7 +139,10 @@ export const respondWithNonJson = (
   url: string,
   method: 'get' | 'post' | 'put' | 'delete' = 'get',
 ): RequestHandler =>
-  http[method](url, () => new HttpResponse('<html>nope</html>', { status: 200 }));
+  http[method](
+    url,
+    () => new HttpResponse('<html>nope</html>', { status: 200 }),
+  );
 
 /** Fails the request at the transport level, as a dropped connection would. */
 export const respondWithNetworkError = (

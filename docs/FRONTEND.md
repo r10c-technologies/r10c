@@ -299,13 +299,21 @@ shells, per the design-system rule.
 
 ## Component / package map
 
-| Concern                                                                                     | Package                               |
-| ------------------------------------------------------------------------------------------- | ------------------------------------- |
-| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm` | `@r10c/entifix-react-integration`     |
+| Concern                                                                                                                                   | Package                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`                               | `@r10c/entifix-react-integration`     |
 | Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`/`Tab`; IndexedDB `UiPreferencesStore` | `@r10c/entifix-react-controls`        |
-| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome      | `@r10c/shells-next-common`            |
-| `PageView({addr})` pages, registrations, adapters                                           | `@r10c/shells-next-marketplace-admin` |
-| `/workspace` route, `QueryClientProvider`, "Open in workspace" nav                          | `marketplace-admin-app`               |
+| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                    | `@r10c/shells-next-common`            |
+| `PageView({addr})` pages, registrations, adapters                                                                                         | `@r10c/shells-next-marketplace-admin` |
+| `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions)        | `marketplace-admin-app`               |
+| `(back-office)` user management over `EntityTable`/`EntityForm`, proxy route handlers                                                     | `auth-app`                            |
+
+**Navigation is permission-filtered, server-side.** One definition per app
+(`lib/nav`) carries a `permission` per item; the sidebar layout and the workspace
+menu both derive from it, so the two lists cannot disagree. Filtering is
+presentation — the service refuses the request regardless — which is why the
+roles behind it may be read from the cookie unverified. See
+[ARCHITECTURE → Authorization](./ARCHITECTURE.md#authorization-role-aspects--permissions).
 
 ## Deferred
 

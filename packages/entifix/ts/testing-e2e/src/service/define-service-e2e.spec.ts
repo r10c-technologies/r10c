@@ -3,10 +3,20 @@ import type { AddressInfo } from 'node:net';
 
 import { defineServiceE2e, type ServiceE2eContext } from './define-service-e2e';
 
-/** A stand-in for the service under test: answers `/api/health` and nothing else. */
+/**
+ * A stand-in for the service under test: answers `/api/health`, echoes the
+ * request's `Authorization` header back from `/api/whoami`, and 404s otherwise.
+ */
 const startStubService = (): Promise<{ server: Server; baseUrl: string }> =>
   new Promise(resolve => {
     const server = createServer((request, response) => {
+      if (request.url === '/api/whoami') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(
+          JSON.stringify({ authorization: request.headers.authorization }),
+        );
+        return;
+      }
       const ok = request.url === '/api/health';
       response.writeHead(ok ? 200 : 404, {
         'content-type': 'application/json',
@@ -96,6 +106,36 @@ describe('defineServiceE2e in the live profile', () => {
     const response = await context.client.get('/api/health');
 
     expect(response.status).toBe(200);
+  });
+});
+
+/**
+ * A guarded service answers 401 to an anonymous request, which would turn every
+ * journey in a suite into an authentication test. The `authorization` hook is
+ * how a suite presents a principal once, at start-up, instead.
+ */
+describe('defineServiceE2e with an authorization hook', () => {
+  process.env['E2E_PROFILE'] = 'mock';
+
+  let server: Server;
+
+  const context = defineServiceE2e({
+    liveUrlEnvVar: 'R10C_SPEC_SERVICE_URL',
+    startMock: async () => {
+      const stub = await startStubService();
+      server = stub.server;
+      return {
+        baseUrl: stub.baseUrl,
+        close: () => stopStubService(server),
+      };
+    },
+    authorization: () => Promise.resolve('Bearer spec-token'),
+  });
+
+  it('sends the header on every request the suite makes', async () => {
+    const response = await context.client.get('/api/whoami');
+
+    expect(response.data).toEqual({ authorization: 'Bearer spec-token' });
   });
 });
 

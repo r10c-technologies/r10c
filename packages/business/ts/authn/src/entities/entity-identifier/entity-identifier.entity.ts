@@ -16,7 +16,8 @@ export const IdentifierType = {
   ExternalSubject: 'external-subject',
 } as const;
 
-export type IdentifierType = (typeof IdentifierType)[keyof typeof IdentifierType];
+export type IdentifierType =
+  (typeof IdentifierType)[keyof typeof IdentifierType];
 
 @entity({ domain: 'authn', key: 'entity-identifier' })
 export class EntityIdentifier implements Entity {

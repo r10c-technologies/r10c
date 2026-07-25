@@ -2,6 +2,10 @@ import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
+import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+} from '@r10c/business-ts-authz';
 import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client';
 import { TokenServiceTag } from '@r10c/entifix-ts-business';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
@@ -69,6 +73,10 @@ const MockAppLayer = (() => {
         audience: AUTH_TOKEN_AUDIENCE,
       }),
     ),
+    // The real policy, not a fake: the grant table is what `requirePermission`
+    // consults, so stubbing it here would make every authorization assertion
+    // in this suite meaningless.
+    Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   );

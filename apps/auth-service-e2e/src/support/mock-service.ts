@@ -6,6 +6,7 @@ import {
   makeMongoAccountRepository,
   makeRedisIdentityProvider,
   router,
+  seedCredentials,
   SERVICE_NAME,
   userIdentitySeedData,
 } from '@r10c/auth-service';
@@ -14,6 +15,10 @@ import {
   IdentityProviderTag,
   PasswordHasherTag,
 } from '@r10c/business-ts-authn';
+import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+} from '@r10c/business-ts-authz';
 import { SessionStoreTag, TokenServiceTag } from '@r10c/entifix-ts-business';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
@@ -77,13 +82,35 @@ const base = Layer.mergeAll(
       audience: JWT_AUDIENCE,
     }),
   ),
-  Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher()),
+  // Real bcrypt, minimum work factor. The suite exercises the same hash and
+  // compare code paths the service runs, but cost 10 is ~64x the work of cost 4
+  // — and bcryptjs is pure JS that yields with `setImmediate` between rounds, so
+  // when CI runs every e2e project on one runner the saturated event loop
+  // stretches a single hash out until the boot hook times out. It passes alone
+  // and hangs in the full concurrent run. Cost belongs to the environment, not
+  // to what is under test; the service keeps its own default.
+  Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher(4)),
+  // The real grant table, not a fake — it is what `requirePermission` consults,
+  // so stubbing it would make every authorization assertion here meaningless.
+  Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
   // The fake ioredis honours set/get/expire/sadd — enough for the session store.
-  Layer.succeed(SessionStoreTag, makeRedisSessionStore(fakeRedis.redis as never)),
+  Layer.succeed(
+    SessionStoreTag,
+    makeRedisSessionStore(fakeRedis.redis as never),
+  ),
 );
 
 const withAccounts = Layer.provideMerge(AccountRepositoryLayer, base);
-const MockAppLayer = Layer.provideMerge(IdentityProviderLayer, withAccounts);
+const withIdentity = Layer.provideMerge(IdentityProviderLayer, withAccounts);
+
+// The seeded users need credentials or they cannot sign in, and the
+// authorization journeys are all "log in as X, then…". Reuses the service's own
+// seeding effect rather than a hand-written hash, so the mock cannot drift from
+// what a real boot produces.
+const MockAppLayer = Layer.provideMerge(
+  Layer.effectDiscard(seedCredentials.pipe(Effect.orDie)),
+  withIdentity,
+);
 
 /** Boots the service's real router in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>

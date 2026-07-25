@@ -4,7 +4,8 @@
  * so the swap causes no shift. Pure markup (no client imports) so it stays a
  * server component and paints instantly.
  */
-const shimmer = 'animate-pulse rounded-md bg-border/60 motion-reduce:animate-none';
+const shimmer =
+  'animate-pulse rounded-md bg-border/60 motion-reduce:animate-none';
 
 export default function WorkspaceLoading() {
   return (
@@ -20,7 +21,10 @@ export default function WorkspaceLoading() {
       </div>
       <div className="flex flex-col gap-2xs p-m">
         {Array.from({ length: 8 }, (_, index) => (
-          <div key={index} className={`${shimmer} h-4 ${index === 7 ? 'w-2/3' : 'w-full'} max-w-2xl`} />
+          <div
+            key={index}
+            className={`${shimmer} h-4 ${index === 7 ? 'w-2/3' : 'w-full'} max-w-2xl`}
+          />
         ))}
       </div>
     </div>

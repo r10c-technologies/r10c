@@ -11,7 +11,7 @@ import { runRepository, runRepositoryExit } from '../effect/run';
 import { makeInMemoryEntityRepository } from './entity-repository';
 
 describeEntityRepositoryContract('in-memory fake', {
-  makeRepository: (seed) => makeInMemoryEntityRepository(seed),
+  makeRepository: seed => makeInMemoryEntityRepository(seed),
 });
 
 describe('makeInMemoryEntityRepository', () => {
@@ -23,7 +23,7 @@ describe('makeInMemoryEntityRepository', () => {
   it('exposes what it holds, so specs can assert on state rather than calls', () => {
     const repository = makeInMemoryEntityRepository(seeded());
 
-    expect(repository.items.map((item) => item.id)).toEqual(['w-1', 'w-2']);
+    expect(repository.items.map(item => item.id)).toEqual(['w-1', 'w-2']);
   });
 
   it('replaces its contents on seed', () => {
@@ -31,7 +31,7 @@ describe('makeInMemoryEntityRepository', () => {
 
     repository.seed([makeContractWidget('w-9', 'Only', 90)]);
 
-    expect(repository.items.map((item) => item.id)).toEqual(['w-9']);
+    expect(repository.items.map(item => item.id)).toEqual(['w-9']);
   });
 
   it('arms a single failure so error branches are reachable', async () => {
@@ -69,7 +69,7 @@ describe('makeInMemoryEntityRepository', () => {
       }),
     );
 
-    expect(page.items.map((item) => item.id)).toEqual(['w-2']);
+    expect(page.items.map(item => item.id)).toEqual(['w-2']);
   });
 
   it('applies a nested or group', async () => {
@@ -93,7 +93,7 @@ describe('makeInMemoryEntityRepository', () => {
       }),
     );
 
-    expect(page.items.map((item) => item.id)).toEqual(['w-1', 'w-3']);
+    expect(page.items.map(item => item.id)).toEqual(['w-1', 'w-3']);
   });
 
   it('sorts missing values below present ones', async () => {
@@ -108,7 +108,7 @@ describe('makeInMemoryEntityRepository', () => {
       }),
     );
 
-    expect(page.items.map((item) => item.id)).toEqual(['w-2', 'w-1']);
+    expect(page.items.map(item => item.id)).toEqual(['w-2', 'w-1']);
   });
 });
 
@@ -130,7 +130,7 @@ describe('makeInMemoryEntityRepository filtering', () => {
         filtering: filtering as never,
       }),
     );
-    return page.items.map((item) => item.id);
+    return page.items.map(item => item.id);
   };
 
   it.each([
@@ -140,8 +140,16 @@ describe('makeInMemoryEntityRepository filtering', () => {
     ['gte', [{ property: 'size', operator: 'gte', value: 20 }], ['w-2', 'w-3']],
     ['lt', [{ property: 'size', operator: 'lt', value: 20 }], ['w-1']],
     ['lte', [{ property: 'size', operator: 'lte', value: 20 }], ['w-1', 'w-2']],
-    ['in', [{ property: 'id', operator: 'in', values: ['w-1', 'w-3'] }], ['w-1', 'w-3']],
-    ['nin', [{ property: 'id', operator: 'nin', values: ['w-1'] }], ['w-2', 'w-3']],
+    [
+      'in',
+      [{ property: 'id', operator: 'in', values: ['w-1', 'w-3'] }],
+      ['w-1', 'w-3'],
+    ],
+    [
+      'nin',
+      [{ property: 'id', operator: 'nin', values: ['w-1'] }],
+      ['w-2', 'w-3'],
+    ],
     [
       'between',
       [{ property: 'size', operator: 'between', start: 15, end: 25 }],
@@ -153,7 +161,11 @@ describe('makeInMemoryEntityRepository filtering', () => {
       ['w-1', 'w-3'],
     ],
     ['like', [{ property: 'name', operator: 'like', value: 'et' }], ['w-2']],
-    ['nlike', [{ property: 'name', operator: 'nlike', value: 'et' }], ['w-1', 'w-3']],
+    [
+      'nlike',
+      [{ property: 'name', operator: 'nlike', value: 'et' }],
+      ['w-1', 'w-3'],
+    ],
     ['isNull', [{ property: 'name', operator: 'isNull' }], []],
     [
       'isNotNull',
@@ -220,11 +232,13 @@ describe('makeInMemoryEntityRepository filtering', () => {
 
     const page = await runRepository(
       repository.load<ContractWidget>({
-        filtering: [{ property: 'name', operator: 'like', value: 'a.b' }] as never,
+        filtering: [
+          { property: 'name', operator: 'like', value: 'a.b' },
+        ] as never,
       }),
     );
 
-    expect(page.items.map((item) => item.id)).toEqual(['w-1']);
+    expect(page.items.map(item => item.id)).toEqual(['w-1']);
   });
 });
 
@@ -240,13 +254,25 @@ describe('makeInMemoryEntityRepository sorting', () => {
     const page = await runRepository(
       seeded().load<ContractWidget>({ sorting: sorting as never }),
     );
-    return page.items.map((item) => item.id);
+    return page.items.map(item => item.id);
   };
 
   it.each([
-    ['ascending', [{ 0: { property: 'size', type: 'asc' } }], ['w-2', 'w-3', 'w-1']],
-    ['descending', [{ 0: { property: 'size', type: 'desc' } }], ['w-1', 'w-3', 'w-2']],
-    ['a string member', [{ 0: { property: 'name', type: 'asc' } }], ['w-1', 'w-2', 'w-3']],
+    [
+      'ascending',
+      [{ 0: { property: 'size', type: 'asc' } }],
+      ['w-2', 'w-3', 'w-1'],
+    ],
+    [
+      'descending',
+      [{ 0: { property: 'size', type: 'desc' } }],
+      ['w-1', 'w-3', 'w-2'],
+    ],
+    [
+      'a string member',
+      [{ 0: { property: 'name', type: 'asc' } }],
+      ['w-1', 'w-2', 'w-3'],
+    ],
   ])('sorts %s', async (_label, sorting, expected) => {
     expect(await ordered(sorting)).toEqual(expected);
   });
@@ -272,7 +298,7 @@ describe('makeInMemoryEntityRepository sorting', () => {
       }),
     );
 
-    expect(page.items.map((item) => item.id)).toEqual(['w-2', 'w-1']);
+    expect(page.items.map(item => item.id)).toEqual(['w-2', 'w-1']);
   });
 });
 
@@ -291,7 +317,7 @@ describe('makeInMemoryEntityRepository value comparison', () => {
         sorting: [{ 0: { property: 'size', type: 'asc' } }] as never,
       }),
     );
-    return page.items.map((item) => item.id);
+    return page.items.map(item => item.id);
   };
 
   it('sorts an absent value first', async () => {
@@ -308,7 +334,10 @@ describe('makeInMemoryEntityRepository value comparison', () => {
 
   it('treats two absent values as equal', async () => {
     expect(
-      await ordered([widgetWith('w-1', undefined), widgetWith('w-2', undefined)]),
+      await ordered([
+        widgetWith('w-1', undefined),
+        widgetWith('w-2', undefined),
+      ]),
     ).toEqual(['w-1', 'w-2']);
   });
 
@@ -340,6 +369,6 @@ describe('makeInMemoryEntityRepository value comparison', () => {
       }),
     );
 
-    expect(page.items.map((item) => item.id)).toEqual(['w-1']);
+    expect(page.items.map(item => item.id)).toEqual(['w-1']);
   });
 });

@@ -60,7 +60,13 @@
       "path": "../../packages/shells/next/common"
     },
     {
+      "path": "../../packages/entifix/ts/jwt-client"
+    },
+    {
       "path": "../../packages/entifix/react/controls"
+    },
+    {
+      "path": "../../packages/business/ts/authz"
     }
   ]
 }

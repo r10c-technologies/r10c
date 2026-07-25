@@ -89,7 +89,7 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
    * The adapter acks/nacks from inside a floating promise chain, so a delivery
    * is only settled once the microtask queue drains.
    */
-  const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+  const settle = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
   const push = async (payload: string) => {
     if (consumer === undefined) {
@@ -112,8 +112,8 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
     get prefetchCount() {
       return prefetchCount;
     },
-    deliver: (body) => push(JSON.stringify(body)),
-    deliverRaw: (payload) => push(payload),
+    deliver: body => push(JSON.stringify(body)),
+    deliverRaw: payload => push(payload),
     deliverCancellation: async () => {
       if (consumer === undefined) {
         throw new Error('fake amqp: nothing subscribed yet');
@@ -121,7 +121,7 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
       consumer(null);
       await settle();
     },
-    failWith: (error) => {
+    failWith: error => {
       failure = error;
     },
     channel,

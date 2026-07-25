@@ -1,4 +1,6 @@
+import { DEFAULT_ROLE, Roles } from '@r10c/business-ts-authz';
 import {
+  describeEntityColumns,
   deserializeSingleEntity,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
@@ -9,7 +11,10 @@ import {
   EntityIdentifier,
   IdentifierType,
 } from './entity-identifier/entity-identifier.entity.js';
-import { UserIdentity, UserStatus } from './user-identity/user-identity.entity.js';
+import {
+  UserIdentity,
+  UserStatus,
+} from './user-identity/user-identity.entity.js';
 
 describe('EntityIdentifier', () => {
   it('takes its type and value from the constructor', () => {
@@ -22,7 +27,9 @@ describe('EntityIdentifier', () => {
   // A fresh identifier is unverified: treating an unverified address as
   // verified is exactly the mistake that lets an unproven email log in.
   it('starts unverified', () => {
-    expect(new EntityIdentifier(IdentifierType.Email, 'a@b.test').verified).toBe(false);
+    expect(
+      new EntityIdentifier(IdentifierType.Email, 'a@b.test').verified,
+    ).toBe(false);
   });
 
   it('round-trips every accessor through its setter', () => {
@@ -48,7 +55,9 @@ describe('EntityIdentifier', () => {
     const identifier = new EntityIdentifier(IdentifierType.Username, 'ada');
 
     expect(identifier.provider).toBeUndefined();
-    expect(serializeEntity(EntityIdentifier, identifier)).not.toHaveProperty('provider');
+    expect(serializeEntity(EntityIdentifier, identifier)).not.toHaveProperty(
+      'provider',
+    );
   });
 
   it('enumerates every way a user can present themselves', () => {
@@ -69,17 +78,41 @@ describe('UserIdentity', () => {
     expect(new UserIdentity().status).toBe(UserStatus.Active);
   });
 
+  // Same reasoning as `status`: an account that materializes without an
+  // explicit role must land on the least-privileged tier, never a higher one.
+  it('starts at the lowest role', () => {
+    expect(new UserIdentity().role).toBe(DEFAULT_ROLE);
+  });
+
   it('round-trips its scalar accessors', () => {
     const user = new UserIdentity();
     user.id = 'u-1';
     user.displayName = 'Ada';
     user.status = UserStatus.Suspended;
+    user.role = 'admin';
 
     expect(serializeEntity(UserIdentity, user)).toMatchObject({
       id: 'u-1',
       displayName: 'Ada',
       status: 'suspended',
+      role: 'admin',
     });
+  });
+
+  // The role has to arrive as a queryable enum member or generic UI cannot
+  // render it and the server-side filter allowlist will reject it.
+  it('describes the role as a filterable, sortable enum', () => {
+    const roleColumn = describeEntityColumns(UserIdentity).find(
+      column => column.name === 'role',
+    );
+
+    expect(roleColumn).toMatchObject({
+      type: 'enum',
+      label: 'Role',
+      sortable: true,
+      filterable: true,
+    });
+    expect(roleColumn?.enumValues).toEqual([...Roles]);
   });
 
   it('initializes identifiers as an empty collection link', () => {
@@ -96,22 +129,29 @@ describe('UserIdentity', () => {
         id: 'u-1',
         identifiers: [
           { id: 'i-1', type: 'email', value: 'a@b.test' },
-          { id: 'i-2', type: 'external-subject', value: 'sub-1', provider: 'zitadel' },
+          {
+            id: 'i-2',
+            type: 'external-subject',
+            value: 'sub-1',
+            provider: 'zitadel',
+          },
         ],
       }),
     );
 
     expect(user?.identifiers.isLoaded).toBe(true);
     expect(user?.identifiers.values?.[0]).toBeInstanceOf(EntityIdentifier);
-    expect(user?.identifiers.values?.map((identifier) => identifier.type)).toEqual([
-      'email',
-      'external-subject',
-    ]);
+    expect(
+      user?.identifiers.values?.map(identifier => identifier.type),
+    ).toEqual(['email', 'external-subject']);
   });
 
   it('deserializes foreign-key identifiers without loading them', () => {
     const user = Effect.runSync(
-      deserializeSingleEntity(UserIdentity, { id: 'u-1', identifiers: ['i-1', 'i-2'] }),
+      deserializeSingleEntity(UserIdentity, {
+        id: 'u-1',
+        identifiers: ['i-1', 'i-2'],
+      }),
     );
 
     expect(user?.identifiers.isLoaded).toBe(false);
@@ -119,6 +159,10 @@ describe('UserIdentity', () => {
   });
 
   it('enumerates every lifecycle state', () => {
-    expect(Object.values(UserStatus)).toEqual(['active', 'suspended', 'disabled']);
+    expect(Object.values(UserStatus)).toEqual([
+      'active',
+      'suspended',
+      'disabled',
+    ]);
   });
 });

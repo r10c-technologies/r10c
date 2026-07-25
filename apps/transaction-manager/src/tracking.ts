@@ -1,7 +1,4 @@
-import {
-  EventBusTag,
-  TransactionStoreTag,
-} from '@r10c/entifix-transactions';
+import { EventBusTag, TransactionStoreTag } from '@r10c/entifix-transactions';
 import { Duration, Effect } from 'effect';
 
 /** How often the recovery sweep runs. */
@@ -25,14 +22,18 @@ export const startTracking = Effect.gen(function* () {
 
   // Fold each observed event into the persisted record. The handler carries no
   // requirements (store is closed over), so the bus can run it standalone.
-  yield* bus.subscribe((event) => Effect.asVoid(store.upsertFromEvent(event)));
+  yield* bus.subscribe(event => Effect.asVoid(store.upsertFromEvent(event)));
 
   // Recovery sweep as a detached daemon so it outlives the boot effect.
   const sweep = Effect.gen(function* () {
     const stale = yield* store.findStale(STALE_TIMEOUT_MS);
-    yield* Effect.forEach(stale, (record) => store.markStale(record.transactionId), {
-      discard: true,
-    });
+    yield* Effect.forEach(
+      stale,
+      record => store.markStale(record.transactionId),
+      {
+        discard: true,
+      },
+    );
   }).pipe(
     // A sweep failure must not kill the loop — log-and-continue.
     Effect.catchAll(() => Effect.void),

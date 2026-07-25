@@ -130,20 +130,30 @@ Adding a **domain** = next port index → `300N`/`310N`, plus a seed row in
 
 The golden rule above is **enforced**, not just reviewed. Every project declares
 `nx.tags` in its `package.json`, and `eslint.config.mjs` turns those tags into
-`@nx/enforce-module-boundaries` constraints across three dimensions:
+`@nx/enforce-module-boundaries` constraints across four dimensions:
 
-| Dimension   | Tags                                                                                     | Rule                                                                     |
-| ----------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **layer**   | `layer:app` › `shell` › `implementation` › `business` › `entifix` › `utils`              | depend only on layers **below**                                          |
-| **scope**   | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}`              | a domain may depend only on itself or `scope:shared` (the reusable core) |
-| **entifix** | `entifix:core` ‹ `contract` ‹ {`tooling`, `style`} ‹ `transactions` ‹ `client` ‹ `react` | internal ordering inside the entifix layer                               |
-| **type**    | `type:testing`, `type:e2e`                                                               | spec files may import `type:testing` libs; source files may not          |
+| Dimension    | Tags                                                                                     | Rule                                                                                 |
+| ------------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **layer**    | `layer:app` › `shell` › `implementation` › `business` › `entifix` › `utils`              | depend only on layers **below** (`business`/`entifix` also allow ordered same-layer) |
+| **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}`              | a domain may depend only on itself or `scope:shared` (the reusable core)             |
+| **entifix**  | `entifix:core` ‹ `contract` ‹ {`tooling`, `style`} ‹ `transactions` ‹ `client` ‹ `react` | internal ordering inside the entifix layer                                           |
+| **business** | `business:policy` ‹ `business:domain`                                                    | a domain may use the shared authorization vocabulary, never another domain           |
+| **type**     | `type:testing`, `type:e2e`                                                               | spec files may import `type:testing` libs; source files may not                      |
 
 The rule ANDs every constraint a project's tags match, so the dimensions compose.
 Consequence: **to make an edge legal, retag the project — never relax the rule.**
 Adding a new project without tags leaves it on the permissive `*` catch-all; give
-it the right `layer:`/`scope:` (and `entifix:` if it lives under `packages/entifix`).
+it the right `layer:`/`scope:` (plus `entifix:` under `packages/entifix` or
+`business:` under `packages/business`).
 Verify with `pnpm nx run-many -t lint`.
+
+**Why `business:*` exists.** `business-ts-authz` holds the authorization
+vocabulary (`Permission`, `Role`, `can`) that `business-ts-authn` needs in order
+to give `UserIdentity` a role. That is a same-layer edge, which the `layer:*`
+dimension alone would either forbid outright or open up completely — so the
+business layer got the same treatment `entifix:*` already gives the framework
+layer: one ordered dimension, `policy` ‹ `domain`. A domain package reaches down
+to policy; it still cannot import a sibling domain.
 
 ## Entities
 
@@ -299,6 +309,30 @@ re-exports `capturedLogRecords`/`capturedSpans`, and `logging.mock.spec.ts`
 asserts a request produces a structured record carrying its span's `trace_id`.
 It is a `*.mock.spec.ts` because it reads an in-process sink; the same guarantee
 against real infra is checked by hand (logs in Loki, the trace in Tempo).
+
+**Signing a suite in.** Both Next apps are behind the auth middleware, so a spec
+that navigates without a session gets a redirect instead of a page. Two things
+follow, and a new gated e2e project needs both:
+
+- **`seedSession(context, { roles })`** (`…/playwright`) puts a session on the
+  browser context before the first navigation. In `mock` it fabricates the
+  cookie — deliberately unsigned, since the only things exercised there are the
+  middleware's presence check and the server-rendered nav filter, and the
+  services are msw fixtures anyway. In `live` it performs a **real sign-in**
+  through auth-app, so the token is one auth-service minted and the downstream
+  `requirePermission` checks are genuinely hit. Wire it as an `auto` fixture
+  (see `marketplace-admin-app-e2e/src/support/fixtures.ts`) so a new spec cannot
+  forget it.
+- **`readyPath`** on `defineEntifixE2eConfig`. Playwright polls a URL to decide
+  the server is up, and that URL has to be outside the gate _and_ free of backend
+  dependencies: probing `/` redirects to an auth-app that is not running, and
+  probing `/api/config` 500s until config-service is. marketplace-admin-app
+  exposes `/api/health` for exactly this and exempts it in the matcher.
+
+A guarded **service** suite takes the same shape: `defineServiceE2e` accepts an
+`authorization` hook so the journeys run as a principal instead of every spec
+turning into an authentication test. The guard itself is asserted separately,
+where omitting or corrupting the header is the point.
 
 **Resolution.** Every `e2e` target gets `NODE_OPTIONS=--conditions=@r10c/source`
 from `nx.json`. Vitest applies that condition itself, but Playwright resolves

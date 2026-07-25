@@ -77,15 +77,15 @@ describe('defineEntityBuilder', () => {
     const widgets = aWidget.many(3);
 
     expect(widgets).toHaveLength(3);
-    expect(widgets.every((widget) => widget.name === 'Sprocket')).toBe(true);
+    expect(widgets.every(widget => widget.name === 'Sprocket')).toBe(true);
   });
 
   // A list of distinguishable rows is the common case, so overrides can be a
   // function of the index.
   it('builds a list of distinguishable rows', () => {
-    const widgets = aWidget.many(2, (index) => ({ id: `w-${index}` }));
+    const widgets = aWidget.many(2, index => ({ id: `w-${index}` }));
 
-    expect(widgets.map((widget) => widget.id)).toEqual(['w-0', 'w-1']);
+    expect(widgets.map(widget => widget.id)).toEqual(['w-0', 'w-1']);
   });
 
   it('builds an empty list for a count of zero', () => {

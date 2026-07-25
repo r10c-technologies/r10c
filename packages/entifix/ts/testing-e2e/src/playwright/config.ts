@@ -22,6 +22,17 @@ export interface EntifixE2eConfigOptions {
   port: number;
   /** Spec directory, relative to the config file. */
   testDir?: string;
+  /**
+   * Path Playwright polls to decide the server is up, relative to the base URL.
+   *
+   * A gated app needs one, and it must be **exempt from the auth middleware and
+   * free of backend dependencies**: a cold probe against `/` gets a redirect to
+   * a sign-in origin that is not running, and one against `/api/config` gets a
+   * 500 until config-service is up. Either way the run dies on `Timed out
+   * waiting for config.webServer` before a single spec starts. Defaults to the
+   * base URL, which is right for an app with no gate.
+   */
+  readyPath?: string;
   /** Anything else to merge in, for a project with a genuine special case. */
   overrides?: PlaywrightTestConfig;
 }
@@ -60,6 +71,7 @@ export const defineEntifixE2eConfig = ({
   appDir,
   port,
   testDir = './src',
+  readyPath = '',
   overrides = {},
 }: EntifixE2eConfigOptions): PlaywrightTestConfig => {
   const mock = isMockProfile();
@@ -83,7 +95,7 @@ export const defineEntifixE2eConfig = ({
     webServer: {
       command: `pnpm exec next start -p ${port}`,
       cwd: join(workspaceRoot, appDir),
-      url: baseURL,
+      url: `${baseURL}${readyPath}`,
       reuseExistingServer: true,
     },
     projects: mock ? CHROMIUM_ONLY : ALL_BROWSERS,

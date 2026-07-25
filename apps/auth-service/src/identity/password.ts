@@ -14,15 +14,15 @@ const BCRYPT_ROUNDS = 10;
 export const makeBcryptPasswordHasher = (
   rounds: number = BCRYPT_ROUNDS,
 ): PasswordHasher => ({
-  hash: (plain) =>
+  hash: plain =>
     Effect.tryPromise({
       try: () => bcrypt.hash(plain, rounds),
-      catch: (error) => new EntifixConnError('Password hashing failed', error),
+      catch: error => new EntifixConnError('Password hashing failed', error),
     }),
   verify: (plain, hash) =>
     Effect.tryPromise({
       try: () => bcrypt.compare(plain, hash),
-      catch: (error) =>
+      catch: error =>
         new EntifixConnError('Password verification failed', error),
     }),
 });

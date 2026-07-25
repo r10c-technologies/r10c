@@ -330,12 +330,27 @@ importers:
 
   apps/auth-app:
     dependencies:
+      '@r10c/business-ts-authn':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authn
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
       '@r10c/entifix-react-controls':
         specifier: workspace:*
         version: link:../../packages/entifix/react/controls
       '@r10c/entifix-style':
         specifier: workspace:*
         version: link:../../packages/entifix/style
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/core
+      '@r10c/shells-next-common':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/common
+      effect:
+        specifier: 3.22.0
+        version: 3.22.0
       next:
         specifier: 16.2.10
         version: 16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.101.0)
@@ -363,6 +378,9 @@ importers:
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/business
@@ -401,6 +419,10 @@ importers:
         version: 2.8.1
 
   apps/auth-service-e2e:
+    dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
     devDependencies:
       '@r10c/auth-service':
         specifier: workspace:*
@@ -462,12 +484,18 @@ importers:
 
   apps/marketplace-admin-app:
     dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
       '@r10c/entifix-react-controls':
         specifier: workspace:*
         version: link:../../packages/entifix/react/controls
       '@r10c/entifix-style':
         specifier: workspace:*
         version: link:../../packages/entifix/style
+      '@r10c/entifix-ts-jwt-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/jwt-client
       '@r10c/shells-next-common':
         specifier: workspace:*
         version: link:../../packages/shells/next/common
@@ -525,6 +553,9 @@ importers:
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/product-configuration-management
@@ -575,6 +606,10 @@ importers:
         version: 2.8.1
 
   apps/marketplace-admin-service-e2e:
+    dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
     devDependencies:
       '@r10c/business-ts-authn':
         specifier: workspace:*
@@ -698,6 +733,21 @@ importers:
         version: 2.8.1
 
   packages/business/ts/authn:
+    dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../authz
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 3.22.0
+        version: 3.22.0
+
+  packages/business/ts/authz:
     dependencies:
       '@r10c/entifix-ts-core':
         specifier: workspace:*
@@ -1035,6 +1085,12 @@ importers:
       '@effect/platform-node':
         specifier: 0.108.0
         version: 0.108.0(@effect/cluster@0.59.0(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0)
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../../business/ts/authz
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/business
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../../entifix/ts/core

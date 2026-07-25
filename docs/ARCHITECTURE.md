@@ -11,8 +11,10 @@
 > still on the pre-envelope wire shape for its `UserIdentity`/`EntityIdentifier`
 > reads (no client consumes it through the REST adapters), but its credential
 > flow is real: Redis-backed sessions + short-lived HS256 JWTs (see
-> [Auth: sessions + tokens](#auth-sessions--tokens) below). Zitadel/RS256/ABAC
-> are still deferred.
+> [Auth: sessions + tokens](#auth-sessions--tokens) below), and authorization is
+> now live as role aspects behind an ABAC-shaped port (see
+> [Authorization](#authorization-role-aspects--permissions)). Zitadel/RS256 and a
+> real rule engine are still deferred.
 
 ## Layering
 
@@ -195,6 +197,60 @@ short-lived signed token, chosen over a bare JWT so a session is revocable):
   future Zitadel-backed `IdentityProviderTag` can swap in without touching the
   routes or the use-cases.
 
+## Authorization: role aspects + permissions
+
+Authentication answers _who_; this answers _what_. The whole policy lives in
+`@r10c/business-ts-authz` (`layer:business`, `scope:shared`) — pure and
+Effect-free apart from the DI tag, so the identical check runs in a service, a
+Next server component, edge middleware and the browser. See
+[ADR 0002](./adr/0002-authorization-roles-and-abac.md).
+
+- **The aspect is a role on the user.** `UserIdentity.role` is one of `user` ‹
+  `admin` ‹ `super-admin`, declared with `@accessor({ type: 'enum', … })` so it
+  renders in `EntityTable`/`EntityForm` and is filterable server-side for free.
+  `authSubjectFromUser` projects it into `AuthSubject.roles` — the single point
+  where it enters the session, the token claims and every `Principal`.
+- **A permission is `<domain>:<entityKey>:<action>`**, derived from the entity's
+  own `@entity({ domain, key })` metadata (`permissionForEntity(Ctor, action)`),
+  with `*` as a wildcard segment on the granted side. One vocabulary for guards,
+  nav items and UI; a new entity becomes guardable with no new vocabulary.
+- **Grants come from roles at each consumer**, not from the token. The token
+  still carries only `roles`; `ROLE_PERMISSIONS` expands them via
+  `can(roles, permission)`. A role or status change **revokes that user's
+  sessions**, so a demotion is immediate rather than waiting out the 15-minute
+  access TTL.
+- **`PolicyDecisionTag` is the ABAC seam.** `decide({ subject, resource, action,
+context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
+  `context` and consults the role table. Swapping in a rule engine is a change of
+  `Layer`, not of call sites.
+- **Enforcement is layered, and only the last layer is security.** Next
+  middleware does an edge presence check (a fast bounce); the server-rendered
+  layout filters nav with `can(...)` and gates auth-app's back-office; the
+  service guard `requirePermission` (`@r10c/shells-effect-service`) verifies the
+  token and asks the policy — `401` unauthenticated, `403` denied. The role gate
+  sits in the server layout rather than middleware so `jwt.secret` never has to
+  leave config-service for the Next runtime.
+- **How each layer gets the roles** differs, on purpose. A **presentation**
+  decision (which nav entries to render) reads them with `unverifiedRoles`
+  (`entifix-ts-jwt-client`) — the cookie is decoded, _not_ verified. Forging it
+  shows someone a menu; every route behind it still goes to a service that
+  verifies properly. That avoids both a service round trip per server render and
+  copying the secret into the app. A **real** decision — auth-app's back-office
+  gate — resolves the principal from auth-service's `/api/me` instead, and fails
+  closed when it cannot.
+- **Escalation:** `canAssignRole` allows creating/promoting at or below the
+  actor's own tier; an edit additionally requires outranking the target's
+  _current_ role and forbids acting on yourself. Creating a user always runs
+  `registerUserUCFactory` (hashing, identifier uniqueness, this guard), never a
+  generic entity write; public signup is pinned to `user`. A refusal is a
+  `ForbiddenError` → **403**, distinct from an identifier conflict (409).
+- **Browser → service traffic is same-origin.** Catalog adapters call
+  marketplace-admin-app's `/api/admin/[...path]` proxy, which forwards the cookie
+  upstream as a bearer token; the app's `/api/config` rewrites the service domain
+  to that path before the browser sees it. A cross-origin `fetch` to `:3101`
+  carries no cookie — host-scoping decides which host _stores_ it, not which
+  requests send it — so the guard would answer 401 to every browser read.
+
 ## App & port convention
 
 `-app` frontends bind **300N**, `-service` backends bind **310N**, cross-cutting
@@ -239,9 +295,12 @@ design: [FRONTEND.md → Workspace tabs](./FRONTEND.md#part-2--workspace-tabs--t
 
 - `business-ts-product-configuration-management` — `Product`, `ProductBrand`,
   `ProductCategory`; `loadProductsUCFactory` (link-following load).
-- `business-ts-authn` — `UserIdentity`, `EntityIdentifier`; `resolveSession`,
-  `login`, `registerUser` UCs over `AccountRepositoryTag`/`PasswordHasherTag`/
-  `IdentityProviderTag`.
+- `business-ts-authn` — `UserIdentity` (carrying the `role` aspect),
+  `EntityIdentifier`; `resolveSession`, `login`, `registerUser` UCs over
+  `AccountRepositoryTag`/`PasswordHasherTag`/`IdentityProviderTag`.
+- `business-ts-authz` — the authorization policy: `Permission`/`Role`,
+  `ROLE_PERMISSIONS`, the pure `can()` check and the `PolicyDecisionTag` port
+  (see [Authorization](#authorization-role-aspects--permissions)).
 - `business-ts-common` — shared domain primitives.
 
 **Entity framework** (`packages/entifix/*`):
@@ -271,9 +330,10 @@ design: [FRONTEND.md → Workspace tabs](./FRONTEND.md#part-2--workspace-tabs--t
 - `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-common`
   — Next pages + client adapters. `shells-effect-service` — the backend base.
 
-**Apps** — frontends `marketplace-app`, `marketplace-admin-app`, `auth-app`;
-backends `marketplace-service`, `marketplace-admin-service`, `auth-service`,
-`transaction-manager`, `config-service`; plus `*-e2e` projects.
+**Apps** — frontends `marketplace-app`, `marketplace-admin-app`, `auth-app`
+(sign-in/sign-up **plus** a `(back-office)` group for user management, gated to
+`admin`+); backends `marketplace-service`, `marketplace-admin-service`,
+`auth-service`, `transaction-manager`, `config-service`; plus `*-e2e` projects.
 
 **Utils** — `utils-ts-{array,date,object,type}`.
 

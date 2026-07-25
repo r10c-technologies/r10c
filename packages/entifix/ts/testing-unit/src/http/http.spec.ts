@@ -75,7 +75,9 @@ describe('setupEntifixServer', () => {
 
     const { body } = await getJson(BASE_URL);
 
-    expect(body).toMatchObject({ meta: { type: 'entityPage', entity: 'widget' } });
+    expect(body).toMatchObject({
+      meta: { type: 'entityPage', entity: 'widget' },
+    });
   });
 });
 
@@ -106,7 +108,9 @@ describe('entityRestHandlers', () => {
 
     const { body } = await getJson(BASE_URL);
 
-    expect(body).toMatchObject({ data: { request: { page: 1, pageSize: 10 } } });
+    expect(body).toMatchObject({
+      data: { request: { page: 1, pageSize: 10 } },
+    });
   });
 
   it('serves an empty page with no data at all', async () => {
@@ -192,7 +196,10 @@ describe('entityRestHandlers', () => {
 
     const { body } = await getJson(`${BASE_URL}/missing`, { method: 'DELETE' });
 
-    expect(body).toEqual({ meta: { type: 'entity', entity: 'widget' }, data: {} });
+    expect(body).toEqual({
+      meta: { type: 'entity', entity: 'widget' },
+      data: {},
+    });
     expect(rows).toHaveLength(1);
   });
 });
@@ -248,10 +255,12 @@ describe('the failure handlers', () => {
 
   it.each(['post', 'put', 'delete'] as const)(
     'targets the %s method on request',
-    async (method) => {
+    async method => {
       server.use(respondWith500(BASE_URL, method));
 
-      expect((await fetch(BASE_URL, { method: method.toUpperCase() })).status).toBe(500);
+      expect(
+        (await fetch(BASE_URL, { method: method.toUpperCase() })).status,
+      ).toBe(500);
     },
   );
 });

@@ -14,8 +14,16 @@ import {
   registerUserUCFactory,
   resolveSessionUCFactory,
   SessionIdTag,
+  UpdateUserAspectsInputTag,
+  updateUserAspectsUCFactory,
   UserIdentity,
+  UserStatus,
 } from '@r10c/business-ts-authn';
+import {
+  isRole,
+  permissionForEntity,
+  type Role,
+} from '@r10c/business-ts-authz';
 import {
   EntityIdTag,
   EntityLoadRequestTag,
@@ -40,6 +48,8 @@ import {
 import {
   LoadedConfigurationTag,
   redactConfiguration,
+  requirePermission,
+  requirePrincipal,
 } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
@@ -62,7 +72,7 @@ const readLoadRequest = Effect.gen(function* () {
 const serverError = (error: unknown) =>
   HttpServerResponse.json(
     { error: 'request failed', detail: String(error) },
-    { status: 500 }
+    { status: 500 },
   );
 
 /** Generic list route backed by Mongo + the entifix load UC. */
@@ -73,9 +83,9 @@ const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
     const page = yield* loadUCFactory<T>().pipe(
       Effect.provideService(
         EntityRepositoryTag,
-        makeMongoRepository(db, entityConstructor)
+        makeMongoRepository(db, entityConstructor),
       ),
-      Effect.provideService(EntityLoadRequestTag, request)
+      Effect.provideService(EntityLoadRequestTag, request),
     );
     return yield* HttpServerResponse.json({
       items: serializeEntityCollection(entityConstructor, page.items),
@@ -87,7 +97,7 @@ const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
 /** Generic single-record route by `:id`. */
 const byIdRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
-  label: string
+  label: string,
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -95,17 +105,20 @@ const byIdRoute = <T extends Entity>(
     const entity = yield* getUCFactory<T>().pipe(
       Effect.provideService(
         EntityRepositoryTag,
-        makeMongoRepository(db, entityConstructor)
+        makeMongoRepository(db, entityConstructor),
       ),
-      Effect.provideService(EntityIdTag, params.id)
+      Effect.provideService(EntityIdTag, params.id),
     );
     return yield* HttpServerResponse.json(
-      serializeEntity(entityConstructor, entity)
+      serializeEntity(entityConstructor, entity),
     );
   }).pipe(
     Effect.catchAll(() =>
-      HttpServerResponse.json({ message: `${label} not found` }, { status: 404 })
-    )
+      HttpServerResponse.json(
+        { message: `${label} not found` },
+        { status: 404 },
+      ),
+    ),
   );
 
 /** `GET /api/config` — this service's loaded parameters (credentials redacted). */
@@ -144,22 +157,30 @@ const respondAuthError = (error: { _tag?: string }) => {
     case 'UnauthenticatedError':
       return HttpServerResponse.json(
         { error: 'invalid credentials' },
-        { status: 401 }
+        { status: 401 },
+      );
+    // Authenticated, but not permitted — the opposite of a 401, and not a
+    // conflict either. Its message is safe to pass through: it says which rule
+    // refused, and knowing that reveals nothing the caller could not infer.
+    case 'ForbiddenError':
+      return HttpServerResponse.json(
+        { error: (error as { message?: string }).message ?? 'forbidden' },
+        { status: 403 },
       );
     case 'AuthnError':
       return HttpServerResponse.json(
-        { error: 'identifier already in use' },
-        { status: 409 }
+        { error: (error as { message?: string }).message ?? 'request refused' },
+        { status: 409 },
       );
     case 'EntifixBuildError':
       return HttpServerResponse.json(
         { error: 'invalid request' },
-        { status: 400 }
+        { status: 400 },
       );
     default:
       return HttpServerResponse.json(
         { error: 'authentication failed' },
-        { status: 500 }
+        { status: 500 },
       );
   }
 };
@@ -170,7 +191,7 @@ const respondAuthError = (error: { _tag?: string }) => {
  * the small, stable claims a downstream authorization check needs.
  */
 const establishSession = (
-  subject: AuthSubject
+  subject: AuthSubject,
 ): Effect.Effect<AuthResult, never, SessionStoreTag | TokenServiceTag> =>
   Effect.gen(function* () {
     const sessions = yield* SessionStoreTag;
@@ -184,7 +205,7 @@ const establishSession = (
         sessionId,
         roles: subject.roles,
       },
-      ACCESS_TOKEN_TTL_SECONDS
+      ACCESS_TOKEN_TTL_SECONDS,
     );
 
     return {
@@ -203,19 +224,21 @@ const parseRegister = (body: Record<string, unknown>) =>
       ? body['identifiers']
       : [];
     const identifiers = rawIdentifiers
-      .map((entry) => entry as Record<string, unknown>)
-      .map((entry) => ({
+      .map(entry => entry as Record<string, unknown>)
+      .map(entry => ({
         type: asString(entry['type']) as IdentifierType | undefined,
         value: asString(entry['value']),
       }))
       .filter(
         (entry): entry is { type: IdentifierType; value: string } =>
-          entry.type !== undefined && entry.value !== undefined
+          entry.type !== undefined && entry.value !== undefined,
       );
 
     if (password === undefined || identifiers.length === 0) {
       return yield* Effect.fail(
-        new EntifixBuildError('registration requires a password and identifier')
+        new EntifixBuildError(
+          'registration requires a password and identifier',
+        ),
       );
     }
 
@@ -231,7 +254,7 @@ const registerRoute = Effect.gen(function* () {
   const body = yield* readBody;
   const input = yield* parseRegister(body);
   const subject = yield* registerUserUCFactory().pipe(
-    Effect.provideService(RegisterInputTag, input)
+    Effect.provideService(RegisterInputTag, input),
   );
   const result = yield* establishSession(subject);
   return yield* HttpServerResponse.json(result, { status: 201 });
@@ -245,11 +268,11 @@ const loginRoute = Effect.gen(function* () {
   if (identifier === undefined || password === undefined) {
     return yield* HttpServerResponse.json(
       { error: 'invalid request' },
-      { status: 400 }
+      { status: 400 },
     );
   }
   const subject = yield* loginUCFactory().pipe(
-    Effect.provideService(LoginInputTag, { identifier, password })
+    Effect.provideService(LoginInputTag, { identifier, password }),
   );
   const result = yield* establishSession(subject);
   return yield* HttpServerResponse.json(result, { status: 200 });
@@ -277,7 +300,7 @@ const refreshRoute = Effect.gen(function* () {
   if (sessionId === undefined) {
     return yield* HttpServerResponse.json(
       { error: 'invalid request' },
-      { status: 400 }
+      { status: 400 },
     );
   }
   const sessions = yield* SessionStoreTag;
@@ -292,7 +315,7 @@ const refreshRoute = Effect.gen(function* () {
       sessionId,
       roles: record.roles,
     },
-    ACCESS_TOKEN_TTL_SECONDS
+    ACCESS_TOKEN_TTL_SECONDS,
   );
 
   return yield* HttpServerResponse.json({
@@ -308,11 +331,102 @@ const refreshRoute = Effect.gen(function* () {
   });
 }).pipe(
   Effect.catchAll(() =>
-    HttpServerResponse.json({ error: 'session expired' }, { status: 401 })
-  )
+    HttpServerResponse.json({ error: 'session expired' }, { status: 401 }),
+  ),
 );
 
 // #endregion auth flow
+
+// #region user management
+
+/** Every user-management route speaks this vocabulary, derived from the entity. */
+const USER_READ = permissionForEntity(UserIdentity, 'read');
+const USER_WRITE = permissionForEntity(UserIdentity, 'write');
+const IDENTIFIER_READ = permissionForEntity(EntityIdentifier, 'read');
+
+/** Read the requested role from a body, rejecting an unrecognised one. */
+const parseRole = (value: unknown): Role | undefined =>
+  isRole(value) ? value : undefined;
+
+/**
+ * `POST /api/user-identity` — administrative account creation. Deliberately the
+ * SAME use-case public signup runs: a generic entity write would skip password
+ * hashing, identifier uniqueness and the tier rule. The actor comes from the
+ * verified principal, never from the body.
+ */
+const createUserRoute = requirePermission(USER_WRITE)(principal =>
+  Effect.gen(function* () {
+    const body = yield* readBody;
+    const input = yield* parseRegister(body);
+    const role = parseRole(body['role']);
+    if (body['role'] !== undefined && role === undefined) {
+      return yield* HttpServerResponse.json(
+        { error: 'unknown role' },
+        { status: 400 },
+      );
+    }
+
+    const subject = yield* registerUserUCFactory().pipe(
+      Effect.provideService(RegisterInputTag, {
+        ...input,
+        role,
+        actorRoles: principal.roles,
+      }),
+    );
+    return yield* HttpServerResponse.json(subject, { status: 201 });
+  }).pipe(Effect.catchAll(respondAuthError)),
+);
+
+/**
+ * `PATCH /api/user-identity/:id` — change a user's role or status, then revoke
+ * their sessions. Revocation is what makes the change immediate: grants are
+ * derived from the `roles` claim, so without it a demoted user would keep their
+ * old access until the token expired.
+ */
+const updateUserRoute = requirePermission(USER_WRITE)(principal =>
+  Effect.gen(function* () {
+    const params = yield* HttpRouter.params;
+    const body = yield* readBody;
+    const userId = params.id ?? '';
+
+    const role = parseRole(body['role']);
+    if (body['role'] !== undefined && role === undefined) {
+      return yield* HttpServerResponse.json(
+        { error: 'unknown role' },
+        { status: 400 },
+      );
+    }
+    const rawStatus = asString(body['status']);
+    const status = Object.values(UserStatus).includes(rawStatus as UserStatus)
+      ? (rawStatus as UserStatus)
+      : undefined;
+    if (rawStatus !== undefined && status === undefined) {
+      return yield* HttpServerResponse.json(
+        { error: 'unknown status' },
+        { status: 400 },
+      );
+    }
+
+    const updated = yield* updateUserAspectsUCFactory().pipe(
+      Effect.provideService(UpdateUserAspectsInputTag, {
+        userId,
+        role,
+        status,
+        actorUserId: principal.userId,
+        actorRoles: principal.roles,
+      }),
+    );
+
+    const sessions = yield* SessionStoreTag;
+    yield* sessions.revokeAllForUser(userId);
+
+    return yield* HttpServerResponse.json(
+      serializeEntity(UserIdentity, updated),
+    );
+  }).pipe(Effect.catchAll(respondAuthError)),
+);
+
+// #endregion user management
 
 /**
  * auth-service routes. `/api/health` is added by the service base. The auth
@@ -333,7 +447,7 @@ export const router = HttpRouter.empty.pipe(
       const params = yield* HttpRouter.params;
       const sessionId = params.sessionId ?? '';
       const principal = yield* resolveSessionUCFactory().pipe(
-        Effect.provideService(SessionIdTag, sessionId)
+        Effect.provideService(SessionIdTag, sessionId),
       );
       return yield* HttpServerResponse.json(principal);
     }).pipe(
@@ -341,27 +455,47 @@ export const router = HttpRouter.empty.pipe(
       Effect.catchAll(() =>
         HttpServerResponse.json(
           { error: 'session could not be resolved' },
-          { status: 401 }
-        )
-      )
-    )
+          { status: 401 },
+        ),
+      ),
+    ),
   ),
-  // Canonical user records, backed by MongoDB.
-  HttpRouter.get('/api/user-identity', listRoute(UserIdentity)),
+  // The caller's own verified identity — what a Next server layout reads to
+  // decide whether to render the back-office and which nav items to show.
+  HttpRouter.get(
+    '/api/me',
+    requirePrincipal(principal => HttpServerResponse.json(principal)),
+  ),
+  // Canonical user records, backed by MongoDB. Every one of these is behind a
+  // permission: this is the authorization boundary, and the UI hiding a menu
+  // entry protects nothing on its own.
+  HttpRouter.get(
+    '/api/user-identity',
+    requirePermission(USER_READ)(() => listRoute(UserIdentity)),
+  ),
+  HttpRouter.post('/api/user-identity', createUserRoute),
   HttpRouter.get(
     '/api/user-identity/:id',
-    byIdRoute(UserIdentity, 'User identity')
+    requirePermission(USER_READ)(() =>
+      byIdRoute(UserIdentity, 'User identity'),
+    ),
   ),
-  HttpRouter.get('/api/entity-identifier', listRoute(EntityIdentifier)),
+  HttpRouter.patch('/api/user-identity/:id', updateUserRoute),
+  HttpRouter.get(
+    '/api/entity-identifier',
+    requirePermission(IDENTIFIER_READ)(() => listRoute(EntityIdentifier)),
+  ),
   HttpRouter.get(
     '/api/entity-identifier/:id',
-    byIdRoute(EntityIdentifier, 'Entity identifier')
+    requirePermission(IDENTIFIER_READ)(() =>
+      byIdRoute(EntityIdentifier, 'Entity identifier'),
+    ),
   ),
   // Native-entity proof: construct entity classes + read stage-3 metadata.
   HttpRouter.get(
     '/api/identity/demo',
     Effect.sync(describeIdentityModel).pipe(
-      Effect.flatMap((model) => HttpServerResponse.json(model))
-    )
-  )
+      Effect.flatMap(model => HttpServerResponse.json(model)),
+    ),
+  ),
 );

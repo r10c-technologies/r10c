@@ -12,6 +12,9 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 //              `scope:shared` is the reusable core and is dependable by anyone.
 //   entifix:*  internal ordering INSIDE the entifix layer:
 //              core ‹ contract ‹ {tooling, style} ‹ transactions ‹ client ‹ react
+//   business:* internal ordering INSIDE the business layer: policy ‹ domain
+//              (a domain may use the shared authorization vocabulary; it may
+//              never import another domain)
 //   type:*     testing/e2e helpers (relaxed — see specConstraints).
 //
 // The rule ANDs every constraint whose `sourceTag` a project carries, so the
@@ -48,7 +51,14 @@ const layerConstraints = [
   },
   {
     sourceTag: 'layer:business',
-    onlyDependOnLibsWithTags: ['layer:entifix', 'layer:utils'],
+    onlyDependOnLibsWithTags: [
+      // Same-layer edges are allowed but ORDERED by `business:*` below, exactly
+      // as `layer:entifix` is ordered by `entifix:*`. Without that second
+      // dimension this line would let any domain import any other.
+      'layer:business',
+      'layer:entifix',
+      'layer:utils',
+    ],
   },
   {
     sourceTag: 'layer:entifix',
@@ -121,12 +131,31 @@ const entifixConstraints = [
   },
 ];
 
+// Internal ordering INSIDE the business layer, mirroring `entifix:*`.
+// `policy` is the authorization vocabulary every domain may express itself in;
+// a `domain` may reach down to it but never sideways to another domain.
+const businessConstraints = [
+  {
+    sourceTag: 'business:policy',
+    onlyDependOnLibsWithTags: ['layer:entifix', 'layer:utils'],
+  },
+  {
+    sourceTag: 'business:domain',
+    onlyDependOnLibsWithTags: [
+      'business:policy',
+      'layer:entifix',
+      'layer:utils',
+    ],
+  },
+];
+
 // Strict constraints for source files. The trailing `*` catch-all lets any
 // untagged project (e.g. testing/e2e) and external deps still resolve.
 const sourceConstraints = [
   ...layerConstraints,
   ...scopeConstraints,
   ...entifixConstraints,
+  ...businessConstraints,
   { sourceTag: '*', onlyDependOnLibsWithTags: ['*'] },
 ];
 

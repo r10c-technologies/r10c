@@ -2,10 +2,7 @@ import { Context, Effect } from 'effect';
 
 import { UserStatus } from '../../entities/user-identity';
 import { UnauthenticatedError } from '../../errors';
-import {
-  AccountRepositoryTag,
-  PasswordHasherTag,
-} from '../../repository';
+import { AccountRepositoryTag, PasswordHasherTag } from '../../repository';
 import { authSubjectFromUser } from '../../values';
 
 /** The credentials a login attempt presents. */

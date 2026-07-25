@@ -31,7 +31,7 @@ export function describeIdentityModel() {
       name: userMeta.name,
       key: userMeta.key,
       domain: userMeta.domain,
-      accessors: extractMetaAccessors(UserIdentity).map((a) => ({
+      accessors: extractMetaAccessors(UserIdentity).map(a => ({
         name: String(a.name),
         kind: a.kind,
       })),

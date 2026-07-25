@@ -2,7 +2,10 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { UnauthenticatedError } from '../../errors/authn-error.js';
-import { IdentityProviderTag, SessionIdTag } from '../../repository/identity-provider.repository.js';
+import {
+  IdentityProviderTag,
+  SessionIdTag,
+} from '../../repository/identity-provider.repository.js';
 import type { Principal } from '../../values/principal.js';
 import { resolveSessionUCFactory } from './resolve-session.uc.js';
 
@@ -29,8 +32,8 @@ describe('resolveSessionUCFactory', () => {
     const result = await Effect.runPromise(
       resolveSessionUCFactory().pipe(
         Effect.provideService(IdentityProviderTag, stubProvider(principal)),
-        Effect.provideService(SessionIdTag, 'sess-1')
-      )
+        Effect.provideService(SessionIdTag, 'sess-1'),
+      ),
     );
 
     expect(result).toEqual(principal);
@@ -40,8 +43,8 @@ describe('resolveSessionUCFactory', () => {
     const exit = await Effect.runPromiseExit(
       resolveSessionUCFactory().pipe(
         Effect.provideService(IdentityProviderTag, stubProvider(principal)),
-        Effect.provideService(SessionIdTag, 'nope')
-      )
+        Effect.provideService(SessionIdTag, 'nope'),
+      ),
     );
 
     expect(exit._tag).toBe('Failure');

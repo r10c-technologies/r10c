@@ -3,7 +3,10 @@ import {
   configurationHandler,
   entityBackendHandlers,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
-import { defineEntifixE2eTest } from '@r10c/entifix-ts-testing-e2e/playwright';
+import {
+  defineEntifixE2eTest,
+  seedSession,
+} from '@r10c/entifix-ts-testing-e2e/playwright';
 
 import { brandSeed } from './catalog-seed';
 
@@ -35,7 +38,7 @@ export const catalogBackend = backend;
  * any entity request, so stubbing only the entity endpoint leaves the page
  * stuck and the spec passing vacuously.
  */
-export const test = defineEntifixE2eTest({
+const base = defineEntifixE2eTest({
   handlers: [
     configurationHandler(`${APP_URL}/api/config`, CONFIGURATION),
     ...handlers,
@@ -43,6 +46,25 @@ export const test = defineEntifixE2eTest({
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;
   // only unstubbed *service* traffic should fail a test.
   passthroughOrigins: [APP_URL],
+});
+
+/**
+ * Every catalog journey runs signed in, because the app is now gated: its
+ * middleware bounces a request with no access cookie, and the sidebar renders
+ * only what the caller's roles grant. The session is seeded on the context
+ * before the first navigation — an `auto` fixture rather than a per-spec call,
+ * so a new spec cannot forget it and get a redirect instead of a page.
+ *
+ * `admin` because these journeys both read and write the catalog.
+ */
+export const test = base.extend<{ session: void }>({
+  session: [
+    async ({ context }, use) => {
+      await seedSession(context, { roles: ['admin'] });
+      await use();
+    },
+    { auto: true },
+  ],
 });
 
 export { expect } from '@playwright/test';

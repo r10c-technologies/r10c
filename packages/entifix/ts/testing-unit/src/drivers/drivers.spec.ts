@@ -35,6 +35,10 @@ interface FakeCollection {
     replacement: Record<string, unknown>,
     options?: { upsert?: boolean },
   ): Promise<{ matchedCount: number; upsertedCount: number }>;
+  updateOne(
+    query: Record<string, unknown>,
+    update: { $set?: Record<string, unknown> },
+  ): Promise<{ matchedCount: number; modifiedCount: number }>;
   deleteOne(query: Record<string, unknown>): Promise<{ deletedCount: number }>;
   createIndex(
     spec: Record<string, unknown>,
@@ -186,6 +190,48 @@ describe('makeFakeMongoDb', () => {
 
       expect(result).toEqual({ matchedCount: 0, upsertedCount: 0 });
       expect(fake.read('widget')).toHaveLength(3);
+    });
+
+    it('updateOne applies $set to the matching document only', async () => {
+      const fake = seeded();
+      const collection = collectionOf(fake, 'widget');
+
+      const result = await collection.updateOne(
+        { id: 'w-2' },
+        {
+          $set: { name: 'Renamed' },
+        },
+      );
+
+      expect(result).toEqual({ matchedCount: 1, modifiedCount: 1 });
+      // The untouched members survive, and the neighbours are unchanged.
+      expect(await collection.findOne({ id: 'w-2' })).toMatchObject({
+        name: 'Renamed',
+        size: 30,
+      });
+      expect(await collection.findOne({ id: 'w-1' })).toMatchObject({
+        name: 'Alpha',
+      });
+    });
+
+    it('updateOne without $set leaves the document alone', async () => {
+      const collection = collectionOf(seeded(), 'widget');
+
+      const result = await collection.updateOne({ id: 'w-1' }, {});
+
+      expect(result).toEqual({ matchedCount: 1, modifiedCount: 1 });
+      expect(await collection.findOne({ id: 'w-1' })).toMatchObject({
+        name: 'Alpha',
+      });
+    });
+
+    it('updateOne reports a miss for a document that is not there', async () => {
+      const result = await collectionOf(seeded(), 'widget').updateOne(
+        { id: 'missing' },
+        { $set: { name: 'x' } },
+      );
+
+      expect(result).toEqual({ matchedCount: 0, modifiedCount: 0 });
     });
 
     it('deleteOne removes a match and reports a miss', async () => {

@@ -17,7 +17,7 @@ export {
   entityIdentifierSeedData,
   userIdentitySeedData,
 } from './identity/user-seed-data';
-export { AppLayer } from './mongo';
+export { AppLayer, seedCredentials } from './mongo';
 export { router } from './routes';
 
 export const SERVICE_NAME = '@r10c/auth-service';
