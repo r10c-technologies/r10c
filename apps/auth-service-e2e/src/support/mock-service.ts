@@ -82,7 +82,14 @@ const base = Layer.mergeAll(
       audience: JWT_AUDIENCE,
     }),
   ),
-  Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher()),
+  // Real bcrypt, minimum work factor. The suite exercises the same hash and
+  // compare code paths the service runs, but cost 10 is ~64x the work of cost 4
+  // — and bcryptjs is pure JS that yields with `setImmediate` between rounds, so
+  // when CI runs every e2e project on one runner the saturated event loop
+  // stretches a single hash out until the boot hook times out. It passes alone
+  // and hangs in the full concurrent run. Cost belongs to the environment, not
+  // to what is under test; the service keeps its own default.
+  Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher(4)),
   // The real grant table, not a fake — it is what `requirePermission` consults,
   // so stubbing it would make every authorization assertion here meaningless.
   Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
