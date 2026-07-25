@@ -525,6 +525,9 @@ importers:
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authz
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/product-configuration-management
@@ -1050,6 +1053,12 @@ importers:
       '@effect/platform-node':
         specifier: 0.108.0
         version: 0.108.0(@effect/cluster@0.59.0(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0)
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../../business/ts/authz
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/business
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../../entifix/ts/core

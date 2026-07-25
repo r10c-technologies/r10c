@@ -53,10 +53,10 @@ import {
 import {
   LoadedConfigurationTag,
   redactConfiguration,
+  requirePrincipal,
 } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
-import { requirePrincipal } from './auth';
 import {
   type CatalogHandlerOptions,
   makeCatalogTransactionHandler,
