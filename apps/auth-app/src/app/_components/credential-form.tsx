@@ -109,7 +109,9 @@ export function CredentialForm({ mode }: { mode: Mode }) {
           <input
             name="password"
             type="password"
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            autoComplete={
+              mode === 'login' ? 'current-password' : 'new-password'
+            }
             required
             className={fieldClass}
           />

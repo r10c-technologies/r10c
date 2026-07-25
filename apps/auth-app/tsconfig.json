@@ -48,7 +48,19 @@
   ],
   "references": [
     {
+      "path": "../../packages/shells/next/common"
+    },
+    {
+      "path": "../../packages/entifix/ts/core"
+    },
+    {
       "path": "../../packages/entifix/react/controls"
+    },
+    {
+      "path": "../../packages/business/ts/authz"
+    },
+    {
+      "path": "../../packages/business/ts/authn"
     }
   ]
 }

@@ -1,6 +1,11 @@
 'use client';
 
-import { type ThemeOption,ThemeProvider } from '@r10c/entifix-react-controls';
+import {
+  makeIndexedDbUiPreferencesStore,
+  type ThemeOption,
+  ThemeProvider,
+  UiPreferencesProvider,
+} from '@r10c/entifix-react-controls';
 import type { PropsWithChildren } from 'react';
 
 // Storefront's own brand set (values in ./themes.css). Distinct from admin's.
@@ -9,6 +14,11 @@ const THEMES: ThemeOption[] = [
   { id: 'auth-dark', label: 'Auth Dark' },
 ];
 
+// Module-level so its identity is stable across renders — a fresh store each
+// render would reopen the database. The back-office shell persists its sidebar
+// collapse state through it.
+const uiPreferencesStore = makeIndexedDbUiPreferencesStore();
+
 export function Providers({ children }: PropsWithChildren) {
   return (
     <ThemeProvider
@@ -16,7 +26,9 @@ export function Providers({ children }: PropsWithChildren) {
       defaultTheme="auth"
       storageKey="r10c-auth-theme"
     >
-      {children}
+      <UiPreferencesProvider store={uiPreferencesStore}>
+        {children}
+      </UiPreferencesProvider>
     </ThemeProvider>
   );
 }
