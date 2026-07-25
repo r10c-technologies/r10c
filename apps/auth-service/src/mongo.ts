@@ -77,7 +77,7 @@ const seedUsers = Effect.all(
  * the shared dev password once and writes one credential per seed user, only
  * when the collection is empty.
  */
-const seedCredentials = Effect.gen(function* () {
+export const seedCredentials = Effect.gen(function* () {
   const db = yield* MongoDatabaseTag;
   const hasher = yield* PasswordHasherTag;
   const collection = db.collection(CREDENTIAL_COLLECTION);

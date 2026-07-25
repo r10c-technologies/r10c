@@ -47,7 +47,7 @@ export const makeFakeRedis = (): FakeRedis => {
     set: (key: string, value: string, ...rest: unknown[]) =>
       record('set', [key, value, ...rest], () => {
         const nx = rest.some(
-          (argument) => String(argument).toUpperCase() === 'NX',
+          argument => String(argument).toUpperCase() === 'NX',
         );
         if (nx && store.has(key)) return null;
         store.set(key, value);
@@ -118,14 +118,14 @@ export const makeFakeRedis = (): FakeRedis => {
   };
 
   return {
-    read: (key) => store.get(key),
+    read: key => store.get(key),
     hold: (key, token = 'someone-else') => {
       store.set(key, token);
     },
-    free: (key) => {
+    free: key => {
       store.delete(key);
     },
-    failWith: (error) => {
+    failWith: error => {
       failure = error;
     },
     get commands() {

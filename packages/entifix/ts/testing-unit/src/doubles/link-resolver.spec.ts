@@ -66,17 +66,23 @@ describe('makeInMemoryEntityLinkResolver', () => {
   });
 
   it('keeps each constructor’s table separate', async () => {
-    const exit = await Effect.runPromiseExit(resolver().resolve(Category, 'b-1'));
+    const exit = await Effect.runPromiseExit(
+      resolver().resolve(Category, 'b-1'),
+    );
 
     expect(Exit.isFailure(exit)).toBe(true);
   });
 
   it('fails for an id the table does not hold', async () => {
-    const exit = await Effect.runPromiseExit(resolver().resolve(Brand, 'missing'));
+    const exit = await Effect.runPromiseExit(
+      resolver().resolve(Brand, 'missing'),
+    );
 
     expect(Exit.isFailure(exit)).toBe(true);
     const error =
-      Exit.isFailure(exit) && exit.cause._tag === 'Fail' ? exit.cause.error : undefined;
+      Exit.isFailure(exit) && exit.cause._tag === 'Fail'
+        ? exit.cause.error
+        : undefined;
     expect(error).toBeInstanceOf(EntifixConnError);
     expect((error as EntifixConnError).details).toEqual({
       entity: 'Brand',
@@ -87,9 +93,9 @@ describe('makeInMemoryEntityLinkResolver', () => {
   it('fails for a constructor that was never registered', async () => {
     const bare = makeInMemoryEntityLinkResolver([]);
 
-    expect(Exit.isFailure(await Effect.runPromiseExit(bare.resolve(Brand, 'b-1')))).toBe(
-      true,
-    );
+    expect(
+      Exit.isFailure(await Effect.runPromiseExit(bare.resolve(Brand, 'b-1'))),
+    ).toBe(true);
   });
 
   // `requested` is what shows whether an already-embedded link was needlessly

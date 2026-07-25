@@ -20,7 +20,7 @@ describeEventBusContract('recording fake', () => {
   const bus = makeRecordingEventBus();
   return {
     bus,
-    deliver: (event) => Effect.runPromise(bus.deliver(event)),
+    deliver: event => Effect.runPromise(bus.deliver(event)),
     published: () => bus.published,
   };
 });
@@ -82,14 +82,14 @@ describe('makeRecordingEventBus', () => {
     const first: string[] = [];
     const second: string[] = [];
     await Effect.runPromise(
-      bus.subscribe((event) =>
+      bus.subscribe(event =>
         Effect.sync(() => {
           first.push(event.transactionId);
         }),
       ),
     );
     await Effect.runPromise(
-      bus.subscribe((event) =>
+      bus.subscribe(event =>
         Effect.sync(() => {
           second.push(event.transactionId);
         }),
@@ -109,7 +109,7 @@ describe('makeRecordingEventBus', () => {
     await runFailure(bus.publish(anEvent('tx-1')));
     await Effect.runPromise(bus.publish(anEvent('tx-2')));
 
-    expect(bus.published.map((event) => event.transactionId)).toEqual(['tx-2']);
+    expect(bus.published.map(event => event.transactionId)).toEqual(['tx-2']);
   });
 
   it('surfaces a handler failure to the caller of deliver', async () => {

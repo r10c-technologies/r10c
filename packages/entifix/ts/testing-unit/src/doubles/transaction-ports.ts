@@ -37,7 +37,7 @@ export const makeInMemoryLockService = (): InMemoryLockService => {
   let counter = 0;
 
   return {
-    acquire: (key) =>
+    acquire: key =>
       Effect.suspend(() => {
         if (contended.has(key) || tokens.has(key)) {
           return Effect.fail(
@@ -64,7 +64,7 @@ export const makeInMemoryLockService = (): InMemoryLockService => {
     get log() {
       return log;
     },
-    contendOn: (key) => {
+    contendOn: key => {
       contended.add(key);
     },
   };
@@ -83,7 +83,7 @@ export const makeInMemorySequenceService = (): InMemorySequenceService => {
   const sequences = new Map<string, number>();
 
   return {
-    next: (name) =>
+    next: name =>
       Effect.sync(() => {
         const next = (sequences.get(name) ?? 0) + 1;
         sequences.set(name, next);
@@ -117,7 +117,7 @@ export const makeRecordingEventBus = (): RecordingEventBus => {
   let failNext = false;
 
   return {
-    publish: (event) =>
+    publish: event =>
       Effect.suspend(() => {
         if (failNext) {
           failNext = false;
@@ -130,12 +130,12 @@ export const makeRecordingEventBus = (): RecordingEventBus => {
         published.push(event);
         return Effect.void;
       }),
-    subscribe: (handler) =>
+    subscribe: handler =>
       Effect.sync(() => {
         handlers.push(handler);
       }),
-    deliver: (event) =>
-      Effect.forEach(handlers, (handler) => handler(event), {
+    deliver: event =>
+      Effect.forEach(handlers, handler => handler(event), {
         discard: true,
       }),
     get published() {

@@ -34,7 +34,9 @@ export const makeInMemoryEntityLinkResolver = (
     ) =>
       Effect.suspend(() => {
         requested.push({ entity: entityConstructor.name, id });
-        const found = tables.get(entityConstructor)?.find((item) => item.id === id);
+        const found = tables
+          .get(entityConstructor)
+          ?.find(item => item.id === id);
         return found === undefined
           ? Effect.fail(
               new EntifixConnError('Link target not found', undefined, {

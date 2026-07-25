@@ -44,8 +44,8 @@ const matchesNode = <TEntity extends Entity>(
 ): boolean => {
   if (isFilterGroup(node)) {
     return node.operator === 'or'
-      ? node.values.some((child) => matchesNode(item, child))
-      : node.values.every((child) => matchesNode(item, child));
+      ? node.values.some(child => matchesNode(item, child))
+      : node.values.every(child => matchesNode(item, child));
   }
 
   const actual = (item as Record<string, unknown>)[String(node.property)];
@@ -99,10 +99,10 @@ const applyFiltering = <TEntity extends Entity>(
 ): TEntity[] => {
   if (!filtering || filtering.length === 0) return items;
   // Every top-level entry is combined with `and`, matching `translateFiltering`.
-  const nodes = filtering.flatMap((entry) =>
+  const nodes = filtering.flatMap(entry =>
     Array.isArray(entry) ? entry : [entry],
   );
-  return items.filter((item) => nodes.every((node) => matchesNode(item, node)));
+  return items.filter(item => nodes.every(node => matchesNode(item, node)));
 };
 
 const applySorting = <TEntity extends Entity>(
@@ -111,12 +111,12 @@ const applySorting = <TEntity extends Entity>(
 ): TEntity[] => {
   if (!sorting || sorting.length === 0) return items;
 
-  const entries = sorting.flatMap((record) =>
+  const entries = sorting.flatMap(record =>
     Object.keys(record)
       .map(Number)
       .sort((left, right) => left - right)
-      .map((priority) => record[priority])
-      .filter((entry) => entry != null),
+      .map(priority => record[priority])
+      .filter(entry => entry != null),
   );
 
   return [...items].sort((left, right) => {
@@ -190,7 +190,7 @@ export const makeInMemoryEntityRepository = (
 
   const get = <TEntity extends Entity>(id: EntityId) =>
     guard(() => {
-      const found = items.find((item) => item.id === id);
+      const found = items.find(item => item.id === id);
       return found === undefined
         ? Effect.fail(
             new EntifixConnError('Entity not found', undefined, { id }),
@@ -203,7 +203,7 @@ export const makeInMemoryEntityRepository = (
       // A create arrives without an id, so the store mints one — same rule the
       // Mongo adapter follows.
       entity.id = entity.id ?? randomUUID();
-      const index = items.findIndex((item) => item.id === entity.id);
+      const index = items.findIndex(item => item.id === entity.id);
       if (index === -1) {
         items.push(entity);
       } else {
@@ -218,7 +218,7 @@ export const makeInMemoryEntityRepository = (
         entityOrId != null && typeof entityOrId === 'object'
           ? entityOrId.id
           : entityOrId;
-      items = items.filter((item) => item.id !== id);
+      items = items.filter(item => item.id !== id);
       return Effect.succeed(undefined);
     });
 

@@ -35,7 +35,7 @@ export const makeInMemoryUiPreferencesStore = (
     get entries() {
       return entries;
     },
-    seed: (next) => {
+    seed: next => {
       entries = { ...next };
     },
   };

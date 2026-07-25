@@ -230,6 +230,20 @@ export const makeFakeMongoDb = (
         return { matchedCount: 1, upsertedCount: 0 };
       }),
 
+    /**
+     * Partial update. Only `$set` is implemented — that is the one operator the
+     * adapters use, and a fake that silently accepted `$inc` or `$unset` without
+     * applying them would let a spec pass on an update that never happened.
+     */
+    updateOne: (query: QueryDocument, update: { $set?: Document }) =>
+      record(name, 'updateOne', () => {
+        const documents = documentsOf(name);
+        const index = documents.findIndex(doc => matches(doc, query));
+        if (index === -1) return { matchedCount: 0, modifiedCount: 0 };
+        documents[index] = { ...documents[index], ...(update.$set ?? {}) };
+        return { matchedCount: 1, modifiedCount: 1 };
+      }),
+
     deleteOne: (query: QueryDocument) =>
       record(name, 'deleteOne', () => {
         const documents = documentsOf(name);
