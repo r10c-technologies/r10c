@@ -1,3 +1,4 @@
+import { DEFAULT_ROLE, type Role, Roles } from '@r10c/business-ts-authz';
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { accessor, entity, EntityCollectionLink } from '@r10c/entifix-ts-core';
 
@@ -24,6 +25,11 @@ export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
  * `identifiers` is an {@link EntityCollectionLink} (read-only accessor, no
  * setter) so the relation can arrive embedded or as foreign keys and be
  * resolved lazily, following the same link convention as the product catalog.
+ *
+ * `role` is the authorization aspect. It lives here rather than in a separate
+ * role entity so generic UI renders it from the metadata alone and the
+ * server-side query allowlist covers it, and it is the value
+ * `authSubjectFromUser` projects into every session and access token.
  */
 @entity({ domain: 'authn', key: 'user-identity' })
 export class UserIdentity implements Entity {
@@ -31,6 +37,7 @@ export class UserIdentity implements Entity {
   #id?: EntityId;
   #displayName?: string;
   #status: UserStatus = UserStatus.Active;
+  #role: Role = DEFAULT_ROLE;
   #identifiers: EntityCollectionLink<EntityIdentifier>;
   // #endregion
 
@@ -63,6 +70,20 @@ export class UserIdentity implements Entity {
   }
   set status(value: UserStatus) {
     this.#status = value;
+  }
+
+  @accessor({
+    type: 'enum',
+    label: 'Role',
+    enumValues: Roles,
+    sortable: true,
+    filterable: true,
+  })
+  get role(): Role {
+    return this.#role;
+  }
+  set role(value: Role) {
+    this.#role = value;
   }
 
   @accessor()

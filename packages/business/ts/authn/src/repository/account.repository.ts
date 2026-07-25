@@ -1,3 +1,4 @@
+import type { Role } from '@r10c/business-ts-authz';
 import type { EntifixError, EntityId } from '@r10c/entifix-ts-core';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
@@ -19,6 +20,8 @@ export interface CreateAccountInput {
   readonly identifiers: readonly NewIdentifierInput[];
   /** The already-hashed password — hashing is the use-case's job, not the store's. */
   readonly passwordHash: string;
+  /** Authorization aspect, already vetted against the caller's tier. */
+  readonly role: Role;
 }
 
 /**

@@ -14,6 +14,7 @@ const userNamed = (status: UserStatus = UserStatus.Active): UserIdentity => {
   user.id = 'user-1';
   user.displayName = 'Ada Lovelace';
   user.status = status;
+  user.role = 'super-admin';
   return user;
 };
 
@@ -63,7 +64,8 @@ describe('loginUCFactory', () => {
       expect(exit.value).toEqual({
         userId: 'user-1',
         subject: 'user-1',
-        roles: [],
+        // The user's role aspect is what a downstream policy decision reads.
+        roles: ['super-admin'],
         attributes: { displayName: 'Ada Lovelace', status: UserStatus.Active },
       });
     }

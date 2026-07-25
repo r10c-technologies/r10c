@@ -21,6 +21,7 @@
   "nx": {
     "tags": [
       "layer:business",
+      "business:domain",
       "scope:shared"
     ],
     "sourceRoot": "packages/business/ts/common/src",

@@ -18,6 +18,7 @@
   "nx": {
     "tags": [
       "layer:business",
+      "business:policy",
       "scope:shared"
     ],
     "sourceRoot": "packages/business/ts/authz/src",

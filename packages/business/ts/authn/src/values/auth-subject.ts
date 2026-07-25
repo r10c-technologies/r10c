@@ -20,12 +20,17 @@ export interface AuthSubject {
  * Project a canonical {@link UserIdentity} into an {@link AuthSubject}. With own
  * credentials there is no upstream IdP, so `subject` is the canonical user id
  * itself; `displayName`/`status` ride along as attributes for a policy to read
- * without another fetch. Roles are empty in v1 (no role model yet).
+ * without another fetch.
+ *
+ * This is the **single point** where the user's role aspect enters the auth
+ * pipeline: from here it flows into the Redis session, the access token's
+ * `roles` claim, and every `Principal` a downstream service rebuilds — so no
+ * other code has to know where authorization input comes from.
  */
 export const authSubjectFromUser = (user: UserIdentity): AuthSubject => ({
   userId: user.id,
   subject: String(user.id),
-  roles: [],
+  roles: [user.role],
   attributes: {
     displayName: user.displayName,
     status: user.status,

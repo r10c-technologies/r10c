@@ -699,6 +699,9 @@ importers:
 
   packages/business/ts/authn:
     dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../authz
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../../entifix/ts/core

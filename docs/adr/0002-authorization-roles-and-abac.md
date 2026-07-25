@@ -98,6 +98,14 @@ component, in edge middleware and in the browser; only `PolicyDecisionTag`
 imports `effect`. The shared guards live one layer up in
 `@r10c/shells-effect-service`, which both services already depend on.
 
+This required a **new `business:*` tag dimension**. `business-ts-authn` has to
+import the role vocabulary to give `UserIdentity` a role, and that is a
+same-layer edge the `layer:*` dimension alone can only forbid entirely or permit
+entirely. Rather than weaken the rule, the business layer gained the ordering
+dimension `entifix:*` already gives the framework layer: `business:policy` ‹
+`business:domain`. A domain reaches down to the shared policy vocabulary and
+still cannot import a sibling domain.
+
 ## Consequences
 
 - `requirePrincipal` moves out of `apps/marketplace-admin-service/src/auth.ts`

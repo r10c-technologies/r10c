@@ -95,6 +95,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
         id: userId,
         displayName: input.displayName,
         status: 'active',
+        role: input.role,
         identifiers: identifierDocs.map((doc) => doc.id),
       };
 

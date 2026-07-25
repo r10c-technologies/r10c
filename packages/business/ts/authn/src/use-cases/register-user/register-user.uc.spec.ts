@@ -1,3 +1,4 @@
+import { DEFAULT_ROLE, type Role } from '@r10c/business-ts-authz';
 import { EntifixLogicError } from '@r10c/entifix-ts-core';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -14,11 +15,12 @@ import {
   registerUserUCFactory,
 } from './register-user.uc.js';
 
-const createdUser = (): UserIdentity => {
+const createdUser = (role: Role = DEFAULT_ROLE): UserIdentity => {
   const user = new UserIdentity();
   user.id = 'user-9';
   user.displayName = 'Grace Hopper';
   user.status = UserStatus.Active;
+  user.role = role;
   return user;
 };
 
@@ -30,7 +32,7 @@ const stubAccounts = (
     readPasswordHash: () => Effect.succeed(null),
     createAccount: (input) => {
       onCreate(input);
-      return Effect.succeed(createdUser());
+      return Effect.succeed(createdUser(input.role));
     },
   });
 
@@ -42,6 +44,7 @@ const hasher = PasswordHasherTag.of({
 const runRegister = (
   accounts: ReturnType<typeof stubAccounts>,
   identifiers: { type: IdentifierType; value: string }[],
+  grant: { role?: Role; actorRoles?: readonly string[] } = {},
 ) =>
   Effect.runPromiseExit(
     registerUserUCFactory().pipe(
@@ -51,9 +54,14 @@ const runRegister = (
         displayName: 'Grace Hopper',
         identifiers,
         password: 'plaintext-pass',
+        ...grant,
       }),
     ),
   );
+
+const anEmail = [
+  { type: IdentifierType.Email, value: 'grace@example.com' },
+];
 
 describe('registerUserUCFactory', () => {
   it('hashes the password, creates the account, and returns the auth subject', async () => {
@@ -77,7 +85,7 @@ describe('registerUserUCFactory', () => {
       expect(exit.value).toEqual({
         userId: 'user-9',
         subject: 'user-9',
-        roles: [],
+        roles: [DEFAULT_ROLE],
         attributes: {
           displayName: 'Grace Hopper',
           status: UserStatus.Active,
@@ -108,5 +116,55 @@ describe('registerUserUCFactory', () => {
     ]);
 
     expect(Exit.isFailure(exit)).toBe(true);
+  });
+
+  describe('the role a new account is provisioned with', () => {
+    it('defaults to the lowest tier when none is requested', async () => {
+      let received: CreateAccountInput | undefined;
+      await runRegister(
+        stubAccounts((input) => {
+          received = input;
+        }),
+        anEmail,
+      );
+
+      expect(received?.role).toBe(DEFAULT_ROLE);
+    });
+
+    it('lets an actor grant a role at its own tier', async () => {
+      let received: CreateAccountInput | undefined;
+      const exit = await runRegister(
+        stubAccounts((input) => {
+          received = input;
+        }),
+        anEmail,
+        { role: 'admin', actorRoles: ['admin'] },
+      );
+
+      expect(Exit.isSuccess(exit)).toBe(true);
+      expect(received?.role).toBe('admin');
+    });
+
+    it('refuses an actor granting above its own tier', async () => {
+      const exit = await runRegister(stubAccounts(), anEmail, {
+        role: 'super-admin',
+        actorRoles: ['admin'],
+      });
+
+      expect(Exit.isFailure(exit)).toBe(true);
+      if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
+        expect(exit.cause.error._tag).toBe('AuthnError');
+      }
+    });
+
+    it('refuses a public signup that asks for a role, however low', async () => {
+      // No `actorRoles` at all: an anonymous caller crafting `role` into the
+      // body must not be able to pick its own tier.
+      const exit = await runRegister(stubAccounts(), anEmail, {
+        role: DEFAULT_ROLE,
+      });
+
+      expect(Exit.isFailure(exit)).toBe(true);
+    });
   });
 });

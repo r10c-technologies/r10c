@@ -1,4 +1,6 @@
+import { DEFAULT_ROLE, Roles } from '@r10c/business-ts-authz';
 import {
+  describeEntityColumns,
   deserializeSingleEntity,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
@@ -69,17 +71,41 @@ describe('UserIdentity', () => {
     expect(new UserIdentity().status).toBe(UserStatus.Active);
   });
 
+  // Same reasoning as `status`: an account that materializes without an
+  // explicit role must land on the least-privileged tier, never a higher one.
+  it('starts at the lowest role', () => {
+    expect(new UserIdentity().role).toBe(DEFAULT_ROLE);
+  });
+
   it('round-trips its scalar accessors', () => {
     const user = new UserIdentity();
     user.id = 'u-1';
     user.displayName = 'Ada';
     user.status = UserStatus.Suspended;
+    user.role = 'admin';
 
     expect(serializeEntity(UserIdentity, user)).toMatchObject({
       id: 'u-1',
       displayName: 'Ada',
       status: 'suspended',
+      role: 'admin',
     });
+  });
+
+  // The role has to arrive as a queryable enum member or generic UI cannot
+  // render it and the server-side filter allowlist will reject it.
+  it('describes the role as a filterable, sortable enum', () => {
+    const roleColumn = describeEntityColumns(UserIdentity).find(
+      (column) => column.name === 'role',
+    );
+
+    expect(roleColumn).toMatchObject({
+      type: 'enum',
+      label: 'Role',
+      sortable: true,
+      filterable: true,
+    });
+    expect(roleColumn?.enumValues).toEqual([...Roles]);
   });
 
   it('initializes identifiers as an empty collection link', () => {
