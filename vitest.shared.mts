@@ -93,6 +93,15 @@ export interface EntifixTestOptions {
    * environment fails loudly instead of reporting green.
    */
   exclude?: string[];
+  /**
+   * Overrides Vitest's 10s `beforeAll`/`afterAll` budget.
+   *
+   * Needed by a suite whose start-up does real work — auth-service boots a
+   * composition root that bcrypt-hashes its seed credentials, and bcrypt is
+   * deliberately slow with a pure-JS implementation, so a CI runner overruns the
+   * default and every spec in the file fails before it starts.
+   */
+  hookTimeout?: number;
 }
 
 export const defineEntifixTest = ({
@@ -104,6 +113,7 @@ export const defineEntifixTest = ({
   thresholds = true,
   coverageExclude = [],
   exclude = [],
+  hookTimeout,
 }: EntifixTestOptions) =>
   defineConfig(() => ({
     root,
@@ -137,6 +147,7 @@ export const defineEntifixTest = ({
           ? [path.join(workspaceRoot, 'vitest.setup.dom.ts'), ...setupFiles]
           : setupFiles,
       globalSetup,
+      ...(hookTimeout === undefined ? {} : { hookTimeout }),
       include: [
         '{src,specs,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       ],
