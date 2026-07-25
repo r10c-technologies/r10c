@@ -59,6 +59,15 @@ This metadata is what makes an adapter **generic**: given only the constructor,
 it derives the collection/endpoint name (`key ?? name`) and the field list
 (`alias ?? name`, skipping `hidden`). No entity-specific adapter code is needed.
 
+**Authorization reads the same metadata.** A permission is
+`` `<domain>:<entityKey>:<action>` ``, so `permissionForEntity(Product, 'read')`
+(`@r10c/business-ts-authz`) resolves to
+`product-configuration-management:product:read` from the `@entity()` options
+alone. Making a new entity guardable therefore needs no new vocabulary anywhere —
+the same trick as `filterable`/`sortable` doubling as the server-side query
+allowlist. See
+[ARCHITECTURE.md → Authorization](./ARCHITECTURE.md#authorization-role-aspects--permissions).
+
 ### Presentation metadata
 
 `@accessor()` also carries what generic UI needs to render a member without

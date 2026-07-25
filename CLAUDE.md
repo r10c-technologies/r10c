@@ -69,6 +69,14 @@ them), and everything deep is a link — loaded only when a task needs it.
   a request verifies `r10c_at` statelessly via `TokenServiceTag` (no Redis/auth round
   trip on the hot path). See [[auth-layer-v1]] and
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#auth-sessions--tokens).
+- **Authorization**: a permission is `<domain>:<entityKey>:<action>`, derived from the
+  entity's own `@entity({domain,key})` (`permissionForEntity`); grants come from
+  `ROLE_PERMISSIONS` in `@r10c/business-ts-authz`, never from the token, which still
+  carries only `roles`. Guard a route with `requirePermission(...)` from
+  `@r10c/shells-effect-service` (401 vs 403) — **hiding a nav item protects nothing**.
+  `PolicyDecisionTag` is the ABAC seam; `canAssignRole` caps role creation at the
+  actor's own tier. See [ADR 0002](docs/adr/0002-authorization-roles-and-abac.md) and
+  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#authorization-role-aspects--permissions).
 - **Observability**: a `-service` merges an observability layer that replaces Effect's
   default logger with the `@r10c/entifix-ts-tooling` logger and stands up the
   `@effect/opentelemetry` NodeSdk tracer, reading `logging.*`/`otel.endpoint` from

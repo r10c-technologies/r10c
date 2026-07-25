@@ -7,6 +7,7 @@ supersedes it.
 
 Format: [Michael Nygard's ADR template](https://github.com/joelparkerhenderson/architecture-decision-record).
 
-| # | Title | Status |
-|---|-------|--------|
-| [0001](0001-observability-and-tooling.md) | Observability & platform tooling | Accepted |
+| #                                            | Title                                                  | Status   |
+| -------------------------------------------- | ------------------------------------------------------ | -------- |
+| [0001](0001-observability-and-tooling.md)    | Observability & platform tooling                       | Accepted |
+| [0002](0002-authorization-roles-and-abac.md) | Authorization: role aspects behind an ABAC-shaped port | Accepted |
