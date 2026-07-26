@@ -1,6 +1,7 @@
 'use client';
 
 import { Button, Stack, Text, useT } from '@r10c/entifix-react-controls';
+import { useSearchParams } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
 
 type Mode = 'login' | 'register';
@@ -22,8 +23,13 @@ const fieldClass =
 export function CredentialForm({ mode }: { mode: Mode }) {
   const t = useT('app');
   const errorT = useT('errors');
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Where the visitor was headed before being asked to sign in. Passed through
+  // to the handler, which validates it against the allowlist — it is not
+  // trusted just because it arrived in our own URL.
+  const redirect = searchParams?.get('redirect') ?? undefined;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,7 +43,11 @@ export function CredentialForm({ mode }: { mode: Mode }) {
     let payload: Record<string, unknown>;
     if (mode === 'login') {
       url = '/api/auth/login';
-      payload = { identifier: String(form.get('identifier') ?? ''), password };
+      payload = {
+        identifier: String(form.get('identifier') ?? ''),
+        password,
+        redirect,
+      };
     } else {
       const identifiers: Identifier[] = [];
       const email = String(form.get('email') ?? '').trim();

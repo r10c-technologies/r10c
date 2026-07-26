@@ -9,6 +9,7 @@ function Fixture({ onPick }: { onPick?: () => void }) {
     <Menu>
       <Menu.Trigger>Account</Menu.Trigger>
       <Menu.Items>
+        <Menu.Link href="https://auth.example/es/account">Settings</Menu.Link>
         <Menu.Item onClick={onPick}>Profile</Menu.Item>
         <Menu.Item disabled>Billing</Menu.Item>
       </Menu.Items>
@@ -33,6 +34,20 @@ describe('Menu', () => {
     await user.click(screen.getByText('Profile'));
 
     expect(onPick).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a navigating entry as an anchor', async () => {
+    const user = userEvent.setup();
+    render(<Fixture />);
+
+    await user.click(screen.getByText('Account'));
+
+    // An anchor rather than a button: the account menu's entries point at a
+    // different origin, where a client-side transition is not an option.
+    expect(screen.getByRole('menuitem', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      'https://auth.example/es/account',
+    );
   });
 
   it('renders a disabled item that cannot be picked', async () => {

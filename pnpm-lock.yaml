@@ -758,6 +758,9 @@ importers:
       '@r10c/business-ts-authz':
         specifier: workspace:*
         version: link:../authz
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/business
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../../entifix/ts/core
@@ -1153,9 +1156,15 @@ importers:
 
   packages/shells/next/common:
     dependencies:
+      '@r10c/business-ts-authn':
+        specifier: workspace:*
+        version: link:../../../business/ts/authn
       '@r10c/entifix-react-controls':
         specifier: workspace:*
         version: link:../../../entifix/react/controls
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/business
       '@r10c/entifix-ts-i18n':
         specifier: workspace:*
         version: link:../../../entifix/ts/i18n

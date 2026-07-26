@@ -33,6 +33,16 @@ export const NAV: GuardedNavSection[] = [
       },
     ],
   },
+  {
+    title: 'auth.nav.accountSection',
+    items: [
+      // No permission: your own account is not an administrative screen, and a
+      // plain `user` has to be able to reach it.
+      { label: 'auth.nav.account', href: '/account', icon: '◕' },
+      { label: 'auth.password.nav', href: '/account/password', icon: '⚿' },
+      { label: 'auth.sessions.nav', href: '/account/sessions', icon: '◎' },
+    ],
+  },
 ];
 
 /**

@@ -319,6 +319,9 @@ interface FakeRedisClient {
     token: string,
   ): Promise<number>;
   quit(): Promise<string>;
+  ttl(key: string): Promise<number>;
+  getdel(key: string): Promise<string | null>;
+  scard(key: string): Promise<number>;
 }
 
 describe('makeFakeRedis', () => {
@@ -384,6 +387,50 @@ describe('makeFakeRedis', () => {
 
   it('returns an empty array for a missing set', async () => {
     expect(await client(makeFakeRedis()).smembers('missing')).toEqual([]);
+  });
+
+  it('counts set members', async () => {
+    const fake = makeFakeRedis();
+    await client(fake).sadd('sources', 'a');
+    await client(fake).sadd('sources', 'b');
+
+    expect(await client(fake).scard('sources')).toBe(2);
+    expect(await client(fake).scard('missing')).toBe(0);
+  });
+
+  // `GETDEL` is what makes redeeming a single-use token atomic: two requests
+  // racing the same link must not both succeed.
+  it('reads and removes in one step', async () => {
+    const fake = makeFakeRedis();
+    await client(fake).set('token', 'user-1');
+
+    expect(await client(fake).getdel('token')).toBe('user-1');
+    expect(await client(fake).getdel('token')).toBeNull();
+  });
+
+  // Time does not pass here, so `TTL` reports whatever was last requested —
+  // enough for an adapter branching on "is this still alive".
+  it('reports the ttl it was given', async () => {
+    const fake = makeFakeRedis();
+    await client(fake).set('locked', '1', 'EX', 900);
+
+    expect(await client(fake).ttl('locked')).toBe(900);
+  });
+
+  it('reports -2 for a missing key and -1 for one with no expiry', async () => {
+    const fake = makeFakeRedis();
+    await client(fake).set('forever', 'value');
+
+    expect(await client(fake).ttl('gone')).toBe(-2);
+    expect(await client(fake).ttl('forever')).toBe(-1);
+  });
+
+  it('records a ttl set through expire', async () => {
+    const fake = makeFakeRedis();
+    await client(fake).set('key', 'value');
+    await client(fake).expire('key', 60);
+
+    expect(await client(fake).ttl('key')).toBe(60);
   });
 
   it('deletes a set key too', async () => {

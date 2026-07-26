@@ -3,7 +3,10 @@ import {
   JWT_AUDIENCE,
   JWT_ISSUER,
   makeBcryptPasswordHasher,
+  makeDevNotificationPort,
   makeMongoAccountRepository,
+  makeMongoUserDeviceRepository,
+  makeRedisAttemptLimiter,
   makeRedisIdentityProvider,
   router,
   seedCredentials,
@@ -12,17 +15,27 @@ import {
 } from '@r10c/auth-service';
 import {
   AccountRepositoryTag,
+  AttemptLimiterTag,
   IdentityProviderTag,
+  NotificationPortTag,
   PasswordHasherTag,
+  UserDeviceRepositoryTag,
 } from '@r10c/business-ts-authn';
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
-import { SessionStoreTag, TokenServiceTag } from '@r10c/entifix-ts-business';
+import {
+  OneTimeTokenStoreTag,
+  SessionStoreTag,
+  TokenServiceTag,
+} from '@r10c/entifix-ts-business';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
-import { makeRedisSessionStore } from '@r10c/entifix-ts-redis-client';
+import {
+  makeRedisOneTimeTokenStore,
+  makeRedisSessionStore,
+} from '@r10c/entifix-ts-redis-client';
 import {
   fakeConfigurationLayer,
   fakeMongoLayer,
@@ -58,6 +71,18 @@ const AccountRepositoryLayer = Layer.effect(
   Effect.map(MongoDatabaseTag, makeMongoAccountRepository),
 );
 
+const UserDeviceRepositoryLayer = Layer.effect(
+  UserDeviceRepositoryTag,
+  Effect.map(MongoDatabaseTag, makeMongoUserDeviceRepository),
+);
+
+// The real development adapter, not a stub: the reset journey reads the outbox
+// back through `/api/dev/outbox`, so a fake here would test nothing.
+const NotificationLayer = Layer.effect(
+  NotificationPortTag,
+  Effect.map(MongoDatabaseTag, makeDevNotificationPort),
+);
+
 const IdentityProviderLayer = Layer.effect(
   IdentityProviderTag,
   Effect.gen(function* () {
@@ -71,6 +96,8 @@ const base = Layer.mergeAll(
   fakeMongoLayer({
     'user-identity': userIdentitySeedData,
     'entity-identifier': entityIdentifierSeedData,
+    'user-device': [],
+    'notification-outbox': [],
   }).layer,
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
@@ -93,14 +120,30 @@ const base = Layer.mergeAll(
   // The real grant table, not a fake — it is what `requirePermission` consults,
   // so stubbing it would make every authorization assertion here meaningless.
   Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
-  // The fake ioredis honours set/get/expire/sadd — enough for the session store.
+  // The fake ioredis honours set/get/expire/sadd — enough for the session store,
+  // the one-time tokens and the attempt limiter.
   Layer.succeed(
     SessionStoreTag,
     makeRedisSessionStore(fakeRedis.redis as never),
   ),
+  Layer.succeed(
+    OneTimeTokenStoreTag,
+    makeRedisOneTimeTokenStore(fakeRedis.redis as never),
+  ),
+  Layer.succeed(
+    AttemptLimiterTag,
+    makeRedisAttemptLimiter(fakeRedis.redis as never),
+  ),
 );
 
-const withAccounts = Layer.provideMerge(AccountRepositoryLayer, base);
+const withAccounts = Layer.provideMerge(
+  Layer.mergeAll(
+    AccountRepositoryLayer,
+    UserDeviceRepositoryLayer,
+    NotificationLayer,
+  ),
+  base,
+);
 const withIdentity = Layer.provideMerge(IdentityProviderLayer, withAccounts);
 
 // The seeded users need credentials or they cannot sign in, and the

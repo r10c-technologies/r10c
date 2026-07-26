@@ -30,7 +30,9 @@ const stubAccounts = (
   AccountRepositoryTag.of({
     findByIdentifier: () => Effect.succeed(null),
     findById: () => Effect.succeed(null),
+    findContactAddress: () => Effect.succeed(null),
     readPasswordHash: () => Effect.succeed(null),
+    writePasswordHash: () => Effect.void,
     createAccount: input => {
       onCreate(input);
       return Effect.succeed(createdUser(input.role));
@@ -108,7 +110,9 @@ describe('registerUserUCFactory', () => {
     const conflicting = AccountRepositoryTag.of({
       findByIdentifier: () => Effect.succeed(null),
       findById: () => Effect.succeed(null),
+      findContactAddress: () => Effect.succeed(null),
       readPasswordHash: () => Effect.succeed(null),
+      writePasswordHash: () => Effect.void,
       createAccount: () =>
         Effect.fail(new EntifixLogicError('identifier already taken')),
       updateUserAspects: () =>

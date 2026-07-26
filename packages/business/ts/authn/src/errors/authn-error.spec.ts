@@ -1,7 +1,11 @@
 import { EntifixError } from '@r10c/entifix-ts-core';
 import { describe, expect, it } from 'vitest';
 
-import { AuthnError, UnauthenticatedError } from './authn-error.js';
+import {
+  AuthnError,
+  LockedError,
+  UnauthenticatedError,
+} from './authn-error.js';
 
 // Both stay in the `EntifixError` hierarchy so shells can pattern-match on
 // `_tag` on the same failure channel as the rest of the domain — and the two
@@ -40,5 +44,15 @@ describe('the authn errors', () => {
   // sentence for logs. An error raised without one still has to work.
   it('leaves the code absent when none is given', () => {
     expect(new AuthnError('unreachable').code).toBeUndefined();
+  });
+
+  // 429, not 401: the credentials were never consulted, so a caller told
+  // "invalid credentials" would go off resetting a password that was fine.
+  it('distinguishes a lockout from a bad credential', () => {
+    const locked = new LockedError('too many attempts', 'accountLocked');
+
+    expect(locked._tag).toBe('LockedError');
+    expect(locked._tag).not.toBe(new UnauthenticatedError('a')._tag);
+    expect(locked.code).toBe('accountLocked');
   });
 });

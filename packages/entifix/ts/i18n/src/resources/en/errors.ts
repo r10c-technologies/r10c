@@ -24,4 +24,8 @@ export const errors: EsErrors = {
   configUnavailable: 'The configuration could not be loaded.',
   network: 'Network error. Check that the service is reachable.',
   unexpected: 'Something went wrong.',
+  accountLocked: 'Too many attempts. Try again later.',
+  passwordIncorrect: 'That is not your current password.',
+  passwordTooShort: 'Your password must be at least 8 characters.',
+  invalidResetToken: 'This link is no longer valid. Request a new one.',
 };

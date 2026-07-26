@@ -1,9 +1,15 @@
 /**
  * A fake of the ioredis client, not of the lock/sequence ports.
  *
- * `makeRedisLockService` and `makeRedisSequenceService` run unchanged on top of
- * it, so their real behaviour — `SET NX PX`, the bounded retry loop, the
- * compare-and-delete release script, `INCR` — is what the specs exercise.
+ * `makeRedisLockService`, `makeRedisSequenceService`, the session store, the
+ * one-time token store and the attempt limiter all run unchanged on top of it,
+ * so their real behaviour — `SET NX PX`, the bounded retry loop, the
+ * compare-and-delete release script, `INCR`, `GETDEL` — is what the specs
+ * exercise.
+ *
+ * Time does not pass: `EX`/`EXPIRE` are remembered so `TTL` can report them, but
+ * nothing here expires on its own. Adapters that must be tested across an expiry
+ * drive the clock themselves.
  */
 
 export interface FakeRedis {
@@ -24,6 +30,8 @@ export interface FakeRedis {
 export const makeFakeRedis = (): FakeRedis => {
   const store = new Map<string, string>();
   const sets = new Map<string, Set<string>>();
+  /** Seconds last requested per key, so `TTL` can answer something plausible. */
+  const ttls = new Map<string, number>();
   const commands: Array<{ command: string; args: unknown[] }> = [];
   let failure: unknown;
 
@@ -51,10 +59,39 @@ export const makeFakeRedis = (): FakeRedis => {
         );
         if (nx && store.has(key)) return null;
         store.set(key, value);
+        // Remember an `EX <seconds>` so a later `TTL` is not a lie.
+        const exIndex = rest.findIndex(
+          argument => String(argument).toUpperCase() === 'EX',
+        );
+        if (exIndex !== -1) ttls.set(key, Number(rest[exIndex + 1]));
         return 'OK';
       }),
 
     get: (key: string) => record('get', [key], () => store.get(key) ?? null),
+
+    /**
+     * `TTL`: seconds remaining, `-2` when the key is gone and `-1` when it has
+     * no expiry. Time does not actually pass here, so this reports whatever TTL
+     * was last set — enough for adapters that branch on "is it still alive".
+     */
+    ttl: (key: string) =>
+      record('ttl', [key], () => {
+        if (!store.has(key) && !sets.has(key)) return -2;
+        return ttls.get(key) ?? -1;
+      }),
+
+    /** `GETDEL`: read and remove atomically — a single-use token redemption. */
+    getdel: (key: string) =>
+      record('getdel', [key], () => {
+        const value = store.get(key) ?? null;
+        store.delete(key);
+        ttls.delete(key);
+        return value;
+      }),
+
+    /** `SCARD`: how many members a set holds. */
+    scard: (key: string) =>
+      record('scard', [key], () => sets.get(key)?.size ?? 0),
 
     del: (key: string) =>
       record('del', [key], () => {
@@ -91,9 +128,11 @@ export const makeFakeRedis = (): FakeRedis => {
      * to detect a vanished session on `touch`.
      */
     expire: (key: string, seconds: number) =>
-      record('expire', [key, seconds], () =>
-        store.has(key) || sets.has(key) ? 1 : 0,
-      ),
+      record('expire', [key, seconds], () => {
+        if (!store.has(key) && !sets.has(key)) return 0;
+        ttls.set(key, seconds);
+        return 1;
+      }),
 
     incr: (key: string) =>
       record('incr', [key], () => {

@@ -94,4 +94,19 @@ export const entity = {
       },
     },
   },
+  'user-device': {
+    label: 'Dispositivo',
+    plural: 'Dispositivos',
+    fields: {
+      id: 'ID',
+      userId: 'ID de usuario',
+      deviceId: 'ID de dispositivo',
+      browser: 'Navegador',
+      os: 'Sistema operativo',
+      type: 'Tipo',
+      lastIp: 'Última IP',
+      firstSeenAt: 'Primera vez',
+      lastSeenAt: 'Última vez',
+    },
+  },
 };

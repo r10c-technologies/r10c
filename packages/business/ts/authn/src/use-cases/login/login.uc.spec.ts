@@ -33,7 +33,9 @@ const stubAccounts = ({ user = null, hash = null }: StubAccount) =>
   AccountRepositoryTag.of({
     findByIdentifier: () => Effect.succeed(user),
     findById: () => Effect.succeed(user),
+    findContactAddress: () => Effect.succeed(null),
     readPasswordHash: () => Effect.succeed(hash),
+    writePasswordHash: () => Effect.void,
     createAccount: unusedInLogin,
     updateUserAspects: unusedInLogin,
   });

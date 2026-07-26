@@ -5,6 +5,16 @@
  * than re-declaring a stand-in that could drift from the real route surface.
  */
 export { makeMongoAccountRepository } from './identity/account-repository';
+export {
+  LOCK_TTL_SECONDS,
+  makeRedisAttemptLimiter,
+  MAX_ATTEMPTS_PER_SOURCE,
+  MAX_FAILING_SOURCES,
+} from './identity/attempt-limiter';
+export {
+  makeDevNotificationPort,
+  OUTBOX_COLLECTION,
+} from './identity/notifications';
 export { makeBcryptPasswordHasher } from './identity/password';
 export { makeRedisIdentityProvider } from './identity/redis-identity-provider';
 export {
@@ -13,6 +23,10 @@ export {
   JWT_ISSUER,
 } from './identity/session-policy';
 export { makeStubIdentityProvider } from './identity/stub-identity-provider';
+export {
+  DEVICE_COLLECTION,
+  makeMongoUserDeviceRepository,
+} from './identity/user-device-repository';
 export {
   entityIdentifierSeedData,
   userIdentitySeedData,

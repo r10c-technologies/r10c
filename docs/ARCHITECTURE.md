@@ -171,20 +171,51 @@ short-lived signed token, chosen over a bare JWT so a session is revocable):
   `RedisSessionStoreLayer`), and `TokenServiceTag.sign` (`entifix-ts-jwt-client`'s
   jose-backed HS256 service) mints a short-lived access token carrying only
   `userId`/`subject`/`sessionId`/`roles`.
-- `POST /api/auth/refresh` reads the live session, slides its TTL
-  (`touch`), and mints a fresh access token — this is where the short token TTL
-  becomes real revocation: once `logout` calls `SessionStoreTag.revoke`, the
-  next `refresh` (or direct `read`) 401s even though old tokens haven't expired
-  yet.
-- Every route returns JSON (`accessToken`/`sessionId`/`expiresIn`/`principal`);
-  auth-service itself sets no cookies. Each Next app owns turning that JSON into
-  httpOnly cookies via its own `POST /api/auth/*` route handlers
-  (`apps/*-app/src/app/api/auth/*`, `apps/*-app/src/lib/session.ts`): `r10c_sid`
-  (opaque session id, 7-day) and `r10c_at` (signed access token, TTL-matched). A
-  `middleware.ts` per app does an edge-only presence check on `r10c_at` —
-  auth-app bounces an already-authenticated visitor away from sign-in/sign-up,
-  marketplace-admin-app gates its `/account` area — with the real signature
+- `POST /api/auth/refresh` slides the live session (`touch`, **clamped to its
+  `absoluteExpiresAt`**) and mints a fresh access token — this is where the short
+  token TTL becomes real revocation: once `logout` calls `SessionStoreTag.revoke`,
+  the next `refresh` (or direct `read`) 401s even though old tokens haven't
+  expired yet.
+- **Session lifetime is sliding-under-a-ceiling**: idle 1 day, absolute 7 days,
+  access token 15 min, all five constants in one `scope:shared` module
+  (`business-ts-authn/values/session-policy.ts`) because the service and every
+  app need the same numbers. What slides the session is *user* activity, not
+  traffic: `requirePrincipal` stays stateless and never reads Redis, so the
+  browser's `useSessionRefresh` hook (`@r10c/shells-next-common`) refreshes at
+  80% of the token's life and **stops after 15 minutes without interaction** —
+  an abandoned tab lets its session age out. See
+  [ADR 0004](adr/0004-session-lifetime-devices-and-recovery.md).
+- Every route returns JSON (`accessToken`/`sessionId`/`expiresIn`/
+  `sessionExpiresIn`/`principal`); auth-service itself sets no cookies. Each Next
+  app owns turning that JSON into httpOnly cookies via its own
+  `POST /api/auth/*` route handlers (`apps/*-app/src/app/api/auth/*`,
+  `apps/*-app/src/lib/session.ts`): `r10c_sid` and `r10c_at`, **both sized to the
+  session, not to the token** — a cookie that dies with the token makes an
+  expired token indistinguishable from no session, which is what used to sign
+  everyone out every 15 minutes. The shared refresh handler is
+  `createRefreshRoute` from `@r10c/shells-next-common/server` (a banner-free
+  rollup entry, because a `"use client"` route handler is not a route handler);
+  each app mounts its own, since cookies are per-origin. A `middleware.ts` per
+  app does an edge-only presence check on `r10c_at` — auth-app classifies paths
+  (`/`+`/signup` bounce when authenticated, `/account/*`+`/users` require a
+  session, `/forgot-password`+`/reset-password` are open either way),
+  marketplace-admin-app gates the whole app — with the real signature
   verification left to the backend the page calls (`requirePrincipal` below).
+- **Account self-service** lives entirely in auth-app (`/account`,
+  `/account/password`, `/account/sessions`); other apps link across through the
+  `AccountMenu` in the back-office top bar, with the locale baked into the
+  absolute URL. `/account` sits in its own `(account)` route group, because the
+  `(back-office)` layout additionally demands `authn:user-identity:read` and a
+  plain `user` must still reach their own account.
+- **Devices** are an opaque `r10c_did` cookie plus a `userAgent()`-parsed label,
+  captured at the app edge and stored durably as `UserDevice` in Mongo. They are
+  a label for the session list and for "new device signed in" notifications, and
+  **never an authorization input**.
+- **Recovery**: `OneTimeTokenStoreTag` (`entifix-ts-business`, Redis adapter)
+  stores only a hash and redeems with `GETDEL`; `forgot` always answers `202`;
+  the link exists only in the notification, which in development lands in a Mongo
+  outbox behind `GET /api/dev/outbox` (404 in production). Repeated failures trip
+  an `AttemptLimiterTag` lock → `429`, keyed identifier+source and auto-expiring.
 - Downstream services that need to authorize a request (e.g.
   marketplace-admin-service) never call auth-service or touch Redis on the hot
   path: `requirePrincipal` (`apps/marketplace-admin-service/src/auth.ts`) reads

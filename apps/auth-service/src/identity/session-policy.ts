@@ -4,16 +4,19 @@ import {
 } from '@r10c/business-ts-authn';
 
 /**
- * Fixed session/token policy for the v1 auth layer. Durations are constants
- * here rather than config so the first cut stays simple; they can move to
- * config-service later without touching call sites.
+ * Service-local auth policy.
+ *
+ * The durations that used to live here now live in `@r10c/business-ts-authn`
+ * (`values/session-policy.ts`), because the browser needs the same numbers to
+ * schedule its refresh and a second copy is how the two ends drift apart. They
+ * are re-exported below so call sites inside this service did not have to move.
  */
-
-/** How long a Redis session lives without renewal (7 days). */
-export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-
-/** Access-token lifetime — short, so revocation lag is bounded (15 min). */
-export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
+export {
+  ACCESS_TOKEN_TTL_SECONDS,
+  DEFAULT_SESSION_LIFETIME,
+  SESSION_ABSOLUTE_TTL_SECONDS,
+  SESSION_IDLE_TTL_SECONDS,
+} from '@r10c/business-ts-authn';
 
 /** `iss`/`aud` claims — the shared values every verifier checks against. */
 export const JWT_ISSUER = AUTH_TOKEN_ISSUER;
