@@ -1,7 +1,7 @@
 import type { ThirdPartyModule } from 'i18next';
 import { describe, expect, it } from 'vitest';
 
-import { createI18n } from './instance.js';
+import { createI18n, sharedFallbackI18n } from './instance.js';
 
 describe('createI18n', () => {
   it('resolves keys synchronously, so the first paint is already translated', () => {
@@ -49,5 +49,33 @@ describe('createI18n', () => {
     const i18n = createI18n('es', [probe]);
 
     expect(received).toBe(i18n);
+  });
+});
+
+describe('sharedFallbackI18n', () => {
+  it('serves the fleet default locale, not raw keys', () => {
+    expect(sharedFallbackI18n().t('controls:table.open')).toBe('Abrir');
+  });
+
+  it('hands every caller the same instance', () => {
+    // The point of the memo: each React package resolves copy through its own
+    // `useTranslation`, and a second instance here would mean two copies of
+    // every catalog in a process that already decided what "no provider" means.
+    expect(sharedFallbackI18n()).toBe(sharedFallbackI18n());
+  });
+
+  it('ignores modules once built, since the first caller settled it', () => {
+    sharedFallbackI18n(); // whoever got here first; asserted independently of order
+    let called = false;
+    const probe: ThirdPartyModule = {
+      type: '3rdParty',
+      init: () => {
+        called = true;
+      },
+    };
+
+    sharedFallbackI18n([probe]);
+
+    expect(called).toBe(false);
   });
 });
