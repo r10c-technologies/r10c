@@ -6,6 +6,7 @@ import {
   type EntityId,
   EntityLink,
 } from '@r10c/entifix-ts-core';
+import { makeFormatters } from '@r10c/entifix-ts-i18n';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode, useState } from 'react';
@@ -196,7 +197,9 @@ describe('EntityForm', () => {
     // Declared labels are shown, formatted values too; the hidden id is not.
     expect(screen.getByText('Code')).toBeInTheDocument();
     expect(screen.getByText('G-1')).toBeInTheDocument();
-    expect(screen.getByText('1,200')).toBeInTheDocument();
+    expect(
+      screen.getByText(makeFormatters('es').number(1200)),
+    ).toBeInTheDocument();
     expect(screen.getByText('Acme')).toBeInTheDocument();
     expect(screen.queryByText('ID')).not.toBeInTheDocument();
   });
@@ -206,7 +209,7 @@ describe('EntityForm', () => {
 
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Save' }),
+      screen.queryByRole('button', { name: 'Guardar' }),
     ).not.toBeInTheDocument();
   });
 
@@ -214,9 +217,9 @@ describe('EntityForm', () => {
     const user = userEvent.setup();
     render(<Harness entity={makeGadget()} initial={{ code: 'G-1' }} />);
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
 
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
     expect(screen.getByLabelText('Code')).toHaveValue('G-1');
     // The read-only member is present but disabled.
     expect(screen.getByLabelText('SKU')).toBeDisabled();
@@ -225,9 +228,9 @@ describe('EntityForm', () => {
   it('opens in edit mode with no toggle for a create form', () => {
     render(<Harness />);
 
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Edit' }),
+      screen.queryByRole('button', { name: 'Editar' }),
     ).not.toBeInTheDocument();
   });
 
@@ -237,7 +240,7 @@ describe('EntityForm', () => {
     expect(
       screen.queryByRole('button', { name: /edit|view/i }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
   });
 
   it('edits a field through the controlled draft', async () => {
@@ -254,7 +257,7 @@ describe('EntityForm', () => {
     const onSubmit = vi.fn();
     render(<Harness mode="edit" initial={{ code: 'G-9' }} onSubmit={onSubmit} />);
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     expect(onSubmit).toHaveBeenCalledWith({ code: 'G-9' });
   });
@@ -293,8 +296,8 @@ describe('EntityForm', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Volver' })).toHaveAttribute(
       'href',
       '/list',
     );
@@ -360,24 +363,24 @@ describe('EntityForm', () => {
     const onModeChange = vi.fn();
     render(<Harness entity={makeGadget()} onModeChange={onModeChange} />);
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
     expect(onModeChange).toHaveBeenCalledWith('edit');
 
     // Toggling back exercises the other direction of the switch.
-    await user.click(screen.getByRole('button', { name: 'View' }));
+    await user.click(screen.getByRole('button', { name: 'Ver' }));
     expect(onModeChange).toHaveBeenCalledWith('read');
   });
 
   it('shows a busy label while saving', () => {
     render(<Harness mode="edit" isSaving onSubmit={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Guardando…' })).toBeDisabled();
   });
 
   it('shows a busy label while deleting', () => {
     render(<Harness mode="edit" isDeleting onDelete={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Deleting…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Eliminando…' })).toBeDisabled();
   });
 
   it('tolerates an uncontrolled render with no draft wiring', async () => {

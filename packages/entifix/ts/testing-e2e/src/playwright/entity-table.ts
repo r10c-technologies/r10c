@@ -71,13 +71,13 @@ export class EntityTablePage {
 
   async openFilters(): Promise<void> {
     await this.page
-      .getByRole('button', { name: 'Filters', exact: true })
+      .getByRole('button', { name: 'Filtros', exact: true })
       .click();
   }
 
   /** `and` (default) or `or` across the rows of the panel. */
   async matchAny(match: 'and' | 'or'): Promise<void> {
-    await this.page.getByLabel('Match all or any filter').selectOption(match);
+    await this.page.getByLabel('Coincidir todos o cualquiera de los filtros').selectOption(match);
   }
 
   /**
@@ -88,23 +88,23 @@ export class EntityTablePage {
    * on it would break the moment a member is declared ahead of that one.
    */
   async addFilter({ member, operator, value }: FilterClause): Promise<void> {
-    const index = await this.page.getByLabel('Filter member').count();
-    await this.page.getByRole('button', { name: 'Add filter' }).click();
-    await this.page.getByLabel('Filter member').nth(index).selectOption(member);
+    const index = await this.page.getByLabel('Miembro del filtro').count();
+    await this.page.getByRole('button', { name: 'Añadir filtro' }).click();
+    await this.page.getByLabel('Miembro del filtro').nth(index).selectOption(member);
     await this.page
-      .getByLabel('Filter operator')
+      .getByLabel('Operador del filtro')
       .nth(index)
       .selectOption(operator);
-    await this.page.getByLabel('Filter value').nth(index).fill(value);
+    await this.page.getByLabel('Valor del filtro').nth(index).fill(value);
   }
 
   /** Filtering is emitted on Apply, not per keystroke — each emission is a request. */
   async applyFilters(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Apply filters' }).click();
+    await this.page.getByRole('button', { name: 'Aplicar filtros' }).click();
   }
 
   async clearFilters(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Clear filters' }).click();
+    await this.page.getByRole('button', { name: 'Limpiar filtros' }).click();
   }
 
   /** Opens the panel, adds every clause, applies. */
@@ -120,22 +120,22 @@ export class EntityTablePage {
 
   async openSorting(): Promise<void> {
     await this.page
-      .getByRole('button', { name: 'Sorting', exact: true })
+      .getByRole('button', { name: 'Orden', exact: true })
       .click();
   }
 
   async addSort({ member, direction = 'asc' }: SortClause): Promise<void> {
-    const index = await this.page.getByLabel('Sort member').count();
-    await this.page.getByRole('button', { name: 'Add sort' }).click();
-    await this.page.getByLabel('Sort member').nth(index).selectOption(member);
+    const index = await this.page.getByLabel('Miembro de orden').count();
+    await this.page.getByRole('button', { name: 'Añadir orden' }).click();
+    await this.page.getByLabel('Miembro de orden').nth(index).selectOption(member);
     await this.page
-      .getByLabel('Sort direction')
+      .getByLabel('Dirección de orden')
       .nth(index)
       .selectOption(direction);
   }
 
   async applySorting(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Apply sorting' }).click();
+    await this.page.getByRole('button', { name: 'Aplicar orden' }).click();
   }
 
   /** Opens the panel, adds every term in precedence order, applies. */
@@ -150,15 +150,15 @@ export class EntityTablePage {
   // --- paging -------------------------------------------------------------
 
   /**
-   * `exact` matters: Next.js' dev-tools button also matches a loose "Next".
+   * `exact` matters: Next.js' dev-tools button also matches a loose "Siguiente".
    */
   async nextPage(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Next', exact: true }).click();
+    await this.page.getByRole('button', { name: 'Siguiente', exact: true }).click();
   }
 
   async previousPage(): Promise<void> {
     await this.page
-      .getByRole('button', { name: 'Previous', exact: true })
+      .getByRole('button', { name: 'Anterior', exact: true })
       .click();
   }
 }

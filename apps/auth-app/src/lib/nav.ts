@@ -23,10 +23,10 @@ interface GuardedNavSection {
  */
 export const NAV: GuardedNavSection[] = [
   {
-    title: 'Identity',
+    title: 'auth.nav.identity',
     items: [
       {
-        label: 'Users',
+        label: 'auth.nav.users',
         href: '/users',
         icon: '◉',
         permission: 'authn:user-identity:read',
@@ -35,13 +35,25 @@ export const NAV: GuardedNavSection[] = [
   },
 ];
 
-/** Keep only the sections and items the caller's roles grant, dropping empties. */
-export const navFor = (roles: readonly string[]): NavSection[] =>
+/**
+ * Keep only the sections and items the caller's roles grant, dropping empties.
+ *
+ * `label`/`title` hold catalog keys, not copy — this runs in a server layout,
+ * not a React component, so the translate function is passed in.
+ */
+export const navFor = (
+  roles: readonly string[],
+  translate: (key: string) => string,
+): NavSection[] =>
   NAV.map(section => ({
-    title: section.title,
+    title: section.title === undefined ? undefined : translate(section.title),
     items: section.items
       .filter(
         item => item.permission === undefined || can(roles, item.permission),
       )
-      .map(({ label, href, icon }) => ({ label, href, icon })),
+      .map(({ label, href, icon }) => ({
+        label: translate(label),
+        href,
+        icon,
+      })),
   })).filter(section => section.items.length > 0);

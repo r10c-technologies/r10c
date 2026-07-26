@@ -67,8 +67,16 @@ jobs:
           # projects and each one pays for a browser download.
           echo "e2e-projects=$(affected e2e | jq -r 'join(",")')" >> "$GITHUB_OUTPUT"
 
+  # Two static checks in one job: both are cheap, and a separate runner for the
+  # catalog check spent ~35s of its 37s on checkout + install to run a 2s script.
+  #
+  # NOTE: this job must stay unconditional. The catalog check is deliberately
+  # NOT affected-gated (a catalog is shared by every app, so a missing key is
+  # everyone's problem regardless of which project the PR touched) — only the
+  # nx lint command below is affected-scoped. Adding an `if:` here would
+  # silently make the catalog check conditional too.
   lint:
-    name: Lint (affected)
+    name: Lint & i18n catalogs
     needs: initialize
     runs-on: ubuntu-latest
     steps:
@@ -88,6 +96,12 @@ jobs:
           pnpm nx affected -t lint \
             --base=${{ needs.initialize.outputs.base }} \
             --head=${{ needs.initialize.outputs.head }}
+      # `always()` so a lint failure does not hide a catalog failure — otherwise
+      # a PR carrying both spends two round trips learning about them one at a
+      # time. The job still fails if either step does.
+      - name: Check es/en catalog parity
+        if: always()
+        run: node tools/check-i18n.mjs
 
   build:
     name: Build (${{ matrix.chunk }})
@@ -193,6 +207,9 @@ jobs:
           path: apps/*-e2e/test-output/playwright
           retention-days: 7
 
+  # The single required check. A job absent from `needs` reports its own status
+  # on the PR but cannot block a merge — the i18n catalog check spent its first
+  # release in exactly that state, red and advisory. Every new job belongs here.
   ci-gate:
     name: CI Gate
     needs: [lint, build, test, e2e]

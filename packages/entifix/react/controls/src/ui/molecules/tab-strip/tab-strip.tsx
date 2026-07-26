@@ -2,6 +2,7 @@
 
 import type { ComponentPropsWithoutRef } from 'react';
 
+import { useT } from '../../../i18n';
 import { cn } from '../../utils/cn';
 
 export type TabStripProps = ComponentPropsWithoutRef<'div'>;
@@ -52,6 +53,8 @@ export function Tab({
   onClose,
   className,
 }: TabProps) {
+  const t = useT();
+
   return (
     <div
       role="tab"
@@ -93,7 +96,7 @@ export function Tab({
       {onClose && (
         <button
           type="button"
-          aria-label={`Close ${label}`}
+          aria-label={t('tabs.close', { label })}
           onClick={onClose}
           className={cn(
             'ml-2xs rounded p-3xs text-content-muted opacity-0 transition',
@@ -112,10 +115,12 @@ export type TabAddButtonProps = ComponentPropsWithoutRef<'button'>
 
 /** The "+" that opens a new tab. */
 export function TabAddButton({ className, ...props }: TabAddButtonProps) {
+  const t = useT();
+
   return (
     <button
       type="button"
-      aria-label="Open a new tab"
+      aria-label={t('tabs.new')}
       className={cn(
         'mb-3xs shrink-0 rounded-md px-2xs py-3xs text-step-sm text-content-muted',
         'transition hover:bg-surface-elevated hover:text-content',

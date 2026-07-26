@@ -25,11 +25,20 @@ describe('the authn errors', () => {
     );
   });
 
-  it('carries a cause and details through', () => {
+  it('carries a code, cause and details through', () => {
     const cause = new Error('provider down');
-    const error = new AuthnError('unreachable', cause, { provider: 'zitadel' });
+    const error = new AuthnError('unreachable', 'unexpected', cause, {
+      provider: 'zitadel',
+    });
 
+    expect(error.code).toBe('unexpected');
     expect(error.cause).toBe(cause);
     expect(error.details).toEqual({ provider: 'zitadel' });
+  });
+
+  // The code is what the client renders; the message stays a developer-facing
+  // sentence for logs. An error raised without one still has to work.
+  it('leaves the code absent when none is given', () => {
+    expect(new AuthnError('unreachable').code).toBeUndefined();
   });
 });

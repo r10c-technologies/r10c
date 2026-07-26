@@ -26,6 +26,8 @@ const entityKind: TabKind<EntityAddr> = {
   render: addr => <div>edit {addr.id}</div>,
 };
 
+const translate = (key: string) => key;
+
 const registry = () => new TabRegistry().register(catalogKind).register(entityKind);
 
 describe('splitParam', () => {
@@ -43,7 +45,7 @@ describe('splitParam', () => {
 
 describe('TabRegistry', () => {
   it('resolves a registered kind to a canonical, titled, renderable tab', () => {
-    const tab = registry().resolve('entity:product:123');
+    const tab = registry().resolve('entity:product:123', translate);
 
     expect(tab?.param).toBe('entity:product:123');
     expect(tab?.title).toBe('product #123');
@@ -51,17 +53,17 @@ describe('TabRegistry', () => {
   });
 
   it('canonicalises the param through the kind', () => {
-    expect(registry().resolve('catalog:product')?.param).toBe('catalog:product');
+    expect(registry().resolve('catalog:product', translate)?.param).toBe('catalog:product');
   });
 
   it('returns null for an unknown kind', () => {
-    expect(registry().resolve('operation:import')).toBeNull();
+    expect(registry().resolve('operation:import', translate)).toBeNull();
     expect(registry().has('operation')).toBe(false);
   });
 
   it('returns null when the payload is invalid for the kind', () => {
-    expect(registry().resolve('catalog:')).toBeNull();
-    expect(registry().resolve('entity:product')).toBeNull();
+    expect(registry().resolve('catalog:', translate)).toBeNull();
+    expect(registry().resolve('entity:product', translate)).toBeNull();
   });
 
   it('reports registered kinds via has', () => {

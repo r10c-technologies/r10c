@@ -1,0 +1,61 @@
+{
+  "name": "@r10c/entifix-ts-i18n",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./routing": {
+      "@r10c/source": "./src/routing.ts",
+      "types": "./dist/routing.d.ts",
+      "import": "./dist/routing.js",
+      "default": "./dist/routing.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "entifix:tooling"
+    ],
+    "sourceRoot": "packages/entifix/ts/i18n/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/entifix/ts/i18n/dist",
+          "main": "packages/entifix/ts/i18n/src/index.ts",
+          "tsConfig": "packages/entifix/ts/i18n/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      },
+      "i18n-check": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node tools/check-i18n.mjs",
+          "cwd": "{workspaceRoot}"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@swc/helpers": "0.5.23",
+    "i18next": "26.3.6"
+  }
+}

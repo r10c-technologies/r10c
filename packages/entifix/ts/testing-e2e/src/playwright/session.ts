@@ -5,10 +5,17 @@ import { isMockProfile } from '../profile/profile';
 /** The cookies auth-app sets, host-scoped so the fleet shares them in dev. */
 const ACCESS_COOKIE = 'r10c_at';
 const SESSION_COOKIE = 'r10c_sid';
+const LOCALE_COOKIE = 'r10c_locale';
 
 export interface SeedSessionOptions {
   /** Roles the seeded principal should carry. */
   roles?: readonly string[];
+  /**
+   * Locale to pin the run to. Seeded in both profiles so a run does not depend
+   * on the CI machine's `Accept-Language` — without it the same spec renders
+   * Spanish locally and English on a differently-configured runner.
+   */
+  locale?: string;
   /** Identifier + password for the `live` profile's real sign-in. */
   identifier?: string;
   password?: string;
@@ -60,6 +67,7 @@ export const seedSession = async (
   context: BrowserContext,
   {
     roles = ['user'],
+    locale = 'es',
     identifier = 'ada@example.com',
     password = 'password123',
     authAppUrl = process.env['AUTH_APP_URL'] ?? 'http://localhost:3002',
@@ -82,6 +90,9 @@ export const seedSession = async (
     await context.addCookies(
       await context.request.storageState().then(state => state.cookies),
     );
+    await context.addCookies([
+      { name: LOCALE_COOKIE, value: locale, domain: 'localhost', path: '/' },
+    ]);
     return;
   }
 
@@ -95,6 +106,12 @@ export const seedSession = async (
     {
       name: SESSION_COOKIE,
       value: 'e2e-session',
+      domain: 'localhost',
+      path: '/',
+    },
+    {
+      name: LOCALE_COOKIE,
+      value: locale,
       domain: 'localhost',
       path: '/',
     },

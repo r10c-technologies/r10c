@@ -8,6 +8,7 @@ import {
 } from '@r10c/entifix-ts-core';
 import { Fragment, type ReactNode, useState } from 'react';
 
+import { useErrorMessage, useT } from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { CellValue } from '../../atoms/cell-value';
 import {
@@ -85,6 +86,8 @@ export function EntityTable<TEntity extends Entity>({
   onSortingChange,
   children,
 }: EntityTableProps<TEntity>) {
+  const t = useT();
+  const errorMessage = useErrorMessage();
   const metaEntity = extractMetaEntity(entityConstructor);
   const slots = readEntityTableSlots<TEntity>(children);
   const [panel, setPanel] = useState<Panel>('none');
@@ -114,14 +117,14 @@ export function EntityTable<TEntity extends Entity>({
     );
 
   const recordLink = (item: TEntity) =>
-    hrefFor ? <Link href={hrefFor(item.id)}>Open</Link> : undefined;
+    hrefFor ? <Link href={hrefFor(item.id)}>{t('table.open')}</Link> : undefined;
 
   /**
    * "No records" is a statement about the data; after a failed load it would be
    * a lie about it. The distinction matters most to the user who is deciding
    * whether their catalog is empty or their backend is down.
    */
-  const emptyMessage = error ? 'Could not load records' : 'No records';
+  const emptyMessage = error ? t('table.error') : t('table.empty');
 
   return (
     <div className="flex flex-col gap-s">
@@ -129,7 +132,7 @@ export function EntityTable<TEntity extends Entity>({
         <TableToolbar
           start={
             <>
-              {newHref && <Link href={newHref}>New</Link>}
+              {newHref && <Link href={newHref}>{t('table.new')}</Link>}
               {slots.toolbar}
             </>
           }
@@ -145,7 +148,7 @@ export function EntityTable<TEntity extends Entity>({
                   )
                 }
               >
-                Filters
+                {t('table.filters')}
               </Button>
               <Button
                 type="button"
@@ -157,7 +160,7 @@ export function EntityTable<TEntity extends Entity>({
                   )
                 }
               >
-                Sorting
+                {t('table.sorting')}
               </Button>
               <ColumnSettings
                 columns={columns}
@@ -199,7 +202,7 @@ export function EntityTable<TEntity extends Entity>({
           data-testid="entity-table-error"
           className="rounded-sm border border-danger bg-danger-subtle px-s py-2xs text-step-sm text-danger"
         >
-          {error.message}
+          {errorMessage(error)}
         </p>
       )}
 
@@ -216,13 +219,15 @@ export function EntityTable<TEntity extends Entity>({
                     {column.header ?? column.label}
                   </TableHeaderCell>
                 ))}
-                {hrefFor && <TableHeaderCell>Actions</TableHeaderCell>}
+                {hrefFor && <TableHeaderCell>{t('table.actions')}</TableHeaderCell>}
               </tr>
             )}
           </TableHead>
           <TableBody>
             {isLoading && items.length === 0 && (
-              <TableMessageRow colSpan={columnCount}>Loading…</TableMessageRow>
+              <TableMessageRow colSpan={columnCount}>
+                {t('table.loading')}
+              </TableMessageRow>
             )}
             {!isLoading && items.length === 0 && (
               <TableMessageRow colSpan={columnCount}>
@@ -254,7 +259,7 @@ export function EntityTable<TEntity extends Entity>({
       {/* Narrow viewports: the same columns pivoted into cards. */}
       <div className={`${pivot.cards} flex flex-col gap-2xs`}>
         {isLoading && items.length === 0 && (
-          <p className="text-step-sm text-content-muted">Loading…</p>
+          <p className="text-step-sm text-content-muted">{t('table.loading')}</p>
         )}
         {!isLoading && items.length === 0 && (
           <p className="text-step-sm text-content-muted">{emptyMessage}</p>

@@ -5,6 +5,8 @@ import {
   Tab,
   TabStrip,
   TopBar,
+  useT,
+  useTranslateKey,
 } from '@r10c/entifix-react-controls';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
@@ -43,6 +45,9 @@ export function WorkspaceShell({
   fallback,
   emptyState,
 }: WorkspaceShellProps) {
+  const t = useT('shell');
+  // Tab captions are catalog keys carried in a registry, not authored copy.
+  const translate = useTranslateKey();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -67,7 +72,7 @@ export function WorkspaceShell({
   // A tab is dirty while its address has an unsaved draft; closing one confirms.
   const handleClose = (param: string) => {
     if (param in drafts) {
-      if (!window.confirm('Discard unsaved changes in this tab?')) return;
+      if (!window.confirm(t('workspace.discard'))) return;
       clearDraft(param);
     }
     close(param);
@@ -76,11 +81,11 @@ export function WorkspaceShell({
   // Deep link → open/focus the addressed tab (ignored when the kind is unknown).
   useEffect(() => {
     if (!urlTab) return;
-    const resolved = registry.resolve(urlTab);
+    const resolved = registry.resolve(urlTab, translate);
     if (resolved) {
       open({ param: resolved.param, title: resolved.title });
     }
-  }, [urlTab, registry, open]);
+  }, [urlTab, registry, open, translate]);
 
   // Project the active tab back to the URL so it stays shareable.
   useEffect(() => {
@@ -95,10 +100,12 @@ export function WorkspaceShell({
     );
   };
 
-  const activeResolved = activeParam ? registry.resolve(activeParam) : null;
+  const activeResolved = activeParam
+    ? registry.resolve(activeParam, translate)
+    : null;
   const body = activeResolved
     ? activeResolved.render()
-    : urlTab && !registry.resolve(urlTab)
+    : urlTab && !registry.resolve(urlTab, translate)
       ? fallback
       : emptyState;
 
@@ -125,7 +132,7 @@ export function WorkspaceShell({
                 onClick={() => copyDeepLink(activeParam)}
                 className="rounded-md px-2xs py-3xs text-step-sm text-content-muted transition hover:bg-surface hover:text-content"
               >
-                Copy link
+                {t('workspace.copyLink')}
               </button>
             )}
             {actions}
@@ -136,7 +143,10 @@ export function WorkspaceShell({
           {tabs.map(tab => (
             <Tab
               key={tab.param}
-              label={tab.title}
+              // Re-derived from the registry rather than read back from the
+              // store: the persisted title is whatever locale it was opened
+              // in, so a locale switch would leave stale captions behind.
+              label={registry.resolve(tab.param, translate)?.title ?? tab.title}
               active={tab.param === activeParam}
               state={tab.param in drafts ? 'dirty' : 'idle'}
               onSelect={() => activate(tab.param)}

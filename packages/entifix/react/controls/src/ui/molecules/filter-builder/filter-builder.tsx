@@ -10,13 +10,14 @@ import type {
 } from '@r10c/entifix-ts-core';
 import { useCallback, useId, useState } from 'react';
 
+import { useEnumLabel, useT } from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { Select, TextInput } from '../../atoms/field';
 import { Text } from '../../atoms/text';
 import {
   type EntityFilterOperator,
-  OPERATOR_LABELS,
   operatorArity,
+  operatorLabelKey,
   operatorsForType,
 } from './filter-operators';
 
@@ -164,6 +165,7 @@ export function FilterBuilder<TEntity extends Entity>({
   value: applied,
   onChange,
 }: FilterBuilderProps<TEntity>) {
+  const t = useT();
   const idPrefix = useId();
   const [logic, setLogic] = useState<LogicOperator>(applied?.operator ?? 'and');
   const [drafts, setDrafts] = useState<FilterDraft[]>(() =>
@@ -222,7 +224,7 @@ export function FilterBuilder<TEntity extends Entity>({
   if (descriptors.length === 0) {
     return (
       <Text step={-1} tone="muted">
-        No filterable members on this entity.
+        {t('filter.none')}
       </Text>
     );
   }
@@ -231,17 +233,17 @@ export function FilterBuilder<TEntity extends Entity>({
     <div className="flex flex-col gap-2xs">
       <div className="flex items-center gap-2xs">
         <Text step={-2} tone="muted">
-          Match
+          {t('filter.match')}
         </Text>
         <Select
-          aria-label="Match all or any filter"
+          aria-label={t('filter.matchAria')}
           value={logic}
           onChange={event => {
             setLogic(event.target.value as LogicOperator);
           }}
         >
-          <option value="and">all</option>
-          <option value="or">any</option>
+          <option value="and">{t('filter.all')}</option>
+          <option value="or">{t('filter.any')}</option>
         </Select>
       </div>
 
@@ -253,7 +255,7 @@ export function FilterBuilder<TEntity extends Entity>({
         return (
           <div key={draft.key} className="flex flex-wrap items-center gap-2xs">
             <Select
-              aria-label="Filter member"
+              aria-label={t('filter.member')}
               value={draft.property}
               onChange={event => {
                 const next = descriptorFor(event.target.value);
@@ -278,7 +280,7 @@ export function FilterBuilder<TEntity extends Entity>({
             </Select>
 
             <Select
-              aria-label="Filter operator"
+              aria-label={t('filter.operator')}
               value={draft.operator}
               onChange={event =>
                 patch(draft.key, {
@@ -288,7 +290,7 @@ export function FilterBuilder<TEntity extends Entity>({
             >
               {operatorsForType(descriptor.type).map(operator => (
                 <option key={operator} value={operator}>
-                  {OPERATOR_LABELS[operator]}
+                  {t(operatorLabelKey(operator))}
                 </option>
               ))}
             </Select>
@@ -308,7 +310,7 @@ export function FilterBuilder<TEntity extends Entity>({
               type="button"
               variant="ghost"
               size="sm"
-              aria-label="Remove filter"
+              aria-label={t('filter.remove')}
               onClick={() =>
                 update(drafts.filter(entry => entry.key !== draft.key))
               }
@@ -321,22 +323,22 @@ export function FilterBuilder<TEntity extends Entity>({
 
       <div className="flex flex-wrap items-center gap-2xs">
         <Button type="button" variant="secondary" size="sm" onClick={addRow}>
-          Add filter
+          {t('filter.add')}
         </Button>
         <Button
           type="button"
           variant="primary"
           size="sm"
-          aria-label="Apply filters"
+          aria-label={t('filter.applyAria')}
           onClick={() => apply(drafts, logic)}
         >
-          Apply
+          {t('filter.apply')}
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          aria-label="Clear filters"
+          aria-label={t('filter.clearAria')}
           onClick={() => {
             setDrafts([]);
             setLogic('and');
@@ -345,7 +347,7 @@ export function FilterBuilder<TEntity extends Entity>({
             apply([], 'and');
           }}
         >
-          Clear
+          {t('filter.clear')}
         </Button>
       </div>
     </div>
@@ -370,16 +372,19 @@ function FilterValueInput({
   onValueChange,
   onEndChange,
 }: FilterValueInputProps) {
+  const t = useT();
+  const enumLabel = useEnumLabel();
+
   if (descriptor.type === 'boolean') {
     return (
       <Select
-        aria-label="Filter value"
+        aria-label={t('filter.value')}
         value={value}
         onChange={event => onValueChange(event.target.value)}
       >
         <option value="">—</option>
-        <option value="true">Yes</option>
-        <option value="false">No</option>
+        <option value="true">{t('value.yes')}</option>
+        <option value="false">{t('value.no')}</option>
       </Select>
     );
   }
@@ -387,14 +392,14 @@ function FilterValueInput({
   if (descriptor.type === 'enum' && descriptor.enumValues && arity !== 'list') {
     return (
       <Select
-        aria-label="Filter value"
+        aria-label={t('filter.value')}
         value={value}
         onChange={event => onValueChange(event.target.value)}
       >
         <option value="">—</option>
         {descriptor.enumValues.map(option => (
           <option key={option} value={option}>
-            {option}
+            {enumLabel(descriptor, option)}
           </option>
         ))}
       </Select>
@@ -411,15 +416,15 @@ function FilterValueInput({
   return (
     <>
       <TextInput
-        aria-label="Filter value"
+        aria-label={t('filter.value')}
         type={arity === 'list' ? 'text' : inputType}
-        placeholder={arity === 'list' ? 'comma, separated, values' : undefined}
+        placeholder={arity === 'list' ? t('filter.listPlaceholder') : undefined}
         value={value}
         onChange={event => onValueChange(event.target.value)}
       />
       {arity === 'range' && (
         <TextInput
-          aria-label="Filter range end"
+          aria-label={t('filter.rangeEnd')}
           type={inputType}
           value={end}
           onChange={event => onEndChange(event.target.value)}

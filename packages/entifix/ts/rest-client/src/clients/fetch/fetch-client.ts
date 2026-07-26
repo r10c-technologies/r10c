@@ -24,6 +24,18 @@ export const performHttpRequestThroughFetch = <TResponseBody>(
 
     // Check if the response is successful (status code 2xx)
     if (!response.ok) {
+      // Services answer a failure with `{ error, code, detail }`. Carrying the
+      // `code` into `details` is what lets the browser render a translated
+      // message instead of the service's English `error` string. A body that is
+      // not JSON is not itself a failure — the status already is one.
+      const failure = yield* Effect.promise(() =>
+        response.json().then(
+          (parsed: unknown) => parsed as Record<string, unknown>,
+          () => ({}) as Record<string, unknown>
+        )
+      );
+      const code = failure['code'];
+
       yield* Effect.fail(
         new EntifixConnError(
           `HTTP request failed with status ${response.status}: ${response.statusText}`,
@@ -33,6 +45,7 @@ export const performHttpRequestThroughFetch = <TResponseBody>(
             statusText: response.statusText,
             url: request.url,
             method: request.method,
+            ...(typeof code === 'string' ? { code } : {}),
           }
         )
       );

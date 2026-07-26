@@ -1,7 +1,13 @@
 'use client';
 
 import { ProductBrand } from '@r10c/business-ts-product-configuration-management';
-import { Button, Card, Stack, Text } from '@r10c/entifix-react-controls';
+import {
+  Button,
+  Card,
+  Stack,
+  Text,
+  useT,
+} from '@r10c/entifix-react-controls';
 import { useState } from 'react';
 
 import { fieldStyle, FormField } from '../../molecules/form-field';
@@ -22,6 +28,8 @@ export function ProductBrandForm({
   onDelete,
   backHref,
 }: ProductBrandFormProps) {
+  const t = useT();
+  const et = useT('entity');
   const [name, setName] = useState(() => entity?.name ?? '');
   const [description, setDescription] = useState(
     () => entity?.description ?? ''
@@ -42,13 +50,13 @@ export function ProductBrandForm({
     <Card>
       <Stack gap="s">
         <Text as="h2">
-          {entity ? 'Edit product brand' : 'New product brand'}
+          {entity ? t('form.edit') : t('form.new')}
         </Text>
 
-        {isLoading && <Text data-testid="form-loading">Loading…</Text>}
+        {isLoading && <Text data-testid="form-loading">{t('form.loading')}</Text>}
         {error && <Text data-testid="form-error">{error.message}</Text>}
 
-        <FormField label="name" htmlFor="name">
+        <FormField label={et('product-brand.fields.name')} htmlFor="name">
           <input
             id="name"
             name="name"
@@ -58,7 +66,7 @@ export function ProductBrandForm({
           />
         </FormField>
 
-        <FormField label="description" htmlFor="description">
+        <FormField label={et('product-brand.fields.description')} htmlFor="description">
           <input
             id="description"
             name="description"
@@ -68,7 +76,7 @@ export function ProductBrandForm({
           />
         </FormField>
 
-        <FormField label="website" htmlFor="website">
+        <FormField label={et('product-brand.fields.website')} htmlFor="website">
           <input
             id="website"
             name="website"
@@ -80,7 +88,7 @@ export function ProductBrandForm({
 
         <Stack direction="row" gap="xs">
           <Button type="button" onClick={handleSubmit} disabled={busy}>
-            {isSaving ? 'Saving…' : 'Save'}
+            {isSaving ? t('form.saving') : t('form.save')}
           </Button>
           {onDelete && (
             <Button
@@ -89,12 +97,12 @@ export function ProductBrandForm({
               onClick={onDelete}
               disabled={busy}
             >
-              {isDeleting ? 'Deleting…' : 'Delete'}
+              {isDeleting ? t('form.deleting') : t('form.delete')}
             </Button>
           )}
           <a href={backHref}>
             <Button type="button" variant="ghost" disabled={busy}>
-              Back
+              {t('form.back')}
             </Button>
           </a>
         </Stack>

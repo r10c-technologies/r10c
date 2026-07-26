@@ -35,7 +35,7 @@ describe('ThemeSwitcher', () => {
   it('is labelled for assistive technology', () => {
     renderSwitcher();
 
-    expect(screen.getByRole('radiogroup')).toHaveAccessibleName('Theme');
+    expect(screen.getByRole('radiogroup')).toHaveAccessibleName('Tema');
   });
 
   it('marks the active theme as checked', () => {

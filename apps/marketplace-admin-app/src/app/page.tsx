@@ -26,6 +26,7 @@ import {
   Strong,
   Text,
   ThemeSwitcher,
+  useT,
 } from '@r10c/entifix-react-controls';
 
 const SPACING_STEPS: SpacingToken[] = [
@@ -41,13 +42,15 @@ const SPACING_STEPS: SpacingToken[] = [
 ];
 
 export default function Index() {
+  const t = useT('app');
+
   return (
     <main className="mx-auto w-full max-w-5xl px-s py-l sm:px-l sm:py-xl">
       <Stack gap="l">
         {/* Header + theme switcher — stacks on mobile, row on desktop */}
         <header className="flex flex-col gap-s sm:flex-row sm:items-start sm:justify-between">
           <Stack gap="2xs" className="min-w-0">
-            <Heading step={3}>Design System Playground</Heading>
+            <Heading step={3}>{t('admin.playground')}</Heading>
             <Text muted className="max-w-prose">
               Fluid spacing (Utopia), atomic-design composition, and three
               themes including a dark one. Resize — spacing, type, and layout

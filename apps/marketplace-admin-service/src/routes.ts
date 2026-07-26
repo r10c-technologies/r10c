@@ -40,6 +40,7 @@ import {
   EntityId,
   EntityLoadRequest,
   envelopeEntityName,
+  extractMetaEntity,
   makeEntityEnvelope,
   makeEntityPageEnvelope,
   parseLoadRequestParams,
@@ -98,7 +99,7 @@ const readLoadRequest = <T extends Entity>(
 
 const serverError = (error: unknown) =>
   HttpServerResponse.json(
-    { error: 'request failed', detail: String(error) },
+    { error: 'request failed', code: 'unexpected', detail: String(error) },
     { status: 500 },
   );
 
@@ -110,7 +111,7 @@ const serverError = (error: unknown) =>
 const writeError = (error: unknown) =>
   error instanceof EntifixBuildError
     ? HttpServerResponse.json(
-        { error: 'invalid request body', detail: error.message },
+        { error: 'invalid request body', code: 'invalidBody', detail: error.message },
         { status: 400 },
       )
     : serverError(error);
@@ -123,7 +124,7 @@ const writeError = (error: unknown) =>
 const readError = (error: unknown) =>
   error instanceof EntifixBuildError
     ? HttpServerResponse.json(
-        { error: 'invalid query', detail: error.message },
+        { error: 'invalid query', code: 'invalidQuery', detail: error.message },
         { status: 400 },
       )
     : serverError(error);
@@ -137,12 +138,16 @@ const readError = (error: unknown) =>
 const acceptError = (error: unknown) =>
   error instanceof EntifixLockError
     ? HttpServerResponse.json(
-        { error: 'resource busy, try again', detail: error.message },
+        {
+          error: 'resource busy, try again',
+          code: 'resourceBusy',
+          detail: error.message,
+        },
         { status: 409 },
       )
     : error instanceof EntifixBuildError
       ? HttpServerResponse.json(
-          { error: 'invalid command', detail: error.message },
+          { error: 'invalid command', code: 'invalidCommand', detail: error.message },
           { status: 400 },
         )
       : serverError(error);
@@ -203,10 +208,7 @@ const productListRoute = Effect.gen(function* () {
 }).pipe(Effect.catchAll(readError));
 
 /** Generic single-record route by `:id`. */
-const byIdRoute = <T extends Entity>(
-  entityConstructor: EntityConstructor<T>,
-  label: string,
-) =>
+const byIdRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
     const params = yield* HttpRouter.params;
@@ -226,9 +228,16 @@ const byIdRoute = <T extends Entity>(
       ),
     );
   }).pipe(
+    // The entity's own key, not a hardcoded English name passed at the call
+    // site: the client translates `errors:notFound` and already knows how to
+    // render that entity's label from its metadata.
     Effect.catchAll(() =>
       HttpServerResponse.json(
-        { message: `${label} not found` },
+        {
+          message: 'not found',
+          code: 'notFound',
+          entity: extractMetaEntity(entityConstructor).key,
+        },
         { status: 404 },
       ),
     ),
@@ -416,7 +425,7 @@ export const router = HttpRouter.empty.pipe(
   HttpRouter.get(
     '/api/product-category/:id',
     guarded(ProductCategory, 'read', () =>
-      byIdRoute(ProductCategory, 'Product category'),
+      byIdRoute(ProductCategory),
     ),
   ),
   HttpRouter.post(
@@ -447,7 +456,7 @@ export const router = HttpRouter.empty.pipe(
   HttpRouter.get(
     '/api/product-brand/:id',
     guarded(ProductBrand, 'read', () =>
-      byIdRoute(ProductBrand, 'Product brand'),
+      byIdRoute(ProductBrand),
     ),
   ),
   HttpRouter.post(
@@ -477,7 +486,7 @@ export const router = HttpRouter.empty.pipe(
   ),
   HttpRouter.get(
     '/api/product/:id',
-    guarded(Product, 'read', () => byIdRoute(Product, 'Product')),
+    guarded(Product, 'read', () => byIdRoute(Product)),
   ),
   HttpRouter.post(
     '/api/product',

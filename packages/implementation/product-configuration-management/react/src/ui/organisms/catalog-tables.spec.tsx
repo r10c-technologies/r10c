@@ -74,7 +74,7 @@ describe('ProductBrandTable', () => {
     await waitFor(() =>
       expect(screen.getAllByText('Acme').length).toBeGreaterThan(0),
     );
-    expect(screen.getByRole('link', { name: 'New' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Nuevo' })).toBeInTheDocument();
   });
 });
 

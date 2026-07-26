@@ -57,10 +57,16 @@
       "path": "../../packages/shells/next/marketplace-admin"
     },
     {
+      "path": "../../packages/shells/next/i18n"
+    },
+    {
       "path": "../../packages/shells/next/common"
     },
     {
       "path": "../../packages/entifix/ts/jwt-client"
+    },
+    {
+      "path": "../../packages/entifix/ts/i18n"
     },
     {
       "path": "../../packages/entifix/react/controls"

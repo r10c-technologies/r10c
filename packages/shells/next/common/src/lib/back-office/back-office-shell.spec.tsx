@@ -43,16 +43,16 @@ describe('BackOfficeShell', () => {
     renderShell();
     expect(screen.getByText('Acme Admin')).toBeInTheDocument();
     expect(
-      screen.getByRole('navigation', { name: 'Primary' }),
+      screen.getByRole('navigation', { name: 'Principal' }),
     ).toBeInTheDocument();
-    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const crumbs = screen.getByRole('navigation', { name: 'Ruta de navegación' });
     expect(within(crumbs).getByText('Product')).toHaveAttribute(
       'aria-current',
       'page',
     );
     expect(screen.getByText('Routed content')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Collapse sidebar' }),
+      screen.getByRole('button', { name: 'Contraer barra lateral' }),
     ).toHaveAttribute('aria-pressed', 'false');
   });
 
@@ -60,10 +60,10 @@ describe('BackOfficeShell', () => {
     const user = userEvent.setup();
     const { unmount } = renderShell();
 
-    await user.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+    await user.click(screen.getByRole('button', { name: 'Contraer barra lateral' }));
 
     const toggle = await screen.findByRole('button', {
-      name: 'Expand sidebar',
+      name: 'Expandir barra lateral',
     });
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByText('Acme Admin')).toBeNull();
@@ -80,7 +80,7 @@ describe('BackOfficeShell', () => {
     renderShell();
     await waitFor(() =>
       expect(
-        screen.getByRole('button', { name: 'Expand sidebar' }),
+        screen.getByRole('button', { name: 'Expandir barra lateral' }),
       ).toBeInTheDocument(),
     );
   });

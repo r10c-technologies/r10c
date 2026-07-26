@@ -46,6 +46,19 @@ export function seedEntityDraft(
 }
 
 /**
+ * The four metadata-derived messages, already localized. Taken as an argument
+ * rather than built here so this stays a pure function — and because the
+ * sentence cannot be assembled from a label plus a hardcoded suffix: word order
+ * differs between locales.
+ */
+export interface EntityDraftMessages {
+  required(field: string): string;
+  number(field: string): string;
+  date(field: string): string;
+  option(field: string): string;
+}
+
+/**
  * Validates a draft against what the metadata implies — `required` members must
  * be filled, and a filled `number`/`date`/`enum` must be well-formed — then
  * layers any caller rules on top (which win on conflict). Read-only members and
@@ -54,6 +67,7 @@ export function seedEntityDraft(
 export function validateEntityDraft(
   descriptors: readonly EntityFieldDescriptor[],
   values: EntityFormValues,
+  messages: EntityDraftMessages,
   validate?: (values: EntityFormValues) => Record<string, string>,
 ): Record<string, string> {
   const errors: Record<string, string> = {};
@@ -64,24 +78,24 @@ export function validateEntityDraft(
     const raw = values[descriptor.name] ?? '';
 
     if (descriptor.required && raw.trim() === '') {
-      errors[descriptor.name] = `${descriptor.label} is required`;
+      errors[descriptor.name] = messages.required(descriptor.label);
       continue;
     }
     if (raw === '') continue;
 
     if (descriptor.type === 'number' && Number.isNaN(Number(raw))) {
-      errors[descriptor.name] = `${descriptor.label} must be a number`;
+      errors[descriptor.name] = messages.number(descriptor.label);
     } else if (
       descriptor.type === 'date' &&
       Number.isNaN(new Date(raw).getTime())
     ) {
-      errors[descriptor.name] = `${descriptor.label} must be a date`;
+      errors[descriptor.name] = messages.date(descriptor.label);
     } else if (
       descriptor.type === 'enum' &&
       descriptor.enumValues &&
       !descriptor.enumValues.includes(raw)
     ) {
-      errors[descriptor.name] = `${descriptor.label} is not a valid option`;
+      errors[descriptor.name] = messages.option(descriptor.label);
     }
   }
 

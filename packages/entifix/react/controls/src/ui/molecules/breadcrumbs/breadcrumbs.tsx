@@ -1,5 +1,8 @@
+'use client';
+
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
+import { useT } from '../../../i18n';
 import { cn } from '../../utils/cn';
 
 export interface BreadcrumbItem {
@@ -30,9 +33,11 @@ export function Breadcrumbs({
   className,
   ...props
 }: BreadcrumbsProps) {
+  const t = useT();
+
   return (
     <nav
-      aria-label="Breadcrumb"
+      aria-label={t('breadcrumbs.label')}
       className={cn('text-step-sm text-content-muted', className)}
       {...props}
     >

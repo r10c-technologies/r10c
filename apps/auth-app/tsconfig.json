@@ -48,7 +48,13 @@
   ],
   "references": [
     {
+      "path": "../../packages/shells/next/i18n"
+    },
+    {
       "path": "../../packages/shells/next/common"
+    },
+    {
+      "path": "../../packages/entifix/ts/i18n"
     },
     {
       "path": "../../packages/entifix/ts/core"

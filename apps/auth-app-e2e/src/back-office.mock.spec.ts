@@ -14,11 +14,15 @@ import { seedSession } from '@r10c/entifix-ts-testing-e2e/playwright';
  */
 test.describe('the /users back office', () => {
   test('bounces a visitor with no session to sign-in', async ({ request }) => {
-    const response = await request.get('/users', { maxRedirects: 0 });
+    // Locale-prefixed on purpose: locale resolution runs ahead of the auth gate,
+    // so an unprefixed `/users` spends this hop on `/es/users` instead.
+    const response = await request.get('/es/users', { maxRedirects: 0 });
 
     expect(response.status()).toBe(307);
     const location = response.headers()['location'];
-    expect(location).toContain('/?');
+    // Sign-in sits at the locale-prefixed root, not the bare one — the gate
+    // must not drop the visitor's locale on the way out.
+    expect(location).toContain('/es?');
     // …carrying where they were headed, so sign-in can return them.
     expect(location).toContain('redirect=%2Fusers');
   });

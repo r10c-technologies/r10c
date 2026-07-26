@@ -1,10 +1,11 @@
 'use client';
 
-import { Button } from '@r10c/entifix-react-controls';
+import { Button, useT } from '@r10c/entifix-react-controls';
 import { useState } from 'react';
 
 /** Posts to the logout route (revoke + clear cookies), then leaves for sign-in. */
 export function LogoutButton() {
+  const t = useT('app');
   const [pending, setPending] = useState(false);
 
   async function onLogout() {
@@ -16,7 +17,7 @@ export function LogoutButton() {
 
   return (
     <Button variant="secondary" onClick={onLogout} disabled={pending}>
-      {pending ? 'Signing out…' : 'Sign out'}
+      {pending ? t('admin.account.signingOut') : t('admin.account.signOut')}
     </Button>
   );
 }

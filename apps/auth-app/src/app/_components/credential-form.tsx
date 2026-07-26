@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Stack, Text } from '@r10c/entifix-react-controls';
+import { Button, Stack, Text, useT } from '@r10c/entifix-react-controls';
 import { type FormEvent, useState } from 'react';
 
 type Mode = 'login' | 'register';
@@ -20,6 +20,8 @@ const fieldClass =
  * success, navigates to the redirect the handler chose.
  */
 export function CredentialForm({ mode }: { mode: Mode }) {
+  const t = useT('app');
+  const errorT = useT('errors');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -58,13 +60,13 @@ export function CredentialForm({ mode }: { mode: Mode }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? 'Something went wrong');
+        setError(data.error ?? errorT('unexpected'));
         setPending(false);
         return;
       }
       window.location.href = data.redirect ?? '/';
     } catch {
-      setError('Network error — is auth-service running?');
+      setError(errorT('network'));
       setPending(false);
     }
   }
@@ -74,7 +76,7 @@ export function CredentialForm({ mode }: { mode: Mode }) {
       <Stack gap="s">
         {mode === 'login' ? (
           <label>
-            <Text muted>Email, username or phone</Text>
+            <Text muted>{t('auth.fields.identifier')}</Text>
             <input
               name="identifier"
               autoComplete="username"
@@ -85,11 +87,11 @@ export function CredentialForm({ mode }: { mode: Mode }) {
         ) : (
           <>
             <label>
-              <Text muted>Display name</Text>
+              <Text muted>{t('auth.fields.displayName')}</Text>
               <input name="displayName" className={fieldClass} />
             </label>
             <label>
-              <Text muted>Email</Text>
+              <Text muted>{t('auth.fields.email')}</Text>
               <input
                 name="email"
                 type="email"
@@ -98,14 +100,14 @@ export function CredentialForm({ mode }: { mode: Mode }) {
               />
             </label>
             <label>
-              <Text muted>Username</Text>
+              <Text muted>{t('auth.fields.username')}</Text>
               <input name="username" className={fieldClass} />
             </label>
           </>
         )}
 
         <label>
-          <Text muted>Password</Text>
+          <Text muted>{t('auth.fields.password')}</Text>
           <input
             name="password"
             type="password"
@@ -123,10 +125,10 @@ export function CredentialForm({ mode }: { mode: Mode }) {
 
         <Button type="submit" variant="primary" size="lg" disabled={pending}>
           {pending
-            ? 'Please wait…'
+            ? t('auth.submit.wait')
             : mode === 'login'
-              ? 'Sign in'
-              : 'Create account'}
+              ? t('auth.submit.signIn')
+              : t('auth.submit.createAccount')}
         </Button>
       </Stack>
     </form>

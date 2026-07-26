@@ -6,6 +6,7 @@ import {
   type EntityId,
   EntityLink,
 } from '@r10c/entifix-ts-core';
+import { makeFormatters } from '@r10c/entifix-ts-i18n';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Effect } from 'effect';
@@ -129,7 +130,9 @@ describe('EntityTable', () => {
     );
 
     // A number is localized, and a loaded link reads as its target's label.
-    expect(screen.getAllByText('1,200').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(makeFormatters('es').number(1200)).length,
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText('Acme').length).toBeGreaterThan(0);
   });
 
@@ -170,7 +173,7 @@ describe('EntityTable', () => {
       />,
     );
 
-    expect(screen.getAllByText('No records').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Sin registros').length).toBeGreaterThan(0);
   });
 });
 
@@ -198,9 +201,9 @@ describe('EntityTable controls', () => {
   it('shows the toolbar and pager by default', () => {
     renderTable();
 
-    expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Columns' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filtros' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Columnas' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Siguiente' })).toBeInTheDocument();
   });
 
   // A table embedded in a form or a picker has no room for the toolbar, and
@@ -209,21 +212,21 @@ describe('EntityTable controls', () => {
     renderTable({ showControls: false });
 
     expect(
-      screen.queryByRole('button', { name: 'Filters' }),
+      screen.queryByRole('button', { name: 'Filtros' }),
     ).not.toBeInTheDocument();
   });
 
   it('opens and closes the filter panel', async () => {
     const { user } = renderTable();
 
-    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.click(screen.getByRole('button', { name: 'Filtros' }));
     expect(
-      screen.getByRole('button', { name: 'Add filter' }),
+      screen.getByRole('button', { name: 'Añadir filtro' }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.click(screen.getByRole('button', { name: 'Filtros' }));
     expect(
-      screen.queryByRole('button', { name: 'Add filter' }),
+      screen.queryByRole('button', { name: 'Añadir filtro' }),
     ).not.toBeInTheDocument();
   });
 
@@ -231,15 +234,15 @@ describe('EntityTable controls', () => {
   // rather than stacking them.
   it('swaps the filter panel for the sorting panel', async () => {
     const { user } = renderTable();
-    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.click(screen.getByRole('button', { name: 'Filtros' }));
 
-    await user.click(screen.getByRole('button', { name: 'Sorting' }));
+    await user.click(screen.getByRole('button', { name: 'Orden' }));
 
     expect(
-      screen.getByRole('button', { name: 'Add sort' }),
+      screen.getByRole('button', { name: 'Añadir orden' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Add filter' }),
+      screen.queryByRole('button', { name: 'Añadir filtro' }),
     ).not.toBeInTheDocument();
   });
 
@@ -248,12 +251,12 @@ describe('EntityTable controls', () => {
   it('reports the filtering only once the panel is applied', async () => {
     const onFilteringChange = vi.fn();
     const { user } = renderTable({ onFilteringChange });
-    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.click(screen.getByRole('button', { name: 'Filtros' }));
 
-    await user.click(screen.getByRole('button', { name: 'Add filter' }));
+    await user.click(screen.getByRole('button', { name: 'Añadir filtro' }));
     expect(onFilteringChange).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: 'Apply filters' }));
+    await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
 
     expect(onFilteringChange).toHaveBeenCalledWith({
       operator: 'and',
@@ -264,12 +267,12 @@ describe('EntityTable controls', () => {
   it('reports the sorting only once the panel is applied', async () => {
     const onSortingChange = vi.fn();
     const { user } = renderTable({ onSortingChange });
-    await user.click(screen.getByRole('button', { name: 'Sorting' }));
+    await user.click(screen.getByRole('button', { name: 'Orden' }));
 
-    await user.click(screen.getByRole('button', { name: 'Add sort' }));
+    await user.click(screen.getByRole('button', { name: 'Añadir orden' }));
     expect(onSortingChange).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: 'Apply sorting' }));
+    await user.click(screen.getByRole('button', { name: 'Aplicar orden' }));
 
     expect(onSortingChange).toHaveBeenCalled();
   });
@@ -282,10 +285,10 @@ describe('EntityTable controls', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.click(screen.getByRole('button', { name: 'Filtros' }));
 
-    expect(screen.getByLabelText('Filter value')).toHaveValue('Acme');
-    expect(screen.getByLabelText('Match all or any filter')).toHaveValue('or');
+    expect(screen.getByLabelText('Valor del filtro')).toHaveValue('Acme');
+    expect(screen.getByLabelText('Coincidir todos o cualquiera de los filtros')).toHaveValue('or');
   });
 
   it('seeds the sort panel from the applied sorting', async () => {
@@ -293,25 +296,25 @@ describe('EntityTable controls', () => {
       sorting: { 0: { property: 'name', type: 'desc' } },
     });
 
-    await user.click(screen.getByRole('button', { name: 'Sorting' }));
+    await user.click(screen.getByRole('button', { name: 'Orden' }));
 
-    expect(screen.getByLabelText('Sort direction')).toHaveValue('desc');
+    expect(screen.getByLabelText('Dirección de orden')).toHaveValue('desc');
   });
 
   it('tolerates panels with no callback wired', async () => {
     const { user } = renderTable();
-    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    await user.click(screen.getByRole('button', { name: 'Filtros' }));
 
-    await user.click(screen.getByRole('button', { name: 'Add filter' }));
+    await user.click(screen.getByRole('button', { name: 'Añadir filtro' }));
 
-    expect(screen.getByLabelText('Filter member')).toBeInTheDocument();
+    expect(screen.getByLabelText('Miembro del filtro')).toBeInTheDocument();
   });
 
   it('offers only filterable and sortable members in the panels', async () => {
     const { user } = renderTable();
 
-    await user.click(screen.getByRole('button', { name: 'Filters' }));
-    await user.click(screen.getByRole('button', { name: 'Add filter' }));
+    await user.click(screen.getByRole('button', { name: 'Filtros' }));
+    await user.click(screen.getByRole('button', { name: 'Añadir filtro' }));
 
     // `id` and links default to neither sortable nor filterable.
     expect(
@@ -325,9 +328,9 @@ describe('EntityTable controls', () => {
       renderTable({ hrefFor: id => `/widget/${String(id)}` });
 
       expect(
-        screen.getByRole('columnheader', { name: 'Actions' }),
+        screen.getByRole('columnheader', { name: 'Acciones' }),
       ).toBeInTheDocument();
-      expect(screen.getAllByRole('link', { name: 'Open' })[0]).toHaveAttribute(
+      expect(screen.getAllByRole('link', { name: 'Abrir' })[0]).toHaveAttribute(
         'href',
         '/widget/widget-1',
       );
@@ -337,14 +340,14 @@ describe('EntityTable controls', () => {
       renderTable();
 
       expect(
-        screen.queryByRole('columnheader', { name: 'Actions' }),
+        screen.queryByRole('columnheader', { name: 'Acciones' }),
       ).not.toBeInTheDocument();
     });
 
     it('offers a create link when a new href is given', () => {
       renderTable({ newHref: '/widget/new' });
 
-      expect(screen.getByRole('link', { name: 'New' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Nuevo' })).toHaveAttribute(
         'href',
         '/widget/new',
       );
@@ -355,7 +358,7 @@ describe('EntityTable controls', () => {
     it('reports loading before the first page arrives', () => {
       renderTable({ items: [], isLoading: true });
 
-      expect(screen.getAllByText('Loading…').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Cargando…').length).toBeGreaterThan(0);
     });
 
     // A reload of an already-populated table keeps showing the rows rather
@@ -363,14 +366,14 @@ describe('EntityTable controls', () => {
     it('keeps showing rows while reloading', () => {
       renderTable({ isLoading: true });
 
-      expect(screen.queryByText('Loading…')).not.toBeInTheDocument();
+      expect(screen.queryByText('Cargando…')).not.toBeInTheDocument();
       expect(screen.getAllByText('Sprocket').length).toBeGreaterThan(0);
     });
 
     it('reports an empty result set', () => {
       renderTable({ items: [], totalItems: 0 });
 
-      expect(screen.getAllByText('No records').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Sin registros').length).toBeGreaterThan(0);
     });
   });
 
@@ -384,14 +387,14 @@ describe('EntityTable controls', () => {
       expect(alert).toHaveTextContent('the catalog is unreachable');
     });
 
-    // The whole point: "No records" after a failed load tells the user their
+    // The whole point: "Sin registros" after a failed load tells the user their
     // catalog is empty, which is the one conclusion they must not draw.
     it('does not claim the result set is empty', () => {
       renderTable({ items: [], totalItems: 0, error: unreachable });
 
-      expect(screen.queryByText('No records')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sin registros')).not.toBeInTheDocument();
       expect(
-        screen.getAllByText('Could not load records').length,
+        screen.getAllByText('No se pudieron cargar los registros').length,
       ).toBeGreaterThan(0);
     });
 
@@ -495,7 +498,7 @@ describe('EntityTable controls', () => {
         screen.getByRole('button', { name: 'Export' }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: 'Columns' }),
+        screen.getByRole('button', { name: 'Columnas' }),
       ).toBeInTheDocument();
     });
 
@@ -521,7 +524,7 @@ describe('EntityTable controls', () => {
   describe('personalization', () => {
     it('hides a column through the settings panel', async () => {
       const { user } = renderTable();
-      await user.click(screen.getByRole('button', { name: 'Columns' }));
+      await user.click(screen.getByRole('button', { name: 'Columnas' }));
 
       await user.click(screen.getByLabelText('Units in stock'));
 
@@ -534,9 +537,9 @@ describe('EntityTable controls', () => {
 
     it('reorders columns through the settings panel', async () => {
       const { user } = renderTable();
-      await user.click(screen.getByRole('button', { name: 'Columns' }));
+      await user.click(screen.getByRole('button', { name: 'Columnas' }));
 
-      await user.click(screen.getByRole('button', { name: 'Move Name up' }));
+      await user.click(screen.getByRole('button', { name: 'Subir Name' }));
 
       await waitFor(() =>
         expect(
@@ -611,7 +614,7 @@ describe('EntityTable keying and personalization scope', () => {
       </UiPreferencesProvider>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('button', { name: 'Columnas' }));
     await user.click(screen.getByLabelText('Units in stock'));
 
     await waitFor(() =>
@@ -650,15 +653,15 @@ describe('EntityTable defaults', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Sorting' }));
+    await user.click(screen.getByRole('button', { name: 'Orden' }));
     expect(
-      screen.getByRole('button', { name: 'Add sort' }),
+      screen.getByRole('button', { name: 'Añadir orden' }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Sorting' }));
+    await user.click(screen.getByRole('button', { name: 'Orden' }));
 
     expect(
-      screen.queryByRole('button', { name: 'Add sort' }),
+      screen.queryByRole('button', { name: 'Añadir orden' }),
     ).not.toBeInTheDocument();
   });
 
@@ -696,8 +699,8 @@ describe('EntityTable defaults', () => {
       </UiPreferencesProvider>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Columns' }));
-    await user.click(screen.getByRole('button', { name: 'Reset to default' }));
+    await user.click(screen.getByRole('button', { name: 'Columnas' }));
+    await user.click(screen.getByRole('button', { name: 'Restablecer' }));
 
     await waitFor(() => expect(written).toEqual(['entity-table:Unkeyed']));
   });

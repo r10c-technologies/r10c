@@ -1,3 +1,5 @@
+'use client';
+
 import {
   type Entity,
   EntityCollectionLink,
@@ -5,6 +7,9 @@ import {
   EntityLink,
   type MetaAccessorType,
 } from '@r10c/entifix-ts-core';
+import type { Formatters } from '@r10c/entifix-ts-i18n';
+
+import { useEnumLabel, useFormatters, useT } from '../../../i18n';
 
 /** Stand-in for an absent value, so an empty cell still reads as intentional. */
 const EMPTY = '—';
@@ -51,22 +56,37 @@ function formatCollectionLink(
   return link.ids.map(String).join(', ');
 }
 
+/**
+ * Everything locale-dependent, resolved once by the component and handed down.
+ * The formatters carry an explicit locale, which is what keeps a date rendered
+ * on the server byte-identical to the same date rendered in the browser.
+ */
+interface CellFormatting {
+  readonly formatters: Formatters;
+  readonly yes: string;
+  readonly no: string;
+  readonly enumLabel: (value: string) => string;
+}
+
 function formatByType(
   value: unknown,
   type: MetaAccessorType,
   linkLabelProperty: string,
+  formatting: CellFormatting,
 ): string {
   switch (type) {
-    case 'date': {
-      const date = value instanceof Date ? value : new Date(String(value));
-      return Number.isNaN(date.getTime())
-        ? String(value)
-        : date.toLocaleDateString();
-    }
+    case 'date':
+      return formatting.formatters.date(
+        value instanceof Date ? value : String(value),
+      );
     case 'number':
-      return typeof value === 'number' ? value.toLocaleString() : String(value);
+      return typeof value === 'number'
+        ? formatting.formatters.number(value)
+        : String(value);
     case 'boolean':
-      return value ? 'Yes' : 'No';
+      return value ? formatting.yes : formatting.no;
+    case 'enum':
+      return formatting.enumLabel(String(value));
     case 'link':
       return value instanceof EntityLink
         ? formatLink(value, linkLabelProperty)
@@ -91,15 +111,20 @@ export interface CellValueProps {
  * "the value of an accessor", and only the descriptor decides how they read.
  */
 export function CellValue({ value, descriptor }: CellValueProps) {
+  const t = useT();
+  const formatters = useFormatters();
+  const enumLabel = useEnumLabel();
+
   if (value === undefined || value === null) {
     return <span className="text-content-muted">{EMPTY}</span>;
   }
 
-  const text = formatByType(
-    value,
-    descriptor.type,
-    descriptor.linkLabelProperty,
-  );
+  const text = formatByType(value, descriptor.type, descriptor.linkLabelProperty, {
+    formatters,
+    yes: t('value.yes'),
+    no: t('value.no'),
+    enumLabel: raw => enumLabel(descriptor, raw),
+  });
 
   if (text === '') {
     return <span className="text-content-muted">{EMPTY}</span>;

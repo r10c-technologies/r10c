@@ -44,29 +44,29 @@ const renderBuilder = (
 };
 
 const addSort = async (user: ReturnType<typeof userEvent.setup>) =>
-  user.click(screen.getByRole('button', { name: 'Add sort' }));
+  user.click(screen.getByRole('button', { name: 'Añadir orden' }));
 
 /**
  * Editing is a draft; nothing reaches `onChange` until the panel is applied.
  * Every emission assertion therefore commits first.
  */
 const apply = async (user: ReturnType<typeof userEvent.setup>) =>
-  user.click(screen.getByRole('button', { name: 'Apply sorting' }));
+  user.click(screen.getByRole('button', { name: 'Aplicar orden' }));
 
 describe('SortBuilder', () => {
   it('says so when the entity has nothing sortable', () => {
     renderBuilder([]);
 
-    expect(screen.getByText(/No sortable members/)).toBeInTheDocument();
+    expect(screen.getByText(/no tiene miembros ordenables/)).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Add sort' }),
+      screen.queryByRole('button', { name: 'Añadir orden' }),
     ).not.toBeInTheDocument();
   });
 
   it('starts with no sorts', () => {
     renderBuilder();
 
-    expect(screen.queryByLabelText('Sort member')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Miembro de orden')).not.toBeInTheDocument();
   });
 
   it('adds a first sort defaulting to the first member, ascending', async () => {
@@ -74,8 +74,8 @@ describe('SortBuilder', () => {
 
     await addSort(user);
 
-    expect(screen.getByLabelText('Sort member')).toHaveValue('name');
-    expect(screen.getByLabelText('Sort direction')).toHaveValue('asc');
+    expect(screen.getByLabelText('Miembro de orden')).toHaveValue('name');
+    expect(screen.getByLabelText('Dirección de orden')).toHaveValue('asc');
 
     await apply(user);
 
@@ -88,7 +88,7 @@ describe('SortBuilder', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
 
-    await user.selectOptions(screen.getByLabelText('Sort member'), 'stock');
+    await user.selectOptions(screen.getByLabelText('Miembro de orden'), 'stock');
 
     await apply(user);
 
@@ -101,7 +101,7 @@ describe('SortBuilder', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
 
-    await user.selectOptions(screen.getByLabelText('Sort direction'), 'desc');
+    await user.selectOptions(screen.getByLabelText('Dirección de orden'), 'desc');
 
     await apply(user);
 
@@ -130,8 +130,8 @@ describe('SortBuilder', () => {
     await addSort(user);
     await addSort(user);
 
-    expect(screen.getByText('Sort by')).toBeInTheDocument();
-    expect(screen.getByText('then by')).toBeInTheDocument();
+    expect(screen.getByText('Ordenar por')).toBeInTheDocument();
+    expect(screen.getByText('después por')).toBeInTheDocument();
   });
 
   it('raises a sort’s priority', async () => {
@@ -139,12 +139,12 @@ describe('SortBuilder', () => {
     await addSort(user);
     await addSort(user);
     await user.selectOptions(
-      screen.getAllByLabelText('Sort member')[1]!,
+      screen.getAllByLabelText('Miembro de orden')[1]!,
       'stock',
     );
 
     await user.click(
-      screen.getAllByRole('button', { name: 'Raise sort priority' })[1]!,
+      screen.getAllByRole('button', { name: 'Subir prioridad de orden' })[1]!,
     );
 
     await apply(user);
@@ -160,12 +160,12 @@ describe('SortBuilder', () => {
     await addSort(user);
     await addSort(user);
     await user.selectOptions(
-      screen.getAllByLabelText('Sort member')[1]!,
+      screen.getAllByLabelText('Miembro de orden')[1]!,
       'stock',
     );
 
     await user.click(
-      screen.getAllByRole('button', { name: 'Lower sort priority' })[0]!,
+      screen.getAllByRole('button', { name: 'Bajar prioridad de orden' })[0]!,
     );
 
     await apply(user);
@@ -182,10 +182,10 @@ describe('SortBuilder', () => {
     await addSort(user);
 
     expect(
-      screen.getAllByRole('button', { name: 'Raise sort priority' })[0],
+      screen.getAllByRole('button', { name: 'Subir prioridad de orden' })[0],
     ).toBeDisabled();
     expect(
-      screen.getAllByRole('button', { name: 'Lower sort priority' })[1],
+      screen.getAllByRole('button', { name: 'Bajar prioridad de orden' })[1],
     ).toBeDisabled();
   });
 
@@ -194,12 +194,12 @@ describe('SortBuilder', () => {
     await addSort(user);
     await addSort(user);
     await user.selectOptions(
-      screen.getAllByLabelText('Sort member')[1]!,
+      screen.getAllByLabelText('Miembro de orden')[1]!,
       'stock',
     );
 
     await user.click(
-      screen.getAllByRole('button', { name: 'Remove sort' })[0]!,
+      screen.getAllByRole('button', { name: 'Quitar orden' })[0]!,
     );
 
     await apply(user);
@@ -213,7 +213,7 @@ describe('SortBuilder', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
 
-    await user.click(screen.getByRole('button', { name: 'Remove sort' }));
+    await user.click(screen.getByRole('button', { name: 'Quitar orden' }));
 
     await apply(user);
 
@@ -226,7 +226,7 @@ describe('SortBuilder', () => {
     await addSort(user);
 
     await user.selectOptions(
-      screen.getAllByLabelText('Sort direction')[1]!,
+      screen.getAllByLabelText('Dirección de orden')[1]!,
       'desc',
     );
 
@@ -250,7 +250,7 @@ describe('SortBuilder', () => {
     await addSort(user);
     await addSort(user);
     await user.selectOptions(
-      screen.getAllByLabelText('Sort member')[1]!,
+      screen.getAllByLabelText('Miembro de orden')[1]!,
       'stock',
     );
 
@@ -261,7 +261,7 @@ describe('SortBuilder', () => {
       />,
     );
     await user.click(
-      screen.getAllByRole('button', { name: 'Raise sort priority' })[1]!,
+      screen.getAllByRole('button', { name: 'Subir prioridad de orden' })[1]!,
     );
 
     await apply(user);
@@ -294,7 +294,7 @@ describe('committing', () => {
     const { onChange, user } = renderBuilder();
 
     await addSort(user);
-    await user.selectOptions(screen.getByLabelText('Sort direction'), 'desc');
+    await user.selectOptions(screen.getByLabelText('Dirección de orden'), 'desc');
 
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -303,9 +303,9 @@ describe('committing', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
 
-    await user.click(screen.getByRole('button', { name: 'Clear sorting' }));
+    await user.click(screen.getByRole('button', { name: 'Limpiar orden' }));
 
-    expect(screen.queryByLabelText('Sort member')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Miembro de orden')).not.toBeInTheDocument();
     expect(onChange).toHaveBeenLastCalledWith({});
   });
 });
@@ -323,10 +323,10 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    const members = screen.getAllByLabelText('Sort member');
+    const members = screen.getAllByLabelText('Miembro de orden');
     expect(members[0]).toHaveValue('name');
     expect(members[1]).toHaveValue('stock');
-    expect(screen.getAllByLabelText('Sort direction')[1]).toHaveValue('desc');
+    expect(screen.getAllByLabelText('Dirección de orden')[1]).toHaveValue('desc');
   });
 
   // An applied value carries the wire key; the rows address members by name.
@@ -339,7 +339,7 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Sort member')).toHaveValue('releasedAt');
+    expect(screen.getByLabelText('Miembro de orden')).toHaveValue('releasedAt');
   });
 
   // Both of these are shapes the type system forbids but a persisted or
@@ -358,7 +358,7 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.queryByLabelText('Sort member')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Miembro de orden')).not.toBeInTheDocument();
   });
 
   it('skips a hole in the precedence record', () => {
@@ -375,7 +375,7 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.getAllByLabelText('Sort member')).toHaveLength(1);
+    expect(screen.getAllByLabelText('Miembro de orden')).toHaveLength(1);
   });
 
   it('starts empty when nothing is applied', () => {
@@ -383,6 +383,6 @@ describe('seeding from the applied value', () => {
       <SortBuilder<Product> descriptors={descriptors} onChange={vi.fn()} />,
     );
 
-    expect(screen.queryByLabelText('Sort member')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Miembro de orden')).not.toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+export * from './i18n';
 export * from './preferences';
 export * from './theme';
 export * from './ui/atoms/button';

@@ -38,6 +38,7 @@ import {
   Entity,
   EntityConstructor,
   EntityLoadRequest,
+  extractMetaEntity,
   serializeEntity,
   serializeEntityCollection,
 } from '@r10c/entifix-ts-core';
@@ -71,7 +72,7 @@ const readLoadRequest = Effect.gen(function* () {
 
 const serverError = (error: unknown) =>
   HttpServerResponse.json(
-    { error: 'request failed', detail: String(error) },
+    { error: 'request failed', code: 'unexpected', detail: String(error) },
     { status: 500 },
   );
 
@@ -95,10 +96,7 @@ const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
   }).pipe(Effect.catchAll(serverError));
 
 /** Generic single-record route by `:id`. */
-const byIdRoute = <T extends Entity>(
-  entityConstructor: EntityConstructor<T>,
-  label: string,
-) =>
+const byIdRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
     const params = yield* HttpRouter.params;
@@ -113,9 +111,16 @@ const byIdRoute = <T extends Entity>(
       serializeEntity(entityConstructor, entity),
     );
   }).pipe(
+    // The entity's own key, not a hardcoded English name passed at the call
+    // site: the client translates `errors:notFound` and already knows how to
+    // render that entity's label from its metadata.
     Effect.catchAll(() =>
       HttpServerResponse.json(
-        { message: `${label} not found` },
+        {
+          message: 'not found',
+          code: 'notFound',
+          entity: extractMetaEntity(entityConstructor).key,
+        },
         { status: 404 },
       ),
     ),
@@ -151,35 +156,46 @@ const readBody = Effect.gen(function* () {
   return (body ?? {}) as Record<string, unknown>;
 });
 
-/** Map an authn failure to a status without leaking the cause. */
+/**
+ * Map an authn failure to a status without leaking the cause.
+ *
+ * Every body carries a `code` — a key in the shared `errors` catalog — beside
+ * the English `error`. The client renders the code; `error` stays for logs and
+ * for any consumer that has not been taught the vocabulary. This used to send
+ * the domain's own `message` as the response body, so a Spanish user read
+ * "not allowed to assign that role".
+ */
 const respondAuthError = (error: { _tag?: string }) => {
+  const code = (error as { code?: string }).code;
+  const message = (error as { message?: string }).message;
+
   switch (error._tag) {
     case 'UnauthenticatedError':
       return HttpServerResponse.json(
-        { error: 'invalid credentials' },
+        { error: 'invalid credentials', code: code ?? 'invalidCredentials' },
         { status: 401 },
       );
     // Authenticated, but not permitted — the opposite of a 401, and not a
-    // conflict either. Its message is safe to pass through: it says which rule
-    // refused, and knowing that reveals nothing the caller could not infer.
+    // conflict either. Which rule refused is safe to say: knowing it reveals
+    // nothing the caller could not infer.
     case 'ForbiddenError':
       return HttpServerResponse.json(
-        { error: (error as { message?: string }).message ?? 'forbidden' },
+        { error: message ?? 'forbidden', code: code ?? 'forbidden' },
         { status: 403 },
       );
     case 'AuthnError':
       return HttpServerResponse.json(
-        { error: (error as { message?: string }).message ?? 'request refused' },
+        { error: message ?? 'request refused', code: code ?? 'invalidRequest' },
         { status: 409 },
       );
     case 'EntifixBuildError':
       return HttpServerResponse.json(
-        { error: 'invalid request' },
+        { error: 'invalid request', code: 'invalidRequest' },
         { status: 400 },
       );
     default:
       return HttpServerResponse.json(
-        { error: 'authentication failed' },
+        { error: 'authentication failed', code: 'unexpected' },
         { status: 500 },
       );
   }
@@ -267,7 +283,7 @@ const loginRoute = Effect.gen(function* () {
   const password = asString(body['password']);
   if (identifier === undefined || password === undefined) {
     return yield* HttpServerResponse.json(
-      { error: 'invalid request' },
+      { error: 'invalid request', code: 'invalidRequest' },
       { status: 400 },
     );
   }
@@ -299,7 +315,7 @@ const refreshRoute = Effect.gen(function* () {
   const sessionId = asString(body['sessionId']);
   if (sessionId === undefined) {
     return yield* HttpServerResponse.json(
-      { error: 'invalid request' },
+      { error: 'invalid request', code: 'invalidRequest' },
       { status: 400 },
     );
   }
@@ -331,7 +347,7 @@ const refreshRoute = Effect.gen(function* () {
   });
 }).pipe(
   Effect.catchAll(() =>
-    HttpServerResponse.json({ error: 'session expired' }, { status: 401 }),
+    HttpServerResponse.json({ error: 'session expired', code: 'sessionExpired' }, { status: 401 }),
   ),
 );
 
@@ -361,7 +377,7 @@ const createUserRoute = requirePermission(USER_WRITE)(principal =>
     const role = parseRole(body['role']);
     if (body['role'] !== undefined && role === undefined) {
       return yield* HttpServerResponse.json(
-        { error: 'unknown role' },
+        { error: 'unknown role', code: 'unknownRole' },
         { status: 400 },
       );
     }
@@ -392,7 +408,7 @@ const updateUserRoute = requirePermission(USER_WRITE)(principal =>
     const role = parseRole(body['role']);
     if (body['role'] !== undefined && role === undefined) {
       return yield* HttpServerResponse.json(
-        { error: 'unknown role' },
+        { error: 'unknown role', code: 'unknownRole' },
         { status: 400 },
       );
     }
@@ -402,7 +418,7 @@ const updateUserRoute = requirePermission(USER_WRITE)(principal =>
       : undefined;
     if (rawStatus !== undefined && status === undefined) {
       return yield* HttpServerResponse.json(
-        { error: 'unknown status' },
+        { error: 'unknown status', code: 'unknownStatus' },
         { status: 400 },
       );
     }
@@ -454,7 +470,7 @@ export const router = HttpRouter.empty.pipe(
       // Authn failures collapse to 401 at the perimeter; cause is not leaked.
       Effect.catchAll(() =>
         HttpServerResponse.json(
-          { error: 'session could not be resolved' },
+          { error: 'session could not be resolved', code: 'sessionUnresolved' },
           { status: 401 },
         ),
       ),
@@ -477,7 +493,7 @@ export const router = HttpRouter.empty.pipe(
   HttpRouter.get(
     '/api/user-identity/:id',
     requirePermission(USER_READ)(() =>
-      byIdRoute(UserIdentity, 'User identity'),
+      byIdRoute(UserIdentity),
     ),
   ),
   HttpRouter.patch('/api/user-identity/:id', updateUserRoute),
@@ -488,7 +504,7 @@ export const router = HttpRouter.empty.pipe(
   HttpRouter.get(
     '/api/entity-identifier/:id',
     requirePermission(IDENTIFIER_READ)(() =>
-      byIdRoute(EntityIdentifier, 'Entity identifier'),
+      byIdRoute(EntityIdentifier),
     ),
   ),
   // Native-entity proof: construct entity classes + read stage-3 metadata.

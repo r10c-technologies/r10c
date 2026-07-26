@@ -61,7 +61,10 @@ export function registerUserUCFactory() {
 
     if (input.identifiers.length === 0) {
       return yield* Effect.fail(
-        new AuthnError('an account needs at least one identifier'),
+        new AuthnError(
+          'an account needs at least one identifier',
+          'identifierRequired',
+        ),
       );
     }
 
@@ -72,7 +75,7 @@ export function registerUserUCFactory() {
       !canAssignRole(input.actorRoles ?? [], input.role)
     ) {
       return yield* Effect.fail(
-        new ForbiddenError('not allowed to assign that role', undefined, {
+        new ForbiddenError('not allowed to assign that role', 'roleNotAllowed', undefined, {
           role: input.role,
         }),
       );

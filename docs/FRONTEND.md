@@ -130,13 +130,21 @@ default React-Vite transform suffices (no SWC decorator pass, unlike Vitest).
    `'use client'` only if stateful).
 3. `index.ts` in the folder (`export * from './<name>'`) and a line in the
    package barrel `src/index.ts` (keep it alphabetical within its group).
-4. `<name>.spec.tsx` — RTL, class-list / behaviour assertions, `it.each` over the
-   token unions. **The package is gated at 100% coverage.**
-5. `<name>.stories.tsx` with `tags: ['autodocs']` (+ an MDX page for a whole new
-   family).
-6. If an app renders it and it ships classes as source, add its `src` to the
+4. **No copy in the component.** Every user-facing string comes from `useT()`
+   and lives in the `controls` namespace
+   (`packages/entifix/ts/i18n/src/resources/{es,en}/controls.ts`);
+   `react/jsx-no-literals` fails the build otherwise. Dates and numbers go
+   through `useFormatters()`, never a bare `toLocaleString()`. See
+   [I18N.md](I18N.md).
+5. `<name>.spec.tsx` — RTL, class-list / behaviour assertions, `it.each` over the
+   token unions. Assertions are in **Spanish**, the default locale.
+   **The package is gated at 100% coverage.**
+6. `<name>.stories.tsx` with `tags: ['autodocs']` (+ an MDX page for a whole new
+   family). The Storybook toolbar has a locale switch — flip it, since that is
+   where a caption that outgrew its button gets noticed.
+7. If an app renders it and it ships classes as source, add its `src` to the
    app's `global.css` `@source` list.
-7. `pnpm nx run-many -t lint test typecheck build --projects=<pkg>` green.
+8. `pnpm nx run-many -t lint test typecheck build --projects=<pkg>` green.
 
 ---
 

@@ -1,12 +1,11 @@
 'use client';
 
-import { Menu } from '@r10c/entifix-react-controls';
+import { Menu, useT } from '@r10c/entifix-react-controls';
 import {
   makeInMemoryReactiveChannel,
   useReactiveInvalidation,
 } from '@r10c/entifix-react-integration';
-import { WorkspaceShell } from '@r10c/shells-next-common';
-import Link from 'next/link';
+import { LocaleLink, WorkspaceShell } from '@r10c/shells-next-common';
 
 import { workspaceRegistry } from './workspace-registry';
 
@@ -14,48 +13,52 @@ import { workspaceRegistry } from './workspace-registry';
 // seam is wired so a real socket drops in without touching the workspace.
 const reactiveChannel = makeInMemoryReactiveChannel();
 
-const NAV: Array<{ label: string; param: string }> = [
-  { label: 'Products', param: 'catalog:product' },
-  { label: 'Brands', param: 'catalog:product-brand' },
-  { label: 'Categories', param: 'catalog:product-category' },
-];
+// Catalog keys, not copy — the workspace sidebar mirrors `lib/nav`, and two
+// lists of rendered labels would drift the moment one is translated.
+const NAV = [
+  { labelKey: 'admin.nav.products', param: 'catalog:product' },
+  { labelKey: 'admin.nav.brands', param: 'catalog:product-brand' },
+  { labelKey: 'admin.nav.categories', param: 'catalog:product-category' },
+] as const;
 
 /** The marketplace-admin tab workspace, wired to the catalog registry. */
 export function WorkspaceView() {
+  const t = useT('app');
+  const shellT = useT('shell');
   useReactiveInvalidation(reactiveChannel);
 
   return (
     <WorkspaceShell
       registry={workspaceRegistry}
-      brand="r10c Admin"
+      brand={t('admin.brand')}
       nav={
         <nav className="flex flex-col gap-3xs">
           {NAV.map(item => (
-            <Link
+            <LocaleLink
               key={item.param}
               href={`/workspace?tab=${encodeURIComponent(item.param)}`}
               className="rounded-md px-2xs py-3xs text-step-sm text-content-muted transition hover:bg-surface hover:text-content"
             >
-              {item.label}
-            </Link>
+              {t(item.labelKey)}
+            </LocaleLink>
           ))}
         </nav>
       }
       actions={
         <Menu>
-          <Menu.Trigger>◍ Admin ▾</Menu.Trigger>
+          <Menu.Trigger>◍ {t('admin.menu.trigger')} ▾</Menu.Trigger>
           <Menu.Items>
-            <Menu.Item>Preferences</Menu.Item>
-            <Menu.Item>Sign out</Menu.Item>
+            <Menu.Item>{t('admin.menu.preferences')}</Menu.Item>
+            <Menu.Item>{t('admin.menu.signOut')}</Menu.Item>
           </Menu.Items>
         </Menu>
       }
       emptyState={
-        <p className="text-content-muted">
-          No open tabs. Pick a catalog from the sidebar to start.
-        </p>
+        <p className="text-content-muted">{shellT('workspace.empty')}</p>
       }
-      fallback={<p className="text-danger">This tab can’t be opened here.</p>}
+      fallback={
+        <p className="text-danger">{shellT('workspace.unsupported')}</p>
+      }
     />
   );
 }

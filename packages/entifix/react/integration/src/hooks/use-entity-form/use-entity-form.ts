@@ -1,7 +1,13 @@
 'use client';
 
 import { describeEntityColumns, type Entity } from '@r10c/entifix-ts-core';
-import { useCallback, useMemo, useState } from 'react';
+import { sharedFallbackI18n } from '@r10c/entifix-ts-i18n';
+import { useCallback, useContext, useMemo, useState } from 'react';
+import {
+  I18nContext,
+  initReactI18next,
+  useTranslation,
+} from 'react-i18next';
 
 import {
   seedEntityDraft,
@@ -46,6 +52,28 @@ export function useEntityForm<TEntity extends Entity>({
     [descriptors, entity, initialValues],
   );
 
+  // Read straight from react-i18next rather than through the controls package:
+  // both are `entifix:react`, and the boundary rule forbids a sideways import.
+  // The provider a host mounts is the same React context either way — and with
+  // no provider, react-i18next would reach for its uninitialized global and
+  // render raw keys, so the shared default instance is passed explicitly.
+  const provided = useContext(I18nContext);
+  const { t } = useTranslation(
+    'controls',
+    provided === undefined
+      ? { i18n: sharedFallbackI18n([initReactI18next]) }
+      : {},
+  );
+  const messages = useMemo(
+    () => ({
+      required: (field: string) => t('validation.required', { field }),
+      number: (field: string) => t('validation.number', { field }),
+      date: (field: string) => t('validation.date', { field }),
+      option: (field: string) => t('validation.option', { field }),
+    }),
+    [t],
+  );
+
   const [values, setValues] = useState<EntityFormValues>(seed);
   const [submitted, setSubmitted] = useState(false);
 
@@ -54,19 +82,19 @@ export function useEntityForm<TEntity extends Entity>({
   }, []);
 
   const errors = useMemo(
-    () => validateEntityDraft(descriptors, values, validate),
-    [descriptors, values, validate],
+    () => validateEntityDraft(descriptors, values, messages, validate),
+    [descriptors, values, messages, validate],
   );
 
   const submit = useCallback(() => {
     setSubmitted(true);
     if (
-      Object.keys(validateEntityDraft(descriptors, values, validate)).length ===
-      0
+      Object.keys(validateEntityDraft(descriptors, values, messages, validate))
+        .length === 0
     ) {
       void onSubmit(values);
     }
-  }, [descriptors, values, validate, onSubmit]);
+  }, [descriptors, values, messages, validate, onSubmit]);
 
   const isDirty = useMemo(
     () => JSON.stringify(values) !== JSON.stringify(seed),

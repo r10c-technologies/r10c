@@ -12,6 +12,7 @@ them), and everything deep is a link — loaded only when a task needs it.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layering, the use-case + adapter mechanism, Effect-native backends, auth, transactions, observability, domain structure.            |
 | [docs/ENTIFIX.md](docs/ENTIFIX.md)           | The entity framework in depth: entities, links, the Effect-agnostic use-case, adapter contract, the RSQL query protocol.            |
 | [docs/FRONTEND.md](docs/FRONTEND.md)         | The client side: design system (tokens, flex-first layout primitives, Storybook) **and** the workspace tabs + TanStack data layer.  |
+| [docs/I18N.md](docs/I18N.md)                 | Locales, catalogs, locale routing, entity label keys, error codes, and the three gates that make i18n mandatory. |
 | [docs/DEVELOPING.md](docs/DEVELOPING.md)     | Nx/pnpm workspace, commands, local infra, **module boundaries**, entities, backends, testing (`E2E_PROFILE`), conventions, commits. |
 | [docs/adr/](docs/adr/)                       | Architecture Decision Records (e.g. [0001 observability & tooling](docs/adr/0001-observability-and-tooling.md)).                    |
 
@@ -81,6 +82,19 @@ them), and everything deep is a link — loaded only when a task needs it.
   `seedSession` e2e fixture and a `readyPath` outside the matcher. See
   [ADR 0002](docs/adr/0002-authorization-roles-and-abac.md) and
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#authorization-role-aspects--permissions).
+- **i18n is mandatory.** Ships `es` (default) + `en`. Copy goes through `useT`
+  (`getServerT` on the server), typed against the catalogs in
+  `@r10c/entifix-ts-i18n` — a bad key is a compile error, and
+  `react/jsx-no-literals` fails the build on a string written into JSX. Locale is
+  a URL prefix resolved by middleware (`@r10c/shells-next-i18n`) and
+  read via `getRequestLocale()`; **every internal href goes through `LocaleLink`
+  / `useLocaleHref()`**. Entity labels are `labelKey`/`enumLabelKey` metadata
+  resolved in the browser (they never cross the wire). Services answer
+  `{ error, code, detail }` and the client renders `code`. Runtime keys use the
+  two documented escape hatches (`useTranslateKey`/`getServerTranslateKey`) —
+  authored copy must not. Note lint is blind to copy inside JSX expressions like
+  `{saving ? 'Saving…' : 'Save'}`. See
+  [ADR 0003](docs/adr/0003-i18n-mandatory.md) and [docs/I18N.md](docs/I18N.md).
 - **Observability**: a `-service` merges an observability layer that replaces Effect's
   default logger with the `@r10c/entifix-ts-tooling` logger and stands up the
   `@effect/opentelemetry` NodeSdk tracer, reading `logging.*`/`otel.endpoint` from

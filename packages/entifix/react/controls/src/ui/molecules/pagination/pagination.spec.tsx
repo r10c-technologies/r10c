@@ -24,21 +24,21 @@ describe('Pagination', () => {
   it('reports the current page, the total pages and the item count', () => {
     renderPagination();
 
-    expect(screen.getByText(/Page 2 of 4 · 35 items/)).toBeInTheDocument();
+    expect(screen.getByText(/Página 2 de 4 · 35 registros/)).toBeInTheDocument();
   });
 
   // An empty listing is still one page; reporting "page 1 of 0" reads as broken.
   it('reports a single page when there is nothing to show', () => {
     renderPagination({ currentPage: 1, totalItems: 0 });
 
-    expect(screen.getByText(/Page 1 of 1 · 0 items/)).toBeInTheDocument();
+    expect(screen.getByText(/Página 1 de 1 · 0 registros/)).toBeInTheDocument();
   });
 
   it('steps backwards', async () => {
     const user = userEvent.setup();
     const { onPageChange } = renderPagination();
 
-    await user.click(screen.getByRole('button', { name: 'Previous' }));
+    await user.click(screen.getByRole('button', { name: 'Anterior' }));
 
     expect(onPageChange).toHaveBeenCalledWith(1);
   });
@@ -47,7 +47,7 @@ describe('Pagination', () => {
     const user = userEvent.setup();
     const { onPageChange } = renderPagination();
 
-    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
 
     expect(onPageChange).toHaveBeenCalledWith(3);
   });
@@ -55,22 +55,22 @@ describe('Pagination', () => {
   it('disables Previous on the first page', () => {
     renderPagination({ currentPage: 1 });
 
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Siguiente' })).toBeEnabled();
   });
 
   it('disables Next on the last page', () => {
     renderPagination({ currentPage: 4 });
 
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Anterior' })).toBeEnabled();
   });
 
   it('disables both when there is a single page', () => {
     renderPagination({ currentPage: 1, totalItems: 3 });
 
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled();
   });
 
   describe('the page-size selector', () => {
@@ -79,7 +79,7 @@ describe('Pagination', () => {
     it('is absent unless a handler is given', () => {
       renderPagination();
 
-      expect(screen.queryByLabelText('Rows')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Filas')).not.toBeInTheDocument();
     });
 
     it('offers the default options', () => {
@@ -102,7 +102,7 @@ describe('Pagination', () => {
     it('shows the active page size', () => {
       renderPagination({ onPageSizeChange: vi.fn(), pageSize: 25 });
 
-      expect(screen.getByLabelText('Rows')).toHaveValue('25');
+      expect(screen.getByLabelText('Filas')).toHaveValue('25');
     });
 
     // The select's value is a string; handing that to a caller expecting a
@@ -112,7 +112,7 @@ describe('Pagination', () => {
       const onPageSizeChange = vi.fn();
       renderPagination({ onPageSizeChange });
 
-      await user.selectOptions(screen.getByLabelText('Rows'), '25');
+      await user.selectOptions(screen.getByLabelText('Filas'), '25');
 
       expect(onPageSizeChange).toHaveBeenCalledWith(25);
     });

@@ -1,7 +1,13 @@
 'use client';
 
 import { ProductCategory } from '@r10c/business-ts-product-configuration-management';
-import { Button, Card, Stack, Text } from '@r10c/entifix-react-controls';
+import {
+  Button,
+  Card,
+  Stack,
+  Text,
+  useT,
+} from '@r10c/entifix-react-controls';
 import { useState } from 'react';
 
 import { fieldStyle, FormField } from '../../molecules/form-field';
@@ -29,6 +35,8 @@ export function ProductCategoryForm({
   onDelete,
   backHref,
 }: ProductCategoryFormProps) {
+  const t = useT();
+  const et = useT('entity');
   const [code, setCode] = useState(() => entity?.code ?? '');
   const [name, setName] = useState(() => entity?.name ?? '');
   const [description, setDescription] = useState(
@@ -50,13 +58,13 @@ export function ProductCategoryForm({
     <Card>
       <Stack gap="s">
         <Text as="h2">
-          {entity ? 'Edit product category' : 'New product category'}
+          {entity ? t('form.edit') : t('form.new')}
         </Text>
 
-        {isLoading && <Text data-testid="form-loading">Loading…</Text>}
+        {isLoading && <Text data-testid="form-loading">{t('form.loading')}</Text>}
         {error && <Text data-testid="form-error">{error.message}</Text>}
 
-        <FormField label="code" htmlFor="code">
+        <FormField label={et('product-category.fields.code')} htmlFor="code">
           <input
             id="code"
             name="code"
@@ -66,7 +74,7 @@ export function ProductCategoryForm({
           />
         </FormField>
 
-        <FormField label="name" htmlFor="name">
+        <FormField label={et('product-category.fields.name')} htmlFor="name">
           <input
             id="name"
             name="name"
@@ -76,7 +84,7 @@ export function ProductCategoryForm({
           />
         </FormField>
 
-        <FormField label="description" htmlFor="description">
+        <FormField label={et('product-category.fields.description')} htmlFor="description">
           <input
             id="description"
             name="description"
@@ -88,7 +96,7 @@ export function ProductCategoryForm({
 
         <Stack direction="row" gap="xs">
           <Button type="button" onClick={handleSubmit} disabled={busy}>
-            {isSaving ? 'Saving…' : 'Save'}
+            {isSaving ? t('form.saving') : t('form.save')}
           </Button>
           {onDelete && (
             <Button
@@ -97,12 +105,12 @@ export function ProductCategoryForm({
               onClick={onDelete}
               disabled={busy}
             >
-              {isDeleting ? 'Deleting…' : 'Delete'}
+              {isDeleting ? t('form.deleting') : t('form.delete')}
             </Button>
           )}
           <a href={backHref}>
             <Button type="button" variant="ghost" disabled={busy}>
-              Back
+              {t('form.back')}
             </Button>
           </a>
         </Stack>

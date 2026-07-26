@@ -40,7 +40,7 @@ describe('ProductBrandForm', () => {
   it('titles itself for a create when there is no record', () => {
     renderForm();
 
-    expect(screen.getByRole('heading', { name: 'New product brand' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Nuevo' })).toBeInTheDocument();
   });
 
   it('titles itself for an edit and seeds the fields from the record', () => {
@@ -50,19 +50,19 @@ describe('ProductBrandForm', () => {
 
     renderForm({ entity: brand });
 
-    expect(screen.getByRole('heading', { name: 'Edit product brand' })).toBeInTheDocument();
-    expect(screen.getByLabelText('name')).toHaveValue('Acme');
-    expect(screen.getByLabelText('description')).toHaveValue('A brand');
-    expect(screen.getByLabelText('website')).toHaveValue('https://acme.test');
+    expect(screen.getByRole('heading', { name: 'Editar' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Acme');
+    expect(screen.getByLabelText('Descripción')).toHaveValue('A brand');
+    expect(screen.getByLabelText('Sitio web')).toHaveValue('https://acme.test');
   });
 
   it('hands a fully-built entity to onSave', async () => {
     const { onSave, user } = renderForm();
 
-    await user.type(screen.getByLabelText('name'), 'Acme');
-    await user.type(screen.getByLabelText('description'), 'A brand');
-    await user.type(screen.getByLabelText('website'), 'https://acme.test');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.type(screen.getByLabelText('Nombre'), 'Acme');
+    await user.type(screen.getByLabelText('Descripción'), 'A brand');
+    await user.type(screen.getByLabelText('Sitio web'), 'https://acme.test');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     const saved = onSave.mock.calls[0]?.[0] as ProductBrand;
     expect(saved).toBeInstanceOf(ProductBrand);
@@ -74,7 +74,7 @@ describe('ProductBrandForm', () => {
   it('carries the record’s id through an update', async () => {
     const { onSave, user } = renderForm({ entity: makeBrand('b-1', 'Acme') });
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     expect((onSave.mock.calls[0]?.[0] as ProductBrand).id).toBe('b-1');
   });
@@ -84,8 +84,8 @@ describe('ProductBrandForm', () => {
   it('sends undefined rather than an empty string for untouched optionals', async () => {
     const { onSave, user } = renderForm();
 
-    await user.type(screen.getByLabelText('name'), 'Acme');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.type(screen.getByLabelText('Nombre'), 'Acme');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     const saved = onSave.mock.calls[0]?.[0] as ProductBrand;
     expect(saved.description).toBeUndefined();
@@ -103,23 +103,23 @@ describe('ProductBrandForm', () => {
     const onDelete = vi.fn();
     const { user } = renderForm({ onDelete });
 
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
     expect(onDelete).toHaveBeenCalled();
   });
 
   it('omits delete without a handler', () => {
     renderForm();
 
-    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
   });
 
   // Any in-flight write disables every action, so a double submit or a
   // save-then-delete race is impossible.
   it.each([
-    ['saving', { isSaving: true }, 'Saving…'],
-    ['deleting', { isDeleting: true }, 'Deleting…'],
+    ['saving', { isSaving: true }, 'Guardando…'],
+    ['deleting', { isDeleting: true }, 'Eliminando…'],
   ])('disables every action while %s', (_label, props, busyLabel) => {
     renderForm({ ...props, onDelete: vi.fn() });
 
@@ -133,7 +133,7 @@ describe('ProductBrandForm', () => {
     renderForm();
 
     expect(
-      screen.getByRole('button', { name: 'Back' }).parentElement,
+      screen.getByRole('button', { name: 'Volver' }).parentElement,
     ).toHaveAttribute('href', '/catalog');
   });
 });
@@ -153,8 +153,8 @@ describe('ProductCategoryForm', () => {
       entity: makeCategory('c-1', 'TOOLS', 'Tools'),
     });
 
-    expect(screen.getByLabelText('code')).toHaveValue('TOOLS');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(screen.getByLabelText('Código')).toHaveValue('TOOLS');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     const saved = onSave.mock.calls[0]?.[0] as ProductCategory;
     expect(saved).toBeInstanceOf(ProductCategory);
@@ -166,17 +166,17 @@ describe('ProductCategoryForm', () => {
     renderForm();
 
     expect(
-      screen.getByRole('heading', { name: /New product category/i }),
+      screen.getByRole('heading', { name: /Nuevo/i }),
     ).toBeInTheDocument();
   });
 
   it('builds an entity from what was typed', async () => {
     const { onSave, user } = renderForm();
 
-    await user.type(screen.getByLabelText('code'), 'TOOLS');
-    await user.type(screen.getByLabelText('name'), 'Tools');
-    await user.type(screen.getByLabelText('description'), 'Hand tools');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.type(screen.getByLabelText('Código'), 'TOOLS');
+    await user.type(screen.getByLabelText('Nombre'), 'Tools');
+    await user.type(screen.getByLabelText('Descripción'), 'Hand tools');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     const saved = onSave.mock.calls[0]?.[0] as ProductCategory;
     expect(saved.code).toBe('TOOLS');
@@ -187,8 +187,8 @@ describe('ProductCategoryForm', () => {
   it('sends undefined rather than an empty description', async () => {
     const { onSave, user } = renderForm();
 
-    await user.type(screen.getByLabelText('code'), 'TOOLS');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.type(screen.getByLabelText('Código'), 'TOOLS');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     expect((onSave.mock.calls[0]?.[0] as ProductCategory).description).toBeUndefined();
   });
@@ -203,14 +203,14 @@ describe('ProductCategoryForm', () => {
   it('offers delete only when the page provides a handler', () => {
     renderForm({ onDelete: vi.fn() });
 
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
   });
 
   // Any in-flight write disables every action, so a double submit or a
   // save-then-delete race is impossible.
   it.each([
-    ['saving', { isSaving: true }, 'Saving…'],
-    ['deleting', { isDeleting: true }, 'Deleting…'],
+    ['saving', { isSaving: true }, 'Guardando…'],
+    ['deleting', { isDeleting: true }, 'Eliminando…'],
   ])('disables every action while %s', (_label, props, busyLabel) => {
     renderForm({ ...props, onDelete: vi.fn() });
 
@@ -257,8 +257,8 @@ describe('ProductForm', () => {
   it('seeds both relation pickers from the record', () => {
     renderForm({ entity: makeProduct() });
 
-    expect(screen.getByLabelText(/Brand/)).toHaveValue('b-1');
-    expect(screen.getByLabelText(/Category/)).toHaveValue('c-1');
+    expect(screen.getByLabelText(/Marca/)).toHaveValue('b-1');
+    expect(screen.getByLabelText(/Categoría/)).toHaveValue('c-1');
   });
 
   // The two relations are stored differently, and the form has to build each
@@ -266,12 +266,12 @@ describe('ProductForm', () => {
   it('embeds the chosen brand but stores the category as a foreign key', async () => {
     const { onSave, user } = renderForm();
 
-    await user.type(screen.getByLabelText('Code'), 'P-1');
-    await user.type(screen.getByLabelText('Name'), 'Widget');
-    await user.type(screen.getByLabelText('Description'), 'A product');
-    await user.selectOptions(screen.getByLabelText(/Brand/), 'b-2');
-    await user.selectOptions(screen.getByLabelText(/Category/), 'c-1');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.type(screen.getByLabelText('Código'), 'P-1');
+    await user.type(screen.getByLabelText('Nombre'), 'Widget');
+    await user.type(screen.getByLabelText('Descripción'), 'A product');
+    await user.selectOptions(screen.getByLabelText(/Marca/), 'b-2');
+    await user.selectOptions(screen.getByLabelText(/Categoría/), 'c-1');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     const saved = onSave.mock.calls[0]?.[0] as Product;
     expect(saved.brand.isLoaded).toBe(true);
@@ -283,8 +283,8 @@ describe('ProductForm', () => {
   it('leaves both relations empty when neither was chosen', async () => {
     const { onSave, user } = renderForm();
 
-    await user.type(screen.getByLabelText('Code'), 'P-1');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.type(screen.getByLabelText('Código'), 'P-1');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     const saved = onSave.mock.calls[0]?.[0] as Product;
     expect(saved.brand.isLoaded).toBe(false);
@@ -294,7 +294,7 @@ describe('ProductForm', () => {
   it('carries the record’s id through an update', async () => {
     const { onSave, user } = renderForm({ entity: makeProduct() });
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     expect((onSave.mock.calls[0]?.[0] as Product).id).toBe('p-1');
   });
@@ -311,14 +311,14 @@ describe('ProductForm', () => {
   it('offers delete only when the page provides a handler', () => {
     renderForm({ onDelete: vi.fn() });
 
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
   });
 
   // Any in-flight write disables every action, so a double submit or a
   // save-then-delete race is impossible.
   it.each([
-    ['saving', { isSaving: true }, 'Saving…'],
-    ['deleting', { isDeleting: true }, 'Deleting…'],
+    ['saving', { isSaving: true }, 'Guardando…'],
+    ['deleting', { isDeleting: true }, 'Eliminando…'],
   ])('disables every action while %s', (_label, props, busyLabel) => {
     renderForm({ ...props, onDelete: vi.fn() });
 

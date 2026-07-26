@@ -2,19 +2,21 @@
 
 import { Radio, RadioGroup } from '@headlessui/react';
 
+import { useT } from '../../../i18n';
 import { useTheme } from '../../../theme';
 import { cn } from '../../utils/cn';
 
 /** Headless UI RadioGroup bound to the ThemeProvider. Options + labels come
  *  from the provider's registry, so it adapts to each app's theme set. */
 export function ThemeSwitcher({ className }: { className?: string }) {
+  const t = useT();
   const { theme, setTheme, themes } = useTheme();
 
   return (
     <RadioGroup
       value={theme}
       onChange={setTheme}
-      aria-label="Theme"
+      aria-label={t('theme.label')}
       className={cn('flex flex-wrap gap-2xs', className)}
     >
       {themes.map(option => (

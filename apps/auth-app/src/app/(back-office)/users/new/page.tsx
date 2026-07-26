@@ -7,6 +7,7 @@ import {
   Select,
   Stack,
   TextInput,
+  useT,
 } from '@r10c/entifix-react-controls';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, type ReactNode, useState } from 'react';
@@ -22,6 +23,8 @@ import { type FormEvent, type ReactNode, useState } from 'react';
  * caller's own, which is the check that counts.
  */
 export default function NewUserPage() {
+  const t = useT('app');
+  const errorT = useT('errors');
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -49,7 +52,7 @@ export default function NewUserPage() {
     setIsSaving(false);
 
     if (!res.ok) {
-      setMessage(body?.error ?? 'could not create the user');
+      setMessage(body?.error ?? errorT('unexpected'));
       return;
     }
     router.push('/users');
@@ -69,7 +72,7 @@ export default function NewUserPage() {
     <Card>
       <form onSubmit={submit}>
         <Stack gap="s">
-          <h1 className="text-step-1 font-semibold">New user</h1>
+          <h1 className="text-step-1 font-semibold">{t('auth.users.newTitle')}</h1>
           {message ? (
             <p role="alert" className="text-danger">
               {message}
@@ -78,7 +81,7 @@ export default function NewUserPage() {
 
           {field(
             'new-user-email',
-            'Email',
+            t('auth.fields.email'),
             <TextInput
               id="new-user-email"
               type="email"
@@ -89,7 +92,7 @@ export default function NewUserPage() {
           )}
           {field(
             'new-user-display-name',
-            'Display name',
+            t('auth.fields.displayName'),
             <TextInput
               id="new-user-display-name"
               value={displayName}
@@ -98,7 +101,7 @@ export default function NewUserPage() {
           )}
           {field(
             'new-user-password',
-            'Password',
+            t('auth.fields.password'),
             <TextInput
               id="new-user-password"
               type="password"
@@ -109,7 +112,7 @@ export default function NewUserPage() {
           )}
           {field(
             'new-user-role',
-            'Role',
+            t('auth.fields.role'),
             <Select
               id="new-user-role"
               value={role}
@@ -124,7 +127,7 @@ export default function NewUserPage() {
           )}
 
           <Button type="submit" disabled={isSaving}>
-            {isSaving ? 'Creating…' : 'Create user'}
+            {isSaving ? t('auth.submit.creating') : t('auth.submit.createUser')}
           </Button>
         </Stack>
       </form>

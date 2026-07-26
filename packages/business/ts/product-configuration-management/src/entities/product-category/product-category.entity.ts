@@ -1,7 +1,12 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { accessor, entity } from '@r10c/entifix-ts-core';
 
-@entity({ domain: 'product-configuration-management', key: 'product-category' })
+@entity({
+  domain: 'product-configuration-management',
+  key: 'product-category',
+  labelKey: 'entity:product-category.label',
+  pluralKey: 'entity:product-category.plural',
+})
 export class ProductCategory implements Entity {
   //#region properties
   #id?: EntityId;
@@ -22,7 +27,7 @@ export class ProductCategory implements Entity {
   //#endregion
 
   //#region accessors
-  @accessor({ type: 'id', label: 'ID' })
+  @accessor({ type: 'id', label: 'ID' , labelKey: 'entity:product-category.fields.id' })
   get id(): EntityId {
     return this.#id;
   }
@@ -30,7 +35,7 @@ export class ProductCategory implements Entity {
     this.#id = value;
   }
 
-  @accessor({ type: 'string', label: 'Code' })
+  @accessor({ type: 'string', label: 'Code' , labelKey: 'entity:product-category.fields.code' })
   get code(): string {
     return this.#code;
   }
@@ -38,7 +43,7 @@ export class ProductCategory implements Entity {
     this.#code = value;
   }
 
-  @accessor({ type: 'string', label: 'Name' })
+  @accessor({ type: 'string', label: 'Name' , labelKey: 'entity:product-category.fields.name' })
   get name(): string {
     return this.#name;
   }
@@ -46,7 +51,7 @@ export class ProductCategory implements Entity {
     this.#name = value;
   }
 
-  @accessor({ type: 'string', label: 'Description' })
+  @accessor({ type: 'string', label: 'Description' , labelKey: 'entity:product-category.fields.description' })
   get description(): string | undefined {
     return this.#description;
   }

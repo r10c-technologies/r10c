@@ -11,6 +11,7 @@ import {
   Stack,
   Text,
   ThemeSwitcher,
+  useT,
 } from '@r10c/entifix-react-controls';
 
 type Product = {
@@ -42,18 +43,17 @@ const PRODUCTS: Product[] = [
 ];
 
 export default function Index() {
+  const t = useT('app');
+
   return (
     <main className="mx-auto w-full max-w-5xl px-s py-l sm:px-l sm:py-xl">
       <Stack gap="l">
         {/* Header + theme switcher */}
         <header className="flex flex-col gap-s sm:flex-row sm:items-start sm:justify-between">
           <Stack gap="2xs" className="min-w-0">
-            <Overline>Storefront</Overline>
-            <HeadingOne>Marketplace</HeadingOne>
-            <Lead>
-              The same entifix design system as the admin app — driven by this
-              app&apos;s own emerald brand palette. Switch light/dark below.
-            </Lead>
+            <Overline>{t('marketplace.overline')}</Overline>
+            <HeadingOne>{t('marketplace.heading')}</HeadingOne>
+            <Lead>{t('marketplace.lead')}</Lead>
           </Stack>
           <ThemeSwitcher className="shrink-0" />
         </header>
@@ -84,7 +84,7 @@ export default function Index() {
                   <Text weight="semibold" step={1}>
                     {product.price}
                   </Text>
-                  <Button variant="primary">Add to cart</Button>
+                  <Button variant="primary">{t('marketplace.addToCart')}</Button>
                 </div>
               </Stack>
             </Card>
@@ -95,14 +95,14 @@ export default function Index() {
         <div className="grid grid-cols-1 gap-l lg:grid-cols-2">
           <Card>
             <Stack gap="s">
-              <HeadingThree>Buttons</HeadingThree>
-              <Text muted>Same atoms, storefront brand.</Text>
+              <HeadingThree>{t('marketplace.buttons.title')}</HeadingThree>
+              <Text muted>{t('marketplace.buttons.subtitle')}</Text>
               <Stack direction="row" gap="s" align="center" wrap>
-                <Button variant="primary">Primary</Button>
-                <Button variant="secondary">Secondary</Button>
-                <Button variant="ghost">Ghost</Button>
+                <Button variant="primary">{t('marketplace.buttons.primary')}</Button>
+                <Button variant="secondary">{t('marketplace.buttons.secondary')}</Button>
+                <Button variant="ghost">{t('marketplace.buttons.ghost')}</Button>
                 <Button variant="primary" size="lg">
-                  Checkout
+                  {t('marketplace.buttons.checkout')}
                 </Button>
               </Stack>
             </Stack>

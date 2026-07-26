@@ -1,4 +1,5 @@
 import nx from '@nx/eslint-plugin';
+import react from 'eslint-plugin-react';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 
 // ---------------------------------------------------------------------------
@@ -239,6 +240,84 @@ export default [
     rules: {
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
+    },
+  },
+  /**
+   * i18n is mandatory, and this is what makes it so rather than a convention:
+   * a user-facing string written straight into JSX fails the build.
+   *
+   * Scoped to everything that renders for a person — the apps, the Next shells,
+   * the agnostic controls, and the domain organisms.
+   *
+   * `ignoreProps` stays **true**. Turning it off was the original intent, to
+   * catch untranslated `aria-label`s, but the rule cannot tell copy from a
+   * machine value: it flags `field="id"`, `value=""` and `type="date"` just as
+   * loudly as `aria-label="Theme"`, and the allowlist needed to quiet those
+   * would swallow the real findings. Attribute copy is covered instead by
+   * review and by the locale-switch e2e, which renders each app in `en` and so
+   * surfaces anything still hardcoded.
+   *
+   * `allowedStrings` holds glyphs and separators that carry no language.
+   * Anything with a letter in it belongs in a catalog.
+   */
+  {
+    // Deliberately basePath-agnostic: Nx runs `eslint` from each project's own
+    // directory, so a workspace-rooted glob like `apps/*/src/**` matches
+    // nothing and the rule silently never fires. Every `.tsx` under a `src/` is
+    // exactly the set that renders for a person.
+    files: ['**/src/**/*.tsx'],
+    // Declared right here rather than leaned on from a project's own config:
+    // ESLint resolves a rule's plugin within the same config object, so without
+    // this the rule hard-errors in every project that has no React config of
+    // its own (`entifix-ts-testing-unit` was the one that caught it).
+    plugins: { react },
+    ignores: [
+      '**/*.spec.tsx',
+      '**/*.test.tsx',
+      '**/*.stories.tsx',
+      // Design-system playgrounds: the English *is* the specimen. Translating
+      // "HeadingOne" or "Body text with inline strong emphasis" would destroy
+      // what the page exists to show.
+      'src/app/page.tsx',
+      // Nx generator stubs, kept only so the package has an entry point.
+      '**/lib/hello-server.tsx',
+      '**/lib/shells-next-*.tsx',
+      '**/lib/shells-next-common.tsx',
+    ],
+    rules: {
+      'react/jsx-no-literals': [
+        'error',
+        {
+          noStrings: true,
+          ignoreProps: true,
+          allowedStrings: [
+            // Glyphs and separators. None of these carry language, and every
+            // one of them has an accessible name beside it that does.
+            '—',
+            '·',
+            '/',
+            '+',
+            '#',
+            ':',
+            ',',
+            '(',
+            ')',
+            '×',
+            '✕',
+            '↑',
+            '↓',
+            '☰',
+            '⧉',
+            '▾',
+            '◍',
+            '▦',
+            '◈',
+            '⊞',
+            '◕',
+            '◉',
+          ],
+        },
+      ],
     },
   },
 ];

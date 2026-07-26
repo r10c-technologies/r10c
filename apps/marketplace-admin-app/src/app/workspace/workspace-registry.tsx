@@ -16,13 +16,16 @@ import {
 
 /** The catalogs a `catalog:<key>` tab can open — the list client pages. */
 const CATALOGS = {
-  product: { title: 'Products', render: () => <ProductListClientPage /> },
+  product: {
+    titleKey: 'app:admin.nav.products',
+    render: () => <ProductListClientPage />,
+  },
   'product-brand': {
-    title: 'Brands',
+    titleKey: 'app:admin.nav.brands',
     render: () => <ProductBrandListClientPage />,
   },
   'product-category': {
-    title: 'Categories',
+    titleKey: 'app:admin.nav.categories',
     render: () => <ProductCategoryListClientPage />,
   },
 } as const;
@@ -34,7 +37,7 @@ const catalogKind: TabKind<{ key: CatalogKey }> = {
   match: payload =>
     payload in CATALOGS ? { key: payload as CatalogKey } : null,
   toParam: addr => addr.key,
-  title: addr => CATALOGS[addr.key].title,
+  title: (addr, translate) => translate(CATALOGS[addr.key].titleKey),
   render: addr => CATALOGS[addr.key].render(),
 };
 
@@ -49,7 +52,8 @@ const entityKind: TabKind<{ entityKey: EntityEditorKey; id: string }> = {
     return isEntityEditorKey(entityKey) && id ? { entityKey, id } : null;
   },
   toParam: addr => `${addr.entityKey}:${addr.id}`,
-  title: addr => `${ENTITY_EDITORS[addr.entityKey].label} #${addr.id}`,
+  title: (addr, translate) =>
+    `${translate(ENTITY_EDITORS[addr.entityKey].labelKey)} #${addr.id}`,
   render: addr => <EntityEditorTab entityKey={addr.entityKey} id={addr.id} />,
 };
 

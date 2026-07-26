@@ -19,7 +19,12 @@ export const IdentifierType = {
 export type IdentifierType =
   (typeof IdentifierType)[keyof typeof IdentifierType];
 
-@entity({ domain: 'authn', key: 'entity-identifier' })
+@entity({
+  domain: 'authn',
+  key: 'entity-identifier',
+  labelKey: 'entity:entity-identifier.label',
+  pluralKey: 'entity:entity-identifier.plural',
+})
 export class EntityIdentifier implements Entity {
   // #region properties
   #id?: EntityId;
@@ -38,7 +43,7 @@ export class EntityIdentifier implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor()
+  @accessor({ labelKey: 'entity:entity-identifier.fields.id' })
   get id(): EntityId {
     return this.#id;
   }
@@ -47,7 +52,7 @@ export class EntityIdentifier implements Entity {
   }
 
   /** Foreign key to the canonical {@link UserIdentity} this identifier belongs to. */
-  @accessor()
+  @accessor({ labelKey: 'entity:entity-identifier.fields.userId' })
   get userId(): EntityId {
     return this.#userId;
   }
@@ -55,7 +60,7 @@ export class EntityIdentifier implements Entity {
     this.#userId = value;
   }
 
-  @accessor()
+  @accessor({ labelKey: 'entity:entity-identifier.fields.type' })
   get type(): IdentifierType {
     return this.#type;
   }
@@ -64,7 +69,7 @@ export class EntityIdentifier implements Entity {
   }
 
   /** The identifier string: the email address, username, phone, or IdP subject. */
-  @accessor()
+  @accessor({ labelKey: 'entity:entity-identifier.fields.value' })
   get value(): string {
     return this.#value;
   }
@@ -73,7 +78,7 @@ export class EntityIdentifier implements Entity {
   }
 
   /** Issuer for federated identifiers (e.g. `google`, `zitadel`); unset for local ones. */
-  @accessor()
+  @accessor({ labelKey: 'entity:entity-identifier.fields.provider' })
   get provider(): string | undefined {
     return this.#provider;
   }
@@ -86,7 +91,7 @@ export class EntityIdentifier implements Entity {
    * identifier must never be used to link to or authenticate an existing
    * account — that is the classic account-takeover vector.
    */
-  @accessor()
+  @accessor({ labelKey: 'entity:entity-identifier.fields.verified' })
   get verified(): boolean {
     return this.#verified;
   }

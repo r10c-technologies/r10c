@@ -79,7 +79,7 @@ describe('WorkspaceShell', () => {
     renderShell();
     await screen.findByTestId('body');
 
-    await user.click(screen.getByRole('button', { name: 'Copy link' }));
+    await user.click(screen.getByRole('button', { name: 'Copiar enlace' }));
 
     expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining('/workspace?tab=catalog%3Aproduct'),
@@ -91,6 +91,20 @@ describe('WorkspaceShell', () => {
     renderShell();
 
     expect(await screen.findByTestId('fallback')).toBeInTheDocument();
+  });
+
+  // Captions are re-derived from the registry each render so a locale switch
+  // relabels open tabs. A tab persisted under a kind that no longer exists has
+  // nothing to re-derive from, and falls back to whatever was stored.
+  it('keeps the stored caption for a tab whose kind is gone', async () => {
+    act(() => {
+      useTabsStore
+        .getState()
+        .open({ param: 'operation:import', title: 'Retired import' });
+    });
+    renderShell();
+
+    expect(await screen.findByText('Retired import')).toBeInTheDocument();
   });
 
   it('activates a clicked tab and projects the active one to the URL', async () => {
@@ -127,7 +141,7 @@ describe('WorkspaceShell', () => {
     renderShell();
     await screen.findByTestId('body');
 
-    await user.click(screen.getByRole('button', { name: 'Close product catalog' }));
+    await user.click(screen.getByRole('button', { name: 'Cerrar product catalog' }));
 
     await waitFor(() =>
       expect(screen.queryByRole('tab', { name: /product catalog/ })).not.toBeInTheDocument(),
@@ -158,7 +172,7 @@ describe('WorkspaceShell', () => {
       useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
     });
 
-    await user.click(screen.getByRole('button', { name: 'Close product catalog' }));
+    await user.click(screen.getByRole('button', { name: 'Cerrar product catalog' }));
 
     expect(confirm).toHaveBeenCalled();
     expect(screen.getByRole('tab', { name: /product catalog/ })).toBeInTheDocument();
@@ -175,7 +189,7 @@ describe('WorkspaceShell', () => {
       useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
     });
 
-    await user.click(screen.getByRole('button', { name: 'Close product catalog' }));
+    await user.click(screen.getByRole('button', { name: 'Cerrar product catalog' }));
 
     await waitFor(() =>
       expect(screen.queryByRole('tab', { name: /product catalog/ })).not.toBeInTheDocument(),

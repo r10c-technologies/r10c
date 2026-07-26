@@ -8,6 +8,7 @@ import type {
 } from '@r10c/entifix-ts-core';
 import { useCallback, useState } from 'react';
 
+import { useT } from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { Select } from '../../atoms/field';
 import { Text } from '../../atoms/text';
@@ -94,6 +95,8 @@ export function SortBuilder<TEntity extends Entity>({
     [descriptors, onChange],
   );
 
+  const t = useT();
+
   /** Edits the draft only — nothing reaches the caller until Apply. */
   const update = (next: SortDraft[]) => setDrafts(next);
 
@@ -113,7 +116,7 @@ export function SortBuilder<TEntity extends Entity>({
   if (descriptors.length === 0) {
     return (
       <Text step={-1} tone="muted">
-        No sortable members on this entity.
+        {t('sort.none')}
       </Text>
     );
   }
@@ -126,10 +129,10 @@ export function SortBuilder<TEntity extends Entity>({
           className="flex flex-wrap items-center gap-2xs"
         >
           <Text step={-2} tone="muted">
-            {index === 0 ? 'Sort by' : 'then by'}
+            {index === 0 ? t('sort.by') : t('sort.then')}
           </Text>
           <Select
-            aria-label="Sort member"
+            aria-label={t('sort.member')}
             value={draft.property}
             onChange={event =>
               update(
@@ -148,7 +151,7 @@ export function SortBuilder<TEntity extends Entity>({
             ))}
           </Select>
           <Select
-            aria-label="Sort direction"
+            aria-label={t('sort.direction')}
             value={draft.type}
             onChange={event =>
               update(
@@ -160,14 +163,14 @@ export function SortBuilder<TEntity extends Entity>({
               )
             }
           >
-            <option value="asc">ascending</option>
-            <option value="desc">descending</option>
+            <option value="asc">{t('sort.ascending')}</option>
+            <option value="desc">{t('sort.descending')}</option>
           </Select>
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            aria-label="Raise sort priority"
+            aria-label={t('sort.raisePriority')}
             disabled={index === 0}
             onClick={() => shift(index, -1)}
           >
@@ -177,7 +180,7 @@ export function SortBuilder<TEntity extends Entity>({
             type="button"
             variant="ghost"
             size="sm"
-            aria-label="Lower sort priority"
+            aria-label={t('sort.lowerPriority')}
             disabled={index === drafts.length - 1}
             onClick={() => shift(index, 1)}
           >
@@ -187,7 +190,7 @@ export function SortBuilder<TEntity extends Entity>({
             type="button"
             variant="ghost"
             size="sm"
-            aria-label="Remove sort"
+            aria-label={t('sort.remove')}
             onClick={() =>
               update(drafts.filter((_, position) => position !== index))
             }
@@ -206,29 +209,29 @@ export function SortBuilder<TEntity extends Entity>({
             update([...drafts, { property: descriptors[0].name, type: 'asc' }])
           }
         >
-          Add sort
+          {t('sort.add')}
         </Button>
         <Button
           type="button"
           variant="primary"
           size="sm"
-          aria-label="Apply sorting"
+          aria-label={t('sort.applyAria')}
           onClick={() => apply(drafts)}
         >
-          Apply
+          {t('sort.apply')}
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          aria-label="Clear sorting"
+          aria-label={t('sort.clearAria')}
           onClick={() => {
             setDrafts([]);
             // Applying the emptied form is what restores the default order.
             apply([]);
           }}
         >
-          Clear
+          {t('sort.clear')}
         </Button>
       </div>
     </div>

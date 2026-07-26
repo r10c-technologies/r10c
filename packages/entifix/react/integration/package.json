@@ -25,6 +25,10 @@
     "dist",
     "!**/*.tsbuildinfo"
   ],
+  "dependencies": {
+    "@r10c/entifix-ts-i18n": "workspace:*",
+    "react-i18next": "17.0.11"
+  },
   "devDependencies": {
     "@r10c/entifix-ts-testing-unit": "workspace:*"
   }

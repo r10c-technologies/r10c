@@ -14,22 +14,19 @@ export type EntityFilterOperator =
   | (typeof EntityFilterStringOperators)[number]
   | (typeof EntityFilterNullOperators)[number];
 
-export const OPERATOR_LABELS: Record<EntityFilterOperator, string> = {
-  eq: 'is',
-  ne: 'is not',
-  gt: 'greater than',
-  gte: 'greater or equal',
-  lt: 'less than',
-  lte: 'less or equal',
-  in: 'is one of',
-  nin: 'is none of',
-  between: 'between',
-  nbetween: 'not between',
-  like: 'contains',
-  nlike: 'does not contain',
-  isNull: 'is empty',
-  isNotNull: 'is not empty',
-};
+/**
+ * The catalog key for an operator's user-facing name. The operator token and the
+ * key share a shape by construction, so adding an operator cannot leave a label
+ * behind: `controls.operator` is typed, and a missing entry fails to compile.
+ *
+ * Not to be confused with `RSQL_TOKENS` in `entifix-ts-core` — those are wire
+ * tokens (`==`, `=gt=`) and are never translated.
+ */
+export function operatorLabelKey(
+  operator: EntityFilterOperator,
+): `operator.${EntityFilterOperator}` {
+  return `operator.${operator}`;
+}
 
 const ORDERED: readonly EntityFilterOperator[] = [
   ...EntityFilterBinaryOperators,

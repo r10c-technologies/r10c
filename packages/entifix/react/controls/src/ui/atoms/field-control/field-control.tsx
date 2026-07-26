@@ -5,6 +5,7 @@ import type {
   MetaAccessorType,
 } from '@r10c/entifix-ts-core';
 
+import { useEnumLabel } from '../../../i18n';
 import { Checkbox, Select, TextInput } from '../field';
 
 export interface FieldControlProps {
@@ -40,6 +41,7 @@ export function FieldControl({
   onChange,
   id,
 }: FieldControlProps) {
+  const enumLabel = useEnumLabel();
   const disabled =
     descriptor.readonly ||
     descriptor.type === 'link' ||
@@ -68,7 +70,7 @@ export function FieldControl({
         <option value="">—</option>
         {(descriptor.enumValues ?? []).map(option => (
           <option key={option} value={option}>
-            {option}
+            {enumLabel(descriptor, option)}
           </option>
         ))}
       </Select>

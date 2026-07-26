@@ -38,7 +38,20 @@ export default defineConfig(() => ({
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
-      external: ['react', 'react-dom', 'react/jsx-runtime', '@r10c/entifix-ts-business', '@r10c/entifix-ts-core', '@r10c/utils-ts-object'],
+      // i18next/react-i18next MUST stay external: bundling react-i18next drags in
+      // `use-sync-external-store`'s CJS shim, whose module-scope `require('react')`
+      // gets inlined here and then throws against Turbopack's require stub at SSR.
+      external: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        'i18next',
+        'react-i18next',
+        '@r10c/entifix-ts-business',
+        '@r10c/entifix-ts-core',
+        '@r10c/entifix-ts-i18n',
+        '@r10c/utils-ts-object',
+      ],
       output: {
         banner: '"use client";',
       },

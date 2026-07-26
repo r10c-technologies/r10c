@@ -1,0 +1,27 @@
+type EsErrors = typeof import('../es/errors').errors;
+
+export const errors: EsErrors = {
+  unauthenticated: 'Your session is not valid. Sign in again.',
+  forbidden: 'You do not have permission to do this.',
+  sessionExpired: 'Your session has expired.',
+  sessionUnresolved: 'The session could not be resolved.',
+  invalidCredentials: 'Invalid credentials.',
+  invalidRequest: 'The request is not valid.',
+  invalidBody: 'The request body is not valid.',
+  invalidQuery: 'The query is not valid.',
+  invalidCommand: 'The command is not valid.',
+  notFound: 'The record was not found.',
+  resourceBusy: 'The resource is busy, try again.',
+  identifierRequired: 'An account needs at least one identifier.',
+  credentialsRequired: 'Registration requires a password and an identifier.',
+  roleNotAllowed: 'You are not allowed to assign that role.',
+  userNotFound: 'The user was not found.',
+  userNotAllowed: 'You are not allowed to modify that user.',
+  selfRoleChange: 'You cannot change your own role or status.',
+  nothingToUpdate: 'There is nothing to update.',
+  unknownRole: 'Unknown role.',
+  unknownStatus: 'Unknown status.',
+  configUnavailable: 'The configuration could not be loaded.',
+  network: 'Network error. Check that the service is reachable.',
+  unexpected: 'Something went wrong.',
+};
