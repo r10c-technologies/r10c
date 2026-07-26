@@ -1,4 +1,8 @@
-import { DEFAULT_ROLE, Roles } from '@r10c/business-ts-authz';
+import {
+  DEFAULT_ROLE,
+  permissionForEntity,
+  Roles,
+} from '@r10c/business-ts-authz';
 import {
   describeEntityColumns,
   deserializeSingleEntity,
@@ -11,6 +15,7 @@ import {
   EntityIdentifier,
   IdentifierType,
 } from './entity-identifier/entity-identifier.entity.js';
+import { UserDevice } from './user-device/user-device.entity.js';
 import {
   UserIdentity,
   UserStatus,
@@ -164,5 +169,56 @@ describe('UserIdentity', () => {
       'suspended',
       'disabled',
     ]);
+  });
+});
+
+describe('UserDevice', () => {
+  it('round-trips every accessor through its setter', () => {
+    const device = new UserDevice();
+    device.id = 'd-1';
+    device.userId = 'u-1';
+    device.deviceId = 'opaque-cookie-value';
+    device.browser = 'Chrome';
+    device.os = 'macOS';
+    device.type = 'desktop';
+    device.lastIp = '203.0.113.0';
+    device.firstSeenAt = new Date('2026-01-01T00:00:00.000Z');
+    device.lastSeenAt = new Date('2026-07-26T00:00:00.000Z');
+
+    expect(serializeEntity(UserDevice, device)).toEqual({
+      id: 'd-1',
+      userId: 'u-1',
+      deviceId: 'opaque-cookie-value',
+      browser: 'Chrome',
+      os: 'macOS',
+      type: 'desktop',
+      lastIp: '203.0.113.0',
+      firstSeenAt: new Date('2026-01-01T00:00:00.000Z'),
+      lastSeenAt: new Date('2026-07-26T00:00:00.000Z'),
+    });
+  });
+
+  it('starts blank, with no device recorded', () => {
+    const device = new UserDevice();
+
+    expect(device.deviceId).toBe('');
+    expect(device.browser).toBeUndefined();
+    expect(device.lastSeenAt).toBeUndefined();
+  });
+
+  it('exposes the members a device list renders', () => {
+    const columns = describeEntityColumns(UserDevice).map(column => column.name);
+
+    expect(columns).toEqual(
+      expect.arrayContaining(['browser', 'os', 'lastSeenAt', 'lastIp']),
+    );
+  });
+
+  it('derives its permission vocabulary from the entity key', () => {
+    // `authn:user-device:read` is what guards another user's device history;
+    // the key here is the single source that permission is built from.
+    expect(permissionForEntity(UserDevice, 'read')).toBe(
+      'authn:user-device:read',
+    );
   });
 });

@@ -31,7 +31,9 @@ const stubAccounts = (
   AccountRepositoryTag.of({
     findByIdentifier: () => Effect.succeed(null),
     findById: () => Effect.succeed(target),
+    findContactAddress: () => Effect.succeed(null),
     readPasswordHash: () => Effect.succeed(null),
+    writePasswordHash: () => Effect.void,
     createAccount: () =>
       Effect.fail(new EntifixLogicError('not used in update')),
     updateUserAspects: (_userId, changes) => {

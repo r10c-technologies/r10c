@@ -37,9 +37,14 @@ export function middleware(request: NextRequest) {
   const authenticated = request.cookies.get(AT_COOKIE) !== undefined;
   if (!authenticated) {
     const signin = new URL('/', SIGNIN_URL);
-    // The unprefixed path: auth-app negotiates the locale itself on the way
-    // back, so a visitor reading English does not return to Spanish.
-    signin.searchParams.set('redirect', locale.pathname);
+    // An ABSOLUTE url, because auth-app has account routes of its own now and a
+    // bare `/account` would be ambiguous between the two apps. The path stays
+    // unprefixed: auth-app negotiates the locale itself on the way back, so a
+    // visitor reading English does not return to Spanish.
+    signin.searchParams.set(
+      'redirect',
+      new URL(locale.pathname, request.nextUrl.origin).toString(),
+    );
     const response = NextResponse.redirect(signin);
     rememberLocale(response, locale.locale);
     return response;

@@ -27,4 +27,8 @@ export const errors = {
   configUnavailable: 'No se pudo cargar la configuración.',
   network: 'Error de red. Comprueba que el servicio esté disponible.',
   unexpected: 'Algo salió mal.',
+  accountLocked: 'Demasiados intentos. Inténtalo de nuevo más tarde.',
+  passwordIncorrect: 'La contraseña actual no es correcta.',
+  passwordTooShort: 'La contraseña debe tener al menos 8 caracteres.',
+  invalidResetToken: 'Este enlace ya no es válido. Solicita uno nuevo.',
 };

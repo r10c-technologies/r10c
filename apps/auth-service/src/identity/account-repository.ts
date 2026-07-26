@@ -92,6 +92,16 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       return updated;
     });
 
+  const findContactAddress = (userId: EntityId) =>
+    Effect.gen(function* () {
+      const doc = yield* Effect.tryPromise({
+        try: () =>
+          identifiers.findOne({ userId, type: 'email' }, WITHOUT_MONGO_ID),
+        catch: error => fail('Failed to read identifier from MongoDB', error),
+      });
+      return (doc?.['value'] as string | undefined) ?? null;
+    });
+
   const readPasswordHash = (userId: EntityId) =>
     Effect.gen(function* () {
       const doc = yield* Effect.tryPromise({
@@ -100,6 +110,19 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       });
       return (doc?.['passwordHash'] as string | undefined) ?? null;
     });
+
+  const writePasswordHash = (userId: EntityId, passwordHash: string) =>
+    Effect.tryPromise({
+      // Upsert, so an account provisioned without a credential (an IdP-created
+      // user setting a password for the first time) is not a silent no-op.
+      try: () =>
+        credentials.updateOne(
+          { userId },
+          { $set: { userId, passwordHash } },
+          { upsert: true },
+        ),
+      catch: error => fail('Failed to write credential to MongoDB', error),
+    }).pipe(Effect.asVoid);
 
   const createAccount = (input: CreateAccountInput) =>
     Effect.gen(function* () {
@@ -163,7 +186,9 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
   return {
     findByIdentifier,
     findById,
+    findContactAddress,
     readPasswordHash,
+    writePasswordHash,
     createAccount,
     updateUserAspects,
   };

@@ -1,6 +1,10 @@
 import { can } from '@r10c/business-ts-authz';
-import { BackOfficeShell } from '@r10c/shells-next-common';
+import { AccountMenu, BackOfficeShell } from '@r10c/shells-next-common';
+// From the server entry: this layout calls it directly, and the client entry
+// would hand back a client reference rather than the function.
+import { accountPaths } from '@r10c/shells-next-common/server';
 import {
+  getRequestLocale,
   getServerT,
   getServerTranslateKey,
 } from '@r10c/shells-next-i18n/server';
@@ -35,6 +39,7 @@ export default async function BackOfficeLayout({
     redirect(DEFAULT_REDIRECT);
   }
 
+  const locale = await getRequestLocale();
   const t = await getServerT('app');
   // Nav labels are keys held in a route table, so they need the widened form.
   const translateKey = await getServerTranslateKey('app');
@@ -46,8 +51,19 @@ export default async function BackOfficeLayout({
       breadcrumbLabels={{
         users: t('auth.nav.users'),
         new: t('auth.nav.newUser'),
+        account: t('auth.account.title'),
       }}
       homeLabel={t('auth.home')}
+      accountMenu={
+        <AccountMenu
+          label={principal.subject}
+          items={accountPaths(locale).map(link => ({
+            label: translateKey(link.labelKey),
+            href: link.href,
+          }))}
+          signOutLabel={t('auth.account.signOut')}
+        />
+      }
     >
       {children}
     </BackOfficeShell>

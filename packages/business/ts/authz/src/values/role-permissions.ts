@@ -33,6 +33,11 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // granted explicitly rather than as `authn:*:read` so a future sensitive
     // entity in this domain is not swept in by accident.
     `${AUTHN_DOMAIN}:entity-identifier:read`,
+    // Seeing where a user is signed in, and ending those sessions — incident
+    // response. Note this is another person's device and IP history, so it is
+    // granted deliberately and not folded into `user-identity:read`.
+    `${AUTHN_DOMAIN}:user-device:read`,
+    `${AUTHN_DOMAIN}:user-device:write`,
   ],
   // The developer tier: everything, including future tooling not yet modelled.
   'super-admin': ['*:*:*'],

@@ -26,12 +26,15 @@ beforeEach(() => {
   window.localStorage.clear();
 });
 
-function renderShell() {
+function renderShell(
+  props: Partial<ComponentProps<typeof BackOfficeShell>> = {},
+) {
   return render(
     <BackOfficeShell
       nav={nav}
       brand="Acme Admin"
       breadcrumbLabels={{ catalog: 'Catalog' }}
+      {...props}
     >
       <p>Routed content</p>
     </BackOfficeShell>,
@@ -54,6 +57,23 @@ describe('BackOfficeShell', () => {
     expect(
       screen.getByRole('button', { name: 'Contraer barra lateral' }),
     ).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('renders an account menu in the top bar when one is given', () => {
+    renderShell({ accountMenu: <button type="button">ada@example.com</button> });
+
+    expect(
+      screen.getByRole('button', { name: 'ada@example.com' }),
+    ).toBeInTheDocument();
+  });
+
+  it('omits the account slot entirely when there is none', () => {
+    renderShell();
+
+    // The top bar carries only the collapse toggle and the crumbs.
+    expect(
+      screen.queryByRole('button', { name: 'ada@example.com' }),
+    ).toBeNull();
   });
 
   it('collapses on toggle, hides the brand and persists the preference', async () => {

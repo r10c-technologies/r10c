@@ -100,4 +100,81 @@ describe('auth-service', () => {
       expect(afterLogout.status).toBe(401);
     });
   });
+
+  describe('refresh', () => {
+    const suffix = `${Date.now()}-refresh`;
+    const email = `ada-${suffix}@example.com`;
+    const password = 'correct-horse-battery';
+
+    const openSession = async () => {
+      await service.client.post('/api/auth/register', {
+        displayName: 'Ada Lovelace',
+        password,
+        identifiers: [{ type: 'email', value: email }],
+      });
+      const login = await service.client.post('/api/auth/login', {
+        identifier: email,
+        password,
+      });
+      return login.data;
+    };
+
+    it('reports the session ceiling separately from the token lifetime', async () => {
+      const session = await openSession();
+
+      // These two being different numbers is the fix for the bug that signed
+      // everyone out every fifteen minutes: the app sizes cookies to the
+      // session, while the token keeps its short life.
+      expect(session.expiresIn).toBe(900);
+      expect(session.sessionExpiresIn).toBeGreaterThan(session.expiresIn);
+    });
+
+    it('mints a usable token from a live session and keeps the ceiling fixed', async () => {
+      const session = await openSession();
+
+      const first = await service.client.post('/api/auth/refresh', {
+        sessionId: session.sessionId,
+      });
+      const second = await service.client.post('/api/auth/refresh', {
+        sessionId: session.sessionId,
+      });
+
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+      expect(typeof first.data.accessToken).toBe('string');
+      // Sliding renews the window, but the ceiling must not move — otherwise
+      // "sliding" quietly becomes "never expires".
+      expect(second.data.sessionExpiresAt).toBe(first.data.sessionExpiresAt);
+      expect(second.data.sessionExpiresIn).toBeLessThanOrEqual(
+        first.data.sessionExpiresIn,
+      );
+    });
+
+    it('still carries the principal so the app can re-render nav', async () => {
+      const session = await openSession();
+
+      const refreshed = await service.client.post('/api/auth/refresh', {
+        sessionId: session.sessionId,
+      });
+
+      expect(refreshed.data.principal.userId).toBe(session.principal.userId);
+      expect(refreshed.data.principal.roles).toEqual(['user']);
+    });
+
+    it('401s on an unknown session id', async () => {
+      const res = await service.client.post('/api/auth/refresh', {
+        sessionId: 'not-a-session',
+      });
+
+      expect(res.status).toBe(401);
+      expect(res.data.code).toBe('sessionExpired');
+    });
+
+    it('400s without a session id', async () => {
+      const res = await service.client.post('/api/auth/refresh', {});
+
+      expect(res.status).toBe(400);
+      expect(res.data.code).toBe('invalidRequest');
+    });
+  });
 });

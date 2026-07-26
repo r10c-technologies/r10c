@@ -77,6 +77,30 @@ function Item({ className, ...props }: ComponentPropsWithoutRef<'button'>) {
   );
 }
 
+/**
+ * A navigating menu entry.
+ *
+ * A plain anchor rather than a router link: the entries that need this are the
+ * account menu's, and those point at a different app on a different origin,
+ * where a client-side transition is not an option anyway. Callers wanting an
+ * in-app transition should pass their router's link through `as`-style
+ * composition at the call site instead.
+ */
+function Link({ className, ...props }: ComponentPropsWithoutRef<'a'>) {
+  return (
+    <HuiMenuItem
+      as="a"
+      className={cn(
+        'flex w-full items-center gap-2xs rounded-md px-2xs py-3xs text-step-sm text-content no-underline',
+        'data-focus:bg-surface data-focus:text-content',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 Menu.Trigger = Trigger;
 Menu.Items = Items;
 Menu.Item = Item;
+Menu.Link = Link;

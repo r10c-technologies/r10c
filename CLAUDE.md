@@ -70,6 +70,31 @@ them), and everything deep is a link — loaded only when a task needs it.
   a request verifies `r10c_at` statelessly via `TokenServiceTag` (no Redis/auth round
   trip on the hot path). See [[auth-layer-v1]] and
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#auth-sessions--tokens).
+- **Sessions slide under a ceiling.** Every duration lives in
+  `business-ts-authn/values/session-policy.ts` — edit there, nowhere else. Both
+  cookies are sized to the **session**, never to the token (sizing `r10c_at` to
+  `expiresIn` is what signed everyone out every 15 min). `touch` clamps to
+  `absoluteExpiresAt`. What slides a session is *user* activity: `requirePrincipal`
+  must stay stateless, so the browser's `useSessionRefresh` stops refreshing when
+  idle rather than the server reading Redis per request. The shared route handler
+  is `createRefreshRoute` from **`@r10c/shells-next-common/server`** — that subpath
+  exists because rollup stamps `"use client"` on the main bundle, so anything a
+  route handler or server layout *calls* must ship from `/server`.
+- **Account surface** is auth-app's alone; other apps link across via `AccountMenu`
+  with the locale baked into the absolute URL (`localeHref` leaves absolute URLs
+  alone). `/account/*` lives outside `(back-office)`, which demands
+  `authn:user-identity:read` — a plain `user` must still reach their own account.
+- **Devices are labels, never authorization inputs.** `r10c_did` + `userAgent()`
+  from `next/server` (no new dep; avoid `ua-parser-js` v2, it is AGPL). History is
+  durable in Mongo so a familiar browser is not announced as new after its sessions
+  expire. Admin session control is behind `authn:user-device:read|write`.
+- **Recovery**: the reset link exists in the notification and **never** in a
+  response body; `forgot` always answers `202` (enumeration). Tokens are hashed and
+  redeemed with `GETDEL`. Change-password revokes all *other* sessions; reset
+  revokes *all*. Lockout answers `429`, is keyed identifier+source, auto-expires,
+  and notifies once. In dev, notifications land in `GET /api/dev/outbox`, which
+  404s in production — that route is what makes the reset flow e2e-testable.
+  See [ADR 0004](docs/adr/0004-session-lifetime-devices-and-recovery.md).
 - **Authorization**: a permission is `<domain>:<entityKey>:<action>`, derived from the
   entity's own `@entity({domain,key})` (`permissionForEntity`); grants come from
   `ROLE_PERMISSIONS` in `@r10c/business-ts-authz`, never from the token, which still

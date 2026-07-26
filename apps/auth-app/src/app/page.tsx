@@ -37,12 +37,20 @@ export default function Index() {
           <CredentialForm mode="login" />
         </Card>
 
-        <Text muted>
-          {t('auth.signIn.noAccount')}{' '}
-          <LocaleLink href="/signup" className="underline">
-            {t('auth.signIn.create')}
-          </LocaleLink>
-        </Text>
+        <Stack gap="2xs">
+          <Text muted>
+            {t('auth.signIn.noAccount')}{' '}
+            <LocaleLink href="/signup" className="underline">
+              {t('auth.signIn.create')}
+            </LocaleLink>
+          </Text>
+          {/* Without this the recovery flow exists but nobody can reach it. */}
+          <Text muted>
+            <LocaleLink href="/forgot-password" className="underline">
+              {t('auth.forgot.title')}
+            </LocaleLink>
+          </Text>
+        </Stack>
       </Stack>
     </main>
   );

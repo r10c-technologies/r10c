@@ -53,8 +53,29 @@ export interface AccountRepository {
     userId: EntityId,
     changes: UpdateUserAspects,
   ): Effect<UserIdentity, EntifixError>;
+  /**
+   * The address account notifications go to — the user's email identifier, or
+   * null when they have none.
+   *
+   * Explicitly NOT `AuthSubject.subject`: that is the canonical user id (or an
+   * IdP `sub`), so using it as a recipient would address security mail to a
+   * UUID. The contact address is a different thing from the identity, and this
+   * is the only place that mapping lives.
+   */
+  findContactAddress(userId: EntityId): Effect<string | null, EntifixError>;
   /** Read a user's stored password hash, or null when none is set. */
   readPasswordHash(userId: EntityId): Effect<string | null, EntifixError>;
+  /**
+   * Replace a user's stored password hash.
+   *
+   * The credential was write-once at registration until password change and
+   * recovery needed it. Hashing stays the use-case's job, as with
+   * {@link CreateAccountInput.passwordHash} — the store never sees plaintext.
+   */
+  writePasswordHash(
+    userId: EntityId,
+    passwordHash: string,
+  ): Effect<void, EntifixError>;
   /**
    * Provision user + identifiers + credential atomically, returning the created
    * user. Fails when any identifier value is already taken.

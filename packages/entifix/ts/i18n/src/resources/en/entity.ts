@@ -84,4 +84,19 @@ export const entity: EsEntity = {
       },
     },
   },
+  'user-device': {
+    label: 'Device',
+    plural: 'Devices',
+    fields: {
+      id: 'ID',
+      userId: 'User ID',
+      deviceId: 'Device ID',
+      browser: 'Browser',
+      os: 'Operating system',
+      type: 'Type',
+      lastIp: 'Last IP',
+      firstSeenAt: 'First seen',
+      lastSeenAt: 'Last seen',
+    },
+  },
 };

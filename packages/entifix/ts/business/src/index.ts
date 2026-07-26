@@ -2,6 +2,7 @@ export * from './repository/config.repository';
 export * from './repository/entity.repository';
 export * from './repository/entity-link-resolver.repository';
 export * from './repository/entity-mixins.repository';
+export * from './sessions/one-time-token-store';
 export * from './sessions/session-store';
 export * from './tokens/token-service';
 export * from './use-case/delete';

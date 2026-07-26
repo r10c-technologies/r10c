@@ -1,7 +1,10 @@
 import {
   AccountRepositoryTag,
+  AttemptLimiterTag,
   IdentityProviderTag,
+  NotificationPortTag,
   PasswordHasherTag,
+  UserDeviceRepositoryTag,
 } from '@r10c/business-ts-authn';
 import {
   makeStaticPolicyDecision,
@@ -20,7 +23,9 @@ import {
 } from '@r10c/entifix-ts-mongo-client';
 import {
   RedisLayer,
+  RedisOneTimeTokenStoreLayer,
   RedisSessionStoreLayer,
+  RedisTag,
 } from '@r10c/entifix-ts-redis-client';
 import {
   LoadedConfigurationTag,
@@ -32,6 +37,8 @@ import {
   CREDENTIAL_COLLECTION,
   makeMongoAccountRepository,
 } from './identity/account-repository';
+import { makeRedisAttemptLimiter } from './identity/attempt-limiter';
+import { makeDevNotificationPort } from './identity/notifications';
 import { makeBcryptPasswordHasher } from './identity/password';
 import { makeRedisIdentityProvider } from './identity/redis-identity-provider';
 import {
@@ -39,6 +46,7 @@ import {
   JWT_AUDIENCE,
   JWT_ISSUER,
 } from './identity/session-policy';
+import { makeMongoUserDeviceRepository } from './identity/user-device-repository';
 import {
   entityIdentifierSeedData,
   userIdentitySeedData,
@@ -130,6 +138,27 @@ const AccountRepositoryLayer = Layer.effect(
   Effect.map(MongoDatabaseTag, makeMongoAccountRepository),
 );
 
+/** Durable device history, over the same Mongo connection. */
+const UserDeviceRepositoryLayer = Layer.effect(
+  UserDeviceRepositoryTag,
+  Effect.map(MongoDatabaseTag, makeMongoUserDeviceRepository),
+);
+
+/**
+ * Notifications. The development adapter logs and records; swapping in a real
+ * transport is a change to this one line.
+ */
+const NotificationLayer = Layer.effect(
+  NotificationPortTag,
+  Effect.map(MongoDatabaseTag, makeDevNotificationPort),
+);
+
+/** Failed sign-in accounting, over the same Redis connection as the sessions. */
+const AttemptLimiterLayer = Layer.effect(
+  AttemptLimiterTag,
+  Effect.map(RedisTag, makeRedisAttemptLimiter),
+);
+
 /** The real identity provider, built from the session store + account repo. */
 const IdentityProviderLayer = Layer.effect(
   IdentityProviderTag,
@@ -177,9 +206,16 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
     );
 
-    // Session store + account repo build on the connections.
+    // Session store + account/device repos build on the connections.
     const stores = Layer.provideMerge(
-      Layer.mergeAll(RedisSessionStoreLayer(), AccountRepositoryLayer),
+      Layer.mergeAll(
+        RedisSessionStoreLayer(),
+        RedisOneTimeTokenStoreLayer(),
+        AttemptLimiterLayer,
+        AccountRepositoryLayer,
+        UserDeviceRepositoryLayer,
+        NotificationLayer,
+      ),
       infra,
     );
 

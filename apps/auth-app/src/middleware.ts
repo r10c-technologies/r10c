@@ -12,13 +12,35 @@ const DEFAULT_REDIRECT =
   process.env.AUTH_DEFAULT_REDIRECT ?? 'http://localhost:3001';
 
 /**
- * Locale first, then two edge-only cookie checks — both fast paths rather than
- * decisions:
+ * Paths that only make sense while signed OUT. An authenticated visitor landing
+ * here is bounced to the app.
+ */
+const SIGNED_OUT_ONLY = ['/', '/signup'];
+
+/** Paths that require a session. */
+const SIGNED_IN_ONLY = ['/users', '/account'];
+
+/**
+ * Paths open to both states. Password recovery has to work whether or not you
+ * still have a session — you might be signed in on this device and resetting
+ * because you lost another one.
+ */
+const ALWAYS_OPEN = ['/forgot-password', '/reset-password'];
+
+const matches = (pathname: string, routes: readonly string[]): boolean =>
+  routes.some(
+    route =>
+      pathname === route || (route !== '/' && pathname.startsWith(`${route}/`)),
+  );
+
+/**
+ * Locale first, then a cookie-presence check per path class.
  *
- * - the auth surface (`/`, `/signup`) bounces an already-authenticated visitor
- *   to the app;
- * - the back-office (`/users`) bounces anyone with no cookie back to sign-in,
- *   carrying where they were headed.
+ * This used to bounce an authenticated visitor away from **every** path except
+ * `/users`, which made the whole account surface unreachable: arriving at
+ * `/account/password` with a valid session sent you straight back to the admin
+ * app. The path classes above are what fixed it — "signed in" is only a reason
+ * to redirect on the sign-in and sign-up screens themselves.
  *
  * Presence is all that is checked here. The **role** gate lives in the
  * back-office server layout, which resolves the principal from auth-service —
@@ -31,13 +53,18 @@ export function middleware(request: NextRequest) {
   if (locale.redirect) return locale.redirect;
 
   const authenticated = request.cookies.get(AT_COOKIE) !== undefined;
-
   // The locale-stripped path — matching on `request.nextUrl.pathname` would
-  // read `/es/users` and miss the branch entirely.
-  if (locale.pathname.startsWith('/users')) {
+  // read `/es/users` and miss every branch.
+  const pathname = locale.pathname;
+
+  if (matches(pathname, ALWAYS_OPEN)) {
+    return rewriteToLocale(request, locale);
+  }
+
+  if (matches(pathname, SIGNED_IN_ONLY)) {
     if (!authenticated) {
       const signin = new URL(`/${locale.locale}`, request.nextUrl.origin);
-      signin.searchParams.set('redirect', locale.pathname);
+      signin.searchParams.set('redirect', pathname);
       const response = NextResponse.redirect(signin);
       rememberLocale(response, locale.locale);
       return response;
@@ -45,21 +72,20 @@ export function middleware(request: NextRequest) {
     return rewriteToLocale(request, locale);
   }
 
-  if (authenticated) {
+  if (authenticated && matches(pathname, SIGNED_OUT_ONLY)) {
     const response = NextResponse.redirect(DEFAULT_REDIRECT);
     rememberLocale(response, locale.locale);
     return response;
   }
+
   return rewriteToLocale(request, locale);
 }
 
 /**
- * A regex rather than the old literal list (`['/', '/signup', '/users/:path*']`):
- * every one of those paths now also exists under a locale prefix, which the
- * literal form would miss — leaving `/es/users` completely ungated.
+ * A regex rather than a literal list: every one of these paths also exists under
+ * a locale prefix, which a literal form would miss — leaving `/es/users`
+ * completely ungated.
  */
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|api|favicon.ico).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|api|favicon.ico).*)'],
 };

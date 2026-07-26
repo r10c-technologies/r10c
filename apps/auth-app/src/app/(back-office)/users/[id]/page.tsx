@@ -8,6 +8,7 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
 import { useAsyncResource } from '../../../../lib/use-async-resource';
+import { UserSessionsPanel } from './user-sessions-panel';
 
 const readUser = async (id: string): Promise<UserIdentity> => {
   const res = await fetch(`/api/user-identity/${id}`, { cache: 'no-store' });
@@ -95,6 +96,7 @@ export default function UserDetailPage() {
         backHref="/users"
         title={user?.displayName ?? t('auth.users.fallbackName')}
       />
+      <UserSessionsPanel userId={id} />
     </>
   );
 }
