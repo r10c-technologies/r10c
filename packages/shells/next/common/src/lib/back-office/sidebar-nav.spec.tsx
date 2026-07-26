@@ -47,7 +47,7 @@ describe('isActive', () => {
 describe('SidebarNav', () => {
   it('renders sections, marks the active item and shows an untitled group', () => {
     render(<SidebarNav sections={sections} />);
-    const nav = screen.getByRole('navigation', { name: 'Primary' });
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
 
     expect(within(nav).getByText('Catalog')).toBeInTheDocument();
     expect(within(nav).getByRole('link', { name: /Products/ })).toHaveAttribute(
@@ -65,7 +65,7 @@ describe('SidebarNav', () => {
 
   it('hides labels and titles but keeps icons and adds a title tooltip when collapsed', () => {
     render(<SidebarNav sections={sections} collapsed />);
-    const nav = screen.getByRole('navigation', { name: 'Primary' });
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
 
     expect(within(nav).queryByText('Catalog')).toBeNull();
     expect(within(nav).queryByText('Products')).toBeNull();
@@ -75,28 +75,28 @@ describe('SidebarNav', () => {
 
   it('offers "Open in workspace" for items that set a workspace param', () => {
     render(<SidebarNav sections={sections} />);
-    const nav = screen.getByRole('navigation', { name: 'Primary' });
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
 
     const link = within(nav).getByRole('link', {
-      name: 'Open Categories in workspace',
+      name: 'Abrir Categories en el espacio de trabajo',
     });
     expect(link).toHaveAttribute(
       'href',
-      '/workspace?tab=catalog%3Aproduct-category',
+      '/es/workspace?tab=catalog%3Aproduct-category',
     );
     // Items without a workspace param get no such affordance.
     expect(
-      within(nav).queryByRole('link', { name: 'Open Products in workspace' }),
+      within(nav).queryByRole('link', { name: 'Abrir Products en el espacio de trabajo' }),
     ).toBeNull();
   });
 
   it('hides the workspace affordance when collapsed', () => {
     render(<SidebarNav sections={sections} collapsed />);
-    const nav = screen.getByRole('navigation', { name: 'Primary' });
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
 
     expect(
       within(nav).queryByRole('link', {
-        name: 'Open Categories in workspace',
+        name: 'Abrir Categories en el espacio de trabajo',
       }),
     ).toBeNull();
   });
@@ -104,7 +104,7 @@ describe('SidebarNav', () => {
   it('tolerates a null pathname', () => {
     pathname = null;
     render(<SidebarNav sections={sections} />);
-    const nav = screen.getByRole('navigation', { name: 'Primary' });
+    const nav = screen.getByRole('navigation', { name: 'Principal' });
     expect(
       within(nav).getByRole('link', { name: /Products/ }),
     ).not.toHaveAttribute('aria-current');

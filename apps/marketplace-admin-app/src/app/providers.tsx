@@ -1,28 +1,21 @@
 'use client';
 
 import {
+  I18nProvider,
   makeIndexedDbUiPreferencesStore,
   type ThemeOption,
   type ThemePalette,
   ThemeProvider,
   UiPreferencesProvider,
+  useT,
 } from '@r10c/entifix-react-controls';
 import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
+import type { Locale } from '@r10c/entifix-ts-i18n';
 import {
   createClientAdapters,
   MarketplaceAdminAdaptersProvider,
 } from '@r10c/shells-next-marketplace-admin';
-import type { PropsWithChildren } from 'react';
-
-// Themes this app exposes. aurora/sunset/midnight are static CSS presets
-// (imported in global.css); "ocean" is defined only here and injected at
-// runtime — demonstrating brands not shipped as CSS (multi-tenant / dynamic).
-const THEMES: ThemeOption[] = [
-  { id: 'aurora', label: 'Aurora' },
-  { id: 'sunset', label: 'Sunset' },
-  { id: 'midnight', label: 'Midnight' },
-  { id: 'ocean', label: 'Ocean (runtime)' },
-];
+import { type PropsWithChildren, useMemo } from 'react';
 
 const RUNTIME_PALETTES: Record<string, ThemePalette> = {
   ocean: {
@@ -43,23 +36,53 @@ const RUNTIME_PALETTES: Record<string, ThemePalette> = {
 // the tab workspace, replacing the localStorage backend.
 const uiPreferencesStore = makeIndexedDbUiPreferencesStore();
 
-export function Providers({ children }: PropsWithChildren) {
+/**
+ * Split out so the theme captions resolve against the locale `I18nProvider`
+ * mounts — calling `useT` in `Providers` itself would read the fallback
+ * instance, since that component sits *above* the provider it renders.
+ *
+ * Themes this app exposes: aurora/sunset/midnight are static CSS presets
+ * (imported in global.css); "ocean" is defined only here and injected at
+ * runtime — demonstrating brands not shipped as CSS (multi-tenant / dynamic).
+ */
+function ThemedProviders({ children }: PropsWithChildren) {
+  const t = useT('app');
   const adapters = createClientAdapters();
+  const themes = useMemo<ThemeOption[]>(
+    () => [
+      { id: 'aurora', label: t('themes.aurora') },
+      { id: 'sunset', label: t('themes.sunset') },
+      { id: 'midnight', label: t('themes.midnight') },
+      { id: 'ocean', label: t('themes.ocean') },
+    ],
+    [t],
+  );
 
   return (
-    <EntifixQueryProvider>
-      <ThemeProvider
-        themes={THEMES}
-        defaultTheme="aurora"
-        storageKey="r10c-admin-theme"
-        palettes={RUNTIME_PALETTES}
-      >
-        <UiPreferencesProvider store={uiPreferencesStore}>
-          <MarketplaceAdminAdaptersProvider adapters={adapters}>
-            {children}
-          </MarketplaceAdminAdaptersProvider>
-        </UiPreferencesProvider>
-      </ThemeProvider>
-    </EntifixQueryProvider>
+      <EntifixQueryProvider>
+        <ThemeProvider
+          themes={themes}
+          defaultTheme="aurora"
+          storageKey="r10c-admin-theme"
+          palettes={RUNTIME_PALETTES}
+        >
+          <UiPreferencesProvider store={uiPreferencesStore}>
+            <MarketplaceAdminAdaptersProvider adapters={adapters}>
+              {children}
+            </MarketplaceAdminAdaptersProvider>
+          </UiPreferencesProvider>
+        </ThemeProvider>
+      </EntifixQueryProvider>
+  );
+}
+
+export function Providers({
+  locale,
+  children,
+}: PropsWithChildren<{ locale: Locale }>) {
+  return (
+    <I18nProvider locale={locale}>
+      <ThemedProviders>{children}</ThemedProviders>
+    </I18nProvider>
   );
 }

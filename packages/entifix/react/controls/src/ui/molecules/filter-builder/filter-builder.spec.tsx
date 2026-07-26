@@ -46,14 +46,14 @@ const renderBuilder = (descriptors: readonly EntityFieldDescriptor[]) => {
 };
 
 const addFilter = (user: ReturnType<typeof userEvent.setup>) =>
-  user.click(screen.getByRole('button', { name: 'Add filter' }));
+  user.click(screen.getByRole('button', { name: 'Añadir filtro' }));
 
 /**
  * Editing is a draft; nothing reaches `onChange` until the panel is applied.
  * Every emission assertion therefore commits first.
  */
 const apply = (user: ReturnType<typeof userEvent.setup>) =>
-  user.click(screen.getByRole('button', { name: 'Apply filters' }));
+  user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
 
 const lastFiltering = (onChange: ReturnType<typeof vi.fn>) =>
   onChange.mock.calls.at(-1)?.[0];
@@ -62,24 +62,24 @@ describe('FilterBuilder', () => {
   it('says so when the entity has nothing filterable', () => {
     renderBuilder([]);
 
-    expect(screen.getByText(/No filterable members/)).toBeInTheDocument();
+    expect(screen.getByText(/no tiene miembros filtrables/)).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Add filter' }),
+      screen.queryByRole('button', { name: 'Añadir filtro' }),
     ).not.toBeInTheDocument();
   });
 
   it('starts with no filters and matches all', () => {
     renderBuilder([descriptor('name', 'string')]);
 
-    expect(screen.getByLabelText('Match all or any filter')).toHaveValue('and');
-    expect(screen.queryByLabelText('Filter member')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Coincidir todos o cualquiera de los filtros')).toHaveValue('and');
+    expect(screen.queryByLabelText('Miembro del filtro')).not.toBeInTheDocument();
   });
 
   it('switches between matching all and any', async () => {
     const { onChange, user } = renderBuilder([descriptor('name', 'string')]);
 
     await user.selectOptions(
-      screen.getByLabelText('Match all or any filter'),
+      screen.getByLabelText('Coincidir todos o cualquiera de los filtros'),
       'or',
     );
 
@@ -96,8 +96,8 @@ describe('FilterBuilder', () => {
 
     await addFilter(user);
 
-    expect(screen.getByLabelText('Filter member')).toHaveValue('name');
-    expect(screen.getByLabelText('Filter operator')).toHaveValue('like');
+    expect(screen.getByLabelText('Miembro del filtro')).toHaveValue('name');
+    expect(screen.getByLabelText('Operador del filtro')).toHaveValue('like');
   });
 
   // A half-typed row must not reach the load request, or the listing refetches
@@ -116,7 +116,7 @@ describe('FilterBuilder', () => {
     const { onChange, user } = renderBuilder([descriptor('name', 'string')]);
     await addFilter(user);
 
-    await user.type(screen.getByLabelText('Filter value'), 'Ac');
+    await user.type(screen.getByLabelText('Valor del filtro'), 'Ac');
 
     await apply(user);
 
@@ -131,11 +131,11 @@ describe('FilterBuilder', () => {
     await addFilter(user);
 
     await user.selectOptions(
-      screen.getByLabelText('Filter operator'),
+      screen.getByLabelText('Operador del filtro'),
       'isNull',
     );
 
-    expect(screen.queryByLabelText('Filter value')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Valor del filtro')).not.toBeInTheDocument();
 
     await apply(user);
 
@@ -148,9 +148,9 @@ describe('FilterBuilder', () => {
   it('removes a row', async () => {
     const { onChange, user } = renderBuilder([descriptor('name', 'string')]);
     await addFilter(user);
-    await user.type(screen.getByLabelText('Filter value'), 'Ac');
+    await user.type(screen.getByLabelText('Valor del filtro'), 'Ac');
 
-    await user.click(screen.getByRole('button', { name: 'Remove filter' }));
+    await user.click(screen.getByRole('button', { name: 'Quitar filtro' }));
 
     await apply(user);
 
@@ -165,12 +165,12 @@ describe('FilterBuilder', () => {
       descriptor('stock', 'number'),
     ]);
     await addFilter(user);
-    await user.type(screen.getByLabelText('Filter value'), 'Ac');
+    await user.type(screen.getByLabelText('Valor del filtro'), 'Ac');
 
-    await user.selectOptions(screen.getByLabelText('Filter member'), 'stock');
+    await user.selectOptions(screen.getByLabelText('Miembro del filtro'), 'stock');
 
-    expect(screen.getByLabelText('Filter operator')).toHaveValue('eq');
-    expect(screen.getByLabelText('Filter value')).toHaveValue(null);
+    expect(screen.getByLabelText('Operador del filtro')).toHaveValue('eq');
+    expect(screen.getByLabelText('Valor del filtro')).toHaveValue(null);
   });
 
   it('emits the descriptor’s wire key rather than its member name', async () => {
@@ -179,7 +179,7 @@ describe('FilterBuilder', () => {
     ]);
     await addFilter(user);
 
-    await user.type(screen.getByLabelText('Filter value'), 'x');
+    await user.type(screen.getByLabelText('Valor del filtro'), 'x');
 
     await apply(user);
 
@@ -191,7 +191,7 @@ describe('FilterBuilder', () => {
       const { onChange, user } = renderBuilder([descriptor('stock', 'number')]);
       await addFilter(user);
 
-      await user.type(screen.getByLabelText('Filter value'), '42');
+      await user.type(screen.getByLabelText('Valor del filtro'), '42');
 
       await apply(user);
 
@@ -202,7 +202,7 @@ describe('FilterBuilder', () => {
       const { onChange, user } = renderBuilder([descriptor('at', 'date')]);
       await addFilter(user);
 
-      await user.type(screen.getByLabelText('Filter value'), '2026-07-20');
+      await user.type(screen.getByLabelText('Valor del filtro'), '2026-07-20');
 
       await apply(user);
 
@@ -215,7 +215,7 @@ describe('FilterBuilder', () => {
       ]);
       await addFilter(user);
 
-      await user.selectOptions(screen.getByLabelText('Filter value'), 'false');
+      await user.selectOptions(screen.getByLabelText('Valor del filtro'), 'false');
 
       await apply(user);
 
@@ -229,7 +229,7 @@ describe('FilterBuilder', () => {
 
       await addFilter(user);
 
-      expect(screen.getByRole('option', { name: 'Yes' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Sí' })).toBeInTheDocument();
       expect(screen.getByRole('option', { name: 'No' })).toBeInTheDocument();
     });
 
@@ -251,11 +251,11 @@ describe('FilterBuilder', () => {
       ]);
       await addFilter(user);
 
-      await user.selectOptions(screen.getByLabelText('Filter operator'), 'in');
+      await user.selectOptions(screen.getByLabelText('Operador del filtro'), 'in');
 
-      expect(screen.getByLabelText('Filter value')).toHaveAttribute(
+      expect(screen.getByLabelText('Valor del filtro')).toHaveAttribute(
         'placeholder',
-        'comma, separated, values',
+        'valores, separados, por comas',
       );
     });
 
@@ -264,7 +264,7 @@ describe('FilterBuilder', () => {
 
       await addFilter(user);
 
-      expect(screen.getByLabelText('Filter value')).toHaveAttribute(
+      expect(screen.getByLabelText('Valor del filtro')).toHaveAttribute(
         'type',
         'text',
       );
@@ -279,7 +279,7 @@ describe('FilterBuilder', () => {
 
       await addFilter(user);
 
-      expect(screen.getByLabelText('Filter value')).toHaveAttribute(
+      expect(screen.getByLabelText('Valor del filtro')).toHaveAttribute(
         'type',
         inputType,
       );
@@ -292,9 +292,9 @@ describe('FilterBuilder', () => {
         descriptor('status', 'enum', { enumValues: ['draft'] }),
       ]);
       await addFilter(user);
-      await user.selectOptions(screen.getByLabelText('Filter operator'), 'in');
+      await user.selectOptions(screen.getByLabelText('Operador del filtro'), 'in');
 
-      await user.type(screen.getByLabelText('Filter value'), 'a, b ,, c');
+      await user.type(screen.getByLabelText('Valor del filtro'), 'a, b ,, c');
 
       await apply(user);
 
@@ -311,7 +311,7 @@ describe('FilterBuilder', () => {
       ]);
       await addFilter(user);
 
-      await user.selectOptions(screen.getByLabelText('Filter operator'), 'in');
+      await user.selectOptions(screen.getByLabelText('Operador del filtro'), 'in');
 
       await apply(user);
 
@@ -325,28 +325,28 @@ describe('FilterBuilder', () => {
       await addFilter(user);
 
       await user.selectOptions(
-        screen.getByLabelText('Filter operator'),
+        screen.getByLabelText('Operador del filtro'),
         'between',
       );
 
-      expect(screen.getByLabelText('Filter range end')).toBeInTheDocument();
+      expect(screen.getByLabelText('Fin del rango del filtro')).toBeInTheDocument();
     });
 
     it('emits only once both bounds are given', async () => {
       const { onChange, user } = renderBuilder([descriptor('stock', 'number')]);
       await addFilter(user);
       await user.selectOptions(
-        screen.getByLabelText('Filter operator'),
+        screen.getByLabelText('Operador del filtro'),
         'between',
       );
 
-      await user.type(screen.getByLabelText('Filter value'), '1');
+      await user.type(screen.getByLabelText('Valor del filtro'), '1');
 
       await apply(user);
 
       expect(lastFiltering(onChange)).toEqual({ operator: 'and', values: [] });
 
-      await user.type(screen.getByLabelText('Filter range end'), '9');
+      await user.type(screen.getByLabelText('Fin del rango del filtro'), '9');
 
       await apply(user);
 
@@ -362,11 +362,11 @@ describe('FilterBuilder', () => {
       const { onChange, user } = renderBuilder([descriptor('stock', 'number')]);
       await addFilter(user);
       await user.selectOptions(
-        screen.getByLabelText('Filter operator'),
+        screen.getByLabelText('Operador del filtro'),
         'between',
       );
 
-      await user.type(screen.getByLabelText('Filter range end'), '9');
+      await user.type(screen.getByLabelText('Fin del rango del filtro'), '9');
 
       await apply(user);
 
@@ -380,13 +380,13 @@ describe('FilterBuilder', () => {
       descriptor('stock', 'number'),
     ]);
     await addFilter(user);
-    await user.type(screen.getAllByLabelText('Filter value')[0]!, 'Ac');
+    await user.type(screen.getAllByLabelText('Valor del filtro')[0]!, 'Ac');
     await addFilter(user);
     await user.selectOptions(
-      screen.getAllByLabelText('Filter member')[1]!,
+      screen.getAllByLabelText('Miembro del filtro')[1]!,
       'stock',
     );
-    await user.type(screen.getAllByLabelText('Filter value')[1]!, '5');
+    await user.type(screen.getAllByLabelText('Valor del filtro')[1]!, '5');
 
     await apply(user);
 
@@ -407,7 +407,7 @@ describe('FilterBuilder enum values', () => {
     ]);
     await addFilter(user);
 
-    await user.selectOptions(screen.getByLabelText('Filter value'), 'live');
+    await user.selectOptions(screen.getByLabelText('Valor del filtro'), 'live');
 
     await apply(user);
 
@@ -435,8 +435,8 @@ describe('FilterBuilder when a member disappears', () => {
       <FilterBuilder<Product> descriptors={descriptors} onChange={onChange} />,
     );
     await addFilter(user);
-    await user.selectOptions(screen.getByLabelText('Filter member'), 'stock');
-    await user.type(screen.getByLabelText('Filter value'), '5');
+    await user.selectOptions(screen.getByLabelText('Miembro del filtro'), 'stock');
+    await user.type(screen.getByLabelText('Valor del filtro'), '5');
     await addFilter(user);
 
     rerender(
@@ -446,10 +446,10 @@ describe('FilterBuilder when a member disappears', () => {
       />,
     );
 
-    expect(screen.getAllByLabelText('Filter member')).toHaveLength(1);
+    expect(screen.getAllByLabelText('Miembro del filtro')).toHaveLength(1);
 
     await user.selectOptions(
-      screen.getByLabelText('Match all or any filter'),
+      screen.getByLabelText('Coincidir todos o cualquiera de los filtros'),
       'or',
     );
 
@@ -468,9 +468,9 @@ describe('committing', () => {
     const { onChange, user } = renderBuilder([descriptor('name', 'string')]);
 
     await addFilter(user);
-    await user.type(screen.getByLabelText('Filter value'), 'Acme');
+    await user.type(screen.getByLabelText('Valor del filtro'), 'Acme');
     await user.selectOptions(
-      screen.getByLabelText('Match all or any filter'),
+      screen.getByLabelText('Coincidir todos o cualquiera de los filtros'),
       'or',
     );
 
@@ -481,7 +481,7 @@ describe('committing', () => {
     const { onChange, user } = renderBuilder([descriptor('name', 'string')]);
     await addFilter(user);
 
-    await user.type(screen.getByLabelText('Filter value'), 'Acme');
+    await user.type(screen.getByLabelText('Valor del filtro'), 'Acme');
     await apply(user);
 
     expect(onChange).toHaveBeenCalledTimes(1);
@@ -490,16 +490,16 @@ describe('committing', () => {
   it('clears the rows and applies the emptied filtering', async () => {
     const { onChange, user } = renderBuilder([descriptor('name', 'string')]);
     await addFilter(user);
-    await user.type(screen.getByLabelText('Filter value'), 'Acme');
+    await user.type(screen.getByLabelText('Valor del filtro'), 'Acme');
     await user.selectOptions(
-      screen.getByLabelText('Match all or any filter'),
+      screen.getByLabelText('Coincidir todos o cualquiera de los filtros'),
       'or',
     );
 
-    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
 
-    expect(screen.queryByLabelText('Filter member')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Match all or any filter')).toHaveValue('and');
+    expect(screen.queryByLabelText('Miembro del filtro')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Coincidir todos o cualquiera de los filtros')).toHaveValue('and');
     expect(lastFiltering(onChange)).toEqual({ operator: 'and', values: [] });
   });
 });
@@ -521,10 +521,10 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Filter member')).toHaveValue('name');
-    expect(screen.getByLabelText('Filter operator')).toHaveValue('like');
-    expect(screen.getByLabelText('Filter value')).toHaveValue('Acme');
-    expect(screen.getByLabelText('Match all or any filter')).toHaveValue('or');
+    expect(screen.getByLabelText('Miembro del filtro')).toHaveValue('name');
+    expect(screen.getByLabelText('Operador del filtro')).toHaveValue('like');
+    expect(screen.getByLabelText('Valor del filtro')).toHaveValue('Acme');
+    expect(screen.getByLabelText('Coincidir todos o cualquiera de los filtros')).toHaveValue('or');
   });
 
   it('rebuilds a list row as comma-separated text', () => {
@@ -539,7 +539,7 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Filter value')).toHaveValue('a, b');
+    expect(screen.getByLabelText('Valor del filtro')).toHaveValue('a, b');
   });
 
   it('rebuilds both bounds of a range row', () => {
@@ -556,8 +556,8 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Filter value')).toHaveValue(1);
-    expect(screen.getByLabelText('Filter range end')).toHaveValue(9);
+    expect(screen.getByLabelText('Valor del filtro')).toHaveValue(1);
+    expect(screen.getByLabelText('Fin del rango del filtro')).toHaveValue(9);
   });
 
   it('rebuilds a date row as the date input’s format', () => {
@@ -578,7 +578,7 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Filter value')).toHaveValue('2026-07-21');
+    expect(screen.getByLabelText('Valor del filtro')).toHaveValue('2026-07-21');
   });
 
   it('leaves a value-less row empty', () => {
@@ -593,8 +593,8 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Filter operator')).toHaveValue('isNull');
-    expect(screen.queryByLabelText('Filter value')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Operador del filtro')).toHaveValue('isNull');
+    expect(screen.queryByLabelText('Valor del filtro')).not.toBeInTheDocument();
   });
 
   // Only the flat rows this builder can express are restored; a nested group
@@ -616,7 +616,7 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.queryByLabelText('Filter member')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Miembro del filtro')).not.toBeInTheDocument();
   });
 
   it('starts empty when nothing is applied', () => {
@@ -627,6 +627,6 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.queryByLabelText('Filter member')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Miembro del filtro')).not.toBeInTheDocument();
   });
 });

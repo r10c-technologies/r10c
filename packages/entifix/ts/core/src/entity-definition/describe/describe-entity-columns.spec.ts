@@ -57,7 +57,13 @@ class Article implements Entity {
     this.#productCode = value;
   }
 
-  @accessor({ type: 'number', label: 'Units in stock', order: 10, required: true })
+  @accessor({
+    type: 'number',
+    label: 'Units in stock',
+    labelKey: 'entity:widget.fields.stock',
+    order: 10,
+    required: true,
+  })
   get stock(): number {
     return this.#stock;
   }
@@ -113,6 +119,14 @@ describe('describeEntityColumns', () => {
 
   it('prefers the declared label', () => {
     expect(byName('stock')?.label).toBe('Units in stock');
+  });
+
+  // Core has no locale and no catalogs, and the same descriptor feeds the
+  // server-side filter allowlist — so the key is carried, never resolved here.
+  it('carries the label key through untouched, leaving `label` as the fallback', () => {
+    expect(byName('stock')?.labelKey).toBe('entity:widget.fields.stock');
+    expect(byName('stock')?.label).toBe('Units in stock');
+    expect(byName('productCode')?.labelKey).toBeUndefined();
   });
 
   it('sorts by declared order, falling back to declaration order', () => {

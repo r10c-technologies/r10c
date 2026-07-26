@@ -1,7 +1,7 @@
 'use client';
 
 import { UserIdentity } from '@r10c/business-ts-authn';
-import { EntityForm } from '@r10c/entifix-react-controls';
+import { EntityForm, useT } from '@r10c/entifix-react-controls';
 import { deserializeSingleEntity } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import { useParams } from 'next/navigation';
@@ -27,6 +27,8 @@ const readUser = async (id: string): Promise<UserIdentity> => {
  * and credentials are deliberately not editable from here.
  */
 export default function UserDetailPage() {
+  const t = useT('app');
+  const errorT = useT('errors');
   const params = useParams<{ id: string }>();
   const id = params.id;
 
@@ -64,7 +66,7 @@ export default function UserDetailPage() {
     if (!res.ok) {
       // A 403 here is the policy refusing the change — typically an attempt to
       // touch a user who outranks the caller, or to demote yourself.
-      setSaveError(body?.error ?? 'could not save user');
+      setSaveError(body?.error ?? errorT('unexpected'));
       return;
     }
     setEdits({});
@@ -91,7 +93,7 @@ export default function UserDetailPage() {
         isLoading={isLoading}
         isSaving={isSaving}
         backHref="/users"
-        title={user?.displayName ?? 'User'}
+        title={user?.displayName ?? t('auth.users.fallbackName')}
       />
     </>
   );

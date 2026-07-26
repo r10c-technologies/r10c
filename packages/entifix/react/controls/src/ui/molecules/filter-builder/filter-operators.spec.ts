@@ -1,12 +1,35 @@
 import type { MetaAccessorType } from '@r10c/entifix-ts-core';
+import {
+  createI18n,
+  type Locale,
+  LOCALES,
+} from '@r10c/entifix-ts-i18n';
 import { describe, expect, it } from 'vitest';
 
 import {
   type EntityFilterOperator,
-  OPERATOR_LABELS,
   operatorArity,
+  operatorLabelKey,
   operatorsForType,
 } from './filter-operators.js';
+
+/** Every operator the builder can offer, in every locale it can render in. */
+const EVERY_OPERATOR: readonly EntityFilterOperator[] = [
+  'eq',
+  'ne',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'in',
+  'nin',
+  'between',
+  'nbetween',
+  'like',
+  'nlike',
+  'isNull',
+  'isNotNull',
+];
 
 describe('operatorsForType', () => {
   // The type is what keeps the control from offering nonsense: ordering
@@ -75,9 +98,27 @@ describe('operatorsForType', () => {
     );
 
     for (const operator of offered) {
-      expect(OPERATOR_LABELS[operator]).toBeTruthy();
+      expect(EVERY_OPERATOR).toContain(operator);
     }
   });
+
+  // A new operator that reaches the picker without a catalog entry would render
+  // its own key at the user. The type system catches a missing `es` entry; this
+  // catches the rest, in every locale.
+  it.each(LOCALES.map(locale => [locale]))(
+    'has a %s label for every operator',
+    (locale: Locale) => {
+      const i18n = createI18n(locale);
+
+      for (const operator of EVERY_OPERATOR) {
+        const key = operatorLabelKey(operator);
+        const label = i18n.t(key);
+
+        expect(label).toBeTruthy();
+        expect(label).not.toBe(key);
+      }
+    },
+  );
 });
 
 // Arity is what the builder reads to decide how many value inputs to render;
@@ -103,7 +144,7 @@ describe('operatorArity', () => {
   });
 
   it('covers every labelled operator', () => {
-    for (const operator of Object.keys(OPERATOR_LABELS) as EntityFilterOperator[]) {
+    for (const operator of EVERY_OPERATOR) {
       expect(['none', 'single', 'list', 'range']).toContain(operatorArity(operator));
     }
   });

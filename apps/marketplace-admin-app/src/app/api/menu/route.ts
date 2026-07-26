@@ -1,3 +1,4 @@
+import { getServerTranslateKey } from '@r10c/shells-next-i18n/server';
 import { NextResponse } from 'next/server';
 
 import { workspaceMenu } from '../../../lib/nav';
@@ -10,5 +11,6 @@ import { navRoles } from '../../../lib/roles';
  * they eventually would not.
  */
 export async function GET() {
-  return NextResponse.json({ sections: workspaceMenu(await navRoles()) });
+  const t = await getServerTranslateKey('app');
+  return NextResponse.json({ sections: workspaceMenu(await navRoles(), t) });
 }

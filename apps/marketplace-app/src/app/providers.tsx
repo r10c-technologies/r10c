@@ -1,22 +1,49 @@
 'use client';
 
-import { type ThemeOption, ThemeProvider } from '@r10c/entifix-react-controls';
-import type { PropsWithChildren } from 'react';
+import {
+  I18nProvider,
+  type ThemeOption,
+  ThemeProvider,
+  useT,
+} from '@r10c/entifix-react-controls';
+import type { Locale } from '@r10c/entifix-ts-i18n';
+import { type PropsWithChildren, useMemo } from 'react';
 
-// Storefront's own brand set (values in ./themes.css). Distinct from admin's.
-const THEMES: ThemeOption[] = [
-  { id: 'marketplace', label: 'Marketplace' },
-  { id: 'marketplace-dark', label: 'Marketplace Dark' },
-];
+/**
+ * Split out so the theme captions resolve against the locale `I18nProvider`
+ * mounts — calling `useT` in `Providers` itself would read the fallback
+ * instance, since that component sits *above* the provider it renders.
+ *
+ * The storefront's own brand set (values in ./themes.css), distinct from admin's.
+ */
+function ThemedProviders({ children }: PropsWithChildren) {
+  const t = useT('app');
+  const themes = useMemo<ThemeOption[]>(
+    () => [
+      { id: 'marketplace', label: t('themes.marketplace') },
+      { id: 'marketplace-dark', label: t('themes.marketplaceDark') },
+    ],
+    [t],
+  );
 
-export function Providers({ children }: PropsWithChildren) {
   return (
     <ThemeProvider
-      themes={THEMES}
+      themes={themes}
       defaultTheme="marketplace"
       storageKey="r10c-marketplace-theme"
     >
       {children}
     </ThemeProvider>
+  );
+}
+
+export function Providers({
+  locale,
+  children,
+}: PropsWithChildren<{ locale: Locale }>) {
+  return (
+    <I18nProvider locale={locale}>
+      <ThemedProviders>{children}</ThemedProviders>
+    </I18nProvider>
   );
 }

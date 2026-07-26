@@ -33,7 +33,7 @@ test.describe('the catalog listing', () => {
     await table.filterBy({ member: 'name', operator: 'like', value: 'Acme' });
 
     await expect
-      .poll(() => table.distinctColumnValues('Name'))
+      .poll(() => table.distinctColumnValues('Nombre'))
       .toEqual(['Acme 1', 'Acme 2']);
   });
 
@@ -46,7 +46,7 @@ test.describe('the catalog listing', () => {
     );
 
     await expect
-      .poll(() => table.distinctColumnValues('Name'))
+      .poll(() => table.distinctColumnValues('Nombre'))
       .toEqual(['Acme 2']);
   });
 
@@ -64,7 +64,7 @@ test.describe('the catalog listing', () => {
     await table.applyFilters();
 
     await expect
-      .poll(() => table.distinctColumnValues('Name'))
+      .poll(() => table.distinctColumnValues('Nombre'))
       .toEqual(['Acme 1', 'Globex 1']);
   });
 
@@ -73,7 +73,7 @@ test.describe('the catalog listing', () => {
 
     await table.filterBy({ member: 'name', operator: 'like', value: 'Acme' });
     await expect
-      .poll(() => table.distinctColumnValues('Name'))
+      .poll(() => table.distinctColumnValues('Nombre'))
       .toEqual(['Acme 1', 'Acme 2']);
 
     await table.clearFilters();
@@ -83,7 +83,7 @@ test.describe('the catalog listing', () => {
     // which says nothing about the query.
     await expect
       .poll(async () =>
-        (await table.columnValues('Name')).some(name => !name.includes('Acme')),
+        (await table.columnValues('Nombre')).some(name => !name.includes('Acme')),
       )
       .toBe(true);
   });
@@ -97,7 +97,7 @@ test.describe('the catalog listing', () => {
     // never the `Acme` the unsorted page starts with.
     await expect
       .poll(async () =>
-        (await table.columnValues('Name')).some(name =>
+        (await table.columnValues('Nombre')).some(name =>
           name.startsWith('Wonka'),
         ),
       )
@@ -110,7 +110,7 @@ test.describe('the catalog listing', () => {
 
     await table.nextPage();
     await expect
-      .poll(async () => (await table.columnValues('Name')).length)
+      .poll(async () => (await table.columnValues('Nombre')).length)
       .toBeGreaterThan(0);
 
     await table.filterBy({ member: 'name', operator: 'like', value: 'Acme' });
@@ -118,7 +118,7 @@ test.describe('the catalog listing', () => {
     // Both `Acme` brands fit on the first page of the narrowed result; had the
     // pager stayed on page 2 the listing would have been empty.
     await expect
-      .poll(() => table.distinctColumnValues('Name'))
+      .poll(() => table.distinctColumnValues('Nombre'))
       .toEqual(['Acme 1', 'Acme 2']);
   });
 });

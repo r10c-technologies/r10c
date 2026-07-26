@@ -34,6 +34,9 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../../../entifix/ts/i18n/tsconfig.lib.json"
+    },
+    {
       "path": "../../../entifix/react/controls/tsconfig.lib.json"
     }
   ]

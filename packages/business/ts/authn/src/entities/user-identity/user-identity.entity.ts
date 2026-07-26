@@ -31,7 +31,12 @@ export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
  * server-side query allowlist covers it, and it is the value
  * `authSubjectFromUser` projects into every session and access token.
  */
-@entity({ domain: 'authn', key: 'user-identity' })
+@entity({
+  domain: 'authn',
+  key: 'user-identity',
+  labelKey: 'entity:user-identity.label',
+  pluralKey: 'entity:user-identity.plural',
+})
 export class UserIdentity implements Entity {
   // #region properties
   #id?: EntityId;
@@ -48,7 +53,7 @@ export class UserIdentity implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor()
+  @accessor({ labelKey: 'entity:user-identity.fields.id' })
   get id(): EntityId {
     return this.#id;
   }
@@ -56,7 +61,7 @@ export class UserIdentity implements Entity {
     this.#id = value;
   }
 
-  @accessor()
+  @accessor({ labelKey: 'entity:user-identity.fields.displayName' })
   get displayName(): string | undefined {
     return this.#displayName;
   }
@@ -64,7 +69,15 @@ export class UserIdentity implements Entity {
     this.#displayName = value;
   }
 
-  @accessor()
+  // Declared as the enum it already is in the domain: without `enumValues` the
+  // descriptor inferred `string`, so the raw `active`/`suspended` token reached
+  // the user untranslated and the filter offered substring matching on it.
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:user-identity.fields.status',
+    enumValues: Object.values(UserStatus),
+    enumLabelKey: 'entity:user-identity.values.status',
+  })
   get status(): UserStatus {
     return this.#status;
   }
@@ -75,7 +88,9 @@ export class UserIdentity implements Entity {
   @accessor({
     type: 'enum',
     label: 'Role',
+    labelKey: 'entity:user-identity.fields.role',
     enumValues: Roles,
+    enumLabelKey: 'entity:user-identity.values.role',
     sortable: true,
     filterable: true,
   })
@@ -86,7 +101,7 @@ export class UserIdentity implements Entity {
     this.#role = value;
   }
 
-  @accessor()
+  @accessor({ labelKey: 'entity:user-identity.fields.identifiers' })
   get identifiers(): EntityCollectionLink<EntityIdentifier> {
     return this.#identifiers;
   }

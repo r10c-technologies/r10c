@@ -21,7 +21,11 @@ function toConfigurationPlain(
 
 const onSqlError = (error: SqlError.SqlError) =>
   HttpServerResponse.json(
-    { error: 'configuration store unavailable', detail: error.message },
+    {
+      error: 'configuration store unavailable',
+      code: 'configUnavailable',
+      detail: error.message,
+    },
     { status: 500 },
   );
 

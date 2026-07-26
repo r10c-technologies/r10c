@@ -66,7 +66,7 @@ describe('Tab', () => {
     const user = userEvent.setup();
     render(<Tab label="Products" onClose={onClose} />);
 
-    await user.click(screen.getByRole('button', { name: 'Close Products' }));
+    await user.click(screen.getByRole('button', { name: 'Cerrar Products' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -81,7 +81,7 @@ describe('Tab', () => {
   it('keeps the close button visible on the active tab', () => {
     render(<Tab label="Products" active onClose={() => undefined} />);
     expect(
-      screen.getByRole('button', { name: 'Close Products' }).className,
+      screen.getByRole('button', { name: 'Cerrar Products' }).className,
     ).toContain('opacity-100');
   });
 });
@@ -92,7 +92,7 @@ describe('TabAddButton', () => {
     const user = userEvent.setup();
     render(<TabAddButton onClick={onClick} />);
 
-    await user.click(screen.getByRole('button', { name: 'Open a new tab' }));
+    await user.click(screen.getByRole('button', { name: 'Abrir una pestaña nueva' }));
 
     expect(onClick).toHaveBeenCalledTimes(1);
   });

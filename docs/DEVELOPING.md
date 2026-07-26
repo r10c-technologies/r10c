@@ -174,7 +174,12 @@ to policy; it still cannot import a sibling domain.
 
 1. **Define** it in `business/ts/<domain>` — `@entity`/`@accessor`, links as
    `EntityLink`. Reuse an existing use-case factory (`loadUCFactory`, `getUC`, …)
-   unless the flow is genuinely new.
+   unless the flow is genuinely new. Give `@entity` a `labelKey`/`pluralKey` and
+   every `@accessor` a `labelKey` (plus `enumLabelKey` when it is an enum), then
+   add the matching subtree to the `entity` namespace in
+   `packages/entifix/ts/i18n/src/resources/{es,en}/entity.ts`. Keys mirror the
+   entity's own `key`, so they are derivable: `entity:product.fields.code`. See
+   [I18N.md](I18N.md).
 2. **Organism** — a React component in `implementation/<domain>/react` that runs
    the UC with `useDataLoading`.
 3. **Page** — wire the adapter(s) and any link resolver in `shells/next/<shell>`
@@ -183,6 +188,9 @@ to policy; it still cannot import a sibling domain.
    for `EntityRepositoryTag` and serialize the result.
 5. **Config** — if it introduces a new service/URL, add a seed row in
    `apps/config-service/src/db.ts`; never hardcode a URL or connection string.
+6. **Check the catalogs** — `node tools/check-i18n.mjs`. A key present in `es`
+   and missing in `en` will already have failed the build, but this also catches
+   empty values and placeholder drift.
 
 ## Backends
 

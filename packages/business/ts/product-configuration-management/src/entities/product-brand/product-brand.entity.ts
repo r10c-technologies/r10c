@@ -1,7 +1,12 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { accessor, entity } from '@r10c/entifix-ts-core';
 
-@entity({ domain: 'product-configuration-management', key: 'product-brand' })
+@entity({
+  domain: 'product-configuration-management',
+  key: 'product-brand',
+  labelKey: 'entity:product-brand.label',
+  pluralKey: 'entity:product-brand.plural',
+})
 export class ProductBrand implements Entity {
   // #region properties
   #id?: EntityId;
@@ -21,7 +26,7 @@ export class ProductBrand implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor({ type: 'id', label: 'ID' })
+  @accessor({ type: 'id', label: 'ID' , labelKey: 'entity:product-brand.fields.id' })
   get id(): EntityId {
     return this.#id;
   }
@@ -31,7 +36,7 @@ export class ProductBrand implements Entity {
 
   // Assigned by the create transaction (`brand-001`, `brand-002`, …); optional
   // because a raw payload arrives without one.
-  @accessor({ type: 'string', label: 'Code' })
+  @accessor({ type: 'string', label: 'Code' , labelKey: 'entity:product-brand.fields.code' })
   get code(): string | undefined {
     return this.#code;
   }
@@ -39,7 +44,7 @@ export class ProductBrand implements Entity {
     this.#code = value;
   }
 
-  @accessor({ type: 'string', label: 'Name' })
+  @accessor({ type: 'string', label: 'Name' , labelKey: 'entity:product-brand.fields.name' })
   get name(): string {
     return this.#name;
   }
@@ -47,7 +52,7 @@ export class ProductBrand implements Entity {
     this.#name = value;
   }
 
-  @accessor({ type: 'string', label: 'Description' })
+  @accessor({ type: 'string', label: 'Description' , labelKey: 'entity:product-brand.fields.description' })
   get description(): string | undefined {
     return this.#description;
   }
@@ -55,7 +60,7 @@ export class ProductBrand implements Entity {
     this.#description = value;
   }
 
-  @accessor({ type: 'string', label: 'Website' })
+  @accessor({ type: 'string', label: 'Website' , labelKey: 'entity:product-brand.fields.website' })
   get website(): string | undefined {
     return this.#website;
   }

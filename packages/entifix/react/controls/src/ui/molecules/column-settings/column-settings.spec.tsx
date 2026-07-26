@@ -15,7 +15,7 @@ const openSettings = async (hidden: string[] = []) => {
   const user = userEvent.setup();
   render(<ColumnSettings columns={columns} hidden={hidden} onChange={onChange} />);
 
-  await user.click(screen.getByRole('button', { name: 'Columns' }));
+  await user.click(screen.getByRole('button', { name: 'Columnas' }));
 
   return { onChange, user };
 };
@@ -63,7 +63,7 @@ describe('ColumnSettings', () => {
   it('moves a column up', async () => {
     const { onChange, user } = await openSettings();
 
-    await user.click(screen.getByRole('button', { name: 'Move Name up' }));
+    await user.click(screen.getByRole('button', { name: 'Subir Name' }));
 
     expect(onChange).toHaveBeenCalledWith({
       order: ['name', 'id', 'stock'],
@@ -74,7 +74,7 @@ describe('ColumnSettings', () => {
   it('moves a column down', async () => {
     const { onChange, user } = await openSettings();
 
-    await user.click(screen.getByRole('button', { name: 'Move Name down' }));
+    await user.click(screen.getByRole('button', { name: 'Bajar Name' }));
 
     expect(onChange).toHaveBeenCalledWith({
       order: ['id', 'stock', 'name'],
@@ -85,7 +85,7 @@ describe('ColumnSettings', () => {
   it('carries the current hidden set through a reorder', async () => {
     const { onChange, user } = await openSettings(['stock']);
 
-    await user.click(screen.getByRole('button', { name: 'Move Name up' }));
+    await user.click(screen.getByRole('button', { name: 'Subir Name' }));
 
     expect(onChange).toHaveBeenCalledWith({
       order: ['name', 'id', 'stock'],
@@ -96,9 +96,9 @@ describe('ColumnSettings', () => {
   it('cannot move the first column up or the last one down', async () => {
     await openSettings();
 
-    expect(screen.getByRole('button', { name: 'Move ID up' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Move Stock down' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Move Name up' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Subir ID' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Bajar Stock' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Subir Name' })).toBeEnabled();
   });
 
   // Resetting emits an empty personalization rather than the current layout —
@@ -106,7 +106,7 @@ describe('ColumnSettings', () => {
   it('resets to the default layout', async () => {
     const { onChange, user } = await openSettings(['stock']);
 
-    await user.click(screen.getByRole('button', { name: 'Reset to default' }));
+    await user.click(screen.getByRole('button', { name: 'Restablecer' }));
 
     expect(onChange).toHaveBeenCalledWith({});
   });
@@ -116,8 +116,8 @@ describe('ColumnSettings', () => {
     const user = userEvent.setup();
     render(<ColumnSettings columns={[]} hidden={[]} onChange={onChange} />);
 
-    await user.click(screen.getByRole('button', { name: 'Columns' }));
+    await user.click(screen.getByRole('button', { name: 'Columnas' }));
 
-    expect(screen.getByRole('button', { name: 'Reset to default' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Restablecer' })).toBeInTheDocument();
   });
 });

@@ -43,13 +43,19 @@ const claimsToPrincipal = (claims: TokenClaims): RequestPrincipal => ({
   attributes: {},
 });
 
+// `code` is a key in the shared `errors` catalog; `error` stays English for
+// logs. `permission` is deliberately still in the 403 — it says which grant was
+// missing, which is diagnostic, not a leak.
 const unauthenticated = HttpServerResponse.json(
-  { error: 'unauthenticated' },
+  { error: 'unauthenticated', code: 'unauthenticated' },
   { status: 401 },
 );
 
 const forbidden = (permission: Permission) =>
-  HttpServerResponse.json({ error: 'forbidden', permission }, { status: 403 });
+  HttpServerResponse.json(
+    { error: 'forbidden', code: 'forbidden', permission },
+    { status: 403 },
+  );
 
 /**
  * Resolve the caller's principal from the request, or `None`. Reads the token

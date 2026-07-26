@@ -22,6 +22,48 @@ export interface ConfigurationRow {
  * overrides live in the table itself.
  */
 const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
+  // Locale policy, per frontend. `default` is what an unprefixed URL negotiates
+  // to when the visitor has no cookie and their `Accept-Language` names nothing
+  // we speak; `supported` is the set the middleware will honour in a path
+  // prefix. Operators can narrow a deployment to one language by editing these
+  // without a rebuild.
+  {
+    service: 'marketplace-app',
+    group_name: 'locale',
+    key: 'default',
+    value: 'es',
+  },
+  {
+    service: 'marketplace-app',
+    group_name: 'locale',
+    key: 'supported',
+    value: 'es,en',
+  },
+  {
+    service: 'marketplace-admin-app',
+    group_name: 'locale',
+    key: 'default',
+    value: 'es',
+  },
+  {
+    service: 'marketplace-admin-app',
+    group_name: 'locale',
+    key: 'supported',
+    value: 'es,en',
+  },
+  {
+    service: 'auth-app',
+    group_name: 'locale',
+    key: 'default',
+    value: 'es',
+  },
+  {
+    service: 'auth-app',
+    group_name: 'locale',
+    key: 'supported',
+    value: 'es,en',
+  },
+
   // Frontend → backend service URIs.
   {
     service: 'marketplace-admin-app',

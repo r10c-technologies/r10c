@@ -176,7 +176,7 @@ test.describe('the query the catalog emits', () => {
     // filter on it. The restored full set is the observable proof.
     await expect
       .poll(async () =>
-        (await table.columnValues('Name')).some(name => !name.includes('Acme')),
+        (await table.columnValues('Nombre')).some(name => !name.includes('Acme')),
       )
       .toBe(true);
     for (const request of requests) {
@@ -226,7 +226,7 @@ test.describe('when the service fails', () => {
   });
 
   // The regression this suite was written for: a service that is down must not
-  // look like a catalog that is empty. "No records" is a statement about the
+  // look like a catalog that is empty. "Sin registros" is a statement about the
   // data, and after a failed load it is a lie about it.
   test('does not claim the catalog is empty', async ({ page, network }) => {
     failTheListing(network);
@@ -234,8 +234,8 @@ test.describe('when the service fails', () => {
     await page.goto('/catalog/product-brand');
 
     await expect(page.locator('table tbody tr td').first()).toHaveText(
-      'Could not load records',
+      'No se pudieron cargar los registros',
     );
-    await expect(page.getByText('No records')).toHaveCount(0);
+    await expect(page.getByText('Sin registros')).toHaveCount(0);
   });
 });

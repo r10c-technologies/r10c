@@ -29,6 +29,15 @@ export interface MetaAccessorOptions {
   required?: boolean;
   /** Human label for UI. Falls back to a humanized `name`. */
   label?: string;
+  /**
+   * Translation key for the label, resolved by the presentation layer. Takes
+   * precedence over `label`, which stays as the untranslated fallback for a
+   * member that has no catalog entry yet.
+   *
+   * Keys mirror the entity's own `@entity({ key })`, so they are derivable
+   * rather than invented: `entity:product.fields.code`.
+   */
+  labelKey?: string;
   /** Opt in/out of sorting controls. Defaults per `type`. */
   sortable?: boolean;
   /** Opt in/out of filtering controls. Defaults per `type`. */
@@ -37,6 +46,12 @@ export interface MetaAccessorOptions {
   order?: number;
   /** Allowed values when `type` is `enum` — drives the filter value control. */
   enumValues?: readonly string[];
+  /**
+   * Catalog prefix for those values; a value's label is `${enumLabelKey}.${value}`.
+   * Explicit rather than derived from `labelKey`, so a member whose values are
+   * shared with another member can point both at one vocabulary.
+   */
+  enumLabelKey?: string;
   /** Property of a `link` target used as its display label. Default `name`. */
   linkLabelProperty?: string;
 }
@@ -52,10 +67,12 @@ export class MetaAccessor {
   readonly hidden?: boolean;
   readonly required?: boolean;
   readonly label?: string;
+  readonly labelKey?: string;
   readonly sortable?: boolean;
   readonly filterable?: boolean;
   readonly order?: number;
   readonly enumValues?: readonly string[];
+  readonly enumLabelKey?: string;
   readonly linkLabelProperty?: string;
   readonly entityConstructor?: EntityConstructor<Entity>;
 
@@ -75,10 +92,12 @@ export class MetaAccessor {
     this.hidden = options?.hidden;
     this.required = options?.required;
     this.label = options?.label;
+    this.labelKey = options?.labelKey;
     this.sortable = options?.sortable;
     this.filterable = options?.filterable;
     this.order = options?.order;
     this.enumValues = options?.enumValues;
+    this.enumLabelKey = options?.enumLabelKey;
     this.linkLabelProperty = options?.linkLabelProperty;
   }
   //#endregion

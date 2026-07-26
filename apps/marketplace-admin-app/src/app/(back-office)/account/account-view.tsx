@@ -7,6 +7,7 @@ import {
   Overline,
   Stack,
   Text,
+  useT,
 } from '@r10c/entifix-react-controls';
 
 import { LogoutButton } from './logout-button';
@@ -24,40 +25,39 @@ export interface Principal {
  * controls (client components) are never imported into the server tree.
  */
 export function AccountView({ principal }: { principal: Principal | null }) {
+  const t = useT('app');
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg items-center px-s py-l">
       <Stack gap="l" className="w-full">
         <header>
           <Stack gap="2xs">
-            <Overline>Account</Overline>
-            <HeadingOne>Signed in</HeadingOne>
-            <Lead>Identity verified by marketplace-admin-service.</Lead>
+            <Overline>{t('admin.account.title')}</Overline>
+            <HeadingOne>{t('admin.account.signedIn')}</HeadingOne>
+            <Lead>{t('admin.account.verified')}</Lead>
           </Stack>
         </header>
 
         <Card>
           <Stack gap="s">
             {principal === null ? (
-              <Text muted>
-                Could not verify your session with the backend. Try signing in
-                again.
-              </Text>
+              <Text muted>{t('admin.account.failed')}</Text>
             ) : (
               <Stack gap="2xs">
                 <Text>
-                  <strong>User id:</strong> {principal.userId}
+                  <strong>{t('admin.account.userId')}</strong> {principal.userId}
                 </Text>
                 <Text>
-                  <strong>Subject:</strong> {principal.subject}
+                  <strong>{t('admin.account.subject')}</strong> {principal.subject}
                 </Text>
                 <Text>
-                  <strong>Session:</strong> {principal.sessionId}
+                  <strong>{t('admin.account.session')}</strong> {principal.sessionId}
                 </Text>
                 <Text>
-                  <strong>Roles:</strong>{' '}
+                  <strong>{t('admin.account.roles')}</strong>{' '}
                   {principal.roles.length > 0
                     ? principal.roles.join(', ')
-                    : '(none)'}
+                    : t('admin.account.none')}
                 </Text>
               </Stack>
             )}

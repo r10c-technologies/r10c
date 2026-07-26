@@ -7,8 +7,9 @@ import {
   Overline,
   Stack,
   Text,
+  useT,
 } from '@r10c/entifix-react-controls';
-import Link from 'next/link';
+import { LocaleLink } from '@r10c/shells-next-common';
 
 import { CredentialForm } from './_components/credential-form';
 
@@ -19,14 +20,16 @@ import { CredentialForm } from './_components/credential-form';
  * later behind the same route handlers.
  */
 export default function Index() {
+  const t = useT('app');
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md items-center px-s py-l">
       <Stack gap="l" className="w-full">
         <header>
           <Stack gap="2xs">
-            <Overline>Identity</Overline>
-            <HeadingOne>Sign in</HeadingOne>
-            <Lead>Access the r10c marketplace fleet.</Lead>
+            <Overline>{t('auth.signIn.overline')}</Overline>
+            <HeadingOne>{t('auth.signIn.title')}</HeadingOne>
+            <Lead>{t('auth.signIn.subtitle')}</Lead>
           </Stack>
         </header>
 
@@ -35,10 +38,10 @@ export default function Index() {
         </Card>
 
         <Text muted>
-          No account?{' '}
-          <Link href="/signup" className="underline">
-            Create one
-          </Link>
+          {t('auth.signIn.noAccount')}{' '}
+          <LocaleLink href="/signup" className="underline">
+            {t('auth.signIn.create')}
+          </LocaleLink>
         </Text>
       </Stack>
     </main>

@@ -6,6 +6,11 @@ import {
 } from '@r10c/entifix-ts-core';
 import { type ReactNode, useId, useState } from 'react';
 
+import {
+  useErrorMessage,
+  useLocalizedDescriptors,
+  useT,
+} from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { CellValue } from '../../atoms/cell-value';
 import { FieldControl } from '../../atoms/field-control';
@@ -58,9 +63,11 @@ export function EntityForm<TEntity extends Entity>({
 }: EntityFormProps<TEntity>) {
   const formId = useId();
   const slots = readEntityFormFields<TEntity>(children);
-  const described = describeEntityColumns(entityConstructor, entity) as Array<
+  const metadata = describeEntityColumns(entityConstructor, entity) as Array<
     EntityFormField<TEntity>
   >;
+  // Before slots resolve, so an `<EntityField label>` override still wins.
+  const described = useLocalizedDescriptors(metadata);
   const fields = resolveEntityFormFields(described, slots.fields);
 
   const [internalMode, setInternalMode] = useState<EntityFormMode>(
@@ -78,6 +85,8 @@ export function EntityForm<TEntity extends Entity>({
     onModeChange?.(next);
   };
 
+  const t = useT();
+  const errorMessage = useErrorMessage();
   const busy = isSaving || isDeleting;
 
   return (
@@ -85,7 +94,7 @@ export function EntityForm<TEntity extends Entity>({
       <Stack gap="s">
         <Stack direction="row" gap="xs" align="center">
           <Text as="h2" step={1} weight="semibold">
-            {title ?? (entity ? 'Details' : 'New')}
+            {title ?? (entity ? t('form.details') : t('form.new'))}
           </Text>
           {/* The built-in toggle only appears when the form owns its mode and
               there is a record to view — a create form has nothing to read. */}
@@ -96,12 +105,12 @@ export function EntityForm<TEntity extends Entity>({
               size="sm"
               onClick={toggleMode}
             >
-              {editing ? 'View' : 'Edit'}
+              {editing ? t('form.view') : t('form.edit')}
             </Button>
           )}
         </Stack>
 
-        {isLoading && <Text data-testid="entity-form-loading">Loading…</Text>}
+        {isLoading && <Text data-testid="entity-form-loading">{t('form.loading')}</Text>}
 
         {error && (
           <p
@@ -109,7 +118,7 @@ export function EntityForm<TEntity extends Entity>({
             data-testid="entity-form-error"
             className="rounded-sm border border-danger bg-danger-subtle px-s py-2xs text-step-sm text-danger"
           >
-            {error.message}
+            {errorMessage(error)}
           </p>
         )}
 
@@ -134,7 +143,7 @@ export function EntityForm<TEntity extends Entity>({
               onClick={() => onSubmit?.(draft)}
               disabled={busy}
             >
-              {isSaving ? 'Saving…' : 'Save'}
+              {isSaving ? t('form.saving') : t('form.save')}
             </Button>
             {onDelete && (
               <Button
@@ -143,13 +152,13 @@ export function EntityForm<TEntity extends Entity>({
                 onClick={onDelete}
                 disabled={busy}
               >
-                {isDeleting ? 'Deleting…' : 'Delete'}
+                {isDeleting ? t('form.deleting') : t('form.delete')}
               </Button>
             )}
             {backHref && (
               <a href={backHref}>
                 <Button type="button" variant="ghost" disabled={busy}>
-                  Back
+                  {t('form.back')}
                 </Button>
               </a>
             )}

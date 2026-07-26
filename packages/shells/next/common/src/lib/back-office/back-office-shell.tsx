@@ -1,6 +1,11 @@
 'use client';
 
-import { Button, Sidebar, useUiPreference } from '@r10c/entifix-react-controls';
+import {
+  Button,
+  Sidebar,
+  useT,
+  useUiPreference,
+} from '@r10c/entifix-react-controls';
 import type { ReactNode } from 'react';
 
 import { BackOfficeBreadcrumbs } from './breadcrumbs';
@@ -36,6 +41,7 @@ export function BackOfficeShell({
   breadcrumbLabels,
   homeLabel,
 }: BackOfficeShellProps) {
+  const t = useT('shell');
   const { value: collapsed, setValue: setCollapsed } = useUiPreference<boolean>(
     SIDEBAR_PREF_KEY,
     false,
@@ -59,7 +65,7 @@ export function BackOfficeShell({
           <Button
             variant="ghost"
             size="sm"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
             aria-pressed={collapsed}
             onClick={() => setCollapsed(!collapsed)}
           >

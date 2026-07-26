@@ -21,10 +21,10 @@ test.describe('the sidebar', () => {
     // "open in workspace" sibling.
     const nav = page.getByRole('navigation');
     await expect(
-      nav.getByRole('link', { name: 'Brands' }).first(),
+      nav.getByRole('link', { name: 'Marcas' }).first(),
     ).toBeVisible();
     await expect(
-      nav.getByRole('link', { name: 'Products' }).first(),
+      nav.getByRole('link', { name: 'Productos' }).first(),
     ).toBeVisible();
   });
 });
@@ -36,7 +36,11 @@ base.describe('without an admin session', () => {
     // Asserted on the redirect itself rather than by navigating: following it
     // would land on an auth-app that is not running here, and the resulting
     // connection error says nothing about where the gate pointed.
-    const response = await request.get('/catalog/product-brand', {
+    //
+    // Requested locale-prefixed on purpose. Locale resolution runs ahead of the
+    // auth gate, so an unprefixed path spends this single hop on `/es/…` — the
+    // prefixed form is what makes the gate itself the responder.
+    const response = await request.get('/es/catalog/product-brand', {
       maxRedirects: 0,
     });
 
@@ -56,9 +60,9 @@ base.describe('without an admin session', () => {
       await page.goto('/account');
 
       const nav = page.getByRole('navigation');
-      await expect(nav.getByRole('link', { name: 'Brands' })).toHaveCount(0);
+      await expect(nav.getByRole('link', { name: 'Marcas' })).toHaveCount(0);
       await expect(
-        nav.getByRole('link', { name: 'Account' }).first(),
+        nav.getByRole('link', { name: 'Cuenta' }).first(),
       ).toBeVisible();
     },
   );

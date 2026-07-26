@@ -8,10 +8,12 @@ import {
   ProductSingleViewClientPage,
 } from '@r10c/shells-next-marketplace-admin';
 
+// The entity's own `@entity({ labelKey })` vocabulary — the same keys the table
+// and form resolve, so a tab caption cannot drift from its column header.
 export const ENTITY_EDITORS = {
-  product: { label: 'Product' },
-  'product-brand': { label: 'Brand' },
-  'product-category': { label: 'Category' },
+  product: { labelKey: 'entity:product.label' },
+  'product-brand': { labelKey: 'entity:product-brand.label' },
+  'product-category': { labelKey: 'entity:product-category.label' },
 } as const;
 
 export type EntityEditorKey = keyof typeof ENTITY_EDITORS;

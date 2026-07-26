@@ -1,13 +1,17 @@
 'use client';
 
-import { type BreadcrumbItem, Breadcrumbs } from '@r10c/entifix-react-controls';
-import Link from 'next/link';
+import { type BreadcrumbItem, Breadcrumbs, useT } from '@r10c/entifix-react-controls';
+import { splitLocalePath } from '@r10c/entifix-ts-i18n/routing';
 import { usePathname } from 'next/navigation';
 
+import { LocaleLink } from '../i18n';
+
 export interface BackOfficeBreadcrumbsProps {
-  /** Map a path segment to a label; unmapped segments are title-cased. */
+  /** Map a path segment to an already-translated label; unmapped segments are
+   *  title-cased. Hosts resolve these through `useT` — the shell has no way to
+   *  know which namespace an app keeps its route names in. */
   labels?: Record<string, string>;
-  /** Label for the root crumb (href `/`). */
+  /** Label for the root crumb (href `/`). Defaults to the shared "Home". */
   homeLabel?: string;
 }
 
@@ -23,7 +27,10 @@ export function buildCrumbs(
 ): BreadcrumbItem[] {
   const crumbs: BreadcrumbItem[] = [{ label: homeLabel, href: '/' }];
   let href = '';
-  for (const segment of pathname.split('/').filter(Boolean)) {
+  // The locale prefix is routing, not a place — a crumb reading "Es" would be
+  // both meaningless and un-navigable.
+  const { rest } = splitLocalePath(pathname);
+  for (const segment of rest.split('/').filter(Boolean)) {
     href += `/${segment}`;
     crumbs.push({ label: labels[segment] ?? humanize(segment), href });
   }
@@ -35,15 +42,22 @@ export function buildCrumbs(
 
 export function BackOfficeBreadcrumbs({
   labels = {},
-  homeLabel = 'Home',
+  homeLabel,
 }: BackOfficeBreadcrumbsProps) {
+  const t = useT('shell');
   const pathname = usePathname() ?? '/';
-  const items = buildCrumbs(pathname, labels, homeLabel);
+  const items = buildCrumbs(
+    pathname,
+    labels,
+    homeLabel ?? t('breadcrumbs.home'),
+  );
 
   return (
     <Breadcrumbs
       items={items}
-      renderLink={item => <Link href={item.href}>{item.label}</Link>}
+      renderLink={item => (
+        <LocaleLink href={item.href}>{item.label}</LocaleLink>
+      )}
     />
   );
 }

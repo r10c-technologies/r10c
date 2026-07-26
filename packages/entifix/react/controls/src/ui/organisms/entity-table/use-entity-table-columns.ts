@@ -7,6 +7,7 @@ import {
 } from '@r10c/entifix-ts-core';
 import { useMemo } from 'react';
 
+import { useLocalizedDescriptors } from '../../../i18n';
 import { useUiPreference } from '../../../preferences';
 import type { ColumnPersonalization } from '../../molecules/column-settings';
 import type { EntityTableColumn } from './entity-table.types';
@@ -131,13 +132,17 @@ export function useEntityTableColumns<TEntity extends Entity>(
       EMPTY_PERSONALIZATION,
     );
 
-  const described = useMemo(
+  const metadata = useMemo(
     () =>
       describeEntityColumns(entityConstructor, sample) as Array<
         EntityTableColumn<TEntity>
       >,
     [entityConstructor, sample],
   );
+
+  // Before slots merge, so an `<EntityColumn label>` override still wins over
+  // the entity's own translated label.
+  const described = useLocalizedDescriptors(metadata);
 
   // Not memoized: `slotColumns` is rebuilt from `children` on every render, so
   // any dependency list would miss every time. The work is a few array passes

@@ -1,7 +1,12 @@
 'use client';
 
 import { Product } from '@r10c/business-ts-product-configuration-management';
-import { EntityField, EntityForm, Select } from '@r10c/entifix-react-controls';
+import {
+  EntityField,
+  EntityForm,
+  Select,
+  useT,
+} from '@r10c/entifix-react-controls';
 import { useEntityForm } from '@r10c/entifix-react-integration';
 import { useEffect } from 'react';
 
@@ -32,6 +37,8 @@ export function ProductForm({
   initialDraft,
   onDraftChange,
 }: ProductFormProps) {
+  const t = useT();
+  const et = useT('entity');
   const form = useEntityForm<Product>({
     entityConstructor: Product,
     entity,
@@ -76,19 +83,19 @@ export function ProductForm({
       isDeleting={isDeleting}
       error={error}
       backHref={backHref}
-      title={entity ? 'Edit product' : 'New product'}
+      title={et(entity ? 'product.form.editTitle' : 'product.form.newTitle')}
     >
       <EntityField<Product> field="id" hidden />
       <EntityField<Product>
         field="brand"
-        label="Brand (embedded)"
+        label={et('product.form.brandEmbedded')}
         render={({ value, setField, id }) => (
           <Select
             id={id}
             value={value}
             onChange={event => setField('brand', event.currentTarget.value)}
           >
-            <option value="">— none —</option>
+            <option value="">{t('value.none')}</option>
             {brands.map(brand => (
               <option key={String(brand.id)} value={String(brand.id)}>
                 {brand.name}
@@ -99,14 +106,14 @@ export function ProductForm({
       />
       <EntityField<Product>
         field="category"
-        label="Category (foreign key)"
+        label={et('product.form.categoryForeign')}
         render={({ value, setField, id }) => (
           <Select
             id={id}
             value={value}
             onChange={event => setField('category', event.currentTarget.value)}
           >
-            <option value="">— none —</option>
+            <option value="">{t('value.none')}</option>
             {categories.map(category => (
               <option key={String(category.id)} value={String(category.id)}>
                 {category.name}

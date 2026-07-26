@@ -34,24 +34,24 @@ const CATALOG = 'product-configuration-management';
  */
 export const NAV: GuardedNavSection[] = [
   {
-    title: 'Catalog',
+    title: 'admin.nav.catalog',
     items: [
       {
-        label: 'Products',
+        label: 'admin.nav.products',
         href: '/catalog/product',
         icon: '▦',
         workspace: 'catalog:product',
         permission: `${CATALOG}:product:read`,
       },
       {
-        label: 'Brands',
+        label: 'admin.nav.brands',
         href: '/catalog/product-brand',
         icon: '◈',
         workspace: 'catalog:product-brand',
         permission: `${CATALOG}:product-brand:read`,
       },
       {
-        label: 'Categories',
+        label: 'admin.nav.categories',
         href: '/catalog/product-category',
         icon: '⊞',
         workspace: 'catalog:product-category',
@@ -60,8 +60,8 @@ export const NAV: GuardedNavSection[] = [
     ],
   },
   {
-    title: 'Account',
-    items: [{ label: 'Account', href: '/account', icon: '◕' }],
+    title: 'admin.nav.account',
+    items: [{ label: 'admin.nav.account', href: '/account', icon: '◕' }],
   },
 ];
 
@@ -74,25 +74,44 @@ export const visibleNav = (roles: readonly string[]): GuardedNavSection[] =>
     ),
   })).filter(section => section.items.length > 0);
 
-/** The sidebar's shape: the shell's `NavSection`, without the permission. */
-export const sidebarNav = (roles: readonly string[]): NavSection[] =>
+/**
+ * The sidebar's shape: the shell's `NavSection`, without the permission.
+ *
+ * `label`/`title` hold catalog keys, not copy — this module is imported by a
+ * server layout and by `/api/menu`, neither of which is a React component, so
+ * the translate function is passed in rather than reached for through a hook.
+ */
+export const sidebarNav = (
+  roles: readonly string[],
+  translate: (key: string) => string,
+): NavSection[] =>
   visibleNav(roles).map(section => ({
-    title: section.title,
+    title: section.title === undefined ? undefined : translate(section.title),
     items: section.items.map(({ label, href, icon, workspace }) => ({
-      label,
+      label: translate(label),
       href,
       icon,
       workspace,
     })),
   }));
 
-/** The workspace menu's shape: only items that can open as a tab. */
-export const workspaceMenu = (roles: readonly string[]) =>
+/**
+ * The workspace menu's shape: only items that can open as a tab. Translated
+ * here rather than in the browser because the response is JSON, not React —
+ * `/api/menu` resolves it against the request's locale.
+ */
+export const workspaceMenu = (
+  roles: readonly string[],
+  translate: (key: string) => string,
+) =>
   visibleNav(roles)
     .map(section => ({
-      title: section.title,
+      title: section.title === undefined ? undefined : translate(section.title),
       items: section.items
         .filter(item => item.workspace !== undefined)
-        .map(item => ({ label: item.label, param: item.workspace as string })),
+        .map(item => ({
+          label: translate(item.label),
+          param: item.workspace as string,
+        })),
     }))
     .filter(section => section.items.length > 0);

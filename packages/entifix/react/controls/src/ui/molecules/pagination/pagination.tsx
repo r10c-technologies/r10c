@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { Select } from '../../atoms/field';
 import { Text } from '../../atoms/text';
@@ -27,6 +28,7 @@ export function Pagination({
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   className,
 }: PaginationProps) {
+  const t = useT();
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   return (
@@ -37,13 +39,17 @@ export function Pagination({
       )}
     >
       <Text step={-1} tone="muted">
-        Page {currentPage} of {totalPages} · {totalItems} items
+        {t('pagination.summary', {
+          current: currentPage,
+          total: totalPages,
+          items: totalItems,
+        })}
       </Text>
 
       <div className="flex items-center gap-2xs">
         {onPageSizeChange && (
           <label className="flex items-center gap-3xs text-step-sm text-content-muted">
-            Rows
+            {t('pagination.rows')}
             <Select
               value={pageSize}
               onChange={event => onPageSizeChange(Number(event.target.value))}
@@ -63,7 +69,7 @@ export function Pagination({
           disabled={currentPage <= 1}
           onClick={() => onPageChange(currentPage - 1)}
         >
-          Previous
+          {t('pagination.previous')}
         </Button>
         <Button
           type="button"
@@ -72,7 +78,7 @@ export function Pagination({
           disabled={currentPage >= totalPages}
           onClick={() => onPageChange(currentPage + 1)}
         >
-          Next
+          {t('pagination.next')}
         </Button>
       </div>
     </div>

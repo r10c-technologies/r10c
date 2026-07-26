@@ -125,6 +125,12 @@
     },
     {
       "path": "./packages/business/ts/authz"
+    },
+    {
+      "path": "./packages/entifix/ts/i18n"
+    },
+    {
+      "path": "./packages/shells/next/i18n"
     }
   ]
 }

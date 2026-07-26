@@ -7,7 +7,10 @@ import {
   type EntityId,
   EntityLink,
 } from '@r10c/entifix-ts-core';
+import { createI18n } from '@r10c/entifix-ts-i18n';
 import { act, renderHook } from '@testing-library/react';
+import { createElement, type PropsWithChildren } from 'react';
+import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -163,40 +166,51 @@ describe('seedEntityDraft', () => {
   });
 });
 
+/**
+ * `validateEntityDraft` is pure and takes its wording as an argument, so these
+ * cases assert the *rules* rather than any locale's phrasing.
+ */
+const MESSAGES = {
+  required: (field: string) => `${field} is required`,
+  number: (field: string) => `${field} must be a number`,
+  date: (field: string) => `${field} must be a date`,
+  option: (field: string) => `${field} is not a valid option`,
+};
+
 describe('validateEntityDraft', () => {
   const base = seedEntityDraft(descriptors, makeGadget());
 
   it('passes a well-formed draft', () => {
-    expect(validateEntityDraft(descriptors, base)).toEqual({});
+    expect(validateEntityDraft(descriptors, base, MESSAGES)).toEqual({});
   });
 
   it('flags a missing required field', () => {
-    expect(validateEntityDraft(descriptors, { ...base, code: '  ' })).toEqual({
+    expect(validateEntityDraft(descriptors, { ...base, code: '  ' }, MESSAGES)).toEqual({
       code: 'Code is required',
     });
   });
 
   it('flags a malformed number', () => {
     expect(
-      validateEntityDraft(descriptors, { ...base, stock: 'abc' }),
+      validateEntityDraft(descriptors, { ...base, stock: 'abc' }, MESSAGES),
     ).toEqual({ stock: 'Stock must be a number' });
   });
 
   it('flags a malformed date', () => {
     expect(
-      validateEntityDraft(descriptors, { ...base, releasedAt: 'not-a-date' }),
+      validateEntityDraft(descriptors, { ...base, releasedAt: 'not-a-date' }, MESSAGES),
     ).toEqual({ releasedAt: 'Released must be a date' });
   });
 
   it('flags a value outside the enum', () => {
     expect(
-      validateEntityDraft(descriptors, { ...base, tier: 'platinum' }),
+      validateEntityDraft(descriptors, { ...base, tier: 'platinum' }, MESSAGES),
     ).toEqual({ tier: 'Tier is not a valid option' });
   });
 
   it('ignores empty optional fields', () => {
     expect(
-      validateEntityDraft(descriptors, { ...base, stock: '', tier: '' }),
+      validateEntityDraft(descriptors, { ...base, stock: '', tier: '' }, MESSAGES),
     ).toEqual({});
   });
 
@@ -207,19 +221,19 @@ describe('validateEntityDraft', () => {
         ...base,
         sku: 'anything',
         brand: 'junk',
-      }),
+      }, MESSAGES),
     ).toEqual({});
   });
 
   it('treats an absent key as empty', () => {
     // A draft missing `code` entirely still reports it as required.
-    expect(validateEntityDraft(descriptors, {})).toEqual({
+    expect(validateEntityDraft(descriptors, {}, MESSAGES)).toEqual({
       code: 'Code is required',
     });
   });
 
   it('merges caller rules, which win on conflict', () => {
-    const errors = validateEntityDraft(descriptors, base, () => ({
+    const errors = validateEntityDraft(descriptors, base, MESSAGES, () => ({
       code: 'Code already taken',
     }));
 
@@ -269,6 +283,47 @@ describe('useEntityForm', () => {
     expect(result.current.isDirty).toBe(true);
   });
 
+  // Every metadata rule renders through the catalog, not just `required` —
+  // a message left as a template literal would only show up here.
+  it('localizes every metadata-derived message', () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.setField('stock', 'abc');
+      result.current.setField('releasedAt', 'not-a-date');
+      result.current.setField('tier', 'platinum');
+    });
+    act(() => result.current.submit());
+
+    expect(result.current.errors).toMatchObject({
+      stock: 'Stock debe ser un número',
+      releasedAt: 'Released debe ser una fecha',
+      tier: 'Tier no es una opción válida',
+    });
+  });
+
+  // With a provider in the tree the hook must follow it, not the shared default.
+  it('follows a mounted provider instead of the fallback instance', () => {
+    const i18n = createI18n('en', [initReactI18next]);
+    const wrapper = ({ children }: PropsWithChildren) =>
+      createElement(I18nextProvider, { i18n }, children);
+
+    const { result } = renderHook(
+      () => useEntityForm({ entityConstructor: Gadget, onSubmit: vi.fn() }),
+      { wrapper },
+    );
+
+    act(() => result.current.submit());
+
+    expect(result.current.errors).toEqual({ code: 'Code is required' });
+  });
+
   it('hides errors until the first submit attempt', () => {
     const onSubmit = vi.fn();
     const { result } = renderHook(() =>
@@ -280,7 +335,7 @@ describe('useEntityForm', () => {
 
     act(() => result.current.submit());
 
-    expect(result.current.errors).toEqual({ code: 'Code is required' });
+    expect(result.current.errors).toEqual({ code: 'Code es obligatorio' });
     expect(onSubmit).not.toHaveBeenCalled();
   });
 

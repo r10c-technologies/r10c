@@ -4,7 +4,12 @@ import { accessor, entity } from '@r10c/entifix-ts-core';
 import { ProductBrand } from '../product-brand';
 import { ProductCategory } from '../product-category';
 
-@entity({ domain: 'product-configuration-management', key: 'product' })
+@entity({
+  domain: 'product-configuration-management',
+  key: 'product',
+  labelKey: 'entity:product.label',
+  pluralKey: 'entity:product.plural',
+})
 export class Product implements Entity {
   // #region properties
   #id?: EntityId;
@@ -30,7 +35,7 @@ export class Product implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor({ type: 'id', label: 'ID' })
+  @accessor({ type: 'id', label: 'ID' , labelKey: 'entity:product.fields.id' })
   get id(): EntityId {
     return this.#id;
   }
@@ -38,7 +43,7 @@ export class Product implements Entity {
     this.#id = value;
   }
 
-  @accessor({ type: 'string', label: 'Code' })
+  @accessor({ type: 'string', label: 'Code' , labelKey: 'entity:product.fields.code' })
   get code(): string {
     return this.#code;
   }
@@ -46,7 +51,7 @@ export class Product implements Entity {
     this.#code = value;
   }
 
-  @accessor({ type: 'string', label: 'Name' })
+  @accessor({ type: 'string', label: 'Name' , labelKey: 'entity:product.fields.name' })
   get name(): string {
     return this.#name;
   }
@@ -54,7 +59,7 @@ export class Product implements Entity {
     this.#name = value;
   }
 
-  @accessor({ type: 'string', label: 'Description' })
+  @accessor({ type: 'string', label: 'Description' , labelKey: 'entity:product.fields.description' })
   get description(): string | undefined {
     return this.#description;
   }
@@ -62,12 +67,12 @@ export class Product implements Entity {
     this.#description = value;
   }
 
-  @accessor({ type: 'link', label: 'Brand' })
+  @accessor({ type: 'link', label: 'Brand' , labelKey: 'entity:product.fields.brand' })
   get brand(): EntityLink<ProductBrand> {
     return this.#brand;
   }
 
-  @accessor({ type: 'link', label: 'Category' })
+  @accessor({ type: 'link', label: 'Category' , labelKey: 'entity:product.fields.category' })
   get category(): EntityLink<ProductCategory> {
     return this.#category;
   }

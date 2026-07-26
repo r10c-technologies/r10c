@@ -24,10 +24,10 @@ describe('buildCrumbs', () => {
     const crumbs = buildCrumbs(
       '/catalog/product-brand',
       { catalog: 'Catalog' },
-      'Home',
+      'Inicio',
     );
     expect(crumbs).toEqual([
-      { label: 'Home', href: '/' },
+      { label: 'Inicio', href: '/' },
       { label: 'Catalog', href: '/catalog' },
       { label: 'Product Brand', href: undefined },
     ]);
@@ -43,10 +43,12 @@ describe('buildCrumbs', () => {
 describe('BackOfficeBreadcrumbs', () => {
   it('renders the derived trail with client-side links', () => {
     render(<BackOfficeBreadcrumbs labels={{ catalog: 'Catalog' }} />);
-    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    expect(within(nav).getByRole('link', { name: 'Home' })).toHaveAttribute(
+    const nav = screen.getByRole('navigation', { name: 'Ruta de navegación' });
+    // Crumb hrefs carry the active locale — a bare `/` would bounce the visitor
+    // through a negotiation redirect and could land them in another language.
+    expect(within(nav).getByRole('link', { name: 'Inicio' })).toHaveAttribute(
       'href',
-      '/',
+      '/es',
     );
     expect(within(nav).getByText('Product Brand')).toHaveAttribute(
       'aria-current',
@@ -57,8 +59,8 @@ describe('BackOfficeBreadcrumbs', () => {
   it('falls back to defaults for a null pathname', () => {
     pathname = null;
     render(<BackOfficeBreadcrumbs />);
-    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
-    expect(within(nav).getByText('Home')).toHaveAttribute(
+    const nav = screen.getByRole('navigation', { name: 'Ruta de navegación' });
+    expect(within(nav).getByText('Inicio')).toHaveAttribute(
       'aria-current',
       'page',
     );

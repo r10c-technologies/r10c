@@ -1,3 +1,8 @@
+import {
+  rememberLocale,
+  resolveLocale,
+  rewriteToLocale,
+} from '@r10c/shells-next-i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Inlined (not imported from lib/session) so this edge-runtime module never
@@ -7,7 +12,8 @@ const DEFAULT_REDIRECT =
   process.env.AUTH_DEFAULT_REDIRECT ?? 'http://localhost:3001';
 
 /**
- * Two edge-only cookie checks, both fast paths rather than decisions:
+ * Locale first, then two edge-only cookie checks — both fast paths rather than
+ * decisions:
  *
  * - the auth surface (`/`, `/signup`) bounces an already-authenticated visitor
  *   to the app;
@@ -21,23 +27,39 @@ const DEFAULT_REDIRECT =
  * request itself.
  */
 export function middleware(request: NextRequest) {
+  const locale = resolveLocale(request);
+  if (locale.redirect) return locale.redirect;
+
   const authenticated = request.cookies.get(AT_COOKIE) !== undefined;
 
-  if (request.nextUrl.pathname.startsWith('/users')) {
+  // The locale-stripped path — matching on `request.nextUrl.pathname` would
+  // read `/es/users` and miss the branch entirely.
+  if (locale.pathname.startsWith('/users')) {
     if (!authenticated) {
-      const signin = new URL('/', request.nextUrl.origin);
-      signin.searchParams.set('redirect', request.nextUrl.pathname);
-      return NextResponse.redirect(signin);
+      const signin = new URL(`/${locale.locale}`, request.nextUrl.origin);
+      signin.searchParams.set('redirect', locale.pathname);
+      const response = NextResponse.redirect(signin);
+      rememberLocale(response, locale.locale);
+      return response;
     }
-    return NextResponse.next();
+    return rewriteToLocale(request, locale);
   }
 
   if (authenticated) {
-    return NextResponse.redirect(DEFAULT_REDIRECT);
+    const response = NextResponse.redirect(DEFAULT_REDIRECT);
+    rememberLocale(response, locale.locale);
+    return response;
   }
-  return NextResponse.next();
+  return rewriteToLocale(request, locale);
 }
 
+/**
+ * A regex rather than the old literal list (`['/', '/signup', '/users/:path*']`):
+ * every one of those paths now also exists under a locale prefix, which the
+ * literal form would miss — leaving `/es/users` completely ungated.
+ */
 export const config = {
-  matcher: ['/', '/signup', '/users/:path*'],
+  matcher: [
+    '/((?!_next/static|_next/image|api|favicon.ico).*)',
+  ],
 };

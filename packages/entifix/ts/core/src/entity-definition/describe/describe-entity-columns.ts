@@ -16,6 +16,13 @@ export interface EntityFieldDescriptor {
   /** Wire/property key: `alias ?? name`. */
   key: string;
   label: string;
+  /**
+   * Catalog key for {@link label}, when the entity declared one. Resolution is
+   * the presentation layer's job — core has no locale and no catalogs, and the
+   * same descriptor feeds the server-side filter allowlist, where a translated
+   * label would be meaningless.
+   */
+  labelKey?: string;
   type: MetaAccessorType;
   sortable: boolean;
   filterable: boolean;
@@ -25,6 +32,8 @@ export interface EntityFieldDescriptor {
   /** Must hold a value. A form rejects submit while it is empty. */
   required: boolean;
   enumValues?: readonly string[];
+  /** Catalog prefix for {@link enumValues}; a value reads as `${enumLabelKey}.${value}`. */
+  enumLabelKey?: string;
   /** Property of a `link` target used as its display label. */
   linkLabelProperty: string;
 }
@@ -78,6 +87,7 @@ function toDescriptor(
     name,
     key: String(metaAccessor.alias ?? metaAccessor.name),
     label: metaAccessor.label ?? humanize(name),
+    labelKey: metaAccessor.labelKey,
     type,
     sortable: metaAccessor.sortable ?? isScalar,
     filterable: metaAccessor.filterable ?? isScalar,
@@ -85,6 +95,7 @@ function toDescriptor(
     readonly: metaAccessor.readonly ?? false,
     required: metaAccessor.required ?? false,
     enumValues: metaAccessor.enumValues,
+    enumLabelKey: metaAccessor.enumLabelKey,
     linkLabelProperty: metaAccessor.linkLabelProperty ?? 'name',
   };
 }

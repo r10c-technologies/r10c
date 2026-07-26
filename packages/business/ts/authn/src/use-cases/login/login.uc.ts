@@ -38,26 +38,26 @@ export function loginUCFactory() {
     const user = yield* accounts.findByIdentifier(identifier);
     if (user === null) {
       return yield* Effect.fail(
-        new UnauthenticatedError('invalid credentials'),
+        new UnauthenticatedError('invalid credentials', 'invalidCredentials'),
       );
     }
     if (user.status !== UserStatus.Active) {
       return yield* Effect.fail(
-        new UnauthenticatedError('invalid credentials'),
+        new UnauthenticatedError('invalid credentials', 'invalidCredentials'),
       );
     }
 
     const hash = yield* accounts.readPasswordHash(user.id);
     if (hash === null) {
       return yield* Effect.fail(
-        new UnauthenticatedError('invalid credentials'),
+        new UnauthenticatedError('invalid credentials', 'invalidCredentials'),
       );
     }
 
     const matches = yield* hasher.verify(password, hash);
     if (!matches) {
       return yield* Effect.fail(
-        new UnauthenticatedError('invalid credentials'),
+        new UnauthenticatedError('invalid credentials', 'invalidCredentials'),
       );
     }
 

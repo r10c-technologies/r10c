@@ -2,6 +2,7 @@
 
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
 
+import { useT } from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { Checkbox } from '../../atoms/field';
 import { Text } from '../../atoms/text';
@@ -58,6 +59,8 @@ export function ColumnSettings({
         : [...hidden, name],
     });
 
+  const t = useT();
+
   const shift = (index: number, delta: number) => {
     const target = index + delta;
     // Defence in depth: the buttons are already disabled at both ends, so this
@@ -71,14 +74,14 @@ export function ColumnSettings({
   return (
     <Popover className="relative">
       <PopoverButton as={Button} type="button" variant="secondary" size="sm">
-        Columns
+        {t('columns.title')}
       </PopoverButton>
       <PopoverPanel
         anchor="bottom end"
         className="z-10 mt-3xs w-64 rounded-xl border border-border bg-surface-elevated p-2xs shadow-card"
       >
         <Text step={-2} tone="muted" className="px-3xs pb-3xs">
-          Visibility and order
+          {t('columns.subtitle')}
         </Text>
         <ul className="flex flex-col gap-3xs">
           {columns.map((column, index) => (
@@ -96,7 +99,7 @@ export function ColumnSettings({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  aria-label={`Move ${column.label} up`}
+                  aria-label={t('columns.moveUp', { column: column.label })}
                   disabled={index === 0}
                   onClick={() => shift(index, -1)}
                 >
@@ -106,7 +109,7 @@ export function ColumnSettings({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  aria-label={`Move ${column.label} down`}
+                  aria-label={t('columns.moveDown', { column: column.label })}
                   disabled={index === columns.length - 1}
                   onClick={() => shift(index, 1)}
                 >
@@ -123,7 +126,7 @@ export function ColumnSettings({
           className="mt-2xs w-full"
           onClick={() => onChange({})}
         >
-          Reset to default
+          {t('columns.reset')}
         </Button>
       </PopoverPanel>
     </Popover>

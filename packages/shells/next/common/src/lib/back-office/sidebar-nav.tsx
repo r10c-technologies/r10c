@@ -1,9 +1,9 @@
 'use client';
 
-import { cn } from '@r10c/entifix-react-controls';
-import Link from 'next/link';
+import { cn, useT } from '@r10c/entifix-react-controls';
 import { usePathname } from 'next/navigation';
 
+import { LocaleLink } from '../i18n';
 import type { NavSection } from './nav';
 
 export interface SidebarNavProps {
@@ -18,10 +18,11 @@ export function isActive(pathname: string, href: string): boolean {
 }
 
 export function SidebarNav({ sections, collapsed = false }: SidebarNavProps) {
+  const t = useT('shell');
   const pathname = usePathname() ?? '';
 
   return (
-    <nav aria-label="Primary" className="flex flex-col gap-m">
+    <nav aria-label={t('nav.primary')} className="flex flex-col gap-m">
       {sections.map((section, index) => (
         <div key={section.title ?? index} className="flex flex-col gap-3xs">
           {section.title && !collapsed && (
@@ -33,7 +34,7 @@ export function SidebarNav({ sections, collapsed = false }: SidebarNavProps) {
             const active = isActive(pathname, item.href);
             return (
               <div key={item.href} className="group/nav flex items-center gap-3xs">
-                <Link
+                <LocaleLink
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
                   title={collapsed ? item.label : undefined}
@@ -50,16 +51,16 @@ export function SidebarNav({ sections, collapsed = false }: SidebarNavProps) {
                     </span>
                   )}
                   {!collapsed && <span className="truncate">{item.label}</span>}
-                </Link>
+                </LocaleLink>
                 {item.workspace && !collapsed && (
-                  <Link
+                  <LocaleLink
                     href={`/workspace?tab=${encodeURIComponent(item.workspace)}`}
-                    aria-label={`Open ${item.label} in workspace`}
-                    title="Open in workspace"
+                    aria-label={t('nav.openInWorkspace', { label: item.label })}
+                    title={t('nav.openInWorkspaceShort')}
                     className="rounded p-3xs text-content-muted opacity-0 transition hover:bg-surface hover:text-content focus:opacity-100 group-hover/nav:opacity-100"
                   >
                     <span aria-hidden="true">⧉</span>
-                  </Link>
+                  </LocaleLink>
                 )}
               </div>
             );

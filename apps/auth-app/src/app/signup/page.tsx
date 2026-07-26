@@ -7,8 +7,9 @@ import {
   Overline,
   Stack,
   Text,
+  useT,
 } from '@r10c/entifix-react-controls';
-import Link from 'next/link';
+import { LocaleLink } from '@r10c/shells-next-common';
 
 import { CredentialForm } from '../_components/credential-form';
 
@@ -19,14 +20,16 @@ import { CredentialForm } from '../_components/credential-form';
  * layer, not a finished onboarding flow.
  */
 export default function SignUp() {
+  const t = useT('app');
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md items-center px-s py-l">
       <Stack gap="l" className="w-full">
         <header>
           <Stack gap="2xs">
-            <Overline>Identity</Overline>
-            <HeadingOne>Create account</HeadingOne>
-            <Lead>Register with an email and/or a username.</Lead>
+            <Overline>{t('auth.signUp.overline')}</Overline>
+            <HeadingOne>{t('auth.signUp.title')}</HeadingOne>
+            <Lead>{t('auth.signUp.subtitle')}</Lead>
           </Stack>
         </header>
 
@@ -35,10 +38,10 @@ export default function SignUp() {
         </Card>
 
         <Text muted>
-          Already have an account?{' '}
-          <Link href="/" className="underline">
-            Sign in
-          </Link>
+          {t('auth.signUp.haveAccount')}{' '}
+          <LocaleLink href="/" className="underline">
+            {t('auth.signUp.signIn')}
+          </LocaleLink>
         </Text>
       </Stack>
     </main>

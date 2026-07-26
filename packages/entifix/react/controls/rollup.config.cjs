@@ -20,6 +20,13 @@ module.exports = withNx(
       // MetaEntity registry and see no decorated entities.
       '@r10c/entifix-ts-core',
       'effect',
+      // react-i18next holds a React context, so a copy bundled in here would
+      // not see the provider an app mounts. Keeping it external also lets the
+      // app resolve its `use-sync-external-store/shim` import — that shim is
+      // CJS and calls `require('react')`, which Turbopack's SSR runtime
+      // refuses; inlined here, no app-level alias could reach it.
+      'i18next',
+      'react-i18next',
     ],
     format: ['esm'],
     assets: [{ input: '.', output: '.', glob: 'README.md' }],

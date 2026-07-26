@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react';
 
+/** Resolves a catalog key. The widened form: a tab title is data, not authored copy. */
+export type TabTranslate = (key: string, params?: Record<string, unknown>) => string;
+
 /**
  * One kind of tab (a catalog, an entity editor, later an operation or wizard).
  * A page is addressed by the `?tab=` value `"<kind>:<payload>"`; the kind owns
@@ -14,7 +17,11 @@ export interface TabKind<TAddr = unknown> {
   match(payload: string): TAddr | null;
   /** Serialize an address back to the payload (without the `<kind>:` prefix). */
   toParam(addr: TAddr): string;
-  title(addr: TAddr): string;
+  /**
+   * The tab caption. Handed a translate function rather than reaching for a
+   * hook: kinds are registered at module scope, outside any React tree.
+   */
+  title(addr: TAddr, translate: TabTranslate): string;
   render(addr: TAddr): ReactNode;
 }
 
@@ -51,7 +58,7 @@ export class TabRegistry {
     return this.#kinds.has(kind);
   }
 
-  resolve(param: string): ResolvedTab | null {
+  resolve(param: string, translate: TabTranslate): ResolvedTab | null {
     const { kind: kindName, payload } = splitParam(param);
     const kind = this.#kinds.get(kindName);
     if (!kind) return null;
@@ -61,7 +68,7 @@ export class TabRegistry {
 
     return {
       param: `${kind.kind}:${kind.toParam(addr)}`,
-      title: kind.title(addr),
+      title: kind.title(addr, translate),
       render: () => kind.render(addr),
     };
   }

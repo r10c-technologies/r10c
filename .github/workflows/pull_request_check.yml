@@ -89,6 +89,27 @@ jobs:
             --base=${{ needs.initialize.outputs.base }} \
             --head=${{ needs.initialize.outputs.head }}
 
+  i18n:
+    name: i18n catalogs
+    needs: initialize
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Not affected-gated: a catalog is shared by every app, so a key that goes
+      # missing is everyone's problem regardless of which project the PR touched.
+      - name: Check es/en parity
+        run: node tools/check-i18n.mjs
+
   build:
     name: Build (${{ matrix.chunk }})
     needs: initialize

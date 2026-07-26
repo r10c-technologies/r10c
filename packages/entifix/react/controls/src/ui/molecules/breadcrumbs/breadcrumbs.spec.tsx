@@ -13,7 +13,7 @@ describe('Breadcrumbs', () => {
   it('renders anchors for linkable crumbs and marks the last as current', () => {
     render(<Breadcrumbs items={trail} />);
 
-    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const nav = screen.getByRole('navigation', { name: 'Ruta de navegación' });
     const home = within(nav).getByRole('link', { name: 'Home' });
     expect(home).toHaveAttribute('href', '/');
     expect(within(nav).getByRole('link', { name: 'Catalog' })).toHaveAttribute(
@@ -46,7 +46,7 @@ describe('Breadcrumbs', () => {
 
   it('renders a plain span for a non-last crumb without an href', () => {
     render(<Breadcrumbs items={[{ label: 'Root' }, { label: 'Leaf' }]} />);
-    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const nav = screen.getByRole('navigation', { name: 'Ruta de navegación' });
     expect(within(nav).queryByRole('link')).toBeNull();
     const root = within(nav).getByText('Root');
     expect(root.tagName).toBe('SPAN');
@@ -62,7 +62,7 @@ describe('Breadcrumbs', () => {
         id="crumbs"
       />,
     );
-    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const nav = screen.getByRole('navigation', { name: 'Ruta de navegación' });
     expect(nav).toHaveClass('custom');
     expect(nav).toHaveAttribute('id', 'crumbs');
     expect(within(nav).getAllByText('›')).toHaveLength(2);

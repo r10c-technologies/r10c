@@ -11,3 +11,4 @@ Format: [Michael Nygard's ADR template](https://github.com/joelparkerhenderson/a
 | -------------------------------------------- | ------------------------------------------------------ | -------- |
 | [0001](0001-observability-and-tooling.md)    | Observability & platform tooling                       | Accepted |
 | [0002](0002-authorization-roles-and-abac.md) | Authorization: role aspects behind an ABAC-shaped port | Accepted |
+| [0003](0003-i18n-mandatory.md)              | i18n is mandatory, and the build enforces it           | Accepted |

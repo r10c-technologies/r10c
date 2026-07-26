@@ -6,6 +6,7 @@ import {
   EntityLink,
   type MetaAccessorType,
 } from '@r10c/entifix-ts-core';
+import { makeFormatters } from '@r10c/entifix-ts-i18n';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -70,7 +71,7 @@ describe('CellValue', () => {
   describe('booleans', () => {
     // Rendering `true`/`false` would leak the wire representation into the UI.
     it.each([
-      [true, 'Yes'],
+      [true, 'Sí'],
       [false, 'No'],
     ])('renders %s as %s', (value, expected) => {
       renderCell(value, 'boolean');
@@ -83,7 +84,9 @@ describe('CellValue', () => {
     it('formats a number for the locale', () => {
       renderCell(1234567, 'number');
 
-      expect(screen.getByText((1234567).toLocaleString())).toBeInTheDocument();
+      expect(
+        screen.getByText(makeFormatters('es').number(1234567)),
+      ).toBeInTheDocument();
     });
 
     it('renders zero rather than treating it as absent', () => {
@@ -105,14 +108,18 @@ describe('CellValue', () => {
     it('formats a Date for the locale', () => {
       renderCell(date, 'date');
 
-      expect(screen.getByText(date.toLocaleDateString())).toBeInTheDocument();
+      expect(
+        screen.getByText(makeFormatters('es').date(date)),
+      ).toBeInTheDocument();
     });
 
     // Dates arrive as ISO strings over the wire, so the cell has to parse.
     it('parses an ISO string', () => {
       renderCell('2026-07-20T00:00:00.000Z', 'date');
 
-      expect(screen.getByText(date.toLocaleDateString())).toBeInTheDocument();
+      expect(
+        screen.getByText(makeFormatters('es').date(date)),
+      ).toBeInTheDocument();
     });
 
     it('falls back to the raw text for an unparseable date', () => {
