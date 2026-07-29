@@ -6,6 +6,9 @@ import { useState } from 'react';
 /** Posts to the logout route (revoke + clear cookies), then leaves for sign-in. */
 export function LogoutButton() {
   const t = useT('app');
+  // Signing out is the shell's own vocabulary, shared with the account menu —
+  // the app keeps only the pending caption, which is its own.
+  const shellT = useT('shell');
   const [pending, setPending] = useState(false);
 
   async function onLogout() {
@@ -17,7 +20,7 @@ export function LogoutButton() {
 
   return (
     <Button variant="secondary" onClick={onLogout} disabled={pending}>
-      {pending ? t('admin.account.signingOut') : t('admin.account.signOut')}
+      {pending ? t('admin.account.signingOut') : shellT('account.signOut')}
     </Button>
   );
 }

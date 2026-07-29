@@ -12,9 +12,21 @@ export const shell = {
   breadcrumbs: {
     home: 'Inicio',
   },
+  /**
+   * The account surface. auth-app owns the screens, but `ACCOUNT_DESTINATIONS`
+   * — the one list every app builds its menu from — lives in the shell, so the
+   * shell owns their names too and resolves them itself.
+   */
+  account: {
+    profile: 'Perfil',
+    password: 'Contraseña',
+    sessions: 'Sesiones',
+    signOut: 'Cerrar sesión',
+  },
   workspace: {
     copyLink: 'Copiar enlace',
-    empty: 'No hay pestañas abiertas. Elige un catálogo en la barra lateral para empezar.',
+    empty:
+      'No hay pestañas abiertas. Elige un catálogo en la barra lateral para empezar.',
     unsupported: 'Esta pestaña no se puede abrir aquí.',
     discard: '¿Descartar los cambios sin guardar de esta pestaña?',
   },

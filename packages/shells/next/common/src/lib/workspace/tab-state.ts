@@ -41,11 +41,17 @@ export function capTabs(state: TabsSnapshot): TabsSnapshot {
  * Open a tab, or focus and re-title it if its address is already open. The
  * opened/focused tab becomes active; the set is capped at {@link MAX_TABS}.
  */
-export function openOrFocus(
-  state: TabsSnapshot,
-  tab: TabRecord,
-): TabsSnapshot {
-  const exists = state.tabs.some(open => open.param === tab.param);
+export function openOrFocus(state: TabsSnapshot, tab: TabRecord): TabsSnapshot {
+  const existing = state.tabs.find(open => open.param === tab.param);
+  // Re-opening the tab that is already open and already active changes nothing;
+  // returning the same snapshot keeps subscribers from re-rendering on every
+  // URL⇄store sync, which is what turned a settled workspace into a churn of
+  // new tab arrays.
+  if (existing?.title === tab.title && state.activeParam === tab.param) {
+    return state;
+  }
+
+  const exists = existing !== undefined;
   const tabs = exists
     ? state.tabs.map(open =>
         open.param === tab.param ? { ...open, title: tab.title } : open,

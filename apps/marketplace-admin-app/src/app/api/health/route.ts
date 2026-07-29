@@ -1,12 +1,19 @@
+import { createHealthRoutes } from '@r10c/shells-next-common/server';
+
 /**
- * Liveness for the app itself — no config-service, no backend, no session, so
- * it answers as soon as Next is listening.
+ * Probe endpoints for this app, mirroring the backends' `/api/health*`.
  *
- * That is precisely why it exists: with the whole app behind the auth
- * middleware, a readiness probe against `/` gets a redirect to an auth-app that
- * may not be running, and one against `/api/config` gets a 500 until
- * config-service is up. Playwright's `webServer.url` points here.
+ * Liveness answers as soon as Next is listening — no config-service, no
+ * backend, no session. That is precisely why it exists: with the whole app
+ * behind the auth middleware, a probe against `/` gets a redirect to an
+ * auth-app that may not be running. Playwright's `webServer.url` points here.
  */
+const routes = createHealthRoutes({
+  app: '@r10c/marketplace-admin-app',
+  configApiUrl: process.env.CONFIG_API_URL ?? 'http://localhost:3190',
+  configKey: 'marketplace-admin-app',
+});
+
 export function GET() {
-  return Response.json({ status: 'ok', app: '@r10c/marketplace-admin-app' });
+  return routes.health();
 }

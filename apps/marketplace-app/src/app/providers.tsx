@@ -17,7 +17,7 @@ import { type PropsWithChildren, useMemo } from 'react';
  * The storefront's own brand set (values in ./themes.css), distinct from admin's.
  */
 function ThemedProviders({ children }: PropsWithChildren) {
-  const t = useT('app');
+  const t = useT('controls');
   const themes = useMemo<ThemeOption[]>(
     () => [
       { id: 'marketplace', label: t('themes.marketplace') },

@@ -1,18 +1,22 @@
-import { ThemeProvider } from '@r10c/entifix-react-controls';
 import { render } from '@testing-library/react';
 import React from 'react';
+import { vi } from 'vitest';
 
-import Page from '../src/app/page';
+// The page resolves its own copy on the server; the catalog is covered in
+// `@r10c/entifix-ts-i18n`, so the key is echoed back here.
+vi.mock('@r10c/shells-next-i18n/server', () => ({
+  getServerT: () => Promise.resolve((key: string) => key),
+}));
 
-// The root page is the design-system playground — it only needs theme context
-// (not the REST adapters), so wrap in ThemeProvider directly.
-describe('Page', () => {
-  it('should render successfully', () => {
-    const { baseElement } = render(
-      <ThemeProvider themes={[{ id: 'admin', label: 'Admin' }]} defaultTheme="admin">
-        <Page />
-      </ThemeProvider>
-    );
+import Page from '../src/app/(authenticated)/home/page';
+
+// `/` redirects to `/<locale>/home`, so the page under `(authenticated)/home`
+// is what a visitor actually lands on. It is an async server component: await
+// it and render what it returns.
+describe('AdminHomePage', () => {
+  it('should render successfully', async () => {
+    const { baseElement } = render(await Page());
+
     expect(baseElement).toBeTruthy();
   });
 });

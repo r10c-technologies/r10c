@@ -111,6 +111,16 @@ export const controls: EsControls = {
   theme: {
     label: 'Theme',
   },
+  themes: {
+    aurora: 'Aurora',
+    sunset: 'Sunset',
+    midnight: 'Midnight',
+    ocean: 'Ocean (runtime)',
+    marketplace: 'Marketplace',
+    marketplaceDark: 'Marketplace dark',
+    auth: 'Identity',
+    authDark: 'Identity dark',
+  },
   breadcrumbs: {
     label: 'Breadcrumb',
   },

@@ -55,11 +55,15 @@ Requires **Node 26.4** and **pnpm 11.9** (see `engines`).
 ```sh
 pnpm install
 
-# Bring up local infrastructure (minikube)
-minikube start --ports 30017:30017,30379:30379,30432:30432,30080:30080
-infra/local/apply.sh
+# Run the admin app. Brings up local infrastructure (minikube) as needed —
+# starts a stopped cluster, applies missing manifests, waits for the datastores.
+pnpm run mp-admin:dev
 
-# Run an app or service (unified convention — each starts its own dependencies)
+# When something is wedged: recreate the datastores, then run (WIPES local data,
+# which re-seeds on service boot). `pnpm run dev-infra:doctor` diagnoses without fixing.
+pnpm run mp-admin:dev:reset
+
+# Run any other app or service (unified convention — each starts its own dependencies)
 pnpm nx run marketplace-admin-app:dev      # :3001 (starts admin-service + config-service)
 pnpm nx run config-service:dev             # :3190 (Postgres)
 pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo)

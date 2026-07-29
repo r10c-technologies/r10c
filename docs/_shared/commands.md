@@ -7,6 +7,18 @@ and run Nx via `pnpm nx …` (or `pnpm exec nx`). Project names are scoped
 (e.g. `marketplace-app`, `entifix-ts-core`).
 
 ```sh
+# Dev, self-healing — the shortest path to a running admin app.
+# `mp-admin:dev` walks the infra health ladder and fixes the broken rung
+# (starts minikube, applies missing manifests, restarts a wedged pod), then
+# starts the app. ~0.1s when everything is already up.
+pnpm run mp-admin:dev
+pnpm run mp-admin:dev:reset  # recreate the datastores first — WIPES local
+                             # Mongo/Postgres/Redis data, which then re-seeds
+                             # on service boot. The fix for stale-seed bugs.
+pnpm run dev-infra:doctor    # read-only ladder view + the command that fixes it
+pnpm run dev-ports:free      # kill leftover listeners on every fleet port (each
+                             # dev target already frees its own port first)
+
 # Dev — unified convention for EVERY app/service (each starts its own deps)
 pnpm nx run marketplace-app:dev            # :3000
 pnpm nx run marketplace-admin-app:dev      # :3001 (auto-starts admin-service + config-service)

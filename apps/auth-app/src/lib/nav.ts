@@ -1,7 +1,14 @@
 import { can, type Permission } from '@r10c/business-ts-authz';
 import type { NavSection } from '@r10c/shells-next-common';
+import { ACCOUNT_DESTINATIONS } from '@r10c/shells-next-common/server';
 
-/** A nav item that only appears when the caller holds `permission`. */
+/**
+ * A nav item that only appears when the caller holds `permission`.
+ *
+ * `label`/`title` are **namespace-qualified** catalog keys, because this table
+ * mixes copy from two owners: `app:` for what auth-app authors, `shell:` for
+ * the account destinations the shell owns.
+ */
 interface GuardedNavItem {
   label: string;
   href: string;
@@ -21,12 +28,19 @@ interface GuardedNavSection {
  * so a menu entry and the route behind it cannot drift apart — but filtering
  * here is presentation only; auth-service is what actually refuses the request.
  */
+/** Presentation only, and auth-app's to choose — the shell's list has no icons. */
+const ACCOUNT_ICONS: Record<string, string> = {
+  'account.profile': '◕',
+  'account.password': '⚿',
+  'account.sessions': '◎',
+};
+
 export const NAV: GuardedNavSection[] = [
   {
-    title: 'auth.nav.identity',
+    title: 'app:auth.nav.identity',
     items: [
       {
-        label: 'auth.nav.users',
+        label: 'app:auth.nav.users',
         href: '/users',
         icon: '◉',
         permission: 'authn:user-identity:read',
@@ -34,14 +48,17 @@ export const NAV: GuardedNavSection[] = [
     ],
   },
   {
-    title: 'auth.nav.accountSection',
-    items: [
-      // No permission: your own account is not an administrative screen, and a
-      // plain `user` has to be able to reach it.
-      { label: 'auth.nav.account', href: '/account', icon: '◕' },
-      { label: 'auth.password.nav', href: '/account/password', icon: '⚿' },
-      { label: 'auth.sessions.nav', href: '/account/sessions', icon: '◎' },
-    ],
+    title: 'app:auth.nav.accountSection',
+    // Derived from the shell's `ACCOUNT_DESTINATIONS` rather than written out
+    // again: this sidebar and the account menu are the same three screens, and
+    // they were drifting as two hand-kept lists. No permission on any of them —
+    // your own account is not an administrative screen, and a plain `user` has
+    // to be able to reach it.
+    items: ACCOUNT_DESTINATIONS.map(destination => ({
+      label: `shell:${destination.labelKey}`,
+      href: destination.path,
+      icon: ACCOUNT_ICONS[destination.labelKey],
+    })),
   },
 ];
 

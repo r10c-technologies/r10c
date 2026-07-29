@@ -22,7 +22,7 @@ const uiPreferencesStore = makeIndexedDbUiPreferencesStore();
  * instance, since that component sits *above* the provider it renders.
  */
 function ThemedProviders({ children }: PropsWithChildren) {
-  const t = useT('app');
+  const t = useT('controls');
   const themes = useMemo<ThemeOption[]>(
     () => [
       { id: 'auth', label: t('themes.auth') },
@@ -32,7 +32,11 @@ function ThemedProviders({ children }: PropsWithChildren) {
   );
 
   return (
-    <ThemeProvider themes={themes} defaultTheme="auth" storageKey="r10c-auth-theme">
+    <ThemeProvider
+      themes={themes}
+      defaultTheme="auth"
+      storageKey="r10c-auth-theme"
+    >
       <UiPreferencesProvider store={uiPreferencesStore}>
         {children}
       </UiPreferencesProvider>

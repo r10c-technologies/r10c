@@ -222,6 +222,15 @@ shape rather than a match-list. The URL projects the **active** tab only; the fu
 lives in IndexedDB. An unknown `<kind>` renders a "can't open this tab" fallback instead of
 crashing. Sharing a whole workspace (multiple tabs in one link) is deferred.
 
+The two directions of that projection — URL → store and store → URL — run as separate
+effects, and **the write-back reads the committed store (`useTabsStore.getState()`), never
+this render's `activeParam`**. Following a link to a second tab changes the URL one commit
+before the store catches up, so the render snapshot still names the *previous* tab; writing
+that back undoes the navigation, the URL → store effect re-opens the URL's tab, and the two
+trade the address bar forever — a visible flicker between the two entities. A router double
+whose `replace` actually writes `?tab=` back (`workspace-shell-url-sync.spec.tsx`) is what
+holds this: a spy that swallows the write cannot see the loop at all.
+
 ## 4. State & persistence
 
 Client state splits from server state:

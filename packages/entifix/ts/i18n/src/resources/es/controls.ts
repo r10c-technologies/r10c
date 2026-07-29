@@ -114,6 +114,22 @@ export const controls = {
   theme: {
     label: 'Tema',
   },
+  /**
+   * Captions for the theme presets shipped by `@r10c/entifix-style`, plus the
+   * per-app brand sets. They name design-system tokens, not app copy, so they
+   * live beside the switcher that renders them and stay reachable from
+   * Storybook, where no shell is mounted.
+   */
+  themes: {
+    aurora: 'Aurora',
+    sunset: 'Atardecer',
+    midnight: 'Medianoche',
+    ocean: 'Océano (en runtime)',
+    marketplace: 'Marketplace',
+    marketplaceDark: 'Marketplace oscuro',
+    auth: 'Identidad',
+    authDark: 'Identidad oscura',
+  },
   breadcrumbs: {
     label: 'Ruta de navegación',
   },

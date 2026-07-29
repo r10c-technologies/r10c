@@ -2,8 +2,9 @@ import { resolve } from 'node:path';
 
 import { makeService } from '@r10c/shells-effect-service';
 import { config as loadEnv } from 'dotenv';
+import { Layer } from 'effect';
 
-import { DbLive } from './db';
+import { DbLive, PostgresHealthProbeLayer } from './db';
 import { router } from './routes';
 
 /**
@@ -25,5 +26,5 @@ makeService({
   name: '@r10c/config-service',
   port: Number(process.env.PORT) || 3190,
   router,
-  appLayer: DbLive,
+  appLayer: Layer.provideMerge(PostgresHealthProbeLayer, DbLive),
 });

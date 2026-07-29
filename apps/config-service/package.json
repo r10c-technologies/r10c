@@ -23,7 +23,8 @@
               "--config-node-env=development"
             ]
           }
-        }
+        },
+        "dependsOn": []
       },
       "prune-lockfile": {
         "dependsOn": [
@@ -71,6 +72,7 @@
         "executor": "@nx/js:node",
         "defaultConfiguration": "development",
         "dependsOn": [
+          "free-ports",
           "build",
           "ensure-infra"
         ],
@@ -91,16 +93,24 @@
         "options": {
           "passWithNoTests": true
         }
+      },
+      "free-ports": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/free-ports.sh 3190"
+        }
       }
     }
   },
   "dependencies": {
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/shells-effect-service": "workspace:*",
     "@effect/platform": "0.97.0",
     "@effect/platform-node": "0.108.0",
     "@effect/sql": "0.52.0",
     "@effect/sql-pg": "0.53.0",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*",
     "dotenv": "^17.4.2",
     "effect": "3.22.0",
     "tslib": "2.8.1"

@@ -45,13 +45,16 @@ export function AccountView({ principal }: { principal: Principal | null }) {
             ) : (
               <Stack gap="2xs">
                 <Text>
-                  <strong>{t('admin.account.userId')}</strong> {principal.userId}
+                  <strong>{t('admin.account.userId')}</strong>{' '}
+                  {principal.userId}
                 </Text>
                 <Text>
-                  <strong>{t('admin.account.subject')}</strong> {principal.subject}
+                  <strong>{t('admin.account.subject')}</strong>{' '}
+                  {principal.subject}
                 </Text>
                 <Text>
-                  <strong>{t('admin.account.session')}</strong> {principal.sessionId}
+                  <strong>{t('admin.account.session')}</strong>{' '}
+                  {principal.sessionId}
                 </Text>
                 <Text>
                   <strong>{t('admin.account.roles')}</strong>{' '}

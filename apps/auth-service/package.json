@@ -27,6 +27,7 @@
         "executor": "@nx/js:node",
         "defaultConfiguration": "development",
         "dependsOn": [
+          "free-ports",
           "build",
           "ensure-infra",
           {
@@ -50,6 +51,16 @@
       "test": {
         "options": {
           "passWithNoTests": true
+        }
+      },
+      "build": {
+        "dependsOn": []
+      },
+      "free-ports": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/free-ports.sh 3102"
         }
       }
     }

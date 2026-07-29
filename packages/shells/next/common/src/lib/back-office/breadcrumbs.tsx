@@ -1,6 +1,10 @@
 'use client';
 
-import { type BreadcrumbItem, Breadcrumbs, useT } from '@r10c/entifix-react-controls';
+import {
+  type BreadcrumbItem,
+  Breadcrumbs,
+  useT,
+} from '@r10c/entifix-react-controls';
 import { splitLocalePath } from '@r10c/entifix-ts-i18n/routing';
 import { usePathname } from 'next/navigation';
 
@@ -11,8 +15,6 @@ export interface BackOfficeBreadcrumbsProps {
    *  title-cased. Hosts resolve these through `useT` — the shell has no way to
    *  know which namespace an app keeps its route names in. */
   labels?: Record<string, string>;
-  /** Label for the root crumb (href `/`). Defaults to the shared "Home". */
-  homeLabel?: string;
 }
 
 function humanize(segment: string): string {
@@ -40,17 +42,17 @@ export function buildCrumbs(
   return crumbs;
 }
 
+/**
+ * The root crumb is the shell's own copy: it names the shell's `/`, not
+ * anything the host app authored. Apps used to pass their brand here
+ * ("Admin", "Identidad"), which duplicated what the sidebar already shows.
+ */
 export function BackOfficeBreadcrumbs({
   labels = {},
-  homeLabel,
 }: BackOfficeBreadcrumbsProps) {
   const t = useT('shell');
   const pathname = usePathname() ?? '/';
-  const items = buildCrumbs(
-    pathname,
-    labels,
-    homeLabel ?? t('breadcrumbs.home'),
-  );
+  const items = buildCrumbs(pathname, labels, t('breadcrumbs.home'));
 
   return (
     <Breadcrumbs

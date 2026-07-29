@@ -46,7 +46,7 @@ const uiPreferencesStore = makeIndexedDbUiPreferencesStore();
  * runtime — demonstrating brands not shipped as CSS (multi-tenant / dynamic).
  */
 function ThemedProviders({ children }: PropsWithChildren) {
-  const t = useT('app');
+  const t = useT('controls');
   const adapters = createClientAdapters();
   const themes = useMemo<ThemeOption[]>(
     () => [
@@ -59,20 +59,20 @@ function ThemedProviders({ children }: PropsWithChildren) {
   );
 
   return (
-      <EntifixQueryProvider>
-        <ThemeProvider
-          themes={themes}
-          defaultTheme="aurora"
-          storageKey="r10c-admin-theme"
-          palettes={RUNTIME_PALETTES}
-        >
-          <UiPreferencesProvider store={uiPreferencesStore}>
-            <MarketplaceAdminAdaptersProvider adapters={adapters}>
-              {children}
-            </MarketplaceAdminAdaptersProvider>
-          </UiPreferencesProvider>
-        </ThemeProvider>
-      </EntifixQueryProvider>
+    <EntifixQueryProvider>
+      <ThemeProvider
+        themes={themes}
+        defaultTheme="aurora"
+        storageKey="r10c-admin-theme"
+        palettes={RUNTIME_PALETTES}
+      >
+        <UiPreferencesProvider store={uiPreferencesStore}>
+          <MarketplaceAdminAdaptersProvider adapters={adapters}>
+            {children}
+          </MarketplaceAdminAdaptersProvider>
+        </UiPreferencesProvider>
+      </ThemeProvider>
+    </EntifixQueryProvider>
   );
 }
 

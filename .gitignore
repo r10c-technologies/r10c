@@ -34,6 +34,9 @@ yarn-error.log
 testem.log
 /typings
 
+# Local-infra heal lock (serializes the parallel `ensure-infra` tasks)
+infra/local/.heal.lock/
+
 # Environment / secrets — never commit real .env, only .env.example templates
 .env
 .env.local

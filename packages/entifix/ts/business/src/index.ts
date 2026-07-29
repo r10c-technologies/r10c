@@ -1,3 +1,4 @@
+export * from './health/health-registry';
 export * from './repository/config.repository';
 export * from './repository/entity.repository';
 export * from './repository/entity-link-resolver.repository';

@@ -42,11 +42,12 @@
     }
   },
   "dependencies": {
-    "@swc/helpers": "0.5.23",
-    "effect": "3.22.0",
-    "amqplib": "2.0.1",
+    "@r10c/entifix-transactions": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-transactions": "workspace:*"
+    "@swc/helpers": "0.5.23",
+    "amqplib": "2.0.1",
+    "effect": "3.22.0"
   },
   "devDependencies": {
     "@types/amqplib": "0.10.5",

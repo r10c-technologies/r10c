@@ -2,6 +2,8 @@ import nx from '@nx/eslint-plugin';
 import react from 'eslint-plugin-react';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 
+import { r10cPlugin } from './tools/eslint-rules/no-foreign-app-namespace.mjs';
+
 // ---------------------------------------------------------------------------
 // Module-boundary hierarchy (enforced by @nx/enforce-module-boundaries).
 //
@@ -319,5 +321,16 @@ export default [
         },
       ],
     },
+  },
+
+  /**
+   * Catalog ownership. The rule itself carries the reasoning and does its own
+   * `apps/` scoping — see tools/eslint-rules/no-foreign-app-namespace.mjs.
+   */
+  {
+    files: ['**/src/**/*.ts', '**/src/**/*.tsx'],
+    ignores: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.stories.tsx'],
+    plugins: { r10c: r10cPlugin },
+    rules: { 'r10c/no-foreign-app-namespace': 'error' },
   },
 ];

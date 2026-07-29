@@ -11,6 +11,7 @@ import { navRoles } from '../../../lib/roles';
  * they eventually would not.
  */
 export async function GET() {
-  const t = await getServerTranslateKey('app');
+  // Unbound: the nav table carries its own `app:` / `shell:` prefixes.
+  const t = await getServerTranslateKey();
   return NextResponse.json({ sections: workspaceMenu(await navRoles(), t) });
 }

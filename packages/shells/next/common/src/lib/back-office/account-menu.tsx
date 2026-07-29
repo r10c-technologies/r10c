@@ -1,24 +1,19 @@
 'use client';
 
-import { Menu } from '@r10c/entifix-react-controls';
+import { Menu, useT } from '@r10c/entifix-react-controls';
 import { useState } from 'react';
 
-export interface AccountMenuItem {
-  /** Already-translated copy — the caller's server layout resolves the key. */
-  readonly label: string;
-  /**
-   * Absolute for a cross-app destination, and it must already carry the locale:
-   * `localeHref` deliberately leaves absolute URLs alone, so nothing downstream
-   * will add the prefix for you.
-   */
-  readonly href: string;
-}
+import type { AccountLink } from '../session/account-links';
 
 export interface AccountMenuProps {
   /** Trigger text — typically the signed-in subject. */
   readonly label: string;
-  readonly items: readonly AccountMenuItem[];
-  readonly signOutLabel: string;
+  /**
+   * Built by the host from `accountUrls()` / `accountPaths()`, which is where
+   * the auth-app origin and the request's locale are known. Only the `href` is
+   * the host's to supply; the copy is this component's own.
+   */
+  readonly items: readonly AccountLink[];
   /** Where this app mounts its logout handler. */
   readonly signOutEndpoint?: string;
   /** Fallback destination if logout answers without one. */
@@ -29,9 +24,9 @@ export interface AccountMenuProps {
  * The top-bar account menu.
  *
  * Entries are plain links because in every app but auth-app they cross an
- * origin. Copy arrives already translated, the same way `nav` labels do — this
- * is a client component, and the layouts that mount it have already resolved
- * the request's locale on the server.
+ * origin. Unlike `nav`, whose labels are authored by the host app, this menu's
+ * copy is authored here — so it is resolved here, out of `shell:account.*`,
+ * and the host supplies only URLs.
  *
  * Showing or hiding an entry here protects nothing; auth-service refuses the
  * request. This is navigation, not authorization.
@@ -39,10 +34,10 @@ export interface AccountMenuProps {
 export function AccountMenu({
   label,
   items,
-  signOutLabel,
   signOutEndpoint = '/api/auth/logout',
   signOutRedirect = '/',
 }: AccountMenuProps) {
+  const t = useT('shell');
   const [pending, setPending] = useState(false);
 
   const signOut = async () => {
@@ -69,11 +64,11 @@ export function AccountMenu({
       <Menu.Items>
         {items.map(item => (
           <Menu.Link key={item.href} href={item.href}>
-            {item.label}
+            {t(item.labelKey)}
           </Menu.Link>
         ))}
         <Menu.Item onClick={signOut} disabled={pending}>
-          {signOutLabel}
+          {t('account.signOut')}
         </Menu.Item>
       </Menu.Items>
     </Menu>

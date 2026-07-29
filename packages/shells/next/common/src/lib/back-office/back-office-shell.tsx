@@ -23,8 +23,6 @@ export interface BackOfficeShellProps {
   children: ReactNode;
   /** Segment → label overrides for the breadcrumb trail. */
   breadcrumbLabels?: Record<string, string>;
-  /** Label for the root breadcrumb. */
-  homeLabel?: string;
   /**
    * Right-aligned slot in the top bar — the account menu. A slot rather than a
    * built-in, because what belongs in it differs per app: auth-app links within
@@ -45,7 +43,6 @@ export function BackOfficeShell({
   brand,
   children,
   breadcrumbLabels,
-  homeLabel,
   accountMenu,
 }: BackOfficeShellProps) {
   const t = useT('shell');
@@ -78,10 +75,7 @@ export function BackOfficeShell({
           >
             <span aria-hidden="true">☰</span>
           </Button>
-          <BackOfficeBreadcrumbs
-            labels={breadcrumbLabels}
-            homeLabel={homeLabel}
-          />
+          <BackOfficeBreadcrumbs labels={breadcrumbLabels} />
           {accountMenu === undefined ? null : (
             <div className="ml-auto">{accountMenu}</div>
           )}

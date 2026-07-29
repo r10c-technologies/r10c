@@ -1,17 +1,18 @@
 /**
  * Server-rendered skeleton chrome shown while the workspace client hydrates —
  * a top-bar band, a tab-strip band, and body shimmer, matching the real layout
- * so the swap causes no shift. Pure markup (no client imports) so it stays a
- * server component and paints instantly.
+ * so the swap causes no shift. The host `(authenticated)/layout.tsx` already
+ * supplies the sidebar/top bar, so this only covers the workspace's own
+ * content. Pure markup (no client imports) so it stays a server component and
+ * paints instantly.
  */
 const shimmer =
   'animate-pulse rounded-md bg-border/60 motion-reduce:animate-none';
 
 export default function WorkspaceLoading() {
   return (
-    <div className="min-h-screen">
-      <div className="flex items-center gap-s border-b border-border bg-surface-elevated px-m py-s">
-        <div className={`${shimmer} h-6 w-32`} />
+    <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex items-center gap-s border-b border-border bg-surface-elevated px-m py-2xs">
         <div className={`${shimmer} ml-auto size-8 rounded-full`} />
       </div>
       <div className="flex items-end gap-3xs border-b border-border bg-surface px-2xs py-2xs">

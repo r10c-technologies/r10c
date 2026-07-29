@@ -12,7 +12,7 @@ them), and everything deep is a link — loaded only when a task needs it.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layering, the use-case + adapter mechanism, Effect-native backends, auth, transactions, observability, domain structure.            |
 | [docs/ENTIFIX.md](docs/ENTIFIX.md)           | The entity framework in depth: entities, links, the Effect-agnostic use-case, adapter contract, the RSQL query protocol.            |
 | [docs/FRONTEND.md](docs/FRONTEND.md)         | The client side: design system (tokens, flex-first layout primitives, Storybook) **and** the workspace tabs + TanStack data layer.  |
-| [docs/I18N.md](docs/I18N.md)                 | Locales, catalogs, locale routing, entity label keys, error codes, and the three gates that make i18n mandatory. |
+| [docs/I18N.md](docs/I18N.md)                 | Locales, catalogs, locale routing, entity label keys, error codes, and the three gates that make i18n mandatory.                    |
 | [docs/DEVELOPING.md](docs/DEVELOPING.md)     | Nx/pnpm workspace, commands, local infra, **module boundaries**, entities, backends, testing (`E2E_PROFILE`), conventions, commits. |
 | [docs/adr/](docs/adr/)                       | Architecture Decision Records (e.g. [0001 observability & tooling](docs/adr/0001-observability-and-tooling.md)).                    |
 
@@ -56,6 +56,51 @@ them), and everything deep is a link — loaded only when a task needs it.
   (`mongodb`, `@effect/sql*`) to `webpack.config.js` `externalDependencies`, keep
   `tslib` external, and align `@effect/sql*` with the pinned `@effect/platform`. See
   [[backend-db-connectivity]] and [docs/ENTIFIX.md](docs/ENTIFIX.md).
+- **Only services reload a library edit; the Next apps do not.** A `-service`
+  consumes workspace packages as **source** via `resolve.conditionNames`
+  (`@r10c/source`) in its `webpack.config.js`, and `@nx/js:node` rebuilds and
+  restarts it on a dependency edit — no `watch-deps` needed. The Next apps
+  declare no such condition, so resolution falls through to `import` → **`dist`**:
+  editing a library's `src` changes nothing in a running `next dev` until
+  `pnpm nx build <lib>`. Tracked in
+  [#34](https://github.com/r10c-technologies/r10c/issues/34). Service `build`
+  targets must keep **`dependsOn: []`**: with the inferred `^build`, every
+  rebuild forked `nx run <service>:build`, re-entered a lib build already in the
+  parent chain, and Nx killed the service with
+  `Recursive task invocation detected`. `^production` in `inputs` is what keeps
+  the cache honest, not `^build`.
+- **Liveness never checks a dependency.** Every app and service answers
+  `/api/health` (unchanged), `/api/health/live` and `/api/health/ready`.
+  Liveness is process-only _by design_ — a liveness probe that fails on a Mongo
+  blip is how Kubernetes gets told to restart a healthy fleet. Readiness is
+  `200` / `503 {status:'degraded',failing:[…]}` with probe **names** only (the
+  endpoint is unauthenticated), cached ~1s so it cannot become a free lever on
+  the datastore, and each probe is deadlined in the registry — a driver that
+  queues while disconnected (ioredis) otherwise leaves readiness _hanging_ at
+  the one moment it must answer. Backend probes register themselves from the
+  client layers (`MongoHealthProbeLayer` &co. + `HealthRegistryTag` from
+  `@r10c/entifix-ts-business`), so a service that gains a datastore gains its
+  probe; a service `AppLayer` merges the probe layer, `makeServerLayer`
+  provides the registry. App readiness checks **only** its own config — never
+  chain to a backend, that turns one degraded service into a fleet outage.
+- **Dev ports self-clear.** Every app/service `dev` depends on `free-ports`
+  (`tools/free-ports.sh <port>`), which kills a leftover listener from a previous
+  run — but **only** a process running from inside this repo (cwd/argv under the
+  repo root); a foreign listener is reported and the target fails rather than
+  killing something that is not ours (`R10C_FREE_PORTS=force` overrides). Ports
+  live in `ALL_PORTS` there and in [ports](docs/_shared/ports.md); a new domain
+  adds its `300N`/`310N` to both.
+- **Local dev self-heals.** `pnpm run mp-admin:dev` walks the ladder in
+  `infra/local/ensure.sh` (cluster → port mapping → workloads → rollout → probes)
+  and fixes the broken rung; it never deletes data and never recreates the
+  cluster, exiting with the `reset.sh` command instead.
+  `pnpm run mp-admin:dev:reset` is the destructive heal — it wipes the
+  namespace, PVs **and** hostPaths so the services re-seed on boot, which is
+  the only way a drifted seed row gets corrected (the seed is
+  `INSERT … ON CONFLICT DO NOTHING`). Ports/namespace/probes live once in
+  `infra/local/lib.sh`. A published NodePort answering TCP is **not** health —
+  docker-proxy keeps it open with no pod behind it — so probes are always paired
+  with deployment readiness. `pnpm run dev-infra:doctor` diagnoses read-only.
 - **Config**: services read cross-service config from **config-service** (Postgres,
   seeded in `apps/config-service/src/db.ts`); never hardcode a URL/connection string.
   Every service exposes `GET /api/config` (own params, secrets redacted via
@@ -74,12 +119,12 @@ them), and everything deep is a link — loaded only when a task needs it.
   `business-ts-authn/values/session-policy.ts` — edit there, nowhere else. Both
   cookies are sized to the **session**, never to the token (sizing `r10c_at` to
   `expiresIn` is what signed everyone out every 15 min). `touch` clamps to
-  `absoluteExpiresAt`. What slides a session is *user* activity: `requirePrincipal`
+  `absoluteExpiresAt`. What slides a session is _user_ activity: `requirePrincipal`
   must stay stateless, so the browser's `useSessionRefresh` stops refreshing when
   idle rather than the server reading Redis per request. The shared route handler
   is `createRefreshRoute` from **`@r10c/shells-next-common/server`** — that subpath
   exists because rollup stamps `"use client"` on the main bundle, so anything a
-  route handler or server layout *calls* must ship from `/server`.
+  route handler or server layout _calls_ must ship from `/server`.
 - **Account surface** is auth-app's alone; other apps link across via `AccountMenu`
   with the locale baked into the absolute URL (`localeHref` leaves absolute URLs
   alone). `/account/*` lives outside `(back-office)`, which demands
@@ -90,8 +135,8 @@ them), and everything deep is a link — loaded only when a task needs it.
   expire. Admin session control is behind `authn:user-device:read|write`.
 - **Recovery**: the reset link exists in the notification and **never** in a
   response body; `forgot` always answers `202` (enumeration). Tokens are hashed and
-  redeemed with `GETDEL`. Change-password revokes all *other* sessions; reset
-  revokes *all*. Lockout answers `429`, is keyed identifier+source, auto-expires,
+  redeemed with `GETDEL`. Change-password revokes all _other_ sessions; reset
+  revokes _all_. Lockout answers `429`, is keyed identifier+source, auto-expires,
   and notifies once. In dev, notifications land in `GET /api/dev/outbox`, which
   404s in production — that route is what makes the reset flow e2e-testable.
   See [ADR 0004](docs/adr/0004-session-lifetime-devices-and-recovery.md).

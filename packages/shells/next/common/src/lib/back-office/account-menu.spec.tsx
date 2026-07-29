@@ -4,19 +4,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AccountMenu } from './account-menu';
 
+// The host supplies only URLs — the copy is the menu's own, resolved out of
+// `shell:account.*`, so an item carries a catalog key and not a label.
 const items = [
-  { label: 'Perfil', href: 'http://localhost:3002/es/account' },
+  {
+    labelKey: 'account.profile' as const,
+    href: 'http://localhost:3002/es/account',
+  },
 ];
 
 const renderMenu = (props: Partial<Parameters<typeof AccountMenu>[0]> = {}) =>
-  render(
-    <AccountMenu
-      label="ada@example.com"
-      items={items}
-      signOutLabel="Cerrar sesión"
-      {...props}
-    />,
-  );
+  render(<AccountMenu label="ada@example.com" items={items} {...props} />);
 
 /** `window.location` is read-only in jsdom, so swap it for a plain object. */
 const stubLocation = () => {
@@ -61,9 +59,7 @@ describe('AccountMenu', () => {
     await user.click(screen.getByRole('button', { name: 'ada@example.com' }));
     await user.click(screen.getByRole('menuitem', { name: 'Cerrar sesión' }));
 
-    await waitFor(() =>
-      expect(location.href).toBe('http://localhost:3002'),
-    );
+    await waitFor(() => expect(location.href).toBe('http://localhost:3002'));
   });
 
   it('leaves the protected area even when sign-out fails', async () => {

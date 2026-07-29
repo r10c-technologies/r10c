@@ -1,7 +1,14 @@
-import { AmqpEventBusLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
+import {
+  AmqpEventBusLayer,
+  AmqpHealthProbeLayer,
+  AmqpLayer,
+} from '@r10c/entifix-ts-amqp-client';
 import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
 import { ConfigurationStoreInMemory } from '@r10c/entifix-ts-core';
-import { MongoDatabaseLayer } from '@r10c/entifix-ts-mongo-client';
+import {
+  MongoDatabaseLayer,
+  MongoHealthProbeLayer,
+} from '@r10c/entifix-ts-mongo-client';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
@@ -42,7 +49,13 @@ export const AppLayer = Layer.unwrapEffect(
       infra,
     );
 
+    // Readiness probes travel with the clients they describe.
+    const withProbes = Layer.provideMerge(
+      Layer.mergeAll(MongoHealthProbeLayer, AmqpHealthProbeLayer),
+      services,
+    );
+
     // Tracking consumes the store + bus and starts at boot.
-    return Layer.provideMerge(Layer.effectDiscard(startTracking), services);
+    return Layer.provideMerge(Layer.effectDiscard(startTracking), withProbes);
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);
