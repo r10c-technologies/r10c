@@ -7,13 +7,15 @@ import {
 } from './account-links';
 
 describe('account links', () => {
+  // The keys are `shell`-namespaced (`account.*`), not `app:auth.*`: this list
+  // is shell-owned, so the module that authors the string resolves it.
   it('prefixes in-app paths with the locale', () => {
     expect(accountPaths('en')).toContainEqual({
-      labelKey: 'auth.account.profile',
+      labelKey: 'account.profile',
       href: '/en/account',
     });
     expect(accountPaths('en')).toContainEqual({
-      labelKey: 'auth.sessions.nav',
+      labelKey: 'account.sessions',
       href: '/en/account/sessions',
     });
   });
@@ -22,7 +24,7 @@ describe('account links', () => {
     // `localeHref` leaves absolute URLs alone, so nothing downstream adds this
     // prefix — omit it and an English reader lands back in Spanish.
     expect(accountUrls('http://localhost:3002', 'en')).toContainEqual({
-      labelKey: 'auth.account.profile',
+      labelKey: 'account.profile',
       href: 'http://localhost:3002/en/account',
     });
   });
