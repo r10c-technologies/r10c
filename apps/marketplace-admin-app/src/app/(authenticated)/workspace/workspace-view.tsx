@@ -5,7 +5,7 @@ import {
   makeInMemoryReactiveChannel,
   useReactiveInvalidation,
 } from '@r10c/entifix-react-integration';
-import { LocaleLink, WorkspaceShell } from '@r10c/shells-next-common';
+import { WorkspaceShell } from '@r10c/shells-next-common';
 
 import { workspaceRegistry } from './workspace-registry';
 
@@ -13,15 +13,12 @@ import { workspaceRegistry } from './workspace-registry';
 // seam is wired so a real socket drops in without touching the workspace.
 const reactiveChannel = makeInMemoryReactiveChannel();
 
-// Catalog keys, not copy — the workspace sidebar mirrors `lib/nav`, and two
-// lists of rendered labels would drift the moment one is translated.
-const NAV = [
-  { labelKey: 'admin.nav.products', param: 'catalog:product' },
-  { labelKey: 'admin.nav.brands', param: 'catalog:product-brand' },
-  { labelKey: 'admin.nav.categories', param: 'catalog:product-category' },
-] as const;
-
-/** The marketplace-admin tab workspace, wired to the catalog registry. */
+/**
+ * The marketplace-admin tab workspace, wired to the catalog registry.
+ * Sidebar navigation (including "open in workspace" links) comes from the
+ * host `(authenticated)/layout.tsx` — this view is only the tab strip + body,
+ * so there is exactly one, permission-filtered nav list instead of two.
+ */
 export function WorkspaceView() {
   const t = useT('app');
   const shellT = useT('shell');
@@ -30,20 +27,6 @@ export function WorkspaceView() {
   return (
     <WorkspaceShell
       registry={workspaceRegistry}
-      brand={t('admin.brand')}
-      nav={
-        <nav className="flex flex-col gap-3xs">
-          {NAV.map(item => (
-            <LocaleLink
-              key={item.param}
-              href={`/workspace?tab=${encodeURIComponent(item.param)}`}
-              className="rounded-md px-2xs py-3xs text-step-sm text-content-muted transition hover:bg-surface hover:text-content"
-            >
-              {t(item.labelKey)}
-            </LocaleLink>
-          ))}
-        </nav>
-      }
       actions={
         <Menu>
           <Menu.Trigger>◍ {t('admin.menu.trigger')} ▾</Menu.Trigger>

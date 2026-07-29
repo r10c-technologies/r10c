@@ -23,7 +23,10 @@
         "options": {
           "command": "next dev -p 3000",
           "cwd": "apps/marketplace-app"
-        }
+        },
+        "dependsOn": [
+          "free-ports"
+        ]
       },
       "start": {
         "executor": "nx:run-commands",
@@ -32,10 +35,11 @@
           "cwd": "apps/marketplace-app"
         }
       },
-      "dev-w-deps": {
+      "free-ports": {
         "executor": "nx:run-commands",
+        "cache": false,
         "options": {
-          "command": "pnpm nx run-many --projects=marketplace-app --target=watch-deps,dev --parallel"
+          "command": "bash tools/free-ports.sh 3000"
         }
       }
     }

@@ -1,7 +1,14 @@
 import { can, type Permission } from '@r10c/business-ts-authz';
 import type { NavSection } from '@r10c/shells-next-common';
 
-/** A nav item plus the permission its destination needs, if any. */
+/**
+ * A nav item plus the permission its destination needs, if any.
+ *
+ * `label`/`title` are **namespace-qualified** catalog keys. The shell renders
+ * this list but does not own its copy, so the namespace has to travel with the
+ * key — and writing it out is what makes an `app:` key visible to the lint rule
+ * that keeps those keys inside `apps/`.
+ */
 export interface GuardedNavItem {
   label: string;
   href: string;
@@ -34,24 +41,24 @@ const CATALOG = 'product-configuration-management';
  */
 export const NAV: GuardedNavSection[] = [
   {
-    title: 'admin.nav.catalog',
+    title: 'app:admin.nav.catalog',
     items: [
       {
-        label: 'admin.nav.products',
+        label: 'app:admin.nav.products',
         href: '/catalog/product',
         icon: '▦',
         workspace: 'catalog:product',
         permission: `${CATALOG}:product:read`,
       },
       {
-        label: 'admin.nav.brands',
+        label: 'app:admin.nav.brands',
         href: '/catalog/product-brand',
         icon: '◈',
         workspace: 'catalog:product-brand',
         permission: `${CATALOG}:product-brand:read`,
       },
       {
-        label: 'admin.nav.categories',
+        label: 'app:admin.nav.categories',
         href: '/catalog/product-category',
         icon: '⊞',
         workspace: 'catalog:product-category',
@@ -60,8 +67,8 @@ export const NAV: GuardedNavSection[] = [
     ],
   },
   {
-    title: 'admin.nav.account',
-    items: [{ label: 'admin.nav.account', href: '/account', icon: '◕' }],
+    title: 'app:admin.nav.account',
+    items: [{ label: 'app:admin.nav.account', href: '/account', icon: '◕' }],
   },
 ];
 

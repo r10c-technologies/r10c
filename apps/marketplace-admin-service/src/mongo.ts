@@ -6,15 +6,23 @@ import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
-import { AmqpEventBusLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
+import {
+  AmqpEventBusLayer,
+  AmqpHealthProbeLayer,
+  AmqpLayer,
+} from '@r10c/entifix-ts-amqp-client';
 import {
   ConfigurationRepositoryTag,
   TokenServiceTag,
 } from '@r10c/entifix-ts-business';
 import { ConfigurationStoreInMemory } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
-import { MongoDatabaseLayer } from '@r10c/entifix-ts-mongo-client';
 import {
+  MongoDatabaseLayer,
+  MongoHealthProbeLayer,
+} from '@r10c/entifix-ts-mongo-client';
+import {
+  RedisHealthProbeLayer,
   RedisLayer,
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
@@ -100,12 +108,24 @@ export const AppLayer = Layer.unwrapEffect(
       connections,
     );
 
+    // Every connection contributes its own readiness probe, so
+    // `/api/health/ready` describes this service without this file listing what
+    // "ready" means. `HealthRegistryTag` comes from `makeServerLayer`.
+    const withProbes = Layer.provideMerge(
+      Layer.mergeAll(
+        MongoHealthProbeLayer,
+        RedisHealthProbeLayer,
+        AmqpHealthProbeLayer,
+      ),
+      infra,
+    );
+
     // Seed depends on MongoDatabaseTag from `infra`; provideMerge keeps the
     // infra services in the output so the routes can use them. Observability
     // (logger replacement + tracer) is merged so it is active for the server.
     return Layer.merge(
       observability,
-      Layer.provideMerge(Layer.effectDiscard(seedCatalog), infra),
+      Layer.provideMerge(Layer.effectDiscard(seedCatalog), withProbes),
     );
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

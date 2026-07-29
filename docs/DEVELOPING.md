@@ -61,29 +61,89 @@ pnpm nx show projects | graph         # explore the workspace
 ## Dev targets & dependency orchestration
 
 - Backend `dev` targets are `continuous` (`@nx/js:node`) and `dependsOn`:
+  - `free-ports` — runs `tools/free-ports.sh <port>`, clearing a leftover
+    listener from a previous run (an nx task SIGKILLed, a closed terminal that
+    orphaned `next dev`) before this one binds. Every app and service has it, so
+    each clears only its own port. It kills a process **only** when that process
+    runs from inside this repo (its cwd or command line is under the repo root);
+    anything else — your other project on `:3000`, a system daemon — is reported
+    and the target fails instead, since it is not ours to kill. Override with
+    `R10C_FREE_PORTS=force`. `pnpm run dev-ports:free` sweeps every fleet port at
+    once.
   - `build`
-  - `ensure-infra` — runs `infra/local/ensure.sh`, which checks that the MongoDB
-    (`:30017`) and Postgres (`:30432`) NodePorts answer and applies the infra
-    manifests if not. It does **not** auto-`minikube start` (the `--ports` mapping
-    must be set at cluster create).
+  - `ensure-infra` — runs `infra/local/ensure.sh`, the self-heal ladder: it
+    starts a stopped minikube, applies missing manifests, waits out a rollout,
+    and restarts a wedged pod once. Healthy costs ~0.1s, so running it 3-4×
+    per boot is free. It heals nothing destructive — no data is deleted and the
+    cluster is never recreated; it exits naming `reset.sh` for those.
   - the Mongo services additionally depend on `@r10c/config-service:dev` (their
     config source), started as an Nx continuous dependency.
-- Frontends already carry `dev`; `dev-w-deps` starts an app together with its
-  backends.
 - An inferred `serve` target still exists on the webpack apps (from the
   `@nx/webpack` plugin) but `dev` is the canonical one used everywhere.
 
+### Library edits: services reload themselves, the Next apps do not
+
+Every workspace package exports an `@r10c/source` condition pointing at its
+`src/index.ts`, but only the services opt into it, so the two sides behave
+differently:
+
+- **Services** — the service webpack sets
+  `resolve.conditionNames: ['@r10c/source', …]`, so it bundles library
+  **source**; `@nx/js:node` watches the project _and its dependencies_ and
+  rebuilds + restarts (~5s). Nothing to run by hand.
+- **Frontends** — no Next config declares the condition (`next.config.js` is the
+  stock `composePlugins(withNx)`), so resolution falls through `@r10c/source` to
+  `import` → **`dist`**. A library `src` edit is invisible to a running
+  `next dev` until you run `pnpm nx build <lib>`; the app then picks the new
+  bundle up over HMR within a few seconds.
+
+The mismatch between this and the `@r10c/source` contract is tracked in
+[#34](https://github.com/r10c-technologies/r10c/issues/34) — either the apps
+gain the condition, or this stays the documented workflow.
+
+The old `dev-w-deps` target (`watch-deps` + `dev`) was removed because it
+rebuilt `dist` for the whole dependency chain on every run; the narrower
+replacement is building the one library you edited.
+
+**Service `build` targets declare `dependsOn: []`.** The inferred default is
+`^build`, and it is both useless here (the bundle inlines library source) and
+actively harmful: `@nx/js:node` force-enables `runBuildTargetDependencies` for
+any `nx:run-commands` build target (it needs the build event the CLI emits —
+see `@nx/js/src/executors/node/node.impl`), so every rebuild forked
+`nx run <service>:build`, re-entered `shells-effect-service:build` already
+running in the parent chain, and Nx killed it with
+`Recursive task invocation detected` → `Build failed, waiting for changes to
+restart…`. The service stayed dead until the next save. Cache correctness does
+not depend on `^build`: `^production` is already in the target's `inputs`, so a
+library source change still invalidates the service build.
+
 ## Local infrastructure
 
-`infra/local` is a minikube platform (MongoDB, Redis, PostgreSQL, Zitadel, and
-`otel-lgtm`) as per-platform kustomize folders. Secrets are never committed: a
-`secretGenerator` reads a git-ignored `.env` (committed `.env.example` holds
-LOCAL DEV ONLY defaults). Bring it up:
+`infra/local` is a minikube platform (MongoDB, Redis, PostgreSQL, `otel-lgtm`,
+and opt-in Zitadel) as per-platform kustomize folders. Secrets are never
+committed: a `secretGenerator` reads a git-ignored `.env` (committed
+`.env.example` holds LOCAL DEV ONLY defaults). You should not have to bring it
+up by hand:
 
 ```sh
-minikube start --ports 30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080,30000:30000,30317:30317,30318:30318
-infra/local/apply.sh    # or let a backend `dev` target's ensure-infra do it
+pnpm run mp-admin:dev        # heals whatever rung is broken, then runs the app
+pnpm run mp-admin:dev:reset  # recreate the datastores first (WIPES local data)
+pnpm run dev-infra:doctor    # read-only ladder view + the command that fixes it
 ```
+
+Reset is the answer to **bad data**, which `ensure-infra` deliberately will not
+touch: it deletes the namespace, the PVs _and_ the hostPaths (a plain
+`teardown.sh` leaves those, which is why a "reset" used to change nothing), so
+config-service re-seeds its table and auth-service reconciles its seed
+identities into an empty Mongo. `reset.sh --hard` also recreates the cluster —
+the only fix for a cluster created without the `--ports` mapping, since that is
+set at creation time.
+
+One trap worth knowing: with the docker driver a published NodePort keeps
+accepting TCP after the pod behind it is gone, so "the port answers" is not a
+health check. The ladder pairs every probe with deployment readiness.
+Manifests by hand are still `infra/local/apply.sh` (Zitadel only with
+`INFRA_INCLUDE_ZITADEL=1`); see [infra/local/README.md](../infra/local/README.md).
 
 NodePorts follow `30000 + canonical port`: Mongo `30017`, Redis `30379`,
 Postgres `30432`, Zitadel console `30080`. **`otel-lgtm`** (the local

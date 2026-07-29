@@ -22,10 +22,13 @@
   ],
   "references": [
     {
+      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/entifix/ts/core/tsconfig.lib.json"
     },
     {
-      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+      "path": "../../packages/entifix/ts/business/tsconfig.lib.json"
     }
   ]
 }

@@ -1,13 +1,14 @@
 import { createServer } from 'node:http';
 
-import {
-  HttpMiddleware,
-  HttpRouter,
-  HttpServer,
-  HttpServerResponse,
-} from '@effect/platform';
+import { HttpMiddleware, HttpRouter, HttpServer } from '@effect/platform';
 import { NodeHttpServer, NodeRuntime } from '@effect/platform-node';
+import {
+  HealthRegistryLayer,
+  HealthRegistryTag,
+} from '@r10c/entifix-ts-business';
 import { Layer } from 'effect';
+
+import { withHealthRoutes } from './health-routes.js';
 
 /**
  * Definition of an Effect-native backend service.
@@ -26,8 +27,14 @@ export interface ServiceDefinition<E, R> {
   readonly port: number;
   /** The service's routes; its `R` is satisfied by `appLayer`. */
   readonly router: HttpRouter.HttpRouter<E, R>;
-  /** Composition root providing everything `router` requires. */
-  readonly appLayer: Layer.Layer<R>;
+  /**
+   * Composition root providing everything `router` requires.
+   *
+   * It may also *require* {@link HealthRegistryTag} — that is how a client
+   * layer's readiness probe registers itself. The registry instance is provided
+   * here, once, so the probes and the `/api/health/ready` route share it.
+   */
+  readonly appLayer: Layer.Layer<R, never, HealthRegistryTag>;
 }
 
 /**
@@ -47,19 +54,18 @@ export const makeServerLayer = <E, R>(
   def: ServiceDefinition<E, R>,
   port: number = def.port,
 ) => {
-  const router = def.router.pipe(
-    HttpRouter.get(
-      '/api/health',
-      HttpServerResponse.json({ status: 'ok', service: def.name }),
-    ),
-  );
+  const router = withHealthRoutes(def.router, def.name);
 
   // Request logging + permissive CORS (frontends call these services
   // cross-origin from their dev ports). Tighten CORS per-environment later.
+  // `provideMerge` (not `provide`) so the registry the client layers registered
+  // their probes into is the same instance the readiness route reads.
+  const appLayer = def.appLayer.pipe(Layer.provideMerge(HealthRegistryLayer));
+
   return HttpServer.serve(router, app =>
     HttpMiddleware.logger(HttpMiddleware.cors()(app)),
   ).pipe(
-    Layer.provide(def.appLayer),
+    Layer.provide(appLayer),
     Layer.provide(NodeHttpServer.layer(() => createServer(), { port })),
   );
 };

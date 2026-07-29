@@ -1,11 +1,19 @@
-/** Copy owned by the three Next apps, one sub-tree per app. */
+/**
+ * Copy owned by the three Next apps, one sub-tree per app.
+ *
+ * Only what an app authors. Chrome the shells render — breadcrumb root, the
+ * account destinations, sign out — belongs to `shell`, and theme captions to
+ * `controls`; nothing outside `apps/` may reference a key from here.
+ */
 export const app = {
   admin: {
     brand: 'r10c Admin',
-    home: 'Admin',
     title: 'r10c · Administración del marketplace',
     description: 'Back-office del marketplace r10c.',
     nav: {
+      // `//home`, where middleware lands an authenticated visitor. Not the
+      // breadcrumb root — that is the shell's `shell:breadcrumbs.home`.
+      dashboard: 'Panel',
       catalog: 'Catálogo',
       products: 'Productos',
       brands: 'Marcas',
@@ -21,27 +29,25 @@ export const app = {
       title: 'Cuenta',
       signedIn: 'Sesión iniciada',
       verified: 'Identidad verificada por marketplace-admin-service.',
-      failed: 'No pudimos verificar tu sesión con el backend. Inicia sesión de nuevo.',
+      failed:
+        'No pudimos verificar tu sesión con el backend. Inicia sesión de nuevo.',
       userId: 'ID de usuario:',
       subject: 'Sujeto:',
       session: 'Sesión:',
       roles: 'Roles:',
       none: '(ninguno)',
-      signOut: 'Cerrar sesión',
       signingOut: 'Cerrando sesión…',
     },
     playground: 'Laboratorio del sistema de diseño',
   },
   auth: {
     brand: 'r10c Identity',
-    home: 'Identidad',
     title: 'r10c · Identidad',
     description: 'Inicia sesión en la flota r10c.',
     nav: {
       identity: 'Identidad',
       users: 'Usuarios',
       newUser: 'Nuevo usuario',
-      account: 'Mi cuenta',
       accountSection: 'Cuenta',
     },
     account: {
@@ -49,7 +55,6 @@ export const app = {
       title: 'Mi cuenta',
       subtitle: 'Tu identidad y tu acceso a la flota r10c.',
       menu: 'Cuenta',
-      profile: 'Perfil',
       identifiers: 'Identificadores',
       noIdentifiers: 'Sin identificadores registrados.',
       userId: 'ID de usuario',
@@ -57,14 +62,12 @@ export const app = {
       session: 'Sesión',
       roles: 'Roles',
       none: 'Ninguno',
-      signOut: 'Cerrar sesión',
       failed: 'No pudimos cargar tu cuenta.',
     },
     password: {
       overline: 'Seguridad',
       title: 'Cambiar contraseña',
       subtitle: 'Cerraremos tus demás sesiones al terminar.',
-      nav: 'Contraseña',
       current: 'Contraseña actual',
       next: 'Nueva contraseña',
       confirm: 'Repite la nueva contraseña',
@@ -96,7 +99,6 @@ export const app = {
       overline: 'Seguridad',
       title: 'Sesiones activas',
       subtitle: 'Dónde has iniciado sesión. Cierra las que no reconozcas.',
-      nav: 'Sesiones',
       current: 'Este dispositivo',
       unknownDevice: 'Dispositivo desconocido',
       startedAt: 'Iniciada',
@@ -164,15 +166,5 @@ export const app = {
       ghost: 'Fantasma',
       checkout: 'Pagar',
     },
-  },
-  themes: {
-    aurora: 'Aurora',
-    sunset: 'Atardecer',
-    midnight: 'Medianoche',
-    ocean: 'Océano (en runtime)',
-    marketplace: 'Marketplace',
-    marketplaceDark: 'Marketplace oscuro',
-    auth: 'Identidad',
-    authDark: 'Identidad oscura',
   },
 };

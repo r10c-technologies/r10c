@@ -1,3 +1,4 @@
+import { localeHref } from '@r10c/entifix-ts-i18n/routing';
 import {
   rememberLocale,
   resolveLocale,
@@ -46,6 +47,16 @@ export function middleware(request: NextRequest) {
       new URL(locale.pathname, request.nextUrl.origin).toString(),
     );
     const response = NextResponse.redirect(signin);
+    rememberLocale(response, locale.locale);
+    return response;
+  }
+
+  // Root has nothing of its own to show — send an authenticated visitor
+  // straight to the dashboard rather than the placeholder root page.
+  if (locale.pathname === '/') {
+    const target = request.nextUrl.clone();
+    target.pathname = localeHref(locale.locale, '/home');
+    const response = NextResponse.redirect(target);
     rememberLocale(response, locale.locale);
     return response;
   }

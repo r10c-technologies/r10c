@@ -42,7 +42,8 @@ export default async function BackOfficeLayout({
   const locale = await getRequestLocale();
   const t = await getServerT('app');
   // Nav labels are keys held in a route table, so they need the widened form.
-  const translateKey = await getServerTranslateKey('app');
+  // Unbound: the table carries its own `app:` / `shell:` prefixes.
+  const translateKey = await getServerTranslateKey();
 
   return (
     <BackOfficeShell
@@ -53,16 +54,8 @@ export default async function BackOfficeLayout({
         new: t('auth.nav.newUser'),
         account: t('auth.account.title'),
       }}
-      homeLabel={t('auth.home')}
       accountMenu={
-        <AccountMenu
-          label={principal.subject}
-          items={accountPaths(locale).map(link => ({
-            label: translateKey(link.labelKey),
-            href: link.href,
-          }))}
-          signOutLabel={t('auth.account.signOut')}
-        />
+        <AccountMenu label={principal.subject} items={accountPaths(locale)} />
       }
     >
       {children}

@@ -127,6 +127,53 @@ Every service also exposes `GET /api/config` returning its own loaded parameters
 (credentials redacted) for diagnostics. Boot order:
 `Postgres → config-service → (mongo services)`.
 
+### Health: liveness vs readiness
+
+Every app **and** service answers three endpoints — `/api/health` (unchanged,
+what Playwright's `readyPath` waits on), `/api/health/live`, `/api/health/ready`.
+They are containerisation-ready today even though nothing is containerised yet.
+
+| Probe     | Question               | Depends on                    | What an orchestrator does  |
+| --------- | ---------------------- | ----------------------------- | -------------------------- |
+| liveness  | is the process wedged? | **nothing**                   | restarts the pod           |
+| readiness | can it serve now?      | Mongo / Redis / AMQP / config | drains traffic, no restart |
+
+**Liveness must never check a dependency.** A liveness probe wired to Mongo
+turns a datastore blip into "every replica restarts" — an outage the probe
+caused. Readiness answers `200`, or `503 {status:'degraded', failing:[…]}` with
+probe **names** only: the endpoint is unauthenticated by necessity, so it never
+returns a URI, host, or driver message.
+
+Backends build the answer from a **probe registry** (`HealthRegistryTag` in
+`@r10c/entifix-ts-business`): `MongoHealthProbeLayer`, `RedisHealthProbeLayer`
+and `AmqpHealthProbeLayer` ship with the clients they describe, so a service
+that gains a datastore gains its readiness probe by merging one layer — nothing
+in the service hand-maintains a list that can drift. `makeServerLayer` provides
+the registry (`Layer.provideMerge`, so probes and the route share one instance)
+and mounts the routes.
+
+Two properties the implementation is load-bearing on:
+
+- **Every probe is deadlined** (2s, in the registry). ioredis queues commands
+  while disconnected instead of rejecting, so without it `/api/health/ready`
+  _hangs_ the moment a datastore disappears — exactly when it must answer.
+- **Results are cached ~1s**, so an unauthenticated endpoint cannot be used as
+  a free lever on the datastore.
+
+Apps check only their own configuration, never the domain backend: cascading
+readiness turns one degraded service into a fleet-wide outage, and a page that
+renders against a degraded backend is still worth serving.
+
+Clients recover on their own rather than being restarted: Mongo and Redis retry
+the initial connect with backoff (30s window, so a service that boots while
+infra is still rolling out survives), and Redis carries an explicit
+`retryStrategy` plus `enableOfflineQueue: false` so a dropped connection
+re-establishes and commands fail fast meanwhile. Measured on a live stack:
+`ready` → Redis scaled to 0 → `503 failing:["redis"]` → Redis back → `200`
+within 7s, no restart. **RabbitMQ does not reconnect on its own** (amqplib has
+no recovery); its probe reports the truth, and connection recovery there is
+still open.
+
 ## Observability & tooling
 
 Instrument once against **OTLP** (vendor-neutral), so the storage backend is a
@@ -179,7 +226,7 @@ short-lived signed token, chosen over a bare JWT so a session is revocable):
 - **Session lifetime is sliding-under-a-ceiling**: idle 1 day, absolute 7 days,
   access token 15 min, all five constants in one `scope:shared` module
   (`business-ts-authn/values/session-policy.ts`) because the service and every
-  app need the same numbers. What slides the session is *user* activity, not
+  app need the same numbers. What slides the session is _user_ activity, not
   traffic: `requirePrincipal` stays stateless and never reads Redis, so the
   browser's `useSessionRefresh` hook (`@r10c/shells-next-common`) refreshes at
   80% of the token's life and **stops after 15 minutes without interaction** —

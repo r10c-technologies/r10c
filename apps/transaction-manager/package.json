@@ -23,7 +23,8 @@
               "--config-node-env=development"
             ]
           }
-        }
+        },
+        "dependsOn": []
       },
       "prune-lockfile": {
         "dependsOn": [
@@ -71,6 +72,7 @@
         "executor": "@nx/js:node",
         "defaultConfiguration": "development",
         "dependsOn": [
+          "free-ports",
           "build",
           "ensure-infra",
           {
@@ -94,6 +96,13 @@
       "test": {
         "options": {
           "passWithNoTests": true
+        }
+      },
+      "free-ports": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/free-ports.sh 3103"
         }
       }
     }

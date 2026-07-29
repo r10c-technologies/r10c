@@ -1,9 +1,23 @@
 import type { Locale } from '@r10c/entifix-ts-i18n';
 
+/**
+ * The catalog keys naming these destinations, in the `shell` namespace.
+ *
+ * They are keys of `shell` and not of `app` because this list is shell-owned:
+ * the module that authors a string owns its catalog entry and resolves it. When
+ * they lived under `app:auth.*`, every host app had to resolve a key belonging
+ * to a *different* app's sub-tree just to render this menu.
+ *
+ * Typed as a union rather than `string` so `useT('shell')` still checks them —
+ * no `useTranslateKey` escape hatch is needed to render the menu.
+ */
+export type AccountLabelKey =
+  'account.profile' | 'account.password' | 'account.sessions';
+
 /** An account destination: a catalog key plus the path it lives at. */
 export interface AccountDestination {
-  /** Key in the `app` namespace. */
-  readonly labelKey: string;
+  /** Key in the `shell` namespace, resolved by whichever control renders it. */
+  readonly labelKey: AccountLabelKey;
   /** Path within auth-app, with no locale prefix. */
   readonly path: string;
 }
@@ -20,13 +34,13 @@ export interface AccountDestination {
  * here.
  */
 export const ACCOUNT_DESTINATIONS: readonly AccountDestination[] = [
-  { labelKey: 'auth.account.profile', path: '/account' },
-  { labelKey: 'auth.password.nav', path: '/account/password' },
-  { labelKey: 'auth.sessions.nav', path: '/account/sessions' },
+  { labelKey: 'account.profile', path: '/account' },
+  { labelKey: 'account.password', path: '/account/password' },
+  { labelKey: 'account.sessions', path: '/account/sessions' },
 ];
 
 export interface AccountLink {
-  readonly labelKey: string;
+  readonly labelKey: AccountLabelKey;
   readonly href: string;
 }
 

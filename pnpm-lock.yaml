@@ -472,6 +472,9 @@ importers:
       '@effect/sql-pg':
         specifier: 0.53.0
         version: 0.53.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0)
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/business
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/core
@@ -868,6 +871,9 @@ importers:
       '@r10c/entifix-transactions':
         specifier: workspace:*
         version: link:../transactions
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../business
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../core

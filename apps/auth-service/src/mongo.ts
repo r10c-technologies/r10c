@@ -20,8 +20,10 @@ import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
   MongoDatabaseLayer,
   MongoDatabaseTag,
+  MongoHealthProbeLayer,
 } from '@r10c/entifix-ts-mongo-client';
 import {
+  RedisHealthProbeLayer,
   RedisLayer,
   RedisOneTimeTokenStoreLayer,
   RedisSessionStoreLayer,
@@ -222,10 +224,18 @@ export const AppLayer = Layer.unwrapEffect(
     // The identity provider consumes the session store + account repo.
     const withIdentity = Layer.provideMerge(IdentityProviderLayer, stores);
 
+    // Readiness probes ship with the clients they describe, so this service
+    // never hand-maintains a list of what "ready" means. `HealthRegistryTag` is
+    // provided by `makeServerLayer`, which is also what reads the probes back.
+    const withProbes = Layer.provideMerge(
+      Layer.mergeAll(MongoHealthProbeLayer, RedisHealthProbeLayer),
+      withIdentity,
+    );
+
     // Seed users + their credentials once everything is wired.
     const seed = Layer.effectDiscard(
       Effect.all([seedUsers, seedCredentials], { discard: true }),
     );
-    return Layer.provideMerge(seed, withIdentity);
+    return Layer.provideMerge(seed, withProbes);
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

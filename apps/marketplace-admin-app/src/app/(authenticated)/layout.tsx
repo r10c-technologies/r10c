@@ -16,11 +16,16 @@ import { navRoles } from '../../lib/roles';
 const AUTH_APP_URL = process.env.AUTH_APP_URL ?? 'http://localhost:3002';
 
 /**
+ * The `BackOfficeShell` wrapper for every authenticated page — home, account,
+ * catalog, and the workspace. `/workspace` renders `WorkspaceShell` inside it,
+ * which is only a tab strip + body (no sidebar/top bar of its own), so nesting
+ * never doubles the chrome.
+ *
  * Renders only the nav entries the caller's roles grant. The definition lives
  * in `lib/nav` and is shared with `/api/menu`, so the sidebar and the workspace
  * menu cannot disagree.
  */
-export default async function BackOfficeLayout({
+export default async function AuthenticatedLayout({
   children,
 }: {
   children: ReactNode;
@@ -29,12 +34,15 @@ export default async function BackOfficeLayout({
   const locale = await getRequestLocale();
   const t = await getServerT('app');
   // Nav labels are keys held in a route table, so they need the widened form.
-  const translateKey = await getServerTranslateKey('app');
+  // Unbound: the table carries its own `app:` / `shell:` prefixes, because the
+  // shell renders it but does not own all of its copy.
+  const translateKey = await getServerTranslateKey();
 
   // Crumb labels are keyed by URL segment, which is a routing token — the shell
   // cannot know which namespace an app keeps its route names in, so the host
   // resolves them.
   const breadcrumbLabels: Record<string, string> = {
+    home: t('admin.nav.dashboard'),
     catalog: t('admin.nav.catalog'),
     product: t('admin.nav.products'),
     'product-brand': t('admin.nav.brands'),
@@ -47,15 +55,10 @@ export default async function BackOfficeLayout({
       nav={sidebarNav(roles, translateKey)}
       brand={t('admin.brand')}
       breadcrumbLabels={breadcrumbLabels}
-      homeLabel={t('admin.home')}
       accountMenu={
         <AccountMenu
           label={t('admin.nav.account')}
-          items={accountUrls(AUTH_APP_URL, locale).map(link => ({
-            label: translateKey(link.labelKey),
-            href: link.href,
-          }))}
-          signOutLabel={t('admin.account.signOut')}
+          items={accountUrls(AUTH_APP_URL, locale)}
           signOutRedirect={AUTH_APP_URL}
         />
       }

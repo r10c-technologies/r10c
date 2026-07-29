@@ -27,6 +27,7 @@
           "cwd": "apps/marketplace-admin-app"
         },
         "dependsOn": [
+          "free-ports",
           {
             "projects": [
               "@r10c/marketplace-admin-service",
@@ -44,10 +45,11 @@
           "cwd": "apps/marketplace-admin-app"
         }
       },
-      "dev-w-deps": {
+      "free-ports": {
         "executor": "nx:run-commands",
+        "cache": false,
         "options": {
-          "command": "pnpm nx run-many --projects=marketplace-admin-app --target=watch-deps,dev --parallel"
+          "command": "bash tools/free-ports.sh 3001"
         }
       }
     }

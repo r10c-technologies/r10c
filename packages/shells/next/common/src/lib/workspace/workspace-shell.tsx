@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  Sidebar,
   Tab,
   TabStrip,
   TopBar,
@@ -18,11 +17,7 @@ import { useTabsStore } from './tabs-store';
 export interface WorkspaceShellProps {
   /** Resolves `?tab=` values to renderable tabs. */
   registry: TabRegistry;
-  /** Sidebar navigation (a `SidebarNav`, say). */
-  nav: ReactNode;
-  /** Brand mark in the top bar. */
-  brand: ReactNode;
-  /** Right-aligned top-bar actions (search, the user menu). */
+  /** Right-aligned actions above the tab strip (search, the user menu). */
   actions?: ReactNode;
   /** Body when the URL addresses a tab kind that is not registered. */
   fallback?: ReactNode;
@@ -31,16 +26,16 @@ export interface WorkspaceShellProps {
 }
 
 /**
- * The tab workspace: a top bar, a sidebar, and a strip of persisted tabs over
- * the active tab's body. The open set lives in {@link useTabsStore} (IndexedDB);
- * the URL's `?tab=` projects only the active tab, so a deep link opens or
- * focuses exactly that tab and an unknown kind shows the fallback instead of
- * crashing.
+ * The tab workspace: a strip of persisted tabs over the active tab's body — no
+ * sidebar or brand of its own. It is mounted inside a host shell (the
+ * back-office layout, say) that already supplies those, so nesting two
+ * sidebars never happens. The open set lives in {@link useTabsStore}
+ * (IndexedDB); the URL's `?tab=` projects only the active tab, so a deep link
+ * opens or focuses exactly that tab and an unknown kind shows the fallback
+ * instead of crashing.
  */
 export function WorkspaceShell({
   registry,
-  nav,
-  brand,
   actions,
   fallback,
   emptyState,
@@ -88,9 +83,19 @@ export function WorkspaceShell({
   }, [urlTab, registry, open, translate]);
 
   // Project the active tab back to the URL so it stays shareable.
+  //
+  // The active tab is read from the *committed* store rather than from this
+  // render's snapshot. Following a link to a second tab changes the URL one
+  // commit before the store catches up, so the snapshot still names the
+  // previously active tab — writing that back would undo the navigation, the
+  // effect above would re-open the URL's tab, and the two would trade the
+  // address bar back and forth forever (a visible flicker between, say, brands
+  // and categories). The effect above runs first in the same commit, so by the
+  // time this one reads the store the URL's tab is already active.
   useEffect(() => {
-    if (activeParam && activeParam !== urlTab) {
-      router.replace(`${pathname}?tab=${encodeURIComponent(activeParam)}`);
+    const active = useTabsStore.getState().activeParam;
+    if (active && active !== urlTab) {
+      router.replace(`${pathname}?tab=${encodeURIComponent(active)}`);
     }
   }, [activeParam, urlTab, pathname, router]);
 
@@ -110,53 +115,39 @@ export function WorkspaceShell({
       : emptyState;
 
   return (
-    <Sidebar gap="none" className="min-h-screen">
-      <Sidebar.Side
-        as="aside"
-        width="16rem"
-        className="flex flex-col gap-m border-r border-border bg-surface-elevated p-s md:sticky md:top-0 md:h-screen md:overflow-y-auto"
-      >
-        <div className="px-2xs py-3xs text-step-1 font-semibold text-content">
-          {brand}
-        </div>
-        {nav}
-      </Sidebar.Side>
+    <div className="flex min-w-0 flex-1 flex-col">
+      <TopBar>
+        <TopBar.Actions>
+          {activeParam && (
+            <button
+              type="button"
+              onClick={() => copyDeepLink(activeParam)}
+              className="rounded-md px-2xs py-3xs text-step-sm text-content-muted transition hover:bg-surface hover:text-content"
+            >
+              {t('workspace.copyLink')}
+            </button>
+          )}
+          {actions}
+        </TopBar.Actions>
+      </TopBar>
 
-      <Sidebar.Main as="main" className="flex min-w-0 flex-col">
-        <TopBar>
-          <TopBar.Brand>{brand}</TopBar.Brand>
-          <TopBar.Actions>
-            {activeParam && (
-              <button
-                type="button"
-                onClick={() => copyDeepLink(activeParam)}
-                className="rounded-md px-2xs py-3xs text-step-sm text-content-muted transition hover:bg-surface hover:text-content"
-              >
-                {t('workspace.copyLink')}
-              </button>
-            )}
-            {actions}
-          </TopBar.Actions>
-        </TopBar>
+      <TabStrip>
+        {tabs.map(tab => (
+          <Tab
+            key={tab.param}
+            // Re-derived from the registry rather than read back from the
+            // store: the persisted title is whatever locale it was opened
+            // in, so a locale switch would leave stale captions behind.
+            label={registry.resolve(tab.param, translate)?.title ?? tab.title}
+            active={tab.param === activeParam}
+            state={tab.param in drafts ? 'dirty' : 'idle'}
+            onSelect={() => activate(tab.param)}
+            onClose={() => handleClose(tab.param)}
+          />
+        ))}
+      </TabStrip>
 
-        <TabStrip>
-          {tabs.map(tab => (
-            <Tab
-              key={tab.param}
-              // Re-derived from the registry rather than read back from the
-              // store: the persisted title is whatever locale it was opened
-              // in, so a locale switch would leave stale captions behind.
-              label={registry.resolve(tab.param, translate)?.title ?? tab.title}
-              active={tab.param === activeParam}
-              state={tab.param in drafts ? 'dirty' : 'idle'}
-              onSelect={() => activate(tab.param)}
-              onClose={() => handleClose(tab.param)}
-            />
-          ))}
-        </TabStrip>
-
-        <div className="min-w-0 flex-1 p-m">{body}</div>
-      </Sidebar.Main>
-    </Sidebar>
+      <div className="min-w-0 flex-1 p-m">{body}</div>
+    </div>
   );
 }

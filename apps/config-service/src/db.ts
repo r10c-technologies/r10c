@@ -1,5 +1,6 @@
 import { SqlClient } from '@effect/sql';
 import { PgClient } from '@effect/sql-pg';
+import { HealthRegistryTag } from '@r10c/entifix-ts-business';
 import { Config, Effect, Layer, Redacted } from 'effect';
 
 /**
@@ -228,3 +229,33 @@ export const DbLive = Layer.provideMerge(
   Layer.effectDiscard(migrateAndSeed),
   PgClientLive,
 ).pipe(Layer.orDie);
+
+/**
+ * Readiness probe for the Postgres connection.
+ *
+ * `SELECT 1` rather than "is the pool object there": the pool survives a
+ * database that has gone away, and config-service being reachable while it
+ * cannot read `configuration` is precisely the state every other service in the
+ * fleet needs to be told about — they all resolve their settings from here.
+ *
+ * It lives in this app rather than a client package because Postgres is reached
+ * through `@effect/sql` directly, with no `entifix-ts-*-client` to carry it.
+ */
+export const PostgresHealthProbeLayer: Layer.Layer<
+  never,
+  never,
+  SqlClient.SqlClient | HealthRegistryTag
+> = Layer.effectDiscard(
+  Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    const registry = yield* HealthRegistryTag;
+
+    yield* registry.register({
+      name: 'postgres',
+      check: sql`SELECT 1`.pipe(
+        Effect.as(true),
+        Effect.catchAll(() => Effect.succeed(false)),
+      ),
+    });
+  }),
+);

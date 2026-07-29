@@ -3,7 +3,11 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "mp-admin:dev": "nx run marketplace-admin-app:dev",
+    "mp-admin:dev:reset": "bash infra/local/reset.sh && nx run marketplace-admin-app:dev",
+    "dev-infra:doctor": "bash infra/local/doctor.sh",
+    "dev-ports:free": "bash tools/free-ports.sh"
   },
   "engines": {
     "node": "26.4",

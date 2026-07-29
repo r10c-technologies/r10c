@@ -32,6 +32,13 @@ export const userIdentitySeedData: ReadonlyArray<Record<string, unknown>> = [
     role: 'user',
     identifiers: ['identifier-4'],
   },
+  {
+    id: 'user-4',
+    displayName: 'Herber',
+    status: 'active',
+    role: 'super-admin',
+    identifiers: ['identifier-5'],
+  },
 ];
 
 export const entityIdentifierSeedData: ReadonlyArray<Record<string, unknown>> =
@@ -62,6 +69,13 @@ export const entityIdentifierSeedData: ReadonlyArray<Record<string, unknown>> =
       userId: 'user-3',
       type: IdentifierType.Email,
       value: 'grace@example.com',
+      verified: true,
+    },
+    {
+      id: 'identifier-5',
+      userId: 'user-4',
+      type: IdentifierType.Email,
+      value: 'herber@superadmin.com',
       verified: true,
     },
   ];

@@ -13,6 +13,12 @@ export const shell: EsShell = {
   breadcrumbs: {
     home: 'Home',
   },
+  account: {
+    profile: 'Profile',
+    password: 'Password',
+    sessions: 'Sessions',
+    signOut: 'Sign out',
+  },
   workspace: {
     copyLink: 'Copy link',
     empty: 'No open tabs. Pick a catalog from the sidebar to start.',
