@@ -13,8 +13,7 @@ const replace = vi.fn();
 let tabParam: string | null = null;
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () =>
-    new URLSearchParams(tabParam ? { tab: tabParam } : {}),
+  useSearchParams: () => new URLSearchParams(tabParam ? { tab: tabParam } : {}),
   useRouter: () => ({ replace }),
   usePathname: () => '/workspace',
 }));
@@ -32,8 +31,6 @@ const renderShell = (actions?: boolean) =>
   render(
     <WorkspaceShell
       registry={registry}
-      nav={<nav>nav</nav>}
-      brand="r10c"
       actions={actions ? <button type="button">User</button> : undefined}
       emptyState={<div data-testid="empty">No open tabs</div>}
       fallback={<div data-testid="fallback">Unknown tab</div>}
@@ -65,7 +62,9 @@ describe('WorkspaceShell', () => {
     renderShell();
 
     expect(await screen.findByTestId('body')).toHaveTextContent('list product');
-    expect(screen.getByRole('tab', { name: /product catalog/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', { name: /product catalog/ }),
+    ).toBeInTheDocument();
   });
 
   it('copies a deep link to the active tab', async () => {
@@ -130,9 +129,10 @@ describe('WorkspaceShell', () => {
         screen.getByRole('tab', { name: /product catalog/ }),
       ).toHaveAttribute('aria-selected', 'true'),
     );
-    expect(
-      screen.getByRole('tab', { name: /brand catalog/ }),
-    ).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tab', { name: /brand catalog/ })).toHaveAttribute(
+      'aria-selected',
+      'false',
+    );
   });
 
   it('closes a clean tab without confirming', async () => {
@@ -141,10 +141,14 @@ describe('WorkspaceShell', () => {
     renderShell();
     await screen.findByTestId('body');
 
-    await user.click(screen.getByRole('button', { name: 'Cerrar product catalog' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Cerrar product catalog' }),
+    );
 
     await waitFor(() =>
-      expect(screen.queryByRole('tab', { name: /product catalog/ })).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole('tab', { name: /product catalog/ }),
+      ).not.toBeInTheDocument(),
     );
   });
 
@@ -172,10 +176,14 @@ describe('WorkspaceShell', () => {
       useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
     });
 
-    await user.click(screen.getByRole('button', { name: 'Cerrar product catalog' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Cerrar product catalog' }),
+    );
 
     expect(confirm).toHaveBeenCalled();
-    expect(screen.getByRole('tab', { name: /product catalog/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', { name: /product catalog/ }),
+    ).toBeInTheDocument();
     confirm.mockRestore();
   });
 
@@ -189,10 +197,14 @@ describe('WorkspaceShell', () => {
       useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
     });
 
-    await user.click(screen.getByRole('button', { name: 'Cerrar product catalog' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Cerrar product catalog' }),
+    );
 
     await waitFor(() =>
-      expect(screen.queryByRole('tab', { name: /product catalog/ })).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole('tab', { name: /product catalog/ }),
+      ).not.toBeInTheDocument(),
     );
     expect('catalog:product' in useDraftsStore.getState().drafts).toBe(false);
     confirm.mockRestore();

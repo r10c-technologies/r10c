@@ -29,8 +29,11 @@ pnpm nx run auth-service:dev               # :3102 (Mongo; +config-service)
 pnpm nx run transaction-manager:dev        # :3103 (Mongo + RabbitMQ; passive saga tracker)
 
 # Build / typecheck / lint / test a single project
-pnpm nx build <project>
-pnpm nx typecheck <project>
+pnpm nx build <project>       # libs: @nx/js:swc, per-file .js — never a bundler
+pnpm nx build <project> --skipTypeCheck=false   # show the declaration pass's
+                              # hidden errors (it emits the .d.ts; its diagnostics
+                              # are suppressed, so a "green" build can emit none)
+pnpm nx typecheck <project>   # tsc --build, emits the .d.ts alongside swc's .js
 pnpm nx lint <project>                        # add --fix to autofix (import sort etc.)
 pnpm nx test <project>                        # all tests in the project
 pnpm nx test <project> -- <pattern>           # single test by name/file

@@ -5,7 +5,23 @@
       "layer:entifix",
       "scope:shared",
       "entifix:react"
-    ]
+    ],
+    "sourceRoot": "packages/entifix/react/integration/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/entifix/react/integration/dist",
+          "main": "packages/entifix/react/integration/src/index.ts",
+          "tsConfig": "packages/entifix/react/integration/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      }
+    }
   },
   "version": "0.0.1",
   "type": "module",

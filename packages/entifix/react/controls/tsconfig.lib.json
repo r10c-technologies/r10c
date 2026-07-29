@@ -2,7 +2,7 @@
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "lib": ["es2022", "dom", "dom.iterable"],
+    "lib": ["es2022", "decorators", "esnext.decorators", "dom", "dom.iterable"],
     "types": [
       "node",
       "@nx/react/typings/cssmodule.d.ts",
@@ -25,6 +25,8 @@
     "src/**/*.test.js",
     "src/**/*.spec.jsx",
     "src/**/*.test.jsx",
+    "src/**/*.stories.ts",
+    "src/**/*.stories.tsx",
     "eslint.config.js",
     "eslint.config.cjs",
     "eslint.config.mjs"

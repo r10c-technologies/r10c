@@ -101,7 +101,12 @@ More rules (locked; see [[layout-primitives-decision]] in memory):
   `Object.assign(Root, { Side, Main })`; flow primitives take children.
 - **Exports are flat named** (`import { Sidebar } from '@r10c/entifix-react-controls'`).
 - Add `'use client'` only to interactive/stateful components; pure presentational
-  ones omit it.
+  ones omit it. The directive is **per file and it survives the build**: React
+  libraries compile per-file with `@nx/js:swc`, so each module keeps (or omits)
+  its own. That is why no library may be bundled — merging modules drops every
+  directive and leaves only an all-or-nothing bundle banner, which cannot describe
+  a package that mixes client and server modules. See
+  [DEVELOPING.md → How a library is built](./DEVELOPING.md#how-a-library-is-built).
 
 ## Storybook
 
