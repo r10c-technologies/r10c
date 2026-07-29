@@ -27,7 +27,11 @@ export class ProductCategory implements Entity {
   //#endregion
 
   //#region accessors
-  @accessor({ type: 'id', label: 'ID' , labelKey: 'entity:product-category.fields.id' })
+  @accessor({
+    type: 'id',
+    label: 'ID',
+    labelKey: 'entity:product-category.fields.id',
+  })
   get id(): EntityId {
     return this.#id;
   }
@@ -35,7 +39,12 @@ export class ProductCategory implements Entity {
     this.#id = value;
   }
 
-  @accessor({ type: 'string', label: 'Code' , labelKey: 'entity:product-category.fields.code' })
+  @accessor({
+    type: 'string',
+    label: 'Code',
+    labelKey: 'entity:product-category.fields.code',
+    required: true,
+  })
   get code(): string {
     return this.#code;
   }
@@ -43,7 +52,12 @@ export class ProductCategory implements Entity {
     this.#code = value;
   }
 
-  @accessor({ type: 'string', label: 'Name' , labelKey: 'entity:product-category.fields.name' })
+  @accessor({
+    type: 'string',
+    label: 'Name',
+    labelKey: 'entity:product-category.fields.name',
+    required: true,
+  })
   get name(): string {
     return this.#name;
   }
@@ -51,7 +65,11 @@ export class ProductCategory implements Entity {
     this.#name = value;
   }
 
-  @accessor({ type: 'string', label: 'Description' , labelKey: 'entity:product-category.fields.description' })
+  @accessor({
+    type: 'string',
+    label: 'Description',
+    labelKey: 'entity:product-category.fields.description',
+  })
   get description(): string | undefined {
     return this.#description;
   }

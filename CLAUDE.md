@@ -173,6 +173,21 @@ them), and everything deep is a link — loaded only when a task needs it.
 - **Frontend**: agnostic UI in `@r10c/entifix-react-controls` + tokens in
   `@r10c/entifix-style`; layout is flex-first (Every Layout, no media queries) with
   `Grid` the single CSS-Grid escape hatch. Page shells compose primitives and live in
-  the Next shells. TanStack Query **wraps** Entifix (never replaces it). See
+  the Next shells. TanStack Query **wraps** Entifix (never replaces it), and TanStack
+  Form backs `useEntityForm` behind a plain `values`/`errors`/`setField`/`submit`
+  facade so `EntityForm` stays library-agnostic. Entity validation composes
+  metadata → Standard Schema → caller callback; a schema is written against the
+  **string draft** and its messages are **catalog keys**, never sentences. See
   [docs/FRONTEND.md](docs/FRONTEND.md), [[design-system-theme]], [[layout-primitives-decision]],
   [[workspace-tabs-design]].
+- **A workspace library must never bundle a CommonJS dependency.** Rollup absorbing
+  one makes it emit an interop helper reading `typeof require`, and the inlined
+  module then calls it — which throws `dynamic usage of require is not supported`
+  against a Next app's server runtime, killing any **static prerender** that reaches
+  the library. Turbopack is not the culprit and `serverExternalPackages` /
+  `transpilePackages` cannot fix it: the shim is baked in before Next resolves
+  anything. Add the package to `external` in the library's `vite.config.ts`
+  (`react-i18next` and the TanStack Form chain both need it, for
+  `use-sync-external-store`). `entifix-react-integration`'s build fails on this by
+  itself — CI would not catch it, since every app route is currently dynamic and
+  nothing prerenders.

@@ -1,7 +1,10 @@
 import {
+  EntifixLogicError,
   EntityCollectionLink,
   type EntityFieldDescriptor,
   EntityLink,
+  type StandardSchemaV1,
+  type StandardSchemaV1Issue,
 } from '@r10c/entifix-ts-core';
 
 import type { EntityFormValues } from './use-entity-form.types';
@@ -45,6 +48,32 @@ export function seedEntityDraft(
   return draft;
 }
 
+/** The slice of a form field's state this module reads: its error list. */
+export interface FieldErrorMeta {
+  errors?: readonly unknown[];
+}
+
+/**
+ * Flattens the form engine's per-field state into the `name → message` map the
+ * agnostic `EntityForm` renders. Only the first message per field survives: a
+ * row shows one line, and the metadata rules already stop at the first failure.
+ *
+ * Kept structural rather than typed against the engine so the rest of this
+ * module stays independent of which form library backs the hook.
+ */
+export function readFieldErrors(
+  fieldMeta: Partial<Record<string, FieldErrorMeta | undefined>>,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  for (const [name, meta] of Object.entries(fieldMeta)) {
+    const message = meta?.errors?.find(entry => typeof entry === 'string');
+    if (typeof message === 'string') errors[name] = message;
+  }
+
+  return errors;
+}
+
 /**
  * The four metadata-derived messages, already localized. Taken as an argument
  * rather than built here so this stays a pure function — and because the
@@ -60,15 +89,16 @@ export interface EntityDraftMessages {
 
 /**
  * Validates a draft against what the metadata implies — `required` members must
- * be filled, and a filled `number`/`date`/`enum` must be well-formed — then
- * layers any caller rules on top (which win on conflict). Read-only members and
- * relations are skipped: neither is edited through this form.
+ * be filled, and a filled `number`/`date`/`enum` must be well-formed. Read-only
+ * members and relations are skipped: neither is edited through this form.
+ *
+ * Metadata is only the first of three rule sources; {@link composeEntityFormErrors}
+ * is what layers a schema and the caller's own rules over this.
  */
 export function validateEntityDraft(
   descriptors: readonly EntityFieldDescriptor[],
   values: EntityFormValues,
   messages: EntityDraftMessages,
-  validate?: (values: EntityFormValues) => Record<string, string>,
 ): Record<string, string> {
   const errors: Record<string, string> = {};
 
@@ -99,5 +129,91 @@ export function validateEntityDraft(
     }
   }
 
-  return { ...errors, ...(validate?.(values) ?? {}) };
+  return errors;
+}
+
+/** The head of an issue's path — the field it belongs to, if it names one. */
+function issueFieldName(issue: StandardSchemaV1Issue): string | undefined {
+  const head = issue.path?.[0];
+  if (head == null) return undefined;
+  return String(typeof head === 'object' && 'key' in head ? head.key : head);
+}
+
+/**
+ * Runs a Standard Schema over the draft and sorts its issues into per-field
+ * messages plus a form-level one (an issue with no path — a cross-field rule).
+ *
+ * **Schemas are authored against the string draft**, so they coerce
+ * (`z.coerce.number()`) rather than expect typed values: the draft is what the
+ * inputs round-trip, and the same schema then validates exactly what the user
+ * sees. Only the first issue per field survives, matching how a row renders.
+ *
+ * Synchronous rules only. An async schema returns a Promise the form's
+ * synchronous validation pass cannot wait on, so it is rejected loudly rather
+ * than silently passing.
+ */
+export function readSchemaIssues(
+  schema: StandardSchemaV1,
+  values: EntityFormValues,
+  translateIssue: (message: string, field: string | undefined) => string,
+): { fields: Record<string, string>; form?: string } {
+  const result = schema['~standard'].validate(values);
+
+  if (result instanceof Promise) {
+    throw new EntifixLogicError(
+      'useEntityForm cannot run an async schema: its validation pass is ' +
+        'synchronous. Move the asynchronous rule into the `validate` option.',
+    );
+  }
+  if (!result.issues) return { fields: {} };
+
+  const fields: Record<string, string> = {};
+  let form: string | undefined;
+
+  for (const issue of result.issues) {
+    const name = issueFieldName(issue);
+    const message = translateIssue(issue.message, name);
+
+    if (name === undefined) form ??= message;
+    else fields[name] ??= message;
+  }
+
+  return { fields, form };
+}
+
+/** Everything {@link composeEntityFormErrors} needs to judge one draft. */
+export interface ComposeEntityFormErrorsOptions {
+  descriptors: readonly EntityFieldDescriptor[];
+  values: EntityFormValues;
+  messages: EntityDraftMessages;
+  schema?: StandardSchemaV1;
+  translateIssue: (message: string, field: string | undefined) => string;
+  validate?: (values: EntityFormValues) => Record<string, string>;
+}
+
+/**
+ * The single composition point for a draft's errors: metadata rules first, then
+ * the entity's schema, then the caller's `validate` callback. Later sources win
+ * on conflict, so a caller can always override a message it disagrees with.
+ */
+export function composeEntityFormErrors({
+  descriptors,
+  values,
+  messages,
+  schema,
+  translateIssue,
+  validate,
+}: ComposeEntityFormErrorsOptions): {
+  fields: Record<string, string>;
+  form?: string;
+} {
+  const metadata = validateEntityDraft(descriptors, values, messages);
+  const schemaIssues = schema
+    ? readSchemaIssues(schema, values, translateIssue)
+    : { fields: {}, form: undefined };
+
+  return {
+    fields: { ...metadata, ...schemaIssues.fields, ...validate?.(values) },
+    form: schemaIssues.form,
+  };
 }

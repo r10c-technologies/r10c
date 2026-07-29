@@ -18,3 +18,4 @@ export * from './types/EntityFiltering';
 export * from './types/EntityLoadRequest';
 export * from './types/EntityPage';
 export * from './types/EntitySorting';
+export * from './types/StandardSchema';

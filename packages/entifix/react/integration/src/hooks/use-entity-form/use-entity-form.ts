@@ -2,16 +2,14 @@
 
 import { describeEntityColumns, type Entity } from '@r10c/entifix-ts-core';
 import { sharedFallbackI18n } from '@r10c/entifix-ts-i18n';
-import { useCallback, useContext, useMemo, useState } from 'react';
-import {
-  I18nContext,
-  initReactI18next,
-  useTranslation,
-} from 'react-i18next';
+import { revalidateLogic, useForm, useStore } from '@tanstack/react-form';
+import { useCallback, useContext, useMemo } from 'react';
+import { I18nContext, initReactI18next, useTranslation } from 'react-i18next';
 
 import {
+  composeEntityFormErrors,
+  readFieldErrors,
   seedEntityDraft,
-  validateEntityDraft,
 } from './use-entity-form.helpers';
 import type {
   EntityFormValues,
@@ -29,17 +27,28 @@ import type {
  * domain entity and calls the mutation. The result plugs straight into the
  * agnostic `EntityForm` (`values`/`onFieldChange`/`errors`/`onSubmit`).
  *
- * The draft is a flat `Record<string, string>`, so a bare `useState` owns it —
- * a form-state library would add a heavy dependency (and, via its
- * `use-sync-external-store` shim, a prerender-time `require` the app bundler
- * rejects) for no gain over this. The seed applies once, so a caller that loads
- * its record after mount keys the form by the record id to reseed — the same
- * convention `EntityForm`'s wrappers already follow.
+ * TanStack Form owns the draft and the submission lifecycle; that is an
+ * implementation detail, and the returned shape is deliberately the plain
+ * `values`/`errors`/`setField`/`submit`/`isDirty` facade so `EntityForm` — which
+ * renders native inputs and knows nothing about any form library — stays
+ * agnostic. Fields are therefore never registered through `form.Field`; a
+ * form-level validator reporting `{ fields }` reaches them anyway, because
+ * `FormApi` creates meta for any field name an error arrives for.
+ *
+ * `revalidateLogic` is what makes a pristine form quiet: nothing validates until
+ * the first submit, and every keystroke revalidates after it. Running one
+ * validator under a single cause also keeps a fixed field from holding a stale
+ * message left behind by another cause.
+ *
+ * The seed applies once, so a caller that loads its record after mount keys the
+ * form by the record id to reseed — the same convention `EntityForm`'s wrappers
+ * already follow.
  */
 export function useEntityForm<TEntity extends Entity>({
   entityConstructor,
   entity,
   initialValues,
+  schema,
   validate,
   onSubmit,
 }: UseEntityFormOptions<TEntity>): UseEntityFormResult {
@@ -74,34 +83,72 @@ export function useEntityForm<TEntity extends Entity>({
     [t],
   );
 
-  const [values, setValues] = useState<EntityFormValues>(seed);
-  const [submitted, setSubmitted] = useState(false);
-
-  const setField = useCallback((name: string, value: string) => {
-    setValues(previous => ({ ...previous, [name]: value }));
-  }, []);
-
-  const errors = useMemo(
-    () => validateEntityDraft(descriptors, values, messages, validate),
-    [descriptors, values, messages, validate],
+  // A schema's message is authored as a catalog key (`validation.minLength`),
+  // because a rule written in one language would reach the user untranslated —
+  // the one thing the i18n gate exists to prevent. `defaultValue` keeps an
+  // unkeyed literal readable instead of rendering the key back at the user, and
+  // `field` is offered as a parameter so a message can name its own label.
+  // The same cast `useTranslateKey` makes in the controls package, for the same
+  // reason: a key only known at runtime cannot be checked against the catalogs.
+  const translateKey = t as unknown as (
+    key: string,
+    params?: Record<string, unknown>,
+  ) => string;
+  const translateIssue = useCallback(
+    (message: string, field: string | undefined) =>
+      translateKey(message, {
+        defaultValue: message,
+        field: descriptors.find(entry => entry.name === field)?.label ?? field,
+      }),
+    [translateKey, descriptors],
   );
+
+  const form = useForm({
+    defaultValues: seed,
+    // Quiet until the first submit, then revalidate on every change — the
+    // behaviour the hand-rolled `submitted` flag used to produce.
+    validationLogic: revalidateLogic(),
+    validators: {
+      onDynamic: ({ value }: { value: EntityFormValues }) => {
+        const { fields, form } = composeEntityFormErrors({
+          descriptors,
+          values: value,
+          messages,
+          schema,
+          translateIssue,
+          validate,
+        });
+
+        if (Object.keys(fields).length === 0 && form === undefined)
+          return undefined;
+        // `{ fields }` is how a form-level validator addresses individual
+        // fields; the bare `form` message is what has no field to sit under.
+        return { form, fields };
+      },
+    },
+    onSubmit: ({ value }) => onSubmit(value),
+  });
+
+  const values = useStore(form.store, state => state.values);
+  const fieldMeta = useStore(form.store, state => state.fieldMeta);
+  const formError = useStore(form.store, state => state.errorMap.onDynamic);
+  // `isDefaultValue`, not `isDirty`: the draft is dirty when it *differs* from
+  // its seed, so editing a field and typing the seed value back is not a change
+  // the workspace should autosave.
+  const isDefaultValue = useStore(form.store, state => state.isDefaultValue);
+
+  const errors = useMemo(() => readFieldErrors(fieldMeta), [fieldMeta]);
 
   const submit = useCallback(() => {
-    setSubmitted(true);
-    if (
-      Object.keys(validateEntityDraft(descriptors, values, messages, validate))
-        .length === 0
-    ) {
-      void onSubmit(values);
-    }
-  }, [descriptors, values, messages, validate, onSubmit]);
+    void form.handleSubmit();
+  }, [form]);
 
-  const isDirty = useMemo(
-    () => JSON.stringify(values) !== JSON.stringify(seed),
-    [values, seed],
-  );
-
-  // Errors stay hidden until the first submit so a pristine form does not open
-  // covered in "required" messages.
-  return { values, errors: submitted ? errors : {}, setField, submit, isDirty };
+  return {
+    values,
+    errors,
+    formError: typeof formError === 'string' ? formError : undefined,
+    setField: form.setFieldValue,
+    submit,
+    isDirty: !isDefaultValue,
+  };
 }

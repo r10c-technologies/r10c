@@ -35,7 +35,7 @@ export class Product implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor({ type: 'id', label: 'ID' , labelKey: 'entity:product.fields.id' })
+  @accessor({ type: 'id', label: 'ID', labelKey: 'entity:product.fields.id' })
   get id(): EntityId {
     return this.#id;
   }
@@ -43,7 +43,12 @@ export class Product implements Entity {
     this.#id = value;
   }
 
-  @accessor({ type: 'string', label: 'Code' , labelKey: 'entity:product.fields.code' })
+  @accessor({
+    type: 'string',
+    label: 'Code',
+    labelKey: 'entity:product.fields.code',
+    required: true,
+  })
   get code(): string {
     return this.#code;
   }
@@ -51,7 +56,12 @@ export class Product implements Entity {
     this.#code = value;
   }
 
-  @accessor({ type: 'string', label: 'Name' , labelKey: 'entity:product.fields.name' })
+  @accessor({
+    type: 'string',
+    label: 'Name',
+    labelKey: 'entity:product.fields.name',
+    required: true,
+  })
   get name(): string {
     return this.#name;
   }
@@ -59,7 +69,11 @@ export class Product implements Entity {
     this.#name = value;
   }
 
-  @accessor({ type: 'string', label: 'Description' , labelKey: 'entity:product.fields.description' })
+  @accessor({
+    type: 'string',
+    label: 'Description',
+    labelKey: 'entity:product.fields.description',
+  })
   get description(): string | undefined {
     return this.#description;
   }
@@ -67,12 +81,20 @@ export class Product implements Entity {
     this.#description = value;
   }
 
-  @accessor({ type: 'link', label: 'Brand' , labelKey: 'entity:product.fields.brand' })
+  @accessor({
+    type: 'link',
+    label: 'Brand',
+    labelKey: 'entity:product.fields.brand',
+  })
   get brand(): EntityLink<ProductBrand> {
     return this.#brand;
   }
 
-  @accessor({ type: 'link', label: 'Category' , labelKey: 'entity:product.fields.category' })
+  @accessor({
+    type: 'link',
+    label: 'Category',
+    labelKey: 'entity:product.fields.category',
+  })
   get category(): EntityLink<ProductCategory> {
     return this.#category;
   }

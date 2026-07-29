@@ -40,7 +40,9 @@ describe('ProductBrandForm', () => {
   it('titles itself for a create when there is no record', () => {
     renderForm();
 
-    expect(screen.getByRole('heading', { name: 'Nuevo' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Nueva marca' }),
+    ).toBeInTheDocument();
   });
 
   it('titles itself for an edit and seeds the fields from the record', () => {
@@ -50,7 +52,9 @@ describe('ProductBrandForm', () => {
 
     renderForm({ entity: brand });
 
-    expect(screen.getByRole('heading', { name: 'Editar' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Editar marca' }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Nombre')).toHaveValue('Acme');
     expect(screen.getByLabelText('Descripción')).toHaveValue('A brand');
     expect(screen.getByLabelText('Sitio web')).toHaveValue('https://acme.test');
@@ -71,12 +75,26 @@ describe('ProductBrandForm', () => {
     expect(saved.website).toBe('https://acme.test');
   });
 
-  it('carries the record’s id through an update', async () => {
-    const { onSave, user } = renderForm({ entity: makeBrand('b-1', 'Acme') });
+  // `code` is assigned by the create transaction and never edited here, so an
+  // update has to carry it back — rebuilding without it blanks the identifier.
+  it('carries the record’s id and transaction-assigned code through an update', async () => {
+    const brand = makeBrand('b-1', 'Acme');
+    brand.code = 'brand-001';
+    const { onSave, user } = renderForm({ entity: brand });
 
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    expect((onSave.mock.calls[0]?.[0] as ProductBrand).id).toBe('b-1');
+    const saved = onSave.mock.calls[0]?.[0] as ProductBrand;
+    expect(saved.id).toBe('b-1');
+    expect(saved.code).toBe('brand-001');
+  });
+
+  it('keeps the assigned code off the form', () => {
+    const brand = makeBrand('b-1', 'Acme');
+    brand.code = 'brand-001';
+    renderForm({ entity: brand });
+
+    expect(screen.queryByLabelText('Código')).not.toBeInTheDocument();
   });
 
   // An empty text box means "not set", not the empty string — persisting `''`
@@ -95,15 +113,19 @@ describe('ProductBrandForm', () => {
   it('reports loading and failure', () => {
     renderForm({ isLoading: true, error: new EntifixConnError('unreachable') });
 
-    expect(screen.getByTestId('form-loading')).toBeInTheDocument();
-    expect(screen.getByTestId('form-error')).toHaveTextContent('unreachable');
+    expect(screen.getByTestId('entity-form-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('entity-form-error')).toHaveTextContent(
+      'unreachable',
+    );
   });
 
   it('offers delete only when the page provides a handler', async () => {
     const onDelete = vi.fn();
     const { user } = renderForm({ onDelete });
 
-    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Eliminar' }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Eliminar' }));
     expect(onDelete).toHaveBeenCalled();
@@ -112,7 +134,9 @@ describe('ProductBrandForm', () => {
   it('omits delete without a handler', () => {
     renderForm();
 
-    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Eliminar' }),
+    ).not.toBeInTheDocument();
   });
 
   // Any in-flight write disables every action, so a double submit or a
@@ -144,7 +168,9 @@ describe('ProductCategoryForm', () => {
   ) => {
     const onSave = vi.fn();
     const user = userEvent.setup();
-    render(<ProductCategoryForm onSave={onSave} backHref="/catalog" {...props} />);
+    render(
+      <ProductCategoryForm onSave={onSave} backHref="/catalog" {...props} />,
+    );
     return { onSave, user };
   };
 
@@ -166,7 +192,7 @@ describe('ProductCategoryForm', () => {
     renderForm();
 
     expect(
-      screen.getByRole('heading', { name: /Nuevo/i }),
+      screen.getByRole('heading', { name: 'Nueva categoría' }),
     ).toBeInTheDocument();
   });
 
@@ -188,22 +214,29 @@ describe('ProductCategoryForm', () => {
     const { onSave, user } = renderForm();
 
     await user.type(screen.getByLabelText('Código'), 'TOOLS');
+    await user.type(screen.getByLabelText('Nombre'), 'Tools');
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    expect((onSave.mock.calls[0]?.[0] as ProductCategory).description).toBeUndefined();
+    expect(
+      (onSave.mock.calls[0]?.[0] as ProductCategory).description,
+    ).toBeUndefined();
   });
 
   it('reports loading and failure', () => {
     renderForm({ isLoading: true, error: new EntifixConnError('unreachable') });
 
-    expect(screen.getByTestId('form-loading')).toBeInTheDocument();
-    expect(screen.getByTestId('form-error')).toHaveTextContent('unreachable');
+    expect(screen.getByTestId('entity-form-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('entity-form-error')).toHaveTextContent(
+      'unreachable',
+    );
   });
 
   it('offers delete only when the page provides a handler', () => {
     renderForm({ onDelete: vi.fn() });
 
-    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Eliminar' }),
+    ).toBeInTheDocument();
   });
 
   // Any in-flight write disables every action, so a double submit or a
@@ -284,6 +317,7 @@ describe('ProductForm', () => {
     const { onSave, user } = renderForm();
 
     await user.type(screen.getByLabelText('Código'), 'P-1');
+    await user.type(screen.getByLabelText('Nombre'), 'Widget');
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     const saved = onSave.mock.calls[0]?.[0] as Product;
@@ -311,7 +345,9 @@ describe('ProductForm', () => {
   it('offers delete only when the page provides a handler', () => {
     renderForm({ onDelete: vi.fn() });
 
-    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Eliminar' }),
+    ).toBeInTheDocument();
   });
 
   // Any in-flight write disables every action, so a double submit or a

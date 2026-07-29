@@ -29,8 +29,9 @@ export interface EntityFieldRenderContext {
  * A field as the form finally renders it: the metadata descriptor plus the
  * per-field overrides a caller supplied through an `<EntityField>` slot.
  */
-export interface EntityFormField<TEntity extends Entity>
-  extends EntityFieldDescriptor {
+export interface EntityFormField<
+  TEntity extends Entity,
+> extends EntityFieldDescriptor {
   /** Replaces the default edit control. */
   render?: (context: EntityFieldRenderContext) => ReactNode;
   /** Replaces the default read display. */
@@ -61,6 +62,11 @@ export interface EntityFormProps<TEntity extends Entity> {
 
   /** Per-field validation messages, keyed by field name. */
   errors?: Record<string, string>;
+  /**
+   * A validation message that belongs to no single field — a rule spanning two
+   * of them. Rendered above the actions, since no row can host it.
+   */
+  formError?: string;
 
   onSubmit?: (draft: EntityFormDraft) => void;
   onDelete?: () => void;

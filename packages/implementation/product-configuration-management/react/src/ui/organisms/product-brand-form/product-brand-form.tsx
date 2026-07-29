@@ -1,22 +1,19 @@
 'use client';
 
 import { ProductBrand } from '@r10c/business-ts-product-configuration-management';
-import {
-  Button,
-  Card,
-  Stack,
-  Text,
-  useT,
-} from '@r10c/entifix-react-controls';
-import { useState } from 'react';
+import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
+import { useEntityForm } from '@r10c/entifix-react-integration';
 
-import { fieldStyle, FormField } from '../../molecules/form-field';
 import type { ProductBrandFormProps } from './product-brand-form.types';
 
 /**
- * Create/update form for a {@link ProductBrand}. Fields seed at mount; the page
- * keys this component by the record's identity so it reseeds when the record
- * arrives. See {@link ProductCategoryForm} for the reasoning.
+ * Create/update form for a {@link ProductBrand}. A thin wrapper over the
+ * agnostic {@link EntityForm}: the generic form builds every field from the
+ * entity's metadata — labels included, through each accessor's `labelKey` — so
+ * all that is left here is reconstructing the domain instance at submit.
+ *
+ * `useEntityForm` owns the draft and seeds it once, so the page keys this
+ * component by the record id to reseed when the record arrives.
  */
 export function ProductBrandForm({
   entity,
@@ -28,85 +25,50 @@ export function ProductBrandForm({
   onDelete,
   backHref,
 }: ProductBrandFormProps) {
-  const t = useT();
   const et = useT('entity');
-  const [name, setName] = useState(() => entity?.name ?? '');
-  const [description, setDescription] = useState(
-    () => entity?.description ?? ''
-  );
-  const [website, setWebsite] = useState(() => entity?.website ?? '');
-
-  const handleSubmit = () => {
-    const target = new ProductBrand(name);
-    target.id = entity?.id;
-    target.description = description === '' ? undefined : description;
-    target.website = website === '' ? undefined : website;
-    onSave(target);
-  };
-
-  const busy = isSaving || isDeleting;
+  const form = useEntityForm<ProductBrand>({
+    entityConstructor: ProductBrand,
+    entity,
+    onSubmit: values => {
+      const target = new ProductBrand(values.name);
+      target.id = entity?.id;
+      // `code` is assigned by the create transaction, so the form hides it but
+      // still carries it back from the seeded draft — rebuilding without it
+      // would blank the record's identifier on every update. It stays a plain
+      // writable member on the entity: `readonly` would also drop it from
+      // `serializeEntity`, so it would never reach the service at all.
+      target.code = values.code === '' ? undefined : values.code;
+      target.description =
+        values.description === '' ? undefined : values.description;
+      target.website = values.website === '' ? undefined : values.website;
+      onSave(target);
+    },
+  });
 
   return (
-    <Card>
-      <Stack gap="s">
-        <Text as="h2">
-          {entity ? t('form.edit') : t('form.new')}
-        </Text>
-
-        {isLoading && <Text data-testid="form-loading">{t('form.loading')}</Text>}
-        {error && <Text data-testid="form-error">{error.message}</Text>}
-
-        <FormField label={et('product-brand.fields.name')} htmlFor="name">
-          <input
-            id="name"
-            name="name"
-            value={name}
-            onChange={event => setName(event.currentTarget.value)}
-            style={fieldStyle}
-          />
-        </FormField>
-
-        <FormField label={et('product-brand.fields.description')} htmlFor="description">
-          <input
-            id="description"
-            name="description"
-            value={description}
-            onChange={event => setDescription(event.currentTarget.value)}
-            style={fieldStyle}
-          />
-        </FormField>
-
-        <FormField label={et('product-brand.fields.website')} htmlFor="website">
-          <input
-            id="website"
-            name="website"
-            value={website}
-            onChange={event => setWebsite(event.currentTarget.value)}
-            style={fieldStyle}
-          />
-        </FormField>
-
-        <Stack direction="row" gap="xs">
-          <Button type="button" onClick={handleSubmit} disabled={busy}>
-            {isSaving ? t('form.saving') : t('form.save')}
-          </Button>
-          {onDelete && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onDelete}
-              disabled={busy}
-            >
-              {isDeleting ? t('form.deleting') : t('form.delete')}
-            </Button>
-          )}
-          <a href={backHref}>
-            <Button type="button" variant="ghost" disabled={busy}>
-              {t('form.back')}
-            </Button>
-          </a>
-        </Stack>
-      </Stack>
-    </Card>
+    <EntityForm<ProductBrand>
+      entityConstructor={ProductBrand}
+      entity={entity}
+      // The catalog forms are edit-only; the read/edit toggle is for callers
+      // that opt into it.
+      mode="edit"
+      values={form.values}
+      onFieldChange={form.setField}
+      errors={form.errors}
+      formError={form.formError}
+      onSubmit={form.submit}
+      onDelete={onDelete}
+      isLoading={isLoading}
+      isSaving={isSaving}
+      isDeleting={isDeleting}
+      error={error}
+      backHref={backHref}
+      title={et(
+        entity ? 'product-brand.form.editTitle' : 'product-brand.form.newTitle',
+      )}
+    >
+      <EntityField<ProductBrand> field="id" hidden />
+      <EntityField<ProductBrand> field="code" hidden />
+    </EntityForm>
   );
 }
