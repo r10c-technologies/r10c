@@ -1,5 +1,3 @@
-import { Entity, EntityConstructor } from '../../../types/Entity';
-
 export type MetaAccessorKind = 'getter' | 'setter';
 
 /**
@@ -74,7 +72,6 @@ export class MetaAccessor {
   readonly enumValues?: readonly string[];
   readonly enumLabelKey?: string;
   readonly linkLabelProperty?: string;
-  readonly entityConstructor?: EntityConstructor<Entity>;
 
   //#endregion
 

@@ -225,7 +225,7 @@ crashing. Sharing a whole workspace (multiple tabs in one link) is deferred.
 The two directions of that projection — URL → store and store → URL — run as separate
 effects, and **the write-back reads the committed store (`useTabsStore.getState()`), never
 this render's `activeParam`**. Following a link to a second tab changes the URL one commit
-before the store catches up, so the render snapshot still names the *previous* tab; writing
+before the store catches up, so the render snapshot still names the _previous_ tab; writing
 that back undoes the navigation, the URL → store effect re-opens the URL's tab, and the two
 trade the address bar forever — a visible flicker between the two entities. A router double
 whose `replace` actually writes `?tab=` back (`workspace-shell-url-sync.spec.tsx`) is what
@@ -265,10 +265,23 @@ client-only cache/orchestration jacket over `Effect.runPromise`.
   so the domain organisms (`EntityTable`, `ProductTable`, …) are unchanged.
 - **`useEntityForm`** is the write-side companion that feeds `EntityForm`: it owns the string
   draft (`Record<string, string>`, seeded from the record or a persisted draft) and reports
-  metadata-derived validation (`required`/type/`enum`, plus an optional caller rule). The draft
-  is flat, so a plain `useState` backs it — a form-state lib was deliberately avoided (TanStack
-  Form's `use-sync-external-store` dependency breaks the Next/Turbopack prerender, and it buys
-  nothing here). Saving stays on the Entifix mutation UCs.
+  validation. **TanStack Form** backs it, under `revalidateLogic()` — nothing validates until the
+  first submit, then every keystroke revalidates. That is an implementation detail: the hook
+  returns the plain `values`/`errors`/`formError`/`setField`/`submit`/`isDirty` facade, so
+  `EntityForm` renders native inputs and stays library-agnostic. Fields are therefore never
+  registered via `form.Field`; a form-level validator returning `{ fields }` reaches them anyway,
+  because `FormApi` creates meta for any field an error names. Saving stays on the Entifix
+  mutation UCs.
+- **Validation composes in three layers**, later winning on conflict: metadata rules
+  (`required`/type/`enum`) → the entity's **Standard Schema** → the caller's `validate` callback.
+  A schema is authored **against the string draft**, so it coerces (`z.coerce.number()`) rather
+  than expecting typed values. Its messages are **catalog keys**, never sentences
+  (`validation.minLength`, or a namespaced `entity:product.validation.…`), resolved with the
+  literal as fallback — a rule written in one language would otherwise reach the user
+  untranslated. `field` is the only interpolation parameter available, because a Standard Schema
+  issue carries a message and a path and nothing else. An issue with no path becomes `formError`,
+  which `EntityForm` renders above the actions. Schemas are synchronous; an async one throws, so
+  asynchronous checks (a uniqueness lookup) go in `validate`.
 - **Mutations** (`save`/`delete` UCs) are optimistic: `onMutate` patches the cache from the
   Zustand draft and snapshots for rollback, `onError` rolls back, `onSettled` invalidates the
   entity's query key.

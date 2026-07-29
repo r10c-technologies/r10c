@@ -26,7 +26,11 @@ export class ProductBrand implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor({ type: 'id', label: 'ID' , labelKey: 'entity:product-brand.fields.id' })
+  @accessor({
+    type: 'id',
+    label: 'ID',
+    labelKey: 'entity:product-brand.fields.id',
+  })
   get id(): EntityId {
     return this.#id;
   }
@@ -36,7 +40,11 @@ export class ProductBrand implements Entity {
 
   // Assigned by the create transaction (`brand-001`, `brand-002`, …); optional
   // because a raw payload arrives without one.
-  @accessor({ type: 'string', label: 'Code' , labelKey: 'entity:product-brand.fields.code' })
+  @accessor({
+    type: 'string',
+    label: 'Code',
+    labelKey: 'entity:product-brand.fields.code',
+  })
   get code(): string | undefined {
     return this.#code;
   }
@@ -44,7 +52,12 @@ export class ProductBrand implements Entity {
     this.#code = value;
   }
 
-  @accessor({ type: 'string', label: 'Name' , labelKey: 'entity:product-brand.fields.name' })
+  @accessor({
+    type: 'string',
+    label: 'Name',
+    labelKey: 'entity:product-brand.fields.name',
+    required: true,
+  })
   get name(): string {
     return this.#name;
   }
@@ -52,7 +65,11 @@ export class ProductBrand implements Entity {
     this.#name = value;
   }
 
-  @accessor({ type: 'string', label: 'Description' , labelKey: 'entity:product-brand.fields.description' })
+  @accessor({
+    type: 'string',
+    label: 'Description',
+    labelKey: 'entity:product-brand.fields.description',
+  })
   get description(): string | undefined {
     return this.#description;
   }
@@ -60,7 +77,11 @@ export class ProductBrand implements Entity {
     this.#description = value;
   }
 
-  @accessor({ type: 'string', label: 'Website' , labelKey: 'entity:product-brand.fields.website' })
+  @accessor({
+    type: 'string',
+    label: 'Website',
+    labelKey: 'entity:product-brand.fields.website',
+  })
   get website(): string | undefined {
     return this.#website;
   }

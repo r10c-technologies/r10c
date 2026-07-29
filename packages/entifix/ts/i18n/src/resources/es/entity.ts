@@ -30,6 +30,10 @@ export const entity = {
     },
   },
   'product-brand': {
+    form: {
+      editTitle: 'Editar marca',
+      newTitle: 'Nueva marca',
+    },
     label: 'Marca',
     plural: 'Marcas',
     fields: {
@@ -41,6 +45,10 @@ export const entity = {
     },
   },
   'product-category': {
+    form: {
+      editTitle: 'Editar categoría',
+      newTitle: 'Nueva categoría',
+    },
     label: 'Categoría',
     plural: 'Categorías',
     fields: {

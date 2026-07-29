@@ -1,16 +1,9 @@
 'use client';
 
-import {
-  describeEntityColumns,
-  type Entity,
-} from '@r10c/entifix-ts-core';
+import { describeEntityColumns, type Entity } from '@r10c/entifix-ts-core';
 import { type ReactNode, useId, useState } from 'react';
 
-import {
-  useErrorMessage,
-  useLocalizedDescriptors,
-  useT,
-} from '../../../i18n';
+import { useErrorMessage, useLocalizedDescriptors, useT } from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { CellValue } from '../../atoms/cell-value';
 import { FieldControl } from '../../atoms/field-control';
@@ -51,6 +44,7 @@ export function EntityForm<TEntity extends Entity>({
   defaultMode,
   onModeChange,
   errors,
+  formError,
   onSubmit,
   onDelete,
   isLoading = false,
@@ -77,7 +71,8 @@ export function EntityForm<TEntity extends Entity>({
   const editing = mode === 'edit';
 
   const draft: EntityFormDraft = values ?? {};
-  const setField = (name: string, value: string) => onFieldChange?.(name, value);
+  const setField = (name: string, value: string) =>
+    onFieldChange?.(name, value);
 
   const toggleMode = () => {
     const next: EntityFormMode = editing ? 'read' : 'edit';
@@ -110,7 +105,9 @@ export function EntityForm<TEntity extends Entity>({
           )}
         </Stack>
 
-        {isLoading && <Text data-testid="entity-form-loading">{t('form.loading')}</Text>}
+        {isLoading && (
+          <Text data-testid="entity-form-loading">{t('form.loading')}</Text>
+        )}
 
         {error && (
           <p
@@ -135,6 +132,14 @@ export function EntityForm<TEntity extends Entity>({
             id={`${formId}-${field.name}`}
           />
         ))}
+
+        {/* A cross-field rule has no row to sit under, so it sits with the
+            actions it blocks. */}
+        {editing && formError && (
+          <span role="alert" className="text-step-sm text-danger">
+            {formError}
+          </span>
+        )}
 
         {editing && (
           <Stack direction="row" gap="xs">
@@ -209,8 +214,7 @@ function FieldRow<TEntity extends Entity>({
     />
   );
 
-  const isRelation =
-    field.type === 'link' || field.type === 'linkCollection';
+  const isRelation = field.type === 'link' || field.type === 'linkCollection';
 
   let control: ReactNode;
   if (!editing) {

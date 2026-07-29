@@ -1,29 +1,19 @@
 'use client';
 
 import { ProductCategory } from '@r10c/business-ts-product-configuration-management';
-import {
-  Button,
-  Card,
-  Stack,
-  Text,
-  useT,
-} from '@r10c/entifix-react-controls';
-import { useState } from 'react';
+import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
+import { useEntityForm } from '@r10c/entifix-react-integration';
 
-import { fieldStyle, FormField } from '../../molecules/form-field';
 import type { ProductCategoryFormProps } from './product-category-form.types';
 
 /**
- * Create/update form for a {@link ProductCategory}.
+ * Create/update form for a {@link ProductCategory}. Like {@link ProductBrandForm},
+ * a thin wrapper over the agnostic {@link EntityForm}: every field, label and
+ * validation rule comes from the entity's own accessor metadata, and the only
+ * domain code left is rebuilding the instance at submit.
  *
- * The organism owns only the field state; it never learns the transport. It
- * hands a fully-built entity to `onSave` and lets the page decide what running
- * the use-case means.
- *
- * Fields seed from `entity` once, at mount. The record loads asynchronously, so
- * the page keys this component by the record's identity — that remounts it when
- * the record arrives (or changes) and reseeds the fields, without an effect that
- * would clobber typing on every render.
+ * It never learns the transport — it hands a fully-built entity to `onSave` and
+ * lets the page decide what running the use-case means.
  */
 export function ProductCategoryForm({
   entity,
@@ -35,86 +25,44 @@ export function ProductCategoryForm({
   onDelete,
   backHref,
 }: ProductCategoryFormProps) {
-  const t = useT();
   const et = useT('entity');
-  const [code, setCode] = useState(() => entity?.code ?? '');
-  const [name, setName] = useState(() => entity?.name ?? '');
-  const [description, setDescription] = useState(
-    () => entity?.description ?? ''
-  );
-
-  const handleSubmit = () => {
-    // Build a fresh instance rather than mutating the loaded one: `entity` is a
-    // prop, and every persisted field is on this form, so nothing is lost.
-    const target = new ProductCategory(code, name);
-    target.id = entity?.id;
-    target.description = description === '' ? undefined : description;
-    onSave(target);
-  };
-
-  const busy = isSaving || isDeleting;
+  const form = useEntityForm<ProductCategory>({
+    entityConstructor: ProductCategory,
+    entity,
+    onSubmit: values => {
+      // Build a fresh instance rather than mutating the loaded one: `entity` is
+      // a prop, and every persisted field is on this form, so nothing is lost.
+      const target = new ProductCategory(values.code, values.name);
+      target.id = entity?.id;
+      target.description =
+        values.description === '' ? undefined : values.description;
+      onSave(target);
+    },
+  });
 
   return (
-    <Card>
-      <Stack gap="s">
-        <Text as="h2">
-          {entity ? t('form.edit') : t('form.new')}
-        </Text>
-
-        {isLoading && <Text data-testid="form-loading">{t('form.loading')}</Text>}
-        {error && <Text data-testid="form-error">{error.message}</Text>}
-
-        <FormField label={et('product-category.fields.code')} htmlFor="code">
-          <input
-            id="code"
-            name="code"
-            value={code}
-            onChange={event => setCode(event.currentTarget.value)}
-            style={fieldStyle}
-          />
-        </FormField>
-
-        <FormField label={et('product-category.fields.name')} htmlFor="name">
-          <input
-            id="name"
-            name="name"
-            value={name}
-            onChange={event => setName(event.currentTarget.value)}
-            style={fieldStyle}
-          />
-        </FormField>
-
-        <FormField label={et('product-category.fields.description')} htmlFor="description">
-          <input
-            id="description"
-            name="description"
-            value={description}
-            onChange={event => setDescription(event.currentTarget.value)}
-            style={fieldStyle}
-          />
-        </FormField>
-
-        <Stack direction="row" gap="xs">
-          <Button type="button" onClick={handleSubmit} disabled={busy}>
-            {isSaving ? t('form.saving') : t('form.save')}
-          </Button>
-          {onDelete && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onDelete}
-              disabled={busy}
-            >
-              {isDeleting ? t('form.deleting') : t('form.delete')}
-            </Button>
-          )}
-          <a href={backHref}>
-            <Button type="button" variant="ghost" disabled={busy}>
-              {t('form.back')}
-            </Button>
-          </a>
-        </Stack>
-      </Stack>
-    </Card>
+    <EntityForm<ProductCategory>
+      entityConstructor={ProductCategory}
+      entity={entity}
+      mode="edit"
+      values={form.values}
+      onFieldChange={form.setField}
+      errors={form.errors}
+      formError={form.formError}
+      onSubmit={form.submit}
+      onDelete={onDelete}
+      isLoading={isLoading}
+      isSaving={isSaving}
+      isDeleting={isDeleting}
+      error={error}
+      backHref={backHref}
+      title={et(
+        entity
+          ? 'product-category.form.editTitle'
+          : 'product-category.form.newTitle',
+      )}
+    >
+      <EntityField<ProductCategory> field="id" hidden />
+    </EntityForm>
   );
 }

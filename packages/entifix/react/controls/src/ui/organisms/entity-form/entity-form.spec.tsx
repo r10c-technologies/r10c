@@ -255,7 +255,9 @@ describe('EntityForm', () => {
   it('submits the current draft', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
-    render(<Harness mode="edit" initial={{ code: 'G-9' }} onSubmit={onSubmit} />);
+    render(
+      <Harness mode="edit" initial={{ code: 'G-9' }} onSubmit={onSubmit} />,
+    );
 
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
@@ -279,11 +281,23 @@ describe('EntityForm', () => {
   });
 
   it('shows per-field validation errors while editing', () => {
-    render(
-      <Harness mode="edit" errors={{ code: 'Code is required' }} />,
-    );
+    render(<Harness mode="edit" errors={{ code: 'Code is required' }} />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Code is required');
+  });
+
+  // A rule spanning two fields belongs to none of the rows, so it renders with
+  // the actions it blocks — and only while those actions are on screen.
+  it('shows a form-level validation error while editing', () => {
+    const { rerender } = render(
+      <Harness mode="edit" formError="Dates do not line up" />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Dates do not line up');
+
+    rerender(<Harness mode="read" formError="Dates do not line up" />);
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('shows a delete action and a back link when supplied', () => {
@@ -296,7 +310,9 @@ describe('EntityForm', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Eliminar' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Volver' })).toHaveAttribute(
       'href',
       '/list',
@@ -304,12 +320,7 @@ describe('EntityForm', () => {
   });
 
   it('surfaces loading and error states', () => {
-    render(
-      <Harness
-        isLoading
-        error={new EntifixConnError('Service down')}
-      />,
-    );
+    render(<Harness isLoading error={new EntifixConnError('Service down')} />);
 
     expect(screen.getByTestId('entity-form-loading')).toBeInTheDocument();
     expect(screen.getByTestId('entity-form-error')).toHaveTextContent(

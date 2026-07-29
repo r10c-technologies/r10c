@@ -84,11 +84,27 @@ export const controls = {
     yes: 'Sí',
     no: 'No',
   },
+  /**
+   * `required`…`option` son las reglas derivadas de la metadata. El resto es el
+   * vocabulario en el que un Standard Schema de una entidad escribe sus
+   * mensajes: el esquema lleva la *clave*, nunca una frase, para que la regla
+   * siga siendo traducible.
+   *
+   * `field` es el único parámetro disponible — un issue de Standard Schema
+   * expone un mensaje y una ruta, nada más — así que estos mensajes no indican
+   * el límite. Una regla que deba enunciarlo escribe su propia clave en el
+   * catálogo de su dominio (`entity:product.validation.codeLength`).
+   */
   validation: {
     required: '{{field}} es obligatorio',
     number: '{{field}} debe ser un número',
     date: '{{field}} debe ser una fecha',
     option: '{{field}} no es una opción válida',
+    minLength: '{{field}} es demasiado corto',
+    maxLength: '{{field}} es demasiado largo',
+    min: '{{field}} es demasiado pequeño',
+    max: '{{field}} es demasiado grande',
+    pattern: '{{field}} tiene un formato inválido',
   },
   /**
    * The filter vocabulary shown to a user. Deliberately distinct from

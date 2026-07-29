@@ -20,6 +20,10 @@ export const entity: EsEntity = {
     },
   },
   'product-brand': {
+    form: {
+      editTitle: 'Edit brand',
+      newTitle: 'New brand',
+    },
     label: 'Brand',
     plural: 'Brands',
     fields: {
@@ -31,6 +35,10 @@ export const entity: EsEntity = {
     },
   },
   'product-category': {
+    form: {
+      editTitle: 'Edit category',
+      newTitle: 'New category',
+    },
     label: 'Category',
     plural: 'Categories',
     fields: {

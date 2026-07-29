@@ -86,11 +86,26 @@ export const controls: EsControls = {
     yes: 'Yes',
     no: 'No',
   },
+  /**
+   * `required`…`option` are the metadata-derived rules. The rest are the
+   * vocabulary an entity's Standard Schema writes its messages in: a schema
+   * carries the *key*, never a sentence, so a rule stays translatable.
+   *
+   * `field` is the only parameter available — a Standard Schema issue exposes a
+   * message and a path, nothing else — so these stay unquantified. A rule that
+   * has to state its bound writes its own key in its domain catalog and passes
+   * it namespaced (`entity:product.validation.codeLength`).
+   */
   validation: {
     required: '{{field}} is required',
     number: '{{field}} must be a number',
     date: '{{field}} must be a date',
     option: '{{field}} is not a valid option',
+    minLength: '{{field}} is too short',
+    maxLength: '{{field}} is too long',
+    min: '{{field}} is too small',
+    max: '{{field}} is too large',
+    pattern: '{{field}} has an invalid format',
   },
   operator: {
     eq: 'is',

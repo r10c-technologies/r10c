@@ -6,6 +6,8 @@ import {
   EntityCollectionLink,
   type EntityId,
   EntityLink,
+  type StandardSchemaV1,
+  type StandardSchemaV1Issue,
 } from '@r10c/entifix-ts-core';
 import { createI18n } from '@r10c/entifix-ts-i18n';
 import { act, renderHook } from '@testing-library/react';
@@ -14,11 +16,13 @@ import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  composeEntityFormErrors,
   seedEntityDraft,
   seedFieldValue,
   validateEntityDraft,
 } from './use-entity-form.helpers';
 import { useEntityForm } from './use-entity-form.js';
+import type { EntityFormValues } from './use-entity-form.types';
 
 @entity({ key: 'gadget-brand' })
 class GadgetBrand implements Entity {
@@ -185,7 +189,9 @@ describe('validateEntityDraft', () => {
   });
 
   it('flags a missing required field', () => {
-    expect(validateEntityDraft(descriptors, { ...base, code: '  ' }, MESSAGES)).toEqual({
+    expect(
+      validateEntityDraft(descriptors, { ...base, code: '  ' }, MESSAGES),
+    ).toEqual({
       code: 'Code is required',
     });
   });
@@ -198,7 +204,11 @@ describe('validateEntityDraft', () => {
 
   it('flags a malformed date', () => {
     expect(
-      validateEntityDraft(descriptors, { ...base, releasedAt: 'not-a-date' }, MESSAGES),
+      validateEntityDraft(
+        descriptors,
+        { ...base, releasedAt: 'not-a-date' },
+        MESSAGES,
+      ),
     ).toEqual({ releasedAt: 'Released must be a date' });
   });
 
@@ -210,18 +220,26 @@ describe('validateEntityDraft', () => {
 
   it('ignores empty optional fields', () => {
     expect(
-      validateEntityDraft(descriptors, { ...base, stock: '', tier: '' }, MESSAGES),
+      validateEntityDraft(
+        descriptors,
+        { ...base, stock: '', tier: '' },
+        MESSAGES,
+      ),
     ).toEqual({});
   });
 
   it('never validates read-only members or relations', () => {
     // A bad SKU (read-only) and a junk brand id are both left alone.
     expect(
-      validateEntityDraft(descriptors, {
-        ...base,
-        sku: 'anything',
-        brand: 'junk',
-      }, MESSAGES),
+      validateEntityDraft(
+        descriptors,
+        {
+          ...base,
+          sku: 'anything',
+          brand: 'junk',
+        },
+        MESSAGES,
+      ),
     ).toEqual({});
   });
 
@@ -231,13 +249,113 @@ describe('validateEntityDraft', () => {
       code: 'Code is required',
     });
   });
+});
 
-  it('merges caller rules, which win on conflict', () => {
-    const errors = validateEntityDraft(descriptors, base, MESSAGES, () => ({
-      code: 'Code already taken',
-    }));
+/**
+ * A Standard Schema is an interface, not a library, so these build one by hand:
+ * it keeps the spec free of a schema dependency and pins the exact contract the
+ * hook consumes — `~standard.validate` returning issues with a `path`.
+ */
+function schemaOf(
+  issues: readonly StandardSchemaV1Issue[],
+): StandardSchemaV1<EntityFormValues> {
+  return {
+    '~standard': {
+      version: 1,
+      vendor: 'spec',
+      validate: value =>
+        issues.length === 0 ? { value: value as EntityFormValues } : { issues },
+    },
+  };
+}
 
-    expect(errors).toEqual({ code: 'Code already taken' });
+/** Stands in for the hook's i18n pass; here a key just gains its field. */
+const translateIssue = (message: string, field: string | undefined) =>
+  field === undefined ? message : `${field}: ${message}`;
+
+describe('composeEntityFormErrors', () => {
+  const base = seedEntityDraft(descriptors, makeGadget());
+  const compose = (
+    extra: Partial<Parameters<typeof composeEntityFormErrors>[0]> = {},
+  ) =>
+    composeEntityFormErrors({
+      descriptors,
+      values: base,
+      messages: MESSAGES,
+      translateIssue,
+      ...extra,
+    });
+
+  it('reports nothing for a clean draft with no extra rules', () => {
+    expect(compose()).toEqual({ fields: {}, form: undefined });
+  });
+
+  it('lets caller rules win over the metadata ones', () => {
+    expect(
+      compose({
+        values: { ...base, code: '' },
+        validate: () => ({ code: 'Code already taken' }),
+      }).fields,
+    ).toEqual({ code: 'Code already taken' });
+  });
+
+  it('reports nothing when the schema finds no issue', () => {
+    expect(compose({ schema: schemaOf([]) })).toEqual({
+      fields: {},
+      form: undefined,
+    });
+  });
+
+  it('translates a schema issue and files it under its field', () => {
+    expect(
+      compose({
+        schema: schemaOf([{ message: 'validation.minLength', path: ['code'] }]),
+      }).fields,
+    ).toEqual({ code: 'code: validation.minLength' });
+  });
+
+  // Valibot-style paths carry objects rather than bare keys.
+  it('reads a field name from an object-shaped path segment', () => {
+    expect(
+      compose({
+        schema: schemaOf([
+          { message: 'validation.pattern', path: [{ key: 'code' }] },
+        ]),
+      }).fields,
+    ).toEqual({ code: 'code: validation.pattern' });
+  });
+
+  it('keeps only the first issue reported for one field', () => {
+    expect(
+      compose({
+        schema: schemaOf([
+          { message: 'first', path: ['code'] },
+          { message: 'second', path: ['code'] },
+        ]),
+      }).fields,
+    ).toEqual({ code: 'code: first' });
+  });
+
+  // A cross-field rule has no path, so it cannot be filed under a row.
+  it.each([[[]], [undefined]])(
+    'surfaces a pathless issue as the form-level error (path %j)',
+    path => {
+      expect(
+        compose({ schema: schemaOf([{ message: 'mismatch', path }]) }),
+      ).toEqual({ fields: {}, form: 'mismatch' });
+    },
+  );
+
+  it('refuses an async schema instead of passing it silently', () => {
+    const asyncSchema: StandardSchemaV1<EntityFormValues> = {
+      '~standard': {
+        version: 1,
+        vendor: 'spec',
+        validate: () => Promise.resolve({ issues: [{ message: 'nope' }] }),
+      },
+    };
+
+    expect(() => compose({ schema: asyncSchema })).toThrow(/async schema/);
   });
 });
 
@@ -285,7 +403,7 @@ describe('useEntityForm', () => {
 
   // Every metadata rule renders through the catalog, not just `required` —
   // a message left as a template literal would only show up here.
-  it('localizes every metadata-derived message', () => {
+  it('localizes every metadata-derived message', async () => {
     const { result } = renderHook(() =>
       useEntityForm({
         entityConstructor: Gadget,
@@ -299,7 +417,7 @@ describe('useEntityForm', () => {
       result.current.setField('releasedAt', 'not-a-date');
       result.current.setField('tier', 'platinum');
     });
-    act(() => result.current.submit());
+    await act(async () => result.current.submit());
 
     expect(result.current.errors).toMatchObject({
       stock: 'Stock debe ser un número',
@@ -309,7 +427,7 @@ describe('useEntityForm', () => {
   });
 
   // With a provider in the tree the hook must follow it, not the shared default.
-  it('follows a mounted provider instead of the fallback instance', () => {
+  it('follows a mounted provider instead of the fallback instance', async () => {
     const i18n = createI18n('en', [initReactI18next]);
     const wrapper = ({ children }: PropsWithChildren) =>
       createElement(I18nextProvider, { i18n }, children);
@@ -319,12 +437,12 @@ describe('useEntityForm', () => {
       { wrapper },
     );
 
-    act(() => result.current.submit());
+    await act(async () => result.current.submit());
 
     expect(result.current.errors).toEqual({ code: 'Code is required' });
   });
 
-  it('hides errors until the first submit attempt', () => {
+  it('hides errors until the first submit attempt', async () => {
     const onSubmit = vi.fn();
     const { result } = renderHook(() =>
       useEntityForm({ entityConstructor: Gadget, onSubmit }),
@@ -333,7 +451,7 @@ describe('useEntityForm', () => {
     // A create form has an empty required `code`, but nothing shows yet.
     expect(result.current.errors).toEqual({});
 
-    act(() => result.current.submit());
+    await act(async () => result.current.submit());
 
     expect(result.current.errors).toEqual({ code: 'Code es obligatorio' });
     expect(onSubmit).not.toHaveBeenCalled();
@@ -356,5 +474,60 @@ describe('useEntityForm', () => {
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ code: 'G-1', stock: '42' }),
     );
+  });
+
+  // The whole point of the message-as-key convention: a schema written once
+  // renders in the user's language, with the field's own label interpolated.
+  it('resolves a schema message through the catalog', async () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        schema: schemaOf([{ message: 'validation.minLength', path: ['code'] }]),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.errors.code).toBe('Code es demasiado corto');
+  });
+
+  // A literal that is not a key still has to reach the user readably.
+  it('falls back to the literal message of an unkeyed issue', async () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        schema: schemaOf([{ message: 'Sin catálogo', path: ['code'] }]),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.errors.code).toBe('Sin catálogo');
+  });
+
+  it('surfaces a pathless schema issue as the form error and blocks submit', async () => {
+    const onSubmit = vi.fn();
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        // A cross-field rule names no field, so it carries its own key (or, as
+        // here, a literal) rather than one of the field-parameterized ones.
+        schema: schemaOf([{ message: 'Las fechas no concuerdan' }]),
+        onSubmit,
+      }),
+    );
+
+    expect(result.current.formError).toBeUndefined();
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.formError).toBe('Las fechas no concuerdan');
+    expect(result.current.errors).toEqual({});
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });

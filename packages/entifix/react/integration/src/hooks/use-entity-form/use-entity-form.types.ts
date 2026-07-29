@@ -1,4 +1,8 @@
-import type { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
+import type {
+  Entity,
+  EntityConstructor,
+  StandardSchemaV1,
+} from '@r10c/entifix-ts-core';
 
 /** The whole form value as strings — the shape native inputs round-trip. */
 export type EntityFormValues = Record<string, string>;
@@ -14,10 +18,23 @@ export interface UseEntityFormOptions<TEntity extends Entity> {
    */
   initialValues?: EntityFormValues;
   /**
-   * Extra validation beyond the metadata-derived rules, returning a
-   * field-name → message map. A Standard Schema can be adapted to this shape,
-   * which keeps rich rules (regex, min/max, cross-field) available without the
-   * hook depending on a schema library.
+   * A Standard Schema (Zod, Valibot, ArkType — anything exposing `~standard`)
+   * for the rules metadata cannot express: regex, min/max, cross-field.
+   *
+   * Authored against the **string draft**, so it coerces (`z.coerce.number()`)
+   * rather than expecting typed values. Each message is a catalog key
+   * (`validation.minLength`), resolved against the `controls` namespace with the
+   * literal as its fallback — a rule written in one language would otherwise
+   * reach the user untranslated. An issue with no path becomes `formError`.
+   *
+   * Synchronous rules only: validation runs in a synchronous pass, so an async
+   * schema throws rather than silently passing. Put asynchronous checks — a
+   * uniqueness lookup, say — behind {@link UseEntityFormOptions.validate}.
+   */
+  schema?: StandardSchemaV1;
+  /**
+   * Extra validation beyond the metadata and schema rules, returning a
+   * field-name → message map. Applied last, so it wins on conflict.
    */
   validate?: (values: EntityFormValues) => Record<string, string>;
   /** Called with the draft once it passes validation. */
@@ -29,9 +46,20 @@ export interface UseEntityFormResult {
   values: EntityFormValues;
   /** Field-name → message, surfaced only after a submit attempt. */
   errors: Record<string, string>;
+  /**
+   * The message that belongs to no single field — a cross-field schema rule.
+   * Feed into `EntityForm`'s `formError`, which has nowhere else to show it.
+   */
+  formError?: string;
   /** Feed into `EntityForm`'s `onFieldChange`. */
   setField: (name: string, value: string) => void;
-  /** Validate, then submit when clean. Feed into `EntityForm`'s `onSubmit`. */
+  /**
+   * Validate, then submit when clean. Feed into `EntityForm`'s `onSubmit`.
+   *
+   * Fire-and-forget for the caller, but the validation pass it starts settles on
+   * a later tick — a test asserting on `errors` afterwards has to await, not
+   * just `act`.
+   */
   submit: () => void;
   /** True once any field has been edited away from its seed. */
   isDirty: boolean;
