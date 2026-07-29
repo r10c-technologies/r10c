@@ -103,6 +103,11 @@ jobs:
         if: always()
         run: node tools/check-i18n.mjs
 
+  # `build` and `typecheck` run in ONE graph on purpose. They are the two
+  # writers of a library's `dist` — swc emits the `.js`, `tsc --build` the
+  # `.d.ts` — so running them together is what would surface a regression of
+  # the output collision behind #27. Typechecking in CI at all is new: it used
+  # to run only on developer machines, which is why that issue went unnoticed.
   build:
     name: Build (${{ matrix.chunk }})
     needs: initialize
@@ -124,8 +129,8 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: nx run-many -t build
-        run: pnpm nx run-many -t build --projects="${{ matrix.chunk }}"
+      - name: nx run-many -t build,typecheck
+        run: pnpm nx run-many -t build,typecheck --projects="${{ matrix.chunk }}"
 
   test:
     name: Test (${{ matrix.chunk }})

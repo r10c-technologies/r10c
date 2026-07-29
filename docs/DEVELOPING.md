@@ -41,8 +41,10 @@ imports won't resolve in dev.
 Type declarations come from the inferred `@nx/js/typescript` `build`/`typecheck`
 targets driven by each project's `tsconfig.lib.json` (composite project
 references; root `tsconfig.json` lists every member — keep it updated, or run
-`pnpm nx sync`). Library builds use `@nx/js:swc` (TS-only libs) or Rollup (React
-libs); services use webpack.
+`pnpm nx sync`). **Every** library builds with `@nx/js:swc` — React libraries
+included, compiled per-file and never bundled (see
+[How a library is built](#how-a-library-is-built)); services use webpack and the
+Next apps use `next build`.
 
 ## Common commands
 
@@ -163,8 +165,102 @@ pnpm nx g @nx/next:app <name>-app
 pnpm nx g @nx/react:lib <name>
 ```
 
+The generators scaffold a **bundler** config (`vite.config.ts`, or
+`rollup.config.cjs` on older ones). Delete it and wire the library the way
+[How a library is built](#how-a-library-is-built) prescribes — that is not a
+preference, it is what keeps `dist` collision-free.
+
 Adding a **domain** = next port index → `300N`/`310N`, plus a seed row in
 `apps/config-service/src/db.ts`. See [Adding an entity across the layers](#adding-an-entity-across-the-layers).
+
+### How a library is built
+
+**Every** library under `packages/` compiles per-file with `@nx/js:swc` — React
+libraries included. There is no `rollup.config.*` or `vite.config.ts` left under
+`packages/`, and that is the invariant to preserve:
+
+```sh
+# must print nothing
+find packages -name 'rollup.config.*' -o -name 'vite.config.ts' | grep -v node_modules
+```
+
+(`vitest.config.mts` is unrelated — Vitest and Storybook still use vite. Only the
+**build** is bundler-free.)
+
+#### Recipe for a new library
+
+1. Delete the generated bundler config.
+2. Add the `build` target to `package.json` under `nx.targets` (paths are
+   workspace-relative — copy from `packages/entifix/react/controls/package.json`):
+
+   ```json
+   {
+     "nx": {
+       "tags": ["layer:…", "scope:…"],
+       "sourceRoot": "packages/<path>/src",
+       "targets": {
+         "build": {
+           "executor": "@nx/js:swc",
+           "outputs": ["{options.outputPath}"],
+           "options": {
+             "outputPath": "packages/<path>/dist",
+             "main": "packages/<path>/src/index.ts",
+             "tsConfig": "packages/<path>/tsconfig.lib.json",
+             "skipTypeCheck": true,
+             "stripLeadingPaths": true
+           }
+         }
+       }
+     }
+   }
+   ```
+
+3. Point the entry points at the **per-file** output — `./dist/index.js` and
+   `./dist/index.d.ts` (`main`, `module`, `types`, and every `exports` condition).
+   There is no `index.esm.js`; that name only ever came from rollup.
+4. Add a `.swcrc`. Copy a sibling's; a library containing `.tsx` needs
+   `jsc.parser.tsx: true` and `jsc.transform.react.runtime: "automatic"`.
+   Keep the `exclude` list covering `.spec`/`.test`/`.stories` — swc compiles
+   **everything** under `src`, so anything not excluded ships in `dist`.
+5. In `tsconfig.lib.json`, exclude the same non-shipping files and **extend** the
+   base `lib` rather than replacing it (see the trap below).
+
+Verify with `pnpm nx build <lib> && pnpm nx typecheck <lib>` — `dist` must end up
+with a matching count of `.js` and `.d.ts`.
+
+#### Why no bundler
+
+Bundling breaks three things at once:
+
+| bundling does                                   | consequence                                                                                                                                                                  |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| merges modules into one file                    | each file's `"use client"` is **dropped**; only a bundle-wide `output.banner` survives, and it cannot describe a mixed client/server surface                                 |
+| absorbs CommonJS dependencies                   | rollup emits an interop helper reading `typeof require`; against a Next server runtime that throws `dynamic usage of require is not supported`, killing any static prerender |
+| writes the same `dist/` that `tsc --build` owns | the output collision behind [#27](https://github.com/r10c-technologies/r10c/issues/27) — a `TS6305` cascade of fake type errors                                              |
+
+Per-file swc has none of these. `dist` ends up with exactly **two writers and
+disjoint file sets**: swc emits `.js`/`.js.map`, `tsc --build` (the `typecheck`
+target) emits `.d.ts`/`.d.ts.map`/`.tsbuildinfo`. Keep it that way — a build tool
+that clears `dist` or emits its own `.d.ts` there reopens the collision. This is
+also why `package.json` points at `./dist/index.js` and `./dist/index.d.ts`.
+
+#### The declaration pass `skipTypeCheck` does not skip
+
+`@nx/js:swc` guards its `tsc` run with `skipTypeCheck && !isTsSolutionSetup`. This
+repo **is** a TS solution setup, so the declaration pass always runs — with
+`ignoreDiagnostics: true`. Its errors are invisible, but `noEmitOnError` (from
+`tsconfig.base.json`) still blocks the emit, so a library can build "successfully"
+having written **zero `.d.ts`**, and the poisoned `.tsbuildinfo` then makes the next
+`tsc --build` report a `TS6305` cascade.
+
+The usual cause is a `tsconfig.lib.json` that **replaces** `lib` instead of
+extending the base list — dropping `decorators`/`esnext.decorators` (needed by
+`Symbol.metadata` in `entifix-ts-core`) or omitting `dom`. To see what the pass is
+hiding:
+
+```sh
+pnpm nx build <lib> --skipTypeCheck=false
+```
 
 ---
 
@@ -185,6 +281,11 @@ Adding a **domain** = next port index → `300N`/`310N`, plus a seed row in
    (`extractMetaEntity(Ctor).key`, `extractMetaAccessors(Ctor)`) and the shared
    (de)serializer. Don't hand-write per-entity mapping; if metadata can't express
    something, extend the decorators, not the adapter.
+5. **Libraries compile per-file, never bundle.** Every `packages/*` library builds
+   with `@nx/js:swc`; a `rollup.config.*`/`vite.config.ts` under `packages/` is a
+   regression. Bundling drops `"use client"`, inlines CommonJS, and collides with
+   the `.d.ts` that `tsc --build` writes to the same `dist`. See
+   [How a library is built](#how-a-library-is-built).
 
 ## Module boundaries
 
@@ -420,7 +521,8 @@ works on a machine with a stale build and fails on a clean checkout.
 ## Verifying a change
 
 - Static: `pnpm nx affected -t lint,build,typecheck,test` (or `run-many` on the
-  touched projects). This is also what pre-commit runs.
+  touched projects). Pre-commit runs the `lint,build` subset; CI runs `lint`, then
+  `build,typecheck` together, then `test` and `e2e`.
 - Coverage: `pnpm nx run-many -t test --coverage` — every `packages/*` project
   must stay at 100%.
 - Runtime: bring up `infra/local`, then `pnpm nx run <service>:dev` and exercise

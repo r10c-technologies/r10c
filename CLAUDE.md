@@ -122,9 +122,9 @@ them), and everything deep is a link — loaded only when a task needs it.
   `absoluteExpiresAt`. What slides a session is _user_ activity: `requirePrincipal`
   must stay stateless, so the browser's `useSessionRefresh` stops refreshing when
   idle rather than the server reading Redis per request. The shared route handler
-  is `createRefreshRoute` from **`@r10c/shells-next-common/server`** — that subpath
-  exists because rollup stamps `"use client"` on the main bundle, so anything a
-  route handler or server layout _calls_ must ship from `/server`.
+  is `createRefreshRoute` from **`@r10c/shells-next-common/server`** — anything a
+  route handler or server layout _calls_ must ship from `/server`, so it is never
+  reached through the client surface and stamped as a client reference.
 - **Account surface** is auth-app's alone; other apps link across via `AccountMenu`
   with the locale baked into the absolute URL (`localeHref` leaves absolute URLs
   alone). `/account/*` lives outside `(back-office)`, which demands
@@ -180,14 +180,27 @@ them), and everything deep is a link — loaded only when a task needs it.
   **string draft** and its messages are **catalog keys**, never sentences. See
   [docs/FRONTEND.md](docs/FRONTEND.md), [[design-system-theme]], [[layout-primitives-decision]],
   [[workspace-tabs-design]].
-- **A workspace library must never bundle a CommonJS dependency.** Rollup absorbing
-  one makes it emit an interop helper reading `typeof require`, and the inlined
-  module then calls it — which throws `dynamic usage of require is not supported`
-  against a Next app's server runtime, killing any **static prerender** that reaches
-  the library. Turbopack is not the culprit and `serverExternalPackages` /
-  `transpilePackages` cannot fix it: the shim is baked in before Next resolves
-  anything. Add the package to `external` in the library's `vite.config.ts`
-  (`react-i18next` and the TanStack Form chain both need it, for
-  `use-sync-external-store`). `entifix-react-integration`'s build fails on this by
-  itself — CI would not catch it, since every app route is currently dynamic and
-  nothing prerenders.
+- **A workspace library is compiled per-file, never bundled.** Every library under
+  `packages/` builds with `@nx/js:swc` — there is no rollup or vite config left in
+  `packages/`, and adding one back reopens three bugs at once. Bundling **merges
+  modules**, so rollup silently drops each file's `"use client"` (only a bundle-wide
+  `output.banner` survives, which is all-or-nothing and cannot describe a mixed
+  client/server surface); it **absorbs CommonJS deps**, emitting an interop helper
+  that reads `typeof require` and throws `dynamic usage of require is not supported`
+  against a Next server runtime (Turbopack is not the culprit —
+  `serverExternalPackages`/`transpilePackages` cannot fix a shim baked in before Next
+  resolves anything); and it **writes the same `dist/` that `tsc --build` owns**,
+  which is [#27](https://github.com/r10c-technologies/r10c/issues/27). Per-file swc
+  has none of these: each module keeps its own directive, nothing is inlined, and
+  `dist` has exactly two writers with disjoint file sets — swc emits `.js`/`.js.map`,
+  `tsc` emits `.d.ts`/`.d.ts.map`/`.tsbuildinfo`.
+- **`@nx/js:swc` runs `tsc` even with `skipTypeCheck: true`.** The executor's guard is
+  `skipTypeCheck && !isTsSolutionSetup`, and this repo _is_ a TS solution setup, so the
+  declaration pass always runs — with `ignoreDiagnostics: true`. Its errors are
+  therefore **invisible**, while `noEmitOnError` (from `tsconfig.base.json`) still
+  blocks the emit. A library whose `tsconfig.lib.json` overrides `lib` and drops what
+  the base provides (`decorators`/`esnext.decorators`, needed by `Symbol.metadata` in
+  `entifix-ts-core`) or omits `dom` produces a green build with **zero `.d.ts`** — and
+  the poisoned `.tsbuildinfo` then makes the next `tsc --build` report a `TS6305`
+  cascade. When overriding `lib`, extend the base list, never replace it. To see what
+  the pass is hiding: `pnpm nx build <lib> --skipTypeCheck=false`.

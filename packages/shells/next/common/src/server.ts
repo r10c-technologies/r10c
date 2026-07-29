@@ -1,8 +1,10 @@
 // Server-only surface, published as `@r10c/shells-next-common/server`.
 //
-// It has its own rollup entry so it escapes the `"use client"` banner the main
-// bundle carries: route handlers and cookie helpers stamped as client modules
-// would become client references and their `next/server` imports would fail.
+// It stays a separate entry so route handlers and cookie helpers are never
+// reached through the client surface: stamped as client modules they would
+// become client references and their `next/server` imports would fail. The
+// library compiles per-file, so each module keeps its own `"use client"` (or
+// keeps none, as here) instead of inheriting a bundle-wide banner.
 
 // React server components
 export * from './lib/hello-server';
