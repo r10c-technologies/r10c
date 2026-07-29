@@ -29,10 +29,10 @@
   ],
   "devDependencies": {
     "@r10c/entifix-style": "workspace:*",
-    "@storybook/addon-docs": "^10.5.3",
-    "@storybook/addon-themes": "^10.5.3",
-    "@storybook/react-vite": "^10.5.3",
-    "storybook": "^10.5.3"
+    "@storybook/addon-docs": "^10.5.5",
+    "@storybook/addon-themes": "^10.5.5",
+    "@storybook/react-vite": "^10.5.5",
+    "storybook": "^10.5.5"
   },
   "nx": {
     "tags": [
