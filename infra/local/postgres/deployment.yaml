@@ -6,6 +6,10 @@ metadata:
     app: postgres
 spec:
   replicas: 1
+  # One ReadWriteOnce volume, so the old pod must be gone before the new one
+  # starts — see the note in mongodb/deployment.yaml.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: postgres
@@ -31,13 +35,24 @@ spec:
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+          # First boot runs initdb, and a crash recovery replays WAL — both keep
+          # the port shut well after the container starts. `pg_isready` is the
+          # only check that distinguishes "starting up" from "accepting".
+          readinessProbe:
+            exec:
+              command:
+                ['sh', '-c', 'pg_isready -q -U "$POSTGRES_USER" -d postgres']
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "150m"
+              memory: '128Mi'
+              cpu: '150m'
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: '512Mi'
+              cpu: '500m'
       volumes:
         - name: postgres-data
           persistentVolumeClaim:

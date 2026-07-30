@@ -6,8 +6,9 @@
 #
 #   L0 tooling      minikube/kubectl/nc present          (not healable — reports)
 #   L1 cluster      minikube Running                     -> minikube start --ports
+#   L1b kubecontext kubeconfig points at the apiserver   -> minikube update-context
 #   L2 port mapping NodePorts published to 127.0.0.1     (not healable — reset --hard)
-#   L3 workloads    namespace + deployments exist        -> apply.sh
+#   L3 workloads    namespace + deployments reconciled   -> apply.sh
 #   L4 rollout      each deployment has a Ready replica  -> restart the pod once
 #   L5 probes       TCP + protocol handshake             -> back to L4
 #
@@ -63,6 +64,18 @@ fi
 state="$(minikube_state)"
 case "$state" in
   Running) ;;
+  Drifted)
+    # The cluster is up and its NodePorts are published; only the local context
+    # is stale (Docker Desktop restarted and moved the apiserver's host port).
+    # Rewriting kubeconfig takes milliseconds, so try it before anything that
+    # touches the cluster itself.
+    log_heal "minikube: kubeconfig points at a stale apiserver -> updating context"
+    fix_kubeconfig
+    if ! kubectl get nodes >/dev/null 2>&1; then
+      log_heal "minikube: context updated but the API server is still down -> starting"
+      minikube start --ports "$MINIKUBE_PORTS"
+    fi
+    ;;
   Stopped)
     log_heal "minikube: Stopped -> starting"
     minikube start --ports "$MINIKUBE_PORTS"
@@ -74,7 +87,14 @@ case "$state" in
 esac
 
 if ! kubectl get nodes >/dev/null 2>&1; then
+  # Last resort before giving up: the context can also drift while the ladder is
+  # mid-heal, and a wrong endpoint looks exactly like a dead apiserver.
+  fix_kubeconfig
+fi
+
+if ! kubectl get nodes >/dev/null 2>&1; then
   log_err "minikube is Running but the API server is not answering."
+  echo "  minikube update-context                  # if kubectl points at a stale port" >&2
   echo "  minikube logs --file=/tmp/minikube.log   # then inspect" >&2
   reset_hint
   exit 1
@@ -93,14 +113,14 @@ if [[ -n "$missing" ]]; then
 fi
 
 # ---------------------------------------------------------------- L3 workloads
-needs_apply=0
-for spec in "${PORT_SPECS[@]}"; do
-  deploy_exists "$(spec_deploy "$spec")" || needs_apply=1
-done
-if [[ "$needs_apply" -eq 1 ]]; then
-  log_heal "workloads missing -> applying manifests"
-  bash "$DIR/apply.sh"
-fi
+# Reconcile unconditionally, not just when a deployment is missing: `kubectl
+# apply -k` is idempotent, and "the deployment exists" says nothing about it
+# matching the manifests in git. A committed change — a readinessProbe, an image
+# bump — would otherwise never reach a cluster that already had the old object,
+# so the ladder would keep healing a workload the repo no longer describes.
+# Only ever reached off the fast path, so the healthy boot pays nothing.
+log_heal "reconciling workloads with the manifests"
+bash "$DIR/apply.sh"
 
 # ---------------------------------------------------------------- L4 rollout
 restarted=0

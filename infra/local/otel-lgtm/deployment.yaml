@@ -33,15 +33,25 @@ spec:
             # Frictionless dev access: no Grafana login, anonymous admin, so the
             # UI and HTTP API are reachable without credentials.
             - name: GF_AUTH_ANONYMOUS_ENABLED
-              value: "true"
+              value: 'true'
             - name: GF_AUTH_ANONYMOUS_ORG_ROLE
               value: Admin
             - name: GF_AUTH_DISABLE_LOGIN_FORM
-              value: "true"
+              value: 'true'
+          # The image starts five servers in sequence and the OTLP/HTTP receiver
+          # is not first. Probing the port the fleet exports to keeps the whole
+          # container out of `readyReplicas` until traces are actually accepted.
+          readinessProbe:
+            tcpSocket:
+              port: otlp-http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "250m"
+              memory: '512Mi'
+              cpu: '250m'
             limits:
-              memory: "1536Mi"
-              cpu: "1000m"
+              memory: '1536Mi'
+              cpu: '1000m'

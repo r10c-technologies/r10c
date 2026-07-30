@@ -87,16 +87,54 @@ probe_datastore() {
   return 0
 }
 
-# minikube lifecycle state, normalised to Running / Stopped / Nonexistent.
+# minikube lifecycle state, normalised to Running / Drifted / Stopped /
+# Nonexistent.
+#
+# `Drifted` is its own state because it is neither of the other three and heals
+# differently: Docker Desktop republishes the apiserver on a fresh host port
+# every time it restarts, so kubeconfig keeps pointing at the old one
+# (`kubeconfig endpoint: got: 127.0.0.1:49704, want: 127.0.0.1:52057`) and every
+# kubectl call fails against a cluster that is otherwise fine. Reading only
+# `{{.Host}}` used to report that as `Nonexistent`, which sent the ladder into a
+# two-minute `minikube start` — and told the operator there was no cluster.
 minikube_state() {
-  local out
-  out="$(minikube status --format '{{.Host}}' 2>/dev/null || true)"
-  case "$out" in
-    Running) echo Running ;;
+  local json host kubeconfig apiserver
+  json="$(minikube status -o json 2>/dev/null || true)"
+  if [[ -z "$json" ]]; then
+    # No JSON at all: either no cluster, or a status too broken to parse. Fall
+    # back to the plain format so a Stopped cluster is still recognised.
+    case "$(minikube status --format '{{.Host}}' 2>/dev/null || true)" in
+      Running) echo Running ;;
+      Stopped) echo Stopped ;;
+      *)       echo Nonexistent ;;
+    esac
+    return 0
+  fi
+  host="$(json_field "$json" Host)"
+  kubeconfig="$(json_field "$json" Kubeconfig)"
+  apiserver="$(json_field "$json" APIServer)"
+  case "$host" in
+    Running)
+      if [[ "$kubeconfig" == "Misconfigured" || "$apiserver" != "Running" ]]; then
+        echo Drifted
+      else
+        echo Running
+      fi
+      ;;
     Stopped) echo Stopped ;;
     *)       echo Nonexistent ;;
   esac
 }
+
+# One flat field out of minikube's status JSON, without requiring `jq` (which is
+# not in the L0 tool list).
+json_field() {
+  echo "$1" | tr ',{}' '\n' | grep -m1 "\"$2\"" | cut -d'"' -f4
+}
+
+# Point kubeconfig back at the apiserver's current host port. Instant, and
+# destroys nothing: it only rewrites the local context.
+fix_kubeconfig() { minikube update-context >/dev/null 2>&1; }
 
 kube_reachable() { kubectl -n "$NS" get ns "$NS" >/dev/null 2>&1 || kubectl get ns "$NS" >/dev/null 2>&1; }
 
@@ -136,11 +174,19 @@ all_deploys_ready() {
   return 0
 }
 
-# The fast-path question. Deployment readiness is part of it on purpose: with
-# the docker driver, docker-proxy keeps a published NodePort accepting TCP
-# connections after the pod behind it is gone, so a socket that answers proves
-# nothing on its own. Deleting the mongodb deployment and re-running ensure.sh
-# is the one-line way to reproduce that.
+# The fast-path question. Deployment readiness is part of it on purpose, and it
+# carries most of the weight: with the docker driver, docker-proxy and kube-proxy
+# both keep a published NodePort accepting TCP connections when nothing serves
+# behind it — after the pod is gone, and equally *before* the datastore's own
+# listener exists. So a socket that answers proves nothing on its own, which is
+# why every deployment in `infra/local/*` declares a protocol-level
+# `readinessProbe` (AMQP for rabbit, `pg_isready`, an authenticated redis PING,
+# a mongo `ping`). Without one, `readyReplicas` means only "the container
+# started", and this function green-lights a fleet whose services will then die
+# dialling a datastore that is still booting.
+# Deleting the mongodb deployment and re-running ensure.sh reproduces the
+# gone-pod half; `kubectl -n … rollout restart deploy/rabbitmq` reproduces the
+# still-booting half.
 all_probes_green() { all_datastores_reachable && all_deploys_ready; }
 
 # Host port mapping drift: a cluster created by a plain `minikube start` has no
@@ -163,17 +209,32 @@ missing_host_ports() {
 
 # --- lock --------------------------------------------------------------------
 
-# mkdir is the atomic primitive available everywhere; a lock older than
-# LOCK_STALE_SECONDS is assumed abandoned (killed nx task) and broken.
+# mkdir is the atomic primitive available everywhere.
+#
+# The lock records its owner's pid, and a lock whose owner is gone is stale
+# *immediately* — age alone was not enough. Ctrl-C'ing an app leaves the lock
+# behind, so the next boot used to sit in silence for the full
+# LOCK_STALE_SECONDS (ten minutes) before breaking a lock nobody held. That is
+# indistinguishable from a hang, and it is the most common way a dev boot
+# "does nothing".
 acquire_heal_lock() {
   local waited=0
   while ! mkdir "$LOCK_DIR" 2>/dev/null; do
-    local age=0
+    local age=0 owner=""
     if [[ -d "$LOCK_DIR" ]]; then
       local mtime now
       mtime="$(stat -f %m "$LOCK_DIR" 2>/dev/null || stat -c %Y "$LOCK_DIR" 2>/dev/null || echo 0)"
       now="$(date +%s)"
       age=$(( now - mtime ))
+      owner="$(cat "$LOCK_DIR/owner.pid" 2>/dev/null || true)"
+    fi
+    # An owner that is not running took its heal with it. `kill -0` is the
+    # portable liveness check; a lock with no pid file at all is from an older
+    # revision and falls through to the age rule.
+    if [[ -n "$owner" ]] && ! kill -0 "$owner" 2>/dev/null; then
+      log_heal "breaking abandoned infra lock (owner pid $owner is gone)"
+      rm -rf "$LOCK_DIR"
+      continue
     fi
     if [[ "$age" -gt "$LOCK_STALE_SECONDS" ]]; then
       log_heal "breaking stale infra lock (${age}s old)"
@@ -188,6 +249,7 @@ acquire_heal_lock() {
       return 1
     fi
   done
+  echo "$$" > "$LOCK_DIR/owner.pid" 2>/dev/null || true
   trap release_heal_lock EXIT INT TERM
   return 0
 }

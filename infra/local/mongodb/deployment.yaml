@@ -7,6 +7,13 @@ metadata:
     app: mongodb
 spec:
   replicas: 1
+  # Recreate, not the default RollingUpdate: the data lives on one
+  # ReadWriteOnce volume, and a rolling update starts the new pod while the old
+  # one still holds the data dir's lock — so the replacement crashloops until
+  # the rollout gives up. Any manifest edit reaching an existing cluster hits
+  # this, which is exactly what `ensure.sh` L3 now does on every heal.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: mongodb
@@ -26,13 +33,25 @@ spec:
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db
+          # `ping` is one of the few commands mongod answers before auth, so the
+          # probe needs no credentials. It is what makes `readyReplicas` mean
+          # "answers the wire protocol" — a replayed journal can keep mongod
+          # busy for tens of seconds after the container is up.
+          readinessProbe:
+            exec:
+              command:
+                ['mongosh', '--quiet', '--eval', 'db.adminCommand({ ping: 1 })']
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 10
+            failureThreshold: 30
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: '256Mi'
+              cpu: '250m'
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: '512Mi'
+              cpu: '500m'
       volumes:
         - name: mongodb-data
           persistentVolumeClaim:

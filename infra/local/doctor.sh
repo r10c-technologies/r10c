@@ -36,10 +36,20 @@ state="$(minikube_state)"
 if [[ "$state" == "Running" ]]; then
   ok "L1 cluster" "minikube Running"
 else
-  bad "L1 cluster" "minikube $state"
+  if [[ "$state" == "Drifted" ]]; then
+    # Named for what it is: the cluster is alive, kubectl is aimed at the wrong
+    # port. Everything below needs kubectl, so there is nothing left to report.
+    bad "L1 cluster" "kubeconfig stale — kubectl is pointing at a dead apiserver port"
+  else
+    bad "L1 cluster" "minikube $state"
+  fi
   skip "L2 portmap" ""; skip "L3 workloads" ""; skip "L4 rollout" ""; skip "L5 probes" ""
   echo
-  echo "fix: pnpm run mp-admin:dev      # ensure.sh starts it with the right --ports"
+  if [[ "$state" == "Drifted" ]]; then
+    echo "fix: minikube update-context    # instant; ensure.sh also does it for you"
+  else
+    echo "fix: pnpm run mp-admin:dev      # ensure.sh starts it with the right --ports"
+  fi
   exit 1
 fi
 

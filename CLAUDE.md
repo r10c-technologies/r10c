@@ -45,6 +45,22 @@ them), and everything deep is a link — loaded only when a task needs it.
   `filterable`/`sortable` metadata is also the **server-side allowlist** — a query
   naming a member that lacks it is rejected `400`, so making a member queryable is a
   one-line change on the entity and nowhere else. See [docs/ENTIFIX.md](docs/ENTIFIX.md).
+- **A relation's wire shape is metadata, and its editor is a port.** `@accessor({
+type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
+  whether a link writes back inlined or as a foreign key — the serializer inlines
+  whatever `isLoaded`, so without the declaration the shape would depend on whether
+  the UI happened to hold the target. `applyEntityLinks` (core, pure) applies it at
+  submit. A form draft stays `Record<string, string>` because a workspace autosaves
+  it, so **ids are the truth and picked instances are a sidecar** (`useEntityForm`'s
+  `links`/`setLink`) — a missing entry costs the embedded shape, never the relation.
+  The editor itself is split by the boundary rule: `entifix-react-controls` ↮
+  `entifix-react-integration` (both `entifix:react`), so `EntityLinkInput`/
+  `EntityLinkPicker` are presentational and meet `useEntityLinkSource` at the
+  framework-free `EntityLinkSource` port in **core**. `EntityForm` takes
+  `linkSources` keyed by accessor name; one hook call per relation lives in the
+  entity-tight wrapper (React's hook count must stay fixed). A picker's
+  `linkSearchProperty` must be `filterable` on the **target** or the service answers
+  `400` — the hook throws instead. To-many (`linkCollection`) is not editable yet.
 - **Adding a filter operator** touches three places or it half-works: the const
   arrays in `core/types/EntityFiltering.ts`, the token map in
   `core/src/rsql/rsql-operators.ts`, and `mongo-client`'s `filter-translator.ts`.
@@ -96,16 +112,30 @@ them), and everything deep is a link — loaded only when a task needs it.
   live in `ALL_PORTS` there and in [ports](docs/_shared/ports.md); a new domain
   adds its `300N`/`310N` to both.
 - **Local dev self-heals.** `pnpm run mp-admin:dev` walks the ladder in
-  `infra/local/ensure.sh` (cluster → port mapping → workloads → rollout → probes)
-  and fixes the broken rung; it never deletes data and never recreates the
-  cluster, exiting with the `reset.sh` command instead.
+  `infra/local/ensure.sh` (cluster → kubecontext → port mapping → workloads →
+  rollout → probes) and fixes the broken rung; it never deletes data and never
+  recreates the cluster, exiting with the `reset.sh` command instead.
   `pnpm run mp-admin:dev:reset` is the destructive heal — it wipes the
   namespace, PVs **and** hostPaths so the services re-seed on boot, which is
   the only way a drifted seed row gets corrected (the seed is
   `INSERT … ON CONFLICT DO NOTHING`). Ports/namespace/probes live once in
   `infra/local/lib.sh`. A published NodePort answering TCP is **not** health —
-  docker-proxy keeps it open with no pod behind it — so probes are always paired
-  with deployment readiness. `pnpm run dev-infra:doctor` diagnoses read-only.
+  docker-proxy and kube-proxy keep it open both _after_ the pod is gone and
+  _before_ the datastore's listener exists — so the ladder pairs TCP with
+  deployment readiness, and **every `infra/local/*` deployment must declare a
+  protocol-level `readinessProbe`** (AMQP, `pg_isready`, an authenticated redis
+  `PING`, a mongo `ping`). Without one, `readyReplicas` only means "container
+  started", ensure green-lights a booting fleet, and a service that dials
+  RabbitMQ at boot exits `1`. L3 re-applies the manifests on **every** heal (a
+  deployment existing says nothing about it matching git), which is why the
+  PVC-backed datastores need `strategy: Recreate` — a rolling update starts the
+  replacement while the old pod holds the data dir's lock (`DBPathInUse`). Two
+  drift traps the ladder now owns: Docker Desktop republishes the apiserver on a
+  new host port each restart, so a stale kubeconfig makes a healthy cluster read
+  as unreachable (heal is `minikube update-context`, ~2s, not a 2-min
+  `minikube start`); and `.heal.lock` records its owner pid, so a Ctrl-C'd run's
+  lock is broken at once instead of stalling the next boot for ten silent
+  minutes. `pnpm run dev-infra:doctor` diagnoses read-only.
 - **Config**: services read cross-service config from **config-service** (Postgres,
   seeded in `apps/config-service/src/db.ts`); never hardcode a URL/connection string.
   Every service exposes `GET /api/config` (own params, secrets redacted via
