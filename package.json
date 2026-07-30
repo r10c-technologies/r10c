@@ -122,6 +122,14 @@
   "nx": {
     "includedScripts": [],
     "targets": {
+      "watch-libs": {
+        "executor": "nx:run-commands",
+        "continuous": true,
+        "cache": false,
+        "options": {
+          "command": "bash tools/watch-libs.sh"
+        }
+      },
       "local-registry": {
         "executor": "@nx/js:verdaccio",
         "options": {

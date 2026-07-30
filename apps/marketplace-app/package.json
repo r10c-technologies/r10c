@@ -20,12 +20,20 @@
     "targets": {
       "dev": {
         "executor": "nx:run-commands",
+        "continuous": true,
         "options": {
           "command": "next dev -p 3000",
           "cwd": "apps/marketplace-app"
         },
         "dependsOn": [
-          "free-ports"
+          "free-ports",
+          "build-deps",
+          {
+            "projects": [
+              "@r10c/source"
+            ],
+            "target": "watch-libs"
+          }
         ]
       },
       "start": {

@@ -38,6 +38,11 @@ package's `src/index.ts`** — no rebuild needed between dependent libraries dur
 dev/typecheck. When you add a library, mirror this `exports` shape or cross-package
 imports won't resolve in dev.
 
+Declaring the condition is not the same as consuming it: TypeScript, Vitest,
+Storybook and the service webpack all opt in, the Next apps cannot (they resolve
+`dist`, kept fresh by a watcher — see
+[Library edits](#library-edits-reload-everywhere-two-mechanisms)).
+
 Type declarations come from the inferred `@nx/js/typescript` `build`/`typecheck`
 targets driven by each project's `tsconfig.lib.json` (composite project
 references; root `tsconfig.json` lists every member — keep it updated, or run
@@ -83,29 +88,52 @@ pnpm nx show projects | graph         # explore the workspace
 - An inferred `serve` target still exists on the webpack apps (from the
   `@nx/webpack` plugin) but `dev` is the canonical one used everywhere.
 
-### Library edits: services reload themselves, the Next apps do not
+### Library edits reload everywhere (two mechanisms)
 
-Every workspace package exports an `@r10c/source` condition pointing at its
-`src/index.ts`, but only the services opt into it, so the two sides behave
-differently:
+Edit anything under `packages/**/src` while an app or service is running and the
+change reaches the browser (or the restarted service) on its own — nothing to run
+by hand. The two sides get there differently:
 
 - **Services** — the service webpack sets
   `resolve.conditionNames: ['@r10c/source', …]`, so it bundles library
   **source**; `@nx/js:node` watches the project _and its dependencies_ and
-  rebuilds + restarts (~5s). Nothing to run by hand.
-- **Frontends** — no Next config declares the condition (`next.config.js` is the
-  stock `composePlugins(withNx)`), so resolution falls through `@r10c/source` to
-  `import` → **`dist`**. A library `src` edit is invisible to a running
-  `next dev` until you run `pnpm nx build <lib>`; the app then picks the new
-  bundle up over HMR within a few seconds.
+  rebuilds + restarts (~5s).
+- **Frontends** — the Next apps resolve `@r10c/source` → `import` → **`dist`**, and
+  `tools/watch-libs.sh` keeps `dist` in step with `src`: it rebuilds the changed
+  library (~3s for a small one, ~5s for `shells-next-common`) and Turbopack then
+  hot-reloads the app. It is the root `watch-libs` target, a `dependsOn` of every
+  app's `dev`, so it starts with the app and dies with it.
 
-The mismatch between this and the `@r10c/source` contract is tracked in
-[#34](https://github.com/r10c-technologies/r10c/issues/34) — either the apps
-gain the condition, or this stays the documented workflow.
+**Why the apps do not consume source** (asked and answered in
+[#34](https://github.com/r10c-technologies/r10c/issues/34) — don't reopen it without
+new facts): Next 16's `turbopack` config accepts only `resolveAlias` /
+`resolveExtensions`, with no `conditionNames` knob; and Next's swc enables decorators
+**only** when tsconfig sets `experimentalDecorators`, i.e. the _legacy_ emit, while
+the entity framework uses stage-3 decorators writing to `Symbol.metadata`. Feeding
+`entifix-react-controls` or `business-ts-authz` source through Turbopack therefore
+either fails to parse or yields entities with no metadata. `withNx` cannot help
+either: it derives `transpilePackages` from `tsconfig.base.json` `paths`, and this
+workspace has none.
 
-The old `dev-w-deps` target (`watch-deps` + `dev`) was removed because it
-rebuilt `dist` for the whole dependency chain on every run; the narrower
-replacement is building the one library you edited.
+**One watcher, not one per app.** `watch-libs` lives on the **root** project and is
+watched via `--projects '*,!tag:layer:app'` (every library; apps and services
+excluded). Every app's `dev` depends on that same task, so Nx's task graph collapses
+it to a single process — wiring the per-project `watch-deps` Nx infers instead would
+give `marketplace-admin-app:dev` two watchers (it chains `auth-app:dev`) racing to
+build the same shared library on one keystroke. The watcher does not chase its own
+output: the Nx daemon's file watcher honours `.gitignore`, and `dist` is ignored.
+
+Two rough edges worth knowing. A rebuild is swc emit **plus** a `tsc` declaration
+pass — `@nx/js:swc` always runs it in a TS solution setup, `skipTypeCheck` only
+silences its diagnostics — which is most of those seconds. And a save landing while
+Turbopack is mid-read can serve a torn module; the next save clears it.
+`@r10c/entifix-style` needs no rebuild at all: it has no build target, its CSS
+subpaths are consumed straight from `src`.
+
+Each app's `dev` also depends on the inferred `build-deps`, so `dist` is correct at
+boot — otherwise the first page load silently serves whatever the last build left
+behind. When no app is running, build the one library you edited:
+`pnpm nx build <lib>`.
 
 **Service `build` targets declare `dependsOn: []`.** The inferred default is
 `^build`, and it is both useless here (the bundle inlines library source) and

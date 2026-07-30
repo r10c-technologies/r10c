@@ -56,14 +56,19 @@ them), and everything deep is a link — loaded only when a task needs it.
   (`mongodb`, `@effect/sql*`) to `webpack.config.js` `externalDependencies`, keep
   `tslib` external, and align `@effect/sql*` with the pinned `@effect/platform`. See
   [[backend-db-connectivity]] and [docs/ENTIFIX.md](docs/ENTIFIX.md).
-- **Only services reload a library edit; the Next apps do not.** A `-service`
+- **A library edit reloads everywhere, by two different mechanisms.** A `-service`
   consumes workspace packages as **source** via `resolve.conditionNames`
   (`@r10c/source`) in its `webpack.config.js`, and `@nx/js:node` rebuilds and
-  restarts it on a dependency edit — no `watch-deps` needed. The Next apps
-  declare no such condition, so resolution falls through to `import` → **`dist`**:
-  editing a library's `src` changes nothing in a running `next dev` until
-  `pnpm nx build <lib>`. Tracked in
-  [#34](https://github.com/r10c-technologies/r10c/issues/34). Service `build`
+  restarts it on a dependency edit. The Next apps **cannot** declare that
+  condition — Turbopack has no `conditionNames` knob and Next's swc only parses
+  decorators in the legacy `experimentalDecorators` emit, which would break the
+  stage-3 `Symbol.metadata` entity decorators — so they resolve `import` →
+  **`dist`**, and `tools/watch-libs.sh` keeps `dist` fresh: **one** watcher
+  (`watch-libs` on the root project, `dependsOn` of every app `dev`, so Nx dedupes
+  it to a single process) rebuilds the changed library in ~3-5s and Turbopack
+  picks it up. Per-app `watch-deps` is what you must NOT wire — `marketplace-admin-app:dev`
+  chains `auth-app:dev`, so two watchers double-build every shared library. A
+  manual `pnpm nx build <lib>` is only needed when no app is running. Service `build`
   targets must keep **`dependsOn: []`**: with the inferred `^build`, every
   rebuild forked `nx run <service>:build`, re-entered a lib build already in the
   parent chain, and Nx killed the service with
