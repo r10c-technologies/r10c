@@ -28,6 +28,12 @@ pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo; +config-service)
 pnpm nx run auth-service:dev               # :3102 (Mongo; +config-service)
 pnpm nx run transaction-manager:dev        # :3103 (Mongo + RabbitMQ; passive saga tracker)
 
+# A library edit reloads by itself while any app/service runs: every app `dev`
+# starts the single root `watch-libs` watcher, which rebuilds the changed library
+# into `dist` (~3-5s) for Turbopack to pick up. Run it alone against an app you
+# started some other way:
+pnpm nx run @r10c/source:watch-libs
+
 # Build / typecheck / lint / test a single project
 pnpm nx build <project>       # libs: @nx/js:swc, per-file .js — never a bundler
 pnpm nx build <project> --skipTypeCheck=false   # show the declaration pass's
