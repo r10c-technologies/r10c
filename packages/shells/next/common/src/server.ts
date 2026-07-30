@@ -12,6 +12,9 @@ export * from './lib/hello-server';
 // Probe route handlers (liveness/readiness) shared by every Next app.
 export * from './lib/health/health-routes';
 
+// The `GET /api/config` handler + the same-origin domain rewrite it applies.
+export * from './lib/config/config-route';
+
 // Session cookies + the shared refresh route handler
 export * from './lib/session/cookies';
 export * from './lib/session/refresh-route';

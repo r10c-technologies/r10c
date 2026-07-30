@@ -1,6 +1,24 @@
 type EsEntity = typeof import('../es/entity').entity;
 
 export const entity: EsEntity = {
+  configuration: {
+    form: {
+      editTitle: 'Edit parameter',
+      newTitle: 'New parameter',
+    },
+    label: 'Parameter',
+    plural: 'Configuration',
+    fields: {
+      id: 'ID',
+      service: 'Service',
+      groupName: 'Group',
+      key: 'Key',
+      value: 'Value',
+      isSecret: 'Secret',
+      updatedAt: 'Updated at',
+      updatedBy: 'Updated by',
+    },
+  },
   product: {
     form: {
       brandEmbedded: 'Brand (embedded)',

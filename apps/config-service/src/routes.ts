@@ -1,9 +1,10 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { SqlClient, SqlError } from '@effect/sql';
 import { ConfigurationPlain } from '@r10c/entifix-ts-core';
-import { redactValue } from '@r10c/shells-effect-service';
+import { redactValue, requireServiceToken } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
+import { configurationRoutes } from './configuration-routes';
 import { ConfigurationRow } from './db';
 
 const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
@@ -36,40 +37,47 @@ const onSqlError = (error: SqlError.SqlError) =>
  *   for that service, grouped into `ConfigurationPlain` from Postgres.
  * - `GET /api/config` — introspection: this service's own loaded parameters
  *   (redacted Postgres URL, row count, and the services present in the table).
+ * - `/api/configuration…` — the operator-facing CRUD, behind
+ *   `config:configuration:*`. See `configuration-routes`.
+ *
+ * The two `config` routes carry credentials in the clear, by necessity: a booting
+ * service needs the real connection strings. They are gated on `X-Service-Token`
+ * rather than redacted. The CRUD is gated on a *user* permission instead, and
+ * blanks secrets — the two surfaces have different callers and different rules.
  */
-export const router = HttpRouter.empty.pipe(
-  HttpRouter.get(
-    '/api/config',
-    Effect.gen(function* () {
-      const sql = yield* SqlClient.SqlClient;
-      const counts = yield* sql<{
-        count: number;
-      }>`SELECT COUNT(*)::int AS count FROM configuration`;
-      const services = yield* sql<{
-        service: string;
-      }>`SELECT DISTINCT service FROM configuration ORDER BY service`;
+const introspectionRoute = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  const counts = yield* sql<{
+    count: number;
+  }>`SELECT COUNT(*)::int AS count FROM configuration`;
+  const services = yield* sql<{
+    service: string;
+  }>`SELECT DISTINCT service FROM configuration ORDER BY service`;
 
-      return yield* HttpServerResponse.json({
-        service: '@r10c/config-service',
-        store: 'postgres',
-        pgUrl: redactValue(process.env.CONFIG_PG_URL ?? DEFAULT_PG_URL),
-        rowCount: counts[0]?.count ?? 0,
-        services: services.map(row => row.service),
-      });
-    }).pipe(Effect.catchTag('SqlError', onSqlError)),
-  ),
-  HttpRouter.get(
-    '/api/config/:service',
-    Effect.gen(function* () {
-      const params = yield* HttpRouter.params;
-      const service = params.service ?? '';
-      const sql = yield* SqlClient.SqlClient;
+  return yield* HttpServerResponse.json({
+    service: '@r10c/config-service',
+    store: 'postgres',
+    pgUrl: redactValue(process.env.CONFIG_PG_URL ?? DEFAULT_PG_URL),
+    rowCount: counts[0]?.count ?? 0,
+    services: services.map(row => row.service),
+  });
+}).pipe(Effect.catchTag('SqlError', onSqlError));
 
-      const rows = yield* sql<
-        Pick<ConfigurationRow, 'group_name' | 'key' | 'value'>
-      >`SELECT group_name, key, value FROM configuration WHERE service = ${service}`;
+const lookupRoute = Effect.gen(function* () {
+  const params = yield* HttpRouter.params;
+  const service = params.service ?? '';
+  const sql = yield* SqlClient.SqlClient;
 
-      return yield* HttpServerResponse.json(toConfigurationPlain(rows));
-    }).pipe(Effect.catchTag('SqlError', onSqlError)),
+  const rows = yield* sql<
+    Pick<ConfigurationRow, 'group_name' | 'key' | 'value'>
+  >`SELECT group_name, key, value FROM configuration WHERE service = ${service}`;
+
+  return yield* HttpServerResponse.json(toConfigurationPlain(rows));
+}).pipe(Effect.catchTag('SqlError', onSqlError));
+
+export const router = configurationRoutes(
+  HttpRouter.empty.pipe(
+    HttpRouter.get('/api/config', requireServiceToken(introspectionRoute)),
+    HttpRouter.get('/api/config/:service', requireServiceToken(lookupRoute)),
   ),
 );

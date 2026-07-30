@@ -1,23 +1,11 @@
-import { NextResponse } from 'next/server';
-
-const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
-const SERVICE = 'auth-app';
+import { createConfigRoute } from '@r10c/shells-next-common/server';
 
 /**
- * Server-side route handler that fetches this app's centralized configuration
- * from config-service and returns it as ConfigurationPlain.
+ * This app's centralized configuration, fetched server-side from config-service
+ * and returned as `ConfigurationPlain`.
+ *
+ * No proxy rewrites: auth-app reaches auth-service through its own hand-written
+ * per-endpoint route handlers (they set and clear session cookies, so they cannot
+ * be a generic pipe), and no browser adapter uses `auth-service-domain`.
  */
-export async function GET() {
-  const res = await fetch(`${CONFIG_API_URL}/api/config/${SERVICE}`, {
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    return NextResponse.json(
-      { error: 'Failed to load configuration' },
-      { status: 502 },
-    );
-  }
-
-  return NextResponse.json(await res.json());
-}
+export const GET = createConfigRoute({ service: 'auth-app' });

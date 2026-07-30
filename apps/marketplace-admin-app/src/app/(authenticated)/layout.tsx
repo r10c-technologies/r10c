@@ -48,6 +48,10 @@ export default async function AuthenticatedLayout({
     'product-brand': t('admin.nav.brands'),
     'product-category': t('admin.nav.categories'),
     account: t('admin.nav.account'),
+    // The system-management shell owns this copy, so the keys carry its
+    // namespace rather than living in this app's catalog.
+    system: translateKey('shell:systemManagement.nav.section'),
+    configuration: translateKey('shell:systemManagement.nav.configuration'),
   };
 
   return (

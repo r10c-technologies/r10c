@@ -5,14 +5,15 @@ import {
 } from '@r10c/entifix-ts-core';
 import { Context, Effect, Schedule } from 'effect';
 
+import { SERVICE_TOKEN_HEADER, serviceToken } from './auth/service-token';
+
 /**
  * DI tag carrying the raw {@link ConfigurationPlain} a service loaded at boot,
  * so a `GET /api/config` introspection route can expose it (redacted).
  */
-export class LoadedConfigurationTag extends Context.Tag('LoadedConfigurationTag')<
-  LoadedConfigurationTag,
-  ConfigurationPlain
->() {}
+export class LoadedConfigurationTag extends Context.Tag(
+  'LoadedConfigurationTag',
+)<LoadedConfigurationTag, ConfigurationPlain>() {}
 
 /**
  * Default boot-fetch retry policy: 20 attempts spaced 1s apart (~20s window).
@@ -57,9 +58,14 @@ export const loadRemoteConfiguration = (
   const url = `${configApiUrl.replace(/\/+$/, '')}/api/config/${service}`;
   const fetchOnce = Effect.tryPromise({
     try: async () => {
-      const response = await fetch(url, { cache: 'no-store' });
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: { [SERVICE_TOKEN_HEADER]: serviceToken() },
+      });
       if (!response.ok) {
-        throw new Error(`config-service responded ${response.status} for ${url}`);
+        throw new Error(
+          `config-service responded ${response.status} for ${url}`,
+        );
       }
       return (await response.json()) as ConfigurationPlain;
     },
@@ -67,11 +73,14 @@ export const loadRemoteConfiguration = (
       new EntifixConnError(
         `Failed to load configuration for "${service}" from config-service`,
         error,
-        { url, service }
+        { url, service },
       ),
   });
 
-  return Effect.retry(fetchOnce, options.retrySchedule ?? defaultConfigRetrySchedule);
+  return Effect.retry(
+    fetchOnce,
+    options.retrySchedule ?? defaultConfigRetrySchedule,
+  );
 };
 
 /**
@@ -85,5 +94,5 @@ export const loadRemoteConfigurationStore = (
   options: LoadRemoteConfigurationOptions = {},
 ): Effect.Effect<ConfigurationStoreInMemory, EntifixConnError> =>
   loadRemoteConfiguration(configApiUrl, service, options).pipe(
-    Effect.map(plain => new ConfigurationStoreInMemory(plain))
+    Effect.map(plain => new ConfigurationStoreInMemory(plain)),
   );

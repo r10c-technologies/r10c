@@ -1,8 +1,12 @@
+import type { SqlClient } from '@effect/sql';
+import * as Statement from '@effect/sql/Statement';
+import { Effect, Exit, Stream } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { makeFakeAmqpChannel } from './fake-amqp';
 import { makeFakeMongoDb } from './fake-mongo';
 import { makeFakeRedis } from './fake-redis';
+import { makeFakeSqlClient } from './fake-sql';
 
 /**
  * The driver fakes sit one level below the adapters, so the adapters' own code
@@ -760,5 +764,133 @@ describe('makeFakeMongoDb value comparison', () => {
         { id: 'w-2', size: 'alpha' },
       ]),
     ).toEqual(['w-2', 'w-1']);
+  });
+});
+
+describe('makeFakeSqlClient', () => {
+  /** The fake only implements the constructor surface the adapters use. */
+  const clientOf = (fake: ReturnType<typeof makeFakeSqlClient>) =>
+    fake.client as SqlClient.SqlClient;
+
+  it('compiles to the Postgres dialect: $n placeholders, quoted identifiers', async () => {
+    const fake = makeFakeSqlClient();
+    const sql = clientOf(fake);
+
+    await Effect.runPromise(
+      sql`SELECT * FROM ${sql('widget')} WHERE ${sql('id')} = ${'w-1'}`,
+    );
+
+    expect(fake.lastExecution).toEqual({
+      sql: 'SELECT * FROM "widget" WHERE "id" = $1',
+      params: ['w-1'],
+    });
+  });
+
+  it('answers with the rows registered for a matching statement', async () => {
+    const fake = makeFakeSqlClient([
+      { match: 'SELECT', rows: [{ id: 'w-1' }] },
+    ]);
+    const sql = clientOf(fake);
+
+    const rows = await Effect.runPromise(sql`SELECT 1`);
+
+    expect(rows).toEqual([{ id: 'w-1' }]);
+  });
+
+  it('answers with nothing when no response matches', async () => {
+    const fake = makeFakeSqlClient([{ match: 'DELETE', rows: [{ id: 'x' }] }]);
+    const sql = clientOf(fake);
+
+    expect(await Effect.runPromise(sql`SELECT 1`)).toEqual([]);
+  });
+
+  it('lets a later registration override an earlier one', async () => {
+    const fake = makeFakeSqlClient([
+      { match: 'SELECT', rows: [{ id: 'first' }] },
+    ]);
+    fake.respondTo('SELECT', [{ id: 'second' }]);
+    const sql = clientOf(fake);
+
+    expect(await Effect.runPromise(sql`SELECT 1`)).toEqual([{ id: 'second' }]);
+  });
+
+  it('fails every statement after failWith', async () => {
+    const fake = makeFakeSqlClient();
+    fake.failWith('connection terminated');
+    const sql = clientOf(fake);
+
+    const exit = await Effect.runPromiseExit(sql`SELECT 1`);
+
+    expect(Exit.isFailure(exit)).toBe(true);
+  });
+
+  it('fails only the statements matching failOn', async () => {
+    const fake = makeFakeSqlClient();
+    fake.failOn('COUNT', 'count exploded');
+    const sql = clientOf(fake);
+
+    expect(Exit.isSuccess(await Effect.runPromiseExit(sql`SELECT 1`))).toBe(
+      true,
+    );
+    expect(
+      Exit.isFailure(await Effect.runPromiseExit(sql`SELECT COUNT(*) FROM x`)),
+    ).toBe(true);
+  });
+
+  it('records every statement in order', async () => {
+    const fake = makeFakeSqlClient();
+    const sql = clientOf(fake);
+
+    await Effect.runPromise(sql`SELECT 1`);
+    await Effect.runPromise(sql`DELETE FROM ${sql('widget')}`);
+
+    expect(fake.executions.map(execution => execution.sql)).toEqual([
+      'SELECT 1',
+      'DELETE FROM "widget"',
+    ]);
+  });
+
+  it('has no last execution before anything ran', () => {
+    expect(makeFakeSqlClient().lastExecution).toBeUndefined();
+  });
+
+  it('serves unprepared and raw statements from the same recording', async () => {
+    const fake = makeFakeSqlClient([{ match: 'SELECT', rows: [{ n: 1 }] }]);
+    const sql = clientOf(fake);
+
+    expect(await Effect.runPromise(sql`SELECT 1`.unprepared)).toEqual([
+      { n: 1 },
+    ]);
+    await Effect.runPromise(sql`SELECT 1`.raw);
+
+    expect(fake.executions).toHaveLength(2);
+  });
+
+  it('throws rather than silently answering an unimplemented call', async () => {
+    const fake = makeFakeSqlClient();
+    const sql = clientOf(fake);
+
+    // A fake that returned `[]` for `.values` would let a spec pass on a query
+    // that never happened.
+    await expect(Effect.runPromise(sql`SELECT 1`.values)).rejects.toThrow(
+      /not implemented/,
+    );
+    await expect(
+      Effect.runPromise(Stream.runCollect(sql`SELECT 1`.stream)),
+    ).rejects.toThrow(/not implemented/);
+  });
+
+  it('throws for the compiler features no adapter uses', () => {
+    const fake = makeFakeSqlClient();
+    const sql = clientOf(fake);
+
+    expect(() =>
+      sql`UPDATE x SET ${sql.updateValues([{ a: 1 }], 'v')}`.compile(),
+    ).toThrow(/updateValues is not implemented/);
+
+    const custom = Statement.custom('PgJson')({ a: 1 }, undefined, undefined);
+    expect(() => sql`SELECT ${custom}`.compile()).toThrow(
+      /custom segments is not implemented/,
+    );
   });
 });

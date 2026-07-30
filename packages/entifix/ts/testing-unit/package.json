@@ -36,6 +36,7 @@
     "targets": {}
   },
   "dependencies": {
+    "@effect/sql": "0.52.0",
     "@r10c/entifix-transactions": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",

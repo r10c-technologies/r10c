@@ -1,31 +1,12 @@
-import { can, type Permission } from '@r10c/business-ts-authz';
+import {
+  can,
+  type GuardedNavItem,
+  type GuardedNavSection,
+} from '@r10c/business-ts-authz';
 import type { NavSection } from '@r10c/shells-next-common';
+import { SYSTEM_MANAGEMENT_NAV } from '@r10c/shells-next-system-management';
 
-/**
- * A nav item plus the permission its destination needs, if any.
- *
- * `label`/`title` are **namespace-qualified** catalog keys. The shell renders
- * this list but does not own its copy, so the namespace has to travel with the
- * key — and writing it out is what makes an `app:` key visible to the lint rule
- * that keeps those keys inside `apps/`.
- */
-export interface GuardedNavItem {
-  label: string;
-  href: string;
-  icon?: string;
-  /**
-   * When set, the item also offers "Open in workspace" — a link to
-   * `/workspace?tab=<workspace>`.
-   */
-  workspace?: string;
-  /** Omit to show the item to every signed-in user. */
-  permission?: Permission;
-}
-
-export interface GuardedNavSection {
-  title?: string;
-  items: GuardedNavItem[];
-}
+export type { GuardedNavItem, GuardedNavSection };
 
 const CATALOG = 'product-configuration-management';
 
@@ -66,6 +47,11 @@ export const NAV: GuardedNavSection[] = [
       },
     ],
   },
+  // Contributed by the `scope:shared` system-management shell, which owns both
+  // the screens and their copy — so mounting it in a second host later moves
+  // nothing. Its items carry `config:configuration:*`, which only `super-admin`
+  // holds, so the section simply disappears for everyone else.
+  ...SYSTEM_MANAGEMENT_NAV,
   {
     title: 'app:admin.nav.account',
     items: [{ label: 'app:admin.nav.account', href: '/account', icon: '◕' }],

@@ -26,6 +26,7 @@ test.describe('switching locale', () => {
   // falls through to `Accept-Language`, which is the browser's to set.
   test.describe('an unprefixed path', () => {
     test.use({ locale: 'es-ES' });
+
     test('follows Accept-Language', async ({ page }) => {
       await page.goto('/');
 
@@ -35,6 +36,7 @@ test.describe('switching locale', () => {
 
   test.describe('an unprefixed path with no usable Accept-Language', () => {
     test.use({ locale: 'de-DE' });
+
     test('falls back to the default locale', async ({ page }) => {
       await page.goto('/');
 

@@ -22,13 +22,28 @@
   ],
   "references": [
     {
+      "path": "../../packages/business/ts/authn/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/sql-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/jwt-client/tsconfig.lib.json"
     },
     {
       "path": "../../packages/entifix/ts/core/tsconfig.lib.json"
     },
     {
       "path": "../../packages/entifix/ts/business/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/business/ts/configuration/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/business/ts/authz/tsconfig.lib.json"
     }
   ]
 }

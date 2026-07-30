@@ -57,6 +57,9 @@
       "path": "../../packages/shells/next/marketplace-admin"
     },
     {
+      "path": "../../packages/shells/next/system-management"
+    },
+    {
       "path": "../../packages/shells/next/i18n"
     },
     {
