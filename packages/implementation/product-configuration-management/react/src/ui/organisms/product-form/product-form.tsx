@@ -1,32 +1,39 @@
 'use client';
 
-import { Product } from '@r10c/business-ts-product-configuration-management';
 import {
-  EntityField,
-  EntityForm,
-  Select,
-  useT,
-} from '@r10c/entifix-react-controls';
-import { useEntityForm } from '@r10c/entifix-react-integration';
-import { useEffect } from 'react';
+  Product,
+  type ProductBrand,
+  type ProductCategory,
+} from '@r10c/business-ts-product-configuration-management';
+import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
+import {
+  useEntityForm,
+  useEntityLinkSource,
+} from '@r10c/entifix-react-integration';
+import { applyEntityLinks, describeEntityColumns } from '@r10c/entifix-ts-core';
+import { useEffect, useMemo } from 'react';
 
 import type { ProductFormProps } from './product-form.types';
 
 /**
- * Create/update form for a {@link Product}. It is now a thin wrapper over the
- * agnostic {@link EntityForm}: the generic form builds the scalar fields from
- * metadata, and this wrapper only supplies what is domain-specific — the two
- * relation pickers and the draft→`Product` reconstruction.
+ * Create/update form for a {@link Product}. A thin wrapper over the agnostic
+ * {@link EntityForm}: the generic form builds every field from metadata —
+ * relations included, now that it can be handed a picker source — and this
+ * wrapper only supplies the two sources and the draft→`Product` reconstruction.
  *
- * The relations are written the way the catalog stores each: `brand` embedded
- * (`setValue`, so the whole instance serializes inline) and `category` as a
- * foreign key (`setId`, so only the scalar does). `useEntityForm` owns the
- * draft; the page keys this component by the record id so it reseeds on load.
+ * Neither half is domain-specific any more. `applyEntityLinks` writes each
+ * relation the way the *entity* declares it (`brand` embedded, `category` as a
+ * foreign key), so that difference lives on `Product` rather than here, and the
+ * hook's `links` carries the picked instances the embedded shape needs.
+ *
+ * One `useEntityLinkSource` call per relation, because React's hook count has to
+ * stay fixed and the agnostic controls package may not reach the integration
+ * layer to make the call itself.
  */
-export function ProductForm({
+export function ProductForm<TContext>({
   entity,
-  brands,
-  categories,
+  brandLink,
+  categoryLink,
   isLoading = false,
   isSaving = false,
   isDeleting = false,
@@ -36,9 +43,13 @@ export function ProductForm({
   backHref,
   initialDraft,
   onDraftChange,
-}: ProductFormProps) {
-  const t = useT();
+}: ProductFormProps<TContext>) {
   const et = useT('entity');
+  const descriptors = useMemo(
+    () => describeEntityColumns(Product, entity),
+    [entity],
+  );
+
   const form = useEntityForm<Product>({
     entityConstructor: Product,
     entity,
@@ -48,18 +59,29 @@ export function ProductForm({
       product.id = entity?.id;
       product.description =
         values.description === '' ? undefined : values.description;
-
-      // brand travels embedded, so hand the link the whole instance…
-      const brand = brands.find(
-        candidate => String(candidate.id) === values.brand,
-      );
-      product.brand.setValue(brand);
-      // …category travels as a foreign key, so hand the link only the id.
-      product.category.setId(values.category === '' ? undefined : values.category);
+      applyEntityLinks(product, descriptors, values, form.links);
 
       onSave(product);
     },
   });
+
+  // The selection sidecar is keyed by field name and holds bare `Entity`, so the
+  // target type is restated here — the accessor's own type is what says which
+  // entity `brand` points at.
+  const brandSource = useEntityLinkSource<ProductBrand, TContext>(brandLink, {
+    descriptor: descriptors.find(entry => entry.name === 'brand')!,
+    selectedId: form.values.brand === '' ? undefined : form.values.brand,
+    selectedEntity: form.links['brand'] as ProductBrand | undefined,
+  });
+  const categorySource = useEntityLinkSource<ProductCategory, TContext>(
+    categoryLink,
+    {
+      descriptor: descriptors.find(entry => entry.name === 'category')!,
+      selectedId:
+        form.values.category === '' ? undefined : form.values.category,
+      selectedEntity: form.links['category'] as ProductCategory | undefined,
+    },
+  );
 
   // Emit the draft on every edit so the workspace host can autosave it.
   useEffect(() => {
@@ -75,6 +97,8 @@ export function ProductForm({
       mode="edit"
       values={form.values}
       onFieldChange={form.setField}
+      linkSources={{ brand: brandSource, category: categorySource }}
+      onLinkChange={form.setLink}
       errors={form.errors}
       onSubmit={form.submit}
       onDelete={onDelete}
@@ -86,42 +110,6 @@ export function ProductForm({
       title={et(entity ? 'product.form.editTitle' : 'product.form.newTitle')}
     >
       <EntityField<Product> field="id" hidden />
-      <EntityField<Product>
-        field="brand"
-        label={et('product.form.brandEmbedded')}
-        render={({ value, setField, id }) => (
-          <Select
-            id={id}
-            value={value}
-            onChange={event => setField('brand', event.currentTarget.value)}
-          >
-            <option value="">{t('value.none')}</option>
-            {brands.map(brand => (
-              <option key={String(brand.id)} value={String(brand.id)}>
-                {brand.name}
-              </option>
-            ))}
-          </Select>
-        )}
-      />
-      <EntityField<Product>
-        field="category"
-        label={et('product.form.categoryForeign')}
-        render={({ value, setField, id }) => (
-          <Select
-            id={id}
-            value={value}
-            onChange={event => setField('category', event.currentTarget.value)}
-          >
-            <option value="">{t('value.none')}</option>
-            {categories.map(category => (
-              <option key={String(category.id)} value={String(category.id)}>
-                {category.name}
-              </option>
-            ))}
-          </Select>
-        )}
-      />
     </EntityForm>
   );
 }

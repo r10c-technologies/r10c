@@ -22,8 +22,9 @@ The two metadata-driven organisms are **`EntityTable`** and **`EntityForm`**: bo
 build themselves from `describeEntityColumns` (see [ENTIFIX.md](./ENTIFIX.md)), so
 listing or editing a new entity needs no bespoke component. `EntityForm` toggles a
 **read** mode (values as text via `CellValue`) and an **edit** mode (inputs via the
-`FieldControl` atom, the type→input inverse of `CellValue`); relations stay
-read-only unless a host supplies an editor through an `<EntityField>` slot. Both are
+`FieldControl` atom, the type→input inverse of `CellValue`); a relation gets the
+two-mode editor below when the form is handed a source for it, and stays read-only
+otherwise (an `<EntityField>` slot still overrides either). Both are
 presentational — draft, errors and actions arrive as props — so the same form hosts
 on a plain route and inside a workspace tab.
 
@@ -291,6 +292,49 @@ client-only cache/orchestration jacket over `Effect.runPromise`.
   Zustand draft and snapshots for rollback, `onError` rolls back, `onSettled` invalidates the
   entity's query key.
 
+### Editing a relation
+
+A relation is set two ways, because the question differs: **quick** ("I know roughly
+what it is called") is a debounced type-ahead over the target entity, filtered on
+its `linkSearchProperty` with `like`; **browse** ("I need to filter the catalog") is
+the target's own `EntityTable` — filters, sorting, paging and all — inside a dialog,
+with `onSelect` replacing row navigation.
+
+The split that makes it work is a boundary constraint, not taste:
+`entifix-react-controls` and `entifix-react-integration` are both `entifix:react`,
+so neither may import the other. They meet at **`EntityLinkSource`**, a
+framework-free port in `entifix-ts-core` (plain data + callbacks: `quick`,
+`browse`, `selected`, `labelOf`).
+
+- **`EntityLinkInput`** / **`EntityLinkPicker`** (controls) are presentational: every
+  option, flag and error arrives through the source, and a pick is only _reported_ —
+  the input never decides how the relation is written back.
+- **`useEntityLinkSource(config, { descriptor, selectedId, selectedEntity })`**
+  (integration) produces one. Three requests, each held back until it means
+  something: the quick search runs a small page on a debounced term, the browse list
+  does not fetch until the dialog opens (`useDataLoading`'s new `enabled`), and the
+  label is looked up only when there is an id but no instance — a draft restored from
+  IndexedDB. It throws `EntifixLogicError` on a search property the target does not
+  declare `filterable`, because the service would answer `400` and the user would
+  read it as "there are no brands".
+- **What may be picked** is never the UI's call: `config.loadUc` is the seam (a domain
+  use-case can restrict the set), with `baseFiltering` as the lighter version — ANDed
+  into every request and never shown in the filter panel.
+- **`EntityForm` takes `linkSources` keyed by accessor name**, so an entity that
+  declares a `link` gets an editor for free, plus `onLinkChange` → `useEntityForm`'s
+  `setLink`, which writes the id into the draft and remembers the instance in `links`.
+  Submit reconstructs with `applyEntityLinks` (see
+  [ENTIFIX.md](./ENTIFIX.md#writing-a-relation-back-applyentitylinks)), so
+  `Product.brand` travels embedded and `category` as a key because _the entity_ says
+  so — the form wrapper no longer knows the difference.
+
+One `useEntityLinkSource` call per relation, in the entity-tight wrapper: React's
+hook count must stay fixed, and a generic per-field host would have to live in
+controls, which cannot call an integration hook.
+
+**Deferred**: `linkCollection` (chips + checkbox rows) — the port and
+`applyEntityLinks` are shaped for it, but a to-many relation still renders read-only.
+
 Effect ships its own `Cache`/`Query`, but TanStack wins on React optimistic ergonomics,
 devtools, and the WebSocket-invalidation story — and since the fetch stays Effect, we keep both.
 
@@ -336,8 +380,8 @@ shells, per the design-system rule.
 
 | Concern                                                                                                                                   | Package                               |
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`                               | `@r10c/entifix-react-integration`     |
-| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`/`Tab`; IndexedDB `UiPreferencesStore` | `@r10c/entifix-react-controls`        |
+| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`, `useEntityLinkSource`        | `@r10c/entifix-react-integration`     |
+| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`, `EntityLinkInput`/`EntityLinkPicker`), `Skeleton`, `TopBar`, `Menu`, `TabStrip` | `@r10c/entifix-react-controls`        |
 | `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                    | `@r10c/shells-next-common`            |
 | `PageView({addr})` pages, registrations, adapters                                                                                         | `@r10c/shells-next-marketplace-admin` |
 | `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions)        | `marketplace-admin-app`               |
@@ -354,4 +398,5 @@ roles behind it may be read from the cookie unverified. See
 
 Real WebSocket transport; cross-browser-tab collision sync (BroadcastChannel vs last-write-wins);
 stale-draft-vs-server conflict resolution on Save; whole-workspace share link; operations/wizards
-tab kinds; server-side TanStack dehydration/prefetch.
+tab kinds; server-side TanStack dehydration/prefetch; the to-many link editor
+(`linkCollection`) and an ABAC `canLink` policy behind the picker's use-case seam.

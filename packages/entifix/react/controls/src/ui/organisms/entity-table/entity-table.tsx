@@ -77,6 +77,7 @@ export function EntityTable<TEntity extends Entity>({
   onPageSizeChange,
   hrefFor,
   newHref,
+  onSelect,
   preferencesKey,
   showControls = true,
   pivotBreakpoint = 'md',
@@ -101,7 +102,8 @@ export function EntityTable<TEntity extends Entity>({
     );
 
   const pivot = PIVOT_CLASS[pivotBreakpoint];
-  const columnCount = visibleColumns.length + (hrefFor ? 1 : 0);
+  const hasRowAction = onSelect !== undefined || hrefFor !== undefined;
+  const columnCount = visibleColumns.length + (hasRowAction ? 1 : 0);
 
   const renderCell = (
     column: EntityTableColumn<TEntity>,
@@ -116,8 +118,27 @@ export function EntityTable<TEntity extends Entity>({
       />
     );
 
-  const recordLink = (item: TEntity) =>
-    hrefFor ? <Link href={hrefFor(item.id)}>{t('table.open')}</Link> : undefined;
+  /**
+   * Selection wins over navigation: a picker's row must set the value, not send
+   * the user away from the form they came from.
+   */
+  const recordAction = (item: TEntity) => {
+    if (onSelect) {
+      return (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => onSelect(item)}
+        >
+          {t('table.select')}
+        </Button>
+      );
+    }
+    return hrefFor ? (
+      <Link href={hrefFor(item.id)}>{t('table.open')}</Link>
+    ) : undefined;
+  };
 
   /**
    * "No records" is a statement about the data; after a failed load it would be
@@ -219,7 +240,9 @@ export function EntityTable<TEntity extends Entity>({
                     {column.header ?? column.label}
                   </TableHeaderCell>
                 ))}
-                {hrefFor && <TableHeaderCell>{t('table.actions')}</TableHeaderCell>}
+                {hasRowAction && (
+                  <TableHeaderCell>{t('table.actions')}</TableHeaderCell>
+                )}
               </tr>
             )}
           </TableHead>
@@ -248,7 +271,7 @@ export function EntityTable<TEntity extends Entity>({
                       {renderCell(column, item)}
                     </TableCell>
                   ))}
-                  {hrefFor && <TableCell>{recordLink(item)}</TableCell>}
+                  {hasRowAction && <TableCell>{recordAction(item)}</TableCell>}
                 </TableRow>
               ),
             )}
@@ -273,7 +296,7 @@ export function EntityTable<TEntity extends Entity>({
             renderCell={column =>
               renderCell(column as EntityTableColumn<TEntity>, item)
             }
-            actions={recordLink(item)}
+            actions={recordAction(item)}
           />
         ))}
       </div>

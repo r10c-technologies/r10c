@@ -18,6 +18,8 @@ export * from './ui/layout/switcher';
 export * from './ui/molecules/breadcrumbs';
 export * from './ui/molecules/card';
 export * from './ui/molecules/column-settings';
+export * from './ui/molecules/entity-link-input';
+export * from './ui/molecules/entity-link-picker';
 export * from './ui/molecules/entity-record-card';
 export * from './ui/molecules/filter-builder';
 export * from './ui/molecules/menu';

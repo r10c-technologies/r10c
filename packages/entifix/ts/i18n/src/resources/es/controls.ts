@@ -7,6 +7,7 @@
 export const controls = {
   table: {
     open: 'Abrir',
+    select: 'Seleccionar',
     actions: 'Acciones',
     new: 'Nuevo',
     filters: 'Filtros',
@@ -78,6 +79,23 @@ export const controls = {
   tabs: {
     close: 'Cerrar {{label}}',
     new: 'Abrir una pestaña nueva',
+  },
+  /**
+   * El editor de una relación. `search` es la búsqueda rápida y `browse` abre el
+   * catálogo completo; ambos botones son iconos, así que sus etiquetas `aria` son
+   * lo único que un lector de pantalla anuncia.
+   */
+  link: {
+    search: 'Buscar {{field}}',
+    suggestAria: 'Ver sugerencias de {{field}}',
+    browseAria: 'Examinar {{field}}',
+    browseTitle: 'Seleccionar {{field}}',
+    clear: 'Quitar {{field}}',
+    empty: '— sin asignar —',
+    loading: 'Cargando…',
+    noResults: 'Sin coincidencias',
+    error: 'No se pudieron cargar las opciones',
+    close: 'Cerrar',
   },
   value: {
     none: '— ninguno —',

@@ -3,6 +3,7 @@ import type {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-product-configuration-management';
+import type { EntityLinkSourceConfig } from '@r10c/entifix-react-integration';
 import type { EntifixError } from '@r10c/entifix-ts-core';
 
 /**
@@ -14,12 +15,20 @@ import type { EntifixError } from '@r10c/entifix-ts-core';
  */
 export type ProductFormDraft = Record<string, string>;
 
-export interface ProductFormProps {
+export interface ProductFormProps<TContext> {
   /** The record being edited; `undefined` means this is a create. */
   entity?: Product;
-  /** Options for the relation pickers, loaded by the page. */
-  brands: ProductBrand[];
-  categories: ProductCategory[];
+  /**
+   * Where each relation's picker looks for its targets: the list use-case, the
+   * optional get use-case that turns a held key back into a name, the adapter
+   * context, and any standing restriction on what may be assigned.
+   *
+   * The page owns these because it owns the adapters; the form only turns them
+   * into sources. Restricting what is assignable is therefore a use-case change,
+   * never a UI one.
+   */
+  brandLink: EntityLinkSourceConfig<ProductBrand, TContext>;
+  categoryLink: EntityLinkSourceConfig<ProductCategory, TContext>;
   isLoading?: boolean;
   isSaving?: boolean;
   isDeleting?: boolean;

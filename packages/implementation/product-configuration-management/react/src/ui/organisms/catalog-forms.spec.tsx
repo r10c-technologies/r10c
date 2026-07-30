@@ -3,10 +3,30 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-product-configuration-management';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import {
+  EntifixQueryProvider,
+  type EntityLinkSourceConfig,
+} from '@r10c/entifix-react-integration';
+import {
+  ConfigurationRepositoryTag,
+  type EntityRepository,
+  EntityRepositoryTag,
+  getUCFactory,
+  loadUCFactory,
+} from '@r10c/entifix-ts-business';
+import {
+  EntifixConnError,
+  type Entity,
+  type EntityConstructor,
+} from '@r10c/entifix-ts-core';
+import {
+  makeInMemoryEntityRepository,
+  makeStubConfigurationStore,
+} from '@r10c/entifix-ts-testing-unit';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { Context } from 'effect';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProductBrandForm } from './product-brand-form/product-brand-form.js';
 import { ProductCategoryForm } from './product-category-form/product-category-form.js';
@@ -26,6 +46,34 @@ const makeCategory = (id: string, code: string, name: string) => {
 
 const brands = [makeBrand('b-1', 'Acme'), makeBrand('b-2', 'Globex')];
 const categories = [makeCategory('c-1', 'TOOLS', 'Tools')];
+
+type Ctx = ConfigurationRepositoryTag | EntityRepositoryTag;
+
+let brandRepository: EntityRepository;
+let categoryRepository: EntityRepository;
+
+/**
+ * The picker configuration a page would build: the real use-cases over an
+ * in-memory repository, so these cases exercise search and selection end to end
+ * rather than a stubbed source.
+ */
+const linkConfig = <TTarget extends Entity>(
+  entityConstructor: EntityConstructor<TTarget>,
+  repository: EntityRepository,
+): EntityLinkSourceConfig<TTarget, Ctx> => ({
+  entityConstructor,
+  loadUc: loadUCFactory<TTarget>(),
+  getUc: getUCFactory<TTarget>(),
+  ctx: Context.make(EntityRepositoryTag, repository).pipe(
+    Context.add(ConfigurationRepositoryTag, makeStubConfigurationStore()),
+  ),
+  debounceMs: 0,
+});
+
+beforeEach(() => {
+  brandRepository = makeInMemoryEntityRepository([...brands]);
+  categoryRepository = makeInMemoryEntityRepository([...categories]);
+});
 
 describe('ProductBrandForm', () => {
   const renderForm = (
@@ -256,18 +304,20 @@ describe('ProductCategoryForm', () => {
 
 describe('ProductForm', () => {
   const renderForm = (
-    props: Partial<Parameters<typeof ProductForm>[0]> = {},
+    props: Partial<Parameters<typeof ProductForm<Ctx>>[0]> = {},
   ) => {
     const onSave = vi.fn();
     const user = userEvent.setup();
     render(
-      <ProductForm
-        brands={brands}
-        categories={categories}
-        onSave={onSave}
-        backHref="/catalog"
-        {...props}
-      />,
+      <EntifixQueryProvider>
+        <ProductForm<Ctx>
+          brandLink={linkConfig(ProductBrand, brandRepository)}
+          categoryLink={linkConfig(ProductCategory, categoryRepository)}
+          onSave={onSave}
+          backHref="/catalog"
+          {...props}
+        />
+      </EntifixQueryProvider>,
     );
     return { onSave, user };
   };
@@ -280,30 +330,52 @@ describe('ProductForm', () => {
     return product;
   };
 
-  it('offers every brand and category as an option', () => {
-    renderForm();
+  /** Picks a target through the quick search of one relation. */
+  const pick = async (
+    user: ReturnType<typeof userEvent.setup>,
+    field: string,
+    option: string,
+  ) => {
+    await user.click(
+      screen.getByRole('button', { name: `Ver sugerencias de ${field}` }),
+    );
+    await user.click(await screen.findByRole('option', { name: option }));
+  };
 
-    expect(screen.getByRole('option', { name: 'Acme' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Tools' })).toBeInTheDocument();
+  it('offers the catalog through each relation’s quick search', async () => {
+    const { user } = renderForm();
+
+    await pick(user, 'Marca', 'Acme');
+
+    expect(screen.getByTestId('entity-link-value-brand')).toHaveTextContent(
+      'Acme',
+    );
   });
 
-  it('seeds both relation pickers from the record', () => {
+  it('seeds both relation editors from the record', async () => {
     renderForm({ entity: makeProduct() });
 
-    expect(screen.getByLabelText(/Marca/)).toHaveValue('b-1');
-    expect(screen.getByLabelText(/Categoría/)).toHaveValue('c-1');
+    // `brand` arrived embedded, so its name is already known; `category` arrived
+    // as a bare key and is resolved through the picker's get use-case.
+    expect(screen.getByTestId('entity-link-value-brand')).toHaveTextContent(
+      'Acme',
+    );
+    expect(
+      await screen.findByText('Tools', { selector: 'span' }),
+    ).toBeInTheDocument();
   });
 
-  // The two relations are stored differently, and the form has to build each
-  // link the way the payload will carry it: brand embedded, category by id.
+  // The two relations are stored differently, and the entity is what says so:
+  // `brand` declares `linkSerialization: 'embedded'`, `category` keeps the
+  // default. The form applies whatever each declares.
   it('embeds the chosen brand but stores the category as a foreign key', async () => {
     const { onSave, user } = renderForm();
 
     await user.type(screen.getByLabelText('Código'), 'P-1');
     await user.type(screen.getByLabelText('Nombre'), 'Widget');
     await user.type(screen.getByLabelText('Descripción'), 'A product');
-    await user.selectOptions(screen.getByLabelText(/Marca/), 'b-2');
-    await user.selectOptions(screen.getByLabelText(/Categoría/), 'c-1');
+    await pick(user, 'Marca', 'Globex');
+    await pick(user, 'Categoría', 'Tools');
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     const saved = onSave.mock.calls[0]?.[0] as Product;
@@ -323,6 +395,17 @@ describe('ProductForm', () => {
     const saved = onSave.mock.calls[0]?.[0] as Product;
     expect(saved.brand.isLoaded).toBe(false);
     expect(saved.category.id).toBeUndefined();
+  });
+
+  it('drops a relation the user cleared', async () => {
+    const { onSave, user } = renderForm({ entity: makeProduct() });
+
+    await user.click(screen.getByRole('button', { name: 'Quitar Marca' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    const saved = onSave.mock.calls[0]?.[0] as Product;
+    expect(saved.brand.isLoaded).toBe(false);
+    expect(saved.brand.id).toBeUndefined();
   });
 
   it('carries the record’s id through an update', async () => {
@@ -359,8 +442,6 @@ describe('ProductForm', () => {
     renderForm({ ...props, onDelete: vi.fn() });
 
     expect(screen.getByText(busyLabel)).toBeInTheDocument();
-    for (const button of screen.getAllByRole('button')) {
-      expect(button).toBeDisabled();
-    }
+    expect(screen.getByText(busyLabel)).toBeDisabled();
   });
 });

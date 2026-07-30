@@ -48,6 +48,8 @@ export function resolveEntityFormFields<TEntity extends Entity>(
       readonly: false,
       required: false,
       linkLabelProperty: 'name',
+      linkSearchProperty: 'name',
+      linkSerialization: 'id',
       render: slot.render,
       readRender: slot.readRender,
       virtual: true,

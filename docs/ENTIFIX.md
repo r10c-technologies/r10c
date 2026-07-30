@@ -73,10 +73,23 @@ allowlist. See
 `@accessor()` also carries what generic UI needs to render a member without
 knowing the entity: `type` (`MetaAccessorType`: `string | number | boolean | date
 | enum | id | link | linkCollection`), `label`, `sortable`, `filterable`,
-`order`, `enumValues`, `linkLabelProperty`, `readonly`, and `required`. All are
+`order`, `enumValues`, `linkLabelProperty`, `linkSearchProperty`,
+`linkSerialization`, `readonly`, and `required`. All are
 optional — annotate what the UI should not have to guess. `required` and
 `readonly` are what a form reads: `required` blocks submit while the field is
-empty, `readonly` disables its input (the member still shows).
+empty, `readonly` disables its input (the member still shows). On a relation,
+`required` means "a key must be held" — the format of a foreign key is the
+service's business, not the form's.
+
+The three `link*` options are what make a relation editable without bespoke code:
+`linkLabelProperty` (default `name`) is what a target reads as,
+`linkSearchProperty` (default: the label one) is what a picker filters on — it
+must be `filterable` on the **target** entity, since that metadata is also the
+server-side allowlist — and `linkSerialization` (`'id'` by default, or
+`'embedded'`) is the shape the relation writes back as. That last one belongs on
+the entity because the serializer inlines whatever link `isLoaded`: without a
+declaration, the wire shape would depend on whether the UI happened to hold the
+target.
 
 `describeEntityColumns(Ctor, sample?)` resolves them into `EntityFieldDescriptor[]`
 — the contract generic UI builds itself from: a table's columns (`EntityTable`)
@@ -121,6 +134,29 @@ export interface EntityLinkResolver {
 }
 link.reload(resolver); // fetches + caches the target
 ```
+
+### Writing a relation back: `applyEntityLinks`
+
+The inverse of resolution. A form's draft is `Record<string, string>` — it has to
+stay JSON, because a workspace tab autosaves it — so a relation is held as its
+foreign key, and an id alone cannot express the embedded shape. Two pieces close
+that gap, both pure and in `core`:
+
+- **`applyEntityLinks(instance, descriptors, values, selection?)`** writes every
+  `link` member of a freshly built entity, following each one's declared
+  `linkSerialization`: `embedded` gets the picked instance (`setValue`, so the
+  serializer inlines it), `id` gets only the key (`setId`) **even when the instance
+  is at hand**. An empty draft value clears the link.
+- **`selection`** (`EntityLinkSelection`, keyed by accessor name) is the sidecar
+  holding those instances — seeded from a record's already-materialized links by
+  `seedEntityLinkSelection` and extended by each pick. It is a _cache_: a missing
+  entry costs the embedded shape, never the relation.
+
+`linkCollection` members are left untouched — the to-many editor is a follow-up,
+and that is the branch where `setIds`/`setValues` will land.
+
+The browser half of this (the two-mode picker, the source port) is in
+[FRONTEND.md → Editing a relation](./FRONTEND.md#editing-a-relation).
 
 ## 3. Effect makes the use-case agnostic
 

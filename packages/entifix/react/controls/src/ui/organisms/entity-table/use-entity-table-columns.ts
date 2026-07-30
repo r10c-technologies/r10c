@@ -49,6 +49,8 @@ function mergeSlots<TEntity extends Entity>(
       readonly: false,
       required: false,
       linkLabelProperty: 'name',
+      linkSearchProperty: 'name',
+      linkSerialization: 'id',
       header: slot.header,
       render: slot.render,
       virtual: true,

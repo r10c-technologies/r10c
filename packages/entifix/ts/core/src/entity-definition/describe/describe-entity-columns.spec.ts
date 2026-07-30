@@ -159,6 +159,53 @@ describe('describeEntityColumns', () => {
     expect(byName('stock')?.required).toBe(true);
     expect(byName('productCode')?.required).toBe(false);
   });
+
+  // You search for what you read, so the search property follows the label one
+  // unless a member says otherwise; a relation writes back its key by default,
+  // because that is the shape that does not depend on what the UI loaded.
+  it('defaults a link’s search property to its label property, and travel to id', () => {
+    expect(byName('brand')).toMatchObject({
+      linkLabelProperty: 'name',
+      linkSearchProperty: 'name',
+      linkSerialization: 'id',
+    });
+  });
+
+  it('honours declared link search and serialization overrides', () => {
+    @entity({ key: 'declared-link' })
+    class DeclaredLink implements Entity {
+      #id?: EntityId;
+      #brand = new EntityLink(Brand);
+
+      @accessor()
+      get id(): EntityId {
+        return this.#id;
+      }
+      set id(value: EntityId) {
+        this.#id = value;
+      }
+
+      @accessor({
+        type: 'link',
+        linkLabelProperty: 'title',
+        linkSearchProperty: 'code',
+        linkSerialization: 'embedded',
+      })
+      get brand(): EntityLink<Brand> {
+        return this.#brand;
+      }
+    }
+
+    expect(
+      describeEntityColumns(DeclaredLink).find(
+        column => column.name === 'brand',
+      ),
+    ).toMatchObject({
+      linkLabelProperty: 'title',
+      linkSearchProperty: 'code',
+      linkSerialization: 'embedded',
+    });
+  });
 });
 
 describe('describeEntityColumns type inference', () => {

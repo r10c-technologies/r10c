@@ -23,6 +23,37 @@ const BASE_NAMES = [
   'Cyberdyne',
 ];
 
+/**
+ * Categories and one product, for the journeys that go through the product form.
+ *
+ * Deliberately more categories than a picker's first page of suggestions, so a
+ * spec that finds one by typing is proving the *search* rather than a lucky
+ * position in a preloaded list.
+ */
+export const categorySeed = Array.from({ length: 14 }, (_, index) => {
+  const number = index + 1;
+  const baseName = BASE_NAMES[index % BASE_NAMES.length];
+
+  return {
+    id: `product-category-${number}`,
+    code: `CAT-${number}`,
+    name: `${baseName} tools ${number}`,
+    description: `Everything ${baseName} makes (#${number})`,
+  };
+});
+
+export const productSeed = [
+  {
+    id: 'product-1',
+    code: 'P-1',
+    name: 'Widget',
+    description: 'A widget',
+    // The two shapes a relation arrives in: brand embedded, category by key.
+    brand: { id: 'product-brand-1', name: 'Acme 1' },
+    category: 'product-category-2',
+  },
+];
+
 export const brandSeed = Array.from({ length: 20 }, (_, index) => {
   const number = index + 1;
   const baseName = BASE_NAMES[index % BASE_NAMES.length];

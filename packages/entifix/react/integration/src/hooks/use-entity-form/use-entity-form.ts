@@ -1,9 +1,14 @@
 'use client';
 
-import { describeEntityColumns, type Entity } from '@r10c/entifix-ts-core';
+import {
+  describeEntityColumns,
+  type Entity,
+  type EntityLinkSelection,
+  seedEntityLinkSelection,
+} from '@r10c/entifix-ts-core';
 import { sharedFallbackI18n } from '@r10c/entifix-ts-i18n';
 import { revalidateLogic, useForm, useStore } from '@tanstack/react-form';
-import { useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 import { I18nContext, initReactI18next, useTranslation } from 'react-i18next';
 
 import {
@@ -59,6 +64,13 @@ export function useEntityForm<TEntity extends Entity>({
   const seed = useMemo(
     () => initialValues ?? seedEntityDraft(descriptors, entity),
     [descriptors, entity, initialValues],
+  );
+
+  // The relations the record already carries, so opening a loaded record needs no
+  // label lookup and a save keeps whatever embedded shape it arrived in. Seeded
+  // once, like the draft — a caller that loads late keys the form by record id.
+  const [links, setLinks] = useState<EntityLinkSelection>(() =>
+    seedEntityLinkSelection(descriptors, entity),
   );
 
   // Read straight from react-i18next rather than through the controls package:
@@ -143,11 +155,26 @@ export function useEntityForm<TEntity extends Entity>({
     void form.handleSubmit();
   }, [form]);
 
+  // Both halves of a pick, in one call: the id the draft persists and the
+  // instance only memory holds.
+  const setLink = useCallback(
+    (name: string, picked: Entity | undefined) => {
+      setLinks(current => ({ ...current, [name]: picked }));
+      form.setFieldValue(
+        name,
+        picked?.id == null ? '' : String(picked.id),
+      );
+    },
+    [form],
+  );
+
   return {
     values,
     errors,
     formError: typeof formError === 'string' ? formError : undefined,
     setField: form.setFieldValue,
+    links,
+    setLink,
     submit,
     isDirty: !isDefaultValue,
   };

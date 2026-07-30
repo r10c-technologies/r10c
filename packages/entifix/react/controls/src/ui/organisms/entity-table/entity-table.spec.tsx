@@ -344,6 +344,33 @@ describe('EntityTable controls', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('picks a row instead of navigating when a selection handler is given', async () => {
+      const user = userEvent.setup();
+      const onSelect = vi.fn();
+      renderTable({ onSelect });
+
+      await user.click(
+        screen.getAllByRole('button', { name: 'Seleccionar' })[0]!,
+      );
+
+      expect(onSelect).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'widget-1' }),
+      );
+    });
+
+    // Inside a picker the user is choosing a value; offering to navigate away
+    // from the form they came from would be the wrong affordance.
+    it('prefers selection over navigation when both are given', () => {
+      renderTable({ onSelect: vi.fn(), hrefFor: id => `/widget/${String(id)}` });
+
+      expect(
+        screen.queryByRole('link', { name: 'Abrir' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getAllByRole('button', { name: 'Seleccionar' }).length,
+      ).toBeGreaterThan(0);
+    });
+
     it('offers a create link when a new href is given', () => {
       renderTable({ newHref: '/widget/new' });
 

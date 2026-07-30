@@ -6,7 +6,7 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-product-configuration-management';
 import {
-  useDataLoading,
+  type EntityLinkSourceConfig,
   useEntityMutation,
   useEntityRecord,
 } from '@r10c/entifix-react-integration';
@@ -30,9 +30,6 @@ import { CATALOG_NEW_SLUG, slugToEntityId } from '../slug';
 
 const LIST_HREF = '/catalog/product';
 
-/** How many brand/category options the relation pickers load. */
-const RELATION_OPTIONS_LIMIT = 200;
-
 type EntityContext = EntityRepositoryTag | ConfigurationRepositoryTag;
 
 export interface ProductSingleViewClientPageProps {
@@ -55,9 +52,10 @@ export interface ProductSingleViewClientPageProps {
  * tab it takes the slug and post-save action as props.
  *
  * Unlike the list page this wires no link resolver: the form edits relations by
- * id, and both links expose their id whether or not the target was resolved. The
- * option lists come from the brand/category adapters instead — the same base
- * adapters, pointed at a different entity.
+ * id, and both links expose their id whether or not the target was resolved. What
+ * it does wire is a picker source per relation — the same base adapters pointed at
+ * a different entity, handed over as use-cases rather than as loaded rows, so the
+ * picker searches and pages the catalog instead of holding all of it.
  */
 export function ProductSingleViewClientPage({
   slug,
@@ -90,19 +88,22 @@ export function ProductSingleViewClientPage({
     id,
   });
 
-  // Relation pickers need the whole set, not the default first page of ten.
-  // This ceiling is a stopgap: a picker that can't show every option is wrong,
-  // and the real fix is a searchable/paged picker rather than a bigger number.
-  const { items: brands } = useDataLoading<ProductBrand, EntityContext>({
-    uc: loadUCFactory<ProductBrand>(),
+  // What the pickers may offer, expressed as use-cases: `loadUc` searches and
+  // pages the catalog, `getUc` turns a key an autosaved draft restored back into
+  // a name. A rule about what is assignable becomes a different use-case here and
+  // changes nothing in the form.
+  const brandLink: EntityLinkSourceConfig<ProductBrand, EntityContext> = {
+    entityConstructor: ProductBrand,
+    loadUc: loadUCFactory<ProductBrand>(),
+    getUc: getUCFactory<ProductBrand>(),
     ctx: brandCtx,
-    initialPageSize: RELATION_OPTIONS_LIMIT,
-  });
-  const { items: categories } = useDataLoading<ProductCategory, EntityContext>({
-    uc: loadUCFactory<ProductCategory>(),
+  };
+  const categoryLink: EntityLinkSourceConfig<ProductCategory, EntityContext> = {
+    entityConstructor: ProductCategory,
+    loadUc: loadUCFactory<ProductCategory>(),
+    getUc: getUCFactory<ProductCategory>(),
     ctx: categoryCtx,
-    initialPageSize: RELATION_OPTIONS_LIMIT,
-  });
+  };
 
   const {
     save,
@@ -132,11 +133,11 @@ export function ProductSingleViewClientPage({
   };
 
   return (
-    <ProductForm
+    <ProductForm<EntityContext>
       key={String(entity?.id ?? CATALOG_NEW_SLUG)}
       entity={entity}
-      brands={brands}
-      categories={categories}
+      brandLink={brandLink}
+      categoryLink={categoryLink}
       isLoading={isLoading}
       isSaving={isSaving}
       isDeleting={isDeleting}

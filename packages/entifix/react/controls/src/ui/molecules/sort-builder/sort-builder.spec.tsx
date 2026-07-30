@@ -30,6 +30,8 @@ const descriptor = (
   readonly: false,
   required: false,
   linkLabelProperty: 'name',
+  linkSearchProperty: 'name',
+  linkSerialization: 'id',
 });
 
 const descriptors = [descriptor('name', 'Name'), descriptor('stock', 'Stock')];

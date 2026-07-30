@@ -35,6 +35,8 @@ const descriptor = (
   readonly: false,
   required: false,
   linkLabelProperty,
+  linkSearchProperty: linkLabelProperty,
+  linkSerialization: 'id',
 });
 
 const renderCell = (value: unknown, type: MetaAccessorType, labelProperty?: string) =>

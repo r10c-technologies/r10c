@@ -2,7 +2,11 @@ import { Entity, EntityConstructor } from '../../types/Entity';
 import { extractMetaAccessors } from '../helpers';
 import { EntityCollectionLink } from '../links/entity-collection-link';
 import { EntityLink } from '../links/entity-link';
-import { MetaAccessor, MetaAccessorType } from '../meta-entities/meta-accessor';
+import {
+  type EntityLinkSerialization,
+  MetaAccessor,
+  MetaAccessorType,
+} from '../meta-entities/meta-accessor';
 
 /**
  * A displayable member of an entity, resolved from its accessor metadata. This
@@ -36,6 +40,10 @@ export interface EntityFieldDescriptor {
   enumLabelKey?: string;
   /** Property of a `link` target used as its display label. */
   linkLabelProperty: string;
+  /** Property of a `link` target a picker searches on. Defaults to the label. */
+  linkSearchProperty: string;
+  /** Whether a `link` writes back its foreign key or the inlined target. */
+  linkSerialization: EntityLinkSerialization;
 }
 
 /** Types whose values are scalars a user can meaningfully sort/filter on. */
@@ -82,6 +90,7 @@ function toDescriptor(
     metaAccessor.type ??
     inferType(name, (sample as Record<string, unknown> | undefined)?.[name]);
   const isScalar = SCALAR_TYPES.includes(type);
+  const linkLabelProperty = metaAccessor.linkLabelProperty ?? 'name';
 
   return {
     name,
@@ -96,7 +105,9 @@ function toDescriptor(
     required: metaAccessor.required ?? false,
     enumValues: metaAccessor.enumValues,
     enumLabelKey: metaAccessor.enumLabelKey,
-    linkLabelProperty: metaAccessor.linkLabelProperty ?? 'name',
+    linkLabelProperty,
+    linkSearchProperty: metaAccessor.linkSearchProperty ?? linkLabelProperty,
+    linkSerialization: metaAccessor.linkSerialization ?? 'id',
   };
 }
 

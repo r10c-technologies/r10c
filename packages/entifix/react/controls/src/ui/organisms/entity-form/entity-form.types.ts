@@ -3,6 +3,7 @@ import type {
   Entity,
   EntityConstructor,
   EntityFieldDescriptor,
+  EntityLinkSource,
 } from '@r10c/entifix-ts-core';
 import type { ReactNode } from 'react';
 
@@ -52,6 +53,27 @@ export interface EntityFormProps<TEntity extends Entity> {
   values?: EntityFormDraft;
   /** Called when one field changes. */
   onFieldChange?: (name: string, value: string) => void;
+
+  /**
+   * A search/browse source per relation, keyed by accessor name. A `link` field
+   * with a source gets the full editor; one without keeps its read-only display,
+   * which is what a form that only shows a relation still wants.
+   *
+   * A registry rather than a slot per relation: the whole point is that an entity
+   * declaring a `link` needs no bespoke control. The sources are built by the
+   * caller because fetching them is the integration layer's job, and this package
+   * cannot reach it.
+   */
+  // A source's target is another entity entirely, so it cannot be expressed in
+  // terms of `TEntity`; the input it feeds is instantiated per field anyway.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  linkSources?: Record<string, EntityLinkSource<any>>;
+  /**
+   * A relation was set or cleared. The instance travels alongside the id the
+   * draft holds, so a host can remember it — an id alone cannot be written as an
+   * embedded relation.
+   */
+  onLinkChange?: (name: string, entity: Entity | undefined) => void;
 
   /** Force a mode. Omit to let the form own it (with the built-in toggle). */
   mode?: EntityFormMode;

@@ -1,4 +1,8 @@
-import { ProductBrand } from '@r10c/business-ts-product-configuration-management';
+import {
+  Product,
+  ProductBrand,
+  ProductCategory,
+} from '@r10c/business-ts-product-configuration-management';
 import {
   configurationHandler,
   entityBackendHandlers,
@@ -8,13 +12,15 @@ import {
   seedSession,
 } from '@r10c/entifix-ts-testing-e2e/playwright';
 
-import { brandSeed } from './catalog-seed';
+import { brandSeed, categorySeed, productSeed } from './catalog-seed';
 
 /** Where the admin app is served, and where its adapters look for the service. */
 export const APP_URL = process.env['BASE_URL'] ?? 'http://localhost:3001';
 export const SERVICE_URL = 'http://localhost:3101/api';
 
 export const BRAND_URL = `${SERVICE_URL}/product-brand`;
+export const CATEGORY_URL = `${SERVICE_URL}/product-category`;
+export const PRODUCT_URL = `${SERVICE_URL}/product`;
 
 /**
  * The one configuration value the REST adapters need in order to build their
@@ -29,8 +35,24 @@ const { handlers, backend } = entityBackendHandlers(ProductBrand, {
   seed: brandSeed,
 });
 
+/**
+ * The other two catalog entities, so a journey through the product form has both
+ * relations to pick from. One backend per entity, because each serves the routes
+ * of its own collection.
+ */
+const categories = entityBackendHandlers(ProductCategory, {
+  baseUrl: CATEGORY_URL,
+  seed: categorySeed,
+});
+const products = entityBackendHandlers(Product, {
+  baseUrl: PRODUCT_URL,
+  seed: productSeed,
+});
+
 /** The mock catalog, for reseeding or for breaking on purpose. */
 export const catalogBackend = backend;
+export const categoryBackend = categories.backend;
+export const productBackend = products.backend;
 
 /**
  * Two stubs, not one: the entity endpoint AND the app's `/api/config`. The
@@ -42,6 +64,8 @@ const base = defineEntifixE2eTest({
   handlers: [
     configurationHandler(`${APP_URL}/api/config`, CONFIGURATION),
     ...handlers,
+    ...categories.handlers,
+    ...products.handlers,
   ],
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;
   // only unstubbed *service* traffic should fail a test.

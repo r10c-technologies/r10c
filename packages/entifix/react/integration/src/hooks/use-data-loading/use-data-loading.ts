@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Context, Effect } from 'effect';
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef } from 'react';
 
+import { combineFilterGroups } from '../../query/combine-filtering';
 import type { UseDataLoadingOptions } from './use-data-loading.types';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -60,6 +61,8 @@ export function useDataLoading<TEntity extends Entity, TContext>({
   ctx,
   initialPageSize = DEFAULT_PAGE_SIZE,
   queryKey,
+  enabled = true,
+  baseFiltering,
 }: UseDataLoadingOptions<TEntity, TContext>) {
   const [request, dispatch] = useReducer(
     requestReducer as (
@@ -81,12 +84,21 @@ export function useDataLoading<TEntity extends Entity, TContext>({
     ctxRef.current = ctx;
   });
 
+  // What actually goes on the wire: the caller's standing restriction ANDed with
+  // whatever the user applied. Kept separate from `request.filtering` because the
+  // restriction is not the user's filter — the panel must keep showing only what
+  // they set, while the request keeps carrying both.
+  const effectiveFiltering = useMemo(
+    () => combineFilterGroups<TEntity>(baseFiltering, request.filtering),
+    [baseFiltering, request.filtering],
+  );
+
   // The applied filter/sort are rebuilt each render, so their *serialized* form
   // — the same codec the request needs anyway — is what keys the query: a stable
   // string that changes exactly when the query does.
   const rsql = useMemo(
-    () => serializeRsql(request.filtering ? [request.filtering] : undefined),
-    [request.filtering],
+    () => serializeRsql(effectiveFiltering ? [effectiveFiltering] : undefined),
+    [effectiveFiltering],
   );
   const sort = useMemo(
     () => serializeSort(request.sorting ? [request.sorting] : undefined),
@@ -100,14 +112,21 @@ export function useDataLoading<TEntity extends Entity, TContext>({
     };
     // An empty group serializes to nothing; omit it rather than send a filter
     // that matches everything.
-    if (rsql !== '' && request.filtering) {
-      built.filtering = [request.filtering];
+    if (rsql !== '' && effectiveFiltering) {
+      built.filtering = [effectiveFiltering];
     }
     if (sort !== '' && request.sorting) {
       built.sorting = [request.sorting];
     }
     return built;
-  }, [request.currentPage, request.pageSize, request.filtering, request.sorting, rsql, sort]);
+  }, [
+    request.currentPage,
+    request.pageSize,
+    effectiveFiltering,
+    request.sorting,
+    rsql,
+    sort,
+  ]);
 
   // Falls back to a per-instance id so an un-scoped list never collides with
   // another in the shared cache — correct, just unshared (see the type doc).
@@ -115,6 +134,7 @@ export function useDataLoading<TEntity extends Entity, TContext>({
   const scope = queryKey ?? [instanceId];
 
   const query = useQuery<EntityPage<TEntity>, EntifixError>({
+    enabled,
     queryKey: [
       ...scope,
       'load',
