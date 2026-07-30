@@ -6,6 +6,9 @@ metadata:
     app: redis
 spec:
   replicas: 1
+  # One ReadWriteOnce volume (the appendonly file) — see mongodb/deployment.yaml.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: redis
@@ -19,7 +22,7 @@ spec:
           image: redis:7
           # Password comes from the secret; $(VAR) is expanded by Kubernetes
           # from the env below. --appendonly persists to the mounted volume.
-          args: ["--requirepass", "$(REDIS_PASSWORD)", "--appendonly", "yes"]
+          args: ['--requirepass', '$(REDIS_PASSWORD)', '--appendonly', 'yes']
           ports:
             - containerPort: 6379
           env:
@@ -31,13 +34,29 @@ spec:
           volumeMounts:
             - name: redis-data
               mountPath: /data
+          # Authenticated on purpose: an unauthenticated PING answers -NOAUTH,
+          # which proves the socket but not that the server took the password
+          # the fleet will send. Loading a large appendonly file is the window
+          # this closes.
+          readinessProbe:
+            exec:
+              command:
+                [
+                  'sh',
+                  '-c',
+                  'redis-cli --no-auth-warning -a "$REDIS_PASSWORD" ping | grep -q PONG',
+                ]
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
           resources:
             requests:
-              memory: "64Mi"
-              cpu: "100m"
+              memory: '64Mi'
+              cpu: '100m'
             limits:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: '256Mi'
+              cpu: '250m'
       volumes:
         - name: redis-data
           persistentVolumeClaim:

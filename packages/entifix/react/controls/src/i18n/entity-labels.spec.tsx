@@ -23,6 +23,8 @@ function descriptor(
     readonly: false,
     required: false,
     linkLabelProperty: 'name',
+    linkSearchProperty: 'name',
+    linkSerialization: 'id',
     ...overrides,
   };
 }

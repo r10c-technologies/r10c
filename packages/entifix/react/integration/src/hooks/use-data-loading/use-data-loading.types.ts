@@ -49,4 +49,17 @@ export interface UseDataLoadingOptions<TEntity extends Entity, TContext> {
    * invalidate it.
    */
   queryKey?: ReadonlyArray<unknown>;
+  /**
+   * `false` holds the request back without unmounting the hook — what a picker's
+   * browse dialog needs, since a list nobody has opened yet must not be fetched.
+   * Defaults to `true`, so every existing caller loads on mount as before.
+   */
+  enabled?: boolean;
+  /**
+   * A standing restriction ANDed into every request and never shown in the filter
+   * panel — "these are the rows this caller may see at all", as opposed to the
+   * filter the user is editing. A link picker narrowing what may be assigned uses
+   * it; so would a listing scoped to one tenant.
+   */
+  baseFiltering?: FilterGroup<TEntity>;
 }

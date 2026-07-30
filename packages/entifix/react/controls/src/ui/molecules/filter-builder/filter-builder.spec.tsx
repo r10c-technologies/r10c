@@ -33,6 +33,8 @@ const descriptor = (
   readonly: false,
   required: false,
   linkLabelProperty: 'name',
+  linkSearchProperty: 'name',
+  linkSerialization: 'id',
   ...extra,
 });
 

@@ -205,6 +205,50 @@ describe('useDataLoading filtering and sorting', () => {
     values: [{ property: 'name', operator: 'eq', value }],
   });
 
+  // A standing restriction is not the user's filter: the request carries both, the
+  // panel keeps showing only what they set.
+  it('ANDs a base restriction into every request without showing it', async () => {
+    const { result } = renderHook(
+      () =>
+        useDataLoading<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>(
+          {
+            uc: loadUCFactory<Widget>(),
+            ctx: makeContext(),
+            baseFiltering: filterByName('Widget 7'),
+          },
+        ),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.filtering).toBeUndefined();
+
+    // Applying a filter that contradicts the restriction can only narrow further.
+    act(() => result.current.onFilteringChange(filterByName('Widget 8')));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.items).toHaveLength(0);
+    expect(result.current.filtering).toEqual(filterByName('Widget 8'));
+  });
+
+  it('holds the request back while disabled', async () => {
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) =>
+        useDataLoading<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>(
+          { uc: loadUCFactory<Widget>(), ctx: makeContext(), enabled },
+        ),
+      { wrapper, initialProps: { enabled: false } },
+    );
+
+    expect(result.current.items).toHaveLength(0);
+    expect(result.current.isLoading).toBe(false);
+
+    rerender({ enabled: true });
+
+    await waitFor(() => expect(result.current.items).toHaveLength(10));
+  });
+
   it('narrows the result set once filtering is applied', async () => {
     const { result } = renderLoading();
     await waitFor(() => expect(result.current.isLoading).toBe(false));

@@ -5,6 +5,7 @@ import {
   entity,
   type EntityId,
   EntityLink,
+  type EntityLinkSource,
 } from '@r10c/entifix-ts-core';
 import { makeFormatters } from '@r10c/entifix-ts-i18n';
 import { render, screen } from '@testing-library/react';
@@ -158,6 +159,8 @@ describe('resolveEntityFormFields', () => {
     readonly: false,
     required: false,
     linkLabelProperty: 'name',
+    linkSearchProperty: 'name',
+    linkSerialization: 'id',
     ...extra,
   });
 
@@ -272,12 +275,130 @@ describe('EntityForm', () => {
     expect(screen.getByRole('checkbox')).toBeInTheDocument();
   });
 
-  it('keeps a relation read-only in edit mode', () => {
+  it('keeps a relation read-only in edit mode when no source was supplied', () => {
     render(<Harness entity={makeGadget()} mode="edit" />);
 
     // No text box is emitted for the brand link; its label still shows.
     expect(screen.getByText('Brand')).toBeInTheDocument();
     expect(screen.getByText('Acme')).toBeInTheDocument();
+  });
+
+  describe('with a link source', () => {
+    const brandSource = (): EntityLinkSource<GadgetBrand> => {
+      const acme = new GadgetBrand();
+      acme.id = 'brand-1';
+      acme.name = 'Acme';
+      return {
+        entityConstructor: GadgetBrand,
+        labelOf: target => target.name ?? '',
+        selected: { label: 'Acme', isLoading: false },
+        quick: {
+          term: '',
+          setTerm: vi.fn(),
+          options: [acme],
+          isLoading: false,
+        },
+        browse: {
+          items: [acme],
+          totalItems: 1,
+          currentPage: 1,
+          pageSize: 10,
+          isLoading: false,
+          onPageChange: vi.fn(),
+          onPageSizeChange: vi.fn(),
+          onFilteringChange: vi.fn(),
+          onSortingChange: vi.fn(),
+          isOpen: false,
+          open: vi.fn(),
+          close: vi.fn(),
+        },
+      };
+    };
+
+    // The registry is the whole mechanism: an entity that declares a `link` gets
+    // an editor without the form writing one.
+    it('edits the relation through the picker', async () => {
+      const onLinkChange = vi.fn();
+      const source = brandSource();
+      render(
+        <Harness
+          mode="edit"
+          linkSources={{ brand: source }}
+          onLinkChange={onLinkChange}
+        />,
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Ver sugerencias de Brand' }),
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Acme' }));
+
+      // Both halves land: the id in the draft, the instance alongside it.
+      expect(screen.getByTestId('entity-link-value-brand')).toHaveTextContent(
+        'Acme',
+      );
+      expect(onLinkChange).toHaveBeenCalledWith(
+        'brand',
+        source.quick.options[0],
+      );
+    });
+
+    it('clears the relation through the picker', async () => {
+      const onLinkChange = vi.fn();
+      render(
+        <Harness
+          mode="edit"
+          initial={{ brand: 'brand-1' }}
+          linkSources={{ brand: brandSource() }}
+          onLinkChange={onLinkChange}
+        />,
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Quitar Brand' }),
+      );
+
+      expect(onLinkChange).toHaveBeenCalledWith('brand', undefined);
+    });
+
+    // A target that was never saved has no key to put in the draft; the draft
+    // stays empty rather than carrying `undefined` into the request.
+    it('holds no key for a target that has none', async () => {
+      const unsaved = new GadgetBrand();
+      unsaved.name = 'Unsaved';
+      const source = brandSource();
+      const onLinkChange = vi.fn();
+      render(
+        <Harness
+          mode="edit"
+          linkSources={{
+            brand: { ...source, quick: { ...source.quick, options: [unsaved] } },
+          }}
+          onLinkChange={onLinkChange}
+        />,
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Ver sugerencias de Brand' }),
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Unsaved' }));
+
+      expect(onLinkChange).toHaveBeenCalledWith('brand', unsaved);
+    });
+
+    it('leaves a relation read-only in read mode', () => {
+      render(
+        <Harness
+          entity={makeGadget()}
+          mode="read"
+          linkSources={{ brand: brandSource() }}
+        />,
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Examinar Brand' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('shows per-field validation errors while editing', () => {

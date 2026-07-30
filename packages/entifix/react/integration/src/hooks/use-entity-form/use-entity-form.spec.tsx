@@ -113,6 +113,26 @@ class Gadget implements Entity {
   }
 }
 
+@entity({ key: 'widget' })
+class Widget implements Entity {
+  #id?: EntityId;
+  #brand = new EntityLink(GadgetBrand);
+
+  @accessor({ type: 'id', hidden: true })
+  get id(): EntityId {
+    return this.#id;
+  }
+  set id(value: EntityId) {
+    this.#id = value;
+  }
+
+  /** A relation the domain insists on — the case `required` exists for. */
+  @accessor({ type: 'link', label: 'Brand', required: true })
+  get brand(): EntityLink<GadgetBrand> {
+    return this.#brand;
+  }
+}
+
 const descriptors = describeEntityColumns(Gadget);
 
 function makeGadget(): Gadget {
@@ -228,7 +248,10 @@ describe('validateEntityDraft', () => {
     ).toEqual({});
   });
 
-  it('never validates read-only members or relations', () => {
+  // The *format* of a foreign key is the service's business, not the form's —
+  // but whether one is there at all is exactly what `required` has to mean on a
+  // relation, and it used to be skipped along with the format check.
+  it('never judges the format of a read-only member or a relation', () => {
     // A bad SKU (read-only) and a junk brand id are both left alone.
     expect(
       validateEntityDraft(
@@ -238,6 +261,26 @@ describe('validateEntityDraft', () => {
           sku: 'anything',
           brand: 'junk',
         },
+        MESSAGES,
+      ),
+    ).toEqual({});
+  });
+
+  it('reports a required relation left empty', () => {
+    expect(
+      validateEntityDraft(
+        describeEntityColumns(Widget),
+        { brand: '' },
+        MESSAGES,
+      ),
+    ).toEqual({ brand: 'Brand is required' });
+  });
+
+  it('accepts a required relation once a key is held', () => {
+    expect(
+      validateEntityDraft(
+        describeEntityColumns(Widget),
+        { brand: 'brand-1' },
         MESSAGES,
       ),
     ).toEqual({});
@@ -384,6 +427,91 @@ describe('useEntityForm', () => {
     );
 
     expect(result.current.values.code).toBe('DRAFT');
+  });
+
+  // The sidecar: the draft keeps ids because it must stay JSON, so the instances
+  // live beside it — otherwise an embedded relation could never be reconstructed.
+  it('seeds its link selection from the relations a record already carries', () => {
+    const brand = new GadgetBrand();
+    brand.id = 'brand-1';
+    brand.name = 'Acme';
+    const gadget = makeGadget();
+    gadget.brand.setValue(brand);
+
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: gadget,
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    expect(result.current.links['brand']).toBe(brand);
+  });
+
+  it('holds no selection for a relation that arrived as a bare key', () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    expect(result.current.links['brand']).toBeUndefined();
+    expect(result.current.values.brand).toBe('brand-1');
+  });
+
+  it('records both halves of a pick', () => {
+    const brand = new GadgetBrand();
+    brand.id = 'brand-9';
+    brand.name = 'Globex';
+
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    act(() => result.current.setLink('brand', brand));
+
+    expect(result.current.values.brand).toBe('brand-9');
+    expect(result.current.links['brand']).toBe(brand);
+  });
+
+  it('empties the draft key when a relation is cleared', () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    act(() => result.current.setLink('brand', undefined));
+
+    expect(result.current.values.brand).toBe('');
+    expect(result.current.links['brand']).toBeUndefined();
+  });
+
+  it('holds no key for a picked target that has none', () => {
+    const unsaved = new GadgetBrand();
+    unsaved.name = 'Unsaved';
+
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    act(() => result.current.setLink('brand', unsaved));
+
+    expect(result.current.values.brand).toBe('');
+    expect(result.current.links['brand']).toBe(unsaved);
   });
 
   it('updates a field and marks the form dirty', () => {

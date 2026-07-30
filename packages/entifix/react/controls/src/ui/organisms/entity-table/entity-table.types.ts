@@ -44,7 +44,7 @@ export interface EntityTableProps<TEntity extends Entity> {
    * this component.
    */
   error?: EntifixError;
-  items: Array<TEntity>;
+  items: ReadonlyArray<TEntity>;
   totalItems: number;
   currentPage: number;
   pageSize: number;
@@ -61,6 +61,16 @@ export interface EntityTableProps<TEntity extends Entity> {
   hrefFor?: (id: EntityId) => string;
   /** Link to the create form. Omit and no `New` action is rendered. */
   newHref?: string;
+
+  /**
+   * Picks a row instead of navigating to it — how a link picker reuses this
+   * table as its browse dialog.
+   *
+   * Takes precedence over {@link hrefFor}: inside a picker the user is choosing
+   * a value, and offering to navigate away from the form they are editing is the
+   * wrong affordance. Either one renders the actions column.
+   */
+  onSelect?: (item: TEntity) => void;
 
   /** Scope for persisted personalization. Defaults to the entity's key. */
   preferencesKey?: string;

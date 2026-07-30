@@ -1,6 +1,10 @@
 'use client';
 
-import { describeEntityColumns, type Entity } from '@r10c/entifix-ts-core';
+import {
+  describeEntityColumns,
+  type Entity,
+  type EntityLinkSource,
+} from '@r10c/entifix-ts-core';
 import { type ReactNode, useId, useState } from 'react';
 
 import { useErrorMessage, useLocalizedDescriptors, useT } from '../../../i18n';
@@ -9,6 +13,7 @@ import { CellValue } from '../../atoms/cell-value';
 import { FieldControl } from '../../atoms/field-control';
 import { Text } from '../../atoms/text';
 import { Card } from '../../molecules/card';
+import { EntityLinkInput } from '../../molecules/entity-link-input';
 import { Stack } from '../../molecules/stack';
 import type {
   EntityFormDraft,
@@ -40,6 +45,8 @@ export function EntityForm<TEntity extends Entity>({
   entity,
   values,
   onFieldChange,
+  linkSources,
+  onLinkChange,
   mode: modeProp,
   defaultMode,
   onModeChange,
@@ -129,6 +136,8 @@ export function EntityForm<TEntity extends Entity>({
             editing={editing}
             error={editing ? errors?.[field.name] : undefined}
             setField={setField}
+            linkSource={linkSources?.[field.name]}
+            onLinkChange={onLinkChange}
             id={`${formId}-${field.name}`}
           />
         ))}
@@ -184,14 +193,21 @@ interface FieldRowProps<TEntity extends Entity> {
   editing: boolean;
   error: string | undefined;
   setField: (name: string, value: string) => void;
+  // The target of a relation is a different entity than the form's own.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  linkSource: EntityLinkSource<any> | undefined;
+  onLinkChange:
+    | ((name: string, entity: Entity | undefined) => void)
+    | undefined;
   id: string;
 }
 
 /**
- * One label + control (or value) row. A relation and a `readonly` member render
- * their read display even in edit mode; everything else edits through
- * `FieldControl`. A boolean edited inline carries its own label, so the row does
- * not add a second one.
+ * One label + control (or value) row. A `readonly` member renders its read
+ * display even in edit mode, and so does a relation with no source; everything
+ * else edits through `FieldControl` — or, for a relation that has a source,
+ * through `EntityLinkInput`. A boolean edited inline carries its own label, so
+ * the row does not add a second one.
  */
 function FieldRow<TEntity extends Entity>({
   field,
@@ -201,6 +217,8 @@ function FieldRow<TEntity extends Entity>({
   editing,
   error,
   setField,
+  linkSource,
+  onLinkChange,
   id,
 }: FieldRowProps<TEntity>) {
   const readNode: ReactNode = field.readRender ? (
@@ -221,9 +239,28 @@ function FieldRow<TEntity extends Entity>({
     control = readNode;
   } else if (field.render) {
     control = field.render({ draft, value, setField, id });
+  } else if (field.type === 'link' && linkSource) {
+    control = (
+      <EntityLinkInput
+        descriptor={field}
+        value={value}
+        source={linkSource}
+        id={id}
+        disabled={field.readonly}
+        onSelect={target => {
+          setField(field.name, target.id == null ? '' : String(target.id));
+          onLinkChange?.(field.name, target);
+        }}
+        onClear={() => {
+          setField(field.name, '');
+          onLinkChange?.(field.name, undefined);
+        }}
+      />
+    );
   } else if (field.virtual || isRelation) {
-    // A relation has no default input, and a virtual field has no member to
-    // edit unless a `render` was supplied — both fall back to the read display.
+    // A relation with no source has no input to offer, and a virtual field has
+    // no member to edit unless a `render` was supplied — both fall back to the
+    // read display.
     control = readNode;
   } else {
     control = (

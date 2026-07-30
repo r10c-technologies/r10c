@@ -81,10 +81,15 @@ export class Product implements Entity {
     this.#description = value;
   }
 
+  // The catalog stores a product's brand inline, so the relation declares it:
+  // `applyEntityLinks` then hands the link the whole instance and the serializer
+  // embeds it, while `category` (default `id`) travels as a foreign key. The wire
+  // shape is a property of the relation, not of whichever form last edited it.
   @accessor({
     type: 'link',
     label: 'Brand',
     labelKey: 'entity:product.fields.brand',
+    linkSerialization: 'embedded',
   })
   get brand(): EntityLink<ProductBrand> {
     return this.#brand;

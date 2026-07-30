@@ -53,27 +53,51 @@ All defaults are labelled **LOCAL DEV ONLY** — never reuse them.
 it runs 3-4 times per app boot. It walks a ladder and heals only the broken
 rung; a healthy cluster costs ~0.1s (five TCP probes plus one `get deploy`).
 
-| Rung         | Check                               | Heal                              |
-| ------------ | ----------------------------------- | --------------------------------- |
-| L0 tooling   | `minikube` / `kubectl` / `nc`       | — reports the `brew install` line |
-| L1 cluster   | minikube `Running`                  | `minikube start --ports …`        |
-| L2 portmap   | NodePorts published to `127.0.0.1`  | — needs `reset.sh --hard`         |
-| L3 workloads | namespace + deployments exist       | `apply.sh`                        |
-| L4 rollout   | each deployment has a Ready replica | delete the pod once, re-wait      |
-| L5 probes    | TCP + protocol handshake            | back to L4                        |
+| Rung            | Check                               | Heal                                   |
+| --------------- | ----------------------------------- | -------------------------------------- |
+| L0 tooling      | `minikube` / `kubectl` / `nc`       | — reports the `brew install` line      |
+| L1 cluster      | minikube `Running`                  | `minikube start --ports …`             |
+| L1b kubecontext | kubeconfig points at the apiserver  | `minikube update-context` (~2s)        |
+| L2 portmap      | NodePorts published to `127.0.0.1`  | — needs `reset.sh --hard`              |
+| L3 workloads    | deployments match the manifests     | `apply.sh` (always, off the fast path) |
+| L4 rollout      | each deployment has a Ready replica | delete the pod once, re-wait           |
+| L5 probes       | TCP + protocol handshake            | back to L4                             |
 
 Two things it does **not** do, on purpose: it never deletes data, and it never
 recreates the cluster. Both are `reset.sh`'s job, and it exits naming the exact
 command when it hits one of them.
 
-> **A socket that answers proves nothing.** With the docker driver,
-> docker-proxy keeps a published NodePort accepting connections after the pod
-> behind it is gone — `kubectl -n marketplace-local-infra delete deploy mongodb`
-> and the port stays open. That is why readiness is part of the fast-path
-> question and not just TCP.
+> **A socket that answers proves nothing.** docker-proxy and kube-proxy both
+> keep a published NodePort accepting connections when nothing serves behind it
+> — after the pod is gone (`kubectl -n marketplace-local-infra delete deploy
+mongodb` and the port stays open) and equally _before_ the datastore's own
+> listener exists (`kubectl -n marketplace-local-infra rollout restart
+deploy/rabbitmq`, then `nc -z 127.0.0.1 30672` succeeds two seconds later
+> while AMQP still answers "socket closed abruptly during opening handshake").
+> That second half is why **every deployment declares a protocol-level
+> `readinessProbe`** — AMQP for rabbit, `pg_isready`, an authenticated redis
+> `PING`, a mongo `ping`, the OTLP port for otel-lgtm. Without one,
+> `readyReplicas` means "the container started", the ladder green-lights a fleet
+> whose datastores are still booting, and a service that dials RabbitMQ at boot
+> dies with exit code 1.
+
+> **kubeconfig drift is its own rung.** Docker Desktop republishes the apiserver
+> on a new host port every restart, so kubeconfig keeps pointing at the old one
+> (`minikube status` says `Kubeconfig: Misconfigured`) and every `kubectl` call
+> fails against a cluster that is otherwise healthy. `update-context` fixes it in
+> milliseconds, so L1b is tried before anything that touches the cluster.
+
+Each PVC-backed datastore uses `strategy: Recreate`: they share one
+ReadWriteOnce volume, and a rolling update starts the replacement while the old
+pod still holds the data dir's lock (`DBPathInUse` for mongo). Since L3
+reconciles on every heal, a manifest edit would otherwise wedge the datastore it
+was meant to improve.
 
 Parallel `ensure-infra` tasks serialise on `infra/local/.heal.lock`
-(git-ignored): the first heals, the rest wait and re-probe.
+(git-ignored): the first heals, the rest wait and re-probe. The lock records its
+owner's pid — Ctrl-C'ing an app leaves the directory behind, and a lock whose
+owner is gone is broken immediately rather than after the ten-minute age
+threshold (ten silent minutes is indistinguishable from a hang).
 
 ---
 

@@ -9,6 +9,7 @@ type EsControls = typeof import('../es/controls').controls;
 export const controls: EsControls = {
   table: {
     open: 'Open',
+    select: 'Select',
     actions: 'Actions',
     new: 'New',
     filters: 'Filters',
@@ -80,6 +81,18 @@ export const controls: EsControls = {
   tabs: {
     close: 'Close {{label}}',
     new: 'Open a new tab',
+  },
+  link: {
+    search: 'Search {{field}}',
+    suggestAria: 'Show {{field}} suggestions',
+    browseAria: 'Browse {{field}}',
+    browseTitle: 'Select {{field}}',
+    clear: 'Clear {{field}}',
+    empty: '— unassigned —',
+    loading: 'Loading…',
+    noResults: 'No matches',
+    error: 'Could not load options',
+    close: 'Close',
   },
   value: {
     none: '— none —',

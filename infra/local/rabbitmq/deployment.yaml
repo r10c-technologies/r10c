@@ -7,6 +7,9 @@ metadata:
     app: rabbitmq
 spec:
   replicas: 1
+  # One ReadWriteOnce volume (the Mnesia dir) — see mongodb/deployment.yaml.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: rabbitmq
@@ -27,13 +30,26 @@ spec:
           volumeMounts:
             - name: rabbitmq-data
               mountPath: /var/lib/rabbitmq
+          # Readiness is an AMQP question, not a TCP one. RabbitMQ's node boots
+          # in ~20-40s and kube-proxy accepts a connection to the NodePort long
+          # before the 5672 listener exists, so without this probe the pod reads
+          # Ready while a client still gets "Socket closed abruptly during
+          # opening handshake" — and a service that dials RabbitMQ at boot dies.
+          readinessProbe:
+            exec:
+              command:
+                ['rabbitmq-diagnostics', '-q', 'check_port_listener', '5672']
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 10
+            failureThreshold: 30
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: '256Mi'
+              cpu: '250m'
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: '512Mi'
+              cpu: '500m'
       volumes:
         - name: rabbitmq-data
           persistentVolumeClaim:

@@ -9,13 +9,19 @@ import {
 
 import type { EntityFormValues } from './use-entity-form.types';
 
-/** A member that is displayed but never edited through a plain input. */
-function isReadOnlyField(descriptor: EntityFieldDescriptor): boolean {
-  return (
-    descriptor.readonly ||
-    descriptor.type === 'link' ||
-    descriptor.type === 'linkCollection'
-  );
+/** A member no form writes back, whatever the draft says about it. */
+function isNeverEdited(descriptor: EntityFieldDescriptor): boolean {
+  return descriptor.readonly || descriptor.type === 'linkCollection';
+}
+
+/**
+ * A member whose *format* the metadata can judge. A relation is excluded: its
+ * draft value is a foreign key, and "is this a real id" is a question only the
+ * service can answer — but whether one is present at all is checked, which is
+ * what `required` on a relation has to mean.
+ */
+function hasCheckableFormat(descriptor: EntityFieldDescriptor): boolean {
+  return descriptor.type !== 'link';
 }
 
 /**
@@ -103,7 +109,7 @@ export function validateEntityDraft(
   const errors: Record<string, string> = {};
 
   for (const descriptor of descriptors) {
-    if (isReadOnlyField(descriptor)) continue;
+    if (isNeverEdited(descriptor)) continue;
 
     const raw = values[descriptor.name] ?? '';
 
@@ -111,7 +117,7 @@ export function validateEntityDraft(
       errors[descriptor.name] = messages.required(descriptor.label);
       continue;
     }
-    if (raw === '') continue;
+    if (raw === '' || !hasCheckableFormat(descriptor)) continue;
 
     if (descriptor.type === 'number' && Number.isNaN(Number(raw))) {
       errors[descriptor.name] = messages.number(descriptor.label);

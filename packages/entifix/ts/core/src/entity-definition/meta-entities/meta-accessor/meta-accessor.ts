@@ -18,6 +18,15 @@ export const MetaAccessorTypes = [
 ] as const;
 export type MetaAccessorType = (typeof MetaAccessorTypes)[number];
 
+/**
+ * The wire shape a relation takes: the target's foreign key, or the whole
+ * target inlined. Declared here rather than next to `EntityLink` because it is
+ * metadata about a member, not state of a link instance.
+ */
+export const EntityLinkSerializations = ['id', 'embedded'] as const;
+export type EntityLinkSerialization =
+  (typeof EntityLinkSerializations)[number];
+
 export interface MetaAccessorOptions {
   alias?: string;
   type?: MetaAccessorType;
@@ -52,6 +61,23 @@ export interface MetaAccessorOptions {
   enumLabelKey?: string;
   /** Property of a `link` target used as its display label. Default `name`. */
   linkLabelProperty?: string;
+  /**
+   * Property of a `link` target a picker searches on. Defaults to
+   * {@link linkLabelProperty} — you search for what you read. It must be
+   * `filterable` on the target entity, since member metadata is also the
+   * server-side filter allowlist.
+   */
+  linkSearchProperty?: string;
+  /**
+   * How a `link` travels when its owner is serialized: as the target's scalar
+   * foreign key (`id`, the default) or with the whole target inlined
+   * (`embedded`). The serializer decides per *link instance* — it inlines
+   * whatever `isLoaded` — so without this the shape a write takes would depend
+   * on whether the form happened to hold the target. Declaring it on the entity
+   * makes the wire shape a property of the relation instead of an accident of
+   * the UI.
+   */
+  linkSerialization?: EntityLinkSerialization;
 }
 
 export class MetaAccessor {
@@ -72,6 +98,8 @@ export class MetaAccessor {
   readonly enumValues?: readonly string[];
   readonly enumLabelKey?: string;
   readonly linkLabelProperty?: string;
+  readonly linkSearchProperty?: string;
+  readonly linkSerialization?: EntityLinkSerialization;
 
   //#endregion
 
@@ -96,6 +124,8 @@ export class MetaAccessor {
     this.enumValues = options?.enumValues;
     this.enumLabelKey = options?.enumLabelKey;
     this.linkLabelProperty = options?.linkLabelProperty;
+    this.linkSearchProperty = options?.linkSearchProperty;
+    this.linkSerialization = options?.linkSerialization;
   }
   //#endregion
 

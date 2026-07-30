@@ -208,17 +208,42 @@ describe('the single-record pages', () => {
 });
 
 describe('the product form’s relation pickers', () => {
-  // The pickers come from the same base adapters pointed at a different
-  // entity, and they must load the whole set rather than the default first
-  // page of ten.
-  it('offer every brand and category', async () => {
+  // The pickers run the same base adapters pointed at a different entity, and
+  // they are handed the *use-cases* rather than a preloaded list — so the page no
+  // longer decides how many targets exist, the search and the dialog do.
+  it('search the brand catalog through the page’s adapters', async () => {
+    slug = 'p-1';
+    const user = userEvent.setup();
+
+    renderPage(<ProductSingleViewClientPage />);
+
+    // The page keys the form by record id, so it remounts when the record lands;
+    // opening the suggestions before that would close them again.
+    await waitFor(() =>
+      expect(screen.getByTestId('entity-link-value-brand')).toHaveTextContent(
+        'Acme',
+      ),
+    );
+    await user.click(
+      screen.getByRole('button', { name: 'Ver sugerencias de Marca' }),
+    );
+
+    expect(
+      await screen.findByRole('option', { name: 'Acme' }),
+    ).toBeInTheDocument();
+  });
+
+  // The relation arrived as a bare foreign key, which is not a name: the picker's
+  // get use-case is what turns it back into one.
+  it('resolve the label of a category held only as a key', async () => {
     slug = 'p-1';
 
     renderPage(<ProductSingleViewClientPage />);
 
     await waitFor(() =>
-      expect(screen.getByRole('option', { name: 'Acme' })).toBeInTheDocument(),
+      expect(
+        screen.getByTestId('entity-link-value-category'),
+      ).toHaveTextContent('Tools'),
     );
-    expect(screen.getByRole('option', { name: 'Tools' })).toBeInTheDocument();
   });
 });

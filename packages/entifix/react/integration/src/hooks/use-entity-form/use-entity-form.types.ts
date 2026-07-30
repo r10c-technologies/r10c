@@ -1,6 +1,7 @@
 import type {
   Entity,
   EntityConstructor,
+  EntityLinkSelection,
   StandardSchemaV1,
 } from '@r10c/entifix-ts-core';
 
@@ -53,6 +54,20 @@ export interface UseEntityFormResult {
   formError?: string;
   /** Feed into `EntityForm`'s `onFieldChange`. */
   setField: (name: string, value: string) => void;
+  /**
+   * The instances behind the relation ids the draft holds — seeded from the
+   * record's already-materialized links and extended by every pick.
+   *
+   * Pass to `applyEntityLinks` at submit: the draft alone cannot express an
+   * embedded relation, because an id is not an entity. It is a cache, so a
+   * missing entry costs the embedded shape and never the relation itself.
+   */
+  links: EntityLinkSelection;
+  /**
+   * Feed into `EntityForm`'s `onLinkChange`. Records the picked instance and
+   * writes its id into the draft, which stays the serializable source of truth.
+   */
+  setLink: (name: string, entity: Entity | undefined) => void;
   /**
    * Validate, then submit when clean. Feed into `EntityForm`'s `onSubmit`.
    *
