@@ -113,6 +113,35 @@ Effect Layers.
   config. `GET /api/config/:service` returns `ConfigurationPlain` from the
   `configuration` table (migrated + seeded on first boot). Consumers read it at
   boot: frontends resolve their backend URL, backends resolve their `mongo.uri`/`db`.
+
+  It also serves the **operator CRUD** at `/api/configuration…`, behind
+  `config:configuration:*` — derived from the `Configuration` entity's own
+  `@entity({ domain, key })`, so only `super-admin` (`*:*:*`) holds it. Those routes
+  run the same entifix use-cases as every other service, over the relational
+  adapter (`makeSqlRepository`). Two rules live in the route layer, not the adapter:
+  a row flagged `is_secret` has its value blanked on read and preserved on a blank
+  write (**write-only credentials**, and clearing the flag requires supplying a new
+  value, or `write` would become a read of every secret in the fleet); and every
+  write appends to the append-only `configuration_audit` table in the same
+  transaction, recording the actor but never a secret's plaintext.
+
+  The two `GET /api/config…` routes are gated on a shared **`X-Service-Token`**
+  (`CONFIG_SERVICE_TOKEN`, with a documented dev default). They cannot be redacted —
+  a booting service needs the real connection strings — so the port is no longer
+  self-serve. This is fleet membership, **not** service identity: every caller
+  presents the same token. The health endpoints themselves stay unauthenticated by
+  design.
+
+  Three callers send it: `loadRemoteConfiguration` when a service boots, and — in
+  `shells-next-common`, sharing `lib/config/service-token.ts` — an app's
+  `createConfigRoute` and its **readiness probe**. The probe belongs on that list
+  because readiness *reads* the gated route: without the header it sees a `401`,
+  reports `degraded`, and the app never becomes Ready despite being healthy, which
+  in Kubernetes means a rollout that never takes traffic.
+
+  It verifies access tokens with `jwt.secret` read **from its own table via SQL** at
+  boot, never over HTTP from itself — that is what closes the bootstrap cycle.
+
 - **marketplace-admin-service** (`:3101`, Mongo) — serves the product catalog
   through the entifix use-cases. Writes (`POST`) run as transactions (see
   [Transactions](#transactions-cqrs-writes)); reads/`PUT`/`DELETE` are unchanged.

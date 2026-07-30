@@ -8,6 +8,24 @@
  * translation happens in the browser with no metadata endpoint involved.
  */
 export const entity = {
+  configuration: {
+    form: {
+      editTitle: 'Editar parámetro',
+      newTitle: 'Nuevo parámetro',
+    },
+    label: 'Parámetro',
+    plural: 'Configuración',
+    fields: {
+      id: 'ID',
+      service: 'Servicio',
+      groupName: 'Grupo',
+      key: 'Clave',
+      value: 'Valor',
+      isSecret: 'Secreto',
+      updatedAt: 'Modificado el',
+      updatedBy: 'Modificado por',
+    },
+  },
   product: {
     form: {
       brandEmbedded: 'Marca (incrustada)',

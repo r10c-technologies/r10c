@@ -15,6 +15,7 @@ const stubFetch = (impl: typeof fetch) => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete process.env.CONFIG_SERVICE_TOKEN;
 });
 
 describe('createHealthRoutes', () => {
@@ -57,6 +58,40 @@ describe('createHealthRoutes', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3190/api/config/some-app',
       expect.objectContaining({ cache: 'no-store' }),
+    );
+  });
+
+  // The lookup is token-gated, and a probe that omits the header reads a `401`
+  // as "degraded" — an app that never becomes Ready while being perfectly
+  // healthy. Regression guard for exactly that.
+  it('presents the fleet service token', async () => {
+    const fetchMock = stubFetch(() =>
+      Promise.resolve(new Response('{}', { status: 200 })),
+    );
+
+    await createHealthRoutes(OPTIONS).ready();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3190/api/config/some-app',
+      expect.objectContaining({
+        headers: { 'x-service-token': 'dev-config-service-token-change-me' },
+      }),
+    );
+  });
+
+  it('prefers the configured token over the dev default', async () => {
+    process.env.CONFIG_SERVICE_TOKEN = 'from-env';
+    const fetchMock = stubFetch(() =>
+      Promise.resolve(new Response('{}', { status: 200 })),
+    );
+
+    await createHealthRoutes(OPTIONS).ready();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3190/api/config/some-app',
+      expect.objectContaining({
+        headers: { 'x-service-token': 'from-env' },
+      }),
     );
   });
 

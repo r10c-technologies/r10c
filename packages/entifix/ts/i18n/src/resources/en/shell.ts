@@ -1,6 +1,20 @@
 type EsShell = typeof import('../es/shell').shell;
 
 export const shell: EsShell = {
+  systemManagement: {
+    nav: {
+      section: 'System',
+      configuration: 'Configuration',
+    },
+    configuration: {
+      title: 'Platform configuration',
+      description:
+        'Parameters every service resolves at boot. Editing a value affects that service on its next start.',
+      secretPlaceholder: '•••••• (unchanged)',
+      secretHint:
+        'Leaving this blank keeps the stored value. Typing a new one replaces it.',
+    },
+  },
   nav: {
     primary: 'Primary',
     openInWorkspace: 'Open {{label}} in workspace',

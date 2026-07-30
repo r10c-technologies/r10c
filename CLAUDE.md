@@ -61,14 +61,25 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   entity-tight wrapper (React's hook count must stay fixed). A picker's
   `linkSearchProperty` must be `filterable` on the **target** or the service answers
   `400` — the hook throws instead. To-many (`linkCollection`) is not editable yet.
-- **Adding a filter operator** touches three places or it half-works: the const
+- **Adding a filter operator** touches four places or it half-works: the const
   arrays in `core/types/EntityFiltering.ts`, the token map in
-  `core/src/rsql/rsql-operators.ts`, and `mongo-client`'s `filter-translator.ts`.
-  The core round-trip spec (`serialize → parse → coerce` equals the original) catches
-  a partial addition.
+  `core/src/rsql/rsql-operators.ts`, `mongo-client`'s `filter-translator.ts`, and
+  `sql-client`'s `sql-filter-translator.ts`. Both translators keep an
+  exhaustiveness guard (`const _never: never = node`), so a missed one is a compile
+  error rather than a silent match-all; the core round-trip spec
+  (`serialize → parse → coerce` equals the original) catches a partial addition.
 - **Backend DB adapters**: a `-service` provides `EntityRepositoryTag` from
-  `makeMongoRepository(db, Ctor)`, runs the SAME `*UCFactory` use-cases, then
-  `serializeEntity`/`serializeEntityCollection` for the response. Add native drivers
+  `makeMongoRepository(db, Ctor)` — or `makeSqlRepository(sql, Ctor)` from
+  `@r10c/entifix-ts-sql-client` for Postgres — runs the SAME `*UCFactory`
+  use-cases, then the envelope builders (`makeEntityEnvelope` /
+  `makeEntityPageEnvelope`) for the response.
+  **An accessor's `alias` is its SQL column**: `serializeEntity` keys its plain
+  record by `alias ?? name` in both directions, so a scalar entity's serialized
+  form already _is_ a table row and there is no mapping layer to write. The SQL
+  filter translator emits parameterized fragments only, and validates every
+  column identifier against the entity's `filterable`/`sortable` allowlist before
+  interpolation — that check is the file's security boundary, not a nicety.
+  Add native drivers
   (`mongodb`, `@effect/sql*`) to `webpack.config.js` `externalDependencies`, keep
   `tslib` external, and align `@effect/sql*` with the pinned `@effect/platform`. See
   [[backend-db-connectivity]] and [docs/ENTIFIX.md](docs/ENTIFIX.md).
@@ -139,7 +150,21 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
 - **Config**: services read cross-service config from **config-service** (Postgres,
   seeded in `apps/config-service/src/db.ts`); never hardcode a URL/connection string.
   Every service exposes `GET /api/config` (own params, secrets redacted via
-  `redactConfiguration`).
+  `redactConfiguration`). The seed is `ON CONFLICT DO NOTHING`, which is what makes
+  editing a value through the CRUD safe — the next boot leaves it alone.
+  config-service also serves the operator CRUD at `/api/configuration…` behind
+  `config:configuration:*`; secrets are **write-only** (blanked on read, preserved
+  on a blank write, and the flag cannot be cleared without a new value) and every
+  write appends to `configuration_audit` in the same transaction. The fleet lookup
+  is gated on `X-Service-Token` — it serves real credentials and cannot redact
+  them. **Every caller of that endpoint sends it, and a probe is a caller**:
+  `shells-effect-service/load-remote-configuration.ts` on a service's boot, and
+  in `shells-next-common` both `createConfigRoute` and the readiness probe, which
+  share `lib/config/service-token.ts` for exactly that reason — a readiness check
+  that omits the header reads the `401` as `degraded` and the app never becomes
+  Ready while being perfectly healthy. That is fleet membership, not service
+  identity; the health endpoints themselves stay open. config-service reads its
+  own `jwt.secret` via SQL, never over HTTP from itself.
 - **Transactions**: a `-service` with transactional writes provides the ports from the
   Redis/AMQP layers in its `AppLayer` and resolves `redis.uri`/`rabbitmq.uri` from
   config-service; add `ioredis`/`amqplib` to `externalDependencies`. The domain half is
@@ -160,6 +185,27 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   is `createRefreshRoute` from **`@r10c/shells-next-common/server`** — anything a
   route handler or server layout _calls_ must ship from `/server`, so it is never
   reached through the client surface and stamped as a client reference.
+- **A shell that two hosts mount is `scope:shared`.** `shells-next-marketplace-admin`
+  is `scope:marketplace-admin` and holds the catalog's pages _and_ adapters, so no
+  other app can reach them — that is the trap. `@r10c/shells-next-system-management`
+  is `layer:shell` + **`scope:shared`** on purpose: marketplace-admin-app mounts it
+  today and a bastion app mounts it later with zero moves. Do not "fix" the
+  asymmetry by scoping it. Consequences: **`layer:shell` forbids same-layer edges**,
+  so it cannot import `shells-next-common` and carries its own REST adapters
+  (`config-service-domain`) and its own `/server` proxy factory; and the
+  permission-annotated nav vocabulary (`GuardedNavItem`/`GuardedNavSection`) lives in
+  `business-ts-authz`, the only layer both a shell and an app may depend on. Copy
+  goes in the shared `shell:` namespace — `app:` keys are lint-restricted to `apps/`.
+  A host keeps composition: route files, nav concat, the workspace `TabRegistry`, and
+  the same-origin proxy mount (`/api/system`, **not** `/api/config`, which is already
+  the config _fetch_ route). `rewriteServiceDomains` in `shells-next-common/server`
+  is what keeps a real backend address out of the browser.
+- **A server-owned but client-visible member must not be `@accessor({ readonly })`.**
+  That flag drops the member from serialization **and** deserialization, so a
+  read-only audit stamp would never reach the UI either. Leave it writable and have
+  the route overwrite it from the verified principal — the same way a save route
+  already owns the id (`entity.id = params.id`) — and hide the input with an
+  `<EntityField … hidden />` slot.
 - **Account surface** is auth-app's alone; other apps link across via `AccountMenu`
   with the locale baked into the absolute URL (`localeHref` leaves absolute URLs
   alone). `/account/*` lives outside `(back-office)`, which demands

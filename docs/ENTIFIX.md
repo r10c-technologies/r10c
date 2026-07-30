@@ -229,6 +229,27 @@ interface EntityRepository {
   (de)serializer. `MongoDatabaseLayer` provides the connection as a scoped Layer
   (closed on shutdown); `makeMongoLinkResolver` builds an `EntityLinkResolver`
   from the same adapters.
+- **SQL adapter** — `makeSqlRepository(sql, Ctor)` (`@r10c/entifix-ts-sql-client`)
+  is the relational mirror, and it is short for the same reason the Mongo one is:
+  `serializeEntity` already emits a **flat record keyed by `alias ?? name`**, which
+  for a scalar entity _is_ a table row. **So an accessor's `alias` is the column
+  mapping** — there is no table/column mapping layer, and none is needed. Table
+  name follows the same `key ?? class name` rule. v1 handles flat scalar entities:
+  embedded links and `linkCollection` have no single-column form.
+
+  `sql-filter-translator` mirrors `filter-translator` but emits **parameterized**
+  `@effect/sql` fragments — column identifiers go through `sql(name)`, which the
+  compiler quotes, and are validated against the entity's own
+  `filterable`/`sortable` allowlist (`allowedDescriptors`) **before** interpolation.
+  Two dialect assumptions, stated so a future MySQL/SQLite adapter knows what to
+  override: `ILIKE` for case-insensitive matching and `COUNT(*)::int` for the total.
+  The client must not be configured with `transformResultNames` — `alias` is
+  already the mapping and a second one would fight it.
+
+  Its unit suite asserts on **compiled SQL** (`[sql, params]`) through a fake
+  driver. The shared `describeEntityRepositoryContract` needs a real engine, so it
+  runs against real Postgres rather than in the unit gate — the same treatment the
+  driver connection Layers get.
 
 Errors are always an `EntifixError` subclass — `EntifixConnError` (transport),
 `EntifixBuildError` (mapping/deserialization), `EntifixLogicError` (e.g. an

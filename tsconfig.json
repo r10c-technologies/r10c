@@ -131,6 +131,15 @@
     },
     {
       "path": "./packages/shells/next/i18n"
+    },
+    {
+      "path": "./packages/entifix/ts/sql-client"
+    },
+    {
+      "path": "./packages/business/ts/configuration"
+    },
+    {
+      "path": "./packages/shells/next/system-management"
     }
   ]
 }

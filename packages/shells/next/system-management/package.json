@@ -1,0 +1,60 @@
+{
+  "name": "@r10c/shells-next-system-management",
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:shared"
+    ],
+    "sourceRoot": "packages/shells/next/system-management/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/next/system-management/dist",
+          "main": "packages/shells/next/system-management/src/index.ts",
+          "tsConfig": "packages/shells/next/system-management/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "@r10c/source": "./src/server.ts",
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    }
+  },
+  "dependencies": {
+    "@r10c/business-ts-authz": "workspace:*",
+    "@r10c/business-ts-configuration": "workspace:*",
+    "@r10c/entifix-react-controls": "workspace:*",
+    "@r10c/entifix-react-integration": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-rest-client": "workspace:*",
+    "@r10c/shells-next-common": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "3.22.0"
+  },
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-unit": "workspace:*"
+  }
+}

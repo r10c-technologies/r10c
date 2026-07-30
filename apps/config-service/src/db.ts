@@ -1,7 +1,31 @@
 import { SqlClient } from '@effect/sql';
 import { PgClient } from '@effect/sql-pg';
-import { HealthRegistryTag } from '@r10c/entifix-ts-business';
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
+import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+} from '@r10c/business-ts-authz';
+import {
+  ConfigurationRepositoryTag,
+  TokenServiceTag,
+} from '@r10c/entifix-ts-business';
+import {
+  type ConfigurationPlain,
+  ConfigurationStoreInMemory,
+} from '@r10c/entifix-ts-core';
+import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
+import { SqlHealthProbeLayer } from '@r10c/entifix-ts-sql-client';
 import { Config, Effect, Layer, Redacted } from 'effect';
+
+/**
+ * This service's key in its own `configuration` table — the plain name, matching
+ * the `service` column of every other row. Deliberately not the package name
+ * used for logs and tracing.
+ */
+const SERVICE_NAME = 'config-service';
 
 /**
  * A row of the `configuration` table — the Postgres-backed source of truth for
@@ -14,6 +38,12 @@ export interface ConfigurationRow {
   readonly group_name: string;
   readonly key: string;
   readonly value: string;
+  /**
+   * Marks the value as a credential. A read through the CRUD blanks it, and a
+   * write treats an empty incoming value as "leave it alone", so it can be
+   * replaced but never read back. Defaults to `false` when a seed row omits it.
+   */
+  readonly is_secret?: boolean;
 }
 
 /**
@@ -72,6 +102,15 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'marketplace-admin-service-domain',
     value: 'http://localhost:3101/api',
   },
+  // config-service's own address, so the admin app's system-management pages can
+  // reach the configuration CRUD. The app rewrites it to a same-origin proxy path
+  // before the browser sees it, exactly like the admin-service domain above.
+  {
+    service: 'marketplace-admin-app',
+    group_name: 'uri',
+    key: 'config-service-domain',
+    value: 'http://localhost:3190/api',
+  },
   {
     service: 'marketplace-app',
     group_name: 'uri',
@@ -90,6 +129,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'mongo',
     key: 'uri',
     value: 'mongodb://admin:password@127.0.0.1:30017',
+    is_secret: true,
   },
   {
     service: 'marketplace-admin-service',
@@ -102,6 +142,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'mongo',
     key: 'uri',
     value: 'mongodb://admin:password@127.0.0.1:30017',
+    is_secret: true,
   },
   { service: 'auth-service', group_name: 'mongo', key: 'db', value: 'auth' },
   // auth-service session store (Redis) — the single source of truth for live
@@ -111,6 +152,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'redis',
     key: 'uri',
     value: 'redis://:localdev@127.0.0.1:30379',
+    is_secret: true,
   },
   // Shared HS256 secret: auth-service signs access tokens with it, every
   // verifier checks against it. LOCAL DEV ONLY — replace per environment.
@@ -119,12 +161,24 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'jwt',
     key: 'secret',
     value: 'dev-jwt-secret-change-me-at-least-32-chars',
+    is_secret: true,
   },
   {
     service: 'marketplace-admin-service',
     group_name: 'jwt',
     key: 'secret',
     value: 'dev-jwt-secret-change-me-at-least-32-chars',
+    is_secret: true,
+  },
+  // config-service verifies access tokens too, now that it serves a guarded CRUD.
+  // It reads this row straight out of its own table via SQL at boot rather than
+  // over HTTP from itself, so there is no bootstrap cycle.
+  {
+    service: 'config-service',
+    group_name: 'jwt',
+    key: 'secret',
+    value: 'dev-jwt-secret-change-me-at-least-32-chars',
+    is_secret: true,
   },
   // Transaction event bus (Redis locks/sequences + RabbitMQ) for the admin
   // service's transactional writes.
@@ -133,12 +187,14 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'redis',
     key: 'uri',
     value: 'redis://:localdev@127.0.0.1:30379',
+    is_secret: true,
   },
   {
     service: 'marketplace-admin-service',
     group_name: 'rabbitmq',
     key: 'uri',
     value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
   },
   // Observability: log level + sink, and the OTLP endpoint the tooling logger and
   // the tracing SDK export to. In local dev the service runs on the host and ships
@@ -168,6 +224,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'mongo',
     key: 'uri',
     value: 'mongodb://admin:password@127.0.0.1:30017',
+    is_secret: true,
   },
   {
     service: 'transaction-manager',
@@ -180,6 +237,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'rabbitmq',
     key: 'uri',
     value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
   },
 ];
 
@@ -193,15 +251,16 @@ const PgClientLive = PgClient.layerConfig({
 });
 
 /**
- * Creates the `configuration` table and reconciles the seed on every boot.
+ * Migrates the `configuration` schema and reconciles the seed on every boot.
  *
- * Seeding is per-row `ON CONFLICT DO NOTHING` (the PK is
- * `service/group_name/key`), not a one-shot "insert only when the table is
- * empty". That distinction matters: a table seeded before a new key was added
+ * Seeding is per-row `ON CONFLICT DO NOTHING` against the natural
+ * `(service, group_name, key)` key, not a one-shot "insert only when the table
+ * is empty". That distinction matters: a table seeded before a new key was added
  * to {@link SEED_ROWS} would otherwise never gain that key, and a service that
  * resolves it at boot would crash with `Configuration key "…" not found`.
  * `DO NOTHING` (not `DO UPDATE`) means an operator's in-place override of a
- * value is never clobbered — only genuinely missing rows are inserted.
+ * value is never clobbered — only genuinely missing rows are inserted. That is
+ * also why editing a value through the CRUD is safe: the next boot leaves it be.
  */
 const migrateAndSeed = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
@@ -216,8 +275,80 @@ const migrateAndSeed = Effect.gen(function* () {
     )
   `;
 
+  // Every statement below is additive and idempotent, so a fresh database and one
+  // seeded by an earlier release converge on the same shape through one code path.
+  yield* sql`ALTER TABLE configuration ADD COLUMN IF NOT EXISTS id text`;
+  yield* sql`ALTER TABLE configuration ALTER COLUMN id SET DEFAULT gen_random_uuid()::text`;
+  yield* sql`UPDATE configuration SET id = gen_random_uuid()::text WHERE id IS NULL`;
+  yield* sql`ALTER TABLE configuration ALTER COLUMN id SET NOT NULL`;
+  yield* sql`ALTER TABLE configuration ADD COLUMN IF NOT EXISTS is_secret boolean NOT NULL DEFAULT false`;
+  yield* sql`ALTER TABLE configuration ADD COLUMN IF NOT EXISTS updated_at timestamptz`;
+  yield* sql`ALTER TABLE configuration ADD COLUMN IF NOT EXISTS updated_by text`;
+
+  // An entity is addressed by a single `EntityId`, so `id` has to be the primary
+  // key; the natural `(service, group_name, key)` triple stays enforced as a
+  // UNIQUE constraint, which is also what the seed's `ON CONFLICT` targets.
+  //
+  // Guarded on the primary key still spanning three columns, so it runs exactly
+  // once — Postgres has no `ADD CONSTRAINT IF NOT EXISTS`, and an unguarded
+  // drop/re-add would churn the constraint on every boot.
+  yield* sql`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'configuration_pkey'
+          AND conrelid = 'configuration'::regclass
+          AND array_length(conkey, 1) = 3
+      ) THEN
+        ALTER TABLE configuration DROP CONSTRAINT configuration_pkey;
+        ALTER TABLE configuration ADD CONSTRAINT configuration_natural_key
+          UNIQUE (service, group_name, key);
+        ALTER TABLE configuration ADD CONSTRAINT configuration_pkey PRIMARY KEY (id);
+      END IF;
+    END $$;
+  `;
+
+  // The audit log. Append-only: every write to `configuration` adds a row here in
+  // the same transaction, so "who changed this, and when" survives the next write.
+  // A secret's plaintext is never recorded — `secret_changed` says only that it
+  // moved, which is the part an operator needs.
+  yield* sql`
+    CREATE TABLE IF NOT EXISTS configuration_audit (
+      id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      configuration_id text NOT NULL,
+      service text NOT NULL,
+      group_name text NOT NULL,
+      key text NOT NULL,
+      action text NOT NULL,
+      old_value text,
+      new_value text,
+      secret_changed boolean NOT NULL DEFAULT false,
+      actor_id text NOT NULL,
+      actor_email text,
+      at timestamptz NOT NULL DEFAULT now()
+    )
+  `;
+
+  // Reading the log is always "this row's history, newest first".
+  yield* sql`
+    CREATE INDEX IF NOT EXISTS configuration_audit_row_idx
+      ON configuration_audit (configuration_id, at DESC)
+  `;
+
+  // `sql.insert` derives its column list from the rows it is given, so every row
+  // has to carry the same keys — hence normalising the optional flag here rather
+  // than repeating `is_secret: false` twenty times in the seed.
+  const seed = SEED_ROWS.map(row => ({
+    service: row.service,
+    group_name: row.group_name,
+    key: row.key,
+    value: row.value,
+    is_secret: row.is_secret ?? false,
+  }));
+
   yield* sql`INSERT INTO configuration ${sql.insert(
-    SEED_ROWS as unknown as Record<string, unknown>[],
+    seed as unknown as Record<string, unknown>[],
   )} ON CONFLICT (service, group_name, key) DO NOTHING`;
 });
 
@@ -233,29 +364,88 @@ export const DbLive = Layer.provideMerge(
 /**
  * Readiness probe for the Postgres connection.
  *
- * `SELECT 1` rather than "is the pool object there": the pool survives a
- * database that has gone away, and config-service being reachable while it
- * cannot read `configuration` is precisely the state every other service in the
- * fleet needs to be told about — they all resolve their settings from here.
- *
- * It lives in this app rather than a client package because Postgres is reached
- * through `@effect/sql` directly, with no `entifix-ts-*-client` to carry it.
+ * Re-exported from `@r10c/entifix-ts-sql-client`, where it moved once a second
+ * relational consumer became possible: the probe is a plain `SELECT 1` with
+ * nothing config-service-specific about it. The alias keeps this app's existing
+ * import name working.
  */
-export const PostgresHealthProbeLayer: Layer.Layer<
-  never,
-  never,
-  SqlClient.SqlClient | HealthRegistryTag
-> = Layer.effectDiscard(
+export { SqlHealthProbeLayer as PostgresHealthProbeLayer };
+
+/**
+ * Token verification and the authorization policy, resolved from this service's
+ * own table.
+ *
+ * Every other service resolves `jwt.secret` from config-service over HTTP. This
+ * one cannot — it *is* config-service — so it reads the row through the
+ * `SqlClient` it already holds. That closes the bootstrap cycle rather than
+ * hiding it behind a retry, and it means the secret lives in exactly one place
+ * for the whole fleet.
+ *
+ * A missing row is fatal on purpose: a config-service that answered `401` to
+ * every request because it silently failed to load its key would look like an
+ * authorization bug from every caller's side.
+ */
+const AuthLive = Layer.unwrapEffect(
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
-    const registry = yield* HealthRegistryTag;
 
-    yield* registry.register({
-      name: 'postgres',
-      check: sql`SELECT 1`.pipe(
-        Effect.as(true),
-        Effect.catchAll(() => Effect.succeed(false)),
+    const rows = yield* sql<{ readonly value: string }>`
+      SELECT value FROM configuration
+      WHERE service = ${SERVICE_NAME} AND group_name = 'jwt' AND key = 'secret'
+    `;
+    const secret = rows[0]?.value;
+    if (secret === undefined) {
+      return yield* Effect.die(
+        new Error(
+          `config-service cannot verify tokens: no "jwt.secret" row for "${SERVICE_NAME}"`,
+        ),
+      );
+    }
+
+    // This service's own parameters, as a store.
+    //
+    // Needed because `EntityRepository` declares `ConfigurationRepositoryTag` in
+    // every method's requirement channel — the REST adapters resolve their
+    // endpoints through it — so even the SQL adapter, which never reads it, has
+    // to be given one. Building it from this service's own rows rather than
+    // handing over an empty store keeps it truthful.
+    const own = yield* sql<{
+      readonly group_name: string;
+      readonly key: string;
+      readonly value: string;
+    }>`
+      SELECT group_name, key, value FROM configuration WHERE service = ${SERVICE_NAME}
+    `;
+    const plain: ConfigurationPlain = {};
+    for (const row of own) {
+      (plain[row.group_name] ??= []).push({ key: row.key, value: row.value });
+    }
+
+    return Layer.mergeAll(
+      Layer.succeed(
+        TokenServiceTag,
+        makeJoseTokenService({
+          secret,
+          issuer: AUTH_TOKEN_ISSUER,
+          audience: AUTH_TOKEN_AUDIENCE,
+        }),
       ),
-    });
+      // Static role→permission table today; swapping in an attribute-aware
+      // engine is a change of this line alone.
+      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(
+        ConfigurationRepositoryTag,
+        new ConfigurationStoreInMemory(plain),
+      ),
+    );
   }),
 );
+
+/**
+ * The service's composition root: the database (migrated and seeded), its
+ * readiness probe, and the auth services the guarded CRUD routes need.
+ */
+export const AppLayer = Layer.provideMerge(
+  Layer.mergeAll(SqlHealthProbeLayer, AuthLive),
+  DbLive,
+).pipe(Layer.orDie);

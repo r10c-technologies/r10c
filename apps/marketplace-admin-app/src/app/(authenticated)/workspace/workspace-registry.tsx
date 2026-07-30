@@ -6,6 +6,7 @@ import {
   ProductCategoryListClientPage,
   ProductListClientPage,
 } from '@r10c/shells-next-marketplace-admin';
+import { ConfigurationListClientPage } from '@r10c/shells-next-system-management';
 
 import {
   ENTITY_EDITORS,
@@ -57,7 +58,33 @@ const entityKind: TabKind<{ entityKey: EntityEditorKey; id: string }> = {
   render: addr => <EntityEditorTab entityKey={addr.entityKey} id={addr.id} />,
 };
 
+/**
+ * A `system:<key>` tab — the system-management shell's screens as workspace tabs.
+ *
+ * The screens come from a `scope:shared` shell, but the *registry* stays here:
+ * which tabs a host offers is the host's decision, and a second host may want a
+ * different set.
+ */
+const SYSTEM_SCREENS = {
+  configuration: {
+    titleKey: 'shell:systemManagement.nav.configuration',
+    render: () => <ConfigurationListClientPage />,
+  },
+} as const;
+
+type SystemKey = keyof typeof SYSTEM_SCREENS;
+
+const systemKind: TabKind<{ key: SystemKey }> = {
+  kind: 'system',
+  match: payload =>
+    payload in SYSTEM_SCREENS ? { key: payload as SystemKey } : null,
+  toParam: addr => addr.key,
+  title: (addr, translate) => translate(SYSTEM_SCREENS[addr.key].titleKey),
+  render: addr => SYSTEM_SCREENS[addr.key].render(),
+};
+
 /** The workspace's tab registry. Adding a tab kind is one `register` call. */
 export const workspaceRegistry = new TabRegistry()
   .register(catalogKind)
-  .register(entityKind);
+  .register(entityKind)
+  .register(systemKind);

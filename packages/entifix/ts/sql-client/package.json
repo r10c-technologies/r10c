@@ -1,0 +1,54 @@
+{
+  "name": "@r10c/entifix-ts-sql-client",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "entifix:client"
+    ],
+    "sourceRoot": "packages/entifix/ts/sql-client/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/entifix/ts/sql-client/dist",
+          "main": "packages/entifix/ts/sql-client/src/index.ts",
+          "tsConfig": "packages/entifix/ts/sql-client/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@effect/sql": "0.52.0",
+    "@swc/helpers": "0.5.23",
+    "effect": "3.22.0",
+    "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*"
+  },
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-unit": "workspace:*"
+  }
+}

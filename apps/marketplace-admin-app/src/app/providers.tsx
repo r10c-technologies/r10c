@@ -15,6 +15,7 @@ import {
   createClientAdapters,
   MarketplaceAdminAdaptersProvider,
 } from '@r10c/shells-next-marketplace-admin';
+import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
 
 const RUNTIME_PALETTES: Record<string, ThemePalette> = {
@@ -68,7 +69,10 @@ function ThemedProviders({ children }: PropsWithChildren) {
       >
         <UiPreferencesProvider store={uiPreferencesStore}>
           <MarketplaceAdminAdaptersProvider adapters={adapters}>
-            {children}
+            {/* The system-management shell builds its own adapters against
+                config-service, so it is provided beside the catalog's rather
+                than through it — the two reach different backends. */}
+            <SystemManagementProvider>{children}</SystemManagementProvider>
           </MarketplaceAdminAdaptersProvider>
         </UiPreferencesProvider>
       </ThemeProvider>

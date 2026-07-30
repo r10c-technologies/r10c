@@ -6,6 +6,8 @@
  * not come from the `"use client"` bundle.
  */
 
+import { SERVICE_TOKEN_HEADER, serviceToken } from '../config/service-token';
+
 /** How long a readiness result is reused, so probes cannot hammer config-service. */
 const READY_CACHE_MS = 1_000;
 
@@ -44,9 +46,16 @@ export const createHealthRoutes = (options: HealthRouteOptions) => {
 
   const checkConfig = async (): Promise<boolean> => {
     try {
+      // The fleet token is not optional here: `GET /api/config/:service` serves
+      // real credentials and answers `401` without it, which a readiness probe
+      // reads as "degraded" — permanently, for an app that is in fact fine.
       const response = await fetch(
         `${options.configApiUrl}/api/config/${options.configKey}`,
-        { signal: AbortSignal.timeout(READY_TIMEOUT_MS), cache: 'no-store' },
+        {
+          signal: AbortSignal.timeout(READY_TIMEOUT_MS),
+          cache: 'no-store',
+          headers: { [SERVICE_TOKEN_HEADER]: serviceToken() },
+        },
       );
       return response.ok;
     } catch {
