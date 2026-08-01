@@ -12,10 +12,10 @@ import { expect, test } from '@playwright/test';
 test.describe('switching locale', () => {
   test('serves the storefront in the negotiated language', async ({ page }) => {
     await page.goto('/es');
-    await expect(page.getByText('Añadir al carrito').first()).toBeVisible();
+    await expect(page.getByText('Ver producto').first()).toBeVisible();
 
     await page.goto('/en');
-    await expect(page.getByText('Add to cart').first()).toBeVisible();
+    await expect(page.getByText('View product').first()).toBeVisible();
   });
 
   // Nothing pins `r10c_locale` here, so an unprefixed path falls through to

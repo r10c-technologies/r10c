@@ -5,14 +5,34 @@ import { headers } from 'next/headers';
  * The locale the middleware resolved for this request.
  *
  * Read from a header rather than a route param — that is the trade the rewrite
- * strategy makes, and it is why the route tree has no `app/[locale]` segment.
- * Falls back to the fleet default for paths the middleware matcher skips
- * (`/api/health`, `/api/config`), which have no user-facing copy anyway.
+ * strategy makes, and it is why the back-office route trees have no
+ * `app/[locale]` segment. Falls back to the fleet default for paths the
+ * middleware matcher skips (`/api/health`, `/api/config`), which have no
+ * user-facing copy anyway.
+ *
+ * A header is a **dynamic** request input, so a page that calls this — or
+ * {@link getServerT}, which does — can never be prerendered. That is the right
+ * trade for an auth-gated app whose every response is personal anyway, and the
+ * wrong one for a public storefront: marketplace-app therefore carries a real
+ * `[locale]` segment and reads its locale from the route param, through
+ * {@link getServerTFor}.
  */
 export async function getRequestLocale(): Promise<Locale> {
   const value = (await headers()).get(LOCALE_HEADER);
   return isLocale(value) ? value : DEFAULT_LOCALE;
 }
+
+/**
+ * The request-free counterpart of {@link getServerT}, for a locale the caller
+ * already holds — a route param, typically.
+ *
+ * Re-exported rather than defined here so it sits next to `getServerT` at an
+ * app's call sites while still being reachable from packages that may not
+ * depend on this one: `layer:shell` forbids same-layer edges, and the
+ * storefront shell is precisely the caller that needs it. The implementation
+ * lives in `@r10c/entifix-ts-i18n`.
+ */
+export { getServerTFor } from '@r10c/entifix-ts-i18n';
 
 /**
  * A translate function for a server component. A fresh instance per request,

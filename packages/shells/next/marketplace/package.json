@@ -34,6 +34,20 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./server": {
+      "@r10c/source": "./src/server.ts",
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
     }
+  },
+  "dependencies": {
+    "@r10c/business-ts-product-configuration-management": "workspace:*",
+    "@r10c/entifix-react-controls": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-i18n": "workspace:*",
+    "effect": "3.22.0"
   }
 }

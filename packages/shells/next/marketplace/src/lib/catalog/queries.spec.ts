@@ -1,0 +1,92 @@
+import { describe, expect, it } from 'vitest';
+
+import { getProduct, loadCategories, loadProducts } from './queries';
+
+/**
+ * These run the **real** `loadProductsUCFactory` against the fixture adapters —
+ * the same use-case marketplace-admin runs over REST. So what is under test is
+ * not the fixtures but the wiring: that a page can compose a context, run a
+ * domain use-case, and get resolved entities back without a backend.
+ */
+describe('loadProducts', () => {
+  it('returns the catalog with both link shapes materialized', async () => {
+    const page = await loadProducts({ pageSize: 100 });
+
+    expect(page.total).toBe(9);
+
+    const lamp = page.items.find(item => item.code === 'AUR-LAMP-01');
+    // `brand` travelled embedded, so the use-case left it alone…
+    expect(lamp?.brand.value?.name).toBe('Aurora');
+    // …and `category` arrived as a bare id, which it followed through the
+    // resolver. Both paths matter: the entity declares the two wire shapes and
+    // this is the only place the difference is exercised.
+    expect(lamp?.category.value?.code).toBe('lighting');
+  });
+
+  it('filters by category code, not id', async () => {
+    const page = await loadProducts({ category: 'tableware' });
+
+    expect(page.items.map(item => item.code).sort()).toEqual([
+      'TER-BOWL-01',
+      'TER-MUG-01',
+      'TER-PLAT-01',
+    ]);
+  });
+
+  it('matches a search term against the name, case-insensitively', async () => {
+    const page = await loadProducts({ search: 'LAMP' });
+
+    expect(page.items.map(item => item.name)).toContain('Aurora Desk Lamp');
+    expect(page.items.every(item => /lamp/i.test(item.name))).toBe(true);
+  });
+
+  it('sorts and pages', async () => {
+    const first = await loadProducts({ sort: 'name', page: 1, pageSize: 2 });
+    const second = await loadProducts({ sort: 'name', page: 2, pageSize: 2 });
+
+    expect(first.items).toHaveLength(2);
+    expect(first.total).toBe(9);
+    expect(first.items[0].name < first.items[1].name).toBe(true);
+    expect(second.items[0].name > first.items[1].name).toBe(true);
+  });
+
+  it('sorts descending when asked', async () => {
+    const page = await loadProducts({
+      sort: 'name',
+      direction: 'desc',
+      pageSize: 2,
+    });
+
+    expect(page.items[0].name > page.items[1].name).toBe(true);
+  });
+
+  it('is empty for a category that does not exist', async () => {
+    const page = await loadProducts({ category: 'nope' });
+
+    expect(page.items).toEqual([]);
+  });
+});
+
+describe('getProduct', () => {
+  it('finds a product by the code the URL carries', async () => {
+    const product = await getProduct('TER-MUG-01');
+
+    expect(product?.name).toBe('Terra Ceramic Mug');
+  });
+
+  it('is undefined for an unknown code, so the route can 404', async () => {
+    expect(await getProduct('NOPE-01')).toBeUndefined();
+  });
+});
+
+describe('loadCategories', () => {
+  it('returns every category, sorted by name', async () => {
+    const page = await loadCategories();
+
+    expect(page.items.map(item => item.code)).toEqual([
+      'lighting',
+      'tableware',
+      'textiles',
+    ]);
+  });
+});

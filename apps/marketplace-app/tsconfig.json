@@ -51,6 +51,9 @@
       "path": "../../packages/shells/next/i18n"
     },
     {
+      "path": "../../packages/shells/next/marketplace"
+    },
+    {
       "path": "../../packages/shells/next/common"
     },
     {

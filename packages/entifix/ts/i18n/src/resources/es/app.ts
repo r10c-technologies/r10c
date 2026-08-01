@@ -166,5 +166,11 @@ export const app = {
       ghost: 'Fantasma',
       checkout: 'Pagar',
     },
+    typography: {
+      title: 'Tipografía',
+      body: 'El texto base escala con el viewport y sigue la paleta activa.',
+      caption:
+        'Pie de foto — los colores de marca vienen del themes.css de esta app.',
+    },
   },
 };

@@ -1,7 +1,7 @@
 import type { ThirdPartyModule } from 'i18next';
 import { describe, expect, it } from 'vitest';
 
-import { createI18n, sharedFallbackI18n } from './instance.js';
+import { createI18n, getServerTFor, sharedFallbackI18n } from './instance.js';
 
 describe('createI18n', () => {
   it('resolves keys synchronously, so the first paint is already translated', () => {
@@ -77,5 +77,31 @@ describe('sharedFallbackI18n', () => {
     sharedFallbackI18n([probe]);
 
     expect(called).toBe(false);
+  });
+});
+
+describe('getServerTFor', () => {
+  it('translates in the locale it was handed', () => {
+    expect(getServerTFor('en', 'shell')('breadcrumbs.home')).toBe('Home');
+    expect(getServerTFor('es', 'shell')('breadcrumbs.home')).toBe('Inicio');
+  });
+
+  it('falls back to the default namespace when none is given', () => {
+    expect(getServerTFor('es')('table.open')).toBe('Abrir');
+  });
+
+  /**
+   * The whole reason it exists. A prerendered page has no request to read, so a
+   * binder that reached for `headers()` — as `getServerT` does — would opt every
+   * storefront route back into dynamic rendering. Two calls with different
+   * locales must therefore be independent, with nothing ambient deciding.
+   */
+  it('gives each locale its own instance, sharing no state', () => {
+    const spanish = getServerTFor('es', 'shell');
+    const english = getServerTFor('en', 'shell');
+
+    expect(spanish('breadcrumbs.home')).toBe('Inicio');
+    expect(english('breadcrumbs.home')).toBe('Home');
+    expect(spanish('breadcrumbs.home')).toBe('Inicio');
   });
 });

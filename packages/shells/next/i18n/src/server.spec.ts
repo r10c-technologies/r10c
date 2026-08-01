@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getRequestLocale,
   getServerT,
+  getServerTFor,
   getServerTranslateKey,
 } from './server';
 
@@ -47,6 +48,22 @@ describe('getServerT', () => {
     const t = await getServerT();
 
     expect(t('controls:table.open')).toBe('Abrir');
+  });
+});
+
+describe('getServerTFor', () => {
+  it('translates in the locale it was handed', () => {
+    expect(getServerTFor('en', 'shell')('breadcrumbs.home')).toBe('Home');
+    expect(getServerTFor('es', 'shell')('breadcrumbs.home')).toBe('Inicio');
+  });
+
+  // The whole reason this exists: a prerendered page has no request to read, so
+  // touching `headers()` here would silently opt every storefront route back
+  // into dynamic rendering.
+  it('never reads the request', () => {
+    requestHeaders.value.set(LOCALE_HEADER, 'en');
+
+    expect(getServerTFor('es', 'shell')('breadcrumbs.home')).toBe('Inicio');
   });
 });
 
