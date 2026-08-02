@@ -76,6 +76,9 @@ different things by "product".
 | **Membership**            | A `Party`'s participation in an `Organization`, carrying the roles it holds there.                                                                                                                   | ours          |
 | **Entitlement**           | The set of business domains an `Organization` is provisioned for. The ceiling on what its tenant roles may grant.                                                                                    | ours          |
 | **ProductSpecification**  | What a thing _is_ — the facts common to every instance of it. Definitional, not commercial.                                                                                                          | SID           |
+| **EntitySpecification**   | A **vendor-authored, versioned** specification. Its released versions are immutable, and an instance pins the version it was written under.                                                          | SID           |
+| **Characteristic**        | One spec'd member: a code, a value type, and constraints. A `CharacteristicSpecification` defines it; a `CharacteristicValue` on an instance holds it.                                               | SID           |
+| **DictionaryTerm**        | A platform-owned characteristic vocabulary entry — code, value set, unit. What makes a characteristic comparable across vendors, and therefore facetable.                                            | ours          |
 | **ProductOffering**       | The commercial packaging: what is orderable from a catalog, priced and termed.                                                                                                                       | SID           |
 | **ProductOfferingPrice**  | A price attached to an offering. Separable from the offering so one offering can be priced several ways.                                                                                             | SID           |
 | **PricingLogicAlgorithm** | An interface to a rating function, with some parameters bound and some gathered at rating time. SID deliberately models the _seam_, not the behaviour — which is exactly a port.                     | SID           |
@@ -196,6 +199,33 @@ storefront's availability badge is a hint; the checkout reservation is the truth
 
 Design detail in [ADR 0009](adr/0009-catalog-authoring-and-publication.md).
 
+## Vendors design their own products
+
+Fixed entities put the operator on the critical path of every onboarding: a
+vendor's new field is a platform release. So a vendor authors an
+`EntitySpecification` — a versioned list of characteristics — and an offering
+pins the version it was written under. Released versions are immutable, which is
+what makes February's records still readable after March's redefinition, and what
+lets a published specification be shared by content hash instead of copied per
+offering.
+
+The skeleton stays fixed. `ProductOffering` keeps its typed members, because the
+storefront prerenders and checkout prices against them; only the characteristics
+are specification-driven. None of this replaces the entifix metadata mechanism —
+the specification entities are themselves ordinary decorated entities, so the
+designer UI is `EntityTable` + `EntityForm` over them.
+
+Free-form characteristics leave a vendor unblocked but not comparable: two
+vendors' `talla` and `size` cannot share a facet. Comparability comes from a
+platform-owned **dictionary** of terms — code, value set, unit — that a vendor
+characteristic may resolve to. A vendor may narrow a term's values, never widen
+them, and the vocabulary grows from the free-form codes that turn out to recur
+across tenants.
+
+Design detail in
+[ADR 0014](adr/0014-entity-specifications-and-the-characteristic-dictionary.md),
+which also sets the order the work lands in.
+
 ## Quantities, concurrency, and the buyer's promise
 
 The scenario that tests the whole design: a buyer purchases while the vendor
@@ -247,6 +277,7 @@ Full design in
 | Today                                  | Later, without a rewrite                                              |
 | -------------------------------------- | --------------------------------------------------------------------- |
 | `ProductOffering` with a one-off price | recurring price → subscriptions; usage price → metered services       |
+| `EntitySpecification` over a product   | the same pattern over a service or a resource spec                    |
 | Stock movements                        | a shipment is a movement type; a warehouse is a movement location     |
 | `PricingLogicAlgorithm` as a port      | promotions, tiered and contract pricing behind the same seam          |
 | Marketplace catalog projection         | any read model the storefront needs (search index, recommendations)   |

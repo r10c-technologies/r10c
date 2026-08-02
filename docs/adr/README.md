@@ -20,21 +20,22 @@ Format: [Michael Nygard's ADR template](https://github.com/joelparkerhenderson/a
   diverge, supersede it explicitly rather than leaving two answers on record.
 - **Superseded** — replaced. Kept, never deleted, with a link forward.
 
-| #                                                         | Title                                                                         | Status   |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------- | -------- |
-| [0001](0001-observability-and-tooling.md)                 | Observability & platform tooling                                              | Accepted |
-| [0002](0002-authorization-roles-and-abac.md)              | Authorization: role aspects behind an ABAC-shaped port                        | Accepted |
-| [0003](0003-i18n-mandatory.md)                            | i18n is mandatory, and the build enforces it                                  | Accepted |
-| [0004](0004-session-lifetime-devices-and-recovery.md)     | Session lifetime, device identity, and account recovery                       | Accepted |
-| [0005](0005-business-domain-decomposition.md)             | Business domain decomposition, named from TM Forum ODA/SID                    | Accepted |
-| [0006](0006-multitenancy-planes-and-tenant-storage.md)    | Multitenancy: three planes, ambient tenancy, storage per organization         | Accepted |
-| [0007](0007-access-model-planes-roles-entitlements.md)    | Access model: planes, platform roles, tenant-defined roles, entitlements      | Accepted |
-| [0008](0008-domain-modules-and-service-topology.md)       | Domain modules, storage ownership, and service topology                       | Accepted |
-| [0009](0009-catalog-authoring-and-publication.md)         | Catalog authoring in the tenant plane, publication into a platform read model | Proposed |
-| [0010](0010-stock-ledger-reservations-and-concurrency.md) | Stock as a movement ledger; purchases reserve rather than decrement           | Proposed |
-| [0011](0011-organization-provisioning-and-migrations.md)  | Organization provisioning, migrations, and per-tenant seeding                 | Accepted |
-| [0012](0012-operator-cross-tenant-access.md)              | Operator cross-tenant access is an audited crossing, never a bypass           | Proposed |
-| [0013](0013-tenant-storage-on-postgres.md)                | Tenant storage on Postgres: schema per organization, one shared pool          | Proposed |
+| #                                                                       | Title                                                                                                | Status   |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------- |
+| [0001](0001-observability-and-tooling.md)                               | Observability & platform tooling                                                                     | Accepted |
+| [0002](0002-authorization-roles-and-abac.md)                            | Authorization: role aspects behind an ABAC-shaped port                                               | Accepted |
+| [0003](0003-i18n-mandatory.md)                                          | i18n is mandatory, and the build enforces it                                                         | Accepted |
+| [0004](0004-session-lifetime-devices-and-recovery.md)                   | Session lifetime, device identity, and account recovery                                              | Accepted |
+| [0005](0005-business-domain-decomposition.md)                           | Business domain decomposition, named from TM Forum ODA/SID                                           | Accepted |
+| [0006](0006-multitenancy-planes-and-tenant-storage.md)                  | Multitenancy: three planes, ambient tenancy, storage per organization                                | Accepted |
+| [0007](0007-access-model-planes-roles-entitlements.md)                  | Access model: planes, platform roles, tenant-defined roles, entitlements                             | Accepted |
+| [0008](0008-domain-modules-and-service-topology.md)                     | Domain modules, storage ownership, and service topology                                              | Accepted |
+| [0009](0009-catalog-authoring-and-publication.md)                       | Catalog authoring in the tenant plane, publication into a platform read model                        | Proposed |
+| [0010](0010-stock-ledger-reservations-and-concurrency.md)               | Stock as a movement ledger; purchases reserve rather than decrement                                  | Proposed |
+| [0011](0011-organization-provisioning-and-migrations.md)                | Organization provisioning, migrations, and per-tenant seeding                                        | Accepted |
+| [0012](0012-operator-cross-tenant-access.md)                            | Operator cross-tenant access is an audited crossing, never a bypass                                  | Proposed |
+| [0013](0013-tenant-storage-on-postgres.md)                              | Tenant storage on Postgres: schema per organization, one shared pool                                 | Proposed |
+| [0014](0014-entity-specifications-and-the-characteristic-dictionary.md) | Vendor-authored entity specifications, pinned per instance, comparable through a platform dictionary | Proposed |
 
 The business-side records (0005 onward) are summarized as one map in
 [docs/BUSINESS-ARCHITECTURE.md](../BUSINESS-ARCHITECTURE.md).
