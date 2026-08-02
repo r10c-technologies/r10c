@@ -5,7 +5,10 @@ import {
   type EntityId,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
-import { runRepository, runRepositoryExit } from '@r10c/entifix-ts-testing-unit';
+import {
+  runRepository,
+  runRepositoryExit,
+} from '@r10c/entifix-ts-testing-unit';
 import {
   ContractWidget,
   describeEntityRepositoryContract,
@@ -41,7 +44,7 @@ class UnkeyedWidget implements Entity {
  */
 const withFakeDb = (seed: ContractWidget[] = []) => {
   const fake = makeFakeMongoDb({
-    [COLLECTION]: seed.map((widget) => serializeEntity(ContractWidget, widget)),
+    [COLLECTION]: seed.map(widget => serializeEntity(ContractWidget, widget)),
   });
   return {
     fake,
@@ -50,7 +53,7 @@ const withFakeDb = (seed: ContractWidget[] = []) => {
 };
 
 describeEntityRepositoryContract('mongo adapter over a fake driver', {
-  makeRepository: (seed) => withFakeDb(seed).repository,
+  makeRepository: seed => withFakeDb(seed).repository,
 });
 
 describe('makeMongoRepository', () => {
@@ -61,7 +64,9 @@ describe('makeMongoRepository', () => {
 
     await runRepository(repository.load<ContractWidget>({}));
 
-    expect(fake.operations.every((op) => op.collection === COLLECTION)).toBe(true);
+    expect(fake.operations.every(op => op.collection === COLLECTION)).toBe(
+      true,
+    );
   });
 
   it('falls back to the class name when the entity declares no key', async () => {
@@ -70,12 +75,16 @@ describe('makeMongoRepository', () => {
 
     await runRepository(repository.load<UnkeyedWidget>({}));
 
-    expect(fake.operations.every((op) => op.collection === 'UnkeyedWidget')).toBe(true);
+    expect(fake.operations.every(op => op.collection === 'UnkeyedWidget')).toBe(
+      true,
+    );
   });
 
   it('projects Mongo’s own _id away, so it never reaches an entity', async () => {
     const fake = makeFakeMongoDb({
-      [COLLECTION]: [{ _id: 'mongo-internal', id: 'w-1', name: 'Alpha', size: 10 }],
+      [COLLECTION]: [
+        { _id: 'mongo-internal', id: 'w-1', name: 'Alpha', size: 10 },
+      ],
     });
     const repository = makeMongoRepository(fake.db as Db, ContractWidget);
 
@@ -103,11 +112,11 @@ describe('makeMongoRepository', () => {
   it('upserts on save so a create and an update take the same path', async () => {
     const { fake, repository } = withFakeDb();
 
-    await runRepository(repository.save<ContractWidget>(
-        makeContractWidget('w-1', 'Alpha', 10),
-      ));
+    await runRepository(
+      repository.save<ContractWidget>(makeContractWidget('w-1', 'Alpha', 10)),
+    );
 
-    expect(fake.operations.map((op) => op.op)).toContain('replaceOne');
+    expect(fake.operations.map(op => op.op)).toContain('replaceOne');
     expect(fake.read(COLLECTION)).toEqual([
       { id: 'w-1', name: 'Alpha', size: 10 },
     ]);
@@ -116,9 +125,11 @@ describe('makeMongoRepository', () => {
   it('writes the minted id into the document, not only onto the entity', async () => {
     const { fake, repository } = withFakeDb();
 
-    const saved = await runRepository(repository.save<ContractWidget>(
+    const saved = await runRepository(
+      repository.save<ContractWidget>(
         makeContractWidget(undefined, 'Alpha', 10),
-      ));
+      ),
+    );
 
     // Entities are addressed by their own `id`; a document stored without one
     // would be unreachable by every later read.
@@ -155,7 +166,9 @@ describe('makeMongoRepository', () => {
       [
         'replaceOne',
         (repository: ReturnType<typeof withFakeDb>['repository']) =>
-          repository.save<ContractWidget>(makeContractWidget('w-1', 'Alpha', 10)),
+          repository.save<ContractWidget>(
+            makeContractWidget('w-1', 'Alpha', 10),
+          ),
       ],
       [
         'deleteOne',
@@ -166,7 +179,9 @@ describe('makeMongoRepository', () => {
       const { fake, repository } = withFakeDb(seed);
       fake.failOn(operation, new Error('connection refused'));
 
-      expect(Exit.isFailure(await runRepositoryExit(run(repository)))).toBe(true);
+      expect(Exit.isFailure(await runRepositoryExit(run(repository)))).toBe(
+        true,
+      );
     });
   });
 });

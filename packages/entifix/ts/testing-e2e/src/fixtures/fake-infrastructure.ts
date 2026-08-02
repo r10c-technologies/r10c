@@ -1,10 +1,16 @@
 import { AmqpChannelTag } from '@r10c/entifix-ts-amqp-client';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
+import {
+  ConfigurationRepositoryTag,
+  TenantDatabaseResolverTag,
+} from '@r10c/entifix-ts-business';
 import {
   type ConfigurationPlain,
   ConfigurationStoreInMemory,
 } from '@r10c/entifix-ts-core';
-import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
+import {
+  MongoClientTag,
+  MongoDatabaseTag,
+} from '@r10c/entifix-ts-mongo-client';
 import { RedisTag } from '@r10c/entifix-ts-redis-client';
 import {
   type FakeAmqpChannel,
@@ -14,7 +20,7 @@ import {
   makeFakeMongoDb,
   makeFakeRedis,
 } from '@r10c/entifix-ts-testing-unit/drivers';
-import { Layer } from 'effect';
+import { Effect, Layer } from 'effect';
 
 import type { BackendRow } from './entity-backend';
 
@@ -45,9 +51,23 @@ export interface FakeInfrastructure<TDriver, TService> {
   readonly layer: Layer.Layer<TService>;
 }
 
+/**
+ * The Mongo fake, provided under all three tags a service may ask for: the
+ * shared `Db`, the `MongoClient` (the pool), and the tenant resolver.
+ *
+ * Every organization resolves to the **same** in-memory store, which is the
+ * honest mock of db-per-organization: there is one fake, so isolation is not
+ * what this profile tests. That is deliberate — a `mock` run proves routing,
+ * guards and query translation; only a live run against real Mongo can prove
+ * that two organizations' collections actually live apart, and that is what the
+ * `mongosh` check in the tenancy verification does.
+ */
 export const fakeMongoLayer = (
   seed: Record<string, ReadonlyArray<BackendRow>> = {},
-): FakeInfrastructure<FakeMongoDb, MongoDatabaseTag> => {
+): FakeInfrastructure<
+  FakeMongoDb,
+  MongoClientTag | MongoDatabaseTag | TenantDatabaseResolverTag
+> => {
   const db = makeFakeMongoDb(
     Object.fromEntries(
       Object.entries(seed).map(([collection, rows]) => [
@@ -59,7 +79,14 @@ export const fakeMongoLayer = (
 
   return {
     driver: db,
-    layer: Layer.succeed(MongoDatabaseTag, db.db as never),
+    layer: Layer.mergeAll(
+      Layer.succeed(MongoDatabaseTag, db.db as never),
+      // `client.db(name)` ignores the name for the same reason.
+      Layer.succeed(MongoClientTag, { db: () => db.db } as never),
+      Layer.succeed(TenantDatabaseResolverTag, {
+        forOrganization: () => Effect.succeed(db.db),
+      }),
+    ),
   };
 };
 

@@ -82,9 +82,15 @@ describe('makeMongoLinkResolver', () => {
   it('reads each registration from its own collection', async () => {
     const { fake, db } = withFakeDb();
 
-    await resolve(makeMongoLinkResolver(db, [Brand, Category]), Category, 'c-1');
+    await resolve(
+      makeMongoLinkResolver(db, [Brand, Category]),
+      Category,
+      'c-1',
+    );
 
-    expect(fake.operations.every((op) => op.collection === 'category')).toBe(true);
+    expect(fake.operations.every(op => op.collection === 'category')).toBe(
+      true,
+    );
   });
 
   // The registration list is the whole contract of the resolver: an unregistered
@@ -93,10 +99,17 @@ describe('makeMongoLinkResolver', () => {
   it('rejects an unregistered target as a logic error', async () => {
     const { db } = withFakeDb();
 
-    const exit = await resolve(makeMongoLinkResolver(db, [Brand]), Category, 'c-1');
+    const exit = await resolve(
+      makeMongoLinkResolver(db, [Brand]),
+      Category,
+      'c-1',
+    );
 
     expect(Exit.isFailure(exit)).toBe(true);
-    const error = Exit.isFailure(exit) && exit.cause._tag === 'Fail' ? exit.cause.error : undefined;
+    const error =
+      Exit.isFailure(exit) && exit.cause._tag === 'Fail'
+        ? exit.cause.error
+        : undefined;
     expect(error).toBeInstanceOf(EntifixLogicError);
     expect((error as EntifixLogicError).message).toContain('Category');
   });
@@ -104,7 +117,11 @@ describe('makeMongoLinkResolver', () => {
   it('propagates a not-found from the repository', async () => {
     const { db } = withFakeDb();
 
-    const exit = await resolve(makeMongoLinkResolver(db, [Brand]), Brand, 'missing');
+    const exit = await resolve(
+      makeMongoLinkResolver(db, [Brand]),
+      Brand,
+      'missing',
+    );
 
     expect(Exit.isFailure(exit)).toBe(true);
   });

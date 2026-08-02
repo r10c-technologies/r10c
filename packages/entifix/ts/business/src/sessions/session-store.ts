@@ -33,6 +33,16 @@ export interface SessionData {
   readonly subject: string;
   readonly roles: readonly string[];
   readonly attributes: Readonly<Record<string, unknown>>;
+  /**
+   * The organization this session is acting for. It lives here rather than on
+   * the user because a party may belong to several organizations, so switching
+   * is a session operation that re-mints the access token — modelling it on the
+   * user would make someone serving two vendors keep two accounts.
+   *
+   * Absent for a session with no organization: a buyer, or an operator, who
+   * holds no tenant scope by default.
+   */
+  readonly activeOrganizationId?: string;
   /** Absent for sessions opened by a non-browser caller. */
   readonly device?: DeviceContext;
 }

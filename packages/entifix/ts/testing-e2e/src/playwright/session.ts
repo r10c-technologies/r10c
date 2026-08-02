@@ -11,6 +11,13 @@ export interface SeedSessionOptions {
   /** Roles the seeded principal should carry. */
   roles?: readonly string[];
   /**
+   * The organization the seeded session acts for. Tenant-plane routes resolve
+   * their storage from this claim, so a spec that exercises one and omits it
+   * gets `409 no-active-organization` rather than data. Pass `null` to seed a
+   * session with no tenant scope on purpose — an operator, or a buyer.
+   */
+  activeOrganizationId?: string | null;
+  /**
    * Locale to pin the run to. Seeded in both profiles so a run does not depend
    * on the CI machine's `Accept-Language` — without it the same spec renders
    * Spanish locally and English on a differently-configured runner.
@@ -38,7 +45,10 @@ const base64url = (value: string): string =>
  * fixtures. Signing it would need `jwt.secret`, which the suite has no business
  * knowing.
  */
-const fabricateToken = (roles: readonly string[]): string => {
+const fabricateToken = (
+  roles: readonly string[],
+  activeOrganizationId: string | null,
+): string => {
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const payload = base64url(
     JSON.stringify({
@@ -46,6 +56,7 @@ const fabricateToken = (roles: readonly string[]): string => {
       subject: 'e2e-user',
       sessionId: 'e2e-session',
       roles,
+      ...(activeOrganizationId === null ? {} : { activeOrganizationId }),
       exp: Math.floor(Date.now() / 1000) + 3600,
     }),
   );
@@ -67,6 +78,7 @@ export const seedSession = async (
   context: BrowserContext,
   {
     roles = ['user'],
+    activeOrganizationId = 'e2e-organization',
     locale = 'es',
     identifier = 'ada@example.com',
     password = 'password123',
@@ -99,7 +111,7 @@ export const seedSession = async (
   await context.addCookies([
     {
       name: ACCESS_COOKIE,
-      value: fabricateToken(roles),
+      value: fabricateToken(roles, activeOrganizationId),
       domain: 'localhost',
       path: '/',
     },

@@ -319,15 +319,17 @@ pnpm nx build <lib> --skipTypeCheck=false
 
 The golden rule above is **enforced**, not just reviewed. Every project declares
 `nx.tags` in its `package.json`, and `eslint.config.mjs` turns those tags into
-`@nx/enforce-module-boundaries` constraints across four dimensions:
+`@nx/enforce-module-boundaries` constraints across six dimensions:
 
-| Dimension    | Tags                                                                                     | Rule                                                                                 |
-| ------------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **layer**    | `layer:app` › `shell` › `implementation` › `business` › `entifix` › `utils`              | depend only on layers **below** (`business`/`entifix` also allow ordered same-layer) |
-| **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}`              | a domain may depend only on itself or `scope:shared` (the reusable core)             |
-| **entifix**  | `entifix:core` ‹ `contract` ‹ {`tooling`, `style`} ‹ `transactions` ‹ `client` ‹ `react` | internal ordering inside the entifix layer                                           |
-| **business** | `business:policy` ‹ `business:domain`                                                    | a domain may use the shared authorization vocabulary, never another domain           |
-| **type**     | `type:testing`, `type:e2e`                                                               | spec files may import `type:testing` libs; source files may not                      |
+| Dimension    | Tags                                                                                     | Rule                                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **layer**    | `layer:app` › `shell` › `implementation` › `business` › `entifix` › `utils`              | depend only on layers **below** (`shell`/`business`/`entifix` also allow ordered same-layer) |
+| **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}`              | a domain may depend only on itself or `scope:shared` (the reusable core)                     |
+| **entifix**  | `entifix:core` ‹ `contract` ‹ {`tooling`, `style`} ‹ `transactions` ‹ `client` ‹ `react` | internal ordering inside the entifix layer                                                   |
+| **business** | `business:policy` ‹ `business:domain`                                                    | a domain may use the shared authorization vocabulary, never another domain                   |
+| **shell**    | `shell:base` ‹ `shell:domain`                                                            | a domain shell may mount onto the framework shell; base shells stay independent              |
+| **host**     | `host:next`, `host:effect`, `runtime:datastore`                                          | a `host:next` app may **not** depend on a `runtime:datastore` package                        |
+| **type**     | `type:testing`, `type:e2e`                                                               | spec files may import `type:testing` libs; source files may not                              |
 
 The rule ANDs every constraint a project's tags match, so the dimensions compose.
 Consequence: **to make an edge legal, retag the project — never relax the rule.**
@@ -343,6 +345,21 @@ dimension alone would either forbid outright or open up completely — so the
 business layer got the same treatment `entifix:*` already gives the framework
 layer: one ordered dimension, `policy` ‹ `domain`. A domain package reaches down
 to policy; it still cannot import a sibling domain.
+
+**Why `shell:*` exists.** Same story one layer up. `layer:shell` forbade
+same-layer edges outright, so a per-domain API module could not reach
+`requirePermission`/`makeServerLayer` in `shells-effect-service` — the module
+pattern was unbuildable. `shell:base` ‹ `shell:domain` orders the layer the same
+way, so a domain shell mounts onto the framework shell while base shells stay
+independent of each other.
+
+**Why `host:*` exists.** Apps sit at the top layer, so nothing stopped a Next app
+from importing `makeMongoRepository` and writing a database directly — the one
+hole in "one writer per database"
+([ADR 0008](adr/0008-domain-modules-and-service-topology.md)). The datastore
+clients carry `runtime:datastore`, Next apps carry `host:next`, and a
+`notDependOnLibsWithTags` constraint makes that import a build failure. A Next
+backend is composition — cookies, proxying, RSC aggregation — never data access.
 
 ## Entities
 

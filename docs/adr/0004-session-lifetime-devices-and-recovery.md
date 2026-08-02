@@ -13,7 +13,7 @@ session visibility were all listed as deferred.
 Two things forced the issue.
 
 **The refresh half was dead code.** `setSessionCookies` sized the `r10c_at`
-cookie to the *access token's* 15 minutes. When that cookie expired, the
+cookie to the _access token's_ 15 minutes. When that cookie expired, the
 middleware's presence check could not tell "this token needs refreshing" from
 "there is no session", and chose the second — so every user was bounced to
 sign-in four times an hour while their Redis session had days left.
@@ -76,7 +76,7 @@ with `userAgent()` from `next/server` — already bundled with Next, so no new
 dependency, and notably not `ua-parser-js`, whose v2 is AGPL/dual-licensed.
 
 **Rejected: JS fingerprinting (FingerprintJS et al.).** ~40–60% accuracy, a paid
-upgrade path, and it *is* fingerprinting under GDPR/ePrivacy — a consent burden
+upgrade path, and it _is_ fingerprinting under GDPR/ePrivacy — a consent burden
 for a signal that decides nothing.
 
 Device history is durable, in Mongo (`UserDevice`), rather than derived from live
@@ -109,7 +109,7 @@ stdout line, and an untested recovery flow is one that quietly rots.
 
 Changing a password re-verifies the current one even though the caller holds a
 session — a session can be an unlocked laptop or a stolen cookie — then revokes
-every session *except* the caller's own. Recovery revokes *every* session without
+every session _except_ the caller's own. Recovery revokes _every_ session without
 exception, because the old password may be in someone else's hands right now.
 
 ### Lockout, with its own downside handled
@@ -123,7 +123,7 @@ own**; and tripping it **notifies the owner**, once, on the transition.
 
 A lock answers `429`, not `401`: the credentials were never consulted, and a
 caller told "invalid credentials" goes off resetting a password that was fine.
-Lock state is Redis with a TTL, deliberately *not* `UserStatus.Suspended`, which
+Lock state is Redis with a TTL, deliberately _not_ `UserStatus.Suspended`, which
 is an administrator's lasting decision.
 
 ## Consequences

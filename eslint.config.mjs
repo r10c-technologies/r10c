@@ -18,10 +18,16 @@ import { r10cPlugin } from './tools/eslint-rules/no-foreign-app-namespace.mjs';
 //   business:* internal ordering INSIDE the business layer: policy ‹ domain
 //              (a domain may use the shared authorization vocabulary; it may
 //              never import another domain)
+//   shell:*    internal ordering INSIDE the shell layer: base ‹ domain
+//              (a domain shell mounts onto the framework shell; base shells
+//              stay independent of each other)
+//   host:*     what kind of runtime host an app is — `next` or `effect`. Paired
+//              with `runtime:datastore` on the datastore clients: a Next app may
+//              not reach a database driver at all.
 //   type:*     testing/e2e helpers (relaxed — see specConstraints).
 //
 // The rule ANDs every constraint whose `sourceTag` a project carries, so the
-// three dimensions compose. See docs/DEVELOPING.md → "Module boundaries".
+// dimensions compose. See docs/DEVELOPING.md → "Module boundaries".
 // ---------------------------------------------------------------------------
 
 const layerConstraints = [
@@ -38,6 +44,10 @@ const layerConstraints = [
   {
     sourceTag: 'layer:shell',
     onlyDependOnLibsWithTags: [
+      // Same-layer edges are allowed but ORDERED by `shell:*` below, exactly as
+      // `layer:business` is ordered by `business:*`. Without that second
+      // dimension this line would let any shell import any other.
+      'layer:shell',
       'layer:implementation',
       'layer:business',
       'layer:entifix',
@@ -152,6 +162,46 @@ const businessConstraints = [
   },
 ];
 
+// Internal ordering INSIDE the shell layer, mirroring `business:*`.
+// `base` is the reusable framework shell (the effect-service base, the Next
+// common/i18n shells); a `domain` shell mounts one domain onto it. Without this
+// dimension `layer:shell` forbids same-layer edges outright, and a per-domain
+// API module cannot reach `requirePermission`/`makeServerLayer` at all.
+const shellConstraints = [
+  {
+    sourceTag: 'shell:base',
+    onlyDependOnLibsWithTags: [
+      'layer:implementation',
+      'layer:business',
+      'layer:entifix',
+      'layer:utils',
+    ],
+  },
+  {
+    sourceTag: 'shell:domain',
+    onlyDependOnLibsWithTags: [
+      'shell:base',
+      'layer:implementation',
+      'layer:business',
+      'layer:entifix',
+      'layer:utils',
+    ],
+  },
+];
+
+// Storage ownership, enforced. Apps sit at the top layer, so the `layer:*`
+// dimension alone would happily let a Next app import `makeMongoRepository` and
+// write a database directly — the one hole in "one writer per database"
+// (docs/adr/0008). A Next backend is composition (cookies, proxying, RSC
+// aggregation), never data access; only a `host:effect` service binds a
+// repository to a datastore client.
+const hostConstraints = [
+  {
+    sourceTag: 'host:next',
+    notDependOnLibsWithTags: ['runtime:datastore'],
+  },
+];
+
 // Strict constraints for source files. The trailing `*` catch-all lets any
 // untagged project (e.g. testing/e2e) and external deps still resolve.
 const sourceConstraints = [
@@ -159,6 +209,8 @@ const sourceConstraints = [
   ...scopeConstraints,
   ...entifixConstraints,
   ...businessConstraints,
+  ...shellConstraints,
+  ...hostConstraints,
   { sourceTag: '*', onlyDependOnLibsWithTags: ['*'] },
 ];
 
@@ -166,8 +218,13 @@ const sourceConstraints = [
 // anywhere (they are test-only and never shipped), so every allow-list gains
 // `type:testing`. Source files stay strict — production code must not import
 // a testing lib.
+//
+// A deny-list constraint (`notDependOnLibsWithTags`, i.e. `host:*`) carries no
+// allow-list to widen and passes through unchanged: relaxing it for specs would
+// let a Next app reach a database driver through a test file, which is exactly
+// the edge it exists to forbid.
 const specConstraints = sourceConstraints.map(c =>
-  c.sourceTag === '*'
+  c.sourceTag === '*' || c.onlyDependOnLibsWithTags === undefined
     ? c
     : {
         ...c,

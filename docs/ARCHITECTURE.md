@@ -1,5 +1,10 @@
 # Architecture
 
+This document is the **technical** architecture: layers, mechanisms, transports.
+The **business** architecture — which capabilities exist, what they are called,
+which data plane they live in, and how they extend — is
+[BUSINESS-ARCHITECTURE.md](./BUSINESS-ARCHITECTURE.md).
+
 > **Status (2026-07)** — Layered monorepo in active development. The entity
 > framework (entifix), the product-catalog and authn domains, the Next.js
 > frontends, and the Effect-native backends are all in place. Backends are now
@@ -135,7 +140,7 @@ Effect Layers.
   Three callers send it: `loadRemoteConfiguration` when a service boots, and — in
   `shells-next-common`, sharing `lib/config/service-token.ts` — an app's
   `createConfigRoute` and its **readiness probe**. The probe belongs on that list
-  because readiness *reads* the gated route: without the header it sees a `401`,
+  because readiness _reads_ the gated route: without the header it sees a `401`,
   reports `degraded`, and the app never becomes Ready despite being healthy, which
   in Kubernetes means a rollout that never takes traffic.
 
@@ -387,6 +392,15 @@ transaction assigns a unique incremental `code` (`product-001`, `category-001`,
 uniqueness across service instances. Websockets and multi-service sagas are
 deferred.
 
+The engine gains two more consumers as the business domains land, both
+cross-plane and both already designed: **catalog publication**, which projects a
+vendor's approved offerings from tenant storage into the platform-scope
+marketplace catalog ([ADR 0009](adr/0009-catalog-authoring-and-publication.md)),
+and **checkout**, whose compensation releases a stock reservation when the order
+write fails ([ADR 0010](adr/0010-stock-ledger-reservations-and-concurrency.md)).
+Both are the "cross-domain write goes through the saga, never one transaction"
+rule in practice.
+
 ## Workspace tabs & client data layer
 
 The marketplace-admin frontend has a **browser-like tab workspace** backed by a
@@ -398,10 +412,22 @@ design: [FRONTEND.md → Workspace tabs](./FRONTEND.md#part-2--workspace-tabs--t
 
 ## Current domain structure
 
+The capability map, the ODA/SID naming behind it, and each domain's data plane
+are in [BUSINESS-ARCHITECTURE.md](./BUSINESS-ARCHITECTURE.md). What follows is
+what exists in the tree today.
+
 **Business domains** (`packages/business/ts/*`, pure — entities + use-cases):
 
 - `business-ts-product-configuration-management` — `Product`, `ProductBrand`,
   `ProductCategory`; `loadProductsUCFactory` (link-following load).
+  **Tenant plane.**
+- `business-ts-party-management` — `Organization` (the tenant), `Individual`,
+  `PartyRole`. **Control plane.**
+- `business-ts-access-management` — `Membership`, `Role`, `Entitlement`.
+  **Control plane.**
+- `business-ts-marketplace-catalog`, `-stock-management`, `-order-management`,
+  `-payment-management`, `-settlement-management` — named and tagged; entities
+  land with the iterations their ADRs name.
 - `business-ts-authn` — `UserIdentity` (carrying the `role` aspect),
   `EntityIdentifier`; `resolveSession`, `login`, `registerUser` UCs over
   `AccountRepositoryTag`/`PasswordHasherTag`/`IdentityProviderTag`.

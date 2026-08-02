@@ -12,7 +12,8 @@
   "nx": {
     "tags": [
       "layer:app",
-      "scope:auth"
+      "scope:auth",
+      "host:effect"
     ],
     "targets": {
       "ensure-infra": {

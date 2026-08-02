@@ -409,14 +409,14 @@ justify itself.
 
 ## What that costs, and what it buys
 
-| | Back-office | Storefront |
-| --- | --- | --- |
-| Default component | client | **server** |
-| Locale | `x-r10c-locale` header → dynamic | `[locale]` route param → **prerenderable** |
-| Data | TanStack over REST, in the browser | use-case run on the server, in the page |
-| Links | `LocaleLink` (client) | `StoreLink` (**server**) |
-| CTA | `Button` | `ButtonLink` where the click navigates |
-| Mutations | mutation hooks | `<form action={serverAction}>` |
+|                   | Back-office                        | Storefront                                 |
+| ----------------- | ---------------------------------- | ------------------------------------------ |
+| Default component | client                             | **server**                                 |
+| Locale            | `x-r10c-locale` header → dynamic   | `[locale]` route param → **prerenderable** |
+| Data              | TanStack over REST, in the browser | use-case run on the server, in the page    |
+| Links             | `LocaleLink` (client)              | `StoreLink` (**server**)                   |
+| CTA               | `Button`                           | `ButtonLink` where the click navigates     |
+| Mutations         | mutation hooks                     | `<form action={serverAction}>`             |
 
 Home and every product page are prerendered per locale with ISR. `/cart` reads
 `cookies()` and `/search` reads `searchParams`, so both are dynamic — correctly,

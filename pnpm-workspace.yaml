@@ -6,7 +6,6 @@ packages:
   - 'packages/entifix/react/*'
   - 'packages/entifix/style'
   - 'packages/implementation/product-configuration-management/*'
-  - 'implementation/product-configuration-management/*'
   - 'packages/shells/next/*'
   - 'packages/shells/effect/*'
 allowBuilds:

@@ -5,7 +5,8 @@
   "nx": {
     "tags": [
       "layer:app",
-      "scope:config"
+      "scope:config",
+      "host:effect"
     ],
     "targets": {
       "build": {

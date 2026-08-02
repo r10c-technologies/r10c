@@ -7,14 +7,23 @@ and run Nx via `pnpm nx …` (or `pnpm exec nx`). Project names are scoped
 (e.g. `marketplace-app`, `entifix-ts-core`).
 
 ```sh
-# Dev, self-healing — the shortest path to a running admin app.
-# `mp-admin:dev` walks the infra health ladder and fixes the broken rung
-# (starts minikube, applies missing manifests, restarts a wedged pod), then
-# starts the app. ~0.1s when everything is already up.
-pnpm run mp-admin:dev
-pnpm run mp-admin:dev:reset  # recreate the datastores first — WIPES local
-                             # Mongo/Postgres/Redis data, which then re-seeds
-                             # on service boot. The fix for stale-seed bugs.
+# Dev, self-healing — the shortest path to a running app. Each `<app>:dev`
+# walks the infra health ladder and fixes the broken rung (starts minikube,
+# applies missing manifests, restarts a wedged pod), then starts the app.
+# ~0.1s when everything is already up. One pair per frontend:
+pnpm run mp:dev              # marketplace-app       :3000
+pnpm run mp-admin:dev        # marketplace-admin-app :3001
+pnpm run auth:dev            # auth-app              :3002
+
+# `<app>:dev:reset` recreates the datastores first — WIPES local
+# Mongo/Postgres/Redis data (including every per-organization tenant database),
+# which then re-seeds on service boot. The fix for stale-seed bugs, and the ONLY
+# way a changed seed default reaches a machine that already has that row: the
+# seed is `ON CONFLICT … DO NOTHING`, so it adds new keys but never rewrites an
+# existing value.
+pnpm run mp:dev:reset
+pnpm run mp-admin:dev:reset
+pnpm run auth:dev:reset
 pnpm run dev-infra:doctor    # read-only ladder view + the command that fixes it
 pnpm run dev-ports:free      # kill leftover listeners on every fleet port (each
                              # dev target already frees its own port first)

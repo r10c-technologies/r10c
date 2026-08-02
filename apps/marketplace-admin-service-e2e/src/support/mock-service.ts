@@ -45,6 +45,10 @@ const CONFIGURATION = {
   redis: [{ key: 'uri', value: 'redis://mock:6379' }],
   rabbitmq: [{ key: 'uri', value: 'amqp://mock:5672' }],
   jwt: [{ key: 'secret', value: 'mock-secret' }],
+  tenant: [
+    { key: 'dbPrefix', value: 'tenant_' },
+    { key: 'demoOrganizationId', value: 'e2e-organization' },
+  ],
 };
 
 /** The HS256 secret the mock verifies with; a spec signs test tokens with it. */
@@ -91,8 +95,13 @@ const MockAppLayer = (() => {
   );
 
   // The REAL seed, so both profiles serve the same catalog and the shared
-  // journeys can assert the same brand names.
-  return Layer.provideMerge(Layer.effectDiscard(seedCatalog), infra);
+  // journeys can assert the same brand names. It writes into the tenant
+  // database now; the fake resolves every organization to one in-memory store,
+  // so the catalog the specs read is the catalog the seed wrote.
+  return Layer.provideMerge(
+    Layer.effectDiscard(seedCatalog('tenant_e2e-organization')),
+    infra,
+  );
 })();
 
 /**

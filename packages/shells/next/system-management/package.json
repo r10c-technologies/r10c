@@ -3,7 +3,8 @@
   "nx": {
     "tags": [
       "layer:shell",
-      "scope:shared"
+      "scope:shared",
+      "shell:domain"
     ],
     "sourceRoot": "packages/shells/next/system-management/src",
     "targets": {

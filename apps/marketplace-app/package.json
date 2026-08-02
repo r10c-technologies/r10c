@@ -16,7 +16,8 @@
   "nx": {
     "tags": [
       "layer:app",
-      "scope:marketplace"
+      "scope:marketplace",
+      "host:next"
     ],
     "targets": {
       "dev": {

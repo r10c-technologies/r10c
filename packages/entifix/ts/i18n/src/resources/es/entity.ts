@@ -135,4 +135,60 @@ export const entity = {
       lastSeenAt: 'Última vez',
     },
   },
+  organization: {
+    label: 'Organización',
+    plural: 'Organizaciones',
+    fields: {
+      id: 'ID',
+      name: 'Nombre',
+      slug: 'Identificador',
+      status: 'Estado',
+    },
+    values: {
+      status: {
+        active: 'Activa',
+        suspended: 'Suspendida',
+        archived: 'Archivada',
+      },
+    },
+  },
+  individual: {
+    label: 'Persona',
+    plural: 'Personas',
+    fields: {
+      id: 'ID',
+      fullName: 'Nombre completo',
+      userId: 'ID de usuario',
+    },
+  },
+  membership: {
+    label: 'Membresía',
+    plural: 'Membresías',
+    fields: {
+      id: 'ID',
+      partyId: 'ID de parte',
+      organizationId: 'ID de organización',
+      roleIds: 'Roles',
+      isDefault: 'Predeterminada',
+    },
+  },
+  role: {
+    label: 'Rol',
+    plural: 'Roles',
+    fields: {
+      id: 'ID',
+      organizationId: 'ID de organización',
+      name: 'Nombre',
+      permissions: 'Permisos',
+    },
+  },
+  entitlement: {
+    label: 'Habilitación',
+    plural: 'Habilitaciones',
+    fields: {
+      id: 'ID',
+      organizationId: 'ID de organización',
+      domains: 'Módulos',
+    },
+  },
 };
