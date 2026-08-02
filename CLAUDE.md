@@ -51,8 +51,23 @@ them), and everything deep is a link — loaded only when a task needs it.
   the package identity, the `@entity({ domain })` value, the permission namespace
   and the organization's entitlement key. Decisions already reasoned through but
   not yet built are **Proposed** ADRs (catalog publication, stock/reservations,
-  operator cross-tenant access, Postgres tenancy); read the relevant one before
-  designing in that area rather than re-deriving it.
+  operator cross-tenant access, Postgres tenancy, vendor-authored entity
+  specifications); read the relevant one before designing in that area rather
+  than re-deriving it.
+- **A vendor's product model is data, not a commit.** A vendor authors a versioned
+  `EntitySpecification`; an offering pins the version it was written under, and a
+  released version is immutable — which is what lets a compiled-spec cache never
+  invalidate, removes any need for a cross-store transaction, and lets publication
+  dedupe a spec by content hash. This does **not** replace entifix metadata: the
+  spec entities are themselves `@entity()`-decorated classes, the skeleton
+  (`ProductOffering`) stays typed, and the only framework change is `EntityForm`
+  accepting `fields: EntityFieldDescriptor[]` beside `entityConstructor`. Never
+  synthesize an `EntityConstructor` at runtime, write `Symbol.metadata` outside a
+  decorator, branch on specs inside `packages/entifix`, or route a characteristic
+  into the RSQL allowlist. Cross-vendor comparability comes from a platform-owned
+  dictionary of terms (code + value set + unit) a characteristic may resolve to —
+  vendors narrow a term's values, never widen them. See
+  [ADR 0014](docs/adr/0014-entity-specifications-and-the-characteristic-dictionary.md).
 - **Inject with Effect.** Wire dependencies as `Context.Tag` subclasses provided via
   `Layer`, not instances through constructors — a missing dep is a compile error.
 - **Entities describe themselves.** Private `#field` + `@accessor()` getter/setter
