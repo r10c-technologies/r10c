@@ -1,13 +1,17 @@
 import {
+  ActiveOrganizationResolverTag,
   entityIdentifierSeedData,
+  individualSeedData,
   JWT_AUDIENCE,
   JWT_ISSUER,
   makeBcryptPasswordHasher,
   makeDevNotificationPort,
   makeMongoAccountRepository,
+  makeMongoActiveOrganizationResolver,
   makeMongoUserDeviceRepository,
   makeRedisAttemptLimiter,
   makeRedisIdentityProvider,
+  membershipSeedData,
   router,
   seedCredentials,
   SERVICE_NAME,
@@ -76,6 +80,15 @@ const UserDeviceRepositoryLayer = Layer.effect(
   Effect.map(MongoDatabaseTag, makeMongoUserDeviceRepository),
 );
 
+// The real resolver over the fake Mongo, not a stub returning a constant: a
+// sign-in resolves party -> membership -> organization for real, so the
+// `activeOrganizationId` these specs see in a token is one the shipped lookup
+// produced. The collections below are seeded to match.
+const ActiveOrganizationResolverLayer = Layer.effect(
+  ActiveOrganizationResolverTag,
+  Effect.map(MongoDatabaseTag, makeMongoActiveOrganizationResolver),
+);
+
 // The real development adapter, not a stub: the reset journey reads the outbox
 // back through `/api/dev/outbox`, so a fake here would test nothing.
 const NotificationLayer = Layer.effect(
@@ -98,6 +111,11 @@ const base = Layer.mergeAll(
     'entity-identifier': entityIdentifierSeedData,
     'user-device': [],
     'notification-outbox': [],
+    // Control-plane tenancy, so the organization a session acts for is resolved
+    // rather than assumed. Alan holds the membership; Ada deliberately does not,
+    // which is what makes her sessions carry no tenant scope.
+    individual: individualSeedData,
+    membership: membershipSeedData('e2e-organization'),
   }).layer,
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
@@ -139,6 +157,7 @@ const base = Layer.mergeAll(
 const withAccounts = Layer.provideMerge(
   Layer.mergeAll(
     AccountRepositoryLayer,
+    ActiveOrganizationResolverLayer,
     UserDeviceRepositoryLayer,
     NotificationLayer,
   ),

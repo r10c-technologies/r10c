@@ -1,6 +1,12 @@
 import { AmqpChannelTag } from '@r10c/entifix-ts-amqp-client';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
-import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
+import {
+  ConfigurationRepositoryTag,
+  TenantDatabaseResolverTag,
+} from '@r10c/entifix-ts-business';
+import {
+  MongoClientTag,
+  MongoDatabaseTag,
+} from '@r10c/entifix-ts-mongo-client';
 import { RedisTag } from '@r10c/entifix-ts-redis-client';
 import { Effect } from 'effect';
 
@@ -28,6 +34,54 @@ describe('the fake infrastructure layers', () => {
 
     expect(documents).toMatchObject([{ id: 'w1', name: 'Acme' }]);
     expect(driver.read('widget')).toHaveLength(1);
+  });
+
+  it('provides the client and the tenant resolver from the same fake store', async () => {
+    // A service composition root asks for three tags, not one: the shared `Db`,
+    // the client (the pool, used to seed a tenant database), and the resolver a
+    // tenant-plane route reads. All three must come from one fake, or a spec
+    // would write through one and read through another.
+    const { layer } = fakeMongoLayer({ widget: [{ id: 'w1', name: 'Acme' }] });
+
+    const [viaClient, viaResolver] = await Effect.runPromise(
+      Effect.gen(function* () {
+        const client = yield* MongoClientTag;
+        const resolver = yield* TenantDatabaseResolverTag;
+        const tenantDb = yield* resolver.forOrganization('any-organization');
+        return [
+          yield* Effect.promise(() =>
+            client.db('ignored').collection('widget').find({}).toArray(),
+          ),
+          yield* Effect.promise(() =>
+            (tenantDb as ReturnType<typeof client.db>)
+              .collection('widget')
+              .find({})
+              .toArray(),
+          ),
+        ];
+      }).pipe(Effect.provide(layer)),
+    );
+
+    expect(viaClient).toMatchObject([{ id: 'w1' }]);
+    expect(viaResolver).toMatchObject([{ id: 'w1' }]);
+  });
+
+  it('resolves every organization to the one in-memory store', async () => {
+    // The honest mock of db-per-organization: there is a single fake, so this
+    // profile proves routing and guards, never physical isolation. Only a live
+    // run against real Mongo can show two organizations' data actually apart.
+    const { layer } = fakeMongoLayer({ widget: [{ id: 'w1' }] });
+
+    const same = await Effect.runPromise(
+      Effect.gen(function* () {
+        const resolver = yield* TenantDatabaseResolverTag;
+        const a = yield* resolver.forOrganization('org-a');
+        const b = yield* resolver.forOrganization('org-b');
+        return a === b;
+      }).pipe(Effect.provide(layer)),
+    );
+
+    expect(same).toBe(true);
   });
 
   // The seed is copied, so a spec that mutates a row cannot leak into the next.
