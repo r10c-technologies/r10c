@@ -49,4 +49,58 @@ export const shell = {
     unsupported: 'Esta pestaña no se puede abrir aquí.',
     discard: '¿Descartar los cambios sin guardar de esta pestaña?',
   },
+  /**
+   * The storefront. Its pages live in `shells-next-marketplace`, so its copy
+   * lives here and not in an app catalog — `app:` is reserved for `apps/`.
+   */
+  storefront: {
+    nav: {
+      catalog: 'Catálogo',
+    },
+    home: {
+      overline: 'Tienda',
+      heading: 'Marketplace r10c',
+      lead: 'Objetos para la casa, elegidos de a poco.',
+      featured: 'Destacados',
+    },
+    category: {
+      overline: 'Categoría',
+      empty: 'No hay productos en esta categoría todavía.',
+      sort: 'Ordenar',
+      sortByName: 'Nombre',
+      sortByCode: 'Referencia',
+      results: '{{count}} productos',
+      previous: 'Anterior',
+      next: 'Siguiente',
+      pageOf: 'Página {{page}} de {{pages}}',
+    },
+    product: {
+      addToCart: 'Añadir al carrito',
+      view: 'Ver producto',
+      brand: 'Marca',
+      category: 'Categoría',
+      reference: 'Referencia',
+      related: 'También te puede interesar',
+    },
+    search: {
+      heading: 'Buscar',
+      label: 'Buscar productos',
+      placeholder: 'Lámpara, taza, manta…',
+      submit: 'Buscar',
+      resultsFor: 'Resultados para «{{term}}»',
+      empty: 'No encontramos nada para «{{term}}».',
+      prompt: 'Escribe algo para empezar a buscar.',
+    },
+    cart: {
+      heading: 'Carrito',
+      empty: 'Tu carrito está vacío.',
+      remove: 'Quitar',
+      units: 'Cant. {{count}}',
+      total: 'Artículos en total',
+      keepShopping: 'Seguir comprando',
+    },
+    footer: {
+      note: 'Catálogo de demostración. Ningún pedido es real.',
+    },
+  },
 };

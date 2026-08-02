@@ -1,8 +1,9 @@
 # Frontend
 
 Everything about the client side: the agnostic **design system** (UI kit, layout
-primitives, tokens, Storybook) and the **workspace tabs + client data layer** the
-marketplace-admin app is built on. Backend/domain architecture is in
+primitives, tokens, Storybook), the **workspace tabs + client data layer** the
+marketplace-admin app is built on, and the **server-first storefront** that is
+built on almost none of it. Backend/domain architecture is in
 [ARCHITECTURE.md](./ARCHITECTURE.md); the entity framework the UI renders is in
 [ENTIFIX.md](./ENTIFIX.md).
 
@@ -386,6 +387,8 @@ shells, per the design-system rule.
 | `PageView({addr})` pages, registrations, adapters                                                                                         | `@r10c/shells-next-marketplace-admin` |
 | `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions)        | `marketplace-admin-app`               |
 | `(back-office)` user management over `EntityTable`/`EntityForm`, proxy route handlers                                                     | `auth-app`                            |
+| Storefront pages, chrome, `StoreLink`, fixture catalog + cookie cart — all server components                                              | `@r10c/shells-next-marketplace`       |
+| `app/[locale]` route tree, `loading.tsx`, cart route                                                                                      | `marketplace-app`                     |
 
 **Navigation is permission-filtered, server-side.** One definition per app
 (`lib/nav`) carries a `permission` per item; the sidebar layout and the workspace
@@ -394,7 +397,80 @@ presentation — the service refuses the request regardless — which is why the
 roles behind it may be read from the cookie unverified. See
 [ARCHITECTURE → Authorization](./ARCHITECTURE.md#authorization-role-aspects--permissions).
 
+---
+
+# Part 3 — The storefront (marketplace-app)
+
+The back-office renders in the browser: a client page mounts `EntityTable`,
+TanStack fetches, the UI assembles itself. **The storefront inverts that.** It is
+public, read-heavy, and the first thing a visitor sees is the product — so the
+default is a React Server Component and client code is the exception that has to
+justify itself.
+
+## What that costs, and what it buys
+
+| | Back-office | Storefront |
+| --- | --- | --- |
+| Default component | client | **server** |
+| Locale | `x-r10c-locale` header → dynamic | `[locale]` route param → **prerenderable** |
+| Data | TanStack over REST, in the browser | use-case run on the server, in the page |
+| Links | `LocaleLink` (client) | `StoreLink` (**server**) |
+| CTA | `Button` | `ButtonLink` where the click navigates |
+| Mutations | mutation hooks | `<form action={serverAction}>` |
+
+Home and every product page are prerendered per locale with ISR. `/cart` reads
+`cookies()` and `/search` reads `searchParams`, so both are dynamic — correctly,
+since neither has an answer until the request arrives. `/c/[category]` is dynamic
+too: reading `searchParams` opts out the **route**, not the request, so the
+intended "static unfiltered, dynamic when sorted" split is not expressible
+without Partial Prerendering.
+
+## Two rules that are easy to get wrong
+
+**Import from `@r10c/entifix-react-controls/primitives`, not the barrel.** The
+main entry is one flat re-export, and a bundler cannot drop what the module graph
+reaches: importing `Card` from `.` pulled `EntityTable`, `FilterBuilder`, the
+column/sort builders and the whole Effect runtime (via the UI-preferences store)
+into the storefront's client bundle — 541 KB of back-office UI plus Effect,
+shipped to someone looking at a lamp. The `/primitives` entry is the
+presentational, entity-free half; the main barrel still re-exports all of it, so
+no existing import breaks.
+
+**Anything a server component calls ships from `/server`.** `@r10c/shells-next-marketplace`
+splits its surface exactly like `shells-next-common`: `/server` for pages, Server
+Actions and `next/headers` readers, `.` for the one client island. A module that
+mixes the two — as `cart-cookie` first did, holding both the pure wire format and
+a `cookies()` reader — drags a server-only API into the browser bundle and Next
+refuses to build it.
+
+## The cart, and where static-first actually breaks
+
+Cart state lives in a **cookie**, not `localStorage`, so `/cart` renders the
+visitor's items in the first response instead of flashing "empty" and correcting
+itself after hydration.
+
+The header badge is the one place the model genuinely strains: it sits inside
+prerendered pages, which by definition cannot know a count. It ships countless in
+the static HTML and fills in client-side via `useSyncExternalStore` — whose
+separate server snapshot is what makes the two renders legitimately differ
+instead of being a hydration mismatch. Two consequences worth knowing:
+
+- `document.cookie` returns the value **percent-encoded**. The server never sees
+  this because Next's `cookies()` decodes for you, so a missing
+  `decodeURIComponent` is invisible to every server-side test and shows up only
+  as a badge stuck at zero.
+- The island reads the cookie on mount, and a Server Action leaves it mounted —
+  so add-to-cart **redirects** to the cart. The navigation is the feedback;
+  without it the click looks like it did nothing.
+
 ## Deferred
+
+Real data (marketplace-service), checkout, product imagery beyond fixed
+aspect-ratio placeholders, PPR, a CI bundle-size budget.
+
+---
+
+# Deferred (workspace)
 
 Real WebSocket transport; cross-browser-tab collision sync (BroadcastChannel vs last-write-wins);
 stale-draft-vs-server conflict resolution on Save; whole-workspace share link; operations/wizards

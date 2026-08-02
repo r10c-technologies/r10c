@@ -237,9 +237,18 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   (`getServerT` on the server), typed against the catalogs in
   `@r10c/entifix-ts-i18n` — a bad key is a compile error, and
   `react/jsx-no-literals` fails the build on a string written into JSX. Locale is
-  a URL prefix resolved by middleware (`@r10c/shells-next-i18n`) and
-  read via `getRequestLocale()`; **every internal href goes through `LocaleLink`
-  / `useLocaleHref()`**. Entity labels are `labelKey`/`enumLabelKey` metadata
+  always a URL prefix, but **how a page reads it decides whether that app can be
+  prerendered**: the back-offices rewrite and read `getRequestLocale()`, which
+  calls `headers()` and so forces dynamic rendering, while marketplace-app has a
+  real `app/[locale]` segment and binds copy with `getServerTFor(locale, ns)` —
+  request-free, hence prerenderable. That binder lives in `@r10c/entifix-ts-i18n`
+  (a `layer:shell` package may not import another, and the storefront shell needs
+  it) and is re-exported from `shells-next-i18n/server`. **A new binder must be
+  added to `BINDERS` in `tools/eslint-rules/no-foreign-app-namespace.mjs` or it
+  escapes the `app:`-namespace gate.** Every internal href carries the prefix:
+  `LocaleLink`/`useLocaleHref()` in the back-offices (client, they read context),
+  the server-side `StoreLink` in the storefront. Entity labels are
+  `labelKey`/`enumLabelKey` metadata
   resolved in the browser (they never cross the wire). Services answer
   `{ error, code, detail }` and the client renders `code`. Runtime keys use the
   two documented escape hatches (`useTranslateKey`/`getServerTranslateKey`) —
@@ -258,7 +267,23 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   Form backs `useEntityForm` behind a plain `values`/`errors`/`setField`/`submit`
   facade so `EntityForm` stays library-agnostic. Entity validation composes
   metadata → Standard Schema → caller callback; a schema is written against the
-  **string draft** and its messages are **catalog keys**, never sentences. See
+  **string draft** and its messages are **catalog keys**, never sentences.
+  **marketplace-app inverts the default**: the storefront is public and
+  read-heavy, so a React Server Component is the default and client code is the
+  exception — home and product pages prerender per locale with ISR, `/cart`
+  (`cookies()`) and `/search` (`searchParams`) are dynamic, and a route reading
+  `searchParams` opts out the whole **route**, which is why `/c/[category]`
+  cannot keep a static unfiltered copy without PPR. Two traps: import from
+  `@r10c/entifix-react-controls/**primitives**`, because the main barrel is flat
+  and pulled `EntityTable`/`FilterBuilder` **and the Effect runtime** (via the
+  UI-preferences store) into the storefront bundle; and anything a server
+  component calls ships from the shell's `/server` entry, so a module must not
+  mix a pure helper with a `next/headers` reader. Cart state is a **cookie**, not
+  localStorage, so the first response is correct — but `document.cookie` is
+  percent-encoded (the server never sees this, `cookies()` decodes), the badge
+  island reads it via `useSyncExternalStore` so the server snapshot may
+  legitimately differ, and add-to-cart **redirects** because a Server Action
+  leaves that island mounted and the count would otherwise never move. See
   [docs/FRONTEND.md](docs/FRONTEND.md), [[design-system-theme]], [[layout-primitives-decision]],
   [[workspace-tabs-design]].
 - **A workspace library is compiled per-file, never bundled.** Every library under

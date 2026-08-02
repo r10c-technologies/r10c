@@ -279,8 +279,11 @@ export default [
       '**/*.stories.tsx',
       // Design-system playgrounds: the English *is* the specimen. Translating
       // "HeadingOne" or "Body text with inline strong emphasis" would destroy
-      // what the page exists to show.
-      'src/app/page.tsx',
+      // what the page exists to show. Named by their own path — a bare
+      // `src/app/page.tsx` matched whichever app happened to keep its copy
+      // there, and quietly un-gated marketplace-app's home page until it moved
+      // under `[locale]/`.
+      '**/design-system/**/*.tsx',
       // Nx generator stubs, kept only so the package has an entry point.
       '**/lib/hello-server.tsx',
       '**/lib/shells-next-*.tsx',

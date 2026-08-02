@@ -159,5 +159,10 @@ export const app: EsApp = {
       ghost: 'Ghost',
       checkout: 'Checkout',
     },
+    typography: {
+      title: 'Typography',
+      body: 'Body text scales fluidly with the viewport and follows the active palette.',
+      caption: "Caption — brand colors come from this app's themes.css.",
+    },
   },
 };

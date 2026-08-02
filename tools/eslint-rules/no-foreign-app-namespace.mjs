@@ -23,7 +23,12 @@
  * directory, so a workspace-rooted `files: ['apps/**']` matches nothing.
  */
 
-const BINDERS = new Set(['useT', 'getServerT', 'getServerTranslateKey']);
+const BINDERS = new Set([
+  'useT',
+  'getServerT',
+  'getServerTFor',
+  'getServerTranslateKey',
+]);
 
 const GUIDANCE =
   'Shell chrome belongs in `shell`, agnostic UI copy in `controls`; copy an app authors reaches the shell as a resolved string, not a key. See docs/I18N.md.';

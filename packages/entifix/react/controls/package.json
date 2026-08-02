@@ -21,6 +21,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./primitives": {
+      "@r10c/source": "./src/primitives.ts",
+      "types": "./dist/primitives.d.ts",
+      "import": "./dist/primitives.js",
+      "default": "./dist/primitives.js"
     }
   },
   "files": [

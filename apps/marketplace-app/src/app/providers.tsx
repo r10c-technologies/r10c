@@ -5,7 +5,7 @@ import {
   type ThemeOption,
   ThemeProvider,
   useT,
-} from '@r10c/entifix-react-controls';
+} from '@r10c/entifix-react-controls/primitives';
 import type { Locale } from '@r10c/entifix-ts-i18n';
 import { type PropsWithChildren, useMemo } from 'react';
 
