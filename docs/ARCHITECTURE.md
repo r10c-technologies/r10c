@@ -5,28 +5,40 @@ The **business** architecture — which capabilities exist, what they are called
 which data plane they live in, and how they extend — is
 [BUSINESS-ARCHITECTURE.md](./BUSINESS-ARCHITECTURE.md).
 
-> **Status (2026-07)** — Layered monorepo in active development. The entity
-> framework (entifix), the product-catalog and authn domains, the Next.js
-> frontends, and the Effect-native backends are all in place. Backends are now
-> wired to real datastores: **config-service → PostgreSQL**, **marketplace-admin-service**
-> and **auth-service → MongoDB**. **Full CRUD** runs end-to-end for the
+> **Status (2026-08)** — Layered monorepo in active development. The entity
+> framework (entifix), the product-catalog, authn, authz, party- and
+> access-management domains, the Next.js frontends, and the Effect-native
+> backends are all in place. Backends are wired to real datastores:
+> **config-service → PostgreSQL**, **marketplace-admin-service** and
+> **auth-service → MongoDB**. **Full CRUD** runs end-to-end for the
 > marketplace-admin catalog: `load`/`get`/`save`/`delete` over REST on the web and
-> Mongo on the backend, with every message framed as an
+> Mongo on the backend — and the same use-cases run against Postgres through
+> `entifix-ts-sql-client`, which is what config-service's own operator CRUD uses —
+> with every message framed as an
 > [EntifixEnvelope](./ENTIFIX.md#6-the-envelope-is-the-message). auth-service is
 > still on the pre-envelope wire shape for its `UserIdentity`/`EntityIdentifier`
 > reads (no client consumes it through the REST adapters), but its credential
 > flow is real: Redis-backed sessions + short-lived HS256 JWTs (see
 > [Auth: sessions + tokens](#auth-sessions--tokens) below), and authorization is
-> now live as role aspects behind an ABAC-shaped port (see
-> [Authorization](#authorization-role-aspects--permissions)). Zitadel/RS256 and a
-> real rule engine are still deferred.
+> live as role aspects behind an ABAC-shaped port (see
+> [Authorization](#authorization-role-aspects--permissions)).
+>
+> **Multi-tenancy is live on the tenant plane**: the catalog physically lives in
+> one Mongo database per organization, resolved per request from the session (see
+> [Tenancy](#tenancy-resolving-the-organizations-storage)). Copy ships `es`/`en`
+> through mandatory i18n, and marketplace-app renders the storefront on the
+> server, prerendered per locale. Zitadel/RS256, a real rule engine, tenant
+> storage on Postgres ([ADR 0013](./adr/0013-tenant-storage-on-postgres.md)),
+> catalog publication into the platform plane
+> ([ADR 0009](./adr/0009-catalog-authoring-and-publication.md)) and stock/orders
+> are still deferred.
 
 ## Layering
 
 The repo is layered top-to-bottom and **dependencies only point downward**; the Nx
 ESLint rule `@nx/enforce-module-boundaries` fails the build on any upward edge. The
-layer diagram and the three tag dimensions (`layer` / `scope` / `entifix`) that
-encode the hierarchy are the single source in
+layer diagram and the six tag dimensions (`layer` / `scope` / `entifix` /
+`business` / `shell` / `host`) that encode the hierarchy are the single source in
 [_shared/layering.md](_shared/layering.md); the constraints are detailed in
 [DEVELOPING.md → Module boundaries](./DEVELOPING.md#module-boundaries).
 
@@ -363,6 +375,83 @@ context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
   carries no cookie — host-scoping decides which host _stores_ it, not which
   requests send it — so the guard would answer 401 to every browser read.
 
+## Tenancy: resolving the organization's storage
+
+Authorization answers _what_; this answers _whose data_. Which capability lives
+in which plane is
+[BUSINESS-ARCHITECTURE.md → Data planes](./BUSINESS-ARCHITECTURE.md#data-planes);
+the reasoning is [ADR 0006](./adr/0006-multitenancy-planes-and-tenant-storage.md).
+What follows is the mechanism.
+
+**Entities are organization-agnostic.** No `organizationId` member, no tenant
+filter, no discriminator column. Isolation is _which database handle the request
+resolves to_ — so a query cannot leak by omission, because there is no column to
+forget. A discriminator makes every missing `WHERE` a silent breach; this makes
+the same mistake impossible to write.
+
+The path from cookie to collection has four steps, each in a different layer:
+
+1. **The session names the organization.** auth-service resolves it at login —
+   `individual` by `userId`, then `membership` by `partyId`, preferring
+   `isDefault` — and stores it on the session record so a refresh preserves it.
+   The lookup is party → membership rather than user → organization because a
+   `UserIdentity` is an account, an `Individual` is the person, and a
+   `Membership` is that person's participation in one organization.
+2. **The token carries it.** `TokenClaims.activeOrganizationId`
+   (`entifix-ts-business`) → `Principal.organizationId` (`business-ts-authn`).
+   It is a **first-class field, deliberately not in `attributes`**: attributes
+   are ABAC decision inputs, the organization is a storage routing key, and the
+   two must not share a blast radius. A party with no membership — a buyer, an
+   operator — resolves to `undefined`, which is a normal answer, not a failure.
+3. **The guard requires it.** `requireOrganization(permission)`
+   (`@r10c/shells-effect-service`) composes over `requirePermission` and hands
+   the id to the handler. No organization → **`409 no-active-organization`**, not
+   `403`: the caller is authenticated _and_ permitted, but the session names no
+   storage to read. The value comes from the verified token and nowhere else — a
+   path or body parameter naming an organization would be caller-controlled,
+   which is the whole failure the guard exists to prevent. This is also why a
+   `super-admin` holding `*:*:*` does **not** reach a tenant's data: a wildcard
+   grant widens permissions, never scope.
+4. **The resolver returns the handle.** `TenantDatabaseResolverTag`
+   (`entifix-ts-business`) is the port; `makeMongoTenantResolver(client, prefix)`
+   (`entifix-ts-mongo-client`) is the adapter, returning
+   ``client.db(`${prefix}${organizationId}`)``. It validates the id against
+   `/^[a-zA-Z0-9_-]+$/` and the 63-char Mongo limit before assembling the name,
+   and never echoes a rejected id — that check is the file's security boundary.
+
+Two invariants hold the design up:
+
+- **The handle is request-level, never a `Layer`.** `MongoDatabaseLayer`'s
+  boot-time `Layer.scoped` _is_ the connection pool; `client.db(name)` returns a
+  handle, not a connection, so N organizations share one pool and one socket set.
+  A `Layer` per request would rebuild the pool per request. The resolver is built
+  at the composition root (`apps/marketplace-admin-service/src/mongo.ts`), the
+  only file that knows which driver backs the port; `MongoClientTag` and
+  `MongoDatabaseTag` come from **one** acquire via `Layer.scopedContext`, because
+  two layers would mean two pools.
+- **The name derives from the organization id**, never from a mutable attribute
+  such as a slug, so renaming an organization cannot strand its data. Mongo
+  creates a database lazily on first write, which is why provisioning is a
+  control-plane record plus this naming convention, with no `CREATE DATABASE`
+  step to fail halfway ([ADR 0011](./adr/0011-organization-provisioning-and-migrations.md)).
+
+**The payoff is the `guarded` helper in
+`apps/marketplace-admin-service/src/routes.ts`.** Every catalog route already
+resolved its database inside the request (`const db = yield* MongoDatabaseTag`),
+so re-providing that one tag with the organization's handle moved the whole
+catalog onto the tenant plane — six routes redirected, and no use-case, entity,
+repository, filter translator or envelope touched. That substitutability is the
+reason the handle is resolved per request instead of baked into a `Layer`, and it
+is the design's central claim.
+
+`TenantDatabaseResolver<THandle>` is generic over the handle so a Postgres
+adapter — where the same idea is a schema on a shared pool rather than a separate
+database — satisfies the port without a call-site change
+([ADR 0013](./adr/0013-tenant-storage-on-postgres.md), Proposed). An operator
+crossing into a tenant is an explicit, audited act-as-organization re-mint using
+this same mechanism, never an implicit resolver bypass
+([ADR 0012](./adr/0012-operator-cross-tenant-access.md), Proposed).
+
 ## App & port convention
 
 `-app` frontends bind **300N**, `-service` backends bind **310N**, cross-cutting
@@ -444,7 +533,14 @@ what exists in the tree today.
   plus the framework-free `SessionStoreTag`/`TokenServiceTag` contracts (see
   [Auth: sessions + tokens](#auth-sessions--tokens)).
 - `entifix-ts-rest-client` — HTTP `EntityRepository` adapter (web).
-- `entifix-ts-mongo-client` — MongoDB `EntityRepository` adapter (backend).
+- `entifix-ts-mongo-client` — MongoDB `EntityRepository` adapter (backend), plus
+  the `TenantDatabaseResolver` adapter that gives each organization its own
+  database off the shared client (see [Tenancy](#tenancy-resolving-the-organizations-storage)).
+- `entifix-ts-sql-client` — PostgreSQL `EntityRepository` adapter (backend) over
+  `@effect/sql`. An accessor's `alias` **is** its column, so a scalar entity's
+  serialized form already is a table row; the filter translator emits only
+  parameterized fragments and validates every identifier against the entity's
+  `filterable`/`sortable` allowlist before interpolation.
 - `entifix-transactions` — transaction facade + engine + ports (framework-free).
   `entifix-ts-redis-client` (lock + sequence, and now `SessionStoreTag`'s Redis
   adapter) and `entifix-ts-amqp-client` (event bus) are its transport adapters.
