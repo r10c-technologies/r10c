@@ -39,6 +39,10 @@ import {
   CREDENTIAL_COLLECTION,
   makeMongoAccountRepository,
 } from './identity/account-repository';
+import {
+  ActiveOrganizationResolverTag,
+  makeMongoActiveOrganizationResolver,
+} from './identity/active-organization';
 import { makeRedisAttemptLimiter } from './identity/attempt-limiter';
 import { makeDevNotificationPort } from './identity/notifications';
 import { makeBcryptPasswordHasher } from './identity/password';
@@ -48,6 +52,13 @@ import {
   JWT_AUDIENCE,
   JWT_ISSUER,
 } from './identity/session-policy';
+import {
+  entitlementSeedData,
+  individualSeedData,
+  membershipSeedData,
+  organizationSeedData,
+  roleSeedData,
+} from './identity/tenancy-seed-data';
 import { makeMongoUserDeviceRepository } from './identity/user-device-repository';
 import {
   entityIdentifierSeedData,
@@ -98,6 +109,27 @@ const seedUsers = Effect.all(
 );
 
 /**
+ * Control-plane tenancy seed: the demo organization, the parties behind the
+ * seeded accounts, one tenant role, the membership that makes a sign-in resolve
+ * to an organization, and what that organization is provisioned for.
+ *
+ * These are control-plane records — they live in the shared database, not in a
+ * tenant one. The organization record is precisely what makes a tenant handle
+ * derivable, so it cannot itself live behind one.
+ */
+const seedTenancy = (organizationId: string) =>
+  Effect.all(
+    [
+      seedCollection('organization', organizationSeedData(organizationId)),
+      seedCollection('individual', individualSeedData),
+      seedCollection('role', roleSeedData(organizationId)),
+      seedCollection('membership', membershipSeedData(organizationId)),
+      seedCollection('entitlement', entitlementSeedData(organizationId)),
+    ],
+    { discard: true },
+  );
+
+/**
  * Give each seeded user a password so local login works out of the box.
  *
  * Per user, for the same reason {@link seedCollection} is: a seed user added
@@ -138,6 +170,12 @@ export const seedCredentials = Effect.gen(function* () {
 const AccountRepositoryLayer = Layer.effect(
   AccountRepositoryTag,
   Effect.map(MongoDatabaseTag, makeMongoAccountRepository),
+);
+
+/** Which organization a sign-in acts for — a control-plane lookup. */
+const ActiveOrganizationResolverLayer = Layer.effect(
+  ActiveOrganizationResolverTag,
+  Effect.map(MongoDatabaseTag, makeMongoActiveOrganizationResolver),
 );
 
 /** Durable device history, over the same Mongo connection. */
@@ -187,6 +225,12 @@ export const AppLayer = Layer.unwrapEffect(
     const dbName = yield* store.in('mongo').getString('db');
     const redisUri = yield* store.in('redis').getString('uri');
     const jwtSecret = yield* store.in('jwt').getString('secret');
+    // Shared with marketplace-admin-service, which seeds this organization's
+    // catalog into its own database — so the id is configuration rather than a
+    // constant duplicated in two codebases.
+    const demoOrganizationId = yield* store
+      .in('tenant')
+      .getString('demoOrganizationId');
 
     const infra = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
@@ -215,6 +259,7 @@ export const AppLayer = Layer.unwrapEffect(
         RedisOneTimeTokenStoreLayer(),
         AttemptLimiterLayer,
         AccountRepositoryLayer,
+        ActiveOrganizationResolverLayer,
         UserDeviceRepositoryLayer,
         NotificationLayer,
       ),
@@ -232,9 +277,15 @@ export const AppLayer = Layer.unwrapEffect(
       withIdentity,
     );
 
-    // Seed users + their credentials once everything is wired.
+    // Seed users, their credentials, and the demo tenant once everything is
+    // wired.
     const seed = Layer.effectDiscard(
-      Effect.all([seedUsers, seedCredentials], { discard: true }),
+      Effect.all(
+        [seedUsers, seedCredentials, seedTenancy(demoOrganizationId)],
+        {
+          discard: true,
+        },
+      ),
     );
     return Layer.provideMerge(seed, withProbes);
   }).pipe(Effect.orDie),

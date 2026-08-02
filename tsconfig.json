@@ -140,6 +140,27 @@
     },
     {
       "path": "./packages/shells/next/system-management"
+    },
+    {
+      "path": "./packages/business/ts/settlement-management"
+    },
+    {
+      "path": "./packages/business/ts/marketplace-catalog"
+    },
+    {
+      "path": "./packages/business/ts/payment-management"
+    },
+    {
+      "path": "./packages/business/ts/access-management"
+    },
+    {
+      "path": "./packages/business/ts/order-management"
+    },
+    {
+      "path": "./packages/business/ts/party-management"
+    },
+    {
+      "path": "./packages/business/ts/stock-management"
     }
   ]
 }

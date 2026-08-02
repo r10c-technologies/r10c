@@ -9,7 +9,7 @@ Every user-facing string in the fleet was an English literal compiled into a
 bundle. There were no message catalogs, no `Accept-Language` handling, and all
 three root layouts hardcoded `<html lang="en">`. The only locale-sensitive code
 that existed — two `toLocaleString()` calls in `CellValue` — took no locale
-argument, so it resolved against the *runtime's* default: Node's on the server,
+argument, so it resolved against the _runtime's_ default: Node's on the server,
 the visitor's in the browser. Those disagree, which made every date and number
 cell a latent hydration mismatch.
 
@@ -27,7 +27,7 @@ exercised in Storybook, which has no Next request scope. `next-intl`'s
 `useTranslations` needs `NextIntlClientProvider` plus that scope.
 
 **Rejected: `next-intl`.** Putting `next` into `entifix-react-controls` would
-also be a *silent* boundary violation — `next` is an npm dependency, not a
+also be a _silent_ boundary violation — `next` is an npm dependency, not a
 workspace project, so `@nx/enforce-module-boundaries` would not flag the edge.
 It re-introduces the class of server-context/prerender coupling that broke
 TanStack Form on Turbopack during EntityForm.
@@ -97,7 +97,7 @@ onto `EntifixError.details` and the controls translate.
 
 Only the authn error classes gained a real `code` field, because
 `respondAuthError` used to pass their raw `message` to the browser — "not
-allowed to assign that role" *was* the UI copy, in every locale.
+allowed to assign that role" _was_ the UI copy, in every locale.
 
 **Rejected: a `code` on `EntifixError` itself.** ~60 construction sites, most of
 them developer-facing 400s from our own RSQL client. Those collapse to a single
@@ -144,18 +144,18 @@ swallow the real findings.
 
 `entifix-react-integration` builds with Vite, and its `rollupOptions.external`
 listed React but not `react-i18next`. So the Vite build **inlined** react-i18next
-*and* `use-sync-external-store`'s CJS shim — whose module-scope `require('react')`
+_and_ `use-sync-external-store`'s CJS shim — whose module-scope `require('react')`
 then threw against Turbopack's require stub, 500ing every SSR'd page.
 
 The trap is that no alias can fix it: `next.config`'s `turbopack.resolveAlias`
-and `serverExternalPackages` both act on module *resolution*, and after bundling
+and `serverExternalPackages` both act on module _resolution_, and after bundling
 there is no module left to resolve — the `require` sits in our own `dist`. Adding
 a React-adjacent runtime dependency to a bundled package means adding it to that
 package's `external` list in the same commit.
 
 ### The lint rule cannot see copy inside expressions
 
-`jsx-no-literals` reports JSX *children*. A ternary — `{saving ? 'Saving…' :
+`jsx-no-literals` reports JSX _children_. A ternary — `{saving ? 'Saving…' :
 'Save'}` — is an expression, and three implementation-layer forms held
 untranslated copy that way until they were found by hand. Reviewers should treat
 a string literal inside JSX braces with the same suspicion as one outside them.

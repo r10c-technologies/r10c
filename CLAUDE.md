@@ -7,14 +7,15 @@ them), and everything deep is a link — loaded only when a task needs it.
 
 ## Documentation map
 
-| Doc                                          | When you need it                                                                                                                    |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Layering, the use-case + adapter mechanism, Effect-native backends, auth, transactions, observability, domain structure.            |
-| [docs/ENTIFIX.md](docs/ENTIFIX.md)           | The entity framework in depth: entities, links, the Effect-agnostic use-case, adapter contract, the RSQL query protocol.            |
-| [docs/FRONTEND.md](docs/FRONTEND.md)         | The client side: design system (tokens, flex-first layout primitives, Storybook) **and** the workspace tabs + TanStack data layer.  |
-| [docs/I18N.md](docs/I18N.md)                 | Locales, catalogs, locale routing, entity label keys, error codes, and the three gates that make i18n mandatory.                    |
-| [docs/DEVELOPING.md](docs/DEVELOPING.md)     | Nx/pnpm workspace, commands, local infra, **module boundaries**, entities, backends, testing (`E2E_PROFILE`), conventions, commits. |
-| [docs/adr/](docs/adr/)                       | Architecture Decision Records (e.g. [0001 observability & tooling](docs/adr/0001-observability-and-tooling.md)).                    |
+| Doc                                                            | When you need it                                                                                                                    |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                   | Layering, the use-case + adapter mechanism, Effect-native backends, auth, transactions, observability, domain structure.            |
+| [docs/BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) | The **business** side: capability map, ODA/SID glossary, personas as party roles, data planes, catalog publication, stock rules.    |
+| [docs/ENTIFIX.md](docs/ENTIFIX.md)                             | The entity framework in depth: entities, links, the Effect-agnostic use-case, adapter contract, the RSQL query protocol.            |
+| [docs/FRONTEND.md](docs/FRONTEND.md)                           | The client side: design system (tokens, flex-first layout primitives, Storybook) **and** the workspace tabs + TanStack data layer.  |
+| [docs/I18N.md](docs/I18N.md)                                   | Locales, catalogs, locale routing, entity label keys, error codes, and the three gates that make i18n mandatory.                    |
+| [docs/DEVELOPING.md](docs/DEVELOPING.md)                       | Nx/pnpm workspace, commands, local infra, **module boundaries**, entities, backends, testing (`E2E_PROFILE`), conventions, commits. |
+| [docs/adr/](docs/adr/)                                         | Architecture Decision Records (e.g. [0001 observability & tooling](docs/adr/0001-observability-and-tooling.md)).                    |
 
 `docs/_shared/` holds the small snippets imported below; edit the snippet, not the copies.
 
@@ -30,13 +31,28 @@ them), and everything deep is a link — loaded only when a task needs it.
 
 @docs/_shared/ports.md
 
+## Data planes & storage ownership
+
+@docs/_shared/planes.md
+
 ## Notes for code changes
 
 - **Boundaries are enforced.** Imports must point downward and stay in-scope; the
   `@nx/enforce-module-boundaries` rule (driven by each project's `nx.tags`) fails
   the build otherwise. A new project needs `layer:`/`scope:` (and `entifix:` under
-  `packages/entifix`) tags. To make an edge legal, retag — never weaken the rule.
+  `packages/entifix`, `business:` under `packages/business`, `shell:` under
+  `packages/shells`, `host:` for an app) tags. To make an edge legal, retag —
+  never weaken the rule.
   See [DEVELOPING.md → Module boundaries](docs/DEVELOPING.md#module-boundaries).
+- **The business map is a separate document.** Which capability owns an entity,
+  which plane it lives in, and the ODA/SID name for it are in
+  [BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) — read it before
+  adding an entity or a domain package, because the domain name is simultaneously
+  the package identity, the `@entity({ domain })` value, the permission namespace
+  and the organization's entitlement key. Decisions already reasoned through but
+  not yet built are **Proposed** ADRs (catalog publication, stock/reservations,
+  operator cross-tenant access, Postgres tenancy); read the relevant one before
+  designing in that area rather than re-deriving it.
 - **Inject with Effect.** Wire dependencies as `Context.Tag` subclasses provided via
   `Layer`, not instances through constructors — a missing dep is a compile error.
 - **Entities describe themselves.** Private `#field` + `@accessor()` getter/setter

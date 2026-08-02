@@ -125,4 +125,60 @@ export const entity: EsEntity = {
       lastSeenAt: 'Last seen',
     },
   },
+  organization: {
+    label: 'Organization',
+    plural: 'Organizations',
+    fields: {
+      id: 'ID',
+      name: 'Name',
+      slug: 'Slug',
+      status: 'Status',
+    },
+    values: {
+      status: {
+        active: 'Active',
+        suspended: 'Suspended',
+        archived: 'Archived',
+      },
+    },
+  },
+  individual: {
+    label: 'Person',
+    plural: 'People',
+    fields: {
+      id: 'ID',
+      fullName: 'Full name',
+      userId: 'User ID',
+    },
+  },
+  membership: {
+    label: 'Membership',
+    plural: 'Memberships',
+    fields: {
+      id: 'ID',
+      partyId: 'Party ID',
+      organizationId: 'Organization ID',
+      roleIds: 'Roles',
+      isDefault: 'Default',
+    },
+  },
+  role: {
+    label: 'Role',
+    plural: 'Roles',
+    fields: {
+      id: 'ID',
+      organizationId: 'Organization ID',
+      name: 'Name',
+      permissions: 'Permissions',
+    },
+  },
+  entitlement: {
+    label: 'Entitlement',
+    plural: 'Entitlements',
+    fields: {
+      id: 'ID',
+      organizationId: 'Organization ID',
+      domains: 'Modules',
+    },
+  },
 };

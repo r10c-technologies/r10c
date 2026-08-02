@@ -17,10 +17,7 @@ import {
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 
-import {
-  translateFiltering,
-  translateSorting,
-} from './filter-translator';
+import { translateFiltering, translateSorting } from './filter-translator';
 
 /** Projection that drops Mongo's internal `_id` from read results. */
 const WITHOUT_MONGO_ID = { projection: { _id: 0 } } as const;
@@ -57,7 +54,11 @@ export function makeMongoRepository<TEntity extends Entity>(
 ): EntityRepository {
   const collection = db.collection(collectionName(entityConstructor));
 
-  const fail = (message: string, error: unknown, details?: Record<string, unknown>) =>
+  const fail = (
+    message: string,
+    error: unknown,
+    details?: Record<string, unknown>,
+  ) =>
     new EntifixConnError(message, error, {
       entity: entityConstructor.name,
       ...details,
@@ -99,13 +100,12 @@ export function makeMongoRepository<TEntity extends Entity>(
     Effect.gen(function* () {
       const doc = yield* Effect.tryPromise({
         try: () => collection.findOne({ id }, WITHOUT_MONGO_ID),
-        catch: error => fail('Failed to read entity from MongoDB', error, { id }),
+        catch: error =>
+          fail('Failed to read entity from MongoDB', error, { id }),
       });
       const entity = yield* deserializeSingleEntity(entityConstructor, doc);
       if (entity === undefined) {
-        return yield* Effect.fail(
-          fail(`Entity not found`, undefined, { id }),
-        );
+        return yield* Effect.fail(fail(`Entity not found`, undefined, { id }));
       }
       return entity as unknown as T;
     });

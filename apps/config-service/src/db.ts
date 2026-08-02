@@ -137,6 +137,33 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'db',
     value: 'marketplace_admin',
   },
+  // Tenant storage. The catalog is tenant plane: each organization authors its
+  // own, in its own Mongo database named `<dbPrefix><organizationId>`. The name
+  // is derived from the id rather than from a slug so renaming an organization
+  // can never strand its data, and `client.db()` is a handle rather than a
+  // connection, so N organizations share one pool.
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'tenant',
+    key: 'dbPrefix',
+    value: 'tenant_',
+  },
+  // The local demo vendor. Both services need the same id — auth-service seeds
+  // the `Organization`/`Membership` records under it, marketplace-admin-service
+  // seeds that vendor's catalog into its database — so it is configuration
+  // rather than a constant duplicated in two codebases.
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'tenant',
+    key: 'demoOrganizationId',
+    value: 'demo-organization',
+  },
+  {
+    service: 'auth-service',
+    group_name: 'tenant',
+    key: 'demoOrganizationId',
+    value: 'demo-organization',
+  },
   {
     service: 'auth-service',
     group_name: 'mongo',

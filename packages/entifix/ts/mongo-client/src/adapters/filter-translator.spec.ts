@@ -45,20 +45,38 @@ describe('translateFiltering', () => {
     ).toEqual({ name: { $regex: 'a\\.b', $options: 'i' } });
 
     expect(
-      translateFiltering<Product>([
-        { property: 'name', operator: 'isNull' },
-      ]),
+      translateFiltering<Product>([{ property: 'name', operator: 'isNull' }]),
     ).toEqual({ name: { $eq: null } });
   });
 
   // Every operator the entity filtering vocabulary defines has to translate;
   // an unmapped one would silently widen a query to match everything.
   it.each([
-    ['eq', { property: 'name', operator: 'eq', value: 'a' }, { name: { $eq: 'a' } }],
-    ['ne', { property: 'name', operator: 'ne', value: 'a' }, { name: { $ne: 'a' } }],
-    ['gt', { property: 'price', operator: 'gt', value: 1 }, { price: { $gt: 1 } }],
-    ['lt', { property: 'price', operator: 'lt', value: 1 }, { price: { $lt: 1 } }],
-    ['lte', { property: 'price', operator: 'lte', value: 1 }, { price: { $lte: 1 } }],
+    [
+      'eq',
+      { property: 'name', operator: 'eq', value: 'a' },
+      { name: { $eq: 'a' } },
+    ],
+    [
+      'ne',
+      { property: 'name', operator: 'ne', value: 'a' },
+      { name: { $ne: 'a' } },
+    ],
+    [
+      'gt',
+      { property: 'price', operator: 'gt', value: 1 },
+      { price: { $gt: 1 } },
+    ],
+    [
+      'lt',
+      { property: 'price', operator: 'lt', value: 1 },
+      { price: { $lt: 1 } },
+    ],
+    [
+      'lte',
+      { property: 'price', operator: 'lte', value: 1 },
+      { price: { $lte: 1 } },
+    ],
     [
       'nin',
       { property: 'id', operator: 'nin', values: ['a'] },
@@ -90,7 +108,9 @@ describe('translateFiltering', () => {
   // which reads far worse in a profiler.
   it('does not wrap a single clause in $and', () => {
     expect(
-      translateFiltering<Product>([{ property: 'price', operator: 'gte', value: 10 }]),
+      translateFiltering<Product>([
+        { property: 'price', operator: 'gte', value: 10 },
+      ]),
     ).toEqual({ price: { $gte: 10 } });
   });
 
@@ -144,10 +164,7 @@ describe('translateFiltering', () => {
       { property: 'name', operator: 'like', value: 'x' },
     ];
     expect(translateFiltering(filtering)).toEqual({
-      $and: [
-        { price: { $gte: 10 } },
-        { name: { $regex: 'x', $options: 'i' } },
-      ],
+      $and: [{ price: { $gte: 10 } }, { name: { $regex: 'x', $options: 'i' } }],
     });
   });
 
@@ -170,7 +187,10 @@ describe('translateFiltering', () => {
 describe('translateSorting', () => {
   it('maps asc/desc by numeric priority', () => {
     const sorting: EntitySorting<Product>[] = [
-      { 1: { property: 'name', type: 'asc' }, 0: { property: 'price', type: 'desc' } },
+      {
+        1: { property: 'name', type: 'asc' },
+        0: { property: 'price', type: 'desc' },
+      },
     ];
     const result = translateSorting(sorting);
     expect(result).toEqual({ price: -1, name: 1 });

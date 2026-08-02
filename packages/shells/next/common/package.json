@@ -3,7 +3,8 @@
   "nx": {
     "tags": [
       "layer:shell",
-      "scope:shared"
+      "scope:shared",
+      "shell:base"
     ],
     "sourceRoot": "packages/shells/next/common/src",
     "targets": {

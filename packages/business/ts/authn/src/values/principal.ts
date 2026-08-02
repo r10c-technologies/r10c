@@ -19,5 +19,15 @@ export interface Principal {
   /** Opaque session id this principal was resolved from; the revocation handle. */
   readonly sessionId: string;
   readonly roles: readonly string[];
+  /**
+   * The organization this session is acting for — a **storage routing key**, and
+   * the reason it is a field of its own rather than an entry in `attributes`.
+   * Attributes are policy inputs, where a wrong value produces a wrong decision;
+   * a wrong organization produces a cross-tenant read. Different blast radius,
+   * different field.
+   *
+   * Absent for a principal with no tenant scope: a buyer, or an operator.
+   */
+  readonly organizationId?: string;
   readonly attributes: Readonly<Record<string, unknown>>;
 }

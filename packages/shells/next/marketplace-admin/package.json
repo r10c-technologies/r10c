@@ -3,7 +3,8 @@
   "nx": {
     "tags": [
       "layer:shell",
-      "scope:marketplace-admin"
+      "scope:marketplace-admin",
+      "shell:domain"
     ],
     "sourceRoot": "packages/shells/next/marketplace-admin/src",
     "targets": {

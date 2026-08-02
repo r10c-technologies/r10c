@@ -37,7 +37,7 @@ provider was left open during design and then settled.
   query languages to GCP.
 - **Do not wrap OpenTelemetry in an Entifix `Context.Tag` port** — it is a
   cross-cutting, already-vendor-neutral layer. (The product-analytics SDK, which
-  is a real swappable vendor, *is* wrapped — see below.)
+  is a real swappable vendor, _is_ wrapped — see below.)
 
 ### Browser RUM
 
@@ -46,7 +46,7 @@ provider was left open during design and then settled.
   for free (session cookie), a scrub choke point in code we own, and no new
   public surface. The route stays a thin, rate-limited, session-enriching OTLP
   forwarder (body cap, Redis rate-limit, zod validation, never trust
-  browser-supplied identity). *(Deferred to a later iteration.)*
+  browser-supplied identity). _(Deferred to a later iteration.)_
 
 ### Logging package
 

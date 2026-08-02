@@ -762,6 +762,22 @@ importers:
         specifier: 2.8.1
         version: 2.8.1
 
+  packages/business/ts/access-management:
+    dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../authz
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/testing-unit
+
   packages/business/ts/authn:
     dependencies:
       '@r10c/business-ts-authz':
@@ -814,6 +830,37 @@ importers:
         specifier: workspace:*
         version: link:../../../entifix/ts/testing-unit
 
+  packages/business/ts/marketplace-catalog:
+    dependencies:
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+
+  packages/business/ts/order-management:
+    dependencies:
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+
+  packages/business/ts/party-management:
+    dependencies:
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/testing-unit
+
+  packages/business/ts/payment-management:
+    dependencies:
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+
   packages/business/ts/product-configuration-management:
     dependencies:
       '@r10c/entifix-ts-business':
@@ -832,6 +879,18 @@ importers:
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*
         version: link:../../../entifix/ts/testing-unit
+
+  packages/business/ts/settlement-management:
+    dependencies:
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+
+  packages/business/ts/stock-management:
+    dependencies:
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
 
   packages/entifix/react/controls:
     dependencies:

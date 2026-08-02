@@ -17,7 +17,19 @@ export interface TokenClaims {
   /** The session id the token was minted from; the revocation linkage. */
   readonly sessionId: string;
   readonly roles: readonly string[];
-  /** Room for a few extra stable claims (e.g. tenant/org) without a type change. */
+  /**
+   * The organization this session is acting for, and the value every
+   * tenant-plane storage handle is resolved from.
+   *
+   * A property of the **session**, not of the user: a party may hold several
+   * memberships, and switching re-mints the token. Absent for a session with no
+   * organization — a buyer, or an operator, who holds no tenant scope at all.
+   *
+   * Note this is a *routing* key, not an authorization input. Grants still come
+   * from `roles` resolved at the consumer.
+   */
+  readonly activeOrganizationId?: string;
+  /** Room for a few extra stable claims without a type change. */
   readonly [key: string]: unknown;
 }
 

@@ -5,6 +5,7 @@ export * from './repository/entity-link-resolver.repository';
 export * from './repository/entity-mixins.repository';
 export * from './sessions/one-time-token-store';
 export * from './sessions/session-store';
+export * from './tenancy';
 export * from './tokens/token-service';
 export * from './use-case/delete';
 export * from './use-case/get';

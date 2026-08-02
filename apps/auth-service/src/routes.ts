@@ -69,6 +69,7 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
+import { ActiveOrganizationResolverTag } from './identity/active-organization';
 import { describeIdentityModel } from './identity/identity-showcase';
 import { readOutbox } from './identity/notifications';
 import {
@@ -217,7 +218,10 @@ const respondAuthError = (error: { _tag?: string }) => {
     // rate, it clears on its own, and every client already understands it.
     case 'LockedError':
       return HttpServerResponse.json(
-        { error: message ?? 'too many attempts', code: code ?? 'accountLocked' },
+        {
+          error: message ?? 'too many attempts',
+          code: code ?? 'accountLocked',
+        },
         { status: 429 },
       );
     case 'EntifixBuildError':
@@ -234,7 +238,9 @@ const respondAuthError = (error: { _tag?: string }) => {
 };
 
 /** Read the optional device struct the `-app` edge parsed for us. */
-const readDevice = (body: Record<string, unknown>): DeviceContext | undefined => {
+const readDevice = (
+  body: Record<string, unknown>,
+): DeviceContext | undefined => {
   const raw = body['device'];
   if (typeof raw !== 'object' || raw === null) return undefined;
   const entry = raw as Record<string, unknown>;
@@ -265,6 +271,7 @@ const establishSession = (
   AuthResult,
   never,
   | AccountRepositoryTag
+  | ActiveOrganizationResolverTag
   | NotificationPortTag
   | SessionStoreTag
   | TokenServiceTag
@@ -310,8 +317,17 @@ const establishSession = (
       );
     }
 
+    // Which organization this session acts for. Resolved once, at sign-in, and
+    // then carried by the session — so `requirePrincipal` stays stateless and
+    // no service re-reads a membership on the hot path. `undefined` is a normal
+    // answer: a buyer or an operator holds no tenant scope.
+    const organizations = yield* ActiveOrganizationResolverTag;
+    const activeOrganizationId = yield* organizations.forUser(
+      String(subject.userId),
+    );
+
     const sessionId = yield* sessions.create(
-      { ...subject, device },
+      { ...subject, activeOrganizationId, device },
       DEFAULT_SESSION_LIFETIME,
     );
     const accessToken = yield* tokens.sign(
@@ -320,6 +336,7 @@ const establishSession = (
         subject: subject.subject,
         sessionId,
         roles: subject.roles,
+        activeOrganizationId,
       },
       ACCESS_TOKEN_TTL_SECONDS,
     );
@@ -329,7 +346,11 @@ const establishSession = (
       sessionId,
       expiresIn: ACCESS_TOKEN_TTL_SECONDS,
       sessionExpiresIn: DEFAULT_SESSION_LIFETIME.absoluteTtlSeconds,
-      principal: { ...subject, sessionId },
+      principal: {
+        ...subject,
+        organizationId: activeOrganizationId,
+        sessionId,
+      },
     };
   }).pipe(Effect.orDie);
 
@@ -494,6 +515,9 @@ const refreshRoute = Effect.gen(function* () {
       subject: record.subject,
       sessionId,
       roles: record.roles,
+      // The session owns the active organization, so a refresh preserves it —
+      // including one chosen by an explicit switch rather than at sign-in.
+      activeOrganizationId: record.activeOrganizationId,
     },
     ACCESS_TOKEN_TTL_SECONDS,
   );
@@ -516,7 +540,10 @@ const refreshRoute = Effect.gen(function* () {
   });
 }).pipe(
   Effect.catchAll(() =>
-    HttpServerResponse.json({ error: 'session expired', code: 'sessionExpired' }, { status: 401 }),
+    HttpServerResponse.json(
+      { error: 'session expired', code: 'sessionExpired' },
+      { status: 401 },
+    ),
   ),
 );
 
@@ -602,7 +629,11 @@ const forgotPasswordRoute = Effect.gen(function* () {
   }
 
   return yield* HttpServerResponse.json({ ok: true }, { status: 202 });
-}).pipe(Effect.catchAllCause(() => HttpServerResponse.json({ ok: true }, { status: 202 })));
+}).pipe(
+  Effect.catchAllCause(() =>
+    HttpServerResponse.json({ ok: true }, { status: 202 }),
+  ),
+);
 
 /**
  * `POST /api/auth/password/reset` — redeem a reset link.
@@ -685,7 +716,10 @@ const listSessions = (userId: string, currentSessionId: string) =>
     const sessions = yield* SessionStoreTag;
     const records = yield* sessions.listForUser(userId);
     return [...records]
-      .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
+      .sort(
+        (left, right) =>
+          Date.parse(right.createdAt) - Date.parse(left.createdAt),
+      )
       .map(record => serializeSession(record, currentSessionId));
   });
 
@@ -954,9 +988,7 @@ const userManagementRoutes = HttpRouter.empty.pipe(
   HttpRouter.post('/api/user-identity', createUserRoute),
   HttpRouter.get(
     '/api/user-identity/:id',
-    requirePermission(USER_READ)(() =>
-      byIdRoute(UserIdentity),
-    ),
+    requirePermission(USER_READ)(() => byIdRoute(UserIdentity)),
   ),
   HttpRouter.patch('/api/user-identity/:id', updateUserRoute),
   // Administrative session control — incident response, permission-gated.
@@ -968,9 +1000,7 @@ const userManagementRoutes = HttpRouter.empty.pipe(
   ),
   HttpRouter.get(
     '/api/entity-identifier/:id',
-    requirePermission(IDENTIFIER_READ)(() =>
-      byIdRoute(EntityIdentifier),
-    ),
+    requirePermission(IDENTIFIER_READ)(() => byIdRoute(EntityIdentifier)),
   ),
   // Native-entity proof: construct entity classes + read stage-3 metadata.
   HttpRouter.get(

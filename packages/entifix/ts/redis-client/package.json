@@ -22,7 +22,8 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "entifix:client"
+      "entifix:client",
+      "runtime:datastore"
     ],
     "sourceRoot": "packages/entifix/ts/redis-client/src",
     "targets": {

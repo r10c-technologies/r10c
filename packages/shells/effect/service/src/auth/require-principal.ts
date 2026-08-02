@@ -20,6 +20,13 @@ export interface RequestPrincipal {
   readonly subject: string;
   readonly sessionId: string;
   readonly roles: readonly string[];
+  /**
+   * The organization this request acts for — the storage routing key, absent
+   * for a caller with no tenant scope (a buyer, or an operator). Kept out of
+   * `attributes` deliberately: attributes are policy inputs, this decides which
+   * database a handler reads.
+   */
+  readonly organizationId?: string;
   readonly attributes: Readonly<Record<string, unknown>>;
 }
 
@@ -38,6 +45,11 @@ const claimsToPrincipal = (claims: TokenClaims): RequestPrincipal => ({
   subject: claims.subject,
   sessionId: claims.sessionId,
   roles: claims.roles,
+  // The organization comes from the *verified* token and nowhere else — never
+  // from a route parameter, a query string or a body, all of which the caller
+  // controls. That is what makes tenant isolation a property of the session
+  // rather than of every handler remembering to check.
+  organizationId: claims.activeOrganizationId,
   // Rich/volatile attributes are not in the token; a handler that needs them
   // reads the session store by `sessionId`.
   attributes: {},

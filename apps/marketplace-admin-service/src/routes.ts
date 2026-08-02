@@ -30,6 +30,7 @@ import {
   getUCFactory,
   loadUCFactory,
   saveUCFactory,
+  TenantDatabaseResolverTag,
 } from '@r10c/entifix-ts-business';
 import {
   EntifixBuildError,
@@ -55,10 +56,11 @@ import {
 import {
   LoadedConfigurationTag,
   redactConfiguration,
-  requirePermission,
+  requireOrganization,
   requirePrincipal,
 } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
+import type { Db } from 'mongodb';
 
 import {
   type CatalogHandlerOptions,
@@ -111,7 +113,11 @@ const serverError = (error: unknown) =>
 const writeError = (error: unknown) =>
   error instanceof EntifixBuildError
     ? HttpServerResponse.json(
-        { error: 'invalid request body', code: 'invalidBody', detail: error.message },
+        {
+          error: 'invalid request body',
+          code: 'invalidBody',
+          detail: error.message,
+        },
         { status: 400 },
       )
     : serverError(error);
@@ -147,7 +153,11 @@ const acceptError = (error: unknown) =>
       )
     : error instanceof EntifixBuildError
       ? HttpServerResponse.json(
-          { error: 'invalid command', code: 'invalidCommand', detail: error.message },
+          {
+            error: 'invalid command',
+            code: 'invalidCommand',
+            detail: error.message,
+          },
           { status: 400 },
         )
       : serverError(error);
@@ -398,15 +408,46 @@ const configIntrospectionRoute = Effect.gen(function* () {
  * collection name.
  */
 /**
- * Guard a catalog route with the permission its own entity declares. Deriving
- * it from `@entity({ domain, key })` means adding an entity cannot leave a hole:
- * there is no separate list of permission strings to forget to extend.
+ * Guard a catalog route with the permission its own entity declares, **and**
+ * bind it to the caller's tenant storage.
+ *
+ * Deriving the permission from `@entity({ domain, key })` means adding an entity
+ * cannot leave a hole: there is no separate list of permission strings to forget
+ * to extend.
+ *
+ * The tenancy half is the reason this is one function rather than an edit in
+ * every handler. The catalog is **tenant plane**: each vendor authors its own,
+ * in its own Mongo database. Every route below already resolves its database
+ * inside the request (`const db = yield* MongoDatabaseTag`), so re-providing
+ * that tag with the organization's handle redirects all of them at once — no
+ * use-case, entity, repository, filter translator or envelope is touched. That
+ * substitutability is the whole point of resolving the handle per request
+ * instead of baking it into a `Layer`.
+ *
+ * The organization comes from the verified token via `requireOrganization`,
+ * never from a path or query parameter, and a caller with no tenant scope gets
+ * `409 no-active-organization` rather than another tenant's data.
  */
 const guarded = <T extends Entity, A, E, R>(
   entityConstructor: EntityConstructor<T>,
   action: Action,
   route: () => Effect.Effect<A, E, R>,
-) => requirePermission(permissionForEntity(entityConstructor, action))(route);
+) =>
+  requireOrganization(permissionForEntity(entityConstructor, action))(
+    organizationId =>
+      Effect.gen(function* () {
+        const resolver = yield* TenantDatabaseResolverTag;
+        // The tag is datastore-agnostic (`TenantDatabaseResolver<unknown>`) so
+        // that a Postgres adapter can satisfy it later; this service knows it
+        // provided the Mongo one, which is what the cast records.
+        const db = (yield* resolver.forOrganization(organizationId)) as Db;
+        return yield* route().pipe(Effect.provideService(MongoDatabaseTag, db));
+      }).pipe(
+        // Each route already maps its own failures; what can still fail here is
+        // resolving the tenant handle.
+        Effect.catchAll(serverError),
+      ),
+  );
 
 export const router = HttpRouter.empty.pipe(
   HttpRouter.get('/api/config', configIntrospectionRoute),
@@ -424,9 +465,7 @@ export const router = HttpRouter.empty.pipe(
   ),
   HttpRouter.get(
     '/api/product-category/:id',
-    guarded(ProductCategory, 'read', () =>
-      byIdRoute(ProductCategory),
-    ),
+    guarded(ProductCategory, 'read', () => byIdRoute(ProductCategory)),
   ),
   HttpRouter.post(
     '/api/product-category',
@@ -455,9 +494,7 @@ export const router = HttpRouter.empty.pipe(
   ),
   HttpRouter.get(
     '/api/product-brand/:id',
-    guarded(ProductBrand, 'read', () =>
-      byIdRoute(ProductBrand),
-    ),
+    guarded(ProductBrand, 'read', () => byIdRoute(ProductBrand)),
   ),
   HttpRouter.post(
     '/api/product-brand',

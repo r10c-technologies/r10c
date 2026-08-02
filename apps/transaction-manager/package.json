@@ -5,7 +5,8 @@
   "nx": {
     "tags": [
       "layer:app",
-      "scope:transaction"
+      "scope:transaction",
+      "host:effect"
     ],
     "targets": {
       "build": {

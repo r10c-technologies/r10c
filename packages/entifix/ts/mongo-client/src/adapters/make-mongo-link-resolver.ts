@@ -26,7 +26,10 @@ export function makeMongoLinkResolver(
   const repositoryByConstructor = new Map(
     registrations.map(
       entityConstructor =>
-        [entityConstructor, makeMongoRepository(db, entityConstructor)] as const,
+        [
+          entityConstructor,
+          makeMongoRepository(db, entityConstructor),
+        ] as const,
     ),
   );
 
@@ -44,7 +47,10 @@ export function makeMongoLinkResolver(
           ),
         );
       }
-      return repository.get(id) as unknown as Effect.Effect<never, EntifixError>;
+      return repository.get(id) as unknown as Effect.Effect<
+        never,
+        EntifixError
+      >;
     },
   };
 

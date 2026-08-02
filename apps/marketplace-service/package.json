@@ -12,7 +12,8 @@
   "nx": {
     "tags": [
       "layer:app",
-      "scope:marketplace"
+      "scope:marketplace",
+      "host:effect"
     ],
     "targets": {
       "build": {

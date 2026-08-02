@@ -8,6 +8,21 @@ export class MongoDatabaseTag extends Context.Tag('MongoDatabaseTag')<
   Db
 >() {}
 
+/**
+ * DI tag carrying the connected {@link MongoClient} itself — the **pool**.
+ *
+ * Exposed alongside {@link MongoDatabaseTag} so a per-organization handle can be
+ * resolved with `client.db(name)` inside a request without opening a second
+ * connection. Both tags come from one acquire for exactly that reason: two
+ * layers over the same URI would mean two pools.
+ *
+ * Reach for {@link MongoDatabaseTag} unless you are resolving tenant storage.
+ */
+export class MongoClientTag extends Context.Tag('MongoClientTag')<
+  MongoClientTag,
+  MongoClient
+>() {}
+
 export interface MongoDatabaseSettings {
   readonly uri: string;
   readonly dbName: string;
@@ -15,15 +30,15 @@ export interface MongoDatabaseSettings {
 
 /**
  * A scoped {@link Layer} that opens a {@link MongoClient} on acquire and closes
- * it on release, exposing the resolved {@link Db} under {@link MongoDatabaseTag}.
- * Because it is scoped, the connection is torn down deterministically when the
- * service's root layer is interrupted (the `makeService` graceful-shutdown path).
+ * it on release, exposing the client under {@link MongoClientTag} and the
+ * resolved {@link Db} under {@link MongoDatabaseTag}. Because it is scoped, the
+ * connection is torn down deterministically when the service's root layer is
+ * interrupted (the `makeService` graceful-shutdown path).
  */
 export const MongoDatabaseLayer = (
   settings: MongoDatabaseSettings,
-): Layer.Layer<MongoDatabaseTag, EntifixConnError> =>
-  Layer.scoped(
-    MongoDatabaseTag,
+): Layer.Layer<MongoDatabaseTag | MongoClientTag, EntifixConnError> =>
+  Layer.scopedContext(
     Effect.acquireRelease(
       Effect.tryPromise({
         try: async () => {
@@ -49,5 +64,11 @@ export const MongoDatabaseLayer = (
         ),
       ),
       ({ client }) => Effect.promise(() => client.close()),
-    ).pipe(Effect.map(({ db }) => db)),
+    ).pipe(
+      Effect.map(({ client, db }) =>
+        Context.make(MongoDatabaseTag, db).pipe(
+          Context.add(MongoClientTag, client),
+        ),
+      ),
+    ),
   );

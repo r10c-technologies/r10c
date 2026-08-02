@@ -6,7 +6,7 @@ import { signAccessToken } from '@r10c/entifix-ts-jwt-client';
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
 import { MOCK_JWT_SECRET, startMockService } from '../support/mock-service';
-import { bearerFor } from '../support/tokens';
+import { bearerFor, signTokenFor } from '../support/tokens';
 
 /**
  * The token-verified backend integration, mock profile only: signing a valid
@@ -132,5 +132,21 @@ describe('marketplace-admin-service catalog permissions', () => {
     });
 
     expect(res.status).toBe(200);
+  });
+
+  it('refuses a catalog read to a permitted caller with no organization', async () => {
+    // The catalog is tenant plane, so permission alone is not enough: without
+    // an organization there is no storage to read. `409`, not `403` — the
+    // caller is allowed, they just have no tenant scope. An operator lands here
+    // by design, and reaching a tenant is an audited crossing rather than a
+    // wider default.
+    const token = await signTokenFor(['super-admin'], 'user-1', null);
+
+    const res = await service.client.get('/api/product-brand', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.data.code).toBe('no-active-organization');
   });
 });

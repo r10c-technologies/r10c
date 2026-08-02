@@ -13,11 +13,14 @@ import {
 } from '@r10c/entifix-ts-amqp-client';
 import {
   ConfigurationRepositoryTag,
+  TenantDatabaseResolverTag,
   TokenServiceTag,
 } from '@r10c/entifix-ts-business';
 import { ConfigurationStoreInMemory } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
+  makeMongoTenantResolver,
+  MongoClientTag,
   MongoDatabaseLayer,
   MongoHealthProbeLayer,
 } from '@r10c/entifix-ts-mongo-client';
@@ -58,6 +61,13 @@ export const AppLayer = Layer.unwrapEffect(
 
     const uri = yield* store.in('mongo').getString('uri');
     const dbName = yield* store.in('mongo').getString('db');
+    // Tenant storage: one Mongo database per organization, named from the
+    // organization id. Resolved from config-service like every other
+    // cross-service value, so the convention is not duplicated in code.
+    const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
+    const demoOrganizationId = yield* store
+      .in('tenant')
+      .getString('demoOrganizationId');
     const redisUri = yield* store.in('redis').getString('uri');
     const amqpUri = yield* store.in('rabbitmq').getString('uri');
     const jwtSecret = yield* store.in('jwt').getString('secret');
@@ -120,12 +130,34 @@ export const AppLayer = Layer.unwrapEffect(
       infra,
     );
 
-    // Seed depends on MongoDatabaseTag from `infra`; provideMerge keeps the
+    // The tenant resolver: one client, N database handles. It needs the pool
+    // (`MongoClientTag`) rather than the shared `Db`, and it is built here — at
+    // the composition root — because only this file knows which driver backs
+    // the port.
+    const tenancy = Layer.provide(
+      Layer.effect(
+        TenantDatabaseResolverTag,
+        Effect.map(MongoClientTag, client =>
+          makeMongoTenantResolver(client, tenantPrefix),
+        ),
+      ),
+      withProbes,
+    );
+
+    // Seed depends on MongoClientTag from `infra`; provideMerge keeps the
     // infra services in the output so the routes can use them. Observability
     // (logger replacement + tracer) is merged so it is active for the server.
     return Layer.merge(
       observability,
-      Layer.provideMerge(Layer.effectDiscard(seedCatalog), withProbes),
+      Layer.provideMerge(
+        Layer.merge(
+          tenancy,
+          Layer.effectDiscard(
+            seedCatalog(`${tenantPrefix}${demoOrganizationId}`),
+          ),
+        ),
+        withProbes,
+      ),
     );
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

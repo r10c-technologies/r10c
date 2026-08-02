@@ -44,9 +44,7 @@ const seenAtMillis = (device: UserDevice): number => {
  * "new device" alert at its rightful owner. Alerts that cry wolf get ignored,
  * and this one is the only warning a user gets that their password leaked.
  */
-export const makeMongoUserDeviceRepository = (
-  db: Db,
-): UserDeviceRepository => {
+export const makeMongoUserDeviceRepository = (db: Db): UserDeviceRepository => {
   const devices = db.collection(DEVICE_COLLECTION);
 
   const fail = (message: string, error: unknown) =>

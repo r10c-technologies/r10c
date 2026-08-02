@@ -30,7 +30,9 @@ function isFilterGroup<TEntity extends Entity>(
 ): node is FilterGroup<TEntity> {
   // A group carries `values` + a logic operator and, unlike the array filter,
   // has no `property`.
-  return !('property' in node) && (node.operator === 'and' || node.operator === 'or');
+  return (
+    !('property' in node) && (node.operator === 'and' || node.operator === 'or')
+  );
 }
 
 function translateNode<TEntity extends Entity>(
