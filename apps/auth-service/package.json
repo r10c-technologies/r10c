@@ -71,6 +71,7 @@
     "@effect/platform-node": "0.108.0",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz": "workspace:*",
+    "@r10c/business-ts-party-management": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-jwt-client": "workspace:*",

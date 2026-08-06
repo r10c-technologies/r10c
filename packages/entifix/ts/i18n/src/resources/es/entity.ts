@@ -159,6 +159,14 @@ export const entity = {
       id: 'ID',
       fullName: 'Nombre completo',
       userId: 'ID de usuario',
+      partyRole: 'Rol que desempeña',
+    },
+    values: {
+      partyRole: {
+        customer: 'Cliente',
+        vendor: 'Vendedor',
+        operator: 'Operador',
+      },
     },
   },
   membership: {

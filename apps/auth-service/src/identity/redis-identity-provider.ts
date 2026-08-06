@@ -7,12 +7,20 @@ import {
 import type { SessionRecord, SessionStore } from '@r10c/entifix-ts-business';
 import { Effect } from 'effect';
 
-/** A stored session record becomes the {@link Principal} carried per request. */
+/**
+ * A stored session record becomes the {@link Principal} carried per request.
+ *
+ * The scope the session was opened in — its organization and its party role —
+ * travels with it. Dropping either would make a principal resolved through this
+ * path quietly narrower than the same principal rebuilt from an access token.
+ */
 const toPrincipal = (record: SessionRecord): Principal => ({
   userId: record.userId,
   subject: record.subject,
   sessionId: record.sessionId,
   roles: record.roles,
+  organizationId: record.activeOrganizationId,
+  partyRole: record.partyRole,
   attributes: record.attributes,
 });
 

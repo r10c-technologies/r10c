@@ -9,13 +9,26 @@ import { ConfigurationRow } from './db';
 
 const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
 
-/** Turns flat `configuration` rows into the `ConfigurationPlain` contract. */
+/**
+ * Turns flat `configuration` rows into the `ConfigurationPlain` contract.
+ *
+ * `is_secret` rides along as `isSecret`. This endpoint deliberately serves the
+ * real value — a booting service needs the actual key — so the flag is how the
+ * consumer knows which of the values it just received must never be echoed back
+ * out of its own introspection route.
+ */
 function toConfigurationPlain(
-  rows: ReadonlyArray<Pick<ConfigurationRow, 'group_name' | 'key' | 'value'>>,
+  rows: ReadonlyArray<
+    Pick<ConfigurationRow, 'group_name' | 'key' | 'value' | 'is_secret'>
+  >,
 ): ConfigurationPlain {
   const plain: ConfigurationPlain = {};
   for (const row of rows) {
-    (plain[row.group_name] ??= []).push({ key: row.key, value: row.value });
+    (plain[row.group_name] ??= []).push({
+      key: row.key,
+      value: row.value,
+      ...(row.is_secret === true ? { isSecret: true } : {}),
+    });
   }
   return plain;
 }
@@ -69,8 +82,8 @@ const lookupRoute = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
 
   const rows = yield* sql<
-    Pick<ConfigurationRow, 'group_name' | 'key' | 'value'>
-  >`SELECT group_name, key, value FROM configuration WHERE service = ${service}`;
+    Pick<ConfigurationRow, 'group_name' | 'key' | 'value' | 'is_secret'>
+  >`SELECT group_name, key, value, is_secret FROM configuration WHERE service = ${service}`;
 
   return yield* HttpServerResponse.json(toConfigurationPlain(rows));
 }).pipe(Effect.catchTag('SqlError', onSqlError));

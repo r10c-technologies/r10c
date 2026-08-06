@@ -3,14 +3,20 @@ import {
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
 import { signAccessToken } from '@r10c/entifix-ts-jwt-client';
+import {
+  E2E_FOREIGN_PRIVATE_KEY_PEM,
+  E2E_KEY_ID,
+  E2E_PRIVATE_KEY_PEM,
+  E2E_PUBLIC_KEY_PEM,
+} from '@r10c/entifix-ts-testing-e2e/fixtures';
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
-import { MOCK_JWT_SECRET, startMockService } from '../support/mock-service';
+import { startMockService } from '../support/mock-service';
 import { bearerFor, signTokenFor } from '../support/tokens';
 
 /**
  * The token-verified backend integration, mock profile only: signing a valid
- * token needs the shared secret, which the test only knows in `mock`. The
+ * token needs the private key, which the suite only holds in `mock`. The
  * unauthenticated `401` is asserted here too, alongside the `200`, so the guard
  * is covered end to end against the real router.
  */
@@ -28,7 +34,9 @@ const signTestToken = () =>
       roles: ['admin'],
     },
     {
-      secret: MOCK_JWT_SECRET,
+      privateKeyPem: E2E_PRIVATE_KEY_PEM,
+      publicKeyPem: E2E_PUBLIC_KEY_PEM,
+      keyId: E2E_KEY_ID,
       issuer: AUTH_TOKEN_ISSUER,
       audience: AUTH_TOKEN_AUDIENCE,
     },
@@ -65,11 +73,16 @@ describe('marketplace-admin-service /api/me guard', () => {
     expect(res.data.userId).toBe('user-1');
   });
 
-  it('rejects a token signed with the wrong secret', async () => {
+  it('rejects a token signed with a key the fleet does not trust', async () => {
     const foreign = await signAccessToken(
       { userId: 'x', subject: 'x', sessionId: 's', roles: [] },
       {
-        secret: 'not-the-shared-secret',
+        privateKeyPem: E2E_FOREIGN_PRIVATE_KEY_PEM,
+        // The *trusted* public key, deliberately: this is the forgery that
+        // matters — a well-formed token whose `kid` names a key the service
+        // knows, signed by a private key it has never seen.
+        publicKeyPem: E2E_PUBLIC_KEY_PEM,
+        keyId: E2E_KEY_ID,
         issuer: AUTH_TOKEN_ISSUER,
         audience: AUTH_TOKEN_AUDIENCE,
       },

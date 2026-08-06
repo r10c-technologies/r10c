@@ -1,12 +1,37 @@
+import { exportPKCS8, exportSPKI, generateKeyPair } from 'jose';
 import { describe, expect, it } from 'vitest';
 
-import { signAccessToken } from './jose-token-service.js';
+import {
+  type JoseTokenServiceOptions,
+  signAccessToken,
+  TOKEN_ALGORITHM,
+} from './jose-token-service.js';
 import { unverifiedClaims, unverifiedRoles } from './unverified-claims.js';
 
-const options = {
-  secret: 'spec-secret',
+const keyPair = async (): Promise<
+  Pick<JoseTokenServiceOptions, 'privateKeyPem' | 'publicKeyPem'>
+> => {
+  const { privateKey, publicKey } = await generateKeyPair(TOKEN_ALGORITHM, {
+    extractable: true,
+  });
+  return {
+    privateKeyPem: await exportPKCS8(privateKey),
+    publicKeyPem: await exportSPKI(publicKey),
+  };
+};
+
+const options: JoseTokenServiceOptions = {
+  ...(await keyPair()),
+  keyId: 'spec-key',
   issuer: 'spec-issuer',
   audience: 'spec-audience',
+};
+
+/** A token from a key this fleet has never heard of. */
+const foreignOptions: JoseTokenServiceOptions = {
+  ...options,
+  ...(await keyPair()),
+  keyId: 'a-key-nobody-trusts',
 };
 
 describe('unverifiedClaims', () => {
@@ -29,8 +54,8 @@ describe('unverifiedClaims', () => {
   });
 
   // The whole point of the warning: it does not check the signature, so a token
-  // signed with a different secret still parses. Presentation only.
-  it('reads claims from a token signed with the wrong secret', async () => {
+  // signed by an untrusted key still parses. Presentation only.
+  it('reads claims from a token signed with the wrong key', async () => {
     const token = await signAccessToken(
       {
         userId: 'user-2',
@@ -38,7 +63,7 @@ describe('unverifiedClaims', () => {
         sessionId: 'session-2',
         roles: ['super-admin'],
       },
-      { ...options, secret: 'a-completely-different-secret' },
+      foreignOptions,
       60,
     );
 

@@ -18,6 +18,13 @@ export interface SeedSessionOptions {
    */
   activeOrganizationId?: string | null;
   /**
+   * Which population the seeded principal belongs to — `customer`, `vendor` or
+   * `operator`. Defaults to `vendor`, matching the default organization: a
+   * session that acts for one is a vendor member's. A spec exercising platform
+   * staff passes `operator` together with `activeOrganizationId: null`.
+   */
+  partyRole?: string;
+  /**
    * Locale to pin the run to. Seeded in both profiles so a run does not depend
    * on the CI machine's `Accept-Language` — without it the same spec renders
    * Spanish locally and English on a differently-configured runner.
@@ -42,20 +49,25 @@ const base64url = (value: string): string =>
  * exactly the two things the mock profile exercises — the middleware's cookie
  * presence check and the server-rendered nav's unverified role read — and
  * nothing else: no service verifies it, because in `mock` the services are msw
- * fixtures. Signing it would need `jwt.secret`, which the suite has no business
- * knowing.
+ * fixtures. Signing it would need the private key, which the suite has no
+ * business knowing and which is exactly what asymmetric signing exists to keep
+ * out of places like this.
  */
 const fabricateToken = (
   roles: readonly string[],
   activeOrganizationId: string | null,
+  partyRole: string,
 ): string => {
-  const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const header = base64url(
+    JSON.stringify({ alg: 'RS256', kid: 'e2e-not-a-real-key', typ: 'JWT' }),
+  );
   const payload = base64url(
     JSON.stringify({
       userId: 'e2e-user',
       subject: 'e2e-user',
       sessionId: 'e2e-session',
       roles,
+      partyRole,
       ...(activeOrganizationId === null ? {} : { activeOrganizationId }),
       exp: Math.floor(Date.now() / 1000) + 3600,
     }),
@@ -79,6 +91,7 @@ export const seedSession = async (
   {
     roles = ['user'],
     activeOrganizationId = 'e2e-organization',
+    partyRole = 'vendor',
     locale = 'es',
     identifier = 'ada@example.com',
     password = 'password123',
@@ -111,7 +124,7 @@ export const seedSession = async (
   await context.addCookies([
     {
       name: ACCESS_COOKIE,
-      value: fabricateToken(roles, activeOrganizationId),
+      value: fabricateToken(roles, activeOrganizationId, partyRole),
       domain: 'localhost',
       path: '/',
     },

@@ -47,6 +47,58 @@ export interface ConfigurationRow {
 }
 
 /**
+ * The local-development signing pair, committed exactly as the old shared
+ * secret was: a working default so `dev:reset` produces a fleet that can sign
+ * in, and a value no deployment may keep.
+ *
+ * Naming the key `dev-` is deliberate — the `kid` travels in every token
+ * header, so a token minted by a machine still running this pair announces
+ * itself as such.
+ */
+const DEV_KEY_ID = 'dev-2026-08';
+
+const DEV_PRIVATE_KEY_PEM = `-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQChlw1RgBhMTBk2
+1/+XJ4lcuDvRVG15iQ/xPznwkwPFoIfr+CyJ09LNdqEvD6gBQ/YLyAPHOev/36+B
+10zI8Nhb3AG/Ysdt/ZzRaMjMME/ZOXQYNhAPL8a11bNFZlym+NPhyd6LXTwr72qK
+hzOr7c61L8RXL/gjAI2+VRzhKmKsnbz1WsEPNKxnn/0ejiVSVTygQca1DH9lYP4L
+jsCqML0Dv72f2q8V84bMY/V1RfLb3VX5/Oe3B8GaQknvDUo7BbTYzL61jNOQDh/I
+LWI2hXbn15tSFw6A9xnfwlPOI47h9ORvUInTx99rkizCyhADcOKNyIBfyntdRRLc
+On26yCTxAgMBAAECggEAAKyvMC69ShWaxpdX3ZOEc8Tbpv8CGHLm9qTXgTX05mMK
+NoBz0DdM8tzJB6n8fLCmqVGN0NdC+nQjA0VzQGJz7cOYl6oWmnu3qWoXt7VsBzIa
+2uZXFwS2B6LqyLWxufIa4WYnoMC3so84HFgFFtWH1MY1deRSSo+dV9zj7yjxt3Po
+YjRWzlWshlpiVbppOlmYkj14gBpmXdGY8RvubAcH3jz1DtbEmSrvLp/Y1T0UpTT/
+FAGmOvlJctdNd5StDTON0EB85U6jL417r5D33YxP1DoOdGB6JJZjONx5ns26Qry+
+tsfzTsYm045MxK5Prjj2q1GmZQRM0iH4JAdDXEnbAQKBgQDPaGtfWFM8xaRMCig1
+WLKDXGu7OO1GyBNGvaBbgrclVLmIBfjDfBYXUeeI9j2ClUq95eqya86qb9ILsLrw
+YjG0c2aZxLqSgnagy0G5X1P7l0xOKKzH7kD+CvGQh9ymomsOfmyWevMTNqUwynU4
+hNZQ+zlaOFiCa8uT9pnXV8JTAQKBgQDHcqSYpt3TGL+jCezRII70Z0NX1ljZA7vn
+/KHYIUc13VKuAD3U+DO/YQ9kPJwEoV+0kvOmdiz5M+DWNbMEiKG5nKbH84FtiB2r
+I4Jk7PvgDeeYLwBmz/lIwZtmr0OQR57eXQPZia2YRWq9CvajHJV5J4Ty0P/hbcpI
+FUxWO4UB8QKBgGwgbcmZDFvkVZDmwqt9ACOHbQp/1QNPju0UMqNCdCRcFRUat+OB
+ryqdIm2+obaQChUR5db6aRVlkkVR70MejfcbKmQDsZhrt1iAXlU7o1bIO5mLjvfz
+96H5JpJIofmlNtaphga1Nj/P/zJ+ebnrVqeFMRMdyNbFR65toyomsEIBAoGADO/f
+w1MXkmjJjW7IYKxG+Y11Lc5mhvUaDCsz6EwITXMkuMqlOBo9aQ2HrQ3NZPN+vLzH
+dyW1NxjpXZuwF/ww2VRS8SdXXt50ZjRwcdF5aQgd3J433XNiDRkZ1mhJ7qLmqC/K
+XyLyEq12BfsfEmd5PpmUoxdxcZLoixJumC1WLFECgYAQ8GsPM0AcDDten4clTKqI
+mxPofbYw1NAyPYGM2ducPTMUF5uet6jIpR85HTfUybHAyue4fvzdTST6xtCGg9IT
+eoAPicXCyemAC4DfLR7sZEcmHRrh8bKRnnrcuXdN6rTG8v9kicecrsUEqJex/Dm1
+vZ/i+LIy8zYN3CmCxN0vIg==
+-----END PRIVATE KEY-----
+`;
+
+const DEV_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoZcNUYAYTEwZNtf/lyeJ
+XLg70VRteYkP8T858JMDxaCH6/gsidPSzXahLw+oAUP2C8gDxznr/9+vgddMyPDY
+W9wBv2LHbf2c0WjIzDBP2Tl0GDYQDy/GtdWzRWZcpvjT4cnei108K+9qioczq+3O
+tS/EVy/4IwCNvlUc4SpirJ289VrBDzSsZ5/9Ho4lUlU8oEHGtQx/ZWD+C47AqjC9
+A7+9n9qvFfOGzGP1dUXy291V+fzntwfBmkJJ7w1KOwW02My+tYzTkA4fyC1iNoV2
+59ebUhcOgPcZ38JTziOO4fTkb1CJ08ffa5IswsoQA3DijciAX8p7XUUS3Dp9usgk
+8QIDAQAB
+-----END PUBLIC KEY-----
+`;
+
+/**
  * Seed configuration inserted on first boot (empty table). Holds the fleet's
  * service-discovery URIs plus the Mongo connection settings the Mongo-backed
  * services resolve at boot. Local-dev defaults (minikube NodePorts); production
@@ -181,31 +233,59 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'redis://:localdev@127.0.0.1:30379',
     is_secret: true,
   },
-  // Shared HS256 secret: auth-service signs access tokens with it, every
-  // verifier checks against it. LOCAL DEV ONLY — replace per environment.
+  // Access tokens are RS256. auth-service is the only holder of the private
+  // key; every other service gets the public half and can therefore verify a
+  // token but never mint one — which is what lets the public storefront verify
+  // a buyer's session without holding material that could sign an operator's.
+  //
+  // LOCAL DEV ONLY. Generate a real pair per environment with:
+  //   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | \
+  //     tee private.pem | openssl pkey -pubout
   {
     service: 'auth-service',
     group_name: 'jwt',
-    key: 'secret',
-    value: 'dev-jwt-secret-change-me-at-least-32-chars',
+    key: 'privateKey',
+    value: DEV_PRIVATE_KEY_PEM,
     is_secret: true,
+  },
+  {
+    service: 'auth-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'auth-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
   },
   {
     service: 'marketplace-admin-service',
     group_name: 'jwt',
-    key: 'secret',
-    value: 'dev-jwt-secret-change-me-at-least-32-chars',
-    is_secret: true,
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
   },
   // config-service verifies access tokens too, now that it serves a guarded CRUD.
-  // It reads this row straight out of its own table via SQL at boot rather than
-  // over HTTP from itself, so there is no bootstrap cycle.
+  // It reads these rows straight out of its own table via SQL at boot rather
+  // than over HTTP from itself, so there is no bootstrap cycle.
   {
     service: 'config-service',
     group_name: 'jwt',
-    key: 'secret',
-    value: 'dev-jwt-secret-change-me-at-least-32-chars',
-    is_secret: true,
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'config-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
   },
   // Transaction event bus (Redis locks/sequences + RabbitMQ) for the admin
   // service's transactional writes.
@@ -402,11 +482,14 @@ export { SqlHealthProbeLayer as PostgresHealthProbeLayer };
  * Token verification and the authorization policy, resolved from this service's
  * own table.
  *
- * Every other service resolves `jwt.secret` from config-service over HTTP. This
- * one cannot — it *is* config-service — so it reads the row through the
+ * Every other service resolves `jwt.publicKey` from config-service over HTTP.
+ * This one cannot — it *is* config-service — so it reads the rows through the
  * `SqlClient` it already holds. That closes the bootstrap cycle rather than
- * hiding it behind a retry, and it means the secret lives in exactly one place
- * for the whole fleet.
+ * hiding it behind a retry, and it means the key lives in exactly one place for
+ * the whole fleet.
+ *
+ * It reads the **public** key only. config-service verifies tokens; it does not
+ * mint them, so it has no business holding material that could.
  *
  * A missing row is fatal on purpose: a config-service that answered `401` to
  * every request because it silently failed to load its key would look like an
@@ -416,15 +499,19 @@ const AuthLive = Layer.unwrapEffect(
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
 
-    const rows = yield* sql<{ readonly value: string }>`
-      SELECT value FROM configuration
-      WHERE service = ${SERVICE_NAME} AND group_name = 'jwt' AND key = 'secret'
+    const rows = yield* sql<{ readonly key: string; readonly value: string }>`
+      SELECT key, value FROM configuration
+      WHERE service = ${SERVICE_NAME}
+        AND group_name = 'jwt'
+        AND key IN ('publicKey', 'keyId')
     `;
-    const secret = rows[0]?.value;
-    if (secret === undefined) {
+    const jwt = new Map(rows.map(row => [row.key, row.value]));
+    const publicKeyPem = jwt.get('publicKey');
+    const keyId = jwt.get('keyId');
+    if (publicKeyPem === undefined || keyId === undefined) {
       return yield* Effect.die(
         new Error(
-          `config-service cannot verify tokens: no "jwt.secret" row for "${SERVICE_NAME}"`,
+          `config-service cannot verify tokens: no "jwt.publicKey"/"jwt.keyId" rows for "${SERVICE_NAME}"`,
         ),
       );
     }
@@ -440,19 +527,25 @@ const AuthLive = Layer.unwrapEffect(
       readonly group_name: string;
       readonly key: string;
       readonly value: string;
+      readonly is_secret: boolean;
     }>`
-      SELECT group_name, key, value FROM configuration WHERE service = ${SERVICE_NAME}
+      SELECT group_name, key, value, is_secret FROM configuration WHERE service = ${SERVICE_NAME}
     `;
     const plain: ConfigurationPlain = {};
     for (const row of own) {
-      (plain[row.group_name] ??= []).push({ key: row.key, value: row.value });
+      (plain[row.group_name] ??= []).push({
+        key: row.key,
+        value: row.value,
+        ...(row.is_secret === true ? { isSecret: true } : {}),
+      });
     }
 
     return Layer.mergeAll(
       Layer.succeed(
         TokenServiceTag,
         makeJoseTokenService({
-          secret,
+          publicKeyPem,
+          keyId,
           issuer: AUTH_TOKEN_ISSUER,
           audience: AUTH_TOKEN_AUDIENCE,
         }),

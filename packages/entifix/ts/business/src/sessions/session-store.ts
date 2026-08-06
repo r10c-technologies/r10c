@@ -43,6 +43,15 @@ export interface SessionData {
    * holds no tenant scope by default.
    */
   readonly activeOrganizationId?: string;
+  /**
+   * Which population this session belongs to — buyer, vendor staff, or platform
+   * staff. Resolved once when the session opens and carried from there into
+   * every access token minted from it, so no service re-derives it per request.
+   *
+   * A plain string for the same reason `roles` is: the closed set lives in the
+   * business layer above this one.
+   */
+  readonly partyRole?: string;
   /** Absent for sessions opened by a non-browser caller. */
   readonly device?: DeviceContext;
 }

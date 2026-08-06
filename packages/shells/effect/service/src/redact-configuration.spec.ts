@@ -72,8 +72,49 @@ describe('redactConfiguration', () => {
     });
   });
 
+  // The reason the flag exists. `jwt.privateKey` is not a URI, so the
+  // credential regex sees nothing to mask — and the value it would have
+  // published mints tokens for any role.
+  it('blanks a flagged secret outright', () => {
+    const redacted = redactConfiguration({
+      jwt: [
+        {
+          key: 'privateKey',
+          value: '-----BEGIN PRIVATE KEY-----\nMIIEv...\n',
+          isSecret: true,
+        },
+        { key: 'publicKey', value: '-----BEGIN PUBLIC KEY-----\nMIIBI...\n' },
+        { key: 'keyId', value: 'dev-2026-08' },
+      ],
+    });
+
+    expect(redacted['jwt']).toEqual([
+      { key: 'privateKey', value: '***', isSecret: true },
+      { key: 'publicKey', value: '-----BEGIN PUBLIC KEY-----\nMIIBI...\n' },
+      { key: 'keyId', value: 'dev-2026-08' },
+    ]);
+  });
+
+  it('blanks a flagged secret whatever its shape', () => {
+    const redacted = redactConfiguration({
+      api: [{ key: 'token', value: { nested: 'value' }, isSecret: true }],
+    });
+
+    expect(redacted['api']?.[0]?.value).toBe('***');
+  });
+
+  it('still masks an unflagged connection string', () => {
+    const redacted = redactConfiguration({
+      mongo: [{ key: 'uri', value: 'mongodb://user:pass@host/db' }],
+    });
+
+    expect(redacted['mongo']?.[0]?.value).toBe('mongodb://***:***@host/db');
+  });
+
   it('does not mutate the configuration it was given', () => {
-    const plain = { mongo: [{ key: 'uri', value: 'mongodb://user:pass@host' }] };
+    const plain = {
+      mongo: [{ key: 'uri', value: 'mongodb://user:pass@host' }],
+    };
 
     redactConfiguration(plain);
 

@@ -38,6 +38,7 @@ import {
   type Role,
 } from '@r10c/business-ts-authz';
 import {
+  ConfigurationRepositoryTag,
   type DeviceContext,
   EntityIdTag,
   EntityLoadRequestTag,
@@ -57,6 +58,7 @@ import {
   serializeEntity,
   serializeEntityCollection,
 } from '@r10c/entifix-ts-core';
+import { publicJwks } from '@r10c/entifix-ts-jwt-client';
 import {
   makeMongoRepository,
   MongoDatabaseTag,
@@ -69,7 +71,6 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
-import { ActiveOrganizationResolverTag } from './identity/active-organization';
 import { describeIdentityModel } from './identity/identity-showcase';
 import { readOutbox } from './identity/notifications';
 import {
@@ -77,6 +78,7 @@ import {
   DEFAULT_SESSION_LIFETIME,
   SESSION_IDLE_TTL_SECONDS,
 } from './identity/session-policy';
+import { SessionScopeResolverTag } from './identity/session-scope';
 
 /** Reads `page`/`pageSize` from the request query string. */
 const readLoadRequest = Effect.gen(function* () {
@@ -143,6 +145,29 @@ const byIdRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
       ),
     ),
   );
+
+/**
+ * `GET /.well-known/jwks.json` — the public half of this service's signing key.
+ *
+ * Unauthenticated by design: a public key is public, and withholding it protects
+ * nothing while breaking every standard OIDC client. The private half never
+ * appears here — {@link publicJwks} derives the set from the public PEM alone,
+ * so there is no path by which a signing key could reach this response.
+ *
+ * The fleet's own services do not read it: each resolves `jwt.publicKey` from
+ * config-service at boot, so no verification depends on auth-service being up.
+ * This exists for the consumers that hold no fleet configuration — a browser or
+ * an edge runtime, which is what buyer sessions on the public storefront will
+ * need.
+ */
+const jwksRoute = Effect.gen(function* () {
+  const store = yield* ConfigurationRepositoryTag;
+  const publicKeyPem = yield* store.in('jwt').getString('publicKey');
+  const keyId = yield* store.in('jwt').getString('keyId');
+  return yield* HttpServerResponse.json(
+    yield* Effect.promise(() => publicJwks(publicKeyPem, keyId)),
+  );
+}).pipe(Effect.catchAll(serverError));
 
 /** `GET /api/config` — this service's loaded parameters (credentials redacted). */
 const configIntrospectionRoute = Effect.gen(function* () {
@@ -271,7 +296,7 @@ const establishSession = (
   AuthResult,
   never,
   | AccountRepositoryTag
-  | ActiveOrganizationResolverTag
+  | SessionScopeResolverTag
   | NotificationPortTag
   | SessionStoreTag
   | TokenServiceTag
@@ -317,17 +342,18 @@ const establishSession = (
       );
     }
 
-    // Which organization this session acts for. Resolved once, at sign-in, and
-    // then carried by the session — so `requirePrincipal` stays stateless and
-    // no service re-reads a membership on the hot path. `undefined` is a normal
-    // answer: a buyer or an operator holds no tenant scope.
-    const organizations = yield* ActiveOrganizationResolverTag;
-    const activeOrganizationId = yield* organizations.forUser(
-      String(subject.userId),
-    );
+    // What this session may reach: which population the party belongs to, and
+    // which organization it acts for. Resolved once, at sign-in, and then
+    // carried by the session — so `requirePrincipal` stays stateless and no
+    // service re-reads a membership on the hot path. A missing organization is
+    // a normal answer: a buyer or an operator holds no tenant scope, and
+    // `partyRole` is what tells those two apart.
+    const scopes = yield* SessionScopeResolverTag;
+    const { organizationId: activeOrganizationId, partyRole } =
+      yield* scopes.forUser(String(subject.userId));
 
     const sessionId = yield* sessions.create(
-      { ...subject, activeOrganizationId, device },
+      { ...subject, activeOrganizationId, partyRole, device },
       DEFAULT_SESSION_LIFETIME,
     );
     const accessToken = yield* tokens.sign(
@@ -337,6 +363,7 @@ const establishSession = (
         sessionId,
         roles: subject.roles,
         activeOrganizationId,
+        partyRole,
       },
       ACCESS_TOKEN_TTL_SECONDS,
     );
@@ -349,6 +376,7 @@ const establishSession = (
       principal: {
         ...subject,
         organizationId: activeOrganizationId,
+        partyRole,
         sessionId,
       },
     };
@@ -516,8 +544,11 @@ const refreshRoute = Effect.gen(function* () {
       sessionId,
       roles: record.roles,
       // The session owns the active organization, so a refresh preserves it —
-      // including one chosen by an explicit switch rather than at sign-in.
+      // including one chosen by an explicit switch rather than at sign-in. The
+      // same holds for the party role: re-resolving it here would let a
+      // membership change silently move a live session to another plane.
       activeOrganizationId: record.activeOrganizationId,
+      partyRole: record.partyRole,
     },
     ACCESS_TOKEN_TTL_SECONDS,
   );
@@ -535,6 +566,8 @@ const refreshRoute = Effect.gen(function* () {
       subject: record.subject,
       sessionId,
       roles: record.roles,
+      organizationId: record.activeOrganizationId,
+      partyRole: record.partyRole,
       attributes: record.attributes,
     } satisfies Principal,
   });
@@ -931,6 +964,7 @@ const updateUserRoute = requirePermission(USER_WRITE)(principal =>
  */
 const identityRoutes = HttpRouter.empty.pipe(
   HttpRouter.get('/api/config', configIntrospectionRoute),
+  HttpRouter.get('/.well-known/jwks.json', jwksRoute),
   // Credential flow.
   HttpRouter.post('/api/auth/register', registerRoute),
   HttpRouter.post('/api/auth/login', loginRoute),

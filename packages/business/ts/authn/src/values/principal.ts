@@ -29,5 +29,18 @@ export interface Principal {
    * Absent for a principal with no tenant scope: a buyer, or an operator.
    */
   readonly organizationId?: string;
+  /**
+   * Which population this principal belongs to — `customer`, `vendor` or
+   * `operator`, the closed set in `business-ts-party-management`.
+   *
+   * It exists because {@link Principal.organizationId} cannot tell a buyer from
+   * an operator: both hold no tenant scope, and their reach is entirely
+   * different. Distinguishing the two by an absent field is how the most
+   * sensitive boundary in the system would end up decided by an omission.
+   *
+   * Typed as a plain string here for the same reason `roles` is — a consumer
+   * narrows it with `isPartyRoleName`.
+   */
+  readonly partyRole?: string;
   readonly attributes: Readonly<Record<string, unknown>>;
 }

@@ -29,6 +29,22 @@ export interface TokenClaims {
    * from `roles` resolved at the consumer.
    */
   readonly activeOrganizationId?: string;
+  /**
+   * Which population the session belongs to — a buyer, a vendor's staff, or
+   * platform staff. Typed as a plain string here because the closed set lives
+   * in the business layer (`PartyRoles` in `business-ts-party-management`),
+   * which this layer may not import; consumers narrow it, exactly as they
+   * already do for `roles`.
+   *
+   * It exists because the alternative was inferring it from an *absent*
+   * `activeOrganizationId`, which cannot tell a buyer from an operator — two
+   * populations whose reach differs enormously. A capability that sensitive
+   * must not be signalled by a missing field.
+   *
+   * Like `activeOrganizationId` this is routing/context, not a grant: what a
+   * principal may do still comes from `roles` resolved at the consumer.
+   */
+  readonly partyRole?: string;
   /** Room for a few extra stable claims without a type change. */
   readonly [key: string]: unknown;
 }

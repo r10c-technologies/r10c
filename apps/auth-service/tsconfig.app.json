@@ -47,6 +47,9 @@
       "path": "../../packages/entifix/ts/business/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/business/ts/party-management/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/authz/tsconfig.lib.json"
     },
     {

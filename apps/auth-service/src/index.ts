@@ -6,10 +6,6 @@
  */
 export { makeMongoAccountRepository } from './identity/account-repository';
 export {
-  ActiveOrganizationResolverTag,
-  makeMongoActiveOrganizationResolver,
-} from './identity/active-organization';
-export {
   LOCK_TTL_SECONDS,
   makeRedisAttemptLimiter,
   MAX_ATTEMPTS_PER_SOURCE,
@@ -26,6 +22,10 @@ export {
   JWT_AUDIENCE,
   JWT_ISSUER,
 } from './identity/session-policy';
+export {
+  makeMongoSessionScopeResolver,
+  SessionScopeResolverTag,
+} from './identity/session-scope';
 export { makeStubIdentityProvider } from './identity/stub-identity-provider';
 export {
   individualSeedData,

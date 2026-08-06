@@ -37,6 +37,15 @@ them), and everything deep is a link — loaded only when a task needs it.
 
 ## Notes for code changes
 
+- **Nothing runs in production.** Every environment is a local dev fleet, and
+  infrastructure and data are recreated on demand (`pnpm run <app>:dev:reset`).
+  So **do not design for backward compatibility** — no dual-read windows, no
+  legacy fallbacks, no migration shims, no compatibility flags — unless the user
+  explicitly asks for a staged swap. Change the seed, change the shape, and
+  reset. A compatibility path written "just in case" is dead code that has to be
+  maintained and reasoned about at every later step, and some of them (a verifier
+  that branches on a token's `alg`, say) open a security surface a hard cut never
+  opens.
 - **Boundaries are enforced.** Imports must point downward and stay in-scope; the
   `@nx/enforce-module-boundaries` rule (driven by each project's `nx.tags`) fails
   the build otherwise. A new project needs `layer:`/`scope:` (and `entifix:` under
@@ -181,8 +190,14 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
 - **Config**: services read cross-service config from **config-service** (Postgres,
   seeded in `apps/config-service/src/db.ts`); never hardcode a URL/connection string.
   Every service exposes `GET /api/config` (own params, secrets redacted via
-  `redactConfiguration`). The seed is `ON CONFLICT DO NOTHING`, which is what makes
-  editing a value through the CRUD safe — the next boot leaves it alone.
+  `redactConfiguration`). That endpoint is **unauthenticated**, so redaction is a
+  security boundary, not diagnostics polish: it blanks any item whose `isSecret`
+  flag config-service propagated from its `is_secret` column. Masking only the
+  `user:pass@` of a URI was not enough — `jwt.privateKey` is not a URI, and the
+  old `jwt.secret` was served in full. A new credential row must set
+  `is_secret: true` or it is public. The seed is `ON CONFLICT DO NOTHING`, which
+  is what makes editing a value through the CRUD safe — the next boot leaves it
+  alone.
   config-service also serves the operator CRUD at `/api/configuration…` behind
   `config:configuration:*`; secrets are **write-only** (blanked on read, preserved
   on a blank write, and the flag cannot be cleared without a new value) and every
@@ -195,7 +210,8 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   that omits the header reads the `401` as `degraded` and the app never becomes
   Ready while being perfectly healthy. That is fleet membership, not service
   identity; the health endpoints themselves stay open. config-service reads its
-  own `jwt.secret` via SQL, never over HTTP from itself.
+  own `jwt.publicKey`/`jwt.keyId` via SQL, never over HTTP from itself — and only
+  the public half, since it verifies tokens and never mints them.
 - **Transactions**: a `-service` with transactional writes provides the ports from the
   Redis/AMQP layers in its `AppLayer` and resolves `redis.uri`/`rabbitmq.uri` from
   config-service; add `ioredis`/`amqplib` to `externalDependencies`. The domain half is
@@ -204,7 +220,17 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
 - **Auth**: auth-service owns `register`/`login`/`logout`/`refresh` and returns JSON;
   each `-app` mints its own `r10c_sid`/`r10c_at` httpOnly cookies. A backend authorizing
   a request verifies `r10c_at` statelessly via `TokenServiceTag` (no Redis/auth round
-  trip on the hot path). See [[auth-layer-v1]] and
+  trip on the hot path). Tokens are **RS256**: auth-service alone resolves
+  `jwt.privateKey`, everyone else gets `jwt.publicKey` + `jwt.keyId` and cannot
+  mint. `verifyAccessToken` pins `algorithms: ['RS256']` — that line is the
+  security boundary, because jose otherwise trusts the token's own `alg` and the
+  public key (served openly at `/.well-known/jwks.json`) would pass as an HMAC
+  secret. A session also carries `partyRole` (`customer`/`vendor`/`operator`),
+  resolved once at sign-in by `SessionScopeResolver` and re-signed unchanged on
+  refresh; it is routing context, never a grant, and it exists because an absent
+  `activeOrganizationId` means _both_ a buyer and an operator. Nothing branches on
+  it yet. See [ADR 0015](docs/adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md),
+  [[auth-layer-v1]] and
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#auth-sessions--tokens).
 - **Sessions slide under a ceiling.** Every duration lives in
   `business-ts-authn/values/session-policy.ts` — edit there, nowhere else. Both
