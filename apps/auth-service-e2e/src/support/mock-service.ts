@@ -1,5 +1,4 @@
 import {
-  ActiveOrganizationResolverTag,
   entityIdentifierSeedData,
   individualSeedData,
   JWT_AUDIENCE,
@@ -7,7 +6,7 @@ import {
   makeBcryptPasswordHasher,
   makeDevNotificationPort,
   makeMongoAccountRepository,
-  makeMongoActiveOrganizationResolver,
+  makeMongoSessionScopeResolver,
   makeMongoUserDeviceRepository,
   makeRedisAttemptLimiter,
   makeRedisIdentityProvider,
@@ -15,6 +14,7 @@ import {
   router,
   seedCredentials,
   SERVICE_NAME,
+  SessionScopeResolverTag,
   userIdentitySeedData,
 } from '@r10c/auth-service';
 import {
@@ -41,6 +41,9 @@ import {
   makeRedisSessionStore,
 } from '@r10c/entifix-ts-redis-client';
 import {
+  E2E_KEY_ID,
+  E2E_PRIVATE_KEY_PEM,
+  E2E_PUBLIC_KEY_PEM,
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
@@ -57,6 +60,13 @@ const CONFIGURATION = {
   mongo: [
     { key: 'uri', value: 'mongodb://mock/auth' },
     { key: 'db', value: 'auth' },
+  ],
+  // The JWKS route reads these from configuration rather than from the token
+  // service, so the suite has to supply them for `/.well-known/jwks.json` to
+  // answer at all.
+  jwt: [
+    { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
+    { key: 'keyId', value: E2E_KEY_ID },
   ],
 };
 
@@ -84,9 +94,9 @@ const UserDeviceRepositoryLayer = Layer.effect(
 // sign-in resolves party -> membership -> organization for real, so the
 // `activeOrganizationId` these specs see in a token is one the shipped lookup
 // produced. The collections below are seeded to match.
-const ActiveOrganizationResolverLayer = Layer.effect(
-  ActiveOrganizationResolverTag,
-  Effect.map(MongoDatabaseTag, makeMongoActiveOrganizationResolver),
+const SessionScopeResolverLayer = Layer.effect(
+  SessionScopeResolverTag,
+  Effect.map(MongoDatabaseTag, makeMongoSessionScopeResolver),
 );
 
 // The real development adapter, not a stub: the reset journey reads the outbox
@@ -121,8 +131,12 @@ const base = Layer.mergeAll(
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   Layer.succeed(
     TokenServiceTag,
+    // Both halves: auth-service is the service that *mints* tokens, so its
+    // suite is the one place that legitimately holds a private key.
     makeJoseTokenService({
-      secret: 'mock-secret',
+      privateKeyPem: E2E_PRIVATE_KEY_PEM,
+      publicKeyPem: E2E_PUBLIC_KEY_PEM,
+      keyId: E2E_KEY_ID,
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE,
     }),
@@ -157,7 +171,7 @@ const base = Layer.mergeAll(
 const withAccounts = Layer.provideMerge(
   Layer.mergeAll(
     AccountRepositoryLayer,
-    ActiveOrganizationResolverLayer,
+    SessionScopeResolverLayer,
     UserDeviceRepositoryLayer,
     NotificationLayer,
   ),

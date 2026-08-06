@@ -14,6 +14,8 @@ import {
   RedisSequenceServiceLayer,
 } from '@r10c/entifix-ts-redis-client';
 import {
+  E2E_KEY_ID,
+  E2E_PUBLIC_KEY_PEM,
   fakeAmqpLayer,
   fakeConfigurationLayer,
   fakeMongoLayer,
@@ -44,15 +46,18 @@ const CONFIGURATION = {
   ],
   redis: [{ key: 'uri', value: 'redis://mock:6379' }],
   rabbitmq: [{ key: 'uri', value: 'amqp://mock:5672' }],
-  jwt: [{ key: 'secret', value: 'mock-secret' }],
+  jwt: [
+    { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
+    { key: 'keyId', value: E2E_KEY_ID },
+  ],
   tenant: [
     { key: 'dbPrefix', value: 'tenant_' },
     { key: 'demoOrganizationId', value: 'e2e-organization' },
   ],
 };
 
-/** The HS256 secret the mock verifies with; a spec signs test tokens with it. */
-export const MOCK_JWT_SECRET = 'mock-secret';
+// The key pair itself lives in `@r10c/entifix-ts-testing-e2e` so this layer and
+// the spec helper that signs tokens cannot drift onto different keys.
 
 /**
  * The `mock` composition root: the same shape as the service's own `AppLayer`
@@ -72,7 +77,8 @@ const MockAppLayer = (() => {
     Layer.succeed(
       TokenServiceTag,
       makeJoseTokenService({
-        secret: MOCK_JWT_SECRET,
+        publicKeyPem: E2E_PUBLIC_KEY_PEM,
+        keyId: E2E_KEY_ID,
         issuer: AUTH_TOKEN_ISSUER,
         audience: AUTH_TOKEN_AUDIENCE,
       }),

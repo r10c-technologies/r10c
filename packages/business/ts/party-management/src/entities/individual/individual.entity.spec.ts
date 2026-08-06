@@ -18,6 +18,11 @@ describe('Individual', () => {
     expect(serializeEntity(Individual, individual)).toEqual({
       id: 'ind-1',
       fullName: 'Ada Lovelace',
+      // Unlike `userId`, this one always serializes: a party the platform knows
+      // nothing else about is still someone who shops here, and leaving the
+      // plane selector absent would make "unknown" indistinguishable from
+      // "not yet written".
+      partyRole: 'customer',
     });
   });
 
@@ -33,6 +38,20 @@ describe('Individual', () => {
     expect(individual?.userId).toBe('user-9');
   });
 
+  it('reads a stored party role back', async () => {
+    // The value a sign-in resolves the session's plane from, so it has to
+    // survive the round trip through storage rather than being recomputed.
+    const individual = await Effect.runPromise(
+      deserializeSingleEntity(Individual, {
+        id: 'ind-3',
+        fullName: 'Alan Turing',
+        partyRole: 'vendor',
+      }),
+    );
+
+    expect(individual?.partyRole).toBe('vendor');
+  });
+
   it('describes its columns with declared types', () => {
     expect(
       describeEntityColumns(Individual).map(column => [
@@ -43,7 +62,20 @@ describe('Individual', () => {
       ['id', 'id'],
       ['fullName', 'string'],
       ['userId', 'string'],
+      ['partyRole', 'enum'],
     ]);
+  });
+
+  it('offers the party role as a closed set, so it renders and filters', () => {
+    // Declared `enum` rather than `string`: the raw `vendor` token would
+    // otherwise reach the user untranslated, and the filter would offer
+    // substring matching on a value set of three.
+    const partyRole = describeEntityColumns(Individual).find(
+      column => column.name === 'partyRole',
+    );
+
+    expect(partyRole?.enumValues).toEqual(['customer', 'vendor', 'operator']);
+    expect(partyRole?.filterable).toBe(true);
   });
 
   it('allows looking a party up by its account id', () => {

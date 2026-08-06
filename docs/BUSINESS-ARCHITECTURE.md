@@ -99,6 +99,12 @@ different things by "product".
 | **Vendor**   | **Yes — an `Organization`** | its own tenant storage only                                 | onboarded as a customer |
 | **Operator** | No                          | control plane, and cross-tenant only by an audited crossing | platform staff          |
 
+Which persona a session belongs to is carried explicitly, as the `partyRole`
+claim on the access token — resolved once at sign-in from the person's
+`Individual` record and never inferred from whether an organization happened to
+resolve, because a buyer and an operator both hold none
+([ADR 0015](adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md)).
+
 A persona is a **`PartyRole`**, not an entity type. Getting this backwards —
 "vendor = Organization, buyer = Individual" — is the modelling mistake SID exists
 to prevent: it forecloses a B2B buyer, a vendor purchasing from another vendor,

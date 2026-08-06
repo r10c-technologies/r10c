@@ -31,10 +31,27 @@ export const organizationSeedData = (
   },
 ];
 
-/** The people behind the seeded accounts, as parties rather than as logins. */
+/**
+ * The people behind the seeded accounts, as parties rather than as logins.
+ *
+ * `partyRole` is what makes the two personas above a field rather than a
+ * comment: it rides into each session and access token, so a service can tell a
+ * vendor member from platform staff without inferring it from whether an
+ * organization happened to resolve.
+ */
 export const individualSeedData: ReadonlyArray<Record<string, unknown>> = [
-  { id: 'party-user-2', fullName: 'Alan Turing', userId: 'user-2' },
-  { id: 'party-user-1', fullName: 'Ada Lovelace', userId: 'user-1' },
+  {
+    id: 'party-user-2',
+    fullName: 'Alan Turing',
+    userId: 'user-2',
+    partyRole: 'vendor',
+  },
+  {
+    id: 'party-user-1',
+    fullName: 'Ada Lovelace',
+    userId: 'user-1',
+    partyRole: 'operator',
+  },
 ];
 
 /**

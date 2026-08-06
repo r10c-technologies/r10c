@@ -39,10 +39,6 @@ import {
   CREDENTIAL_COLLECTION,
   makeMongoAccountRepository,
 } from './identity/account-repository';
-import {
-  ActiveOrganizationResolverTag,
-  makeMongoActiveOrganizationResolver,
-} from './identity/active-organization';
 import { makeRedisAttemptLimiter } from './identity/attempt-limiter';
 import { makeDevNotificationPort } from './identity/notifications';
 import { makeBcryptPasswordHasher } from './identity/password';
@@ -52,6 +48,10 @@ import {
   JWT_AUDIENCE,
   JWT_ISSUER,
 } from './identity/session-policy';
+import {
+  makeMongoSessionScopeResolver,
+  SessionScopeResolverTag,
+} from './identity/session-scope';
 import {
   entitlementSeedData,
   individualSeedData,
@@ -173,9 +173,9 @@ const AccountRepositoryLayer = Layer.effect(
 );
 
 /** Which organization a sign-in acts for — a control-plane lookup. */
-const ActiveOrganizationResolverLayer = Layer.effect(
-  ActiveOrganizationResolverTag,
-  Effect.map(MongoDatabaseTag, makeMongoActiveOrganizationResolver),
+const SessionScopeResolverLayer = Layer.effect(
+  SessionScopeResolverTag,
+  Effect.map(MongoDatabaseTag, makeMongoSessionScopeResolver),
 );
 
 /** Durable device history, over the same Mongo connection. */
@@ -224,7 +224,11 @@ export const AppLayer = Layer.unwrapEffect(
     const uri = yield* store.in('mongo').getString('uri');
     const dbName = yield* store.in('mongo').getString('db');
     const redisUri = yield* store.in('redis').getString('uri');
-    const jwtSecret = yield* store.in('jwt').getString('secret');
+    // auth-service is the fleet's only holder of the private key: it is the one
+    // service that mints tokens. Everyone else gets `publicKey` alone.
+    const jwtPrivateKey = yield* store.in('jwt').getString('privateKey');
+    const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
+    const jwtKeyId = yield* store.in('jwt').getString('keyId');
     // Shared with marketplace-admin-service, which seeds this organization's
     // catalog into its own database — so the id is configuration rather than a
     // constant duplicated in two codebases.
@@ -240,7 +244,9 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(
         TokenServiceTag,
         makeJoseTokenService({
-          secret: jwtSecret,
+          privateKeyPem: jwtPrivateKey,
+          publicKeyPem: jwtPublicKey,
+          keyId: jwtKeyId,
           issuer: JWT_ISSUER,
           audience: JWT_AUDIENCE,
         }),
@@ -259,7 +265,7 @@ export const AppLayer = Layer.unwrapEffect(
         RedisOneTimeTokenStoreLayer(),
         AttemptLimiterLayer,
         AccountRepositoryLayer,
-        ActiveOrganizationResolverLayer,
+        SessionScopeResolverLayer,
         UserDeviceRepositoryLayer,
         NotificationLayer,
       ),

@@ -70,7 +70,10 @@ export const AppLayer = Layer.unwrapEffect(
       .getString('demoOrganizationId');
     const redisUri = yield* store.in('redis').getString('uri');
     const amqpUri = yield* store.in('rabbitmq').getString('uri');
-    const jwtSecret = yield* store.in('jwt').getString('secret');
+    // The public half only. This service verifies access tokens and never mints
+    // one, so it is configured with material that cannot sign.
+    const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
+    const jwtKeyId = yield* store.in('jwt').getString('keyId');
 
     // Observability parameters (log level + sink, OTLP endpoint). The tooling
     // logger replaces Effect's default logger and the OTel tracer exports spans,
@@ -87,7 +90,7 @@ export const AppLayer = Layer.unwrapEffect(
 
     // Connections resolved from config-service: Mongo (catalog), Redis (locks +
     // code sequences), RabbitMQ (transaction event bus). The token service
-    // verifies access tokens minted by auth-service (shared HS256 secret).
+    // verifies RS256 access tokens minted by auth-service.
     const connections = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
       RedisLayer({ uri: redisUri }),
@@ -95,7 +98,8 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(
         TokenServiceTag,
         makeJoseTokenService({
-          secret: jwtSecret,
+          publicKeyPem: jwtPublicKey,
+          keyId: jwtKeyId,
           issuer: AUTH_TOKEN_ISSUER,
           audience: AUTH_TOKEN_AUDIENCE,
         }),

@@ -27,7 +27,10 @@ which data plane they live in, and how they extend — is
 > one Mongo database per organization, resolved per request from the session (see
 > [Tenancy](#tenancy-resolving-the-organizations-storage)). Copy ships `es`/`en`
 > through mandatory i18n, and marketplace-app renders the storefront on the
-> server, prerendered per locale. Zitadel/RS256, a real rule engine, tenant
+> server, prerendered per locale. Access tokens are **RS256**, verified against a
+> public key ([ADR 0015](./adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md)).
+> Zitadel ([ADR 0016](./adr/0016-zitadel-authenticates-r10c-authorizes.md)), a
+> real rule engine, tenant
 > storage on Postgres ([ADR 0013](./adr/0013-tenant-storage-on-postgres.md)),
 > catalog publication into the platform plane
 > ([ADR 0009](./adr/0009-catalog-authoring-and-publication.md)) and stock/orders
@@ -315,11 +318,32 @@ short-lived signed token, chosen over a bare JWT so a session is revocable):
   `r10c_at` (cookie or `Authorization: Bearer`) and verifies it statelessly via
   `TokenServiceTag` — a Mongo/Redis-free `401` check. A handler that needs the
   richer, volatile session `attributes` reads Redis directly by `sessionId`.
+- **Tokens are RS256 and only auth-service can mint one.** It alone resolves
+  `jwt.privateKey`; every other service resolves `jwt.publicKey` + `jwt.keyId` and
+  is structurally incapable of forging a principal. `verifyAccessToken` pins
+  `algorithms: ['RS256']` — without it jose honours the token's own `alg` header
+  and the public key, which `/.well-known/jwks.json` hands to anyone, would be
+  accepted as an HMAC secret. auth-service serves that JWKS endpoint for
+  consumers holding no fleet configuration (a browser, an edge runtime); no fleet
+  service reads it, so verification never depends on auth-service being up. See
+  [ADR 0015](./adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md).
+- **A session carries the population it belongs to.** `partyRole`
+  (`customer`/`vendor`/`operator`) is resolved once at sign-in by
+  `SessionScopeResolver` — the same party→membership lookup that answers
+  `activeOrganizationId` — stored on the session and re-signed unchanged on
+  refresh. It exists because an absent organization means _both_ a buyer and an
+  operator, and the difference in reach is enormous. It is routing context, never
+  a grant.
+- **`GET /api/config` is unauthenticated, so it blanks flagged secrets.**
+  `ConfigurationItem.isSecret` is propagated from config-service's `is_secret`
+  column and `redactConfiguration` blanks it. The URI credential mask alone was
+  not enough — a signing key is not a URI.
 - `SessionStoreTag`/`TokenServiceTag` are framework-free contracts in
   `entifix-ts-business` (`sessions/`, `tokens/`); `entifix-ts-redis-client` and
   the new `entifix-ts-jwt-client` are their only concrete adapters today, so a
   future Zitadel-backed `IdentityProviderTag` can swap in without touching the
-  routes or the use-cases.
+  routes or the use-cases
+  ([ADR 0016](./adr/0016-zitadel-authenticates-r10c-authorizes.md)).
 
 ## Authorization: role aspects + permissions
 

@@ -149,6 +149,14 @@ export const entity: EsEntity = {
       id: 'ID',
       fullName: 'Full name',
       userId: 'User ID',
+      partyRole: 'Role played',
+    },
+    values: {
+      partyRole: {
+        customer: 'Customer',
+        vendor: 'Vendor',
+        operator: 'Operator',
+      },
     },
   },
   membership: {

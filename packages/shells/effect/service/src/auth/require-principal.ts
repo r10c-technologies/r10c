@@ -27,6 +27,15 @@ export interface RequestPrincipal {
    * database a handler reads.
    */
   readonly organizationId?: string;
+  /**
+   * Which population the caller belongs to — buyer, vendor staff, or platform
+   * staff. Carried so a handler never has to infer it from an absent
+   * `organizationId`, which a buyer and an operator share.
+   *
+   * Context, not a grant: what the caller may *do* still comes from `roles`
+   * through {@link PolicyDecisionTag}.
+   */
+  readonly partyRole?: string;
   readonly attributes: Readonly<Record<string, unknown>>;
 }
 
@@ -50,6 +59,9 @@ const claimsToPrincipal = (claims: TokenClaims): RequestPrincipal => ({
   // controls. That is what makes tenant isolation a property of the session
   // rather than of every handler remembering to check.
   organizationId: claims.activeOrganizationId,
+  // Same rule, same reason: it comes from the verified token, never from
+  // anything the caller can set on the request.
+  partyRole: claims.partyRole,
   // Rich/volatile attributes are not in the token; a handler that needs them
   // reads the session store by `sessionId`.
   attributes: {},
