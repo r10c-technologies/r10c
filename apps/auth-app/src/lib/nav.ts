@@ -31,7 +31,7 @@ interface GuardedNavSection {
 /** Presentation only, and auth-app's to choose — the shell's list has no icons. */
 const ACCOUNT_ICONS: Record<string, string> = {
   'account.profile': '◕',
-  'account.password': '⚿',
+  'account.security': '⚿',
   'account.sessions': '◎',
 };
 

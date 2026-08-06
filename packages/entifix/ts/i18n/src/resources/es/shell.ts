@@ -38,7 +38,7 @@ export const shell = {
    */
   account: {
     profile: 'Perfil',
-    password: 'Contraseña',
+    security: 'Seguridad',
     sessions: 'Sesiones',
     signOut: 'Cerrar sesión',
   },

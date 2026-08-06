@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { SqlClient } from '@effect/sql';
 import { PgClient } from '@effect/sql-pg';
 import {
@@ -56,6 +58,46 @@ export interface ConfigurationRow {
  * itself as such.
  */
 const DEV_KEY_ID = 'dev-2026-08';
+
+/**
+ * Zitadel's per-instance values, which cannot be committed and cannot be
+ * invented.
+ *
+ * The OIDC app's client id and the seed machine's token are minted when the
+ * instance is first initialised, so `infra/local/ensure.sh`'s L6 rung extracts
+ * them into `infra/local/zitadel/.generated.env` (gitignored) and this seed
+ * reads them from there. An environment variable wins when set, which is what
+ * lets a non-local deployment supply them without a file.
+ *
+ * Reading a file from the repo at boot would be wrong anywhere else; it is
+ * right here because both halves are recreated together — `dev:reset` wipes the
+ * Zitadel instance *and* this Postgres, so a stale pair cannot survive one. The
+ * seed is `ON CONFLICT DO NOTHING`, so without that pairing an old client id
+ * would outlive the instance it named and every sign-in would fail with a
+ * mystery.
+ */
+const readGeneratedZitadelEnv = (): Record<string, string> => {
+  const values: Record<string, string> = {};
+  try {
+    // Resolved from the repo root rather than the bundle, which webpack moves.
+    const path = `${process.cwd()}/infra/local/zitadel/.generated.env`;
+    const contents = readFileSync(path, 'utf8');
+    for (const line of contents.split('\n')) {
+      const match = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
+      if (match !== null) values[match[1] as string] = match[2] as string;
+    }
+  } catch {
+    // Absent is normal: nothing has seeded the instance yet, or this is not a
+    // local machine. The rows below then seed empty and the service says so
+    // through its readiness probe rather than guessing a value.
+  }
+  return values;
+};
+
+const GENERATED_ZITADEL = readGeneratedZitadelEnv();
+
+const zitadelValue = (name: string, fallback = ''): string =>
+  process.env[name] ?? GENERATED_ZITADEL[name] ?? fallback;
 
 const DEV_PRIVATE_KEY_PEM = `-----BEGIN PRIVATE KEY-----
 MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQChlw1RgBhMTBk2
@@ -259,6 +301,65 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'jwt',
     key: 'keyId',
     value: DEV_KEY_ID,
+  },
+  // Where identity itself lives. auth-service verifies an `id_token` against
+  // the issuer and drives user lifecycle with the machine token; it holds no
+  // password, and there is no row here that could give it one.
+  {
+    service: 'auth-service',
+    group_name: 'zitadel',
+    key: 'issuer',
+    value: zitadelValue('ZITADEL_ISSUER', 'http://localhost:30080'),
+  },
+  {
+    service: 'auth-service',
+    group_name: 'zitadel',
+    key: 'clientId',
+    value: zitadelValue('ZITADEL_CLIENT_ID'),
+  },
+  // `is_secret` is what keeps this out of the unauthenticated `/api/config`
+  // response. A machine token is a full-privilege credential at the provider —
+  // it can create and delete users — so a row that forgot the flag would put it
+  // in a public body.
+  {
+    service: 'auth-service',
+    group_name: 'zitadel',
+    key: 'pat',
+    value: zitadelValue('ZITADEL_PAT'),
+    is_secret: true,
+  },
+  // The browser comes back to the APP, never to the service: auth-app is what
+  // owns cookies. It must match a redirect URI registered on the OIDC app or
+  // Zitadel refuses the authorization outright.
+  {
+    service: 'auth-service',
+    group_name: 'zitadel',
+    key: 'redirectUri',
+    value: zitadelValue(
+      'ZITADEL_REDIRECT_URI',
+      'http://localhost:3002/api/auth/callback',
+    ),
+  },
+  {
+    service: 'auth-service',
+    group_name: 'zitadel',
+    key: 'postLogoutRedirectUri',
+    value: zitadelValue(
+      'ZITADEL_POST_LOGOUT_REDIRECT_URI',
+      'http://localhost:3002/',
+    ),
+  },
+  // Where the account page sends someone to change a password, enrol a second
+  // factor or link a social account. Self-service is the provider's screen now,
+  // so this is a link rather than a feature.
+  {
+    service: 'auth-app',
+    group_name: 'zitadel',
+    key: 'accountUrl',
+    value: zitadelValue(
+      'ZITADEL_ACCOUNT_URL',
+      'http://localhost:30080/ui/console/users/me',
+    ),
   },
   {
     service: 'marketplace-admin-service',

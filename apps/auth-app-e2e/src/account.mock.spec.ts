@@ -45,22 +45,19 @@ test.describe('the /account surface', () => {
     expect(location).not.toContain('3001');
   });
 
-  test.describe('password recovery', () => {
-    for (const path of ['/es/forgot-password', '/es/reset-password']) {
-      test(`${path} stays reachable while signed in`, async ({
-        context,
-        baseURL,
-      }) => {
-        // Recovery has to work whether or not you still hold a session: you may
-        // be signed in here and resetting because you lost another device.
-        await seedSession(context, { roles: ['user'] });
+  // Recovery used to be two of our own screens, held open to both signed-in and
+  // signed-out visitors. It is Zitadel's now, so what replaces those assertions
+  // is the one screen that took over from them.
+  test('keeps the security screen reachable while signed in', async ({
+    context,
+    baseURL,
+  }) => {
+    await seedSession(context, { roles: ['user'] });
 
-        const response = await context.request.get(`${baseURL}${path}`, {
-          maxRedirects: 0,
-        });
+    const response = await context.request.get(`${baseURL}/es/account/security`, {
+      maxRedirects: 0,
+    });
 
-        expect(response.headers()['location'] ?? '').not.toContain('3001');
-      });
-    }
+    expect(response.headers()['location'] ?? '').not.toContain('3001');
   });
 });

@@ -19,6 +19,21 @@ export const IdentifierType = {
 export type IdentifierType =
   (typeof IdentifierType)[keyof typeof IdentifierType];
 
+/**
+ * One way a user is known: an email address, a username, or the identity
+ * provider's own subject.
+ *
+ * `ExternalSubject` is the load-bearing one. It holds the Zitadel `sub` and is
+ * what a sign-in resolves to a canonical user, which is precisely why the
+ * canonical id stays r10c's: swapping or rebuilding the provider changes rows
+ * here and no foreign key anywhere else.
+ *
+ * The `email`/`username` rows are **projections** — Zitadel writes them, this
+ * store mirrors them from the verified `id_token` on every sign-in so the
+ * back office and the device-alert address stay readable locally. Editing one
+ * here would not change what a user signs in with; it would only make the two
+ * disagree.
+ */
 @entity({
   domain: 'authn',
   key: 'entity-identifier',

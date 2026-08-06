@@ -1,6 +1,7 @@
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
+import { signIn as signInWith } from '../support/sign-in';
 
 /**
  * Session and device self-service.
@@ -9,36 +10,35 @@ import { startMockService } from '../support/mock-service';
  * end any id it is handed, which was safe while only logout called it with your
  * own — the moment a route accepts an id from the outside, a session id that
  * leaks into a log or a URL becomes a remote-logout weapon.
+ *
+ * None of it changed when credentials moved to Zitadel, which is the claim
+ * these journeys now also make: sessions, devices and revocation are r10c's,
+ * and only *how the first one opens* was swapped.
  */
 const service = defineServiceE2e({
   liveUrlEnvVar: 'AUTH_SERVICE_URL',
   startMock: startMockService,
 });
 
-const password = 'correct-horse-battery';
-
-/** Register and sign in, optionally reporting a device. */
+/** Provision an account by signing in as a subject nobody has seen before. */
 const openAccount = async (label: string) => {
   const email = `${label}-${Date.now()}@example.com`;
-  await service.client.post('/api/auth/register', {
-    password,
-    identifiers: [{ type: 'email', value: email }],
-    device: {
-      deviceId: `${label}-device`,
-      browser: 'Chrome',
-      os: 'macOS',
-      type: 'desktop',
-      ip: '203.0.113.0',
-    },
+  await signInWith(service, email, {
+    deviceId: `${label}-device`,
+    browser: 'Chrome',
+    os: 'macOS',
+    type: 'desktop',
+    ip: '203.0.113.0',
   });
   return email;
 };
 
 const signIn = async (email: string, deviceId: string) => {
-  const res = await service.client.post('/api/auth/login', {
-    identifier: email,
-    password,
-    device: { deviceId, browser: 'Firefox', os: 'Linux', type: 'desktop' },
+  const res = await signInWith(service, email, {
+    deviceId,
+    browser: 'Firefox',
+    os: 'Linux',
+    type: 'desktop',
   });
   return res.data as { accessToken: string; sessionId: string };
 };
@@ -164,8 +164,8 @@ describe('session self-service', () => {
     );
 
     expect(res.status).toBe(200);
-    // The whole reason `revokeAllForUserExcept` exists: a password change must
-    // not sign you out of the screen you are standing on.
+    // The whole reason `revokeAllForUserExcept` exists: ending your other
+    // sessions must not sign you out of the screen you are standing on.
     const still = await service.client.post('/api/auth/refresh', {
       sessionId: mine.sessionId,
     });
@@ -199,10 +199,7 @@ describe('administrative session control', () => {
   });
 
   it('lets an administrator read and end a user’s sessions', async () => {
-    const admin = await service.client.post('/api/auth/login', {
-      identifier: 'ada@example.com',
-      password: 'password123',
-    });
+    const admin = await signInWith(service, 'ada@example.com');
     const target = await openAccount('target');
     const targetSession = await signIn(target, 'device-target');
 

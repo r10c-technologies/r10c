@@ -32,8 +32,9 @@ const stubAccounts = (
     findByIdentifier: () => Effect.succeed(null),
     findById: () => Effect.succeed(target),
     findContactAddress: () => Effect.succeed(null),
-    readPasswordHash: () => Effect.succeed(null),
-    writePasswordHash: () => Effect.void,
+    linkExternalSubject: () => Effect.void,
+    projectIdentity: () => Effect.void,
+
     createAccount: () =>
       Effect.fail(new EntifixLogicError('not used in update')),
     updateUserAspects: (_userId, changes) => {

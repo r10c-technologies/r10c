@@ -11,6 +11,7 @@
 #   L3 workloads    namespace + deployments reconciled   -> apply.sh
 #   L4 rollout      each deployment has a Ready replica  -> restart the pod once
 #   L5 probes       TCP + protocol handshake             -> back to L4
+#   L6 zitadel seed instance has project/app/policy/SMTP -> tools/zitadel-seed.mjs
 #
 # Healing here is destructive nowhere. When the ladder cannot fix something it
 # exits non-zero naming the exact command that can.
@@ -46,8 +47,9 @@ wait_for_probes() {
 
 # ---------------------------------------------------------------- fast path
 # The common case: everything is already up. No lock, no kubectl, ~0.2s.
-if all_probes_green; then
-  log_ok "local infra healthy (mongo redis rabbitmq postgres otel)"
+# `zitadel_seeded` is a file test, so adding L6 to this question costs nothing.
+if all_probes_green && zitadel_seeded; then
+  log_ok "local infra healthy ($(probed_labels))"
   exit 0
 fi
 
@@ -55,7 +57,7 @@ require_tools || exit 1
 acquire_heal_lock || exit 1
 
 # Someone else may have healed while we queued on the lock.
-if all_probes_green; then
+if all_probes_green && zitadel_seeded; then
   log_ok "local infra healthy (healed by a parallel task)"
   exit 0
 fi
@@ -152,26 +154,34 @@ done
 [[ "$restarted" -eq 1 ]] && log "restarted pods are Ready"
 
 # ---------------------------------------------------------------- L5 probes
-if wait_for_probes; then
-  log_ok "local infra healthy (mongo redis rabbitmq postgres otel)"
-  exit 0
-fi
+if ! wait_for_probes; then
+  # Every deployment Ready but the sockets stay shut: the pods are fine and the
+  # host cannot reach them. On non-docker drivers this is how port-mapping drift
+  # surfaces, since L2 could not answer directly.
+  if all_deploys_ready; then
+    log_err "all deployments are Ready but their NodePorts are unreachable from 127.0.0.1."
+    echo "  The cluster is almost certainly missing its --ports mapping." >&2
+    reset_hint
+    exit 1
+  fi
 
-# Every deployment Ready but the sockets stay shut: the pods are fine and the
-# host cannot reach them. On non-docker drivers this is how port-mapping drift
-# surfaces, since L2 could not answer directly.
-if all_deploys_ready; then
-  log_err "all deployments are Ready but their NodePorts are unreachable from 127.0.0.1."
-  echo "  The cluster is almost certainly missing its --ports mapping." >&2
+  log_err "datastores did not become reachable in time."
+  for spec in "${PORT_SPECS[@]}"; do
+    label="$(spec_label "$spec")"; port="$(spec_port "$spec")"
+    probe_datastore "$label" "$port" || echo "  down: $label (:$port)" >&2
+  done
+  kubectl -n "$NS" get pods 2>/dev/null || true
   reset_hint
   exit 1
 fi
 
-log_err "datastores did not become reachable in time."
-for spec in "${PORT_SPECS[@]}"; do
-  label="$(spec_label "$spec")"; port="$(spec_port "$spec")"
-  probe_datastore "$label" "$port" || echo "  down: $label (:$port)" >&2
-done
-kubectl -n "$NS" get pods 2>/dev/null || true
-reset_hint
-exit 1
+# ---------------------------------------------------------------- L6 zitadel seed
+# Runs only once per instance, and only after L5: the seed talks to Zitadel's
+# API, so it needs the instance actually serving rather than merely rolled out.
+if ! seed_zitadel; then
+  reset_hint
+  exit 1
+fi
+
+log_ok "local infra healthy ($(probed_labels))"
+exit 0

@@ -29,7 +29,7 @@ export const shell: EsShell = {
   },
   account: {
     profile: 'Profile',
-    password: 'Password',
+    security: 'Security',
     sessions: 'Sessions',
     signOut: 'Sign out',
   },

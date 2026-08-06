@@ -1,35 +1,32 @@
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
+import { signIn } from '../support/sign-in';
 
 /**
  * User management, which is where authorization stops being a menu and starts
  * being a decision.
  *
- * Runs in both profiles: every token here is obtained by actually logging in,
+ * Runs in both profiles: every token here is obtained by actually signing in,
  * so nothing depends on knowing the signing secret. The seeded users are one
- * per role (`ada` super-admin, `alan` admin, `grace` user).
+ * per role (`ada` super-admin, `alan` admin, `grace` user), and each is linked
+ * to a provider subject by the same boot seed the service runs.
  */
 const service = defineServiceE2e({
   liveUrlEnvVar: 'AUTH_SERVICE_URL',
   startMock: startMockService,
 });
 
-const DEV_PASSWORD = 'password123';
-
-const bearerFor = async (identifier: string): Promise<string> => {
-  const res = await service.client.post('/api/auth/login', {
-    identifier,
-    password: DEV_PASSWORD,
-  });
+const bearerFor = async (email: string): Promise<string> => {
+  const res = await signIn(service, email);
   if (res.status !== 200) {
-    throw new Error(`could not sign in as ${identifier} (${res.status})`);
+    throw new Error(`could not sign in as ${email} (${res.status})`);
   }
   return `Bearer ${res.data.accessToken}`;
 };
 
-const asUser = async (identifier: string) => ({
-  headers: { Authorization: await bearerFor(identifier) },
+const asUser = async (email: string) => ({
+  headers: { Authorization: await bearerFor(email) },
 });
 
 /** A fresh email per call, so a rerun against a live store does not collide. */
@@ -47,10 +44,7 @@ describe('auth-service user management', () => {
     // The distinction the guard exists to make: signed in, and still refused.
     it('refuses a plain user with 403', async () => {
       const email = uniqueEmail('reader');
-      await service.client.post('/api/auth/register', {
-        password: DEV_PASSWORD,
-        identifiers: [{ type: 'email', value: email }],
-      });
+      await signIn(service, email);
 
       const res = await service.client.get(
         '/api/user-identity',
@@ -81,7 +75,6 @@ describe('auth-service user management', () => {
         '/api/user-identity',
         {
           displayName: 'New Admin',
-          password: DEV_PASSWORD,
           role: 'admin',
           identifiers: [{ type: 'email', value: uniqueEmail('new-admin') }],
         },
@@ -100,7 +93,6 @@ describe('auth-service user management', () => {
         '/api/user-identity',
         {
           displayName: 'Sneaky',
-          password: DEV_PASSWORD,
           role: 'super-admin',
           identifiers: [{ type: 'email', value: uniqueEmail('sneaky') }],
         },
@@ -116,7 +108,6 @@ describe('auth-service user management', () => {
         '/api/user-identity',
         {
           displayName: 'Peer',
-          password: DEV_PASSWORD,
           role: 'super-admin',
           identifiers: [{ type: 'email', value: uniqueEmail('peer') }],
         },
@@ -131,7 +122,6 @@ describe('auth-service user management', () => {
       const res = await service.client.post(
         '/api/user-identity',
         {
-          password: DEV_PASSWORD,
           role: 'root',
           identifiers: [{ type: 'email', value: uniqueEmail('root') }],
         },
@@ -141,17 +131,13 @@ describe('auth-service user management', () => {
       expect(res.status).toBe(400);
     });
 
-    // Public signup takes no actor, so a crafted role in the body is ignored
-    // rather than honoured.
-    it('pins a public registration to the lowest tier', async () => {
-      const res = await service.client.post('/api/auth/register', {
-        displayName: 'Self Signup',
-        password: DEV_PASSWORD,
-        role: 'super-admin',
-        identifiers: [{ type: 'email', value: uniqueEmail('self') }],
-      });
+    // Self sign-up now happens at the provider, so there is no body to craft a
+    // role into at all — the callback passes no `actorRoles`, and the use-case
+    // caps an absent actor at the default tier.
+    it('pins a self-provisioned account to the lowest tier', async () => {
+      const res = await signIn(service, uniqueEmail('self'));
 
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(200);
       expect(res.data.principal.roles).toEqual(['user']);
     });
   });
@@ -159,10 +145,7 @@ describe('auth-service user management', () => {
   describe('changing a user’s aspects', () => {
     it('lets an admin promote a plain user and revokes their sessions', async () => {
       // The target signs in first, so there is a live session to lose.
-      const login = await service.client.post('/api/auth/login', {
-        identifier: 'grace@example.com',
-        password: DEV_PASSWORD,
-      });
+      const login = await signIn(service, 'grace@example.com');
       const sessionId = login.data.sessionId;
 
       const res = await service.client.patch(
@@ -197,10 +180,7 @@ describe('auth-service user management', () => {
       // test above turns into an admin — a spec that only passes when its
       // neighbours have not run yet is worse than no spec.
       const email = uniqueEmail('plain');
-      await service.client.post('/api/auth/register', {
-        password: DEV_PASSWORD,
-        identifiers: [{ type: 'email', value: email }],
-      });
+      await signIn(service, email);
 
       const res = await service.client.patch(
         '/api/user-identity/user-2',

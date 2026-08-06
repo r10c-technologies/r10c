@@ -15,7 +15,9 @@ export function LogoutButton() {
     setPending(true);
     const res = await fetch('/api/auth/logout', { method: 'POST' });
     const data = await res.json().catch(() => ({}));
-    window.location.href = data.redirect ?? '/';
+    // The provider's end-session URL first: clearing our cookies alone leaves
+    // Zitadel still considering the visitor signed in.
+    window.location.href = data.endSessionUrl ?? data.redirect ?? '/';
   }
 
   return (

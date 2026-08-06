@@ -30,7 +30,11 @@ export interface SeedSessionOptions {
    * Spanish locally and English on a differently-configured runner.
    */
   locale?: string;
-  /** Identifier + password for the `live` profile's real sign-in. */
+  /**
+   * Identifier + password for the `live` profile's real sign-in, performed
+   * against Zitadel's hosted login page. The default is the seeded super-admin
+   * and the dev password `auth-service` provisions them with.
+   */
   identifier?: string;
   password?: string;
   /** Where auth-app is served in `live`. */
@@ -76,12 +80,61 @@ const fabricateToken = (
 };
 
 /**
+ * Sign in for real, through Zitadel's hosted login page.
+ *
+ * There is no API shortcut left and that is by design: auth-app has no endpoint
+ * that accepts a password, because r10c holds none
+ * ([ADR 0016](../../../../../docs/adr/0016-zitadel-authenticates-r10c-authorizes.md)).
+ * The only way to obtain a real session is the flow a person performs, so the
+ * `live` profile performs it — which also means this fixture exercises the
+ * redirect, the PKCE exchange and the callback rather than skipping them.
+ *
+ * Selectors are the hosted UI's, so they are the fragile part of this file. They
+ * are targeted by `name` rather than by class or test id, since those are the
+ * attributes Zitadel's login form actually commits to.
+ */
+const signInThroughHostedUi = async (
+  context: BrowserContext,
+  options: {
+    readonly authAppUrl: string;
+    readonly identifier: string;
+    readonly password: string;
+  },
+): Promise<void> => {
+  const page = await context.newPage();
+  try {
+    await page.goto(`${options.authAppUrl}/api/auth/oidc/start`);
+
+    await page.fill('input[name="loginName"]', options.identifier);
+    await page.click('button[type="submit"]');
+
+    await page.fill('input[name="password"]', options.password);
+    await page.click('button[type="submit"]');
+
+    // Back on our origin with cookies set. Waiting on the URL rather than on a
+    // selector keeps this independent of whatever the landing page renders.
+    await page.waitForURL(url => !url.host.includes('30080'), {
+      timeout: 30_000,
+    });
+
+    const cookies = await context.cookies();
+    if (!cookies.some(cookie => cookie.name === ACCESS_COOKIE)) {
+      throw new Error(
+        `seedSession: signed in but no ${ACCESS_COOKIE} cookie was set. Is auth-service running and seeded into Zitadel?`,
+      );
+    }
+  } finally {
+    await page.close();
+  }
+};
+
+/**
  * Give the browser context a signed-in session before the first navigation.
  *
  * Profile-aware, because "being signed in" means different things in each:
  * `mock` fabricates the cookie, while `live` performs a **real sign-in** through
- * auth-app so the token is one auth-service actually minted and the downstream
- * `requirePermission` checks are genuinely exercised.
+ * the provider's hosted page so the token is one auth-service actually minted
+ * and the downstream `requirePermission` checks are genuinely exercised.
  *
  * Call it before `page.goto` — an app whose middleware protects the route will
  * otherwise redirect away before the spec can assert anything.
@@ -94,27 +147,16 @@ export const seedSession = async (
     partyRole = 'vendor',
     locale = 'es',
     identifier = 'ada@example.com',
-    password = 'password123',
+    password = 'Password123!',
     authAppUrl = process.env['AUTH_APP_URL'] ?? 'http://localhost:3002',
   }: SeedSessionOptions = {},
 ): Promise<void> => {
   if (!isMockProfile()) {
-    const response = await context.request.post(
-      `${authAppUrl}/api/auth/login`,
-      {
-        data: { identifier, password },
-      },
-    );
-    if (!response.ok()) {
-      throw new Error(
-        `seedSession: live sign-in failed (${response.status()}). Is auth-app running at ${authAppUrl} with its seed users?`,
-      );
-    }
-    // The login handler set the cookies on the request context; move them onto
-    // the browser context so page navigations carry them.
-    await context.addCookies(
-      await context.request.storageState().then(state => state.cookies),
-    );
+    await signInThroughHostedUi(context, {
+      authAppUrl,
+      identifier,
+      password,
+    });
     await context.addCookies([
       { name: LOCALE_COOKIE, value: locale, domain: 'localhost', path: '/' },
     ]);

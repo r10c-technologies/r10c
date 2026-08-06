@@ -36,7 +36,9 @@ echo "${C_BOLD}RESET local infrastructure${C_OFF}"
 echo "  deletes namespace ${C_BOLD}$NS${C_OFF} (workloads, PVCs, PVs)"
 echo "  wipes /data/marketplace-{mongodb,redis,rabbitmq,postgres} inside minikube"
 [[ "$HARD" -eq 1 ]] && echo "  ${C_BOLD}--hard${C_OFF}: deletes and recreates the minikube cluster"
-echo "  ${C_YELLOW}Local dev data is lost${C_OFF}: users, sessions, catalog docs, config rows."
+echo "  destroys the ${C_BOLD}Zitadel instance${C_OFF} (its database lives in the same Postgres)"
+echo "  ${C_YELLOW}Local dev data is lost${C_OFF}: users, sessions, catalog docs, config rows,"
+echo "  and every credential, MFA enrolment and linked social account in Zitadel."
 echo "  All of it is re-seeded on the next service boot."
 echo
 if [[ "$ASSUME_YES" != "1" ]]; then
@@ -85,6 +87,13 @@ if [[ "$HARD" -eq 0 ]]; then
   minikube ssh -- 'sudo rm -rf /data/marketplace-mongodb /data/marketplace-redis /data/marketplace-rabbitmq /data/marketplace-postgres' >/dev/null 2>&1 || true
 fi
 
+# Zitadel's database went with the Postgres hostPath above, so the token and the
+# client id we extracted from the old instance now describe nothing. Leaving
+# them behind is worse than deleting them: `zitadel_seeded` would report the new
+# instance as already seeded and the fleet would boot pointing at a dead app.
+log "discarding the previous Zitadel instance's generated credentials"
+rm -f "$ZITADEL_PAT_FILE" "$ZITADEL_GENERATED_ENV"
+
 log "applying manifests"
 bash "$DIR/apply.sh"
 
@@ -112,6 +121,11 @@ if ! all_probes_green; then
   fi
   exit 1
 fi
+
+# ------------------------------------------------------------- zitadel seed
+# The fresh instance has no project, no OIDC app and no SMTP provider, so a
+# reset that stopped here would leave a fleet nobody can sign in to.
+seed_zitadel || exit 1
 
 # --------------------------------------------------------------- app caches
 # Same idea one layer up: a reset is worthless if the app then serves a stale

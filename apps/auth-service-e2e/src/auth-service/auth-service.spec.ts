@@ -1,11 +1,15 @@
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
-import { startMockService } from '../support/mock-service';
+import {
+  markEmailUnverified,
+  startMockService,
+} from '../support/mock-service';
+import { signIn } from '../support/sign-in';
 
 /**
  * The auth-service HTTP surface, in both profiles. `mock` boots the real router
- * in-process over a fake Mongo driver and the stub identity provider; `live`
- * talks to the process on `AUTH_SERVICE_URL`.
+ * in-process over a fake Mongo driver and an in-memory Zitadel; `live` talks to
+ * the process on `AUTH_SERVICE_URL`.
  */
 const service = defineServiceE2e({
   liveUrlEnvVar: 'AUTH_SERVICE_URL',
@@ -20,79 +24,131 @@ describe('auth-service', () => {
     expect(res.data).toEqual({ status: 'ok', service: '@r10c/auth-service' });
   });
 
-  describe('credential flow', () => {
+  describe('sign-in flow', () => {
     // A unique identifier per run keeps the live profile idempotent-ish.
     const suffix = Date.now();
     const email = `grace-${suffix}@example.com`;
-    const username = `grace-${suffix}`;
-    const password = 'correct-horse-battery';
 
-    it('registers an account with multiple identifiers and opens a session', async () => {
-      const res = await service.client.post('/api/auth/register', {
-        displayName: 'Grace Hopper',
-        password,
-        identifiers: [
-          { type: 'email', value: email },
-          { type: 'username', value: username },
-        ],
-      });
+    it('starts an authorization with PKCE and a single-use state', async () => {
+      const res = await service.client.post('/api/auth/oidc/start', {});
 
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(200);
+      const url = new URL(res.data.authorizationUrl);
+      // The three parameters that make a public client safe. A missing
+      // `code_challenge` would silently downgrade the flow to one where a
+      // stolen code is enough.
+      expect(url.searchParams.get('code_challenge')).toBeTruthy();
+      expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+      expect(url.searchParams.get('state')).toBeTruthy();
+      expect(url.searchParams.get('nonce')).toBeTruthy();
+    });
+
+    it('provisions an unknown subject on first sign-in, at the lowest tier', async () => {
+      const res = await signIn(service, email);
+
+      expect(res.status).toBe(200);
       expect(typeof res.data.accessToken).toBe('string');
       expect(typeof res.data.sessionId).toBe('string');
-      // Public signup always lands on the lowest tier, whatever the body says.
+      // Whoever signs themselves up through the hosted UI lands on `user`,
+      // because provisioning passes no `actorRoles` and the use-case caps it.
       expect(res.data.principal.roles).toEqual(['user']);
     });
 
-    it('logs in with either identifier', async () => {
-      const byEmail = await service.client.post('/api/auth/login', {
-        identifier: email,
-        password,
-      });
-      const byUsername = await service.client.post('/api/auth/login', {
-        identifier: username,
-        password,
-      });
+    it('resolves the same subject to the same canonical user on return', async () => {
+      const first = await signIn(service, email);
+      const second = await signIn(service, email);
 
-      expect(byEmail.status).toBe(200);
-      expect(byUsername.status).toBe(200);
-      // Both identifiers resolve to the same canonical user.
-      expect(byUsername.data.principal.userId).toBe(
-        byEmail.data.principal.userId,
-      );
+      expect(second.status).toBe(200);
+      // The `sub` is the key, so a second visit must not mint a second account.
+      expect(second.data.principal.userId).toBe(first.data.principal.userId);
     });
 
-    it('rejects a wrong password with 401', async () => {
-      const res = await service.client.post('/api/auth/login', {
-        identifier: email,
-        password: 'wrong',
+    it('signs a seeded user in at the role the seed gave them', async () => {
+      const res = await signIn(service, 'ada@example.com');
+
+      expect(res.status).toBe(200);
+      expect(res.data.principal.roles).toEqual(['super-admin']);
+    });
+
+    // The classic account-linking vector: an address nobody proved they own
+    // must never reach an identifier row, because the row is what a device
+    // alert is addressed from.
+    it('does not project an unverified address onto the account', async () => {
+      const claimed = `unverified-${suffix}@example.com`;
+      markEmailUnverified(claimed);
+
+      const res = await signIn(service, claimed);
+      expect(res.status).toBe(200);
+
+      const admin = await signIn(service, 'ada@example.com');
+      const identifiers = await service.client.get(
+        '/api/entity-identifier?pageSize=200',
+        { headers: { Authorization: `Bearer ${admin.data.accessToken}` } },
+      );
+
+      const rows = identifiers.data.items as Array<{
+        type: string;
+        value: string;
+      }>;
+      // The subject was recorded — they can sign in — but the address was not.
+      expect(rows.some(row => row.value === claimed)).toBe(false);
+    });
+
+    it('refuses a callback whose state was never issued', async () => {
+      const res = await service.client.post('/api/auth/oidc/callback', {
+        code: email,
+        state: 'not-a-state',
       });
 
       expect(res.status).toBe(401);
+      expect(res.data.code).toBe('invalidState');
     });
 
-    it('rejects a duplicate identifier with 409', async () => {
-      const res = await service.client.post('/api/auth/register', {
-        password,
-        identifiers: [{ type: 'email', value: email }],
+    it('refuses to replay a state that was already spent', async () => {
+      const start = await service.client.post('/api/auth/oidc/start', {});
+      const state = new URL(start.data.authorizationUrl).searchParams.get(
+        'state',
+      );
+
+      const first = await service.client.post('/api/auth/oidc/callback', {
+        code: email,
+        state,
+      });
+      const replay = await service.client.post('/api/auth/oidc/callback', {
+        code: email,
+        state,
       });
 
-      expect(res.status).toBe(409);
+      expect(first.status).toBe(200);
+      // Single-use is the whole point: a callback URL that leaks from a browser
+      // history or a proxy log is already spent by the time anyone finds it.
+      expect(replay.status).toBe(401);
     });
 
-    it('revokes the session on logout so refresh fails', async () => {
-      const login = await service.client.post('/api/auth/login', {
-        identifier: email,
-        password,
+    it('400s on a callback with no code', async () => {
+      const res = await service.client.post('/api/auth/oidc/callback', {
+        state: 'whatever',
       });
-      const { sessionId } = login.data;
+
+      expect(res.status).toBe(400);
+      expect(res.data.code).toBe('invalidRequest');
+    });
+
+    it('revokes the session on logout and says where to end the provider one', async () => {
+      const session = await signIn(service, email);
+      const { sessionId } = session.data;
 
       const refreshed = await service.client.post('/api/auth/refresh', {
         sessionId,
       });
       expect(refreshed.status).toBe(200);
 
-      await service.client.post('/api/auth/logout', { sessionId });
+      const loggedOut = await service.client.post('/api/auth/logout', {
+        sessionId,
+      });
+      // Without this the user is "signed out" locally and one click from being
+      // signed straight back in, with no prompt.
+      expect(loggedOut.data.endSessionUrl).toContain('id_token_hint');
 
       const afterLogout = await service.client.post('/api/auth/refresh', {
         sessionId,
@@ -102,22 +158,9 @@ describe('auth-service', () => {
   });
 
   describe('refresh', () => {
-    const suffix = `${Date.now()}-refresh`;
-    const email = `ada-${suffix}@example.com`;
-    const password = 'correct-horse-battery';
+    const email = `ada-${Date.now()}-refresh@example.com`;
 
-    const openSession = async () => {
-      await service.client.post('/api/auth/register', {
-        displayName: 'Ada Lovelace',
-        password,
-        identifiers: [{ type: 'email', value: email }],
-      });
-      const login = await service.client.post('/api/auth/login', {
-        identifier: email,
-        password,
-      });
-      return login.data;
-    };
+    const openSession = async () => (await signIn(service, email)).data;
 
     it('reports the session ceiling separately from the token lifetime', async () => {
       const session = await openSession();

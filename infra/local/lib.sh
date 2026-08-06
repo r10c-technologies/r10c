@@ -21,20 +21,30 @@ PORT_SPECS=(
   "rabbitmq:30672:rabbitmq"
   "postgres:30432:postgres"
   "otel:30318:otel-lgtm"
+  "zitadel:30080:zitadel"
+  "mailpit:30825:mailpit"
 )
 
-# Kustomize folders applied by apply.sh, in dependency order. Zitadel is opt-in
-# (`INFRA_INCLUDE_ZITADEL=1`): nothing in the fleet authenticates against it
-# today, and it costs a Postgres rollout wait plus ~1min of self-init.
-PLATFORMS=(mongodb redis rabbitmq postgres otel-lgtm)
+# Kustomize folders applied by apply.sh, in dependency order. Zitadel goes last
+# because it needs Postgres to exist before its own init runs.
+PLATFORMS=(mongodb redis rabbitmq postgres otel-lgtm mailpit zitadel)
 
 # The full host->node mapping minikube must be created with. Every NodePort the
 # manifests expose, including the ones the health ladder does not probe
-# (rabbitmq management 31672, zitadel 30080, grafana 30000, OTLP/gRPC 30317).
-MINIKUBE_PORTS="30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080,30000:30000,30317:30317,30318:30318"
+# (rabbitmq management 31672, grafana 30000, OTLP/gRPC 30317, mailpit's web UI
+# 30826).
+MINIKUBE_PORTS="30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080,30000:30000,30317:30317,30318:30318,30825:30825,30826:30826"
 
 # Ports that must be published by the VM/container for the fleet to work at all.
-REQUIRED_HOST_PORTS=(30017 30379 30672 30432 30318)
+# Zitadel is in this list now that it authenticates every sign-in: without it
+# nobody can obtain a session, which is not a degraded fleet but a stopped one.
+REQUIRED_HOST_PORTS=(30017 30379 30672 30432 30318 30080 30825)
+
+# Written by the L6 seed rung, read by config-service's dev target. Neither file
+# is committed: both are regenerated from scratch on every reset, because the
+# instance they describe is too.
+ZITADEL_PAT_FILE="$INFRA_DIR/zitadel/.pat"
+ZITADEL_GENERATED_ENV="$INFRA_DIR/zitadel/.generated.env"
 
 # Serializes healing when several `ensure-infra` tasks race (a single app `dev`
 # fans out to 3-4 of them). Whoever wins heals; the rest wait and re-probe.
@@ -83,8 +93,61 @@ probe_datastore() {
     postgres) has pg_isready && { pg_isready -q -h 127.0.0.1 -p "$port" -t 2 >/dev/null 2>&1 || return 1; } ;;
     redis)    has redis-cli  && { redis-cli -h 127.0.0.1 -p "$port" --no-auth-warning ping 2>/dev/null | grep -qE 'PONG|NOAUTH' || return 1; } ;;
     mongo)    has mongosh    && { mongosh "mongodb://127.0.0.1:$port" --quiet --eval 'db.adminCommand({ping:1})' >/dev/null 2>&1 || return 1; } ;;
+    # Zitadel spends ~1min self-initialising behind an open socket, so TCP is
+    # even less of a signal here than elsewhere: it answers from the moment the
+    # container starts and long before the instance can serve a login.
+    zitadel)  has curl && { curl -fsS --max-time 2 "http://127.0.0.1:$port/debug/ready" >/dev/null 2>&1 || return 1; } ;;
+    # The SMTP port is what Zitadel dials; the UI port is what a human reads.
+    mailpit)  has curl && { curl -fsS --max-time 2 "http://127.0.0.1:30826/readyz" >/dev/null 2>&1 || return 1; } ;;
   esac
   return 0
+}
+
+# The labels the ladder actually probes, for the "healthy" line. Derived rather
+# than written out, so adding a PORT_SPECS entry cannot leave a stale list.
+probed_labels() {
+  local spec out=""
+  for spec in "${PORT_SPECS[@]}"; do out="$out $(spec_label "$spec")"; done
+  echo "${out# }"
+}
+
+# L6: has the Zitadel instance been given its project, app, policies and SMTP?
+# A file test, so the fast path pays nothing to ask. The file is written by the
+# seed and deleted by reset, which is exactly the lifetime of the instance.
+zitadel_seeded() { [[ -s "$ZITADEL_GENERATED_ENV" ]]; }
+
+# Copy the machine token Zitadel minted at first init out of the pod.
+#
+# Zitadel writes it exactly once, to an emptyDir, so a pod restart loses the
+# file while the instance itself survives in Postgres. That is why the host copy
+# is authoritative once taken: we only ever read from the pod when we have no
+# copy of our own, and if both are gone the instance is unreachable to us and
+# the only honest answer is a reset.
+extract_zitadel_pat() {
+  [[ -s "$ZITADEL_PAT_FILE" ]] && return 0
+  local pat
+  # `-c pat-reader`: the zitadel container is distroless and has no `cat`.
+  pat="$(kubectl -n "$NS" exec "deploy/zitadel" -c pat-reader -- cat /machinekey/seed.pat 2>/dev/null || true)"
+  if [[ -z "$pat" ]]; then
+    log_err "Zitadel is up but its seed token is gone (the pod restarted after first init)."
+    echo "  The instance in Postgres has a token we can no longer read. Recreate both:" >&2
+    return 1
+  fi
+  printf '%s' "$pat" > "$ZITADEL_PAT_FILE"
+  chmod 600 "$ZITADEL_PAT_FILE" 2>/dev/null || true
+  return 0
+}
+
+# L6 proper: give the instance everything the fleet expects to find in it.
+# Idempotent, and skipped entirely once `.generated.env` exists.
+seed_zitadel() {
+  zitadel_seeded && return 0
+  extract_zitadel_pat || return 1
+  log_heal "zitadel: seeding project, OIDC app, login policy and SMTP"
+  ZITADEL_PAT_FILE="$ZITADEL_PAT_FILE" \
+  ZITADEL_GENERATED_ENV="$ZITADEL_GENERATED_ENV" \
+  ZITADEL_ISSUER="http://localhost:30080" \
+    node "$REPO_ROOT/tools/zitadel-seed.mjs"
 }
 
 # minikube lifecycle state, normalised to Running / Drifted / Stopped /
@@ -181,7 +244,7 @@ all_deploys_ready() {
 # listener exists. So a socket that answers proves nothing on its own, which is
 # why every deployment in `infra/local/*` declares a protocol-level
 # `readinessProbe` (AMQP for rabbit, `pg_isready`, an authenticated redis PING,
-# a mongo `ping`). Without one, `readyReplicas` means only "the container
+# a mongo `ping`, Zitadel's `/debug/ready`). Without one, `readyReplicas` means only "the container
 # started", and this function green-lights a fleet whose services will then die
 # dialling a datastore that is still booting.
 # Deleting the mongodb deployment and re-running ensure.sh reproduces the

@@ -1,20 +1,20 @@
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
+import { signIn } from '../support/sign-in';
 
 /**
  * Account-security notifications, read back through the development outbox.
  *
- * The outbox exists precisely so these are testable: the reset link is never
- * returned in a response body, so without a readable record the recovery flow
- * would have no end-to-end coverage at all.
+ * The outbox survives the move to Zitadel because these are the notifications
+ * r10c still sends: a device alert is about a *session*, which is the half of
+ * authentication that did not leave. Password and recovery mail is Zitadel's
+ * now, and lands in Mailpit instead.
  */
 const service = defineServiceE2e({
   liveUrlEnvVar: 'AUTH_SERVICE_URL',
   startMock: startMockService,
 });
-
-const password = 'correct-horse-battery';
 
 const outboxFor = async (email: string) => {
   const res = await service.client.get(
@@ -30,21 +30,22 @@ const outboxFor = async (email: string) => {
 describe('notifications', () => {
   it('announces a sign-in from a device never seen before', async () => {
     const email = `newcomer-${Date.now()}@example.com`;
-    await service.client.post('/api/auth/register', {
-      password,
-      identifiers: [{ type: 'email', value: email }],
-      device: { deviceId: 'first-device', browser: 'Chrome', os: 'macOS' },
+    await signIn(service, email, {
+      deviceId: 'first-device',
+      browser: 'Chrome',
+      os: 'macOS',
     });
 
-    await service.client.post('/api/auth/login', {
-      identifier: email,
-      password,
-      device: { deviceId: 'second-device', browser: 'Safari', os: 'iOS' },
+    await signIn(service, email, {
+      deviceId: 'second-device',
+      browser: 'Safari',
+      os: 'iOS',
     });
 
     const items = await outboxFor(email);
     const newDevice = items.filter(item => item.kind === 'new-device');
-    // One per FIRST sighting: registration's browser, then the second one.
+    // One per FIRST sighting: the browser that provisioned them, then the
+    // second one.
     expect(newDevice).toHaveLength(2);
     expect(newDevice.map(item => item.data['browser']).sort()).toEqual([
       'Chrome',
@@ -54,18 +55,11 @@ describe('notifications', () => {
 
   it('stays quiet when a familiar device signs in again', async () => {
     const email = `regular-${Date.now()}@example.com`;
-    await service.client.post('/api/auth/register', {
-      password,
-      identifiers: [{ type: 'email', value: email }],
-      device: { deviceId: 'same-device', browser: 'Chrome', os: 'macOS' },
-    });
+    const device = { deviceId: 'same-device', browser: 'Chrome', os: 'macOS' };
+    await signIn(service, email, device);
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      await service.client.post('/api/auth/login', {
-        identifier: email,
-        password,
-        device: { deviceId: 'same-device', browser: 'Chrome', os: 'macOS' },
-      });
+      await signIn(service, email, device);
     }
 
     const items = await outboxFor(email);
@@ -76,10 +70,7 @@ describe('notifications', () => {
 
   it('does not notify when the caller reports no device at all', async () => {
     const email = `headless-${Date.now()}@example.com`;
-    await service.client.post('/api/auth/register', {
-      password,
-      identifiers: [{ type: 'email', value: email }],
-    });
+    await signIn(service, email);
 
     expect(await outboxFor(email)).toHaveLength(0);
   });
@@ -88,10 +79,9 @@ describe('notifications', () => {
     const mine = `mine-${Date.now()}@example.com`;
     const theirs = `theirs-${Date.now()}@example.com`;
     for (const email of [mine, theirs]) {
-      await service.client.post('/api/auth/register', {
-        password,
-        identifiers: [{ type: 'email', value: email }],
-        device: { deviceId: `dev-${email}`, browser: 'Chrome' },
+      await signIn(service, email, {
+        deviceId: `dev-${email}`,
+        browser: 'Chrome',
       });
     }
 
@@ -99,5 +89,29 @@ describe('notifications', () => {
 
     expect(items.length).toBeGreaterThan(0);
     expect(items.every(item => item.to === mine)).toBe(true);
+  });
+
+  // Being signed out of every device with no explanation looks exactly like an
+  // account compromise. The person did not do it, so they have to be told.
+  it('tells the owner when an administrator ends all their sessions', async () => {
+    const email = `revoked-${Date.now()}@example.com`;
+    const session = await signIn(service, email, {
+      deviceId: 'revoked-device',
+      browser: 'Chrome',
+    });
+
+    const admin = await signIn(service, 'ada@example.com');
+    const me = await service.client.get('/api/me', {
+      headers: { Authorization: `Bearer ${session.data.accessToken}` },
+    });
+
+    await service.client.delete(`/api/user-identity/${me.data.userId}/sessions`, {
+      headers: { Authorization: `Bearer ${admin.data.accessToken}` },
+    });
+
+    const items = await outboxFor(email);
+    expect(
+      items.filter(item => item.kind === 'sessions-revoked'),
+    ).toHaveLength(1);
   });
 });

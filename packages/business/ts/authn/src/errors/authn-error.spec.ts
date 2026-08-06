@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AuthnError,
-  LockedError,
+  ForbiddenError,
   UnauthenticatedError,
 } from './authn-error.js';
 
@@ -15,6 +15,7 @@ describe('the authn errors', () => {
   it.each([
     [UnauthenticatedError, 'UnauthenticatedError'],
     [AuthnError, 'AuthnError'],
+    [ForbiddenError, 'ForbiddenError'],
   ])('%p carries its own _tag', (Ctor, tag) => {
     const error = new Ctor('boom');
 
@@ -46,13 +47,12 @@ describe('the authn errors', () => {
     expect(new AuthnError('unreachable').code).toBeUndefined();
   });
 
-  // 429, not 401: the credentials were never consulted, so a caller told
-  // "invalid credentials" would go off resetting a password that was fine.
-  it('distinguishes a lockout from a bad credential', () => {
-    const locked = new LockedError('too many attempts', 'accountLocked');
+  // 403, not 401: the caller proved who they are and is simply not allowed,
+  // so telling them to sign in again would send them round a loop.
+  it('distinguishes being refused from being unauthenticated', () => {
+    const refused = new ForbiddenError('above your tier', 'roleNotAllowed');
 
-    expect(locked._tag).toBe('LockedError');
-    expect(locked._tag).not.toBe(new UnauthenticatedError('a')._tag);
-    expect(locked.code).toBe('accountLocked');
+    expect(refused._tag).not.toBe(new UnauthenticatedError('a')._tag);
+    expect(refused.code).toBe('roleNotAllowed');
   });
 });
