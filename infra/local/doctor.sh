@@ -96,13 +96,24 @@ for spec in "${PORT_SPECS[@]}"; do
   probe_datastore "$label" "$port" || down="$down $label(:$port)"
 done
 if [[ -z "$down" ]]; then
-  ok "L5 probes" "mongo redis rabbitmq postgres otel"
+  ok "L5 probes" "$(probed_labels)"
 else
   bad "L5 probes" "unreachable:$down"
 fi
 
+# L6 -------------------------------------------------------------------------
+# A rung the ladder can heal but a human cannot see any other way: the fleet
+# fails at sign-in rather than at boot when the instance is unseeded.
+if zitadel_seeded; then
+  ok "L6 zitadel" "instance seeded (project, OIDC app, login policy, SMTP)"
+  unseeded=""
+else
+  bad "L6 zitadel" "instance not seeded — no OIDC app, so no sign-in"
+  unseeded="1"
+fi
+
 echo
-if [[ -z "$missing_ports" && -z "$not_ready" && -z "$down" && "$present" -eq "$total" ]]; then
+if [[ -z "$missing_ports" && -z "$not_ready" && -z "$down" && -z "$unseeded" && "$present" -eq "$total" ]]; then
   echo "${C_GREEN}healthy${C_OFF} — pnpm run mp-admin:dev will start immediately."
   exit 0
 fi

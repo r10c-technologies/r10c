@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit
+spec:
+  selector:
+    app: mailpit
+  ports:
+    # What Zitadel dials (in-cluster as `mailpit:1025`); the NodePort is what
+    # lets the ladder and a spec on the host reach it.
+    - name: smtp
+      port: 1025
+      targetPort: smtp
+      nodePort: 30825
+    # The inbox a human reads, and the `/api/v1/messages` the live pass asserts.
+    - name: http
+      port: 8025
+      targetPort: http
+      nodePort: 30826
+  type: NodePort

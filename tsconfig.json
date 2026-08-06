@@ -161,6 +161,9 @@
     },
     {
       "path": "./packages/business/ts/stock-management"
+    },
+    {
+      "path": "./packages/entifix/ts/zitadel-client"
     }
   ]
 }

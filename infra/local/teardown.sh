@@ -8,10 +8,10 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./lib.sh
 source "$DIR/lib.sh"
 
-# Reverse order of apply.sh; zitadel included even though it is opt-in there,
-# so a teardown still removes a cluster brought up with INFRA_INCLUDE_ZITADEL=1.
-for d in zitadel otel-lgtm postgres rabbitmq redis mongodb; do
-  kubectl delete -k "$DIR/$d" --ignore-not-found
+# Reverse order of apply.sh, derived from PLATFORMS so a new datastore is never
+# left running by a teardown that forgot about it.
+for (( i = ${#PLATFORMS[@]} - 1; i >= 0; i-- )); do
+  kubectl delete -k "$DIR/${PLATFORMS[$i]}" --ignore-not-found
 done
 
 echo
