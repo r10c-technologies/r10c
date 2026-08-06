@@ -41,7 +41,7 @@ module.exports = {
         '@effect/platform-node',
         'mongodb',
         // ioredis backs the Redis session store; keep it external (native-ish
-        // deps) rather than bundled. `jose`/`bcryptjs` are pure JS and bundle.
+        // deps) rather than bundled. `jose` is pure JS and bundles.
         'ioredis',
         'tslib',
       ],

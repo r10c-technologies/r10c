@@ -47,8 +47,17 @@ export function AccountMenu({
         method: 'POST',
         cache: 'no-store',
       });
-      const body = (await response.json()) as { redirect?: string };
-      window.location.href = body.redirect ?? signOutRedirect;
+      const body = (await response.json()) as {
+        redirect?: string;
+        endSessionUrl?: string;
+      };
+      // The provider's end-session URL wins when the handler returns one.
+      // Clearing our cookies alone leaves someone "signed out" who is one click
+      // from being signed straight back in with no prompt, because the provider
+      // still holds a session — which on a shared machine is the failure this
+      // whole control exists to prevent.
+      window.location.href =
+        body.endSessionUrl ?? body.redirect ?? signOutRedirect;
     } catch {
       // The cookies may already be gone; get out of the protected area anyway.
       window.location.href = signOutRedirect;

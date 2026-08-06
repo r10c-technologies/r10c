@@ -41,7 +41,10 @@ interface FakeCollection {
   ): Promise<{ matchedCount: number; upsertedCount: number }>;
   updateOne(
     query: Record<string, unknown>,
-    update: { $set?: Record<string, unknown> },
+    update: {
+      $set?: Record<string, unknown>;
+      $addToSet?: Record<string, unknown>;
+    },
   ): Promise<{ matchedCount: number; modifiedCount: number }>;
   deleteOne(query: Record<string, unknown>): Promise<{ deletedCount: number }>;
   createIndex(
@@ -227,6 +230,43 @@ describe('makeFakeMongoDb', () => {
       expect(await collection.findOne({ id: 'w-1' })).toMatchObject({
         name: 'Alpha',
       });
+    });
+
+    it('updateOne appends a new member with $addToSet', async () => {
+      const fake = seeded();
+      const collection = collectionOf(fake, 'widget');
+
+      await collection.updateOne({ id: 'w-1' }, { $addToSet: { tags: 'a' } });
+      await collection.updateOne({ id: 'w-1' }, { $addToSet: { tags: 'b' } });
+
+      expect(await collection.findOne({ id: 'w-1' })).toMatchObject({
+        tags: ['a', 'b'],
+      });
+    });
+
+    // The whole reason to use it over `$push`: a repair run re-asserts a link it
+    // already made, and must not end up with the id twice.
+    it('updateOne ignores a duplicate with $addToSet', async () => {
+      const collection = collectionOf(seeded(), 'widget');
+
+      await collection.updateOne({ id: 'w-1' }, { $addToSet: { tags: 'a' } });
+      await collection.updateOne({ id: 'w-1' }, { $addToSet: { tags: 'a' } });
+
+      expect(await collection.findOne({ id: 'w-1' })).toMatchObject({
+        tags: ['a'],
+      });
+    });
+
+    // A fake that accepted an operator it does not apply would let a spec pass
+    // on an update that never happened — worse than not supporting it at all.
+    it('updateOne throws on an operator it does not implement', async () => {
+      const collection = collectionOf(seeded(), 'widget');
+
+      await expect(
+        collection.updateOne({ id: 'w-1' }, {
+          $inc: { size: 1 },
+        } as unknown as { $set?: Record<string, unknown> }),
+      ).rejects.toThrow('$inc');
     });
 
     it('updateOne reports a miss for a document that is not there', async () => {

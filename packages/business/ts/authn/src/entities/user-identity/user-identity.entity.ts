@@ -30,6 +30,17 @@ export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
  * role entity so generic UI renders it from the metadata alone and the
  * server-side query allowlist covers it, and it is the value
  * `authSubjectFromUser` projects into every session and access token.
+ *
+ * **One writer per member.** `role` is r10c's alone — Zitadel never sees it.
+ * `displayName` and `status` are the opposite: Zitadel owns them, and what is
+ * stored here is a **projection** refreshed from the verified `id_token` on
+ * every sign-in. They stay writable rather than `@accessor({ readonly })`
+ * because that flag would drop them from deserialization too and the UI would
+ * never see them; what keeps them honest is that only the OIDC callback and the
+ * provisioning path write them, exactly as a route owns an audit stamp. An
+ * administrative edit goes to Zitadel's management API and comes back through
+ * the same projection, so the two records cannot drift apart in the one
+ * direction that would matter.
  */
 @entity({
   domain: 'authn',

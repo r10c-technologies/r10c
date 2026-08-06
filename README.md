@@ -13,7 +13,7 @@ Active development. In place today:
 - Frontends (`marketplace-app`, `marketplace-admin-app`, `auth-app`) and Effect-native backends.
 - Backends wired to real datastores: **config-service → PostgreSQL**, **marketplace-admin-service** & **auth-service → MongoDB**, seeded on first boot.
 
-Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over REST, Mongo and Postgres; writes go through the CQRS **transaction** facade (Redis locks + RabbitMQ events, tracked by `transaction-manager`); credential auth is real (Redis sessions + cookie-carried **RS256** JWTs, verified with a public key every service resolves from config-service) with permission-based authorization; copy is `es`/`en` through mandatory i18n. Business data is split across **three planes** and the tenant plane is live — the catalog physically lives in one Mongo database per organization, reached only through the handle the session resolves. Every session carries the population it belongs to (`partyRole`: customer / vendor / operator) rather than inferring it from a missing organization. Zitadel is still deferred ([ADR 0016](docs/adr/0016-zitadel-authenticates-r10c-authorizes.md)). Observability (OTLP → local `otel-lgtm`) is wired on the services.
+Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over REST, Mongo and Postgres; writes go through the CQRS **transaction** facade (Redis locks + RabbitMQ events, tracked by `transaction-manager`); authentication is **Zitadel** (authorization code + PKCE against its hosted UI; r10c stores no password, and MFA and social sign-in are configuration) while r10c keeps its own Redis sessions and cookie-carried **RS256** JWTs, verified with a public key every service resolves from config-service, with permission-based authorization; copy is `es`/`en` through mandatory i18n. Business data is split across **three planes** and the tenant plane is live — the catalog physically lives in one Mongo database per organization, reached only through the handle the session resolves. Every session carries the population it belongs to (`partyRole`: customer / vendor / operator) rather than inferring it from a missing organization. Observability (OTLP → local `otel-lgtm`) is wired on the services.
 
 ## Documentation
 
@@ -26,7 +26,7 @@ Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over REST, Mongo and Po
 | [docs/I18N.md](docs/I18N.md)                                   | Locales, catalogs, locale routing, entity label keys, error codes, and the three gates that make i18n mandatory.               |
 | [docs/DEVELOPING.md](docs/DEVELOPING.md)                       | Nx setup, file structure, `@r10c/source` resolution, every command, module boundaries, testing, and conventions.               |
 | [docs/adr/](docs/adr/)                                         | Architecture Decision Records — Accepted ones bind, Proposed ones carry a `## Trigger` naming what promotes them.              |
-| [infra/local/README.md](infra/local/README.md)                 | The minikube platform (MongoDB, Redis, Postgres, Zitadel, otel-lgtm).                                                          |
+| [infra/local/README.md](infra/local/README.md)                 | The minikube platform (MongoDB, Redis, RabbitMQ, Postgres, Zitadel, Mailpit, otel-lgtm).                                       |
 | [CLAUDE.md](CLAUDE.md)                                         | Router guide for AI assistants — imports the shared snippets and links these docs.                                             |
 
 ## Architecture at a glance

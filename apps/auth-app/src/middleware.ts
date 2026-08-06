@@ -14,18 +14,14 @@ const DEFAULT_REDIRECT =
 /**
  * Paths that only make sense while signed OUT. An authenticated visitor landing
  * here is bounced to the app.
+ *
+ * Just the landing page now. Sign-up and recovery are screens at the provider,
+ * so there is nothing of ours left for a signed-in visitor to wander into.
  */
-const SIGNED_OUT_ONLY = ['/', '/signup'];
+const SIGNED_OUT_ONLY = ['/'];
 
 /** Paths that require a session. */
 const SIGNED_IN_ONLY = ['/users', '/account'];
-
-/**
- * Paths open to both states. Password recovery has to work whether or not you
- * still have a session — you might be signed in on this device and resetting
- * because you lost another one.
- */
-const ALWAYS_OPEN = ['/forgot-password', '/reset-password'];
 
 const matches = (pathname: string, routes: readonly string[]): boolean =>
   routes.some(
@@ -38,9 +34,9 @@ const matches = (pathname: string, routes: readonly string[]): boolean =>
  *
  * This used to bounce an authenticated visitor away from **every** path except
  * `/users`, which made the whole account surface unreachable: arriving at
- * `/account/password` with a valid session sent you straight back to the admin
+ * `/account/security` with a valid session sent you straight back to the admin
  * app. The path classes above are what fixed it — "signed in" is only a reason
- * to redirect on the sign-in and sign-up screens themselves.
+ * to redirect on the sign-in screen itself.
  *
  * Presence is all that is checked here. The **role** gate lives in the
  * back-office server layout, which resolves the principal from auth-service —
@@ -56,10 +52,6 @@ export function middleware(request: NextRequest) {
   // The locale-stripped path — matching on `request.nextUrl.pathname` would
   // read `/es/users` and miss every branch.
   const pathname = locale.pathname;
-
-  if (matches(pathname, ALWAYS_OPEN)) {
-    return rewriteToLocale(request, locale);
-  }
 
   if (matches(pathname, SIGNED_IN_ONLY)) {
     if (!authenticated) {

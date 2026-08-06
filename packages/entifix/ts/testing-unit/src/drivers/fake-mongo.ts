@@ -135,9 +135,15 @@ export const makeFakeMongoDb = (
     operations.push({ collection: name, op });
     const scoped = failuresByOperation.get(op);
     if (scoped !== undefined) return Promise.reject(scoped);
-    return failure !== undefined
-      ? Promise.reject(failure)
-      : Promise.resolve(produce());
+    if (failure !== undefined) return Promise.reject(failure);
+    // `try`/`catch` rather than `Promise.resolve(produce())`: a real driver
+    // returns a promise and *rejects*, so a fake that threw synchronously would
+    // need different handling at every call site than the thing it stands in for.
+    try {
+      return Promise.resolve(produce());
+    } catch (error) {
+      return Promise.reject(error);
+    }
   };
 
   /** Applies `{ projection: { _id: 0 } }`, the only projection the adapter uses. */
@@ -231,16 +237,43 @@ export const makeFakeMongoDb = (
       }),
 
     /**
-     * Partial update. Only `$set` is implemented — that is the one operator the
-     * adapters use, and a fake that silently accepted `$inc` or `$unset` without
-     * applying them would let a spec pass on an update that never happened.
+     * Partial update. `$set` and `$addToSet` are implemented — the two operators
+     * the adapters use — and **anything else throws**, because a fake that
+     * silently accepted `$inc` or `$unset` without applying them would let a
+     * spec pass on an update that never happened.
+     *
+     * `$addToSet` is what links an identifier onto `user-identity.identifiers`
+     * without duplicating it on a repair run; supporting it here rather than
+     * ignoring it is the difference between the e2e proving the link and merely
+     * not noticing its absence.
      */
-    updateOne: (query: QueryDocument, update: { $set?: Document }) =>
+    updateOne: (
+      query: QueryDocument,
+      update: { $set?: Document; $addToSet?: Document },
+    ) =>
       record(name, 'updateOne', () => {
+        const unsupported = Object.keys(update).filter(
+          operator => operator !== '$set' && operator !== '$addToSet',
+        );
+        if (unsupported.length > 0) {
+          throw new Error(
+            `fake-mongo: updateOne does not implement ${unsupported.join(', ')}`,
+          );
+        }
+
         const documents = documentsOf(name);
         const index = documents.findIndex(doc => matches(doc, query));
         if (index === -1) return { matchedCount: 0, modifiedCount: 0 };
-        documents[index] = { ...documents[index], ...(update.$set ?? {}) };
+
+        const updated = { ...documents[index], ...(update.$set ?? {}) };
+        for (const [field, value] of Object.entries(update.$addToSet ?? {})) {
+          const current = updated[field];
+          const array = Array.isArray(current) ? current : [];
+          if (!array.includes(value)) {
+            updated[field] = [...array, value];
+          }
+        }
+        documents[index] = updated;
         return { matchedCount: 1, modifiedCount: 1 };
       }),
 

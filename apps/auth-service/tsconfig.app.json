@@ -32,6 +32,9 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/entifix/ts/zitadel-client/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/entifix/ts/redis-client/tsconfig.lib.json"
     },
     {

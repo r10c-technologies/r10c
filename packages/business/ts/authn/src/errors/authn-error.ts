@@ -60,16 +60,3 @@ export class AuthnError extends CodedAuthnError {
 export class ForbiddenError extends CodedAuthnError {
   override _tag = 'ForbiddenError';
 }
-
-/**
- * Raised when sign-ins are being refused after repeated failures.
- *
- * Distinct from {@link UnauthenticatedError} because it is not a statement about
- * the credentials at all — the right password is refused too — and because the
- * caller needs to be told to come back later rather than to try again. Answering
- * `401 invalid credentials` here would send someone off resetting a password
- * that was never wrong.
- */
-export class LockedError extends CodedAuthnError {
-  override _tag = 'LockedError';
-}

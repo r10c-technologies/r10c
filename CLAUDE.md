@@ -217,7 +217,25 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   config-service; add `ioredis`/`amqplib` to `externalDependencies`. The domain half is
   a `TransactionHandler` closing over its deps. See [[entifix-transactions-phase1]] and
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#transactions-cqrs-writes).
-- **Auth**: auth-service owns `register`/`login`/`logout`/`refresh` and returns JSON;
+- **Zitadel authenticates; r10c authorizes.** auth-service holds **no credential** —
+  no hash, no lockout ledger, no `PasswordHasher`, and no `AccountRepository`
+  method that could read or write one. Sign-in is authorization code + PKCE
+  against Zitadel's hosted UI: `POST /api/auth/oidc/start` mints the PKCE pair and
+  stashes `{codeVerifier, nonce, redirect}` under a one-time token that **is** the
+  `state`; `POST /api/auth/oidc/callback` consumes it (that consumption is the CSRF
+  _and_ replay check), verifies the `id_token` with `algorithms` pinned, resolves
+  the `sub` to a `UserIdentity` — provisioning one at `role: user` on first sight —
+  and then runs the unchanged `establishSession`. **One writer per field**: Zitadel
+  owns email/displayName/verified and the local rows are projections refreshed on
+  every callback; r10c owns `role`, `status`, party, devices and sessions.
+  Provisioning is local-first with **repair on retry**, deliberately not a saga —
+  a failed provider write leaves an account with no `external-subject` that cannot
+  sign in and is fixed by re-submitting. Sign-out must navigate to the returned
+  `endSessionUrl` or the visitor stays authenticated at the provider. MFA and
+  social are configuration in `tools/zitadel-seed.mjs`, available to all and forced
+  on nobody. See [ADR 0016](docs/adr/0016-zitadel-authenticates-r10c-authorizes.md).
+- **Auth**: auth-service owns `oidc/start`/`oidc/callback`/`logout`/`refresh` and
+  returns JSON;
   each `-app` mints its own `r10c_sid`/`r10c_at` httpOnly cookies. A backend authorizing
   a request verifies `r10c_at` statelessly via `TokenServiceTag` (no Redis/auth round
   trip on the hot path). Tokens are **RS256**: auth-service alone resolves
@@ -267,17 +285,21 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   with the locale baked into the absolute URL (`localeHref` leaves absolute URLs
   alone). `/account/*` lives outside `(back-office)`, which demands
   `authn:user-identity:read` — a plain `user` must still reach their own account.
+  The three destinations come from `ACCOUNT_DESTINATIONS` in `shells-next-common`
+  and are `profile` / **`security`** / `sessions`; `security` replaced `password`
+  and is a page of links into Zitadel, since there is no local credential to edit.
 - **Devices are labels, never authorization inputs.** `r10c_did` + `userAgent()`
   from `next/server` (no new dep; avoid `ua-parser-js` v2, it is AGPL). History is
   durable in Mongo so a familiar browser is not announced as new after its sessions
   expire. Admin session control is behind `authn:user-device:read|write`.
-- **Recovery**: the reset link exists in the notification and **never** in a
-  response body; `forgot` always answers `202` (enumeration). Tokens are hashed and
-  redeemed with `GETDEL`. Change-password revokes all _other_ sessions; reset
-  revokes _all_. Lockout answers `429`, is keyed identifier+source, auto-expires,
-  and notifies once. In dev, notifications land in `GET /api/dev/outbox`, which
-  404s in production — that route is what makes the reset flow e2e-testable.
-  See [ADR 0004](docs/adr/0004-session-lifetime-devices-and-recovery.md).
+- **Recovery and lockout are Zitadel's** ([ADR 0016](docs/adr/0016-zitadel-authenticates-r10c-authorizes.md)
+  supersedes those sections of ADR 0004). We have no reset token, no `forgot`
+  endpoint and no attempt limiter, because there is no password here to reset or
+  to guess. Mail lands in **Mailpit** (`:30826`), and the account page links out
+  to the provider's self-service for password, MFA and linked accounts. What
+  survives is `GET /api/dev/outbox` — it now carries only the notifications r10c
+  still sends, which are about *sessions*: `NewDevice` and `SessionsRevoked`. It
+  still 404s in production.
 - **Authorization**: a permission is `<domain>:<entityKey>:<action>`, derived from the
   entity's own `@entity({domain,key})` (`permissionForEntity`); grants come from
   `ROLE_PERMISSIONS` in `@r10c/business-ts-authz`, never from the token, which still

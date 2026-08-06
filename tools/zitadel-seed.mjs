@@ -151,6 +151,33 @@ const ensureApp = async projectId => {
   return created.clientId;
 };
 
+// ----------------------------------------------------------- login version
+
+/**
+ * Pin the instance to the **v1** hosted login.
+ *
+ * Zitadel v4 defaults `loginV2.required` to true, and the v2 login is a
+ * *separate* Next.js service (`ghcr.io/zitadel/zitadel-login`) that the core
+ * image does not serve. With the default left alone, every authorization
+ * redirect lands on `/ui/v2/login/login?authRequest=…` and answers **404** — the
+ * sign-in button appears to be broken while every probe stays green, which is
+ * precisely the kind of failure a health ladder cannot see.
+ *
+ * Deploying the second container is the alternative. It is not worth it here:
+ * the v1 login serves password, TOTP, social providers and self-registration —
+ * everything this lab exercises — and one fewer moving part in a dev fleet is
+ * worth more than a newer screen.
+ */
+const ensureLoginVersion = async () => {
+  const features = await api('GET', '/v2/features/instance');
+  if (features?.loginV2?.required !== true) {
+    log('login version: v1 already in use');
+    return;
+  }
+  await api('PUT', '/v2/features/instance', { loginV2: { required: false } });
+  log('login version: pinned to v1 (the core image serves no v2 login)');
+};
+
 // ------------------------------------------------------------ login policy
 
 /**
@@ -282,6 +309,7 @@ const ensureGoogleIdp = async () => {
 const main = async () => {
   const projectId = await ensureProject();
   const clientId = await ensureApp(projectId);
+  await ensureLoginVersion();
   await ensureLoginPolicy();
   await ensureSmtp();
   await ensureGoogleIdp();

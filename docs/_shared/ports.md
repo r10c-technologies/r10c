@@ -21,3 +21,20 @@ lands, and needs no `-service` of its own (config-service is its backend).
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime
 config from config-service (`GET /api/config/:service`); they never hardcode it.
+
+Infrastructure NodePorts published to the host, declared once in
+`infra/local/lib.sh` (`PORT_SPECS`) and mirrored here:
+
+| Datastore | Host port |
+| --------- | --------- |
+| MongoDB | 30017 |
+| Redis | 30379 |
+| RabbitMQ | 30672 |
+| Postgres | 30432 |
+| otel-lgtm | 30318 |
+| **Zitadel** | **30080** |
+| **Mailpit** | **30825** (SMTP) / **30826** (web UI) |
+
+Zitadel is load-bearing, not optional: auth-service cannot sign anyone in without
+it, and its readiness probe says so. Mailpit is where every provider mail lands
+in the local lab.

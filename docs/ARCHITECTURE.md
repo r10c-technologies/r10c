@@ -28,9 +28,11 @@ which data plane they live in, and how they extend — is
 > [Tenancy](#tenancy-resolving-the-organizations-storage)). Copy ships `es`/`en`
 > through mandatory i18n, and marketplace-app renders the storefront on the
 > server, prerendered per locale. Access tokens are **RS256**, verified against a
-> public key ([ADR 0015](./adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md)).
-> Zitadel ([ADR 0016](./adr/0016-zitadel-authenticates-r10c-authorizes.md)), a
-> real rule engine, tenant
+> public key ([ADR 0015](./adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md)),
+> and **Zitadel now authenticates** — authorization code + PKCE against its hosted
+> UI, with r10c holding no credential at all
+> ([ADR 0016](./adr/0016-zitadel-authenticates-r10c-authorizes.md)). A real rule
+> engine, tenant
 > storage on Postgres ([ADR 0013](./adr/0013-tenant-storage-on-postgres.md)),
 > catalog publication into the platform plane
 > ([ADR 0009](./adr/0009-catalog-authoring-and-publication.md)) and stock/orders
@@ -256,17 +258,44 @@ the app layer runs (`makeService` passes `disablePrettyLogger: true` so a
 
 ## Auth: sessions + tokens
 
-auth-service owns credentials end to end (approach B — opaque session +
-short-lived signed token, chosen over a bare JWT so a session is revocable):
+**Zitadel authenticates; r10c authorizes** ([ADR 0016](./adr/0016-zitadel-authenticates-r10c-authorizes.md)).
+auth-service is an OIDC client and holds no credential of any kind — no hash, no
+lockout ledger, no `PasswordHasher`, and no `AccountRepository` method that could
+read or write a secret. What it keeps is the session (approach B — opaque session
++ short-lived signed token, chosen over a bare JWT so a session is revocable):
 
-- `POST /api/auth/register` / `/login` run `registerUserUCFactory`/`loginUCFactory`
-  (`business-ts-authn`) against `AccountRepositoryTag` (Mongo credentials
-  collection) and `PasswordHasherTag` (bcrypt), then both routes call the same
+- `POST /api/auth/oidc/start` mints a PKCE pair (`entifix-ts-zitadel-client`) and
+  stashes `{codeVerifier, nonce, redirect}` in the one-time token store. The token
+  it mints **is** the `state`: unguessable, single-use, TTL'd and hashed at rest
+  is exactly what a `state` handle wants, so there is no second value to keep in
+  step. The verifier never leaves the server, which is what makes a **public**
+  client (no secret) safe.
+- `POST /api/auth/oidc/callback` consumes that token — which is the CSRF check and
+  the replay check in one, since an unknown or spent `state` never reaches the
+  token endpoint — exchanges the code, and verifies the `id_token` with
+  `algorithms: ['RS256']` pinned and the `nonce` compared separately. It then
+  resolves the `sub` to a `UserIdentity`, **provisioning one at `role: user` on
+  first sight** through the same `registerUserUCFactory` an administrative create
+  runs, projects the identity attributes, and calls the unchanged
   `establishSession`: `SessionStoreTag.create` mints an opaque session id in
   Redis (the revocation handle — `entifix-ts-redis-client`'s
   `RedisSessionStoreLayer`), and `TokenServiceTag.sign` (`entifix-ts-jwt-client`'s
-  jose-backed HS256 service) mints a short-lived access token carrying only
-  `userId`/`subject`/`sessionId`/`roles`.
+  jose-backed RS256 service) mints a short-lived access token carrying only
+  `userId`/`subject`/`sessionId`/`roles`/`activeOrganizationId`/`partyRole`.
+- **One writer per field.** Two records exist for one person and only one system
+  writes each member: Zitadel owns the password, MFA enrolment, social links, the
+  email/username identifier values and `displayName`; r10c owns `role`, `status`,
+  party, devices and sessions. The local copies of Zitadel-owned attributes are
+  **projections**, overwritten from the verified `id_token` on every callback —
+  they can lag a change made at the provider but cannot diverge from it, because
+  nothing here is ever the thing that was edited.
+- **Provisioning is local-first with repair on retry, not a saga.** The local
+  record goes first (it owns the role and the party), the Zitadel human second. A
+  failed provider write leaves an account with no `external-subject`: it cannot
+  sign in, it is listed like any other, and re-submitting the same form repairs
+  it. One legible half-state beats a compensation that can itself fail — and the
+  saga engine could only ever have covered the rarer path, since the callback's
+  auto-provisioning must return a session synchronously.
 - `POST /api/auth/refresh` slides the live session (`touch`, **clamped to its
   `absoluteExpiresAt`**) and mints a fresh access token — this is where the short
   token TTL becomes real revocation: once `logout` calls `SessionStoreTag.revoke`,
@@ -281,6 +310,14 @@ short-lived signed token, chosen over a bare JWT so a session is revocable):
   80% of the token's life and **stops after 15 minutes without interaction** —
   an abandoned tab lets its session age out. See
   [ADR 0004](adr/0004-session-lifetime-devices-and-recovery.md).
+- **Sign-out is two steps.** `POST /api/auth/logout` revokes the Redis session
+  *and* returns an RP-initiated `endSessionUrl`, built from the `id_token` the
+  callback stashed under the session id in Redis. That token is deliberately not
+  put in the session's `attributes` bag, free as that would have been: attributes
+  travel into every `Principal` the service returns, including `GET /api/me`,
+  which a Next server layout hands to the browser. Every sign-out control
+  navigates to the returned URL — clearing our cookies alone leaves someone
+  "signed out" who is one click from being let straight back in with no prompt.
 - Every route returns JSON (`accessToken`/`sessionId`/`expiresIn`/
   `sessionExpiresIn`/`principal`); auth-service itself sets no cookies. Each Next
   app owns turning that JSON into httpOnly cookies via its own
@@ -293,12 +330,12 @@ short-lived signed token, chosen over a bare JWT so a session is revocable):
   rollup entry, because a `"use client"` route handler is not a route handler);
   each app mounts its own, since cookies are per-origin. A `middleware.ts` per
   app does an edge-only presence check on `r10c_at` — auth-app classifies paths
-  (`/`+`/signup` bounce when authenticated, `/account/*`+`/users` require a
-  session, `/forgot-password`+`/reset-password` are open either way),
-  marketplace-admin-app gates the whole app — with the real signature
+  (`/` bounces when authenticated, `/account/*`+`/users` require a session; there
+  is no third class any more, because sign-up and recovery are screens at the
+  provider), marketplace-admin-app gates the whole app — with the real signature
   verification left to the backend the page calls (`requirePrincipal` below).
 - **Account self-service** lives entirely in auth-app (`/account`,
-  `/account/password`, `/account/sessions`); other apps link across through the
+  `/account/security`, `/account/sessions`); other apps link across through the
   `AccountMenu` in the back-office top bar, with the locale baked into the
   absolute URL. `/account` sits in its own `(account)` route group, because the
   `(back-office)` layout additionally demands `authn:user-identity:read` and a
@@ -307,11 +344,15 @@ short-lived signed token, chosen over a bare JWT so a session is revocable):
   captured at the app edge and stored durably as `UserDevice` in Mongo. They are
   a label for the session list and for "new device signed in" notifications, and
   **never an authorization input**.
-- **Recovery**: `OneTimeTokenStoreTag` (`entifix-ts-business`, Redis adapter)
-  stores only a hash and redeems with `GETDEL`; `forgot` always answers `202`;
-  the link exists only in the notification, which in development lands in a Mongo
-  outbox behind `GET /api/dev/outbox` (404 in production). Repeated failures trip
-  an `AttemptLimiterTag` lock → `429`, keyed identifier+source and auto-expiring.
+- **Recovery, MFA and rate limiting are Zitadel's.** There is no reset token, no
+  `forgot` endpoint and no attempt limiter here, because there is no password to
+  reset or to guess; ADR 0016 supersedes those sections of ADR 0004. Provider mail
+  lands in **Mailpit** in the local lab, and `/account/security` links out to the
+  provider's own self-service for password, second factor and linked accounts.
+  `OneTimeTokenStoreTag` survives, repurposed: it now backs the pending
+  authorization above rather than a recovery link. `GET /api/dev/outbox` also
+  survives, carrying the notifications r10c still sends — which are about
+  *sessions* (`NewDevice`, `SessionsRevoked`) — and still 404s in production.
 - Downstream services that need to authorize a request (e.g.
   marketplace-admin-service) never call auth-service or touch Redis on the hot
   path: `requirePrincipal` (`apps/marketplace-admin-service/src/auth.ts`) reads
@@ -339,11 +380,11 @@ short-lived signed token, chosen over a bare JWT so a session is revocable):
   column and `redactConfiguration` blanks it. The URI credential mask alone was
   not enough — a signing key is not a URI.
 - `SessionStoreTag`/`TokenServiceTag` are framework-free contracts in
-  `entifix-ts-business` (`sessions/`, `tokens/`); `entifix-ts-redis-client` and
-  the new `entifix-ts-jwt-client` are their only concrete adapters today, so a
-  future Zitadel-backed `IdentityProviderTag` can swap in without touching the
-  routes or the use-cases
-  ([ADR 0016](./adr/0016-zitadel-authenticates-r10c-authorizes.md)).
+  `entifix-ts-business` (`sessions/`, `tokens/`); `entifix-ts-redis-client`,
+  `entifix-ts-jwt-client` and `entifix-ts-zitadel-client` are their concrete
+  adapters. That layering is what made the swap cheap: `establishSession` and
+  every downstream use-case were untouched, and the change was confined to how a
+  credential gets verified.
 
 ## Authorization: role aspects + permissions
 

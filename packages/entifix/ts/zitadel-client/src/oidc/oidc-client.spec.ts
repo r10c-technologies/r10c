@@ -2,14 +2,14 @@ import { Effect } from 'effect';
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from 'jose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { clearDiscoveryCache } from './discovery';
+import { clearDiscoveryCache } from './discovery.js';
 import {
   clearJwksCache,
   makeZitadelOidc,
   type ZitadelOidcConfig,
   ZitadelOidcLayer,
   ZitadelOidcTag,
-} from './oidc-client';
+} from './oidc-client.js';
 
 const ISSUER = 'https://idp.test';
 const CLIENT_ID = 'client-1';
@@ -57,9 +57,21 @@ let fetchMock: ReturnType<typeof vi.fn>;
 const stubEndpoints = (tokenResponse: {
   ok?: boolean;
   body: unknown;
+  /** What `/userinfo` answers; omit for an empty profile, `false` to fail it. */
+  userInfo?: Record<string, unknown> | false;
 }): void => {
   fetchMock.mockImplementation((input: unknown) => {
     const url = String(input);
+    if (url.includes('/userinfo')) {
+      if (tokenResponse.userInfo === false) {
+        return Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(tokenResponse.userInfo ?? {}),
+      });
+    }
     if (url.includes('.well-known')) {
       return Promise.resolve({
         ok: true,
@@ -211,8 +223,8 @@ describe('exchangeCode', () => {
       }),
     );
 
-    const call = fetchMock.mock.calls.find(([url]: [unknown]) =>
-      String(url).includes('/token'),
+    const call = fetchMock.mock.calls.find((call: unknown[]) =>
+      String(call[0]).includes('/token'),
     );
     const body = String((call?.[1] as { body: URLSearchParams }).body);
     expect(body).toContain('code_verifier=verifier-1');
@@ -235,8 +247,8 @@ describe('exchangeCode', () => {
     await Effect.runPromise(exchange());
     await Effect.runPromise(exchange());
 
-    const jwksCalls = fetchMock.mock.calls.filter(([url]: [unknown]) =>
-      String(url).includes('/keys'),
+    const jwksCalls = fetchMock.mock.calls.filter((call: unknown[]) =>
+      String(call[0]).includes('/keys'),
     );
     expect(jwksCalls).toHaveLength(1);
   });
@@ -443,3 +455,123 @@ describe('endSessionUrl', () => {
     expect(url.searchParams.get('client_id')).toBe(CLIENT_ID);
   });
 });
+
+/**
+ * The profile half of a sign-in, which is NOT in the id_token.
+ *
+ * Zitadel puts `email`, `email_verified` and `name` in userinfo unless the app
+ * is configured to inline them, so a client that reads the id_token alone gets
+ * a verified sign-in carrying no email and no display name — and the projection
+ * silently writes nothing. That is the bug these cases exist to keep fixed.
+ */
+describe('the profile claims', () => {
+  it('reads email and name from userinfo when the id_token omits them', async () => {
+    const idToken = await signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      sub: 'sub-1',
+      nonce: 'nonce-1',
+    });
+    stubEndpoints({
+      body: { id_token: idToken, access_token: 'access-1' },
+      userInfo: {
+        sub: 'sub-1',
+        email: 'nora@example.com',
+        email_verified: true,
+        name: 'Nora Newcomer',
+        preferred_username: 'nora@example.com',
+      },
+    });
+
+    const identity = await Effect.runPromise(
+      makeZitadelOidc(config).exchangeCode({
+        code: 'code-1',
+        codeVerifier: 'verifier-1',
+        nonce: 'nonce-1',
+      }),
+    );
+
+    expect(identity.email).toBe('nora@example.com');
+    expect(identity.emailVerified).toBe(true);
+    expect(identity.displayName).toBe('Nora Newcomer');
+  });
+
+  // The id_token is the verified document. A userinfo response naming another
+  // subject must not be able to point the sign-in at a different account.
+  it('keeps the id_token subject when userinfo disagrees', async () => {
+    const idToken = await signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      sub: 'sub-1',
+      nonce: 'nonce-1',
+    });
+    stubEndpoints({
+      body: { id_token: idToken, access_token: 'access-1' },
+      userInfo: { sub: 'somebody-else', email: 'nora@example.com' },
+    });
+
+    const identity = await Effect.runPromise(
+      makeZitadelOidc(config).exchangeCode({
+        code: 'code-1',
+        codeVerifier: 'verifier-1',
+        nonce: 'nonce-1',
+      }),
+    );
+
+    expect(identity.subject).toBe('sub-1');
+  });
+
+  // The id_token already proved who this is. A userinfo outage costs a stale
+  // display name; it must never cost the sign-in.
+  it('still signs in when userinfo fails', async () => {
+    const idToken = await signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      sub: 'sub-1',
+      nonce: 'nonce-1',
+    });
+    stubEndpoints({
+      body: { id_token: idToken, access_token: 'access-1' },
+      userInfo: false,
+    });
+
+    const identity = await Effect.runPromise(
+      makeZitadelOidc(config).exchangeCode({
+        code: 'code-1',
+        codeVerifier: 'verifier-1',
+        nonce: 'nonce-1',
+      }),
+    );
+
+    expect(identity.subject).toBe('sub-1');
+    expect(identity.email).toBeUndefined();
+  });
+
+  it('skips userinfo entirely when no access token came back', async () => {
+    const idToken = await signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      sub: 'sub-1',
+      nonce: 'nonce-1',
+      email: 'from-id-token@example.com',
+      email_verified: true,
+    });
+    stubEndpoints({ body: { id_token: idToken } });
+
+    const identity = await Effect.runPromise(
+      makeZitadelOidc(config).exchangeCode({
+        code: 'code-1',
+        codeVerifier: 'verifier-1',
+        nonce: 'nonce-1',
+      }),
+    );
+
+    expect(identity.email).toBe('from-id-token@example.com');
+    expect(
+      fetchMock.mock.calls.some((call: unknown[]) =>
+        String(call[0]).includes('/userinfo'),
+      ),
+    ).toBe(false);
+  });
+});
+

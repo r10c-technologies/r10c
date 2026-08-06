@@ -1,28 +1,26 @@
 import {
   entityIdentifierSeedData,
+  IdTokenStoreTag,
   individualSeedData,
   JWT_AUDIENCE,
   JWT_ISSUER,
-  makeBcryptPasswordHasher,
   makeDevNotificationPort,
   makeMongoAccountRepository,
   makeMongoSessionScopeResolver,
   makeMongoUserDeviceRepository,
-  makeRedisAttemptLimiter,
   makeRedisIdentityProvider,
+  makeRedisIdTokenStore,
   membershipSeedData,
   router,
-  seedCredentials,
+  seedIdentityProvider,
   SERVICE_NAME,
   SessionScopeResolverTag,
   userIdentitySeedData,
 } from '@r10c/auth-service';
 import {
   AccountRepositoryTag,
-  AttemptLimiterTag,
   IdentityProviderTag,
   NotificationPortTag,
-  PasswordHasherTag,
   UserDeviceRepositoryTag,
 } from '@r10c/business-ts-authn';
 import {
@@ -49,11 +47,17 @@ import {
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import { makeFakeRedis } from '@r10c/entifix-ts-testing-unit/drivers';
 import {
+  ZitadelManagementTag,
+  ZitadelOidcTag,
+} from '@r10c/entifix-ts-zitadel-client';
+import {
   LoadedConfigurationTag,
   type RunningTestService,
   serveTestService,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
+
+import { makeFakeZitadel, MOCK_ISSUER } from './fake-zitadel';
 
 /** What the service would otherwise fetch from config-service at boot. */
 const CONFIGURATION = {
@@ -68,17 +72,29 @@ const CONFIGURATION = {
     { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
     { key: 'keyId', value: E2E_KEY_ID },
   ],
+  zitadel: [
+    { key: 'issuer', value: MOCK_ISSUER },
+    { key: 'clientId', value: 'mock-client' },
+    { key: 'redirectUri', value: 'http://localhost:3002/api/auth/callback' },
+  ],
 };
 
 /**
  * The `mock` composition root: the same wiring as the service's own `AppLayer`
  * (`apps/auth-service/src/mongo.ts`) with the *connections* faked — the Redis
  * session store runs over a fake ioredis, the account repository over a fake
- * Mongo — while the real jose token service and bcrypt hasher stand. So the
- * credential flow (register → session → token → login) is exercised for real,
- * hermetically, and the same router serves the `live` profile unchanged.
+ * Mongo, and Zitadel over an in-memory directory — while the real jose token
+ * service stands. The profile stays hermetic: nothing here opens a socket, so
+ * the sign-in journeys run on every PR without a Zitadel to talk to.
+ *
+ * What that buys and what it does not: everything r10c owns after the provider
+ * answers — state consumption, provisioning, the projection, sessions, tokens,
+ * party role, tenancy — is exercised for real. The OIDC protocol itself is not,
+ * and cannot be here; that is what the client's unit tests and the live pass are
+ * for.
  */
 const fakeRedis = makeFakeRedis();
+const fakeZitadel = makeFakeZitadel();
 
 const AccountRepositoryLayer = Layer.effect(
   AccountRepositoryTag,
@@ -141,19 +157,14 @@ const base = Layer.mergeAll(
       audience: JWT_AUDIENCE,
     }),
   ),
-  // Real bcrypt, minimum work factor. The suite exercises the same hash and
-  // compare code paths the service runs, but cost 10 is ~64x the work of cost 4
-  // — and bcryptjs is pure JS that yields with `setImmediate` between rounds, so
-  // when CI runs every e2e project on one runner the saturated event loop
-  // stretches a single hash out until the boot hook times out. It passes alone
-  // and hangs in the full concurrent run. Cost belongs to the environment, not
-  // to what is under test; the service keeps its own default.
-  Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher(4)),
+  // One in-memory directory behind both halves; see `makeFakeZitadel`.
+  Layer.succeed(ZitadelOidcTag, fakeZitadel.oidc),
+  Layer.succeed(ZitadelManagementTag, fakeZitadel.management),
   // The real grant table, not a fake — it is what `requirePermission` consults,
   // so stubbing it would make every authorization assertion here meaningless.
   Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
-  // The fake ioredis honours set/get/expire/sadd — enough for the session store,
-  // the one-time tokens and the attempt limiter.
+  // The fake ioredis honours set/get/expire/sadd/getdel — enough for the
+  // session store, the pending-authorization tokens and the id-token store.
   Layer.succeed(
     SessionStoreTag,
     makeRedisSessionStore(fakeRedis.redis as never),
@@ -163,8 +174,8 @@ const base = Layer.mergeAll(
     makeRedisOneTimeTokenStore(fakeRedis.redis as never),
   ),
   Layer.succeed(
-    AttemptLimiterTag,
-    makeRedisAttemptLimiter(fakeRedis.redis as never),
+    IdTokenStoreTag,
+    makeRedisIdTokenStore(fakeRedis.redis as never),
   ),
 );
 
@@ -179,14 +190,23 @@ const withAccounts = Layer.provideMerge(
 );
 const withIdentity = Layer.provideMerge(IdentityProviderLayer, withAccounts);
 
-// The seeded users need credentials or they cannot sign in, and the
-// authorization journeys are all "log in as X, then…". Reuses the service's own
-// seeding effect rather than a hand-written hash, so the mock cannot drift from
-// what a real boot produces.
+// The seeded users need a provider-side human and an `external-subject`
+// identifier or they cannot sign in at all, and the authorization journeys are
+// all "sign in as X, then…". Reuses the service's own seeding effect rather
+// than hand-linking subjects, so the mock cannot drift from what a real boot
+// produces.
 const MockAppLayer = Layer.provideMerge(
-  Layer.effectDiscard(seedCredentials.pipe(Effect.orDie)),
+  Layer.effectDiscard(seedIdentityProvider.pipe(Effect.orDie)),
   withIdentity,
 );
+
+/**
+ * Mark an address as unverified at the provider, so a spec can drive the
+ * account-linking vector. Exposed here because the fake is module-scoped.
+ */
+export const markEmailUnverified = (email: string): void => {
+  fakeZitadel.unverified.add(email.toLowerCase());
+};
 
 /** Boots the service's real router in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>

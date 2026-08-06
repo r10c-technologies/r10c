@@ -197,6 +197,36 @@ export const makeZitadelOidc = (config: ZitadelOidcConfig): ZitadelOidc => {
       ),
     );
 
+  /**
+   * The profile claims, from the userinfo endpoint.
+   *
+   * They are fetched rather than read off the `id_token` because that is where
+   * OIDC actually puts them: `email`, `email_verified` and `name` reach an
+   * id_token only if the provider is configured to inline userinfo, and Zitadel
+   * does not do that by default. Reading the id_token alone therefore produced a
+   * verified sign-in with no email and no display name at all — the projection
+   * had nothing to write, silently.
+   *
+   * Best-effort on purpose: the `id_token` is what proves *who* this is, and it
+   * has already been verified by the time this runs. A userinfo outage should
+   * cost a stale display name, never a sign-in.
+   */
+  const fetchUserInfo = (discovery: OidcDiscovery, accessToken?: string) =>
+    accessToken === undefined
+      ? Effect.succeed({} as JWTPayload)
+      : Effect.tryPromise({
+          try: async () => {
+            const response = await fetch(discovery.userinfo_endpoint, {
+              headers: { authorization: `Bearer ${accessToken}` },
+            });
+            if (!response.ok) {
+              throw new Error(`userinfo answered ${String(response.status)}`);
+            }
+            return (await response.json()) as JWTPayload;
+          },
+          catch: error => new EntifixConnError(String(error)),
+        }).pipe(Effect.catchAll(() => Effect.succeed({} as JWTPayload)));
+
   const exchangeCode = (input: {
     readonly code: string;
     readonly codeVerifier: string;
@@ -213,8 +243,18 @@ export const makeZitadelOidc = (config: ZitadelOidcConfig): ZitadelOidc => {
                   ),
                 )
               : verifyIdToken(discovery, tokens.id_token, input.nonce).pipe(
-                  Effect.map(claims =>
-                    toIdentity(claims, tokens.id_token as string),
+                  Effect.flatMap(claims =>
+                    fetchUserInfo(discovery, tokens.access_token).pipe(
+                      // The id_token wins on `sub`: it is the verified one, and
+                      // a userinfo response naming a different subject must not
+                      // be able to redirect the sign-in to another account.
+                      Effect.map(profile =>
+                        toIdentity(
+                          { ...profile, ...claims, sub: claims.sub },
+                          tokens.id_token as string,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
           ),

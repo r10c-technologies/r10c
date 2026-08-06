@@ -1,9 +1,7 @@
 import {
   AccountRepositoryTag,
-  AttemptLimiterTag,
   IdentityProviderTag,
   NotificationPortTag,
-  PasswordHasherTag,
   UserDeviceRepositoryTag,
 } from '@r10c/business-ts-authn';
 import {
@@ -27,21 +25,23 @@ import {
   RedisLayer,
   RedisOneTimeTokenStoreLayer,
   RedisSessionStoreLayer,
-  RedisTag,
 } from '@r10c/entifix-ts-redis-client';
+import {
+  ZitadelHealthProbeLayer,
+  ZitadelManagementLayer,
+  ZitadelManagementTag,
+  ZitadelOidcLayer,
+} from '@r10c/entifix-ts-zitadel-client';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import {
-  CREDENTIAL_COLLECTION,
-  makeMongoAccountRepository,
-} from './identity/account-repository';
-import { makeRedisAttemptLimiter } from './identity/attempt-limiter';
+import { makeMongoAccountRepository } from './identity/account-repository';
+import { IdTokenStoreLayer } from './identity/id-token-store';
 import { makeDevNotificationPort } from './identity/notifications';
-import { makeBcryptPasswordHasher } from './identity/password';
+import { provisionZitadelHuman } from './identity/provisioning';
 import { makeRedisIdentityProvider } from './identity/redis-identity-provider';
 import {
   DEV_SEED_PASSWORD,
@@ -130,40 +130,44 @@ const seedTenancy = (organizationId: string) =>
   );
 
 /**
- * Give each seeded user a password so local login works out of the box.
+ * Give each seeded user a Zitadel human to sign in as, and link the two.
  *
- * Per user, for the same reason {@link seedCollection} is: a seed user added
- * after the store was first populated would otherwise never get a credential
- * and could never sign in. Existing credentials are left alone — rehashing them
- * on every boot would be pointless work, and would stomp a password a developer
- * changed on purpose.
+ * This is the same `provisionZitadelHuman` the administrative create route
+ * runs — deliberately, because a seeding path that wrote its own accounts is
+ * a second provisioning implementation to keep correct, and it is exactly the
+ * kind that drifts unnoticed. Idempotent by lookup, so a boot against an
+ * already-seeded instance adopts what is there and only repairs a missing link.
+ *
+ * Best-effort as a whole: a Zitadel that is not up yet must not stop the
+ * service from booting. The seeded accounts simply cannot sign in until the
+ * next boot repairs them, which is visible rather than silent.
  */
-export const seedCredentials = Effect.gen(function* () {
-  const db = yield* MongoDatabaseTag;
-  const hasher = yield* PasswordHasherTag;
-  const collection = db.collection(CREDENTIAL_COLLECTION);
+export const seedIdentityProvider = Effect.gen(function* () {
+  const zitadel = yield* ZitadelManagementTag;
+  const accounts = yield* AccountRepositoryTag;
 
-  const missing: unknown[] = [];
   for (const user of userIdentitySeedData) {
-    const userId = user['id'];
-    const existing = yield* Effect.promise(() =>
-      collection.findOne({ userId }),
-    );
-    if (existing === null) {
-      missing.push(userId);
-    }
-  }
-  if (missing.length === 0) {
-    return;
-  }
+    const userId = String(user['id']);
+    const email = entityIdentifierSeedData.find(
+      identifier =>
+        identifier['userId'] === userId && identifier['type'] === 'email',
+    )?.['value'];
+    if (typeof email !== 'string') continue;
 
-  // One hash for all of them: bcrypt is intentionally slow, and the hasher is
-  // pure JS here, so hashing per user pushed service boot past the e2e hook
-  // timeout. They all share the same dev password anyway.
-  const passwordHash = yield* hasher.hash(DEV_SEED_PASSWORD);
-  yield* Effect.promise(() =>
-    collection.insertMany(missing.map(userId => ({ userId, passwordHash }))),
-  );
+    yield* provisionZitadelHuman(accounts, zitadel, {
+      userId,
+      email,
+      displayName: user['displayName'] as string | undefined,
+      password: DEV_SEED_PASSWORD,
+    }).pipe(
+      Effect.tapError(error =>
+        Effect.logWarning(
+          `could not provision ${email} in Zitadel: ${String(error)}`,
+        ),
+      ),
+      Effect.catchAll(() => Effect.void),
+    );
+  }
 });
 
 /** Account repository over the live Mongo connection. */
@@ -193,12 +197,6 @@ const NotificationLayer = Layer.effect(
   Effect.map(MongoDatabaseTag, makeDevNotificationPort),
 );
 
-/** Failed sign-in accounting, over the same Redis connection as the sessions. */
-const AttemptLimiterLayer = Layer.effect(
-  AttemptLimiterTag,
-  Effect.map(RedisTag, makeRedisAttemptLimiter),
-);
-
 /** The real identity provider, built from the session store + account repo. */
 const IdentityProviderLayer = Layer.effect(
   IdentityProviderTag,
@@ -210,11 +208,13 @@ const IdentityProviderLayer = Layer.effect(
 );
 
 /**
- * auth-service composition root. Resolves Mongo + Redis + JWT settings from
- * config-service at boot, then layers: connections (Mongo, Redis) + stateless
- * services (jose token service, bcrypt hasher) → session store + account repo →
- * the real identity provider → seed. The stub provider is gone; the same routes
- * now run over Redis sessions and Mongo-backed credentials.
+ * auth-service composition root. Resolves Mongo + Redis + JWT + Zitadel
+ * settings from config-service at boot, then layers: connections (Mongo, Redis)
+ * + stateless services (jose token service, the OIDC and management clients) →
+ * session store + account repo → the real identity provider → seed.
+ *
+ * Nothing here hashes or compares a password, and there is no layer that could:
+ * the credential half of authentication left this service entirely.
  */
 export const AppLayer = Layer.unwrapEffect(
   Effect.gen(function* () {
@@ -236,6 +236,19 @@ export const AppLayer = Layer.unwrapEffect(
       .in('tenant')
       .getString('demoOrganizationId');
 
+    // Where identity actually lives. The PAT is per-instance and disposable —
+    // the local ladder extracts it after Zitadel's first init and seeds it here,
+    // so it is configuration rather than a checked-in secret.
+    const zitadelIssuer = yield* store.in('zitadel').getString('issuer');
+    const zitadelClientId = yield* store.in('zitadel').getString('clientId');
+    const zitadelPat = yield* store.in('zitadel').getString('pat');
+    const zitadelRedirectUri = yield* store
+      .in('zitadel')
+      .getString('redirectUri');
+    const zitadelPostLogoutUri = yield* store
+      .in('zitadel')
+      .getString('postLogoutRedirectUri');
+
     const infra = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
       RedisLayer({ uri: redisUri }),
@@ -251,7 +264,16 @@ export const AppLayer = Layer.unwrapEffect(
           audience: JWT_AUDIENCE,
         }),
       ),
-      Layer.succeed(PasswordHasherTag, makeBcryptPasswordHasher()),
+      ZitadelOidcLayer({
+        issuer: zitadelIssuer,
+        clientId: zitadelClientId,
+        redirectUri: zitadelRedirectUri,
+        postLogoutRedirectUri: zitadelPostLogoutUri,
+      }),
+      ZitadelManagementLayer({
+        issuer: zitadelIssuer,
+        personalAccessToken: zitadelPat,
+      }),
       // The authorization policy behind `requirePermission`. Static
       // role→permission table today; an attribute-aware engine would replace
       // this one line.
@@ -263,7 +285,7 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.mergeAll(
         RedisSessionStoreLayer(),
         RedisOneTimeTokenStoreLayer(),
-        AttemptLimiterLayer,
+        IdTokenStoreLayer,
         AccountRepositoryLayer,
         SessionScopeResolverLayer,
         UserDeviceRepositoryLayer,
@@ -279,19 +301,22 @@ export const AppLayer = Layer.unwrapEffect(
     // never hand-maintains a list of what "ready" means. `HealthRegistryTag` is
     // provided by `makeServerLayer`, which is also what reads the probes back.
     const withProbes = Layer.provideMerge(
-      Layer.mergeAll(MongoHealthProbeLayer, RedisHealthProbeLayer),
+      Layer.mergeAll(
+        MongoHealthProbeLayer,
+        RedisHealthProbeLayer,
+        // A service that cannot reach its identity provider cannot sign anyone
+        // in, so readiness has to say so — this is now as load-bearing as Mongo.
+        ZitadelHealthProbeLayer(zitadelIssuer),
+      ),
       withIdentity,
     );
 
-    // Seed users, their credentials, and the demo tenant once everything is
-    // wired.
+    // Seed users, the demo tenant, and the provider-side humans. The last runs
+    // after `seedUsers`, because it links against records that must exist.
     const seed = Layer.effectDiscard(
-      Effect.all(
-        [seedUsers, seedCredentials, seedTenancy(demoOrganizationId)],
-        {
-          discard: true,
-        },
-      ),
+      Effect.all([seedUsers, seedTenancy(demoOrganizationId)], {
+        discard: true,
+      }).pipe(Effect.andThen(seedIdentityProvider)),
     );
     return Layer.provideMerge(seed, withProbes);
   }).pipe(Effect.orDie),

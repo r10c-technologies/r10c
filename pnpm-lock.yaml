@@ -390,12 +390,12 @@ importers:
       '@r10c/entifix-ts-redis-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/redis-client
+      '@r10c/entifix-ts-zitadel-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/zitadel-client
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
-      bcryptjs:
-        specifier: 3.0.2
-        version: 3.0.2
       effect:
         specifier: 3.22.0
         version: 3.22.0
@@ -442,6 +442,9 @@ importers:
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/testing-unit
+      '@r10c/entifix-ts-zitadel-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/zitadel-client
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -6208,10 +6211,6 @@ packages:
 
   bcryptjs@2.4.3:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
-
-  bcryptjs@3.0.2:
-    resolution: {integrity: sha512-k38b3XOZKv60C4E2hVsXTolJWfkGRMbILBIe2IBITXciy5bOsTKot5kDrf3ZfufQtQOUN5mXceUEpU1rTl9Uog==}
-    hasBin: true
 
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
@@ -17413,8 +17412,6 @@ snapshots:
       tweetnacl: 0.14.5
 
   bcryptjs@2.4.3: {}
-
-  bcryptjs@3.0.2: {}
 
   bidi-js@1.0.3:
     dependencies:

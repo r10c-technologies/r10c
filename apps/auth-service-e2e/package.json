@@ -31,6 +31,7 @@
     "@r10c/entifix-ts-mongo-client": "workspace:*",
     "@r10c/entifix-ts-redis-client": "workspace:*",
     "@r10c/entifix-ts-testing-e2e": "workspace:*",
+    "@r10c/entifix-ts-zitadel-client": "workspace:*",
     "@r10c/entifix-ts-testing-unit": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*"
   },

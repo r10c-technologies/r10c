@@ -1,7 +1,7 @@
 import { Effect, Exit } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { clearDiscoveryCache, discover } from './discovery';
+import { clearDiscoveryCache, discover } from './discovery.js';
 
 const ISSUER = 'https://idp.test';
 

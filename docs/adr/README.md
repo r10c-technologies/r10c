@@ -25,7 +25,7 @@ Format: [Michael Nygard's ADR template](https://github.com/joelparkerhenderson/a
 | [0001](0001-observability-and-tooling.md)                               | Observability & platform tooling                                                                     | Accepted |
 | [0002](0002-authorization-roles-and-abac.md)                            | Authorization: role aspects behind an ABAC-shaped port                                               | Accepted |
 | [0003](0003-i18n-mandatory.md)                                          | i18n is mandatory, and the build enforces it                                                         | Accepted |
-| [0004](0004-session-lifetime-devices-and-recovery.md)                   | Session lifetime, device identity, and account recovery                                              | Accepted |
+| [0004](0004-session-lifetime-devices-and-recovery.md)                   | Session lifetime, device identity, and account recovery (recovery + lockout superseded by 0016)      | Accepted |
 | [0005](0005-business-domain-decomposition.md)                           | Business domain decomposition, named from TM Forum ODA/SID                                           | Accepted |
 | [0006](0006-multitenancy-planes-and-tenant-storage.md)                  | Multitenancy: three planes, ambient tenancy, storage per organization                                | Accepted |
 | [0007](0007-access-model-planes-roles-entitlements.md)                  | Access model: planes, platform roles, tenant-defined roles, entitlements                             | Accepted |
@@ -37,7 +37,7 @@ Format: [Michael Nygard's ADR template](https://github.com/joelparkerhenderson/a
 | [0013](0013-tenant-storage-on-postgres.md)                              | Tenant storage on Postgres: schema per organization, one shared pool                                 | Proposed |
 | [0014](0014-entity-specifications-and-the-characteristic-dictionary.md) | Vendor-authored entity specifications, pinned per instance, comparable through a platform dictionary | Proposed |
 | [0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md)       | Asymmetric access tokens, and the party role as a claim                                              | Accepted |
-| [0016](0016-zitadel-authenticates-r10c-authorizes.md)                   | Zitadel authenticates; r10c authorizes and mints its own tokens                                      | Proposed |
+| [0016](0016-zitadel-authenticates-r10c-authorizes.md)                   | Zitadel authenticates; r10c authorizes and mints its own tokens                                      | Accepted |
 
 The business-side records (0005 onward) are summarized as one map in
 [docs/BUSINESS-ARCHITECTURE.md](../BUSINESS-ARCHITECTURE.md).

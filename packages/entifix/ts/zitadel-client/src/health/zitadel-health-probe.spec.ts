@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ZITADEL_PROBE_NAME,
   ZitadelHealthProbeLayer,
-} from './zitadel-health-probe';
+} from './zitadel-health-probe.js';
 
 const ISSUER = 'https://idp.test';
 

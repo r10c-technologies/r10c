@@ -2,8 +2,8 @@
 
 Local Kubernetes platform for the marketplace fleet, running on Minikube:
 **MongoDB**, **Redis**, **RabbitMQ** (transaction event bus), **PostgreSQL**,
-**otel-lgtm** (Grafana stack), and — opt-in — **Zitadel**. Everything lives in
-the `marketplace-local-infra` namespace.
+**Zitadel** (identity), **Mailpit** (dev SMTP) and **otel-lgtm** (Grafana stack).
+Everything lives in the `marketplace-local-infra` namespace.
 
 > This is the `local` environment. Future environments would sit beside it as
 > `infra/staging`, `infra/prod`, etc.
@@ -150,13 +150,23 @@ line there plus its kustomize folder.
 ./teardown.sh   # removes workloads; keeps PV data (see Reset to wipe it)
 ```
 
-Zitadel is **opt-in**: nothing in the fleet authenticates against it today
-(auth-service owns credentials), and it costs a Postgres rollout wait plus
-~1min of self-init on every apply. Include it with:
+Zitadel is **load-bearing**, not opt-in: auth-service authenticates against it
+and can sign nobody in without it ([ADR 0016](../../docs/adr/0016-zitadel-authenticates-r10c-authorizes.md)).
+It costs a Postgres rollout wait plus ~1min of self-init on a first apply, which
+is why the ladder's L6 rung caches what it produced.
 
-```bash
-INFRA_INCLUDE_ZITADEL=1 ./apply.sh
-```
+**The L6 rung.** After the probes go green, `ensure.sh` extracts the machine
+token Zitadel minted at first init (`infra/local/zitadel/.pat`) and runs
+`tools/zitadel-seed.mjs`, which is idempotent and ensures the `r10c` project, a
+**public** OIDC app (PKCE, no secret), a login policy with self-registration and
+OTP available but **not forced**, SMTP pointed at Mailpit, and a Google IdP *only
+when* `infra/local/zitadel/.env` carries credentials. It writes the per-instance
+client id and token to `infra/local/zitadel/.generated.env` (gitignored), which
+config-service's seed reads.
+
+Both files are deleted by `reset.sh`, which is deliberate: the instance and the
+configuration naming it are recreated together, so a stale client id can never
+outlive the instance it pointed at.
 
 ### Status
 
@@ -179,6 +189,7 @@ NodePort is reachable on `127.0.0.1`.
 | RabbitMQ   | `amqp://admin:password@127.0.0.1:30672` · management UI `http://localhost:31672`        | `rabbitmq/.env`   |
 | PostgreSQL | `postgres://postgres:postgres@127.0.0.1:30432/postgres`                                 | `postgres/.env`   |
 | Zitadel    | console `http://localhost:30080` (admin `zitadel-admin`, pw in `zitadel/.env`)          | `zitadel/.env`    |
+| Mailpit    | web UI `http://localhost:30826` · SMTP `127.0.0.1:30825` (no auth)                      | — (dev, no creds) |
 | otel-lgtm  | Grafana `http://localhost:30000` (anonymous admin) · OTLP/HTTP `http://127.0.0.1:30318` | — (dev, no creds) |
 
 ---
@@ -189,7 +200,8 @@ NodePort is reachable on `127.0.0.1`.
 infra/local/
   00-namespace.yaml
   apply.sh  teardown.sh
-  mongodb/  redis/  postgres/  zitadel/    # each: kustomization + manifests + .env.example
+  mongodb/  redis/  rabbitmq/  postgres/   # each: kustomization + manifests + .env.example
+  zitadel/  mailpit/  otel-lgtm/
 ```
 
 Each folder is a kustomize target: `kubectl apply -k infra/local/<platform>`.

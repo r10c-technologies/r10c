@@ -14,10 +14,14 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 
 /**
  * Create a user. Deliberately a hand-written form rather than `EntityForm`:
- * creation is not an entity write. It carries a password and an identifier that
- * `UserIdentity` does not model, and it runs the same registration use-case
- * public signup does — so the fields are that use-case's inputs, not the
- * entity's members.
+ * creation is not an entity write. It carries an identifier that `UserIdentity`
+ * does not model, and it runs the same registration use-case a first sign-in
+ * does — so the fields are that use-case's inputs, not the entity's members.
+ *
+ * There is no password field, and adding one back would be a mistake rather
+ * than a convenience: r10c has nowhere to put it. The route creates the local
+ * record and then the Zitadel human, and the person receives an invitation from
+ * the provider to set their own credential.
  *
  * The role select offers every tier; auth-service rejects anything above the
  * caller's own, which is the check that counts.
@@ -28,7 +32,6 @@ export default function NewUserPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [password, setPassword] = useState('');
   const [role, setRole] = useState<string>('user');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | undefined>(undefined);
@@ -43,7 +46,6 @@ export default function NewUserPage() {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         displayName,
-        password,
         role,
         identifiers: [{ type: 'email', value: email }],
       }),
@@ -97,17 +99,6 @@ export default function NewUserPage() {
               id="new-user-display-name"
               value={displayName}
               onChange={event => setDisplayName(event.currentTarget.value)}
-            />,
-          )}
-          {field(
-            'new-user-password',
-            t('auth.fields.password'),
-            <TextInput
-              id="new-user-password"
-              type="password"
-              value={password}
-              required
-              onChange={event => setPassword(event.currentTarget.value)}
             />,
           )}
           {field(

@@ -6,7 +6,7 @@ import {
   type ZitadelManagementConfig,
   ZitadelManagementLayer,
   ZitadelManagementTag,
-} from './management-client';
+} from './management-client.js';
 
 const config: ZitadelManagementConfig = {
   issuer: 'https://idp.test',

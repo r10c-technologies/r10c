@@ -12,7 +12,7 @@ import type { Locale } from '@r10c/entifix-ts-i18n';
  * no `useTranslateKey` escape hatch is needed to render the menu.
  */
 export type AccountLabelKey =
-  'account.profile' | 'account.password' | 'account.sessions';
+  'account.profile' | 'account.security' | 'account.sessions';
 
 /** An account destination: a catalog key plus the path it lives at. */
 export interface AccountDestination {
@@ -35,7 +35,11 @@ export interface AccountDestination {
  */
 export const ACCOUNT_DESTINATIONS: readonly AccountDestination[] = [
   { labelKey: 'account.profile', path: '/account' },
-  { labelKey: 'account.password', path: '/account/password' },
+  // Not `/account/password` any more. r10c holds no password to change, so the
+  // screen behind this is a set of links into the provider's own self-service —
+  // which is also where a second factor is enrolled and a social account is
+  // linked, neither of which had anywhere to live before.
+  { labelKey: 'account.security', path: '/account/security' },
   { labelKey: 'account.sessions', path: '/account/sessions' },
 ];
 

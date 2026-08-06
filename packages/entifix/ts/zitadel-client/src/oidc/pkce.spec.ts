@@ -7,7 +7,7 @@ import {
   CODE_CHALLENGE_METHOD,
   createOpaqueValue,
   createPkcePair,
-} from './pkce';
+} from './pkce.js';
 
 describe('createPkcePair', () => {
   it('derives the challenge from the verifier it returns', () => {

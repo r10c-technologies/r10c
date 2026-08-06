@@ -11,7 +11,6 @@ import {
 import {
   AccountRepositoryTag,
   type CreateAccountInput,
-  PasswordHasherTag,
 } from '../../repository/index.js';
 import { RegisterInputTag, registerUserUCFactory } from './register-user.uc.js';
 
@@ -31,8 +30,8 @@ const stubAccounts = (
     findByIdentifier: () => Effect.succeed(null),
     findById: () => Effect.succeed(null),
     findContactAddress: () => Effect.succeed(null),
-    readPasswordHash: () => Effect.succeed(null),
-    writePasswordHash: () => Effect.void,
+    linkExternalSubject: () => Effect.void,
+    projectIdentity: () => Effect.void,
     createAccount: input => {
       onCreate(input);
       return Effect.succeed(createdUser(input.role));
@@ -40,11 +39,6 @@ const stubAccounts = (
     updateUserAspects: () =>
       Effect.fail(new EntifixLogicError('not used in register')),
   });
-
-const hasher = PasswordHasherTag.of({
-  hash: plain => Effect.succeed(`hashed:${plain}`),
-  verify: () => Effect.succeed(false),
-});
 
 const runRegister = (
   accounts: ReturnType<typeof stubAccounts>,
@@ -54,11 +48,9 @@ const runRegister = (
   Effect.runPromiseExit(
     registerUserUCFactory().pipe(
       Effect.provideService(AccountRepositoryTag, accounts),
-      Effect.provideService(PasswordHasherTag, hasher),
       Effect.provideService(RegisterInputTag, {
         displayName: 'Grace Hopper',
         identifiers,
-        password: 'plaintext-pass',
         ...grant,
       }),
     ),
@@ -67,7 +59,7 @@ const runRegister = (
 const anEmail = [{ type: IdentifierType.Email, value: 'grace@example.com' }];
 
 describe('registerUserUCFactory', () => {
-  it('hashes the password, creates the account, and returns the auth subject', async () => {
+  it('creates the account with every identifier and returns the auth subject', async () => {
     let received: CreateAccountInput | undefined;
     const exit = await runRegister(
       stubAccounts(input => {
@@ -76,12 +68,16 @@ describe('registerUserUCFactory', () => {
       [
         { type: IdentifierType.Email, value: 'grace@example.com' },
         { type: IdentifierType.Username, value: 'grace' },
+        { type: IdentifierType.ExternalSubject, value: 'zitadel-sub-9' },
       ],
     );
 
-    // The store only ever receives a hash, never the plaintext.
-    expect(received?.passwordHash).toBe('hashed:plaintext-pass');
-    expect(received?.identifiers).toHaveLength(2);
+    // The external subject is what makes the account reachable at the next
+    // sign-in, so it has to land in the same atomic write as the account.
+    expect(received?.identifiers).toHaveLength(3);
+    expect(received?.identifiers.map(i => i.type)).toContain(
+      IdentifierType.ExternalSubject,
+    );
 
     expect(Exit.isSuccess(exit)).toBe(true);
     if (Exit.isSuccess(exit)) {
@@ -111,8 +107,8 @@ describe('registerUserUCFactory', () => {
       findByIdentifier: () => Effect.succeed(null),
       findById: () => Effect.succeed(null),
       findContactAddress: () => Effect.succeed(null),
-      readPasswordHash: () => Effect.succeed(null),
-      writePasswordHash: () => Effect.void,
+    linkExternalSubject: () => Effect.void,
+    projectIdentity: () => Effect.void,
       createAccount: () =>
         Effect.fail(new EntifixLogicError('identifier already taken')),
       updateUserAspects: () =>
@@ -166,9 +162,9 @@ describe('registerUserUCFactory', () => {
       }
     });
 
-    it('refuses a public signup that asks for a role, however low', async () => {
-      // No `actorRoles` at all: an anonymous caller crafting `role` into the
-      // body must not be able to pick its own tier.
+    it('refuses a self-registration that asks for a role, however low', async () => {
+      // No `actorRoles` at all: a first sign-in through the hosted UI must not
+      // be able to pick its own tier.
       const exit = await runRegister(stubAccounts(), anEmail, {
         role: DEFAULT_ROLE,
       });

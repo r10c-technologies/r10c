@@ -6,21 +6,25 @@
  */
 export { makeMongoAccountRepository } from './identity/account-repository';
 export {
-  LOCK_TTL_SECONDS,
-  makeRedisAttemptLimiter,
-  MAX_ATTEMPTS_PER_SOURCE,
-  MAX_FAILING_SOURCES,
-} from './identity/attempt-limiter';
+  IdTokenStoreLayer,
+  IdTokenStoreTag,
+  makeRedisIdTokenStore,
+} from './identity/id-token-store';
 export {
   makeDevNotificationPort,
   OUTBOX_COLLECTION,
 } from './identity/notifications';
-export { makeBcryptPasswordHasher } from './identity/password';
+export {
+  PROVIDER,
+  provisionZitadelHuman,
+  resolveSignIn,
+} from './identity/provisioning';
 export { makeRedisIdentityProvider } from './identity/redis-identity-provider';
 export {
   DEV_SEED_PASSWORD,
   JWT_AUDIENCE,
   JWT_ISSUER,
+  OIDC_STATE_TTL_SECONDS,
 } from './identity/session-policy';
 export {
   makeMongoSessionScopeResolver,
@@ -39,7 +43,7 @@ export {
   entityIdentifierSeedData,
   userIdentitySeedData,
 } from './identity/user-seed-data';
-export { AppLayer, seedCredentials } from './mongo';
+export { AppLayer, seedIdentityProvider } from './mongo';
 export { router } from './routes';
 
 export const SERVICE_NAME = '@r10c/auth-service';

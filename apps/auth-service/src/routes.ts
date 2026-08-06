@@ -5,26 +5,17 @@ import {
 } from '@effect/platform';
 import {
   AccountRepositoryTag,
-  AttemptLimiterTag,
   type AuthSubject,
-  ChangePasswordInputTag,
-  changePasswordUCFactory,
   EntityIdentifier,
   type IdentifierType,
-  LockedError,
-  LoginInputTag,
-  loginUCFactory,
   NotificationKind,
   NotificationPortTag,
   type Principal,
   RegisterInputTag,
   registerUserUCFactory,
-  RequestPasswordResetInputTag,
-  requestPasswordResetUCFactory,
-  ResetPasswordInputTag,
-  resetPasswordUCFactory,
   resolveSessionUCFactory,
   SessionIdTag,
+  UnauthenticatedError,
   UpdateUserAspectsInputTag,
   updateUserAspectsUCFactory,
   UserDevice,
@@ -45,6 +36,7 @@ import {
   EntityRepositoryTag,
   getUCFactory,
   loadUCFactory,
+  OneTimeTokenStoreTag,
   type SessionRecord,
   SessionStoreTag,
   TokenServiceTag,
@@ -64,6 +56,12 @@ import {
   MongoDatabaseTag,
 } from '@r10c/entifix-ts-mongo-client';
 import {
+  createOpaqueValue,
+  createPkcePair,
+  ZitadelManagementTag,
+  ZitadelOidcTag,
+} from '@r10c/entifix-ts-zitadel-client';
+import {
   LoadedConfigurationTag,
   redactConfiguration,
   requirePermission,
@@ -71,11 +69,17 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
+import { IdTokenStoreTag } from './identity/id-token-store';
 import { describeIdentityModel } from './identity/identity-showcase';
 import { readOutbox } from './identity/notifications';
 import {
+  provisionZitadelHuman,
+  resolveSignIn,
+} from './identity/provisioning';
+import {
   ACCESS_TOKEN_TTL_SECONDS,
   DEFAULT_SESSION_LIFETIME,
+  OIDC_STATE_TTL_SECONDS,
   SESSION_IDLE_TTL_SECONDS,
 } from './identity/session-policy';
 import { SessionScopeResolverTag } from './identity/session-scope';
@@ -239,16 +243,6 @@ const respondAuthError = (error: { _tag?: string }) => {
         { error: message ?? 'request refused', code: code ?? 'invalidRequest' },
         { status: 409 },
       );
-    // Too many failures. `429` rather than `423 Locked`: the condition is a
-    // rate, it clears on its own, and every client already understands it.
-    case 'LockedError':
-      return HttpServerResponse.json(
-        {
-          error: message ?? 'too many attempts',
-          code: code ?? 'accountLocked',
-        },
-        { status: 429 },
-      );
     case 'EntifixBuildError':
       return HttpServerResponse.json(
         { error: 'invalid request', code: 'invalidRequest' },
@@ -382,10 +376,16 @@ const establishSession = (
     };
   }).pipe(Effect.orDie);
 
-/** Parse a registration body into the use-case input, or fail 400. */
+/**
+ * Parse an administrative account-creation body into the use-case input, or
+ * fail 400.
+ *
+ * No password is read, and none may be supplied: the account this creates has
+ * no credential in r10c at all, and the one Zitadel holds is set through the
+ * provisioning call that follows.
+ */
 const parseRegister = (body: Record<string, unknown>) =>
   Effect.gen(function* () {
-    const password = asString(body['password']);
     const rawIdentifiers = Array.isArray(body['identifiers'])
       ? body['identifiers']
       : [];
@@ -400,113 +400,155 @@ const parseRegister = (body: Record<string, unknown>) =>
           entry.type !== undefined && entry.value !== undefined,
       );
 
-    if (password === undefined || identifiers.length === 0) {
+    if (identifiers.length === 0) {
       return yield* Effect.fail(
-        new EntifixBuildError(
-          'registration requires a password and identifier',
-        ),
+        new EntifixBuildError('an account needs at least one identifier'),
       );
     }
 
     return {
       displayName: asString(body['displayName']),
       identifiers,
-      password,
     };
   });
 
-/** `POST /api/auth/register` — provision an account and log it straight in. */
-const registerRoute = Effect.gen(function* () {
-  const body = yield* readBody;
-  const input = yield* parseRegister(body);
-  const subject = yield* registerUserUCFactory().pipe(
-    Effect.provideService(RegisterInputTag, input),
-  );
-  const result = yield* establishSession(subject, readDevice(body));
-  return yield* HttpServerResponse.json(result, { status: 201 });
-}).pipe(Effect.catchAll(respondAuthError));
+/** The pending authorization a redirect is stored under, as JSON in Redis. */
+interface PendingAuthorization {
+  readonly codeVerifier: string;
+  readonly nonce: string;
+  /** Where the browser wanted to go before it was sent to sign in. */
+  readonly redirect?: string;
+}
 
 /**
- * `POST /api/auth/login` — verify credentials and open a session.
+ * `POST /api/auth/oidc/start` — begin a sign-in.
  *
- * Wrapped in the attempt limiter. The check runs BEFORE credentials are looked
- * at, so a locked identifier costs an attacker nothing to discover and, more to
- * the point, costs the server no bcrypt work per attempt.
+ * The one-time token store does double duty here, and it fits exactly: a
+ * `state` handle wants to be unguessable, single-use, short-lived and hashed at
+ * rest, which is the store's entire contract. The token it mints **is** the
+ * `state`, so there is no second value to keep in step, and its subject is the
+ * pending authorization the callback needs back.
+ *
+ * The PKCE verifier never leaves the server. That is what makes a public client
+ * safe: an intercepted authorization code cannot be exchanged without it.
  */
-const loginRoute = Effect.gen(function* () {
+const oidcStartRoute = Effect.gen(function* () {
   const body = yield* readBody;
-  const identifier = asString(body['identifier']);
-  const password = asString(body['password']);
-  if (identifier === undefined || password === undefined) {
+  const oidc = yield* ZitadelOidcTag;
+  const tokens = yield* OneTimeTokenStoreTag;
+
+  const { codeVerifier, codeChallenge } = createPkcePair();
+  const nonce = createOpaqueValue();
+  const pending: PendingAuthorization = {
+    codeVerifier,
+    nonce,
+    redirect: asString(body['redirect']),
+  };
+
+  const state = yield* tokens.issue(
+    OIDC_STATE_PURPOSE,
+    JSON.stringify(pending),
+    OIDC_STATE_TTL_SECONDS,
+  );
+  const authorizationUrl = yield* oidc.authorizationUrl({
+    state,
+    nonce,
+    codeChallenge,
+  });
+
+  return yield* HttpServerResponse.json({ authorizationUrl });
+}).pipe(Effect.catchAll(respondAuthError));
+
+/** Namespace for the pending-authorization tokens; see {@link oidcStartRoute}. */
+const OIDC_STATE_PURPOSE = 'oidc-state';
+
+/**
+ * `POST /api/auth/oidc/callback` — finish it.
+ *
+ * Consuming the state is the CSRF check and the replay check in one: a callback
+ * whose `state` is unknown, expired, or already spent gets `401` and never
+ * reaches the token endpoint. The `nonce` recovered alongside it is then what
+ * binds the returned `id_token` to this same request.
+ *
+ * From `resolveSignIn` onward this is the ordinary path — the same
+ * `establishSession` that has always run, so cookies, device history, party
+ * role and tenancy are untouched by the swap.
+ */
+const oidcCallbackRoute = Effect.gen(function* () {
+  const body = yield* readBody;
+  const code = asString(body['code']);
+  const state = asString(body['state']);
+  if (code === undefined || state === undefined) {
     return yield* HttpServerResponse.json(
       { error: 'invalid request', code: 'invalidRequest' },
       { status: 400 },
     );
   }
 
-  const limiter = yield* AttemptLimiterTag;
-  // The device id where we have one: steadier than an IP, which a phone rotates
-  // several times a day, and it keeps one household behind a NAT from locking
-  // each other out.
-  const device = readDevice(body);
-  const source = device?.deviceId ?? device?.ip ?? 'unknown';
+  const tokens = yield* OneTimeTokenStoreTag;
+  const oidc = yield* ZitadelOidcTag;
+  const accounts = yield* AccountRepositoryTag;
 
-  const standing = yield* limiter.check(identifier, source);
-  if (standing.locked) {
-    return yield* respondAuthError(
-      new LockedError('too many attempts', 'accountLocked', undefined, {
-        retryAfterSeconds: standing.retryAfterSeconds,
-      }),
-    );
-  }
-
-  const subject = yield* loginUCFactory().pipe(
-    Effect.provideService(LoginInputTag, { identifier, password }),
-    Effect.tapError(() => onFailedAttempt(identifier, source)),
+  const pending = yield* tokens.consume(OIDC_STATE_PURPOSE, state).pipe(
+    Effect.map(raw => JSON.parse(raw) as PendingAuthorization),
+    Effect.catchAll(() =>
+      Effect.fail(
+        new UnauthenticatedError(
+          'the authorization state is unknown or spent',
+          'invalidState',
+        ),
+      ),
+    ),
   );
 
-  yield* limiter.succeed(identifier, source);
-  const result = yield* establishSession(subject, device);
-  return yield* HttpServerResponse.json(result, { status: 200 });
+  const identity = yield* oidc.exchangeCode({
+    code,
+    codeVerifier: pending.codeVerifier,
+    nonce: pending.nonce,
+  });
+
+  const subject = yield* resolveSignIn(accounts, identity);
+  const result = yield* establishSession(subject, readDevice(body));
+
+  // Remembered so sign-out can end the provider's session too. Best-effort by
+  // construction — a failure here costs a tidy logout, never the sign-in.
+  const idTokens = yield* IdTokenStoreTag;
+  yield* idTokens.remember(result.sessionId, identity.idToken);
+
+  return yield* HttpServerResponse.json(
+    { ...result, redirect: pending.redirect },
+    { status: 200 },
+  );
 }).pipe(Effect.catchAll(respondAuthError));
 
 /**
- * Count a failed sign-in, and tell the owner if this is the attempt that locked
- * them out — once, on the transition, so a sustained attack does not mail them
- * per attempt.
+ * `POST /api/auth/logout` — revoke the session so every service sees it gone,
+ * and say where to send the browser so Zitadel's own session ends with it.
+ *
+ * Revoking locally without the second half is what leaves a "signed out" user
+ * one click from being signed straight back in, with no password prompt,
+ * because the provider still considers them authenticated.
  */
-const onFailedAttempt = (identifier: string, source: string) =>
-  Effect.gen(function* () {
-    const limiter = yield* AttemptLimiterTag;
-    const state = yield* limiter.fail(identifier, source);
-    if (!state.justLocked) return;
-
-    const accounts = yield* AccountRepositoryTag;
-    const notifications = yield* NotificationPortTag;
-    const user = yield* accounts.findByIdentifier(identifier);
-    if (user === null) return;
-    const to = yield* accounts.findContactAddress(user.id);
-    if (to === null) return;
-
-    yield* notifications.send({
-      kind: NotificationKind.AccountLocked,
-      userId: user.id,
-      to,
-      data: { retryAfterSeconds: String(state.retryAfterSeconds) },
-    });
-    // Accounting must never turn a wrong password into a 500.
-  }).pipe(Effect.catchAll(() => Effect.void));
-
-/** `POST /api/auth/logout` — revoke the session so every service sees it gone. */
 const logoutRoute = Effect.gen(function* () {
   const body = yield* readBody;
   const sessionId = asString(body['sessionId']);
+  let idToken: string | undefined;
+
   if (sessionId !== undefined) {
     const sessions = yield* SessionStoreTag;
+    const idTokens = yield* IdTokenStoreTag;
+    idToken = yield* idTokens.take(sessionId);
     yield* sessions.revoke(sessionId);
   }
-  return yield* HttpServerResponse.json({ ok: true });
-}).pipe(Effect.catchAll(() => HttpServerResponse.json({ ok: true })));
+
+  const oidc = yield* ZitadelOidcTag;
+  const endSessionUrl = yield* oidc.endSessionUrl(idToken);
+  return yield* HttpServerResponse.json({ ok: true, endSessionUrl });
+}).pipe(
+  // A provider that cannot be reached must not keep someone signed in: the
+  // local revocation above has already happened by then.
+  Effect.catchAll(() => HttpServerResponse.json({ ok: true })),
+);
 
 /**
  * `POST /api/auth/refresh` — mint a fresh access token from a still-live
@@ -581,123 +623,6 @@ const refreshRoute = Effect.gen(function* () {
 );
 
 // #endregion auth flow
-
-// #region password
-
-/**
- * `POST /api/auth/password` — a signed-in user changing their own password.
- *
- * Every OTHER session goes; this one stays. `revokeAllForUser` would sign the
- * user out of the screen they just used, which reads as a failure.
- */
-const changePasswordRoute = requirePrincipal(principal =>
-  Effect.gen(function* () {
-    const body = yield* readBody;
-    const currentPassword = asString(body['currentPassword']);
-    const newPassword = asString(body['newPassword']);
-    if (currentPassword === undefined || newPassword === undefined) {
-      return yield* HttpServerResponse.json(
-        { error: 'invalid request', code: 'invalidRequest' },
-        { status: 400 },
-      );
-    }
-
-    yield* changePasswordUCFactory().pipe(
-      Effect.provideService(ChangePasswordInputTag, {
-        userId: principal.userId,
-        currentPassword,
-        newPassword,
-      }),
-    );
-
-    const sessions = yield* SessionStoreTag;
-    yield* sessions.revokeAllForUserExcept(
-      principal.userId,
-      principal.sessionId,
-    );
-
-    yield* notifyPasswordChanged(principal.userId);
-    return yield* HttpServerResponse.json({ ok: true });
-  }).pipe(Effect.catchAll(respondAuthError)),
-);
-
-/** Tell the owner their password changed — best-effort, never blocking. */
-const notifyPasswordChanged = (userId: Principal['userId']) =>
-  Effect.gen(function* () {
-    const accounts = yield* AccountRepositoryTag;
-    const notifications = yield* NotificationPortTag;
-    const to = yield* accounts.findContactAddress(userId);
-    if (to === null) return;
-    yield* notifications.send({
-      kind: NotificationKind.PasswordChanged,
-      userId,
-      to,
-    });
-  }).pipe(Effect.catchAll(() => Effect.void));
-
-/**
- * `POST /api/auth/password/forgot` — start recovery.
- *
- * Always `202`, whatever happened. A different status, body, or even a
- * noticeably different response time for a known address turns this endpoint
- * into a way to enumerate who has an account here.
- */
-const forgotPasswordRoute = Effect.gen(function* () {
-  const body = yield* readBody;
-  const identifier = asString(body['identifier']);
-  const resetUrlBase =
-    asString(body['resetUrlBase']) ??
-    process.env.AUTH_APP_URL ??
-    'http://localhost:3002';
-
-  if (identifier !== undefined) {
-    yield* requestPasswordResetUCFactory().pipe(
-      Effect.provideService(RequestPasswordResetInputTag, {
-        identifier,
-        resetUrlBase,
-      }),
-      // Even a store outage answers the same way.
-      Effect.catchAll(() => Effect.void),
-    );
-  }
-
-  return yield* HttpServerResponse.json({ ok: true }, { status: 202 });
-}).pipe(
-  Effect.catchAllCause(() =>
-    HttpServerResponse.json({ ok: true }, { status: 202 }),
-  ),
-);
-
-/**
- * `POST /api/auth/password/reset` — redeem a reset link.
- *
- * Every session is revoked on success, without exception: recovery exists
- * precisely because the old password may be in someone else's hands, and
- * whoever that is may be signed in right now.
- */
-const resetPasswordRoute = Effect.gen(function* () {
-  const body = yield* readBody;
-  const token = asString(body['token']);
-  const newPassword = asString(body['newPassword']);
-  if (token === undefined || newPassword === undefined) {
-    return yield* HttpServerResponse.json(
-      { error: 'invalid request', code: 'invalidRequest' },
-      { status: 400 },
-    );
-  }
-
-  const userId = yield* resetPasswordUCFactory().pipe(
-    Effect.provideService(ResetPasswordInputTag, { token, newPassword }),
-  );
-
-  const sessions = yield* SessionStoreTag;
-  yield* sessions.revokeAllForUser(userId);
-
-  yield* notifyPasswordChanged(userId);
-  return yield* HttpServerResponse.json({ ok: true });
-}).pipe(Effect.catchAll(respondAuthError));
-
-// #endregion password
 
 // #region development
 
@@ -861,25 +786,57 @@ const userSessionsRoute = requirePermission(DEVICE_READ)(principal =>
   }).pipe(Effect.catchAll(serverError)),
 );
 
-/** `DELETE /api/user-identity/:id/sessions` — sign a user out everywhere. */
+/**
+ * `DELETE /api/user-identity/:id/sessions` — sign a user out everywhere.
+ *
+ * The owner is told, because they did not do it: being signed out of every
+ * device with no explanation looks exactly like an account compromise, and
+ * someone who cannot tell those apart cannot report either. Best-effort, like
+ * every other notification — a mail failure must not leave the sessions alive.
+ */
 const revokeUserSessionsRoute = requirePermission(DEVICE_WRITE)(() =>
   Effect.gen(function* () {
     const params = yield* HttpRouter.params;
+    const userId = params.id ?? '';
     const sessions = yield* SessionStoreTag;
-    yield* sessions.revokeAllForUser(params.id ?? '');
+    yield* sessions.revokeAllForUser(userId);
+    yield* notifySessionsRevoked(userId);
     return yield* HttpServerResponse.json({ ok: true });
   }).pipe(Effect.catchAll(serverError)),
 );
+
+/** Tell the owner their sessions were ended for them. Never blocking. */
+const notifySessionsRevoked = (userId: Principal['userId']) =>
+  Effect.gen(function* () {
+    const accounts = yield* AccountRepositoryTag;
+    const notifications = yield* NotificationPortTag;
+    const to = yield* accounts.findContactAddress(userId);
+    // A username-only account has nowhere to send it, which is not an error.
+    if (to === null) return;
+    yield* notifications.send({
+      kind: NotificationKind.SessionsRevoked,
+      userId,
+      to,
+    });
+  }).pipe(Effect.catchAll(() => Effect.void));
 
 /** Read the requested role from a body, rejecting an unrecognised one. */
 const parseRole = (value: unknown): Role | undefined =>
   isRole(value) ? value : undefined;
 
 /**
- * `POST /api/user-identity` — administrative account creation. Deliberately the
- * SAME use-case public signup runs: a generic entity write would skip password
- * hashing, identifier uniqueness and the tier rule. The actor comes from the
+ * `POST /api/user-identity` — administrative account creation.
+ *
+ * Deliberately the SAME use-case a first sign-in runs: a generic entity write
+ * would skip identifier uniqueness and the tier rule. The actor comes from the
  * verified principal, never from the body.
+ *
+ * Two systems, written in a fixed order and without a saga. The local record
+ * goes first because it owns the role and the party — the two things Zitadel
+ * never sees — and the human second. If the second half fails the caller gets a
+ * `409` and the account is left with no external subject: it cannot sign in, it
+ * is listed like any other, and submitting the same form again repairs it. See
+ * ADR 0016 for why this beats a compensating delete that can itself fail.
  */
 const createUserRoute = requirePermission(USER_WRITE)(principal =>
   Effect.gen(function* () {
@@ -893,6 +850,16 @@ const createUserRoute = requirePermission(USER_WRITE)(principal =>
       );
     }
 
+    const email = input.identifiers.find(
+      identifier => identifier.type === 'email',
+    )?.value;
+    if (email === undefined) {
+      return yield* HttpServerResponse.json(
+        { error: 'an email identifier is required', code: 'emailRequired' },
+        { status: 400 },
+      );
+    }
+
     const subject = yield* registerUserUCFactory().pipe(
       Effect.provideService(RegisterInputTag, {
         ...input,
@@ -900,6 +867,18 @@ const createUserRoute = requirePermission(USER_WRITE)(principal =>
         actorRoles: principal.roles,
       }),
     );
+
+    const zitadel = yield* ZitadelManagementTag;
+    const accounts = yield* AccountRepositoryTag;
+    yield* provisionZitadelHuman(accounts, zitadel, {
+      userId: subject.userId,
+      email,
+      username: input.identifiers.find(
+        identifier => identifier.type === 'username',
+      )?.value,
+      displayName: input.displayName,
+    });
+
     return yield* HttpServerResponse.json(subject, { status: 201 });
   }).pipe(Effect.catchAll(respondAuthError)),
 );
@@ -965,9 +944,11 @@ const updateUserRoute = requirePermission(USER_WRITE)(principal =>
 const identityRoutes = HttpRouter.empty.pipe(
   HttpRouter.get('/api/config', configIntrospectionRoute),
   HttpRouter.get('/.well-known/jwks.json', jwksRoute),
-  // Credential flow.
-  HttpRouter.post('/api/auth/register', registerRoute),
-  HttpRouter.post('/api/auth/login', loginRoute),
+  // Sign-in flow. There is no `register` or `login` here any more and there
+  // cannot be: this service holds no credential to check, so the only way in is
+  // a round trip through the provider's hosted UI.
+  HttpRouter.post('/api/auth/oidc/start', oidcStartRoute),
+  HttpRouter.post('/api/auth/oidc/callback', oidcCallbackRoute),
   HttpRouter.post('/api/auth/logout', logoutRoute),
   HttpRouter.post('/api/auth/refresh', refreshRoute),
   // Session self-service. Every one of these resolves the caller from the
@@ -976,10 +957,9 @@ const identityRoutes = HttpRouter.empty.pipe(
   HttpRouter.post('/api/auth/sessions/revoke-others', revokeOtherSessionsRoute),
   HttpRouter.del('/api/auth/sessions/:sessionId', revokeMySessionRoute),
   HttpRouter.get('/api/auth/devices', myDevicesRoute),
-  // Password change + recovery.
-  HttpRouter.post('/api/auth/password', changePasswordRoute),
-  HttpRouter.post('/api/auth/password/forgot', forgotPasswordRoute),
-  HttpRouter.post('/api/auth/password/reset', resetPasswordRoute),
+  // No password routes. Changing a password, enrolling a second factor and
+  // recovering an account are all Zitadel self-service now; the account page
+  // links out to it rather than proxying an endpoint we would have to secure.
   // Development only — 404s in production. See `devOutboxRoute`.
   HttpRouter.get('/api/dev/outbox', devOutboxRoute),
   // Resolve an opaque session id → principal via the framework-free use-case.
