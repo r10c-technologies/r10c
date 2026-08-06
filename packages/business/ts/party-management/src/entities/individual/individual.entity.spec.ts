@@ -38,6 +38,20 @@ describe('Individual', () => {
     expect(individual?.userId).toBe('user-9');
   });
 
+  it('reads a stored party role back', async () => {
+    // The value a sign-in resolves the session's plane from, so it has to
+    // survive the round trip through storage rather than being recomputed.
+    const individual = await Effect.runPromise(
+      deserializeSingleEntity(Individual, {
+        id: 'ind-3',
+        fullName: 'Alan Turing',
+        partyRole: 'vendor',
+      }),
+    );
+
+    expect(individual?.partyRole).toBe('vendor');
+  });
+
   it('describes its columns with declared types', () => {
     expect(
       describeEntityColumns(Individual).map(column => [
