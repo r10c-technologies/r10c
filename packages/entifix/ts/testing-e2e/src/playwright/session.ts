@@ -2,6 +2,9 @@ import type { BrowserContext } from '@playwright/test';
 
 import { isMockProfile } from '../profile/profile';
 
+/** Let a hosted-UI step navigate before the next one is inspected. */
+const STEP_SETTLE_MS = 1_500;
+
 /** The cookies auth-app sets, host-scoped so the fleet shares them in dev. */
 const ACCESS_COOKIE = 'r10c_at';
 const SESSION_COOKIE = 'r10c_sid';
@@ -105,22 +108,72 @@ const signInThroughHostedUi = async (
   try {
     await page.goto(`${options.authAppUrl}/api/auth/oidc/start`);
 
-    await page.fill('input[name="loginName"]', options.identifier);
-    await page.click('button[type="submit"]');
+    // A step machine rather than a fixed sequence, because the hosted UI's path
+    // is not fixed. Three shapes a scripted login/password pair walks into:
+    //
+    // - **"Select Account"**, when the browser still holds a provider session
+    //   from an earlier spec. There is no login field on it at all.
+    // - **"2-Factor Setup"**, offered after the password to anyone with no
+    //   enrolled factor. `forceMfa` is off, so it is a prompt with a Skip.
+    // - **no screen at all**, when the provider session is still live and the
+    //   authorization completes on the redirect.
+    //
+    // The loop's exit condition is the access cookie rather than the URL,
+    // because that is what "signed in" actually means here and it is the only
+    // one of the three that a landing origin does not lie about — the callback
+    // lands on whichever app the redirect names, not on auth-app.
+    for (let step = 0; step < 8; step += 1) {
+      if ((await context.cookies()).some(c => c.name === ACCESS_COOKIE)) break;
 
-    await page.fill('input[name="password"]', options.password);
-    await page.click('button[type="submit"]');
+      const otherUser = page.getByRole('link', { name: /other user/i });
+      if (await otherUser.count()) {
+        await otherUser.first().click();
+        await page.waitForTimeout(STEP_SETTLE_MS);
+        continue;
+      }
 
-    // Back on our origin with cookies set. Waiting on the URL rather than on a
-    // selector keeps this independent of whatever the landing page renders.
-    await page.waitForURL(url => !url.host.includes('30080'), {
-      timeout: 30_000,
-    });
+      // Skipping the enrolment offer, not declining MFA: a user who HAS a
+      // factor is asked to verify instead, and that screen has no Skip — which
+      // is why a spec needing an enrolled user must seed its own code.
+      const skip = page.getByRole('button', { name: /^skip$/i });
+      if (await skip.count()) {
+        await skip.first().click();
+        await page.waitForTimeout(STEP_SETTLE_MS);
+        continue;
+      }
 
-    const cookies = await context.cookies();
-    if (!cookies.some(cookie => cookie.name === ACCESS_COOKIE)) {
+      // `:visible` is load-bearing on both, not defensive styling. The password
+      // page carries a HIDDEN `loginName` input as an autocomplete hint, so a
+      // plain name selector matches it, reports a count of one, and then blocks
+      // forever in `fill` waiting for an element that will never be visible.
+      const loginName = page.locator('input[name="loginName"]:visible');
+      if (await loginName.count()) {
+        await loginName.fill(options.identifier);
+        await page.click('button[type="submit"]');
+        await page.waitForTimeout(STEP_SETTLE_MS);
+        continue;
+      }
+
+      const password = page.locator('input[name="password"]:visible');
+      if (await password.count()) {
+        await password.fill(options.password);
+        await page.click('button[type="submit"]');
+        await page.waitForTimeout(STEP_SETTLE_MS);
+        continue;
+      }
+
+      // No cookie yet and nothing recognisable to do — an MFA challenge, or a
+      // screen this fixture has not been taught. Say which, because a bare
+      // timeout would send the reader looking in the wrong place.
       throw new Error(
-        `seedSession: signed in but no ${ACCESS_COOKIE} cookie was set. Is auth-service running and seeded into Zitadel?`,
+        `seedSession: stuck on the hosted login at ${page.url()} ("${await page.title()}"). ` +
+          'It is asking for something this fixture does not handle — a second factor, most likely.',
+      );
+    }
+
+    if (!(await context.cookies()).some(c => c.name === ACCESS_COOKIE)) {
+      throw new Error(
+        `seedSession: finished the hosted login but no ${ACCESS_COOKIE} cookie was set. Is auth-service running and seeded into Zitadel?`,
       );
     }
   } finally {
