@@ -41,6 +41,7 @@ import { Effect, Layer } from 'effect';
 import { makeMongoAccountRepository } from './identity/account-repository';
 import { IdTokenStoreLayer } from './identity/id-token-store';
 import { makeDevNotificationPort } from './identity/notifications';
+import { ProviderSessionIndexLayer } from './identity/provider-session-index';
 import { provisionZitadelHuman } from './identity/provisioning';
 import { makeRedisIdentityProvider } from './identity/redis-identity-provider';
 import {
@@ -286,6 +287,7 @@ export const AppLayer = Layer.unwrapEffect(
         RedisSessionStoreLayer(),
         RedisOneTimeTokenStoreLayer(),
         IdTokenStoreLayer,
+        ProviderSessionIndexLayer,
         AccountRepositoryLayer,
         SessionScopeResolverLayer,
         UserDeviceRepositoryLayer,

@@ -1,4 +1,6 @@
+import { EntifixLogicError } from '@r10c/entifix-ts-core';
 import type {
+  LogoutEvent,
   ZitadelIdentity,
   ZitadelManagement,
   ZitadelOidc,
@@ -8,6 +10,29 @@ import { Effect } from 'effect';
 
 /** Where the fake hosted UI pretends to live. Nothing ever fetches it. */
 export const MOCK_ISSUER = 'https://zitadel.mock';
+
+/**
+ * The provider session a sign-in belongs to, one per person.
+ *
+ * Constant per address rather than per sign-in, because that is what a real
+ * hosted UI does: a browser that is already authenticated gets the same `sid`
+ * back. It is also the only way the sid-scoped revocation is worth testing —
+ * one logout token has to be able to end two r10c sessions at once.
+ */
+export const providerSessionIdFor = (email: string) =>
+  `sid-${email.toLowerCase()}`;
+
+/**
+ * The `sub` this directory reports for an address — the same value the service
+ * records as the account's `external-subject` identifier, which is what the
+ * `sub`-only revocation path resolves against.
+ */
+export const providerSubjectFor = (email: string) =>
+  `zitadel-${email.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}`;
+
+/** How a spec hands the fake a logout token. See {@link makeFakeZitadel}. */
+export const mockLogoutToken = (event: LogoutEvent): string =>
+  JSON.stringify(event);
 
 /**
  * An in-memory Zitadel: a management API and an OIDC client over one directory.
@@ -28,8 +53,7 @@ export const makeFakeZitadel = () => {
   const byId = new Map<string, ZitadelUser>();
   const idByEmail = new Map<string, string>();
 
-  const idFor = (email: string) =>
-    `zitadel-${email.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}`;
+  const idFor = providerSubjectFor;
 
   const management: ZitadelManagement = {
     findUserByEmail: email =>
@@ -60,8 +84,7 @@ export const makeFakeZitadel = () => {
         byId.set(userId, {
           ...existing,
           displayName:
-            profile.displayName ??
-            `${profile.givenName} ${profile.familyName}`,
+            profile.displayName ?? `${profile.givenName} ${profile.familyName}`,
         });
       }),
     setActive: (userId, active) =>
@@ -109,6 +132,7 @@ export const makeFakeZitadel = () => {
             : (known?.emailVerified ?? true),
           preferredUsername: known?.username ?? email,
           displayName: known?.displayName,
+          providerSessionId: providerSessionIdFor(email),
           idToken: `id-token-for:${email}`,
         };
         return identity;
@@ -116,9 +140,30 @@ export const makeFakeZitadel = () => {
     endSessionUrl: idToken =>
       Effect.sync(() => {
         const url = new URL(`${MOCK_ISSUER}/oidc/v1/end_session`);
-        if (idToken !== undefined) url.searchParams.set('id_token_hint', idToken);
+        if (idToken !== undefined)
+          url.searchParams.set('id_token_hint', idToken);
         return url.toString();
       }),
+    // Same bargain as `exchangeCode`: the token *is* its payload, JSON rather
+    // than a signed JWT. What a spec at this level is checking is that a
+    // verified logout event revokes the right sessions — the signature, the
+    // pinned `alg`, the `events` claim and the anti-replay `nonce` check all
+    // live in the client's own unit tests, where a real key pair is available.
+    verifyLogoutToken: logoutToken =>
+      Effect.try({
+        try: () => JSON.parse(logoutToken) as LogoutEvent,
+        catch: () => new EntifixLogicError('the logout_token did not parse'),
+      }).pipe(
+        Effect.flatMap(event =>
+          event.providerSessionId === undefined && event.subject === undefined
+            ? Effect.fail(
+                new EntifixLogicError(
+                  'the logout_token names neither sid nor sub',
+                ),
+              )
+            : Effect.succeed(event),
+        ),
+      ),
   };
 
   return { management, oidc, byId, idByEmail, unverified };

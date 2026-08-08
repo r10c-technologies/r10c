@@ -10,7 +10,9 @@ import {
   makeMongoUserDeviceRepository,
   makeRedisIdentityProvider,
   makeRedisIdTokenStore,
+  makeRedisProviderSessionIndex,
   membershipSeedData,
+  ProviderSessionIndexTag,
   router,
   seedIdentityProvider,
   SERVICE_NAME,
@@ -163,8 +165,9 @@ const base = Layer.mergeAll(
   // The real grant table, not a fake — it is what `requirePermission` consults,
   // so stubbing it would make every authorization assertion here meaningless.
   Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
-  // The fake ioredis honours set/get/expire/sadd/getdel — enough for the
-  // session store, the pending-authorization tokens and the id-token store.
+  // The fake ioredis honours set/get/expire/sadd/smembers/del/getdel — enough
+  // for the session store, the pending-authorization tokens, the id-token store
+  // and the provider-session index.
   Layer.succeed(
     SessionStoreTag,
     makeRedisSessionStore(fakeRedis.redis as never),
@@ -176,6 +179,10 @@ const base = Layer.mergeAll(
   Layer.succeed(
     IdTokenStoreTag,
     makeRedisIdTokenStore(fakeRedis.redis as never),
+  ),
+  Layer.succeed(
+    ProviderSessionIndexTag,
+    makeRedisProviderSessionIndex(fakeRedis.redis as never),
   ),
 );
 

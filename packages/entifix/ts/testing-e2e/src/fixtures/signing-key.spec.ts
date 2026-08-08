@@ -9,9 +9,16 @@ import {
   E2E_PUBLIC_KEY_PEM,
 } from './signing-key.js';
 
-/** The public half a private PEM implies, in the same encoding as the fixture. */
+/**
+ * The public half a private PEM implies, in the same encoding as the fixture.
+ *
+ * Derived straight from the PEM rather than from a `KeyObject`: the workspace
+ * resolves more than one copy of `@types/node`, so the `KeyObject` overload of
+ * `createPublicKey` is typed against a different class than the one
+ * `createPrivateKey` returns and the declaration pass rejects it.
+ */
 const publicHalfOf = (privateKeyPem: string): string =>
-  createPublicKey(createPrivateKey(privateKeyPem))
+  createPublicKey(privateKeyPem)
     .export({ type: 'spki', format: 'pem' })
     .toString()
     .trim();

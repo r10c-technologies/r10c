@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { clearDiscoveryCache } from './discovery.js';
 import {
+  BACKCHANNEL_LOGOUT_EVENT,
   clearJwksCache,
   makeZitadelOidc,
   type ZitadelOidcConfig,
@@ -64,7 +65,11 @@ const stubEndpoints = (tokenResponse: {
     const url = String(input);
     if (url.includes('/userinfo')) {
       if (tokenResponse.userInfo === false) {
-        return Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) });
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          json: () => Promise.resolve({}),
+        });
       }
       return Promise.resolve({
         ok: true,
@@ -104,8 +109,13 @@ beforeEach(async () => {
 
   const pair = await generateKeyPair('RS256', { extractable: true });
   signingKey = pair.privateKey;
-  publicJwk = { ...(await exportJWK(pair.publicKey)), kid: KEY_ID, alg: 'RS256' };
-  foreignKey = (await generateKeyPair('RS256', { extractable: true })).privateKey;
+  publicJwk = {
+    ...(await exportJWK(pair.publicKey)),
+    kid: KEY_ID,
+    alg: 'RS256',
+  };
+  foreignKey = (await generateKeyPair('RS256', { extractable: true }))
+    .privateKey;
 });
 
 afterEach(() => {
@@ -123,7 +133,9 @@ describe('authorizationUrl', () => {
     stubEndpoints({ body: {} });
 
     const url = new URL(
-      await Effect.runPromise(makeZitadelOidc(config).authorizationUrl(AUTH_INPUT)),
+      await Effect.runPromise(
+        makeZitadelOidc(config).authorizationUrl(AUTH_INPUT),
+      ),
     );
 
     expect(url.origin + url.pathname).toBe(`${ISSUER}/oauth/v2/authorize`);
@@ -141,7 +153,9 @@ describe('authorizationUrl', () => {
     stubEndpoints({ body: {} });
 
     const url = new URL(
-      await Effect.runPromise(makeZitadelOidc(config).authorizationUrl(AUTH_INPUT)),
+      await Effect.runPromise(
+        makeZitadelOidc(config).authorizationUrl(AUTH_INPUT),
+      ),
     );
 
     expect(url.searchParams.get('code_challenge')).toBe('challenge-1');
@@ -204,6 +218,52 @@ describe('exchangeCode', () => {
       displayName: 'Ada Lovelace',
       idToken,
     });
+  });
+
+  it('carries the provider session id a later logout token will name', async () => {
+    const idToken = await signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      sub: 'sub-1',
+      nonce: 'n',
+      sid: 'zitadel-sid-1',
+    });
+    stubEndpoints({ body: { id_token: idToken } });
+
+    const identity = await Effect.runPromise(
+      makeZitadelOidc(config).exchangeCode({
+        code: 'c',
+        codeVerifier: 'v',
+        nonce: 'n',
+      }),
+    );
+
+    expect(identity.providerSessionId).toBe('zitadel-sid-1');
+  });
+
+  it('ignores a sid userinfo supplies', async () => {
+    // `sid` decides whose sessions a logout token revokes, so it may only come
+    // from the document that was actually verified.
+    const idToken = await signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      sub: 'sub-1',
+      nonce: 'n',
+    });
+    stubEndpoints({
+      body: { id_token: idToken, access_token: 'access-1' },
+      userInfo: { sub: 'sub-1', sid: 'not-from-the-id-token' },
+    });
+
+    const identity = await Effect.runPromise(
+      makeZitadelOidc(config).exchangeCode({
+        code: 'c',
+        codeVerifier: 'v',
+        nonce: 'n',
+      }),
+    );
+
+    expect(identity.providerSessionId).toBeUndefined();
   });
 
   it('sends the verifier and no client secret', async () => {
@@ -412,6 +472,155 @@ describe('exchangeCode', () => {
   });
 });
 
+/**
+ * The provider ending a session it owns, which is the only way an r10c session
+ * can be revoked from outside r10c. Everything here is about refusing tokens
+ * that verify — a forged one is caught by the shared key check above.
+ */
+describe('verifyLogoutToken', () => {
+  const signLogoutToken = (claims: Record<string, unknown>) =>
+    signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      events: { [BACKCHANNEL_LOGOUT_EVENT]: {} },
+      ...claims,
+    });
+
+  it('reads the session and subject a logout token names', async () => {
+    stubEndpoints({ body: {} });
+    const token = await signLogoutToken({ sid: 'zitadel-sid-1', sub: 'sub-1' });
+
+    const event = await Effect.runPromise(
+      makeZitadelOidc(config).verifyLogoutToken(token),
+    );
+
+    expect(event).toEqual({
+      providerSessionId: 'zitadel-sid-1',
+      subject: 'sub-1',
+    });
+  });
+
+  it('accepts a token naming only a subject', async () => {
+    // The spec requires one of the two, not both, and providers differ.
+    stubEndpoints({ body: {} });
+    const token = await signLogoutToken({ sub: 'sub-1' });
+
+    const event = await Effect.runPromise(
+      makeZitadelOidc(config).verifyLogoutToken(token),
+    );
+
+    expect(event).toEqual({ providerSessionId: undefined, subject: 'sub-1' });
+  });
+
+  it('refuses an id_token replayed as a logout token', async () => {
+    // It verifies perfectly: right key, right issuer, right audience. The nonce
+    // is what gives it away, and it is the reason the two verifiers are separate.
+    stubEndpoints({ body: {} });
+    const token = await signLogoutToken({ sub: 'sub-1', nonce: 'nonce-1' });
+
+    const error = await Effect.runPromise(
+      Effect.flip(makeZitadelOidc(config).verifyLogoutToken(token)),
+    );
+
+    expect(error.message).toContain('nonce');
+  });
+
+  it('refuses a token that declares no logout event', async () => {
+    stubEndpoints({ body: {} });
+    const token = await signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      sub: 'sub-1',
+    });
+
+    const error = await Effect.runPromise(
+      Effect.flip(makeZitadelOidc(config).verifyLogoutToken(token)),
+    );
+
+    expect(error.message).toContain('back-channel logout event');
+  });
+
+  it('refuses a token whose events claim is not an object', async () => {
+    stubEndpoints({ body: {} });
+    const token = await signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      sub: 'sub-1',
+      events: BACKCHANNEL_LOGOUT_EVENT,
+    });
+
+    const error = await Effect.runPromise(
+      Effect.flip(makeZitadelOidc(config).verifyLogoutToken(token)),
+    );
+
+    expect(error.message).toContain('back-channel logout event');
+  });
+
+  it('refuses a token whose events claim is null', async () => {
+    stubEndpoints({ body: {} });
+    const token = await signIdToken({
+      iss: ISSUER,
+      aud: CLIENT_ID,
+      sub: 'sub-1',
+      events: null,
+    });
+
+    const error = await Effect.runPromise(
+      Effect.flip(makeZitadelOidc(config).verifyLogoutToken(token)),
+    );
+
+    expect(error.message).toContain('back-channel logout event');
+  });
+
+  it('refuses a token that names neither a session nor a subject', async () => {
+    // Nothing to revoke, and answering `ok` would hide that from the provider.
+    stubEndpoints({ body: {} });
+    const token = await signLogoutToken({});
+
+    const error = await Effect.runPromise(
+      Effect.flip(makeZitadelOidc(config).verifyLogoutToken(token)),
+    );
+
+    expect(error.message).toContain('neither sid nor sub');
+  });
+
+  it('refuses a token signed by a key the issuer does not publish', async () => {
+    stubEndpoints({ body: {} });
+    const token = await signIdToken(
+      {
+        iss: ISSUER,
+        aud: CLIENT_ID,
+        sub: 'attacker',
+        events: { [BACKCHANNEL_LOGOUT_EVENT]: {} },
+      },
+      foreignKey,
+    );
+
+    const error = await Effect.runPromise(
+      Effect.flip(makeZitadelOidc(config).verifyLogoutToken(token)),
+    );
+
+    expect(error._tag).toBe('EntifixLogicError');
+    expect(error.message).toContain('logout_token');
+  });
+
+  it('refuses a token minted for another client', async () => {
+    stubEndpoints({ body: {} });
+    const token = await signIdToken({
+      iss: ISSUER,
+      aud: 'someone-else',
+      sub: 'sub-1',
+      events: { [BACKCHANNEL_LOGOUT_EVENT]: {} },
+    });
+
+    const error = await Effect.runPromise(
+      Effect.flip(makeZitadelOidc(config).verifyLogoutToken(token)),
+    );
+
+    expect(error._tag).toBe('EntifixLogicError');
+  });
+});
+
 describe('ZitadelOidcLayer', () => {
   it('binds the tag a composition root asks for', async () => {
     stubEndpoints({ body: {} });
@@ -432,7 +641,9 @@ describe('endSessionUrl', () => {
     stubEndpoints({ body: {} });
 
     const url = new URL(
-      await Effect.runPromise(makeZitadelOidc(config).endSessionUrl('id-token')),
+      await Effect.runPromise(
+        makeZitadelOidc(config).endSessionUrl('id-token'),
+      ),
     );
 
     expect(url.origin + url.pathname).toBe(`${ISSUER}/oidc/v1/end_session`);
@@ -574,4 +785,3 @@ describe('the profile claims', () => {
     ).toBe(false);
   });
 });
-

@@ -38,7 +38,7 @@ successful authentication auth-service does what it always did: opens its own
 Redis session and mints its own RS256 access token
 ([ADR 0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md)).
 `establishSession` is untouched by the swap, which is what makes this a change to
-*how a credential is verified* rather than a rewrite of the auth layer.
+_how a credential is verified_ rather than a rewrite of the auth layer.
 
 ### Rejected: consuming Zitadel's tokens directly
 
@@ -77,16 +77,16 @@ collection.
 fix for drift is not "one copy" but one writer. The overlap is exactly four
 members:
 
-| Field | Writer |
-| --- | --- |
-| password, MFA enrolment, social links | Zitadel — no local copy exists |
-| `role`, `Individual.partyRole`, `Membership`, devices, sessions | r10c — Zitadel never sees them |
-| email/username `EntityIdentifier.value`, `UserIdentity.displayName`, `verified` | **Zitadel**; the local row is a projection |
-| `UserIdentity.status` | r10c — it decides whether a session may open at all |
+| Field                                                                           | Writer                                              |
+| ------------------------------------------------------------------------------- | --------------------------------------------------- |
+| password, MFA enrolment, social links                                           | Zitadel — no local copy exists                      |
+| `role`, `Individual.partyRole`, `Membership`, devices, sessions                 | r10c — Zitadel never sees them                      |
+| email/username `EntityIdentifier.value`, `UserIdentity.displayName`, `verified` | **Zitadel**; the local row is a projection          |
+| `UserIdentity.status`                                                           | r10c — it decides whether a session may open at all |
 
 A projected member follows the rule CLAUDE.md already states for audit stamps: it
 stays a writable accessor (`@accessor({ readonly })` would drop it from
-*deserialization* too, and the UI would never see it) and the **route** overwrites
+_deserialization_ too, and the UI would never see it) and the **route** overwrites
 it from the verified source — the `id_token`, on every callback. The only stale
 case left is a user who changes their email in Zitadel and never signs in again,
 costing one misaddressed device alert.
@@ -94,7 +94,7 @@ costing one misaddressed device alert.
 ### Provisioning is local-first with repair on retry, not a saga
 
 **Amendment.** Creating a user writes to two systems, which looks like the saga's
-job ([ADR 0008](0008-transactions-cqrs-and-the-saga-engine.md)) and is not the
+job ([ADR 0008](0008-domain-modules-and-service-topology.md)) and is not the
 right first consumer for it:
 
 - `acceptTransaction` is synchronous and everything after it is forked past the
@@ -128,7 +128,7 @@ designed-for cross-plane consumers remain
   password attempts; there are none to count here, and Zitadel enforces its own.
 - **Own credentials do not coexist.** **Amendment**: the original consequence said
   the two would run side by side while accounts migrated. Nothing runs in
-  production, so `dev:reset` *is* the migration and a compatibility window would
+  production, so `dev:reset` _is_ the migration and a compatibility window would
   only be dead code with a security surface — a verifier that still accepts a
   password is a verifier that can be made to.
 - **Local development gained two real dependencies.** `infra/local/zitadel` is
@@ -138,7 +138,9 @@ designed-for cross-plane consumers remain
 - **Sign-out is two steps now.** Revoking our session without ending the
   provider's leaves someone "signed out" who is one click from being signed
   straight back in with no prompt. The logout route returns an RP-initiated
-  `endSessionUrl`, and every sign-out control navigates to it.
+  `endSessionUrl`, and every sign-out control navigates to it. That covers
+  r10c → Zitadel only; the reverse direction is
+  [ADR 0017](0017-back-channel-logout-from-the-identity-provider.md).
 - **This supersedes ADR 0004's recovery and lockout sections.** Session lifetime,
   the sliding window and device history all stand unchanged.
   [ADR 0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md) stands in

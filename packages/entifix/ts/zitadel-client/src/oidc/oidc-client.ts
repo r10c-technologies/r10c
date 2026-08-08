@@ -28,6 +28,14 @@ const DEFAULT_SCOPES = ['openid', 'profile', 'email'] as const;
 export const ID_TOKEN_ALGORITHM = 'RS256';
 
 /**
+ * The event a back-channel logout token must declare, from OpenID Connect
+ * Back-Channel Logout 1.0 §2.4. A JWT that verifies but does not carry it is
+ * some other token the provider issued, not a request to end a session.
+ */
+export const BACKCHANNEL_LOGOUT_EVENT =
+  'http://schemas.openid.net/event/backchannel-logout';
+
+/**
  * What the caller must have decided before a browser can be sent anywhere.
  *
  * All three are minted by the caller rather than here, because all three have
@@ -52,8 +60,27 @@ export interface ZitadelIdentity {
   readonly emailVerified: boolean;
   readonly preferredUsername?: string;
   readonly displayName?: string;
+  /**
+   * The provider's own session id (`sid`), when it issues one.
+   *
+   * It is what a back-channel logout token names, and our session id is our
+   * own — so unless this is recorded against the session it opens, a logout at
+   * the provider has nothing here to point at. Read from the **verified
+   * id_token** only; a userinfo response must never be able to supply it.
+   */
+  readonly providerSessionId?: string;
   /** Needed to end the session at the provider; opaque to us otherwise. */
   readonly idToken: string;
+}
+
+/**
+ * What a verified back-channel logout token asks for: end the session named by
+ * `sid`, or every session belonging to `sub`. The spec requires at least one,
+ * and providers differ on which they send.
+ */
+export interface LogoutEvent {
+  readonly providerSessionId?: string;
+  readonly subject?: string;
 }
 
 export interface ZitadelOidc {
@@ -68,9 +95,14 @@ export interface ZitadelOidc {
     readonly nonce: string;
   }): Effect.Effect<ZitadelIdentity, EntifixConnError | EntifixLogicError>;
   /** Where to send the browser so the provider's own session ends too. */
-  endSessionUrl(
-    idToken?: string,
-  ): Effect.Effect<string, EntifixConnError>;
+  endSessionUrl(idToken?: string): Effect.Effect<string, EntifixConnError>;
+  /**
+   * The other direction: the provider telling us a session it owns has ended.
+   * Verifies the logout token and says which of our sessions it names.
+   */
+  verifyLogoutToken(
+    logoutToken: string,
+  ): Effect.Effect<LogoutEvent, EntifixConnError | EntifixLogicError>;
 }
 
 export class ZitadelOidcTag extends Context.Tag('ZitadelOidcTag')<
@@ -165,25 +197,35 @@ export const makeZitadelOidc = (config: ZitadelOidcConfig): ZitadelOidc => {
         new EntifixConnError(`the code exchange failed: ${String(error)}`),
     });
 
-  const verifyIdToken = (
+  /**
+   * The security boundary of this file, and the only place either token kind is
+   * verified. Without the pinned `algorithms` jose honours the token's own `alg`
+   * header, and a JWKS key served openly would be accepted as an HMAC secret —
+   * the same alg-confusion hole ADR 0015 closed on our own tokens. Written once
+   * so a second verifier cannot be added without it.
+   */
+  const verifyProviderJwt = (
     discovery: OidcDiscovery,
-    idToken: string,
-    nonce: string,
+    token: string,
+    what: string,
   ) =>
     Effect.tryPromise({
       try: () =>
-        jwtVerify(idToken, jwksFor(discovery), {
-          // The security boundary of this file. Without it jose honours the
-          // token's own `alg` header, and a JWKS key served openly would be
-          // accepted as an HMAC secret — the same alg-confusion hole ADR 0015
-          // closed on our own tokens.
+        jwtVerify(token, jwksFor(discovery), {
           algorithms: [ID_TOKEN_ALGORITHM],
           issuer: discovery.issuer,
           audience: config.clientId,
         }),
       catch: error =>
-        new EntifixLogicError(`the id_token did not verify: ${String(error)}`),
-    }).pipe(
+        new EntifixLogicError(`the ${what} did not verify: ${String(error)}`),
+    });
+
+  const verifyIdToken = (
+    discovery: OidcDiscovery,
+    idToken: string,
+    nonce: string,
+  ) =>
+    verifyProviderJwt(discovery, idToken, 'id_token').pipe(
       Effect.flatMap(({ payload }) =>
         // Checked here rather than left to jose: a replayed `id_token` from an
         // older flow would otherwise verify perfectly.
@@ -247,10 +289,17 @@ export const makeZitadelOidc = (config: ZitadelOidcConfig): ZitadelOidc => {
                     fetchUserInfo(discovery, tokens.access_token).pipe(
                       // The id_token wins on `sub`: it is the verified one, and
                       // a userinfo response naming a different subject must not
-                      // be able to redirect the sign-in to another account.
+                      // be able to redirect the sign-in to another account. Same
+                      // for `sid`, which decides whose sessions a later logout
+                      // token revokes.
                       Effect.map(profile =>
                         toIdentity(
-                          { ...profile, ...claims, sub: claims.sub },
+                          {
+                            ...profile,
+                            ...claims,
+                            sub: claims.sub,
+                            sid: claims['sid'],
+                          },
                           tokens.id_token as string,
                         ),
                       ),
@@ -280,7 +329,56 @@ export const makeZitadelOidc = (config: ZitadelOidcConfig): ZitadelOidc => {
       }),
     );
 
-  return { authorizationUrl, exchangeCode, endSessionUrl };
+  /**
+   * A logout token verifies exactly like an `id_token` — same key set, same
+   * issuer, same audience — and then has to pass three checks that are the whole
+   * difference between the two (OIDC Back-Channel Logout 1.0 §2.6).
+   *
+   * The `nonce` check is the load-bearing one, and it is why this cannot simply
+   * reuse {@link verifyIdToken}: without it a stolen `id_token` POSTed to the
+   * back-channel endpoint would verify perfectly and sign its owner out — or,
+   * once this endpoint does anything less idempotent than a revoke, worse.
+   */
+  const verifyLogoutToken = (logoutToken: string) =>
+    discover(config.issuer).pipe(
+      Effect.flatMap(discovery =>
+        verifyProviderJwt(discovery, logoutToken, 'logout_token'),
+      ),
+      Effect.flatMap(({ payload }) => {
+        const events = payload['events'];
+        if (
+          typeof events !== 'object' ||
+          events === null ||
+          !(BACKCHANNEL_LOGOUT_EVENT in events)
+        ) {
+          return Effect.fail(
+            new EntifixLogicError(
+              'the logout_token does not declare a back-channel logout event',
+            ),
+          );
+        }
+        if (payload['nonce'] !== undefined) {
+          return Effect.fail(
+            new EntifixLogicError(
+              'the logout_token carries a nonce, so it is an id_token replayed',
+            ),
+          );
+        }
+        const providerSessionId = asString(payload['sid']);
+        const subject = asString(payload.sub);
+        if (providerSessionId === undefined && subject === undefined) {
+          return Effect.fail(
+            new EntifixLogicError('the logout_token names neither sid nor sub'),
+          );
+        }
+        return Effect.succeed({
+          providerSessionId,
+          subject,
+        } satisfies LogoutEvent);
+      }),
+    );
+
+  return { authorizationUrl, exchangeCode, endSessionUrl, verifyLogoutToken };
 };
 
 const asString = (value: unknown): string | undefined =>
@@ -294,6 +392,7 @@ const toIdentity = (claims: JWTPayload, idToken: string): ZitadelIdentity => ({
   emailVerified: claims['email_verified'] === true,
   preferredUsername: asString(claims['preferred_username']),
   displayName: asString(claims['name']),
+  providerSessionId: asString(claims['sid']),
   idToken,
 });
 

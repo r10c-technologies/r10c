@@ -111,10 +111,26 @@ probed_labels() {
   echo "${out# }"
 }
 
-# L6: has the Zitadel instance been given its project, app, policies and SMTP?
-# A file test, so the fast path pays nothing to ask. The file is written by the
-# seed and deleted by reset, which is exactly the lifetime of the instance.
-zitadel_seeded() { [[ -s "$ZITADEL_GENERATED_ENV" ]]; }
+# Bumped in the same commit as any change to `tools/zitadel-seed.mjs` that adds
+# or alters a setting on the instance. Rev 1 → 2 added the OIDC app's
+# `backChannelLogoutUri`.
+ZITADEL_SEED_REVISION=2
+
+# L6: has the Zitadel instance been given its project, app, policies and SMTP —
+# by the version of the seed that is checked in right now?
+#
+# Still a file read, so the ladder's fast path pays nothing to ask. But it is a
+# *cache key*, not a "has this ever run" flag: the guard used to be `-s` alone,
+# which meant a seed that gained a setting never reached any machine that was
+# already seeded. The fast path in `ensure.sh` exits before `seed_zitadel` is
+# even called, so the stale instance stayed stale and reported green. Stamping
+# the revision into the file is what makes a seed change reach everyone on their
+# next boot, without a reset and without walking the ladder.
+zitadel_seeded() {
+  [[ -s "$ZITADEL_GENERATED_ENV" ]] &&
+    grep -qx "ZITADEL_SEED_REVISION=$ZITADEL_SEED_REVISION" \
+      "$ZITADEL_GENERATED_ENV"
+}
 
 # Copy the machine token Zitadel minted at first init out of the pod.
 #
@@ -139,7 +155,9 @@ extract_zitadel_pat() {
 }
 
 # L6 proper: give the instance everything the fleet expects to find in it.
-# Idempotent, and skipped entirely once `.generated.env` exists.
+# Idempotent — every step searches before it creates, and the OIDC app is
+# reconciled rather than skipped — so re-running against a seeded instance is
+# safe and is exactly what a revision bump asks for.
 seed_zitadel() {
   zitadel_seeded && return 0
   extract_zitadel_pat || return 1
@@ -147,6 +165,7 @@ seed_zitadel() {
   ZITADEL_PAT_FILE="$ZITADEL_PAT_FILE" \
   ZITADEL_GENERATED_ENV="$ZITADEL_GENERATED_ENV" \
   ZITADEL_ISSUER="http://localhost:30080" \
+  ZITADEL_SEED_REVISION="$ZITADEL_SEED_REVISION" \
     node "$REPO_ROOT/tools/zitadel-seed.mjs"
 }
 
