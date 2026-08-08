@@ -1,7 +1,9 @@
 import {
+  Headers,
   HttpRouter,
   HttpServerRequest,
   HttpServerResponse,
+  UrlParams,
 } from '@effect/platform';
 import {
   AccountRepositoryTag,
@@ -67,15 +69,13 @@ import {
   requirePermission,
   requirePrincipal,
 } from '@r10c/shells-effect-service';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import { IdTokenStoreTag } from './identity/id-token-store';
 import { describeIdentityModel } from './identity/identity-showcase';
 import { readOutbox } from './identity/notifications';
-import {
-  provisionZitadelHuman,
-  resolveSignIn,
-} from './identity/provisioning';
+import { ProviderSessionIndexTag } from './identity/provider-session-index';
+import { provisionZitadelHuman, resolveSignIn } from './identity/provisioning';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   DEFAULT_SESSION_LIFETIME,
@@ -515,6 +515,15 @@ const oidcCallbackRoute = Effect.gen(function* () {
   const idTokens = yield* IdTokenStoreTag;
   yield* idTokens.remember(result.sessionId, identity.idToken);
 
+  // And the reverse direction: without this line a logout token from Zitadel
+  // names a session id that means nothing here. Also best-effort — the
+  // back-channel route falls back to revoking by `sub`, which is what a lost
+  // write looks like from there.
+  if (identity.providerSessionId !== undefined) {
+    const providerSessions = yield* ProviderSessionIndexTag;
+    yield* providerSessions.link(identity.providerSessionId, result.sessionId);
+  }
+
   return yield* HttpServerResponse.json(
     { ...result, redirect: pending.redirect },
     { status: 200 },
@@ -548,6 +557,94 @@ const logoutRoute = Effect.gen(function* () {
   // A provider that cannot be reached must not keep someone signed in: the
   // local revocation above has already happened by then.
   Effect.catchAll(() => HttpServerResponse.json({ ok: true })),
+);
+
+/**
+ * `POST /api/auth/backchannel-logout` — Zitadel telling us a session it owns has
+ * ended, so ours must end with it.
+ *
+ * Without this route sign-out is one-way. Ending a session at the provider —
+ * signing out of the console, an operator terminating sessions — left the r10c
+ * session alive until its own seven-day ceiling, minting a fresh access token on
+ * every refresh in between. "Sign me out everywhere" is exactly the control
+ * someone reaches for when they believe an account is compromised, and it was
+ * signing them out of nothing.
+ *
+ * Unauthenticated, necessarily: the caller is a server, not a browser, and holds
+ * no cookie. The logout token's signature is the authentication — see
+ * `verifyLogoutToken`, whose `nonce` check is what stops a stolen `id_token`
+ * being POSTed here instead.
+ *
+ * Three shapes of answer, and the distinction matters:
+ *  - a token that does not verify is `400`, so a misconfigured provider is loud;
+ *  - a token that verifies but names nothing we know is `200`, because a `404`
+ *    would make this endpoint an oracle for whether a session exists;
+ *  - the body is form-encoded (`logout_token=…`) per the spec, not JSON.
+ *
+ * No `jti` replay store on purpose: every effect here is a revoke, `take`
+ * empties the index, and revoking a revoked session is a no-op — so a replayed
+ * token costs a Redis round trip and nothing else. That stops being true the
+ * moment this route does something non-idempotent.
+ */
+const backChannelLogoutRoute = Effect.gen(function* () {
+  const req = yield* HttpServerRequest.HttpServerRequest;
+  const form = yield* req.urlParamsBody;
+  const logoutToken = UrlParams.getFirst(form, 'logout_token').pipe(
+    Option.getOrUndefined,
+  );
+  if (logoutToken === undefined) {
+    return yield* HttpServerResponse.json(
+      { error: 'invalid request', code: 'invalidRequest' },
+      { status: 400 },
+    );
+  }
+
+  const oidc = yield* ZitadelOidcTag;
+  const event = yield* oidc.verifyLogoutToken(logoutToken);
+
+  const sessions = yield* SessionStoreTag;
+  const idTokens = yield* IdTokenStoreTag;
+  const providerSessions = yield* ProviderSessionIndexTag;
+
+  const linked =
+    event.providerSessionId === undefined
+      ? []
+      : yield* providerSessions.take(event.providerSessionId);
+
+  for (const sessionId of linked) {
+    yield* sessions.revoke(sessionId);
+    // Drop the provider credential with the session it belonged to; nothing
+    // will ever read it now.
+    yield* idTokens.take(sessionId);
+  }
+
+  // No `sid`, or a `sid` that resolved to nothing — which is also what a lost
+  // index write looks like. Falling back to the subject is what keeps that
+  // failure from becoming a session that quietly survives.
+  if (linked.length === 0 && event.subject !== undefined) {
+    const accounts = yield* AccountRepositoryTag;
+    const user = yield* accounts.findByIdentifier(event.subject);
+    if (user !== null) {
+      yield* sessions.revokeAllForUser(user.id);
+    }
+  }
+
+  return yield* HttpServerResponse.json(
+    { ok: true },
+    // Required by the spec, and a proxy caching a logout response would be its
+    // own small disaster.
+    {
+      status: 200,
+      headers: Headers.fromInput({ 'cache-control': 'no-store' }),
+    },
+  );
+}).pipe(
+  Effect.catchAll(() =>
+    HttpServerResponse.json(
+      { error: 'invalid logout token', code: 'invalidRequest' },
+      { status: 400 },
+    ),
+  ),
 );
 
 /**
@@ -950,6 +1047,8 @@ const identityRoutes = HttpRouter.empty.pipe(
   HttpRouter.post('/api/auth/oidc/start', oidcStartRoute),
   HttpRouter.post('/api/auth/oidc/callback', oidcCallbackRoute),
   HttpRouter.post('/api/auth/logout', logoutRoute),
+  // The other half of sign-out, called by Zitadel rather than by a browser.
+  HttpRouter.post('/api/auth/backchannel-logout', backChannelLogoutRoute),
   HttpRouter.post('/api/auth/refresh', refreshRoute),
   // Session self-service. Every one of these resolves the caller from the
   // verified token and checks ownership — an id in the URL is never authority.

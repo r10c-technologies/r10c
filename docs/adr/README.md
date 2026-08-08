@@ -38,6 +38,7 @@ Format: [Michael Nygard's ADR template](https://github.com/joelparkerhenderson/a
 | [0014](0014-entity-specifications-and-the-characteristic-dictionary.md) | Vendor-authored entity specifications, pinned per instance, comparable through a platform dictionary | Proposed |
 | [0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md)       | Asymmetric access tokens, and the party role as a claim                                              | Accepted |
 | [0016](0016-zitadel-authenticates-r10c-authorizes.md)                   | Zitadel authenticates; r10c authorizes and mints its own tokens                                      | Accepted |
+| [0017](0017-back-channel-logout-from-the-identity-provider.md)          | Back-channel logout: the provider can end an r10c session                                            | Accepted |
 
 The business-side records (0005 onward) are summarized as one map in
 [docs/BUSINESS-ARCHITECTURE.md](../BUSINESS-ARCHITECTURE.md).

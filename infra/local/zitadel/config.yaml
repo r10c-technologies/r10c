@@ -1,0 +1,39 @@
+# Zitadel runtime config, mounted at /config/zitadel.yaml and passed with
+# `--config`. Everything Zitadel needs beyond this comes from env in
+# `deployment.yaml`; this file exists for the one setting that cannot be
+# expressed there reliably (viper's indexed-list env binding).
+#
+# ---------------------------------------------------------------------------
+# Why this file exists at all: the outgoing-HTTP denylist.
+#
+# CVE-2026-55671 hardened every outgoing HTTP call Zitadel makes — Actions v2
+# targets AND the OIDC back-channel logout POST — behind `HTTPClient.DenyList`,
+# which blocks loopback and every RFC1918 range by default and resolves names
+# before checking, so DNS rebinding cannot walk around it. That is the right
+# default for a real deployment.
+#
+# In this lab it blocks the thing we need. auth-service runs on the *host*, not
+# in the cluster, so the back-channel logout URI is
+# `host.minikube.internal:3102` — which resolves to 192.168.65.254, inside
+# `192.168.0.0/16`. Registering the URI at all fails with
+# `Errors.Project.App.Blocked.BackchannelLogoutURL`.
+#
+# So this list is the upstream default with `192.168.0.0/16` removed and
+# nothing else changed. Loopback, the cloud metadata range (169.254.0.0/16),
+# 10.0.0.0/8 and 172.16.0.0/12 all stay denied. It is a local-lab affordance
+# with no production counterpart: a deployed Zitadel reaches a deployed
+# auth-service over a real address and needs none of this.
+HTTPClient:
+  DenyList:
+    - localhost
+    - '0.0.0.0/8'
+    - '10.0.0.0/8'
+    - '100.64.0.0/10'
+    - '127.0.0.0/8'
+    - '169.254.0.0/16'
+    - '172.16.0.0/12'
+    - '198.18.0.0/15'
+    - '::/128'
+    - '::1/128'
+    - 'fc00::/7'
+    - 'fe80::/10'

@@ -234,6 +234,30 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   `endSessionUrl` or the visitor stays authenticated at the provider. MFA and
   social are configuration in `tools/zitadel-seed.mjs`, available to all and forced
   on nobody. See [ADR 0016](docs/adr/0016-zitadel-authenticates-r10c-authorizes.md).
+- **Sign-out runs both ways, and the reverse one needs an index.**
+  `POST /api/auth/backchannel-logout` is Zitadel telling us a session it owns
+  ended; without it an r10c session outlived a provider sign-out by up to its
+  seven-day ceiling while `refresh` kept minting. Our session id is our own, so
+  the callback records the verified `id_token`'s `sid` into `oidc:sid:{sid}` — a
+  Redis **set**, because one provider session can open several of ours, and
+  written from the id_token only (a userinfo-supplied `sid` would pick whose
+  sessions die). The route is unauthenticated by necessity and the signature is
+  the authentication: `verifyLogoutToken` shares **one** pinned-`algorithms`
+  verifier with the id_token path — never add a second — then requires the
+  back-channel `events` claim, a `sub` or `sid`, and **no `nonce`**; that last
+  check is what stops a stolen `id_token` being POSTed here, and it is why the
+  two verifiers stay separate functions. A `sid` revokes exactly its sessions; a
+  `sub`-only token _or an empty set_ (which is what a lost link write looks like)
+  falls back to `revokeAllForUser`. Unknown ids answer `200` — a `404` makes the
+  endpoint an oracle. `refresh` stays store-only: re-checking `UserStatus` there
+  would not close a Zitadel-side deactivation, because deactivating there never
+  writes r10c's `status`. The seed registers the URI at
+  **`host.minikube.internal:3102`**, not `localhost` — Zitadel calls it from
+  inside the cluster. And `ZITADEL_SEED_REVISION` in `infra/local/lib.sh` must be
+  bumped with any seed change that adds a setting: the L6 guard is a cache key,
+  and `ensure.sh`'s fast path exits before the seed rung is reached, so without a
+  bump the change reaches only machines that happened to reset. See
+  [ADR 0017](docs/adr/0017-back-channel-logout-from-the-identity-provider.md).
 - **Auth**: auth-service owns `oidc/start`/`oidc/callback`/`logout`/`refresh` and
   returns JSON;
   each `-app` mints its own `r10c_sid`/`r10c_at` httpOnly cookies. A backend authorizing
@@ -298,7 +322,7 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   to guess. Mail lands in **Mailpit** (`:30826`), and the account page links out
   to the provider's self-service for password, MFA and linked accounts. What
   survives is `GET /api/dev/outbox` — it now carries only the notifications r10c
-  still sends, which are about *sessions*: `NewDevice` and `SessionsRevoked`. It
+  still sends, which are about _sessions_: `NewDevice` and `SessionsRevoked`. It
   still 404s in production.
 - **Authorization**: a permission is `<domain>:<entityKey>:<action>`, derived from the
   entity's own `@entity({domain,key})` (`permissionForEntity`); grants come from

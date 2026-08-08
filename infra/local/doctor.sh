@@ -108,7 +108,10 @@ if zitadel_seeded; then
   ok "L6 zitadel" "instance seeded (project, OIDC app, login policy, SMTP)"
   unseeded=""
 else
-  bad "L6 zitadel" "instance not seeded — no OIDC app, so no sign-in"
+  # Two different states, one heal: never seeded (no OIDC app, so no sign-in),
+  # or seeded by an older revision of the script (the app exists but is missing
+  # whatever the newer seed configures).
+  bad "L6 zitadel" "instance not seeded at revision $ZITADEL_SEED_REVISION"
   unseeded="1"
 fi
 

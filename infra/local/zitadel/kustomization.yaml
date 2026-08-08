@@ -8,5 +8,9 @@ secretGenerator:
   - name: zitadel-secret
     envs:
       - .env
+configMapGenerator:
+  - name: zitadel-config
+    files:
+      - zitadel.yaml=config.yaml
 generatorOptions:
   disableNameSuffixHash: true

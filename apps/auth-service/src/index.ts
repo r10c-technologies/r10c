@@ -15,6 +15,11 @@ export {
   OUTBOX_COLLECTION,
 } from './identity/notifications';
 export {
+  makeRedisProviderSessionIndex,
+  ProviderSessionIndexLayer,
+  ProviderSessionIndexTag,
+} from './identity/provider-session-index';
+export {
   PROVIDER,
   provisionZitadelHuman,
   resolveSignIn,

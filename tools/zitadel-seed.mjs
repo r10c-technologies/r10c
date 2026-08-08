@@ -39,6 +39,15 @@ const PROJECT_NAME = 'r10c';
 const APP_NAME = 'r10c-web';
 
 /**
+ * Bumped whenever this file starts configuring something new. `infra/local/lib.sh`
+ * owns the value and passes it in; it is stamped into `.generated.env` so the
+ * ladder's L6 guard can tell "seeded" from "seeded by an older version of this
+ * script" — which is the difference between a new setting reaching every
+ * machine and reaching only the ones that happened to reset.
+ */
+const SEED_REVISION = process.env['ZITADEL_SEED_REVISION'] ?? '0';
+
+/**
  * auth-app owns the browser-facing edge, so the OIDC round trip lands there and
  * nowhere else. One redirect URI covers the whole fleet: dev cookies are
  * host-scoped and `localhost` shares them across ports, so :3000 and :3001 see
@@ -46,6 +55,17 @@ const APP_NAME = 'r10c-web';
  */
 const REDIRECT_URIS = ['http://localhost:3002/api/auth/callback'];
 const POST_LOGOUT_URIS = ['http://localhost:3002/'];
+
+/**
+ * Where Zitadel POSTs a logout token when a session it owns ends. Note the host:
+ * unlike the two above this one is **not** browser-facing. Zitadel calls it
+ * server-to-server from inside minikube, so `localhost` would be the pod itself;
+ * `host.minikube.internal` is the node's route back out to the machine running
+ * auth-service. Overridable for a cluster whose gateway is named differently.
+ */
+const BACK_CHANNEL_LOGOUT_URI =
+  process.env['ZITADEL_BACKCHANNEL_LOGOUT_URI'] ??
+  'http://host.minikube.internal:3102/api/auth/backchannel-logout';
 
 const pat = readFileSync(PAT_FILE, 'utf8').trim();
 
@@ -117,6 +137,21 @@ const ensureProject = async () => {
  * `devMode: true` is what lets Zitadel accept the plain-HTTP `localhost`
  * redirect. It is a local-lab affordance and has no production counterpart.
  */
+const oidcConfigBody = () => ({
+  redirectUris: REDIRECT_URIS,
+  postLogoutRedirectUris: POST_LOGOUT_URIS,
+  responseTypes: ['OIDC_RESPONSE_TYPE_CODE'],
+  grantTypes: [
+    'OIDC_GRANT_TYPE_AUTHORIZATION_CODE',
+    'OIDC_GRANT_TYPE_REFRESH_TOKEN',
+  ],
+  appType: 'OIDC_APP_TYPE_WEB',
+  authMethodType: 'OIDC_AUTH_METHOD_TYPE_NONE',
+  devMode: true,
+  accessTokenType: 'OIDC_TOKEN_TYPE_BEARER',
+  backChannelLogoutUri: BACK_CHANNEL_LOGOUT_URI,
+});
+
 const ensureApp = async projectId => {
   const found = await api(
     'POST',
@@ -125,27 +160,29 @@ const ensureApp = async projectId => {
   );
   const existing = (found.result ?? []).find(app => app.name === APP_NAME);
   if (existing?.oidcConfig?.clientId !== undefined) {
-    log(`oidc app "${APP_NAME}" already present (${existing.oidcConfig.clientId})`);
+    // Reconcile rather than return: this function used to be create-only, so a
+    // field added to the body below would never have reached an instance that
+    // was seeded before it existed. Zitadel's update is a full replace, which is
+    // why create and update share one body — two copies would drift the moment
+    // one of them gained a setting.
+    if (existing.oidcConfig.backChannelLogoutUri !== BACK_CHANNEL_LOGOUT_URI) {
+      await api(
+        'PUT',
+        `/management/v1/projects/${projectId}/apps/${existing.id}/oidc_config`,
+        oidcConfigBody(),
+      );
+      log(`oidc app "${APP_NAME}" back-channel logout URI updated`);
+    }
+    log(
+      `oidc app "${APP_NAME}" already present (${existing.oidcConfig.clientId})`,
+    );
     return existing.oidcConfig.clientId;
   }
 
   const created = await api(
     'POST',
     `/management/v1/projects/${projectId}/apps/oidc`,
-    {
-      name: APP_NAME,
-      redirectUris: REDIRECT_URIS,
-      postLogoutRedirectUris: POST_LOGOUT_URIS,
-      responseTypes: ['OIDC_RESPONSE_TYPE_CODE'],
-      grantTypes: [
-        'OIDC_GRANT_TYPE_AUTHORIZATION_CODE',
-        'OIDC_GRANT_TYPE_REFRESH_TOKEN',
-      ],
-      appType: 'OIDC_APP_TYPE_WEB',
-      authMethodType: 'OIDC_AUTH_METHOD_TYPE_NONE',
-      devMode: true,
-      accessTokenType: 'OIDC_TOKEN_TYPE_BEARER',
-    },
+    { name: APP_NAME, ...oidcConfigBody() },
   );
   log(`oidc app "${APP_NAME}" created (${created.clientId})`);
   return created.clientId;
@@ -326,6 +363,9 @@ const main = async () => {
       `ZITADEL_PROJECT_ID=${projectId}`,
       `ZITADEL_CLIENT_ID=${clientId}`,
       `ZITADEL_PAT=${pat}`,
+      // The ladder's L6 guard reads this back. It is what makes the guard a
+      // cache key rather than a "has this ever run" flag — see `lib.sh`.
+      `ZITADEL_SEED_REVISION=${SEED_REVISION}`,
       '',
     ].join('\n'),
     { mode: 0o600 },

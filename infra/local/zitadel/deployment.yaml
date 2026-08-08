@@ -41,11 +41,18 @@ spec:
             - --masterkeyFromEnv
             - --tlsMode
             - disabled
+            # Only one setting lives in here — the outgoing-HTTP denylist that
+            # would otherwise refuse the back-channel logout URI. See the file.
+            - --config
+            - /config/zitadel.yaml
           ports:
             - containerPort: 8080
           volumeMounts:
             - name: machinekey
               mountPath: /machinekey
+            - name: config
+              mountPath: /config
+              readOnly: true
           # Secret supplies ZITADEL_MASTERKEY, the DB passwords, and the
           # first-instance admin password.
           envFrom:
@@ -56,7 +63,7 @@ spec:
             - name: ZITADEL_DATABASE_POSTGRES_HOST
               value: postgres
             - name: ZITADEL_DATABASE_POSTGRES_PORT
-              value: "5432"
+              value: '5432'
             - name: ZITADEL_DATABASE_POSTGRES_DATABASE
               value: zitadel
             - name: ZITADEL_DATABASE_POSTGRES_USER_USERNAME
@@ -71,11 +78,11 @@ spec:
             - name: ZITADEL_EXTERNALDOMAIN
               value: localhost
             - name: ZITADEL_EXTERNALPORT
-              value: "30080"
+              value: '30080'
             - name: ZITADEL_EXTERNALSECURE
-              value: "false"
+              value: 'false'
             - name: ZITADEL_TLS_ENABLED
-              value: "false"
+              value: 'false'
             - name: ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME
               value: zitadel-admin
             # A machine user whose personal access token the seed rung uses to
@@ -89,7 +96,7 @@ spec:
             - name: ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME
               value: r10c seed
             - name: ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE
-              value: "2100-01-01T00:00:00Z"
+              value: '2100-01-01T00:00:00Z'
             - name: ZITADEL_FIRSTINSTANCE_PATPATH
               value: /machinekey/seed.pat
           # Process-level, so a wedged instance is restarted; `/debug/healthz`
@@ -114,32 +121,38 @@ spec:
             failureThreshold: 60
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: '256Mi'
+              cpu: '250m'
             limits:
-              memory: "768Mi"
-              cpu: "750m"
+              memory: '768Mi'
+              cpu: '750m'
         # The Zitadel image is distroless — no shell, no `cat`, no `tar` — so
         # neither `kubectl exec` nor `kubectl cp` can read the token it writes.
         # This sidecar exists only to share that volume and be exec-able, which
         # is how the L6 rung gets the PAT onto the host.
         - name: pat-reader
           image: busybox:1.36
-          command: ["sh", "-c", "sleep infinity"]
+          command: ['sh', '-c', 'sleep infinity']
           volumeMounts:
             - name: machinekey
               mountPath: /machinekey
               readOnly: true
           resources:
             requests:
-              memory: "4Mi"
-              cpu: "1m"
+              memory: '4Mi'
+              cpu: '1m'
             limits:
-              memory: "32Mi"
-              cpu: "50m"
+              memory: '32Mi'
+              cpu: '50m'
       volumes:
         # Deliberately an emptyDir: the PAT belongs to one instance, and an
         # instance never outlives its Postgres database. Both are recreated
         # together by `reset.sh`.
         - name: machinekey
           emptyDir: {}
+        # The generator keeps this name stable (no content hash), so editing
+        # `config.yaml` does NOT roll the pod on its own — follow the edit with
+        # `kubectl -n marketplace-local-infra rollout restart deploy/zitadel`.
+        - name: config
+          configMap:
+            name: zitadel-config
