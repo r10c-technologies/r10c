@@ -8,6 +8,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./lib.sh
 source "$DIR/lib.sh"
 
+# The hosted login first: it is applied last (by its own rung, after the core has
+# minted its token) so it comes down first.
+kubectl delete -k "$DIR/$LOGIN_PLATFORM" --ignore-not-found
+kubectl -n "$NS" delete secret "$LOGIN_SECRET" --ignore-not-found
+
 # Reverse order of apply.sh, derived from PLATFORMS so a new datastore is never
 # left running by a teardown that forgot about it.
 for (( i = ${#PLATFORMS[@]} - 1; i >= 0; i-- )); do

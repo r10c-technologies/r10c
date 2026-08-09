@@ -44,6 +44,7 @@ else
     bad "L1 cluster" "minikube $state"
   fi
   skip "L2 portmap" ""; skip "L3 workloads" ""; skip "L4 rollout" ""; skip "L5 probes" ""
+  skip "L6 login" ""; skip "L7 zitadel" ""
   echo
   if [[ "$state" == "Drifted" ]]; then
     echo "fix: minikube update-context    # instant; ensure.sh also does it for you"
@@ -102,21 +103,33 @@ else
 fi
 
 # L6 -------------------------------------------------------------------------
+# The other rung that fails at sign-in rather than at boot: the core serves
+# nothing under /ui/v2/login, so a missing login container is a 404 behind a
+# green fleet.
+if login_ready; then
+  ok "L6 login" "hosted login v2 answering on :$LOGIN_NODEPORT"
+  login_down=""
+else
+  bad "L6 login" "hosted login v2 not answering on :$LOGIN_NODEPORT"
+  login_down="1"
+fi
+
+# L7 -------------------------------------------------------------------------
 # A rung the ladder can heal but a human cannot see any other way: the fleet
 # fails at sign-in rather than at boot when the instance is unseeded.
 if zitadel_seeded; then
-  ok "L6 zitadel" "instance seeded (project, OIDC app, login policy, SMTP)"
+  ok "L7 zitadel" "instance seeded (project, OIDC app, login v2, policy, SMTP)"
   unseeded=""
 else
   # Two different states, one heal: never seeded (no OIDC app, so no sign-in),
   # or seeded by an older revision of the script (the app exists but is missing
   # whatever the newer seed configures).
-  bad "L6 zitadel" "instance not seeded at revision $ZITADEL_SEED_REVISION"
+  bad "L7 zitadel" "instance not seeded at revision $ZITADEL_SEED_REVISION"
   unseeded="1"
 fi
 
 echo
-if [[ -z "$missing_ports" && -z "$not_ready" && -z "$down" && -z "$unseeded" && "$present" -eq "$total" ]]; then
+if [[ -z "$missing_ports" && -z "$not_ready" && -z "$down" && -z "$login_down" && -z "$unseeded" && "$present" -eq "$total" ]]; then
   echo "${C_GREEN}healthy${C_OFF} — pnpm run mp-admin:dev will start immediately."
   exit 0
 fi

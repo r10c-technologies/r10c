@@ -82,6 +82,13 @@ export const defineEntifixE2eConfig = ({
     // The other profile's specs are not skipped, they are not collected: a
     // spec that cannot run here has nothing to say about this run.
     testIgnore: mock ? '**/*.live.spec.ts' : '**/*.mock.spec.ts',
+    // `live` pays for a real sign-in before its first assertion: `seedSession`
+    // drives the provider's hosted login for real — three page loads across two
+    // origins, each a Next app that hydrates before it will accept a keystroke.
+    // Playwright's 30s default is spent on the fixture alone, and the failure it
+    // produces points at whatever action was in flight rather than at the clock.
+    // `mock` keeps the default: it fabricates the cookie and never leaves the app.
+    ...(mock ? {} : { timeout: 90_000 }),
     use: {
       baseURL,
       trace: 'on-first-retry',

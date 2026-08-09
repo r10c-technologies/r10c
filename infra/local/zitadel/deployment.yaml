@@ -99,6 +99,23 @@ spec:
               value: '2100-01-01T00:00:00Z'
             - name: ZITADEL_FIRSTINSTANCE_PATPATH
               value: /machinekey/seed.pat
+            # A second machine user, this one for the v2 hosted login container:
+            # Zitadel creates it with the IAM_LOGIN_CLIENT role and writes its
+            # PAT beside the seed's. The L6 rung copies it into the
+            # `zitadel-login-secret` the login pod mounts.
+            #
+            # Every `FIRSTINSTANCE_*` key above and below fires ONLY when the
+            # instance is created. An instance that predates these lines never
+            # grows the user, and the fix is `pnpm run <app>:dev:reset` — there
+            # is no in-place upgrade path and this lab does not want one.
+            - name: ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME
+              value: login-client
+            - name: ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME
+              value: r10c login client
+            - name: ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE
+              value: '2100-01-01T00:00:00Z'
+            - name: ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH
+              value: /machinekey/login-client.pat
           # Process-level, so a wedged instance is restarted; `/debug/healthz`
           # answers as soon as the HTTP server is up.
           livenessProbe:
@@ -145,9 +162,9 @@ spec:
               memory: '32Mi'
               cpu: '50m'
       volumes:
-        # Deliberately an emptyDir: the PAT belongs to one instance, and an
-        # instance never outlives its Postgres database. Both are recreated
-        # together by `reset.sh`.
+        # Deliberately an emptyDir: both PATs written here (the seed's and the
+        # login client's) belong to one instance, and an instance never outlives
+        # its Postgres database. All of it is recreated together by `reset.sh`.
         - name: machinekey
           emptyDir: {}
         # The generator keeps this name stable (no content hash), so editing

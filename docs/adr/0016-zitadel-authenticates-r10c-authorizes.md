@@ -132,9 +132,12 @@ designed-for cross-plane consumers remain
   only be dead code with a security surface — a verifier that still accepts a
   password is a verifier that can be made to.
 - **Local development gained two real dependencies.** `infra/local/zitadel` is
-  load-bearing, pinned, probed, and seeded by an L6 rung of the health ladder;
+  load-bearing, pinned, probed, and seeded by a rung of the health ladder;
   Mailpit joins as the SMTP target so verification and recovery mail stays
-  readable end to end.
+  readable end to end. **Amendment**: the hosted login later became a third
+  workload of its own — the seed's pin to Zitadel's v1 login is reversed by
+  [ADR 0018](0018-the-hosted-login-is-a-second-container.md), which also moves
+  the seed to L7 to make room for it.
 - **Sign-out is two steps now.** Revoking our session without ending the
   provider's leaves someone "signed out" who is one click from being signed
   straight back in with no prompt. The logout route returns an RP-initiated

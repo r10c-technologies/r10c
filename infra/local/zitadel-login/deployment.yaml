@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zitadel-login
+  labels:
+    app: zitadel-login
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zitadel-login
+  template:
+    metadata:
+      labels:
+        app: zitadel-login
+    spec:
+      # Same reason the core sets it: Kubernetes injects a legacy env var per
+      # Service in the namespace, and `ZITADEL_PORT=tcp://10.x.x.x:8080` is a
+      # name both images read as their own configuration.
+      enableServiceLinks: false
+      containers:
+        - name: zitadel-login
+          # Pinned to the SAME tag as the core image in
+          # `../zitadel/deployment.yaml`. The login is a client of Zitadel's
+          # session API, not an independent product: the two move together or
+          # they disagree about a protocol nobody versioned for a dev lab.
+          image: ghcr.io/zitadel/zitadel-login:v4.16.2
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            # Server-to-server, inside the cluster. The browser never uses this.
+            - name: ZITADEL_API_URL
+              value: http://zitadel:8080
+            # Zitadel resolves which instance a request belongs to from the Host
+            # header, and `zitadel` is not one of the instance's domains —
+            # without this override every API call answers
+            # `Errors.Instance.NotFound`. The port is deliberately absent:
+            # instance lookup matches the host name, and ours is `localhost`.
+            #
+            # This override was broken in login v4.14.0 and fixed before the
+            # pinned tag (zitadel/zitadel#12125), so downgrading the image below
+            # the pin reopens exactly that error.
+            - name: CUSTOM_REQUEST_HEADERS
+              value: Host:localhost
+            # The base path Zitadel's `loginV2.baseUri` points at. The seed sets
+            # the matching URI on the instance; these two strings agree or the
+            # authorization redirect 404s.
+            - name: NEXT_PUBLIC_BASE_PATH
+              value: /ui/v2/login
+            # A file, not a value: the app blocks until it appears rather than
+            # crash-looping, which is what makes the "Secret arrives at L6"
+            # ordering survivable.
+            - name: ZITADEL_SERVICE_USER_TOKEN_FILE
+              value: /login-client/login-client.pat
+          volumeMounts:
+            - name: login-client
+              mountPath: /login-client
+              readOnly: true
+          # Protocol-level, per the rule every deployment here follows. This is
+          # the path upstream's own healthcheck uses, and it is served without
+          # touching the Zitadel API — so it reports the login being up, and the
+          # ladder's other rungs report the core.
+          readinessProbe:
+            httpGet:
+              path: /ui/v2/login/healthy
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /ui/v2/login/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            requests:
+              memory: '128Mi'
+              cpu: '100m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+      volumes:
+        # Written by the L6 rung from the PAT Zitadel generated at first-instance
+        # init. No PVC anywhere in this workload, so no `strategy: Recreate`.
+        - name: login-client
+          secret:
+            secretName: zitadel-login-secret

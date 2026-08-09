@@ -25,16 +25,20 @@ config from config-service (`GET /api/config/:service`); they never hardcode it.
 Infrastructure NodePorts published to the host, declared once in
 `infra/local/lib.sh` (`PORT_SPECS`) and mirrored here:
 
-| Datastore | Host port |
-| --------- | --------- |
-| MongoDB | 30017 |
-| Redis | 30379 |
-| RabbitMQ | 30672 |
-| Postgres | 30432 |
-| otel-lgtm | 30318 |
-| **Zitadel** | **30080** |
-| **Mailpit** | **30825** (SMTP) / **30826** (web UI) |
+| Datastore                     | Host port                             |
+| ----------------------------- | ------------------------------------- |
+| MongoDB                       | 30017                                 |
+| Redis                         | 30379                                 |
+| RabbitMQ                      | 30672                                 |
+| Postgres                      | 30432                                 |
+| otel-lgtm                     | 30318                                 |
+| **Zitadel**                   | **30080**                             |
+| **Zitadel hosted login (v2)** | **30081**                             |
+| **Mailpit**                   | **30825** (SMTP) / **30826** (web UI) |
 
 Zitadel is load-bearing, not optional: auth-service cannot sign anyone in without
-it, and its readiness probe says so. Mailpit is where every provider mail lands
-in the local lab.
+it, and its readiness probe says so. The hosted login carries the same weight and
+is a **second container** — the core serves nothing under `/ui/v2/login`, so a
+fleet without `:30081` answers 404 at sign-in while every probe stays green
+([ADR 0018](../adr/0018-the-hosted-login-is-a-second-container.md)). Mailpit is
+where every provider mail lands in the local lab.

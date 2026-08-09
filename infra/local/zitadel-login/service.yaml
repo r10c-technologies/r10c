@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zitadel-login
+spec:
+  selector:
+    app: zitadel-login
+  ports:
+    # The login is its own browser-facing origin (`localhost:30081`), not a path
+    # on Zitadel's. Upstream's compose puts both behind Traefik on one domain;
+    # that would cost this lab a proxy workload and h2c passthrough for
+    # Zitadel's gRPC, to buy nothing — `localhost` cookies are host-scoped and
+    # ignore the port, so the two origins already share a jar.
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30081
+  type: NodePort
