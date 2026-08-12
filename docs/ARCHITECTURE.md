@@ -473,9 +473,15 @@ context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
 
 Authorization answers _what_; this answers _whose data_. Which capability lives
 in which plane is
-[BUSINESS-ARCHITECTURE.md → Data planes](./BUSINESS-ARCHITECTURE.md#data-planes);
+[BUSINESS-ARCHITECTURE.md → Stores, slices, and data planes](./BUSINESS-ARCHITECTURE.md#stores-slices-and-data-planes);
 the reasoning is [ADR 0006](./adr/0006-multitenancy-planes-and-tenant-storage.md).
 What follows is the mechanism.
+
+The vocabulary for ownership is `Domain → Store → Slice → Deployment`
+([ADR 0020](./adr/0020-stores-and-slices.md)): the handle resolved below is the
+`catalog` **Store**, whose `partitioning` is `per-organization` and whose owning
+**Slice** is `marketplace-admin`. The plane belongs to the store, not to the
+entity.
 
 **Entities are organization-agnostic.** No `organizationId` member, no tenant
 filter, no discriminator column. Isolation is _which database handle the request
@@ -598,6 +604,12 @@ design: [FRONTEND.md → Workspace tabs](./FRONTEND.md#part-2--workspace-tabs--t
 The capability map, the ODA/SID naming behind it, and each domain's data plane
 are in [BUSINESS-ARCHITECTURE.md](./BUSINESS-ARCHITECTURE.md). What follows is
 what exists in the tree today.
+
+The plane noted on each domain below is **derived**: a domain's entities live in
+exactly one **Store**, and the plane is the store's
+([ADR 0020](./adr/0020-stores-and-slices.md)). `authn` and `party-management`
+share the `auth` store, which is why they are permanently co-deployed; the
+register of stores is in [\_shared/planes.md](./_shared/planes.md).
 
 **Business domains** (`packages/business/ts/*`, pure — entities + use-cases):
 

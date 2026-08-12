@@ -2,6 +2,9 @@
 
 - Status: Proposed
 - Date: 2026-08-01
+- Amended by: [ADR 0020](0020-stores-and-slices.md) — "cross-tenant reporting is
+  a projection, not a crossing" becomes checkable: a reporting **Store**
+  declaring `truth: projection-of:<store>` is by construction not a crossing.
 
 ## Trigger
 

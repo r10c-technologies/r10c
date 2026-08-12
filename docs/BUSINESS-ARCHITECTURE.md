@@ -54,12 +54,19 @@ The payoff is a domain language that is already thought through, and already
 unambiguous about distinctions most codebases collapse and then cannot separate
 again — see the glossary.
 
-Two deltas worth recording explicitly, because a reader who knows ODA will look
+Three deltas worth recording explicitly, because a reader who knows ODA will look
 for them:
 
 - **ODA is silent on multi-tenancy.** Tenant isolation is absent from the ODA
   component design guidelines. The plane model below is ours, and no ODA
   guidance contradicts or endorses it.
+- **ODA is silent on data ownership.** A component's boundary is deliberately
+  opaque — inside it the implementer picks any internal data store, and the
+  guidelines name neither the store, nor its ownership, nor its relation to the
+  SID entities the component manages. **Store** is therefore ours; **Slice** is
+  our name for what ODA calls a Component, and its declaration borrows ODA's
+  `exposedAPIs` / `dependantAPIs` / `publishedEvents` / `subscribedEvents`
+  vocabulary ([ADR 0020](adr/0020-stores-and-slices.md)).
 - **ODA's "Product Inventory" is not stock.** See the glossary entry.
 
 ## Glossary
@@ -88,7 +95,9 @@ different things by "product".
 | **StockMovement**         | An append-only record of a quantity change (+receipt, −sale, +cancellation). The ledger `StockItem` totals.                                                                                          | ours          |
 | **Reservation**           | A time-limited hold on stock taken at checkout, converted to a sale on payment or released on expiry.                                                                                                | ours          |
 | **Agreement**             | The contract between the platform and a vendor: commission, terms, obligations. Where commission rates live.                                                                                         | ODA (TMFC039) |
-| **Plane**                 | Which storage boundary an entity lives behind: control, platform, or tenant. Part of the entity's definition, not a deployment detail.                                                               | ours          |
+| **Store**                 | A named persistence boundary with exactly one writing slice, one plane, and a stable identity independent of the engine that backs it. A domain's entities live in exactly one.                      | ours          |
+| **Slice**                 | The unit that owns Stores and the unit of physical split. Holds one or more domains, owns zero or more stores, is realized as one or more Kubernetes deployments. ODA would call it a Component.     | ours          |
+| **Plane**                 | Which storage boundary a **Store** lives behind: control, platform, or tenant. Answers _who may read it_. An entity's plane is derived from the store that hosts it.                                 | ours          |
 | **Tenant**                | An `Organization` together with the storage provisioned for it.                                                                                                                                      | ours          |
 
 ## Personas
@@ -121,7 +130,20 @@ can see.
 Vendor and operator share one back-office host (marketplace-admin-app) with
 permission-gated navigation. Two personas, one app.
 
-## Data planes
+## Stores, slices, and data planes
+
+Data ownership has two nouns, and a plane is an attribute of the first of them
+([ADR 0020](adr/0020-stores-and-slices.md)):
+
+```
+Domain  →  Store  →  Slice  →  Deployment
+```
+
+A **Store** is a named persistence boundary with exactly one writing slice. A
+**Slice** owns Stores and is the unit of physical split. A domain's entities live
+in exactly one Store; two domains sharing a Store are permanently co-deployed,
+which is a binding decision and is recorded as one. The current register is in
+[docs/\_shared/planes.md](_shared/planes.md).
 
 Three planes, three storage boundaries.
 
@@ -131,7 +153,8 @@ Three planes, three storage boundaries.
 | **Platform** | one shared database                                                                                                    | published marketplace catalog, buyer carts and orders                                   |
 | **Tenant**   | **one Mongo database per organization** (and, when a Postgres-backed tenant domain lands, one schema per organization) | vendor-authored offerings, cost, pricing rules, stock                                   |
 
-**Deciding a new entity's plane** — ask who may read it:
+**Deciding a new entity's plane** — in practice, decide which **Store** it
+belongs in and the plane follows. Ask who may read it:
 
 - everyone, including anonymous storefront traffic → **platform**;
 - exactly one organization → **tenant**;
@@ -139,8 +162,8 @@ Three planes, three storage boundaries.
   **control**.
 
 An entity that seems to want two planes is usually two entities — a
-tenant-authored record and a published projection of it. That is exactly the
-catalog's shape.
+tenant-authored record and a published projection of it, which is a second Store
+carrying `truth: projection-of:<store>`. That is exactly the catalog's shape.
 
 Entities themselves are **organization-agnostic**: no `organizationId` member, no
 tenant filter to write. Isolation comes from _which database handle the request

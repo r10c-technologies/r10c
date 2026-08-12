@@ -2,6 +2,11 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Amended by: [ADR 0020](0020-stores-and-slices.md) — the "three plane-hosts"
+  topology below is **superseded**: the axis is ownership (a **Slice** and the
+  **Stores** it writes), not plane, because a slice may own stores in more than
+  one plane. One writer per database, the three forbidden couplings, and the
+  `shell:`/`host:` dimensions all stand.
 
 ## Context
 
@@ -50,6 +55,15 @@ Ban these and any domain becomes extractable into its own process on an
 afternoon's notice.
 
 ### Topology: three plane-hosts, one writer per database
+
+> **Superseded by [ADR 0020](0020-stores-and-slices.md).** Organizing hosts by
+> plane breaks as soon as [ADR 0009](0009-catalog-authoring-and-publication.md)
+> lands: publication makes `marketplace-admin` own the tenant `catalog` store
+> _and_ the platform `published-catalog` projection, and no host can be "the
+> tenant host" while owning a platform store. Plane is a property of the Store; a
+> Slice may own stores in several planes. The table below is kept as the record
+> of what was decided, not as current guidance — the live register is in
+> [docs/\_shared/planes.md](../_shared/planes.md).
 
 | Host                               | Plane / database  | Mounts                                                                    |
 | ---------------------------------- | ----------------- | ------------------------------------------------------------------------- |
