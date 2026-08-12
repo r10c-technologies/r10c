@@ -38,7 +38,9 @@ export function makeFormatters(locale: Locale): Formatters {
     timeStyle: 'short',
   });
   const numberFormat = new Intl.NumberFormat(locale);
-  const relativeFormat = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const relativeFormat = new Intl.RelativeTimeFormat(locale, {
+    numeric: 'auto',
+  });
 
   const formatters: Formatters = {
     date: value => {
@@ -54,7 +56,9 @@ export function makeFormatters(locale: Locale): Formatters {
         ? numberFormat.format(value)
         : new Intl.NumberFormat(locale, options).format(value),
     currency: (value, currency) =>
-      new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value),
+      new Intl.NumberFormat(locale, { style: 'currency', currency }).format(
+        value,
+      ),
     relative: (value, unit) => relativeFormat.format(value, unit),
   };
 

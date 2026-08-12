@@ -47,8 +47,15 @@ describe('createLogger', () => {
     log.warn('w');
     log.error('e');
 
-    expect(records.map(r => r.level)).toEqual(['debug', 'info', 'warn', 'error']);
-    expect(records.every(r => Object.keys(r.attributes).length === 0)).toBe(true);
+    expect(records.map(r => r.level)).toEqual([
+      'debug',
+      'info',
+      'warn',
+      'error',
+    ]);
+    expect(records.every(r => Object.keys(r.attributes).length === 0)).toBe(
+      true,
+    );
     expect(typeof records[0].timestamp).toBe('string');
   });
 
@@ -66,7 +73,11 @@ describe('createLogger', () => {
 
   it('stamps trace/span ids from the active span (correlation)', () => {
     vi.spyOn(trace, 'getActiveSpan').mockReturnValue({
-      spanContext: () => ({ traceId: 'trace-1', spanId: 'span-1', traceFlags: 1 }),
+      spanContext: () => ({
+        traceId: 'trace-1',
+        spanId: 'span-1',
+        traceFlags: 1,
+      }),
     } as never);
     const { records, sink } = collectingSink();
     const log = createLogger({ service: 'svc', level: 'debug', sink });
@@ -94,7 +105,10 @@ describe('createLogger', () => {
 
     log.error('boom', new Error('kaboom'), { route: '/x' });
 
-    expect(records[0].error).toMatchObject({ name: 'Error', message: 'kaboom' });
+    expect(records[0].error).toMatchObject({
+      name: 'Error',
+      message: 'kaboom',
+    });
     expect(records[0].error?.stack).toContain('kaboom');
     expect(records[0].attributes).toEqual({ route: '/x' });
   });
@@ -105,7 +119,10 @@ describe('createLogger', () => {
 
     log.error('boom', 'just a string');
 
-    expect(records[0].error).toEqual({ name: 'NonError', message: 'just a string' });
+    expect(records[0].error).toEqual({
+      name: 'NonError',
+      message: 'just a string',
+    });
   });
 
   it('omits error when none is passed', () => {

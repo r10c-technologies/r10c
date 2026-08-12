@@ -53,9 +53,13 @@ export function readCommandEnvelope<TPayload = SerializedEntity>(
       typeof command.entity !== 'string'
     ) {
       return yield* Effect.fail(
-        new EntifixBuildError('command envelope carried no valid command', undefined, {
-          body,
-        }),
+        new EntifixBuildError(
+          'command envelope carried no valid command',
+          undefined,
+          {
+            body,
+          },
+        ),
       );
     }
     return command;

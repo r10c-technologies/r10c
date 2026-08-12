@@ -29,8 +29,8 @@ export const NAV: GuardedNavSection[] = [
         label: 'app:admin.nav.products',
         href: '/catalog/product',
         icon: '▦',
-        workspace: 'catalog:product',
-        permission: `${CATALOG}:product:read`,
+        workspace: 'catalog:product-specification',
+        permission: `${CATALOG}:product-specification:read`,
       },
       {
         label: 'app:admin.nav.brands',

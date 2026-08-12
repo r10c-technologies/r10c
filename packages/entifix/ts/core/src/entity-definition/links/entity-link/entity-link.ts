@@ -13,7 +13,7 @@ import { Entity, EntityConstructor, EntityId } from '../../../types/Entity';
 export interface EntityLinkResolver {
   resolve<TEntity extends Entity>(
     entityConstructor: EntityConstructor<TEntity>,
-    id: EntityId
+    id: EntityId,
   ): Effect.Effect<TEntity, EntifixError>;
 }
 
@@ -45,7 +45,7 @@ export class EntityLink<TEntity extends Entity> {
   // #region constructors
   constructor(
     entityConstructor: EntityConstructor<TEntity>,
-    init?: EntityLinkInit<TEntity>
+    init?: EntityLinkInit<TEntity>,
   ) {
     this.entityConstructor = entityConstructor;
     this.#id = init?.id;

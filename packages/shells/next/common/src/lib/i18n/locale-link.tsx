@@ -1,7 +1,11 @@
 'use client';
 
 import { useLocale } from '@r10c/entifix-react-controls';
-import { type Locale, localeHref, splitLocalePath } from '@r10c/entifix-ts-i18n/routing';
+import {
+  type Locale,
+  localeHref,
+  splitLocalePath,
+} from '@r10c/entifix-ts-i18n/routing';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentPropsWithoutRef } from 'react';

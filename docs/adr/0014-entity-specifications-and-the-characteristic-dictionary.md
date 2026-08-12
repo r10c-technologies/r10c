@@ -2,6 +2,11 @@
 
 - Status: Proposed
 - Date: 2026-08-02
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  the dictionary is owned by `catalog-reference`, not `marketplace-catalog`.
+  Trigger checked and **not** fired: `EntitySpecification`,
+  `CharacteristicSpecification` and `DictionaryTerm` exist as entities, but no
+  offering carries a vendor-authored characteristic yet.
 
 ## Trigger
 
@@ -259,9 +264,21 @@ This record therefore **does not** promote ADR 0013.
 
 Specifications are vendor-authored and tenant-plane. The dictionary is
 platform-plane: the storefront and every tenant read it, and it holds no vendor
-data. Per [ADR 0008](0008-domain-modules-and-service-topology.md)'s one-writer
-rule, the dictionary is owned by `marketplace-catalog`, alongside the published
-catalog it exists to make comparable.
+data.
+
+Per the one-writer rule, the dictionary is owned by **`catalog-reference`** —
+platform plane, `system-of-record`, alongside `ProductBrand` and
+`ProductCategory`, which are reference data for exactly the same reason a term is
+([ADR 0022](0022-v1-marketplace-module-boundaries.md)).
+
+It is **not** owned by `marketplace-catalog`, as this record originally said, and
+the reason is a distinction ADR 0020 introduced afterwards: `marketplace-catalog`
+is a **projection** store (`truth: projection-of:catalog`) and the dictionary is a
+system-of-record. A store carries exactly one `truth`, so the two cannot share
+one — which is what makes them two domains rather than one. Both are owned by the
+same `marketplace` slice and served by the same deployment, so the "alongside the
+published catalog it exists to make comparable" intent is preserved exactly;
+only the store boundary moved.
 
 Publication must carry the display schema across the plane boundary, or the
 storefront would have to read a tenant-plane specification — the exact isolation
@@ -312,7 +329,7 @@ offering. That works precisely because a released version is immutable.
 | 0003 | Needs the vendor-data carve-out above stated explicitly, or this design reads as a violation.                                                 |
 | 0006 | Unaffected. Specifications are organization-agnostic and tenant-plane; the dictionary is platform-plane and touches tenancy not at all.       |
 | 0007 | Gains a platform role for dictionary curation and a tenant role for specification authoring.                                                  |
-| 0008 | Assigns dictionary ownership to `marketplace-catalog`; specifications stay in `product-configuration-management`.                             |
+| 0008 | Assigns dictionary ownership to `catalog-reference` (platform, system-of-record); specifications stay in `product-configuration-management`.  |
 | 0009 | **Mutual dependency.** Facets require the published projection to exist, and publication must carry the hashed specification version.         |
 | 0010 | Untouched for now, but see the follow-up on variant-forming characteristics.                                                                  |
 | 0011 | Unaffected while specifications are on Mongo.                                                                                                 |
@@ -329,8 +346,10 @@ Working order:
    **nullable fields against an empty dictionary** — that is what keeps step 4 from
    being a migration.
 3. **Promote ADR 0009** and build publication. No facet is possible before it.
-4. **The dictionary**: terms in `marketplace-catalog`, the operator surface, facets
-   computed from published data, the requested-terms queue.
+4. **The dictionary**: terms in `catalog-reference`, the operator surface, facets
+   computed from published data, the requested-terms queue. The `DictionaryTerm`
+   entity itself landed early, with ADR 0022's boundary work; what remains here
+   is the surface and the resolution mechanism.
 5. **Promote ADR 0012** if and when operators must moderate vendor specifications.
 6. **Promote ADR 0013** only if the registry's relational constraints justify the
    move off Mongo — a decision with evidence behind it by then, not before.

@@ -18,7 +18,10 @@ describe('TextInput', () => {
     render(<TextInput aria-label="Name" placeholder="Type here" disabled />);
 
     expect(screen.getByLabelText('Name')).toBeDisabled();
-    expect(screen.getByLabelText('Name')).toHaveAttribute('placeholder', 'Type here');
+    expect(screen.getByLabelText('Name')).toHaveAttribute(
+      'placeholder',
+      'Type here',
+    );
   });
 
   it('keeps the caller’s className alongside the shared control styling', () => {

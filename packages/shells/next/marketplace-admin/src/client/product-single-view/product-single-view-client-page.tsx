@@ -1,12 +1,7 @@
 'use client';
 
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
-  Product,
-  ProductBrand,
-  ProductCategory,
-} from '@r10c/business-ts-product-configuration-management';
-import {
-  type EntityLinkSourceConfig,
   useEntityMutation,
   useEntityRecord,
 } from '@r10c/entifix-react-integration';
@@ -15,7 +10,6 @@ import {
   deleteUCFactory,
   EntityRepositoryTag,
   getUCFactory,
-  loadUCFactory,
   saveUCFactory,
 } from '@r10c/entifix-ts-business';
 import {
@@ -64,46 +58,22 @@ export function ProductSingleViewClientPage({
   initialDraft,
   onDraftChange,
 }: ProductSingleViewClientPageProps = {}) {
-  const {
-    productRest,
-    productBrandRest,
-    productCategoryRest,
-    configurationStore,
-  } = useMarketplaceAdminAdapters();
+  const { productRest, configurationStore } = useMarketplaceAdminAdapters();
   const router = useRouter();
   const params = useParams<{ slug: string }>();
   const id = slugToEntityId(slug ?? params.slug);
 
   const ctx = Context.merge(configurationStore, productRest);
-  const brandCtx = Context.merge(configurationStore, productBrandRest);
-  const categoryCtx = Context.merge(configurationStore, productCategoryRest);
 
   const {
     entity,
     isLoading,
     error: loadError,
-  } = useEntityRecord<Product, EntityContext>({
-    uc: getUCFactory<Product>(),
+  } = useEntityRecord<ProductSpecification, EntityContext>({
+    uc: getUCFactory<ProductSpecification>(),
     ctx,
     id,
   });
-
-  // What the pickers may offer, expressed as use-cases: `loadUc` searches and
-  // pages the catalog, `getUc` turns a key an autosaved draft restored back into
-  // a name. A rule about what is assignable becomes a different use-case here and
-  // changes nothing in the form.
-  const brandLink: EntityLinkSourceConfig<ProductBrand, EntityContext> = {
-    entityConstructor: ProductBrand,
-    loadUc: loadUCFactory<ProductBrand>(),
-    getUc: getUCFactory<ProductBrand>(),
-    ctx: brandCtx,
-  };
-  const categoryLink: EntityLinkSourceConfig<ProductCategory, EntityContext> = {
-    entityConstructor: ProductCategory,
-    loadUc: loadUCFactory<ProductCategory>(),
-    getUc: getUCFactory<ProductCategory>(),
-    ctx: categoryCtx,
-  };
 
   const {
     save,
@@ -111,16 +81,16 @@ export function ProductSingleViewClientPage({
     isSaving,
     isDeleting,
     error: writeError,
-  } = useEntityMutation<Product, EntityContext>({
-    saveUc: saveUCFactory<Product>(),
-    deleteUc: deleteUCFactory<Product>(),
+  } = useEntityMutation<ProductSpecification, EntityContext>({
+    saveUc: saveUCFactory<ProductSpecification>(),
+    deleteUc: deleteUCFactory<ProductSpecification>(),
     ctx,
   });
 
   const afterSave = onSaved ?? (() => router.push(LIST_HREF));
   const afterDelete = onDeleted ?? (() => router.push(LIST_HREF));
 
-  const handleSave = async (product: Product) => {
+  const handleSave = async (product: ProductSpecification) => {
     if (await save(product)) {
       afterSave();
     }
@@ -133,11 +103,9 @@ export function ProductSingleViewClientPage({
   };
 
   return (
-    <ProductForm<EntityContext>
+    <ProductForm
       key={String(entity?.id ?? CATALOG_NEW_SLUG)}
       entity={entity}
-      brandLink={brandLink}
-      categoryLink={categoryLink}
       isLoading={isLoading}
       isSaving={isSaving}
       isDeleting={isDeleting}

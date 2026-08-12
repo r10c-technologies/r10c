@@ -55,7 +55,7 @@ export const makeRedisSessionStore = (
   const attempt = <T>(what: string, run: () => Promise<T>) =>
     Effect.tryPromise({
       try: run,
-      catch: (error) => new EntifixConnError(what, error),
+      catch: error => new EntifixConnError(what, error),
     });
 
   /**
@@ -102,7 +102,12 @@ export const makeRedisSessionStore = (
           absoluteExpiresAt: absoluteExpiresAt.toISOString(),
         };
         yield* attempt('Redis session create failed', () =>
-          redis.set(sessionKey(sessionId), JSON.stringify(record), 'EX', ttlSeconds),
+          redis.set(
+            sessionKey(sessionId),
+            JSON.stringify(record),
+            'EX',
+            ttlSeconds,
+          ),
         );
         yield* attempt('Redis session index failed', () =>
           redis.sadd(userKey(data.userId), sessionId),
@@ -159,10 +164,14 @@ export const makeRedisSessionStore = (
             redis.srem(userKey(record.userId), sessionId),
           );
           return yield* Effect.fail(
-            new EntifixLogicError('Session reached its absolute lifetime', undefined, {
-              sessionId,
-              absoluteExpiresAt: record.absoluteExpiresAt,
-            }),
+            new EntifixLogicError(
+              'Session reached its absolute lifetime',
+              undefined,
+              {
+                sessionId,
+                absoluteExpiresAt: record.absoluteExpiresAt,
+              },
+            ),
           );
         }
 
@@ -261,8 +270,10 @@ export const makeRedisSessionStore = (
 };
 
 /** Provides {@link SessionStoreTag} from a {@link RedisTag} connection. */
-export const RedisSessionStoreLayer = (options: RedisSessionStoreOptions = {}) =>
+export const RedisSessionStoreLayer = (
+  options: RedisSessionStoreOptions = {},
+) =>
   Layer.effect(
     SessionStoreTag,
-    Effect.map(RedisTag, (redis) => makeRedisSessionStore(redis, options)),
+    Effect.map(RedisTag, redis => makeRedisSessionStore(redis, options)),
   );

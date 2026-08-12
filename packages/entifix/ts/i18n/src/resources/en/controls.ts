@@ -107,7 +107,7 @@ export const controls: EsControls = {
    * `field` is the only parameter available — a Standard Schema issue exposes a
    * message and a path, nothing else — so these stay unquantified. A rule that
    * has to state its bound writes its own key in its domain catalog and passes
-   * it namespaced (`entity:product.validation.codeLength`).
+   * it namespaced (`entity:product-specification.validation.codeLength`).
    */
   validation: {
     required: '{{field}} is required',

@@ -28,7 +28,8 @@ const entityKind: TabKind<EntityAddr> = {
 
 const translate = (key: string) => key;
 
-const registry = () => new TabRegistry().register(catalogKind).register(entityKind);
+const registry = () =>
+  new TabRegistry().register(catalogKind).register(entityKind);
 
 describe('splitParam', () => {
   it('splits kind and payload on the first colon', () => {
@@ -53,7 +54,9 @@ describe('TabRegistry', () => {
   });
 
   it('canonicalises the param through the kind', () => {
-    expect(registry().resolve('catalog:product', translate)?.param).toBe('catalog:product');
+    expect(registry().resolve('catalog:product', translate)?.param).toBe(
+      'catalog:product',
+    );
   });
 
   it('returns null for an unknown kind', () => {

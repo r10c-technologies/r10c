@@ -40,7 +40,9 @@ export function updateUserAspectsUCFactory() {
     const accounts = yield* AccountRepositoryTag;
 
     if (input.role === undefined && input.status === undefined) {
-      return yield* Effect.fail(new AuthnError('nothing to update', 'nothingToUpdate'));
+      return yield* Effect.fail(
+        new AuthnError('nothing to update', 'nothingToUpdate'),
+      );
     }
 
     const target = yield* accounts.findById(input.userId);
@@ -55,9 +57,14 @@ export function updateUserAspectsUCFactory() {
     // Authority over the account as it stands today.
     if (!canAssignRole(input.actorRoles, target.role)) {
       return yield* Effect.fail(
-        new ForbiddenError('not allowed to modify that user', 'userNotAllowed', undefined, {
-          role: target.role,
-        }),
+        new ForbiddenError(
+          'not allowed to modify that user',
+          'userNotAllowed',
+          undefined,
+          {
+            role: target.role,
+          },
+        ),
       );
     }
 
@@ -67,9 +74,14 @@ export function updateUserAspectsUCFactory() {
       !canAssignRole(input.actorRoles, input.role)
     ) {
       return yield* Effect.fail(
-        new ForbiddenError('not allowed to assign that role', 'roleNotAllowed', undefined, {
-          role: input.role,
-        }),
+        new ForbiddenError(
+          'not allowed to assign that role',
+          'roleNotAllowed',
+          undefined,
+          {
+            role: input.role,
+          },
+        ),
       );
     }
 
@@ -79,7 +91,10 @@ export function updateUserAspectsUCFactory() {
         input.status !== undefined && input.status !== UserStatus.Active;
       if (demoting || deactivating) {
         return yield* Effect.fail(
-          new ForbiddenError('cannot change your own role or status', 'selfRoleChange'),
+          new ForbiddenError(
+            'cannot change your own role or status',
+            'selfRoleChange',
+          ),
         );
       }
     }

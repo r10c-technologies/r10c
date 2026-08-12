@@ -9,7 +9,7 @@ import { ConfigurationItem, ConfigurationPlain } from './types';
  * entries without a group/key pair are skipped.
  */
 export const readConfigurationFromProcess = (
-  keys: Record<string, string>
+  keys: Record<string, string>,
 ): ConfigurationPlain => {
   const config: ConfigurationPlain = {};
 

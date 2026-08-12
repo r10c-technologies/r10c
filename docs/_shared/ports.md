@@ -6,11 +6,15 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 
 | Domain (`N`)            | `-app` | `-service`          |
 | ----------------------- | ------ | ------------------- |
-| marketplace (0)         | 3000   | —²                  |
+| marketplace (0)         | 3000   | 3100²               |
 | marketplace-admin (1)   | 3001⁴  | 3101                |
 | auth (2)                | —⁴     | 3102                |
 | transaction-manager (3) | —³     | —³                  |
 | system-management (4)   | 3004¹  | —                   |
+| order (5)               | —      | 3105⁵               |
+| payment (6)             | —      | 3106⁵               |
+| settlement (7)          | —      | 3107⁵               |
+| stock (8)               | —      | 3108⁵               |
 | — platform —            |        | config-service 3190 |
 
 **The index is per host, not per pair.** ADR 0008 allocated `300N`/`310N` to
@@ -23,14 +27,21 @@ shell `@r10c/shells-next-system-management` and are mounted by
 back-office-app today; the dedicated bastion app takes this index when it
 lands, and needs no `-service` of its own (config-service is its backend).
 
-² `3100` is free. marketplace-service existed as a 36-line health-check shell
-with no router, no store and no domain — under ADR 0020 that is not a Slice, and
-a placeholder deployment is a thing to keep booting, probe and reason about for
-no return. The storefront reads its catalog through
-`@r10c/shells-next-marketplace`'s fixture repository until there is something
-real to serve. [ADR 0009](../adr/0009-catalog-authoring-and-publication.md)
-brings the backend back under its own name — `published-catalog` — when the
-published catalog exists; it reclaims this index.
+² **marketplace-service, back on `:3100`.** It was deleted by
+[ADR 0021](../adr/0021-consolidating-the-fleet-into-five-deployments.md) as a
+36-line health-check shell with no router, no store and no domain — not a Slice,
+and a placeholder deployment is a thing to keep booting, probing and reasoning
+about for no return.
+
+[ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md) rebuilds it because it
+now owns **two** stores: `catalog-reference` (the operator-authored brand,
+category and dictionary vocabulary, platform plane, system-of-record) and
+`published-catalog` (`projection-of:catalog`). It is the storefront's read host
+and the only writer of the projection, consuming `catalog.published` off the bus —
+which is what keeps a public read path from ever opening a tenant connection.
+
+The difference from the version that was deleted is exactly the thing ADR 0020
+made sayable: a deployment earns its existence by owning a store.
 
 ³ `3103` is free. The `transaction` slice still exists and still owns the `saga`
 store; it is **co-deployed** into marketplace-admin-service rather than running
@@ -39,6 +50,14 @@ the process did, so splitting it back out means pointing its declaration in
 `tools/slices/` at a new app and reclaiming this index — not untangling a
 database. It serves `/api/transaction{,/:id}` on `:3101`, and the catalog's
 `202` link is relative so callers never encoded either arrangement.
+
+⁵ **Reserved, not bound.** The `order`, `payment`, `settlement` and `stock`
+slices exist in the register and own their stores, but are `planned` — no process
+runs them, so nothing listens on these ports yet
+([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md)). The index is
+allocated now so that promoting a slice is a `deployments` edit rather than a
+port negotiation. They are deliberately **not** in `ALL_PORTS`
+(`tools/free-ports.sh`) until something binds them.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

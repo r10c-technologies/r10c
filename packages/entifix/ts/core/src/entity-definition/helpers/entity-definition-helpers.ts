@@ -17,11 +17,11 @@ export const META_ACCESSOR_KEY = Symbol('MetaAccessor');
 export const META_METHOD_KEY = Symbol('MetaMethod');
 
 function requireMetadata(
-  metadata: DecoratorMetadataObject | undefined
+  metadata: DecoratorMetadataObject | undefined,
 ): DecoratorMetadataObject {
   if (!metadata) {
     throw new EntifixBuildError(
-      'Decorator metadata unavailable — Symbol.metadata polyfill missing or stage-3 decorator emit not enabled.'
+      'Decorator metadata unavailable — Symbol.metadata polyfill missing or stage-3 decorator emit not enabled.',
     );
   }
   return metadata;
@@ -29,23 +29,24 @@ function requireMetadata(
 
 export function setMetaEntity(
   metadata: DecoratorMetadataObject | undefined,
-  metaEntity: MetaEntity
+  metaEntity: MetaEntity,
 ) {
   requireMetadata(metadata)[META_ENTITY_KEY] = metaEntity;
 }
 
 export function appendMetaAccessor(
   metadata: DecoratorMetadataObject | undefined,
-  metaAccessor: MetaAccessor
+  metaAccessor: MetaAccessor,
 ) {
   const meta = requireMetadata(metadata);
-  const existing = (meta[META_ACCESSOR_KEY] as MetaAccessor[] | undefined) ?? [];
+  const existing =
+    (meta[META_ACCESSOR_KEY] as MetaAccessor[] | undefined) ?? [];
   meta[META_ACCESSOR_KEY] = [...existing, metaAccessor];
 }
 
 export function appendMetaMethod(
   metadata: DecoratorMetadataObject | undefined,
-  metaMethod: MetaMethod
+  metaMethod: MetaMethod,
 ) {
   const meta = requireMetadata(metadata);
   const existing = (meta[META_METHOD_KEY] as MetaMethod[] | undefined) ?? [];
@@ -53,13 +54,13 @@ export function appendMetaMethod(
 }
 
 function readMetadata<TEntity extends Entity>(
-  target: EntityConstructor<TEntity>
+  target: EntityConstructor<TEntity>,
 ): DecoratorMetadataObject | undefined {
   return target[Symbol.metadata] ?? undefined;
 }
 
 export function extractMetaEntity<TEntity extends Entity>(
-  target: EntityConstructor<TEntity>
+  target: EntityConstructor<TEntity>,
 ): MetaEntity {
   const metadata = readMetadata(target);
   const metaEntity = metadata?.[META_ENTITY_KEY] as MetaEntity | undefined;
@@ -70,14 +71,14 @@ export function extractMetaEntity<TEntity extends Entity>(
 }
 
 export function extractMetaAccessors<TEntity extends Entity>(
-  target: EntityConstructor<TEntity>
+  target: EntityConstructor<TEntity>,
 ): MetaAccessor[] {
   const metadata = readMetadata(target);
   return (metadata?.[META_ACCESSOR_KEY] as MetaAccessor[] | undefined) ?? [];
 }
 
 export function extractMetaMethods<TEntity extends Entity>(
-  target: EntityConstructor<TEntity>
+  target: EntityConstructor<TEntity>,
 ): MetaMethod[] {
   const metadata = readMetadata(target);
   return (metadata?.[META_METHOD_KEY] as MetaMethod[] | undefined) ?? [];

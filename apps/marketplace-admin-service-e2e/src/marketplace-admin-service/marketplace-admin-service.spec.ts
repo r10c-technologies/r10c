@@ -43,8 +43,8 @@ describe('marketplace-admin-service', () => {
     });
   });
 
-  it('GET /api/product returns a paginated page', async () => {
-    const res = await service.client.get(`/api/product`);
+  it('GET /api/product-specification returns a paginated page', async () => {
+    const res = await service.client.get(`/api/product-specification`);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(pageOf(res).items)).toBe(true);
@@ -70,38 +70,38 @@ describe('marketplace-admin-service', () => {
  */
 describe('the RSQL query protocol', () => {
   const list = (query: string) =>
-    service.client.get(`/api/product-brand?${query}`);
+    service.client.get(`/api/product-specification?${query}`);
 
   it('narrows a listing by a substring match', async () => {
     // One page wide enough to hold every match, so `total` and the page length
     // are comparable.
     const res = await list(
-      `rsql=${encodeURIComponent("name=like='Acme'")}&pageSize=200`,
+      `rsql=${encodeURIComponent("name=like='Widget'")}&pageSize=200`,
     );
 
     expect(res.status).toBe(200);
     expect(namesOf(res).length).toBeGreaterThan(0);
-    expect(namesOf(res).every(name => name.includes('Acme'))).toBe(true);
+    expect(namesOf(res).every(name => name.includes('Widget'))).toBe(true);
     // `total` must reflect the same filter, or the pager lies about the size.
     expect(pageOf(res).total).toBe(pageOf(res).items.length);
   });
 
   it('combines two clauses with and', async () => {
-    const expression = "name=like='Acme';name!='Acme 1'";
+    const expression = "name=like='Widget';name!='Widget 1'";
     const res = await list(`rsql=${encodeURIComponent(expression)}`);
 
     expect(res.status).toBe(200);
     expect(namesOf(res).length).toBeGreaterThan(0);
-    expect(namesOf(res).every(name => name.includes('Acme'))).toBe(true);
-    expect(namesOf(res)).not.toContain('Acme 1');
+    expect(namesOf(res).every(name => name.includes('Widget'))).toBe(true);
+    expect(namesOf(res)).not.toContain('Widget 1');
   });
 
   it('combines two clauses with or', async () => {
-    const expression = "name=='Acme 1',name=='Globex 1'";
+    const expression = "name=='Widget 1',name=='Gizmo 1'";
     const res = await list(`rsql=${encodeURIComponent(expression)}`);
 
     expect(res.status).toBe(200);
-    expect([...new Set(namesOf(res))].sort()).toEqual(['Acme 1', 'Globex 1']);
+    expect([...new Set(namesOf(res))].sort()).toEqual(['Gizmo 1', 'Widget 1']);
   });
 
   it('orders a listing by the sort parameter', async () => {
@@ -114,14 +114,14 @@ describe('the RSQL query protocol', () => {
 
   it('applies filtering, sorting and paging together', async () => {
     const res = await list(
-      `rsql=${encodeURIComponent("name=like='Acme'")}&sort=-name&page=1&pageSize=1`,
+      `rsql=${encodeURIComponent("name=like='Widget'")}&sort=-name&page=1&pageSize=1`,
     );
 
     expect(res.status).toBe(200);
     expect(pageOf(res).items).toHaveLength(1);
     expect(pageOf(res).total).toBeGreaterThan(1);
-    // Descending, so page 1 of the `Acme` matches is the last one alphabetically.
-    expect(namesOf(res)[0]).toBe('Acme 2');
+    // Descending, so page 1 of the `Widget` matches is the last one alphabetically.
+    expect(namesOf(res)[0]).toBe('Widget 6');
   });
 
   // The metadata allowlist is the trust boundary: without it a client could

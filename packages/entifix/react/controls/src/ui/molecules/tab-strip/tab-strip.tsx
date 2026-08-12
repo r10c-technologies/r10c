@@ -100,7 +100,7 @@ export function Tab({
           onClick={onClose}
           className={cn(
             'ml-2xs rounded p-3xs text-content-muted opacity-0 transition',
-            'hover:bg-surface hover:text-content focus:opacity-100 group-hover:opacity-100',
+            'group-hover:opacity-100 hover:bg-surface hover:text-content focus:opacity-100',
             active && 'opacity-100',
           )}
         >
@@ -111,7 +111,7 @@ export function Tab({
   );
 }
 
-export type TabAddButtonProps = ComponentPropsWithoutRef<'button'>
+export type TabAddButtonProps = ComponentPropsWithoutRef<'button'>;
 
 /** The "+" that opens a new tab. */
 export function TabAddButton({ className, ...props }: TabAddButtonProps) {

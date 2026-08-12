@@ -20,7 +20,9 @@ export interface DraftsState {
   clearDraft(address: string): void;
 }
 
-export function persistedDrafts(store: DraftsState): Pick<DraftsState, 'drafts'> {
+export function persistedDrafts(
+  store: DraftsState,
+): Pick<DraftsState, 'drafts'> {
   return { drafts: store.drafts };
 }
 

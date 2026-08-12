@@ -12,6 +12,7 @@ import type { SliceDeclaration } from '../types.js';
  */
 export const marketplaceAdminSlice: SliceDeclaration = {
   name: 'marketplace-admin',
+  status: 'active',
   domains: ['product-configuration-management'],
   stores: [
     {
@@ -33,12 +34,14 @@ export const marketplaceAdminSlice: SliceDeclaration = {
   ],
   deployments: ['marketplace-admin-service'],
   coDeployedWith: ['transaction'],
-  exposedAPIs: [
-    'GET|POST|PUT|DELETE /api/product',
-    'GET|POST|PUT|DELETE /api/product-brand',
-    'GET|POST|PUT|DELETE /api/product-category',
-  ],
+  // Brand and category moved to the `marketplace` slice with ADR 0022: they are
+  // platform reference data, not per-vendor rows, so this slice stopped serving
+  // them rather than becoming a second writer.
+  exposedAPIs: ['GET|POST|PUT|DELETE /api/product-specification'],
   dependantAPIs: ['GET /api/config/:service'],
-  publishedEvents: ['transaction.*'],
+  // `catalog.published` is what the `marketplace` slice consumes to write the
+  // `published-catalog` projection. The authoring slice emits and never writes
+  // that store — which is how a projection keeps exactly one writer.
+  publishedEvents: ['transaction.*', 'catalog.published'],
   subscribedEvents: [],
 };

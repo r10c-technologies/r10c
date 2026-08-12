@@ -24,7 +24,7 @@ export class EntityCollectionLink<TEntity extends Entity> {
   // #region constructors
   constructor(
     entityConstructor: EntityConstructor<TEntity>,
-    init?: EntityCollectionLinkInit<TEntity>
+    init?: EntityCollectionLinkInit<TEntity>,
   ) {
     this.entityConstructor = entityConstructor;
     this.#values = init?.values;
@@ -58,11 +58,13 @@ export class EntityCollectionLink<TEntity extends Entity> {
     return Effect.forEach(
       this.#ids,
       id => resolver.resolve(this.entityConstructor, id),
-      { concurrency: 'unbounded' }
+      { concurrency: 'unbounded' },
     ).pipe(Effect.tap(values => Effect.sync(() => this.setValues(values))));
   }
 
-  resolve(resolver: EntityLinkResolver): Effect.Effect<TEntity[], EntifixError> {
+  resolve(
+    resolver: EntityLinkResolver,
+  ): Effect.Effect<TEntity[], EntifixError> {
     return this.#values !== undefined
       ? Effect.succeed(this.#values)
       : this.reload(resolver);

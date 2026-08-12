@@ -1,9 +1,6 @@
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
-import {
-  markEmailUnverified,
-  startMockService,
-} from '../support/mock-service';
+import { markEmailUnverified, startMockService } from '../support/mock-service';
 import { signIn } from '../support/sign-in';
 
 /**

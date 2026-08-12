@@ -22,7 +22,10 @@ export interface MenuProps {
  */
 export function Menu({ children, className }: MenuProps) {
   return (
-    <HuiMenu as="div" className={cn('relative inline-block text-left', className)}>
+    <HuiMenu
+      as="div"
+      className={cn('relative inline-block text-left', className)}
+    >
       {children}
     </HuiMenu>
   );

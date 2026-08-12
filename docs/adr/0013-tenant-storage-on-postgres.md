@@ -2,6 +2,10 @@
 
 - Status: Proposed
 - Date: 2026-08-01
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  an organization now has **two** tenant stores, so "schema per organization"
+  means two schemas per organization. Trigger checked and **not** fired: both
+  tenant stores are on Mongo.
 
 ## Trigger
 
@@ -37,6 +41,15 @@ and the one thing that makes it safe.
 
 Tables are physically separate per tenant, so the leak-proof property of ADR 0006
 holds: there is no discriminator column, and no query can leak by omission.
+
+**One schema per store per organization**, since
+[ADR 0022](0022-v1-marketplace-module-boundaries.md): an organization holds two
+tenant stores, so the search path names the store as well as the tenant —
+`catalog_<organizationId>` and `stock_<organizationId>` rather than a single
+`tenant_<organizationId>`. The arithmetic below is unaffected, because schemas are
+free and it is _pools_ that are not. What it does change is the `CREATE SCHEMA`
+step: provisioning creates one per store, and each is created by the slice that
+writes it.
 
 ### Why not a pool per organization
 

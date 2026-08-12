@@ -10,11 +10,16 @@ afterEach(() => {
 
 describe('useTabsState', () => {
   it('opens tabs and tracks the active one', () => {
-    useTabsState.getState().open({ param: 'catalog:product', title: 'Products' });
+    useTabsState
+      .getState()
+      .open({ param: 'catalog:product', title: 'Products' });
     useTabsState.getState().open({ param: 'catalog:brand', title: 'Brands' });
 
     const state = useTabsState.getState();
-    expect(state.tabs.map(t => t.param)).toEqual(['catalog:product', 'catalog:brand']);
+    expect(state.tabs.map(t => t.param)).toEqual([
+      'catalog:product',
+      'catalog:brand',
+    ]);
     expect(state.activeParam).toBe('catalog:brand');
   });
 
@@ -58,7 +63,10 @@ describe('persistedTabs', () => {
       activate: () => undefined,
     });
 
-    expect(persisted).toEqual({ tabs: [{ param: 'a', title: 'A' }], activeParam: 'a' });
+    expect(persisted).toEqual({
+      tabs: [{ param: 'a', title: 'A' }],
+      activeParam: 'a',
+    });
     expect('open' in persisted).toBe(false);
   });
 });

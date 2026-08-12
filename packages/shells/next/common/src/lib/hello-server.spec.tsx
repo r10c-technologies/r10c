@@ -9,6 +9,8 @@ describe('HelloServer', () => {
   it('renders its greeting', async () => {
     render(await HelloServer());
 
-    expect(screen.getByRole('heading', { name: 'Hello Server' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Hello Server' }),
+    ).toBeInTheDocument();
   });
 });

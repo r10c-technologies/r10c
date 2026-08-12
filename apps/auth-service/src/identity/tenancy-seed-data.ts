@@ -34,23 +34,45 @@ export const organizationSeedData = (
 /**
  * The people behind the seeded accounts, as parties rather than as logins.
  *
- * `partyRole` is what makes the two personas above a field rather than a
- * comment: it rides into each session and access token, so a service can tell a
- * vendor member from platform staff without inferring it from whether an
- * organization happened to resolve.
+ * The role each plays is **not** a field here — it is a `PartyRole` record, in
+ * {@link partyRoleSeedData} below. See ADR 0022 for why.
  */
 export const individualSeedData: ReadonlyArray<Record<string, unknown>> = [
   {
     id: 'party-user-2',
     fullName: 'Alan Turing',
     userId: 'user-2',
-    partyRole: 'vendor',
   },
   {
     id: 'party-user-1',
     fullName: 'Ada Lovelace',
     userId: 'user-1',
-    partyRole: 'operator',
+  },
+];
+
+/**
+ * The roles those two people play, as records rather than as a column.
+ *
+ * This is what makes the two personas a fact the system can query rather than a
+ * comment: the role rides into each session and access token, so a service can
+ * tell a vendor member from platform staff without inferring it from whether an
+ * organization happened to resolve.
+ *
+ * One row each here, but the shape is the point — a party may hold several, and
+ * `SessionScopeResolver` picks by reach (`operator` > `vendor` > `customer`).
+ * A person with no row at all resolves to `customer`, which is the population
+ * with the least reach and therefore the safest thing to be wrong about.
+ */
+export const partyRoleSeedData: ReadonlyArray<Record<string, unknown>> = [
+  {
+    id: 'party-role-user-2-vendor',
+    partyId: 'party-user-2',
+    role: 'vendor',
+  },
+  {
+    id: 'party-role-user-1-operator',
+    partyId: 'party-user-1',
+    role: 'operator',
   },
 ];
 

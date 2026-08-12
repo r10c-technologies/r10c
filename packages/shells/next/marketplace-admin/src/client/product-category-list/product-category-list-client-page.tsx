@@ -1,4 +1,4 @@
-import type { ProductCategory } from '@r10c/business-ts-product-configuration-management';
+import type { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { loadUCFactory } from '@r10c/entifix-ts-business';
 import { ProductCategoryTable } from '@r10c/implementation-product-configuration-management-react';
 import { Context } from 'effect';

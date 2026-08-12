@@ -48,27 +48,41 @@ describe('makeEnvelope', () => {
   });
 
   it('carries links when supplied and omits the key otherwise', () => {
-    const links = [{ rel: 'self', href: '/api/product', method: 'GET' as const }];
+    const links = [
+      { rel: 'self', href: '/api/product', method: 'GET' as const },
+    ];
 
-    expect(makeEnvelope('command', 'product', {}, links).meta.links).toEqual(links);
-    expect(makeEnvelope('command', 'product', {}).meta).not.toHaveProperty('links');
+    expect(makeEnvelope('command', 'product', {}, links).meta.links).toEqual(
+      links,
+    );
+    expect(makeEnvelope('command', 'product', {}).meta).not.toHaveProperty(
+      'links',
+    );
   });
 });
 
 describe('makeEntityCollectionEnvelope', () => {
   it('carries links when supplied', () => {
-    const links = [{ rel: 'self', href: '/api/unkeyed', method: 'GET' as const }];
+    const links = [
+      { rel: 'self', href: '/api/unkeyed', method: 'GET' as const },
+    ];
 
-    expect(makeEntityCollectionEnvelope(Unkeyed, [], links).meta.links).toEqual(links);
+    expect(makeEntityCollectionEnvelope(Unkeyed, [], links).meta.links).toEqual(
+      links,
+    );
   });
 });
 
 describe('makeEntityPageEnvelope', () => {
   it('carries links when supplied', () => {
-    const links = [{ rel: 'next', href: '/api/unkeyed?page=2', method: 'GET' as const }];
+    const links = [
+      { rel: 'next', href: '/api/unkeyed?page=2', method: 'GET' as const },
+    ];
     const page = { items: [], total: 0, request: {} };
 
-    expect(makeEntityPageEnvelope(Unkeyed, page, links).meta.links).toEqual(links);
+    expect(makeEntityPageEnvelope(Unkeyed, page, links).meta.links).toEqual(
+      links,
+    );
   });
 });
 
@@ -86,7 +100,9 @@ describe('isEntifixEnvelope', () => {
   });
 
   it('accepts a body carrying a string meta.type', () => {
-    expect(isEntifixEnvelope({ meta: { type: 'entity' }, data: {} })).toBe(true);
+    expect(isEntifixEnvelope({ meta: { type: 'entity' }, data: {} })).toBe(
+      true,
+    );
   });
 });
 
@@ -94,12 +110,16 @@ describe('readEnvelope', () => {
   it('narrows a matching envelope', () => {
     const envelope = makeEnvelope('transactionEvent', 'product', { at: 'now' });
 
-    expect(Effect.runSync(readEnvelope(envelope, 'transactionEvent'))).toBe(envelope);
+    expect(Effect.runSync(readEnvelope(envelope, 'transactionEvent'))).toBe(
+      envelope,
+    );
   });
 
   it('fails when the body is not an envelope, naming the label', () => {
     const error = Effect.runSync(
-      readEnvelope({ at: 'now' }, 'transactionEvent', 'saga message').pipe(Effect.flip),
+      readEnvelope({ at: 'now' }, 'transactionEvent', 'saga message').pipe(
+        Effect.flip,
+      ),
     );
 
     expect(error).toBeInstanceOf(EntifixBuildError);
@@ -108,21 +128,27 @@ describe('readEnvelope', () => {
   });
 
   it('defaults the label when none is given', () => {
-    const error = Effect.runSync(readEnvelope(null, 'command').pipe(Effect.flip));
+    const error = Effect.runSync(
+      readEnvelope(null, 'command').pipe(Effect.flip),
+    );
 
     expect(error.message).toContain('"message"');
   });
 
   it('fails on a type mismatch, reporting expected and actual', () => {
     const error = Effect.runSync(
-      readEnvelope(makeEnvelope('command', 'product', {}), 'transactionEvent').pipe(
-        Effect.flip,
-      ),
+      readEnvelope(
+        makeEnvelope('command', 'product', {}),
+        'transactionEvent',
+      ).pipe(Effect.flip),
     );
 
     expect(error.message).toContain('type "transactionEvent"');
     expect(error.message).toContain('but got "command"');
-    expect(error.details).toMatchObject({ expected: 'transactionEvent', actual: 'command' });
+    expect(error.details).toMatchObject({
+      expected: 'transactionEvent',
+      actual: 'command',
+    });
   });
 });
 

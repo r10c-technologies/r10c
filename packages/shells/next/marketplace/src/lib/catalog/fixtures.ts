@@ -63,10 +63,6 @@ export const CATEGORY_FIXTURES: SerializedEntity[] = [
 ];
 
 /** Keyed by brand id so a product can embed the whole record. */
-const brandById = new Map(
-  BRAND_FIXTURES.map(brand => [brand['id'] as string, brand]),
-);
-
 function product(
   id: string,
   code: string,
@@ -80,10 +76,11 @@ function product(
     code,
     name,
     description,
-    // Embedded — the wire shape `Product` declares for this relation.
-    brand: brandById.get(brandId),
-    // A foreign key — the use-case resolves it through the link resolver.
-    category: categoryId,
+    // Plain ids into `catalog-reference`, another slice's store. They were an
+    // embedded brand and a foreign-key category until ADR 0022; nothing joins
+    // them now, so a page that wants a name asks that domain for it.
+    brandId,
+    categoryId,
   };
 }
 

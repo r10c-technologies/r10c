@@ -70,7 +70,10 @@ interface V1UserRow {
   readonly state?: string;
   readonly human?: {
     readonly profile?: { readonly displayName?: string };
-    readonly email?: { readonly email?: string; readonly isEmailVerified?: boolean };
+    readonly email?: {
+      readonly email?: string;
+      readonly isEmailVerified?: boolean;
+    };
   };
 }
 

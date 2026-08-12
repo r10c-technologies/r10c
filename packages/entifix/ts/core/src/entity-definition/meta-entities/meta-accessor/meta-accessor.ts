@@ -24,8 +24,7 @@ export type MetaAccessorType = (typeof MetaAccessorTypes)[number];
  * metadata about a member, not state of a link instance.
  */
 export const EntityLinkSerializations = ['id', 'embedded'] as const;
-export type EntityLinkSerialization =
-  (typeof EntityLinkSerializations)[number];
+export type EntityLinkSerialization = (typeof EntityLinkSerializations)[number];
 
 export interface MetaAccessorOptions {
   alias?: string;
@@ -42,7 +41,7 @@ export interface MetaAccessorOptions {
    * member that has no catalog entry yet.
    *
    * Keys mirror the entity's own `@entity({ key })`, so they are derivable
-   * rather than invented: `entity:product.fields.code`.
+   * rather than invented: `entity:product-specification.fields.code`.
    */
   labelKey?: string;
   /** Opt in/out of sorting controls. Defaults per `type`. */

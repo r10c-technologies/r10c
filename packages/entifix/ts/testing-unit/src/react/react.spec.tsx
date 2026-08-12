@@ -28,7 +28,9 @@ describe('makeInMemoryUiPreferencesState', () => {
 
     await Effect.runPromise(store.remove('table:product'));
 
-    expect(await Effect.runPromise(store.read('table:product'))).toBeUndefined();
+    expect(
+      await Effect.runPromise(store.read('table:product')),
+    ).toBeUndefined();
   });
 
   it('starts from the seed it was given', async () => {
@@ -72,7 +74,9 @@ interface Adapters {
 
 const AdaptersContext = createContext<Adapters>({} as Adapters);
 
-const ShowAdapter = () => <span>{useContext(AdaptersContext).productRest}</span>;
+const ShowAdapter = () => (
+  <span>{useContext(AdaptersContext).productRest}</span>
+);
 
 const ShowPreference = () => {
   const { value, isReady } = useUiPreference('table:product', 'default');
@@ -101,7 +105,9 @@ describe('renderWithAdapters', () => {
   // leaking into the next.
   it('defaults to a fresh in-memory preferences store', async () => {
     const first = renderWithAdapters(<ShowPreference />);
-    await waitFor(() => expect(screen.getByText('default')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('default')).toBeInTheDocument(),
+    );
     await Effect.runPromise(first.preferences.write('table:product', 'stored'));
 
     const second = renderWithAdapters(<ShowPreference />);

@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  an organization has **two** tenant databases, so provisioning and migration fan
+  out over stores × organizations.
 
 ## Context
 
@@ -27,9 +30,17 @@ Mongo creates a database lazily on first write, so a tenant database costs
 nothing until it holds something, and there is no `CREATE DATABASE` step to fail
 halfway.
 
-The tenant database name is `${prefix}${organizationId}`, with the prefix
-resolved from config-service. The organization id is the only input, so a name is
-always derivable and never stored twice.
+A tenant database name is `${prefix}${organizationId}`, with the prefix resolved
+from config-service. The organization id is the only input, so a name is always
+derivable and never stored twice.
+
+**There is one prefix per store, not one per organization.** An organization has
+two tenant databases — `tenant_<organizationId>` for the `catalog` store and
+`stock_<organizationId>` for `stock` — because they are two stores with two
+writing slices ([ADR 0022](0022-v1-marketplace-module-boundaries.md)). Both are
+still lazily created and still cost nothing until written, so provisioning is
+unchanged in substance: a registry record plus a naming convention, now applied
+once per store.
 
 (Postgres would need a real `CREATE SCHEMA` step. That is part of
 [ADR 0013](0013-tenant-storage-on-postgres.md), not this record.)
@@ -51,6 +62,12 @@ There are two distinct jobs and they must not be confused:
 - **Tenant migration** — enumerates organizations from the control plane and runs
   per tenant. It must be idempotent per tenant and resumable, because it will
   fail partway at some tenant count.
+
+  The fan-out is over **stores × organizations**, not organizations: each tenant
+  store is migrated by the slice that owns it, and a slice must not migrate a
+  store it does not write. That keeps the one-writer rule intact for the one
+  operation most tempted to break it — a migration runner with credentials for
+  everything is the easiest way to end up with two writers.
 
 A tenant that is created _after_ a migration ran must still get it, so
 provisioning applies the current migration set to the new tenant rather than

@@ -17,7 +17,9 @@ describe('makeIndexedDbUiPreferencesState', () => {
     const store = makeIndexedDbUiPreferencesState();
 
     await run(store.write('round-trip', { collapsed: true, order: [1, 2] }));
-    const value = await run(store.read<{ collapsed: boolean; order: number[] }>('round-trip'));
+    const value = await run(
+      store.read<{ collapsed: boolean; order: number[] }>('round-trip'),
+    );
 
     expect(value).toEqual({ collapsed: true, order: [1, 2] });
   });
@@ -88,7 +90,9 @@ describe('IndexedDbUiPreferencesLayer', () => {
       return yield* store.read<number>('via-layer');
     });
 
-    const value = await run(Effect.provide(program, IndexedDbUiPreferencesLayer));
+    const value = await run(
+      Effect.provide(program, IndexedDbUiPreferencesLayer),
+    );
 
     expect(value).toBe(42);
   });

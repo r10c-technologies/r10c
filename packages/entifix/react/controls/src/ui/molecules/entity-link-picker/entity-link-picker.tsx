@@ -50,39 +50,39 @@ export function EntityLinkPicker<TTarget extends Entity>({
           without the table's own clicks bubbling into it. */}
       <div aria-hidden className="fixed inset-0 bg-black/40" />
       <DialogPanel className="relative w-full max-w-4xl rounded-lg border border-border bg-surface p-s shadow-lg">
-          <div className="flex items-center justify-between gap-s">
-            <DialogTitle className="text-step-1 font-semibold text-content">
-              {t('link.browseTitle', { field: descriptor.label })}
-            </DialogTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={browse.close}
-            >
-              {t('link.close')}
-            </Button>
-          </div>
+        <div className="flex items-center justify-between gap-s">
+          <DialogTitle className="text-step-1 font-semibold text-content">
+            {t('link.browseTitle', { field: descriptor.label })}
+          </DialogTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={browse.close}
+          >
+            {t('link.close')}
+          </Button>
+        </div>
 
-          <EntityTable<TTarget>
-            entityConstructor={source.entityConstructor}
-            isLoading={browse.isLoading}
-            error={browse.error}
-            items={browse.items}
-            totalItems={browse.totalItems}
-            currentPage={browse.currentPage}
-            pageSize={browse.pageSize}
-            onPageChange={browse.onPageChange}
-            onPageSizeChange={browse.onPageSizeChange}
-            filtering={browse.filtering}
-            sorting={browse.sorting}
-            onFilteringChange={browse.onFilteringChange}
-            onSortingChange={browse.onSortingChange}
-            onSelect={onSelect}
-            // Scoped so a picker's column personalization does not overwrite the
-            // one the user set on the full listing of the same entity.
-            preferencesKey={`link-picker:${descriptor.name}`}
-          />
+        <EntityTable<TTarget>
+          entityConstructor={source.entityConstructor}
+          isLoading={browse.isLoading}
+          error={browse.error}
+          items={browse.items}
+          totalItems={browse.totalItems}
+          currentPage={browse.currentPage}
+          pageSize={browse.pageSize}
+          onPageChange={browse.onPageChange}
+          onPageSizeChange={browse.onPageSizeChange}
+          filtering={browse.filtering}
+          sorting={browse.sorting}
+          onFilteringChange={browse.onFilteringChange}
+          onSortingChange={browse.onSortingChange}
+          onSelect={onSelect}
+          // Scoped so a picker's column personalization does not overwrite the
+          // one the user set on the full listing of the same entity.
+          preferencesKey={`link-picker:${descriptor.name}`}
+        />
       </DialogPanel>
     </Dialog>
   );

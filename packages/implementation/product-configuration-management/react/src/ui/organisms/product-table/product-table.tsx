@@ -1,42 +1,45 @@
-import { Product } from '@r10c/business-ts-product-configuration-management';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { EntityColumn, EntityTable } from '@r10c/entifix-react-controls';
 import { useDataLoading } from '@r10c/entifix-react-integration';
 import {
   ConfigurationRepositoryTag,
-  EntityLinkResolverTag,
   EntityRepositoryTag,
 } from '@r10c/entifix-ts-business';
 
 import type { ProductTableProps } from './product-table.types';
 
 /**
- * Product listing. Columns come from `Product`'s accessor metadata, so both
- * relations render through the same default link cell: `brand` arrives embedded
- * and `category` as a foreign key resolved by the load use-case — a link looks
- * the same to the UI regardless of how it was represented in the payload.
+ * Specification listing. Columns come from `ProductSpecification`'s accessor
+ * metadata.
  *
- * `brand` additionally carries an `<EntityColumn>` override, showing the escape
- * hatch for a column whose presentation the metadata cannot express.
+ * `brandId` and `categoryId` are plain ids, not links: their entities live in
+ * `catalog-reference`, a platform-plane store owned by another slice, so
+ * resolving them here would be a cross-store read the boundary rule forbids
+ * ([ADR 0022](../../../../../../../docs/adr/0022-v1-marketplace-module-boundaries.md)).
+ * A screen that wants the brand's *name* asks the owning domain for it; this
+ * table shows what it holds.
+ *
+ * `brandId` keeps an `<EntityColumn>` override, which is still the escape hatch
+ * for a column whose presentation the metadata cannot express — it renders an
+ * em dash rather than an empty cell when the classification is unset.
  */
 export function ProductTable({ ctx, uc, hrefFor, newHref }: ProductTableProps) {
   const pager = useDataLoading<
-    Product,
-    EntityRepositoryTag | ConfigurationRepositoryTag | EntityLinkResolverTag
+    ProductSpecification,
+    EntityRepositoryTag | ConfigurationRepositoryTag
   >({ uc, ctx });
 
   return (
     <EntityTable
-      entityConstructor={Product}
+      entityConstructor={ProductSpecification}
       {...pager}
       hrefFor={hrefFor}
       newHref={newHref}
     >
-      <EntityColumn<Product>
-        field="brand"
+      <EntityColumn<ProductSpecification>
+        field="brandId"
         render={product => (
-          <span className="font-medium">
-            {product.brand.value?.name ?? String(product.brand.id ?? '—')}
-          </span>
+          <span className="font-medium">{product.brandId ?? '—'}</span>
         )}
       />
     </EntityTable>

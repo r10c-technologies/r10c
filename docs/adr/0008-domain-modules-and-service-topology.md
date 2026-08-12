@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  clarifies that the superseded block covers the topology section only; the tag
+  dimensions and forbidden couplings are live.
 - Amended by: [ADR 0020](0020-stores-and-slices.md) — the "three plane-hosts"
   topology below is **superseded**: the axis is ownership (a **Slice** and the
   **Stores** it writes), not plane, because a slice may own stores in more than
@@ -64,6 +67,19 @@ afternoon's notice.
 > Slice may own stores in several planes. The table below is kept as the record
 > of what was decided, not as current guidance — the live register is in
 > [docs/\_shared/planes.md](../_shared/planes.md).
+>
+> **This blockquote supersedes this section only.** The rest of this record is
+> live and enforced: single-writer-per-database, the three forbidden couplings,
+> the `shell:` and `host:` tag dimensions (which still fail builds), and "the Next
+> backend is composition, never data access" — restated as ownership by ADR 0020.
+>
+> Two later corrections to the table itself.
+> [ADR 0021](0021-consolidating-the-fleet-into-five-deployments.md) deleted
+> `marketplace-service` for having no store, and
+> [ADR 0022](0022-v1-marketplace-module-boundaries.md) rebuilt it on `:3100` once
+> it had two — `catalog-reference` and `published-catalog`. Its return is not a
+> return to plane-hosts: it is a slice that happens to own both its stores in one
+> plane, which is a fact about those stores and not a rule about the host.
 
 | Host                               | Plane / database  | Mounts                                                                    |
 | ---------------------------------- | ----------------- | ------------------------------------------------------------------------- |

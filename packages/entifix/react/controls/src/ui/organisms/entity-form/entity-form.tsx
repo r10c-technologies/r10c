@@ -197,8 +197,7 @@ interface FieldRowProps<TEntity extends Entity> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   linkSource: EntityLinkSource<any> | undefined;
   onLinkChange:
-    | ((name: string, entity: Entity | undefined) => void)
-    | undefined;
+    ((name: string, entity: Entity | undefined) => void) | undefined;
   id: string;
 }
 

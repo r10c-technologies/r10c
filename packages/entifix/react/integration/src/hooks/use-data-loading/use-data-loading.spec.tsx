@@ -210,13 +210,14 @@ describe('useDataLoading filtering and sorting', () => {
   it('ANDs a base restriction into every request without showing it', async () => {
     const { result } = renderHook(
       () =>
-        useDataLoading<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>(
-          {
-            uc: loadUCFactory<Widget>(),
-            ctx: makeContext(),
-            baseFiltering: filterByName('Widget 7'),
-          },
-        ),
+        useDataLoading<
+          Widget,
+          ConfigurationRepositoryTag | EntityRepositoryTag
+        >({
+          uc: loadUCFactory<Widget>(),
+          ctx: makeContext(),
+          baseFiltering: filterByName('Widget 7'),
+        }),
       { wrapper },
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -235,9 +236,10 @@ describe('useDataLoading filtering and sorting', () => {
   it('holds the request back while disabled', async () => {
     const { result, rerender } = renderHook(
       ({ enabled }: { enabled: boolean }) =>
-        useDataLoading<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>(
-          { uc: loadUCFactory<Widget>(), ctx: makeContext(), enabled },
-        ),
+        useDataLoading<
+          Widget,
+          ConfigurationRepositoryTag | EntityRepositoryTag
+        >({ uc: loadUCFactory<Widget>(), ctx: makeContext(), enabled }),
       { wrapper, initialProps: { enabled: false } },
     );
 
@@ -340,7 +342,9 @@ describe('useDataLoading filtering and sorting', () => {
     expect(
       requests.some(request => {
         const group = request.filtering?.[0];
-        return group !== undefined && 'values' in group && group.values.length === 0;
+        return (
+          group !== undefined && 'values' in group && group.values.length === 0
+        );
       }),
     ).toBe(false);
     expect(result.current.items).toHaveLength(10);

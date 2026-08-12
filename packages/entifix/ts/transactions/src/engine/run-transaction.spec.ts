@@ -8,7 +8,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { TransactionCommand } from '../contracts/command.js';
 import type { TransactionEvent } from '../contracts/event.js';
-import { CommandTag, LockHandlesTag, OutcomeTag } from '../mixins/transaction-mixins.js';
+import {
+  CommandTag,
+  LockHandlesTag,
+  OutcomeTag,
+} from '../mixins/transaction-mixins.js';
 import { EventBusTag } from '../ports/event-bus.js';
 import { type LockHandle, LockServiceTag } from '../ports/lock-service.js';
 import {
@@ -55,17 +59,19 @@ const makeWorld = (
   const published: TransactionEvent[] = [];
 
   const handler: TransactionHandler = {
-    validate: (received) => {
+    validate: received => {
       calls.push(`validate:${received.transactionId}`);
       return script.validate ? Effect.fail(script.validate) : Effect.void;
     },
-    lockKeys: (received) => {
+    lockKeys: received => {
       calls.push(`lockKeys:${received.entity}`);
       return script.lockKeys ?? ['product:code'];
     },
     execute: () => {
       calls.push('execute');
-      return script.execute ? Effect.fail(script.execute) : Effect.succeed(outcome);
+      return script.execute
+        ? Effect.fail(script.execute)
+        : Effect.succeed(outcome);
     },
     rollback: (_received, receivedOutcome) => {
       calls.push(`rollback:${String(receivedOutcome)}`);
@@ -129,7 +135,9 @@ describe('the facade steps', () => {
     const world = makeWorld({ validate: failure });
 
     expect(
-      Effect.runSync(Effect.flip(validateUCFactory().pipe(Effect.provide(world.layer)))),
+      Effect.runSync(
+        Effect.flip(validateUCFactory().pipe(Effect.provide(world.layer))),
+      ),
     ).toBe(failure);
   });
 
@@ -138,9 +146,11 @@ describe('the facade steps', () => {
   it('lock acquires every declared key in order', () => {
     const world = makeWorld({ lockKeys: ['a', 'b'] });
 
-    const handles = Effect.runSync(lockUCFactory().pipe(Effect.provide(world.layer)));
+    const handles = Effect.runSync(
+      lockUCFactory().pipe(Effect.provide(world.layer)),
+    );
 
-    expect(handles.map((handle) => handle.key)).toEqual(['a', 'b']);
+    expect(handles.map(handle => handle.key)).toEqual(['a', 'b']);
     expect(world.calls).toEqual(['lockKeys:product', 'acquire:a', 'acquire:b']);
   });
 
@@ -158,9 +168,9 @@ describe('the facade steps', () => {
   it('execute returns the handler’s outcome', () => {
     const world = makeWorld();
 
-    expect(Effect.runSync(executeUCFactory().pipe(Effect.provide(world.layer)))).toBe(
-      outcome,
-    );
+    expect(
+      Effect.runSync(executeUCFactory().pipe(Effect.provide(world.layer))),
+    ).toBe(outcome);
   });
 
   it('rollback passes the outcome from context to the handler', () => {
@@ -200,7 +210,9 @@ describe('acceptTransaction', () => {
   it('validates, locks, then announces acceptance', () => {
     const world = makeWorld();
 
-    const handles = Effect.runSync(acceptTransaction().pipe(Effect.provide(world.layer)));
+    const handles = Effect.runSync(
+      acceptTransaction().pipe(Effect.provide(world.layer)),
+    );
 
     expect(world.calls).toEqual([
       'validate:tx-1',
@@ -208,7 +220,7 @@ describe('acceptTransaction', () => {
       'acquire:product:code',
       'publish:accepted',
     ]);
-    expect(handles.map((handle) => handle.key)).toEqual(['product:code']);
+    expect(handles.map(handle => handle.key)).toEqual(['product:code']);
   });
 
   it('publishes an accepted event in the PENDING state', () => {
@@ -226,9 +238,13 @@ describe('acceptTransaction', () => {
   });
 
   it('takes no lock and announces nothing when validation rejects', () => {
-    const world = makeWorld({ validate: new EntifixTransactionError('illegal') });
+    const world = makeWorld({
+      validate: new EntifixTransactionError('illegal'),
+    });
 
-    const exit = Effect.runSyncExit(acceptTransaction().pipe(Effect.provide(world.layer)));
+    const exit = Effect.runSyncExit(
+      acceptTransaction().pipe(Effect.provide(world.layer)),
+    );
 
     expect(Exit.isFailure(exit)).toBe(true);
     expect(world.calls).toEqual(['validate:tx-1']);
@@ -248,12 +264,16 @@ describe('acceptTransaction', () => {
 });
 
 describe('completeTransaction', () => {
-  const handles: readonly LockHandle[] = [{ key: 'product:code', token: 'token-1' }];
+  const handles: readonly LockHandle[] = [
+    { key: 'product:code', token: 'token-1' },
+  ];
 
   it('executes, announces completion, then frees the locks', () => {
     const world = makeWorld();
 
-    Effect.runSync(completeTransaction(handles).pipe(Effect.provide(world.layer)));
+    Effect.runSync(
+      completeTransaction(handles).pipe(Effect.provide(world.layer)),
+    );
 
     expect(world.calls).toEqual([
       'execute',
@@ -269,9 +289,13 @@ describe('completeTransaction', () => {
   });
 
   it('rolls back, announces failure, then frees the locks when execute fails', () => {
-    const world = makeWorld({ execute: new EntifixTransactionError('write failed') });
+    const world = makeWorld({
+      execute: new EntifixTransactionError('write failed'),
+    });
 
-    Effect.runSync(completeTransaction(handles).pipe(Effect.provide(world.layer)));
+    Effect.runSync(
+      completeTransaction(handles).pipe(Effect.provide(world.layer)),
+    );
 
     expect(world.calls).toEqual([
       'execute',
@@ -289,9 +313,13 @@ describe('completeTransaction', () => {
   // `rollback` runs without an outcome because `execute` never produced one —
   // which is exactly why the port documents it as idempotent.
   it('rolls back with no outcome', () => {
-    const world = makeWorld({ execute: new EntifixTransactionError('write failed') });
+    const world = makeWorld({
+      execute: new EntifixTransactionError('write failed'),
+    });
 
-    Effect.runSync(completeTransaction(handles).pipe(Effect.provide(world.layer)));
+    Effect.runSync(
+      completeTransaction(handles).pipe(Effect.provide(world.layer)),
+    );
 
     expect(world.calls).toContain('rollback:undefined');
   });
@@ -309,7 +337,10 @@ describe('completeTransaction', () => {
     );
 
     expect(Exit.isSuccess(exit)).toBe(true);
-    expect(world.published[0]).toMatchObject({ step: 'failed', error: 'write failed' });
+    expect(world.published[0]).toMatchObject({
+      step: 'failed',
+      error: 'write failed',
+    });
     expect(world.calls).toContain('release:product:code');
   });
 
@@ -335,7 +366,7 @@ describe('completeTransaction', () => {
 
     Effect.runSync(completeTransaction(many).pipe(Effect.provide(world.layer)));
 
-    expect(world.released.map((handle) => handle.key)).toEqual(['a', 'b']);
+    expect(world.released.map(handle => handle.key)).toEqual(['a', 'b']);
   });
 });
 
@@ -348,7 +379,7 @@ describe('context tags', () => {
       EventBusTag,
       LockServiceTag,
       TransactionHandlerTag,
-    ].map((tag) => tag.key);
+    ].map(tag => tag.key);
 
     expect(new Set(identifiers).size).toBe(identifiers.length);
   });

@@ -155,6 +155,12 @@
     },
     {
       "path": "./apps/back-office-app"
+    },
+    {
+      "path": "./packages/business/ts/catalog-reference"
+    },
+    {
+      "path": "./apps/marketplace-service"
     }
   ]
 }

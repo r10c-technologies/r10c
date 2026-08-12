@@ -1,8 +1,8 @@
 import {
-  Product,
   ProductBrand,
   ProductCategory,
-} from '@r10c/business-ts-product-configuration-management';
+} from '@r10c/business-ts-catalog-reference';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
@@ -54,7 +54,7 @@ const configurationStore = Context.make(
 
 const productCategoryRest = createRestRepositoryContext(ProductCategory);
 const productBrandRest = createRestRepositoryContext(ProductBrand);
-const productRest = createRestRepositoryContext(Product);
+const productRest = createRestRepositoryContext(ProductSpecification);
 
 export function createClientAdapters(): MarketplaceAdminAdapters {
   return {

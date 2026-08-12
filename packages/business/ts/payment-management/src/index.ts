@@ -1,19 +1,28 @@
 /**
- * **payment-management** — platform plane.
+ * **payment-management** — platform plane, `payment` store.
  *
- * Payment intent and outcome. Ports only for now — no payment service provider
- * is integrated, and the reservation model exists precisely because a payment
- * takes seconds to minutes and cannot be held inside a database transaction.
+ * Taking money for an order, and recording how it went.
+ *
+ * PSP integration is deliberately out of v1 scope, but the slice is **not**
+ * deferred with it: without a payment there is no event that converts a stock
+ * reservation to a sale, and settlement has no input at all. So v1 lands the
+ * {@link Payment} record and a `PaymentProviderTag` port with a simulated
+ * adapter — the order state machine and the settlement ledger are real and
+ * testable, and swapping in a live provider is a `Layer` at a composition root
+ * ([ADR 0022](../../../../docs/adr/0022-v1-marketplace-module-boundaries.md)).
+ *
+ * Authorization and capture stay distinct states because that is what a real
+ * provider distinguishes; collapsing them into `paid` now would make the
+ * eventual adapter model something this domain cannot express.
  *
  * ODA analogue: Payment Management (TMFC029)
  *
- * Governing decision:
- * [ADR 0005](../../../../docs/adr/0005-business-domain-decomposition.md).
  * The capability map is in
  * [BUSINESS-ARCHITECTURE.md](../../../../docs/BUSINESS-ARCHITECTURE.md).
  *
- * Landing next: `Payment`, `PaymentMethod`, and the PSP port.
- * Until then this package exports its domain name, which is already load-bearing
- * (permission namespace, entitlement key, package identity).
+ * Out of scope, and named so the silence reads as a decision: stored payment
+ * methods, refunds and returns.
  */
 export { PAYMENT_DOMAIN } from './domain';
+export * from './entities/payment';
+export * from './values';

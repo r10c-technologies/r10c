@@ -13,9 +13,9 @@ import { useTranslateKey } from './i18n-context';
  * are the server-side filter allowlist, where a translated label would be
  * meaningless — and because `entifix:core` cannot reach the i18n layer.
  */
-export function useLocalizedDescriptors<TDescriptor extends EntityFieldDescriptor>(
-  descriptors: readonly TDescriptor[],
-): TDescriptor[] {
+export function useLocalizedDescriptors<
+  TDescriptor extends EntityFieldDescriptor,
+>(descriptors: readonly TDescriptor[]): TDescriptor[] {
   const translate = useTranslateKey();
 
   return useMemo(
@@ -66,7 +66,9 @@ export function useErrorMessage(): (error: {
   return useCallback(
     error => {
       const code = error.details?.['code'];
-      return typeof code === 'string' ? translate(`errors:${code}`) : error.message;
+      return typeof code === 'string'
+        ? translate(`errors:${code}`)
+        : error.message;
     },
     [translate],
   );

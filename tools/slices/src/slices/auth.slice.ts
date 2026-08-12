@@ -8,6 +8,7 @@ import type { SliceDeclaration } from '../types.js';
  */
 export const authSlice: SliceDeclaration = {
   name: 'auth',
+  status: 'active',
   domains: ['authn', 'party-management', 'access-management'],
   stores: [
     {

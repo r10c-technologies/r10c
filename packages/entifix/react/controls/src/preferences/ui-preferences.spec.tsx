@@ -4,7 +4,10 @@ import { Effect } from 'effect';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { UiPreferencesProvider, useUiPreferencesState } from './ui-preferences-context.js';
+import {
+  UiPreferencesProvider,
+  useUiPreferencesState,
+} from './ui-preferences-context.js';
 import type { UiPreferencesState } from './ui-preferences-state.js';
 import { useUiPreference } from './use-ui-preference.js';
 
@@ -75,7 +78,9 @@ describe('UiPreferencesProvider', () => {
 
     await Effect.runPromise(result.current.write('entity-table:product', 1));
 
-    expect(window.localStorage.getItem('admin-ui:entity-table:product')).toBe('1');
+    expect(window.localStorage.getItem('admin-ui:entity-table:product')).toBe(
+      '1',
+    );
   });
 
   it('keeps the same store across renders', () => {
@@ -105,9 +110,12 @@ describe('UiPreferencesProvider', () => {
 
 describe('useUiPreference', () => {
   it('renders the fallback until the stored value has been read', async () => {
-    const { result } = renderHook(() => useUiPreference('table:product', ['id']), {
-      wrapper: withStore(makeRecordingStore()),
-    });
+    const { result } = renderHook(
+      () => useUiPreference('table:product', ['id']),
+      {
+        wrapper: withStore(makeRecordingStore()),
+      },
+    );
 
     expect(result.current.value).toEqual(['id']);
     expect(result.current.isReady).toBe(false);
@@ -118,9 +126,12 @@ describe('useUiPreference', () => {
 
   it('adopts the stored value once read', async () => {
     const store = makeRecordingStore({ 'table:product': ['name'] });
-    const { result } = renderHook(() => useUiPreference('table:product', ['id']), {
-      wrapper: withStore(store),
-    });
+    const { result } = renderHook(
+      () => useUiPreference('table:product', ['id']),
+      {
+        wrapper: withStore(store),
+      },
+    );
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
 
@@ -128,9 +139,12 @@ describe('useUiPreference', () => {
   });
 
   it('keeps the fallback when nothing was stored', async () => {
-    const { result } = renderHook(() => useUiPreference('table:product', ['id']), {
-      wrapper: withStore(makeRecordingStore()),
-    });
+    const { result } = renderHook(
+      () => useUiPreference('table:product', ['id']),
+      {
+        wrapper: withStore(makeRecordingStore()),
+      },
+    );
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
 
@@ -142,9 +156,12 @@ describe('useUiPreference', () => {
   it('settles on the fallback when the read fails', async () => {
     const store = makeRecordingStore();
     store.failReads = true;
-    const { result } = renderHook(() => useUiPreference('table:product', ['id']), {
-      wrapper: withStore(store),
-    });
+    const { result } = renderHook(
+      () => useUiPreference('table:product', ['id']),
+      {
+        wrapper: withStore(store),
+      },
+    );
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
 
@@ -156,23 +173,31 @@ describe('useUiPreference', () => {
   // into a render.
   it('applies a change immediately and persists it', async () => {
     const store = makeRecordingStore();
-    const { result } = renderHook(() => useUiPreference('table:product', ['id']), {
-      wrapper: withStore(store),
-    });
+    const { result } = renderHook(
+      () => useUiPreference('table:product', ['id']),
+      {
+        wrapper: withStore(store),
+      },
+    );
     await waitFor(() => expect(result.current.isReady).toBe(true));
 
     act(() => result.current.setValue(['name']));
 
     expect(result.current.value).toEqual(['name']);
-    await waitFor(() => expect(store.written).toEqual([['table:product', ['name']]]));
+    await waitFor(() =>
+      expect(store.written).toEqual([['table:product', ['name']]]),
+    );
   });
 
   it('keeps the change when persisting it fails', async () => {
     const store = makeRecordingStore();
     store.failWrites = true;
-    const { result } = renderHook(() => useUiPreference('table:product', ['id']), {
-      wrapper: withStore(store),
-    });
+    const { result } = renderHook(
+      () => useUiPreference('table:product', ['id']),
+      {
+        wrapper: withStore(store),
+      },
+    );
     await waitFor(() => expect(result.current.isReady).toBe(true));
 
     act(() => result.current.setValue(['name']));

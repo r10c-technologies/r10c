@@ -8,7 +8,9 @@ describe('Card', () => {
     render(<Card data-testid="card">Contents</Card>);
 
     expect(screen.getByTestId('card')).toHaveTextContent('Contents');
-    expect(screen.getByTestId('card').className).toContain('bg-surface-elevated');
+    expect(screen.getByTestId('card').className).toContain(
+      'bg-surface-elevated',
+    );
   });
 
   it('keeps the caller’s className alongside its own', () => {

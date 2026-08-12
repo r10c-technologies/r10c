@@ -39,7 +39,9 @@ export const clearDiscoveryCache = (): void => {
 
 const load = async (issuer: string): Promise<OidcDiscovery> => {
   const url = `${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`;
-  const response = await fetch(url, { headers: { accept: 'application/json' } });
+  const response = await fetch(url, {
+    headers: { accept: 'application/json' },
+  });
   if (!response.ok) {
     throw new Error(`${url} answered ${String(response.status)}`);
   }
@@ -47,7 +49,9 @@ const load = async (issuer: string): Promise<OidcDiscovery> => {
 
   // A document missing an endpoint would otherwise surface much later as
   // `fetch(undefined)` in the middle of a sign-in, where the cause is invisible.
-  const missing = REQUIRED_FIELDS.filter(field => typeof document[field] !== 'string');
+  const missing = REQUIRED_FIELDS.filter(
+    field => typeof document[field] !== 'string',
+  );
   if (missing.length > 0) {
     throw new Error(`${url} is missing: ${missing.join(', ')}`);
   }

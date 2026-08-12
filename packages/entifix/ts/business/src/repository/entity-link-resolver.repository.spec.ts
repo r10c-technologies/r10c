@@ -78,7 +78,9 @@ const repositoryFor = (items: Entity[]) =>
       const found = items.find(item => item.id === id);
       return found
         ? Effect.succeed(found)
-        : Effect.fail(new EntifixConnError(`No entity with id "${String(id)}"`));
+        : Effect.fail(
+            new EntifixConnError(`No entity with id "${String(id)}"`),
+          );
     },
     load: () => Effect.fail(new EntifixLogicError('not used')),
     save: () => Effect.fail(new EntifixLogicError('not used')),

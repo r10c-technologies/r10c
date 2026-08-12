@@ -1,4 +1,7 @@
-import { type SequenceService,SequenceServiceTag } from '@r10c/entifix-transactions';
+import {
+  type SequenceService,
+  SequenceServiceTag,
+} from '@r10c/entifix-transactions';
 import { EntifixConnError } from '@r10c/entifix-ts-core';
 import { Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
@@ -14,10 +17,10 @@ const SEQ_PREFIX = 'seq:';
  * uniqueness guarantee behind incremental codes.
  */
 export const makeRedisSequenceService = (redis: Redis): SequenceService => ({
-  next: (name) =>
+  next: name =>
     Effect.tryPromise({
       try: () => redis.incr(`${SEQ_PREFIX}${name}`),
-      catch: (error) =>
+      catch: error =>
         new EntifixConnError('Redis INCR failed', error, { name }),
     }),
 });

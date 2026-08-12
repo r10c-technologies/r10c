@@ -207,7 +207,9 @@ describe('UserDevice', () => {
   });
 
   it('exposes the members a device list renders', () => {
-    const columns = describeEntityColumns(UserDevice).map(column => column.name);
+    const columns = describeEntityColumns(UserDevice).map(
+      column => column.name,
+    );
 
     expect(columns).toEqual(
       expect.arrayContaining(['browser', 'os', 'lastSeenAt', 'lastIp']),

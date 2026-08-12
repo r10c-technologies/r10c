@@ -59,6 +59,7 @@ import {
   individualSeedData,
   membershipSeedData,
   organizationSeedData,
+  partyRoleSeedData,
   roleSeedData,
 } from './identity/tenancy-seed-data';
 import { makeMongoUserDeviceRepository } from './identity/user-device-repository';
@@ -124,6 +125,7 @@ const seedTenancy = (organizationId: string) =>
     [
       seedCollection('organization', organizationSeedData(organizationId)),
       seedCollection('individual', individualSeedData),
+      seedCollection('party-role', partyRoleSeedData),
       seedCollection('role', roleSeedData(organizationId)),
       seedCollection('membership', membershipSeedData(organizationId)),
       seedCollection('entitlement', entitlementSeedData(organizationId)),

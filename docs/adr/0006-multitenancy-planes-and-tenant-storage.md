@@ -5,6 +5,10 @@
 - Amended by: [ADR 0020](0020-stores-and-slices.md) — a plane is a property of
   the **Store**, so an entity's plane is derived from the store that hosts it
   rather than declared on the entity. Everything else here stands.
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md)
+  (an organization now has **two** tenant databases, not one) and
+  [ADR 0023](0023-service-to-service-tenant-crossing.md) (the session is the only
+  _user-facing_ tenant resolution, not the only one).
 
 ## Context
 
@@ -60,6 +64,15 @@ or a future single-tenant deployment with no conditional.
 
 ### Tenancy is ambient, resolved from the session
 
+> **Revised 2026-08-12 by [ADR 0023](0023-service-to-service-tenant-crossing.md).**
+> The session is the only **user-facing** resolution, not the only resolution. A
+> platform-plane service sometimes acts for an organization the principal is not
+> a member of — checkout reserving a vendor's stock, where the organization comes
+> from the _item_ and a buyer's session carries none. That call provides the
+> organization explicitly, authorized by a service token **and** a narrow route
+> permission. There is no third path, no fallback and no operator branch;
+> everything this section decides otherwise stands unchanged.
+
 A user signs in, the platform resolves the organization they are acting for, and
 every subsequent request routes to that organization's storage.
 
@@ -82,6 +95,16 @@ vendors keep two accounts.
 connection pool, acquired once and released on shutdown. The per-organization
 handle is resolved **inside the request**, from one `MongoClient`:
 `client.db(\`${prefix}${organizationId}\`)`. A `Db` handle is not a connection.
+
+**One prefix per store, not one per organization.**
+[ADR 0022](0022-v1-marketplace-module-boundaries.md) gives an organization two
+tenant databases — `tenant_<organizationId>` for the `catalog` store and
+`stock_<organizationId>` for the `stock` store — because they are two stores with
+two writing slices, and separating them makes one-writer a property of which
+handle a request resolves to rather than of review. Both are `client.db(…)` calls
+on the same pool, so the rule above is unchanged; what changes is that the prefix
+is a property of the **store**, and a slice owning several resolves several
+handles.
 
 A `Layer` per request would rebuild the pool per request. This is the single
 mistake most likely to be made here, so it is stated as a rule rather than left

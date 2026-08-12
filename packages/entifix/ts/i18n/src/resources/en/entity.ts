@@ -19,7 +19,7 @@ export const entity: EsEntity = {
       updatedBy: 'Updated by',
     },
   },
-  product: {
+  'product-specification': {
     form: {
       brandEmbedded: 'Brand (embedded)',
       categoryForeign: 'Category (foreign key)',
@@ -149,10 +149,18 @@ export const entity: EsEntity = {
       id: 'ID',
       fullName: 'Full name',
       userId: 'User ID',
-      partyRole: 'Role played',
+    },
+  },
+  'party-role': {
+    label: 'Party role',
+    plural: 'Party roles',
+    fields: {
+      id: 'ID',
+      partyId: 'Party ID',
+      role: 'Role',
     },
     values: {
-      partyRole: {
+      role: {
         customer: 'Customer',
         vendor: 'Vendor',
         operator: 'Operator',
@@ -187,6 +195,221 @@ export const entity: EsEntity = {
       id: 'ID',
       organizationId: 'Organization ID',
       domains: 'Modules',
+    },
+  },
+  'dictionary-term': {
+    label: 'Dictionary term',
+    plural: 'Dictionary terms',
+    fields: {
+      id: 'ID',
+      code: 'Code',
+      values: 'Values',
+      unit: 'Unit',
+    },
+  },
+  'published-offering': {
+    label: 'Published offering',
+    plural: 'Published offerings',
+    fields: {
+      id: 'ID',
+      offeringId: 'Offering ID',
+      vendorId: 'Vendor ID',
+      name: 'Name',
+      amount: 'Amount',
+      currency: 'Currency',
+      availableHint: 'Availability hint',
+    },
+  },
+  'product-order': {
+    label: 'Order',
+    plural: 'Orders',
+    fields: {
+      id: 'ID',
+      buyerId: 'Buyer ID',
+      status: 'Status',
+      items: 'Lines',
+      placedAt: 'Placed at',
+    },
+    values: {
+      status: {
+        pending: 'Pending',
+        paid: 'Paid',
+        fulfilled: 'Fulfilled',
+        cancelled: 'Cancelled',
+      },
+    },
+  },
+  payment: {
+    label: 'Payment',
+    plural: 'Payments',
+    fields: {
+      id: 'ID',
+      orderId: 'Order ID',
+      amount: 'Amount',
+      currency: 'Currency',
+      status: 'Status',
+      providerReference: 'Provider reference',
+    },
+    values: {
+      status: {
+        pending: 'Pending',
+        authorized: 'Authorized',
+        captured: 'Captured',
+        failed: 'Failed',
+      },
+    },
+  },
+  agreement: {
+    label: 'Agreement',
+    plural: 'Agreements',
+    fields: {
+      id: 'ID',
+      vendorId: 'Vendor ID',
+      commissionBasisPoints: 'Commission (basis points)',
+      effectiveFrom: 'Effective from',
+    },
+  },
+  'commission-entry': {
+    label: 'Commission entry',
+    plural: 'Commission entries',
+    fields: {
+      id: 'ID',
+      orderId: 'Order ID',
+      vendorId: 'Vendor ID',
+      commissionAmount: 'Commission amount',
+      currency: 'Currency',
+    },
+  },
+  'settlement-run': {
+    label: 'Settlement run',
+    plural: 'Settlement runs',
+    fields: {
+      id: 'ID',
+      periodStart: 'Period start',
+      periodEnd: 'Period end',
+      status: 'Status',
+    },
+    values: {
+      status: {
+        open: 'Open',
+        calculated: 'Calculated',
+        paid: 'Paid',
+        cancelled: 'Cancelled',
+      },
+    },
+  },
+  'vendor-payout': {
+    label: 'Vendor payout',
+    plural: 'Vendor payouts',
+    fields: {
+      id: 'ID',
+      runId: 'Settlement run ID',
+      vendorId: 'Vendor ID',
+      amount: 'Amount',
+      currency: 'Currency',
+    },
+  },
+  'product-offering': {
+    label: 'Product offering',
+    plural: 'Product offerings',
+    fields: {
+      id: 'ID',
+      name: 'Name',
+      specificationId: 'Specification ID',
+      status: 'Status',
+    },
+    values: {
+      status: {
+        draft: 'Draft',
+        'pending-review': 'Pending review',
+        published: 'Published',
+        unpublished: 'Unpublished',
+      },
+    },
+  },
+  'product-offering-price': {
+    label: 'Offering price',
+    plural: 'Offering prices',
+    fields: {
+      id: 'ID',
+      offeringId: 'Offering ID',
+      amount: 'Amount',
+      currency: 'Currency',
+    },
+  },
+  'entity-specification': {
+    label: 'Specification',
+    plural: 'Specifications',
+    fields: {
+      id: 'ID',
+      name: 'Name',
+      version: 'Version',
+      released: 'Released',
+    },
+  },
+  'characteristic-specification': {
+    label: 'Characteristic',
+    plural: 'Characteristics',
+    fields: {
+      id: 'ID',
+      specificationId: 'Specification ID',
+      code: 'Code',
+      valueType: 'Value type',
+      termId: 'Dictionary term',
+    },
+    values: {
+      valueType: {
+        string: 'Text',
+        number: 'Number',
+        boolean: 'Yes/No',
+        enum: 'Value list',
+      },
+    },
+  },
+  'stock-item': {
+    label: 'Stock item',
+    plural: 'Stock items',
+    fields: {
+      id: 'ID',
+      offeringId: 'Offering ID',
+      onHand: 'On hand',
+      reserved: 'Reserved',
+    },
+  },
+  'stock-movement': {
+    label: 'Stock movement',
+    plural: 'Stock movements',
+    fields: {
+      id: 'ID',
+      offeringId: 'Offering ID',
+      quantity: 'Quantity',
+      reason: 'Reason',
+    },
+    values: {
+      reason: {
+        receipt: 'Receipt',
+        sale: 'Sale',
+        cancellation: 'Cancellation',
+        adjustment: 'Adjustment',
+      },
+    },
+  },
+  reservation: {
+    label: 'Reservation',
+    plural: 'Reservations',
+    fields: {
+      id: 'ID',
+      offeringId: 'Offering ID',
+      quantity: 'Quantity',
+      status: 'Status',
+      expiresAt: 'Expires at',
+    },
+    values: {
+      status: {
+        held: 'Held',
+        converted: 'Converted',
+        released: 'Released',
+      },
     },
   },
 };

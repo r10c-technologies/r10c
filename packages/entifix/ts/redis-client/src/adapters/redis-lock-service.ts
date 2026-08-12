@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { type LockService,LockServiceTag } from '@r10c/entifix-transactions';
+import { type LockService, LockServiceTag } from '@r10c/entifix-transactions';
 import { EntifixConnError, EntifixLockError } from '@r10c/entifix-ts-core';
 import { Duration, Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
@@ -25,13 +25,13 @@ const RELEASE_SCRIPT =
  * retry. The `NX` flag makes acquisition atomic across instances.
  */
 export const makeRedisLockService = (redis: Redis): LockService => ({
-  acquire: (key) =>
+  acquire: key =>
     Effect.gen(function* () {
       const token = randomUUID();
       for (let attempt = 0; attempt < LOCK_RETRIES; attempt += 1) {
         const result = yield* Effect.tryPromise({
           try: () => redis.set(key, token, 'PX', LOCK_TTL_MS, 'NX'),
-          catch: (error) =>
+          catch: error =>
             new EntifixLockError('Redis SET NX failed', error, { key }),
         });
         if (result === 'OK') {
@@ -46,10 +46,10 @@ export const makeRedisLockService = (redis: Redis): LockService => ({
         }),
       );
     }),
-  release: (handle) =>
+  release: handle =>
     Effect.tryPromise({
       try: () => redis.eval(RELEASE_SCRIPT, 1, handle.key, handle.token),
-      catch: (error) =>
+      catch: error =>
         new EntifixConnError('Redis lock release failed', error, {
           key: handle.key,
         }),

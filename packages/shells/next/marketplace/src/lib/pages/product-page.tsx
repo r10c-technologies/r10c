@@ -14,7 +14,12 @@ import { Suspense } from 'react';
 
 import { addToCart } from '../cart/cart-actions';
 import { ProductGrid, ProductGridSkeleton } from '../catalog/product-grid';
-import { getProduct, loadProducts } from '../catalog/queries';
+import {
+  getBrand,
+  getCategory,
+  getProduct,
+  loadProducts,
+} from '../catalog/queries';
 import { StoreShell } from './store-shell';
 
 /**
@@ -65,8 +70,12 @@ export async function ProductPage({
   const product = await getProduct(code);
   if (!product) notFound();
 
-  const brand = product.brand.value;
-  const category = product.category.value;
+  // Resolved through the owning domain's read path, not a storage-layer join:
+  // both ids point into `catalog-reference`, another slice's store (ADR 0022).
+  const [brand, category] = await Promise.all([
+    getBrand(product.brandId),
+    getCategory(product.categoryId),
+  ]);
 
   return (
     <StoreShell locale={locale}>
@@ -83,7 +92,9 @@ export async function ProductPage({
 
           <Stack gap="s">
             <Stack gap="2xs">
-              <Overline>{brand?.name ?? t('storefront.product.brand')}</Overline>
+              <Overline>
+                {brand?.name ?? t('storefront.product.brand')}
+              </Overline>
               <HeadingOne>{product.name}</HeadingOne>
               <Text muted>{product.description}</Text>
             </Stack>

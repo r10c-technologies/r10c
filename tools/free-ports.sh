@@ -18,7 +18,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # The fleet: frontends 300N, backends 310N, platform 319x (docs/_shared/ports.md).
 # 9229 is the Node inspector every `@nx/js:node` dev target opens.
-ALL_PORTS=(3000 3001 3101 3102 3190 9229)
+ALL_PORTS=(3000 3001 3100 3101 3102 3190 9229)
 
 if [[ -t 1 ]]; then
   C_DIM=$'\033[2m'; C_RED=$'\033[31m'; C_YELLOW=$'\033[33m'; C_OFF=$'\033[0m'

@@ -10,8 +10,17 @@ import {
   sharedFallbackI18n,
 } from '@r10c/entifix-ts-i18n';
 import type { i18n as I18nInstance } from 'i18next';
-import { createContext, type PropsWithChildren, useContext, useMemo } from 'react';
-import { I18nextProvider, initReactI18next, useTranslation } from 'react-i18next';
+import {
+  createContext,
+  type PropsWithChildren,
+  useContext,
+  useMemo,
+} from 'react';
+import {
+  I18nextProvider,
+  initReactI18next,
+  useTranslation,
+} from 'react-i18next';
 
 interface I18nContextValue {
   readonly locale: Locale;
@@ -54,7 +63,10 @@ export interface I18nProviderProps extends PropsWithChildren {
  * carries it so any nested `useTranslation` resolves against the same catalogs.
  */
 export function I18nProvider({ locale, children }: I18nProviderProps) {
-  const instance = useMemo(() => createI18n(locale, [initReactI18next]), [locale]);
+  const instance = useMemo(
+    () => createI18n(locale, [initReactI18next]),
+    [locale],
+  );
   const value = useMemo<I18nContextValue>(
     () => ({ locale, formatters: makeFormatters(locale) }),
     [locale],
@@ -85,7 +97,10 @@ export function useFormatters(): Formatters {
  */
 export function useT<N extends Namespace>(ns?: N) {
   const contextual = useContext(I18nContext);
-  const { t } = useTranslation(ns, contextual === null ? { i18n: fallbackI18n().instance } : {});
+  const { t } = useTranslation(
+    ns,
+    contextual === null ? { i18n: fallbackI18n().instance } : {},
+  );
 
   return t;
 }

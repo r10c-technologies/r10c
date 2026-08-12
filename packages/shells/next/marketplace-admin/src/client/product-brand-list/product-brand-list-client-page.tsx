@@ -1,4 +1,4 @@
-import type { ProductBrand } from '@r10c/business-ts-product-configuration-management';
+import type { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import { loadUCFactory } from '@r10c/entifix-ts-business';
 import { ProductBrandTable } from '@r10c/implementation-product-configuration-management-react';
 import { Context } from 'effect';

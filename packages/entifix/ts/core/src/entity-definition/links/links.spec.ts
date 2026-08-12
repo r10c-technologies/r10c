@@ -2,7 +2,11 @@ import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { EntifixConnError } from '../../base-entities/entifix-error/index.js';
-import type { Entity, EntityConstructor, EntityId } from '../../types/Entity.js';
+import type {
+  Entity,
+  EntityConstructor,
+  EntityId,
+} from '../../types/Entity.js';
 import { EntityCollectionLink } from './entity-collection-link/index.js';
 import { EntityLink, type EntityLinkResolver } from './entity-link/index.js';
 
@@ -26,7 +30,7 @@ const makeResolver = (values: Brand[] = []) => {
       id: EntityId,
     ) {
       calls.push(id);
-      const found = values.find((value) => value.id === id);
+      const found = values.find(value => value.id === id);
       return found === undefined
         ? Effect.fail(new EntifixConnError(`No brand ${String(id)}`))
         : (Effect.succeed(found) as unknown as Effect.Effect<
@@ -137,7 +141,9 @@ describe('EntityLink', () => {
       const { resolver, calls } = makeResolver();
       const link = new EntityLink(Brand, { value: new Brand('b-1', 'Acme') });
 
-      expect((await Effect.runPromise(link.resolve(resolver))).name).toBe('Acme');
+      expect((await Effect.runPromise(link.resolve(resolver))).name).toBe(
+        'Acme',
+      );
       expect(calls).toEqual([]);
     });
 
@@ -206,7 +212,10 @@ describe('EntityCollectionLink', () => {
 
   it('re-derives the ids when values are stored', () => {
     const link = new EntityCollectionLink(Brand, { ids: ['b-1'] });
-    link.setValues([new Brand('b-9', 'Nine'), new Brand(undefined, 'Nameless')]);
+    link.setValues([
+      new Brand('b-9', 'Nine'),
+      new Brand(undefined, 'Nameless'),
+    ]);
 
     expect(link.ids).toEqual(['b-9']);
     expect(link.isLoaded).toBe(true);
@@ -229,7 +238,7 @@ describe('EntityCollectionLink', () => {
 
     const values = await Effect.runPromise(link.reload(resolver));
 
-    expect(values.map((value) => value.name)).toEqual(['Acme', 'Beta']);
+    expect(values.map(value => value.name)).toEqual(['Acme', 'Beta']);
     expect(calls).toHaveLength(2);
     expect(link.isLoaded).toBe(true);
   });

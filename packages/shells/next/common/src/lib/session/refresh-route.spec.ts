@@ -83,7 +83,10 @@ describe('createRefreshRoute', () => {
       'fetch',
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({ error: 'session expired', code: 'sessionExpired' }),
+          JSON.stringify({
+            error: 'session expired',
+            code: 'sessionExpired',
+          }),
           { status: 401, headers: { 'content-type': 'application/json' } },
         ),
       ),
@@ -101,7 +104,10 @@ describe('createRefreshRoute', () => {
   });
 
   it('keeps the cookies when auth-service is unreachable', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('ECONNREFUSED')),
+    );
 
     const response = await createRefreshRoute({ authServiceUrl: AUTH_URL })(
       requestWith('sid-2'),

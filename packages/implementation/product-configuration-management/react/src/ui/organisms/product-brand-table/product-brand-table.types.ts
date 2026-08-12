@@ -1,4 +1,4 @@
-import { ProductBrand } from '@r10c/business-ts-product-configuration-management';
+import { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import {
   ConfigurationRepositoryTag,
   EntityLoadRequestTag,

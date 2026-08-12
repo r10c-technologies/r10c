@@ -55,12 +55,33 @@ export interface StoreDeclaration {
  * nearest standard shape to a Slice. ODA names no data-ownership concept, which
  * is why `Store` is ours.
  */
+/**
+ * Whether a slice runs yet.
+ *
+ * `planned` records **ownership before a process exists**. That is not a
+ * placeholder: the three invariants apply to a planned slice exactly as they do
+ * to an active one, so a boundary error is caught when the entities land rather
+ * than when someone finally writes the service.
+ *
+ * What a planned slice must *not* do is claim a deployment. Opening a database
+ * handle for a store nothing writes creates a persistence boundary with no
+ * contents and no purpose — the defect ADR 0020 named when it struck
+ * `marketplace_admin` from the register. So a slice is promoted to `active` by
+ * the commit that writes its store, never before.
+ */
+export type SliceStatus = 'active' | 'planned';
+
 export interface SliceDeclaration {
   readonly name: string;
+  /**
+   * `active` slices declare at least one deployment; `planned` slices declare
+   * none. `slices.spec.ts` enforces both directions.
+   */
+  readonly status: SliceStatus;
   /** Domains this slice implements, whether or not they own entities. */
   readonly domains: readonly string[];
   readonly stores: readonly StoreDeclaration[];
-  /** Nx project names actually running this slice. */
+  /** Nx project names actually running this slice. Empty when `planned`. */
   readonly deployments: readonly string[];
   /**
    * Slices sharing a deployment with this one. Co-deploying is **reversible**

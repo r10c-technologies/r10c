@@ -25,7 +25,8 @@ import {
 } from './text.js';
 
 /** The element a component rendered, which is the part screen readers act on. */
-const tagOf = (testId: string) => screen.getByTestId(testId).tagName.toLowerCase();
+const tagOf = (testId: string) =>
+  screen.getByTestId(testId).tagName.toLowerCase();
 
 const classesOf = (testId: string) =>
   screen.getByTestId(testId).className.split(/\s+/);
@@ -123,7 +124,7 @@ describe('Text', () => {
     expect(classesOf('t')).toContain('truncate');
   });
 
-  it.each([1, 2, 3, 4] as const)('clamps to %s lines', (lines) => {
+  it.each([1, 2, 3, 4] as const)('clamps to %s lines', lines => {
     render(
       <Text data-testid="t" lineClamp={lines}>
         Body
@@ -150,7 +151,9 @@ describe('Text', () => {
       </Text>,
     );
 
-    expect(classesOf('t')).toEqual(expect.arrayContaining(['text-step-0', 'custom']));
+    expect(classesOf('t')).toEqual(
+      expect.arrayContaining(['text-step-0', 'custom']),
+    );
   });
 });
 
@@ -160,12 +163,15 @@ describe('the text variants', () => {
     ['Small', Small, 'small', 'text-step-sm'],
     ['Caption', Caption, 'span', 'text-step-xs'],
     ['Overline', Overline, 'span', 'text-step-xs'],
-  ] as const)('%s renders a %s at its own step', (_label, Component, tag, step) => {
-    render(<Component data-testid="t">Text</Component>);
+  ] as const)(
+    '%s renders a %s at its own step',
+    (_label, Component, tag, step) => {
+      render(<Component data-testid="t">Text</Component>);
 
-    expect(tagOf('t')).toBe(tag);
-    expect(classesOf('t')).toContain(step);
-  });
+      expect(tagOf('t')).toBe(tag);
+      expect(classesOf('t')).toContain(step);
+    },
+  );
 
   it.each([
     ['Strong', Strong, 'strong'],
@@ -296,7 +302,9 @@ describe('the headings', () => {
   it('gives HeadingSix its own uppercase treatment', () => {
     render(<HeadingSix data-testid="t">Title</HeadingSix>);
 
-    expect(classesOf('t')).toEqual(expect.arrayContaining(['uppercase', 'tracking-wide']));
+    expect(classesOf('t')).toEqual(
+      expect.arrayContaining(['uppercase', 'tracking-wide']),
+    );
   });
 
   it('keeps the caller’s className on a named heading', () => {

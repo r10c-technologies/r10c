@@ -2,6 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-08-11
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  the register table below is superseded by the live one (12 stores, 9 slices);
+  `SliceDeclaration` gains `status: 'active' | 'planned'`; the
+  `published-catalog` follow-up is done.
 
 ## Context
 
@@ -231,7 +235,24 @@ That converts the invariants into tests: every `@entity()` domain resolves to
 exactly one store, every store to exactly one owning slice, and no slice binds a
 repository to a store it does not own. Invariants 1 and 2 stop being prose.
 
-### The register as it stands today
+### The register as it stood when this record was written
+
+> **Revised 2026-08-12.** This table is 2026-08-11's register, kept because the
+> three calls below are reasoned against it. The live register is
+> `tools/slices/` — mirrored in [docs/\_shared/planes.md](../_shared/planes.md) —
+> and it now holds **12 stores across 9 slices**
+> ([ADR 0022](0022-v1-marketplace-module-boundaries.md)). Two corrections to what
+> is below: `auth` hosts **three** domains, not two (`access-management` as well,
+> found the moment the invariants first ran —
+> [ADR 0021](0021-consolidating-the-fleet-into-five-deployments.md)), and
+> `configuration`'s hosted domain is named `config`.
+>
+> The vocabulary also gained `status: 'active' | 'planned'`, so a slice can own
+> stores before a process runs them. That extends the Slice and leaves the three
+> invariants **untouched** — they apply to a planned slice exactly as to an active
+> one, which is what makes recording ownership early worth doing. What a planned
+> slice may not do is claim a deployment, for the same reason `marketplace_admin`
+> is absent below.
 
 | Store               | Plane   | Owner slice         | Hosts                               | Partitioning     | Truth            |
 | ------------------- | ------- | ------------------- | ----------------------------------- | ---------------- | ---------------- |
@@ -327,8 +348,17 @@ nothing here yet needs that. `Slice` is the weaker, truer word for what exists.
 
 ## Follow-ups (deliberately out of scope)
 
-- The slice declaration format, and the tests that assert the three invariants.
+- ~~The slice declaration format, and the tests that assert the three
+  invariants.~~ **Done** — `tools/slices/` holds the register as typed
+  declarations and `slices.spec.ts` fails the build on a violation. See
+  [ADR 0021](0021-consolidating-the-fleet-into-five-deployments.md), which also
+  records what the tests found the moment they first ran: `access-management`
+  makes `auth` a three-domain store, not the two stated above.
 - Moving `auth`'s logic and adapters out of `routes.ts` into `business-ts-authn`.
-- `published-catalog` as a declared store, when ADR 0009 is built.
+- ~~`published-catalog` as a declared store, when ADR 0009 is built.~~ **Done** —
+  declared by [ADR 0022](0022-v1-marketplace-module-boundaries.md), owned by the
+  `marketplace` slice, with `truth: projection-of:catalog`. The writer is the
+  **consumer** of `catalog.published`, not the slice that authored the offering,
+  which is what keeps the public read host out of tenant storage entirely.
 - Whether a slice's second deployment is addressed by an ingress rule or by a
   queue. Both are compatible with this record; neither is needed yet.

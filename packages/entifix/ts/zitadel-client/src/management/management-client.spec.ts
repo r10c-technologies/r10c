@@ -28,7 +28,8 @@ const lastCall = () => {
     url: call[0],
     method: call[1].method,
     headers: call[1].headers as Record<string, string>,
-    body: call[1].body === undefined ? undefined : JSON.parse(String(call[1].body)),
+    body:
+      call[1].body === undefined ? undefined : JSON.parse(String(call[1].body)),
   };
 };
 
@@ -56,14 +57,13 @@ describe('authentication', () => {
     answers({ result: [] });
 
     await Effect.runPromise(
-      makeZitadelManagement({ ...config, issuer: 'https://idp.test/' }).findUserByEmail(
-        'a@example.com',
-      ),
+      makeZitadelManagement({
+        ...config,
+        issuer: 'https://idp.test/',
+      }).findUserByEmail('a@example.com'),
     );
 
-    expect(lastCall().url).toBe(
-      'https://idp.test/management/v1/users/_search',
-    );
+    expect(lastCall().url).toBe('https://idp.test/management/v1/users/_search');
   });
 });
 
@@ -124,7 +124,9 @@ describe('findUserByEmail', () => {
       result: [{ id: 'u', userName: 'u', state: 'USER_STATE_INACTIVE' }],
     });
 
-    const user = await Effect.runPromise(management().findUserByEmail('u@x.io'));
+    const user = await Effect.runPromise(
+      management().findUserByEmail('u@x.io'),
+    );
 
     expect(user?.active).toBe(false);
     expect(user?.emailVerified).toBe(false);
@@ -135,7 +137,9 @@ describe('findUserByEmail', () => {
     // still produce a record rather than `undefined` reaching the entity.
     answers({ result: [{ id: 'u' }] });
 
-    const user = await Effect.runPromise(management().findUserByEmail('u@x.io'));
+    const user = await Effect.runPromise(
+      management().findUserByEmail('u@x.io'),
+    );
 
     expect(user?.username).toBe('');
   });
@@ -181,7 +185,9 @@ describe('getUser', () => {
   it('still fails on a real outage', async () => {
     answers({ message: 'internal' }, false, 500);
 
-    const error = await Effect.runPromise(Effect.flip(management().getUser('x')));
+    const error = await Effect.runPromise(
+      Effect.flip(management().getUser('x')),
+    );
 
     expect(error._tag).toBe('EntifixConnError');
   });

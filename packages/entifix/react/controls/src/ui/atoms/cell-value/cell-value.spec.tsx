@@ -39,8 +39,14 @@ const descriptor = (
   linkSerialization: 'id',
 });
 
-const renderCell = (value: unknown, type: MetaAccessorType, labelProperty?: string) =>
-  render(<CellValue value={value} descriptor={descriptor(type, labelProperty)} />);
+const renderCell = (
+  value: unknown,
+  type: MetaAccessorType,
+  labelProperty?: string,
+) =>
+  render(
+    <CellValue value={value} descriptor={descriptor(type, labelProperty)} />,
+  );
 
 describe('CellValue', () => {
   // An absent value renders as a dash rather than nothing, so an empty cell
@@ -135,7 +141,10 @@ describe('CellValue', () => {
     // The same cell markup covers both shapes a relation can arrive in: a
     // loaded target reads as its label, an unresolved one as its foreign key.
     it('renders a loaded target’s label', () => {
-      renderCell(new EntityLink(Brand, { value: new Brand('b-1', 'Acme') }), 'link');
+      renderCell(
+        new EntityLink(Brand, { value: new Brand('b-1', 'Acme') }),
+        'link',
+      );
 
       expect(screen.getByText('Acme')).toBeInTheDocument();
     });
@@ -216,7 +225,10 @@ describe('CellValue', () => {
       link.setIds(['b-9']);
 
       render(
-        <CellValue value={link} descriptor={descriptor('linkCollection', 'missing')} />,
+        <CellValue
+          value={link}
+          descriptor={descriptor('linkCollection', 'missing')}
+        />,
       );
 
       expect(screen.getByText('b-9')).toBeInTheDocument();
@@ -230,7 +242,10 @@ describe('CellValue', () => {
       link.setValues([new Brand(undefined, '')]);
 
       render(
-        <CellValue value={link} descriptor={descriptor('linkCollection', 'missing')} />,
+        <CellValue
+          value={link}
+          descriptor={descriptor('linkCollection', 'missing')}
+        />,
       );
 
       expect(screen.getByText(EMPTY)).toBeInTheDocument();

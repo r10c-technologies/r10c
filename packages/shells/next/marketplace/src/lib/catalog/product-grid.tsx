@@ -1,12 +1,17 @@
-import type { Product } from '@r10c/business-ts-product-configuration-management';
-import { Grid, Skeleton, Stack, Text } from '@r10c/entifix-react-controls/primitives';
+import type { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import {
+  Grid,
+  Skeleton,
+  Stack,
+  Text,
+} from '@r10c/entifix-react-controls/primitives';
 import type { Locale } from '@r10c/entifix-ts-i18n/routing';
 
 import { ProductCard } from './product-card';
 
 export interface ProductGridProps {
   readonly locale: Locale;
-  readonly products: readonly Product[];
+  readonly products: readonly ProductSpecification[];
   readonly emptyLabel: string;
 }
 
@@ -37,7 +42,11 @@ export function ProductGrid({
  * and same aspect ratio as the real thing, so the shell does not reflow when
  * the products arrive.
  */
-export function ProductGridSkeleton({ count = 6 }: { readonly count?: number }) {
+export function ProductGridSkeleton({
+  count = 6,
+}: {
+  readonly count?: number;
+}) {
   return (
     <Grid min="18rem" gap="l">
       {Array.from({ length: count }, (_, index) => (

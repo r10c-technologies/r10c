@@ -19,7 +19,7 @@ export abstract class EntifixError extends Error {
   constructor(
     message: string,
     cause?: unknown,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
   ) {
     super(message);
     this.cause = assertCause(cause);

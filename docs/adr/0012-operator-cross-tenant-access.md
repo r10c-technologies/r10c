@@ -5,6 +5,10 @@
 - Amended by: [ADR 0020](0020-stores-and-slices.md) — "cross-tenant reporting is
   a projection, not a crossing" becomes checkable: a reporting **Store**
   declaring `truth: projection-of:<store>` is by construction not a crossing.
+- Revised: 2026-08-12 by [ADR 0023](0023-service-to-service-tenant-crossing.md) —
+  distinguishes this **discretionary** operator crossing from the **determined**
+  service crossing. Trigger checked and **not** fired: ADR 0022 keeps publication
+  vendor-initiated and unmoderated, so no operator screen reads tenant data yet.
 
 ## Trigger
 
@@ -28,6 +32,25 @@ silently promote every vendor, and it makes the most sensitive capability in the
 system the _absence_ of a condition.
 
 ## Decision
+
+### This is not the only thing called a crossing
+
+> **Clarified 2026-08-12 by [ADR 0023](0023-service-to-service-tenant-crossing.md).**
+> A second mechanism now reaches tenant storage for a party that is not the
+> principal: a platform-plane **service** reserving a vendor's stock at checkout.
+> The two must not be merged, and the difference is not cosmetic.
+>
+> This record's crossing is **discretionary** — a person chooses an organization,
+> so it needs a human's permission (`platform:organization:act-as`), a token
+> re-mint, a time box, and a durable record of who and why. ADR 0023's is
+> **determined** — the organization is a function of the offering being reserved,
+> and the service has no latitude to pick another, so it is authorized by a
+> service token plus a narrow route permission and audited as an ordinary request
+> log.
+>
+> Giving the determined crossing this record's audit machinery would add cost
+> without adding information. Giving this one the determined crossing's would
+> delete the accountability this record exists for.
 
 ### Operators hold no tenant scope by default
 

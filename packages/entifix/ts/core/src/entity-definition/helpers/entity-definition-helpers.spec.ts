@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { EntifixBuildError } from '../../base-entities/entifix-error/index.js';
-import type { Entity, EntityConstructor, EntityId } from '../../types/Entity.js';
+import type {
+  Entity,
+  EntityConstructor,
+  EntityId,
+} from '../../types/Entity.js';
 import { accessor } from '../decorators/accessor/index.js';
 import { entity } from '../decorators/entity/index.js';
 import { method } from '../decorators/method/index.js';
@@ -48,7 +52,10 @@ class Gadget implements Entity {
     this.#writeOnly = value;
   }
 
-  @method({ http: { method: 'POST', path: '/recalibrate' }, returnType: 'void' })
+  @method({
+    http: { method: 'POST', path: '/recalibrate' },
+    returnType: 'void',
+  })
   recalibrate(): void {
     this.#label = 'recalibrated';
   }
@@ -89,7 +96,7 @@ describe('@entity', () => {
 
 describe('@accessor', () => {
   it('records each decorated member in declaration order', () => {
-    expect(extractMetaAccessors(Gadget).map((meta) => meta.name)).toEqual([
+    expect(extractMetaAccessors(Gadget).map(meta => meta.name)).toEqual([
       'id',
       'label',
       'writeOnly',
@@ -98,7 +105,7 @@ describe('@accessor', () => {
 
   it('records the accessor kind, which is what the serializer filters on', () => {
     const byName = new Map(
-      extractMetaAccessors(Gadget).map((meta) => [meta.name, meta]),
+      extractMetaAccessors(Gadget).map(meta => [meta.name, meta]),
     );
 
     expect(byName.get('id')?.kind).toBe('getter');
@@ -106,7 +113,9 @@ describe('@accessor', () => {
   });
 
   it('carries the declared presentation options through', () => {
-    const label = extractMetaAccessors(Gadget).find((meta) => meta.name === 'label');
+    const label = extractMetaAccessors(Gadget).find(
+      meta => meta.name === 'label',
+    );
 
     expect(label).toBeInstanceOf(MetaAccessor);
     expect(label?.label).toBe('Label');
@@ -115,7 +124,7 @@ describe('@accessor', () => {
 
   it('leaves every option undefined when none are given', () => {
     const writeOnly = extractMetaAccessors(Gadget).find(
-      (meta) => meta.name === 'writeOnly',
+      meta => meta.name === 'writeOnly',
     );
 
     expect(writeOnly?.type).toBeUndefined();
@@ -129,14 +138,16 @@ describe('@method', () => {
   it('records each decorated method with its HTTP binding', () => {
     const metas = extractMetaMethods(Gadget);
 
-    expect(metas.map((meta) => meta.name)).toEqual(['recalibrate', 'reset']);
+    expect(metas.map(meta => meta.name)).toEqual(['recalibrate', 'reset']);
     expect(metas[0]).toBeInstanceOf(MetaMethod);
     expect(metas[0]?.http).toEqual({ method: 'POST', path: '/recalibrate' });
     expect(metas[0]?.returnType).toBe('void');
   });
 
   it('leaves the binding undefined when no options are given', () => {
-    const reset = extractMetaMethods(Gadget).find((meta) => meta.name === 'reset');
+    const reset = extractMetaMethods(Gadget).find(
+      meta => meta.name === 'reset',
+    );
 
     expect(reset?.http).toBeUndefined();
     expect(reset?.returnType).toBeUndefined();
@@ -153,16 +164,16 @@ describe('@method', () => {
 describe('extractors on an undecorated class', () => {
   it('fails loudly for a missing MetaEntity, naming the class', () => {
     expect(() => extractMetaEntity(Bare)).toThrow(EntifixBuildError);
-    expect(() => extractMetaEntity(Bare)).toThrow(/MetaEntity not found for Bare/);
+    expect(() => extractMetaEntity(Bare)).toThrow(
+      /MetaEntity not found for Bare/,
+    );
   });
 
   it.each([
     ['accessors', extractMetaAccessors],
     ['methods', extractMetaMethods],
   ])('yields an empty %s list', (_label, extract) => {
-    expect(
-      extract(Bare as unknown as EntityConstructor<Entity>),
-    ).toEqual([]);
+    expect(extract(Bare as unknown as EntityConstructor<Entity>)).toEqual([]);
   });
 });
 
@@ -172,17 +183,21 @@ describe('missing decorator metadata', () => {
   const message = /Decorator metadata unavailable/;
 
   it('rejects setMetaEntity', () => {
-    expect(() => setMetaEntity(undefined, new MetaEntity('X'))).toThrow(message);
-  });
-
-  it('rejects appendMetaAccessor', () => {
-    expect(() => appendMetaAccessor(undefined, new MetaAccessor('x', 'getter'))).toThrow(
+    expect(() => setMetaEntity(undefined, new MetaEntity('X'))).toThrow(
       message,
     );
   });
 
+  it('rejects appendMetaAccessor', () => {
+    expect(() =>
+      appendMetaAccessor(undefined, new MetaAccessor('x', 'getter')),
+    ).toThrow(message);
+  });
+
   it('rejects appendMetaMethod', () => {
-    expect(() => appendMetaMethod(undefined, new MetaMethod('x'))).toThrow(message);
+    expect(() => appendMetaMethod(undefined, new MetaMethod('x'))).toThrow(
+      message,
+    );
   });
 });
 
@@ -193,8 +208,10 @@ describe('appending onto a bare metadata object', () => {
     appendMetaAccessor(metadata, new MetaAccessor('first', 'getter'));
     appendMetaAccessor(metadata, new MetaAccessor('second', 'setter'));
 
-    const target = { [Symbol.metadata]: metadata } as unknown as EntityConstructor<Entity>;
-    expect(extractMetaAccessors(target).map((meta) => meta.name)).toEqual([
+    const target = {
+      [Symbol.metadata]: metadata,
+    } as unknown as EntityConstructor<Entity>;
+    expect(extractMetaAccessors(target).map(meta => meta.name)).toEqual([
       'first',
       'second',
     ]);
@@ -206,8 +223,10 @@ describe('appending onto a bare metadata object', () => {
     appendMetaMethod(metadata, new MetaMethod('first'));
     appendMetaMethod(metadata, new MetaMethod('second'));
 
-    const target = { [Symbol.metadata]: metadata } as unknown as EntityConstructor<Entity>;
-    expect(extractMetaMethods(target).map((meta) => meta.name)).toEqual([
+    const target = {
+      [Symbol.metadata]: metadata,
+    } as unknown as EntityConstructor<Entity>;
+    expect(extractMetaMethods(target).map(meta => meta.name)).toEqual([
       'first',
       'second',
     ]);

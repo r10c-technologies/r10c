@@ -11,11 +11,7 @@ import type { TransactionOutcome } from '../ports/transaction-handler';
 import type { TransactionCommand } from './command';
 
 /** The lifecycle state a transaction record settles into. */
-export type TransactionState =
-  | 'PENDING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'STALE';
+export type TransactionState = 'PENDING' | 'COMPLETED' | 'FAILED' | 'STALE';
 
 /** The facade step a given event reports. */
 export type TransactionStep = 'accepted' | 'completed' | 'failed';
@@ -43,7 +39,9 @@ export interface TransactionEvent {
 
 const now = (): string => new Date().toISOString();
 
-export const acceptedEvent = (command: TransactionCommand): TransactionEvent => ({
+export const acceptedEvent = (
+  command: TransactionCommand,
+): TransactionEvent => ({
   transactionId: command.transactionId,
   entity: command.entity,
   state: 'PENDING',
@@ -90,7 +88,11 @@ export function readTransactionEventEnvelope(
   body: unknown,
 ): Effect.Effect<TransactionEvent, EntifixError> {
   return Effect.map(
-    readEnvelope<TransactionEvent>(body, 'transactionEvent', 'transactionEvent'),
-    (envelope) => envelope.data,
+    readEnvelope<TransactionEvent>(
+      body,
+      'transactionEvent',
+      'transactionEvent',
+    ),
+    envelope => envelope.data,
   );
 }

@@ -9,7 +9,9 @@ import type {
   UseEntityRecordState,
 } from './use-entity-record.types';
 
-function getInitialState<TEntity extends Entity>(): UseEntityRecordState<TEntity> {
+function getInitialState<
+  TEntity extends Entity,
+>(): UseEntityRecordState<TEntity> {
   return {
     entity: undefined,
     isLoading: false,
@@ -19,7 +21,7 @@ function getInitialState<TEntity extends Entity>(): UseEntityRecordState<TEntity
 
 function reducer<TEntity extends Entity>(
   state: UseEntityRecordState<TEntity>,
-  action: UseEntityRecordAction<TEntity>
+  action: UseEntityRecordAction<TEntity>,
 ): UseEntityRecordState<TEntity> {
   return { ...state, ...action.set };
 }
@@ -43,9 +45,9 @@ export function useEntityRecord<TEntity extends Entity, TContext>({
   const [state, dispatch] = useReducer(
     reducer as (
       state: UseEntityRecordState<TEntity>,
-      action: UseEntityRecordAction<TEntity>
+      action: UseEntityRecordAction<TEntity>,
     ) => UseEntityRecordState<TEntity>,
-    getInitialState<TEntity>()
+    getInitialState<TEntity>(),
   );
   // Bumped to re-run the fetch on demand.
   const [reloadToken, setReloadToken] = useState(0);
@@ -76,7 +78,10 @@ export function useEntityRecord<TEntity extends Entity, TContext>({
     dispatch({ set: { isLoading: true, error: undefined } });
 
     Effect.runPromise(
-      Effect.provide(ucRef.current, ctxRef.current.pipe(Context.add(EntityIdTag, id)))
+      Effect.provide(
+        ucRef.current,
+        ctxRef.current.pipe(Context.add(EntityIdTag, id)),
+      ),
     )
       .then(entity => {
         if (active) {
@@ -99,7 +104,7 @@ export function useEntityRecord<TEntity extends Entity, TContext>({
   /** Replaces the held record, e.g. with the entity a save returned. */
   const setEntity = useCallback(
     (entity: TEntity | undefined) => dispatch({ set: { entity } }),
-    []
+    [],
   );
 
   return { ...state, reload, setEntity };

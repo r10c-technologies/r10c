@@ -64,7 +64,9 @@ describe('FilterBuilder', () => {
   it('says so when the entity has nothing filterable', () => {
     renderBuilder([]);
 
-    expect(screen.getByText(/no tiene miembros filtrables/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/no tiene miembros filtrables/),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Añadir filtro' }),
     ).not.toBeInTheDocument();
@@ -73,8 +75,12 @@ describe('FilterBuilder', () => {
   it('starts with no filters and matches all', () => {
     renderBuilder([descriptor('name', 'string')]);
 
-    expect(screen.getByLabelText('Coincidir todos o cualquiera de los filtros')).toHaveValue('and');
-    expect(screen.queryByLabelText('Miembro del filtro')).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Coincidir todos o cualquiera de los filtros'),
+    ).toHaveValue('and');
+    expect(
+      screen.queryByLabelText('Miembro del filtro'),
+    ).not.toBeInTheDocument();
   });
 
   it('switches between matching all and any', async () => {
@@ -169,7 +175,10 @@ describe('FilterBuilder', () => {
     await addFilter(user);
     await user.type(screen.getByLabelText('Valor del filtro'), 'Ac');
 
-    await user.selectOptions(screen.getByLabelText('Miembro del filtro'), 'stock');
+    await user.selectOptions(
+      screen.getByLabelText('Miembro del filtro'),
+      'stock',
+    );
 
     expect(screen.getByLabelText('Operador del filtro')).toHaveValue('eq');
     expect(screen.getByLabelText('Valor del filtro')).toHaveValue(null);
@@ -217,7 +226,10 @@ describe('FilterBuilder', () => {
       ]);
       await addFilter(user);
 
-      await user.selectOptions(screen.getByLabelText('Valor del filtro'), 'false');
+      await user.selectOptions(
+        screen.getByLabelText('Valor del filtro'),
+        'false',
+      );
 
       await apply(user);
 
@@ -253,7 +265,10 @@ describe('FilterBuilder', () => {
       ]);
       await addFilter(user);
 
-      await user.selectOptions(screen.getByLabelText('Operador del filtro'), 'in');
+      await user.selectOptions(
+        screen.getByLabelText('Operador del filtro'),
+        'in',
+      );
 
       expect(screen.getByLabelText('Valor del filtro')).toHaveAttribute(
         'placeholder',
@@ -294,7 +309,10 @@ describe('FilterBuilder', () => {
         descriptor('status', 'enum', { enumValues: ['draft'] }),
       ]);
       await addFilter(user);
-      await user.selectOptions(screen.getByLabelText('Operador del filtro'), 'in');
+      await user.selectOptions(
+        screen.getByLabelText('Operador del filtro'),
+        'in',
+      );
 
       await user.type(screen.getByLabelText('Valor del filtro'), 'a, b ,, c');
 
@@ -313,7 +331,10 @@ describe('FilterBuilder', () => {
       ]);
       await addFilter(user);
 
-      await user.selectOptions(screen.getByLabelText('Operador del filtro'), 'in');
+      await user.selectOptions(
+        screen.getByLabelText('Operador del filtro'),
+        'in',
+      );
 
       await apply(user);
 
@@ -331,7 +352,9 @@ describe('FilterBuilder', () => {
         'between',
       );
 
-      expect(screen.getByLabelText('Fin del rango del filtro')).toBeInTheDocument();
+      expect(
+        screen.getByLabelText('Fin del rango del filtro'),
+      ).toBeInTheDocument();
     });
 
     it('emits only once both bounds are given', async () => {
@@ -437,7 +460,10 @@ describe('FilterBuilder when a member disappears', () => {
       <FilterBuilder<Product> descriptors={descriptors} onChange={onChange} />,
     );
     await addFilter(user);
-    await user.selectOptions(screen.getByLabelText('Miembro del filtro'), 'stock');
+    await user.selectOptions(
+      screen.getByLabelText('Miembro del filtro'),
+      'stock',
+    );
     await user.type(screen.getByLabelText('Valor del filtro'), '5');
     await addFilter(user);
 
@@ -500,8 +526,12 @@ describe('committing', () => {
 
     await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
 
-    expect(screen.queryByLabelText('Miembro del filtro')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Coincidir todos o cualquiera de los filtros')).toHaveValue('and');
+    expect(
+      screen.queryByLabelText('Miembro del filtro'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Coincidir todos o cualquiera de los filtros'),
+    ).toHaveValue('and');
     expect(lastFiltering(onChange)).toEqual({ operator: 'and', values: [] });
   });
 });
@@ -526,7 +556,9 @@ describe('seeding from the applied value', () => {
     expect(screen.getByLabelText('Miembro del filtro')).toHaveValue('name');
     expect(screen.getByLabelText('Operador del filtro')).toHaveValue('like');
     expect(screen.getByLabelText('Valor del filtro')).toHaveValue('Acme');
-    expect(screen.getByLabelText('Coincidir todos o cualquiera de los filtros')).toHaveValue('or');
+    expect(
+      screen.getByLabelText('Coincidir todos o cualquiera de los filtros'),
+    ).toHaveValue('or');
   });
 
   it('rebuilds a list row as comma-separated text', () => {
@@ -618,7 +650,9 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.queryByLabelText('Miembro del filtro')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Miembro del filtro'),
+    ).not.toBeInTheDocument();
   });
 
   it('starts empty when nothing is applied', () => {
@@ -629,6 +663,8 @@ describe('seeding from the applied value', () => {
       />,
     );
 
-    expect(screen.queryByLabelText('Miembro del filtro')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Miembro del filtro'),
+    ).not.toBeInTheDocument();
   });
 });

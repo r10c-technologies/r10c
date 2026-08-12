@@ -151,7 +151,10 @@ describe('useSessionRefresh', () => {
   });
 
   it('ignores a body without a session expiry', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ ok: true })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ ok: true })),
+    );
 
     const { result } = renderHook(() =>
       useSessionRefresh({ tokenTtlSeconds: ACTIVE_TTL }),
@@ -169,7 +172,7 @@ describe('useSessionRefresh', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockReturnValue(
-        new Promise<Response>((resolve) => {
+        new Promise<Response>(resolve => {
           release = resolve;
         }),
       ),

@@ -75,7 +75,11 @@ function assertSearchable<TTarget extends Entity>(
  */
 export function useEntityLinkSource<TTarget extends Entity, TContext>(
   config: EntityLinkSourceConfig<TTarget, TContext>,
-  { descriptor, selectedId, selectedEntity }: UseEntityLinkSourceOptions<TTarget>,
+  {
+    descriptor,
+    selectedId,
+    selectedEntity,
+  }: UseEntityLinkSourceOptions<TTarget>,
 ): EntityLinkSource<TTarget> {
   const {
     entityConstructor,
@@ -138,7 +142,10 @@ export function useEntityLinkSource<TTarget extends Entity, TContext>(
   }, [baseFiltering, debouncedTerm, quickPageSize, searchProperty]);
 
   const quickQuery = useQuery<EntityPage<TTarget>, EntifixError>({
-    queryKey: [...entityQueryKey(entityConstructor, quickRequest), 'link-quick'],
+    queryKey: [
+      ...entityQueryKey(entityConstructor, quickRequest),
+      'link-quick',
+    ],
     queryFn: () =>
       Effect.runPromise(
         Effect.provide(
@@ -167,7 +174,11 @@ export function useEntityLinkSource<TTarget extends Entity, TContext>(
     selectedEntity === undefined && selectedId != null && getUc !== undefined;
 
   const labelQuery = useQuery<TTarget, EntifixError>({
-    queryKey: [...entityQueryScope(entityConstructor), 'link-label', String(selectedId)],
+    queryKey: [
+      ...entityQueryScope(entityConstructor),
+      'link-label',
+      String(selectedId),
+    ],
     enabled: needsLabel,
     queryFn: () =>
       Effect.runPromise(

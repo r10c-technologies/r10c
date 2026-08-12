@@ -42,5 +42,8 @@
   ],
   "devDependencies": {
     "@r10c/entifix-ts-testing-unit": "workspace:*"
+  },
+  "dependencies": {
+    "@r10c/business-ts-catalog-reference": "workspace:*"
   }
 }

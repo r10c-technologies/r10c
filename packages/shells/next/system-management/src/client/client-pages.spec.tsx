@@ -86,14 +86,14 @@ describe('ConfigurationListClientPage', () => {
   });
 
   it('takes a caller-supplied link builder, so a workspace tab can reroute rows', async () => {
-    renderPage(<ConfigurationListClientPage hrefFor={id => `#${String(id)}`} />);
+    renderPage(
+      <ConfigurationListClientPage hrefFor={id => `#${String(id)}`} />,
+    );
 
     await waitFor(() =>
       expect(screen.getAllByText('db').length).toBeGreaterThan(0),
     );
-    expect(
-      document.querySelector('a[href="#c-1"]'),
-    ).not.toBeNull();
+    expect(document.querySelector('a[href="#c-1"]')).not.toBeNull();
   });
 });
 
@@ -130,12 +130,16 @@ describe('ConfigurationSingleViewClientPage', () => {
     slug = 'c-1';
     const onSaved = vi.fn();
 
-    renderPage(<ConfigurationSingleViewClientPage slug="c-1" onSaved={onSaved} />);
+    renderPage(
+      <ConfigurationSingleViewClientPage slug="c-1" onSaved={onSaved} />,
+    );
 
     await waitFor(() =>
       expect(screen.getByDisplayValue('auth')).toBeInTheDocument(),
     );
-    await userEvent.click(screen.getByRole('button', { name: /Guardar|Save/i }));
+    await userEvent.click(
+      screen.getByRole('button', { name: /Guardar|Save/i }),
+    );
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
     expect(push).not.toHaveBeenCalled();
@@ -149,7 +153,9 @@ describe('ConfigurationSingleViewClientPage', () => {
     await waitFor(() =>
       expect(screen.getByDisplayValue('auth')).toBeInTheDocument(),
     );
-    await userEvent.click(screen.getByRole('button', { name: /Guardar|Save/i }));
+    await userEvent.click(
+      screen.getByRole('button', { name: /Guardar|Save/i }),
+    );
 
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith('/system/configuration'),
@@ -226,12 +232,13 @@ describe('a secret value', () => {
       expect(screen.getByDisplayValue('uri')).toBeInTheDocument(),
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Guardar|Save/i }));
+    await userEvent.click(
+      screen.getByRole('button', { name: /Guardar|Save/i }),
+    );
 
     await waitFor(() => expect(push).toHaveBeenCalled());
     const saved = repository.items.find(item => item.id === 'c-2') as
-      | Configuration
-      | undefined;
+      Configuration | undefined;
     // Absent rather than an empty string: the service reads absence as
     // "unchanged" and would read `''` as an intentional blanking.
     expect(saved?.value).toBeUndefined();
@@ -249,14 +256,15 @@ describe('a secret value', () => {
       'input[type="password"]',
     ) as HTMLInputElement;
     await userEvent.type(value, 'new-secret');
-    await userEvent.click(screen.getByRole('button', { name: /Guardar|Save/i }));
+    await userEvent.click(
+      screen.getByRole('button', { name: /Guardar|Save/i }),
+    );
 
     await waitFor(() => expect(push).toHaveBeenCalled());
     expect(
       (
         repository.items.find(item => item.id === 'c-2') as
-          | Configuration
-          | undefined
+          Configuration | undefined
       )?.value,
     ).toBe('new-secret');
   });
@@ -267,7 +275,9 @@ describe('a write that fails', () => {
     slug = 'c-1';
     const onSaved = vi.fn();
 
-    renderPage(<ConfigurationSingleViewClientPage slug="c-1" onSaved={onSaved} />);
+    renderPage(
+      <ConfigurationSingleViewClientPage slug="c-1" onSaved={onSaved} />,
+    );
     await waitFor(() =>
       expect(screen.getByDisplayValue('auth')).toBeInTheDocument(),
     );
@@ -275,10 +285,14 @@ describe('a write that fails', () => {
     // Armed after the record loads, so the failure lands on the save rather than
     // being consumed by the initial read.
     repository.failNext(new EntifixConnError('service unreachable', undefined));
-    await userEvent.click(screen.getByRole('button', { name: /Guardar|Save/i }));
+    await userEvent.click(
+      screen.getByRole('button', { name: /Guardar|Save/i }),
+    );
 
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Guardar|Save/i })).toBeEnabled(),
+      expect(
+        screen.getByRole('button', { name: /Guardar|Save/i }),
+      ).toBeEnabled(),
     );
     expect(onSaved).not.toHaveBeenCalled();
   });

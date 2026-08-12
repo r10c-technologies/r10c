@@ -27,7 +27,10 @@ describe('LocaleLink', () => {
       </I18nProvider>,
     );
 
-    expect(screen.getByRole('link')).toHaveAttribute('href', '/en/catalog/product');
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/en/catalog/product',
+    );
   });
 
   it('leaves an absolute href alone', () => {
@@ -37,7 +40,10 @@ describe('LocaleLink', () => {
       </I18nProvider>,
     );
 
-    expect(screen.getByRole('link')).toHaveAttribute('href', 'https://example.com/x');
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      'https://example.com/x',
+    );
   });
 
   // `next/link` also accepts a UrlObject; there is no string to prefix, so it
@@ -56,7 +62,9 @@ describe('LocaleLink', () => {
 describe('useLocaleHref', () => {
   it('is idempotent, so it is safe to apply at every call site', () => {
     const { result } = renderHook(() => useLocaleHref(), {
-      wrapper: ({ children }) => <I18nProvider locale="es">{children}</I18nProvider>,
+      wrapper: ({ children }) => (
+        <I18nProvider locale="es">{children}</I18nProvider>
+      ),
     });
 
     expect(result.current(result.current('/catalog'))).toBe('/es/catalog');

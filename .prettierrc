@@ -3,6 +3,6 @@
   "arrowParens": "avoid",
   "semi": true,
   "plugins": ["prettier-plugin-tailwindcss"],
-  "tailwindStylesheet": "./apps/marketplace-admin-app/src/app/global.css",
+  "tailwindStylesheet": "./apps/back-office-app/src/app/global.css",
   "tailwindFunctions": ["cn", "cva"]
 }

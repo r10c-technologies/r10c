@@ -11,6 +11,7 @@ import type { SliceDeclaration } from '../types.js';
  */
 export const transactionSlice: SliceDeclaration = {
   name: 'transaction',
+  status: 'active',
   domains: [],
   stores: [
     {

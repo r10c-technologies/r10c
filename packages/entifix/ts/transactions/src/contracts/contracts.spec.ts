@@ -1,4 +1,7 @@
-import { EntifixBuildError, EntifixTransactionError } from '@r10c/entifix-ts-core';
+import {
+  EntifixBuildError,
+  EntifixTransactionError,
+} from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -82,7 +85,10 @@ describe('command envelopes', () => {
   ])('rejects a well-framed envelope carrying %s', (_label, data) => {
     const error = Effect.runSync(
       Effect.flip(
-        readCommandEnvelope({ meta: { type: 'command', entity: 'product' }, data }),
+        readCommandEnvelope({
+          meta: { type: 'command', entity: 'product' },
+          data,
+        }),
       ),
     );
 
@@ -119,7 +125,11 @@ describe('event builders', () => {
   // The failure reason crosses a message boundary, so it has to be a string by
   // the time it is published — whatever was thrown.
   it.each([
-    ['an Error', new EntifixTransactionError('execute failed'), 'execute failed'],
+    [
+      'an Error',
+      new EntifixTransactionError('execute failed'),
+      'execute failed',
+    ],
     ['a string', 'plain failure', 'plain failure'],
     ['an object', { code: 'E' }, '[object Object]'],
     ['undefined', undefined, 'undefined'],
@@ -155,7 +165,9 @@ describe('event envelopes', () => {
 
   it('rejects an envelope of the wrong type', () => {
     const error = Effect.runSync(
-      Effect.flip(readTransactionEventEnvelope(makeCommandEnvelope(aCommand()))),
+      Effect.flip(
+        readTransactionEventEnvelope(makeCommandEnvelope(aCommand())),
+      ),
     );
 
     expect(error.message).toContain('but got "command"');

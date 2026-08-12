@@ -51,15 +51,12 @@ export const createConfigProxyRoute = ({
     }
 
     const hasBody = request.method !== 'GET' && request.method !== 'DELETE';
-    const upstream = await fetch(
-      `${baseUrl}/api/${path.join('/')}${search}`,
-      {
-        method: request.method,
-        headers,
-        body: hasBody ? await request.text() : undefined,
-        cache: 'no-store',
-      },
-    );
+    const upstream = await fetch(`${baseUrl}/api/${path.join('/')}${search}`, {
+      method: request.method,
+      headers,
+      body: hasBody ? await request.text() : undefined,
+      cache: 'no-store',
+    });
 
     // 204s and empty bodies must not be run through `json()`.
     const text = await upstream.text();

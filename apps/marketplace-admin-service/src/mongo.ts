@@ -39,10 +39,7 @@ import { Layer } from 'effect';
 import { Effect } from 'effect';
 
 import { makeObservabilityLayer } from './observability';
-import {
-  MongoTransactionStoreLayer,
-  SagaDatabaseName,
-} from './saga/store';
+import { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
 import { startTracking } from './saga/tracking';
 import { seedCatalog } from './seed';
 

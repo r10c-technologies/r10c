@@ -48,7 +48,9 @@ describe('makeRedisOneTimeTokenStore', () => {
     const token = await run(store.issue(PURPOSE, 'user-1', 900));
 
     // A dump of Redis must yield nothing redeemable.
-    expect(fake.read(`${DEFAULT_TOKEN_NAMESPACE}:${PURPOSE}:${token}`)).toBeUndefined();
+    expect(
+      fake.read(`${DEFAULT_TOKEN_NAMESPACE}:${PURPOSE}:${token}`),
+    ).toBeUndefined();
     expect(
       fake.commands.some(command =>
         command.args.some(argument => String(argument).includes(token)),

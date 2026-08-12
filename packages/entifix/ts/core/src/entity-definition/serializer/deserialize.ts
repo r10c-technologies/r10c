@@ -137,7 +137,6 @@ function buildEntityInstance<TEntity extends Entity>(
         return;
       }
       if (current instanceof EntityCollectionLink) {
-         
         populateEntityCollectionLink(
           current,
           (entityData as any)[propertyName],

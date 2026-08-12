@@ -42,7 +42,9 @@ describe('toOtlpLogsPayload', () => {
     ) as {
       resourceLogs: Array<{
         scopeLogs: Array<{
-          logRecords: Array<{ attributes: Array<{ key: string; value: unknown }> }>;
+          logRecords: Array<{
+            attributes: Array<{ key: string; value: unknown }>;
+          }>;
         }>;
       }>;
     };
@@ -58,9 +60,14 @@ describe('toOtlpLogsPayload', () => {
   });
 
   it('sets resource service.name, severity text, body and nanosecond time', () => {
-    const payload = toOtlpLogsPayload([record({ level: 'error', severityNumber: 17 })], 'svc') as {
+    const payload = toOtlpLogsPayload(
+      [record({ level: 'error', severityNumber: 17 })],
+      'svc',
+    ) as {
       resourceLogs: Array<{
-        resource: { attributes: Array<{ key: string; value: { stringValue: string } }> };
+        resource: {
+          attributes: Array<{ key: string; value: { stringValue: string } }>;
+        };
         scopeLogs: Array<{
           scope: { name: string };
           logRecords: Array<{
@@ -89,16 +96,20 @@ describe('toOtlpLogsPayload', () => {
     const withTrace = toOtlpLogsPayload(
       [record({ traceId: 't', spanId: 's' })],
       'svc',
-    ) as { resourceLogs: Array<{ scopeLogs: Array<{ logRecords: Array<Record<string, unknown>> }> }> };
+    ) as {
+      resourceLogs: Array<{
+        scopeLogs: Array<{ logRecords: Array<Record<string, unknown>> }>;
+      }>;
+    };
     const without = toOtlpLogsPayload([record()], 'svc') as typeof withTrace;
 
     expect(withTrace.resourceLogs[0].scopeLogs[0].logRecords[0]).toMatchObject({
       traceId: 't',
       spanId: 's',
     });
-    expect(without.resourceLogs[0].scopeLogs[0].logRecords[0]).not.toHaveProperty(
-      'traceId',
-    );
+    expect(
+      without.resourceLogs[0].scopeLogs[0].logRecords[0],
+    ).not.toHaveProperty('traceId');
   });
 });
 
@@ -154,7 +165,9 @@ describe('makeOtlpHttpLogSink', () => {
   });
 
   it('reports a non-ok response through onError', async () => {
-    const fetchImpl = vi.fn(async () => ({ ok: false, status: 503 }) as Response);
+    const fetchImpl = vi.fn(
+      async () => ({ ok: false, status: 503 }) as Response,
+    );
     const onError = vi.fn();
     const sink = makeOtlpHttpLogSink({
       endpoint: 'http://otel:4318',

@@ -1,4 +1,7 @@
-import type { EntityIdTag, EntityLoadRequestTag } from '@r10c/entifix-ts-business';
+import type {
+  EntityIdTag,
+  EntityLoadRequestTag,
+} from '@r10c/entifix-ts-business';
 import type {
   EntifixError,
   Entity,
@@ -19,10 +22,7 @@ import type { Context, Effect } from 'effect';
  * the rule. {@link baseFiltering} is the lighter version of the same idea for a
  * restriction that needs no use-case of its own.
  */
-export interface EntityLinkSourceConfig<
-  TTarget extends Entity,
-  TContext,
-> {
+export interface EntityLinkSourceConfig<TTarget extends Entity, TContext> {
   entityConstructor: EntityConstructor<TTarget>;
   /** Lists the targets. Supplies {@link EntityLoadRequestTag} per request. */
   loadUc: Effect.Effect<

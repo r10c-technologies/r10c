@@ -2,6 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  the `Product` split is done rather than deferred, `catalog-reference` joins the
+  capability map, and the Context paragraph describing a three-entity business is
+  marked as of its date.
 
 ## Context
 
@@ -10,6 +14,14 @@ i18n, observability, the saga engine. The business it exists to run is three
 entities deep: `Product`, `ProductBrand`, `ProductCategory`, all in
 `business-ts-product-configuration-management`. `apps/marketplace-service` is an
 empty stub with a `main.ts` and nothing else.
+
+> **Revised 2026-08-12.** That paragraph describes 2026-08-01 and is kept as the
+> context this record was decided in. Since then:
+> [ADR 0022](0022-v1-marketplace-module-boundaries.md) took the business to 23
+> entities across 11 domains, `ProductBrand`/`ProductCategory` moved to a
+> platform-plane `catalog-reference` domain, and `apps/marketplace-service` was
+> deleted by [ADR 0021](0021-consolidating-the-fleet-into-five-deployments.md)
+> for having no store and rebuilt by 0022 once it had two.
 
 The target is a multi-tenant SaaS ecosystem — commerce first, then CRM, ERP,
 analytics — where an organization provisions the applications it needs. The first
@@ -49,6 +61,7 @@ wholesale (canonical APIs and Canvas conformance we would never exercise).
 | Party Management           | Party Management (TMFC028)                                     | `business-ts-party-management`      | control  |
 | Access Management          | Permissions Management (TMFC035)                               | `business-ts-access-management`     | control  |
 | Product Configuration Mgmt | Product Catalog Mgmt (TMFC001), Product Configurator (TMFC027) | existing                            | tenant   |
+| Catalog Reference          | Product Catalog Mgmt (TMFC001), classification half            | `business-ts-catalog-reference`     | platform |
 | Marketplace Catalog        | Product Catalog Mgmt, published view                           | `business-ts-marketplace-catalog`   | platform |
 | Stock Management           | —                                                              | `business-ts-stock-management`      | tenant   |
 | Order Management           | Product Order Capture & Validation (TMFC002)                   | `business-ts-order-management`      | platform |
@@ -101,6 +114,15 @@ Today's `Product` (`business/ts/product-configuration-management/src/entities/pr
 is specification and offering fused. The map names all three now; the entity
 migration lands with the catalog work
 ([ADR 0009](0009-catalog-authoring-and-publication.md)).
+
+> **Revised 2026-08-12 — done.** The split landed in
+> [ADR 0022](0022-v1-marketplace-module-boundaries.md), earlier than "with the
+> catalog work" because the entity key moves a permission namespace, an i18n
+> catalog key, a route path and a tenant collection name at once, and every
+> entity added first makes that sweep larger. `Product` is now
+> `ProductSpecification`; `ProductOffering` and `ProductOfferingPrice` are
+> separate entities; and the name `Product` went to its SID meaning — the
+> instance a party owns after an order completes, in `order-management`.
 
 SID also separates the price _value_ from **`PricingLogicAlgorithm`** — an
 interface to a rating function with some parameters bound and some gathered at

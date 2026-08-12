@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
 
 /** Resolves a catalog key. The widened form: a tab title is data, not authored copy. */
-export type TabTranslate = (key: string, params?: Record<string, unknown>) => string;
+export type TabTranslate = (
+  key: string,
+  params?: Record<string, unknown>,
+) => string;
 
 /**
  * One kind of tab (a catalog, an entity editor, later an operation or wizard).

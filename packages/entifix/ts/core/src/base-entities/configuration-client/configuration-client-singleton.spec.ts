@@ -54,28 +54,38 @@ describe('ConfigurationClientGroupInMemory', () => {
     // normalize slashes on both sides or the adapters build `//` URLs.
     it.each([
       ['a bare base', 'http://svc/api', 'http://svc/api/product/brand'],
-      ['a trailing slash on the base', 'http://svc/api/', 'http://svc/api/product/brand'],
+      [
+        'a trailing slash on the base',
+        'http://svc/api/',
+        'http://svc/api/product/brand',
+      ],
     ])('composes segments onto %s', async (_label, base, expected) => {
       expect(
-        await run(group({ api: base }).getString('api.product.brand', 'compose')),
+        await run(
+          group({ api: base }).getString('api.product.brand', 'compose'),
+        ),
       ).toBe(expected);
     });
 
     it('strips slashes from the composed segments', async () => {
       expect(
-        await run(group({ api: 'http://svc' }).getString('api./product/', 'compose')),
+        await run(
+          group({ api: 'http://svc' }).getString('api./product/', 'compose'),
+        ),
       ).toBe('http://svc/product');
     });
 
     it('composes to the base alone when there are no segments', async () => {
-      expect(await run(group({ api: 'http://svc' }).getString('api', 'compose'))).toBe(
-        'http://svc',
-      );
+      expect(
+        await run(group({ api: 'http://svc' }).getString('api', 'compose')),
+      ).toBe('http://svc');
     });
 
     it('drops empty segments rather than emitting a doubled slash', async () => {
       expect(
-        await run(group({ api: 'http://svc' }).getString('api..product', 'compose')),
+        await run(
+          group({ api: 'http://svc' }).getString('api..product', 'compose'),
+        ),
       ).toBe('http://svc/product');
     });
 
@@ -133,13 +143,15 @@ describe('ConfigurationClientGroupInMemory', () => {
     });
 
     it('parses every element of a number array', async () => {
-      expect(await run(group({ ports: '1,2,3' }).getArrayNumber('ports'))).toEqual([
-        1, 2, 3,
-      ]);
+      expect(
+        await run(group({ ports: '1,2,3' }).getArrayNumber('ports')),
+      ).toEqual([1, 2, 3]);
     });
 
     it('fails the whole number array when one element is not numeric', async () => {
-      const error = await failureOf(group({ ports: '1,nope' }).getArrayNumber('ports'));
+      const error = await failureOf(
+        group({ ports: '1,nope' }).getArrayNumber('ports'),
+      );
 
       expect(error.message).toContain('is not a number');
     });
@@ -149,14 +161,16 @@ describe('ConfigurationClientGroupInMemory', () => {
         group({ days: '2026-01-01,2026-01-02' }).getArrayDate('days'),
       );
 
-      expect(dates.map((date) => date.toISOString())).toEqual([
+      expect(dates.map(date => date.toISOString())).toEqual([
         '2026-01-01T00:00:00.000Z',
         '2026-01-02T00:00:00.000Z',
       ]);
     });
 
     it('fails the whole date array when one element is unparseable', async () => {
-      const error = await failureOf(group({ days: '2026-01-01,nope' }).getArrayDate('days'));
+      const error = await failureOf(
+        group({ days: '2026-01-01,nope' }).getArrayDate('days'),
+      );
 
       expect(error.message).toContain('is not a date');
     });
@@ -166,27 +180,20 @@ describe('ConfigurationClientGroupInMemory', () => {
     // The point of the optional family is that absence is a value, not a
     // failure — only a *present but malformed* value fails.
     it.each<[string, GroupRead]>([
-      ['getOptionalString', (g) => g.getOptionalString('missing')],
-      ['getOptionalNumber', (g) => g.getOptionalNumber('missing')],
-      ['getOptionalDate', (g) => g.getOptionalDate('missing')],
-      [
-        'getOptionalArrayNumber',
-        (g) => g.getOptionalArrayNumber('missing'),
-      ],
-      [
-        'getOptionalArrayString',
-        (g) => g.getOptionalArrayString('missing'),
-      ],
-      [
-        'getOptionalArrayDate',
-        (g) => g.getOptionalArrayDate('missing'),
-      ],
+      ['getOptionalString', g => g.getOptionalString('missing')],
+      ['getOptionalNumber', g => g.getOptionalNumber('missing')],
+      ['getOptionalDate', g => g.getOptionalDate('missing')],
+      ['getOptionalArrayNumber', g => g.getOptionalArrayNumber('missing')],
+      ['getOptionalArrayString', g => g.getOptionalArrayString('missing')],
+      ['getOptionalArrayDate', g => g.getOptionalArrayDate('missing')],
     ])('%s yields undefined when the key is absent', async (_label, read) => {
       expect(await run(read(group({ other: 'x' })))).toBeUndefined();
     });
 
     it('yields undefined for a key present with a null value', async () => {
-      expect(await run(group({ uri: null }).getOptionalString('uri'))).toBeUndefined();
+      expect(
+        await run(group({ uri: null }).getOptionalString('uri')),
+      ).toBeUndefined();
     });
 
     it('returns the present values', async () => {
@@ -204,13 +211,22 @@ describe('ConfigurationClientGroupInMemory', () => {
       expect((await run(populated.getOptionalDate('at')))?.toISOString()).toBe(
         '2026-01-01T00:00:00.000Z',
       );
-      expect(await run(populated.getOptionalArrayNumber('ports'))).toEqual([1, 2]);
-      expect(await run(populated.getOptionalArrayString('hosts'))).toEqual(['a', 'b']);
-      expect((await run(populated.getOptionalArrayDate('days')))?.length).toBe(1);
+      expect(await run(populated.getOptionalArrayNumber('ports'))).toEqual([
+        1, 2,
+      ]);
+      expect(await run(populated.getOptionalArrayString('hosts'))).toEqual([
+        'a',
+        'b',
+      ]);
+      expect((await run(populated.getOptionalArrayDate('days')))?.length).toBe(
+        1,
+      );
     });
 
     it('still fails when a present value is malformed', async () => {
-      const error = await failureOf(group({ port: 'nope' }).getOptionalNumber('port'));
+      const error = await failureOf(
+        group({ port: 'nope' }).getOptionalNumber('port'),
+      );
 
       expect(error.message).toContain('is not a number');
     });
@@ -221,33 +237,18 @@ describe('ConfigurationClientGroupInMemory', () => {
   // degrading to `exact`.
   describe('unsupported extract modes', () => {
     it.each<[string, GroupRead]>([
-      ['getString', (g) => g.getString('k', 'match')],
-      ['getNumber', (g) => g.getNumber('k', 'match')],
-      ['getDate', (g) => g.getDate('k', 'compose')],
-      ['getArrayString', (g) => g.getArrayString('k', 'compose')],
-      ['getArrayNumber', (g) => g.getArrayNumber('k', 'match')],
-      ['getArrayDate', (g) => g.getArrayDate('k', 'match')],
-      [
-        'getOptionalString',
-        (g) => g.getOptionalString('k', 'compose'),
-      ],
-      [
-        'getOptionalNumber',
-        (g) => g.getOptionalNumber('k', 'match'),
-      ],
-      ['getOptionalDate', (g) => g.getOptionalDate('k', 'match')],
-      [
-        'getOptionalArrayNumber',
-        (g) => g.getOptionalArrayNumber('k', 'match'),
-      ],
-      [
-        'getOptionalArrayString',
-        (g) => g.getOptionalArrayString('k', 'match'),
-      ],
-      [
-        'getOptionalArrayDate',
-        (g) => g.getOptionalArrayDate('k', 'match'),
-      ],
+      ['getString', g => g.getString('k', 'match')],
+      ['getNumber', g => g.getNumber('k', 'match')],
+      ['getDate', g => g.getDate('k', 'compose')],
+      ['getArrayString', g => g.getArrayString('k', 'compose')],
+      ['getArrayNumber', g => g.getArrayNumber('k', 'match')],
+      ['getArrayDate', g => g.getArrayDate('k', 'match')],
+      ['getOptionalString', g => g.getOptionalString('k', 'compose')],
+      ['getOptionalNumber', g => g.getOptionalNumber('k', 'match')],
+      ['getOptionalDate', g => g.getOptionalDate('k', 'match')],
+      ['getOptionalArrayNumber', g => g.getOptionalArrayNumber('k', 'match')],
+      ['getOptionalArrayString', g => g.getOptionalArrayString('k', 'match')],
+      ['getOptionalArrayDate', g => g.getOptionalArrayDate('k', 'match')],
     ])('%s rejects a mode it does not implement', async (_label, read) => {
       const error = await failureOf(read(group({ k: 'v' })));
 
@@ -256,7 +257,9 @@ describe('ConfigurationClientGroupInMemory', () => {
   });
 
   it('defaults to an empty item list', async () => {
-    const error = await failureOf(new ConfigurationClientGroupInMemory().getString('k'));
+    const error = await failureOf(
+      new ConfigurationClientGroupInMemory().getString('k'),
+    );
 
     expect(error.details).toEqual({ key: 'k', availableKeys: [] });
   });
@@ -269,7 +272,9 @@ describe('ConfigurationClientInMemory', () => {
       redis: [{ key: 'uri', value: 'redis://host' }],
     });
 
-    expect(await run(store.in('mongo').getString('uri'))).toBe('mongodb://host');
+    expect(await run(store.in('mongo').getString('uri'))).toBe(
+      'mongodb://host',
+    );
     expect(await run(store.in('redis').getString('uri'))).toBe('redis://host');
   });
 
@@ -282,7 +287,9 @@ describe('ConfigurationClientInMemory', () => {
   });
 
   it('defaults to an empty configuration', async () => {
-    const error = await failureOf(new ConfigurationClientInMemory().in('any').getString('k'));
+    const error = await failureOf(
+      new ConfigurationClientInMemory().in('any').getString('k'),
+    );
 
     expect(error.message).toContain('not found');
   });

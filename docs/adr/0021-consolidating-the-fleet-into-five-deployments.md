@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-08-12
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  the fleet runs six, not five: `marketplace-service` returns with two stores to
+  justify it. The title is kept deliberately.
 
 ## Context
 
@@ -28,6 +31,20 @@ ADR 0008 allocated `300N` / `310N` to frontend/backend **pairs**, which is the
 assumption that made a domain without a frontend look like a gap.
 
 ## Decision
+
+> **Clarified 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md).**
+> The fleet now runs **six**: `marketplace-service` returns on `:3100` because it
+> owns two stores — `catalog-reference` and `published-catalog` — where the
+> version this record deleted owned none.
+>
+> The title stays. This record is the history of a consolidation that did go to
+> five, and renaming it would lose exactly the archaeology the ADR governance
+> change is trying to bound.
+>
+> This record's own test was applied to all six new stores before adding them:
+> _can you still name the one slice that writes each store, without reading
+> code?_ Yes for every one — none of the six is shared, and `auth` remains the
+> only multi-domain store in the repository.
 
 **Eight deployments become five.** No new mechanism: ADR 0020 already says a
 Slice is _"realized as **one or more** deployments"_, so consolidating needs a

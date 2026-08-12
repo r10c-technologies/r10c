@@ -12,16 +12,16 @@ import { ConfigurationRepositoryTag } from './config.repository';
 
 export interface EntityRepository {
   get<TEntity extends Entity>(
-    id: EntityId
+    id: EntityId,
   ): Effect<TEntity, EntifixError, ConfigurationRepositoryTag>;
   load<TEntity extends Entity>(
-    request: EntityLoadRequest<TEntity>
+    request: EntityLoadRequest<TEntity>,
   ): Effect<EntityPage<TEntity>, EntifixError, ConfigurationRepositoryTag>;
   save<TEntity extends Entity>(
-    entity: TEntity
+    entity: TEntity,
   ): Effect<TEntity, EntifixError, ConfigurationRepositoryTag>;
   delete<TEntity extends Entity>(
-    entityOrId: EntityId | TEntity
+    entityOrId: EntityId | TEntity,
   ): Effect<void, EntifixError, ConfigurationRepositoryTag>;
 }
 

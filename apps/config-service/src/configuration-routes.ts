@@ -1,4 +1,8 @@
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from '@effect/platform';
+import {
+  HttpRouter,
+  HttpServerRequest,
+  HttpServerResponse,
+} from '@effect/platform';
 import { SqlClient } from '@effect/sql';
 import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
 import { Configuration } from '@r10c/business-ts-configuration';
@@ -70,7 +74,11 @@ const readError = (error: unknown) =>
 const writeError = (error: unknown) =>
   error instanceof EntifixBuildError
     ? HttpServerResponse.json(
-        { error: 'invalid request body', code: 'invalidBody', detail: error.message },
+        {
+          error: 'invalid request body',
+          code: 'invalidBody',
+          detail: error.message,
+        },
         { status: 400 },
       )
     : serverError(error);
@@ -157,7 +165,9 @@ const audit = (entry: {
         old_value: entry.isSecret ? null : (entry.oldValue ?? null),
         new_value: entry.isSecret ? null : (entry.newValue ?? null),
         secret_changed:
-          entry.isSecret && entry.newValue !== undefined && entry.newValue !== '',
+          entry.isSecret &&
+          entry.newValue !== undefined &&
+          entry.newValue !== '',
         actor_id: entry.principal.userId,
         actor_email: entry.principal.subject,
       })}
@@ -357,11 +367,19 @@ export const configurationRoutes = <E, R>(
   router: HttpRouter.HttpRouter<E, R>,
 ) =>
   router.pipe(
-    HttpRouter.get(`/api/${KEY}`, guarded('read', () => listRoute)),
-    HttpRouter.get(`/api/${KEY}/:id`, guarded('read', () => byIdRoute)),
+    HttpRouter.get(
+      `/api/${KEY}`,
+      guarded('read', () => listRoute),
+    ),
+    HttpRouter.get(
+      `/api/${KEY}/:id`,
+      guarded('read', () => byIdRoute),
+    ),
     HttpRouter.post(
       `/api/${KEY}`,
-      guarded('write', principal => saveRoute(principal, { fromParams: false })),
+      guarded('write', principal =>
+        saveRoute(principal, { fromParams: false }),
+      ),
     ),
     HttpRouter.put(
       `/api/${KEY}/:id`,

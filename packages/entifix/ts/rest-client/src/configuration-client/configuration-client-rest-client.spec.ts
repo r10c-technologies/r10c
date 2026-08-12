@@ -19,10 +19,13 @@ const plain = {
   mongo: [{ key: 'uri', value: 'mongodb://host' }],
 };
 
-const server = setupEntifixServer(http.get(CONFIG_URL, () => HttpResponse.json(plain)));
+const server = setupEntifixServer(
+  http.get(CONFIG_URL, () => HttpResponse.json(plain)),
+);
 
-const store = (options: ConfigurationClientRestClientOptions = { url: CONFIG_URL }) =>
-  new ConfigurationClientRestClient(options);
+const store = (
+  options: ConfigurationClientRestClientOptions = { url: CONFIG_URL },
+) => new ConfigurationClientRestClient(options);
 
 const countRequests = () => {
   let count = 0;
@@ -34,9 +37,9 @@ const countRequests = () => {
 
 describe('ConfigurationClientRestClient', () => {
   it('resolves a key from the fetched configuration', async () => {
-    expect(
-      await Effect.runPromise(store().in('mongo').getString('uri')),
-    ).toBe('mongodb://host');
+    expect(await Effect.runPromise(store().in('mongo').getString('uri'))).toBe(
+      'mongodb://host',
+    );
   });
 
   it('scopes each group view to its own entries', async () => {
@@ -57,7 +60,9 @@ describe('ConfigurationClientRestClient', () => {
   it('supports the compose extract mode', async () => {
     expect(
       await Effect.runPromise(
-        store().in('restUri').getString('service-domain.product.brand', 'compose'),
+        store()
+          .in('restUri')
+          .getString('service-domain.product.brand', 'compose'),
       ),
     ).toBe('http://service/api/product/brand');
   });
@@ -80,14 +85,18 @@ describe('ConfigurationClientRestClient', () => {
   // default can be asserted on here is the URL it reports having tried.
   it('defaults to the same-origin /api/config route', async () => {
     const error = await Effect.runPromise(
-      Effect.flip(new ConfigurationClientRestClient().in('mongo').getString('uri')),
+      Effect.flip(
+        new ConfigurationClientRestClient().in('mongo').getString('uri'),
+      ),
     );
 
     expect(error.details).toEqual({ url: '/api/config' });
   });
 
   it('fails with an EntifixBuildError when the endpoint answers an error status', async () => {
-    server.use(http.get(CONFIG_URL, () => new HttpResponse(null, { status: 503 })));
+    server.use(
+      http.get(CONFIG_URL, () => new HttpResponse(null, { status: 503 })),
+    );
 
     const error = await Effect.runPromise(
       Effect.flip(store().in('mongo').getString('uri')),
@@ -134,7 +143,7 @@ describe('ConfigurationClientRestClient', () => {
       'getOptionalArrayDate',
     ] as const;
 
-    it.each(notImplemented)('%s defects', async (name) => {
+    it.each(notImplemented)('%s defects', async name => {
       // Erased to one signature: the getters differ only in their success type,
       // and none of them produces one.
       const group = store().in('mongo') as unknown as Record<

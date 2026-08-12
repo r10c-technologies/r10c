@@ -65,7 +65,10 @@ describe('serializeEntity', () => {
     const brand = new Brand();
     brand.id = 'brand-1';
     brand.name = 'Acme';
-    expect(serializeEntity(Brand, brand)).toEqual({ id: 'brand-1', name: 'Acme' });
+    expect(serializeEntity(Brand, brand)).toEqual({
+      id: 'brand-1',
+      name: 'Acme',
+    });
   });
 
   it('emits an embedded object for a loaded link', () => {
@@ -103,8 +106,8 @@ describe('serializeEntity', () => {
         id: 'product-1',
         name: 'Widget',
         brand: { id: 'brand-1', name: 'Acme' },
-      })
-    ).then((instance) => {
+      }),
+    ).then(instance => {
       expect(serializeEntity(Product, instance as Product)).toEqual({
         id: 'product-1',
         name: 'Widget',
@@ -118,8 +121,8 @@ describe('serializeEntity', () => {
         id: 'product-2',
         name: 'Gadget',
         brand: 'brand-9',
-      })
-    ).then((instance) => {
+      }),
+    ).then(instance => {
       expect(serializeEntity(Product, instance as Product)).toEqual({
         id: 'product-2',
         name: 'Gadget',

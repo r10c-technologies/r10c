@@ -54,13 +54,17 @@ describe('ThemeProvider', () => {
   });
 
   it('reflects the active theme onto the document', () => {
-    renderHook(() => useTheme(), { wrapper: wrapper({ defaultTheme: 'dark' }) });
+    renderHook(() => useTheme(), {
+      wrapper: wrapper({ defaultTheme: 'dark' }),
+    });
 
     expect(document.documentElement.dataset['theme']).toBe('dark');
   });
 
   it('persists the active theme', () => {
-    renderHook(() => useTheme(), { wrapper: wrapper({ defaultTheme: 'dark' }) });
+    renderHook(() => useTheme(), {
+      wrapper: wrapper({ defaultTheme: 'dark' }),
+    });
 
     expect(window.localStorage.getItem('r10c-theme')).toBe('dark');
   });
@@ -110,7 +114,9 @@ describe('ThemeProvider', () => {
     // static preset defining the same tokens.
     it('injects a style element under the theme selector', () => {
       renderHook(() => useTheme(), {
-        wrapper: wrapper({ palettes: { dark: { primary: '#000', accent: '#fff' } } }),
+        wrapper: wrapper({
+          palettes: { dark: { primary: '#000', accent: '#fff' } },
+        }),
       });
 
       const style = document.getElementById('r10c-theme-runtime-palettes');

@@ -16,13 +16,12 @@ test.describe('browsing the catalog', () => {
       page.getByRole('heading', { name: 'Marketplace r10c' }),
     ).toBeVisible();
 
-    await page
-      .getByRole('link', { name: 'Ver producto' })
-      .first()
-      .click();
+    await page.getByRole('link', { name: 'Ver producto' }).first().click();
 
     await expect(page).toHaveURL(/\/es\/p\//);
-    await expect(page.getByRole('button', { name: 'Añadir al carrito' })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Añadir al carrito' }),
+    ).toBeVisible();
   });
 
   test('a category shows only its own products', async ({ page }) => {

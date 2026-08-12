@@ -36,10 +36,7 @@ export interface OneTimeTokenStore {
    * mail archive, a proxy log — is already spent. Fails when the token is
    * unknown, expired, or already used; the caller must not distinguish those.
    */
-  consume(
-    purpose: TokenPurpose,
-    token: string,
-  ): Effect<string, EntifixError>;
+  consume(purpose: TokenPurpose, token: string): Effect<string, EntifixError>;
 }
 
 /** DI tag the composition root binds to a concrete {@link OneTimeTokenStore}. */

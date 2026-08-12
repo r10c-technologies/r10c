@@ -109,15 +109,16 @@ describe('translateFiltering', () => {
     ['lt', '<'],
     ['lte', '<='],
   ] as const)('translates the binary operator %s', (operator, symbol) => {
-    expect(
-      where([{ property: 'size', operator, value: 10 }]),
-    ).toEqual([`"size" ${symbol} $1`, [10]]);
+    expect(where([{ property: 'size', operator, value: 10 }])).toEqual([
+      `"size" ${symbol} $1`,
+      [10],
+    ]);
   });
 
   it('emits the aliased column, not the accessor name', () => {
-    expect(where([{ property: 'name', operator: 'eq', value: 'Alpha' }])).toEqual(
-      ['"widget_name" = $1', ['Alpha']],
-    );
+    expect(
+      where([{ property: 'name', operator: 'eq', value: 'Alpha' }]),
+    ).toEqual(['"widget_name" = $1', ['Alpha']]);
   });
 
   it('accepts the wire key as well as the accessor name', () => {
@@ -129,12 +130,12 @@ describe('translateFiltering', () => {
   });
 
   it('parameterizes every value of in / nin', () => {
-    expect(where([{ property: 'size', operator: 'in', values: [1, 2] }])).toEqual(
-      ['"size" IN ($1,$2)', [1, 2]],
-    );
     expect(
-      where([{ property: 'size', operator: 'nin', values: [3] }]),
-    ).toEqual(['"size" NOT IN ($1)', [3]]);
+      where([{ property: 'size', operator: 'in', values: [1, 2] }]),
+    ).toEqual(['"size" IN ($1,$2)', [1, 2]]);
+    expect(where([{ property: 'size', operator: 'nin', values: [3] }])).toEqual(
+      ['"size" NOT IN ($1)', [3]],
+    );
   });
 
   it('translates between / nbetween', () => {
@@ -147,18 +148,18 @@ describe('translateFiltering', () => {
   });
 
   it('translates like / nlike to a case-insensitive contains match', () => {
-    expect(where([{ property: 'name', operator: 'like', value: 'et' }])).toEqual(
-      ['"widget_name" ILIKE $1', ['%et%']],
-    );
+    expect(
+      where([{ property: 'name', operator: 'like', value: 'et' }]),
+    ).toEqual(['"widget_name" ILIKE $1', ['%et%']]);
     expect(
       where([{ property: 'name', operator: 'nlike', value: 'et' }]),
     ).toEqual(['"widget_name" NOT ILIKE $1', ['%et%']]);
   });
 
   it('escapes wildcards in a like value so it matches literally', () => {
-    expect(where([{ property: 'name', operator: 'like', value: '50%' }])).toEqual(
-      ['"widget_name" ILIKE $1', ['%50\\%%']],
-    );
+    expect(
+      where([{ property: 'name', operator: 'like', value: '50%' }]),
+    ).toEqual(['"widget_name" ILIKE $1', ['%50\\%%']]);
   });
 
   it('translates the null operators without a parameter', () => {
@@ -224,7 +225,9 @@ describe('translateFiltering', () => {
   it('drops an empty group rather than emitting invalid SQL', () => {
     // `AND ()` is a syntax error, so a group with nothing in it has to vanish
     // — including when it is the only entry, which must yield no WHERE at all.
-    expect(translateFiltering(sql, Widget, [{ operator: 'and', values: [] }])).toBeUndefined();
+    expect(
+      translateFiltering(sql, Widget, [{ operator: 'and', values: [] }]),
+    ).toBeUndefined();
 
     expect(
       where([
@@ -298,7 +301,10 @@ describe('translateSorting', () => {
   it('orders by ascending numeric priority, not declaration order', () => {
     expect(
       orderBy([
-        { 1: { property: 'name', type: 'asc' }, 0: { property: 'size', type: 'desc' } },
+        {
+          1: { property: 'name', type: 'asc' },
+          0: { property: 'size', type: 'desc' },
+        },
       ]),
     ).toEqual(['"size" DESC, "widget_name" ASC', []]);
   });

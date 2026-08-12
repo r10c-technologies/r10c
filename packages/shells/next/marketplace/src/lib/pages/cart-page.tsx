@@ -80,7 +80,10 @@ export async function CartPage({ locale }: { readonly locale: Locale }) {
                 {': '}
                 {cartCount(lines)}
               </Text>
-              <ButtonLink href={localeHref(locale, storePaths.home())} variant="secondary">
+              <ButtonLink
+                href={localeHref(locale, storePaths.home())}
+                variant="secondary"
+              >
                 {t('storefront.cart.keepShopping')}
               </ButtonLink>
             </Cluster>

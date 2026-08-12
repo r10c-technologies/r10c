@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  the entitlement vocabulary is the set of **tenant-facing** domains;
+  `catalog-reference` is operator-owned and never grantable.
 
 ## Context
 
@@ -74,6 +77,18 @@ organization's provisioning — and the second one is also the SaaS provisioning
 record. Since a permission's domain segment _is_ the package's domain name
 ([ADR 0005](0005-business-domain-decomposition.md)), the entitlement list needs no
 separate module registry.
+
+**Not every domain is grantable.** `catalog-reference` — the platform-owned
+brand, category and dictionary vocabulary — is operator-authored and can never
+appear in an `Entitlement`
+([ADR 0022](0022-v1-marketplace-module-boundaries.md)). An organization is not
+"provisioned for" the platform's shared classification, and a tenant role mintable
+against it would let one vendor rewrite the browse tree every other vendor is
+classified into — precisely the escalation this ceiling exists to stop.
+
+So the entitlement vocabulary is the set of **tenant-facing** domains, not the set
+of all domains. That is a narrowing of this record's original claim, and it is
+the first domain to sit outside it.
 
 ## Consequences
 

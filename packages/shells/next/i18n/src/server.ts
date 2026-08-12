@@ -1,4 +1,11 @@
-import { createI18n, DEFAULT_LOCALE, isLocale, type Locale, LOCALE_HEADER, type Namespace } from '@r10c/entifix-ts-i18n';
+import {
+  createI18n,
+  DEFAULT_LOCALE,
+  isLocale,
+  type Locale,
+  LOCALE_HEADER,
+  type Namespace,
+} from '@r10c/entifix-ts-i18n';
 import { headers } from 'next/headers';
 
 /**

@@ -29,7 +29,9 @@ describe('resolveLocale', () => {
   });
 
   it('redirects an unprefixed path to the negotiated locale', () => {
-    const resolution = resolveLocale(request('/catalog', { acceptLanguage: 'en-GB' }));
+    const resolution = resolveLocale(
+      request('/catalog', { acceptLanguage: 'en-GB' }),
+    );
 
     expect(resolution.locale).toBe('en');
     expect(resolution.redirect?.headers.get('location')).toBe(
@@ -38,7 +40,9 @@ describe('resolveLocale', () => {
   });
 
   it('remembers the choice on the redirect, so the next visit skips negotiation', () => {
-    const resolution = resolveLocale(request('/catalog', { acceptLanguage: 'en' }));
+    const resolution = resolveLocale(
+      request('/catalog', { acceptLanguage: 'en' }),
+    );
 
     expect(resolution.redirect?.cookies.get(LOCALE_COOKIE)?.value).toBe('en');
   });
@@ -52,7 +56,9 @@ describe('resolveLocale', () => {
   });
 
   it('falls back to the fleet default', () => {
-    const resolution = resolveLocale(request('/catalog', { acceptLanguage: 'fr' }));
+    const resolution = resolveLocale(
+      request('/catalog', { acceptLanguage: 'fr' }),
+    );
 
     expect(resolution.locale).toBe('es');
     expect(resolution.redirect?.headers.get('location')).toBe(
@@ -61,7 +67,9 @@ describe('resolveLocale', () => {
   });
 
   it('keeps the query string across the redirect', () => {
-    const resolution = resolveLocale(request('/workspace?tab=catalog%3Aproduct'));
+    const resolution = resolveLocale(
+      request('/workspace?tab=catalog%3Aproduct'),
+    );
 
     expect(resolution.redirect?.headers.get('location')).toBe(
       'http://localhost:3001/es/workspace?tab=catalog%3Aproduct',
@@ -77,7 +85,9 @@ describe('rewriteToLocale', () => {
     expect(response.headers.get('x-middleware-rewrite')).toBe(
       'http://localhost:3001/catalog',
     );
-    expect(response.headers.get(`x-middleware-request-${LOCALE_HEADER}`)).toBe('en');
+    expect(response.headers.get(`x-middleware-request-${LOCALE_HEADER}`)).toBe(
+      'en',
+    );
     expect(response.cookies.get(LOCALE_COOKIE)?.value).toBe('en');
   });
 });

@@ -33,7 +33,7 @@ describe('Stack', () => {
     'xl',
     '2xl',
     '3xl',
-  ] as SpacingToken[])('maps the %s spacing token', (gap) => {
+  ] as SpacingToken[])('maps the %s spacing token', gap => {
     render(<Stack data-testid="stack" gap={gap} />);
 
     expect(classesOf()).toContain(`gap-${gap}`);

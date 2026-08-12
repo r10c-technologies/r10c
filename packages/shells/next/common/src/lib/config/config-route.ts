@@ -3,7 +3,10 @@ import { NextResponse } from 'next/server';
 import { SERVICE_TOKEN_HEADER, serviceToken } from './service-token';
 
 /** A group of parameters as `ConfigurationPlain` carries them. */
-type PlainConfiguration = Record<string, Array<{ key: string; value: unknown }>>;
+type PlainConfiguration = Record<
+  string,
+  Array<{ key: string; value: unknown }>
+>;
 
 /**
  * Rewrites backend addresses to the app's own same-origin proxy paths.

@@ -106,11 +106,9 @@ describe('Configuration', () => {
     const columns = describeEntityColumns(Configuration);
     const by = (name: string) => columns.find(column => column.name === name);
 
-    expect([by('service'), by('groupName'), by('key')].map(c => c?.required)).toEqual([
-      true,
-      true,
-      true,
-    ]);
+    expect(
+      [by('service'), by('groupName'), by('key')].map(c => c?.required),
+    ).toEqual([true, true, true]);
   });
 
   it('keeps the audit stamps on the wire in both directions', async () => {

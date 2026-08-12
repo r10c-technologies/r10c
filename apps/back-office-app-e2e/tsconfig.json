@@ -25,6 +25,9 @@
   ],
   "references": [
     {
+      "path": "../../packages/business/ts/catalog-reference"
+    },
+    {
       "path": "../../packages/entifix/ts/testing-e2e"
     },
     {

@@ -100,7 +100,9 @@ export function makeSqlRepository<TEntity extends Entity>(
       });
 
       const where =
-        clauses.where === undefined ? sql.literal('') : sql`WHERE ${clauses.where}`;
+        clauses.where === undefined
+          ? sql.literal('')
+          : sql`WHERE ${clauses.where}`;
       const orderBy =
         clauses.orderBy === undefined
           ? sql.literal('')
@@ -121,7 +123,9 @@ export function makeSqlRepository<TEntity extends Entity>(
       const counted = yield* sql<{
         readonly count: number;
       }>`SELECT COUNT(*)::int AS count FROM ${table} ${where}`.pipe(
-        Effect.mapError(error => fail('Failed to count entities in SQL', error)),
+        Effect.mapError(error =>
+          fail('Failed to count entities in SQL', error),
+        ),
       );
 
       const items = yield* deserializeEntityCollection(entityConstructor, [

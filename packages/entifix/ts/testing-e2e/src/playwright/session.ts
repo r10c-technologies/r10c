@@ -280,7 +280,8 @@ export const seedSession = async (
     locale = 'es',
     identifier = 'ada@example.com',
     password = 'Password123!',
-    signInAppUrl = process.env['BACK_OFFICE_APP_URL'] ?? 'http://localhost:3001',
+    signInAppUrl = process.env['BACK_OFFICE_APP_URL'] ??
+      'http://localhost:3001',
   }: SeedSessionOptions = {},
 ): Promise<void> => {
   if (!isMockProfile()) {

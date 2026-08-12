@@ -1,6 +1,9 @@
-import { ProductCategory } from '@r10c/business-ts-product-configuration-management';
+import { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { EntityRepositoryTag } from '@r10c/entifix-ts-business';
-import type { EntityLoadRequest, SerializedEntity } from '@r10c/entifix-ts-core';
+import type {
+  EntityLoadRequest,
+  SerializedEntity,
+} from '@r10c/entifix-ts-core';
 import { Context, Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -63,7 +66,9 @@ describe('the fixture repository', () => {
 
   it('matches `like` case-insensitively on a substring', async () => {
     const page = await load({
-      filtering: [{ property: 'name', operator: 'like', value: 'TEX' }] as never,
+      filtering: [
+        { property: 'name', operator: 'like', value: 'TEX' },
+      ] as never,
     });
 
     expect(page.items.map(item => item.code)).toEqual(['textiles']);
@@ -166,9 +171,7 @@ describe('the fixture repository', () => {
     const exit = await Effect.runPromiseExit(
       Effect.provide(
         repository.load<ProductCategory>({
-          filtering: [
-            { operator: 'or', values: [] },
-          ] as never,
+          filtering: [{ operator: 'or', values: [] }] as never,
         }),
         fixtureConfigurationContext,
       ),

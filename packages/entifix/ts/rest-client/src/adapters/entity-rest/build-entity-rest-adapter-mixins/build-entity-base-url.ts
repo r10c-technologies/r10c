@@ -9,7 +9,7 @@ export const buildEntityBaseUrl = (
   configurationStore: ConfigurationClient,
   options: BuildEntityRestOptions,
   entityName: string,
-  entityId?: string
+  entityId?: string,
 ) =>
   Effect.gen(function* () {
     const { uriConfig } = options;
@@ -17,7 +17,7 @@ export const buildEntityBaseUrl = (
       .in(uriConfig.group ?? DEFAULT_URI_GROUP)
       .getString(
         uriConfig.key.replace('[entity]', entityName),
-        uriConfig.extractionMode
+        uriConfig.extractionMode,
       );
 
     return entityId ? `${entityUri}/${entityId}` : entityUri;

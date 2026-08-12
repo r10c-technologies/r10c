@@ -53,7 +53,9 @@ describe('cause normalization', () => {
   });
 
   it('stringifies a non-string message on such an object', () => {
-    expect(new EntifixConnError('wrapped', { message: 42 }).cause?.message).toBe('42');
+    expect(
+      new EntifixConnError('wrapped', { message: 42 }).cause?.message,
+    ).toBe('42');
   });
 
   it.each([

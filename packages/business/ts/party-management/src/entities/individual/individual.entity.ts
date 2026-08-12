@@ -1,8 +1,6 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { accessor, entity } from '@r10c/entifix-ts-core';
 
-import { type PartyRoleName, PartyRoles } from '../../values/party-role';
-
 /**
  * A `Party` that is a person.
  *
@@ -30,9 +28,6 @@ export class Individual implements Entity {
   #id?: EntityId;
   #fullName: string;
   #userId?: string;
-  // A person the platform knows nothing else about is someone who shops here:
-  // the default has to be the population with the least reach.
-  #partyRole: PartyRoleName = 'customer';
   // #endregion
 
   // #region constructors
@@ -91,19 +86,5 @@ export class Individual implements Entity {
    * value reaches a session through the sign-in scope resolver, never through
    * a request.
    */
-  @accessor({
-    type: 'enum',
-    labelKey: 'entity:individual.fields.partyRole',
-    enumValues: PartyRoles,
-    enumLabelKey: 'entity:individual.values.partyRole',
-    sortable: true,
-    filterable: true,
-  })
-  get partyRole(): PartyRoleName {
-    return this.#partyRole;
-  }
-  set partyRole(value: PartyRoleName) {
-    this.#partyRole = value;
-  }
   // #endregion
 }

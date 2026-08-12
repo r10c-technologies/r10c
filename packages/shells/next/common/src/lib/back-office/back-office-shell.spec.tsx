@@ -48,7 +48,9 @@ describe('BackOfficeShell', () => {
     expect(
       screen.getByRole('navigation', { name: 'Principal' }),
     ).toBeInTheDocument();
-    const crumbs = screen.getByRole('navigation', { name: 'Ruta de navegación' });
+    const crumbs = screen.getByRole('navigation', {
+      name: 'Ruta de navegación',
+    });
     expect(within(crumbs).getByText('Product')).toHaveAttribute(
       'aria-current',
       'page',
@@ -60,7 +62,9 @@ describe('BackOfficeShell', () => {
   });
 
   it('renders an account menu in the top bar when one is given', () => {
-    renderShell({ accountMenu: <button type="button">ada@example.com</button> });
+    renderShell({
+      accountMenu: <button type="button">ada@example.com</button>,
+    });
 
     expect(
       screen.getByRole('button', { name: 'ada@example.com' }),
@@ -80,7 +84,9 @@ describe('BackOfficeShell', () => {
     const user = userEvent.setup();
     const { unmount } = renderShell();
 
-    await user.click(screen.getByRole('button', { name: 'Contraer barra lateral' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Contraer barra lateral' }),
+    );
 
     const toggle = await screen.findByRole('button', {
       name: 'Expandir barra lateral',

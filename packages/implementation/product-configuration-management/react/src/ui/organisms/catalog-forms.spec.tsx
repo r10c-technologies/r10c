@@ -1,32 +1,13 @@
 import {
-  Product,
   ProductBrand,
   ProductCategory,
-} from '@r10c/business-ts-product-configuration-management';
-import {
-  EntifixQueryProvider,
-  type EntityLinkSourceConfig,
-} from '@r10c/entifix-react-integration';
-import {
-  ConfigurationRepositoryTag,
-  type EntityRepository,
-  EntityRepositoryTag,
-  getUCFactory,
-  loadUCFactory,
-} from '@r10c/entifix-ts-business';
-import {
-  EntifixConnError,
-  type Entity,
-  type EntityConstructor,
-} from '@r10c/entifix-ts-core';
-import {
-  makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
-import { render, screen } from '@testing-library/react';
+} from '@r10c/business-ts-catalog-reference';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
+import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Context } from 'effect';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ProductBrandForm } from './product-brand-form/product-brand-form.js';
 import { ProductCategoryForm } from './product-category-form/product-category-form.js';
@@ -43,37 +24,6 @@ const makeCategory = (id: string, code: string, name: string) => {
   category.id = id;
   return category;
 };
-
-const brands = [makeBrand('b-1', 'Acme'), makeBrand('b-2', 'Globex')];
-const categories = [makeCategory('c-1', 'TOOLS', 'Tools')];
-
-type Ctx = ConfigurationRepositoryTag | EntityRepositoryTag;
-
-let brandRepository: EntityRepository;
-let categoryRepository: EntityRepository;
-
-/**
- * The picker configuration a page would build: the real use-cases over an
- * in-memory repository, so these cases exercise search and selection end to end
- * rather than a stubbed source.
- */
-const linkConfig = <TTarget extends Entity>(
-  entityConstructor: EntityConstructor<TTarget>,
-  repository: EntityRepository,
-): EntityLinkSourceConfig<TTarget, Ctx> => ({
-  entityConstructor,
-  loadUc: loadUCFactory<TTarget>(),
-  getUc: getUCFactory<TTarget>(),
-  ctx: Context.make(EntityRepositoryTag, repository).pipe(
-    Context.add(ConfigurationRepositoryTag, makeStubConfigurationClient()),
-  ),
-  debounceMs: 0,
-});
-
-beforeEach(() => {
-  brandRepository = makeInMemoryEntityRepository([...brands]);
-  categoryRepository = makeInMemoryEntityRepository([...categories]);
-});
 
 describe('ProductBrandForm', () => {
   const renderForm = (
@@ -304,144 +254,94 @@ describe('ProductCategoryForm', () => {
 
 describe('ProductForm', () => {
   const renderForm = (
-    props: Partial<Parameters<typeof ProductForm<Ctx>>[0]> = {},
+    props: Partial<Parameters<typeof ProductForm>[0]> = {},
   ) => {
     const onSave = vi.fn();
     const user = userEvent.setup();
     render(
       <EntifixQueryProvider>
-        <ProductForm<Ctx>
-          brandLink={linkConfig(ProductBrand, brandRepository)}
-          categoryLink={linkConfig(ProductCategory, categoryRepository)}
-          onSave={onSave}
-          backHref="/catalog"
-          {...props}
-        />
+        <ProductForm onSave={onSave} backHref="/catalog" {...props} />
       </EntifixQueryProvider>,
     );
     return { onSave, user };
   };
 
   const makeProduct = () => {
-    const product = new Product('P-1', 'Widget');
+    const product = new ProductSpecification('P-1', 'Widget');
     product.id = 'p-1';
-    product.brand.setValue(brands[0]!);
-    product.category.setId('c-1');
+    product.brandId = 'product-brand-1';
+    product.categoryId = 'product-category-1';
     return product;
   };
 
-  /** Picks a target through the quick search of one relation. */
-  const pick = async (
-    user: ReturnType<typeof userEvent.setup>,
-    field: string,
-    option: string,
-  ) => {
-    await user.click(
-      screen.getByRole('button', { name: `Ver sugerencias de ${field}` }),
-    );
-    await user.click(await screen.findByRole('option', { name: option }));
-  };
-
-  it('offers the catalog through each relation’s quick search', async () => {
-    const { user } = renderForm();
-
-    await pick(user, 'Marca', 'Acme');
-
-    expect(screen.getByTestId('entity-link-value-brand')).toHaveTextContent(
-      'Acme',
-    );
-  });
-
-  it('seeds both relation editors from the record', async () => {
+  it('renders the classifications as plain id fields', async () => {
+    // They were relation pickers until ADR 0022 moved their targets into
+    // another slice's store. A picker over a scalar id is follow-up work; what
+    // must not regress is that the ids remain editable at all.
     renderForm({ entity: makeProduct() });
 
-    // `brand` arrived embedded, so its name is already known; `category` arrived
-    // as a bare key and is resolved through the picker's get use-case.
-    expect(screen.getByTestId('entity-link-value-brand')).toHaveTextContent(
-      'Acme',
-    );
-    expect(
-      await screen.findByText('Tools', { selector: 'span' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('product-brand-1')).toBeVisible();
+    expect(screen.getByDisplayValue('product-category-1')).toBeVisible();
   });
 
-  // The two relations are stored differently, and the entity is what says so:
-  // `brand` declares `linkSerialization: 'embedded'`, `category` keeps the
-  // default. The form applies whatever each declares.
-  it('embeds the chosen brand but stores the category as a foreign key', async () => {
-    const { onSave, user } = renderForm();
-
-    await user.type(screen.getByLabelText('Código'), 'P-1');
-    await user.type(screen.getByLabelText('Nombre'), 'Widget');
-    await user.type(screen.getByLabelText('Descripción'), 'A product');
-    await pick(user, 'Marca', 'Globex');
-    await pick(user, 'Categoría', 'Tools');
-    await user.click(screen.getByRole('button', { name: 'Guardar' }));
-
-    const saved = onSave.mock.calls[0]?.[0] as Product;
-    expect(saved.brand.isLoaded).toBe(true);
-    expect(saved.brand.value?.name).toBe('Globex');
-    expect(saved.category.isLoaded).toBe(false);
-    expect(saved.category.id).toBe('c-1');
-  });
-
-  it('leaves both relations empty when neither was chosen', async () => {
-    const { onSave, user } = renderForm();
-
-    await user.type(screen.getByLabelText('Código'), 'P-1');
-    await user.type(screen.getByLabelText('Nombre'), 'Widget');
-    await user.click(screen.getByRole('button', { name: 'Guardar' }));
-
-    const saved = onSave.mock.calls[0]?.[0] as Product;
-    expect(saved.brand.isLoaded).toBe(false);
-    expect(saved.category.id).toBeUndefined();
-  });
-
-  it('drops a relation the user cleared', async () => {
+  it('submits the ids the user typed', async () => {
     const { onSave, user } = renderForm({ entity: makeProduct() });
 
-    await user.click(screen.getByRole('button', { name: 'Quitar Marca' }));
+    const brand = await screen.findByDisplayValue('product-brand-1');
+    await user.clear(brand);
+    await user.type(brand, 'product-brand-7');
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    const saved = onSave.mock.calls[0]?.[0] as Product;
-    expect(saved.brand.isLoaded).toBe(false);
-    expect(saved.brand.id).toBeUndefined();
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const saved = onSave.mock.calls[0]?.[0] as ProductSpecification;
+    expect(saved.brandId).toBe('product-brand-7');
+    expect(saved.categoryId).toBe('product-category-1');
   });
 
-  it('carries the record’s id through an update', async () => {
+  it('clears a classification the user empties', async () => {
+    // An empty input means "unclassified", not the empty string — a dangling or
+    // absent reference is a display gap, never a broken record.
     const { onSave, user } = renderForm({ entity: makeProduct() });
 
+    await user.clear(await screen.findByDisplayValue('product-category-1'));
+    await user.clear(screen.getByDisplayValue('product-brand-1'));
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    expect((onSave.mock.calls[0]?.[0] as Product).id).toBe('p-1');
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const saved = onSave.mock.calls[0]?.[0] as ProductSpecification;
+    expect(saved.categoryId).toBeUndefined();
+    expect(saved.brandId).toBeUndefined();
   });
 
-  it('reports loading and failure', () => {
-    renderForm({ isLoading: true, error: new EntifixConnError('unreachable') });
+  it('creates a specification from an empty form', async () => {
+    // Create mode renders the other title and starts with no entity, which is
+    // also the only path where a typed description reaches the submit branch.
+    const { onSave, user } = renderForm();
 
-    expect(screen.getByTestId('entity-form-loading')).toBeInTheDocument();
-    expect(screen.getByTestId('entity-form-error')).toHaveTextContent(
-      'unreachable',
-    );
+    await user.type(screen.getByLabelText('Código'), 'P-9');
+    await user.type(screen.getByLabelText('Nombre'), 'Gizmo');
+    await user.type(screen.getByLabelText('Descripción'), 'A gizmo');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const saved = onSave.mock.calls[0]?.[0] as ProductSpecification;
+    expect(saved.code).toBe('P-9');
+    expect(saved.description).toBe('A gizmo');
+    expect(saved.id).toBeUndefined();
   });
 
-  it('offers delete only when the page provides a handler', () => {
-    renderForm({ onDelete: vi.fn() });
+  it('seeds from a persisted draft instead of the entity', async () => {
+    renderForm({
+      entity: makeProduct(),
+      initialDraft: {
+        code: 'P-1',
+        name: 'Widget',
+        description: '',
+        brandId: 'product-brand-9',
+        categoryId: '',
+      },
+    });
 
-    expect(
-      screen.getByRole('button', { name: 'Eliminar' }),
-    ).toBeInTheDocument();
-  });
-
-  // Any in-flight write disables every action, so a double submit or a
-  // save-then-delete race is impossible.
-  it.each([
-    ['saving', { isSaving: true }, 'Guardando…'],
-    ['deleting', { isDeleting: true }, 'Eliminando…'],
-  ])('disables every action while %s', (_label, props, busyLabel) => {
-    renderForm({ ...props, onDelete: vi.fn() });
-
-    expect(screen.getByText(busyLabel)).toBeInTheDocument();
-    expect(screen.getByText(busyLabel)).toBeDisabled();
+    expect(await screen.findByDisplayValue('product-brand-9')).toBeVisible();
   });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { ProductCategory } from '@r10c/business-ts-product-configuration-management';
+import { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
 import { useEntityForm } from '@r10c/entifix-react-integration';
 

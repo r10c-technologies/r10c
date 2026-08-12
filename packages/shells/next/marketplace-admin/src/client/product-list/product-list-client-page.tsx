@@ -1,36 +1,20 @@
-import {
-  loadProductsUCFactory,
-  ProductBrand,
-  ProductCategory,
-} from '@r10c/business-ts-product-configuration-management';
-import { useEntityLinkResolver } from '@r10c/entifix-react-integration';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import { loadUCFactory } from '@r10c/entifix-ts-business';
 import { ProductTable } from '@r10c/implementation-product-configuration-management-react';
 import { Context } from 'effect';
 
 import { useMarketplaceAdminAdapters } from '../marketplace-admin-context';
 
 export function ProductListClientPage() {
-  const {
-    productRest,
-    productBrandRest,
-    productCategoryRest,
-    configurationStore,
-  } = useMarketplaceAdminAdapters();
+  const { productRest, configurationStore } = useMarketplaceAdminAdapters();
 
-  // Link resolution is wired here, at the page, from the base adapters. This is
-  // the seam where last-mile decisions live: a caller could later register
-  // cached or state-backed adapters without touching the base adapters or the
-  // use-case.
-  const entityLinkResolver = useEntityLinkResolver(configurationStore, [
-    [ProductBrand, productBrandRest],
-    [ProductCategory, productCategoryRest],
-  ]);
-
-  const uc = loadProductsUCFactory();
-  const ctx = Context.merge(
-    Context.merge(configurationStore, productRest),
-    entityLinkResolver
-  );
+  // No link resolver here any more. Brand and category are plain ids on
+  // `ProductSpecification`: their entities live in `catalog-reference`, a
+  // platform-plane store owned by another slice, so resolving them at the
+  // storage layer is exactly the cross-store coupling ADR 0022 removed. A list
+  // shows the ids; a screen that needs names asks the owning domain for them.
+  const uc = loadUCFactory<ProductSpecification>();
+  const ctx = Context.merge(configurationStore, productRest);
 
   return (
     <ProductTable
