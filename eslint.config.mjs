@@ -93,10 +93,10 @@ const scopeConstraints = [
     sourceTag: 'scope:auth',
     onlyDependOnLibsWithTags: ['scope:auth', 'scope:shared'],
   },
-  {
-    sourceTag: 'scope:transaction',
-    onlyDependOnLibsWithTags: ['scope:transaction', 'scope:shared'],
-  },
+  // No `scope:transaction`: the `transaction` slice owns the `saga` store but
+  // carries no project of its own — it is co-deployed inside
+  // marketplace-admin-service, whose own scope already governs it. Re-add the
+  // entry when the slice is split back into its own app.
   {
     sourceTag: 'scope:config',
     onlyDependOnLibsWithTags: ['scope:config', 'scope:shared'],

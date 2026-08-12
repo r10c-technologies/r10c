@@ -213,8 +213,8 @@ things:
 2. **Publishing** projects the approved subset into the platform-scope
    marketplace catalog the storefront queries.
 
-The projection runs on the existing saga engine (`transaction-manager` +
-`entifix-transactions`). This buys approval and moderation, price snapshots taken
+The projection runs on the existing saga engine (the `transaction` slice's
+tracker + `entifix-transactions`). This buys approval and moderation, price snapshots taken
 at publish time, and a storefront whose read path cannot be slowed by a tenant's
 write load.
 

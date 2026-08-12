@@ -66,10 +66,7 @@ import {
   type CatalogHandlerOptions,
   makeCatalogTransactionHandler,
 } from './catalog-transaction-handler';
-
-/** Where a client polls a transaction it just accepted. */
-const TRANSACTION_MANAGER_URL =
-  process.env.TRANSACTION_MANAGER_URL ?? 'http://localhost:3103';
+import { sagaRoutes } from './saga/routes';
 
 /**
  * Reads the load request from the query string: `rsql` (filtering), `sort`,
@@ -138,7 +135,7 @@ const readError = (error: unknown) =>
 /**
  * The synchronous accept phase reports the command's fate to the client: a
  * malformed command is a `400`, lock contention a `409` (retry), anything else
- * a `500`. Failures after the `202` are the transaction-manager's concern, not
+ * a `500`. Failures after the `202` are the saga tracker's concern, not
  * the client's.
  */
 const acceptError = (error: unknown) =>
@@ -295,7 +292,7 @@ const saveRoute = <T extends Entity>(
  * the service runs the accept phase (validate -> lock) synchronously, answers
  * `202` with a transaction id, and forks the execute phase (assign code ->
  * persist -> free, or rollback -> free) as a daemon that publishes lifecycle
- * events. The client polls the transaction-manager for the outcome.
+ * events. The client polls the saga tracker for the outcome.
  *
  * The request body is still an entity envelope (the admin app is unchanged on
  * the wire), which is re-serialized into the command payload.
@@ -351,7 +348,12 @@ const createTransactionRoute = <
           links: [
             {
               rel: 'status',
-              href: `${TRANSACTION_MANAGER_URL}/api/transaction/${transactionId}`,
+              // Relative: the tracker answers on this same origin now that the
+              // `transaction` slice is co-deployed here. A client already knows
+              // the host it POSTed to, and keeping the link relative means
+              // splitting the slice back out changes a deployment, not a
+              // response body.
+              href: `/api/transaction/${transactionId}`,
               method: 'GET',
             },
           ],
@@ -449,7 +451,7 @@ const guarded = <T extends Entity, A, E, R>(
       ),
   );
 
-export const router = HttpRouter.empty.pipe(
+export const router = sagaRoutes(HttpRouter.empty).pipe(
   HttpRouter.get('/api/config', configIntrospectionRoute),
 
   // Token-verified backend integration: returns the caller's principal, proving

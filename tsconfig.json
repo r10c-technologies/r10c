@@ -97,9 +97,6 @@
       "path": "./apps/config-service"
     },
     {
-      "path": "./apps/transaction-manager"
-    },
-    {
       "path": "./apps/auth-service-e2e"
     },
     {

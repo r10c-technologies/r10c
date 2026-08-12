@@ -22,7 +22,7 @@ export type TransactionStep = 'accepted' | 'completed' | 'failed';
 
 /**
  * What a service publishes to the bus as its transaction progresses. The
- * `transaction-manager` is a passive consumer of these — it never dispatches
+ * the saga tracker is a passive consumer of these — it never dispatches
  * work, it only records what the events tell it.
  */
 export interface TransactionEvent {

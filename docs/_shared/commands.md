@@ -33,9 +33,11 @@ pnpm nx run marketplace-app:dev            # :3000
 pnpm nx run marketplace-admin-app:dev      # :3001 (auto-starts admin-service + config-service)
 pnpm nx run auth-app:dev                   # :3002
 pnpm nx run config-service:dev             # :3190 (Postgres; runs ensure-infra first)
-pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo; +config-service)
+pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo + Redis + RabbitMQ;
+                                           #        also runs the co-deployed
+                                           #        `transaction` slice's saga
+                                           #        tracker; +config-service)
 pnpm nx run auth-service:dev               # :3102 (Mongo; +config-service)
-pnpm nx run transaction-manager:dev        # :3103 (Mongo + RabbitMQ; passive saga tracker)
 
 # A library edit reloads by itself while any app/service runs: every app `dev`
 # starts the single root `watch-libs` watcher, which rebuilds the changed library

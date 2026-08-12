@@ -39,6 +39,11 @@ import { Layer } from 'effect';
 import { Effect } from 'effect';
 
 import { makeObservabilityLayer } from './observability';
+import {
+  MongoTransactionStoreLayer,
+  SagaDatabaseName,
+} from './saga/store';
+import { startTracking } from './saga/tracking';
 import { seedCatalog } from './seed';
 
 const SERVICE_NAME = 'marketplace-admin-service';
@@ -69,6 +74,10 @@ export const AppLayer = Layer.unwrapEffect(
       .getString('demoOrganizationId');
     const redisUri = yield* store.in('redis').getString('uri');
     const amqpUri = yield* store.in('rabbitmq').getString('uri');
+    // The `saga` store's database. A *named* handle over the same pool, beside
+    // the catalog's per-request tenant handles — see `saga/store.ts` for why it
+    // is a name rather than a second `MongoDatabaseLayer`.
+    const sagaDbName = yield* store.in('saga').getString('db');
     // The public half only. This service verifies access tokens and never mints
     // one, so it is configured with material that cannot sign.
     const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
@@ -109,6 +118,7 @@ export const AppLayer = Layer.unwrapEffect(
       ),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
+      Layer.succeed(SagaDatabaseName, sagaDbName),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
@@ -116,11 +126,15 @@ export const AppLayer = Layer.unwrapEffect(
 
     // Transaction ports built from those connections (lock/sequence over Redis,
     // event bus over AMQP), merged back so the routes can use every service.
+    // `MongoTransactionStoreLayer` is the co-deployed `transaction` slice's
+    // store — the same fanout exchange this process publishes to, consumed
+    // through the tracker's own exclusive queue.
     const infra = Layer.provideMerge(
       Layer.mergeAll(
         RedisLockServiceLayer,
         RedisSequenceServiceLayer,
         AmqpEventBusLayer,
+        MongoTransactionStoreLayer,
       ),
       connections,
     );
@@ -154,14 +168,18 @@ export const AppLayer = Layer.unwrapEffect(
     // Seed depends on MongoClientTag from `infra`; provideMerge keeps the
     // infra services in the output so the routes can use them. Observability
     // (logger replacement + tracer) is merged so it is active for the server.
+    // `startTracking` is the co-deployed slice's boot step: it subscribes to the
+    // bus and forks the recovery sweep. Passive by design — it observes and
+    // recovers, and never dispatches work.
     return Layer.merge(
       observability,
       Layer.provideMerge(
-        Layer.merge(
+        Layer.mergeAll(
           tenancy,
           Layer.effectDiscard(
             seedCatalog(`${tenantPrefix}${demoOrganizationId}`),
           ),
+          Layer.effectDiscard(startTracking),
         ),
         withProbes,
       ),

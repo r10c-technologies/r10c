@@ -9,7 +9,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | marketplace (0)         | 3000   | —²                  |
 | marketplace-admin (1)   | 3001   | 3101                |
 | auth (2)                | 3002   | 3102                |
-| transaction-manager (3) | —      | 3103                |
+| transaction-manager (3) | —      | —³                  |
 | system-management (4)   | 3004¹  | —                   |
 | — platform —            |        | config-service 3190 |
 
@@ -26,6 +26,14 @@ no return. The storefront reads its catalog through
 real to serve. [ADR 0009](../adr/0009-catalog-authoring-and-publication.md)
 brings the backend back under its own name — `published-catalog` — when the
 published catalog exists; it reclaims this index.
+
+³ `3103` is free. The `transaction` slice still exists and still owns the `saga`
+store; it is **co-deployed** into marketplace-admin-service rather than running
+as its own process. That distinction is the point: ownership did not move, only
+the process did, so splitting it back out means pointing its declaration in
+`tools/slices/` at a new app and reclaiming this index — not untangling a
+database. It serves `/api/transaction{,/:id}` on `:3101`, and the catalog's
+`202` link is relative so callers never encoded either arrangement.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

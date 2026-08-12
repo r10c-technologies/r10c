@@ -1,10 +1,6 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { TransactionStoreTag } from '@r10c/entifix-transactions';
 import { makeEnvelope } from '@r10c/entifix-ts-core';
-import {
-  LoadedConfigurationTag,
-  redactConfiguration,
-} from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
 const serverError = (error: unknown) =>
@@ -39,22 +35,21 @@ const listRoute = Effect.gen(function* () {
   });
 }).pipe(Effect.catchAll(serverError));
 
-/** `GET /api/config` — this service's loaded parameters (credentials redacted). */
-const configIntrospectionRoute = Effect.gen(function* () {
-  const plain = yield* LoadedConfigurationTag;
-  return yield* HttpServerResponse.json({
-    service: '@r10c/transaction-manager',
-    store: 'mongo',
-    configuration: redactConfiguration(plain),
-  });
-});
-
 /**
- * transaction-manager routes. `/api/health` is added by the service base; the
- * bus subscription + recovery sweep are wired in the app layer, not here.
+ * The `transaction` slice's read surface, mounted by the host router.
+ *
+ * These are the routes the catalog's own `202` points clients at. Now that both
+ * slices share a process they answer on the same origin, which is why the
+ * accepted-transaction link is a relative href — the client already knows the
+ * origin, and a slice that moves out again changes its deployment, not the
+ * contract.
+ *
+ * There is deliberately no `/api/config` here: the host already serves one, and
+ * two `/api/config` routes in one router is the kind of duplication a merge is
+ * supposed to remove rather than carry forward.
  */
-export const router = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/config', configIntrospectionRoute),
-  HttpRouter.get('/api/transaction', listRoute),
-  HttpRouter.get('/api/transaction/:id', byIdRoute),
-);
+export const sagaRoutes = <E, R>(router: HttpRouter.HttpRouter<E, R>) =>
+  router.pipe(
+    HttpRouter.get('/api/transaction', listRoute),
+    HttpRouter.get('/api/transaction/:id', byIdRoute),
+  );

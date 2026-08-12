@@ -5,8 +5,8 @@ import {
   TransactionStoreTag,
 } from '@r10c/entifix-transactions';
 import { EntifixConnError } from '@r10c/entifix-ts-core';
-import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
-import { Effect, Layer } from 'effect';
+import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
+import { Context, Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 
 /** The single collection the manager folds transaction events into. */
@@ -20,6 +20,12 @@ const NON_TERMINAL: readonly TransactionState[] = ['PENDING'];
  * Mongo-backed {@link TransactionStore}. Lives in the service (not
  * `entifix-ts-mongo-client`) so the adapter package stays free of a transactions
  * dependency. `db` is closed over, so every method's Effect has `R = never`.
+ *
+ * This is the `transaction` slice's code, co-deployed into
+ * marketplace-admin-service rather than merged with it: it writes the `saga`
+ * store and nothing else, and the catalog writes the `catalog` store and nothing
+ * else. One process, two owners — which is what makes splitting it back out a
+ * matter of moving this directory rather than untangling a database.
  *
  * Events for one transaction arrive in publish order (RabbitMQ per-queue FIFO),
  * so folding is last-write-wins: `accepted` (PENDING) always precedes the
@@ -122,14 +128,34 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
 };
 
 /**
- * Provides {@link TransactionStoreTag} from a {@link MongoDatabaseTag}, ensuring
- * a unique index on `transactionId` first so concurrent upserts can never create
+ * The database name backing the `saga` store, resolved from config-service.
+ *
+ * It is a tag rather than a `MongoDatabaseTag` because this process holds more
+ * than one Mongo store: the catalog resolves a `tenant_<organizationId>` handle
+ * per request, and the saga wants its own single named one. `MongoDatabaseTag`
+ * is a single Tag, so both stores reaching for it would mean whichever layer
+ * won the merge silently decided where the other one wrote.
+ *
+ * Naming the handle here is also what keeps the co-deployment reversible: the
+ * saga store stops being "whatever the ambient database tag holds" and becomes
+ * an explicit `client.db(name)` that moves to another process unchanged.
+ */
+export class SagaDatabaseName extends Context.Tag('SagaDatabaseName')<
+  SagaDatabaseName,
+  string
+>() {}
+
+/**
+ * Provides {@link TransactionStoreTag} from the connection pool
+ * ({@link MongoClientTag}) plus an explicit database name, ensuring a unique
+ * index on `transactionId` first so concurrent upserts can never create
  * duplicate records for one transaction.
  */
 export const MongoTransactionStoreLayer = Layer.effect(
   TransactionStoreTag,
   Effect.gen(function* () {
-    const db = yield* MongoDatabaseTag;
+    const client = yield* MongoClientTag;
+    const db = client.db(yield* SagaDatabaseName);
     yield* Effect.tryPromise({
       try: () =>
         db

@@ -580,7 +580,7 @@ describe('makeFakeAmqpChannel', () => {
     expect(fake.published).toEqual([{ exchange: 'events', body: { a: 1 } }]);
   });
 
-  // The transaction-manager's event fold depends on `prefetch(1)`: without it,
+  // The saga tracker's event fold depends on `prefetch(1)`: without it,
   // accepted and completed events race into duplicate records.
   it('records the prefetch the consumer asked for', async () => {
     const fake = makeFakeAmqpChannel();

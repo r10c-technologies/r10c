@@ -32,7 +32,7 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     },
   ],
   deployments: ['marketplace-admin-service'],
-  coDeployedWith: [],
+  coDeployedWith: ['transaction'],
   exposedAPIs: [
     'GET|POST|PUT|DELETE /api/product',
     'GET|POST|PUT|DELETE /api/product-brand',

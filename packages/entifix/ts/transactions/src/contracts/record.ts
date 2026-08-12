@@ -4,7 +4,7 @@ import { Context, type Effect } from 'effect';
 import type { TransactionEvent, TransactionState } from './event';
 
 /**
- * The `transaction-manager`'s persisted view of a transaction, folded from the
+ * The the saga tracker's persisted view of a transaction, folded from the
  * events it observes. It is the source of truth a client polls.
  */
 export interface TransactionRecord {

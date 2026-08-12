@@ -431,26 +431,15 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'endpoint',
     value: 'http://127.0.0.1:30318',
   },
-  // transaction-manager: its own Mongo db + the same RabbitMQ bus it tracks.
+  // The `saga` store. The `transaction` slice is co-deployed into
+  // marketplace-admin-service, so it needs no `uri` of its own — the pool and
+  // the bus are already this service's, and only the database name is the
+  // slice's own. That one row is what a split back out would carry with it.
   {
-    service: 'transaction-manager',
-    group_name: 'mongo',
-    key: 'uri',
-    value: 'mongodb://admin:password@127.0.0.1:30017',
-    is_secret: true,
-  },
-  {
-    service: 'transaction-manager',
-    group_name: 'mongo',
+    service: 'marketplace-admin-service',
+    group_name: 'saga',
     key: 'db',
     value: 'transaction_manager',
-  },
-  {
-    service: 'transaction-manager',
-    group_name: 'rabbitmq',
-    key: 'uri',
-    value: 'amqp://admin:password@127.0.0.1:30672',
-    is_secret: true,
   },
 ];
 
