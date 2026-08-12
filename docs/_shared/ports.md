@@ -6,7 +6,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 
 | Domain (`N`)            | `-app` | `-service`          |
 | ----------------------- | ------ | ------------------- |
-| marketplace (0)         | 3000   | 3100                |
+| marketplace (0)         | 3000   | —²                  |
 | marketplace-admin (1)   | 3001   | 3101                |
 | auth (2)                | 3002   | 3102                |
 | transaction-manager (3) | —      | 3103                |
@@ -17,6 +17,15 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 shell `@r10c/shells-next-system-management` and are mounted by
 marketplace-admin-app today; the dedicated bastion app takes this index when it
 lands, and needs no `-service` of its own (config-service is its backend).
+
+² `3100` is free. marketplace-service existed as a 36-line health-check shell
+with no router, no store and no domain — under ADR 0020 that is not a Slice, and
+a placeholder deployment is a thing to keep booting, probe and reason about for
+no return. The storefront reads its catalog through
+`@r10c/shells-next-marketplace`'s fixture repository until there is something
+real to serve. [ADR 0009](../adr/0009-catalog-authoring-and-publication.md)
+brings the backend back under its own name — `published-catalog` — when the
+published catalog exists; it reclaims this index.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

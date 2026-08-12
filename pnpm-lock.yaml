@@ -702,36 +702,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/entifix/ts/testing-e2e
 
-  apps/marketplace-service:
-    dependencies:
-      '@effect/platform':
-        specifier: 0.97.0
-        version: 0.97.0(effect@3.22.0)
-      '@effect/platform-node':
-        specifier: 0.108.0
-        version: 0.108.0(@effect/cluster@0.59.0(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(effect@3.22.0))(@effect/platform@0.97.0(effect@3.22.0))(@effect/rpc@0.75.1(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(@effect/sql@0.52.0(@effect/experimental@0.60.0(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0)(ioredis@5.11.1))(@effect/platform@0.97.0(effect@3.22.0))(effect@3.22.0))(effect@3.22.0)
-      '@r10c/shells-effect-service':
-        specifier: workspace:*
-        version: link:../../packages/shells/effect/service
-      effect:
-        specifier: 3.22.0
-        version: 3.22.0
-      tslib:
-        specifier: 2.8.1
-        version: 2.8.1
-
-  apps/marketplace-service-e2e:
-    devDependencies:
-      '@r10c/entifix-ts-testing-e2e':
-        specifier: workspace:*
-        version: link:../../packages/entifix/ts/testing-e2e
-      '@r10c/marketplace-service':
-        specifier: workspace:*
-        version: link:../marketplace-service
-      '@r10c/shells-effect-service':
-        specifier: workspace:*
-        version: link:../../packages/shells/effect/service
-
   apps/transaction-manager:
     dependencies:
       '@effect/platform':

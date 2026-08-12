@@ -85,7 +85,6 @@
         "testMode": "run"
       },
       "exclude": [
-        "apps/marketplace-service-e2e/**/*",
         "apps/marketplace-admin-service-e2e/**/*",
         "apps/auth-service-e2e/**/*"
       ]

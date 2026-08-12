@@ -465,7 +465,7 @@ instead of being a hydration mismatch. Two consequences worth knowing:
 
 ## Deferred
 
-Real data (marketplace-service), checkout, product imagery beyond fixed
+Real data (ADR 0009's published catalog), checkout, product imagery beyond fixed
 aspect-ratio placeholders, PPR, a CI bundle-size budget.
 
 ---

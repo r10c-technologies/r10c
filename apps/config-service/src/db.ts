@@ -206,12 +206,6 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'http://localhost:3190/api',
   },
   {
-    service: 'marketplace-app',
-    group_name: 'uri',
-    key: 'marketplace-service-domain',
-    value: 'http://localhost:3100/api',
-  },
-  {
     service: 'auth-app',
     group_name: 'uri',
     key: 'auth-service-domain',

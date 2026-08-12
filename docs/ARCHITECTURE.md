@@ -667,8 +667,10 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
 
 **Apps** — frontends `marketplace-app`, `marketplace-admin-app`, `auth-app`
 (sign-in/sign-up **plus** a `(back-office)` group for user management, gated to
-`admin`+); backends `marketplace-service`, `marketplace-admin-service`,
-`auth-service`, `transaction-manager`, `config-service`; plus `*-e2e` projects.
+`admin`+); backends `marketplace-admin-service`, `auth-service`,
+`transaction-manager`, `config-service`; plus `*-e2e` projects. The storefront
+has no backend of its own — it reads fixtures until ADR 0009's published catalog
+exists.
 
 **Utils** — `utils-ts-{array,date,object,type}`.
 

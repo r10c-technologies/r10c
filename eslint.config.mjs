@@ -243,6 +243,12 @@ export default [
   {
     ignores: [
       '**/dist',
+      // `tsc --build` output. Not ignored here, a `typecheck` run leaves
+      // generated `.d.ts` behind that the next `lint` reports errors in — so
+      // whether lint passes depends on which targets ran before it. Several
+      // projects carried their own copy of this line; the ones that did not
+      // were simply the ones nobody had typechecked yet.
+      '**/out-tsc',
       '**/test-output',
       '**/vite.config.*.timestamp*',
       '**/vitest.config.*.timestamp*',

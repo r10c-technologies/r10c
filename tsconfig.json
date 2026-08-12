@@ -64,12 +64,6 @@
       "path": "./apps/marketplace-admin-app"
     },
     {
-      "path": "./apps/marketplace-service-e2e"
-    },
-    {
-      "path": "./apps/marketplace-service"
-    },
-    {
       "path": "./packages/shells/next/marketplace-admin"
     },
     {
