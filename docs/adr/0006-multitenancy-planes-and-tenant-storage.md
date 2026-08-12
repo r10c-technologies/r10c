@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Amended by: [ADR 0020](0020-stores-and-slices.md) — a plane is a property of
+  the **Store**, so an entity's plane is derived from the store that hosts it
+  rather than declared on the entity. Everything else here stands.
 
 ## Context
 

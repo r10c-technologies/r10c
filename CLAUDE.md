@@ -31,7 +31,7 @@ them), and everything deep is a link — loaded only when a task needs it.
 
 @docs/_shared/ports.md
 
-## Data planes & storage ownership
+## Stores, slices & data planes
 
 @docs/_shared/planes.md
 
@@ -53,6 +53,22 @@ them), and everything deep is a link — loaded only when a task needs it.
   `packages/shells`, `host:` for an app) tags. To make an edge legal, retag —
   never weaken the rule.
   See [DEVELOPING.md → Module boundaries](docs/DEVELOPING.md#module-boundaries).
+- **Data ownership has two nouns: `Store` and `Slice`.** A **Store** is a named
+  persistence boundary with exactly one writing slice, one plane, and an identity
+  independent of the engine backing it; a **Slice** owns Stores and is the unit of
+  physical split (`Domain → Store → Slice → Deployment`). Three invariants: a
+  domain's entities live in exactly one Store, a Store has exactly one writing
+  Slice, and two domains sharing a Store are **permanently co-deployed** — a
+  binding decision that must be recorded in the register, not discovered
+  mid-split. `engine` is not identity, so one Redis may host two Stores but a
+  Store never spans engines; and a Next app belongs to no Slice, because it owns
+  no Store. A projection is not an exception to any of this — it is a Store
+  carrying `truth: projection-of:<store>`, which is what makes ADR 0009's
+  published catalog and ADR 0012's cross-tenant reporting the same shape. This
+  supersedes ADR 0008's plane-host topology: the axis is ownership, not plane,
+  because a slice may own stores in several planes. See
+  [ADR 0020](docs/adr/0020-stores-and-slices.md) and the register in
+  [planes](docs/_shared/planes.md).
 - **The business map is a separate document.** Which capability owns an entity,
   which plane it lives in, and the ODA/SID name for it are in
   [BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) — read it before
