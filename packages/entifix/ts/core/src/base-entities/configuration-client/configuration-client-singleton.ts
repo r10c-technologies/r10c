@@ -26,15 +26,19 @@ function composeUrl(base: string, segments: string[]): string {
 /** Parses a raw string into a finite number, failing on non-numeric input. */
 function parseNumber(
   key: string,
-  raw: string
+  raw: string,
 ): Effect.Effect<number, EntifixBuildError> {
   const parsed = Number(raw);
   if (raw.trim() === '' || Number.isNaN(parsed)) {
     return Effect.fail(
-      new EntifixBuildError(`Configuration key "${key}" is not a number`, undefined, {
-        key,
-        raw,
-      })
+      new EntifixBuildError(
+        `Configuration key "${key}" is not a number`,
+        undefined,
+        {
+          key,
+          raw,
+        },
+      ),
     );
   }
   return Effect.succeed(parsed);
@@ -43,15 +47,19 @@ function parseNumber(
 /** Parses a raw string into a valid Date, failing on unparseable input. */
 function parseDate(
   key: string,
-  raw: string
+  raw: string,
 ): Effect.Effect<Date, EntifixBuildError> {
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) {
     return Effect.fail(
-      new EntifixBuildError(`Configuration key "${key}" is not a date`, undefined, {
-        key,
-        raw,
-      })
+      new EntifixBuildError(
+        `Configuration key "${key}" is not a date`,
+        undefined,
+        {
+          key,
+          raw,
+        },
+      ),
     );
   }
   return Effect.succeed(parsed);
@@ -74,9 +82,7 @@ function splitArray(raw: string): string[] {
  * URL-oriented and only meaningful for strings). `match` remains unimplemented
  * (no defined semantics / consumer yet) and fails explicitly.
  */
-export class ConfigurationClientGroupInMemory
-  implements ConfigurationClientGroup
-{
+export class ConfigurationClientGroupInMemory implements ConfigurationClientGroup {
   #items: ConfigurationItem[];
 
   constructor(items: ConfigurationItem[] = []) {
@@ -94,8 +100,8 @@ export class ConfigurationClientGroupInMemory
         new EntifixBuildError(
           `Configuration key "${key}" not found`,
           undefined,
-          { key, availableKeys: this.#items.map(candidate => candidate.key) }
-        )
+          { key, availableKeys: this.#items.map(candidate => candidate.key) },
+        ),
       );
     }
     return Effect.succeed(String(item.value));
@@ -104,31 +110,31 @@ export class ConfigurationClientGroupInMemory
   #lookupOptional(key: string): Effect.Effect<string | undefined, never> {
     const item = this.#find(key);
     return Effect.succeed(
-      item === undefined || item.value == null ? undefined : String(item.value)
+      item === undefined || item.value == null ? undefined : String(item.value),
     );
   }
 
   #unsupportedMode(
     key: string,
-    extractMode: ConfigurationExtractMode
+    extractMode: ConfigurationExtractMode,
   ): Effect.Effect<never, EntifixBuildError> {
     return Effect.fail(
       new EntifixBuildError(
         `Configuration extract mode "${extractMode}" is not implemented yet`,
         undefined,
-        { key, extractMode }
-      )
+        { key, extractMode },
+      ),
     );
   }
 
   getString(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<string, EntifixBuildError> {
     if (extractMode === 'compose') {
       const [head, ...segments] = key.split('.');
       return this.#lookup(head).pipe(
-        Effect.map(base => composeUrl(base, segments))
+        Effect.map(base => composeUrl(base, segments)),
       );
     }
     if (extractMode === 'exact') {
@@ -139,7 +145,7 @@ export class ConfigurationClientGroupInMemory
 
   getNumber(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<number, EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookup(key).pipe(Effect.flatMap(raw => parseNumber(key, raw)));
@@ -147,7 +153,7 @@ export class ConfigurationClientGroupInMemory
 
   getDate(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<Date, EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookup(key).pipe(Effect.flatMap(raw => parseDate(key, raw)));
@@ -155,7 +161,7 @@ export class ConfigurationClientGroupInMemory
 
   getArrayString(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<string[], EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookup(key).pipe(Effect.map(splitArray));
@@ -163,31 +169,31 @@ export class ConfigurationClientGroupInMemory
 
   getArrayNumber(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<number[], EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookup(key).pipe(
       Effect.flatMap(raw =>
-        Effect.all(splitArray(raw).map(segment => parseNumber(key, segment)))
-      )
+        Effect.all(splitArray(raw).map(segment => parseNumber(key, segment))),
+      ),
     );
   }
 
   getArrayDate(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<Date[], EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookup(key).pipe(
       Effect.flatMap(raw =>
-        Effect.all(splitArray(raw).map(segment => parseDate(key, segment)))
-      )
+        Effect.all(splitArray(raw).map(segment => parseDate(key, segment))),
+      ),
     );
   }
 
   getOptionalString(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<string | undefined, EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookupOptional(key);
@@ -195,63 +201,65 @@ export class ConfigurationClientGroupInMemory
 
   getOptionalNumber(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<number | undefined, EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookupOptional(key).pipe(
       Effect.flatMap(raw =>
-        raw === undefined ? Effect.succeed(undefined) : parseNumber(key, raw)
-      )
+        raw === undefined ? Effect.succeed(undefined) : parseNumber(key, raw),
+      ),
     );
   }
 
   getOptionalDate(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<Date | undefined, EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookupOptional(key).pipe(
       Effect.flatMap(raw =>
-        raw === undefined ? Effect.succeed(undefined) : parseDate(key, raw)
-      )
+        raw === undefined ? Effect.succeed(undefined) : parseDate(key, raw),
+      ),
     );
   }
 
   getOptionalArrayNumber(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<number[] | undefined, EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookupOptional(key).pipe(
       Effect.flatMap(raw =>
         raw === undefined
           ? Effect.succeed(undefined)
-          : Effect.all(splitArray(raw).map(segment => parseNumber(key, segment)))
-      )
+          : Effect.all(
+              splitArray(raw).map(segment => parseNumber(key, segment)),
+            ),
+      ),
     );
   }
 
   getOptionalArrayString(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<string[] | undefined, EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookupOptional(key).pipe(
-      Effect.map(raw => (raw === undefined ? undefined : splitArray(raw)))
+      Effect.map(raw => (raw === undefined ? undefined : splitArray(raw))),
     );
   }
 
   getOptionalArrayDate(
     key: string,
-    extractMode: ConfigurationExtractMode = 'exact'
+    extractMode: ConfigurationExtractMode = 'exact',
   ): Effect.Effect<Date[] | undefined, EntifixBuildError> {
     if (extractMode !== 'exact') return this.#unsupportedMode(key, extractMode);
     return this.#lookupOptional(key).pipe(
       Effect.flatMap(raw =>
         raw === undefined
           ? Effect.succeed(undefined)
-          : Effect.all(splitArray(raw).map(segment => parseDate(key, segment)))
-      )
+          : Effect.all(splitArray(raw).map(segment => parseDate(key, segment))),
+      ),
     );
   }
 }

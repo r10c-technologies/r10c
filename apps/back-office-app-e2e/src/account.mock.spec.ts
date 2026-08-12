@@ -54,9 +54,12 @@ test.describe('the /account surface', () => {
   }) => {
     await seedSession(context, { roles: ['user'] });
 
-    const response = await context.request.get(`${baseURL}/es/account/security`, {
-      maxRedirects: 0,
-    });
+    const response = await context.request.get(
+      `${baseURL}/es/account/security`,
+      {
+        maxRedirects: 0,
+      },
+    );
 
     expect(response.headers()['location'] ?? '').not.toContain('3001');
   });

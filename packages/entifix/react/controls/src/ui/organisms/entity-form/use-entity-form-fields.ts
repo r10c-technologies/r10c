@@ -35,7 +35,8 @@ export function resolveEntityFormFields<TEntity extends Entity>(
 
   const virtual = slotFields
     .filter(
-      slot => !slot.hidden && !described.some(field => field.name === slot.field),
+      slot =>
+        !slot.hidden && !described.some(field => field.name === slot.field),
     )
     .map<EntityFormField<TEntity>>((slot, index) => ({
       name: slot.field,
@@ -55,5 +56,7 @@ export function resolveEntityFormFields<TEntity extends Entity>(
       virtual: true,
     }));
 
-  return [...merged, ...virtual].sort((left, right) => left.order - right.order);
+  return [...merged, ...virtual].sort(
+    (left, right) => left.order - right.order,
+  );
 }

@@ -19,10 +19,14 @@ test.describe('switching locale', () => {
     const nav = page.getByRole('navigation');
     // `.first()` because each entry renders twice — the page link and its
     // "open in workspace" sibling.
-    await expect(nav.getByRole('link', { name: 'Marcas' }).first()).toBeVisible();
+    await expect(
+      nav.getByRole('link', { name: 'Marcas' }).first(),
+    ).toBeVisible();
 
     await page.goto('/en/catalog/product-brand');
-    await expect(nav.getByRole('link', { name: 'Brands' }).first()).toBeVisible();
+    await expect(
+      nav.getByRole('link', { name: 'Brands' }).first(),
+    ).toBeVisible();
   });
 
   test('sends an unprefixed path to the default locale', async ({ page }) => {

@@ -44,7 +44,10 @@ describe('readEntityTableSlots', () => {
       <EntityColumn key="stock" field="stock" order={2} />,
     ]);
 
-    expect(slots.columns.map((column) => column.field)).toEqual(['name', 'stock']);
+    expect(slots.columns.map(column => column.field)).toEqual([
+      'name',
+      'stock',
+    ]);
     expect(slots.columns[0]?.label).toBe('Name');
   });
 
@@ -108,7 +111,9 @@ describe('readEntityTableSlots', () => {
     function EntityColumnImpostor() {
       return null;
     }
-    Object.defineProperty(EntityColumnImpostor, 'name', { value: 'EntityColumn' });
+    Object.defineProperty(EntityColumnImpostor, 'name', {
+      value: 'EntityColumn',
+    });
 
     const slots = readEntityTableSlots<Widget>(<EntityColumnImpostor />);
 

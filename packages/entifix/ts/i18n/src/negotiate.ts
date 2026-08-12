@@ -39,7 +39,9 @@ export function localeHref(locale: Locale, href: string): string {
  * q-values and matching `es-419`/`es-MX` onto `es`. Returns `undefined` when the
  * header names nothing we speak, so the caller can fall through to its default.
  */
-export function parseAcceptLanguage(header: string | null | undefined): Locale | undefined {
+export function parseAcceptLanguage(
+  header: string | null | undefined,
+): Locale | undefined {
   if (!header) return undefined;
 
   const ranked = header
@@ -55,7 +57,10 @@ export function parseAcceptLanguage(header: string | null | undefined): Locale |
         quality: q === undefined ? 1 : Number(q.trim().slice(2)),
       };
     })
-    .filter(entry => entry.tag !== '' && !Number.isNaN(entry.quality) && entry.quality > 0)
+    .filter(
+      entry =>
+        entry.tag !== '' && !Number.isNaN(entry.quality) && entry.quality > 0,
+    )
     .sort((left, right) => right.quality - left.quality);
 
   for (const { tag } of ranked) {
@@ -83,7 +88,8 @@ export function negotiateLocale({
   cookie,
   acceptLanguage,
 }: NegotiateLocaleInput): Locale {
-  const fromPath = pathname === undefined ? undefined : splitLocalePath(pathname).locale;
+  const fromPath =
+    pathname === undefined ? undefined : splitLocalePath(pathname).locale;
   if (fromPath !== undefined) return fromPath;
   if (isLocale(cookie)) return cookie;
 

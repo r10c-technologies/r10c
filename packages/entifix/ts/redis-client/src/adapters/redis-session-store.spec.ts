@@ -60,7 +60,9 @@ describe('makeRedisSessionStore', () => {
     expect(record.createdAt).toEqual(expect.any(String));
     expect(record.expiresAt).toEqual(expect.any(String));
     // Persisted under the conventional record key, with an EX ttl.
-    expect(fake.read(`${DEFAULT_SESSION_NAMESPACE}:${sessionId}`)).toBeDefined();
+    expect(
+      fake.read(`${DEFAULT_SESSION_NAMESPACE}:${sessionId}`),
+    ).toBeDefined();
     expect(fake.commands).toContainEqual({
       command: 'set',
       args: [
@@ -142,7 +144,10 @@ describe('makeRedisSessionStore', () => {
     const store = makeRedisSessionStore(redis);
 
     const sessionId = await run(
-      store.create(sampleData, { idleTtlSeconds: 3600, absoluteTtlSeconds: 60 }),
+      store.create(sampleData, {
+        idleTtlSeconds: 3600,
+        absoluteTtlSeconds: 60,
+      }),
     );
 
     expect(fake.commands).toContainEqual({
@@ -190,7 +195,9 @@ describe('makeRedisSessionStore', () => {
     expect(error._tag).toBe('EntifixLogicError');
     // Gone from the store AND from the index, so a session list cannot show a
     // row that can never be renewed again.
-    expect(fake.read(`${DEFAULT_SESSION_NAMESPACE}:${sessionId}`)).toBeUndefined();
+    expect(
+      fake.read(`${DEFAULT_SESSION_NAMESPACE}:${sessionId}`),
+    ).toBeUndefined();
     expect(fake.commands).toContainEqual({
       command: 'srem',
       args: [`${DEFAULT_SESSION_NAMESPACE}:user:user-1`, sessionId],
@@ -204,16 +211,15 @@ describe('makeRedisSessionStore', () => {
 
     await run(store.revoke(sessionId));
 
-    expect(fake.read(`${DEFAULT_SESSION_NAMESPACE}:${sessionId}`)).toBeUndefined();
+    expect(
+      fake.read(`${DEFAULT_SESSION_NAMESPACE}:${sessionId}`),
+    ).toBeUndefined();
     await expect(runFailure(store.read(sessionId))).resolves.toMatchObject({
       _tag: 'EntifixLogicError',
     });
     expect(fake.commands).toContainEqual({
       command: 'srem',
-      args: [
-        `${DEFAULT_SESSION_NAMESPACE}:user:user-1`,
-        sessionId,
-      ],
+      args: [`${DEFAULT_SESSION_NAMESPACE}:user:user-1`, sessionId],
     });
   });
 
@@ -223,7 +229,7 @@ describe('makeRedisSessionStore', () => {
 
     await run(store.revoke('absent'));
 
-    expect(fake.commands.some((c) => c.command === 'srem')).toBe(false);
+    expect(fake.commands.some(c => c.command === 'srem')).toBe(false);
   });
 
   it('revokes every session for a user', async () => {
@@ -374,9 +380,7 @@ describe('makeRedisSessionStore', () => {
     const { redis } = withFakeRedis();
     const store = makeRedisSessionStore(redis);
 
-    await expect(
-      run(store.revokeAllForUser('ghost')),
-    ).resolves.toBeUndefined();
+    await expect(run(store.revokeAllForUser('ghost'))).resolves.toBeUndefined();
   });
 
   it('surfaces a driver failure as an EntifixConnError', async () => {
@@ -397,7 +401,9 @@ describe('makeRedisSessionStore', () => {
 
     const sessionId = await run(
       Effect.provide(
-        Effect.flatMap(SessionStoreTag, (store) => store.create(sampleData, lifetime)),
+        Effect.flatMap(SessionStoreTag, store =>
+          store.create(sampleData, lifetime),
+        ),
         layer,
       ),
     );

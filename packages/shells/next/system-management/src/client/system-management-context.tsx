@@ -26,10 +26,7 @@ export function SystemManagementProvider({
   children,
   adapters,
 }: SystemManagementProviderProps) {
-  const value = useMemo(
-    () => adapters ?? createClientAdapters(),
-    [adapters],
-  );
+  const value = useMemo(() => adapters ?? createClientAdapters(), [adapters]);
 
   return (
     <SystemManagementContext.Provider value={value}>

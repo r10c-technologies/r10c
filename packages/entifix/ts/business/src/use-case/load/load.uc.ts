@@ -15,7 +15,7 @@ export function loadUCFactory<TEntity extends Entity>() {
       entityLoadRequest as unknown as EntityLoadRequest<TEntity>;
 
     const result = yield* entityRepository.load<TEntity>(
-      typedEntityLoadRequest
+      typedEntityLoadRequest,
     );
     return result;
   });

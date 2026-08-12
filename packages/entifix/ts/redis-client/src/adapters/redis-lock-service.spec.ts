@@ -40,7 +40,9 @@ describe('makeRedisLockService', () => {
   it('acquires with SET NX PX so acquisition is atomic across instances', async () => {
     const { fake, redis } = withFakeRedis();
 
-    await Effect.runPromise(makeRedisLockService(redis).acquire('product:code'));
+    await Effect.runPromise(
+      makeRedisLockService(redis).acquire('product:code'),
+    );
 
     expect(fake.commands[0]?.command).toBe('set');
     expect(fake.commands[0]?.args).toEqual([
@@ -73,7 +75,7 @@ describe('makeRedisLockService', () => {
 
         expect(Exit.isFailure(exit)).toBe(true);
         expect(
-          fake.commands.filter((entry) => entry.command === 'set'),
+          fake.commands.filter(entry => entry.command === 'set'),
         ).toHaveLength(LOCK_RETRIES);
       }),
   );
@@ -133,7 +135,10 @@ describe('makeRedisSequenceService', () => {
 
     await Effect.runPromise(makeRedisSequenceService(redis).next('product'));
 
-    expect(fake.commands[0]).toEqual({ command: 'incr', args: ['seq:product'] });
+    expect(fake.commands[0]).toEqual({
+      command: 'incr',
+      args: ['seq:product'],
+    });
   });
 
   it('maps a driver failure onto EntifixConnError', async () => {

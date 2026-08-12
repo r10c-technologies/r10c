@@ -20,7 +20,9 @@ describe('splitLocalePath', () => {
   });
 
   it('leaves an unprefixed path untouched', () => {
-    expect(splitLocalePath('/catalog/product')).toEqual({ rest: '/catalog/product' });
+    expect(splitLocalePath('/catalog/product')).toEqual({
+      rest: '/catalog/product',
+    });
     expect(splitLocalePath('/')).toEqual({ rest: '/' });
   });
 
@@ -40,7 +42,9 @@ describe('localeHref', () => {
   });
 
   it('leaves absolute and relative hrefs alone', () => {
-    expect(localeHref('es', 'https://example.com/x')).toBe('https://example.com/x');
+    expect(localeHref('es', 'https://example.com/x')).toBe(
+      'https://example.com/x',
+    );
     expect(localeHref('es', '//example.com/x')).toBe('//example.com/x');
     expect(localeHref('es', 'mailto:a@b.c')).toBe('mailto:a@b.c');
     expect(localeHref('es', 'product/1')).toBe('product/1');
@@ -78,25 +82,39 @@ describe('parseAcceptLanguage', () => {
 describe('negotiateLocale', () => {
   it('lets an explicit path prefix win over everything', () => {
     expect(
-      negotiateLocale({ pathname: '/en/users', cookie: 'es', acceptLanguage: 'es' }),
+      negotiateLocale({
+        pathname: '/en/users',
+        cookie: 'es',
+        acceptLanguage: 'es',
+      }),
     ).toBe('en');
   });
 
   it('falls back to the remembered choice', () => {
-    expect(negotiateLocale({ pathname: '/users', cookie: 'en', acceptLanguage: 'es' })).toBe(
-      'en',
-    );
+    expect(
+      negotiateLocale({
+        pathname: '/users',
+        cookie: 'en',
+        acceptLanguage: 'es',
+      }),
+    ).toBe('en');
   });
 
   it('falls back to the browser preference', () => {
-    expect(negotiateLocale({ pathname: '/users', cookie: null, acceptLanguage: 'en-US' })).toBe(
-      'en',
-    );
+    expect(
+      negotiateLocale({
+        pathname: '/users',
+        cookie: null,
+        acceptLanguage: 'en-US',
+      }),
+    ).toBe('en');
     expect(negotiateLocale({ cookie: 'fr', acceptLanguage: 'en' })).toBe('en');
   });
 
   it('falls back to the fleet default', () => {
     expect(negotiateLocale({})).toBe('es');
-    expect(negotiateLocale({ pathname: '/users', acceptLanguage: 'fr' })).toBe('es');
+    expect(negotiateLocale({ pathname: '/users', acceptLanguage: 'fr' })).toBe(
+      'es',
+    );
   });
 });

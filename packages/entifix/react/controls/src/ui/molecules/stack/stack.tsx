@@ -3,15 +3,7 @@ import type { ComponentPropsWithoutRef } from 'react';
 import { cn } from '../../utils/cn';
 
 export type SpacingToken =
-  | '3xs'
-  | '2xs'
-  | 'xs'
-  | 's'
-  | 'm'
-  | 'l'
-  | 'xl'
-  | '2xl'
-  | '3xl';
+  '3xs' | '2xs' | 'xs' | 's' | 'm' | 'l' | 'xl' | '2xl' | '3xl';
 
 // Static class strings so Tailwind's scanner keeps them.
 const GAP: Record<SpacingToken, string> = {
@@ -58,7 +50,7 @@ export function Stack({
         GAP[gap],
         ALIGN[align],
         wrap && 'flex-wrap',
-        className
+        className,
       )}
       {...props}
     />

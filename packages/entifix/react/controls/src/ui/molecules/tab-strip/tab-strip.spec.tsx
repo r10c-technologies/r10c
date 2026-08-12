@@ -51,14 +51,18 @@ describe('Tab', () => {
 
   it('breathes the dot while saving', () => {
     render(<Tab label="Acme" state="saving" />);
-    expect(screen.getByTestId('tab-indicator').className).toContain('animate-pulse');
+    expect(screen.getByTestId('tab-indicator').className).toContain(
+      'animate-pulse',
+    );
   });
 
   it('turns the tab and dot to danger on error', () => {
     render(<Tab label="Acme" state="error" />);
 
     expect(screen.getByRole('tab').className).toContain('bg-danger-subtle');
-    expect(screen.getByTestId('tab-indicator').className).toContain('bg-danger');
+    expect(screen.getByTestId('tab-indicator').className).toContain(
+      'bg-danger',
+    );
   });
 
   it('renders a close button that fires onClose', async () => {
@@ -92,7 +96,9 @@ describe('TabAddButton', () => {
     const user = userEvent.setup();
     render(<TabAddButton onClick={onClick} />);
 
-    await user.click(screen.getByRole('button', { name: 'Abrir una pestaña nueva' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Abrir una pestaña nueva' }),
+    );
 
     expect(onClick).toHaveBeenCalledTimes(1);
   });

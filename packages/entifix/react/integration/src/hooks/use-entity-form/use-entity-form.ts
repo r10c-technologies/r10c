@@ -160,10 +160,7 @@ export function useEntityForm<TEntity extends Entity>({
   const setLink = useCallback(
     (name: string, picked: Entity | undefined) => {
       setLinks(current => ({ ...current, [name]: picked }));
-      form.setFieldValue(
-        name,
-        picked?.id == null ? '' : String(picked.id),
-      );
+      form.setFieldValue(name, picked?.id == null ? '' : String(picked.id));
     },
     [form],
   );

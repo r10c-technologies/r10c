@@ -11,7 +11,7 @@ export function Card({ className, ...props }: CardProps) {
       className={cn(
         'rounded-2xl border border-border bg-surface-elevated p-m text-content',
         'shadow-card transition-shadow duration-200 hover:shadow-lg',
-        className
+        className,
       )}
       {...props}
     />

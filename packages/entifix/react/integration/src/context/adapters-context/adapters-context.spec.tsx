@@ -17,7 +17,9 @@ describe('adapters context', () => {
     const AdaptersContext = createAdaptersContext<Adapters>();
     const value: Adapters = { productRest: 'rest' };
     const wrapper = ({ children }: PropsWithChildren) => (
-      <AdaptersContext.Provider value={value}>{children}</AdaptersContext.Provider>
+      <AdaptersContext.Provider value={value}>
+        {children}
+      </AdaptersContext.Provider>
     );
 
     const { result } = renderHook(() => useAdaptersContext(AdaptersContext), {
@@ -33,9 +35,9 @@ describe('adapters context', () => {
   it('fails loudly when rendered outside a provider', () => {
     const AdaptersContext = createAdaptersContext<Adapters>();
 
-    expect(() =>
-      renderHook(() => useAdaptersContext(AdaptersContext)),
-    ).toThrow(EntifixBuildError);
+    expect(() => renderHook(() => useAdaptersContext(AdaptersContext))).toThrow(
+      EntifixBuildError,
+    );
   });
 
   it('names the missing provider in the failure', () => {

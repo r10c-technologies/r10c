@@ -84,13 +84,19 @@ function Controlled({
 
 export const TextField: Story = {
   render: () => (
-    <Controlled descriptor={descriptor('string', { label: 'Name' })} initial="Acme" />
+    <Controlled
+      descriptor={descriptor('string', { label: 'Name' })}
+      initial="Acme"
+    />
   ),
 };
 
 export const NumberField: Story = {
   render: () => (
-    <Controlled descriptor={descriptor('number', { label: 'Stock' })} initial="1200" />
+    <Controlled
+      descriptor={descriptor('number', { label: 'Stock' })}
+      initial="1200"
+    />
   ),
 };
 
@@ -105,7 +111,10 @@ export const DateField: Story = {
 
 export const BooleanField: Story = {
   render: () => (
-    <Controlled descriptor={descriptor('boolean', { label: 'Active' })} initial="true" />
+    <Controlled
+      descriptor={descriptor('boolean', { label: 'Active' })}
+      initial="true"
+    />
   ),
 };
 
@@ -164,7 +173,11 @@ export const ReadEditToggle: Story = {
             </Button>
           </Stack>
           {editing ? (
-            <FieldControl descriptor={field} value={value} onChange={setValue} />
+            <FieldControl
+              descriptor={field}
+              value={value}
+              onChange={setValue}
+            />
           ) : (
             <CellValue value={value} descriptor={field} />
           )}

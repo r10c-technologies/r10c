@@ -1,4 +1,8 @@
-import { Skeleton, SkeletonText, Stack } from '@r10c/entifix-react-controls/primitives';
+import {
+  Skeleton,
+  SkeletonText,
+  Stack,
+} from '@r10c/entifix-react-controls/primitives';
 
 import { ProductGridSkeleton } from '../catalog/product-grid';
 

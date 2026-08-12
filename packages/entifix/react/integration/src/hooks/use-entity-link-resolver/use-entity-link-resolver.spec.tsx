@@ -105,7 +105,9 @@ describe('useEntityLinkResolver', () => {
     const { result, rerender } = renderHook(
       ({ list }: { list: EntityLinkRegistration[] }) =>
         useEntityLinkResolver(configuration, list),
-      { initialProps: { list: [registrations()[0] as EntityLinkRegistration] } },
+      {
+        initialProps: { list: [registrations()[0] as EntityLinkRegistration] },
+      },
     );
     const first = result.current;
 

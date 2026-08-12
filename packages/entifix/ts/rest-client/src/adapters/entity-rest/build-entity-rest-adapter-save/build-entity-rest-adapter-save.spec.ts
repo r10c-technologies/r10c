@@ -75,9 +75,10 @@ const recordRequests = () => {
 
 const runSave = (widget: Widget) =>
   Effect.runPromise(
-    buildEntityRestAdapterSave(Widget, restOptions)(widget).pipe(
-      Effect.provide(configuration),
-    ),
+    buildEntityRestAdapterSave(
+      Widget,
+      restOptions,
+    )(widget).pipe(Effect.provide(configuration)),
   );
 
 describe('buildEntityRestAdapterSave', () => {

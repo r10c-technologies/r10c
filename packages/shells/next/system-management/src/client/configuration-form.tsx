@@ -61,8 +61,7 @@ export function ConfigurationForm({
       // Blank on a secret means "keep what is stored", so the member is left
       // undefined rather than sent as an empty string — the serializer omits
       // undefined, and the service reads its absence as "unchanged".
-      target.value =
-        isSecret && values.value === '' ? undefined : values.value;
+      target.value = isSecret && values.value === '' ? undefined : values.value;
 
       onSave(target);
     },

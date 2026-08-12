@@ -101,7 +101,8 @@ const failureOf = async (effect: Effect.Effect<unknown, EntifixBuildError>) => {
   const exit = await Effect.runPromiseExit(effect);
   if (Exit.isSuccess(exit)) throw new Error('expected a failure');
   const cause = exit.cause;
-  if (cause._tag !== 'Fail') throw new Error(`expected Fail, got ${cause._tag}`);
+  if (cause._tag !== 'Fail')
+    throw new Error(`expected Fail, got ${cause._tag}`);
   return cause.error;
 };
 
@@ -115,7 +116,7 @@ describe('deserializeSingleEntity', () => {
   });
 
   it('reads an aliased accessor from its wire name', async () => {
-    const article = await deserialize({ id: 'a-1', 'url_slug': 'hello' });
+    const article = await deserialize({ id: 'a-1', url_slug: 'hello' });
 
     expect(article?.slug).toBe('hello');
   });
@@ -206,7 +207,10 @@ describe('deserializeSingleEntity', () => {
       });
 
       expect(article?.tags.isLoaded).toBe(true);
-      expect(article?.tags.values?.map((tag) => tag.name)).toEqual(['Effect', 'Nx']);
+      expect(article?.tags.values?.map(tag => tag.name)).toEqual([
+        'Effect',
+        'Nx',
+      ]);
     });
 
     it('stores scalar members as foreign keys', async () => {
@@ -225,7 +229,7 @@ describe('deserializeSingleEntity', () => {
       });
 
       expect(article?.tags.isLoaded).toBe(true);
-      expect(article?.tags.values?.map((tag) => tag.id)).toEqual(['t-2']);
+      expect(article?.tags.values?.map(tag => tag.id)).toEqual(['t-2']);
     });
 
     it('skips null members', async () => {
@@ -261,7 +265,10 @@ describe('deserializeEntityCollection', () => {
       deserializeEntityCollection(Article, [{ id: 'a-1' }, { id: 'a-2' }]),
     );
 
-    expect(articles.map((article) => (article as Article).id)).toEqual(['a-1', 'a-2']);
+    expect(articles.map(article => (article as Article).id)).toEqual([
+      'a-1',
+      'a-2',
+    ]);
   });
 
   it('yields undefined members for null entries', async () => {
@@ -283,19 +290,23 @@ describe('deserializeEntityCollection', () => {
   });
 
   it('treats a missing collection as empty by default', async () => {
-    expect(await Effect.runPromise(deserializeEntityCollection(Article, null))).toEqual(
-      [],
-    );
+    expect(
+      await Effect.runPromise(deserializeEntityCollection(Article, null)),
+    ).toEqual([]);
   });
 
   it('fails on a missing collection when failOnNull is set', async () => {
-    const error = await failureOf(deserializeEntityCollection(Article, null, true));
+    const error = await failureOf(
+      deserializeEntityCollection(Article, null, true),
+    );
 
     expect(error.message).toContain('Expected an array but got object');
   });
 
   it('fails on a non-array payload', async () => {
-    const error = await failureOf(deserializeEntityCollection(Article, { id: 'a-1' }));
+    const error = await failureOf(
+      deserializeEntityCollection(Article, { id: 'a-1' }),
+    );
 
     expect(error.message).toContain('Expected an array but got object');
   });
@@ -303,15 +314,19 @@ describe('deserializeEntityCollection', () => {
   // The build error raised inside the recursion is already the right error; it
   // must reach the caller rather than being wrapped a second time.
   it('surfaces a member failure without re-wrapping it', async () => {
-    const error = await failureOf(deserializeEntityCollection(Article, ['raw']));
+    const error = await failureOf(
+      deserializeEntityCollection(Article, ['raw']),
+    );
 
     expect(error.message).toContain('Expected an object but got string');
   });
 
   it('wraps a non-EntifixBuildError thrown during the build', async () => {
-    const exploding = { get id() {
-      throw new TypeError('boom');
-    } };
+    const exploding = {
+      get id() {
+        throw new TypeError('boom');
+      },
+    };
 
     const error = await failureOf(deserializeSingleEntity(Article, exploding));
 
@@ -367,7 +382,7 @@ describe('serializeEntity edge cases', () => {
 
     expect(serializeEntity(Article, article)).toEqual({
       id: 'a-1',
-      'url_slug': 'hello',
+      url_slug: 'hello',
     });
   });
 

@@ -7,7 +7,10 @@ import {
   entity,
   type EntityId,
 } from '@r10c/entifix-ts-core';
-import { runRepository, runRepositoryExit } from '@r10c/entifix-ts-testing-unit';
+import {
+  runRepository,
+  runRepositoryExit,
+} from '@r10c/entifix-ts-testing-unit';
 import {
   type FakeSqlClient,
   makeFakeSqlClient,
@@ -249,7 +252,10 @@ describe('makeSqlRepository', () => {
       );
 
       expect(saved.id).toBe('w-2');
-      const { sql, params } = executed('INSERT INTO') ?? { sql: '', params: [] };
+      const { sql, params } = executed('INSERT INTO') ?? {
+        sql: '',
+        params: [],
+      };
       expect(sql).toContain('ON CONFLICT ("id") DO UPDATE SET');
       expect(sql).toContain('"widget_name" = EXCLUDED."widget_name"');
       expect(sql).toContain('"size" = EXCLUDED."size"');

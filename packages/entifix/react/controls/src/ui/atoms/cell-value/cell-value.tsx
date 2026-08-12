@@ -119,12 +119,17 @@ export function CellValue({ value, descriptor }: CellValueProps) {
     return <span className="text-content-muted">{EMPTY}</span>;
   }
 
-  const text = formatByType(value, descriptor.type, descriptor.linkLabelProperty, {
-    formatters,
-    yes: t('value.yes'),
-    no: t('value.no'),
-    enumLabel: raw => enumLabel(descriptor, raw),
-  });
+  const text = formatByType(
+    value,
+    descriptor.type,
+    descriptor.linkLabelProperty,
+    {
+      formatters,
+      yes: t('value.yes'),
+      no: t('value.no'),
+      enumLabel: raw => enumLabel(descriptor, raw),
+    },
+  );
 
   if (text === '') {
     return <span className="text-content-muted">{EMPTY}</span>;

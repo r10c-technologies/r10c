@@ -52,10 +52,7 @@ export const buildEntityRestAdapterSave =
       });
 
       const response = yield* performHttpRequestThroughFetch(httpRequest);
-      const saved = yield* readEntityEnvelope(
-        entityConstructor,
-        response.body,
-      );
+      const saved = yield* readEntityEnvelope(entityConstructor, response.body);
 
       return saved as unknown as TInput;
     });

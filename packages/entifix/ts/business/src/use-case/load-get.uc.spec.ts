@@ -83,7 +83,9 @@ describe('loadUCFactory', () => {
     Effect.runSync(
       loadUCFactory<Widget>().pipe(
         Effect.provide(
-          testContext(repository).pipe(Context.add(EntityLoadRequestTag, request)),
+          testContext(repository).pipe(
+            Context.add(EntityLoadRequestTag, request),
+          ),
         ),
       ),
     );
@@ -133,7 +135,9 @@ describe('getUCFactory', () => {
 
     Effect.runSync(
       getUCFactory<Widget>().pipe(
-        Effect.provide(testContext(repository).pipe(Context.add(EntityIdTag, 'w-1'))),
+        Effect.provide(
+          testContext(repository).pipe(Context.add(EntityIdTag, 'w-1')),
+        ),
       ),
     );
 
@@ -146,7 +150,9 @@ describe('getUCFactory', () => {
 
     const result = Effect.runSync(
       getUCFactory<Widget>().pipe(
-        Effect.provide(testContext(repository).pipe(Context.add(EntityIdTag, 'w-1'))),
+        Effect.provide(
+          testContext(repository).pipe(Context.add(EntityIdTag, 'w-1')),
+        ),
       ),
     );
 
@@ -160,7 +166,9 @@ describe('getUCFactory', () => {
     const error = Effect.runSync(
       Effect.flip(
         getUCFactory<Widget>().pipe(
-          Effect.provide(testContext(repository).pipe(Context.add(EntityIdTag, 'w-1'))),
+          Effect.provide(
+            testContext(repository).pipe(Context.add(EntityIdTag, 'w-1')),
+          ),
         ),
       ),
     );
@@ -179,7 +187,7 @@ describe('context tags', () => {
       EntityLoadRequestTag,
       EntityTag,
       ConfigurationRepositoryTag,
-    ].map((tag) => tag.key);
+    ].map(tag => tag.key);
 
     expect(new Set(identifiers).size).toBe(identifiers.length);
   });

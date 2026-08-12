@@ -1,7 +1,11 @@
 import { Effect } from 'effect';
 
-import { CommandTag, LockHandlesTag, OutcomeTag } from '../mixins/transaction-mixins';
-import { type LockHandle,LockServiceTag } from '../ports/lock-service';
+import {
+  CommandTag,
+  LockHandlesTag,
+  OutcomeTag,
+} from '../mixins/transaction-mixins';
+import { type LockHandle, LockServiceTag } from '../ports/lock-service';
 import { TransactionHandlerTag } from '../ports/transaction-handler';
 
 /**

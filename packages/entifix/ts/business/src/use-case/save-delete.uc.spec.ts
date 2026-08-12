@@ -1,4 +1,8 @@
-import type { ConfigurationClient, Entity, EntityId } from '@r10c/entifix-ts-core';
+import type {
+  ConfigurationClient,
+  Entity,
+  EntityId,
+} from '@r10c/entifix-ts-core';
 import { Context, Effect } from 'effect';
 
 import { ConfigurationRepositoryTag } from '../repository/config.repository.js';
@@ -57,7 +61,9 @@ describe('saveUCFactory', () => {
 
     Effect.runSync(
       saveUCFactory<Widget>().pipe(
-        Effect.provide(testContext(repository).pipe(Context.add(EntityTag, widget))),
+        Effect.provide(
+          testContext(repository).pipe(Context.add(EntityTag, widget)),
+        ),
       ),
     );
 
@@ -71,7 +77,9 @@ describe('saveUCFactory', () => {
 
     const result = Effect.runSync(
       saveUCFactory<Widget>().pipe(
-        Effect.provide(testContext(repository).pipe(Context.add(EntityTag, input))),
+        Effect.provide(
+          testContext(repository).pipe(Context.add(EntityTag, input)),
+        ),
       ),
     );
 
@@ -86,7 +94,9 @@ describe('deleteUCFactory', () => {
 
     Effect.runSync(
       deleteUCFactory<Widget>().pipe(
-        Effect.provide(testContext(repository).pipe(Context.add(EntityIdTag, 'widget-1'))),
+        Effect.provide(
+          testContext(repository).pipe(Context.add(EntityIdTag, 'widget-1')),
+        ),
       ),
     );
 

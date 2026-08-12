@@ -13,7 +13,9 @@ const columns = [
 const openSettings = async (hidden: string[] = []) => {
   const onChange = vi.fn();
   const user = userEvent.setup();
-  render(<ColumnSettings columns={columns} hidden={hidden} onChange={onChange} />);
+  render(
+    <ColumnSettings columns={columns} hidden={hidden} onChange={onChange} />,
+  );
 
   await user.click(screen.getByRole('button', { name: 'Columnas' }));
 
@@ -118,6 +120,8 @@ describe('ColumnSettings', () => {
 
     await user.click(screen.getByRole('button', { name: 'Columnas' }));
 
-    expect(screen.getByRole('button', { name: 'Restablecer' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Restablecer' }),
+    ).toBeInTheDocument();
   });
 });

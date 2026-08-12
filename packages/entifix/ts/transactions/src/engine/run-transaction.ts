@@ -1,11 +1,11 @@
 import { Effect } from 'effect';
 
+import { acceptedEvent, completedEvent, failedEvent } from '../contracts/event';
 import {
-  acceptedEvent,
-  completedEvent,
-  failedEvent,
-} from '../contracts/event';
-import { CommandTag, LockHandlesTag, OutcomeTag } from '../mixins/transaction-mixins';
+  CommandTag,
+  LockHandlesTag,
+  OutcomeTag,
+} from '../mixins/transaction-mixins';
 import { EventBusTag } from '../ports/event-bus';
 import type { LockHandle } from '../ports/lock-service';
 import {
@@ -57,8 +57,8 @@ export function completeTransaction(handles: readonly LockHandle[]) {
 
     yield* executeUCFactory().pipe(
       Effect.matchEffect({
-        onSuccess: (outcome) => bus.publish(completedEvent(command, outcome)),
-        onFailure: (error) =>
+        onSuccess: outcome => bus.publish(completedEvent(command, outcome)),
+        onFailure: error =>
           rollbackUCFactory().pipe(
             Effect.provideService(OutcomeTag, undefined),
             Effect.ignore,

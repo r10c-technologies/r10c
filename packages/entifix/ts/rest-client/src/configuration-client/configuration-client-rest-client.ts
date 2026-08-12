@@ -26,12 +26,14 @@ class ConfigurationClientGroupRestClient implements ConfigurationClientGroup {
       ConfigurationPlain,
       EntifixBuildError
     >,
-    private readonly group: string
+    private readonly group: string,
   ) {}
 
   #pending() {
     return Effect.die(
-      new Error('ConfigurationClientGroupRestClient getter not implemented yet')
+      new Error(
+        'ConfigurationClientGroupRestClient getter not implemented yet',
+      ),
     );
   }
 
@@ -40,8 +42,8 @@ class ConfigurationClientGroupRestClient implements ConfigurationClientGroup {
       Effect.flatMap(plain =>
         new ConfigurationClientInMemory(plain)
           .in(this.group)
-          .getString(key, extractMode)
-      )
+          .getString(key, extractMode),
+      ),
     );
   }
 
@@ -98,7 +100,7 @@ export class ConfigurationClientRestClient implements ConfigurationClient {
         (cache ??= fetch(url).then(response => {
           if (!response.ok) {
             throw new Error(
-              `Configuration request to ${url} failed with status ${response.status}`
+              `Configuration request to ${url} failed with status ${response.status}`,
             );
           }
           return response.json() as Promise<ConfigurationPlain>;

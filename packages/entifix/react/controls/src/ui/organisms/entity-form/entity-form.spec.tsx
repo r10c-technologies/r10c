@@ -372,7 +372,10 @@ describe('EntityForm', () => {
         <Harness
           mode="edit"
           linkSources={{
-            brand: { ...source, quick: { ...source.quick, options: [unsaved] } },
+            brand: {
+              ...source,
+              quick: { ...source.quick, options: [unsaved] },
+            },
           }}
           onLinkChange={onLinkChange}
         />,

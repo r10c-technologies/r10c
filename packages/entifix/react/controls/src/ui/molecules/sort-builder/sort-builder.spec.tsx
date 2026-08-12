@@ -59,7 +59,9 @@ describe('SortBuilder', () => {
   it('says so when the entity has nothing sortable', () => {
     renderBuilder([]);
 
-    expect(screen.getByText(/no tiene miembros ordenables/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/no tiene miembros ordenables/),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Añadir orden' }),
     ).not.toBeInTheDocument();
@@ -90,7 +92,10 @@ describe('SortBuilder', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
 
-    await user.selectOptions(screen.getByLabelText('Miembro de orden'), 'stock');
+    await user.selectOptions(
+      screen.getByLabelText('Miembro de orden'),
+      'stock',
+    );
 
     await apply(user);
 
@@ -103,7 +108,10 @@ describe('SortBuilder', () => {
     const { onChange, user } = renderBuilder();
     await addSort(user);
 
-    await user.selectOptions(screen.getByLabelText('Dirección de orden'), 'desc');
+    await user.selectOptions(
+      screen.getByLabelText('Dirección de orden'),
+      'desc',
+    );
 
     await apply(user);
 
@@ -296,7 +304,10 @@ describe('committing', () => {
     const { onChange, user } = renderBuilder();
 
     await addSort(user);
-    await user.selectOptions(screen.getByLabelText('Dirección de orden'), 'desc');
+    await user.selectOptions(
+      screen.getByLabelText('Dirección de orden'),
+      'desc',
+    );
 
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -328,7 +339,9 @@ describe('seeding from the applied value', () => {
     const members = screen.getAllByLabelText('Miembro de orden');
     expect(members[0]).toHaveValue('name');
     expect(members[1]).toHaveValue('stock');
-    expect(screen.getAllByLabelText('Dirección de orden')[1]).toHaveValue('desc');
+    expect(screen.getAllByLabelText('Dirección de orden')[1]).toHaveValue(
+      'desc',
+    );
   });
 
   // An applied value carries the wire key; the rows address members by name.

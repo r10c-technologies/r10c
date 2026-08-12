@@ -86,7 +86,9 @@ describe('SidebarNav', () => {
     );
     // Items without a workspace param get no such affordance.
     expect(
-      within(nav).queryByRole('link', { name: 'Abrir Products en el espacio de trabajo' }),
+      within(nav).queryByRole('link', {
+        name: 'Abrir Products en el espacio de trabajo',
+      }),
     ).toBeNull();
   });
 

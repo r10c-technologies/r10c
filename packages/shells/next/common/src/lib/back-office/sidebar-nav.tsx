@@ -33,7 +33,10 @@ export function SidebarNav({ sections, collapsed = false }: SidebarNavProps) {
           {section.items.map(item => {
             const active = isActive(pathname, item.href);
             return (
-              <div key={item.href} className="group/nav flex items-center gap-3xs">
+              <div
+                key={item.href}
+                className="group/nav flex items-center gap-3xs"
+              >
                 <LocaleLink
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
@@ -57,7 +60,7 @@ export function SidebarNav({ sections, collapsed = false }: SidebarNavProps) {
                     href={`/workspace?tab=${encodeURIComponent(item.workspace)}`}
                     aria-label={t('nav.openInWorkspace', { label: item.label })}
                     title={t('nav.openInWorkspaceShort')}
-                    className="rounded p-3xs text-content-muted opacity-0 transition hover:bg-surface hover:text-content focus:opacity-100 group-hover/nav:opacity-100"
+                    className="rounded p-3xs text-content-muted opacity-0 transition group-hover/nav:opacity-100 hover:bg-surface hover:text-content focus:opacity-100"
                   >
                     <span aria-hidden="true">⧉</span>
                   </LocaleLink>

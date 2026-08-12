@@ -54,7 +54,10 @@ const descriptor: EntityFieldDescriptor = {
   linkSerialization: 'id',
 };
 
-const ITEMS = [new PickerBrand('b-1', 'Acme'), new PickerBrand('b-2', 'Globex')];
+const ITEMS = [
+  new PickerBrand('b-1', 'Acme'),
+  new PickerBrand('b-2', 'Globex'),
+];
 
 function source(
   browse: Partial<EntityLinkSource<PickerBrand>['browse']> = {},

@@ -15,7 +15,11 @@ export interface SkeletonProps extends ComponentPropsWithoutRef<'div'> {
  * dimensions come from the caller (`className` / `style`) so it matches the real
  * content's geometry and the swap causes no layout shift.
  */
-export function Skeleton({ shape = 'block', className, ...props }: SkeletonProps) {
+export function Skeleton({
+  shape = 'block',
+  className,
+  ...props
+}: SkeletonProps) {
   return (
     <div
       aria-hidden="true"

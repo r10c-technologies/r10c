@@ -242,9 +242,7 @@ describe('useEntityLinkSource', () => {
   it('resolves the label of a held key with no instance', async () => {
     const { result } = renderSource({ selectedId: 'b-2' });
 
-    await waitFor(() =>
-      expect(result.current.selected.label).toBe('Globex'),
-    );
+    await waitFor(() => expect(result.current.selected.label).toBe('Globex'));
   });
 
   it('has no label to show without a get use-case', async () => {

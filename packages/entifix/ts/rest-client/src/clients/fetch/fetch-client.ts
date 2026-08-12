@@ -4,7 +4,7 @@ import { Effect } from 'effect';
 import { HttpRequest, HttpResponse } from '../types';
 
 export const performHttpRequestThroughFetch = <TResponseBody>(
-  request: HttpRequest<unknown>
+  request: HttpRequest<unknown>,
 ) =>
   Effect.gen(function* () {
     // Perform the HTTP request using the Fetch API
@@ -31,8 +31,8 @@ export const performHttpRequestThroughFetch = <TResponseBody>(
       const failure = yield* Effect.promise(() =>
         response.json().then(
           (parsed: unknown) => parsed as Record<string, unknown>,
-          () => ({}) as Record<string, unknown>
-        )
+          () => ({}) as Record<string, unknown>,
+        ),
       );
       const code = failure['code'];
 
@@ -46,8 +46,8 @@ export const performHttpRequestThroughFetch = <TResponseBody>(
             url: request.url,
             method: request.method,
             ...(typeof code === 'string' ? { code } : {}),
-          }
-        )
+          },
+        ),
       );
     }
 

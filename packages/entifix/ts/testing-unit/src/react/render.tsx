@@ -2,13 +2,19 @@ import {
   UiPreferencesProvider,
   type UiPreferencesState,
 } from '@r10c/entifix-react-controls';
-import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
+import {
+  render,
+  type RenderOptions,
+  type RenderResult,
+} from '@testing-library/react';
 import type { Context, PropsWithChildren, ReactElement } from 'react';
 
 import { makeInMemoryUiPreferencesState } from './ui-preferences';
 
-export interface RenderWithAdaptersOptions<TAdapters>
-  extends Omit<RenderOptions, 'wrapper'> {
+export interface RenderWithAdaptersOptions<TAdapters> extends Omit<
+  RenderOptions,
+  'wrapper'
+> {
   /**
    * The adapters context a shell would normally provide, paired with the value
    * to publish on it.

@@ -19,9 +19,9 @@ export const signIn = async (
   device?: Record<string, unknown>,
 ) => {
   const start = await service.client.post('/api/auth/oidc/start', {});
-  const state = new URL(
-    start.data.authorizationUrl as string,
-  ).searchParams.get('state');
+  const state = new URL(start.data.authorizationUrl as string).searchParams.get(
+    'state',
+  );
 
   return service.client.post('/api/auth/oidc/callback', {
     code: email,

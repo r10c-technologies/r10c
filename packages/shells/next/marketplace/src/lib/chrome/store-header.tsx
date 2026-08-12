@@ -1,4 +1,8 @@
-import { Cluster, Text, ThemeSwitcher } from '@r10c/entifix-react-controls/primitives';
+import {
+  Cluster,
+  Text,
+  ThemeSwitcher,
+} from '@r10c/entifix-react-controls/primitives';
 import { getServerTFor } from '@r10c/entifix-ts-i18n';
 import type { Locale } from '@r10c/entifix-ts-i18n/routing';
 

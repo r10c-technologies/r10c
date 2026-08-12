@@ -1,5 +1,8 @@
 import { LOCALES } from '@r10c/entifix-ts-i18n/routing';
-import { loadProducts, ProductPage } from '@r10c/shells-next-marketplace/server';
+import {
+  loadProducts,
+  ProductPage,
+} from '@r10c/shells-next-marketplace/server';
 
 import { requireLocale } from '../../locale-param';
 

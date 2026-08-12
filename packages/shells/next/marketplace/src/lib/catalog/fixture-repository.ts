@@ -80,7 +80,9 @@ function applyFiltering(
   }
 
   return records.filter(record =>
-    (filters as EntityFilter<Entity>[]).every(filter => matches(record, filter)),
+    (filters as EntityFilter<Entity>[]).every(filter =>
+      matches(record, filter),
+    ),
   );
 }
 

@@ -41,15 +41,17 @@ export const resolveSignIn = (
 ): Effect.Effect<AuthSubject, AuthnError | UnauthenticatedError> =>
   Effect.gen(function* () {
     const existing = yield* accounts.findByIdentifier(identity.subject);
-    const user =
-      existing ?? (yield* provisionFromIdentity(accounts, identity));
+    const user = existing ?? (yield* provisionFromIdentity(accounts, identity));
 
     // Checked here, not in the token verifier: Zitadel proved *who* this is,
     // and whether they may still hold a session is r10c's question. A suspended
     // user with a perfectly valid `id_token` gets nothing.
     if (user.status !== UserStatus.Active) {
       return yield* Effect.fail(
-        new UnauthenticatedError('the account is not active', 'accountInactive'),
+        new UnauthenticatedError(
+          'the account is not active',
+          'accountInactive',
+        ),
       );
     }
 

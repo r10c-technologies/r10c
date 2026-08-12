@@ -8,7 +8,7 @@ import {
 export function accessor(options?: MetaAccessorOptions) {
   return (
     _value: unknown,
-    context: ClassGetterDecoratorContext | ClassSetterDecoratorContext
+    context: ClassGetterDecoratorContext | ClassSetterDecoratorContext,
   ) => {
     const kind: MetaAccessorKind =
       context.kind === 'getter' ? 'getter' : 'setter';

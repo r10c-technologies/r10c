@@ -107,8 +107,8 @@ describe('registerUserUCFactory', () => {
       findByIdentifier: () => Effect.succeed(null),
       findById: () => Effect.succeed(null),
       findContactAddress: () => Effect.succeed(null),
-    linkExternalSubject: () => Effect.void,
-    projectIdentity: () => Effect.void,
+      linkExternalSubject: () => Effect.void,
+      projectIdentity: () => Effect.void,
       createAccount: () =>
         Effect.fail(new EntifixLogicError('identifier already taken')),
       updateUserAspects: () =>

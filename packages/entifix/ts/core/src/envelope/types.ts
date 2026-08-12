@@ -11,11 +11,7 @@ import type { EntityLoadRequest } from '../types/EntityLoadRequest';
  * — core only owns the discriminant so every artifact agrees on it.
  */
 export type EntifixEnvelopeType =
-  | 'entity'
-  | 'entityCollection'
-  | 'entityPage'
-  | 'command'
-  | 'transactionEvent';
+  'entity' | 'entityCollection' | 'entityPage' | 'command' | 'transactionEvent';
 
 export type EntifixEnvelopeMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 

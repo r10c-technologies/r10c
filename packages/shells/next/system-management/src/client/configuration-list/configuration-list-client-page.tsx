@@ -30,7 +30,6 @@ export interface ConfigurationListClientPageProps {
 export function ConfigurationListClientPage({
   hrefFor,
 }: ConfigurationListClientPageProps = {}) {
-
   const { configurationRest, configurationStore } =
     useSystemManagementAdapters();
 

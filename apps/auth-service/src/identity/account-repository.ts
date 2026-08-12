@@ -151,10 +151,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
    * writing only the identifier document would leave a row nothing links to,
    * and the user would come back from `deserializeSingleEntity` without it.
    */
-  const attachIdentifier = (
-    userId: EntityId,
-    doc: Record<string, unknown>,
-  ) =>
+  const attachIdentifier = (userId: EntityId, doc: Record<string, unknown>) =>
     Effect.gen(function* () {
       const identifierId = randomUUID();
       yield* Effect.tryPromise({
@@ -208,10 +205,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       });
     });
 
-  const projectIdentity = (
-    userId: EntityId,
-    projection: IdentityProjection,
-  ) =>
+  const projectIdentity = (userId: EntityId, projection: IdentityProjection) =>
     Effect.gen(function* () {
       if (projection.displayName !== undefined) {
         yield* Effect.tryPromise({

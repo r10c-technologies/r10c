@@ -23,17 +23,24 @@ let repository: ReturnType<typeof makeInMemoryEntityRepository>;
 
 const renderMutation = () =>
   renderHook(() =>
-    useEntityMutation<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>({
-      saveUc: saveUCFactory<Widget>(),
-      deleteUc: deleteUCFactory<Widget>(),
-      ctx: Context.make(EntityRepositoryTag, repository).pipe(
-        Context.add(ConfigurationRepositoryTag, makeStubConfigurationClient()),
-      ),
-    }),
+    useEntityMutation<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>(
+      {
+        saveUc: saveUCFactory<Widget>(),
+        deleteUc: deleteUCFactory<Widget>(),
+        ctx: Context.make(EntityRepositoryTag, repository).pipe(
+          Context.add(
+            ConfigurationRepositoryTag,
+            makeStubConfigurationClient(),
+          ),
+        ),
+      },
+    ),
   );
 
 beforeEach(() => {
-  repository = makeInMemoryEntityRepository([{ id: 'w-1', name: 'Alpha' }] as Widget[]);
+  repository = makeInMemoryEntityRepository([
+    { id: 'w-1', name: 'Alpha' },
+  ] as Widget[]);
 });
 
 describe('useEntityMutation', () => {
@@ -145,10 +152,16 @@ describe('useEntityMutation', () => {
   });
 
   it.each([
-    ['save', (api: ReturnType<typeof renderMutation>['result']['current']) =>
-      api.save({ id: 'w-1', name: 'Renamed' })],
-    ['remove', (api: ReturnType<typeof renderMutation>['result']['current']) =>
-      api.remove('w-1')],
+    [
+      'save',
+      (api: ReturnType<typeof renderMutation>['result']['current']) =>
+        api.save({ id: 'w-1', name: 'Renamed' }),
+    ],
+    [
+      'remove',
+      (api: ReturnType<typeof renderMutation>['result']['current']) =>
+        api.remove('w-1'),
+    ],
   ])('clears a previous error when the next %s starts', async (_label, run) => {
     repository.failNext(new EntifixConnError('unreachable'));
     const { result } = renderMutation();

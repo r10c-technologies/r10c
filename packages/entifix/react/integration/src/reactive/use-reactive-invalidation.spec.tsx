@@ -2,7 +2,10 @@ import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { EntifixQueryProvider, makeQueryClient } from '../query/query-provider.js';
+import {
+  EntifixQueryProvider,
+  makeQueryClient,
+} from '../query/query-provider.js';
 import { makeInMemoryReactiveChannel } from './reactive-channel.js';
 import { useReactiveInvalidation } from './use-reactive-invalidation.js';
 

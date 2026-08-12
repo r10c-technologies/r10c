@@ -105,13 +105,16 @@ describe('notifications', () => {
       headers: { Authorization: `Bearer ${session.data.accessToken}` },
     });
 
-    await service.client.delete(`/api/user-identity/${me.data.userId}/sessions`, {
-      headers: { Authorization: `Bearer ${admin.data.accessToken}` },
-    });
+    await service.client.delete(
+      `/api/user-identity/${me.data.userId}/sessions`,
+      {
+        headers: { Authorization: `Bearer ${admin.data.accessToken}` },
+      },
+    );
 
     const items = await outboxFor(email);
-    expect(
-      items.filter(item => item.kind === 'sessions-revoked'),
-    ).toHaveLength(1);
+    expect(items.filter(item => item.kind === 'sessions-revoked')).toHaveLength(
+      1,
+    );
   });
 });

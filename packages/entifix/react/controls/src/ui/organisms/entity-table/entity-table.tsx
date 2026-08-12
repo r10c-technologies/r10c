@@ -282,7 +282,9 @@ export function EntityTable<TEntity extends Entity>({
       {/* Narrow viewports: the same columns pivoted into cards. */}
       <div className={`${pivot.cards} flex flex-col gap-2xs`}>
         {isLoading && items.length === 0 && (
-          <p className="text-step-sm text-content-muted">{t('table.loading')}</p>
+          <p className="text-step-sm text-content-muted">
+            {t('table.loading')}
+          </p>
         )}
         {!isLoading && items.length === 0 && (
           <p className="text-step-sm text-content-muted">{emptyMessage}</p>

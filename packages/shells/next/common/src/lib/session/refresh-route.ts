@@ -106,6 +106,9 @@ export const createRefreshRoute =
         expiresIn: payload.expiresIn,
         sessionExpiresIn: payload.sessionExpiresIn,
       }),
-      { accessToken: payload.accessToken, sessionExpiresIn: payload.sessionExpiresIn },
+      {
+        accessToken: payload.accessToken,
+        sessionExpiresIn: payload.sessionExpiresIn,
+      },
     );
   };

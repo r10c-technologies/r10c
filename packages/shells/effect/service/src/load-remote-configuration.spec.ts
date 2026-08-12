@@ -1,4 +1,7 @@
-import { ConfigurationClientInMemory, EntifixConnError } from '@r10c/entifix-ts-core';
+import {
+  ConfigurationClientInMemory,
+  EntifixConnError,
+} from '@r10c/entifix-ts-core';
 import {
   http,
   HttpResponse,
@@ -29,7 +32,9 @@ const plain = {
 };
 
 const server = setupEntifixServer(
-  http.get(`${CONFIG_API}/api/config/${SERVICE}`, () => HttpResponse.json(plain)),
+  http.get(`${CONFIG_API}/api/config/${SERVICE}`, () =>
+    HttpResponse.json(plain),
+  ),
 );
 
 const recordRequests = () => {
@@ -60,7 +65,9 @@ describe('loadRemoteConfiguration', () => {
   it('tolerates a trailing slash on the base URL', async () => {
     const urls = recordRequests();
 
-    await Effect.runPromise(loadRemoteConfiguration(`${CONFIG_API}///`, SERVICE));
+    await Effect.runPromise(
+      loadRemoteConfiguration(`${CONFIG_API}///`, SERVICE),
+    );
 
     expect(urls).toContain(`${CONFIG_API}/api/config/${SERVICE}`);
   });
@@ -120,7 +127,9 @@ describe('loadRemoteConfiguration', () => {
   // surfaces the error rather than hanging forever.
   it('gives up with EntifixConnError once the retry budget is exhausted', async () => {
     server.use(
-      http.get(`${CONFIG_API}/api/config/${SERVICE}`, () => HttpResponse.error()),
+      http.get(`${CONFIG_API}/api/config/${SERVICE}`, () =>
+        HttpResponse.error(),
+      ),
     );
 
     const error = await Effect.runPromise(

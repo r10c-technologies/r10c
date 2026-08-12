@@ -28,11 +28,13 @@ const makeContext = () =>
 const renderRecord = (id: EntityId) =>
   renderHook(
     ({ recordId }: { recordId: EntityId }) =>
-      useEntityRecord<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>({
-        uc: getUCFactory<Widget>(),
-        ctx: makeContext(),
-        id: recordId,
-      }),
+      useEntityRecord<Widget, ConfigurationRepositoryTag | EntityRepositoryTag>(
+        {
+          uc: getUCFactory<Widget>(),
+          ctx: makeContext(),
+          id: recordId,
+        },
+      ),
     { initialProps: { recordId: id } },
   );
 
@@ -81,7 +83,9 @@ describe('useEntityRecord', () => {
     act(() => result.current.reload());
 
     await waitFor(() =>
-      expect((result.current.entity as Widget | undefined)?.name).toBe('Renamed'),
+      expect((result.current.entity as Widget | undefined)?.name).toBe(
+        'Renamed',
+      ),
     );
   });
 
@@ -91,9 +95,13 @@ describe('useEntityRecord', () => {
     const { result } = renderRecord('w-1');
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    act(() => result.current.setEntity({ id: 'w-1', name: 'Locally saved' } as Widget));
+    act(() =>
+      result.current.setEntity({ id: 'w-1', name: 'Locally saved' } as Widget),
+    );
 
-    expect((result.current.entity as Widget | undefined)?.name).toBe('Locally saved');
+    expect((result.current.entity as Widget | undefined)?.name).toBe(
+      'Locally saved',
+    );
   });
 
   it('clears the held record through setEntity(undefined)', async () => {

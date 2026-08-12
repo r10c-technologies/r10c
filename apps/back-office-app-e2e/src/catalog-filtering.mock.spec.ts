@@ -176,7 +176,9 @@ test.describe('the query the catalog emits', () => {
     // filter on it. The restored full set is the observable proof.
     await expect
       .poll(async () =>
-        (await table.columnValues('Nombre')).some(name => !name.includes('Acme')),
+        (await table.columnValues('Nombre')).some(
+          name => !name.includes('Acme'),
+        ),
       )
       .toBe(true);
     for (const request of requests) {

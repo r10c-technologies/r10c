@@ -83,7 +83,9 @@ test.describe('the catalog listing', () => {
     // which says nothing about the query.
     await expect
       .poll(async () =>
-        (await table.columnValues('Nombre')).some(name => !name.includes('Acme')),
+        (await table.columnValues('Nombre')).some(
+          name => !name.includes('Acme'),
+        ),
       )
       .toBe(true);
   });

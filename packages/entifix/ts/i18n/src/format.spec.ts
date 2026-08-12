@@ -14,7 +14,9 @@ describe('makeFormatters', () => {
     const en = makeFormatters('en').date(value);
 
     expect(es).not.toBe(en);
-    expect(es).toBe(new Intl.DateTimeFormat('es', { dateStyle: 'medium' }).format(value));
+    expect(es).toBe(
+      new Intl.DateTimeFormat('es', { dateStyle: 'medium' }).format(value),
+    );
   });
 
   it('accepts a string or an epoch as well as a Date', () => {
@@ -30,7 +32,10 @@ describe('makeFormatters', () => {
     const formatters = makeFormatters('en');
 
     expect(formatters.dateTime(value)).toBe(
-      new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(value),
+      new Intl.DateTimeFormat('en', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(value),
     );
   });
 
@@ -44,7 +49,9 @@ describe('makeFormatters', () => {
   it('formats numbers, with and without overrides', () => {
     const formatters = makeFormatters('es');
 
-    expect(formatters.number(1234567.5)).toBe(new Intl.NumberFormat('es').format(1234567.5));
+    expect(formatters.number(1234567.5)).toBe(
+      new Intl.NumberFormat('es').format(1234567.5),
+    );
     expect(formatters.number(0.42, { style: 'percent' })).toBe(
       new Intl.NumberFormat('es', { style: 'percent' }).format(0.42),
     );
@@ -54,7 +61,10 @@ describe('makeFormatters', () => {
     const formatters = makeFormatters('en');
 
     expect(formatters.currency(89, 'USD')).toBe(
-      new Intl.NumberFormat('en', { style: 'currency', currency: 'USD' }).format(89),
+      new Intl.NumberFormat('en', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(89),
     );
     expect(formatters.relative(-1, 'day')).toBe(
       new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(-1, 'day'),

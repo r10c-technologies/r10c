@@ -6,7 +6,11 @@ import {
   NoopReactiveChannel,
 } from './reactive-channel.js';
 
-const event: EntityChangeEvent = { entity: 'widget', change: 'updated', id: 'w-1' };
+const event: EntityChangeEvent = {
+  entity: 'widget',
+  change: 'updated',
+  id: 'w-1',
+};
 
 describe('NoopReactiveChannel', () => {
   it('never emits and its unsubscribe is a no-op', () => {

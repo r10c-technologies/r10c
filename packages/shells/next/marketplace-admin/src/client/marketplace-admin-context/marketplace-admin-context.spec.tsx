@@ -39,7 +39,9 @@ describe('the marketplace-admin adapters context', () => {
       </MarketplaceAdminAdaptersProvider>
     );
 
-    const { result } = renderHook(() => useMarketplaceAdminAdapters(), { wrapper });
+    const { result } = renderHook(() => useMarketplaceAdminAdapters(), {
+      wrapper,
+    });
 
     expect(result.current).toBe(adapters);
   });

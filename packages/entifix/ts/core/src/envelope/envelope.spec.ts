@@ -82,12 +82,18 @@ describe('makeEntityEnvelope', () => {
   });
 
   it('carries HATEOAS links on meta when supplied, and omits the key otherwise', () => {
-    const links = [{ rel: 'self', href: '/api/brand/brand-1', method: 'GET' as const }];
-    const withLinks = makeEntityEnvelope(Brand, makeBrand('brand-1', 'Acme'), links);
-    expect(withLinks.meta.links).toEqual(links);
-    expect(makeEntityEnvelope(Brand, makeBrand('brand-1', 'Acme')).meta).not.toHaveProperty(
-      'links',
+    const links = [
+      { rel: 'self', href: '/api/brand/brand-1', method: 'GET' as const },
+    ];
+    const withLinks = makeEntityEnvelope(
+      Brand,
+      makeBrand('brand-1', 'Acme'),
+      links,
     );
+    expect(withLinks.meta.links).toEqual(links);
+    expect(
+      makeEntityEnvelope(Brand, makeBrand('brand-1', 'Acme')).meta,
+    ).not.toHaveProperty('links');
   });
 });
 
@@ -155,11 +161,17 @@ describe('readEntityEnvelope', () => {
   });
 
   it('fails with EntifixBuildError when meta.type does not match', () => {
-    const envelope = makeEntityCollectionEnvelope(Brand, [makeBrand('brand-1', 'Acme')]);
-    const result = Effect.runSync(readEntityEnvelope(Brand, envelope).pipe(Effect.flip));
+    const envelope = makeEntityCollectionEnvelope(Brand, [
+      makeBrand('brand-1', 'Acme'),
+    ]);
+    const result = Effect.runSync(
+      readEntityEnvelope(Brand, envelope).pipe(Effect.flip),
+    );
 
     expect(result).toBeInstanceOf(EntifixBuildError);
-    expect(result.message).toContain('Expected an EntifixEnvelope of type "entity"');
+    expect(result.message).toContain(
+      'Expected an EntifixEnvelope of type "entity"',
+    );
     expect(result.message).toContain('entityCollection');
   });
 
@@ -181,7 +193,9 @@ describe('readEntityCollectionEnvelope', () => {
       makeBrand('brand-1', 'Acme'),
       makeBrand('brand-2', 'Globex'),
     ]);
-    const result = Effect.runSync(readEntityCollectionEnvelope(Brand, envelope));
+    const result = Effect.runSync(
+      readEntityCollectionEnvelope(Brand, envelope),
+    );
 
     expect(result).toHaveLength(2);
     expect(result.map(brand => brand.name)).toEqual(['Acme', 'Globex']);
@@ -207,9 +221,13 @@ describe('readEntityPageEnvelope', () => {
 
   it('fails with EntifixBuildError when handed an entity envelope', () => {
     const envelope = makeEntityEnvelope(Brand, makeBrand('brand-1', 'Acme'));
-    const result = Effect.runSync(readEntityPageEnvelope(Brand, envelope).pipe(Effect.flip));
+    const result = Effect.runSync(
+      readEntityPageEnvelope(Brand, envelope).pipe(Effect.flip),
+    );
 
     expect(result).toBeInstanceOf(EntifixBuildError);
-    expect(result.message).toContain('Expected an EntifixEnvelope of type "entityPage"');
+    expect(result.message).toContain(
+      'Expected an EntifixEnvelope of type "entityPage"',
+    );
   });
 });

@@ -38,8 +38,9 @@ export interface EntityLinkQuickSearch<TEntity extends Entity> {
 }
 
 /** The browse half: the full list view, plus the dialog holding it. */
-export interface EntityLinkBrowse<TEntity extends Entity>
-  extends EntityLinkListView<TEntity> {
+export interface EntityLinkBrowse<
+  TEntity extends Entity,
+> extends EntityLinkListView<TEntity> {
   isOpen: boolean;
   open: () => void;
   close: () => void;

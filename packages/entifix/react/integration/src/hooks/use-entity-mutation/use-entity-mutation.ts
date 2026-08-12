@@ -1,5 +1,9 @@
 import { EntityIdTag, EntityTag } from '@r10c/entifix-ts-business';
-import { EntifixError, type Entity, type EntityId } from '@r10c/entifix-ts-core';
+import {
+  EntifixError,
+  type Entity,
+  type EntityId,
+} from '@r10c/entifix-ts-core';
 import { Context, Effect } from 'effect';
 import { useCallback, useReducer } from 'react';
 
@@ -17,7 +21,7 @@ const initialState: UseEntityMutationState = {
 
 function reducer(
   state: UseEntityMutationState,
-  action: UseEntityMutationAction
+  action: UseEntityMutationAction,
 ): UseEntityMutationState {
   return { ...state, ...action.set };
 }
@@ -46,7 +50,7 @@ export function useEntityMutation<TEntity extends Entity, TContext>({
       dispatch({ set: { isSaving: true, error: undefined } });
       try {
         const saved = await Effect.runPromise(
-          Effect.provide(saveUc, ctx.pipe(Context.add(EntityTag, entity)))
+          Effect.provide(saveUc, ctx.pipe(Context.add(EntityTag, entity))),
         );
         dispatch({ set: { isSaving: false } });
         return saved;
@@ -55,7 +59,7 @@ export function useEntityMutation<TEntity extends Entity, TContext>({
         return undefined;
       }
     },
-    [saveUc, ctx]
+    [saveUc, ctx],
   );
 
   const remove = useCallback(
@@ -63,7 +67,7 @@ export function useEntityMutation<TEntity extends Entity, TContext>({
       dispatch({ set: { isDeleting: true, error: undefined } });
       try {
         await Effect.runPromise(
-          Effect.provide(deleteUc, ctx.pipe(Context.add(EntityIdTag, id)))
+          Effect.provide(deleteUc, ctx.pipe(Context.add(EntityIdTag, id))),
         );
         dispatch({ set: { isDeleting: false } });
         return true;
@@ -72,7 +76,7 @@ export function useEntityMutation<TEntity extends Entity, TContext>({
         return false;
       }
     },
-    [deleteUc, ctx]
+    [deleteUc, ctx],
   );
 
   return { ...state, save, remove };

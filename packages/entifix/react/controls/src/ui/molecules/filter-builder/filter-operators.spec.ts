@@ -1,9 +1,5 @@
 import type { MetaAccessorType } from '@r10c/entifix-ts-core';
-import {
-  createI18n,
-  type Locale,
-  LOCALES,
-} from '@r10c/entifix-ts-i18n';
+import { createI18n, type Locale, LOCALES } from '@r10c/entifix-ts-i18n';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -51,24 +47,28 @@ describe('operatorsForType', () => {
   it('offers set membership for an enum, but not substring matching', () => {
     const operators = operatorsForType('enum');
 
-    expect(operators).toEqual(expect.arrayContaining(['eq', 'ne', 'in', 'nin']));
+    expect(operators).toEqual(
+      expect.arrayContaining(['eq', 'ne', 'in', 'nin']),
+    );
     expect(operators).not.toContain('like');
     expect(operators).not.toContain('gt');
   });
 
   it.each(['string', 'id', 'link', 'linkCollection'] as MetaAccessorType[])(
     'offers substring matching for a %s',
-    (type) => {
+    type => {
       const operators = operatorsForType(type);
 
-      expect(operators).toEqual(expect.arrayContaining(['like', 'nlike', 'eq']));
+      expect(operators).toEqual(
+        expect.arrayContaining(['like', 'nlike', 'eq']),
+      );
       expect(operators).not.toContain('gt');
     },
   );
 
   it.each(['number', 'date', 'enum', 'string'] as MetaAccessorType[])(
     'offers the emptiness checks for a %s',
-    (type) => {
+    type => {
       expect(operatorsForType(type)).toEqual(
         expect.arrayContaining(['isNull', 'isNotNull']),
       );
@@ -94,7 +94,7 @@ describe('operatorsForType', () => {
           'link',
           'linkCollection',
         ] as MetaAccessorType[]
-      ).flatMap((type) => [...operatorsForType(type)]),
+      ).flatMap(type => [...operatorsForType(type)]),
     );
 
     for (const operator of offered) {
@@ -139,13 +139,18 @@ describe('operatorArity', () => {
     ['lte', 'single'],
     ['like', 'single'],
     ['nlike', 'single'],
-  ] as [EntityFilterOperator, string][])('reports %s as %s', (operator, arity) => {
-    expect(operatorArity(operator)).toBe(arity);
-  });
+  ] as [EntityFilterOperator, string][])(
+    'reports %s as %s',
+    (operator, arity) => {
+      expect(operatorArity(operator)).toBe(arity);
+    },
+  );
 
   it('covers every labelled operator', () => {
     for (const operator of EVERY_OPERATOR) {
-      expect(['none', 'single', 'list', 'range']).toContain(operatorArity(operator));
+      expect(['none', 'single', 'list', 'range']).toContain(
+        operatorArity(operator),
+      );
     }
   });
 });

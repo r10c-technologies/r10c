@@ -30,14 +30,14 @@ describeEventBusContract('amqp adapter over a fake channel', async () => {
   // an envelope, so `published` unwraps it back into the event.
   return {
     bus,
-    deliver: (event) =>
+    deliver: event =>
       fake.deliver({
         meta: { type: 'transactionEvent', entity: event.entity },
         data: event,
       }),
     published: () =>
       fake.published.map(
-        (message) => (message.body as { data: TransactionEvent }).data,
+        message => (message.body as { data: TransactionEvent }).data,
       ),
   };
 });

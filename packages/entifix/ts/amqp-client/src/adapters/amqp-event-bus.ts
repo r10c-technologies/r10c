@@ -20,7 +20,7 @@ import {
  * the saga tracker receives a full broadcast of every service's events.
  */
 export const makeAmqpEventBus = (channel: Channel): EventBus => ({
-  publish: (event) =>
+  publish: event =>
     Effect.try({
       try: () => {
         channel.publish(
@@ -30,13 +30,13 @@ export const makeAmqpEventBus = (channel: Channel): EventBus => ({
           { persistent: true },
         );
       },
-      catch: (error) =>
+      catch: error =>
         new EntifixConnError('AMQP publish failed', error, {
           transactionId: event.transactionId,
         }),
     }),
 
-  subscribe: (handler) =>
+  subscribe: handler =>
     Effect.tryPromise({
       try: async () => {
         // One unacked message at a time: events for a transaction are then
@@ -60,8 +60,7 @@ export const makeAmqpEventBus = (channel: Channel): EventBus => ({
           );
         });
       },
-      catch: (error) =>
-        new EntifixConnError('AMQP subscribe failed', error),
+      catch: error => new EntifixConnError('AMQP subscribe failed', error),
     }),
 });
 

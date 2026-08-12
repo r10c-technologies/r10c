@@ -35,12 +35,10 @@ export const AmqpLayer = (
           });
           return { connection, channel };
         },
-        catch: (error) =>
+        catch: error =>
           new EntifixConnError('Failed to connect to RabbitMQ', error),
       }),
       ({ connection }) =>
-        Effect.promise(() =>
-          connection.close().catch(() => undefined),
-        ),
+        Effect.promise(() => connection.close().catch(() => undefined)),
     ).pipe(Effect.map(({ channel }) => channel)),
   );

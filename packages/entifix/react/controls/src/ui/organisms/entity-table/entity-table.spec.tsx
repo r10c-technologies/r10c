@@ -202,8 +202,12 @@ describe('EntityTable controls', () => {
     renderTable();
 
     expect(screen.getByRole('button', { name: 'Filtros' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Columnas' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Siguiente' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Columnas' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Siguiente' }),
+    ).toBeInTheDocument();
   });
 
   // A table embedded in a form or a picker has no room for the toolbar, and
@@ -288,7 +292,9 @@ describe('EntityTable controls', () => {
     await user.click(screen.getByRole('button', { name: 'Filtros' }));
 
     expect(screen.getByLabelText('Valor del filtro')).toHaveValue('Acme');
-    expect(screen.getByLabelText('Coincidir todos o cualquiera de los filtros')).toHaveValue('or');
+    expect(
+      screen.getByLabelText('Coincidir todos o cualquiera de los filtros'),
+    ).toHaveValue('or');
   });
 
   it('seeds the sort panel from the applied sorting', async () => {
@@ -361,7 +367,10 @@ describe('EntityTable controls', () => {
     // Inside a picker the user is choosing a value; offering to navigate away
     // from the form they came from would be the wrong affordance.
     it('prefers selection over navigation when both are given', () => {
-      renderTable({ onSelect: vi.fn(), hrefFor: id => `/widget/${String(id)}` });
+      renderTable({
+        onSelect: vi.fn(),
+        hrefFor: id => `/widget/${String(id)}`,
+      });
 
       expect(
         screen.queryByRole('link', { name: 'Abrir' }),

@@ -63,11 +63,13 @@ describe('the store as an Effect service', () => {
       Effect.provide(UiPreferencesStateTag, LocalStorageUiPreferencesLayer),
     );
 
-    await Effect.runPromise(store.write('entity-table:product', { order: ['id'] }));
+    await Effect.runPromise(
+      store.write('entity-table:product', { order: ['id'] }),
+    );
 
-    expect(
-      await Effect.runPromise(store.read('entity-table:product')),
-    ).toEqual({ order: ['id'] });
+    expect(await Effect.runPromise(store.read('entity-table:product'))).toEqual(
+      { order: ['id'] },
+    );
   });
 });
 
@@ -87,7 +89,10 @@ describe('when localStorage misbehaves', () => {
   };
 
   const withBrokenStorage = (run: () => Promise<void>) => {
-    const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    const original = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'localStorage',
+    );
     Object.defineProperty(globalThis, 'localStorage', {
       value: brokenStorage,
       configurable: true,
@@ -118,7 +123,10 @@ describe('when localStorage misbehaves', () => {
 // the server and picks up the stored value after hydration.
 describe('without localStorage (server rendering)', () => {
   const withoutStorage = async (run: () => Promise<void>) => {
-    const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    const original = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'localStorage',
+    );
     Object.defineProperty(globalThis, 'localStorage', {
       value: undefined,
       configurable: true,
@@ -145,7 +153,9 @@ describe('without localStorage (server rendering)', () => {
     withoutStorage(async () => {
       const ssrStore = makeLocalStorageUiPreferencesState('test-ns');
 
-      expect(Exit.isSuccess(await Effect.runPromiseExit(run(ssrStore)))).toBe(true);
+      expect(Exit.isSuccess(await Effect.runPromiseExit(run(ssrStore)))).toBe(
+        true,
+      );
     }),
   );
 });

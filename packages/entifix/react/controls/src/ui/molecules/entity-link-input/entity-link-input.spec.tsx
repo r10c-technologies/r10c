@@ -167,7 +167,9 @@ describe('EntityLinkInput', () => {
   it('reports the option picked from the quick search and resets the term', async () => {
     const { source, onSelect } = renderInput();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Ver sugerencias de Brand' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Ver sugerencias de Brand' }),
+    );
     await userEvent.click(screen.getByRole('option', { name: 'Acme' }));
 
     expect(onSelect).toHaveBeenCalledWith(OPTIONS[0]);
@@ -250,7 +252,9 @@ describe('EntityLinkInput', () => {
       source: fakeSource({ quick: { isLoading: true, options: [] } }),
     });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Ver sugerencias de Brand' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Ver sugerencias de Brand' }),
+    );
 
     expect(screen.getAllByText('Cargando…').length).toBeGreaterThan(0);
   });
@@ -258,7 +262,9 @@ describe('EntityLinkInput', () => {
   it('says when a term matches nothing', async () => {
     renderInput({ source: fakeSource({ quick: { options: [] } }) });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Ver sugerencias de Brand' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Ver sugerencias de Brand' }),
+    );
 
     expect(screen.getByText('Sin coincidencias')).toBeInTheDocument();
   });

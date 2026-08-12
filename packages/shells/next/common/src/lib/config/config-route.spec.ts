@@ -79,7 +79,10 @@ describe('createConfigRoute', () => {
       Promise.resolve(
         okConfig({
           uri: [
-            { key: 'config-service-domain', value: 'http://localhost:3190/api' },
+            {
+              key: 'config-service-domain',
+              value: 'http://localhost:3190/api',
+            },
           ],
         }),
       ),
@@ -109,7 +112,10 @@ describe('createConfigRoute', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    await createConfigRoute({ service: 'auth-app', configApiUrl: CONFIG_URL })();
+    await createConfigRoute({
+      service: 'auth-app',
+      configApiUrl: CONFIG_URL,
+    })();
 
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       headers: { 'x-service-token': 'from-env' },
@@ -121,7 +127,9 @@ describe('createConfigRoute', () => {
       'fetch',
       vi.fn(() =>
         Promise.resolve(
-          okConfig({ uri: [{ key: 'auth-service-domain', value: 'http://a' }] }),
+          okConfig({
+            uri: [{ key: 'auth-service-domain', value: 'http://a' }],
+          }),
         ),
       ),
     );

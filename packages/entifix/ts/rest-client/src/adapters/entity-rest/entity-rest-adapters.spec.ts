@@ -302,9 +302,9 @@ describe('buildEntityRestAdapterLoad', () => {
     );
 
     const failure = await loadFailure();
-    expect((failure as { details?: Record<string, unknown> }).details).not.toHaveProperty(
-      'code',
-    );
+    expect(
+      (failure as { details?: Record<string, unknown> }).details,
+    ).not.toHaveProperty('code');
   });
 });
 

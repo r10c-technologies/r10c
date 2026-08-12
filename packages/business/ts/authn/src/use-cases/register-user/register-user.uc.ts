@@ -80,9 +80,14 @@ export function registerUserUCFactory() {
       !canAssignRole(input.actorRoles ?? [], input.role)
     ) {
       return yield* Effect.fail(
-        new ForbiddenError('not allowed to assign that role', 'roleNotAllowed', undefined, {
-          role: input.role,
-        }),
+        new ForbiddenError(
+          'not allowed to assign that role',
+          'roleNotAllowed',
+          undefined,
+          {
+            role: input.role,
+          },
+        ),
       );
     }
     const role = input.role ?? DEFAULT_ROLE;

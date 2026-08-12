@@ -77,7 +77,9 @@ export class EntityTablePage {
 
   /** `and` (default) or `or` across the rows of the panel. */
   async matchAny(match: 'and' | 'or'): Promise<void> {
-    await this.page.getByLabel('Coincidir todos o cualquiera de los filtros').selectOption(match);
+    await this.page
+      .getByLabel('Coincidir todos o cualquiera de los filtros')
+      .selectOption(match);
   }
 
   /**
@@ -90,7 +92,10 @@ export class EntityTablePage {
   async addFilter({ member, operator, value }: FilterClause): Promise<void> {
     const index = await this.page.getByLabel('Miembro del filtro').count();
     await this.page.getByRole('button', { name: 'Añadir filtro' }).click();
-    await this.page.getByLabel('Miembro del filtro').nth(index).selectOption(member);
+    await this.page
+      .getByLabel('Miembro del filtro')
+      .nth(index)
+      .selectOption(member);
     await this.page
       .getByLabel('Operador del filtro')
       .nth(index)
@@ -119,15 +124,16 @@ export class EntityTablePage {
   // --- sorting ------------------------------------------------------------
 
   async openSorting(): Promise<void> {
-    await this.page
-      .getByRole('button', { name: 'Orden', exact: true })
-      .click();
+    await this.page.getByRole('button', { name: 'Orden', exact: true }).click();
   }
 
   async addSort({ member, direction = 'asc' }: SortClause): Promise<void> {
     const index = await this.page.getByLabel('Miembro de orden').count();
     await this.page.getByRole('button', { name: 'Añadir orden' }).click();
-    await this.page.getByLabel('Miembro de orden').nth(index).selectOption(member);
+    await this.page
+      .getByLabel('Miembro de orden')
+      .nth(index)
+      .selectOption(member);
     await this.page
       .getByLabel('Dirección de orden')
       .nth(index)
@@ -153,7 +159,9 @@ export class EntityTablePage {
    * `exact` matters: Next.js' dev-tools button also matches a loose "Siguiente".
    */
   async nextPage(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Siguiente', exact: true }).click();
+    await this.page
+      .getByRole('button', { name: 'Siguiente', exact: true })
+      .click();
   }
 
   async previousPage(): Promise<void> {

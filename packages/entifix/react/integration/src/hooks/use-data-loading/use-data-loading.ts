@@ -11,7 +11,14 @@ import {
 } from '@r10c/entifix-ts-core';
 import { useQuery } from '@tanstack/react-query';
 import { Context, Effect } from 'effect';
-import { useCallback, useEffect, useId, useMemo, useReducer, useRef } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useReducer,
+  useRef,
+} from 'react';
 
 import { combineFilterGroups } from '../../query/combine-filtering';
 import type { UseDataLoadingOptions } from './use-data-loading.types';

@@ -25,5 +25,7 @@ export const LOCALE_COOKIE = 'r10c_locale';
 export const LOCALE_HEADER = 'x-r10c-locale';
 
 export function isLocale(value: unknown): value is Locale {
-  return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
+  return (
+    typeof value === 'string' && (LOCALES as readonly string[]).includes(value)
+  );
 }

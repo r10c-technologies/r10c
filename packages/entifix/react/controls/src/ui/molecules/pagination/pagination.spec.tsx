@@ -24,7 +24,9 @@ describe('Pagination', () => {
   it('reports the current page, the total pages and the item count', () => {
     renderPagination();
 
-    expect(screen.getByText(/Página 2 de 4 · 35 registros/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Página 2 de 4 · 35 registros/),
+    ).toBeInTheDocument();
   });
 
   // An empty listing is still one page; reporting "page 1 of 0" reads as broken.
@@ -96,7 +98,9 @@ describe('Pagination', () => {
       renderPagination({ onPageSizeChange: vi.fn(), pageSizeOptions: [5, 15] });
 
       expect(screen.getByRole('option', { name: '5' })).toBeInTheDocument();
-      expect(screen.queryByRole('option', { name: '10' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', { name: '10' }),
+      ).not.toBeInTheDocument();
     });
 
     it('shows the active page size', () => {
