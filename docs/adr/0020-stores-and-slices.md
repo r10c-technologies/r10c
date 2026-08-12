@@ -85,7 +85,7 @@ Two consequences fall straight out, and both settle open questions:
 Four levels, each with exactly one job:
 
 ```
-Domain      biz/authn                    business meaning, permission namespace
+Domain      business/ts/authn            business meaning, permission namespace
    ↓ its entities live in exactly one
 Store       auth                         persistence boundary, one writer
    ↓ owned by exactly one

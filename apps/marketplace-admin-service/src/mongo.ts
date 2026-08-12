@@ -20,8 +20,8 @@ import { ConfigurationStoreInMemory } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
   makeMongoTenantResolver,
+  MongoClientLayer,
   MongoClientTag,
-  MongoDatabaseLayer,
   MongoHealthProbeLayer,
 } from '@r10c/entifix-ts-mongo-client';
 import {
@@ -46,9 +46,9 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 
 /**
  * The marketplace-admin-service composition root. Resolves its own parameters
- * from config-service at boot (`mongo.uri` / `mongo.db`), opens the Mongo
- * connection, provides the configuration store + loaded config for
- * introspection, and seeds the catalog collections once.
+ * from config-service at boot (`mongo.uri`), opens the Mongo connection,
+ * provides the configuration store + loaded config for introspection, and seeds
+ * the catalog collections once.
  *
  * `Layer.unwrapEffect` defers the boot-time config fetch into the layer graph so
  * `makeService`'s `Layer.launch` owns startup and graceful shutdown. Any boot
@@ -60,7 +60,6 @@ export const AppLayer = Layer.unwrapEffect(
     const store = new ConfigurationStoreInMemory(plain);
 
     const uri = yield* store.in('mongo').getString('uri');
-    const dbName = yield* store.in('mongo').getString('db');
     // Tenant storage: one Mongo database per organization, named from the
     // organization id. Resolved from config-service like every other
     // cross-service value, so the convention is not duplicated in code.
@@ -92,7 +91,11 @@ export const AppLayer = Layer.unwrapEffect(
     // code sequences), RabbitMQ (transaction event bus). The token service
     // verifies RS256 access tokens minted by auth-service.
     const connections = Layer.mergeAll(
-      MongoDatabaseLayer({ uri, dbName }),
+      // The pool only. This service owns no single named database: every catalog
+      // handle is `tenant_<organizationId>`, resolved per request. Connecting to
+      // a named one would put a database in Mongo that nothing ever writes —
+      // a phantom store (ADR 0020).
+      MongoClientLayer({ uri }),
       RedisLayer({ uri: redisUri }),
       AmqpLayer({ uri: amqpUri }),
       Layer.succeed(

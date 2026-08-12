@@ -164,6 +164,9 @@
     },
     {
       "path": "./packages/entifix/ts/zitadel-client"
+    },
+    {
+      "path": "./tools/slices"
     }
   ]
 }

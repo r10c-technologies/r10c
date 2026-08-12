@@ -22,17 +22,30 @@ physically `tenant_<organizationId>`.
 
 ## The store register
 
-| Store               | Plane   | Owner slice         | Hosts                               | Partitioning     | Truth            |
-| ------------------- | ------- | ------------------- | ----------------------------------- | ---------------- | ---------------- |
-| `auth`              | control | `auth`              | `authn` **+** `party-management` ⚠️ | single           | system-of-record |
-| `session`           | control | `auth`              | — (session records, no entities)    | single           | system-of-record |
-| `catalog`           | tenant  | `marketplace-admin` | `product-configuration-management`  | per-organization | system-of-record |
-| `saga-coordination` | control | `marketplace-admin` | —                                   | single           | system-of-record |
-| `configuration`     | control | `config`            | `configuration`                     | single           | system-of-record |
-| `saga`              | control | `transaction`       | —                                   | single           | system-of-record |
+**This table is a mirror.** The register that actually holds is `tools/slices/`,
+whose `slices.spec.ts` checks the three invariants against the source tree and
+**fails the build** when they drift. Edit a `*.slice.ts` first; the table follows.
 
-⚠️ `auth` hosting two domains is a **declared binding**: identity and party cannot
-be separated without a data migration. Accepted deliberately, not by accident.
+| Store               | Plane   | Owner slice         | Co-deployed with | Hosts                                                         | Partitioning     | Truth            |
+| ------------------- | ------- | ------------------- | ---------------- | ------------------------------------------------------------- | ---------------- | ---------------- |
+| `auth`              | control | `auth`              | —                | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record |
+| `session`           | control | `auth`              | —                | — (session records, no entities)                              | single           | system-of-record |
+| `catalog`           | tenant  | `marketplace-admin` | —                | `product-configuration-management`                            | per-organization | system-of-record |
+| `saga-coordination` | control | `marketplace-admin` | —                | — (locks + sequences, no entities)                            | single           | system-of-record |
+| `configuration`     | control | `config`            | —                | `config`                                                      | single           | system-of-record |
+| `saga`              | control | `transaction`       | —                | —                                                             | single           | system-of-record |
+
+⚠️ `auth` hosting three domains is a **declared binding**: a `UserIdentity`, the
+`Individual` behind it and the `Membership` granting it a role are written in the
+same breath at sign-in and at provisioning, so separating them is a data
+migration rather than a refactor. Accepted deliberately, not by accident.
+
+**Co-deployed with** is the column that keeps consolidation honest. Two slices
+sharing one deployment is _reversible_ — ownership does not move, only the
+process does, and splitting back out is a matter of pointing a declaration's
+`deployments` at a new app. Two domains sharing one **store** is not. Keeping the
+two facts in separate columns is what stops a cheap decision being mistaken for a
+binding one.
 
 ## The three planes
 
@@ -62,8 +75,8 @@ and the owner is not us).
 
 ## The rules that follow
 
-Enforced by review, not by the compiler — except the last, which the boundary
-rule fails the build on:
+The first three are enforced by `pnpm nx test @r10c/slices`, the last by the
+boundary rule; the rest are review:
 
 - **A Slice writes only the Stores it owns.** This is the old "one writer per
   database", now attached to a named thing. The three couplings that would
@@ -77,10 +90,14 @@ rule fails the build on:
   filter. Isolation is _which database handle the request resolves to_ — which is
   why no query can leak by omission. A discriminator column makes every missing
   filter a silent breach.
-- **The tenant handle is request-level, never a `Layer`.** `MongoDatabaseLayer`'s
+- **The tenant handle is request-level, never a `Layer`.** `MongoClientLayer`'s
   boot-time `Layer.scoped` _is_ the connection pool; the per-organization handle
   is `client.db(...)` resolved inside the request from the session's
   `activeOrganizationId`. A `Layer` per request rebuilds the pool per request.
+  A slice whose handles are **all** per-request must open `MongoClientLayer`, not
+  `MongoDatabaseLayer` — naming a database at boot that nothing ever writes puts
+  a phantom store in the register, and the readiness probe does not need one
+  (it pings `admin`).
 - **A quantity is never read-modify-written.** Absolute-value writes lose updates
   inside a single process. Use `$inc` / `SET qty = qty + $1` over an append-only
   movement ledger, and reserve stock with a _conditional_ atomic write rather

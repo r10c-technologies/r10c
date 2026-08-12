@@ -23,38 +23,45 @@ export class MongoClientTag extends Context.Tag('MongoClientTag')<
   MongoClient
 >() {}
 
-export interface MongoDatabaseSettings {
+export interface MongoClientSettings {
   readonly uri: string;
+}
+
+export interface MongoDatabaseSettings extends MongoClientSettings {
   readonly dbName: string;
 }
 
 /**
  * A scoped {@link Layer} that opens a {@link MongoClient} on acquire and closes
- * it on release, exposing the client under {@link MongoClientTag} and the
- * resolved {@link Db} under {@link MongoDatabaseTag}. Because it is scoped, the
- * connection is torn down deterministically when the service's root layer is
+ * it on release, exposing it under {@link MongoClientTag}. Because it is scoped,
+ * the connection is torn down deterministically when the service's root layer is
  * interrupted (the `makeService` graceful-shutdown path).
+ *
+ * This is the layer to reach for when a service names **no** database at boot —
+ * one that resolves every handle per request (tenant storage) or holds several
+ * named stores in one process. Naming a database it never writes would put a
+ * phantom store in the register, which is the thing ADR 0020 forbids.
+ *
+ * {@link MongoDatabaseLayer} builds on this rather than connecting again: two
+ * layers over the same URI would mean two pools.
  */
-export const MongoDatabaseLayer = (
-  settings: MongoDatabaseSettings,
-): Layer.Layer<MongoDatabaseTag | MongoClientTag, EntifixConnError> =>
-  Layer.scopedContext(
+export const MongoClientLayer = (
+  settings: MongoClientSettings,
+): Layer.Layer<MongoClientTag, EntifixConnError> =>
+  Layer.scoped(
+    MongoClientTag,
     Effect.acquireRelease(
       Effect.tryPromise({
-        try: async () => {
-          const client = await MongoClient.connect(settings.uri, {
+        try: () =>
+          MongoClient.connect(settings.uri, {
             // The 30s default means a readiness probe against a missing
             // primary sits for 30s; the registry would time it out first and
             // report a truthful `false`, but the driver would keep the fiber
             // alive behind it. Fail fast instead.
             serverSelectionTimeoutMS: 5_000,
-          });
-          return { client, db: client.db(settings.dbName) };
-        },
-        catch: error =>
-          new EntifixConnError('Failed to connect to MongoDB', error, {
-            dbName: settings.dbName,
           }),
+        catch: error =>
+          new EntifixConnError('Failed to connect to MongoDB', error),
       }).pipe(
         // Boot order is not guaranteed — a service may start while Mongo is
         // still rolling out. Keep trying for a window instead of dying on the
@@ -63,12 +70,25 @@ export const MongoDatabaseLayer = (
           Schedule.exponential('250 millis').pipe(Schedule.upTo('30 seconds')),
         ),
       ),
-      ({ client }) => Effect.promise(() => client.close()),
-    ).pipe(
-      Effect.map(({ client, db }) =>
-        Context.make(MongoDatabaseTag, db).pipe(
-          Context.add(MongoClientTag, client),
-        ),
-      ),
+      client => Effect.promise(() => client.close()),
     ),
+  );
+
+/**
+ * {@link MongoClientLayer} plus the named {@link Db} resolved from it, exposed
+ * under {@link MongoDatabaseTag}. One acquire, one pool, both tags — which is
+ * why a service that wants both must not merge the two layers.
+ *
+ * Use it when the service owns exactly one named store (`auth-service`). A
+ * service whose handles are all per-request wants {@link MongoClientLayer}.
+ */
+export const MongoDatabaseLayer = (
+  settings: MongoDatabaseSettings,
+): Layer.Layer<MongoDatabaseTag | MongoClientTag, EntifixConnError> =>
+  Layer.provideMerge(
+    Layer.effect(
+      MongoDatabaseTag,
+      Effect.map(MongoClientTag, client => client.db(settings.dbName)),
+    ),
+    MongoClientLayer(settings),
   );

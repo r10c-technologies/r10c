@@ -217,19 +217,17 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'auth-service-domain',
     value: 'http://localhost:3102/api',
   },
-  // Backend → MongoDB connection settings (consumed at boot).
+  // Backend → MongoDB connection settings (consumed at boot). No `mongo.db`:
+  // this service owns no single named database. Every catalog handle is a
+  // per-organization `tenant_<id>` resolved inside the request, so a name here
+  // would create a database nothing writes — the phantom store ADR 0020 rules
+  // out. The saga store below names its own.
   {
     service: 'marketplace-admin-service',
     group_name: 'mongo',
     key: 'uri',
     value: 'mongodb://admin:password@127.0.0.1:30017',
     is_secret: true,
-  },
-  {
-    service: 'marketplace-admin-service',
-    group_name: 'mongo',
-    key: 'db',
-    value: 'marketplace_admin',
   },
   // Tenant storage. The catalog is tenant plane: each organization authors its
   // own, in its own Mongo database named `<dbPrefix><organizationId>`. The name

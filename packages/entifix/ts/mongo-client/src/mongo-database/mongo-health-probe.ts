@@ -1,32 +1,40 @@
 import { HealthRegistryTag } from '@r10c/entifix-ts-business';
 import { Effect, Layer } from 'effect';
 
-import { MongoDatabaseTag } from './mongo-database';
+import { MongoClientTag } from './mongo-database';
 
 /** Probe name reported by `/api/health/ready` when Mongo is unreachable. */
 export const MONGO_PROBE_NAME = 'mongo';
 
 /**
- * Registers a readiness probe for the connected database: `admin().ping()`,
+ * Registers a readiness probe for the Mongo **connection**: `admin().ping()`,
  * which is the cheapest round trip the driver offers and, unlike "is the client
  * object non-null", actually crosses the wire.
  *
- * Merge it beside {@link MongoDatabaseLayer} in a service's `AppLayer` and the
+ * It depends on {@link MongoClientTag}, not on a named database, because the
+ * ping targets the `admin` database and never touches the connected one — so a
+ * service whose handles are all per-request (tenant storage) does not have to
+ * invent a database name to become observable. Naming one it never writes is
+ * exactly the phantom store ADR 0020 rules out.
+ *
+ * Merge it beside {@link MongoClientLayer} in a service's `AppLayer` and the
  * service's readiness endpoint starts reporting Mongo — nothing in the service
  * describes the probe, so it cannot drift from the dependency it describes.
  */
 export const MongoHealthProbeLayer: Layer.Layer<
   never,
   never,
-  MongoDatabaseTag | HealthRegistryTag
+  MongoClientTag | HealthRegistryTag
 > = Layer.effectDiscard(
   Effect.gen(function* () {
-    const db = yield* MongoDatabaseTag;
+    const client = yield* MongoClientTag;
     const registry = yield* HealthRegistryTag;
 
     yield* registry.register({
       name: MONGO_PROBE_NAME,
-      check: Effect.tryPromise(() => db.admin().ping()).pipe(
+      check: Effect.tryPromise(() =>
+        client.db('admin').command({ ping: 1 }),
+      ).pipe(
         Effect.as(true),
         // Unreachable is a `false`, never a failed endpoint.
         Effect.catchAll(() => Effect.succeed(false)),
