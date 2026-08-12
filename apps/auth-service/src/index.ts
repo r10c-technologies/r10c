@@ -39,6 +39,7 @@ export { makeStubIdentityProvider } from './identity/stub-identity-provider';
 export {
   individualSeedData,
   membershipSeedData,
+  partyRoleSeedData,
 } from './identity/tenancy-seed-data';
 export {
   DEVICE_COLLECTION,

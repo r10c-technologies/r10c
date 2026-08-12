@@ -24,8 +24,11 @@ which data plane they live in, and how they extend — is
 > [Authorization](#authorization-role-aspects--permissions)).
 >
 > **Multi-tenancy is live on the tenant plane**: the catalog physically lives in
-> one Mongo database per organization, resolved per request from the session (see
-> [Tenancy](#tenancy-resolving-the-organizations-storage)). Copy ships `es`/`en`
+> its own Mongo database per organization, resolved per request from the session
+> (see [Tenancy](#tenancy-resolving-the-organizations-storage)). An organization
+> now has **two** tenant databases — `tenant_<id>` for the `catalog` store and
+> `stock_<id>` for `stock` — because they are two stores with two writing slices
+> ([ADR 0022](./adr/0022-v1-marketplace-module-boundaries.md)). Copy ships `es`/`en`
 > through mandatory i18n, and marketplace-app renders the storefront on the
 > server, prerendered per locale. Access tokens are **RS256**, verified against a
 > public key ([ADR 0015](./adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md)),

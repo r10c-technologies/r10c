@@ -11,7 +11,7 @@ import {
 // The entity's own `@entity({ labelKey })` vocabulary — the same keys the table
 // and form resolve, so a tab caption cannot drift from its column header.
 export const ENTITY_EDITORS = {
-  product: { labelKey: 'entity:product.label' },
+  'product-specification': { labelKey: 'entity:product-specification.label' },
   'product-brand': { labelKey: 'entity:product-brand.label' },
   'product-category': { labelKey: 'entity:product-category.label' },
 } as const;
@@ -31,12 +31,12 @@ export function isEntityEditorKey(value: string): value is EntityEditorKey {
 function ProductEditorTab({ id }: { id: string }) {
   const nav = useTabEntityNav();
   const { draft, setDraft, clearDraft } = useDraft<ProductFormDraft>(
-    `entity:product:${id}`,
+    `entity:product-specification:${id}`,
   );
 
   const done = () => {
     clearDraft();
-    nav.toList('product');
+    nav.toList('product-specification');
   };
 
   return (
@@ -74,7 +74,7 @@ export function EntityEditorTab({
   entityKey: EntityEditorKey;
   id: string;
 }) {
-  return entityKey === 'product' ? (
+  return entityKey === 'product-specification' ? (
     <ProductEditorTab id={id} />
   ) : (
     <CatalogEditorTab entityKey={entityKey} id={id} />

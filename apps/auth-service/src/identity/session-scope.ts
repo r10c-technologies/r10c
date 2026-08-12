@@ -53,6 +53,21 @@ export class SessionScopeResolverTag extends Context.Tag(
  */
 const DEFAULT_PARTY_ROLE: PartyRoleName = 'customer';
 
+/**
+ * Which role wins when a party holds more than one, widest reach first.
+ *
+ * Deterministic and needing no extra input, at a cost worth stating: an operator
+ * who is also a buyer always gets an operator session, so there is no way to act
+ * as a buyer while being staff. Resolving the role from the membership the
+ * session opened under is the better long-run answer and is deferred until
+ * something needs it (ADR 0022).
+ */
+const PARTY_ROLE_PRECEDENCE: readonly PartyRoleName[] = [
+  'operator',
+  'vendor',
+  'customer',
+];
+
 export const makeMongoSessionScopeResolver = (
   db: Db,
 ): SessionScopeResolver => ({
@@ -63,10 +78,29 @@ export const makeMongoSessionScopeResolver = (
         return { partyRole: DEFAULT_PARTY_ROLE };
       }
 
-      // Narrowed rather than cast: the column is a closed set, and a document
-      // carrying something outside it must not become a plane selector.
-      const stored = party['partyRole'];
-      const partyRole = isPartyRoleName(stored) ? stored : DEFAULT_PARTY_ROLE;
+      // The role is a `PartyRole` **record**, not a column on the party: a party
+      // plays many roles over time and several at once, which a single column
+      // could not express (ADR 0022).
+      //
+      // The claim is one value and it selects a storage plane, so a party
+      // holding several needs a rule. Precedence by **reach** — the widest role
+      // wins — because narrowing a session silently would be the failure nobody
+      // notices, while widening it is the one that shows up immediately.
+      //
+      // Each stored role is narrowed rather than cast: the set is closed, and a
+      // document carrying something outside it must not become a plane selector.
+      const roleDocs = await db
+        .collection('party-role')
+        .find({ partyId: party['id'] })
+        .toArray();
+      const held = new Set(
+        roleDocs
+          .map(doc => doc['role'])
+          .filter((role): role is PartyRoleName => isPartyRoleName(role)),
+      );
+      const partyRole =
+        PARTY_ROLE_PRECEDENCE.find(role => held.has(role)) ??
+        DEFAULT_PARTY_ROLE;
 
       const memberships = db.collection('membership');
       const preferred =

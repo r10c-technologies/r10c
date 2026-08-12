@@ -1,8 +1,8 @@
 import {
-  Product,
   ProductBrand,
   ProductCategory,
-} from '@r10c/business-ts-product-configuration-management';
+} from '@r10c/business-ts-catalog-reference';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import {
   ConfigurationRepositoryTag,
@@ -51,10 +51,10 @@ const makeCategory = (id: string, name: string) => {
 };
 
 const makeProduct = () => {
-  const product = new Product('P-1', 'Widget');
+  const product = new ProductSpecification('P-1', 'Widget');
   product.id = 'p-1';
-  product.brand.setValue(makeBrand('b-1', 'Acme'));
-  product.category.setId('c-1');
+  product.brandId = 'b-1';
+  product.categoryId = 'c-1';
   return product;
 };
 
@@ -100,100 +100,149 @@ describe('the listing pages', () => {
     ['brands', <ProductBrandListClientPage key="b" />, 'Acme'],
     ['categories', <ProductCategoryListClientPage key="c" />, 'Tools'],
     ['products', <ProductListClientPage key="p" />, 'Widget'],
-  ])('lists %s from the adapters it was given', async (_label, page, expected) => {
-    renderPage(page);
+  ])(
+    'lists %s from the adapters it was given',
+    async (_label, page, expected) => {
+      renderPage(page);
 
-    await waitFor(() =>
-      expect(screen.getAllByText(expected).length).toBeGreaterThan(0),
-    );
-  });
+      await waitFor(() =>
+        expect(screen.getAllByText(expected).length).toBeGreaterThan(0),
+      );
+    },
+  );
 
-  // The product list is the one page that wires a link resolver, from the same
-  // base adapters — that is what materializes the foreign-key category.
-  it('resolves the product’s relations through the page’s resolver', async () => {
+  // The product list used to wire a link resolver here, which is what
+  // materialized the foreign-key category. It does not any more: brand and
+  // category live in another slice's store, so the list shows the ids it holds
+  // and a screen wanting names asks the owning domain (ADR 0022).
+  it('shows the classification ids it holds, without resolving them', async () => {
     renderPage(<ProductListClientPage />);
 
-    await waitFor(() => expect(screen.getAllByText('Tools').length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(screen.getAllByText('b-1').length).toBeGreaterThan(0),
+    );
+    expect(screen.queryByText('Tools')).toBeNull();
   });
 });
 
 describe('the single-record pages', () => {
   const cases = [
     ['brand', <ProductBrandSingleViewClientPage key="b" />, 'b-1', 'Acme'],
-    ['category', <ProductCategorySingleViewClientPage key="c" />, 'c-1', 'Tools'],
+    [
+      'category',
+      <ProductCategorySingleViewClientPage key="c" />,
+      'c-1',
+      'Tools',
+    ],
     ['product', <ProductSingleViewClientPage key="p" />, 'p-1', 'Widget'],
   ] as const;
 
-  it.each(cases)('loads the %s named by the route slug', async (_label, page, id, name) => {
-    slug = id;
+  it.each(cases)(
+    'loads the %s named by the route slug',
+    async (_label, page, id, name) => {
+      slug = id;
 
-    renderPage(page);
+      renderPage(page);
 
-    await waitFor(() => expect(screen.getByLabelText(/nombre/i)).toHaveValue(name));
-  });
+      await waitFor(() =>
+        expect(screen.getByLabelText(/nombre/i)).toHaveValue(name),
+      );
+    },
+  );
 
   // The reserved `new` slug means there is nothing to load, so the form opens
   // empty and offers no delete — there is no record to delete yet.
-  it.each(cases)('opens an empty %s form on the create slug', async (_label, page) => {
-    renderPage(page);
+  it.each(cases)(
+    'opens an empty %s form on the create slug',
+    async (_label, page) => {
+      renderPage(page);
 
-    await waitFor(() => expect(screen.getByLabelText(/nombre/i)).toHaveValue(''));
-    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
-  });
+      await waitFor(() =>
+        expect(screen.getByLabelText(/nombre/i)).toHaveValue(''),
+      );
+      expect(
+        screen.queryByRole('button', { name: 'Eliminar' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
-  it.each(cases)('returns to the %s listing after a save', async (_label, page, id) => {
-    slug = id;
-    const user = userEvent.setup();
-    renderPage(page);
-    await waitFor(() => expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''));
+  it.each(cases)(
+    'returns to the %s listing after a save',
+    async (_label, page, id) => {
+      slug = id;
+      const user = userEvent.setup();
+      renderPage(page);
+      await waitFor(() =>
+        expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
+      );
 
-    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
-  });
+      await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    },
+  );
 
-  it.each(cases)('returns to the %s listing after a delete', async (_label, page, id) => {
-    slug = id;
-    const user = userEvent.setup();
-    renderPage(page);
-    await waitFor(() => expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''));
+  it.each(cases)(
+    'returns to the %s listing after a delete',
+    async (_label, page, id) => {
+      slug = id;
+      const user = userEvent.setup();
+      renderPage(page);
+      await waitFor(() =>
+        expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
+      );
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+      await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
-  });
+      await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    },
+  );
 
   // A failed write must leave the user on the form with their input intact,
   // not navigate away as though it had succeeded.
-  it.each(cases)('stays on the %s form when the save fails', async (_label, page, id) => {
-    slug = id;
-    const user = userEvent.setup();
-    renderPage(page);
-    await waitFor(() => expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''));
-    repositories.product.failNext(new EntifixConnError('unreachable'));
-    repositories.brand.failNext(new EntifixConnError('unreachable'));
-    repositories.category.failNext(new EntifixConnError('unreachable'));
+  it.each(cases)(
+    'stays on the %s form when the save fails',
+    async (_label, page, id) => {
+      slug = id;
+      const user = userEvent.setup();
+      renderPage(page);
+      await waitFor(() =>
+        expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
+      );
+      repositories.product.failNext(new EntifixConnError('unreachable'));
+      repositories.brand.failNext(new EntifixConnError('unreachable'));
+      repositories.category.failNext(new EntifixConnError('unreachable'));
 
-    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    await waitFor(() => expect(screen.getByTestId(/form-error$/)).toBeInTheDocument());
-    expect(push).not.toHaveBeenCalled();
-  });
+      await waitFor(() =>
+        expect(screen.getByTestId(/form-error$/)).toBeInTheDocument(),
+      );
+      expect(push).not.toHaveBeenCalled();
+    },
+  );
 
-  it.each(cases)('stays on the %s form when the delete fails', async (_label, page, id) => {
-    slug = id;
-    const user = userEvent.setup();
-    renderPage(page);
-    await waitFor(() => expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''));
-    repositories.product.failNext(new EntifixConnError('unreachable'));
-    repositories.brand.failNext(new EntifixConnError('unreachable'));
-    repositories.category.failNext(new EntifixConnError('unreachable'));
+  it.each(cases)(
+    'stays on the %s form when the delete fails',
+    async (_label, page, id) => {
+      slug = id;
+      const user = userEvent.setup();
+      renderPage(page);
+      await waitFor(() =>
+        expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
+      );
+      repositories.product.failNext(new EntifixConnError('unreachable'));
+      repositories.brand.failNext(new EntifixConnError('unreachable'));
+      repositories.category.failNext(new EntifixConnError('unreachable'));
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+      await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
-    await waitFor(() => expect(screen.getByTestId(/form-error$/)).toBeInTheDocument());
-    expect(push).not.toHaveBeenCalled();
-  });
+      await waitFor(() =>
+        expect(screen.getByTestId(/form-error$/)).toBeInTheDocument(),
+      );
+      expect(push).not.toHaveBeenCalled();
+    },
+  );
 
   it.each(cases)('surfaces a %s load failure', async (_label, page, id) => {
     slug = id;
@@ -203,47 +252,26 @@ describe('the single-record pages', () => {
 
     renderPage(page);
 
-    await waitFor(() => expect(screen.getByTestId(/form-error$/)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId(/form-error$/)).toBeInTheDocument(),
+    );
   });
 });
 
-describe('the product form’s relation pickers', () => {
-  // The pickers run the same base adapters pointed at a different entity, and
-  // they are handed the *use-cases* rather than a preloaded list — so the page no
-  // longer decides how many targets exist, the search and the dialog do.
-  it('search the brand catalog through the page’s adapters', async () => {
-    slug = 'p-1';
-    const user = userEvent.setup();
-
-    renderPage(<ProductSingleViewClientPage />);
-
-    // The page keys the form by record id, so it remounts when the record lands;
-    // opening the suggestions before that would close them again.
-    await waitFor(() =>
-      expect(screen.getByTestId('entity-link-value-brand')).toHaveTextContent(
-        'Acme',
-      ),
-    );
-    await user.click(
-      screen.getByRole('button', { name: 'Ver sugerencias de Marca' }),
-    );
-
-    expect(
-      await screen.findByRole('option', { name: 'Acme' }),
-    ).toBeInTheDocument();
-  });
-
-  // The relation arrived as a bare foreign key, which is not a name: the picker's
-  // get use-case is what turns it back into one.
-  it('resolve the label of a category held only as a key', async () => {
+describe('the product form’s classifications', () => {
+  // They were relation pickers, searching the brand and category catalogs
+  // through the page's adapters. Those catalogs moved to `catalog-reference` —
+  // another slice's store — so `ProductSpecification` carries plain ids and the
+  // form renders them as ordinary inputs (ADR 0022). Restoring a picker over a
+  // scalar id is follow-up work, not a dead end.
+  it('renders the held ids as editable fields', async () => {
     slug = 'p-1';
 
     renderPage(<ProductSingleViewClientPage />);
 
     await waitFor(() =>
-      expect(
-        screen.getByTestId('entity-link-value-category'),
-      ).toHaveTextContent('Tools'),
+      expect(screen.getByDisplayValue('b-1')).toBeInTheDocument(),
     );
+    expect(screen.getByDisplayValue('c-1')).toBeInTheDocument();
   });
 });

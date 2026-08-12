@@ -48,9 +48,11 @@ export const productSeed = [
     code: 'P-1',
     name: 'Widget',
     description: 'A widget',
-    // The two shapes a relation arrives in: brand embedded, category by key.
-    brand: { id: 'product-brand-1', name: 'Acme 1' },
-    category: 'product-category-2',
+    // Plain ids into `catalog-reference`, another slice's store. They were an
+    // embedded brand and a foreign-key category until ADR 0022 — the two wire
+    // shapes a `link` could take — and nothing joins them now.
+    brandId: 'product-brand-1',
+    categoryId: 'product-category-1',
   },
 ];
 

@@ -1,7 +1,6 @@
-import { Product } from '@r10c/business-ts-product-configuration-management';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
   ConfigurationRepositoryTag,
-  EntityLinkResolverTag,
   EntityLoadRequestTag,
   EntityRepositoryTag,
 } from '@r10c/entifix-ts-business';
@@ -15,14 +14,9 @@ export interface ProductTableProps {
   /** Link to the create form. */
   newHref?: string;
   uc: Effect<
-    EntityPage<Product>,
+    EntityPage<ProductSpecification>,
     EntifixError,
-    | EntityLoadRequestTag
-    | EntityRepositoryTag
-    | ConfigurationRepositoryTag
-    | EntityLinkResolverTag
+    EntityLoadRequestTag | EntityRepositoryTag | ConfigurationRepositoryTag
   >;
-  ctx: Context<
-    EntityRepositoryTag | ConfigurationRepositoryTag | EntityLinkResolverTag
-  >;
+  ctx: Context<EntityRepositoryTag | ConfigurationRepositoryTag>;
 }

@@ -18,4 +18,5 @@
 export { PARTY_DOMAIN } from './domain';
 export * from './entities/individual';
 export * from './entities/organization';
+export * from './entities/party-role';
 export * from './values';

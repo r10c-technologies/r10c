@@ -9,18 +9,18 @@ import { getProduct, loadCategories, loadProducts } from './queries';
  * domain use-case, and get resolved entities back without a backend.
  */
 describe('loadProducts', () => {
-  it('returns the catalog with both link shapes materialized', async () => {
+  it('returns the catalog with its classifications as ids', async () => {
     const page = await loadProducts({ pageSize: 100 });
 
     expect(page.total).toBe(9);
 
     const lamp = page.items.find(item => item.code === 'AUR-LAMP-01');
-    // `brand` travelled embedded, so the use-case left it alone…
-    expect(lamp?.brand.value?.name).toBe('Aurora');
-    // …and `category` arrived as a bare id, which it followed through the
-    // resolver. Both paths matter: the entity declares the two wire shapes and
-    // this is the only place the difference is exercised.
-    expect(lamp?.category.value?.code).toBe('lighting');
+    // Both used to be links — one embedded, one a foreign key the use-case
+    // followed through a resolver. Their targets live in another slice's store
+    // now, so the specification carries ids and a caller that wants a name asks
+    // the owning domain for it (ADR 0022).
+    expect(lamp?.brandId).toBe('brand-aurora');
+    expect(lamp?.categoryId).toBe('category-lighting');
   });
 
   it('filters by category code, not id', async () => {

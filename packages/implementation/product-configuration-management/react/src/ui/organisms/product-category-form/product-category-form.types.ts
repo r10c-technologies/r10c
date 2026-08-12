@@ -1,4 +1,4 @@
-import type { ProductCategory } from '@r10c/business-ts-product-configuration-management';
+import type { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import type { EntifixError } from '@r10c/entifix-ts-core';
 
 export interface ProductCategoryFormProps {

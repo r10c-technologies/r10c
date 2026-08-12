@@ -31,7 +31,9 @@ function descriptor(
 
 function Labels({ descriptors }: { descriptors: EntityFieldDescriptor[] }) {
   const localized = useLocalizedDescriptors(descriptors);
-  return <span data-testid="labels">{localized.map(d => d.label).join('|')}</span>;
+  return (
+    <span data-testid="labels">{localized.map(d => d.label).join('|')}</span>
+  );
 }
 
 function EnumValue({
@@ -49,7 +51,13 @@ describe('useLocalizedDescriptors', () => {
   it('resolves a declared label key', () => {
     render(
       <I18nProvider locale="es">
-        <Labels descriptors={[descriptor({ labelKey: 'entity:product.fields.code' })]} />
+        <Labels
+          descriptors={[
+            descriptor({
+              labelKey: 'entity:product-specification.fields.code',
+            }),
+          ]}
+        />
       </I18nProvider>,
     );
 
@@ -69,7 +77,13 @@ describe('useLocalizedDescriptors', () => {
   it('follows the active locale', () => {
     render(
       <I18nProvider locale="en">
-        <Labels descriptors={[descriptor({ labelKey: 'entity:product.fields.code' })]} />
+        <Labels
+          descriptors={[
+            descriptor({
+              labelKey: 'entity:product-specification.fields.code',
+            }),
+          ]}
+        />
       </I18nProvider>,
     );
 
@@ -123,7 +137,10 @@ describe('useErrorMessage', () => {
     render(
       <I18nProvider locale="es">
         <Failure
-          error={{ message: 'invalid query', details: { code: 'invalidQuery' } }}
+          error={{
+            message: 'invalid query',
+            details: { code: 'invalidQuery' },
+          }}
         />
       </I18nProvider>,
     );

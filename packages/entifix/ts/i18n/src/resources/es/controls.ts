@@ -111,7 +111,7 @@ export const controls = {
    * `field` es el único parámetro disponible — un issue de Standard Schema
    * expone un mensaje y una ruta, nada más — así que estos mensajes no indican
    * el límite. Una regla que deba enunciarlo escribe su propia clave en el
-   * catálogo de su dominio (`entity:product.validation.codeLength`).
+   * catálogo de su dominio (`entity:product-specification.validation.codeLength`).
    */
   validation: {
     required: '{{field}} es obligatorio',

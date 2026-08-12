@@ -1,6 +1,6 @@
 /**
  * Entity metadata copy. Keyed by the entity's own `@entity({ key })`, so a
- * `labelKey` is derivable rather than invented: `entity:product.fields.code`,
+ * `labelKey` is derivable rather than invented: `entity:product-specification.fields.code`,
  * `entity:user-identity.values.role.admin`.
  *
  * These never cross the wire — `serializeEntity` emits values only, and
@@ -26,7 +26,7 @@ export const entity = {
       updatedBy: 'Modificado por',
     },
   },
-  product: {
+  'product-specification': {
     form: {
       brandEmbedded: 'Marca (incrustada)',
       categoryForeign: 'Categoría (clave foránea)',
@@ -159,10 +159,18 @@ export const entity = {
       id: 'ID',
       fullName: 'Nombre completo',
       userId: 'ID de usuario',
-      partyRole: 'Rol que desempeña',
+    },
+  },
+  'party-role': {
+    label: 'Rol de parte',
+    plural: 'Roles de parte',
+    fields: {
+      id: 'ID',
+      partyId: 'ID de parte',
+      role: 'Rol',
     },
     values: {
-      partyRole: {
+      role: {
         customer: 'Cliente',
         vendor: 'Vendedor',
         operator: 'Operador',
@@ -197,6 +205,221 @@ export const entity = {
       id: 'ID',
       organizationId: 'ID de organización',
       domains: 'Módulos',
+    },
+  },
+  'dictionary-term': {
+    label: 'Término del diccionario',
+    plural: 'Términos del diccionario',
+    fields: {
+      id: 'ID',
+      code: 'Código',
+      values: 'Valores',
+      unit: 'Unidad',
+    },
+  },
+  'published-offering': {
+    label: 'Oferta publicada',
+    plural: 'Ofertas publicadas',
+    fields: {
+      id: 'ID',
+      offeringId: 'ID de oferta',
+      vendorId: 'ID de vendedor',
+      name: 'Nombre',
+      amount: 'Importe',
+      currency: 'Moneda',
+      availableHint: 'Disponibilidad estimada',
+    },
+  },
+  'product-order': {
+    label: 'Pedido',
+    plural: 'Pedidos',
+    fields: {
+      id: 'ID',
+      buyerId: 'ID de comprador',
+      status: 'Estado',
+      items: 'Líneas',
+      placedAt: 'Fecha del pedido',
+    },
+    values: {
+      status: {
+        pending: 'Pendiente',
+        paid: 'Pagado',
+        fulfilled: 'Entregado',
+        cancelled: 'Cancelado',
+      },
+    },
+  },
+  payment: {
+    label: 'Pago',
+    plural: 'Pagos',
+    fields: {
+      id: 'ID',
+      orderId: 'ID de pedido',
+      amount: 'Importe',
+      currency: 'Moneda',
+      status: 'Estado',
+      providerReference: 'Referencia del proveedor',
+    },
+    values: {
+      status: {
+        pending: 'Pendiente',
+        authorized: 'Autorizado',
+        captured: 'Cobrado',
+        failed: 'Fallido',
+      },
+    },
+  },
+  agreement: {
+    label: 'Acuerdo',
+    plural: 'Acuerdos',
+    fields: {
+      id: 'ID',
+      vendorId: 'ID de vendedor',
+      commissionBasisPoints: 'Comisión (puntos básicos)',
+      effectiveFrom: 'Vigente desde',
+    },
+  },
+  'commission-entry': {
+    label: 'Apunte de comisión',
+    plural: 'Apuntes de comisión',
+    fields: {
+      id: 'ID',
+      orderId: 'ID de pedido',
+      vendorId: 'ID de vendedor',
+      commissionAmount: 'Importe de comisión',
+      currency: 'Moneda',
+    },
+  },
+  'settlement-run': {
+    label: 'Liquidación',
+    plural: 'Liquidaciones',
+    fields: {
+      id: 'ID',
+      periodStart: 'Inicio del periodo',
+      periodEnd: 'Fin del periodo',
+      status: 'Estado',
+    },
+    values: {
+      status: {
+        open: 'Abierta',
+        calculated: 'Calculada',
+        paid: 'Pagada',
+        cancelled: 'Cancelada',
+      },
+    },
+  },
+  'vendor-payout': {
+    label: 'Pago a vendedor',
+    plural: 'Pagos a vendedores',
+    fields: {
+      id: 'ID',
+      runId: 'ID de liquidación',
+      vendorId: 'ID de vendedor',
+      amount: 'Importe',
+      currency: 'Moneda',
+    },
+  },
+  'product-offering': {
+    label: 'Oferta comercial',
+    plural: 'Ofertas comerciales',
+    fields: {
+      id: 'ID',
+      name: 'Nombre',
+      specificationId: 'ID de especificación',
+      status: 'Estado',
+    },
+    values: {
+      status: {
+        draft: 'Borrador',
+        'pending-review': 'Pendiente de revisión',
+        published: 'Publicada',
+        unpublished: 'Retirada',
+      },
+    },
+  },
+  'product-offering-price': {
+    label: 'Precio de oferta',
+    plural: 'Precios de oferta',
+    fields: {
+      id: 'ID',
+      offeringId: 'ID de oferta',
+      amount: 'Importe',
+      currency: 'Moneda',
+    },
+  },
+  'entity-specification': {
+    label: 'Especificación',
+    plural: 'Especificaciones',
+    fields: {
+      id: 'ID',
+      name: 'Nombre',
+      version: 'Versión',
+      released: 'Publicada',
+    },
+  },
+  'characteristic-specification': {
+    label: 'Característica',
+    plural: 'Características',
+    fields: {
+      id: 'ID',
+      specificationId: 'ID de especificación',
+      code: 'Código',
+      valueType: 'Tipo de valor',
+      termId: 'Término del diccionario',
+    },
+    values: {
+      valueType: {
+        string: 'Texto',
+        number: 'Número',
+        boolean: 'Sí/No',
+        enum: 'Lista de valores',
+      },
+    },
+  },
+  'stock-item': {
+    label: 'Existencia',
+    plural: 'Existencias',
+    fields: {
+      id: 'ID',
+      offeringId: 'ID de oferta',
+      onHand: 'En almacén',
+      reserved: 'Reservado',
+    },
+  },
+  'stock-movement': {
+    label: 'Movimiento de existencias',
+    plural: 'Movimientos de existencias',
+    fields: {
+      id: 'ID',
+      offeringId: 'ID de oferta',
+      quantity: 'Cantidad',
+      reason: 'Motivo',
+    },
+    values: {
+      reason: {
+        receipt: 'Recepción',
+        sale: 'Venta',
+        cancellation: 'Cancelación',
+        adjustment: 'Ajuste',
+      },
+    },
+  },
+  reservation: {
+    label: 'Reserva',
+    plural: 'Reservas',
+    fields: {
+      id: 'ID',
+      offeringId: 'ID de oferta',
+      quantity: 'Cantidad',
+      status: 'Estado',
+      expiresAt: 'Vence el',
+    },
+    values: {
+      status: {
+        held: 'Retenida',
+        converted: 'Convertida',
+        released: 'Liberada',
+      },
     },
   },
 };

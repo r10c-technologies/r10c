@@ -32,6 +32,12 @@
           "build-deps",
           {
             "projects": [
+              "@r10c/marketplace-service"
+            ],
+            "target": "dev"
+          },
+          {
+            "projects": [
               "@r10c/source"
             ],
             "target": "watch-libs"

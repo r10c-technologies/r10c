@@ -60,8 +60,8 @@ describe('ADR 0020 — the store register is complete', () => {
     const domains = declaredEntityDomains();
     const entityCount = [...domains.values()].flat().length;
 
-    expect(domains.size).toBeGreaterThanOrEqual(5);
-    expect(entityCount).toBeGreaterThanOrEqual(12);
+    expect(domains.size).toBeGreaterThanOrEqual(11);
+    expect(entityCount).toBeGreaterThanOrEqual(23);
   });
 
   it('declares a multi-domain store as a binding, with its cost', () => {
@@ -240,6 +240,126 @@ describe('Co-deployment is recorded, and is symmetric', () => {
           names.has(other),
           `slice '${slice.name}' is co-deployed with '${other}', which is not a ` +
             'declared slice',
+        ).toBe(true);
+      }
+    }
+  });
+});
+
+describe('A planned slice owns stores but runs nothing', () => {
+  // Ownership can be recorded before a process exists — the invariants above
+  // apply either way, which is the point. What a planned slice must not do is
+  // claim a deployment: a database handle opened for a store nothing writes is
+  // a persistence boundary with no contents, which is exactly what ADR 0020
+  // struck `marketplace_admin` from the register for.
+  it('gives every active slice at least one deployment', () => {
+    for (const slice of SLICES) {
+      if (slice.status !== 'active') continue;
+      expect(
+        slice.deployments.length,
+        `slice '${slice.name}' is active but declares no deployment — either ` +
+          'it runs somewhere and should say where, or it is planned',
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it('gives every planned slice none', () => {
+    for (const slice of SLICES) {
+      if (slice.status !== 'planned') continue;
+      expect(
+        slice.deployments,
+        `slice '${slice.name}' is planned but claims deployment(s) ` +
+          `[${slice.deployments.join(', ')}] — promote it to active instead`,
+      ).toEqual([]);
+    }
+  });
+
+  it('co-deploys nothing that does not run', () => {
+    for (const slice of SLICES) {
+      if (slice.status === 'active') continue;
+      expect(
+        slice.coDeployedWith,
+        `slice '${slice.name}' is planned, so it shares no process with ` +
+          `[${slice.coDeployedWith.join(', ')}]`,
+      ).toEqual([]);
+    }
+  });
+});
+
+describe('Every business domain package is claimed by a slice', () => {
+  /**
+   * The domain names declared as `*_DOMAIN` constants under
+   * `packages/business/ts`.
+   *
+   * This complements Invariant 1 rather than repeating it. That one starts from
+   * `@entity()` declarations, so it cannot see a domain package that owns no
+   * entities *yet* — which is exactly the state every skeleton package was in,
+   * and exactly when a boundary gets decided by whoever writes the first entity.
+   * This starts from the package instead.
+   *
+   * Not every domain package has a `domain.ts` (`authn`, `configuration` and
+   * `product-configuration-management` predate the convention), so this checks
+   * the ones that do rather than requiring the file.
+   */
+  const declaredDomainConstants = (): Map<string, string> => {
+    const found = new Map<string, string>();
+    for (const entry of readdirSync(BUSINESS_ROOT, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const file = join(BUSINESS_ROOT, entry.name, 'src', 'domain.ts');
+      let text: string;
+      try {
+        text = readFileSync(file, 'utf8');
+      } catch {
+        continue;
+      }
+      const match = /export const [A-Z_]+ = '([^']+)'/.exec(text);
+      if (match) found.set(match[1], entry.name);
+    }
+    return found;
+  };
+
+  it('finds the domain constants it is meant to check', () => {
+    // Same guard as the entity scan: a regex that silently stops matching
+    // would make the assertion below pass while checking nothing.
+    expect(declaredDomainConstants().size).toBeGreaterThanOrEqual(6);
+  });
+
+  it('claims every declared domain in exactly one slice', () => {
+    const claimedBy = new Map<string, string[]>();
+    for (const slice of SLICES) {
+      for (const domain of slice.domains) {
+        claimedBy.set(domain, [...(claimedBy.get(domain) ?? []), slice.name]);
+      }
+    }
+
+    for (const [domain, packageName] of declaredDomainConstants()) {
+      const slices = claimedBy.get(domain) ?? [];
+      expect(
+        slices,
+        `packages/business/ts/${packageName} declares domain '${domain}', ` +
+          `which ${slices.length} slices claim: [${slices.join(', ')}]. A ` +
+          'domain package with no slice is a boundary nobody has decided.',
+      ).toHaveLength(1);
+    }
+  });
+
+  it('claims no domain that no package declares', () => {
+    const declared = new Set(declaredDomainConstants().keys());
+    // Domains whose package predates the `domain.ts` convention. Invariant 1
+    // still covers them, because each owns entities.
+    const withoutConstant = new Set([
+      'authn',
+      'config',
+      'product-configuration-management',
+    ]);
+
+    for (const slice of SLICES) {
+      for (const domain of slice.domains) {
+        if (withoutConstant.has(domain)) continue;
+        expect(
+          declared.has(domain),
+          `slice '${slice.name}' claims domain '${domain}', which no package ` +
+            'under packages/business/ts declares',
         ).toBe(true);
       }
     }

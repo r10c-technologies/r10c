@@ -105,13 +105,13 @@ describe('marketplace-admin-service /api/me guard', () => {
  */
 describe('marketplace-admin-service catalog permissions', () => {
   it('rejects an anonymous read with 401', async () => {
-    const res = await service.client.get('/api/product-brand');
+    const res = await service.client.get('/api/product-specification');
 
     expect(res.status).toBe(401);
   });
 
   it('lets a plain user read the catalog', async () => {
-    const res = await service.client.get('/api/product-brand', {
+    const res = await service.client.get('/api/product-specification', {
       headers: { Authorization: await bearerFor(['user']) },
     });
 
@@ -120,27 +120,30 @@ describe('marketplace-admin-service catalog permissions', () => {
 
   it('refuses a plain user a catalog write with 403', async () => {
     const res = await service.client.post(
-      '/api/product-brand',
+      '/api/product-specification',
       { name: 'Contraband' },
       { headers: { Authorization: await bearerFor(['user']) } },
     );
 
     expect(res.status).toBe(403);
     expect(res.data.permission).toBe(
-      'product-configuration-management:product-brand:write',
+      'product-configuration-management:product-specification:write',
     );
   });
 
   it('refuses a plain user a delete with 403', async () => {
-    const res = await service.client.delete('/api/product-brand/brand-1', {
-      headers: { Authorization: await bearerFor(['user']) },
-    });
+    const res = await service.client.delete(
+      '/api/product-specification/product-1',
+      {
+        headers: { Authorization: await bearerFor(['user']) },
+      },
+    );
 
     expect(res.status).toBe(403);
   });
 
   it('lets a super-admin through on the wildcard grant', async () => {
-    const res = await service.client.get('/api/product-brand', {
+    const res = await service.client.get('/api/product-specification', {
       headers: { Authorization: await bearerFor(['super-admin']) },
     });
 
@@ -155,7 +158,7 @@ describe('marketplace-admin-service catalog permissions', () => {
     // wider default.
     const token = await signTokenFor(['super-admin'], 'user-1', null);
 
-    const res = await service.client.get('/api/product-brand', {
+    const res = await service.client.get('/api/product-specification', {
       headers: { Authorization: `Bearer ${token}` },
     });
 

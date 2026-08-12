@@ -43,9 +43,7 @@
   },
   "dependencies": {
     "@swc/helpers": "0.5.23",
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "effect": "3.22.0"
+    "@r10c/entifix-ts-core": "workspace:*"
   },
   "devDependencies": {
     "@r10c/entifix-ts-testing-unit": "workspace:*"

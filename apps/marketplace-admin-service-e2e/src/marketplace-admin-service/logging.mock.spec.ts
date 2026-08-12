@@ -24,7 +24,7 @@ const service = defineServiceE2e({
 describe('structured logging pipeline (mock)', () => {
   it('emits structured records through the replaced logger', async () => {
     await service.client.get('/api/health');
-    await service.client.get('/api/product');
+    await service.client.get('/api/product-specification');
 
     expect(capturedLogRecords.length).toBeGreaterThan(0);
     const record = capturedLogRecords[capturedLogRecords.length - 1];
@@ -37,7 +37,7 @@ describe('structured logging pipeline (mock)', () => {
   it('correlates a log to its request trace', async () => {
     const before = capturedLogRecords.length;
 
-    await service.client.get('/api/product');
+    await service.client.get('/api/product-specification');
 
     const fromRequest = capturedLogRecords.slice(before);
     const correlated = fromRequest.find(

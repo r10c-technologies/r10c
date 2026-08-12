@@ -1,4 +1,4 @@
-import { Product } from '@r10c/business-ts-product-configuration-management';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
@@ -23,7 +23,7 @@ const configuration = {
 
 const server = setupEntifixServer(
   http.get('*/api/config', () => HttpResponse.json(configuration)),
-  http.get(`${SERVICE}/product`, () =>
+  http.get(`${SERVICE}/product-specification`, () =>
     HttpResponse.json({
       meta: { type: 'entityPage', entity: 'product' },
       data: { items: [], total: 0, request: {} },
@@ -43,9 +43,15 @@ describe('createClientAdapters', () => {
   it('exposes one repository per catalog entity plus the configuration store', () => {
     const adapters = createClientAdapters();
 
-    expect(Context.get(adapters.productRest, EntityRepositoryTag)).toBeDefined();
-    expect(Context.get(adapters.productBrandRest, EntityRepositoryTag)).toBeDefined();
-    expect(Context.get(adapters.productCategoryRest, EntityRepositoryTag)).toBeDefined();
+    expect(
+      Context.get(adapters.productRest, EntityRepositoryTag),
+    ).toBeDefined();
+    expect(
+      Context.get(adapters.productBrandRest, EntityRepositoryTag),
+    ).toBeDefined();
+    expect(
+      Context.get(adapters.productCategoryRest, EntityRepositoryTag),
+    ).toBeDefined();
     expect(
       Context.get(adapters.configurationStore, ConfigurationRepositoryTag),
     ).toBeDefined();
@@ -69,10 +75,13 @@ describe('createClientAdapters', () => {
     const repository = Context.get(adapters.productRest, EntityRepositoryTag);
 
     await Effect.runPromise(
-      Effect.provide(repository.load<Product>({}), adapters.configurationStore),
+      Effect.provide(
+        repository.load<ProductSpecification>({}),
+        adapters.configurationStore,
+      ),
     );
 
-    expect(urls).toContain(`${SERVICE}/product`);
+    expect(urls).toContain(`${SERVICE}/product-specification`);
   });
 
   it('returns a fresh adapter set per call', () => {

@@ -1,26 +1,20 @@
 import {
-  Product,
   ProductBrand,
   ProductCategory,
-} from '@r10c/business-ts-product-configuration-management';
+} from '@r10c/business-ts-catalog-reference';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import {
   ConfigurationRepositoryTag,
-  EntityLinkResolverTag,
   EntityRepositoryTag,
   loadUCFactory,
 } from '@r10c/entifix-ts-business';
 import type { Entity } from '@r10c/entifix-ts-core';
 import {
-  makeInMemoryEntityLinkResolver,
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
-import {
-  render as rtlRender,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import { Context } from 'effect';
 import type { ReactElement } from 'react';
 import { describe, expect, it } from 'vitest';
@@ -48,13 +42,6 @@ const makeCategory = (id: string, name: string) => {
 const contextFor = (items: Entity[]) =>
   Context.make(EntityRepositoryTag, makeInMemoryEntityRepository(items)).pipe(
     Context.add(ConfigurationRepositoryTag, makeStubConfigurationClient()),
-    Context.add(
-      EntityLinkResolverTag,
-      makeInMemoryEntityLinkResolver([
-        [ProductBrand, [makeBrand('b-1', 'Acme')]],
-        [ProductCategory, [makeCategory('c-1', 'Tools')]],
-      ]),
-    ),
   );
 
 // These wrappers are thin on purpose: their whole job is to bind an entity to
@@ -66,7 +53,7 @@ describe('ProductBrandTable', () => {
       <ProductBrandTable
         uc={loadUCFactory<ProductBrand>()}
         ctx={contextFor([makeBrand('b-1', 'Acme')])}
-        hrefFor={(id) => `/catalog/product-brand/${String(id)}`}
+        hrefFor={id => `/catalog/product-brand/${String(id)}`}
         newHref="/catalog/product-brand/new"
       />,
     );
@@ -84,7 +71,7 @@ describe('ProductCategoryTable', () => {
       <ProductCategoryTable
         uc={loadUCFactory<ProductCategory>()}
         ctx={contextFor([makeCategory('c-1', 'Tools')])}
-        hrefFor={(id) => `/catalog/product-category/${String(id)}`}
+        hrefFor={id => `/catalog/product-category/${String(id)}`}
         newHref="/catalog/product-category/new"
       />,
     );
@@ -96,58 +83,47 @@ describe('ProductCategoryTable', () => {
 });
 
 describe('ProductTable', () => {
-  const makeProduct = (embedded: boolean) => {
-    const product = new Product('P-1', 'Widget');
+  const makeProduct = (brandId?: string) => {
+    const product = new ProductSpecification('P-1', 'Widget');
     product.id = 'p-1';
-    if (embedded) {
-      product.brand.setValue(makeBrand('b-1', 'Acme'));
-    } else {
-      product.brand.setId('b-9');
-    }
-    product.category.setId('c-1');
+    product.brandId = brandId;
+    product.categoryId = 'product-category-1';
     return product;
   };
 
-  const renderTable = (product: Product) =>
+  const renderTable = (product: ProductSpecification) =>
     render(
       <ProductTable
-        uc={loadUCFactory<Product>()}
+        uc={loadUCFactory<ProductSpecification>()}
         ctx={contextFor([product])}
-        hrefFor={(id) => `/catalog/product/${String(id)}`}
+        hrefFor={id => `/catalog/product/${String(id)}`}
         newHref="/catalog/product/new"
       />,
     );
 
   it('lists what the use-case loaded', async () => {
-    renderTable(makeProduct(true));
+    renderTable(makeProduct('product-brand-1'));
 
     await waitFor(() =>
       expect(screen.getAllByText('Widget').length).toBeGreaterThan(0),
     );
   });
 
-  // `brand` carries an `<EntityColumn>` override — the escape hatch for a
-  // column whose presentation the metadata cannot express.
-  it('renders the brand through its column override', async () => {
-    renderTable(makeProduct(true));
+  it('renders the brand id through its column override', async () => {
+    renderTable(makeProduct('product-brand-1'));
 
-    await waitFor(() => expect(screen.getAllByText('Acme').length).toBe(2));
+    await waitFor(() =>
+      expect(screen.getAllByText('product-brand-1').length).toBeGreaterThan(0),
+    );
   });
 
-  it('falls back to the brand’s foreign key when the target is not loaded', async () => {
-    renderTable(makeProduct(false));
+  it('renders a placeholder when the specification is unclassified', async () => {
+    // A missing classification is a display gap, never a broken record — the
+    // reference crosses a store boundary and no foreign key enforces it.
+    renderTable(makeProduct(undefined));
 
-    await waitFor(() => expect(screen.getAllByText('b-9').length).toBe(2));
-  });
-
-  // A product with no brand at all still has to render a cell, not a blank.
-  it('renders a placeholder when the product has no brand', async () => {
-    const product = new Product('P-1', 'Widget');
-    product.id = 'p-1';
-    product.category.setId('c-1');
-
-    renderTable(product);
-
-    await waitFor(() => expect(screen.getAllByText('—').length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(screen.getAllByText('—').length).toBeGreaterThan(0),
+    );
   });
 });

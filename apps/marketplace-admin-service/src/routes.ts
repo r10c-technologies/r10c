@@ -6,12 +6,7 @@ import {
   HttpServerResponse,
 } from '@effect/platform';
 import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
-import {
-  loadProductsUCFactory,
-  Product,
-  ProductBrand,
-  ProductCategory,
-} from '@r10c/business-ts-product-configuration-management';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
   acceptTransaction,
   CommandTag,
@@ -49,7 +44,6 @@ import {
   serializeEntity,
 } from '@r10c/entifix-ts-core';
 import {
-  makeMongoLinkResolver,
   makeMongoRepository,
   MongoDatabaseTag,
 } from '@r10c/entifix-ts-mongo-client';
@@ -196,23 +190,6 @@ const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
       ),
     );
   }).pipe(Effect.catchAll(readError));
-
-/** Product list route: also resolves the `brand`/`category` links via Mongo. */
-const productListRoute = Effect.gen(function* () {
-  const db = yield* MongoDatabaseTag;
-  const request = yield* readLoadRequest(Product);
-  const page = yield* loadProductsUCFactory().pipe(
-    Effect.provideService(
-      EntityRepositoryTag,
-      makeMongoRepository(db, Product),
-    ),
-    Effect.provideService(EntityLoadRequestTag, request),
-    Effect.provide(makeMongoLinkResolver(db, [ProductBrand, ProductCategory])),
-  );
-  return yield* HttpServerResponse.json(
-    makeEntityPageEnvelope(Product, page, collectionLinks('product')),
-  );
-}).pipe(Effect.catchAll(readError));
 
 /** Generic single-record route by `:id`. */
 const byIdRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
@@ -462,87 +439,37 @@ export const router = sagaRoutes(HttpRouter.empty).pipe(
   ),
 
   HttpRouter.get(
-    '/api/product-category',
-    guarded(ProductCategory, 'read', () => listRoute(ProductCategory)),
+    '/api/product-specification',
+    guarded(ProductSpecification, 'read', () =>
+      listRoute(ProductSpecification),
+    ),
   ),
   HttpRouter.get(
-    '/api/product-category/:id',
-    guarded(ProductCategory, 'read', () => byIdRoute(ProductCategory)),
+    '/api/product-specification/:id',
+    guarded(ProductSpecification, 'read', () =>
+      byIdRoute(ProductSpecification),
+    ),
   ),
   HttpRouter.post(
-    '/api/product-category',
-    guarded(ProductCategory, 'write', () =>
-      createTransactionRoute(ProductCategory, {
-        key: 'product-category',
-        sequenceName: 'product-category',
-        codePrefix: 'category',
-      }),
-    ),
-  ),
-  HttpRouter.put(
-    '/api/product-category/:id',
-    guarded(ProductCategory, 'write', () =>
-      saveRoute(ProductCategory, { fromParams: true }),
-    ),
-  ),
-  HttpRouter.del(
-    '/api/product-category/:id',
-    guarded(ProductCategory, 'delete', () => deleteRoute(ProductCategory)),
-  ),
-
-  HttpRouter.get(
-    '/api/product-brand',
-    guarded(ProductBrand, 'read', () => listRoute(ProductBrand)),
-  ),
-  HttpRouter.get(
-    '/api/product-brand/:id',
-    guarded(ProductBrand, 'read', () => byIdRoute(ProductBrand)),
-  ),
-  HttpRouter.post(
-    '/api/product-brand',
-    guarded(ProductBrand, 'write', () =>
-      createTransactionRoute(ProductBrand, {
-        key: 'product-brand',
-        sequenceName: 'product-brand',
-        codePrefix: 'brand',
-      }),
-    ),
-  ),
-  HttpRouter.put(
-    '/api/product-brand/:id',
-    guarded(ProductBrand, 'write', () =>
-      saveRoute(ProductBrand, { fromParams: true }),
-    ),
-  ),
-  HttpRouter.del(
-    '/api/product-brand/:id',
-    guarded(ProductBrand, 'delete', () => deleteRoute(ProductBrand)),
-  ),
-
-  HttpRouter.get(
-    '/api/product',
-    guarded(Product, 'read', () => productListRoute),
-  ),
-  HttpRouter.get(
-    '/api/product/:id',
-    guarded(Product, 'read', () => byIdRoute(Product)),
-  ),
-  HttpRouter.post(
-    '/api/product',
-    guarded(Product, 'write', () =>
-      createTransactionRoute(Product, {
-        key: 'product',
-        sequenceName: 'product',
+    '/api/product-specification',
+    guarded(ProductSpecification, 'write', () =>
+      createTransactionRoute(ProductSpecification, {
+        key: 'product-specification',
+        sequenceName: 'product-specification',
         codePrefix: 'product',
       }),
     ),
   ),
   HttpRouter.put(
-    '/api/product/:id',
-    guarded(Product, 'write', () => saveRoute(Product, { fromParams: true })),
+    '/api/product-specification/:id',
+    guarded(ProductSpecification, 'write', () =>
+      saveRoute(ProductSpecification, { fromParams: true }),
+    ),
   ),
   HttpRouter.del(
-    '/api/product/:id',
-    guarded(Product, 'delete', () => deleteRoute(Product)),
+    '/api/product-specification/:id',
+    guarded(ProductSpecification, 'delete', () =>
+      deleteRoute(ProductSpecification),
+    ),
   ),
 );

@@ -1,8 +1,8 @@
 import {
-  Product,
   ProductBrand,
   ProductCategory,
-} from '@r10c/business-ts-product-configuration-management';
+} from '@r10c/business-ts-catalog-reference';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
   configurationHandler,
   entityBackendHandlers,
@@ -20,7 +20,7 @@ export const SERVICE_URL = 'http://localhost:3101/api';
 
 export const BRAND_URL = `${SERVICE_URL}/product-brand`;
 export const CATEGORY_URL = `${SERVICE_URL}/product-category`;
-export const PRODUCT_URL = `${SERVICE_URL}/product`;
+export const PRODUCT_URL = `${SERVICE_URL}/product-specification`;
 
 /**
  * The one configuration value the REST adapters need in order to build their
@@ -44,7 +44,7 @@ const categories = entityBackendHandlers(ProductCategory, {
   baseUrl: CATEGORY_URL,
   seed: categorySeed,
 });
-const products = entityBackendHandlers(Product, {
+const products = entityBackendHandlers(ProductSpecification, {
   baseUrl: PRODUCT_URL,
   seed: productSeed,
 });

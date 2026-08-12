@@ -2,15 +2,13 @@ import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 
-import { productBrandTempData } from './product-brand-temp-data';
-import { productCategoryTempData } from './product-category-temp-data';
 import { productTempData } from './product-temp-data';
 
 /**
  * Inserts a seed dataset into a collection when it is empty. The temp-data
- * records are already in the entity wire shape (product `brand` embedded,
- * `category` a foreign-key id), so they can be inserted verbatim and read back
- * through the entifix deserializer.
+ * records are already in the entity wire shape — `brandId` and `categoryId` are
+ * plain ids into `catalog-reference`, a store this service does not own — so
+ * they insert verbatim and read back through the entifix deserializer.
  */
 function seedCollection(
   db: Db,
@@ -34,15 +32,20 @@ const asRecords = (
   data as ReadonlyArray<Record<string, unknown>>;
 
 /**
- * Seeds the catalog collections (`product-category`, `product-brand`,
- * `product`) on first boot. Collection names match each entity's `key`.
+ * Seeds the catalog collection (`product-specification`) on first boot. The
+ * collection name matches the entity's `key`.
  *
  * The catalog is **tenant plane**: it belongs to the vendor that authored it,
  * not to the service. So the seed writes into one organization's own database
  * — the local demo vendor's — rather than into the service-wide one. That is
  * what makes the demo organization real isolation instead of a row nobody
- * reads: after a boot, these collections exist in `tenant_<organizationId>` and
- * are absent from the shared database.
+ * reads: after a boot, this collection exists in `tenant_<organizationId>` and
+ * is absent from the shared database.
+ *
+ * Brands and categories are **not** seeded here any more. They are platform
+ * reference data now, owned by the `marketplace` slice, and seeding them from a
+ * tenant handle would make this service a second writer of another slice's
+ * store (ADR 0022).
  *
  * Mongo creates a database lazily on first write, so no provisioning step runs
  * ahead of this.
@@ -52,16 +55,9 @@ export const seedCatalog = (tenantDbName: string) =>
     const client = yield* MongoClientTag;
     const db = client.db(tenantDbName);
 
-    yield* Effect.all(
-      [
-        seedCollection(
-          db,
-          'product-category',
-          asRecords(productCategoryTempData),
-        ),
-        seedCollection(db, 'product-brand', asRecords(productBrandTempData)),
-        seedCollection(db, 'product', asRecords(productTempData)),
-      ],
-      { discard: true },
+    yield* seedCollection(
+      db,
+      'product-specification',
+      asRecords(productTempData),
     );
   });

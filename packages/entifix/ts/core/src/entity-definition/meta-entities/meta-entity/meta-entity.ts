@@ -1,9 +1,9 @@
 export interface MetaEntityOptions {
   key?: string;
   domain?: string;
-  /** Translation key for the entity's singular name, e.g. `entity:product.label`. */
+  /** Translation key for the entity's singular name, e.g. `entity:product-specification.label`. */
   labelKey?: string;
-  /** Translation key for its plural, e.g. `entity:product.plural`. */
+  /** Translation key for its plural, e.g. `entity:product-specification.plural`. */
   pluralKey?: string;
 }
 

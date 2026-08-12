@@ -11,7 +11,9 @@ function Probe({ ns }: { ns?: 'controls' | 'entity' }) {
   return (
     <dl>
       <dd data-testid="locale">{locale}</dd>
-      <dd data-testid="translated">{ns === 'entity' ? t('product.label') : t('table.open')}</dd>
+      <dd data-testid="translated">
+        {ns === 'entity' ? t('product-specification.label') : t('table.open')}
+      </dd>
       <dd data-testid="number">{formatters.number(1234.5)}</dd>
     </dl>
   );

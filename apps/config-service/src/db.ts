@@ -425,6 +425,55 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'db',
     value: 'transaction_manager',
   },
+  // marketplace-service — the storefront's platform-plane read host. It owns the
+  // `catalog-reference` and `published-catalog` stores, both `single`, so unlike
+  // the admin service it names a database at boot rather than resolving one per
+  // request from the session.
+  {
+    service: 'marketplace-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: 'mongodb://admin:password@127.0.0.1:30017',
+    is_secret: true,
+  },
+  {
+    service: 'marketplace-service',
+    group_name: 'mongo',
+    key: 'db',
+    value: 'marketplace',
+  },
+  // The public half only. This service verifies access tokens and never mints
+  // one, so it cannot sign.
+  {
+    service: 'marketplace-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'marketplace-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  {
+    service: 'marketplace-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'marketplace-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'marketplace-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
 ];
 
 const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';

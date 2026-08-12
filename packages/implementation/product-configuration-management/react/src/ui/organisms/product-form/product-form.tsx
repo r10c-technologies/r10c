@@ -1,39 +1,33 @@
 'use client';
 
-import {
-  Product,
-  type ProductBrand,
-  type ProductCategory,
-} from '@r10c/business-ts-product-configuration-management';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
-import {
-  useEntityForm,
-  useEntityLinkSource,
-} from '@r10c/entifix-react-integration';
-import { applyEntityLinks, describeEntityColumns } from '@r10c/entifix-ts-core';
-import { useEffect, useMemo } from 'react';
+import { useEntityForm } from '@r10c/entifix-react-integration';
+import { useEffect } from 'react';
 
 import type { ProductFormProps } from './product-form.types';
 
 /**
- * Create/update form for a {@link Product}. A thin wrapper over the agnostic
- * {@link EntityForm}: the generic form builds every field from metadata —
- * relations included, now that it can be handed a picker source — and this
- * wrapper only supplies the two sources and the draft→`Product` reconstruction.
+ * Create/update form for a {@link ProductSpecification}. A thin wrapper over
+ * the agnostic {@link EntityForm}: the generic form builds every field from
+ * metadata, and this wrapper only supplies the draft→`ProductSpecification`
+ * reconstruction.
  *
- * Neither half is domain-specific any more. `applyEntityLinks` writes each
- * relation the way the *entity* declares it (`brand` embedded, `category` as a
- * foreign key), so that difference lives on `Product` rather than here, and the
- * hook's `links` carries the picked instances the embedded shape needs.
+ * **The brand and category pickers are gone**, and their absence is a real
+ * regression worth naming. They were `EntityLinkPicker`s over `link` accessors;
+ * those members are plain `brandId`/`categoryId` strings now, because their
+ * targets moved to `catalog-reference` — a platform-plane store owned by another
+ * slice — and a typed link across that boundary is not a legal edge
+ * ([ADR 0022](../../../../../../../docs/adr/0022-v1-marketplace-module-boundaries.md)).
  *
- * One `useEntityLinkSource` call per relation, because React's hook count has to
- * stay fixed and the agnostic controls package may not reach the integration
- * layer to make the call itself.
+ * Restoring a picker is legal and is follow-up work, not a dead end: the
+ * `EntityLinkSource` port is framework-free and lives in core, so a source fed
+ * by a marketplace-service adapter would satisfy it. What is missing is a picker
+ * that writes a **scalar id** field rather than an `EntityLink` member. Until
+ * then the ids are ordinary metadata-driven inputs.
  */
-export function ProductForm<TContext>({
+export function ProductForm({
   entity,
-  brandLink,
-  categoryLink,
   isLoading = false,
   isSaving = false,
   isDeleting = false,
@@ -43,45 +37,24 @@ export function ProductForm<TContext>({
   backHref,
   initialDraft,
   onDraftChange,
-}: ProductFormProps<TContext>) {
+}: ProductFormProps) {
   const et = useT('entity');
-  const descriptors = useMemo(
-    () => describeEntityColumns(Product, entity),
-    [entity],
-  );
-
-  const form = useEntityForm<Product>({
-    entityConstructor: Product,
+  const form = useEntityForm<ProductSpecification>({
+    entityConstructor: ProductSpecification,
     entity,
     initialValues: initialDraft,
     onSubmit: values => {
-      const product = new Product(values.code, values.name);
+      const product = new ProductSpecification(values.code, values.name);
       product.id = entity?.id;
       product.description =
         values.description === '' ? undefined : values.description;
-      applyEntityLinks(product, descriptors, values, form.links);
+      product.brandId = values.brandId === '' ? undefined : values.brandId;
+      product.categoryId =
+        values.categoryId === '' ? undefined : values.categoryId;
 
       onSave(product);
     },
   });
-
-  // The selection sidecar is keyed by field name and holds bare `Entity`, so the
-  // target type is restated here — the accessor's own type is what says which
-  // entity `brand` points at.
-  const brandSource = useEntityLinkSource<ProductBrand, TContext>(brandLink, {
-    descriptor: descriptors.find(entry => entry.name === 'brand')!,
-    selectedId: form.values.brand === '' ? undefined : form.values.brand,
-    selectedEntity: form.links['brand'] as ProductBrand | undefined,
-  });
-  const categorySource = useEntityLinkSource<ProductCategory, TContext>(
-    categoryLink,
-    {
-      descriptor: descriptors.find(entry => entry.name === 'category')!,
-      selectedId:
-        form.values.category === '' ? undefined : form.values.category,
-      selectedEntity: form.links['category'] as ProductCategory | undefined,
-    },
-  );
 
   // Emit the draft on every edit so the workspace host can autosave it.
   useEffect(() => {
@@ -89,16 +62,14 @@ export function ProductForm<TContext>({
   }, [form.values, form.isDirty, onDraftChange]);
 
   return (
-    <EntityForm<Product>
-      entityConstructor={Product}
+    <EntityForm<ProductSpecification>
+      entityConstructor={ProductSpecification}
       entity={entity}
       // The catalog form is edit-only; the read/edit toggle is for callers that
       // opt into it.
       mode="edit"
       values={form.values}
       onFieldChange={form.setField}
-      linkSources={{ brand: brandSource, category: categorySource }}
-      onLinkChange={form.setLink}
       errors={form.errors}
       onSubmit={form.submit}
       onDelete={onDelete}
@@ -107,9 +78,13 @@ export function ProductForm<TContext>({
       isDeleting={isDeleting}
       error={error}
       backHref={backHref}
-      title={et(entity ? 'product.form.editTitle' : 'product.form.newTitle')}
+      title={et(
+        entity
+          ? 'product-specification.form.editTitle'
+          : 'product-specification.form.newTitle',
+      )}
     >
-      <EntityField<Product> field="id" hidden />
+      <EntityField<ProductSpecification> field="id" hidden />
     </EntityForm>
   );
 }

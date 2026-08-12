@@ -1,4 +1,4 @@
-import type { Product } from '@r10c/business-ts-product-configuration-management';
+import type { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
   ButtonLink,
   Card,
@@ -25,12 +25,12 @@ import { storePaths } from '../routing/paths';
  */
 export interface ProductCardProps {
   readonly locale: Locale;
-  readonly product: Product;
+  readonly product: ProductSpecification;
 }
 
 export function ProductCard({ locale, product }: ProductCardProps) {
   const t = getServerTFor(locale, 'shell');
-  const brand = product.brand.value?.name;
+  const brand = product.brandId;
 
   return (
     <Card>

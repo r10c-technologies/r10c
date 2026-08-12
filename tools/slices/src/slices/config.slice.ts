@@ -8,6 +8,7 @@ import type { SliceDeclaration } from '../types.js';
  */
 export const configSlice: SliceDeclaration = {
   name: 'config',
+  status: 'active',
   domains: ['config'],
   stores: [
     {

@@ -85,6 +85,47 @@ them), and everything deep is a link — loaded only when a task needs it.
   (Zitadel's callback target) and `marketplace-app` (prerender + ISR, and the
   only host that sees anonymous traffic) stay standalone on purpose. See
   [ADR 0021](docs/adr/0021-consolidating-the-fleet-into-five-deployments.md).
+- **The v1 boundaries are locked, and the register knows about slices that do not
+  run yet.** [ADR 0022](docs/adr/0022-v1-marketplace-module-boundaries.md) fixes
+  11 domains, 28 entities, 12 stores, 9 slices, 6 deployments. A
+  `SliceDeclaration` carries `status: 'active' | 'planned'`: **planned records
+  ownership before a process exists**, is held to all three invariants, and must
+  declare **no** deployment — a handle opened for a store nothing writes is the
+  phantom store ADR 0020 deleted `marketplace_admin` for. Promote a slice in the
+  commit that writes its store, never earlier; the spec fails both ways. Four
+  boundary calls worth not re-deriving: `ProductBrand`/`ProductCategory`/
+  `DictionaryTerm` are **platform-plane** `catalog-reference`, because a
+  marketplace has to merge and per-vendor taxonomy cannot; that domain is
+  **never entitlement-grantable**, which is the first exception to ADR 0007's
+  ceiling; `catalog` and `stock` are two tenant stores in **two** databases
+  (`tenant_<id>`, `stock_<id>`) so one-writer is a property of the handle; and
+  the `marketplace` slice writes `published-catalog` by **consuming**
+  `catalog.published`, not the slice that authored the offering — which is what
+  keeps the public read host out of tenant storage. SID's `Product` is the
+  instance a buyer owns, in `order-management`; the catalog record is
+  `ProductSpecification`.
+- **A service may name a tenant explicitly — one path, and it is authorized.**
+  Checkout is platform-plane and must reserve tenant-plane stock, but a buyer's
+  session carries no organization: the vendor comes from the _item_. So
+  `TenantContextTag` has a second provider — an explicit `organizationId` plus a
+  service token **and** a narrow route permission
+  ([ADR 0023](docs/adr/0023-service-to-service-tenant-crossing.md)). No third
+  path, no fallback, no operator branch. The token is **not**
+  `CONFIG_SERVICE_TOKEN` — reusing it would turn one leaked secret into a
+  tenant-data write across every organization — and fleet membership is not a
+  capability, so the permission is the actual authorization. Do **not** confuse
+  this with ADR 0012's crossing: that one is _discretionary_ (a person picks an
+  organization, so it needs a human's permission, a time box and a `Crossing`
+  record), this one is _determined_ (the organization is a function of the item).
+  Residual, recorded: a shared secret means any holder can name any org.
+- **ADRs are corrected in place when they go stale.** An ADR's _reasoning_ is
+  immutable; its _factual claims_ are not. Fix a false statement where it stands,
+  clarify misleading wording in place, and supersede only when the **decision**
+  itself no longer holds. Accepted records gain a `- Revised: <date> by [ADR …]`
+  line so every edit is greppable. When a change contradicts existing records,
+  grep for the claim rather than guessing which mention it — ADR 0014 stated the
+  dictionary's owner in three separate places — and check each Proposed record's
+  own `## Trigger` before promoting it. See [docs/adr/README.md](docs/adr/README.md).
 - **The business map is a separate document.** Which capability owns an entity,
   which plane it lives in, and the ODA/SID name for it are in
   [BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) — read it before

@@ -13,8 +13,12 @@ describe('createI18n', () => {
 
   it('serves each locale from its own catalog', () => {
     expect(createI18n('en').t('controls:table.open')).toBe('Open');
-    expect(createI18n('en').t('entity:product.label')).toBe('Product');
-    expect(createI18n('es').t('entity:product.label')).toBe('Producto');
+    expect(createI18n('en').t('entity:product-specification.label')).toBe(
+      'Product',
+    );
+    expect(createI18n('es').t('entity:product-specification.label')).toBe(
+      'Producto',
+    );
   });
 
   it('interpolates without escaping, because React escapes for us', () => {

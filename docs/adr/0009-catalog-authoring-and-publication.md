@@ -1,16 +1,23 @@
 # 9. Catalog authoring in the tenant plane, publication into a platform read model
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-01
 - Amended by: [ADR 0020](0020-stores-and-slices.md) — "two catalogs, one
   projection" is two **Stores**: `catalog` (tenant, system-of-record) and
   `published-catalog` (platform, `truth: projection-of:catalog`).
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  trigger fired, and the projector is now named.
 
 ## Trigger
 
-The first `ProductOffering` entity, or the first storefront page that must list
-products from more than one vendor. Whichever comes first promotes this record to
-Accepted.
+~~The first `ProductOffering` entity, or the first storefront page that must list
+products from more than one vendor.~~ **Fired** on 2026-08-12: ADR 0022 landed
+the `ProductOffering` entity, so this record is Accepted.
+
+What that promotion does and does not mean: the _decisions_ below are in effect —
+`published-catalog` is a declared store, its `truth` is `projection-of:catalog`,
+and the two-shape split is built into the entity model. The **publisher itself
+is not built**; publication is the next iteration's work.
 
 ## Context
 
@@ -36,9 +43,16 @@ So "the catalog" cannot be one thing.
 2. **Publishing** projects the approved subset into the platform-scope
    `marketplace-catalog`, which is what the storefront queries.
 
-The projection runs on the existing saga engine (`entifix-transactions` +
-`transaction-manager`), which already has the accept/execute split, the
+The projection runs on the existing saga engine (`entifix-transactions` + the
+`transaction` slice's tracker), which already has the accept/execute split, the
 distributed lock, and compensation on failure.
+
+**The writer is the consumer, not the author.** `marketplace-admin` emits
+`catalog.published`; the `marketplace` slice consumes it and writes
+`published-catalog`. Both arrangements satisfy one-writer, and this one is chosen
+because it means the public read host never opens a connection to tenant storage
+at all — the isolation argument below becomes structural rather than a rule about
+which query a route makes ([ADR 0022](0022-v1-marketplace-module-boundaries.md)).
 
 Rejected: keeping the whole catalog in the platform plane and scoping only
 vendor-private data (cost, pricing rules, stock). One catalog, no projection,
@@ -93,8 +107,12 @@ clearly at checkout.
   cacheable without touching a tenant.
 - **A vendor's edit is not immediately visible**, and vendors will notice.
   Publication needs to report its own state back to the authoring UI.
-- **`marketplace-service` becomes the platform-plane read host**, and this is the
-  work that gives it a router.
+- **`marketplace-service` is the platform-plane read host.** It was deleted by
+  [ADR 0021](0021-consolidating-the-fleet-into-five-deployments.md) for having no
+  store, and rebuilt on `:3100` by
+  [ADR 0022](0022-v1-marketplace-module-boundaries.md) — which is what gives it a
+  router, and two stores to justify existing: `published-catalog` and the
+  `catalog-reference` vocabulary the storefront classifies by.
 
 ## Follow-ups (deliberately out of scope)
 

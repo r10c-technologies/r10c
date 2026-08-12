@@ -26,14 +26,28 @@ physically `tenant_<organizationId>`.
 whose `slices.spec.ts` checks the three invariants against the source tree and
 **fails the build** when they drift. Edit a `*.slice.ts` first; the table follows.
 
-| Store               | Plane   | Owner slice         | Co-deployed with | Hosts                                                         | Partitioning     | Truth            |
-| ------------------- | ------- | ------------------- | ---------------- | ------------------------------------------------------------- | ---------------- | ---------------- |
-| `auth`              | control | `auth`              | —                | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record |
-| `session`           | control | `auth`              | —                | — (session records, no entities)                              | single           | system-of-record |
-| `catalog`           | tenant  | `marketplace-admin` | —                | `product-configuration-management`                            | per-organization | system-of-record |
-| `saga-coordination` | control | `marketplace-admin` | —                | — (locks + sequences, no entities)                            | single           | system-of-record |
-| `configuration`     | control | `config`            | —                | `config`                                                      | single           | system-of-record |
-| `saga`              | control | `transaction`       | —                | —                                                             | single           | system-of-record |
+| Store               | Plane    | Owner slice         | Slice status | Co-deployed with    | Hosts                                                         | Partitioning     | Truth                   |
+| ------------------- | -------- | ------------------- | ------------ | ------------------- | ------------------------------------------------------------- | ---------------- | ----------------------- |
+| `auth`              | control  | `auth`              | active       | —                   | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record        |
+| `session`           | control  | `auth`              | active       | —                   | — (session records, no entities)                              | single           | system-of-record        |
+| `configuration`     | control  | `config`            | active       | —                   | `config`                                                      | single           | system-of-record        |
+| `catalog`           | tenant   | `marketplace-admin` | active       | `transaction`       | `product-configuration-management`                            | per-organization | system-of-record        |
+| `saga-coordination` | control  | `marketplace-admin` | active       | `transaction`       | — (locks + sequences, no entities)                            | single           | system-of-record        |
+| `saga`              | control  | `transaction`       | active       | `marketplace-admin` | —                                                             | single           | system-of-record        |
+| `catalog-reference` | platform | `marketplace`       | active       | —                   | `catalog-reference`                                           | single           | system-of-record        |
+| `published-catalog` | platform | `marketplace`       | active       | —                   | `marketplace-catalog`                                         | single           | `projection-of:catalog` |
+| `stock`             | tenant   | `stock`             | **planned**  | —                   | `stock-management`                                            | per-organization | system-of-record        |
+| `order`             | platform | `order`             | **planned**  | —                   | `order-management`                                            | single           | system-of-record        |
+| `payment`           | platform | `payment`           | **planned**  | —                   | `payment-management`                                          | single           | system-of-record        |
+| `settlement`        | control  | `settlement`        | **planned**  | —                   | `settlement-management`                                       | single           | system-of-record        |
+
+A **planned** slice owns its stores and is held to all three invariants, but
+declares **no deployment** — nothing writes those stores yet. Recording ownership
+early is what catches a boundary error when the entities land instead of when
+someone finally writes the service; declaring a deployment early would open a
+handle to a store with no contents, which is the phantom store ADR 0020 struck
+`marketplace_admin` for. A slice is promoted by the commit that writes its store.
+The spec fails the build in both directions.
 
 ⚠️ `auth` hosting three domains is a **declared binding**: a `UserIdentity`, the
 `Individual` behind it and the `Membership` granting it a role are written in the
@@ -53,11 +67,17 @@ A plane is a property of the **Store** — it answers _who may read it_. An
 entity's plane is derived from the store that hosts it, so two entities in one
 store can never disagree about theirs.
 
-| Plane        | Storage                                 | Holds                                                                                   |
-| ------------ | --------------------------------------- | --------------------------------------------------------------------------------------- |
-| **control**  | one shared database                     | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration |
-| **platform** | one shared database                     | published marketplace catalog, buyer carts and orders                                   |
-| **tenant**   | **one Mongo database per organization** | vendor-authored offerings, cost, pricing rules, stock                                   |
+| Plane        | Storage                                                                   | Holds                                                                                                           |
+| ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **control**  | one shared database                                                       | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration, agreements and payouts |
+| **platform** | one shared database                                                       | published catalog, the brand/category/dictionary vocabulary, buyer orders, payments                             |
+| **tenant**   | **two Mongo databases per organization** — `tenant_<id>` and `stock_<id>` | vendor-authored offerings and specifications, pricing, stock                                                    |
+
+**Two tenant databases, not one.** `catalog` and `stock` are the same plane and
+the same partitioning but different stores with different writing slices, so they
+get different handles — which makes one-writer a property of the connection
+rather than of review. They must never transact together anyway; a cross-domain
+write goes through the saga.
 
 **Choosing a plane** — ask who may read it: everyone, including anonymous
 storefront traffic → `platform`; exactly one organization → `tenant`; the
@@ -109,3 +129,12 @@ boundary rule; the rest are review:
 - **A Next app belongs to no Slice, because it owns no Store.** The Next backend
   is composition — cookies, proxying, RSC aggregation — never data access. The
   `host:next` / `runtime:datastore` boundary rule fails the build on a violation.
+- **A cross-store reference is an id, never a `link`.** A `link` accessor invites
+  the storage-layer join the first rule forbids, and the target is another
+  slice's store. Resolve through the owning domain's use-case port.
+- **A tenant handle can also come from an explicit `organizationId`** — but only
+  with a service token _and_ a narrow route permission, and only for a caller
+  acting on data whose owner it was handed rather than chosen
+  ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). That is one
+  named path with one caller (checkout reserving stock), not a general escape
+  from the session rule above.

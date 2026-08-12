@@ -1,6 +1,6 @@
 'use client';
 
-import { ProductBrand } from '@r10c/business-ts-product-configuration-management';
+import { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import {
   useEntityMutation,
   useEntityRecord,
@@ -36,7 +36,8 @@ export function ProductBrandSingleViewClientPage({
   onSaved,
   onDeleted,
 }: ProductBrandSingleViewClientPageProps = {}) {
-  const { productBrandRest, configurationStore } = useMarketplaceAdminAdapters();
+  const { productBrandRest, configurationStore } =
+    useMarketplaceAdminAdapters();
   const router = useRouter();
   const params = useParams<{ slug: string }>();
   const id = slugToEntityId(slug ?? params.slug);

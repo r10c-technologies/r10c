@@ -1,4 +1,4 @@
-import { ProductCategory } from '@r10c/business-ts-product-configuration-management';
+import { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { EntityLoadRequestTag } from '@r10c/entifix-ts-business';
 import {
   ConfigurationRepositoryTag,

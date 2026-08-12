@@ -1,6 +1,9 @@
 # 15. Asymmetric access tokens, and the party role as a claim
 
 - Status: Accepted
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  `partyRole`'s source becomes a `PartyRole` entity rather than a column on
+  `Individual`. The claim itself is unchanged.
 - Date: 2026-08-05
 
 ## Context
@@ -10,7 +13,7 @@ Two things changed at once, and they turn out to have the same root.
 **The storefront is public.** `marketplace-app` serves anonymous traffic, mostly
 prerendered. When buyers can sign in, it becomes a token consumer — and under
 HS256 ([ADR 0002](0002-authorization-roles-and-abac.md), which deferred RS256)
-consuming a token means holding the key that *signs* them. The least privileged,
+consuming a token means holding the key that _signs_ them. The least privileged,
 highest traffic app in the fleet would hold material that mints `super-admin`.
 
 **Absence was carrying meaning.** `activeOrganizationId` is unset for a buyer and
@@ -47,7 +50,7 @@ and no dependency on auth-service being reachable — which preserves the proper
 [ADR 0002](0002-authorization-roles-and-abac.md) established, that authorizing a
 request costs no round trip.
 
-auth-service *also* serves `GET /.well-known/jwks.json`, unauthenticated. No
+auth-service _also_ serves `GET /.well-known/jwks.json`, unauthenticated. No
 fleet service reads it; it exists for consumers that hold no fleet configuration —
 a browser or edge runtime, which is what buyer sessions on the storefront need —
 and because it is the shape every OIDC client already speaks. Rotation is a
@@ -67,6 +70,27 @@ It lives on `Individual`, not on `UserIdentity`: persona is a fact about the
 person, `role` is the authorization aspect, and collapsing the two axes is what
 ADR 0007 forbids. An account with no party record resolves to `customer` — a
 self-registered buyer, and the safest thing to be wrong about.
+
+> **Revised 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md).**
+> The claim is unchanged in every respect this section decides — closed set,
+> plane selector, resolved once at sign-in, re-signed unchanged on refresh,
+> routing context and never a grant. What changed is its **source**.
+>
+> `Individual.partyRole` was a single column, and a column cannot express what
+> SID models `PartyRole` as an entity to allow: a party playing several roles at
+> once, which is the case BUSINESS-ARCHITECTURE names as the point of the model —
+> an organization that is a marketplace vendor _and_ a CRM customer. So
+> `PartyRole` is now an entity in `party-management`, and the accessor on
+> `Individual` is **removed** rather than kept beside it, which would be two
+> writers for one fact.
+>
+> A party holding several roles needs a rule, since the claim is one value that
+> selects a plane. **Precedence by reach: `operator` > `vendor` > `customer`.**
+> Deterministic and needing no extra input, at a recorded cost — an operator who
+> is also a buyer always gets an operator session, so there is no way to act as a
+> buyer while being staff. Resolving the role from the membership the session
+> opened under is the better long-run answer and is deferred until something
+> needs it. The "no party record resolves to `customer`" fallback stands.
 
 This ADR names the axis `partyRole` with the values `party-management` already
 uses, rather than ADR 0007's `buyer` / `vendor-member` / `operator`. Same axis,

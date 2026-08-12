@@ -47,6 +47,9 @@
     },
     {
       "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/catalog-reference/tsconfig.lib.json"
     }
   ]
 }

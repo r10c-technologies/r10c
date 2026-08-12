@@ -1,12 +1,33 @@
 # 10. Stock as a movement ledger; purchases reserve rather than decrement
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-01
+- Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
+  trigger fired; the store is named, and the cross-plane call has a mechanism.
 
 ## Trigger
 
-The first `StockItem` entity, or the first checkout route. Whichever comes first
-promotes this record to Accepted.
+~~The first `StockItem` entity, or the first checkout route.~~ **Fired** on
+2026-08-12: ADR 0022 landed `StockItem`, `StockMovement` and `Reservation`, so
+this record is Accepted.
+
+The _decisions_ are in effect — the ledger shape, the two separate counters, the
+conditional atomic write. The checkout that exercises them is not built.
+
+Two things this record could not name when it was written, now settled:
+
+- **The store is `stock`**, tenant plane, per-organization — physically
+  `stock_<organizationId>`, a **separate database** from the catalog's
+  `tenant_<organizationId>`. Same plane, same partitioning, different store, so
+  one-writer-per-store is a property of which handle a request resolves to rather
+  than of review. The two must never transact together anyway; a cross-domain
+  write goes through the saga.
+- **The cross-plane reserve call has a mechanism.** order-management is platform
+  plane and a buyer's session carries no organization — the vendor comes from the
+  item. That crossing is
+  [ADR 0023](0023-service-to-service-tenant-crossing.md): an explicit
+  `organizationId` authorized by a service token plus
+  `stock-management:reservation:write`, never by the absence of a check.
 
 ## Context
 
