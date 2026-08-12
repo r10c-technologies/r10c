@@ -7,7 +7,7 @@ import {
 import { EntifixConnError, type Entity } from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationStore,
+  makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
 import { act, renderHook } from '@testing-library/react';
 import { Context } from 'effect';
@@ -27,7 +27,7 @@ const renderMutation = () =>
       saveUc: saveUCFactory<Widget>(),
       deleteUc: deleteUCFactory<Widget>(),
       ctx: Context.make(EntityRepositoryTag, repository).pipe(
-        Context.add(ConfigurationRepositoryTag, makeStubConfigurationStore()),
+        Context.add(ConfigurationRepositoryTag, makeStubConfigurationClient()),
       ),
     }),
   );

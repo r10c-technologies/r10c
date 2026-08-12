@@ -3,7 +3,7 @@ import {
   EntityRepositoryTag,
 } from '@r10c/entifix-ts-business';
 import {
-  ConfigurationStoreInMemory,
+  ConfigurationClientInMemory,
   deserializeEntityCollection,
   EntifixConnError,
   type EntifixError,
@@ -179,5 +179,5 @@ export function createFixtureRepositoryContext<TEntity extends Entity>(
  */
 export const fixtureConfigurationContext = Context.make(
   ConfigurationRepositoryTag,
-  new ConfigurationStoreInMemory({}),
+  new ConfigurationClientInMemory({}),
 );

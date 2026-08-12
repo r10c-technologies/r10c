@@ -170,9 +170,15 @@ Effect Layers.
 - **auth-service** (`:3102`, Mongo + Redis) — serves `UserIdentity`/`EntityIdentifier`
   and owns the credential flow: `register`/`login`/`logout`/`refresh` (see
   [Auth: sessions + tokens](#auth-sessions--tokens)).
-- **transaction-manager** (`:3103`, Mongo + RabbitMQ) — passive saga tracker:
-  subscribes to the transaction event bus, records each transaction's lifecycle,
-  and flags stalls. `GET /api/transaction/:id` is what a client polls.
+- **the `transaction` slice** (co-deployed into marketplace-admin-service on
+  `:3101`; Mongo + RabbitMQ) — passive saga tracker: subscribes to the
+  transaction event bus, records each transaction's lifecycle, and flags stalls.
+  `GET /api/transaction/:id` is what a client polls. It owns the `saga` store and
+  is therefore a Slice in its own right; sharing a process with
+  `marketplace-admin` is a deployment fact, not an ownership one, and its code
+  lives together under `apps/marketplace-admin-service/src/saga/` so that
+  splitting it back out is a directory move. See
+  [Stores, slices & data planes](../docs/_shared/planes.md).
 
 Every service also exposes `GET /api/config` returning its own loaded parameters
 (credentials redacted) for diagnostics. Boot order:
@@ -574,8 +580,9 @@ The engine splits at the `202` boundary: **accept** (validate + lock) is
 synchronous — its failure is the client's `400`/`409`; **execute** (assign the
 result, persist, free — or roll back and free) is forked past the `202` and
 publishes lifecycle events. It is **choreography** — the service owns its
-transaction and emits events; `transaction-manager` only observes and recovers
-(passive). The client polls the manager for the outcome. The first concrete
+transaction and emits events; the saga tracker only observes and recovers
+(passive). The client polls the tracker for the outcome, through the relative
+`rel: 'status'` link the `202` carries. The first concrete
 transaction assigns a unique incremental `code` (`product-001`, `category-001`,
 `brand-001`) to the catalog entities; `INCR`'s atomicity is what guarantees
 uniqueness across service instances. Websockets and multi-service sagas are
@@ -667,8 +674,10 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
 
 **Apps** — frontends `marketplace-app`, `marketplace-admin-app`, `auth-app`
 (sign-in/sign-up **plus** a `(back-office)` group for user management, gated to
-`admin`+); backends `marketplace-service`, `marketplace-admin-service`,
-`auth-service`, `transaction-manager`, `config-service`; plus `*-e2e` projects.
+`admin`+); backends `marketplace-admin-service`, `auth-service`,
+`config-service`; plus `*-e2e` projects. The storefront
+has no backend of its own — it reads fixtures until ADR 0009's published catalog
+exists.
 
 **Utils** — `utils-ts-{array,date,object,type}`.
 

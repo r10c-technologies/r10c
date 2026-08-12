@@ -275,8 +275,8 @@ its target's label or its foreign key). Listing a new entity is one tag.
 Three things layer on top of that default:
 
 - **Personalization** — column order and visibility, read/written through the
-  `UiPreferencesStore` port (`read`/`write`/`remove`, all Effect-returning). The
-  shipped adapter is `makeLocalStorageUiPreferencesStore(namespace)`; the port is
+  `UiPreferencesState` port (`read`/`write`/`remove`, all Effect-returning). The
+  shipped adapter is `makeLocalStorageUiPreferencesState(namespace)`; the port is
   async-capable on purpose, so a server-backed per-user store is a drop-in swap at
   `UiPreferencesProvider`. Keys are `<namespace>:<component>:<scope>`, e.g.
   `r10c-ui:entity-table:product`. A stored layout degrades rather than breaks:

@@ -9,9 +9,9 @@ export interface AccountMenuProps {
   /** Trigger text — typically the signed-in subject. */
   readonly label: string;
   /**
-   * Built by the host from `accountUrls()` / `accountPaths()`, which is where
-   * the auth-app origin and the request's locale are known. Only the `href` is
-   * the host's to supply; the copy is this component's own.
+   * Built by the host from `accountPaths()`, which is where the request's
+   * locale is known. Only the `href` is the host's to supply; the copy is this
+   * component's own.
    */
   readonly items: readonly AccountLink[];
   /** Where this app mounts its logout handler. */
@@ -23,10 +23,11 @@ export interface AccountMenuProps {
 /**
  * The top-bar account menu.
  *
- * Entries are plain links because in every app but auth-app they cross an
- * origin. Unlike `nav`, whose labels are authored by the host app, this menu's
- * copy is authored here — so it is resolved here, out of `shell:account.*`,
- * and the host supplies only URLs.
+ * Entries are plain links rather than router pushes: they are ordinary
+ * navigations, and were absolute cross-origin URLs back when the account
+ * surface lived in its own app. Unlike `nav`, whose labels are authored by the
+ * host app, this menu's copy is authored here — so it is resolved here, out of
+ * `shell:account.*`, and the host supplies only URLs.
  *
  * Showing or hiding an entry here protects nothing; auth-service refuses the
  * request. This is navigation, not authorization.

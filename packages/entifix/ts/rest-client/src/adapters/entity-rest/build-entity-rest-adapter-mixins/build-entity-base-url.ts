@@ -1,4 +1,4 @@
-import { ConfigurationStore } from '@r10c/entifix-ts-core';
+import { ConfigurationClient } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 
 import { BuildEntityRestOptions } from '../types';
@@ -6,7 +6,7 @@ import { BuildEntityRestOptions } from '../types';
 const DEFAULT_URI_GROUP = 'restUri';
 
 export const buildEntityBaseUrl = (
-  configurationStore: ConfigurationStore,
+  configurationStore: ConfigurationClient,
   options: BuildEntityRestOptions,
   entityName: string,
   entityId?: string

@@ -82,7 +82,7 @@ const CONFIGURATION = {
   zitadel: [
     { key: 'issuer', value: MOCK_ISSUER },
     { key: 'clientId', value: 'mock-client' },
-    { key: 'redirectUri', value: 'http://localhost:3002/api/auth/callback' },
+    { key: 'redirectUri', value: 'http://localhost:3001/api/auth/callback' },
     { key: 'actionSigningKey', value: MOCK_ACTION_SIGNING_KEY },
   ],
 };

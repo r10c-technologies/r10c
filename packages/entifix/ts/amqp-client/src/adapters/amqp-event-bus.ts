@@ -17,7 +17,7 @@ import {
  * RabbitMQ-backed {@link EventBus}. Events go out as `transactionEvent`
  * envelopes on the fanout exchange — the adapter owns the wire framing, so the
  * port stays event-typed. Each subscriber binds its own exclusive queue, so the
- * `transaction-manager` receives a full broadcast of every service's events.
+ * the saga tracker receives a full broadcast of every service's events.
  */
 export const makeAmqpEventBus = (channel: Channel): EventBus => ({
   publish: (event) =>

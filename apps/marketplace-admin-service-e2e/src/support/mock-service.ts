@@ -23,7 +23,9 @@ import {
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import {
   makeInMemoryObservabilityLayer,
+  MongoTransactionStoreLayer,
   router,
+  SagaDatabaseName,
   seedCatalog,
   SERVICE_NAME,
 } from '@r10c/marketplace-admin-service';
@@ -89,6 +91,7 @@ const MockAppLayer = (() => {
     Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
+    Layer.succeed(SagaDatabaseName, 'transaction_manager'),
   );
 
   const infra = Layer.provideMerge(
@@ -96,6 +99,11 @@ const MockAppLayer = (() => {
       RedisLockServiceLayer,
       RedisSequenceServiceLayer,
       AmqpEventBusLayer,
+      // The co-deployed `transaction` slice's store, over the same fake pool.
+      // It is here rather than stubbed because the router now serves
+      // `/api/transaction` — the tracker is passive, so a broken subscription
+      // looks exactly like nothing happening, and a fake would hide that.
+      MongoTransactionStoreLayer,
     ),
     connections,
   );
@@ -104,10 +112,14 @@ const MockAppLayer = (() => {
   // journeys can assert the same brand names. It writes into the tenant
   // database now; the fake resolves every organization to one in-memory store,
   // so the catalog the specs read is the catalog the seed wrote.
+  //
+  // `orDie` mirrors the shipped `AppLayer`: the saga store's index creation can
+  // fail, and a service that cannot open its own store has nothing to serve, so
+  // the failure belongs in the defect channel rather than in a caller's types.
   return Layer.provideMerge(
     Layer.effectDiscard(seedCatalog('tenant_e2e-organization')),
     infra,
-  );
+  ).pipe(Layer.orDie);
 })();
 
 /**

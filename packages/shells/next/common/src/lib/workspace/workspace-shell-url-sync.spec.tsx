@@ -4,9 +4,9 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { useEffect, useReducer } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useDraftsStore } from './drafts-store.js';
+import { useDraftsState } from './drafts-state.js';
 import { type TabKind, TabRegistry } from './tab-kind.js';
-import { useTabsStore } from './tabs-store.js';
+import { useTabsState } from './tabs-state.js';
 import { WorkspaceShell } from './workspace-shell.js';
 
 /**
@@ -63,10 +63,10 @@ beforeEach(() => {
   replace.mockClear();
   tabParam = null;
   notify = null;
-  useTabsStore.setState({ tabs: [], activeParam: null });
-  useDraftsStore.setState({ drafts: {} });
-  vi.spyOn(useTabsStore.persist, 'rehydrate').mockResolvedValue(undefined);
-  vi.spyOn(useDraftsStore.persist, 'rehydrate').mockResolvedValue(undefined);
+  useTabsState.setState({ tabs: [], activeParam: null });
+  useDraftsState.setState({ drafts: {} });
+  vi.spyOn(useTabsState.persist, 'rehydrate').mockResolvedValue(undefined);
+  vi.spyOn(useDraftsState.persist, 'rehydrate').mockResolvedValue(undefined);
 });
 
 describe('WorkspaceShell URL sync', () => {
@@ -95,7 +95,7 @@ describe('WorkspaceShell URL sync', () => {
 
     expect(replace.mock.calls.length).toBe(settled);
     expect(tabParam).toBe('catalog:category');
-    expect(useTabsStore.getState().activeParam).toBe('catalog:category');
+    expect(useTabsState.getState().activeParam).toBe('catalog:category');
   });
 
   it('settles after the user clicks another open tab', async () => {
@@ -104,7 +104,7 @@ describe('WorkspaceShell URL sync', () => {
     await screen.findByTestId('body');
 
     act(() => {
-      useTabsStore.getState().open({
+      useTabsState.getState().open({
         param: 'catalog:category',
         title: 'category catalog',
       });
@@ -112,7 +112,7 @@ describe('WorkspaceShell URL sync', () => {
     await waitFor(() => expect(tabParam).toBe('catalog:category'));
 
     act(() => {
-      useTabsStore.getState().activate('catalog:brand');
+      useTabsState.getState().activate('catalog:brand');
     });
 
     await waitFor(() => expect(tabParam).toBe('catalog:brand'));
@@ -121,6 +121,6 @@ describe('WorkspaceShell URL sync', () => {
     await act(() => new Promise(resolve => setTimeout(resolve, 200)));
 
     expect(replace.mock.calls.length).toBe(settled);
-    expect(useTabsStore.getState().activeParam).toBe('catalog:brand');
+    expect(useTabsState.getState().activeParam).toBe('catalog:brand');
   });
 });

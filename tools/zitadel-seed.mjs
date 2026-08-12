@@ -49,13 +49,14 @@ const APP_NAME = 'r10c-web';
 const SEED_REVISION = process.env['ZITADEL_SEED_REVISION'] ?? '0';
 
 /**
- * auth-app owns the browser-facing edge, so the OIDC round trip lands there and
- * nowhere else. One redirect URI covers the whole fleet: dev cookies are
- * host-scoped and `localhost` shares them across ports, so :3000 and :3001 see
- * the session :3002 established.
+ * back-office-app owns the browser-facing edge, so the OIDC round trip lands
+ * there and nowhere else. One redirect URI covers the whole fleet: dev cookies
+ * are host-scoped and `localhost` shares them across ports, so :3000 sees the
+ * session :3001 established — and :3001 now establishes it on the very origin
+ * the rest of the back office is served from.
  */
-const REDIRECT_URIS = ['http://localhost:3002/api/auth/callback'];
-const POST_LOGOUT_URIS = ['http://localhost:3002/'];
+const REDIRECT_URIS = ['http://localhost:3001/api/auth/callback'];
+const POST_LOGOUT_URIS = ['http://localhost:3001/'];
 
 /**
  * Where Zitadel POSTs a logout token when a session it owns ends. Note the host:

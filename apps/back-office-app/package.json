@@ -1,0 +1,69 @@
+{
+  "name": "@r10c/back-office-app",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@r10c/business-ts-authz": "workspace:*",
+    "@r10c/entifix-react-controls": "workspace:*",
+    "@r10c/entifix-style": "workspace:*",
+    "@r10c/entifix-ts-i18n": "workspace:*",
+    "@r10c/entifix-ts-jwt-client": "workspace:*",
+    "@r10c/shells-next-auth": "workspace:*",
+    "@r10c/shells-next-common": "workspace:*",
+    "@r10c/shells-next-i18n": "workspace:*",
+    "@r10c/shells-next-marketplace-admin": "workspace:*",
+    "@r10c/shells-next-system-management": "workspace:*",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "nx": {
+    "tags": [
+      "layer:app",
+      "scope:back-office",
+      "host:next"
+    ],
+    "targets": {
+      "dev": {
+        "executor": "nx:run-commands",
+        "continuous": true,
+        "options": {
+          "command": "next dev -p 3001",
+          "cwd": "apps/back-office-app"
+        },
+        "dependsOn": [
+          "free-ports",
+          "build-deps",
+          {
+            "projects": [
+              "@r10c/source"
+            ],
+            "target": "watch-libs"
+          },
+          {
+            "projects": [
+              "@r10c/marketplace-admin-service",
+              "@r10c/auth-service",
+              "@r10c/config-service"
+            ],
+            "target": "dev"
+          }
+        ]
+      },
+      "start": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "next start -p 3001",
+          "cwd": "apps/back-office-app"
+        }
+      },
+      "free-ports": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/free-ports.sh 3001"
+        }
+      }
+    }
+  }
+}

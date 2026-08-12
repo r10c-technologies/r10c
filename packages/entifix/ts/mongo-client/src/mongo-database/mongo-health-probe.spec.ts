@@ -4,20 +4,22 @@ import {
   HealthRegistryTag,
 } from '@r10c/entifix-ts-business';
 import { Effect, Layer } from 'effect';
-import type { Db } from 'mongodb';
-import { describe, expect, it } from 'vitest';
+import type { MongoClient } from 'mongodb';
+import { describe, expect, it, vi } from 'vitest';
 
-import { MongoDatabaseTag } from './mongo-database.js';
+import { MongoClientTag } from './mongo-database.js';
 import {
   MONGO_PROBE_NAME,
   MongoHealthProbeLayer,
 } from './mongo-health-probe.js';
 
-/** A `Db` stub whose `admin().ping()` behaves as the test dictates. */
-const dbWithPing = (ping: () => Promise<unknown>) =>
-  ({ admin: () => ({ ping }) }) as unknown as Db;
+/** A `MongoClient` stub whose `db(name).command()` behaves as the test dictates. */
+const clientWithCommand = (command: () => Promise<unknown>) => {
+  const db = vi.fn(() => ({ command }));
+  return { client: { db } as unknown as MongoClient, db };
+};
 
-const reportWith = (db: Db): Promise<HealthReport> =>
+const reportWith = (client: MongoClient): Promise<HealthReport> =>
   Effect.runPromise(
     Effect.gen(function* () {
       const registry = yield* HealthRegistryTag;
@@ -26,7 +28,7 @@ const reportWith = (db: Db): Promise<HealthReport> =>
       Effect.provide(
         MongoHealthProbeLayer.pipe(
           Layer.provideMerge(HealthRegistryLayer),
-          Layer.provideMerge(Layer.succeed(MongoDatabaseTag, db)),
+          Layer.provideMerge(Layer.succeed(MongoClientTag, client)),
         ),
       ),
     ),
@@ -34,18 +36,31 @@ const reportWith = (db: Db): Promise<HealthReport> =>
 
 describe('MongoHealthProbeLayer', () => {
   it('reports ready when the ping round-trips', async () => {
-    const report = await reportWith(
-      dbWithPing(() => Promise.resolve({ ok: 1 })),
-    );
+    const { client } = clientWithCommand(() => Promise.resolve({ ok: 1 }));
+
+    const report = await reportWith(client);
 
     expect(report).toEqual({ ready: true, failing: [] });
   });
 
   it('reports the probe as failing when the ping rejects', async () => {
-    const report = await reportWith(
-      dbWithPing(() => Promise.reject(new Error('no primary'))),
+    const { client } = clientWithCommand(() =>
+      Promise.reject(new Error('no primary')),
     );
 
+    const report = await reportWith(client);
+
     expect(report).toEqual({ ready: false, failing: [MONGO_PROBE_NAME] });
+  });
+
+  // The reason the probe takes the client rather than a named database: it must
+  // stay usable by a service that names no store at boot (tenant storage), so it
+  // may never reach for whatever database the connection happens to point at.
+  it('pings the admin database, never the connected one', async () => {
+    const { client, db } = clientWithCommand(() => Promise.resolve({ ok: 1 }));
+
+    await reportWith(client);
+
+    expect(db).toHaveBeenCalledWith('admin');
   });
 });

@@ -15,8 +15,8 @@ import {
   TokenServiceTag,
 } from '@r10c/entifix-ts-business';
 import {
+  ConfigurationClientInMemory,
   type ConfigurationPlain,
-  ConfigurationStoreInMemory,
 } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import { SqlHealthProbeLayer } from '@r10c/entifix-ts-sql-client';
@@ -165,25 +165,13 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'es,en',
   },
   {
-    service: 'marketplace-admin-app',
+    service: 'back-office-app',
     group_name: 'locale',
     key: 'default',
     value: 'es',
   },
   {
-    service: 'marketplace-admin-app',
-    group_name: 'locale',
-    key: 'supported',
-    value: 'es,en',
-  },
-  {
-    service: 'auth-app',
-    group_name: 'locale',
-    key: 'default',
-    value: 'es',
-  },
-  {
-    service: 'auth-app',
+    service: 'back-office-app',
     group_name: 'locale',
     key: 'supported',
     value: 'es,en',
@@ -191,7 +179,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
 
   // Frontend → backend service URIs.
   {
-    service: 'marketplace-admin-app',
+    service: 'back-office-app',
     group_name: 'uri',
     key: 'marketplace-admin-service-domain',
     value: 'http://localhost:3101/api',
@@ -200,36 +188,22 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // reach the configuration CRUD. The app rewrites it to a same-origin proxy path
   // before the browser sees it, exactly like the admin-service domain above.
   {
-    service: 'marketplace-admin-app',
+    service: 'back-office-app',
     group_name: 'uri',
     key: 'config-service-domain',
     value: 'http://localhost:3190/api',
   },
-  {
-    service: 'marketplace-app',
-    group_name: 'uri',
-    key: 'marketplace-service-domain',
-    value: 'http://localhost:3100/api',
-  },
-  {
-    service: 'auth-app',
-    group_name: 'uri',
-    key: 'auth-service-domain',
-    value: 'http://localhost:3102/api',
-  },
-  // Backend → MongoDB connection settings (consumed at boot).
+  // Backend → MongoDB connection settings (consumed at boot). No `mongo.db`:
+  // this service owns no single named database. Every catalog handle is a
+  // per-organization `tenant_<id>` resolved inside the request, so a name here
+  // would create a database nothing writes — the phantom store ADR 0020 rules
+  // out. The saga store below names its own.
   {
     service: 'marketplace-admin-service',
     group_name: 'mongo',
     key: 'uri',
     value: 'mongodb://admin:password@127.0.0.1:30017',
     is_secret: true,
-  },
-  {
-    service: 'marketplace-admin-service',
-    group_name: 'mongo',
-    key: 'db',
-    value: 'marketplace_admin',
   },
   // Tenant storage. The catalog is tenant plane: each organization authors its
   // own, in its own Mongo database named `<dbPrefix><organizationId>`. The name
@@ -341,16 +315,18 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: zitadelValue('ZITADEL_ACTION_SIGNING_KEY'),
     is_secret: true,
   },
-  // The browser comes back to the APP, never to the service: auth-app is what
+  // The browser comes back to the APP, never to the service: the app is what
   // owns cookies. It must match a redirect URI registered on the OIDC app or
-  // Zitadel refuses the authorization outright.
+  // Zitadel refuses the authorization outright. That app is back-office-app
+  // now, on :3001 — changing this value needs a `dev:reset`, because the seed
+  // is ON CONFLICT DO NOTHING and will not rewrite a row that already exists.
   {
     service: 'auth-service',
     group_name: 'zitadel',
     key: 'redirectUri',
     value: zitadelValue(
       'ZITADEL_REDIRECT_URI',
-      'http://localhost:3002/api/auth/callback',
+      'http://localhost:3001/api/auth/callback',
     ),
   },
   {
@@ -359,14 +335,14 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'postLogoutRedirectUri',
     value: zitadelValue(
       'ZITADEL_POST_LOGOUT_REDIRECT_URI',
-      'http://localhost:3002/',
+      'http://localhost:3001/',
     ),
   },
   // Where the account page sends someone to change a password, enrol a second
   // factor or link a social account. Self-service is the provider's screen now,
   // so this is a link rather than a feature.
   {
-    service: 'auth-app',
+    service: 'back-office-app',
     group_name: 'zitadel',
     key: 'accountUrl',
     value: zitadelValue(
@@ -439,26 +415,15 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'endpoint',
     value: 'http://127.0.0.1:30318',
   },
-  // transaction-manager: its own Mongo db + the same RabbitMQ bus it tracks.
+  // The `saga` store. The `transaction` slice is co-deployed into
+  // marketplace-admin-service, so it needs no `uri` of its own — the pool and
+  // the bus are already this service's, and only the database name is the
+  // slice's own. That one row is what a split back out would carry with it.
   {
-    service: 'transaction-manager',
-    group_name: 'mongo',
-    key: 'uri',
-    value: 'mongodb://admin:password@127.0.0.1:30017',
-    is_secret: true,
-  },
-  {
-    service: 'transaction-manager',
-    group_name: 'mongo',
+    service: 'marketplace-admin-service',
+    group_name: 'saga',
     key: 'db',
     value: 'transaction_manager',
-  },
-  {
-    service: 'transaction-manager',
-    group_name: 'rabbitmq',
-    key: 'uri',
-    value: 'amqp://admin:password@127.0.0.1:30672',
-    is_secret: true,
   },
 ];
 
@@ -669,7 +634,7 @@ const AuthLive = Layer.unwrapEffect(
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
       Layer.succeed(
         ConfigurationRepositoryTag,
-        new ConfigurationStoreInMemory(plain),
+        new ConfigurationClientInMemory(plain),
       ),
     );
   }),

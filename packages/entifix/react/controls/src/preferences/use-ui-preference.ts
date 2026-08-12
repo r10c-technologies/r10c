@@ -3,7 +3,7 @@
 import { Effect } from 'effect';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useUiPreferencesStore } from './ui-preferences-context';
+import { useUiPreferencesState } from './ui-preferences-context';
 
 export interface UseUiPreferenceResult<TValue> {
   value: TValue;
@@ -28,7 +28,7 @@ export function useUiPreference<TValue>(
   key: string,
   fallback: TValue,
 ): UseUiPreferenceResult<TValue> {
-  const store = useUiPreferencesStore();
+  const store = useUiPreferencesState();
   // Value and the key it belongs to are one state: readiness is then derived
   // rather than reset in the effect, so switching `key` reports "not ready"
   // for the new key without a synchronous setState cascading a render.

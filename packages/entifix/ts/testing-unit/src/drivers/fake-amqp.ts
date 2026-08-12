@@ -2,7 +2,7 @@
  * A fake of the amqplib channel, not of the {@link EventBus} port.
  *
  * `makeAmqpEventBus` runs on top of it, so the envelope framing, the
- * `prefetch(1)` the transaction-manager depends on, and the ack/nack policy are
+ * `prefetch(1)` the saga tracker depends on, and the ack/nack policy are
  * all exercised for real.
  */
 

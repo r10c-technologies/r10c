@@ -9,21 +9,21 @@ import {
 
 import {
   DEFAULT_UI_PREFERENCES_NAMESPACE,
-  makeLocalStorageUiPreferencesStore,
-} from './local-storage-ui-preferences-store';
-import type { UiPreferencesStore } from './ui-preferences-store';
+  makeLocalStorageUiPreferencesState,
+} from './local-storage-ui-preferences-state';
+import type { UiPreferencesState } from './ui-preferences-state';
 
-const UiPreferencesContext = createContext<UiPreferencesStore | null>(null);
+const UiPreferencesContext = createContext<UiPreferencesState | null>(null);
 
 export interface UiPreferencesProviderProps extends PropsWithChildren {
   /** Explicit store. Omit and a `localStorage` one is built from `namespace`. */
-  store?: UiPreferencesStore;
+  store?: UiPreferencesState;
   /** Key prefix, so apps sharing an origin don't clobber each other. */
   namespace?: string;
 }
 
 /**
- * Supplies the {@link UiPreferencesStore} every personalizable control reads
+ * Supplies the {@link UiPreferencesState} every personalizable control reads
  * through. Mount it once per app, at the root: swapping the implementation here
  * (say, for a server-backed store) migrates every control at once.
  */
@@ -33,7 +33,7 @@ export function UiPreferencesProvider({
   namespace = DEFAULT_UI_PREFERENCES_NAMESPACE,
 }: UiPreferencesProviderProps) {
   const value = useMemo(
-    () => store ?? makeLocalStorageUiPreferencesStore(namespace),
+    () => store ?? makeLocalStorageUiPreferencesState(namespace),
     [store, namespace],
   );
 
@@ -50,8 +50,8 @@ export function UiPreferencesProvider({
  * that has not opted in yet) — the fallback is module-level so its identity is
  * stable across renders.
  */
-const fallbackStore = makeLocalStorageUiPreferencesStore();
+const fallbackStore = makeLocalStorageUiPreferencesState();
 
-export function useUiPreferencesStore(): UiPreferencesStore {
+export function useUiPreferencesState(): UiPreferencesState {
   return useContext(UiPreferencesContext) ?? fallbackStore;
 }

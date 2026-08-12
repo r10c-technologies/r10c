@@ -1,6 +1,6 @@
 import {
+  ConfigurationClientInMemory,
   ConfigurationPlain,
-  ConfigurationStoreInMemory,
   EntifixConnError,
 } from '@r10c/entifix-ts-core';
 import { Context, Effect, Schedule } from 'effect';
@@ -85,14 +85,14 @@ export const loadRemoteConfiguration = (
 
 /**
  * Convenience: load the remote configuration and wrap it in a
- * {@link ConfigurationStoreInMemory} ready to satisfy `ConfigurationRepositoryTag`
+ * {@link ConfigurationClientInMemory} ready to satisfy `ConfigurationRepositoryTag`
  * and to read the service's own parameters via `.in(group).getString(key)`.
  */
-export const loadRemoteConfigurationStore = (
+export const loadRemoteConfigurationClient = (
   configApiUrl: string,
   service: string,
   options: LoadRemoteConfigurationOptions = {},
-): Effect.Effect<ConfigurationStoreInMemory, EntifixConnError> =>
+): Effect.Effect<ConfigurationClientInMemory, EntifixConnError> =>
   loadRemoteConfiguration(configApiUrl, service, options).pipe(
-    Effect.map(plain => new ConfigurationStoreInMemory(plain)),
+    Effect.map(plain => new ConfigurationClientInMemory(plain)),
   );

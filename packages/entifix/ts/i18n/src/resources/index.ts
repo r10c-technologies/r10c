@@ -14,7 +14,13 @@ import { shell as esShell } from './es/shell';
  * the Next back-office chrome, `errors` for the code vocabulary services answer
  * with, `entity` for metadata labels, `app` for per-app copy.
  */
-export const NAMESPACES = ['controls', 'shell', 'errors', 'entity', 'app'] as const;
+export const NAMESPACES = [
+  'controls',
+  'shell',
+  'errors',
+  'entity',
+  'app',
+] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
 

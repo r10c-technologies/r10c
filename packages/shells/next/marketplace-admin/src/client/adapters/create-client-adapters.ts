@@ -14,7 +14,7 @@ import {
   buildEntityRestAdapterLoad,
   buildEntityRestAdapterSave,
   BuildEntityRestOptions,
-  ConfigurationStoreRestClient,
+  ConfigurationClientRestClient,
 } from '@r10c/entifix-ts-rest-client';
 import { Context } from 'effect';
 
@@ -46,7 +46,7 @@ function createRestRepositoryContext<TEntity extends Entity>(
   });
 }
 
-const configStore = new ConfigurationStoreRestClient();
+const configStore = new ConfigurationClientRestClient();
 const configurationStore = Context.make(
   ConfigurationRepositoryTag,
   configStore,

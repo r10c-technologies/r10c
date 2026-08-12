@@ -14,7 +14,7 @@ import type { Entity } from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityLinkResolver,
   makeInMemoryEntityRepository,
-  makeStubConfigurationStore,
+  makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
 import {
   render as rtlRender,
@@ -47,7 +47,7 @@ const makeCategory = (id: string, name: string) => {
 
 const contextFor = (items: Entity[]) =>
   Context.make(EntityRepositoryTag, makeInMemoryEntityRepository(items)).pipe(
-    Context.add(ConfigurationRepositoryTag, makeStubConfigurationStore()),
+    Context.add(ConfigurationRepositoryTag, makeStubConfigurationClient()),
     Context.add(
       EntityLinkResolverTag,
       makeInMemoryEntityLinkResolver([

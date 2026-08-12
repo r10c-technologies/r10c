@@ -5,7 +5,7 @@ import type { TransactionEvent } from '../contracts/event';
 
 /**
  * The transaction event bus (RabbitMQ in `entifix-ts-amqp-client`). Services
- * publish lifecycle events; the `transaction-manager` subscribes. Deliberately
+ * publish lifecycle events; the saga tracker subscribes. Deliberately
  * event-typed rather than envelope-typed — the adapter owns the envelope
  * framing on the wire.
  */

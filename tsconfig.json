@@ -10,12 +10,6 @@
       "path": "./apps/marketplace-app"
     },
     {
-      "path": "./apps/auth-app-e2e"
-    },
-    {
-      "path": "./apps/auth-app"
-    },
-    {
       "path": "./packages/entifix/ts/core"
     },
     {
@@ -58,18 +52,6 @@
       "path": "./packages/implementation/product-configuration-management/react"
     },
     {
-      "path": "./apps/marketplace-admin-app-e2e"
-    },
-    {
-      "path": "./apps/marketplace-admin-app"
-    },
-    {
-      "path": "./apps/marketplace-service-e2e"
-    },
-    {
-      "path": "./apps/marketplace-service"
-    },
-    {
       "path": "./packages/shells/next/marketplace-admin"
     },
     {
@@ -101,9 +83,6 @@
     },
     {
       "path": "./apps/config-service"
-    },
-    {
-      "path": "./apps/transaction-manager"
     },
     {
       "path": "./apps/auth-service-e2e"
@@ -164,6 +143,18 @@
     },
     {
       "path": "./packages/entifix/ts/zitadel-client"
+    },
+    {
+      "path": "./tools/slices"
+    },
+    {
+      "path": "./packages/shells/next/auth"
+    },
+    {
+      "path": "./apps/back-office-app-e2e"
+    },
+    {
+      "path": "./apps/back-office-app"
     }
   ]
 }

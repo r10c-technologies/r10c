@@ -85,7 +85,7 @@ Two consequences fall straight out, and both settle open questions:
 Four levels, each with exactly one job:
 
 ```
-Domain      biz/authn                    business meaning, permission namespace
+Domain      business/ts/authn            business meaning, permission namespace
    ↓ its entities live in exactly one
 Store       auth                         persistence boundary, one writer
    ↓ owned by exactly one
@@ -304,10 +304,10 @@ nothing here yet needs that. `Slice` is the weaker, truer word for what exists.
 - **Naming cleanup follows, in three tiers.** `SessionStore`,
   `OneTimeTokenStore` and `TransactionStore` **stay** — they are ports into the
   store of the same name, which is now a precise statement instead of a
-  coincidence. `ConfigurationStore` is an HTTP client and becomes
-  `ConfigurationClient`. The three browser-side ones — `TabsStore`,
-  `DraftsStore`, `UiPreferencesStore` — hold no persistence boundary at all and
-  become `…State`.
+  coincidence. `ConfigurationStore` was an HTTP client and is now
+  `ConfigurationClient`. The three browser-side ones — `TabsState`,
+  `DraftsState`, `UiPreferencesState` — held no persistence boundary at all and
+  are now `…State`.
 - **Two slices are already portable, and this is now checkable rather than
   asserted.** `config` and `transaction` each own exactly one store, write
   nothing else, and take their input from HTTP and a queue respectively.

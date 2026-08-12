@@ -8,6 +8,9 @@ packages:
   - 'packages/implementation/product-configuration-management/*'
   - 'packages/shells/next/*'
   - 'packages/shells/effect/*'
+  # Not shipped code: the executable form of the ADR 0020 store register, whose
+  # specs check the repository's own structure.
+  - 'tools/slices'
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false

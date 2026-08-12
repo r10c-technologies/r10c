@@ -5,7 +5,7 @@ import {
 import { EntifixBuildError } from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationStore,
+  makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context } from 'effect';
@@ -27,7 +27,7 @@ const adapters: MarketplaceAdminAdapters = {
   productCategoryRest: repository(),
   configurationStore: Context.make(
     ConfigurationRepositoryTag,
-    makeStubConfigurationStore(),
+    makeStubConfigurationClient(),
   ),
 };
 

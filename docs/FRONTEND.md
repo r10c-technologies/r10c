@@ -230,7 +230,7 @@ lives in IndexedDB. An unknown `<kind>` renders a "can't open this tab" fallback
 crashing. Sharing a whole workspace (multiple tabs in one link) is deferred.
 
 The two directions of that projection — URL → store and store → URL — run as separate
-effects, and **the write-back reads the committed store (`useTabsStore.getState()`), never
+effects, and **the write-back reads the committed store (`useTabsState.getState()`), never
 this render's `activeParam`**. Following a link to a second tab changes the URL one commit
 before the store catches up, so the render snapshot still names the _previous_ tab; writing
 that back undoes the navigation, the URL → store effect re-opens the URL's tab, and the two
@@ -248,8 +248,8 @@ Client state splits from server state:
   - `draftsStore` — keyed by **address** (`entity:product:123`), debounced autosave. Autosave
     is **workspace-host only**; the route host stays ephemeral. Keying by address means a tab
     and (optionally) a route view of the same entity converge on one draft.
-- **`UiPreferencesStore` migrates from localStorage to IndexedDB.** The Effect port
-  (`read`/`write`/`remove`) is unchanged — only a new `makeIndexedDbUiPreferencesStore` +
+- **`UiPreferencesState` migrates from localStorage to IndexedDB.** The Effect port
+  (`read`/`write`/`remove`) is unchanged — only a new `makeIndexedDbUiPreferencesState` +
   `IndexedDbUiPreferencesLayer` swap in at the provider. This unifies all persisted client
   state in one store (no localStorage/IndexedDB split) with no consumer changes — `useUiPreference`
   already handles async reads.
@@ -465,7 +465,7 @@ instead of being a hydration mismatch. Two consequences worth knowing:
 
 ## Deferred
 
-Real data (marketplace-service), checkout, product imagery beyond fixed
+Real data (ADR 0009's published catalog), checkout, product imagery beyond fixed
 aspect-ratio placeholders, PPR, a CI bundle-size budget.
 
 ---

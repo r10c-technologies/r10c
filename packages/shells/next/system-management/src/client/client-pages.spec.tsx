@@ -7,7 +7,7 @@ import {
 import { EntifixConnError, type Entity } from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationStore,
+  makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -52,7 +52,7 @@ const adapters = (): SystemManagementAdapters => ({
   configurationRest: Context.make(EntityRepositoryTag, repository),
   configurationStore: Context.make(
     ConfigurationRepositoryTag,
-    makeStubConfigurationStore(),
+    makeStubConfigurationClient(),
   ),
 });
 

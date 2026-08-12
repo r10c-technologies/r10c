@@ -6,7 +6,7 @@ import {
 import { type Entity, type EntityId } from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationStore,
+  makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Context } from 'effect';
@@ -22,7 +22,7 @@ let repository: ReturnType<typeof makeInMemoryEntityRepository>;
 
 const makeContext = () =>
   Context.make(EntityRepositoryTag, repository).pipe(
-    Context.add(ConfigurationRepositoryTag, makeStubConfigurationStore()),
+    Context.add(ConfigurationRepositoryTag, makeStubConfigurationClient()),
   );
 
 const renderRecord = (id: EntityId) =>

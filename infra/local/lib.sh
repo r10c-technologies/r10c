@@ -134,7 +134,7 @@ probed_labels() {
 # the instance at its base URI; rev 3 → 4 added the Actions v2 target and the
 # three user-lifecycle executions that revoke r10c sessions when a user is
 # deactivated at the provider.
-ZITADEL_SEED_REVISION=4
+ZITADEL_SEED_REVISION=5
 
 # L7: has the Zitadel instance been given its project, app, policies and SMTP —
 # by the version of the seed that is checked in right now?

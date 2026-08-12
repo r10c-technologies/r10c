@@ -6,10 +6,8 @@
     "prepare": "husky",
     "mp:dev": "nx run marketplace-app:dev",
     "mp:dev:reset": "bash infra/local/reset.sh && nx run marketplace-app:dev",
-    "mp-admin:dev": "nx run marketplace-admin-app:dev",
-    "mp-admin:dev:reset": "bash infra/local/reset.sh && nx run marketplace-admin-app:dev",
-    "auth:dev": "nx run auth-app:dev",
-    "auth:dev:reset": "bash infra/local/reset.sh && nx run auth-app:dev",
+    "back-office:dev": "nx run back-office-app:dev",
+    "back-office:dev:reset": "bash infra/local/reset.sh && nx run back-office-app:dev",
     "dev-infra:doctor": "bash infra/local/doctor.sh",
     "dev-ports:free": "bash tools/free-ports.sh"
   },

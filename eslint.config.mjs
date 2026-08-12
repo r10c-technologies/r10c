@@ -93,10 +93,25 @@ const scopeConstraints = [
     sourceTag: 'scope:auth',
     onlyDependOnLibsWithTags: ['scope:auth', 'scope:shared'],
   },
+  // A **host** scope, not a domain one. `back-office-app` composes two domain
+  // shells into one origin, which is the tag-level form of ADR 0008's
+  // "page-level aggregation across domains belongs in the RSC". The rule is not
+  // weakened by this: `scope:auth` and `scope:marketplace-admin` still cannot
+  // reach each other, because neither of them carries this tag — only the host
+  // that mounts both does.
   {
-    sourceTag: 'scope:transaction',
-    onlyDependOnLibsWithTags: ['scope:transaction', 'scope:shared'],
+    sourceTag: 'scope:back-office',
+    onlyDependOnLibsWithTags: [
+      'scope:back-office',
+      'scope:marketplace-admin',
+      'scope:auth',
+      'scope:shared',
+    ],
   },
+  // No `scope:transaction`: the `transaction` slice owns the `saga` store but
+  // carries no project of its own — it is co-deployed inside
+  // marketplace-admin-service, whose own scope already governs it. Re-add the
+  // entry when the slice is split back into its own app.
   {
     sourceTag: 'scope:config',
     onlyDependOnLibsWithTags: ['scope:config', 'scope:shared'],
@@ -243,6 +258,12 @@ export default [
   {
     ignores: [
       '**/dist',
+      // `tsc --build` output. Not ignored here, a `typecheck` run leaves
+      // generated `.d.ts` behind that the next `lint` reports errors in — so
+      // whether lint passes depends on which targets ran before it. Several
+      // projects carried their own copy of this line; the ones that did not
+      // were simply the ones nobody had typechecked yet.
+      '**/out-tsc',
       '**/test-output',
       '**/vite.config.*.timestamp*',
       '**/vitest.config.*.timestamp*',

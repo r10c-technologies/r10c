@@ -1,5 +1,5 @@
 import type {
-  ConfigurationStore,
+  ConfigurationClient,
   Entity,
   EntityId,
   EntityLoadRequest,
@@ -70,7 +70,7 @@ function makeRepositoryDouble(options: {
  */
 const testContext = (repository: EntityRepository) =>
   Context.make(EntityRepositoryTag, repository).pipe(
-    Context.add(ConfigurationRepositoryTag, {} as ConfigurationStore),
+    Context.add(ConfigurationRepositoryTag, {} as ConfigurationClient),
   );
 
 describe('loadUCFactory', () => {

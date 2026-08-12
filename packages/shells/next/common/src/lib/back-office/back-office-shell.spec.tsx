@@ -88,7 +88,7 @@ describe('BackOfficeShell', () => {
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByText('Acme Admin')).toBeNull();
 
-    // Persisted through the UiPreferencesStore (localStorage adapter).
+    // Persisted through the UiPreferencesState (localStorage adapter).
     await waitFor(() =>
       expect(
         window.localStorage.getItem('r10c-ui:back-office:sidebar-collapsed'),

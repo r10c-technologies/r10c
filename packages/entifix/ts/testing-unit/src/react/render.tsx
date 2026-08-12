@@ -1,11 +1,11 @@
 import {
   UiPreferencesProvider,
-  type UiPreferencesStore,
+  type UiPreferencesState,
 } from '@r10c/entifix-react-controls';
 import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import type { Context, PropsWithChildren, ReactElement } from 'react';
 
-import { makeInMemoryUiPreferencesStore } from './ui-preferences';
+import { makeInMemoryUiPreferencesState } from './ui-preferences';
 
 export interface RenderWithAdaptersOptions<TAdapters>
   extends Omit<RenderOptions, 'wrapper'> {
@@ -15,12 +15,12 @@ export interface RenderWithAdaptersOptions<TAdapters>
    */
   adapters?: { context: Context<TAdapters>; value: TAdapters };
   /** Defaults to a fresh in-memory store, so personalization never leaks. */
-  preferences?: UiPreferencesStore;
+  preferences?: UiPreferencesState;
 }
 
 export interface RenderWithAdaptersResult extends RenderResult {
   /** The preferences store the tree rendered against. */
-  preferences: UiPreferencesStore;
+  preferences: UiPreferencesState;
 }
 
 /**
@@ -34,7 +34,7 @@ export const renderWithAdapters = <TAdapters,>(
   ui: ReactElement,
   {
     adapters,
-    preferences = makeInMemoryUiPreferencesStore(),
+    preferences = makeInMemoryUiPreferencesState(),
     ...options
   }: RenderWithAdaptersOptions<TAdapters> = {},
 ): RenderWithAdaptersResult => {
