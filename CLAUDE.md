@@ -258,6 +258,25 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   and `ensure.sh`'s fast path exits before the seed rung is reached, so without a
   bump the change reaches only machines that happened to reset. See
   [ADR 0017](docs/adr/0017-back-channel-logout-from-the-identity-provider.md).
+- **A logout token covers a session ending, never a user ending.** Measured:
+  deactivating a user in Zitadel fires _nothing_, so the r10c session kept
+  refreshing to its seven-day ceiling. The seam is an **Actions v2 event
+  execution** — `user.deactivated` / `user.locked` / `user.removed` → one
+  `restAsync` target → `POST /api/auth/provider-events`, which resolves
+  `aggregateID` (the `sub`) through `findByIdentifier` and calls
+  `revokeAllForUser`. Unauthenticated by necessity again, and here the
+  authentication is an **HMAC**, not a JWT: `ZITADEL-Signature: t=…,v1=…` over
+  `"<t>.<raw body>"`, 300s tolerance — hence `req.text` (a reserialised object is
+  different bytes) and hence its own module, since the OIDC verifier's whole
+  point is that it accepts no symmetric key. An empty key **fails closed**. Do
+  **not** write `UserIdentity.status` from the event: nothing projects status
+  back from Zitadel, so a local `disabled` would outlive a provider reactivation
+  forever. The trap is the key itself — Zitadel mints it inside `CreateTarget`
+  and never serves it again, while config-service seeds `ON CONFLICT DO NOTHING`,
+  so `ensureActionTarget` **carries it forward** from the previous
+  `.generated.env` and only mints a new one when there is no target. An event
+  fired while auth-service is down is lost; that is the known residual gap. See
+  [ADR 0019](docs/adr/0019-provider-user-lifecycle-events-revoke-sessions.md).
 - **The hosted login is a second container.** Zitadel v4's login is a separate
   Next.js image the core does not serve, so the lab runs `infra/local/zitadel-login`
   on its own NodePort **30081** and the seed sets `loginV2.required` +

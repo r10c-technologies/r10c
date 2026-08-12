@@ -1,3 +1,5 @@
+import { createHmac } from 'node:crypto';
+
 import { EntifixLogicError } from '@r10c/entifix-ts-core';
 import type {
   LogoutEvent,
@@ -33,6 +35,41 @@ export const providerSubjectFor = (email: string) =>
 /** How a spec hands the fake a logout token. See {@link makeFakeZitadel}. */
 export const mockLogoutToken = (event: LogoutEvent): string =>
   JSON.stringify(event);
+
+/**
+ * The Actions v2 signing key the mock service is wired with.
+ *
+ * Unlike the OIDC half, the action webhook is **not** faked: its verifier needs
+ * only a shared string, so the suite runs the shipped HMAC code and signs its
+ * payloads the way Zitadel does. That makes the signature boundary — the only
+ * authentication that endpoint has — a thing these journeys actually exercise
+ * rather than a thing they mock away.
+ */
+export const MOCK_ACTION_SIGNING_KEY = 'mock-action-signing-key';
+
+/** The body Zitadel POSTs for a user event, of which two fields matter. */
+export const mockActionPayload = (eventType: string, subject: string): string =>
+  JSON.stringify({
+    aggregateID: subject,
+    aggregateType: 'user',
+    resourceOwner: 'mock-org',
+    instanceID: 'mock-instance',
+    version: 'v2',
+    sequence: 1,
+    event_type: eventType,
+    created_at: new Date().toISOString(),
+    event_payload: {},
+  });
+
+/** `t=<unix>,v1=<hex>`, computed exactly as `pkg/actions/signing.go` does. */
+export const mockActionSignature = (
+  rawBody: string,
+  key: string = MOCK_ACTION_SIGNING_KEY,
+  at: number = Math.floor(Date.now() / 1000),
+): string =>
+  `t=${String(at)},v1=${createHmac('sha256', key)
+    .update(`${String(at)}.${rawBody}`)
+    .digest('hex')}`;
 
 /**
  * An in-memory Zitadel: a management API and an OIDC client over one directory.

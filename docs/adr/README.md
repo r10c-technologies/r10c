@@ -40,6 +40,7 @@ Format: [Michael Nygard's ADR template](https://github.com/joelparkerhenderson/a
 | [0016](0016-zitadel-authenticates-r10c-authorizes.md)                   | Zitadel authenticates; r10c authorizes and mints its own tokens                                      | Accepted |
 | [0017](0017-back-channel-logout-from-the-identity-provider.md)          | Back-channel logout: the provider can end an r10c session                                            | Accepted |
 | [0018](0018-the-hosted-login-is-a-second-container.md)                  | The hosted login is a second container (Zitadel login v2 on its own origin)                          | Accepted |
+| [0019](0019-provider-user-lifecycle-events-revoke-sessions.md)          | A user deactivated at the provider loses their r10c sessions (Actions v2 webhook)                    | Accepted |
 
 The business-side records (0005 onward) are summarized as one map in
 [docs/BUSINESS-ARCHITECTURE.md](../BUSINESS-ARCHITECTURE.md).

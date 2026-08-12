@@ -328,6 +328,19 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: zitadelValue('ZITADEL_PAT'),
     is_secret: true,
   },
+  // The shared secret behind `POST /api/auth/provider-events`, which is how a
+  // user deactivated at the provider loses their r10c sessions. Zitadel mints it
+  // when the Actions v2 target is created and never serves it again, so the seed
+  // stamps it into `.generated.env` and carries it forward — a key that rotated
+  // here without this row changing would leave the webhook rejecting everything,
+  // silently, since `ON CONFLICT DO NOTHING` never rewrites an existing value.
+  {
+    service: 'auth-service',
+    group_name: 'zitadel',
+    key: 'actionSigningKey',
+    value: zitadelValue('ZITADEL_ACTION_SIGNING_KEY'),
+    is_secret: true,
+  },
   // The browser comes back to the APP, never to the service: auth-app is what
   // owns cookies. It must match a redirect URI registered on the OIDC app or
   // Zitadel refuses the authorization outright.

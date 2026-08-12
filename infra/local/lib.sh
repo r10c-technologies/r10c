@@ -131,8 +131,10 @@ probed_labels() {
 # Bumped in the same commit as any change to `tools/zitadel-seed.mjs` that adds
 # or alters a setting on the instance. Rev 1 → 2 added the OIDC app's
 # `backChannelLogoutUri`; rev 2 → 3 turned the v2 hosted login on and pointed
-# the instance at its base URI.
-ZITADEL_SEED_REVISION=3
+# the instance at its base URI; rev 3 → 4 added the Actions v2 target and the
+# three user-lifecycle executions that revoke r10c sessions when a user is
+# deactivated at the provider.
+ZITADEL_SEED_REVISION=4
 
 # L7: has the Zitadel instance been given its project, app, policies and SMTP —
 # by the version of the seed that is checked in right now?
@@ -231,7 +233,7 @@ ensure_login() {
 seed_zitadel() {
   zitadel_seeded && return 0
   extract_zitadel_pat || return 1
-  log_heal "zitadel: seeding project, OIDC app, login v2, login policy and SMTP"
+  log_heal "zitadel: seeding project, OIDC app, login v2, actions, login policy and SMTP"
   ZITADEL_PAT_FILE="$ZITADEL_PAT_FILE" \
   ZITADEL_GENERATED_ENV="$ZITADEL_GENERATED_ENV" \
   ZITADEL_ISSUER="http://localhost:30080" \

@@ -118,7 +118,7 @@ fi
 # A rung the ladder can heal but a human cannot see any other way: the fleet
 # fails at sign-in rather than at boot when the instance is unseeded.
 if zitadel_seeded; then
-  ok "L7 zitadel" "instance seeded (project, OIDC app, login v2, policy, SMTP)"
+  ok "L7 zitadel" "instance seeded (project, OIDC app, login v2, actions, policy, SMTP)"
   unseeded=""
 else
   # Two different states, one heal: never seeded (no OIDC app, so no sign-in),

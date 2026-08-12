@@ -334,6 +334,19 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   resolves to nothing, falls back to `revokeAllForUser`. Unknown ids answer
   `200`, so the endpoint is not an oracle. See
   [ADR 0017](adr/0017-back-channel-logout-from-the-identity-provider.md).
+* **A logout token covers a session ending, not a user ending.** Deactivating a
+  user in Zitadel fires no token at all — measured — so
+  `POST /api/auth/provider-events` takes that half over an **Actions v2** event
+  execution: `user.deactivated`, `user.locked` and `user.removed` reach one
+  `restAsync` target, and the handler resolves the payload's `aggregateID` (the
+  same `sub` the identifier rows carry) and calls `revokeAllForUser`. Its
+  authentication is an HMAC rather than a JWT — `ZITADEL-Signature` over
+  `"<timestamp>.<raw body>"`, verified against a per-target signing key from
+  config-service, empty key meaning reject — which is why it lives beside the
+  OIDC client rather than inside it, and why the body is read raw. It does not
+  touch `UserIdentity.status`: nothing projects status back from the provider, so
+  writing one here would outlive a reactivation. See
+  [ADR 0019](adr/0019-provider-user-lifecycle-events-revoke-sessions.md).
 * Every route returns JSON (`accessToken`/`sessionId`/`expiresIn`/
   `sessionExpiresIn`/`principal`); auth-service itself sets no cookies. Each Next
   app owns turning that JSON into httpOnly cookies via its own
