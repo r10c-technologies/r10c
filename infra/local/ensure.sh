@@ -32,7 +32,7 @@ ROLLOUT_TIMEOUT="${INFRA_ROLLOUT_TIMEOUT:-180s}"
 PROBE_ATTEMPTS="${INFRA_PROBE_ATTEMPTS:-45}"
 
 reset_hint() {
-  echo "  pnpm run mp-admin:dev:reset            # recreate datastores (wipes local data)" >&2
+  echo "  pnpm run back-office:dev:reset            # recreate datastores (wipes local data)" >&2
   echo "  bash infra/local/reset.sh --hard       # also recreates the minikube cluster" >&2
 }
 

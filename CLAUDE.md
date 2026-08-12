@@ -68,7 +68,23 @@ them), and everything deep is a link — loaded only when a task needs it.
   supersedes ADR 0008's plane-host topology: the axis is ownership, not plane,
   because a slice may own stores in several planes. See
   [ADR 0020](docs/adr/0020-stores-and-slices.md) and the register in
-  [planes](docs/_shared/planes.md).
+  [planes](docs/_shared/planes.md). The register is **executable**:
+  `tools/slices/` declares it and `pnpm nx test @r10c/slices` fails the build on
+  a domain hosted by two stores, a store claimed by two slices, or an app that
+  opens a datastore no slice declares. Edit a `*.slice.ts` first; the doc mirrors
+  it.
+- **Co-deploying two slices is reversible; merging two stores is binding.** The
+  fleet runs five deployments, not eight: `marketplace-service` was deleted (no
+  router, no store, no domain — not a Slice), the `transaction` slice is
+  co-deployed inside marketplace-admin-service, and auth-app merged into
+  `back-office-app`. Ownership never moved — each slice still writes only its own
+  stores, `coDeployedWith` records the sharing on **both** sides, and splitting
+  back out means pointing `deployments` at a new app. The test to apply before
+  any further merge: can you still name the one slice that writes each store,
+  without reading code? `config-service` (the boot dependency), `auth-service`
+  (Zitadel's callback target) and `marketplace-app` (prerender + ISR, and the
+  only host that sees anonymous traffic) stay standalone on purpose. See
+  [ADR 0021](docs/adr/0021-consolidating-the-fleet-into-five-deployments.md).
 - **The business map is a separate document.** Which capability owns an entity,
   which plane it lives in, and the ODA/SID name for it are in
   [BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) — read it before

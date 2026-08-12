@@ -49,7 +49,7 @@ else
   if [[ "$state" == "Drifted" ]]; then
     echo "fix: minikube update-context    # instant; ensure.sh also does it for you"
   else
-    echo "fix: pnpm run mp-admin:dev      # ensure.sh starts it with the right --ports"
+    echo "fix: pnpm run back-office:dev      # ensure.sh starts it with the right --ports"
   fi
   exit 1
 fi
@@ -130,13 +130,13 @@ fi
 
 echo
 if [[ -z "$missing_ports" && -z "$not_ready" && -z "$down" && -z "$login_down" && -z "$unseeded" && "$present" -eq "$total" ]]; then
-  echo "${C_GREEN}healthy${C_OFF} — pnpm run mp-admin:dev will start immediately."
+  echo "${C_GREEN}healthy${C_OFF} — pnpm run back-office:dev will start immediately."
   exit 0
 fi
 if [[ -n "$missing_ports" ]]; then
   echo "fix: bash infra/local/reset.sh --hard     # only a cluster recreate fixes the port mapping"
 else
-  echo "fix: pnpm run mp-admin:dev                # self-heals L3/L4/L5"
-  echo "     pnpm run mp-admin:dev:reset          # if that fails twice (wipes local data)"
+  echo "fix: pnpm run back-office:dev                # self-heals L3/L4/L5"
+  echo "     pnpm run back-office:dev:reset          # if that fails twice (wipes local data)"
 fi
 exit 1
