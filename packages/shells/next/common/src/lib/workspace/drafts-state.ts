@@ -5,7 +5,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { makeIndexedDbStateStorage } from './idb-state-storage';
-import { WORKSPACE_DB } from './tabs-store';
+import { WORKSPACE_DB } from './tabs-state';
 
 /**
  * Per-address edit drafts, persisted to IndexedDB so an in-progress edit
@@ -14,19 +14,19 @@ import { WORKSPACE_DB } from './tabs-store';
  * saves (or discards). This is the "continuous autosave" seam — workspace-host
  * only, so a plain route stays ephemeral.
  */
-export interface DraftsStore {
+export interface DraftsState {
   drafts: Record<string, unknown>;
   setDraft(address: string, value: unknown): void;
   clearDraft(address: string): void;
 }
 
-export function persistedDrafts(store: DraftsStore): Pick<DraftsStore, 'drafts'> {
+export function persistedDrafts(store: DraftsState): Pick<DraftsState, 'drafts'> {
   return { drafts: store.drafts };
 }
 
 const DRAFTS_STORE = 'stores';
 
-export const useDraftsStore = create<DraftsStore>()(
+export const useDraftsState = create<DraftsState>()(
   persist(
     set => ({
       drafts: {},
@@ -52,7 +52,7 @@ export const useDraftsStore = create<DraftsStore>()(
 
 /** Whether an address currently has an unsaved draft. */
 export function selectIsDirty(address: string) {
-  return (state: DraftsStore): boolean => address in state.drafts;
+  return (state: DraftsState): boolean => address in state.drafts;
 }
 
 /**
@@ -61,14 +61,14 @@ export function selectIsDirty(address: string) {
  * clear for when the edit is committed.
  */
 export function useDraft<TDraft>(address: string) {
-  const draft = useDraftsStore(
+  const draft = useDraftsState(
     state => state.drafts[address] as TDraft | undefined,
   );
-  const set = useDraftsStore(state => state.setDraft);
-  const clear = useDraftsStore(state => state.clearDraft);
+  const set = useDraftsState(state => state.setDraft);
+  const clear = useDraftsState(state => state.clearDraft);
 
   useEffect(() => {
-    void useDraftsStore.persist.rehydrate();
+    void useDraftsState.persist.rehydrate();
   }, []);
 
   const setDraft = useCallback(

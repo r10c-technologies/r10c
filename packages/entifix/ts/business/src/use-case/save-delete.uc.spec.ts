@@ -1,4 +1,4 @@
-import type { ConfigurationStore, Entity, EntityId } from '@r10c/entifix-ts-core';
+import type { ConfigurationClient, Entity, EntityId } from '@r10c/entifix-ts-core';
 import { Context, Effect } from 'effect';
 
 import { ConfigurationRepositoryTag } from '../repository/config.repository.js';
@@ -47,7 +47,7 @@ function makeRepositoryDouble(saveResult?: Widget) {
  */
 const testContext = (repository: EntityRepository) =>
   Context.make(EntityRepositoryTag, repository).pipe(
-    Context.add(ConfigurationRepositoryTag, {} as ConfigurationStore),
+    Context.add(ConfigurationRepositoryTag, {} as ConfigurationClient),
   );
 
 describe('saveUCFactory', () => {

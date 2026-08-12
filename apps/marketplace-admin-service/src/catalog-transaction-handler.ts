@@ -6,7 +6,7 @@ import {
 } from '@r10c/entifix-transactions';
 import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
 import {
-  type ConfigurationStore,
+  type ConfigurationClient,
   deserializeSingleEntity,
   EntifixBuildError,
   type Entity,
@@ -41,7 +41,7 @@ export interface CatalogHandlerOptions {
  */
 export function makeCatalogTransactionHandler<T extends Codeable>(
   db: Db,
-  store: ConfigurationStore,
+  store: ConfigurationClient,
   sequence: SequenceService,
   entityConstructor: EntityConstructor<T>,
   options: CatalogHandlerOptions,

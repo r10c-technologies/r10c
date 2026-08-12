@@ -6,15 +6,15 @@ import { describe, expect, it } from 'vitest';
 
 import {
   IndexedDbUiPreferencesLayer,
-  makeIndexedDbUiPreferencesStore,
-} from './indexeddb-ui-preferences-store.js';
-import { UiPreferencesStoreTag } from './ui-preferences-store.js';
+  makeIndexedDbUiPreferencesState,
+} from './indexeddb-ui-preferences-state.js';
+import { UiPreferencesStateTag } from './ui-preferences-state.js';
 
 const run = <A>(effect: Effect.Effect<A, unknown>) => Effect.runPromise(effect);
 
-describe('makeIndexedDbUiPreferencesStore', () => {
+describe('makeIndexedDbUiPreferencesState', () => {
   it('round-trips a written value', async () => {
-    const store = makeIndexedDbUiPreferencesStore();
+    const store = makeIndexedDbUiPreferencesState();
 
     await run(store.write('round-trip', { collapsed: true, order: [1, 2] }));
     const value = await run(store.read<{ collapsed: boolean; order: number[] }>('round-trip'));
@@ -23,13 +23,13 @@ describe('makeIndexedDbUiPreferencesStore', () => {
   });
 
   it('reads undefined for a missing key', async () => {
-    const store = makeIndexedDbUiPreferencesStore();
+    const store = makeIndexedDbUiPreferencesState();
 
     expect(await run(store.read('never-written'))).toBeUndefined();
   });
 
   it('removes a value', async () => {
-    const store = makeIndexedDbUiPreferencesStore();
+    const store = makeIndexedDbUiPreferencesState();
 
     await run(store.write('to-remove', 'x'));
     await run(store.remove('to-remove'));
@@ -38,8 +38,8 @@ describe('makeIndexedDbUiPreferencesStore', () => {
   });
 
   it('namespaces keys so two namespaces do not collide', async () => {
-    const a = makeIndexedDbUiPreferencesStore('ns-a');
-    const b = makeIndexedDbUiPreferencesStore('ns-b');
+    const a = makeIndexedDbUiPreferencesState('ns-a');
+    const b = makeIndexedDbUiPreferencesState('ns-b');
 
     await run(a.write('shared', 'from-a'));
     await run(b.write('shared', 'from-b'));
@@ -49,7 +49,7 @@ describe('makeIndexedDbUiPreferencesStore', () => {
   });
 
   it('fails with EntifixConnError when the value cannot be stored', async () => {
-    const store = makeIndexedDbUiPreferencesStore();
+    const store = makeIndexedDbUiPreferencesState();
 
     // A function is not structured-cloneable → the put rejects.
     const exit = await Effect.runPromiseExit(
@@ -69,7 +69,7 @@ describe('makeIndexedDbUiPreferencesStore', () => {
       // @ts-expect-error — simulate a server environment.
       delete globalThis.indexedDB;
       try {
-        const store = makeIndexedDbUiPreferencesStore();
+        const store = makeIndexedDbUiPreferencesState();
         await run(store.write('ssr', 'ignored'));
         await run(store.remove('ssr'));
         expect(await run(store.read('ssr'))).toBeUndefined();
@@ -83,7 +83,7 @@ describe('makeIndexedDbUiPreferencesStore', () => {
 describe('IndexedDbUiPreferencesLayer', () => {
   it('provides a working store through the tag', async () => {
     const program = Effect.gen(function* () {
-      const store = yield* UiPreferencesStoreTag;
+      const store = yield* UiPreferencesStateTag;
       yield* store.write('via-layer', 42);
       return yield* store.read<number>('via-layer');
     });

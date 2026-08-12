@@ -304,10 +304,10 @@ nothing here yet needs that. `Slice` is the weaker, truer word for what exists.
 - **Naming cleanup follows, in three tiers.** `SessionStore`,
   `OneTimeTokenStore` and `TransactionStore` **stay** — they are ports into the
   store of the same name, which is now a precise statement instead of a
-  coincidence. `ConfigurationStore` is an HTTP client and becomes
-  `ConfigurationClient`. The three browser-side ones — `TabsStore`,
-  `DraftsStore`, `UiPreferencesStore` — hold no persistence boundary at all and
-  become `…State`.
+  coincidence. `ConfigurationStore` was an HTTP client and is now
+  `ConfigurationClient`. The three browser-side ones — `TabsState`,
+  `DraftsState`, `UiPreferencesState` — held no persistence boundary at all and
+  are now `…State`.
 - **Two slices are already portable, and this is now checkable rather than
   asserted.** `config` and `transaction` each own exactly one store, write
   nothing else, and take their input from HTTP and a queue respectively.

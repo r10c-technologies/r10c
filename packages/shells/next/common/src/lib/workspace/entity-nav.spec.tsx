@@ -11,7 +11,7 @@ import {
   useRouteEntityNav,
   useTabEntityNav,
 } from './entity-nav.js';
-import { useTabsStore } from './tabs-store.js';
+import { useTabsState } from './tabs-state.js';
 
 const push = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -20,7 +20,7 @@ vi.mock('next/navigation', () => ({
 
 beforeEach(() => {
   push.mockClear();
-  useTabsStore.setState({ tabs: [], activeParam: null });
+  useTabsState.setState({ tabs: [], activeParam: null });
 });
 
 describe('useRouteEntityNav', () => {
@@ -46,10 +46,10 @@ describe('useTabEntityNav', () => {
     const { result } = renderHook(() => useTabEntityNav());
 
     result.current.toList('product');
-    expect(useTabsStore.getState().activeParam).toBe('catalog:product');
+    expect(useTabsState.getState().activeParam).toBe('catalog:product');
 
     result.current.toEntity('product', '123');
-    expect(useTabsStore.getState().activeParam).toBe('entity:product:123');
+    expect(useTabsState.getState().activeParam).toBe('entity:product:123');
   });
 });
 

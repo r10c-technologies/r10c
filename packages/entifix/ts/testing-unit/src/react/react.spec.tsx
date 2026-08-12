@@ -4,11 +4,11 @@ import { createContext, useContext } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { renderWithAdapters, screen, waitFor } from './render';
-import { makeInMemoryUiPreferencesStore } from './ui-preferences';
+import { makeInMemoryUiPreferencesState } from './ui-preferences';
 
-describe('makeInMemoryUiPreferencesStore', () => {
+describe('makeInMemoryUiPreferencesState', () => {
   it('round-trips a value', async () => {
-    const store = makeInMemoryUiPreferencesStore();
+    const store = makeInMemoryUiPreferencesState();
 
     await Effect.runPromise(store.write('table:product', { order: ['id'] }));
 
@@ -19,12 +19,12 @@ describe('makeInMemoryUiPreferencesStore', () => {
 
   it('resolves an unknown key as absent', async () => {
     expect(
-      await Effect.runPromise(makeInMemoryUiPreferencesStore().read('absent')),
+      await Effect.runPromise(makeInMemoryUiPreferencesState().read('absent')),
     ).toBeUndefined();
   });
 
   it('removes a value', async () => {
-    const store = makeInMemoryUiPreferencesStore({ 'table:product': 1 });
+    const store = makeInMemoryUiPreferencesState({ 'table:product': 1 });
 
     await Effect.runPromise(store.remove('table:product'));
 
@@ -32,7 +32,7 @@ describe('makeInMemoryUiPreferencesStore', () => {
   });
 
   it('starts from the seed it was given', async () => {
-    const store = makeInMemoryUiPreferencesStore({ 'table:product': 1 });
+    const store = makeInMemoryUiPreferencesState({ 'table:product': 1 });
 
     expect(await Effect.runPromise(store.read('table:product'))).toBe(1);
   });
@@ -40,7 +40,7 @@ describe('makeInMemoryUiPreferencesStore', () => {
   // `entries` is what a spec asserts personalization against, keyed exactly as
   // the control wrote it.
   it('exposes everything currently stored', async () => {
-    const store = makeInMemoryUiPreferencesStore();
+    const store = makeInMemoryUiPreferencesState();
 
     await Effect.runPromise(store.write('a', 1));
 
@@ -48,7 +48,7 @@ describe('makeInMemoryUiPreferencesStore', () => {
   });
 
   it('reseeds wholesale, dropping what was there', async () => {
-    const store = makeInMemoryUiPreferencesStore({ a: 1 });
+    const store = makeInMemoryUiPreferencesState({ a: 1 });
 
     store.seed({ b: 2 });
 
@@ -57,7 +57,7 @@ describe('makeInMemoryUiPreferencesStore', () => {
 
   it('copies the seed rather than aliasing it', () => {
     const seed = { a: 1 };
-    const store = makeInMemoryUiPreferencesStore(seed);
+    const store = makeInMemoryUiPreferencesState(seed);
 
     store.seed({ b: 2 });
 
@@ -110,7 +110,7 @@ describe('renderWithAdapters', () => {
   });
 
   it('uses the preferences store it was given', async () => {
-    const preferences = makeInMemoryUiPreferencesStore({
+    const preferences = makeInMemoryUiPreferencesState({
       'table:product': 'stored',
     });
 

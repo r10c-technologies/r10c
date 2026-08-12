@@ -2,11 +2,11 @@ import { EntifixConnError, type EntifixError } from '@r10c/entifix-ts-core';
 import { Effect, Layer } from 'effect';
 import { type IDBPDatabase, openDB } from 'idb';
 
-import { DEFAULT_UI_PREFERENCES_NAMESPACE } from './local-storage-ui-preferences-store';
+import { DEFAULT_UI_PREFERENCES_NAMESPACE } from './local-storage-ui-preferences-state';
 import {
-  type UiPreferencesStore,
-  UiPreferencesStoreTag,
-} from './ui-preferences-store';
+  type UiPreferencesState,
+  UiPreferencesStateTag,
+} from './ui-preferences-state';
 
 const DB_NAME = 'entifix-ui-preferences';
 const STORE_NAME = 'preferences';
@@ -17,7 +17,7 @@ function hasIndexedDb(): boolean {
 }
 
 /**
- * `IndexedDB`-backed {@link UiPreferencesStore} — the persistence seam for all
+ * `IndexedDB`-backed {@link UiPreferencesState} — the persistence seam for all
  * client UI state (column layout, sidebar collapse, and now the tab workspace),
  * unifying it with the tab/draft stores in one datastore instead of splitting
  * between `localStorage` and IndexedDB.
@@ -27,9 +27,9 @@ function hasIndexedDb(): boolean {
  * a failed I/O surfaces as an {@link EntifixConnError} the caller can fall back
  * from — a stale view should degrade to defaults, not break.
  */
-export function makeIndexedDbUiPreferencesStore(
+export function makeIndexedDbUiPreferencesState(
   namespace: string = DEFAULT_UI_PREFERENCES_NAMESPACE,
-): UiPreferencesStore {
+): UiPreferencesState {
   const storageKey = (key: string) => `${namespace}:${key}`;
 
   let database: Promise<IDBPDatabase> | undefined;
@@ -78,6 +78,6 @@ export function makeIndexedDbUiPreferencesStore(
 }
 
 export const IndexedDbUiPreferencesLayer = Layer.succeed(
-  UiPreferencesStoreTag,
-  makeIndexedDbUiPreferencesStore(),
+  UiPreferencesStateTag,
+  makeIndexedDbUiPreferencesState(),
 );

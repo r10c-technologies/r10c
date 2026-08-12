@@ -2,49 +2,49 @@ import 'fake-indexeddb/auto';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { persistedTabs, useTabsStore } from './tabs-store.js';
+import { persistedTabs, useTabsState } from './tabs-state.js';
 
 afterEach(() => {
-  useTabsStore.setState({ tabs: [], activeParam: null });
+  useTabsState.setState({ tabs: [], activeParam: null });
 });
 
-describe('useTabsStore', () => {
+describe('useTabsState', () => {
   it('opens tabs and tracks the active one', () => {
-    useTabsStore.getState().open({ param: 'catalog:product', title: 'Products' });
-    useTabsStore.getState().open({ param: 'catalog:brand', title: 'Brands' });
+    useTabsState.getState().open({ param: 'catalog:product', title: 'Products' });
+    useTabsState.getState().open({ param: 'catalog:brand', title: 'Brands' });
 
-    const state = useTabsStore.getState();
+    const state = useTabsState.getState();
     expect(state.tabs.map(t => t.param)).toEqual(['catalog:product', 'catalog:brand']);
     expect(state.activeParam).toBe('catalog:brand');
   });
 
   it('focuses an already open tab instead of duplicating', () => {
-    const { open } = useTabsStore.getState();
+    const { open } = useTabsState.getState();
     open({ param: 'catalog:product', title: 'Products' });
     open({ param: 'catalog:brand', title: 'Brands' });
     open({ param: 'catalog:product', title: 'Products' });
 
-    expect(useTabsStore.getState().tabs).toHaveLength(2);
-    expect(useTabsStore.getState().activeParam).toBe('catalog:product');
+    expect(useTabsState.getState().tabs).toHaveLength(2);
+    expect(useTabsState.getState().activeParam).toBe('catalog:product');
   });
 
   it('closes a tab and re-activates a neighbour', () => {
-    const { open, close } = useTabsStore.getState();
+    const { open, close } = useTabsState.getState();
     open({ param: 'a', title: 'A' });
     open({ param: 'b', title: 'B' });
     close('b');
 
-    expect(useTabsStore.getState().tabs.map(t => t.param)).toEqual(['a']);
-    expect(useTabsStore.getState().activeParam).toBe('a');
+    expect(useTabsState.getState().tabs.map(t => t.param)).toEqual(['a']);
+    expect(useTabsState.getState().activeParam).toBe('a');
   });
 
   it('activates an open tab', () => {
-    const { open, activate } = useTabsStore.getState();
+    const { open, activate } = useTabsState.getState();
     open({ param: 'a', title: 'A' });
     open({ param: 'b', title: 'B' });
     activate('a');
 
-    expect(useTabsStore.getState().activeParam).toBe('a');
+    expect(useTabsState.getState().activeParam).toBe('a');
   });
 });
 

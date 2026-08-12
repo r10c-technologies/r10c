@@ -8,9 +8,9 @@ import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
-  ConfigurationStoreRestClient,
-  type ConfigurationStoreRestClientOptions,
-} from './configuration-store-rest-client.js';
+  ConfigurationClientRestClient,
+  type ConfigurationClientRestClientOptions,
+} from './configuration-client-rest-client.js';
 
 const CONFIG_URL = 'http://service/api/config';
 
@@ -21,8 +21,8 @@ const plain = {
 
 const server = setupEntifixServer(http.get(CONFIG_URL, () => HttpResponse.json(plain)));
 
-const store = (options: ConfigurationStoreRestClientOptions = { url: CONFIG_URL }) =>
-  new ConfigurationStoreRestClient(options);
+const store = (options: ConfigurationClientRestClientOptions = { url: CONFIG_URL }) =>
+  new ConfigurationClientRestClient(options);
 
 const countRequests = () => {
   let count = 0;
@@ -32,7 +32,7 @@ const countRequests = () => {
   return () => count;
 };
 
-describe('ConfigurationStoreRestClient', () => {
+describe('ConfigurationClientRestClient', () => {
   it('resolves a key from the fetched configuration', async () => {
     expect(
       await Effect.runPromise(store().in('mongo').getString('uri')),
@@ -80,7 +80,7 @@ describe('ConfigurationStoreRestClient', () => {
   // default can be asserted on here is the URL it reports having tried.
   it('defaults to the same-origin /api/config route', async () => {
     const error = await Effect.runPromise(
-      Effect.flip(new ConfigurationStoreRestClient().in('mongo').getString('uri')),
+      Effect.flip(new ConfigurationClientRestClient().in('mongo').getString('uri')),
     );
 
     expect(error.details).toEqual({ url: '/api/config' });

@@ -2,15 +2,15 @@ import { Effect, Exit } from 'effect';
 
 import {
   LocalStorageUiPreferencesLayer,
-  makeLocalStorageUiPreferencesStore,
-} from './local-storage-ui-preferences-store';
+  makeLocalStorageUiPreferencesState,
+} from './local-storage-ui-preferences-state';
 import {
-  type UiPreferencesStore,
-  UiPreferencesStoreTag,
-} from './ui-preferences-store';
+  type UiPreferencesState,
+  UiPreferencesStateTag,
+} from './ui-preferences-state';
 
-describe('makeLocalStorageUiPreferencesStore', () => {
-  const store = makeLocalStorageUiPreferencesStore('test-ns');
+describe('makeLocalStorageUiPreferencesState', () => {
+  const store = makeLocalStorageUiPreferencesState('test-ns');
 
   beforeEach(() => window.localStorage.clear());
 
@@ -50,7 +50,7 @@ describe('makeLocalStorageUiPreferencesStore', () => {
 
   it('keeps namespaces isolated', async () => {
     await Effect.runPromise(store.write('shared', 'a'));
-    const other = makeLocalStorageUiPreferencesStore('other-ns');
+    const other = makeLocalStorageUiPreferencesState('other-ns');
     await expect(
       Effect.runPromise(other.read('shared')),
     ).resolves.toBeUndefined();
@@ -60,7 +60,7 @@ describe('makeLocalStorageUiPreferencesStore', () => {
 describe('the store as an Effect service', () => {
   it('is provided by the layer under its tag', async () => {
     const store = await Effect.runPromise(
-      Effect.provide(UiPreferencesStoreTag, LocalStorageUiPreferencesLayer),
+      Effect.provide(UiPreferencesStateTag, LocalStorageUiPreferencesLayer),
     );
 
     await Effect.runPromise(store.write('entity-table:product', { order: ['id'] }));
@@ -99,12 +99,12 @@ describe('when localStorage misbehaves', () => {
   };
 
   it.each([
-    ['read', (store: UiPreferencesStore) => store.read('k')],
-    ['write', (store: UiPreferencesStore) => store.write('k', 1)],
-    ['remove', (store: UiPreferencesStore) => store.remove('k')],
+    ['read', (store: UiPreferencesState) => store.read('k')],
+    ['write', (store: UiPreferencesState) => store.write('k', 1)],
+    ['remove', (store: UiPreferencesState) => store.remove('k')],
   ])('fails %s with EntifixConnError', async (_label, run) =>
     withBrokenStorage(async () => {
-      const store = makeLocalStorageUiPreferencesStore();
+      const store = makeLocalStorageUiPreferencesState();
 
       const exit = await Effect.runPromiseExit(run(store));
 
@@ -133,17 +133,17 @@ describe('without localStorage (server rendering)', () => {
 
   it('resolves a read as empty', async () =>
     withoutStorage(async () => {
-      const ssrStore = makeLocalStorageUiPreferencesStore('test-ns');
+      const ssrStore = makeLocalStorageUiPreferencesState('test-ns');
 
       expect(await Effect.runPromise(ssrStore.read('k'))).toBeUndefined();
     }));
 
   it.each([
-    ['write', (s: UiPreferencesStore) => s.write('k', 1)],
-    ['remove', (s: UiPreferencesStore) => s.remove('k')],
+    ['write', (s: UiPreferencesState) => s.write('k', 1)],
+    ['remove', (s: UiPreferencesState) => s.remove('k')],
   ])('drops a %s without failing', async (_label, run) =>
     withoutStorage(async () => {
-      const ssrStore = makeLocalStorageUiPreferencesStore('test-ns');
+      const ssrStore = makeLocalStorageUiPreferencesState('test-ns');
 
       expect(Exit.isSuccess(await Effect.runPromiseExit(run(ssrStore)))).toBe(true);
     }),

@@ -2,11 +2,11 @@ import { Effect } from 'effect';
 
 import { EntifixBuildError } from '../entifix-error';
 import {
+  ConfigurationClient,
+  ConfigurationClientGroup,
   ConfigurationExtractMode,
   ConfigurationItem,
   ConfigurationPlain,
-  ConfigurationStore,
-  ConfigurationStoreGroup,
 } from './types';
 
 /**
@@ -66,7 +66,7 @@ function splitArray(raw: string): string[] {
 }
 
 /**
- * In-memory {@link ConfigurationStoreGroup} backed by a group's
+ * In-memory {@link ConfigurationClientGroup} backed by a group's
  * {@link ConfigurationItem} list.
  *
  * String resolution supports `exact` and `compose`; the numeric/date/array
@@ -74,8 +74,8 @@ function splitArray(raw: string): string[] {
  * URL-oriented and only meaningful for strings). `match` remains unimplemented
  * (no defined semantics / consumer yet) and fails explicitly.
  */
-export class ConfigurationStoreGroupInMemory
-  implements ConfigurationStoreGroup
+export class ConfigurationClientGroupInMemory
+  implements ConfigurationClientGroup
 {
   #items: ConfigurationItem[];
 
@@ -257,18 +257,18 @@ export class ConfigurationStoreGroupInMemory
 }
 
 /**
- * In-memory {@link ConfigurationStore} backed by a loaded
+ * In-memory {@link ConfigurationClient} backed by a loaded
  * {@link ConfigurationPlain}. Each `in(group)` returns a group view scoped to
  * that group's items.
  */
-export class ConfigurationStoreInMemory implements ConfigurationStore {
+export class ConfigurationClientInMemory implements ConfigurationClient {
   #plainConfig: ConfigurationPlain;
 
   constructor(plainConfig: ConfigurationPlain = {}) {
     this.#plainConfig = plainConfig;
   }
 
-  in(group: string): ConfigurationStoreGroup {
-    return new ConfigurationStoreGroupInMemory(this.#plainConfig[group] ?? []);
+  in(group: string): ConfigurationClientGroup {
+    return new ConfigurationClientGroupInMemory(this.#plainConfig[group] ?? []);
   }
 }

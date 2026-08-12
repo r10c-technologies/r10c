@@ -1,8 +1,8 @@
 import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
 import {
+  type ConfigurationClient,
+  ConfigurationClientInMemory,
   type ConfigurationPlain,
-  type ConfigurationStore,
-  ConfigurationStoreInMemory,
 } from '@r10c/entifix-ts-core';
 import { Layer } from 'effect';
 
@@ -13,16 +13,16 @@ import { Layer } from 'effect';
 export const DEFAULT_URI_GROUP = 'restUri';
 
 /**
- * A {@link ConfigurationStore} over a plain `{ group: [{ key, value }] }`
+ * A {@link ConfigurationClient} over a plain `{ group: [{ key, value }] }`
  * literal. This is a stub, not a fake: it answers reads and nothing else.
  *
- * Backed by core's own `ConfigurationStoreInMemory`, so the parsing rules under
+ * Backed by core's own `ConfigurationClientInMemory`, so the parsing rules under
  * test are the production ones rather than a second implementation that could
  * drift.
  */
-export const makeStubConfigurationStore = (
+export const makeStubConfigurationClient = (
   plain: ConfigurationPlain = {},
-): ConfigurationStore => new ConfigurationStoreInMemory(plain);
+): ConfigurationClient => new ConfigurationClientInMemory(plain);
 
 /**
  * The common case for REST adapter specs: every entity resolves under one base
@@ -31,11 +31,11 @@ export const makeStubConfigurationStore = (
  * `entities` maps an entity `key` to its endpoint; passing `{ product: '…' }`
  * satisfies a `uriConfig.key` of `'service.[entity]'`.
  */
-export const makeStubUriConfigurationStore = (
+export const makeStubUriConfigurationClient = (
   entities: Record<string, string>,
   { keyTemplate = '[entity]', group = DEFAULT_URI_GROUP } = {},
-): ConfigurationStore =>
-  makeStubConfigurationStore({
+): ConfigurationClient =>
+  makeStubConfigurationClient({
     [group]: Object.entries(entities).map(([entity, uri]) => ({
       key: keyTemplate.replace('[entity]', entity),
       value: uri,
@@ -44,7 +44,7 @@ export const makeStubUriConfigurationStore = (
 
 /** Provides {@link ConfigurationRepositoryTag} from a plain configuration. */
 export const stubConfigurationLayer = (plain: ConfigurationPlain = {}) =>
-  Layer.succeed(ConfigurationRepositoryTag, makeStubConfigurationStore(plain));
+  Layer.succeed(ConfigurationRepositoryTag, makeStubConfigurationClient(plain));
 
 /** Provides {@link ConfigurationRepositoryTag} from an entity-to-URI mapping. */
 export const stubUriConfigurationLayer = (
@@ -53,5 +53,5 @@ export const stubUriConfigurationLayer = (
 ) =>
   Layer.succeed(
     ConfigurationRepositoryTag,
-    makeStubUriConfigurationStore(entities, options),
+    makeStubUriConfigurationClient(entities, options),
   );

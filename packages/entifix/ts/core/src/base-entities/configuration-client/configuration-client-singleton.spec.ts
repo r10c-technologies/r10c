@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 import { EntifixBuildError } from '../entifix-error/index.js';
 import {
-  ConfigurationStoreGroupInMemory,
-  ConfigurationStoreInMemory,
-} from './configuration-store-singleton.js';
-import type { ConfigurationStoreGroup } from './types.js';
+  ConfigurationClientGroupInMemory,
+  ConfigurationClientInMemory,
+} from './configuration-client-singleton.js';
+import type { ConfigurationClientGroup } from './types.js';
 
 const run = <TValue, TError>(effect: Effect.Effect<TValue, TError>) =>
   Effect.runPromise(effect);
@@ -28,17 +28,17 @@ const failureOf = async <TValue>(
 
 /** Any group getter, erased to a common type so `it.each` tables stay uniform. */
 type GroupRead = (
-  group: ConfigurationStoreGroup,
+  group: ConfigurationClientGroup,
 ) => Effect.Effect<unknown, EntifixBuildError>;
 
 const group = (
   items: Record<string, unknown> = {},
-): ConfigurationStoreGroupInMemory =>
-  new ConfigurationStoreGroupInMemory(
+): ConfigurationClientGroupInMemory =>
+  new ConfigurationClientGroupInMemory(
     Object.entries(items).map(([key, value]) => ({ key, value })),
   );
 
-describe('ConfigurationStoreGroupInMemory', () => {
+describe('ConfigurationClientGroupInMemory', () => {
   describe('getString', () => {
     it('reads a key exactly by default', async () => {
       expect(await run(group({ uri: 'http://svc' }).getString('uri'))).toBe(
@@ -256,15 +256,15 @@ describe('ConfigurationStoreGroupInMemory', () => {
   });
 
   it('defaults to an empty item list', async () => {
-    const error = await failureOf(new ConfigurationStoreGroupInMemory().getString('k'));
+    const error = await failureOf(new ConfigurationClientGroupInMemory().getString('k'));
 
     expect(error.details).toEqual({ key: 'k', availableKeys: [] });
   });
 });
 
-describe('ConfigurationStoreInMemory', () => {
+describe('ConfigurationClientInMemory', () => {
   it('scopes a group view to that group’s items', async () => {
-    const store = new ConfigurationStoreInMemory({
+    const store = new ConfigurationClientInMemory({
       mongo: [{ key: 'uri', value: 'mongodb://host' }],
       redis: [{ key: 'uri', value: 'redis://host' }],
     });
@@ -274,7 +274,7 @@ describe('ConfigurationStoreInMemory', () => {
   });
 
   it('yields an empty group for a name that was never loaded', async () => {
-    const store = new ConfigurationStoreInMemory({});
+    const store = new ConfigurationClientInMemory({});
 
     const error = await failureOf(store.in('absent').getString('uri'));
 
@@ -282,7 +282,7 @@ describe('ConfigurationStoreInMemory', () => {
   });
 
   it('defaults to an empty configuration', async () => {
-    const error = await failureOf(new ConfigurationStoreInMemory().in('any').getString('k'));
+    const error = await failureOf(new ConfigurationClientInMemory().in('any').getString('k'));
 
     expect(error.message).toContain('not found');
   });

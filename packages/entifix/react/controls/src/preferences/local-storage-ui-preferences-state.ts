@@ -2,9 +2,9 @@ import { EntifixConnError } from '@r10c/entifix-ts-core';
 import { Effect, Layer } from 'effect';
 
 import {
-  type UiPreferencesStore,
-  UiPreferencesStoreTag,
-} from './ui-preferences-store';
+  type UiPreferencesState,
+  UiPreferencesStateTag,
+} from './ui-preferences-state';
 
 export const DEFAULT_UI_PREFERENCES_NAMESPACE = 'r10c-ui';
 
@@ -14,7 +14,7 @@ function isBrowser(): boolean {
 }
 
 /**
- * `localStorage`-backed {@link UiPreferencesStore}. Every method closes over the
+ * `localStorage`-backed {@link UiPreferencesState}. Every method closes over the
  * namespace, so each one is `R = never` and the object satisfies the interface
  * without leaking a requirement into callers (the same shape
  * `makeMongoRepository` uses).
@@ -23,9 +23,9 @@ function isBrowser(): boolean {
  * than failing: a stale or hand-edited key should fall back to defaults, not
  * break the view.
  */
-export function makeLocalStorageUiPreferencesStore(
+export function makeLocalStorageUiPreferencesState(
   namespace: string = DEFAULT_UI_PREFERENCES_NAMESPACE,
-): UiPreferencesStore {
+): UiPreferencesState {
   const storageKey = (key: string) => `${namespace}:${key}`;
 
   return {
@@ -77,6 +77,6 @@ export function makeLocalStorageUiPreferencesStore(
 }
 
 export const LocalStorageUiPreferencesLayer = Layer.succeed(
-  UiPreferencesStoreTag,
-  makeLocalStorageUiPreferencesStore(),
+  UiPreferencesStateTag,
+  makeLocalStorageUiPreferencesState(),
 );

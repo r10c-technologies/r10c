@@ -1,4 +1,4 @@
-import { ConfigurationStoreInMemory, EntifixConnError } from '@r10c/entifix-ts-core';
+import { ConfigurationClientInMemory, EntifixConnError } from '@r10c/entifix-ts-core';
 import {
   http,
   HttpResponse,
@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
-  loadRemoteConfigurationStore,
+  loadRemoteConfigurationClient,
 } from './load-remote-configuration.js';
 
 const CONFIG_API = 'http://config-service:3190';
@@ -131,13 +131,13 @@ describe('loadRemoteConfiguration', () => {
   });
 });
 
-describe('loadRemoteConfigurationStore', () => {
+describe('loadRemoteConfigurationClient', () => {
   it('wraps the fetched configuration in a readable store', async () => {
     const store = await Effect.runPromise(
-      loadRemoteConfigurationStore(CONFIG_API, SERVICE),
+      loadRemoteConfigurationClient(CONFIG_API, SERVICE),
     );
 
-    expect(store).toBeInstanceOf(ConfigurationStoreInMemory);
+    expect(store).toBeInstanceOf(ConfigurationClientInMemory);
     expect(await Effect.runPromise(store.in('mongo').getString('uri'))).toBe(
       'mongodb://host/db',
     );
@@ -152,7 +152,7 @@ describe('loadRemoteConfigurationStore', () => {
     );
 
     const error = await Effect.runPromise(
-      Effect.flip(loadRemoteConfigurationStore(CONFIG_API, SERVICE, noRetry)),
+      Effect.flip(loadRemoteConfigurationClient(CONFIG_API, SERVICE, noRetry)),
     );
 
     expect(error).toBeInstanceOf(EntifixConnError);

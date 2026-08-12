@@ -17,7 +17,7 @@ import {
 } from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationStore,
+  makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Context } from 'effect';
@@ -110,7 +110,7 @@ let repository: ReturnType<typeof makeInMemoryEntityRepository>;
 
 const makeContext = () =>
   Context.make(EntityRepositoryTag, repository).pipe(
-    Context.add(ConfigurationRepositoryTag, makeStubConfigurationStore()),
+    Context.add(ConfigurationRepositoryTag, makeStubConfigurationClient()),
   );
 
 /** The real use-cases over the in-memory repository — no adapter mocked out. */

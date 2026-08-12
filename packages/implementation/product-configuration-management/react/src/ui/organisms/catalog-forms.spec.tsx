@@ -21,7 +21,7 @@ import {
 } from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationStore,
+  makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -65,7 +65,7 @@ const linkConfig = <TTarget extends Entity>(
   loadUc: loadUCFactory<TTarget>(),
   getUc: getUCFactory<TTarget>(),
   ctx: Context.make(EntityRepositoryTag, repository).pipe(
-    Context.add(ConfigurationRepositoryTag, makeStubConfigurationStore()),
+    Context.add(ConfigurationRepositoryTag, makeStubConfigurationClient()),
   ),
   debounceMs: 0,
 });

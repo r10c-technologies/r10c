@@ -1,6 +1,6 @@
 import {
   accessor,
-  ConfigurationStoreInMemory,
+  ConfigurationClientInMemory,
   EntifixConnError,
   EntifixLogicError,
   type Entity,
@@ -62,7 +62,7 @@ const makeBrand = (id: string, name: string) => {
 
 const configuration = Context.make(
   ConfigurationRepositoryTag,
-  new ConfigurationStoreInMemory({}),
+  new ConfigurationClientInMemory({}),
 );
 
 /**

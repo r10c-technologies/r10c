@@ -13,14 +13,14 @@ import {
   type TabsSnapshot,
 } from './tab-state';
 
-export interface TabsStore extends TabsSnapshot {
+export interface TabsState extends TabsSnapshot {
   open(tab: TabRecord): void;
   close(param: string): void;
   activate(param: string): void;
 }
 
 /** Only the data is persisted — the action functions are re-created on load. */
-export function persistedTabs(store: TabsStore): TabsSnapshot {
+export function persistedTabs(store: TabsState): TabsSnapshot {
   return { tabs: store.tabs, activeParam: store.activeParam };
 }
 
@@ -32,7 +32,7 @@ const WORKSPACE_STORE = 'stores';
  * Hydration is skipped on creation (it would touch IndexedDB during SSR) and
  * triggered from the client — see {@link useTabsHydrated}.
  */
-export const useTabsStore = create<TabsStore>()(
+export const useTabsState = create<TabsState>()(
   persist(
     set => ({
       ...emptyTabs,

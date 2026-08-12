@@ -1,14 +1,14 @@
 import {
+  ConfigurationClient,
+  ConfigurationClientGroup,
+  ConfigurationClientInMemory,
   ConfigurationExtractMode,
   ConfigurationPlain,
-  ConfigurationStore,
-  ConfigurationStoreGroup,
-  ConfigurationStoreInMemory,
   EntifixBuildError,
 } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 
-export interface ConfigurationStoreRestClientOptions {
+export interface ConfigurationClientRestClientOptions {
   /** Endpoint returning this service's `ConfigurationPlain`. */
   url?: string;
 }
@@ -16,11 +16,11 @@ export interface ConfigurationStoreRestClientOptions {
 const DEFAULT_CONFIG_URL = '/api/config';
 
 /**
- * {@link ConfigurationStoreGroup} view over an HTTP-sourced
+ * {@link ConfigurationClientGroup} view over an HTTP-sourced
  * {@link ConfigurationPlain}. Resolution is delegated to an in-memory store
  * once the plain configuration has been fetched.
  */
-class ConfigurationStoreGroupRestClient implements ConfigurationStoreGroup {
+class ConfigurationClientGroupRestClient implements ConfigurationClientGroup {
   constructor(
     private readonly loadPlain: Effect.Effect<
       ConfigurationPlain,
@@ -31,14 +31,14 @@ class ConfigurationStoreGroupRestClient implements ConfigurationStoreGroup {
 
   #pending() {
     return Effect.die(
-      new Error('ConfigurationStoreGroupRestClient getter not implemented yet')
+      new Error('ConfigurationClientGroupRestClient getter not implemented yet')
     );
   }
 
   getString(key: string, extractMode?: ConfigurationExtractMode) {
     return this.loadPlain.pipe(
       Effect.flatMap(plain =>
-        new ConfigurationStoreInMemory(plain)
+        new ConfigurationClientInMemory(plain)
           .in(this.group)
           .getString(key, extractMode)
       )
@@ -81,15 +81,15 @@ class ConfigurationStoreGroupRestClient implements ConfigurationStoreGroup {
 }
 
 /**
- * {@link ConfigurationStore} that sources its `ConfigurationPlain` over HTTP
+ * {@link ConfigurationClient} that sources its `ConfigurationPlain` over HTTP
  * (by default the same-origin `/api/config` route, which proxies
  * marketplace-config-api). The fetched configuration is memoized so it is
  * requested at most once per client instance.
  */
-export class ConfigurationStoreRestClient implements ConfigurationStore {
+export class ConfigurationClientRestClient implements ConfigurationClient {
   #loadPlain: Effect.Effect<ConfigurationPlain, EntifixBuildError>;
 
-  constructor(options?: ConfigurationStoreRestClientOptions) {
+  constructor(options?: ConfigurationClientRestClientOptions) {
     const url = options?.url ?? DEFAULT_CONFIG_URL;
     let cache: Promise<ConfigurationPlain> | undefined;
 
@@ -108,7 +108,7 @@ export class ConfigurationStoreRestClient implements ConfigurationStore {
     });
   }
 
-  in(group: string): ConfigurationStoreGroup {
-    return new ConfigurationStoreGroupRestClient(this.#loadPlain, group);
+  in(group: string): ConfigurationClientGroup {
+    return new ConfigurationClientGroupRestClient(this.#loadPlain, group);
   }
 }

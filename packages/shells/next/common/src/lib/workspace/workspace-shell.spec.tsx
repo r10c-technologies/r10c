@@ -4,9 +4,9 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useDraftsStore } from './drafts-store.js';
+import { useDraftsState } from './drafts-state.js';
 import { type TabKind, TabRegistry } from './tab-kind.js';
-import { useTabsStore } from './tabs-store.js';
+import { useTabsState } from './tabs-state.js';
 import { WorkspaceShell } from './workspace-shell.js';
 
 const replace = vi.fn();
@@ -40,10 +40,10 @@ const renderShell = (actions?: boolean) =>
 beforeEach(() => {
   replace.mockClear();
   tabParam = null;
-  useTabsStore.setState({ tabs: [], activeParam: null });
-  useDraftsStore.setState({ drafts: {} });
-  vi.spyOn(useTabsStore.persist, 'rehydrate').mockResolvedValue(undefined);
-  vi.spyOn(useDraftsStore.persist, 'rehydrate').mockResolvedValue(undefined);
+  useTabsState.setState({ tabs: [], activeParam: null });
+  useDraftsState.setState({ drafts: {} });
+  vi.spyOn(useTabsState.persist, 'rehydrate').mockResolvedValue(undefined);
+  vi.spyOn(useDraftsState.persist, 'rehydrate').mockResolvedValue(undefined);
 });
 
 describe('WorkspaceShell', () => {
@@ -97,7 +97,7 @@ describe('WorkspaceShell', () => {
   // nothing to re-derive from, and falls back to whatever was stored.
   it('keeps the stored caption for a tab whose kind is gone', async () => {
     act(() => {
-      useTabsStore
+      useTabsState
         .getState()
         .open({ param: 'operation:import', title: 'Retired import' });
     });
@@ -111,7 +111,7 @@ describe('WorkspaceShell', () => {
     renderShell();
 
     act(() => {
-      const { open } = useTabsStore.getState();
+      const { open } = useTabsState.getState();
       open({ param: 'catalog:product', title: 'product catalog' });
       open({ param: 'catalog:brand', title: 'brand catalog' });
     });
@@ -158,7 +158,7 @@ describe('WorkspaceShell', () => {
     await screen.findByTestId('body');
 
     act(() => {
-      useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
+      useDraftsState.getState().setDraft('catalog:product', { name: 'x' });
     });
 
     await waitFor(() =>
@@ -173,7 +173,7 @@ describe('WorkspaceShell', () => {
     renderShell();
     await screen.findByTestId('body');
     act(() => {
-      useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
+      useDraftsState.getState().setDraft('catalog:product', { name: 'x' });
     });
 
     await user.click(
@@ -194,7 +194,7 @@ describe('WorkspaceShell', () => {
     renderShell();
     await screen.findByTestId('body');
     act(() => {
-      useDraftsStore.getState().setDraft('catalog:product', { name: 'x' });
+      useDraftsState.getState().setDraft('catalog:product', { name: 'x' });
     });
 
     await user.click(
@@ -206,7 +206,7 @@ describe('WorkspaceShell', () => {
         screen.queryByRole('tab', { name: /product catalog/ }),
       ).not.toBeInTheDocument(),
     );
-    expect('catalog:product' in useDraftsStore.getState().drafts).toBe(false);
+    expect('catalog:product' in useDraftsState.getState().drafts).toBe(false);
     confirm.mockRestore();
   });
 });

@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UiPreferencesProvider } from '../../../preferences/ui-preferences-context';
-import type { UiPreferencesStore } from '../../../preferences/ui-preferences-store';
+import type { UiPreferencesState } from '../../../preferences/ui-preferences-state';
 import { EntityTable } from './entity-table';
 import {
   EntityColumn,
@@ -625,7 +625,7 @@ describe('EntityTable keying and personalization scope', () => {
   it('scopes personalization to an explicit preferences key', async () => {
     const user = userEvent.setup();
     const written: string[] = [];
-    const store: UiPreferencesStore = {
+    const store: UiPreferencesState = {
       read: () => Effect.succeed(undefined),
       write: key => Effect.sync(() => void written.push(key)),
       remove: () => Effect.void,
@@ -711,7 +711,7 @@ describe('EntityTable defaults', () => {
 
     const user = userEvent.setup();
     const written: string[] = [];
-    const store: UiPreferencesStore = {
+    const store: UiPreferencesState = {
       read: () => Effect.succeed(undefined),
       write: key => Effect.sync(() => void written.push(key)),
       remove: () => Effect.void,

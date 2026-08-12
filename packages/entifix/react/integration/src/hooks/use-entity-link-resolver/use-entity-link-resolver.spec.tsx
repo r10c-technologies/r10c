@@ -11,7 +11,7 @@ import {
 } from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationStore,
+  makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context, Effect, Exit } from 'effect';
@@ -66,7 +66,7 @@ const makeBrand = (id: string, name: string) => {
 
 const configuration = Context.make(
   ConfigurationRepositoryTag,
-  makeStubConfigurationStore(),
+  makeStubConfigurationClient(),
 );
 
 const repositoryFor = (items: Entity[]) =>

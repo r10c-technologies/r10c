@@ -35,7 +35,7 @@ export interface BackOfficeShellProps {
 /**
  * Back-office page shell: a strong, collapsible sidebar + a top bar carrying
  * breadcrumbs, wrapping the routed content. Collapse state is persisted through
- * the design system's `UiPreferencesStore`, so it survives reloads. Composed
+ * the design system's `UiPreferencesState`, so it survives reloads. Composed
  * from the agnostic `Sidebar` primitive — the Next coupling (routing,
  * breadcrumbs) lives here, not in the primitive.
  */

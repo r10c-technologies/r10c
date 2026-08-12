@@ -10,9 +10,9 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 
-import { useDraftsStore } from './drafts-store';
+import { useDraftsState } from './drafts-state';
 import type { TabRegistry } from './tab-kind';
-import { useTabsStore } from './tabs-store';
+import { useTabsState } from './tabs-state';
 
 export interface WorkspaceShellProps {
   /** Resolves `?tab=` values to renderable tabs. */
@@ -29,7 +29,7 @@ export interface WorkspaceShellProps {
  * The tab workspace: a strip of persisted tabs over the active tab's body — no
  * sidebar or brand of its own. It is mounted inside a host shell (the
  * back-office layout, say) that already supplies those, so nesting two
- * sidebars never happens. The open set lives in {@link useTabsStore}
+ * sidebars never happens. The open set lives in {@link useTabsState}
  * (IndexedDB); the URL's `?tab=` projects only the active tab, so a deep link
  * opens or focuses exactly that tab and an unknown kind shows the fallback
  * instead of crashing.
@@ -48,20 +48,20 @@ export function WorkspaceShell({
   const pathname = usePathname();
   const urlTab = searchParams.get('tab');
 
-  const tabs = useTabsStore(state => state.tabs);
-  const activeParam = useTabsStore(state => state.activeParam);
-  const open = useTabsStore(state => state.open);
-  const close = useTabsStore(state => state.close);
-  const activate = useTabsStore(state => state.activate);
+  const tabs = useTabsState(state => state.tabs);
+  const activeParam = useTabsState(state => state.activeParam);
+  const open = useTabsState(state => state.open);
+  const close = useTabsState(state => state.close);
+  const activate = useTabsState(state => state.activate);
 
-  const drafts = useDraftsStore(state => state.drafts);
-  const clearDraft = useDraftsStore(state => state.clearDraft);
+  const drafts = useDraftsState(state => state.drafts);
+  const clearDraft = useDraftsState(state => state.clearDraft);
 
   // Load the persisted tab set and drafts once, on the client (hydration is
   // skipped at creation so SSR never touches IndexedDB).
   useEffect(() => {
-    void useTabsStore.persist.rehydrate();
-    void useDraftsStore.persist.rehydrate();
+    void useTabsState.persist.rehydrate();
+    void useDraftsState.persist.rehydrate();
   }, []);
 
   // A tab is dirty while its address has an unsaved draft; closing one confirms.
@@ -93,7 +93,7 @@ export function WorkspaceShell({
   // and categories). The effect above runs first in the same commit, so by the
   // time this one reads the store the URL's tab is already active.
   useEffect(() => {
-    const active = useTabsStore.getState().activeParam;
+    const active = useTabsState.getState().activeParam;
     if (active && active !== urlTab) {
       router.replace(`${pathname}?tab=${encodeURIComponent(active)}`);
     }

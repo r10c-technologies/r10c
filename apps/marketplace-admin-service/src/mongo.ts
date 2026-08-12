@@ -16,7 +16,7 @@ import {
   TenantDatabaseResolverTag,
   TokenServiceTag,
 } from '@r10c/entifix-ts-business';
-import { ConfigurationStoreInMemory } from '@r10c/entifix-ts-core';
+import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
   makeMongoTenantResolver,
@@ -62,7 +62,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 export const AppLayer = Layer.unwrapEffect(
   Effect.gen(function* () {
     const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
-    const store = new ConfigurationStoreInMemory(plain);
+    const store = new ConfigurationClientInMemory(plain);
 
     const uri = yield* store.in('mongo').getString('uri');
     // Tenant storage: one Mongo database per organization, named from the

@@ -13,7 +13,7 @@ import {
   SessionStoreTag,
   TokenServiceTag,
 } from '@r10c/entifix-ts-business';
-import { ConfigurationStoreInMemory } from '@r10c/entifix-ts-core';
+import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
   MongoDatabaseLayer,
@@ -221,7 +221,7 @@ const IdentityProviderLayer = Layer.effect(
 export const AppLayer = Layer.unwrapEffect(
   Effect.gen(function* () {
     const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
-    const store = new ConfigurationStoreInMemory(plain);
+    const store = new ConfigurationClientInMemory(plain);
 
     const uri = yield* store.in('mongo').getString('uri');
     const dbName = yield* store.in('mongo').getString('db');

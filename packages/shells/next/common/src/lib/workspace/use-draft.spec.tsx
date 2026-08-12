@@ -3,15 +3,15 @@ import 'fake-indexeddb/auto';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useDraft, useDraftsStore } from './drafts-store.js';
+import { useDraft, useDraftsState } from './drafts-state.js';
 
 beforeEach(() => {
-  useDraftsStore.setState({ drafts: {} });
-  vi.spyOn(useDraftsStore.persist, 'rehydrate').mockResolvedValue(undefined);
+  useDraftsState.setState({ drafts: {} });
+  vi.spyOn(useDraftsState.persist, 'rehydrate').mockResolvedValue(undefined);
 });
 
 afterEach(() => {
-  useDraftsStore.setState({ drafts: {} });
+  useDraftsState.setState({ drafts: {} });
 });
 
 interface Fields {

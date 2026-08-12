@@ -12,13 +12,13 @@ import { Context, type Effect } from 'effect';
  *
  * Values are stored and returned as-is; adapters own their own encoding.
  */
-export interface UiPreferencesStore {
+export interface UiPreferencesState {
   read<TValue>(key: string): Effect.Effect<TValue | undefined, EntifixError>;
   write<TValue>(key: string, value: TValue): Effect.Effect<void, EntifixError>;
   remove(key: string): Effect.Effect<void, EntifixError>;
 }
 
-export class UiPreferencesStoreTag extends Context.Tag('UiPreferencesStore')<
-  UiPreferencesStoreTag,
-  UiPreferencesStore
+export class UiPreferencesStateTag extends Context.Tag('UiPreferencesState')<
+  UiPreferencesStateTag,
+  UiPreferencesState
 >() {}

@@ -4,7 +4,7 @@ import { EntifixBuildError } from '../entifix-error';
 
 export type ConfigurationExtractMode = 'exact' | 'match' | 'compose';
 
-export interface ConfigurationStoreGroup {
+export interface ConfigurationClientGroup {
   getNumber(
     key: string,
     extractMode?: ConfigurationExtractMode,
@@ -55,8 +55,8 @@ export interface ConfigurationStoreGroup {
   ): Effect<Date[] | undefined, EntifixBuildError>;
 }
 
-export interface ConfigurationStore {
-  in(key: string): ConfigurationStoreGroup;
+export interface ConfigurationClient {
+  in(key: string): ConfigurationClientGroup;
 }
 
 export interface ConfigurationItem {

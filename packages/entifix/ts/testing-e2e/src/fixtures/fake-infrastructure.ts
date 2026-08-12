@@ -4,8 +4,8 @@ import {
   TenantDatabaseResolverTag,
 } from '@r10c/entifix-ts-business';
 import {
+  ConfigurationClientInMemory,
   type ConfigurationPlain,
-  ConfigurationStoreInMemory,
 } from '@r10c/entifix-ts-core';
 import {
   MongoClientTag,
@@ -119,5 +119,5 @@ export const fakeConfigurationLayer = (
 ): Layer.Layer<ConfigurationRepositoryTag> =>
   Layer.succeed(
     ConfigurationRepositoryTag,
-    new ConfigurationStoreInMemory(plain),
+    new ConfigurationClientInMemory(plain),
   );

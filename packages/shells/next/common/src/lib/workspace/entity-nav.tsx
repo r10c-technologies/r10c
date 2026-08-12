@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 
-import { useTabsStore } from './tabs-store';
+import { useTabsState } from './tabs-state';
 
 /**
  * Navigation intent, decoupled from the host. A page says "go to this list" or
@@ -33,7 +33,7 @@ export function useRouteEntityNav(basePath = '/catalog'): EntityNav {
 
 /** Tab host: navigation opens or focuses a workspace tab. */
 export function useTabEntityNav(): EntityNav {
-  const open = useTabsStore(state => state.open);
+  const open = useTabsState(state => state.open);
   return useMemo(
     () => ({
       toList: entityKey =>

@@ -4,14 +4,14 @@ import { Effect } from 'effect';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { UiPreferencesProvider, useUiPreferencesStore } from './ui-preferences-context.js';
-import type { UiPreferencesStore } from './ui-preferences-store.js';
+import { UiPreferencesProvider, useUiPreferencesState } from './ui-preferences-context.js';
+import type { UiPreferencesState } from './ui-preferences-state.js';
 import { useUiPreference } from './use-ui-preference.js';
 
 /** An in-memory store that also records what was written, and can be made to fail. */
 const makeRecordingStore = (
   seed: Record<string, unknown> = {},
-): UiPreferencesStore & {
+): UiPreferencesState & {
   written: [string, unknown][];
   failReads: boolean;
   failWrites: boolean;
@@ -37,7 +37,7 @@ const makeRecordingStore = (
       Effect.sync(() => {
         entries.delete(key);
       }),
-  } as UiPreferencesStore & {
+  } as UiPreferencesState & {
     written: [string, unknown][];
     failReads: boolean;
     failWrites: boolean;
@@ -46,7 +46,7 @@ const makeRecordingStore = (
 };
 
 const withStore =
-  (store?: UiPreferencesStore, namespace?: string) =>
+  (store?: UiPreferencesState, namespace?: string) =>
   ({ children }: PropsWithChildren) => (
     <UiPreferencesProvider store={store} namespace={namespace}>
       {children}
@@ -61,7 +61,7 @@ describe('UiPreferencesProvider', () => {
   it('publishes the store it was given', () => {
     const store = makeRecordingStore();
 
-    const { result } = renderHook(() => useUiPreferencesStore(), {
+    const { result } = renderHook(() => useUiPreferencesState(), {
       wrapper: withStore(store),
     });
 
@@ -69,7 +69,7 @@ describe('UiPreferencesProvider', () => {
   });
 
   it('builds a localStorage store from the namespace when none is given', async () => {
-    const { result } = renderHook(() => useUiPreferencesStore(), {
+    const { result } = renderHook(() => useUiPreferencesState(), {
       wrapper: withStore(undefined, 'admin-ui'),
     });
 
@@ -79,7 +79,7 @@ describe('UiPreferencesProvider', () => {
   });
 
   it('keeps the same store across renders', () => {
-    const { result, rerender } = renderHook(() => useUiPreferencesStore(), {
+    const { result, rerender } = renderHook(() => useUiPreferencesState(), {
       wrapper: withStore(undefined, 'admin-ui'),
     });
     const first = result.current;
@@ -93,7 +93,7 @@ describe('UiPreferencesProvider', () => {
   // not mounted the provider yet — so the fallback is a real store, and it is
   // module-level so its identity is stable across renders.
   it('falls back to a default store with no provider mounted', () => {
-    const { result, rerender } = renderHook(() => useUiPreferencesStore());
+    const { result, rerender } = renderHook(() => useUiPreferencesState());
     const first = result.current;
 
     rerender();

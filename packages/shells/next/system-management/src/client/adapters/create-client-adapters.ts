@@ -9,7 +9,7 @@ import {
   buildEntityRestAdapterLoad,
   buildEntityRestAdapterSave,
   type BuildEntityRestOptions,
-  ConfigurationStoreRestClient,
+  ConfigurationClientRestClient,
 } from '@r10c/entifix-ts-rest-client';
 import { Context } from 'effect';
 
@@ -42,7 +42,7 @@ const configurationRest = Context.make(EntityRepositoryTag, {
 
 const configurationStore = Context.make(
   ConfigurationRepositoryTag,
-  new ConfigurationStoreRestClient(),
+  new ConfigurationClientRestClient(),
 );
 
 export function createClientAdapters(): SystemManagementAdapters {

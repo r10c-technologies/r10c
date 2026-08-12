@@ -2,7 +2,7 @@
 
 import {
   I18nProvider,
-  makeIndexedDbUiPreferencesStore,
+  makeIndexedDbUiPreferencesState,
   type ThemeOption,
   type ThemePalette,
   ThemeProvider,
@@ -35,7 +35,7 @@ const RUNTIME_PALETTES: Record<string, ThemePalette> = {
 // its identity is stable across renders (a fresh store each render would reopen
 // the database). Unifies all persisted client UI state in IndexedDB alongside
 // the tab workspace, replacing the localStorage backend.
-const uiPreferencesStore = makeIndexedDbUiPreferencesStore();
+const uiPreferencesStore = makeIndexedDbUiPreferencesState();
 
 /**
  * Split out so the theme captions resolve against the locale `I18nProvider`

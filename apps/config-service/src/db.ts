@@ -15,8 +15,8 @@ import {
   TokenServiceTag,
 } from '@r10c/entifix-ts-business';
 import {
+  ConfigurationClientInMemory,
   type ConfigurationPlain,
-  ConfigurationStoreInMemory,
 } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import { SqlHealthProbeLayer } from '@r10c/entifix-ts-sql-client';
@@ -634,7 +634,7 @@ const AuthLive = Layer.unwrapEffect(
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
       Layer.succeed(
         ConfigurationRepositoryTag,
-        new ConfigurationStoreInMemory(plain),
+        new ConfigurationClientInMemory(plain),
       ),
     );
   }),
