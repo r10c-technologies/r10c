@@ -27,6 +27,7 @@ import {
   RedisSessionStoreLayer,
 } from '@r10c/entifix-ts-redis-client';
 import {
+  ZitadelActionsLayer,
   ZitadelHealthProbeLayer,
   ZitadelManagementLayer,
   ZitadelManagementTag,
@@ -249,6 +250,12 @@ export const AppLayer = Layer.unwrapEffect(
     const zitadelPostLogoutUri = yield* store
       .in('zitadel')
       .getString('postLogoutRedirectUri');
+    // Minted by Zitadel when `tools/zitadel-seed.mjs` creates the Actions v2
+    // target and never readable again, which is why the seed carries it forward
+    // across re-seeds. Blank fails the webhook closed rather than opening it.
+    const zitadelActionSigningKey = yield* store
+      .in('zitadel')
+      .getString('actionSigningKey');
 
     const infra = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
@@ -275,6 +282,7 @@ export const AppLayer = Layer.unwrapEffect(
         issuer: zitadelIssuer,
         personalAccessToken: zitadelPat,
       }),
+      ZitadelActionsLayer({ signingKey: zitadelActionSigningKey }),
       // The authorization policy behind `requirePermission`. Static
       // role→permission table today; an attribute-aware engine would replace
       // this one line.

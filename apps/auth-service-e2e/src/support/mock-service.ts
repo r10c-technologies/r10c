@@ -49,6 +49,7 @@ import {
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import { makeFakeRedis } from '@r10c/entifix-ts-testing-unit/drivers';
 import {
+  ZitadelActionsLayer,
   ZitadelManagementTag,
   ZitadelOidcTag,
 } from '@r10c/entifix-ts-zitadel-client';
@@ -59,7 +60,11 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { makeFakeZitadel, MOCK_ISSUER } from './fake-zitadel';
+import {
+  makeFakeZitadel,
+  MOCK_ACTION_SIGNING_KEY,
+  MOCK_ISSUER,
+} from './fake-zitadel';
 
 /** What the service would otherwise fetch from config-service at boot. */
 const CONFIGURATION = {
@@ -78,6 +83,7 @@ const CONFIGURATION = {
     { key: 'issuer', value: MOCK_ISSUER },
     { key: 'clientId', value: 'mock-client' },
     { key: 'redirectUri', value: 'http://localhost:3002/api/auth/callback' },
+    { key: 'actionSigningKey', value: MOCK_ACTION_SIGNING_KEY },
   ],
 };
 
@@ -162,6 +168,10 @@ const base = Layer.mergeAll(
   // One in-memory directory behind both halves; see `makeFakeZitadel`.
   Layer.succeed(ZitadelOidcTag, fakeZitadel.oidc),
   Layer.succeed(ZitadelManagementTag, fakeZitadel.management),
+  // The shipped verifier, not a fake: an HMAC needs no key pair and no network,
+  // so the one authentication the provider-events webhook has is exercised here
+  // for real. The spec signs with the same key.
+  ZitadelActionsLayer({ signingKey: MOCK_ACTION_SIGNING_KEY }),
   // The real grant table, not a fake — it is what `requirePermission` consults,
   // so stubbing it would make every authorization assertion here meaningless.
   Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),

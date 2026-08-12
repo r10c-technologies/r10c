@@ -2,9 +2,9 @@
 /**
  * Give a freshly-initialised Zitadel instance everything the r10c fleet expects
  * to find in it: a project, the OIDC app auth-app signs in through, the v2
- * hosted login and where to find it, TOTP as an available second factor, SMTP
- * pointed at Mailpit, and — only when credentials are present — a Google
- * identity provider.
+ * hosted login and where to find it, the Actions v2 target that tells us a user
+ * was deactivated, TOTP as an available second factor, SMTP pointed at Mailpit,
+ * and — only when credentials are present — a Google identity provider.
  *
  * Run by the L7 rung of `infra/local/ensure.sh` (and again at the end of
  * `reset.sh`), never by hand in a normal workflow. It is **idempotent**: every
@@ -69,6 +69,19 @@ const BACK_CHANNEL_LOGOUT_URI =
   'http://host.minikube.internal:3102/api/auth/backchannel-logout';
 
 /**
+ * Where Zitadel POSTs a user-lifecycle event. Same host reasoning as the
+ * back-channel URI above, and the same `HTTPClient.DenyList` carve-out covers
+ * it: the denylist governs Actions v2 targets and back-channel logout alike.
+ */
+const PROVIDER_EVENTS_URI =
+  process.env['ZITADEL_PROVIDER_EVENTS_URI'] ??
+  'http://host.minikube.internal:3102/api/auth/provider-events';
+
+/** The Actions v2 target this seed reconciles, and the events routed to it. */
+const ACTION_TARGET_NAME = 'r10c-user-lifecycle';
+const ACTION_EVENTS = ['user.deactivated', 'user.locked', 'user.removed'];
+
+/**
  * Where the browser is sent to actually sign in. Browser-facing, so `localhost`
  * — and its own NodePort, because the login is a separate container serving a
  * separate origin rather than a path on Zitadel's. Zitadel appends its own
@@ -115,6 +128,20 @@ const api = async (method, path, body) => {
 const alreadyExists = error =>
   /AlreadyExists/i.test(error.zitadelMessage ?? '') ||
   /already exists/i.test(error.message);
+
+/** Read a `KEY=value` out of a `KEY=value` file, or `''` if either is missing. */
+const readKeyFrom = (file, key) => {
+  let contents;
+  try {
+    contents = readFileSync(file, 'utf8');
+  } catch {
+    return '';
+  }
+  const line = contents
+    .split('\n')
+    .find(candidate => candidate.startsWith(`${key}=`));
+  return line === undefined ? '' : line.slice(key.length + 1).trim();
+};
 
 // ---------------------------------------------------------------- project
 
@@ -238,6 +265,106 @@ const ensureLoginV2 = async () => {
   log(`login version: v2 required, served from ${LOGIN_BASE_URI}`);
 };
 
+// ----------------------------------------------------------- actions v2
+
+/**
+ * The webhook that makes a *user* ending propagate, not just a session ending.
+ *
+ * Zitadel fires a back-channel logout token when a session it owns ends, and
+ * **nothing at all** when a user is deactivated — measured, and the reason issue
+ * #52 stayed open after back-channel logout shipped. An Actions v2 event
+ * execution is the seam that closes it: three events, one target, auth-service
+ * revokes the subject's sessions.
+ *
+ * `restAsync` because Zitadel must not wait on us — the response is ignored, and
+ * a slow auth-service must never slow a deactivation down. `PAYLOAD_TYPE_JSON`
+ * pairs the body with an HMAC in `ZITADEL-Signature`, which is that endpoint's
+ * only authentication.
+ *
+ * **The signing key is the whole difficulty.** Zitadel mints it inside
+ * `CreateTarget` and never serves it again — there is no read-back and no
+ * rotate-in-place — while config-service's seed is `ON CONFLICT DO NOTHING`, so
+ * a key that changed here would never reach the Postgres row that auth-service
+ * reads. The webhook would then reject every call, silently, and the bug would
+ * look unfixed. Hence: carry the key forward from the previous `.generated.env`
+ * whenever the target still exists, and only mint a new one when there is no
+ * target to match it. Both halves are recreated together by `dev:reset`, which
+ * is what makes that pairing safe.
+ */
+const ensureActionTarget = async () => {
+  const found = await api('POST', '/v2/actions/targets/search', {
+    filters: [
+      {
+        targetNameFilter: {
+          targetName: ACTION_TARGET_NAME,
+          method: 'TEXT_FILTER_METHOD_EQUALS',
+        },
+      },
+    ],
+  });
+  const existing = (found.targets ?? []).find(
+    target => target.name === ACTION_TARGET_NAME,
+  );
+  const knownKey = readKeyFrom(GENERATED_ENV, 'ZITADEL_ACTION_SIGNING_KEY');
+
+  if (existing !== undefined && knownKey !== '') {
+    // Reconcile rather than return, for the same reason `ensureApp` does: a
+    // field added to the body below must reach an instance seeded before it
+    // existed. The update leaves the signing key alone.
+    if (existing.endpoint !== PROVIDER_EVENTS_URI) {
+      await api('POST', `/v2/actions/targets/${existing.id}`, {
+        name: ACTION_TARGET_NAME,
+        restAsync: {},
+        endpoint: PROVIDER_EVENTS_URI,
+        timeout: '10s',
+      });
+      log(`action target "${ACTION_TARGET_NAME}" endpoint updated`);
+    } else {
+      log(`action target "${ACTION_TARGET_NAME}" already present`);
+    }
+    return { targetId: existing.id, signingKey: knownKey };
+  }
+
+  if (existing !== undefined) {
+    // The target outlived the file that held its key, so the key is gone for
+    // good and the only way back to a working pair is a new target.
+    await api('DELETE', `/v2/actions/targets/${existing.id}`);
+    log(
+      `action target "${ACTION_TARGET_NAME}" recreated: its signing key was lost`,
+    );
+  }
+
+  const created = await api('POST', '/v2/actions/targets', {
+    name: ACTION_TARGET_NAME,
+    restAsync: {},
+    endpoint: PROVIDER_EVENTS_URI,
+    timeout: '10s',
+    payloadType: 'PAYLOAD_TYPE_JSON',
+  });
+  if (typeof created.signingKey !== 'string' || created.signingKey === '') {
+    // Without it the webhook fails closed and every deactivation is silently
+    // not propagated — worth stopping the seed over.
+    throw new Error('the action target was created without a signing key');
+  }
+  log(`action target "${ACTION_TARGET_NAME}" created (${created.id})`);
+  return { targetId: created.id, signingKey: created.signingKey };
+};
+
+/**
+ * Route the three user-lifecycle events at the target. `SetExecution` is a
+ * write of the whole condition→targets mapping, so re-running it converges by
+ * construction and needs no search-then-create dance.
+ */
+const ensureExecutions = async targetId => {
+  for (const event of ACTION_EVENTS) {
+    await api('PUT', '/v2/actions/executions', {
+      condition: { event: { event } },
+      targets: [targetId],
+    });
+  }
+  log(`action executions: ${ACTION_EVENTS.join(', ')} -> ${targetId}`);
+};
+
 // ------------------------------------------------------------ login policy
 
 /**
@@ -308,18 +435,7 @@ const ensureSmtp = async () => {
 // --------------------------------------------------------------------- idp
 
 /** Read a KEY=value out of the platform's untracked `.env`, if it has one. */
-const readEnvValue = key => {
-  let contents;
-  try {
-    contents = readFileSync(ZITADEL_ENV, 'utf8');
-  } catch {
-    return '';
-  }
-  const line = contents
-    .split('\n')
-    .find(candidate => candidate.startsWith(`${key}=`));
-  return line === undefined ? '' : line.slice(key.length + 1).trim();
-};
+const readEnvValue = key => readKeyFrom(ZITADEL_ENV, key);
 
 /**
  * Social sign-in is wired only when a developer has supplied real credentials.
@@ -370,6 +486,8 @@ const main = async () => {
   const projectId = await ensureProject();
   const clientId = await ensureApp(projectId);
   await ensureLoginV2();
+  const { targetId, signingKey } = await ensureActionTarget();
+  await ensureExecutions(targetId);
   await ensureLoginPolicy();
   await ensureSmtp();
   await ensureGoogleIdp();
@@ -386,6 +504,10 @@ const main = async () => {
       `ZITADEL_PROJECT_ID=${projectId}`,
       `ZITADEL_CLIENT_ID=${clientId}`,
       `ZITADEL_PAT=${pat}`,
+      // Read back by the next run of this seed, not only by config-service:
+      // Zitadel never serves a target's signing key twice, so this file is the
+      // only place it survives a re-seed. See `ensureActionTarget`.
+      `ZITADEL_ACTION_SIGNING_KEY=${signingKey}`,
       // The ladder's L7 guard reads this back. It is what makes the guard a
       // cache key rather than a "has this ever run" flag — see `lib.sh`.
       `ZITADEL_SEED_REVISION=${SEED_REVISION}`,

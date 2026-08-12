@@ -58,8 +58,10 @@ import {
   MongoDatabaseTag,
 } from '@r10c/entifix-ts-mongo-client';
 import {
+  ACTION_SIGNATURE_HEADER,
   createOpaqueValue,
   createPkcePair,
+  ZitadelActionsTag,
   ZitadelManagementTag,
   ZitadelOidcTag,
 } from '@r10c/entifix-ts-zitadel-client';
@@ -648,6 +650,81 @@ const backChannelLogoutRoute = Effect.gen(function* () {
 );
 
 /**
+ * `POST /api/auth/provider-events` — the provider telling us a user's standing
+ * changed, so every session that user holds must end.
+ *
+ * The gap this closes, measured on Zitadel v4.16.2: ending a *session* fires a
+ * back-channel logout token, but deactivating a *user* fires nothing at all. The
+ * account was gone and the r10c session kept refreshing `200` — for up to its
+ * seven-day ceiling — which is the opposite of what deactivating an account is
+ * for. A Zitadel Actions v2 event execution is what fills it: event-driven, so
+ * nothing is added to `refresh`, and no availability of the provider is put on a
+ * path that runs every twelve minutes per active user (both rejected in ADR
+ * 0017, and still rejected).
+ *
+ * Named for the provider role rather than for Zitadel, like the identifiers it
+ * resolves: what arrives here is "the identity provider says this subject may no
+ * longer hold a session", and the next provider would say it the same way.
+ *
+ * Unauthenticated, necessarily — the caller is a server holding no cookie — and
+ * the HMAC over the raw body is the authentication, exactly as the logout
+ * token's signature is next door. Hence `req.text`: the MAC covers the bytes
+ * Zitadel sent, and `req.json` would hand back an object whose re-serialisation
+ * is a different byte sequence.
+ *
+ * Three shapes of answer, matching the back-channel route:
+ *  - a payload that does not verify is `400`, so a key mismatch is loud;
+ *  - a verified event naming a subject we do not know is `200`, because a `404`
+ *    would make this an oracle for whether an account exists here;
+ *  - a verified event we do not act on is `200`, so an execution can be added at
+ *    the provider without a deploy here.
+ *
+ * What it deliberately does **not** do is write `UserIdentity.status`. Nothing
+ * projects status back from Zitadel — `resolveSignIn` refuses a non-`Active`
+ * user *before* `projectIdentity` runs, and that projection never touches status
+ * — so a local `disabled` written here would survive a Zitadel *re*activation
+ * forever and lock the account out of r10c with nothing able to undo it.
+ * Revoking is also sufficient: Zitadel will not authenticate a deactivated user,
+ * so no new session can open behind the revocation.
+ *
+ * Stored `id_token`s are left to expire with their sessions, as in the
+ * back-channel route's `sub` fallback — `revokeAllForUser` does not hand back
+ * the ids that would be needed to sweep them, and nothing will ever read them.
+ */
+const providerEventRoute = Effect.gen(function* () {
+  const req = yield* HttpServerRequest.HttpServerRequest;
+  const rawBody = yield* req.text;
+  const signature = req.headers[ACTION_SIGNATURE_HEADER];
+
+  const actions = yield* ZitadelActionsTag;
+  const event = yield* actions.verifyEvent(rawBody, signature);
+
+  if (event.revokesSessions) {
+    const accounts = yield* AccountRepositoryTag;
+    const user = yield* accounts.findByIdentifier(event.subject);
+    if (user !== null) {
+      const sessions = yield* SessionStoreTag;
+      yield* sessions.revokeAllForUser(user.id);
+    }
+  }
+
+  return yield* HttpServerResponse.json(
+    { ok: true },
+    {
+      status: 200,
+      headers: Headers.fromInput({ 'cache-control': 'no-store' }),
+    },
+  );
+}).pipe(
+  Effect.catchAll(() =>
+    HttpServerResponse.json(
+      { error: 'invalid provider event', code: 'invalidRequest' },
+      { status: 400 },
+    ),
+  ),
+);
+
+/**
  * `POST /api/auth/refresh` — mint a fresh access token from a still-live
  * session, sliding its window. Fails `401` if the session was revoked, went idle
  * past its window, or reached its absolute ceiling — which is where the short
@@ -1049,6 +1126,9 @@ const identityRoutes = HttpRouter.empty.pipe(
   HttpRouter.post('/api/auth/logout', logoutRoute),
   // The other half of sign-out, called by Zitadel rather than by a browser.
   HttpRouter.post('/api/auth/backchannel-logout', backChannelLogoutRoute),
+  // And the half a logout token never covers: the provider ending a user, not a
+  // session. Also called by Zitadel, over Actions v2 rather than over OIDC.
+  HttpRouter.post('/api/auth/provider-events', providerEventRoute),
   HttpRouter.post('/api/auth/refresh', refreshRoute),
   // Session self-service. Every one of these resolves the caller from the
   // verified token and checks ownership — an id in the URL is never authority.
