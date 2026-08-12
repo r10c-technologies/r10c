@@ -1,9 +1,20 @@
-import type { BrowserContext } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 
 import { isMockProfile } from '../profile/profile';
 
-/** Let a hosted-UI step navigate before the next one is inspected. */
-const STEP_SETTLE_MS = 1_500;
+/** Give a hosted-UI component time to hydrate before its input is retyped. */
+const STEP_SETTLE_MS = 1_000;
+
+/**
+ * Ceiling for a single hosted-UI action. Short on purpose: an action that cannot
+ * complete has lost a race with a navigation, and the step machine wants to look
+ * again rather than sit on it until the test's own timeout fires.
+ */
+const ACTION_TIMEOUT_MS = 10_000;
+
+/** How long a step waits for the next screen: 40 × 250ms = 10s. */
+const STEP_POLLS = 40;
+const STEP_POLL_MS = 250;
 
 /** The cookies auth-app sets, host-scoped so the fleet shares them in dev. */
 const ACCESS_COOKIE = 'r10c_at';
@@ -83,6 +94,66 @@ const fabricateToken = (
 };
 
 /**
+ * Fill one field of the hosted login and submit it.
+ *
+ * The retype is load-bearing, not defensive. v2 disables Continue on
+ * `!formState.isValid` — react-hook-form state, not the DOM value — and
+ * Playwright can type into the input before Next has hydrated the component.
+ * Those keystrokes reach the DOM and never reach the form, so the button never
+ * enables, and the failure screenshot shows the value sitting in the field as if
+ * nothing were wrong. Typing again once the component is live registers it.
+ *
+ * `pressSequentially` rather than `fill` for the same reason at a smaller scale,
+ * and because it is what the login's own acceptance suite uses.
+ *
+ * Every action is bounded and nothing here throws: losing a race with a
+ * navigation is normal (the screen this was called for is already gone), and the
+ * caller re-reads the route and decides what to do next. An unbounded action
+ * would instead hang until the whole test times out, and report the wrong step.
+ */
+const submitHostedField = async (
+  page: Page,
+  testId: string,
+  value: string,
+): Promise<void> => {
+  const input = page.getByTestId(testId);
+  const submit = page.getByTestId('submit-button');
+  try {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await input.pressSequentially(value, { timeout: ACTION_TIMEOUT_MS });
+      if (await submit.isEnabled()) break;
+      // The keystrokes went to a component that was not listening yet. Clear
+      // what the DOM kept and type it again into the hydrated one.
+      await page.waitForTimeout(STEP_SETTLE_MS);
+      await input.fill('', { timeout: ACTION_TIMEOUT_MS });
+    }
+    await submit.click({ timeout: ACTION_TIMEOUT_MS });
+  } catch {
+    // Deliberately swallowed — see above.
+  }
+};
+
+/**
+ * Wait for the hosted login to actually move on.
+ *
+ * A fixed sleep after each step is a race, not a wait: when the redirect is slow
+ * the loop re-reads the same route and acts on a screen that is mid-navigation,
+ * and when it is fast the sleep is wasted. This returns as soon as the route
+ * changes or the session lands, whichever comes first.
+ */
+const waitForNextStep = async (
+  context: BrowserContext,
+  page: Page,
+  fromPath: string,
+): Promise<void> => {
+  for (let i = 0; i < STEP_POLLS; i += 1) {
+    if ((await context.cookies()).some(c => c.name === ACCESS_COOKIE)) return;
+    if (new URL(page.url()).pathname !== fromPath) return;
+    await page.waitForTimeout(STEP_POLL_MS);
+  }
+};
+
+/**
  * Sign in for real, through Zitadel's hosted login page.
  *
  * There is no API shortcut left and that is by design: auth-app has no endpoint
@@ -92,9 +163,13 @@ const fabricateToken = (
  * `live` profile performs it — which also means this fixture exercises the
  * redirect, the PKCE exchange and the callback rather than skipping them.
  *
- * Selectors are the hosted UI's, so they are the fragile part of this file. They
- * are targeted by `name` rather than by class or test id, since those are the
- * attributes Zitadel's login form actually commits to.
+ * Written against the **v2** hosted login (`ghcr.io/zitadel/zitadel-login`,
+ * `infra/local/zitadel-login`). Screens are told apart by their **route**, not by
+ * what is on them: v2 gives each step its own path under `/ui/v2/login`, while
+ * its `data-testid`s are reused across screens (`reset-button` is "Reset
+ * password" on one and "Skip" on another). Routes are also what the login app's
+ * own acceptance suite drives, so they are the part of its surface most likely
+ * to survive a release.
  */
 const signInThroughHostedUi = async (
   context: BrowserContext,
@@ -109,12 +184,14 @@ const signInThroughHostedUi = async (
     await page.goto(`${options.authAppUrl}/api/auth/oidc/start`);
 
     // A step machine rather than a fixed sequence, because the hosted UI's path
-    // is not fixed. Three shapes a scripted login/password pair walks into:
+    // is not fixed. Four shapes a scripted login/password pair walks into:
     //
-    // - **"Select Account"**, when the browser still holds a provider session
-    //   from an earlier spec. There is no login field on it at all.
-    // - **"2-Factor Setup"**, offered after the password to anyone with no
-    //   enrolled factor. `forceMfa` is off, so it is a prompt with a Skip.
+    // - **`/loginname`**, the identifier screen, where a cold run starts.
+    // - **`/password`**, after it.
+    // - **`/mfa/set`**, offered after the password to anyone with no enrolled
+    //   factor. `forceMfa` is off, so it is a prompt with a skip.
+    // - **`/accounts`**, when the browser still holds a provider session from an
+    //   earlier spec. There is no login field on it at all.
     // - **no screen at all**, when the provider session is still live and the
     //   authorization completes on the redirect.
     //
@@ -125,49 +202,51 @@ const signInThroughHostedUi = async (
     for (let step = 0; step < 8; step += 1) {
       if ((await context.cookies()).some(c => c.name === ACCESS_COOKIE)) break;
 
-      const otherUser = page.getByRole('link', { name: /other user/i });
-      if (await otherUser.count()) {
-        await otherUser.first().click();
-        await page.waitForTimeout(STEP_SETTLE_MS);
+      const path = new URL(page.url()).pathname;
+
+      if (path.endsWith('/accounts')) {
+        await page
+          .getByRole('link', { name: /add another account/i })
+          .click({ timeout: ACTION_TIMEOUT_MS });
+        await waitForNextStep(context, page, path);
         continue;
       }
 
       // Skipping the enrolment offer, not declining MFA: a user who HAS a
-      // factor is asked to verify instead, and that screen has no Skip — which
-      // is why a spec needing an enrolled user must seed its own code.
-      const skip = page.getByRole('button', { name: /^skip$/i });
-      if (await skip.count()) {
-        await skip.first().click();
-        await page.waitForTimeout(STEP_SETTLE_MS);
+      // factor is challenged at `/otp/...` or `/u2f` instead, and those screens
+      // have no skip — which is why a spec needing an enrolled user must seed
+      // its own code.
+      if (path.includes('/mfa/set')) {
+        await page
+          .getByTestId('reset-button')
+          .click({ timeout: ACTION_TIMEOUT_MS });
+        await waitForNextStep(context, page, path);
         continue;
       }
 
-      // `:visible` is load-bearing on both, not defensive styling. The password
-      // page carries a HIDDEN `loginName` input as an autocomplete hint, so a
-      // plain name selector matches it, reports a count of one, and then blocks
-      // forever in `fill` waiting for an element that will never be visible.
-      const loginName = page.locator('input[name="loginName"]:visible');
-      if (await loginName.count()) {
-        await loginName.fill(options.identifier);
-        await page.click('button[type="submit"]');
-        await page.waitForTimeout(STEP_SETTLE_MS);
+      if (path.endsWith('/loginname')) {
+        await submitHostedField(
+          page,
+          'username-text-input',
+          options.identifier,
+        );
+        await waitForNextStep(context, page, path);
         continue;
       }
 
-      const password = page.locator('input[name="password"]:visible');
-      if (await password.count()) {
-        await password.fill(options.password);
-        await page.click('button[type="submit"]');
-        await page.waitForTimeout(STEP_SETTLE_MS);
+      if (path.endsWith('/password')) {
+        await submitHostedField(page, 'password-text-input', options.password);
+        await waitForNextStep(context, page, path);
         continue;
       }
 
-      // No cookie yet and nothing recognisable to do — an MFA challenge, or a
-      // screen this fixture has not been taught. Say which, because a bare
-      // timeout would send the reader looking in the wrong place.
+      // No cookie yet and on a route this fixture has not been taught — an MFA
+      // challenge, a password change demand, or a screen v2 grew since. Name the
+      // route, because a bare timeout would send the reader looking in the wrong
+      // place.
       throw new Error(
         `seedSession: stuck on the hosted login at ${page.url()} ("${await page.title()}"). ` +
-          'It is asking for something this fixture does not handle — a second factor, most likely.',
+          `Route "${path}" is not one this fixture handles — a second factor, most likely.`,
       );
     }
 

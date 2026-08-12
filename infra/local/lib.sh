@@ -27,23 +27,40 @@ PORT_SPECS=(
 
 # Kustomize folders applied by apply.sh, in dependency order. Zitadel goes last
 # because it needs Postgres to exist before its own init runs.
+#
+# `zitadel-login` is deliberately absent: it mounts a Secret holding a PAT that
+# does not exist until Zitadel has created its first instance, so it is applied
+# by its own rung (L6) rather than at L3 with everything else. See
+# LOGIN_PLATFORM below.
 PLATFORMS=(mongodb redis rabbitmq postgres otel-lgtm mailpit zitadel)
+
+# The v2 hosted login. A separate Next.js container that the core image does not
+# serve, so without it every authorization redirect answers 404 while
+# `/debug/ready` stays green — which is why it gets a rung and a probe of its
+# own rather than being trusted to come up.
+LOGIN_PLATFORM=zitadel-login
+LOGIN_DEPLOYMENT=zitadel-login
+LOGIN_NODEPORT=30081
+LOGIN_SECRET=zitadel-login-secret
 
 # The full host->node mapping minikube must be created with. Every NodePort the
 # manifests expose, including the ones the health ladder does not probe
 # (rabbitmq management 31672, grafana 30000, OTLP/gRPC 30317, mailpit's web UI
 # 30826).
-MINIKUBE_PORTS="30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080,30000:30000,30317:30317,30318:30318,30825:30825,30826:30826"
+MINIKUBE_PORTS="30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,30080:30080,30081:30081,30000:30000,30317:30317,30318:30318,30825:30825,30826:30826"
 
 # Ports that must be published by the VM/container for the fleet to work at all.
 # Zitadel is in this list now that it authenticates every sign-in: without it
 # nobody can obtain a session, which is not a degraded fleet but a stopped one.
-REQUIRED_HOST_PORTS=(30017 30379 30672 30432 30318 30080 30825)
+# 30081 is the hosted login and carries exactly the same weight — the core
+# redirects the browser there and serves nothing on that path itself.
+REQUIRED_HOST_PORTS=(30017 30379 30672 30432 30318 30080 30081 30825)
 
-# Written by the L6 seed rung, read by config-service's dev target. Neither file
-# is committed: both are regenerated from scratch on every reset, because the
-# instance they describe is too.
+# Written by the L7 seed rung, read by config-service's dev target. None of these
+# files are committed: all are regenerated from scratch on every reset, because
+# the instance they describe is too.
 ZITADEL_PAT_FILE="$INFRA_DIR/zitadel/.pat"
+ZITADEL_LOGIN_PAT_FILE="$INFRA_DIR/zitadel/.login-client.pat"
 ZITADEL_GENERATED_ENV="$INFRA_DIR/zitadel/.generated.env"
 
 # Serializes healing when several `ensure-infra` tasks race (a single app `dev`
@@ -113,10 +130,11 @@ probed_labels() {
 
 # Bumped in the same commit as any change to `tools/zitadel-seed.mjs` that adds
 # or alters a setting on the instance. Rev 1 → 2 added the OIDC app's
-# `backChannelLogoutUri`.
-ZITADEL_SEED_REVISION=2
+# `backChannelLogoutUri`; rev 2 → 3 turned the v2 hosted login on and pointed
+# the instance at its base URI.
+ZITADEL_SEED_REVISION=3
 
-# L6: has the Zitadel instance been given its project, app, policies and SMTP —
+# L7: has the Zitadel instance been given its project, app, policies and SMTP —
 # by the version of the seed that is checked in right now?
 #
 # Still a file read, so the ladder's fast path pays nothing to ask. But it is a
@@ -132,36 +150,88 @@ zitadel_seeded() {
       "$ZITADEL_GENERATED_ENV"
 }
 
-# Copy the machine token Zitadel minted at first init out of the pod.
+# Copy one of the machine tokens Zitadel minted at first init out of the pod.
 #
-# Zitadel writes it exactly once, to an emptyDir, so a pod restart loses the
+# Zitadel writes each exactly once, to an emptyDir, so a pod restart loses the
 # file while the instance itself survives in Postgres. That is why the host copy
 # is authoritative once taken: we only ever read from the pod when we have no
 # copy of our own, and if both are gone the instance is unreachable to us and
 # the only honest answer is a reset.
-extract_zitadel_pat() {
-  [[ -s "$ZITADEL_PAT_FILE" ]] && return 0
-  local pat
+#
+# Args: <in-pod filename under /machinekey> <host destination> <what it is for>
+extract_machine_pat() {
+  local pod_file="$1" dest="$2" what="$3" pat
+  [[ -s "$dest" ]] && return 0
   # `-c pat-reader`: the zitadel container is distroless and has no `cat`.
-  pat="$(kubectl -n "$NS" exec "deploy/zitadel" -c pat-reader -- cat /machinekey/seed.pat 2>/dev/null || true)"
+  pat="$(kubectl -n "$NS" exec "deploy/zitadel" -c pat-reader -- cat "/machinekey/$pod_file" 2>/dev/null || true)"
   if [[ -z "$pat" ]]; then
-    log_err "Zitadel is up but its seed token is gone (the pod restarted after first init)."
-    echo "  The instance in Postgres has a token we can no longer read. Recreate both:" >&2
+    log_err "Zitadel is up but its $what token is gone."
+    echo "  Either the pod restarted after first init, or this instance predates" >&2
+    echo "  the setting that mints the token — a FIRSTINSTANCE_* key only ever" >&2
+    echo "  fires when the instance is created. Either way, recreate both:" >&2
     return 1
   fi
-  printf '%s' "$pat" > "$ZITADEL_PAT_FILE"
-  chmod 600 "$ZITADEL_PAT_FILE" 2>/dev/null || true
+  printf '%s' "$pat" > "$dest"
+  chmod 600 "$dest" 2>/dev/null || true
   return 0
 }
 
-# L6 proper: give the instance everything the fleet expects to find in it.
+extract_zitadel_pat() {
+  extract_machine_pat seed.pat "$ZITADEL_PAT_FILE" seed
+}
+
+# L6: hand the login container the IAM_LOGIN_CLIENT token it authenticates to
+# Zitadel's session API with. Applied imperatively rather than through kustomize
+# because the value does not exist until the core's first init has run.
+#
+# `create --dry-run | apply` is the idempotent form, which matches the rung's
+# posture everywhere else: L3 re-applies the manifests on every heal because a
+# resource existing says nothing about it matching what is checked in.
+ensure_login_secret() {
+  extract_machine_pat login-client.pat "$ZITADEL_LOGIN_PAT_FILE" "login client" || return 1
+  kubectl -n "$NS" create secret generic "$LOGIN_SECRET" \
+    --from-file="login-client.pat=$ZITADEL_LOGIN_PAT_FILE" \
+    --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+}
+
+# L6's probe. `/ui/v2/login/healthy` is served without touching the Zitadel API,
+# so it answers the one question this rung owns: is the login itself up.
+login_ready() {
+  port_open "$LOGIN_NODEPORT" || return 1
+  has curl || return 0
+  curl -fsS --max-time 2 "http://127.0.0.1:$LOGIN_NODEPORT/ui/v2/login/healthy" >/dev/null 2>&1
+}
+
+# L6 proper. Deliberately ordered BEFORE the seed: the seed is what turns login
+# v2 on, and flipping that switch while nothing serves `/ui/v2/login` is the
+# green-probes-404-sign-in failure this whole rung exists to prevent.
+ensure_login() {
+  local timeout="${INFRA_ROLLOUT_TIMEOUT:-180s}" attempts="${INFRA_PROBE_ATTEMPTS:-45}" i
+  ensure_login_secret || return 1
+  log_heal "zitadel-login: reconciling the hosted login workload"
+  kubectl apply -k "$INFRA_DIR/$LOGIN_PLATFORM" >/dev/null || return 1
+  kubectl -n "$NS" rollout status "deploy/$LOGIN_DEPLOYMENT" --timeout="$timeout" >/dev/null 2>&1 || {
+    log_err "$LOGIN_DEPLOYMENT did not become Ready."
+    kubectl -n "$NS" get pods -l "app=$LOGIN_DEPLOYMENT" 2>/dev/null || true
+    echo "  kubectl -n $NS logs -l app=$LOGIN_DEPLOYMENT --tail=50" >&2
+    return 1
+  }
+  for (( i = 0; i < attempts; i++ )); do
+    login_ready && return 0
+    sleep 2
+  done
+  log_err "the hosted login is Ready but :$LOGIN_NODEPORT does not answer /ui/v2/login/healthy."
+  return 1
+}
+
+# L7 proper: give the instance everything the fleet expects to find in it.
 # Idempotent — every step searches before it creates, and the OIDC app is
 # reconciled rather than skipped — so re-running against a seeded instance is
 # safe and is exactly what a revision bump asks for.
 seed_zitadel() {
   zitadel_seeded && return 0
   extract_zitadel_pat || return 1
-  log_heal "zitadel: seeding project, OIDC app, login policy and SMTP"
+  log_heal "zitadel: seeding project, OIDC app, login v2, login policy and SMTP"
   ZITADEL_PAT_FILE="$ZITADEL_PAT_FILE" \
   ZITADEL_GENERATED_ENV="$ZITADEL_GENERATED_ENV" \
   ZITADEL_ISSUER="http://localhost:30080" \

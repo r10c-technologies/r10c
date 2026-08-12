@@ -92,7 +92,7 @@ fi
 # them behind is worse than deleting them: `zitadel_seeded` would report the new
 # instance as already seeded and the fleet would boot pointing at a dead app.
 log "discarding the previous Zitadel instance's generated credentials"
-rm -f "$ZITADEL_PAT_FILE" "$ZITADEL_GENERATED_ENV"
+rm -f "$ZITADEL_PAT_FILE" "$ZITADEL_LOGIN_PAT_FILE" "$ZITADEL_GENERATED_ENV"
 
 log "applying manifests"
 bash "$DIR/apply.sh"
@@ -121,6 +121,12 @@ if ! all_probes_green; then
   fi
   exit 1
 fi
+
+# ------------------------------------------------------------- hosted login
+# The token this mounts is minted by the core at first init, which the wipe
+# above has just re-run — so this is the moment it exists. Before the seed, for
+# the reason `ensure_login` documents.
+ensure_login || exit 1
 
 # ------------------------------------------------------------- zitadel seed
 # The fresh instance has no project, no OIDC app and no SMTP provider, so a

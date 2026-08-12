@@ -62,6 +62,8 @@ rung; a healthy cluster costs ~0.1s (five TCP probes plus one `get deploy`).
 | L3 workloads    | deployments match the manifests     | `apply.sh` (always, off the fast path) |
 | L4 rollout      | each deployment has a Ready replica | delete the pod once, re-wait           |
 | L5 probes       | TCP + protocol handshake            | back to L4                             |
+| L6 hosted login | v2 login answering on `:30081`      | secret from the PAT + `apply -k`       |
+| L7 zitadel seed | instance seeded at the current rev  | `tools/zitadel-seed.mjs`               |
 
 Two things it does **not** do, on purpose: it never deletes data, and it never
 recreates the cluster. Both are `reset.sh`'s job, and it exits naming the exact
@@ -153,20 +155,40 @@ line there plus its kustomize folder.
 Zitadel is **load-bearing**, not opt-in: auth-service authenticates against it
 and can sign nobody in without it ([ADR 0016](../../docs/adr/0016-zitadel-authenticates-r10c-authorizes.md)).
 It costs a Postgres rollout wait plus ~1min of self-init on a first apply, which
-is why the ladder's L6 rung caches what it produced.
+is why the ladder's L7 rung caches what it produced.
 
-**The L6 rung.** After the probes go green, `ensure.sh` extracts the machine
-token Zitadel minted at first init (`infra/local/zitadel/.pat`) and runs
-`tools/zitadel-seed.mjs`, which is idempotent and ensures the `r10c` project, a
-**public** OIDC app (PKCE, no secret), a login policy with self-registration and
-OTP available but **not forced**, SMTP pointed at Mailpit, and a Google IdP *only
-when* `infra/local/zitadel/.env` carries credentials. It writes the per-instance
-client id and token to `infra/local/zitadel/.generated.env` (gitignored), which
-config-service's seed reads.
+**It is two containers.** The core image serves the API and the console; the
+hosted login is a separate Next.js app (`infra/local/zitadel-login`) on its own
+NodePort **30081**, and Zitadel redirects the browser there. Without it every
+sign-in answers 404 while `/debug/ready` stays green, which is why it gets a rung
+and a probe rather than being trusted to come up
+([ADR 0018](../../docs/adr/0018-the-hosted-login-is-a-second-container.md)).
 
-Both files are deleted by `reset.sh`, which is deliberate: the instance and the
-configuration naming it are recreated together, so a stale client id can never
-outlive the instance it pointed at.
+**The L6 rung.** After the probes go green, `ensure.sh` extracts the
+`IAM_LOGIN_CLIENT` token Zitadel minted at first init
+(`infra/local/zitadel/.login-client.pat`), applies it as `zitadel-login-secret`,
+and brings the login workload up. It runs _before_ the seed on purpose: the seed
+is what points the instance at the login, and flipping that switch towards an
+address serving nothing is the failure this rung exists to prevent.
+
+**The L7 rung.** `ensure.sh` then extracts the seed's own machine token
+(`infra/local/zitadel/.pat`) and runs `tools/zitadel-seed.mjs`, which is
+idempotent and ensures the `r10c` project, a **public** OIDC app (PKCE, no
+secret), login v2 required and pointed at `:30081`, a login policy with
+self-registration and OTP available but **not forced**, SMTP pointed at Mailpit,
+and a Google IdP _only when_ `infra/local/zitadel/.env` carries credentials. It
+writes the per-instance client id and token to
+`infra/local/zitadel/.generated.env` (gitignored), which config-service's seed
+reads.
+
+All three files are deleted by `reset.sh`, which is deliberate: the instance and
+the configuration naming it are recreated together, so a stale client id can
+never outlive the instance it pointed at.
+
+> **Both machine tokens come from first-instance init.** A `FIRSTINSTANCE_*` key
+> fires only when the instance is created, so an instance older than one of them
+> never grows the user it describes. There is no in-place upgrade — the fix is
+> `pnpm run <app>:dev:reset`, and the ladder says so when the token is missing.
 
 ### Status
 
@@ -182,15 +204,16 @@ kubectl get pods,pvc,svc -n marketplace-local-infra # raw
 No port-forward needed — the cluster is started with `--ports`, so each
 NodePort is reachable on `127.0.0.1`.
 
-| Platform   | URL / DSN                                                                               | Creds source      |
-| ---------- | --------------------------------------------------------------------------------------- | ----------------- |
-| MongoDB    | `mongodb://admin:password@127.0.0.1:30017`                                              | `mongodb/.env`    |
-| Redis      | `redis://:localdev@127.0.0.1:30379` (`redis-cli -p 30379 -a localdev ping`)             | `redis/.env`      |
-| RabbitMQ   | `amqp://admin:password@127.0.0.1:30672` · management UI `http://localhost:31672`        | `rabbitmq/.env`   |
-| PostgreSQL | `postgres://postgres:postgres@127.0.0.1:30432/postgres`                                 | `postgres/.env`   |
-| Zitadel    | console `http://localhost:30080` (admin `zitadel-admin`, pw in `zitadel/.env`)          | `zitadel/.env`    |
-| Mailpit    | web UI `http://localhost:30826` · SMTP `127.0.0.1:30825` (no auth)                      | — (dev, no creds) |
-| otel-lgtm  | Grafana `http://localhost:30000` (anonymous admin) · OTLP/HTTP `http://127.0.0.1:30318` | — (dev, no creds) |
+| Platform      | URL / DSN                                                                               | Creds source      |
+| ------------- | --------------------------------------------------------------------------------------- | ----------------- |
+| MongoDB       | `mongodb://admin:password@127.0.0.1:30017`                                              | `mongodb/.env`    |
+| Redis         | `redis://:localdev@127.0.0.1:30379` (`redis-cli -p 30379 -a localdev ping`)             | `redis/.env`      |
+| RabbitMQ      | `amqp://admin:password@127.0.0.1:30672` · management UI `http://localhost:31672`        | `rabbitmq/.env`   |
+| PostgreSQL    | `postgres://postgres:postgres@127.0.0.1:30432/postgres`                                 | `postgres/.env`   |
+| Zitadel       | console `http://localhost:30080` (admin `zitadel-admin`, pw in `zitadel/.env`)          | `zitadel/.env`    |
+| Zitadel login | hosted login v2 `http://localhost:30081/ui/v2/login` (the core redirects here)          | — (dev, no creds) |
+| Mailpit       | web UI `http://localhost:30826` · SMTP `127.0.0.1:30825` (no auth)                      | — (dev, no creds) |
+| otel-lgtm     | Grafana `http://localhost:30000` (anonymous admin) · OTLP/HTTP `http://127.0.0.1:30318` | — (dev, no creds) |
 
 ---
 
@@ -202,6 +225,7 @@ infra/local/
   apply.sh  teardown.sh
   mongodb/  redis/  rabbitmq/  postgres/   # each: kustomization + manifests + .env.example
   zitadel/  mailpit/  otel-lgtm/
+  zitadel-login/                           # applied by the L6 rung, not by apply.sh
 ```
 
 Each folder is a kustomize target: `kubectl apply -k infra/local/<platform>`.

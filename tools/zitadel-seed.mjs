@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
  * Give a freshly-initialised Zitadel instance everything the r10c fleet expects
- * to find in it: a project, the OIDC app auth-app signs in through, TOTP as an
- * available second factor, SMTP pointed at Mailpit, and — only when credentials
- * are present — a Google identity provider.
+ * to find in it: a project, the OIDC app auth-app signs in through, the v2
+ * hosted login and where to find it, TOTP as an available second factor, SMTP
+ * pointed at Mailpit, and — only when credentials are present — a Google
+ * identity provider.
  *
- * Run by the L6 rung of `infra/local/ensure.sh` (and again at the end of
+ * Run by the L7 rung of `infra/local/ensure.sh` (and again at the end of
  * `reset.sh`), never by hand in a normal workflow. It is **idempotent**: every
  * step looks for what it would create before creating it, because the ladder
  * may re-run it after a partial failure and a duplicate OIDC app would hand out
@@ -41,7 +42,7 @@ const APP_NAME = 'r10c-web';
 /**
  * Bumped whenever this file starts configuring something new. `infra/local/lib.sh`
  * owns the value and passes it in; it is stamped into `.generated.env` so the
- * ladder's L6 guard can tell "seeded" from "seeded by an older version of this
+ * ladder's L7 guard can tell "seeded" from "seeded by an older version of this
  * script" — which is the difference between a new setting reaching every
  * machine and reaching only the ones that happened to reset.
  */
@@ -66,6 +67,18 @@ const POST_LOGOUT_URIS = ['http://localhost:3002/'];
 const BACK_CHANNEL_LOGOUT_URI =
   process.env['ZITADEL_BACKCHANNEL_LOGOUT_URI'] ??
   'http://host.minikube.internal:3102/api/auth/backchannel-logout';
+
+/**
+ * Where the browser is sent to actually sign in. Browser-facing, so `localhost`
+ * — and its own NodePort, because the login is a separate container serving a
+ * separate origin rather than a path on Zitadel's. Zitadel appends its own
+ * suffixes to this base (`login?authRequest=`, `logout?post_logout_redirect=`),
+ * hence the trailing slash. It must agree with `NEXT_PUBLIC_BASE_PATH` and the
+ * NodePort in `infra/local/zitadel-login/`.
+ */
+const LOGIN_BASE_URI =
+  process.env['ZITADEL_LOGIN_BASE_URI'] ??
+  'http://localhost:30081/ui/v2/login/';
 
 const pat = readFileSync(PAT_FILE, 'utf8').trim();
 
@@ -191,28 +204,38 @@ const ensureApp = async projectId => {
 // ----------------------------------------------------------- login version
 
 /**
- * Pin the instance to the **v1** hosted login.
+ * Point the instance at the **v2** hosted login, and require it.
  *
- * Zitadel v4 defaults `loginV2.required` to true, and the v2 login is a
- * *separate* Next.js service (`ghcr.io/zitadel/zitadel-login`) that the core
- * image does not serve. With the default left alone, every authorization
- * redirect lands on `/ui/v2/login/login?authRequest=…` and answers **404** — the
- * sign-in button appears to be broken while every probe stays green, which is
- * precisely the kind of failure a health ladder cannot see.
+ * The v2 login is a *separate* Next.js service (`ghcr.io/zitadel/zitadel-login`)
+ * that the core image does not serve, which is the whole hazard here: with the
+ * feature on and nothing serving `/ui/v2/login`, every authorization redirect
+ * answers **404** while `/debug/ready` stays green — a broken sign-in button
+ * behind a healthy fleet. That container is `infra/local/zitadel-login`, and the
+ * ladder brings it up at L6, one rung *before* this seed runs at L7, precisely so
+ * the switch is never flipped towards an address that answers nothing.
  *
- * Deploying the second container is the alternative. It is not worth it here:
- * the v1 login serves password, TOTP, social providers and self-registration —
- * everything this lab exercises — and one fewer moving part in a dev fleet is
- * worth more than a newer screen.
+ * `baseUri` is a browser-facing URL on its own origin (`localhost:30081`) rather
+ * than a path on Zitadel's. Upstream's compose puts both behind one domain with
+ * Traefik; that would cost this lab a reverse-proxy workload and h2c passthrough
+ * for Zitadel's gRPC, and buy nothing — `localhost` cookies ignore the port, so
+ * the two origins already share a jar. Zitadel derives the login and logout URLs
+ * it redirects to by appending to this base.
+ *
+ * Reconciled on `baseUri`, not merely on `required`: an instance seeded before
+ * the port moved would otherwise keep the old address forever, which is the same
+ * trap `ensureApp` fell into with `backChannelLogoutUri`.
  */
-const ensureLoginVersion = async () => {
+const ensureLoginV2 = async () => {
   const features = await api('GET', '/v2/features/instance');
-  if (features?.loginV2?.required !== true) {
-    log('login version: v1 already in use');
+  const current = features?.loginV2;
+  if (current?.required === true && current?.baseUri === LOGIN_BASE_URI) {
+    log(`login version: v2 already in use (${LOGIN_BASE_URI})`);
     return;
   }
-  await api('PUT', '/v2/features/instance', { loginV2: { required: false } });
-  log('login version: pinned to v1 (the core image serves no v2 login)');
+  await api('PUT', '/v2/features/instance', {
+    loginV2: { required: true, baseUri: LOGIN_BASE_URI },
+  });
+  log(`login version: v2 required, served from ${LOGIN_BASE_URI}`);
 };
 
 // ------------------------------------------------------------ login policy
@@ -346,7 +369,7 @@ const ensureGoogleIdp = async () => {
 const main = async () => {
   const projectId = await ensureProject();
   const clientId = await ensureApp(projectId);
-  await ensureLoginVersion();
+  await ensureLoginV2();
   await ensureLoginPolicy();
   await ensureSmtp();
   await ensureGoogleIdp();
@@ -363,7 +386,7 @@ const main = async () => {
       `ZITADEL_PROJECT_ID=${projectId}`,
       `ZITADEL_CLIENT_ID=${clientId}`,
       `ZITADEL_PAT=${pat}`,
-      // The ladder's L6 guard reads this back. It is what makes the guard a
+      // The ladder's L7 guard reads this back. It is what makes the guard a
       // cache key rather than a "has this ever run" flag — see `lib.sh`.
       `ZITADEL_SEED_REVISION=${SEED_REVISION}`,
       '',

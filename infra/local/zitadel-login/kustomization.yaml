@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: marketplace-local-infra
+resources:
+  - deployment.yaml
+  - service.yaml
+# No secretGenerator on purpose. `zitadel-login-secret` holds the PAT Zitadel
+# generates for the IAM_LOGIN_CLIENT machine user at first-instance init, so its
+# value does not exist until the core has booted. The ladder's L6 rung extracts
+# it out of the running pod and applies the Secret imperatively — which is also
+# why this kustomization is NOT part of `PLATFORMS` in `lib.sh` (that list is
+# applied at L3, long before the token exists).

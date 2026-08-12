@@ -39,6 +39,7 @@ Format: [Michael Nygard's ADR template](https://github.com/joelparkerhenderson/a
 | [0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md)       | Asymmetric access tokens, and the party role as a claim                                              | Accepted |
 | [0016](0016-zitadel-authenticates-r10c-authorizes.md)                   | Zitadel authenticates; r10c authorizes and mints its own tokens                                      | Accepted |
 | [0017](0017-back-channel-logout-from-the-identity-provider.md)          | Back-channel logout: the provider can end an r10c session                                            | Accepted |
+| [0018](0018-the-hosted-login-is-a-second-container.md)                  | The hosted login is a second container (Zitadel login v2 on its own origin)                          | Accepted |
 
 The business-side records (0005 onward) are summarized as one map in
 [docs/BUSINESS-ARCHITECTURE.md](../BUSINESS-ARCHITECTURE.md).

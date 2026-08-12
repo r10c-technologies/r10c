@@ -254,10 +254,27 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   writes r10c's `status`. The seed registers the URI at
   **`host.minikube.internal:3102`**, not `localhost` — Zitadel calls it from
   inside the cluster. And `ZITADEL_SEED_REVISION` in `infra/local/lib.sh` must be
-  bumped with any seed change that adds a setting: the L6 guard is a cache key,
+  bumped with any seed change that adds a setting: the L7 guard is a cache key,
   and `ensure.sh`'s fast path exits before the seed rung is reached, so without a
   bump the change reaches only machines that happened to reset. See
   [ADR 0017](docs/adr/0017-back-channel-logout-from-the-identity-provider.md).
+- **The hosted login is a second container.** Zitadel v4's login is a separate
+  Next.js image the core does not serve, so the lab runs `infra/local/zitadel-login`
+  on its own NodePort **30081** and the seed sets `loginV2.required` +
+  `baseUri: http://localhost:30081/ui/v2/login/`. Get the order wrong and you get
+  the one failure a health ladder cannot see — a 404 sign-in behind green probes —
+  which is why the login is **L6** and the seed that points at it is **L7**, and
+  why `ensure.sh`'s fast path asks `login_ready`. `zitadel-login` is deliberately
+  not in `PLATFORMS` (L3 applies that list before the token exists). The token is
+  an `IAM_LOGIN_CLIENT` PAT Zitadel writes at **first-instance init**
+  (`ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_*`), extracted through the `pat-reader`
+  sidecar into `zitadel-login-secret` — so an instance older than that setting
+  never grows the user and the only fix is `dev:reset`. Nothing above the OIDC
+  boundary changed: `oidc-client.ts` reads every URL from discovery. The e2e
+  fixture does — `seedSession` switches on v2's **routes** (`/loginname`,
+  `/password`, `/mfa/set`, `/accounts`), because v2 reuses `data-testid`s across
+  screens (`reset-button` is both "Reset password" and "Skip"). See
+  [ADR 0018](docs/adr/0018-the-hosted-login-is-a-second-container.md).
 - **Auth**: auth-service owns `oidc/start`/`oidc/callback`/`logout`/`refresh` and
   returns JSON;
   each `-app` mints its own `r10c_sid`/`r10c_at` httpOnly cookies. A backend authorizing

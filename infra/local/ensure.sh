@@ -11,7 +11,8 @@
 #   L3 workloads    namespace + deployments reconciled   -> apply.sh
 #   L4 rollout      each deployment has a Ready replica  -> restart the pod once
 #   L5 probes       TCP + protocol handshake             -> back to L4
-#   L6 zitadel seed instance has project/app/policy/SMTP -> tools/zitadel-seed.mjs
+#   L6 hosted login v2 login container up on :30081      -> secret + apply -k
+#   L7 zitadel seed instance has project/app/policy/SMTP -> tools/zitadel-seed.mjs
 #
 # Healing here is destructive nowhere. When the ladder cannot fix something it
 # exits non-zero naming the exact command that can.
@@ -47,8 +48,10 @@ wait_for_probes() {
 
 # ---------------------------------------------------------------- fast path
 # The common case: everything is already up. No lock, no kubectl, ~0.2s.
-# `zitadel_seeded` is a file test, so adding L6 to this question costs nothing.
-if all_probes_green && zitadel_seeded; then
+# `zitadel_seeded` is a file test and `login_ready` one local HTTP call, so
+# adding L6 and L7 to this question costs almost nothing — and leaving the login
+# out would let the fast path green-light a fleet whose sign-in button 404s.
+if all_probes_green && login_ready && zitadel_seeded; then
   log_ok "local infra healthy ($(probed_labels))"
   exit 0
 fi
@@ -57,7 +60,7 @@ require_tools || exit 1
 acquire_heal_lock || exit 1
 
 # Someone else may have healed while we queued on the lock.
-if all_probes_green && zitadel_seeded; then
+if all_probes_green && login_ready && zitadel_seeded; then
   log_ok "local infra healthy (healed by a parallel task)"
   exit 0
 fi
@@ -175,9 +178,18 @@ if ! wait_for_probes; then
   exit 1
 fi
 
-# ---------------------------------------------------------------- L6 zitadel seed
-# Runs only once per instance, and only after L5: the seed talks to Zitadel's
-# API, so it needs the instance actually serving rather than merely rolled out.
+# ---------------------------------------------------------------- L6 hosted login
+# After L5 because the token it mounts is minted by the core, and before L7
+# because L7 is what points the instance at it.
+if ! ensure_login; then
+  reset_hint
+  exit 1
+fi
+
+# ---------------------------------------------------------------- L7 zitadel seed
+# Runs only once per instance revision, and only after L5: the seed talks to
+# Zitadel's API, so it needs the instance actually serving rather than merely
+# rolled out.
 if ! seed_zitadel; then
   reset_hint
   exit 1
