@@ -158,6 +158,9 @@
     },
     {
       "path": "./tools/slices"
+    },
+    {
+      "path": "./packages/shells/next/auth"
     }
   ]
 }

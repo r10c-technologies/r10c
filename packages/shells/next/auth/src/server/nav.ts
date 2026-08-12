@@ -17,8 +17,13 @@ interface GuardedNavItem {
   permission?: Permission;
 }
 
+/**
+ * `title` is required, unlike `NavSection`'s. An untitled sidebar section is a
+ * shape the shell supports and this table has never wanted, and leaving it
+ * optional here meant carrying a branch nothing could reach.
+ */
 interface GuardedNavSection {
-  title?: string;
+  title: string;
   items: GuardedNavItem[];
 }
 
@@ -37,10 +42,10 @@ const ACCOUNT_ICONS: Record<string, string> = {
 
 export const NAV: GuardedNavSection[] = [
   {
-    title: 'app:auth.nav.identity',
+    title: 'shell:auth.nav.identity',
     items: [
       {
-        label: 'app:auth.nav.users',
+        label: 'shell:auth.nav.users',
         href: '/users',
         icon: '◉',
         permission: 'authn:user-identity:read',
@@ -48,7 +53,7 @@ export const NAV: GuardedNavSection[] = [
     ],
   },
   {
-    title: 'app:auth.nav.accountSection',
+    title: 'shell:auth.nav.accountSection',
     // Derived from the shell's `ACCOUNT_DESTINATIONS` rather than written out
     // again: this sidebar and the account menu are the same three screens, and
     // they were drifting as two hand-kept lists. No permission on any of them —
@@ -73,7 +78,7 @@ export const navFor = (
   translate: (key: string) => string,
 ): NavSection[] =>
   NAV.map(section => ({
-    title: section.title === undefined ? undefined : translate(section.title),
+    title: translate(section.title),
     items: section.items
       .filter(
         item => item.permission === undefined || can(roles, item.permission),

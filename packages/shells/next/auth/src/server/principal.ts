@@ -1,15 +1,9 @@
 import { cookies } from 'next/headers';
 
+import type { Principal } from '../principal-types';
 import { AT_COOKIE, AUTH_SERVICE_URL } from './session';
 
-/** The verified caller, as auth-service's `/api/me` returns it. */
-export interface Principal {
-  readonly userId: string;
-  readonly subject: string;
-  readonly sessionId: string;
-  readonly roles: readonly string[];
-  readonly attributes: Readonly<Record<string, unknown>>;
-}
+export type { Principal };
 
 /**
  * Resolve the signed-in principal **server-side**, forwarding the httpOnly

@@ -10,8 +10,8 @@ import {
 } from '@r10c/entifix-react-controls';
 import { useState } from 'react';
 
-import { useAsyncResource } from '../../../../lib/use-async-resource';
-import type { SessionRow } from '../../../(account)/account/sessions/sessions-view';
+import type { SessionRow } from './account-sessions-view';
+import { useAsyncResource } from './use-async-resource';
 
 /** `null` means the caller is not allowed to see this — the panel disappears. */
 const readUserSessions = async (
@@ -35,13 +35,16 @@ const readUserSessions = async (
  * presentation: hiding it protects nothing, and the service is what refuses.
  */
 export function UserSessionsPanel({ userId }: { userId: string }) {
-  const t = useT('app');
+  const t = useT('shell');
   const { dateTime } = useFormatters();
   const [busy, setBusy] = useState(false);
 
-  const { data: rows, error, reload } = useAsyncResource(
-    `user-sessions:${userId}`,
-    () => readUserSessions(userId),
+  const {
+    data: rows,
+    error,
+    reload,
+  } = useAsyncResource(`user-sessions:${userId}`, () =>
+    readUserSessions(userId),
   );
 
   const kick = async () => {

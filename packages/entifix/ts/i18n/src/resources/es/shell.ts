@@ -1,6 +1,82 @@
 /** Copy owned by the Next shells — back-office chrome and the tab workspace. */
 export const shell = {
   /**
+   * The identity surface — user administration and the signed-in
+   * account. The screens live in `@r10c/shells-next-auth` so a second
+   * host can mount them, and copy follows the code: an `app:` key is
+   * lint-restricted to `apps/`, so a shell binding one fails the build.
+   * What stays in `app:auth` is the sign-in page itself, which is the
+   * host's own front door rather than the domain's surface.
+   */
+  auth: {
+    nav: {
+      identity: 'Identidad',
+      users: 'Usuarios',
+      newUser: 'Nuevo usuario',
+      accountSection: 'Cuenta',
+    },
+    account: {
+      overline: 'Cuenta',
+      title: 'Mi cuenta',
+      subtitle: 'Tu identidad y tu acceso a la flota r10c.',
+      menu: 'Cuenta',
+      identifiers: 'Identificadores',
+      noIdentifiers: 'Sin identificadores registrados.',
+      userId: 'ID de usuario',
+      subject: 'Sujeto',
+      session: 'Sesión',
+      roles: 'Roles',
+      none: 'Ninguno',
+      failed: 'No pudimos cargar tu cuenta.',
+    },
+    sessions: {
+      overline: 'Seguridad',
+      title: 'Sesiones activas',
+      subtitle: 'Dónde has iniciado sesión. Cierra las que no reconozcas.',
+      current: 'Este dispositivo',
+      unknownDevice: 'Dispositivo desconocido',
+      startedAt: 'Iniciada',
+      expiresAt: 'Expira',
+      lastIp: 'IP',
+      revoke: 'Cerrar',
+      revoking: 'Cerrando…',
+      revokeOthers: 'Cerrar las demás',
+      empty: 'No hay otras sesiones activas.',
+      failed: 'No pudimos cargar tus sesiones.',
+      loading: 'Cargando sesiones…',
+    },
+    security: {
+      overline: 'Seguridad',
+      title: 'Contraseña y acceso',
+      subtitle:
+        'Tu contraseña, tu segundo factor y tus cuentas vinculadas viven en r10c Identity.',
+      explain:
+        'r10c no guarda tu contraseña. Adminístrala, junto con la verificación en dos pasos y tus accesos sociales, en el proveedor de identidad.',
+      manage: 'Administrar en r10c Identity',
+    },
+    fields: {
+      displayName: 'Nombre visible',
+      email: 'Correo',
+      username: 'Usuario',
+      role: 'Rol',
+    },
+    submit: {
+      wait: 'Espera…',
+      creating: 'Creando…',
+      createUser: 'Crear usuario',
+    },
+    users: {
+      title: 'Usuarios',
+      newTitle: 'Nuevo usuario',
+      fallbackName: 'Usuario',
+      sessionsTitle: 'Sesiones de este usuario',
+      sessionsEmpty: 'Este usuario no tiene sesiones activas.',
+      sessionsFailed: 'No pudimos cargar las sesiones de este usuario.',
+      kick: 'Cerrar todas sus sesiones',
+      kicking: 'Cerrando…',
+    },
+  },
+  /**
    * System management — the operator surface. Lives in a `scope:shared` shell so
    * a dedicated management app can mount the same screens later, which is why the
    * copy is here rather than in an app catalog.

@@ -333,6 +333,9 @@ importers:
       '@r10c/entifix-ts-i18n':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/i18n
+      '@r10c/shells-next-auth':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/auth
       '@r10c/shells-next-common':
         specifier: workspace:*
         version: link:../../packages/shells/next/common
@@ -1230,6 +1233,27 @@ importers:
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*
         version: link:../../../entifix/ts/testing-unit
+
+  packages/shells/next/auth:
+    dependencies:
+      '@r10c/business-ts-authn':
+        specifier: workspace:*
+        version: link:../../../business/ts/authn
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../../business/ts/authz
+      '@r10c/entifix-react-controls':
+        specifier: workspace:*
+        version: link:../../../entifix/react/controls
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
+      '@r10c/shells-next-common':
+        specifier: workspace:*
+        version: link:../common
+      '@r10c/shells-next-i18n':
+        specifier: workspace:*
+        version: link:../i18n
 
   packages/shells/next/common:
     dependencies:

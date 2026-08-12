@@ -1,4 +1,9 @@
 import { can } from '@r10c/business-ts-authz';
+import {
+  DEFAULT_REDIRECT,
+  loadPrincipal,
+  navFor,
+} from '@r10c/shells-next-auth/server';
 import { AccountMenu, BackOfficeShell } from '@r10c/shells-next-common';
 // From the server entry: this layout calls it directly, and the client entry
 // would hand back a client reference rather than the function.
@@ -10,10 +15,6 @@ import {
 } from '@r10c/shells-next-i18n/server';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
-
-import { navFor } from '../../lib/nav';
-import { loadPrincipal } from '../../lib/principal';
-import { DEFAULT_REDIRECT } from '../../lib/session';
 
 /**
  * The back-office gate. It runs on the server, after middleware has already

@@ -10,7 +10,7 @@ import {
   useT,
 } from '@r10c/entifix-react-controls';
 
-import type { Principal } from '../../../lib/principal';
+import type { Principal } from '../principal-types';
 
 /**
  * Client renderer for the account profile. The layout above already resolved
@@ -18,7 +18,7 @@ import type { Principal } from '../../../lib/principal';
  * no design-system control is imported into the server tree.
  */
 export function AccountView({ principal }: { principal: Principal | null }) {
-  const t = useT('app');
+  const t = useT('shell');
 
   if (principal === null) {
     return (

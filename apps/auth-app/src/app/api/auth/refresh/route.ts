@@ -1,6 +1,5 @@
+import { AUTH_SERVICE_URL } from '@r10c/shells-next-auth/server';
 import { createRefreshRoute } from '@r10c/shells-next-common/server';
-
-import { AUTH_SERVICE_URL } from '../../../../lib/session';
 
 /**
  * `POST /api/auth/refresh` — mint a fresh access token from the session cookie.

@@ -16,7 +16,8 @@ export const errors = {
   notFound: 'No se encontró el registro.',
   resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
-  credentialsRequired: 'El registro requiere una contraseña y un identificador.',
+  credentialsRequired:
+    'El registro requiere una contraseña y un identificador.',
   roleNotAllowed: 'No puedes asignar ese rol.',
   userNotFound: 'No se encontró el usuario.',
   userNotAllowed: 'No puedes modificar ese usuario.',

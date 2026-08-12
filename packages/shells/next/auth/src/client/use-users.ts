@@ -4,7 +4,7 @@ import { UserIdentity } from '@r10c/business-ts-authn';
 import { deserializeEntityCollection } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 
-import { useAsyncResource } from '../../../lib/use-async-resource';
+import { useAsyncResource } from './use-async-resource';
 
 interface UsersPageData {
   items: UserIdentity[];

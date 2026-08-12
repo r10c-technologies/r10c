@@ -13,7 +13,7 @@ import {
 } from '@r10c/entifix-react-controls';
 import { useState } from 'react';
 
-import { useAsyncResource } from '../../../../lib/use-async-resource';
+import { useAsyncResource } from './use-async-resource';
 
 /** A session row as the service reports it. */
 export interface SessionRow {
@@ -46,17 +46,19 @@ const readSessions = async (): Promise<SessionRow[]> => {
  * sign-in. Disabling that row would only have made people wonder why.
  */
 export function SessionsView() {
-  const t = useT('app');
+  const t = useT('shell');
   const { dateTime } = useFormatters();
   const [busy, setBusy] = useState<string | null>(null);
 
   // Loading lives in the shared hook: a synchronous `setState` inside an effect
   // body trips `react-hooks/set-state-in-effect`, and the hook derives its flags
   // from the settled key instead.
-  const { data: rows, isLoading, error, reload } = useAsyncResource(
-    'account-sessions',
-    readSessions,
-  );
+  const {
+    data: rows,
+    isLoading,
+    error,
+    reload,
+  } = useAsyncResource('account-sessions', readSessions);
 
   const revoke = async (row: SessionRow) => {
     setBusy(row.sessionId);

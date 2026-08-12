@@ -1,3 +1,4 @@
+import { loadPrincipal, navFor } from '@r10c/shells-next-auth/server';
 import { AccountMenu, BackOfficeShell } from '@r10c/shells-next-common';
 // From the server entry: this layout calls it directly, and the client entry
 // would hand back a client reference rather than the function.
@@ -9,9 +10,6 @@ import {
 } from '@r10c/shells-next-i18n/server';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
-
-import { navFor } from '../../lib/nav';
-import { loadPrincipal } from '../../lib/principal';
 
 /**
  * The account surface's gate — a session, and nothing more.

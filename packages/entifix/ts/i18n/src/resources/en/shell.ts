@@ -1,6 +1,74 @@
 type EsShell = typeof import('../es/shell').shell;
 
 export const shell: EsShell = {
+  auth: {
+    nav: {
+      identity: 'Identity',
+      users: 'Users',
+      newUser: 'New user',
+      accountSection: 'Account',
+    },
+    account: {
+      overline: 'Account',
+      title: 'My account',
+      subtitle: 'Your identity and your access to the r10c fleet.',
+      menu: 'Account',
+      identifiers: 'Identifiers',
+      noIdentifiers: 'No identifiers on record.',
+      userId: 'User ID',
+      subject: 'Subject',
+      session: 'Session',
+      roles: 'Roles',
+      none: 'None',
+      failed: 'We could not load your account.',
+    },
+    sessions: {
+      overline: 'Security',
+      title: 'Active sessions',
+      subtitle: 'Where you are signed in. End anything you do not recognise.',
+      current: 'This device',
+      unknownDevice: 'Unknown device',
+      startedAt: 'Started',
+      expiresAt: 'Expires',
+      lastIp: 'IP',
+      revoke: 'End',
+      revoking: 'Ending…',
+      revokeOthers: 'End all others',
+      empty: 'No other active sessions.',
+      failed: 'We could not load your sessions.',
+      loading: 'Loading sessions…',
+    },
+    security: {
+      overline: 'Security',
+      title: 'Password and access',
+      subtitle:
+        'Your password, your second factor and your linked accounts live in r10c Identity.',
+      explain:
+        'r10c does not store your password. Manage it, along with two-step verification and social sign-in, at the identity provider.',
+      manage: 'Manage at r10c Identity',
+    },
+    fields: {
+      displayName: 'Display name',
+      email: 'Email',
+      username: 'Username',
+      role: 'Role',
+    },
+    submit: {
+      wait: 'Please wait…',
+      creating: 'Creating…',
+      createUser: 'Create user',
+    },
+    users: {
+      title: 'Users',
+      newTitle: 'New user',
+      fallbackName: 'User',
+      sessionsTitle: 'This user’s sessions',
+      sessionsEmpty: 'This user has no active sessions.',
+      sessionsFailed: 'We could not load this user’s sessions.',
+      kick: 'End all their sessions',
+      kicking: 'Ending…',
+    },
+  },
   systemManagement: {
     nav: {
       section: 'System',

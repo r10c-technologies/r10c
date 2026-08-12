@@ -12,7 +12,7 @@ import {
 } from '@r10c/entifix-react-controls';
 import type { ConfigurationPlain } from '@r10c/entifix-ts-core';
 
-import { useAsyncResource } from '../../../../lib/use-async-resource';
+import { useAsyncResource } from './use-async-resource';
 
 /**
  * Where the provider's self-service lives, read from configuration.
@@ -26,7 +26,9 @@ const readAccountUrl = async (): Promise<string | undefined> => {
   const res = await fetch('/api/config', { cache: 'no-store' });
   if (!res.ok) throw new Error('config');
   const plain = (await res.json()) as ConfigurationPlain;
-  const value = plain['zitadel']?.find(item => item.key === 'accountUrl')?.value;
+  const value = plain['zitadel']?.find(
+    item => item.key === 'accountUrl',
+  )?.value;
   // `ConfigurationPlain` types a value as `unknown` — a parameter may be a
   // number or a flag. This one is a URL or it is nothing.
   return typeof value === 'string' && value !== '' ? value : undefined;
@@ -41,7 +43,7 @@ const readAccountUrl = async (): Promise<string | undefined> => {
  * hold a credential — exactly what ADR 0016 removed.
  */
 export function SecurityView() {
-  const t = useT('app');
+  const t = useT('shell');
   const accountUrl = useAsyncResource('account-url', readAccountUrl);
 
   return (

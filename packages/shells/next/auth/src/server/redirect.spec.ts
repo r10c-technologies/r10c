@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { safeRedirect } from './redirect';
+import { allowedRedirectOrigins, safeRedirect } from './redirect';
 
 const SELF = 'http://localhost:3002';
 /** `DEFAULT_REDIRECT`'s default — the admin app. */
@@ -31,7 +31,9 @@ describe('safeRedirect', () => {
   });
 
   it('refuses a lookalike host', () => {
-    expect(safeRedirect('http://localhost:3001.evil.example', SELF)).toBe(ADMIN);
+    expect(safeRedirect('http://localhost:3001.evil.example', SELF)).toBe(
+      ADMIN,
+    );
   });
 
   it('refuses a non-http scheme', () => {
@@ -46,5 +48,40 @@ describe('safeRedirect', () => {
 
   it('falls back on an unparseable value', () => {
     expect(safeRedirect('http://[', SELF)).toBe(ADMIN);
+  });
+});
+
+describe('allowedRedirectOrigins', () => {
+  it('omits self when no origin is given', async () => {
+    // The callback route always knows its own origin; the allowlist is also
+    // read without one, and must not put `undefined` in the list.
+    expect(allowedRedirectOrigins()).toEqual([ADMIN]);
+  });
+
+  it('includes self when one is given', () => {
+    expect(allowedRedirectOrigins(SELF)).toEqual([SELF, ADMIN]);
+  });
+
+  it('adds every origin configured for the rest of the fleet', async () => {
+    // `AUTH_ALLOWED_REDIRECTS` is read at module load, so the module is
+    // re-imported rather than the variable reassigned — which is also the
+    // honest shape, since that is exactly how a deployment sets it.
+    vi.resetModules();
+    vi.stubEnv(
+      'AUTH_ALLOWED_REDIRECTS',
+      // The last two are junk on purpose: a malformed entry must be dropped
+      // rather than throw, or one typo in an env var takes sign-in down.
+      'http://localhost:3000/, http://localhost:3005, not-a-url, ',
+    );
+    const { allowedRedirectOrigins: reloaded } = await import('./redirect');
+
+    expect(reloaded()).toEqual([
+      ADMIN,
+      'http://localhost:3000',
+      'http://localhost:3005',
+    ]);
+
+    vi.unstubAllEnvs();
+    vi.resetModules();
   });
 });

@@ -54,6 +54,9 @@
       "path": "../../packages/shells/next/common"
     },
     {
+      "path": "../../packages/shells/next/auth"
+    },
+    {
       "path": "../../packages/entifix/ts/i18n"
     },
     {

@@ -9,6 +9,7 @@
     "@r10c/entifix-style": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-i18n": "workspace:*",
+    "@r10c/shells-next-auth": "workspace:*",
     "@r10c/shells-next-common": "workspace:*",
     "@r10c/shells-next-i18n": "workspace:*",
     "effect": "3.22.0",
