@@ -10,12 +10,6 @@
       "path": "./apps/marketplace-app"
     },
     {
-      "path": "./apps/auth-app-e2e"
-    },
-    {
-      "path": "./apps/auth-app"
-    },
-    {
       "path": "./packages/entifix/ts/core"
     },
     {
@@ -56,12 +50,6 @@
     },
     {
       "path": "./packages/implementation/product-configuration-management/react"
-    },
-    {
-      "path": "./apps/marketplace-admin-app-e2e"
-    },
-    {
-      "path": "./apps/marketplace-admin-app"
     },
     {
       "path": "./packages/shells/next/marketplace-admin"
@@ -161,6 +149,12 @@
     },
     {
       "path": "./packages/shells/next/auth"
+    },
+    {
+      "path": "./apps/back-office-app-e2e"
+    },
+    {
+      "path": "./apps/back-office-app"
     }
   ]
 }

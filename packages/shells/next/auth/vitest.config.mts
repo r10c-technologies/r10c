@@ -7,7 +7,7 @@ export default defineEntifixTest({
   // These files moved here from `apps/auth-app`, where the 100% gate does not
   // apply because an app is covered by its `*-e2e` project instead. Moving a
   // file must not silently change what covers it, so the exclusions below name
-  // exactly the surface `auth-app-e2e` drives — and nothing else. Everything
+  // exactly the surface `back-office-app-e2e` drives — and nothing else. Everything
   // with a decision in it (the redirect allowlist, the permission-annotated
   // nav) stays gated, which is the half worth unit-testing anyway.
   coverageExclude: [

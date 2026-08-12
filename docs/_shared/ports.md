@@ -7,15 +7,20 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | Domain (`N`)            | `-app` | `-service`          |
 | ----------------------- | ------ | ------------------- |
 | marketplace (0)         | 3000   | —²                  |
-| marketplace-admin (1)   | 3001   | 3101                |
-| auth (2)                | 3002   | 3102                |
-| transaction-manager (3) | —      | —³                  |
+| marketplace-admin (1)   | 3001⁴  | 3101                |
+| auth (2)                | —⁴     | 3102                |
+| transaction-manager (3) | —³     | —³                  |
 | system-management (4)   | 3004¹  | —                   |
 | — platform —            |        | config-service 3190 |
 
+**The index is per host, not per pair.** ADR 0008 allocated `300N`/`310N` to
+frontend/backend _pairs_, which stopped describing the fleet the moment one host
+began serving two domains. A domain still owns its `-service` index; what it no
+longer implies is a frontend of its own.
+
 ¹ Reserved, not built. The system-management screens live in the `scope:shared`
 shell `@r10c/shells-next-system-management` and are mounted by
-marketplace-admin-app today; the dedicated bastion app takes this index when it
+back-office-app today; the dedicated bastion app takes this index when it
 lands, and needs no `-service` of its own (config-service is its backend).
 
 ² `3100` is free. marketplace-service existed as a 36-line health-check shell
@@ -39,6 +44,15 @@ Adding a domain = next index → `300N` / `310N`, plus a seed row in config-serv
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime
 config from config-service (`GET /api/config/:service`); they never hardcode it.
 
+⁴ `3002` is free. back-office-app on `:3001` serves the catalog, system
+management, user administration **and** the account surface — one origin, which
+is the point: a session established at sign-in is set on the very host the rest
+of the back office is served from, so the cookie hop, the `AUTH_APP_URL`
+indirection and the absolute cross-app account links all disappear. The auth
+**domain** did not merge with marketplace-admin: its screens live in
+`@r10c/shells-next-auth` (`scope:auth`), the host carries `scope:back-office`
+and composes both, and splitting them apart again is a new app mounting that
+shell. `auth-service` stays on `:3102` — it is what Zitadel calls back into.
 Infrastructure NodePorts published to the host, declared once in
 `infra/local/lib.sh` (`PORT_SPECS`) and mirrored here:
 

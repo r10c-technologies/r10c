@@ -93,6 +93,21 @@ const scopeConstraints = [
     sourceTag: 'scope:auth',
     onlyDependOnLibsWithTags: ['scope:auth', 'scope:shared'],
   },
+  // A **host** scope, not a domain one. `back-office-app` composes two domain
+  // shells into one origin, which is the tag-level form of ADR 0008's
+  // "page-level aggregation across domains belongs in the RSC". The rule is not
+  // weakened by this: `scope:auth` and `scope:marketplace-admin` still cannot
+  // reach each other, because neither of them carries this tag — only the host
+  // that mounts both does.
+  {
+    sourceTag: 'scope:back-office',
+    onlyDependOnLibsWithTags: [
+      'scope:back-office',
+      'scope:marketplace-admin',
+      'scope:auth',
+      'scope:shared',
+    ],
+  },
   // No `scope:transaction`: the `transaction` slice owns the `saga` store but
   // carries no project of its own — it is co-deployed inside
   // marketplace-admin-service, whose own scope already governs it. Re-add the

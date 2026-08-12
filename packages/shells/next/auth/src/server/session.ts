@@ -10,7 +10,7 @@ export const AT_COOKIE = 'r10c_at';
 export const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL ?? 'http://localhost:3102';
 
-/** Where a successful sign-in/up lands by default (marketplace-admin-app). */
+/** Where a successful sign-in lands by default (the back office itself). */
 export const DEFAULT_REDIRECT =
   process.env.AUTH_DEFAULT_REDIRECT ?? 'http://localhost:3001';
 

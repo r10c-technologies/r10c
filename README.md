@@ -10,7 +10,7 @@ Active development. In place today:
 
 - **entifix** entity framework — core, business contracts + use-cases, REST adapter, **Mongo** and **Postgres** adapters, the Redis/AMQP clients, and the React integration.
 - Domains with entities: **product-configuration-management** (`Product`/`ProductBrand`/`ProductCategory`), **authn** (`UserIdentity`/`EntityIdentifier`), **party-management** (`Organization`/`Individual`) and **access-management** (`Membership`/`Role`/`Entitlement`). `marketplace-catalog`, `stock-management`, `order-management`, `payment-management` and `settlement-management` are tagged skeletons — see the [capability map](docs/BUSINESS-ARCHITECTURE.md#capability-map).
-- Frontends (`marketplace-app`, `marketplace-admin-app`, `auth-app`) and Effect-native backends.
+- Frontends (`marketplace-app`, `back-office-app`) and Effect-native backends.
 - Backends wired to real datastores: **config-service → PostgreSQL**, **marketplace-admin-service** & **auth-service → MongoDB**, seeded on first boot.
 
 Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over REST, Mongo and Postgres; writes go through the CQRS **transaction** facade (Redis locks + RabbitMQ events, tracked by the co-deployed saga tracker); authentication is **Zitadel** (authorization code + PKCE against its hosted UI; r10c stores no password, and MFA and social sign-in are configuration) while r10c keeps its own Redis sessions and cookie-carried **RS256** JWTs, verified with a public key every service resolves from config-service, with permission-based authorization; copy is `es`/`en` through mandatory i18n. Business data is split across **three planes** and the tenant plane is live — the catalog physically lives in one Mongo database per organization, reached only through the handle the session resolves. Every session carries the population it belongs to (`partyRole`: customer / vendor / operator) rather than inferring it from a missing organization. Observability (OTLP → local `otel-lgtm`) is wired on the services.
@@ -75,13 +75,12 @@ pnpm install
 # Run an app. Each one brings up local infrastructure (minikube) as needed —
 # starts a stopped cluster, applies missing manifests, waits for the datastores.
 pnpm run mp:dev              # marketplace-app       :3000
-pnpm run mp-admin:dev        # marketplace-admin-app :3001
-pnpm run auth:dev            # auth-app              :3002
+pnpm run back-office:dev     # back-office-app       :3001
 
 # When something is wedged: recreate the datastores, then run (WIPES local data —
 # including every per-organization tenant database — which re-seeds on service
 # boot). `pnpm run dev-infra:doctor` diagnoses without fixing.
-pnpm run mp-admin:dev:reset
+pnpm run back-office:dev:reset
 
 # Services follow the same convention, but are dependencies of an app's `dev`
 # rather than entry points.

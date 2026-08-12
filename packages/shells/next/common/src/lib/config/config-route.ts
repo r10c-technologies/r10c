@@ -35,7 +35,7 @@ export const rewriteServiceDomains = (
 });
 
 export interface ConfigRouteOptions {
-  /** This app's key in the `configuration` table, e.g. `marketplace-admin-app`. */
+  /** This app's key in the `configuration` table, e.g. `back-office-app`. */
   readonly service: string;
   /** Service domains to rewrite to same-origin proxy paths. */
   readonly proxies?: Readonly<Record<string, string>>;

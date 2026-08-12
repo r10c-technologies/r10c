@@ -18,20 +18,20 @@ export type AccountLabelKey =
 export interface AccountDestination {
   /** Key in the `shell` namespace, resolved by whichever control renders it. */
   readonly labelKey: AccountLabelKey;
-  /** Path within auth-app, with no locale prefix. */
+  /** Path within the host serving the account surface, with no locale prefix. */
   readonly path: string;
 }
 
 /**
  * Every account screen, in one list.
  *
- * auth-app owns the whole account surface; the other apps link across to it
- * rather than growing their own copies. Both sides build their menu from this
- * list, so adding a screen is a one-line change here.
+ * The sidebar section and the account menu are the same three destinations and
+ * were drifting as two hand-kept lists; both build from this one now, so adding
+ * a screen is a one-line change here.
  *
- * It lives in the shared shell rather than in auth-app because apps sit in
- * different scopes and cannot import from one another — only downward, into
- * here.
+ * It lives in the shared shell rather than in the auth shell because the menu
+ * is rendered by `BackOfficeShell`, which any host mounts — a `shell:base`
+ * package cannot reach up into a `shell:domain` one.
  */
 export const ACCOUNT_DESTINATIONS: readonly AccountDestination[] = [
   { labelKey: 'account.profile', path: '/account' },
@@ -49,29 +49,15 @@ export interface AccountLink {
 }
 
 /**
- * Account links as paths inside auth-app itself, locale-prefixed.
+ * Account links as locale-prefixed paths on the host that serves them.
  *
- * Used by auth-app, where these are ordinary in-app navigations.
+ * There is no absolute-URL variant any more. There used to be one, for the apps
+ * that linked across to auth-app on another port — the account surface and the
+ * back office share an origin now, so every one of these is an ordinary in-app
+ * navigation and a cross-origin builder would have no caller.
  */
 export const accountPaths = (locale: Locale): readonly AccountLink[] =>
   ACCOUNT_DESTINATIONS.map(destination => ({
     labelKey: destination.labelKey,
     href: `/${locale}${destination.path}`,
-  }));
-
-/**
- * Account links as absolute URLs into auth-app, locale already applied.
- *
- * The locale has to be baked in here: `localeHref` deliberately leaves absolute
- * URLs untouched, so a cross-app link that omits it arrives at auth-app with no
- * prefix and re-negotiates from a cookie on a *different origin* — which is how
- * a visitor reading English ends up back in Spanish.
- */
-export const accountUrls = (
-  authAppUrl: string,
-  locale: Locale,
-): readonly AccountLink[] =>
-  ACCOUNT_DESTINATIONS.map(destination => ({
-    labelKey: destination.labelKey,
-    href: new URL(`/${locale}${destination.path}`, authAppUrl).toString(),
   }));

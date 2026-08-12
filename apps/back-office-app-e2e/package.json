@@ -1,0 +1,25 @@
+{
+  "name": "@r10c/back-office-app-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "tags": [
+      "type:e2e",
+      "scope:back-office"
+    ],
+    "implicitDependencies": [
+      "@r10c/back-office-app"
+    ],
+    "targets": {
+      "e2e": {
+        "dependsOn": [
+          "@r10c/back-office-app:build"
+        ]
+      }
+    }
+  },
+  "devDependencies": {
+    "@r10c/business-ts-product-configuration-management": "workspace:*",
+    "@r10c/entifix-ts-testing-e2e": "workspace:*"
+  }
+}

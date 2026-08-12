@@ -10,6 +10,13 @@ export {
   makeInMemoryObservabilityLayer,
 } from './observability';
 export { router } from './routes';
+// The co-deployed `transaction` slice's store, exported so the e2e `mock`
+// profile can compose the same layer over a fake pool rather than stubbing the
+// routes the catalog's own `202` points at.
+export {
+  MongoTransactionStoreLayer,
+  SagaDatabaseName,
+} from './saga/store';
 export { seedCatalog } from './seed';
 
 export const SERVICE_NAME = '@r10c/marketplace-admin-service';

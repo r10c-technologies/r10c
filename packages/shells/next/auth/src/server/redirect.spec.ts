@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { allowedRedirectOrigins, safeRedirect } from './redirect';
 
-const SELF = 'http://localhost:3002';
-/** `DEFAULT_REDIRECT`'s default — the admin app. */
-const ADMIN = 'http://localhost:3001';
+/** This host, which is also `DEFAULT_REDIRECT`'s default now. */
+const SELF = 'http://localhost:3001';
+const ADMIN = SELF;
 
 describe('safeRedirect', () => {
   it('falls back when nothing was asked for', () => {
@@ -14,7 +14,7 @@ describe('safeRedirect', () => {
   });
 
   it('resolves a relative path against this app', () => {
-    // auth-app's own middleware writes bare paths pointing at its own routes.
+    // The host's own middleware writes bare paths pointing at its own routes.
     expect(safeRedirect('/account', SELF)).toBe(`${SELF}/account`);
   });
 

@@ -149,8 +149,8 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   **`dist`**, and `tools/watch-libs.sh` keeps `dist` fresh: **one** watcher
   (`watch-libs` on the root project, `dependsOn` of every app `dev`, so Nx dedupes
   it to a single process) rebuilds the changed library in ~3-5s and Turbopack
-  picks it up. Per-app `watch-deps` is what you must NOT wire — `marketplace-admin-app:dev`
-  chains `auth-app:dev`, so two watchers double-build every shared library. A
+  picks it up. Per-app `watch-deps` is what you must NOT wire — an app `dev`
+  chains the services it needs, so two watchers double-build every shared library. A
   manual `pnpm nx build <lib>` is only needed when no app is running. Service `build`
   targets must keep **`dependsOn: []`**: with the inferred `^build`, every
   rebuild forked `nx run <service>:build`, re-entered a lib build already in the
@@ -178,11 +178,11 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   killing something that is not ours (`R10C_FREE_PORTS=force` overrides). Ports
   live in `ALL_PORTS` there and in [ports](docs/_shared/ports.md); a new domain
   adds its `300N`/`310N` to both.
-- **Local dev self-heals.** `pnpm run mp-admin:dev` walks the ladder in
+- **Local dev self-heals.** `pnpm run back-office:dev` walks the ladder in
   `infra/local/ensure.sh` (cluster → kubecontext → port mapping → workloads →
   rollout → probes) and fixes the broken rung; it never deletes data and never
   recreates the cluster, exiting with the `reset.sh` command instead.
-  `pnpm run mp-admin:dev:reset` is the destructive heal — it wipes the
+  `pnpm run back-office:dev:reset` is the destructive heal — it wipes the
   namespace, PVs **and** hostPaths so the services re-seed on boot, which is
   the only way a drifted seed row gets corrected (the seed is
   `INSERT … ON CONFLICT DO NOTHING`). Ports/namespace/probes live once in
@@ -339,7 +339,7 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
 - **A shell that two hosts mount is `scope:shared`.** `shells-next-marketplace-admin`
   is `scope:marketplace-admin` and holds the catalog's pages _and_ adapters, so no
   other app can reach them — that is the trap. `@r10c/shells-next-system-management`
-  is `layer:shell` + **`scope:shared`** on purpose: marketplace-admin-app mounts it
+  is `layer:shell` + **`scope:shared`** on purpose: back-office-app mounts it
   today and a bastion app mounts it later with zero moves. Do not "fix" the
   asymmetry by scoping it. Consequences: **`layer:shell` forbids same-layer edges**,
   so it cannot import `shells-next-common` and carries its own REST adapters
@@ -357,13 +357,25 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   the route overwrite it from the verified principal — the same way a save route
   already owns the id (`entity.id = params.id`) — and hide the input with an
   `<EntityField … hidden />` slot.
-- **Account surface** is auth-app's alone; other apps link across via `AccountMenu`
-  with the locale baked into the absolute URL (`localeHref` leaves absolute URLs
-  alone). `/account/*` lives outside `(back-office)`, which demands
-  `authn:user-identity:read` — a plain `user` must still reach their own account.
-  The three destinations come from `ACCOUNT_DESTINATIONS` in `shells-next-common`
-  and are `profile` / **`security`** / `sessions`; `security` replaced `password`
-  and is a page of links into Zitadel, since there is no local credential to edit.
+- **One back office, two domain shells.** `back-office-app` (`:3001`,
+  `scope:back-office`) mounts `shells-next-marketplace-admin` **and**
+  `shells-next-auth`, so sign-in, the account surface, user administration and the
+  catalog share one origin — which is the whole benefit: the session is set on the
+  host that serves everything behind it, and the `AUTH_APP_URL` hop, the
+  cross-origin account links and the second Next process all disappear. The
+  domains did **not** merge: each shell keeps its own `scope:`, they still cannot
+  import each other, and only the host carries the composing tag. That is what
+  makes the split reversible — a new app mounting `shells-next-auth` is the whole
+  undo. Copy follows the code: an `app:` key is lint-restricted to `apps/`, so the
+  shell's copy is `shell:auth.*`. Three route groups because they **gate**
+  differently, not because they look different — `(authenticated)` (session only),
+  `(back-office)` (also `authn:user-identity:read`), `(account)` (session only, on
+  purpose: a plain `user` must reach their own account). All three compose one
+  `BackOfficeChrome`. The three account destinations come from
+  `ACCOUNT_DESTINATIONS` in `shells-next-common` and are `profile` /
+  **`security`** / `sessions`; `security` replaced `password` and is a page of
+  links into Zitadel, since there is no local credential to edit. `accountUrls`
+  is gone with the cross-origin case it existed for.
 - **Devices are labels, never authorization inputs.** `r10c_did` + `userAgent()`
   from `next/server` (no new dep; avoid `ua-parser-js` v2, it is AGPL). History is
   durable in Mongo so a familiar browser is not announced as new after its sessions

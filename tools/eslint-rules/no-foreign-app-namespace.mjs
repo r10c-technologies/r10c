@@ -6,7 +6,9 @@
  * is authoring copy on an app's behalf — or worse, as `ACCOUNT_DESTINATIONS`
  * once did, holding a key out of *one* app's sub-tree (`app:auth.account.*`)
  * and handing it to whichever app happens to render the component, so
- * marketplace-admin-app resolved auth-app's copy to draw its own menu.
+ * marketplace-admin-app resolved auth-app's copy to draw its own menu. Both
+ * apps are one host now, but the rule is what keeps a shell's copy in `shell:`
+ * where a second host can reach it.
  *
  * Shell chrome belongs in `shell`, agnostic UI copy in `controls`. Where a
  * shell must render copy an app authors — its nav labels, its URL segments —

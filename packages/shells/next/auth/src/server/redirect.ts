@@ -38,7 +38,7 @@ export const allowedRedirectOrigins = (selfOrigin?: string): string[] => [
  * we published, and anything else silently falls back.
  *
  * A relative path is resolved against `selfOrigin`, because the only party that
- * writes one is auth-app's own middleware pointing at its own routes. Every
+ * writes one is the host's own middleware pointing at its own routes. Every
  * cross-app caller sends an absolute URL precisely so the two cannot be
  * confused.
  */

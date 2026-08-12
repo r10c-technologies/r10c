@@ -165,25 +165,13 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'es,en',
   },
   {
-    service: 'marketplace-admin-app',
+    service: 'back-office-app',
     group_name: 'locale',
     key: 'default',
     value: 'es',
   },
   {
-    service: 'marketplace-admin-app',
-    group_name: 'locale',
-    key: 'supported',
-    value: 'es,en',
-  },
-  {
-    service: 'auth-app',
-    group_name: 'locale',
-    key: 'default',
-    value: 'es',
-  },
-  {
-    service: 'auth-app',
+    service: 'back-office-app',
     group_name: 'locale',
     key: 'supported',
     value: 'es,en',
@@ -191,7 +179,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
 
   // Frontend → backend service URIs.
   {
-    service: 'marketplace-admin-app',
+    service: 'back-office-app',
     group_name: 'uri',
     key: 'marketplace-admin-service-domain',
     value: 'http://localhost:3101/api',
@@ -200,16 +188,10 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // reach the configuration CRUD. The app rewrites it to a same-origin proxy path
   // before the browser sees it, exactly like the admin-service domain above.
   {
-    service: 'marketplace-admin-app',
+    service: 'back-office-app',
     group_name: 'uri',
     key: 'config-service-domain',
     value: 'http://localhost:3190/api',
-  },
-  {
-    service: 'auth-app',
-    group_name: 'uri',
-    key: 'auth-service-domain',
-    value: 'http://localhost:3102/api',
   },
   // Backend → MongoDB connection settings (consumed at boot). No `mongo.db`:
   // this service owns no single named database. Every catalog handle is a
@@ -333,16 +315,18 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: zitadelValue('ZITADEL_ACTION_SIGNING_KEY'),
     is_secret: true,
   },
-  // The browser comes back to the APP, never to the service: auth-app is what
+  // The browser comes back to the APP, never to the service: the app is what
   // owns cookies. It must match a redirect URI registered on the OIDC app or
-  // Zitadel refuses the authorization outright.
+  // Zitadel refuses the authorization outright. That app is back-office-app
+  // now, on :3001 — changing this value needs a `dev:reset`, because the seed
+  // is ON CONFLICT DO NOTHING and will not rewrite a row that already exists.
   {
     service: 'auth-service',
     group_name: 'zitadel',
     key: 'redirectUri',
     value: zitadelValue(
       'ZITADEL_REDIRECT_URI',
-      'http://localhost:3002/api/auth/callback',
+      'http://localhost:3001/api/auth/callback',
     ),
   },
   {
@@ -351,14 +335,14 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'postLogoutRedirectUri',
     value: zitadelValue(
       'ZITADEL_POST_LOGOUT_REDIRECT_URI',
-      'http://localhost:3002/',
+      'http://localhost:3001/',
     ),
   },
   // Where the account page sends someone to change a password, enrol a second
   // factor or link a social account. Self-service is the provider's screen now,
   // so this is a link rather than a feature.
   {
-    service: 'auth-app',
+    service: 'back-office-app',
     group_name: 'zitadel',
     key: 'accountUrl',
     value: zitadelValue(

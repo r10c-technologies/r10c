@@ -9,7 +9,7 @@ import { AccountMenu } from './account-menu';
 const items = [
   {
     labelKey: 'account.profile' as const,
-    href: 'http://localhost:3002/es/account',
+    href: 'http://localhost:3001/es/account',
   },
 ];
 
@@ -38,8 +38,8 @@ describe('AccountMenu', () => {
     await user.click(screen.getByRole('button', { name: 'ada@example.com' }));
 
     const link = screen.getByRole('menuitem', { name: 'Perfil' });
-    // An anchor, not a button: these cross an origin in every app but auth-app.
-    expect(link).toHaveAttribute('href', 'http://localhost:3002/es/account');
+    // An anchor, not a button: these are ordinary navigations.
+    expect(link).toHaveAttribute('href', 'http://localhost:3001/es/account');
   });
 
   it('signs out through the app’s own handler and follows its redirect', async () => {
@@ -48,7 +48,7 @@ describe('AccountMenu', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ redirect: 'http://localhost:3002' }), {
+        new Response(JSON.stringify({ redirect: 'http://localhost:3001' }), {
           status: 200,
           headers: { 'content-type': 'application/json' },
         }),
@@ -59,7 +59,7 @@ describe('AccountMenu', () => {
     await user.click(screen.getByRole('button', { name: 'ada@example.com' }));
     await user.click(screen.getByRole('menuitem', { name: 'Cerrar sesión' }));
 
-    await waitFor(() => expect(location.href).toBe('http://localhost:3002'));
+    await waitFor(() => expect(location.href).toBe('http://localhost:3001'));
   });
 
   it('leaves the protected area even when sign-out fails', async () => {

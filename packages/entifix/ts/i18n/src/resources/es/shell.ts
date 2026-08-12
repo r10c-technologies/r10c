@@ -108,7 +108,7 @@ export const shell = {
     home: 'Inicio',
   },
   /**
-   * The account surface. auth-app owns the screens, but `ACCOUNT_DESTINATIONS`
+   * The account surface. The auth shell owns the screens, but `ACCOUNT_DESTINATIONS`
    * — the one list every app builds its menu from — lives in the shell, so the
    * shell owns their names too and resolves them itself.
    */

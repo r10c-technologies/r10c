@@ -25,8 +25,9 @@ export interface BackOfficeShellProps {
   breadcrumbLabels?: Record<string, string>;
   /**
    * Right-aligned slot in the top bar — the account menu. A slot rather than a
-   * built-in, because what belongs in it differs per app: auth-app links within
-   * itself, while the other apps link across to auth-app.
+   * built-in, because what belongs in it differs per host: the label is the
+   * signed-in subject where a layout has resolved a principal, and a bare
+   * caption where it has not.
    */
   accountMenu?: ReactNode;
 }

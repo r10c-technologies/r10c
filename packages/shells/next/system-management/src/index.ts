@@ -2,7 +2,7 @@
 //
 // This package is `layer:shell` + **`scope:shared`**, unlike
 // `shells-next-marketplace-admin` which is scoped to its own app. That asymmetry
-// is deliberate: these screens are mounted by marketplace-admin-app today and by
+// is deliberate: these screens are mounted by back-office-app today and by
 // a dedicated management app later, and a scoped shell could be reached by
 // neither without an illegal boundary edge or a copy. Do not "fix" the
 // inconsistency by scoping it.

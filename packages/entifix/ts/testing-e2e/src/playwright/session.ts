@@ -16,7 +16,7 @@ const ACTION_TIMEOUT_MS = 10_000;
 const STEP_POLLS = 40;
 const STEP_POLL_MS = 250;
 
-/** The cookies auth-app sets, host-scoped so the fleet shares them in dev. */
+/** The cookies the back office sets, host-scoped so the fleet shares them in dev. */
 const ACCESS_COOKIE = 'r10c_at';
 const SESSION_COOKIE = 'r10c_sid';
 const LOCALE_COOKIE = 'r10c_locale';
@@ -51,8 +51,8 @@ export interface SeedSessionOptions {
    */
   identifier?: string;
   password?: string;
-  /** Where auth-app is served in `live`. */
-  authAppUrl?: string;
+  /** Where the sign-in surface is served in `live`. */
+  signInAppUrl?: string;
 }
 
 const base64url = (value: string): string =>
@@ -156,8 +156,8 @@ const waitForNextStep = async (
 /**
  * Sign in for real, through Zitadel's hosted login page.
  *
- * There is no API shortcut left and that is by design: auth-app has no endpoint
- * that accepts a password, because r10c holds none
+ * There is no API shortcut left and that is by design: no r10c endpoint accepts
+ * a password, because r10c holds none
  * ([ADR 0016](../../../../../docs/adr/0016-zitadel-authenticates-r10c-authorizes.md)).
  * The only way to obtain a real session is the flow a person performs, so the
  * `live` profile performs it — which also means this fixture exercises the
@@ -174,14 +174,14 @@ const waitForNextStep = async (
 const signInThroughHostedUi = async (
   context: BrowserContext,
   options: {
-    readonly authAppUrl: string;
+    readonly signInAppUrl: string;
     readonly identifier: string;
     readonly password: string;
   },
 ): Promise<void> => {
   const page = await context.newPage();
   try {
-    await page.goto(`${options.authAppUrl}/api/auth/oidc/start`);
+    await page.goto(`${options.signInAppUrl}/api/auth/oidc/start`);
 
     // A step machine rather than a fixed sequence, because the hosted UI's path
     // is not fixed. Four shapes a scripted login/password pair walks into:
@@ -198,7 +198,7 @@ const signInThroughHostedUi = async (
     // The loop's exit condition is the access cookie rather than the URL,
     // because that is what "signed in" actually means here and it is the only
     // one of the three that a landing origin does not lie about — the callback
-    // lands on whichever app the redirect names, not on auth-app.
+    // lands on whichever app the redirect names.
     for (let step = 0; step < 8; step += 1) {
       if ((await context.cookies()).some(c => c.name === ACCESS_COOKIE)) break;
 
@@ -280,12 +280,12 @@ export const seedSession = async (
     locale = 'es',
     identifier = 'ada@example.com',
     password = 'Password123!',
-    authAppUrl = process.env['AUTH_APP_URL'] ?? 'http://localhost:3002',
+    signInAppUrl = process.env['BACK_OFFICE_APP_URL'] ?? 'http://localhost:3001',
   }: SeedSessionOptions = {},
 ): Promise<void> => {
   if (!isMockProfile()) {
     await signInThroughHostedUi(context, {
-      authAppUrl,
+      signInAppUrl,
       identifier,
       password,
     });

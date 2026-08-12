@@ -10,8 +10,8 @@
 # docs/DEVELOPING.md → "Library edits reload everywhere".
 #
 # Wired as the root `watch-libs` nx target that every app `dev` depends on. It is
-# ONE watcher for the whole fleet on purpose: `marketplace-admin-app:dev` chains
-# `auth-app:dev`, and two per-app watchers would fire two concurrent builds of the
+# ONE watcher for the whole fleet on purpose: an app `dev` target chains the
+# services it needs, and two per-app watchers would fire two concurrent builds of the
 # same shared library on a single keystroke. All apps depend on this same task, so
 # Nx's task graph dedupes it to a single process — and kills it on Ctrl-C.
 #

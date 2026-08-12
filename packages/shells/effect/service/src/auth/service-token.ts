@@ -7,7 +7,7 @@ import { Effect } from 'effect';
 export const SERVICE_TOKEN_HEADER = 'x-service-token';
 
 /**
- * Local-dev default, so `pnpm run mp-admin:dev` stays zero-config. Same
+ * Local-dev default, so `pnpm run back-office:dev` stays zero-config. Same
  * convention as the seeded `jwt.secret`: obviously a placeholder, replaced per
  * environment through `CONFIG_SERVICE_TOKEN`.
  */

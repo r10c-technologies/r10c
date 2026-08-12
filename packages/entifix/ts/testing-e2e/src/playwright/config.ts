@@ -15,7 +15,7 @@ export interface EntifixE2eConfigOptions {
   configFile: string;
   /**
    * The app's directory, relative to the workspace root, e.g.
-   * `apps/marketplace-admin-app`. The server is started from there.
+   * `apps/back-office-app`. The server is started from there.
    */
   appDir: string;
   /** The port that app serves on (the `300N` convention). */

@@ -12,8 +12,7 @@ and run Nx via `pnpm nx …` (or `pnpm exec nx`). Project names are scoped
 # applies missing manifests, restarts a wedged pod), then starts the app.
 # ~0.1s when everything is already up. One pair per frontend:
 pnpm run mp:dev              # marketplace-app       :3000
-pnpm run mp-admin:dev        # marketplace-admin-app :3001
-pnpm run auth:dev            # auth-app              :3002
+pnpm run back-office:dev     # back-office-app       :3001
 
 # `<app>:dev:reset` recreates the datastores first — WIPES local
 # Mongo/Postgres/Redis data (including every per-organization tenant database),
@@ -22,16 +21,17 @@ pnpm run auth:dev            # auth-app              :3002
 # seed is `ON CONFLICT … DO NOTHING`, so it adds new keys but never rewrites an
 # existing value.
 pnpm run mp:dev:reset
-pnpm run mp-admin:dev:reset
-pnpm run auth:dev:reset
+pnpm run back-office:dev:reset
 pnpm run dev-infra:doctor    # read-only ladder view + the command that fixes it
 pnpm run dev-ports:free      # kill leftover listeners on every fleet port (each
                              # dev target already frees its own port first)
 
 # Dev — unified convention for EVERY app/service (each starts its own deps)
 pnpm nx run marketplace-app:dev            # :3000
-pnpm nx run marketplace-admin-app:dev      # :3001 (auto-starts admin-service + config-service)
-pnpm nx run auth-app:dev                   # :3002
+pnpm nx run back-office-app:dev            # :3001 (catalog + system management +
+                                           #        users + account, one origin;
+                                           #        auto-starts admin-service,
+                                           #        auth-service, config-service)
 pnpm nx run config-service:dev             # :3190 (Postgres; runs ensure-infra first)
 pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo + Redis + RabbitMQ;
                                            #        also runs the co-deployed
@@ -59,11 +59,11 @@ pnpm nx test <project> --coverage             # every packages/* project is gate
 
 # E2E (Playwright for Next apps, Vitest for services).
 # E2E_PROFILE=mock is the DEFAULT and hermetic — no infra, runs on every PR.
-pnpm nx e2e marketplace-admin-app-e2e
+pnpm nx e2e back-office-app-e2e
 pnpm nx e2e marketplace-admin-service-e2e
 # The same journeys against real infrastructure (start the service first):
 E2E_PROFILE=live MARKETPLACE_ADMIN_SERVICE_URL=http://localhost:3101 \
-  pnpm nx e2e marketplace-admin-app-e2e
+  pnpm nx e2e back-office-app-e2e
 
 # Affected-only (what the pre-commit hook runs against origin/main)
 pnpm nx affected -t lint,build,test

@@ -18,8 +18,8 @@ const CLIENT_ID = 'client-1';
 const config: ZitadelOidcConfig = {
   issuer: ISSUER,
   clientId: CLIENT_ID,
-  redirectUri: 'http://localhost:3002/api/auth/callback',
-  postLogoutRedirectUri: 'http://localhost:3002/',
+  redirectUri: 'http://localhost:3001/api/auth/callback',
+  postLogoutRedirectUri: 'http://localhost:3001/',
 };
 
 const discoveryDocument = {
