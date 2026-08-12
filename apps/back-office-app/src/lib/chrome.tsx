@@ -57,7 +57,9 @@ export async function BackOfficeChrome({
     system: translateKey('shell:systemManagement.nav.section'),
     configuration: translateKey('shell:systemManagement.nav.configuration'),
     users: translateKey('shell:auth.nav.users'),
-    new: translateKey('shell:auth.nav.newUser'),
+    // Generic on purpose: `/new` is every domain's create route, so a
+    // domain-specific label here reads wrong on the other one's pages.
+    new: translateKey('shell:breadcrumbs.new'),
     account: translateKey('shell:auth.account.title'),
     security: translateKey('shell:auth.security.title'),
     sessions: translateKey('shell:auth.sessions.title'),

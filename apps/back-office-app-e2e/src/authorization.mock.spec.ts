@@ -63,8 +63,14 @@ base.describe('without an admin session', () => {
 
       const nav = page.getByRole('navigation');
       await expect(nav.getByRole('link', { name: 'Marcas' })).toHaveCount(0);
+      // `Perfil`, not `Cuenta`: the account entry used to be a single link this
+      // app wrote itself, and is now the auth shell's section — a `Cuenta`
+      // heading over Perfil / Seguridad / Sesiones, all derived from
+      // `ACCOUNT_DESTINATIONS`. The assertion is unchanged in intent: a role the
+      // grant table gives nothing still sees the account screens, which is what
+      // proves the nav was filtered rather than emptied.
       await expect(
-        nav.getByRole('link', { name: 'Cuenta' }).first(),
+        nav.getByRole('link', { name: 'Perfil' }).first(),
       ).toBeVisible();
     },
   );

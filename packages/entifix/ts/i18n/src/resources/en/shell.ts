@@ -5,7 +5,6 @@ export const shell: EsShell = {
     nav: {
       identity: 'Identity',
       users: 'Users',
-      newUser: 'New user',
       accountSection: 'Account',
     },
     account: {
@@ -94,6 +93,10 @@ export const shell: EsShell = {
   },
   breadcrumbs: {
     home: 'Home',
+    // The `/new` segment, which every domain's create route shares. It was
+    // an auth-specific string until one host started serving two domains,
+    // at which point a catalog page's breadcrumb read "New user".
+    new: 'New',
   },
   account: {
     profile: 'Profile',

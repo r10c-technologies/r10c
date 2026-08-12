@@ -12,7 +12,6 @@ export const shell = {
     nav: {
       identity: 'Identidad',
       users: 'Usuarios',
-      newUser: 'Nuevo usuario',
       accountSection: 'Cuenta',
     },
     account: {
@@ -106,6 +105,10 @@ export const shell = {
   },
   breadcrumbs: {
     home: 'Inicio',
+    // The `/new` segment, which every domain's create route shares. It was
+    // an auth-specific string until one host started serving two domains,
+    // at which point a catalog page's breadcrumb read "New user".
+    new: 'Nuevo',
   },
   /**
    * The account surface. The auth shell owns the screens, but `ACCOUNT_DESTINATIONS`
