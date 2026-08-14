@@ -164,6 +164,9 @@
     },
     {
       "path": "./tools/docs"
+    },
+    {
+      "path": "./tools/i18n"
     }
   ]
 }

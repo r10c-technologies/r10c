@@ -527,7 +527,7 @@ The path from cookie to collection has four steps, each in a different layer:
    operator — resolves to `undefined`, which is a normal answer, not a failure.
 3. **The guard requires it.** `requireOrganization(permission)`
    (`@r10c/shells-effect-service`) composes over `requirePermission` and hands
-   the id to the handler. No organization → **`409 no-active-organization`**, not
+   the id to the handler. No organization → **`409 noActiveOrganization`**, not
    `403`: the caller is authenticated _and_ permitted, but the session names no
    storage to read. The value comes from the verified token and nowhere else — a
    path or body parameter naming an organization would be caller-controlled,

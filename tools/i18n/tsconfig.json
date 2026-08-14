@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/@r10c/i18n-check",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "vitest/globals", "vitest/importMeta"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../packages/entifix/ts/i18n"
+    }
+  ]
+}

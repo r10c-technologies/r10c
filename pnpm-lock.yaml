@@ -1443,6 +1443,12 @@ importers:
         specifier: workspace:*
         version: link:../slices
 
+  tools/i18n:
+    devDependencies:
+      '@r10c/entifix-ts-i18n':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/i18n
+
   tools/slices: {}
 
 packages:

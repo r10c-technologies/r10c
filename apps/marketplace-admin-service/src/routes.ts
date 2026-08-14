@@ -405,7 +405,7 @@ const configIntrospectionRoute = Effect.gen(function* () {
  *
  * The organization comes from the verified token via `requireOrganization`,
  * never from a path or query parameter, and a caller with no tenant scope gets
- * `409 no-active-organization` rather than another tenant's data.
+ * `409 noActiveOrganization` rather than another tenant's data.
  */
 const guarded = <T extends Entity, A, E, R>(
   entityConstructor: EntityConstructor<T>,

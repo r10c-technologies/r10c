@@ -16,7 +16,7 @@ export interface SessionScope {
   /**
    * The organization this session acts for, or `undefined` for a party holding
    * no membership. A normal answer, not a failure: only tenant-plane routes
-   * care, and they answer `409 no-active-organization`.
+   * care, and they answer `409 noActiveOrganization`.
    */
   readonly organizationId?: string;
   /**

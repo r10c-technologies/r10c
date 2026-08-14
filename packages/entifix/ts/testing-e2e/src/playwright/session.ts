@@ -27,7 +27,7 @@ export interface SeedSessionOptions {
   /**
    * The organization the seeded session acts for. Tenant-plane routes resolve
    * their storage from this claim, so a spec that exercises one and omits it
-   * gets `409 no-active-organization` rather than data. Pass `null` to seed a
+   * gets `409 noActiveOrganization` rather than data. Pass `null` to seed a
    * session with no tenant scope on purpose — an operator, or a buyer.
    */
   activeOrganizationId?: string | null;

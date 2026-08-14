@@ -511,7 +511,15 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   `{ error, code, detail }` and the client renders `code`. Runtime keys use the
   two documented escape hatches (`useTranslateKey`/`getServerTranslateKey`) —
   authored copy must not. Note lint is blind to copy inside JSX expressions like
-  `{saving ? 'Saving…' : 'Save'}`. See
+  `{saving ? 'Saving…' : 'Save'}`. **A service answering with a `code` the
+  `errors` catalog lacks fails the build** (`pnpm nx test @r10c/i18n-check`,
+  unconditional in CI): parity cannot see it — a code missing from both locales
+  is symmetric — and neither can types, because `useErrorMessage` renders through
+  `useTranslateKey`, whose cast discards the augmentation. So the user reads
+  `noActiveOrganization`. The scan knows the two emission shapes, the
+  `{ error, code }` body literal and a `CodedAuthnError` subclass's second
+  argument; it is forward-only, since `network`/`unexpected`/`configUnavailable`
+  are synthesized in the browser. See
   [ADR 0003](docs/adr/0003-i18n-mandatory.md) and [docs/I18N.md](docs/I18N.md).
 - **Observability**: a `-service` merges an observability layer that replaces Effect's
   default logger with the `@r10c/entifix-ts-tooling` logger and stands up the

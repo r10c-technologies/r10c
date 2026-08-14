@@ -14,7 +14,7 @@
  * - **Ada Lovelace** (`user-1`) is an **operator**. She holds no membership and
  *   therefore no tenant scope, which is correct: reaching a tenant is an
  *   explicit, audited act-as-organization crossing (ADR 0012), not a wider
- *   default. Until that lands she gets `409 no-active-organization` from the
+ *   default. Until that lands she gets `409 noActiveOrganization` from the
  *   catalog routes — a visible boundary rather than a silently empty list.
  *
  * `organizationId` is passed in rather than hardcoded because both this service

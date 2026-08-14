@@ -13,6 +13,8 @@ packages:
   # the documentation assertions, and reads the same entity scan.
   - 'tools/slices'
   - 'tools/docs'
+  # `i18n` asserts that every error code a service emits has a catalog entry.
+  - 'tools/i18n'
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false

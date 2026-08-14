@@ -45,6 +45,18 @@ function SignIn() {
   const params = useSearchParams();
   const error = params.get('error');
 
+  // Where the visitor was refused, carried here by the middleware. Forwarded
+  // untouched and unvalidated: `oidcStartRoute` stashes it server-side with the
+  // pending authorization and `safeRedirect` re-checks it against the allowlist
+  // on the way back, deliberately — a value that made a round trip through a
+  // third party is not ours until it has been re-checked. Validating here would
+  // read as the security boundary while being trivially bypassable.
+  const redirect = params.get('redirect');
+  const startHref =
+    redirect === null
+      ? '/api/auth/oidc/start'
+      : `/api/auth/oidc/start?redirect=${encodeURIComponent(redirect)}`;
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md items-center px-s py-l">
       <Stack gap="l" className="w-full">
@@ -68,7 +80,7 @@ function SignIn() {
               </Text>
             )}
             <Text muted>{t('auth.signIn.hosted')}</Text>
-            <ButtonLink href="/api/auth/oidc/start">
+            <ButtonLink href={startHref}>
               {t('auth.signIn.continue')}
             </ButtonLink>
           </Stack>
