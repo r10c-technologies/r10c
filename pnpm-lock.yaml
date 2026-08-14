@@ -1437,6 +1437,12 @@ importers:
         specifier: 0.5.23
         version: 0.5.23
 
+  tools/docs:
+    devDependencies:
+      '@r10c/slices':
+        specifier: workspace:*
+        version: link:../slices
+
   tools/slices: {}
 
 packages:

@@ -51,7 +51,9 @@ them), and everything deep is a link — loaded only when a task needs it.
   the build otherwise. A new project needs `layer:`/`scope:` (and `entifix:` under
   `packages/entifix`, `business:` under `packages/business`, `shell:` under
   `packages/shells`, `host:` for an app) tags. To make an edge legal, retag —
-  never weaken the rule.
+  never weaken the rule. The dimensions and the forbidden couplings are
+  [ADR 0008](docs/adr/0008-domain-modules-and-service-topology.md)'s live half:
+  its plane-host topology was superseded by ADR 0020, its tag model was not.
   See [DEVELOPING.md → Module boundaries](docs/DEVELOPING.md#module-boundaries).
 - **Data ownership has two nouns: `Store` and `Slice`.** A **Store** is a named
   persistence boundary with exactly one writing slice, one plane, and an identity
@@ -121,21 +123,46 @@ them), and everything deep is a link — loaded only when a task needs it.
 - **ADRs are corrected in place when they go stale.** An ADR's _reasoning_ is
   immutable; its _factual claims_ are not. Fix a false statement where it stands,
   clarify misleading wording in place, and supersede only when the **decision**
-  itself no longer holds. Accepted records gain a `- Revised: <date> by [ADR …]`
-  line so every edit is greppable. When a change contradicts existing records,
-  grep for the claim rather than guessing which mention it — ADR 0014 stated the
-  dictionary's owner in three separate places — and check each Proposed record's
-  own `## Trigger` before promoting it. See [docs/adr/README.md](docs/adr/README.md).
+  itself no longer holds — the policy is
+  [ADR 0022](docs/adr/0022-v1-marketplace-module-boundaries.md)'s, and it trades
+  away the ability to reconstruct what people believed at the time. Accepted
+  records gain a `- Revised: <date> by [ADR …]` line (or `- Amended by:`) so every
+  edit is greppable from the header. **Supersession is symmetric**: when a record
+  claims it supersedes or amends another, the target gets the reciprocal line —
+  recording it only forward is how ADR 0004 kept describing a password-reset flow
+  that ADR 0016 had deleted, under `Status: Accepted` with no marker.
+  `pnpm nx test @r10c/docs-check` fails the build on a one-way claim. When a change
+  contradicts existing records, grep for the claim rather than guessing which
+  mention it — ADR 0014 stated the dictionary's owner in three separate places —
+  and check each Proposed record's own `## Trigger` before promoting it.
+  See [docs/adr/README.md](docs/adr/README.md).
+- **Two documentation facts fail the build, and they fail differently.** A table
+  with a machine-readable source is **generated**: `ports-infra`,
+  `store-register` and `adr-index` sit between `<!-- docs:begin … -->` markers
+  and are written by `node tools/sync-docs.mjs` from `infra/local/lib.sh`,
+  `tools/slices/` and the ADR files. Edit the source, regenerate, stage — a
+  hand-edit inside a fence fails `--check` in `.husky/pre-commit` and in CI.
+  Everything else stays prose and is **asserted** by
+  `pnpm nx test @r10c/docs-check`: links and anchors resolve, the router tables cover every
+  doc, no business doc names an entity class the source does not declare, every
+  bound port is in `ALL_PORTS` and in the port table, and every ADR supersession
+  is symmetric. Both run **unconditionally** in CI, like the i18n catalog check
+  and for the same reason — a doc claim is everyone's problem, not the affected
+  projects'. `tools/docs/staleness.mjs` is the advisory third: it reports code
+  that changed without its docs being touched, into the job summary, and never
+  blocks, because "not edited" is not "wrong". See
+  [DEVELOPING.md → Keeping the documentation true](docs/DEVELOPING.md#keeping-the-documentation-true).
 - **The business map is a separate document.** Which capability owns an entity,
   which plane it lives in, and the ODA/SID name for it are in
   [BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) — read it before
   adding an entity or a domain package, because the domain name is simultaneously
   the package identity, the `@entity({ domain })` value, the permission namespace
-  and the organization's entitlement key. Decisions already reasoned through but
-  not yet built are **Proposed** ADRs (catalog publication, stock/reservations,
-  operator cross-tenant access, Postgres tenancy, vendor-authored entity
-  specifications); read the relevant one before designing in that area rather
-  than re-deriving it.
+  and the organization's entitlement key. The decomposition itself, and why the
+  names come from TM Forum ODA/SID, is
+  [ADR 0005](docs/adr/0005-business-domain-decomposition.md). Decisions already
+  reasoned through but not yet built are **Proposed** ADRs (operator cross-tenant
+  access, Postgres tenancy, vendor-authored entity specifications); read the
+  relevant one before designing in that area rather than re-deriving it.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never
@@ -383,7 +410,9 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   it yet. See [ADR 0015](docs/adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md),
   [[auth-layer-v1]] and
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#auth-sessions--tokens).
-- **Sessions slide under a ceiling.** Every duration lives in
+- **Sessions slide under a ceiling**
+  ([ADR 0004](docs/adr/0004-session-lifetime-devices-and-recovery.md), the half of
+  that record ADR 0016 left standing)**.** Every duration lives in
   `business-ts-authn/values/session-policy.ts` — edit there, nowhere else. Both
   cookies are sized to the **session**, never to the token (sizing `r10c_at` to
   `expiresIn` is what signed everyone out every 15 min). `touch` clamps to
@@ -414,7 +443,9 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   the route overwrite it from the verified principal — the same way a save route
   already owns the id (`entity.id = params.id`) — and hide the input with an
   `<EntityField … hidden />` slot.
-- **One back office, two domain shells.** `back-office-app` (`:3001`,
+- **One back office, two domain shells**
+  ([ADR 0021](docs/adr/0021-consolidating-the-fleet-into-five-deployments.md))**.**
+  `back-office-app` (`:3001`,
   `scope:back-office`) mounts `shells-next-marketplace-admin` **and**
   `shells-next-auth`, so sign-in, the account surface, user administration and the
   catalog share one origin — which is the whole benefit: the session is set on the
@@ -436,7 +467,10 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
 - **Devices are labels, never authorization inputs.** `r10c_did` + `userAgent()`
   from `next/server` (no new dep; avoid `ua-parser-js` v2, it is AGPL). History is
   durable in Mongo so a familiar browser is not announced as new after its sessions
-  expire. Admin session control is behind `authn:user-device:read|write`.
+  expire. Admin session control is behind `authn:user-device:read|write`. Also
+  [ADR 0004](docs/adr/0004-session-lifetime-devices-and-recovery.md), and also
+  still standing — the rejected alternatives (JS fingerprinting, comparing the
+  device at refresh) are worth reading before reopening this.
 - **Recovery and lockout are Zitadel's** ([ADR 0016](docs/adr/0016-zitadel-authenticates-r10c-authorizes.md)
   supersedes those sections of ADR 0004). We have no reset token, no `forgot`
   endpoint and no attempt limiter, because there is no password here to reset or

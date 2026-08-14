@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/@r10c/docs-check",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "vitest/globals", "vitest/importMeta"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../slices"
+    }
+  ]
+}

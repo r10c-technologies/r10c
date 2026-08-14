@@ -15,10 +15,11 @@ which data plane they live in, and how they extend — is
 > Mongo on the backend — and the same use-cases run against Postgres through
 > `entifix-ts-sql-client`, which is what config-service's own operator CRUD uses —
 > with every message framed as an
-> [EntifixEnvelope](./ENTIFIX.md#6-the-envelope-is-the-message). auth-service is
+> [EntifixEnvelope](./ENTIFIX.md#the-envelope-is-the-message). auth-service is
 > still on the pre-envelope wire shape for its `UserIdentity`/`EntityIdentifier`
-> reads (no client consumes it through the REST adapters), but its credential
-> flow is real: Redis-backed sessions + short-lived HS256 JWTs (see
+> reads (no client consumes it through the REST adapters), but its sign-in
+> flow is real: Zitadel authenticates (authorization code + PKCE), and r10c keeps
+> Redis-backed sessions + short-lived **RS256** JWTs (see
 > [Auth: sessions + tokens](#auth-sessions--tokens) below), and authorization is
 > live as role aspects behind an ABAC-shaped port (see
 > [Authorization](#authorization-role-aspects--permissions)).
@@ -116,7 +117,7 @@ adapters behind the tags differ.
 ```
 Product (business, @entity + EntityLink brand/category)
   └─ loadProductsUCFactory()  ── loads a page, reloads unresolved links via EntityLinkResolverTag
-       ├─ web: ProductTable (EntityTable) → ProductListClientPage → /catalog/product (marketplace-admin-app)
+       ├─ web: ProductTable (EntityTable) → ProductListClientPage → /catalog/product (back-office-app)
        │        tags ← REST adapter + useEntityLinkResolver([[ProductBrand, …], [ProductCategory, …]])
        │        columns/labels/formatting ← Product's accessor metadata (describeEntityColumns)
        └─ backend: GET /api/product (marketplace-admin-service)
@@ -164,8 +165,11 @@ Effect Layers.
   reports `degraded`, and the app never becomes Ready despite being healthy, which
   in Kubernetes means a rollout that never takes traffic.
 
-  It verifies access tokens with `jwt.secret` read **from its own table via SQL** at
-  boot, never over HTTP from itself — that is what closes the bootstrap cycle.
+  It verifies access tokens with `jwt.publicKey`/`jwt.keyId` read **from its own
+  table via SQL** at boot, never over HTTP from itself — that is what closes the
+  bootstrap cycle. Only the public half: config-service verifies tokens and never
+  mints them, so it has no use for `jwt.privateKey` and holding it would be a
+  second copy of the signing key for nothing.
 
 - **marketplace-admin-service** (`:3101`, Mongo) — serves the product catalog
   through the entifix use-cases. Writes (`POST`) run as transactions (see
@@ -364,18 +368,22 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   session, not to the token** — a cookie that dies with the token makes an
   expired token indistinguishable from no session, which is what used to sign
   everyone out every 15 minutes. The shared refresh handler is
-  `createRefreshRoute` from `@r10c/shells-next-common/server` (a banner-free
-  rollup entry, because a `"use client"` route handler is not a route handler);
+  `createRefreshRoute` from `@r10c/shells-next-common/server` — anything a route
+  handler or server layout _calls_ must ship from `/server` so it is never
+  reached through the client surface and stamped as a client reference;
   each app mounts its own, since cookies are per-origin. A `middleware.ts` per
-  app does an edge-only presence check on `r10c_at` — auth-app classifies paths
-  (`/` bounces when authenticated, `/account/*`+`/users` require a session; there
-  is no third class any more, because sign-up and recovery are screens at the
-  provider), marketplace-admin-app gates the whole app — with the real signature
+  app does an edge-only presence check on `r10c_at` — back-office-app classifies
+  paths (`/` bounces when authenticated, `/account/*`+`/users` require a session;
+  there is no third class any more, because sign-up and recovery are screens at
+  the provider) — with the real signature
   verification left to the backend the page calls (`requirePrincipal` below).
-* **Account self-service** lives entirely in auth-app (`/account`,
-  `/account/security`, `/account/sessions`); other apps link across through the
-  `AccountMenu` in the back-office top bar, with the locale baked into the
-  absolute URL. `/account` sits in its own `(account)` route group, because the
+* **Account self-service** lives in `shells-next-auth`, mounted by
+  back-office-app at the same origin as everything else (`/account`,
+  `/account/security`, `/account/sessions` — the three destinations in
+  `ACCOUNT_DESTINATIONS`). The `AccountMenu` in the back-office top bar links to
+  them with a plain locale-prefixed path; `accountUrls` and the absolute
+  cross-origin URLs are gone with the second app that needed them.
+  `/account` sits in its own `(account)` route group, because the
   `(back-office)` layout additionally demands `authn:user-identity:read` and a
   plain `user` must still reach their own account.
 * **Devices** are an opaque `r10c_did` cookie plus a `userAgent()`-parsed label,
@@ -452,27 +460,32 @@ context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
   `Layer`, not of call sites.
 - **Enforcement is layered, and only the last layer is security.** Next
   middleware does an edge presence check (a fast bounce); the server-rendered
-  layout filters nav with `can(...)` and gates auth-app's back-office; the
+  layout filters nav with `can(...)` and gates back-office-app's `(back-office)`
+  route group; the
   service guard `requirePermission` (`@r10c/shells-effect-service`) verifies the
   token and asks the policy — `401` unauthenticated, `403` denied. The role gate
-  sits in the server layout rather than middleware so `jwt.secret` never has to
-  leave config-service for the Next runtime.
+  sits in the server layout rather than middleware to keep verification off every
+  server render; under RS256 it would only need `jwt.publicKey`, which is served
+  openly at `/.well-known/jwks.json`, so the original "never copy the secret"
+  reason has lapsed while the placement has not
+  ([ADR 0002](adr/0002-authorization-roles-and-abac.md), revised).
 - **How each layer gets the roles** differs, on purpose. A **presentation**
   decision (which nav entries to render) reads them with `unverifiedRoles`
   (`entifix-ts-jwt-client`) — the cookie is decoded, _not_ verified. Forging it
   shows someone a menu; every route behind it still goes to a service that
-  verifies properly. That avoids both a service round trip per server render and
-  copying the secret into the app. A **real** decision — auth-app's back-office
-  gate — resolves the principal from auth-service's `/api/me` instead, and fails
-  closed when it cannot.
+  verifies properly. That avoids a service round trip per server render. A
+  **real** decision — the `(back-office)` route group's gate — resolves the
+  principal from auth-service's `/api/me` instead, and fails closed when it
+  cannot.
 - **Escalation:** `canAssignRole` allows creating/promoting at or below the
   actor's own tier; an edit additionally requires outranking the target's
   _current_ role and forbids acting on yourself. Creating a user always runs
-  `registerUserUCFactory` (hashing, identifier uniqueness, this guard), never a
+  `registerUserUCFactory` (identifier uniqueness and this guard — the hashing
+  went with the credential), never a
   generic entity write; public signup is pinned to `user`. A refusal is a
   `ForbiddenError` → **403**, distinct from an identifier conflict (409).
 - **Browser → service traffic is same-origin.** Catalog adapters call
-  marketplace-admin-app's `/api/admin/[...path]` proxy, which forwards the cookie
+  back-office-app's `/api/admin/[...path]` proxy, which forwards the cookie
   upstream as a bearer token; the app's `/api/config` rewrites the service domain
   to that path before the browser sees it. A cross-origin `fetch` to `:3101`
   carries no cookie — host-scoping decides which host _stores_ it, not which
@@ -634,8 +647,10 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   `-payment-management`, `-settlement-management` — named and tagged; entities
   land with the iterations their ADRs name.
 - `business-ts-authn` — `UserIdentity` (carrying the `role` aspect),
-  `EntityIdentifier`; `resolveSession`, `login`, `registerUser` UCs over
-  `AccountRepositoryTag`/`PasswordHasherTag`/`IdentityProviderTag`.
+  `EntityIdentifier`, `UserDevice`; `resolveSession`, `registerUser` and the OIDC
+  callback UCs over `AccountRepositoryTag`/`IdentityProviderTag`. There is no
+  `PasswordHasherTag` — auth-service holds no credential
+  ([ADR 0016](adr/0016-zitadel-authenticates-r10c-authorizes.md)).
 - `business-ts-authz` — the authorization policy: `Permission`/`Role`,
   `ROLE_PERMISSIONS`, the pure `can()` check and the `PolicyDecisionTag` port
   (see [Authorization](#authorization-role-aspects--permissions)).
@@ -660,8 +675,11 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
 - `entifix-transactions` — transaction facade + engine + ports (framework-free).
   `entifix-ts-redis-client` (lock + sequence, and now `SessionStoreTag`'s Redis
   adapter) and `entifix-ts-amqp-client` (event bus) are its transport adapters.
-- `entifix-ts-jwt-client` — `TokenServiceTag`'s jose-backed HS256 adapter
-  (sign/verify short-lived access tokens).
+- `entifix-ts-jwt-client` — `TokenServiceTag`'s jose-backed **RS256** adapter
+  (`TOKEN_ALGORITHM`; sign/verify short-lived access tokens). `verifyAccessToken`
+  pins `algorithms: ['RS256']`, which is the security boundary: jose otherwise
+  trusts the token's own `alg` header and the openly-served public key would pass
+  as an HMAC secret.
 - `entifix-react-controls` / `entifix-react-integration` — UI primitives +
   Effect-aware hooks. `entifix-style` — design tokens.
 - `entifix-ts-testing-unit` — doubles, driver fakes and port contract suites for
@@ -672,15 +690,24 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
 **Delivery** (`packages/implementation/*`, `packages/shells/*`):
 
 - `implementation-product-configuration-management-react` — React organisms.
-- `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-common`
-  — Next pages + client adapters. `shells-effect-service` — the backend base.
+- `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-auth`,
+  `shells-next-system-management` (`scope:shared`, so a second host can mount it
+  with no moves), `shells-next-common` and `shells-next-i18n` — Next pages +
+  client adapters. `shells-effect-service` — the backend base.
 
-**Apps** — frontends `marketplace-app`, `marketplace-admin-app`, `auth-app`
-(sign-in/sign-up **plus** a `(back-office)` group for user management, gated to
-`admin`+); backends `marketplace-admin-service`, `auth-service`,
-`config-service`; plus `*-e2e` projects. The storefront
-has no backend of its own — it reads fixtures until ADR 0009's published catalog
-exists.
+**Apps** — frontends `marketplace-app` (`:3000`, the public storefront) and
+`back-office-app` (`:3001`, which mounts `shells-next-marketplace-admin` **and**
+`shells-next-auth`, so the catalog, system management, user administration and the
+account surface share one origin); backends `marketplace-service` (`:3100`),
+`marketplace-admin-service` (`:3101`, co-deploying the `transaction` slice),
+`auth-service` (`:3102`) and `config-service` (`:3190`); plus `*-e2e` projects.
+Six deployments in total. **marketplace-service** owns the `published-catalog`
+projection and the `catalog-reference` vocabulary and serves them read-only —
+a public read path that never opens a tenant connection. The storefront shell is
+still **fixture-backed** and has not been pointed at it yet
+(`shells-next-marketplace/src/server.ts`: "the same call sites once
+marketplace-service exists"); that wiring is the remaining step, not a missing
+service.
 
 **Utils** — `utils-ts-{array,date,object,type}`.
 

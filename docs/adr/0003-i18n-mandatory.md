@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-07-26
+- Revised: 2026-08-13 — the two sections reasoning from rollup/Vite bundling are
+  clarified in place: `packages/` builds per-file with `@nx/js:swc` and no bundler
+  config remains. Both decisions stand. The i18n gates themselves are untouched.
 
 ## Context
 
@@ -141,6 +144,20 @@ swallow the real findings.
   carry.
 
 ### A React library bundled into a package's `dist` must externalize it
+
+> **Revised 2026-08-13.** Both this section and the `shells-next-i18n` bullet
+> above reason from bundler behaviour that no longer exists: every library under
+> `packages/` now builds per-file with `@nx/js:swc`, and there is no rollup or
+> vite config left in the tree. Per-file emit keeps each module's own
+> `"use client"` directive, so there is no blanket banner to route around, and it
+> inlines nothing, so there is no dependency to externalize.
+>
+> **Both decisions stand, and the reasoning is why.** `@r10c/shells-next-i18n`
+> stays its own package — a server/edge surface separated from a client one is
+> right independent of who stamps the directive — and "a library must not absorb
+> its React dependencies" became the general rule: bundling is what produced the
+> `require('react')` shim described below, and dropping the bundler is how it was
+> fixed for good.
 
 `entifix-react-integration` builds with Vite, and its `rollupOptions.external`
 listed React but not `react-i18next`. So the Vite build **inlined** react-i18next

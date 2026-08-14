@@ -3,6 +3,11 @@
 - Status: Accepted
 - Date: 2026-08-05
 - Accepted: 2026-08-06
+- Revised: 2026-08-13 by [ADR 0018](0018-the-hosted-login-is-a-second-container.md) —
+  the `ensureLoginVersion` reasoning in the local-development consequence is
+  superseded (the amendment was already written into that bullet; this line makes
+  it greppable from the header, as `docs/adr/README.md` requires). Zitadel still
+  authenticates, r10c still authorizes, and r10c still holds no credential.
 
 ## Trigger
 

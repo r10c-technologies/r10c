@@ -67,16 +67,17 @@ jobs:
           # projects and each one pays for a browser download.
           echo "e2e-projects=$(affected e2e | jq -r 'join(",")')" >> "$GITHUB_OUTPUT"
 
-  # Two static checks in one job: both are cheap, and a separate runner for the
-  # catalog check spent ~35s of its 37s on checkout + install to run a 2s script.
+  # The cheap static checks, in one job: a separate runner for any of them would
+  # spend ~35s of its 37s on checkout + install to run a 2s script.
   #
-  # NOTE: this job must stay unconditional. The catalog check is deliberately
-  # NOT affected-gated (a catalog is shared by every app, so a missing key is
-  # everyone's problem regardless of which project the PR touched) — only the
-  # nx lint command below is affected-scoped. Adding an `if:` here would
-  # silently make the catalog check conditional too.
+  # NOTE: this job must stay unconditional. The catalog and documentation checks
+  # are deliberately NOT affected-gated — a catalog key and a documentation
+  # claim are shared by every app, so a wrong one is everyone's problem
+  # regardless of which project the PR touched. Only the nx lint command below
+  # is affected-scoped. Adding an `if:` here would silently make all of them
+  # conditional.
   lint:
-    name: Lint & i18n catalogs
+    name: Lint, i18n catalogs & docs
     needs: initialize
     runs-on: ubuntu-latest
     steps:
@@ -96,12 +97,38 @@ jobs:
           pnpm nx affected -t lint \
             --base=${{ needs.initialize.outputs.base }} \
             --head=${{ needs.initialize.outputs.head }}
-      # `always()` so a lint failure does not hide a catalog failure — otherwise
-      # a PR carrying both spends two round trips learning about them one at a
-      # time. The job still fails if either step does.
+      # `always()` on every step below, so one failure does not hide the next —
+      # otherwise a PR carrying several spends a round trip learning about them
+      # one at a time. The job still fails if any step does.
       - name: Check es/en catalog parity
         if: always()
         run: node tools/check-i18n.mjs
+
+      # The generated documentation blocks: the port table, the store register
+      # and the ADR index are written from source, so a hand-edit or a stale
+      # block fails here.
+      - name: Check generated documentation blocks
+        if: always()
+        run: node tools/sync-docs.mjs --check
+
+      # The assertions over hand-written prose: link and anchor targets, the
+      # router tables, entity names, tag dimensions, fleet ports, and that every
+      # ADR supersession was recorded on both records.
+      - name: Check documentation claims
+        if: always()
+        run: pnpm nx test @r10c/docs-check
+
+      # Advisory. Reports code that changed without its documentation being
+      # touched, into the job summary. Never blocks: this can only see that a
+      # doc was not edited, not that it is wrong, and failing on it would teach
+      # everyone to make a trivial edit to whatever file it names.
+      - name: Report documentation staleness
+        if: always()
+        continue-on-error: true
+        run: |
+          node tools/docs/staleness.mjs \
+            --base=${{ needs.initialize.outputs.base }} \
+            --head=${{ needs.initialize.outputs.head }}
 
   # `build` and `typecheck` run in ONE graph on purpose. They are the two
   # writers of a library's `dist` — swc emits the `.js`, `tsc --build` the
