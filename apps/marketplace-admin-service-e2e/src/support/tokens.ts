@@ -48,7 +48,7 @@ const keyId = (): string => process.env['JWT_KEY_ID'] ?? E2E_KEY_ID;
  *
  * The catalog is tenant plane, so every catalog route resolves its storage from
  * this claim. A token without it is not "an admin with less data" — it gets
- * `409 no-active-organization`, which is the correct answer for a caller with
+ * `409 noActiveOrganization`, which is the correct answer for a caller with
  * no tenant scope and a confusing one to debug from a spec that simply forgot.
  */
 export const E2E_ORGANIZATION_ID = 'e2e-organization';

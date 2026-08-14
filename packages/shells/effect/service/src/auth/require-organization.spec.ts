@@ -81,7 +81,7 @@ describe('requireOrganization', () => {
 
       expect(response.status).toBe(409);
       expect(await response.json()).toMatchObject({
-        code: 'no-active-organization',
+        code: 'noActiveOrganization',
       });
     });
   });

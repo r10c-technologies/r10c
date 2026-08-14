@@ -11,10 +11,12 @@ import { type RequestPrincipal, requirePermission } from './require-principal';
  * act-as-organization re-mint, never a widening of the default (ADR 0012) —
  * and a member of several organizations hits it before choosing one. The `code`
  * is a key in the shared `errors` catalog, so a client renders "select an
- * organization" instead of "forbidden".
+ * organization" instead of "forbidden" — a claim `@r10c/i18n-check` now holds
+ * to, because for a while it was simply false and the code reached the browser
+ * as its own literal text.
  */
 const noOrganization = HttpServerResponse.json(
-  { error: 'no active organization', code: 'no-active-organization' },
+  { error: 'no active organization', code: 'noActiveOrganization' },
   { status: 409 },
 );
 

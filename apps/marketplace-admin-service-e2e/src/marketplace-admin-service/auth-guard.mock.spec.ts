@@ -163,6 +163,6 @@ describe('marketplace-admin-service catalog permissions', () => {
     });
 
     expect(res.status).toBe(409);
-    expect(res.data.code).toBe('no-active-organization');
+    expect(res.data.code).toBe('noActiveOrganization');
   });
 });
