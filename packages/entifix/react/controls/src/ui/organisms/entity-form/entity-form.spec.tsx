@@ -1,8 +1,10 @@
 import {
   accessor,
   EntifixConnError,
+  EntifixLogicError,
   type Entity,
   entity,
+  EntityCollectionLink,
   type EntityId,
   EntityLink,
   type EntityLinkSource,
@@ -102,6 +104,36 @@ class Gadget implements Entity {
   @accessor({ type: 'link', label: 'Brand' })
   get brand(): EntityLink<GadgetBrand> {
     return this.#brand;
+  }
+}
+
+/**
+ * Both relation shapes on one entity, so the registry is judged per key rather
+ * than per form. Kept apart from `Gadget` because every other test renders that
+ * one and a new row would move their assertions.
+ */
+@entity({ key: 'gadget-bundle' })
+class GadgetBundle implements Entity {
+  #id?: EntityId;
+  #brand = new EntityLink(GadgetBrand);
+  #tags = new EntityCollectionLink(GadgetBrand);
+
+  @accessor({ type: 'id', label: 'ID', hidden: true })
+  get id(): EntityId {
+    return this.#id;
+  }
+  set id(value: EntityId) {
+    this.#id = value;
+  }
+
+  @accessor({ type: 'link', label: 'Brand' })
+  get brand(): EntityLink<GadgetBrand> {
+    return this.#brand;
+  }
+
+  @accessor({ type: 'linkCollection', label: 'Tags' })
+  get tags(): EntityCollectionLink<GadgetBrand> {
+    return this.#tags;
   }
 }
 
@@ -401,6 +433,34 @@ describe('EntityForm', () => {
       expect(
         screen.queryByRole('button', { name: 'Examinar Brand' }),
       ).not.toBeInTheDocument();
+    });
+
+    // A registry that simply has no entry for the collection is not a mistake:
+    // the to-one still gets its editor and the to-many keeps its read display.
+    it('leaves a to-many member alone when only the to-one has a source', () => {
+      render(
+        <EntityForm<GadgetBundle>
+          entityConstructor={GadgetBundle}
+          mode="edit"
+          linkSources={{ brand: brandSource() }}
+        />,
+      );
+
+      expect(screen.getByText('Tags')).toBeInTheDocument();
+    });
+
+    // The silent half of the to-many gap: the row fell through the to-one guard
+    // into the read display, so the caller got a read-only field and no reason.
+    it('refuses a source aimed at a to-many member', () => {
+      expect(() =>
+        render(
+          <EntityForm<GadgetBundle>
+            entityConstructor={GadgetBundle}
+            mode="edit"
+            linkSources={{ tags: brandSource() }}
+          />,
+        ),
+      ).toThrow(EntifixLogicError);
     });
   });
 
