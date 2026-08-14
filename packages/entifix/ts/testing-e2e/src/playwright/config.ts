@@ -38,12 +38,14 @@ export interface EntifixE2eConfigOptions {
 }
 
 /**
- * Every browser Playwright can drive, used by the `live` profile.
+ * Every browser Playwright can drive.
  *
- * `mock` runs chromium only, on purpose: interception happens through
- * `page.route()`, which behaves the same everywhere, so the other two engines
- * would triple the pull-request time to re-assert identical wire traffic.
- * Cross-browser rendering differences are a `live` concern.
+ * Chromium is the default in **both** profiles. Interception happens through
+ * `page.route()`, which behaves the same everywhere, so `mock` would triple the
+ * pull-request time to re-assert identical wire traffic; and a normal dev
+ * machine has only chromium installed, so a `live` run that insisted on all
+ * three failed on a missing engine rather than on the code. Cross-browser
+ * rendering is worth checking deliberately, not on every run.
  */
 const ALL_BROWSERS = [
   { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
@@ -53,6 +55,9 @@ const ALL_BROWSERS = [
 
 const CHROMIUM_ONLY = ALL_BROWSERS.slice(0, 1);
 
+/** Opts into firefox and webkit; needs `pnpm exec playwright install` first. */
+const ALL_BROWSERS_VAR = 'E2E_BROWSERS';
+
 /**
  * The shared Playwright configuration for an entifix app e2e project.
  *
@@ -61,10 +66,18 @@ const CHROMIUM_ONLY = ALL_BROWSERS.slice(0, 1);
  * - **which specs run** — by filename (`*.mock.spec.ts` / `*.live.spec.ts`).
  *   Selection by `testIgnore` rather than by an in-spec `test.skip` means a
  *   run with the wrong environment fails instead of quietly reporting green.
- * - **which browsers run** — chromium in `mock`, all three in `live`.
  * - **the base URL** — the local app in `mock`; in `live` the app is expected
  *   to already be running (started with its real backend), so Playwright
  *   reuses it rather than racing a second one.
+ * - **whether a reused server is acceptable** — `mock` refuses a development
+ *   one, `live` accepts whatever is there. Enforced by an auto fixture in
+ *   `defineEntifixE2eTest`, not from here: Playwright loads `globalSetup`
+ *   through a different module path than the one it uses for the config and the
+ *   specs, and this package is `"type": "module"` while an app's
+ *   `playwright.config.ts` is CJS — a file reached both ways transpiles for one
+ *   and fails for the other. See `assertExpectedServer`.
+ *
+ * Browsers are chromium in both profiles unless `E2E_BROWSERS=all`.
  */
 export const defineEntifixE2eConfig = ({
   configFile,
@@ -105,7 +118,8 @@ export const defineEntifixE2eConfig = ({
       url: `${baseURL}${readyPath}`,
       reuseExistingServer: true,
     },
-    projects: mock ? CHROMIUM_ONLY : ALL_BROWSERS,
+    projects:
+      process.env[ALL_BROWSERS_VAR] === 'all' ? ALL_BROWSERS : CHROMIUM_ONLY,
     ...overrides,
   });
 };

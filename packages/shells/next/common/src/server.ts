@@ -15,6 +15,9 @@ export * from './lib/health/health-routes';
 // The `GET /api/config` handler + the same-origin domain rewrite it applies.
 export * from './lib/config/config-route';
 
+// The same-origin proxy each host mounts per backend it talks to.
+export * from './lib/config/service-proxy-route';
+
 // Session cookies + the shared refresh route handler
 export * from './lib/session/cookies';
 export * from './lib/session/refresh-route';

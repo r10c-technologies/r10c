@@ -455,7 +455,17 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   import each other, and only the host carries the composing tag. That is what
   makes the split reversible — a new app mounting `shells-next-auth` is the whole
   undo. Copy follows the code: an `app:` key is lint-restricted to `apps/`, so the
-  shell's copy is `shell:auth.*`. Three route groups because they **gate**
+  shell's copy is `shell:auth.*`. **The catalog is two backends, so the host
+  mounts two proxies**: `ProductSpecification` comes from marketplace-admin-service
+  through `/api/admin`, `ProductBrand`/`ProductCategory` from marketplace-service
+  through `/api/marketplace` (`marketplace-service-domain`), because ADR 0022 moved
+  the platform vocabulary into `catalog-reference`. Composing both from one domain
+  key is what left the brand and category pages requesting routes that no longer
+  existed — and the e2e fixture, stubbing the same wrong address, could not see
+  it, so `back-office-app:dev` now starts marketplace-service too. Reads there are
+  unauthenticated by design; authoring stays `super-admin`'s alone, because
+  `catalog-reference` is operator-owned, so `user`/`admin` hold
+  `catalog-reference:*:read` and nothing more. Three route groups because they **gate**
   differently, not because they look different — `(authenticated)` (session only),
   `(back-office)` (also `authn:user-identity:read`), `(account)` (session only, on
   purpose: a plain `user` must reach their own account). All three compose one

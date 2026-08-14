@@ -157,9 +157,9 @@ committed: a `secretGenerator` reads a git-ignored `.env` (committed
 up by hand:
 
 ```sh
-pnpm run mp-admin:dev        # heals whatever rung is broken, then runs the app
-pnpm run mp-admin:dev:reset  # recreate the datastores first (WIPES local data)
-pnpm run dev-infra:doctor    # read-only ladder view + the command that fixes it
+pnpm run back-office:dev        # heals whatever rung is broken, then runs the app
+pnpm run back-office:dev:reset  # recreate the datastores first (WIPES local data)
+pnpm run dev-infra:doctor       # read-only ladder view + the command that fixes it
 ```
 
 Reset is the answer to **bad data**, which `ensure-infra` deliberately will not
@@ -169,6 +169,17 @@ config-service re-seeds its table and auth-service reconciles its seed
 identities into an empty Mongo. `reset.sh --hard` also recreates the cluster —
 the only fix for a cluster created without the `--ports` mapping, since that is
 set at creation time.
+
+**A rename is bad data.** Both seeds only write what is not already there —
+config-service's rows are `INSERT … ON CONFLICT DO NOTHING`, and a collection
+seed inserts only when the collection is empty — so a machine that booted before
+a rename keeps every old value _and_ gains the new one, with nothing to signal
+the mismatch. ADR 0022 is the worked example: `Product` became
+`ProductSpecification`, so `tenant_<id>` ends up holding both `product-specification`
+and a stale `product`, plus `product-brand`/`product-category` collections whose
+entities moved to the `marketplace` database entirely. A corrected seed _value_
+behaves the same way — the row is already there, so the fix never lands. Neither
+is a code change; both are `dev:reset`, and a fresh machine needs nothing.
 
 One trap worth knowing: with the docker driver a published NodePort keeps
 accepting TCP after the pod behind it is gone, so "the port answers" is not a
@@ -483,14 +494,32 @@ E2E suites run in one of two profiles, selected by `E2E_PROFILE` and provided by
 pnpm nx e2e back-office-app-e2e                       # mock
 pnpm nx e2e marketplace-admin-service-e2e                   # mock
 
-pnpm nx run marketplace-admin-service:dev                   # then, in another shell:
-E2E_PROFILE=live MARKETPLACE_ADMIN_SERVICE_URL=http://localhost:3101 \
+pnpm run back-office:dev                                    # then, in another shell:
+E2E_PROFILE=live \
+  MARKETPLACE_ADMIN_SERVICE_URL=http://localhost:3101 \
+  MARKETPLACE_SERVICE_URL=http://localhost:3100 \
   pnpm nx e2e back-office-app-e2e
 ```
 
 `mock` is the default because the default has to run anywhere. `live` never
 falls back: a missing target URL **throws**, because a suite that skips itself
 reports green for a run that tested nothing.
+
+**A `mock` run refuses a development server.** Playwright's
+`reuseExistingServer` attaches to whatever already listens on the app's port, so
+a suite started while `back-office:dev` is up tested a `next dev` bundle against
+the _real_ fleet while reporting on a hermetic run — and could fail, or pass, for
+reasons unrelated to the code. Reuse stays (turning it off costs a production
+build every time); the assumption is checked instead. `assertExpectedServer` runs
+as `globalSetup`, reads `mode` from `/api/health/live`, and fails the run before
+the first spec. `R10C_E2E_ALLOW_DEV_SERVER=1` opts out. `live` is exempt: it
+expects an already-running app and makes no hermeticity claim.
+
+**Both profiles run chromium**, and `E2E_BROWSERS=all` adds firefox and webkit
+(after `pnpm exec playwright install`). Interception is `page.route()`, which
+behaves identically everywhere, so the other engines re-assert the same wire
+traffic; and insisting on three engines only made a `live` run fail on a browser
+nobody had installed. Cross-browser rendering is worth checking deliberately.
 
 **`mock` is not a stub of the answers.** For an app suite the browser talks to
 msw handlers (`@msw/playwright`, over `page.route()` — nothing is added to the

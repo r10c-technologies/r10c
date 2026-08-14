@@ -1,5 +1,8 @@
-import { expect, test } from '@playwright/test';
-import { seedSession } from '@r10c/entifix-ts-testing-e2e/playwright';
+import {
+  baseTest as test,
+  expect,
+  seedSession,
+} from '@r10c/entifix-ts-testing-e2e/playwright';
 
 /**
  * The back-office gate, from the outside.

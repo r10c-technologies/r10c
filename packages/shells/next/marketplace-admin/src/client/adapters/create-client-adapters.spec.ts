@@ -1,3 +1,4 @@
+import { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
   ConfigurationRepositoryTag,
@@ -14,20 +15,31 @@ import { describe, expect, it } from 'vitest';
 import { createClientAdapters } from './create-client-adapters.js';
 
 const SERVICE = 'http://marketplace-admin-service:3101/api';
+/** The platform-plane vocabulary lives in a second backend since ADR 0022. */
+const REFERENCE_SERVICE = 'http://marketplace-service:3100/api';
 
 // `/api/config` is same-origin in the browser; under Node it resolves against
 // the test server's origin, which MSW answers here.
 const configuration = {
-  uri: [{ key: 'marketplace-admin-service-domain', value: SERVICE }],
+  uri: [
+    { key: 'marketplace-admin-service-domain', value: SERVICE },
+    { key: 'marketplace-service-domain', value: REFERENCE_SERVICE },
+  ],
 };
+
+const emptyPage = (entity: string) =>
+  HttpResponse.json({
+    meta: { type: 'entityPage', entity },
+    data: { items: [], total: 0, request: {} },
+  });
 
 const server = setupEntifixServer(
   http.get('*/api/config', () => HttpResponse.json(configuration)),
   http.get(`${SERVICE}/product-specification`, () =>
-    HttpResponse.json({
-      meta: { type: 'entityPage', entity: 'product' },
-      data: { items: [], total: 0, request: {} },
-    }),
+    emptyPage('product-specification'),
+  ),
+  http.get(`${REFERENCE_SERVICE}/product-brand`, () =>
+    emptyPage('product-brand'),
   ),
 );
 
@@ -82,6 +94,28 @@ describe('createClientAdapters', () => {
     );
 
     expect(urls).toContain(`${SERVICE}/product-specification`);
+  });
+
+  // The regression this file exists to catch. Brands and categories moved to
+  // `catalog-reference`, a store another slice owns, so composing their URL from
+  // the admin service's domain requests a route that no longer exists — and the
+  // e2e fixture, stubbing the same wrong address, could not see it.
+  it('reads the platform vocabulary from marketplace-service', async () => {
+    const urls = recordRequests();
+    const adapters = createClientAdapters();
+    const repository = Context.get(
+      adapters.productBrandRest,
+      EntityRepositoryTag,
+    );
+
+    await Effect.runPromise(
+      Effect.provide(
+        repository.load<ProductBrand>({}),
+        adapters.configurationStore,
+      ),
+    );
+
+    expect(urls).toContain(`${REFERENCE_SERVICE}/product-brand`);
   });
 
   it('returns a fresh adapter set per call', () => {

@@ -27,7 +27,7 @@ shell `@r10c/shells-next-system-management` and are mounted by
 back-office-app today; the dedicated bastion app takes this index when it
 lands, and needs no `-service` of its own (config-service is its backend).
 
-² **marketplace-service, back on `:3100`.** It was deleted by
+² **marketplace-service, back on `:3100`, and it has two clients.** It was deleted by
 [ADR 0021](../adr/0021-consolidating-the-fleet-into-five-deployments.md) as a
 36-line health-check shell with no router, no store and no domain — not a Slice,
 and a placeholder deployment is a thing to keep booting, probing and reasoning
@@ -39,6 +39,15 @@ category and dictionary vocabulary, platform plane, system-of-record) and
 `published-catalog` (`projection-of:catalog`). It is the storefront's read host
 and the only writer of the projection, consuming `catalog.published` off the bus —
 which is what keeps a public read path from ever opening a tenant connection.
+
+The storefront is not its only client. **back-office-app reads the same
+vocabulary from here**, through a second same-origin proxy at `/api/marketplace`
+(`marketplace-service-domain` in config-service), because the brands and
+categories an operator authors are the ones a vendor's offering is classified
+in. So `back-office-app:dev` starts marketplace-service alongside
+marketplace-admin-service, and the back office composes catalog URLs from **two**
+domain keys: `ProductSpecification` from `:3101`, `ProductBrand` and
+`ProductCategory` from here.
 
 The difference from the version that was deleted is exactly the thing ADR 0020
 made sayable: a deployment earns its existence by owning a store.

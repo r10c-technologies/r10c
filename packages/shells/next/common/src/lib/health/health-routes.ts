@@ -14,6 +14,24 @@ const READY_CACHE_MS = 1_000;
 /** A readiness check that hangs is a readiness check that failed. */
 const READY_TIMEOUT_MS = 2_000;
 
+/**
+ * Which build is answering: `next dev` or `next start`.
+ *
+ * Liveness carries it because an e2e run needs to know *which artifact* it
+ * attached to. Playwright reuses whatever already listens on the app's port, so
+ * a suite started while a dev server is up tests a different bundle against a
+ * different backend than the one it claims to — see `assertExpectedServer` in
+ * `@r10c/entifix-ts-testing-e2e/playwright`.
+ *
+ * On liveness rather than readiness because liveness is the one endpoint that
+ * answers from the process alone, before config-service or any backend is up.
+ *
+ * Not an information leak worth avoiding: a dev build already announces itself
+ * in its asset paths long before anything asks this endpoint.
+ */
+const buildMode = (): 'development' | 'production' =>
+  process.env.NODE_ENV === 'production' ? 'production' : 'development';
+
 interface ReadyState {
   readonly at: number;
   readonly ready: boolean;
@@ -68,7 +86,12 @@ export const createHealthRoutes = (options: HealthRouteOptions) => {
     health: () => Response.json({ status: 'ok', app: options.app }),
 
     /** `GET /api/health/live` */
-    live: () => Response.json({ status: 'live', app: options.app }),
+    live: () =>
+      Response.json({
+        status: 'live',
+        app: options.app,
+        mode: buildMode(),
+      }),
 
     /** `GET /api/health/ready` */
     ready: async () => {

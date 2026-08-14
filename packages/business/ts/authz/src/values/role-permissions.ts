@@ -7,6 +7,7 @@ import { type Role } from './role';
  * rename surfaces as one edit rather than as silently dead grants.
  */
 export const CATALOG_DOMAIN = 'product-configuration-management';
+export const CATALOG_REFERENCE_DOMAIN = 'catalog-reference';
 export const AUTHN_DOMAIN = 'authn';
 
 /**
@@ -21,12 +22,20 @@ export const AUTHN_DOMAIN = 'authn';
  */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   // Reads the catalog in the admin app; no back-office of its own.
-  user: [`${CATALOG_DOMAIN}:*:read`],
+  user: [`${CATALOG_DOMAIN}:*:read`, `${CATALOG_REFERENCE_DOMAIN}:*:read`],
   // Catalog authoring plus user management, bounded by the role-assignment rule.
   admin: [
     `${CATALOG_DOMAIN}:*:read`,
     `${CATALOG_DOMAIN}:*:write`,
     `${CATALOG_DOMAIN}:*:delete`,
+    // The platform vocabulary an offering is classified in: **read only**.
+    // marketplace-service serves these reads to anonymous storefront traffic,
+    // so granting them here is not a privilege — it only lets the nav name the
+    // same permission the destination needs. Authoring stays with `super-admin`:
+    // ADR 0022 makes `catalog-reference` operator-owned, because a tenant role
+    // that could write it would let one vendor rewrite the browse tree every
+    // other vendor is classified into.
+    `${CATALOG_REFERENCE_DOMAIN}:*:read`,
     `${AUTHN_DOMAIN}:user-identity:read`,
     `${AUTHN_DOMAIN}:user-identity:write`,
     // Reading identifiers is how the user list shows who an account is; it is
