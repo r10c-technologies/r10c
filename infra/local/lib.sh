@@ -133,11 +133,13 @@ probed_labels() {
 # `backChannelLogoutUri`; rev 2 → 3 turned the v2 hosted login on and pointed
 # the instance at its base URI; rev 3 → 4 added the Actions v2 target and the
 # three user-lifecycle executions that revoke r10c sessions when a user is
-# deactivated at the provider.
-ZITADEL_SEED_REVISION=5
+# deactivated at the provider; rev 4 → 5 moved the OIDC redirect URI onto
+# back-office-app when auth-app merged into it; rev 5 → 6 gave the instance a
+# label policy, which is what the hosted login renders in.
+ZITADEL_SEED_REVISION=6
 
-# L7: has the Zitadel instance been given its project, app, policies and SMTP —
-# by the version of the seed that is checked in right now?
+# L7: has the Zitadel instance been given its project, app, policies, branding
+# and SMTP — by the version of the seed that is checked in right now?
 #
 # Still a file read, so the ladder's fast path pays nothing to ask. But it is a
 # *cache key*, not a "has this ever run" flag: the guard used to be `-s` alone,
@@ -233,7 +235,7 @@ ensure_login() {
 seed_zitadel() {
   zitadel_seeded && return 0
   extract_zitadel_pat || return 1
-  log_heal "zitadel: seeding project, OIDC app, login v2, actions, login policy and SMTP"
+  log_heal "zitadel: seeding project, OIDC app, login v2, branding, actions, login policy and SMTP"
   ZITADEL_PAT_FILE="$ZITADEL_PAT_FILE" \
   ZITADEL_GENERATED_ENV="$ZITADEL_GENERATED_ENV" \
   ZITADEL_ISSUER="http://localhost:30080" \

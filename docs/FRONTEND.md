@@ -35,6 +35,14 @@ the semantic colour **contract**; `presets/*` and app-local `themes.css` overrid
 the contract values per palette. See [[design-system-theme]] in memory and
 [ENTIFIX.md](./ENTIFIX.md).
 
+The presets have one consumer outside the browser. `tools/zitadel-seed.mjs`
+copies **aurora**'s and **midnight**'s four semantic colours
+(`--color-primary`, `--color-surface`, `--color-content`, `--color-danger`) into
+Zitadel's instance label policy, because the hosted login takes colours over an
+API and cannot take CSS. Nothing enforces that copy — this package ships no TS
+export a Node script could import — so changing one of those four in a preset
+means changing the seed with it, and bumping `ZITADEL_SEED_REVISION`.
+
 ## Foundations (Utopia)
 
 Spacing (`--spacing-3xs…3xl`) and type (`--text-step-xs…3`) are `clamp()` scales

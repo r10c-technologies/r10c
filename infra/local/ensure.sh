@@ -12,7 +12,7 @@
 #   L4 rollout      each deployment has a Ready replica  -> restart the pod once
 #   L5 probes       TCP + protocol handshake             -> back to L4
 #   L6 hosted login v2 login container up on :30081      -> secret + apply -k
-#   L7 zitadel seed instance has project/app/actions/policy/SMTP -> zitadel-seed.mjs
+#   L7 zitadel seed instance has project/app/branding/actions/policy/SMTP -> zitadel-seed.mjs
 #
 # Healing here is destructive nowhere. When the ladder cannot fix something it
 # exits non-zero naming the exact command that can.

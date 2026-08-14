@@ -389,7 +389,19 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   (`ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_*`), extracted through the `pat-reader`
   sidecar into `zitadel-login-secret` — so an instance older than that setting
   never grows the user and the only fix is `dev:reset`. Nothing above the OIDC
-  boundary changed: `oidc-client.ts` reads every URL from discovery. The e2e
+  boundary changed: `oidc-client.ts` reads every URL from discovery. **The login
+  wears the r10c palette, and it is seeded, not styled**: the v2 image reads
+  `GET /v2/settings/branding`, which serves the instance label policy, so
+  `ensureBranding` in `tools/zitadel-seed.mjs` PUTs the aurora/midnight hexes and
+  then `_activate`s them — a `PUT` alone writes a _preview_ nobody sees, the same
+  trap SMTP has. The hexes are duplicated from
+  `packages/entifix/style/src/presets/` because that package ships CSS with no TS
+  export; changing one is a `ZITADEL_SEED_REVISION` bump like any other seed
+  change. Verify it through a real `/oauth/v2/authorize` round trip — opening
+  `:30081/ui/v2/login/loginname` bare gives the login no request context and it
+  renders its built-in defaults, which are Zitadel's, so a branded instance
+  reads as unbranded (measured; a pod restart does not change it, it is not a
+  cache). The e2e
   fixture does — `seedSession` switches on v2's **routes** (`/loginname`,
   `/password`, `/mfa/set`, `/accounts`), because v2 reuses `data-testid`s across
   screens (`reset-button` is both "Reset password" and "Skip"). See

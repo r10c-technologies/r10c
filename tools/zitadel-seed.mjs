@@ -2,9 +2,10 @@
 /**
  * Give a freshly-initialised Zitadel instance everything the r10c fleet expects
  * to find in it: a project, the OIDC app auth-app signs in through, the v2
- * hosted login and where to find it, the Actions v2 target that tells us a user
- * was deactivated, TOTP as an available second factor, SMTP pointed at Mailpit,
- * and — only when credentials are present — a Google identity provider.
+ * hosted login and where to find it, the r10c palette that login renders in,
+ * the Actions v2 target that tells us a user was deactivated, TOTP as an
+ * available second factor, SMTP pointed at Mailpit, and — only when credentials
+ * are present — a Google identity provider.
  *
  * Run by the L7 rung of `infra/local/ensure.sh` (and again at the end of
  * `reset.sh`), never by hand in a normal workflow. It is **idempotent**: every
@@ -93,6 +94,46 @@ const ACTION_EVENTS = ['user.deactivated', 'user.locked', 'user.removed'];
 const LOGIN_BASE_URI =
   process.env['ZITADEL_LOGIN_BASE_URI'] ??
   'http://localhost:30081/ui/v2/login/';
+
+/**
+ * What the hosted login is painted with. Zitadel takes four hex slots per theme
+ * — primary, background, font, warn — and r10c's design system names the same
+ * four, so the mapping is one-to-one:
+ *
+ *   primary → `--color-primary`   background → `--color-surface`
+ *   font    → `--color-content`   warn       → `--color-danger`
+ *
+ * The pair is **aurora** (light) and **midnight** (dark), the two presets
+ * back-office-app ships, because sign-in hands the visitor straight to it.
+ * Values are copied from `packages/entifix/style/src/presets/aurora.css` and
+ * `…/midnight.css`: `@r10c/entifix-style` ships CSS only — no `src/index.ts`,
+ * and its `exports` map covers `.css` and nothing else — so a Node script has
+ * nothing to import and the literals are duplicated by necessity. Every r10c
+ * token is already 6-digit hex, so no conversion happens here; a divergence is
+ * greppable by the token names above.
+ *
+ * `THEME_MODE_LIGHT` rather than Zitadel's `AUTO`, and that is deliberate:
+ * back-office-app hardcodes `data-theme="aurora"` on `<html>` and the repo has
+ * no `prefers-color-scheme` query anywhere, so the app never follows the OS.
+ * `AUTO` would render the login dark on a dark-OS machine and then hand off to
+ * a light app. The dark half is still sent, so the pair stays coherent if that
+ * ever changes.
+ *
+ * Colours only. A logo is a multipart `/assets/v1/…` upload and there is no
+ * r10c brand asset in the repo to upload; the watermark toggle is a licensing
+ * question rather than a colour. Both are out of scope on purpose.
+ */
+const BRANDING = {
+  primaryColor: '#3b6ff5',
+  backgroundColor: '#f7f9fc',
+  fontColor: '#1b2432',
+  warnColor: '#c0342b',
+  primaryColorDark: '#5b8cff',
+  backgroundColorDark: '#0f141c',
+  fontColorDark: '#e6ecf5',
+  warnColorDark: '#ff8b80',
+  themeMode: 'THEME_MODE_LIGHT',
+};
 
 const pat = readFileSync(PAT_FILE, 'utf8').trim();
 
@@ -264,6 +305,40 @@ const ensureLoginV2 = async () => {
     loginV2: { required: true, baseUri: LOGIN_BASE_URI },
   });
   log(`login version: v2 required, served from ${LOGIN_BASE_URI}`);
+};
+
+// ---------------------------------------------------------------- branding
+
+/**
+ * Paint the hosted login in r10c's colours, so the one screen the fleet does
+ * not serve itself stops looking like a different product from the app it hands
+ * off to.
+ *
+ * The v2 login does not read this file or any CSS of ours — it asks the core for
+ * `GET /v2/settings/branding`, which serves exactly the instance label policy
+ * written here, split into a light and a dark theme. That is why branding the
+ * login is a seed change and not a change to the login image.
+ *
+ * **Two calls, and the second is the one that matters.** `PUT` writes the
+ * *preview* policy; only `_activate` promotes it to the active one visitors see
+ * — the same trap `ensureSmtp` documents, where everything looks configured and
+ * nothing is in effect. So the reconciliation below reads the **active** policy
+ * rather than `/_preview`: that is the single read that catches both "never
+ * branded" and "written once but never activated".
+ */
+const ensureBranding = async () => {
+  const { policy } = await api('GET', '/admin/v1/policies/label');
+  const applied = Object.entries(BRANDING).every(
+    ([field, value]) => policy?.[field] === value,
+  );
+  if (applied) {
+    log('branding: r10c palette already active');
+    return;
+  }
+
+  await api('PUT', '/admin/v1/policies/label', BRANDING);
+  await api('POST', '/admin/v1/policies/label/_activate', {});
+  log('branding: r10c palette applied (aurora light, midnight dark)');
 };
 
 // ----------------------------------------------------------- actions v2
@@ -487,6 +562,7 @@ const main = async () => {
   const projectId = await ensureProject();
   const clientId = await ensureApp(projectId);
   await ensureLoginV2();
+  await ensureBranding();
   const { targetId, signingKey } = await ensureActionTarget();
   await ensureExecutions(targetId);
   await ensureLoginPolicy();
