@@ -48,6 +48,7 @@
     "@r10c/business-ts-authz": "workspace:*",
     "@r10c/entifix-react-controls": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-i18n": "workspace:*",
     "@r10c/shells-next-common": "workspace:*",
     "@r10c/shells-next-i18n": "workspace:*"
   }

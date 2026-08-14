@@ -33,9 +33,13 @@ const INPUT_TYPE: Partial<Record<MetaAccessorType, string>> = {
  *
  * A relation (`link`/`linkCollection`) is rendered read-only here, deliberately:
  * editing one needs a picker that can search and page the target, which is a
- * different control with different dependencies. `EntityForm` wires that in one
- * level up from its `linkSources`, so this atom stays a pure type→input map and
- * a relation never falls back to a broken text box.
+ * different control with different dependencies. So this atom stays a pure
+ * type→input map and a relation never falls back to a broken text box.
+ *
+ * For a to-one `link` that is only half the story — `EntityForm` wires the
+ * picker in one level up from its `linkSources`, so the member does get an
+ * editor, just not from here. A `linkCollection` has no editor anywhere yet
+ * (#26), and read-only is all it gets.
  */
 export function FieldControl({
   descriptor,

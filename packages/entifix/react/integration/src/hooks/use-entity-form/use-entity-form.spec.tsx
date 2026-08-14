@@ -117,6 +117,7 @@ class Gadget implements Entity {
 class Widget implements Entity {
   #id?: EntityId;
   #brand = new EntityLink(GadgetBrand);
+  #tags = new EntityCollectionLink(GadgetBrand);
 
   @accessor({ type: 'id', hidden: true })
   get id(): EntityId {
@@ -130,6 +131,16 @@ class Widget implements Entity {
   @accessor({ type: 'link', label: 'Brand', required: true })
   get brand(): EntityLink<GadgetBrand> {
     return this.#brand;
+  }
+
+  /**
+   * The same rule in its to-many shape. It went unenforced for as long as a
+   * collection was treated as a member no form writes back, which is a claim
+   * about the controls rather than about what the domain insists on.
+   */
+  @accessor({ type: 'linkCollection', label: 'Tags', required: true })
+  get tags(): EntityCollectionLink<GadgetBrand> {
+    return this.#tags;
   }
 }
 
@@ -266,21 +277,36 @@ describe('validateEntityDraft', () => {
     ).toEqual({});
   });
 
-  it('reports a required relation left empty', () => {
+  it('reports a required relation left empty, to-one and to-many alike', () => {
+    // The collection is the half that used to pass silently: a rule the entity
+    // declared and the form never applied, because a member with no editor yet
+    // was treated as a member nothing may ever write.
     expect(
       validateEntityDraft(
         describeEntityColumns(Widget),
-        { brand: '' },
+        { brand: '', tags: '' },
         MESSAGES,
       ),
-    ).toEqual({ brand: 'Brand is required' });
+    ).toEqual({ brand: 'Brand is required', tags: 'Tags is required' });
   });
 
   it('accepts a required relation once a key is held', () => {
     expect(
       validateEntityDraft(
         describeEntityColumns(Widget),
-        { brand: 'brand-1' },
+        { brand: 'brand-1', tags: 't-1,t-2' },
+        MESSAGES,
+      ),
+    ).toEqual({});
+  });
+
+  it('judges a collection on presence alone, never on the ids in it', () => {
+    // Same bargain as a to-one relation: whether the targets exist is the
+    // service's answer to give, so anything non-empty satisfies the form.
+    expect(
+      validateEntityDraft(
+        describeEntityColumns(Widget),
+        { brand: 'brand-1', tags: 'junk,,,' },
         MESSAGES,
       ),
     ).toEqual({});
