@@ -164,6 +164,13 @@ sign-in answers 404 while `/debug/ready` stays green, which is why it gets a run
 and a probe rather than being trusted to come up
 ([ADR 0018](../../docs/adr/0018-the-hosted-login-is-a-second-container.md)).
 
+**Their two image tags are one tag.** The login is a client of the core's session
+API, so bumping one manifest and not the other is a version skew across an
+internal API — and its symptom is a sign-in screen that renders and then fails
+mid-flow, which no probe can see. `pnpm nx test @r10c/docs-check` reads both
+literals and fails the build when they disagree, so a bump means editing
+`zitadel/deployment.yaml` and `zitadel-login/deployment.yaml` together.
+
 **The L6 rung.** After the probes go green, `ensure.sh` extracts the
 `IAM_LOGIN_CLIENT` token Zitadel minted at first init
 (`infra/local/zitadel/.login-client.pat`), applies it as `zitadel-login-secret`,

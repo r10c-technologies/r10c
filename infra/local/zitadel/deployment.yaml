@@ -33,6 +33,10 @@ spec:
           # Pinned, not `:latest`. An identity provider that silently changes
           # version under a running fleet changes how sign-in behaves, and a
           # floating tag makes "it worked yesterday" unreproducible.
+          #
+          # This tag and the hosted login's in `../zitadel-login/deployment.yaml`
+          # are ONE tag: bumping either alone is a skew across an internal API.
+          # `pnpm nx test @r10c/docs-check` fails the build when they disagree.
           image: ghcr.io/zitadel/zitadel:v4.16.2
           # start-from-init: bootstrap schema/first-instance then serve.
           # --masterkeyFromEnv reads ZITADEL_MASTERKEY (from the secret).

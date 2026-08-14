@@ -589,3 +589,41 @@ describe('Fleet ports agree in every place they are written', () => {
     ).toEqual([]);
   });
 });
+
+describe('The Zitadel core and its hosted login are one tag', () => {
+  // Nothing substitutes a version into these manifests — `apply.sh` is a plain
+  // `kubectl apply -k` and no kustomization declares an `images:` transformer —
+  // so the two tags are two literals, and this is what makes them one fact. A
+  // third copy in `lib.sh` would be one more thing to drift; the constraint to
+  // encode is "these two agree", not "someone should remember".
+  const CORE = 'infra/local/zitadel/deployment.yaml';
+  const LOGIN = 'infra/local/zitadel-login/deployment.yaml';
+
+  /** Every tag a manifest pins for one image, in file order. */
+  const tagsFor = (file: string, image: string): string[] => {
+    const pattern = new RegExp(`image:\\s*${image}:(\\S+)`, 'g');
+    return [...read(file).matchAll(pattern)].map(match => match[1]);
+  };
+
+  const coreTags = () => tagsFor(CORE, 'ghcr\\.io/zitadel/zitadel');
+  const loginTags = () => tagsFor(LOGIN, 'ghcr\\.io/zitadel/zitadel-login');
+
+  it('finds the images it is meant to check', () => {
+    // One apiece. The core manifest also runs `busybox` init containers, which
+    // the image pattern deliberately does not match.
+    expect(coreTags()).toHaveLength(1);
+    expect(loginTags()).toHaveLength(1);
+  });
+
+  it('pins the login to the core tag', () => {
+    expect(
+      loginTags()[0],
+      `the hosted login is pinned to ${loginTags()[0]} while the core runs ` +
+        `${coreTags()[0]}. The login is a client of the core's session API, ` +
+        'not an independent product, so a skew fails somewhere inside the ' +
+        'sign-in flow rather than at startup — no probe sees it. Bump both ' +
+        `${CORE} and ${LOGIN} together (login v4.14.0 also reopens ` +
+        'zitadel/zitadel#12125).',
+    ).toBe(coreTags()[0]);
+  });
+});

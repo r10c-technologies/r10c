@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-08-07
+- Revised: 2026-08-14 — the append-only `oidc:sid:` set is recorded as a
+  deliberate invariant with the constraint that keeps it true, rather than as a
+  question deferred to an issue. The decision is unchanged.
 
 ## Context
 
@@ -154,12 +157,17 @@ needs. Tracked as issue #53.
 - **`refresh` is unchanged.** Still `touch` → `read` → `sign`, no Mongo, no
   network. The property [ADR 0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md)
   and [ADR 0002](0002-authorization-roles-and-abac.md) protect is untouched.
-- **A third Redis namespace joins `session:` and `oidc:id-token:`.** Ids of
-  sessions r10c revoked itself are left in the set on purpose — revoking a
-  revoked session is a no-op, and unlinking would mean threading the store
-  through every revocation site to buy nothing. The key expires at the ceiling.
-  Revisit together with the missing `jti` store if this route ever gains a
-  non-idempotent effect; both rest on the same argument (issue #54).
+- **A third Redis namespace joins `session:` and `oidc:id-token:`, and it is
+  append-only until `take`.** Ids of sessions r10c revoked itself are left in the
+  set on purpose: revoking a revoked session is a no-op and the key expires at
+  the ceiling, so the set cannot grow without bound. It is also the only option
+  on the table — there is no `sessionId → sid` mapping in the system, `SREM`
+  needs the key, and `revokeAllForUser`/`revokeAllForUserExcept` return `void`,
+  so most revocation sites never learn the ids they killed. Unlinking is a second
+  namespace written at the callback, not a call added at four sites. **The
+  invariant this rests on: anything added to the back-channel route must stay
+  idempotent.** It is the same argument as the deliberately absent `jti` replay
+  store, and the two stand or fall together.
 - **A seed change now reaches an already-seeded instance.** Bump
   `ZITADEL_SEED_REVISION` in `infra/local/lib.sh` in the same commit as any
   change to `tools/zitadel-seed.mjs` that adds or alters a setting, or it will

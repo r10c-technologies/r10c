@@ -32,8 +32,9 @@ import { resolveEntityFormFields } from './use-entity-form-fields';
  *
  * Two things layer on top of that default:
  * - **modes** — `read` renders each member through `CellValue`; `edit` renders
- *   the matching `FieldControl`. A relation stays read-only in both (its editor
- *   is a separate control) unless a slot supplies one.
+ *   the matching `FieldControl`. A to-one `link` with an entry in `linkSources`
+ *   gets the full editor instead; without one — and for `linkCollection`
+ *   always, the to-many editor being a follow-up — it stays read-only.
  * - **slots** — `<EntityField>` children override one field's label, control or
  *   read display, or add a computed field.
  *
