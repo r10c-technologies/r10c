@@ -28,6 +28,26 @@ export class LoadedConfigurationTag extends Context.Tag(
 export const defaultConfigRetrySchedule: Schedule.Schedule<unknown, unknown> =
   Schedule.intersect(Schedule.spaced('1 seconds'), Schedule.recurs(20));
 
+/**
+ * Deadline for a single boot-fetch attempt.
+ *
+ * **The retry above only helps if an attempt can fail.** `fetch` has no timeout
+ * of its own, so a connection that is accepted but never answered — a previous
+ * listener dying mid-flight, a half-open socket — leaves it waiting forever.
+ * The schedule never sees a failure, never retries, and the service hangs in its
+ * boot layer with its port bound and nothing served: measured twice on
+ * 2026-08-14, on auth-service and then marketplace-service, recovered only by a
+ * full `dev:reset` ([#84](https://github.com/r10c-technologies/r10c/issues/84)).
+ *
+ * So an attempt is deadlined, for the same reason a readiness probe is: a check
+ * that hangs is a check that failed. The ordinary race this retry was written
+ * for — config-service not listening yet — still fails instantly with
+ * `ECONNREFUSED` and costs nothing, so this bounds the pathological case only:
+ * 20 retries × (5s deadline + 1s spacing) ≈ 2 minutes before the service exits
+ * loudly instead of hanging silently.
+ */
+export const defaultConfigAttemptTimeoutMs = 5_000;
+
 /** Options for {@link loadRemoteConfiguration}. */
 export interface LoadRemoteConfigurationOptions {
   /**
@@ -37,6 +57,12 @@ export interface LoadRemoteConfigurationOptions {
    * immediately.
    */
   readonly retrySchedule?: Schedule.Schedule<unknown, unknown>;
+  /**
+   * Deadline for one attempt, in milliseconds. Defaults to
+   * {@link defaultConfigAttemptTimeoutMs}. There is deliberately no way to
+   * disable it — an attempt that cannot time out is the bug this exists for.
+   */
+  readonly attemptTimeoutMs?: number;
 }
 
 /**
@@ -46,9 +72,11 @@ export interface LoadRemoteConfigurationOptions {
  * parameters (e.g. `mongo.uri`) instead of hardcoding them.
  *
  * Uses Node's global `fetch` (same transport approach as the REST client); any
- * network/parse/non-2xx failure becomes an {@link EntifixConnError}. The fetch
- * is retried on a bounded schedule ({@link defaultConfigRetrySchedule}) so a
- * dependent that boots before config-service is HTTP-ready waits it out.
+ * network/parse/non-2xx failure becomes an {@link EntifixConnError}. Each
+ * attempt is deadlined ({@link defaultConfigAttemptTimeoutMs}) and the fetch is
+ * retried on a bounded schedule ({@link defaultConfigRetrySchedule}), so a
+ * dependent that boots before config-service is HTTP-ready waits it out — and
+ * one that reaches a socket nobody is answering gives up rather than hanging.
  */
 export const loadRemoteConfiguration = (
   configApiUrl: string,
@@ -56,11 +84,24 @@ export const loadRemoteConfiguration = (
   options: LoadRemoteConfigurationOptions = {},
 ): Effect.Effect<ConfigurationPlain, EntifixConnError> => {
   const url = `${configApiUrl.replace(/\/+$/, '')}/api/config/${service}`;
+  const attemptTimeoutMs =
+    options.attemptTimeoutMs ?? defaultConfigAttemptTimeoutMs;
+
   const fetchOnce = Effect.tryPromise({
     try: async () => {
       const response = await fetch(url, {
         cache: 'no-store',
         headers: { [SERVICE_TOKEN_HEADER]: serviceToken() },
+        signal: AbortSignal.timeout(attemptTimeoutMs),
+      }).catch((error: unknown) => {
+        // Rewritten because the raw abort says `This operation was aborted`,
+        // which reads like a bug in the caller rather than a silent peer.
+        if (error instanceof Error && error.name === 'TimeoutError') {
+          throw new Error(
+            `config-service did not answer within ${attemptTimeoutMs}ms at ${url}`,
+          );
+        }
+        throw error;
       });
       if (!response.ok) {
         throw new Error(
