@@ -104,6 +104,13 @@ jobs:
         if: always()
         run: node tools/check-i18n.mjs
 
+      # The other i18n direction: parity says nothing about a code missing from
+      # *both* locales, and the render path casts the typed-key gate away, so an
+      # uncataloged code reaches the user as its own identifier.
+      - name: Check every emitted error code is cataloged
+        if: always()
+        run: pnpm nx test @r10c/i18n-check
+
       # The generated documentation blocks: the port table, the store register
       # and the ADR index are written from source, so a hand-edit or a stale
       # block fails here.
