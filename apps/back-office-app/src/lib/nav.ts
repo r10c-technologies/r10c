@@ -10,6 +10,13 @@ import { SYSTEM_MANAGEMENT_NAV } from '@r10c/shells-next-system-management';
 export type { GuardedNavItem, GuardedNavSection };
 
 const CATALOG = 'product-configuration-management';
+/**
+ * Brands and categories are not in the catalog domain any more — ADR 0022 moved
+ * them to the platform-plane `catalog-reference` store, and a nav item naming a
+ * permission its destination does not check is exactly the drift this file is
+ * written to avoid.
+ */
+const CATALOG_REFERENCE = 'catalog-reference';
 
 /**
  * **The** navigation definition for the back office — sidebar and workspace
@@ -37,14 +44,14 @@ export const NAV: GuardedNavSection[] = [
         href: '/catalog/product-brand',
         icon: '◈',
         workspace: 'catalog:product-brand',
-        permission: `${CATALOG}:product-brand:read`,
+        permission: `${CATALOG_REFERENCE}:product-brand:read`,
       },
       {
         label: 'app:admin.nav.categories',
         href: '/catalog/product-category',
         icon: '⊞',
         workspace: 'catalog:product-category',
-        permission: `${CATALOG}:product-category:read`,
+        permission: `${CATALOG_REFERENCE}:product-category:read`,
       },
     ],
   },

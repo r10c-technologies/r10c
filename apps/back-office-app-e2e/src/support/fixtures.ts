@@ -14,20 +14,31 @@ import {
 
 import { brandSeed, categorySeed, productSeed } from './catalog-seed';
 
-/** Where the admin app is served, and where its adapters look for the service. */
+/** Where the admin app is served, and where its adapters look for the services. */
 export const APP_URL = process.env['BASE_URL'] ?? 'http://localhost:3001';
 export const SERVICE_URL = 'http://localhost:3101/api';
+/**
+ * The second catalog backend. ADR 0022 moved brand and category out of the
+ * tenant plane into `catalog-reference`, which marketplace-service owns, so the
+ * app composes their URLs from a different configuration key. Stubbing them on
+ * `:3101` is what let the brand pages break in a real fleet while this suite
+ * stayed green — the fixture was wrong in exactly the same way the app was.
+ */
+export const REFERENCE_SERVICE_URL = 'http://localhost:3100/api';
 
-export const BRAND_URL = `${SERVICE_URL}/product-brand`;
-export const CATEGORY_URL = `${SERVICE_URL}/product-category`;
+export const BRAND_URL = `${REFERENCE_SERVICE_URL}/product-brand`;
+export const CATEGORY_URL = `${REFERENCE_SERVICE_URL}/product-category`;
 export const PRODUCT_URL = `${SERVICE_URL}/product-specification`;
 
 /**
- * The one configuration value the REST adapters need in order to build their
- * URLs. In `live` the app resolves it from config-service instead.
+ * The configuration values the REST adapters need in order to build their URLs.
+ * In `live` the app resolves them from config-service instead.
  */
 const CONFIGURATION = {
-  uri: [{ key: 'marketplace-admin-service-domain', value: SERVICE_URL }],
+  uri: [
+    { key: 'marketplace-admin-service-domain', value: SERVICE_URL },
+    { key: 'marketplace-service-domain', value: REFERENCE_SERVICE_URL },
+  ],
 };
 
 const { handlers, backend } = entityBackendHandlers(ProductBrand, {

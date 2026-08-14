@@ -184,6 +184,17 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'marketplace-admin-service-domain',
     value: 'http://localhost:3101/api',
   },
+  // The second catalog backend. ADR 0022 moved brand, category and the
+  // characteristic dictionary to the platform-plane `catalog-reference` store,
+  // which marketplace-service owns — a marketplace has to merge a browse tree
+  // and per-vendor taxonomy cannot. The back office reads that vocabulary from
+  // here; the app rewrites this to `/api/marketplace` before the browser sees it.
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'marketplace-service-domain',
+    value: 'http://localhost:3100/api',
+  },
   // config-service's own address, so the admin app's system-management pages can
   // reach the configuration CRUD. The app rewrites it to a same-origin proxy path
   // before the browser sees it, exactly like the admin-service domain above.

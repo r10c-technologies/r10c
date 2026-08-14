@@ -15,6 +15,7 @@ const stubFetch = (impl: typeof fetch) => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   delete process.env.CONFIG_SERVICE_TOKEN;
 });
 
@@ -38,8 +39,33 @@ describe('createHealthRoutes', () => {
     const response = routes.live();
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: 'live', app: OPTIONS.app });
+    expect(await response.json()).toEqual({
+      status: 'live',
+      app: OPTIONS.app,
+      mode: 'development',
+    });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // The field an e2e run reads to find out *which artifact* it attached to.
+  // Playwright reuses whatever is already on the port, so without this a suite
+  // can test a dev bundle while reporting on a production one.
+  it('names the build answering the probe', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+
+    const response = createHealthRoutes(OPTIONS).live();
+
+    expect(await response.json()).toMatchObject({ mode: 'production' });
+  });
+
+  // `/api/health` predates the probes and other things read it; it stays as it
+  // was rather than growing a field alongside liveness.
+  it('leaves the original health endpoint untouched', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+
+    const response = createHealthRoutes(OPTIONS).health();
+
+    expect(await response.json()).toEqual({ status: 'ok', app: OPTIONS.app });
   });
 
   it('reports ready when config-service answers', async () => {

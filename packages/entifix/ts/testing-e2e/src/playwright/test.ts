@@ -3,12 +3,15 @@ import { test as base } from '@playwright/test';
 import type { AnyHandler } from 'msw';
 
 import { isMockProfile } from '../profile/profile';
+import { assertExpectedServerOnce } from './assert-expected-server';
 
 export interface EntifixE2eFixtures {
   /** The handlers the mock profile starts from. Overridable per project. */
   handlers: AnyHandler[];
   /** The msw network, for per-test overrides in a `*.mock.spec.ts`. */
   network: NetworkFixture;
+  /** Refuses a hermetic run against a reused development server. */
+  expectedServer: void;
 }
 
 export interface EntifixE2eTestOptions {
@@ -43,6 +46,28 @@ const liveNetwork = (): NetworkFixture =>
   });
 
 /**
+ * Playwright's own `test`, plus the reused-server guard and nothing else.
+ *
+ * For a spec that wants no msw network and no seeded session — proving the
+ * unauthenticated redirect, say. It exists so that "this spec needs no
+ * fixtures" cannot quietly mean "this spec is not checked against the artifact
+ * it is running on": importing `test` straight from `@playwright/test` is what
+ * left the account journeys resolving a principal against a live auth-service
+ * while claiming to be hermetic.
+ */
+export const baseTest = base.extend<Pick<EntifixE2eFixtures, 'expectedServer'>>(
+  {
+    expectedServer: [
+      async ({ baseURL }, use) => {
+        await assertExpectedServerOnce(baseURL);
+        await use();
+      },
+      { auto: true },
+    ],
+  },
+);
+
+/**
  * Builds the `test` an entifix app e2e project imports.
  *
  * In `mock` it installs the msw handlers over Playwright's `page.route()`
@@ -55,7 +80,7 @@ export const defineEntifixE2eTest = ({
   handlers = [],
   passthroughOrigins = [],
 }: EntifixE2eTestOptions = {}) =>
-  base.extend<EntifixE2eFixtures>({
+  baseTest.extend<EntifixE2eFixtures>({
     handlers: [handlers, { option: true }],
 
     network: [

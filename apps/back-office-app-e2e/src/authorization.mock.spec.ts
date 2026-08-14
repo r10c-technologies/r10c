@@ -1,5 +1,8 @@
-import { expect, test as base } from '@playwright/test';
-import { seedSession } from '@r10c/entifix-ts-testing-e2e/playwright';
+import {
+  baseTest as base,
+  expect,
+  seedSession,
+} from '@r10c/entifix-ts-testing-e2e/playwright';
 
 import { test } from './support/fixtures';
 

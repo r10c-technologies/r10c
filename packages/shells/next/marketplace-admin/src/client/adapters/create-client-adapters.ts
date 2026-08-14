@@ -20,13 +20,26 @@ import { Context } from 'effect';
 
 import type { MarketplaceAdminAdapters } from '../client-types';
 
-const restOptions: BuildEntityRestOptions = {
+const restOptionsFor = (domainKey: string): BuildEntityRestOptions => ({
   uriConfig: {
-    key: 'marketplace-admin-service-domain.[entity]',
+    key: `${domainKey}.[entity]`,
     group: 'uri',
     extractionMode: 'compose',
   },
-};
+});
+
+/**
+ * The two backends this shell reads, and which store each one owns.
+ *
+ * They were one until ADR 0022. `ProductSpecification` is tenant-plane and
+ * marketplace-admin-service writes it; `ProductBrand` and `ProductCategory` are
+ * the platform-plane vocabulary a marketplace has to *merge*, so they moved to
+ * `catalog-reference` in marketplace-service. Pointing both at one domain key is
+ * how the brand and category pages ended up requesting routes that no longer
+ * existed — the host rewrites each key to its own same-origin proxy.
+ */
+const CATALOG_SERVICE = restOptionsFor('marketplace-admin-service-domain');
+const REFERENCE_SERVICE = restOptionsFor('marketplace-service-domain');
 
 /**
  * Builds the full CRUD adapter set for one entity, backed by REST, under the
@@ -37,6 +50,7 @@ const restOptions: BuildEntityRestOptions = {
  */
 function createRestRepositoryContext<TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
+  restOptions: BuildEntityRestOptions,
 ) {
   return Context.make(EntityRepositoryTag, {
     get: buildEntityRestAdapterGet(entityConstructor, restOptions),
@@ -52,9 +66,18 @@ const configurationStore = Context.make(
   configStore,
 );
 
-const productCategoryRest = createRestRepositoryContext(ProductCategory);
-const productBrandRest = createRestRepositoryContext(ProductBrand);
-const productRest = createRestRepositoryContext(ProductSpecification);
+const productCategoryRest = createRestRepositoryContext(
+  ProductCategory,
+  REFERENCE_SERVICE,
+);
+const productBrandRest = createRestRepositoryContext(
+  ProductBrand,
+  REFERENCE_SERVICE,
+);
+const productRest = createRestRepositoryContext(
+  ProductSpecification,
+  CATALOG_SERVICE,
+);
 
 export function createClientAdapters(): MarketplaceAdminAdapters {
   return {

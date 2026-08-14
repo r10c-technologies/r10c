@@ -1,4 +1,7 @@
-import { expect, test } from '@playwright/test';
+import {
+  baseTest as test,
+  expect,
+} from '@r10c/entifix-ts-testing-e2e/playwright';
 
 // Smoke check only: the home page renders its heading. The generator's original
 // assertion looked for "Welcome", which this landing page never said — it went

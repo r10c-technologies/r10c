@@ -1,10 +1,11 @@
 /**
  * The brand rows the `mock` profile serves.
  *
- * Deliberately the same shape and the same names as the catalog seed the
- * service inserts (`apps/marketplace-admin-service/src/product-brand-temp-data.ts`):
- * 20 brands cycling ten base names, so `Acme` matches `Acme 1` and `Acme 2` in
- * both profiles and one spec suite can assert the same journeys against either.
+ * Deliberately the same shape and the same names as the seed the service
+ * inserts (`apps/marketplace-service/src/product-brand-temp-data.ts` — brands
+ * moved there with `catalog-reference` under ADR 0022): 20 brands cycling ten
+ * base names, so `Acme` matches `Acme 1` and `Acme 2` in both profiles and one
+ * spec suite can assert the same journeys against either.
  *
  * It is copied rather than imported: an e2e project reaching into another app's
  * source would couple two runtimes together, and this is fixture data — if the
