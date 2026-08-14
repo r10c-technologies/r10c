@@ -9,19 +9,30 @@ import {
 
 import type { EntityFormValues } from './use-entity-form.types';
 
-/** A member no form writes back, whatever the draft says about it. */
+/**
+ * A member no form writes back, whatever the draft says about it — and the only
+ * one is a read-only member, because it is the only one no editor may ever
+ * exist for.
+ *
+ * `linkCollection` used to be here too, which meant `required` on a to-many
+ * relation was silently unenforced: a rule the entity declared and the form
+ * never applied. Whether a collection has an editor yet is a question about the
+ * controls, not about what the domain insists on, so it is excluded from the
+ * *format* check below instead.
+ */
 function isNeverEdited(descriptor: EntityFieldDescriptor): boolean {
-  return descriptor.readonly || descriptor.type === 'linkCollection';
+  return descriptor.readonly;
 }
 
 /**
- * A member whose *format* the metadata can judge. A relation is excluded: its
- * draft value is a foreign key, and "is this a real id" is a question only the
- * service can answer — but whether one is present at all is checked, which is
- * what `required` on a relation has to mean.
+ * A member whose *format* the metadata can judge. Both relation shapes are
+ * excluded: their draft value is a foreign key (or a joined list of them), and
+ * "is this a real id" is a question only the service can answer — but whether
+ * one is present at all is checked, which is what `required` on a relation has
+ * to mean.
  */
 function hasCheckableFormat(descriptor: EntityFieldDescriptor): boolean {
-  return descriptor.type !== 'link';
+  return descriptor.type !== 'link' && descriptor.type !== 'linkCollection';
 }
 
 /**
@@ -96,7 +107,8 @@ export interface EntityDraftMessages {
 /**
  * Validates a draft against what the metadata implies — `required` members must
  * be filled, and a filled `number`/`date`/`enum` must be well-formed. Read-only
- * members and relations are skipped: neither is edited through this form.
+ * members are skipped entirely; a relation is checked for presence but never
+ * for format, since its draft value is a foreign key this side cannot resolve.
  *
  * Metadata is only the first of three rule sources; {@link composeEntityFormErrors}
  * is what layers a schema and the caller's own rules over this.
