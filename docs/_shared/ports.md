@@ -72,19 +72,36 @@ indirection and the absolute cross-app account links all disappear. The auth
 `@r10c/shells-next-auth` (`scope:auth`), the host carries `scope:back-office`
 and composes both, and splitting them apart again is a new app mounting that
 shell. `auth-service` stays on `:3102` — it is what Zitadel calls back into.
-Infrastructure NodePorts published to the host, declared once in
-`infra/local/lib.sh` (`PORT_SPECS`) and mirrored here:
+Infrastructure NodePorts published to the host. **This table is generated** from
+`infra/local/lib.sh` (`PORT_SPECS`, `LOGIN_NODEPORT`, `MINIKUBE_PORTS`) by
+`tools/sync-docs.mjs` — add the port there, run `node tools/sync-docs.mjs`, and
+stage the result. Editing between the markers fails the commit.
 
-| Datastore                     | Host port                             |
-| ----------------------------- | ------------------------------------- |
-| MongoDB                       | 30017                                 |
-| Redis                         | 30379                                 |
-| RabbitMQ                      | 30672                                 |
-| Postgres                      | 30432                                 |
-| otel-lgtm                     | 30318                                 |
-| **Zitadel**                   | **30080**                             |
-| **Zitadel hosted login (v2)** | **30081**                             |
-| **Mailpit**                   | **30825** (SMTP) / **30826** (web UI) |
+A port with no deployment is published but **not probed by the health ladder**:
+it is a host-facing UI or a secondary protocol, and the ladder only walks the
+listeners whose absence stops the fleet.
+
+<!-- docs:begin ports-infra -->
+
+| Host port | Datastore / UI         | Deployment      | Probed by the ladder |
+| --------- | ---------------------- | --------------- | -------------------- |
+| `30017`   | mongo                  | `mongodb`       | ✅                   |
+| `30379`   | redis                  | `redis`         | ✅                   |
+| `30672`   | rabbitmq               | `rabbitmq`      | ✅                   |
+| `31672`   | rabbitmq management UI | —               | —                    |
+| `30432`   | postgres               | `postgres`      | ✅                   |
+| `30080`   | zitadel                | `zitadel`       | ✅                   |
+| `30081`   | zitadel-login          | `zitadel-login` | ✅                   |
+| `30000`   | grafana (otel-lgtm)    | —               | —                    |
+| `30317`   | OTLP/gRPC (otel-lgtm)  | —               | —                    |
+| `30318`   | otel                   | `otel-lgtm`     | ✅                   |
+| `30825`   | mailpit                | `mailpit`       | ✅                   |
+| `30826`   | mailpit web UI         | —               | —                    |
+
+<!-- docs:end ports-infra -->
+
+Mailpit is two ports: **30825** is SMTP (what services dial) and **30826** is the
+web UI (where you read the mail).
 
 Zitadel is load-bearing, not optional: auth-service cannot sign anyone in without
 it, and its readiness probe says so. The hosted login carries the same weight and

@@ -2,6 +2,13 @@
 
 - Status: Accepted
 - Date: 2026-07-24
+- Revised: 2026-08-13 by [ADR 0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md) —
+  records here the "supersedes ADR 0002 on RS256 only" that ADR 0015 declared but
+  never wrote back. `jwt.secret` is gone; verification takes a public key.
+- Revised: 2026-08-13 by [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md) —
+  `registerUserUCFactory` no longer hashes anything. The role model, the
+  entity-derived permissions, `canAssignRole` and the three enforcement layers are
+  untouched and still binding.
 
 ## Context
 
@@ -20,6 +27,13 @@ The product requirement is three user tiers:
 | `user`        | reads the catalog                  | sign in / sign up only — no back-office        |
 | `admin`       | reads + authors the catalog        | back-office: list/create/edit users (≤ admin)  |
 | `super-admin` | catalog + future developer tooling | back-office: everything, can mint super-admins |
+
+> **Revised 2026-08-13.** Both column headings name hosts that no longer exist:
+> `marketplace-admin-app` and `auth-app` were merged into **`back-office-app`**
+> (`:3001`), which mounts `shells-next-marketplace-admin` and `shells-next-auth`
+> at one origin. The two columns are now two shells inside one app; every role
+> row is otherwise unchanged, which is the point — the merge moved processes, not
+> permissions. Later references to "auth-app" in this record read the same way.
 
 Sidebar contents must follow from the signed-in user's aspects, and Admins must
 be able to create more Admins.
@@ -78,12 +92,28 @@ to `user`, ignoring any caller-supplied role. Creating a user therefore goes
 through `registerUserUCFactory` (hashing + identifier uniqueness + this guard),
 never through a generic entity write.
 
+> **Revised 2026-08-13.** The hashing half is gone:
+> [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md) moved the credential
+> to Zitadel, so `registerUserUCFactory` does identifier uniqueness and this
+> guard only. That it is still the one path to a new user is unchanged and still
+> load-bearing — the `canAssignRole` ceiling lives inside it, so a generic entity
+> write would route around the ceiling, not just around the hashing.
+
 ### Presentation may read the token unverified; decisions may not
 
 Filtering navigation needs the caller's roles on every server render. Verifying
 the token there would mean copying `jwt.secret` out of config-service into the
 Next runtime; calling a service instead would put a network hop on every render
 of every page.
+
+> **Revised 2026-08-13 by [ADR 0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md).**
+> There is no `jwt.secret` any more: tokens are RS256, auth-service alone resolves
+> `jwt.privateKey`, and everyone else gets `jwt.publicKey` + `jwt.keyId` — which
+> is served openly at `/.well-known/jwks.json`, so verifying in the Next runtime
+> would leak nothing. The **decision below still stands**, on the second reason
+> alone: `unverifiedRoles` is about not paying to verify on every render of every
+> page, not about secret distribution. Keeping it also means the one place that
+> _must_ be right (`requirePermission`, on the service) stays the only verifier.
 
 So `unverifiedRoles` (`entifix-ts-jwt-client`) decodes the cookie **without
 checking its signature**, and is used only where being wrong costs a menu item.
@@ -100,6 +130,9 @@ when it cannot.
    gates the auth-app back-office. This is UX, and it is where the role gate
    lives rather than in middleware, because verifying the JWT at the edge would
    mean copying `jwt.secret` out of config-service into the Next runtime.
+   _Revised 2026-08-13: RS256 means the edge would only need the public key, so
+   that reason lapsed — see the blockquote above. The layer placement stands; the
+   gate now lives in back-office-app's `(back-office)` route group._
 3. **Service guard `requirePermission`** — verifies the token, then asks
    `PolicyDecisionTag`. `401` unauthenticated, `403` authenticated but denied.
    **This is the boundary**; hiding a menu item without it protects nothing.

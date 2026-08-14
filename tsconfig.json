@@ -161,6 +161,9 @@
     },
     {
       "path": "./apps/marketplace-service"
+    },
+    {
+      "path": "./tools/docs"
     }
   ]
 }

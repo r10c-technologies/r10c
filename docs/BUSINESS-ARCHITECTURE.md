@@ -140,7 +140,7 @@ tidiness — it is the tenancy boundary itself. A vendor is _defined_ by being
 scoped to one tenant's storage; an operator's job is the work no single tenant
 can see.
 
-Vendor and operator share one back-office host (marketplace-admin-app) with
+Vendor and operator share one back-office host (`back-office-app`, `:3001`) with
 permission-gated navigation. Two personas, one app.
 
 ## Stores, slices, and data planes

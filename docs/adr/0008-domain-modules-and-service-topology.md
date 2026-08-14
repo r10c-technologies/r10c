@@ -5,6 +5,12 @@
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   clarifies that the superseded block covers the topology section only; the tag
   dimensions and forbidden couplings are live.
+- Revised: 2026-08-13 by [ADR 0021](0021-consolidating-the-fleet-into-five-deployments.md) —
+  records the supersession ADR 0021 declared but never wrote back: the host table
+  and the `300N`/`310N` **pairing** are superseded by
+  [ports](../_shared/ports.md), because the index is per host, not per
+  frontend/backend pair. One-writer-per-database is untouched — it is the rule
+  that record spent its effort not breaking.
 - Amended by: [ADR 0020](0020-stores-and-slices.md) — the "three plane-hosts"
   topology below is **superseded**: the axis is ownership (a **Slice** and the
   **Stores** it writes), not plane, because a slice may own stores in more than

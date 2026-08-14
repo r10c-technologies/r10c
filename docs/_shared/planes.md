@@ -22,24 +22,34 @@ physically `tenant_<organizationId>`.
 
 ## The store register
 
-**This table is a mirror.** The register that actually holds is `tools/slices/`,
-whose `slices.spec.ts` checks the three invariants against the source tree and
-**fails the build** when they drift. Edit a `*.slice.ts` first; the table follows.
+**This table is generated**, and the register that holds is `tools/slices/`, whose
+`slices.spec.ts` checks the three invariants against the source tree and **fails
+the build** when they drift. Edit a `*.slice.ts`, run `node tools/sync-docs.mjs`,
+and stage the result — editing between the markers fails the commit.
+
+A store with no hosts holds records that are not `@entity()` classes (sessions,
+locks, sequences). A ⚠️ on the hosts column marks a multi-domain store, which is
+a **binding**: those domains are permanently co-deployed and the reason is
+recorded on the declaration as `bindingReason`.
+
+<!-- docs:begin store-register -->
 
 | Store               | Plane    | Owner slice         | Slice status | Co-deployed with    | Hosts                                                         | Partitioning     | Truth                   |
 | ------------------- | -------- | ------------------- | ------------ | ------------------- | ------------------------------------------------------------- | ---------------- | ----------------------- |
 | `auth`              | control  | `auth`              | active       | —                   | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record        |
-| `session`           | control  | `auth`              | active       | —                   | — (session records, no entities)                              | single           | system-of-record        |
-| `configuration`     | control  | `config`            | active       | —                   | `config`                                                      | single           | system-of-record        |
-| `catalog`           | tenant   | `marketplace-admin` | active       | `transaction`       | `product-configuration-management`                            | per-organization | system-of-record        |
-| `saga-coordination` | control  | `marketplace-admin` | active       | `transaction`       | — (locks + sequences, no entities)                            | single           | system-of-record        |
-| `saga`              | control  | `transaction`       | active       | `marketplace-admin` | —                                                             | single           | system-of-record        |
 | `catalog-reference` | platform | `marketplace`       | active       | —                   | `catalog-reference`                                           | single           | system-of-record        |
-| `published-catalog` | platform | `marketplace`       | active       | —                   | `marketplace-catalog`                                         | single           | `projection-of:catalog` |
-| `stock`             | tenant   | `stock`             | **planned**  | —                   | `stock-management`                                            | per-organization | system-of-record        |
+| `catalog`           | tenant   | `marketplace-admin` | active       | `transaction`       | `product-configuration-management`                            | per-organization | system-of-record        |
+| `configuration`     | control  | `config`            | active       | —                   | `config`                                                      | single           | system-of-record        |
 | `order`             | platform | `order`             | **planned**  | —                   | `order-management`                                            | single           | system-of-record        |
 | `payment`           | platform | `payment`           | **planned**  | —                   | `payment-management`                                          | single           | system-of-record        |
+| `published-catalog` | platform | `marketplace`       | active       | —                   | `marketplace-catalog`                                         | single           | `projection-of:catalog` |
+| `saga-coordination` | control  | `marketplace-admin` | active       | `transaction`       | —                                                             | single           | system-of-record        |
+| `saga`              | control  | `transaction`       | active       | `marketplace-admin` | —                                                             | single           | system-of-record        |
+| `session`           | control  | `auth`              | active       | —                   | —                                                             | single           | system-of-record        |
 | `settlement`        | control  | `settlement`        | **planned**  | —                   | `settlement-management`                                       | single           | system-of-record        |
+| `stock`             | tenant   | `stock`             | **planned**  | —                   | `stock-management`                                            | per-organization | system-of-record        |
+
+<!-- docs:end store-register -->
 
 A **planned** slice owns its stores and is held to all three invariants, but
 declares **no deployment** — nothing writes those stores yet. Recording ownership

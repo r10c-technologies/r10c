@@ -2,6 +2,14 @@
 
 - Status: Accepted
 - Date: 2026-07-26
+- Revised: 2026-08-13 by [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md) —
+  records here the supersession ADR 0016 declared but never wrote back: the
+  **recovery** and **lockout** sections below are superseded, and the Context
+  paragraph describing them is marked as of its date. Sliding sessions, the
+  refresh model, the `/server` subpath and device history all stand unchanged.
+- Revised: 2026-08-13 — the `/server` subpath section's rollup reasoning is
+  clarified in place: `packages/` builds per-file with `@nx/js:swc`. The subpath
+  itself is still required, for the reason stated there.
 
 ## Context
 
@@ -23,6 +31,13 @@ it**: there was no refresh route handler anywhere under `apps/*/src/app/api`.
 **Recovery did not exist.** A user who forgot their password had no path back
 into their account, and there was no limit on how many passwords an attacker
 could try.
+
+> **Revised 2026-08-13.** That paragraph describes 2026-07-26, when r10c held its
+> own password hashes, and is kept as the context this record was decided in.
+> [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md) removed the
+> credential entirely — there is no hash, no `PasswordHasher` and no
+> `AccountRepository` method that could read or write one — so the problem this
+> half of the record solves no longer exists to solve.
 
 ## Decision
 
@@ -65,6 +80,15 @@ through it becomes a client reference and its `next/server` imports fail. A
 second rollup entry publishes `@r10c/shells-next-common/server` without the
 banner, mirroring the `./server` subpath `shells-next-i18n` already had.
 
+> **Revised 2026-08-13.** There is no rollup here any more — `packages/` builds
+> per-file with `@nx/js:swc`, which keeps each module's own `"use client"` and so
+> removes the blanket banner this section was routing around. **The `/server`
+> subpath stands and is still required**, for the reason in the next paragraph
+> rather than this one: the boundary is which entry a module is _reached
+> through_, so anything a route handler or server layout calls must ship from
+> `/server` regardless of who stamps the directive. `createRefreshRoute` still
+> lives there.
+
 Anything a **server layout calls directly** belongs there too — a pure function
 exported from the client entry is still a client function, which surfaced as
 `Attempted to call accountUrls() from the server`.
@@ -95,6 +119,23 @@ working in production.
 
 ### Recovery links exist in the message and nowhere else
 
+> **Superseded by [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md).**
+> Recovery is Zitadel's. There is no `POST /api/auth/password/forgot`, no reset
+> token, no `writePasswordHash`, and no password change flow to re-verify —
+> r10c stores no credential, so there is nothing here to reset. The account page
+> links out to the provider's self-service instead, and provider mail lands in
+> Mailpit (`:30826`).
+>
+> Two pieces of this section outlived the decision and are still live, which is
+> why the reasoning is kept rather than deleted. The `OneTimeTokenStore` port
+> (`entifix-ts-business` + its Redis adapter) survives and now holds the OIDC
+> `{codeVerifier, nonce, redirect}` stash whose token **is** the `state` — the
+> `GETDEL` single-redemption property that made a reset link safe is what makes
+> that consumption a CSRF and replay check. And `GET /api/dev/outbox` survives,
+> still 404 in production, now carrying only `NotificationKind.NewDevice` and
+> `NotificationKind.SessionsRevoked`: the notifications r10c still sends are
+> about _sessions_, not credentials.
+
 A `OneTimeTokenStore` port (`entifix-ts-business`, Redis adapter) keeps only the
 SHA-256 of the token and redeems it with `GETDEL`, so two clicks on the same
 emailed link cannot both succeed. `POST /api/auth/password/forgot` always answers
@@ -113,6 +154,15 @@ every session _except_ the caller's own. Recovery revokes _every_ session withou
 exception, because the old password may be in someone else's hands right now.
 
 ### Lockout, with its own downside handled
+
+> **Superseded by [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md).**
+> There is no attempt limiter here, because there is no password here to guess:
+> sign-in is authorization code + PKCE against Zitadel's hosted UI, so rate
+> limiting belongs to the party that sees the attempts. The `429` reasoning and
+> the per-identifier+source escalation are kept as the record of what was decided
+> — and as the shape to reach for if r10c ever gains a credential of its own
+> again. `UserStatus.Suspended` remains an administrator's lasting decision,
+> unchanged.
 
 Repeated failures lock sign-ins temporarily. A temporary lock is a
 denial-of-service handle by construction: anyone who knows an email address can
@@ -135,6 +185,9 @@ is an administrator's lasting decision.
   `AccountRepository` grew `writePasswordHash` and `findContactAddress` — the
   latter because `AuthSubject.subject` is the canonical user id, so using it as a
   recipient would have addressed security mail to a UUID.
+  _Revised 2026-08-13: `writePasswordHash` was deleted with the credential by
+  [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md). The other three are
+  live._
 - Administrators can view and end any user's sessions, behind
   `authn:user-device:read|write` derived from the entity. That is another
   person's device and IP history, so it is granted deliberately rather than

@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# Keep the local knowledge graph in step with the code.
+#
+# `graphify update` is pure AST — no API key, no network, a few seconds — so it
+# can run on every commit. The *semantic* pass that re-reads documentation is
+# LLM-backed and costs real tokens (374k on its last run), so it is NOT here:
+# it belongs to /create-pr, and only when the diff actually changed docs.
+#
+# Deliberately NOT `graphify hook install`. That writes `.git/hooks/`, and this
+# repo sets `core.hooksPath=.husky/_` — the hook would be installed and then
+# silently never run.
+#
+# Never fails a commit: the graph is an aid, not a gate, and `graphify-out/` is
+# gitignored so it cannot reach a diff either way.
+
+command -v graphify >/dev/null 2>&1 || exit 0
+
+echo "┏━━━ husky: post-commit (graphify) ━━━"
+graphify update . >/dev/null 2>&1 || echo "  graph update skipped (non-fatal)"

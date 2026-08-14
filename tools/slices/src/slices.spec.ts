@@ -4,50 +4,12 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { SLICES } from './registry.js';
-
-const REPO_ROOT = join(import.meta.dirname, '..', '..', '..');
-const BUSINESS_ROOT = join(REPO_ROOT, 'packages', 'business', 'ts');
-const APPS_ROOT = join(REPO_ROOT, 'apps');
-
-/** Every `.ts` file under `dir`, recursively, skipping build output. */
-const sourceFiles = (dir: string): string[] => {
-  const skip = new Set(['node_modules', 'dist', 'out-tsc', 'test-output']);
-  const walk = (current: string): string[] =>
-    readdirSync(current, { withFileTypes: true }).flatMap(entry => {
-      if (skip.has(entry.name)) return [];
-      const full = join(current, entry.name);
-      if (entry.isDirectory()) return walk(full);
-      return entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts')
-        ? [full]
-        : [];
-    });
-  return walk(dir);
-};
-
-/**
- * The `domain` of every `@entity()` in the business layer, read from source
- * rather than from `Symbol.metadata`.
- *
- * Source is the stronger signal here: metadata is only reachable through a
- * package's barrel, so an entity class that exists but was never exported would
- * be invisible to a metadata-based check and the invariant would pass
- * vacuously. This sees it.
- */
-const declaredEntityDomains = (): Map<string, string[]> => {
-  const found = new Map<string, string[]>();
-  for (const file of sourceFiles(BUSINESS_ROOT)) {
-    const text = readFileSync(file, 'utf8');
-    // Matches the `@entity({ … domain: 'x' … key: 'y' … })` head. Formatting is
-    // Prettier-enforced repo-wide, so the shape is stable.
-    for (const match of text.matchAll(
-      /@entity\(\{[^)]*?domain:\s*'([^']+)'[^)]*?key:\s*'([^']+)'/gs,
-    )) {
-      const [, domain, key] = match;
-      found.set(domain, [...(found.get(domain) ?? []), key]);
-    }
-  }
-  return found;
-};
+import {
+  APPS_ROOT,
+  BUSINESS_ROOT,
+  declaredEntityDomains,
+  sourceFiles,
+} from './source-scan.js';
 
 const allStores = SLICES.flatMap(slice =>
   slice.stores.map(store => ({ slice, store })),

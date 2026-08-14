@@ -119,7 +119,8 @@ workspace has none.
 watched via `--projects '*,!tag:layer:app'` (every library; apps and services
 excluded). Every app's `dev` depends on that same task, so Nx's task graph collapses
 it to a single process — wiring the per-project `watch-deps` Nx infers instead would
-give `marketplace-admin-app:dev` two watchers (it chains `auth-app:dev`) racing to
+give `back-office-app:dev` two watchers (it chains `auth-service:dev` and
+`marketplace-admin-service:dev`) racing to
 build the same shared library on one keystroke. The watcher does not chase its own
 output: the Nx daemon's file watcher honours `.gitignore`, and `dist` is ignored.
 
@@ -479,12 +480,12 @@ E2E suites run in one of two profiles, selected by `E2E_PROFILE` and provided by
 | `live`           | everything, down to Mongo and RabbitMQ | yes   | locally, on demand |
 
 ```sh
-pnpm nx e2e marketplace-admin-app-e2e                       # mock
+pnpm nx e2e back-office-app-e2e                       # mock
 pnpm nx e2e marketplace-admin-service-e2e                   # mock
 
 pnpm nx run marketplace-admin-service:dev                   # then, in another shell:
 E2E_PROFILE=live MARKETPLACE_ADMIN_SERVICE_URL=http://localhost:3101 \
-  pnpm nx e2e marketplace-admin-app-e2e
+  pnpm nx e2e back-office-app-e2e
 ```
 
 `mock` is the default because the default has to run anywhere. `live` never
@@ -533,14 +534,17 @@ follow, and a new gated e2e project needs both:
   cookie — deliberately unsigned, since the only things exercised there are the
   middleware's presence check and the server-rendered nav filter, and the
   services are msw fixtures anyway. In `live` it performs a **real sign-in**
-  through auth-app, so the token is one auth-service minted and the downstream
-  `requirePermission` checks are genuinely hit. Wire it as an `auto` fixture
-  (see `marketplace-admin-app-e2e/src/support/fixtures.ts`) so a new spec cannot
+  through Zitadel's hosted v2 login, so the token is one auth-service minted and
+  the downstream `requirePermission` checks are genuinely hit — which is why the
+  fixture switches on v2's **routes** (`/loginname`, `/password`, `/mfa/set`,
+  `/accounts`) rather than on `data-testid`s, v2 reusing those across screens.
+  Wire it as an `auto` fixture
+  (see `back-office-app-e2e/src/support/fixtures.ts`) so a new spec cannot
   forget it.
 - **`readyPath`** on `defineEntifixE2eConfig`. Playwright polls a URL to decide
   the server is up, and that URL has to be outside the gate _and_ free of backend
-  dependencies: probing `/` redirects to an auth-app that is not running, and
-  probing `/api/config` 500s until config-service is. marketplace-admin-app
+  dependencies: probing `/` redirects to a sign-in that is not running, and
+  probing `/api/config` 500s until config-service is. back-office-app
   exposes `/api/health` for exactly this and exempts it in the matcher.
 
 A guarded **service** suite takes the same shape: `defineServiceE2e` accepts an
@@ -574,14 +578,64 @@ works on a machine with a stale build and fails on a clean checkout.
   the routes (`/api/health`, `/api/config`, the entity routes). For frontends,
   drive the `/catalog/*` pages.
 
+## Keeping the documentation true
+
+Documentation drifts because nothing fails when it does. Two mechanisms make
+parts of it fail, split by what a machine can actually know.
+
+**Generated — `tools/sync-docs.mjs`.** Three tables are written from source and
+must not be edited by hand:
+
+| Block            | In                       | Source               |
+| ---------------- | ------------------------ | -------------------- |
+| `ports-infra`    | `docs/_shared/ports.md`  | `infra/local/lib.sh` |
+| `store-register` | `docs/_shared/planes.md` | `tools/slices/`      |
+| `adr-index`      | `docs/adr/README.md`     | the ADR files        |
+
+Each sits between `<!-- docs:begin <name> -->` and `<!-- docs:end <name> -->`.
+Change the source, run `node tools/sync-docs.mjs`, stage the result.
+
+```sh
+node tools/sync-docs.mjs           # rewrite the blocks
+node tools/sync-docs.mjs --check   # fail if any is stale (pre-commit + CI)
+```
+
+Output is Prettier-formatted before it is written, because `lint-staged`
+formats markdown on commit and a generator emitting its own table alignment
+would be reformatted immediately — `--check` would then never pass again.
+
+**Asserted — `@r10c/docs-check`.** Everything else stays hand-written prose, and
+the checks assert that the identifiers inside it still exist:
+
+```sh
+pnpm nx test @r10c/docs-check
+```
+
+It holds relative links and heading anchors, the router tables in `CLAUDE.md`
+and `README.md`, every entity name the business docs use, every tag dimension in
+`nx.tags`, the fleet ports (`ALL_PORTS` ↔ the port table ↔ what each app binds),
+and **ADR supersession symmetry** — a record claiming to supersede another must
+leave the reciprocal `- Revised:` line on the record it overrode. Both jobs are
+**unconditional** in CI for the same reason the i18n catalog check is: a
+documentation claim is everyone's problem, not the affected projects'.
+
+A third, **advisory** check (`tools/docs/staleness.mjs`) reports code that
+changed without its documentation being touched, into the PR's job summary. It
+never blocks — it can only see that a doc was not edited, not that it is wrong,
+and a blocking version would teach everyone to make a trivial edit to whatever
+file it names.
+
 ## Commits & PRs
 
 - **Conventional Commits with Nx scopes** (`@commitlint/config-nx-scopes`) — the
   scope is the project name: `feat(entifix-ts-mongo-client): add filter translator`.
   Enforced by commitlint.
-- `.husky/pre-commit` runs `lint-staged` then
-  `pnpm nx affected -t lint,build --base=origin/main` (it `git fetch`es first, so
-  origin must be reachable).
+- `.husky/pre-commit` runs `lint-staged`, then `node tools/sync-docs.mjs --check`,
+  then `pnpm nx affected -t lint,build --base=origin/main` (it `git fetch`es
+  first, so origin must be reachable).
+- `.husky/post-commit` runs `graphify update .` to keep the local knowledge graph
+  in step. Pure AST, no API key, and it can never fail a commit. The semantic
+  pass that re-reads documentation is LLM-backed and deliberately **not** here.
 - Branch off `main`; keep changes within the layer boundaries.
 - Do **not** add AI/tool co-author trailers or "generated with" lines to commits,
   PRs, or docs.

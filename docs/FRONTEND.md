@@ -379,16 +379,16 @@ shells, per the design-system rule.
 
 ## Component / package map
 
-| Concern                                                                                                                                   | Package                               |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`, `useEntityLinkSource`        | `@r10c/entifix-react-integration`     |
-| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`, `EntityLinkInput`/`EntityLinkPicker`), `Skeleton`, `TopBar`, `Menu`, `TabStrip` | `@r10c/entifix-react-controls`        |
-| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                    | `@r10c/shells-next-common`            |
-| `PageView({addr})` pages, registrations, adapters                                                                                         | `@r10c/shells-next-marketplace-admin` |
-| `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions)        | `marketplace-admin-app`               |
-| `(back-office)` user management over `EntityTable`/`EntityForm`, proxy route handlers                                                     | `auth-app`                            |
-| Storefront pages, chrome, `StoreLink`, fixture catalog + cookie cart — all server components                                              | `@r10c/shells-next-marketplace`       |
-| `app/[locale]` route tree, `loading.tsx`, cart route                                                                                      | `marketplace-app`                     |
+| Concern                                                                                                                                                                          | Package                               |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`, `useEntityLinkSource`                                               | `@r10c/entifix-react-integration`     |
+| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`, `EntityLinkInput`/`EntityLinkPicker`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`                                        | `@r10c/entifix-react-controls`        |
+| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                                                           | `@r10c/shells-next-common`            |
+| `PageView({addr})` pages, registrations, adapters                                                                                                                                | `@r10c/shells-next-marketplace-admin` |
+| `(back-office)` user management over `EntityTable`/`EntityForm`, account surface, sign-in                                                                                        | `@r10c/shells-next-auth`              |
+| `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions), the three route groups, proxy route handlers | `back-office-app`                     |
+| Storefront pages, chrome, `StoreLink`, fixture catalog + cookie cart — all server components                                                                                     | `@r10c/shells-next-marketplace`       |
+| `app/[locale]` route tree, `loading.tsx`, cart route                                                                                                                             | `marketplace-app`                     |
 
 **Navigation is permission-filtered, server-side.** One definition per app
 (`lib/nav`) carries a `permission` per item; the sidebar layout and the workspace

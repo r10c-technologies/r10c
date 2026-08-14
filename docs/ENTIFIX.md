@@ -255,6 +255,38 @@ Errors are always an `EntifixError` subclass — `EntifixConnError` (transport),
 `EntifixBuildError` (mapping/deserialization), `EntifixLogicError` (e.g. an
 unregistered resolver).
 
+### The envelope is the message
+
+Every message on the wire is an `EntifixEnvelope`: `{ meta, data }`, built in
+`entifix-ts-core` (`src/envelope/make-envelope.ts`) and therefore transport-free —
+the same shape goes over HTTP, over the bus, and into a test double.
+
+`meta.type` is one of `entity`, `entityCollection`, `entityPage`, `command` or
+`transactionEvent`, and `meta.entity` is the **routing label**: `key ?? class
+name`, resolved by `envelopeEntityName` — the identical resolution the REST
+adapter uses to build an endpoint and the Mongo adapter uses to pick a
+collection. One rule, three consumers, so a renamed `key` cannot move the
+endpoint without moving the envelope with it.
+
+Four builders wrap the shared serializer, which is why a route never hand-rolls a
+payload:
+
+| Builder                        | `meta.type`        | `data`                        |
+| ------------------------------ | ------------------ | ----------------------------- |
+| `makeEntityEnvelope`           | `entity`           | one serialized entity         |
+| `makeEntityCollectionEnvelope` | `entityCollection` | serialized entities           |
+| `makeEntityPageEnvelope`       | `entityPage`       | `{ items, total, request }`   |
+| `makeEnvelope`                 | any                | a caller-defined `data` shape |
+
+`makeEnvelope` is the escape hatch for payloads that are **not** serialized
+entities — a `command` or a `transactionEvent` carries a shape the transactions
+layer defines, so it cannot go through the entity builders. It still takes an
+`entity` label, because routing does not stop applying just because the body is
+not an entity.
+
+Optional `meta.links` carry `EntifixEnvelopeLink`s, which is how a `202` points
+at the transaction it started.
+
 ## 5. The React side
 
 `entifix-react-integration` runs a use-case against an adapter context inside a
