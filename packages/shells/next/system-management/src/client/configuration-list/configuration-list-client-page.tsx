@@ -5,6 +5,7 @@ import { EntityTable } from '@r10c/entifix-react-controls';
 import { useDataLoading } from '@r10c/entifix-react-integration';
 import { loadUCFactory } from '@r10c/entifix-ts-business';
 import type { EntityId } from '@r10c/entifix-ts-core';
+import { useLocaleHref } from '@r10c/shells-next-common';
 import { Context } from 'effect';
 
 import { useSystemManagementAdapters } from '../system-management-context';
@@ -32,6 +33,9 @@ export function ConfigurationListClientPage({
 }: ConfigurationListClientPageProps = {}) {
   const { configurationRest, configurationStore } =
     useSystemManagementAdapters();
+  // Only the *defaults* are prefixed: a caller that supplies its own `hrefFor`
+  // (a workspace tab addressing itself) owns the shape of what it passes.
+  const withLocale = useLocaleHref();
 
   const pager = useDataLoading({
     uc: loadUCFactory<Configuration>(),
@@ -42,8 +46,11 @@ export function ConfigurationListClientPage({
     <EntityTable
       entityConstructor={Configuration}
       {...pager}
-      hrefFor={hrefFor ?? (id => `${CONFIGURATION_LIST_HREF}/${String(id)}`)}
-      newHref={`${CONFIGURATION_LIST_HREF}/new`}
+      hrefFor={
+        hrefFor ??
+        (id => withLocale(`${CONFIGURATION_LIST_HREF}/${String(id)}`))
+      }
+      newHref={withLocale(`${CONFIGURATION_LIST_HREF}/new`)}
     />
   );
 }

@@ -12,6 +12,7 @@ import {
   getUCFactory,
   saveUCFactory,
 } from '@r10c/entifix-ts-business';
+import { useLocaleHref } from '@r10c/shells-next-common';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -43,6 +44,10 @@ export function ConfigurationSingleViewClientPage({
   const { configurationRest, configurationStore } =
     useSystemManagementAdapters();
   const router = useRouter();
+  // Every internal navigation carries the locale. Unprefixed, each one is
+  // bounced by the middleware — and the form's back link is a plain `<a>`,
+  // so that redirect rides on top of a full document load.
+  const withLocale = useLocaleHref();
   const params = useParams<{ slug: string }>();
   const id = slugToEntityId(slug ?? params.slug);
 
@@ -70,8 +75,8 @@ export function ConfigurationSingleViewClientPage({
     ctx,
   });
 
-  const afterSave = onSaved ?? (() => router.push(CONFIGURATION_LIST_HREF));
-  const afterDelete = onDeleted ?? (() => router.push(CONFIGURATION_LIST_HREF));
+  const afterSave = onSaved ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
+  const afterDelete = onDeleted ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
 
   const handleSave = async (row: Configuration) => {
     if (await save(row)) {
@@ -96,7 +101,7 @@ export function ConfigurationSingleViewClientPage({
       error={loadError ?? writeError}
       onSave={handleSave}
       onDelete={id == null ? undefined : handleDelete}
-      backHref={CONFIGURATION_LIST_HREF}
+      backHref={withLocale(CONFIGURATION_LIST_HREF)}
     />
   );
 }

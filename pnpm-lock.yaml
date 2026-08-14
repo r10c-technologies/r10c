@@ -1371,6 +1371,9 @@ importers:
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../../business/ts/catalog-reference
+      '@r10c/shells-next-common':
+        specifier: workspace:*
+        version: link:../common
     devDependencies:
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*

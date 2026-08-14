@@ -157,8 +157,10 @@ describe('ConfigurationSingleViewClientPage', () => {
       screen.getByRole('button', { name: /Guardar|Save/i }),
     );
 
+    // Prefixed: the page navigates through `useLocaleHref`, and with no i18n
+    // provider around the render that resolves to `DEFAULT_LOCALE`.
     await waitFor(() =>
-      expect(push).toHaveBeenCalledWith('/system/configuration'),
+      expect(push).toHaveBeenCalledWith('/es/system/configuration'),
     );
   });
 
@@ -193,7 +195,7 @@ describe('ConfigurationSingleViewClientPage', () => {
     );
 
     await waitFor(() =>
-      expect(push).toHaveBeenCalledWith('/system/configuration'),
+      expect(push).toHaveBeenCalledWith('/es/system/configuration'),
     );
   });
 

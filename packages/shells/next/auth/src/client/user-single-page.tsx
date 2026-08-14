@@ -3,6 +3,7 @@
 import { UserIdentity } from '@r10c/business-ts-authn';
 import { EntityForm, useT } from '@r10c/entifix-react-controls';
 import { deserializeSingleEntity } from '@r10c/entifix-ts-core';
+import { useLocaleHref } from '@r10c/shells-next-common';
 import { Effect } from 'effect';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -30,6 +31,9 @@ const readUser = async (id: string): Promise<UserIdentity> => {
 export function UserDetailPage() {
   const t = useT('shell');
   const errorT = useT('errors');
+  // The back link is a plain `<a>` inside `EntityForm`, so an unprefixed href
+  // costs a full document load *and* the middleware's redirect.
+  const withLocale = useLocaleHref();
   const params = useParams<{ id: string }>();
   const id = params.id;
 
@@ -93,7 +97,7 @@ export function UserDetailPage() {
         onSubmit={save}
         isLoading={isLoading}
         isSaving={isSaving}
-        backHref="/users"
+        backHref={withLocale('/users')}
         title={user?.displayName ?? t('auth.users.fallbackName')}
       />
       <UserSessionsPanel userId={id} />
