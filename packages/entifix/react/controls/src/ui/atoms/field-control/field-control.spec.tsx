@@ -157,7 +157,7 @@ describe('FieldControl', () => {
   });
 
   it.each(['link', 'linkCollection'] as const)(
-    'renders a relation (%s) read-only — its editor is a separate control',
+    'renders a relation (%s) read-only — EntityForm wires the editor in',
     type => {
       render(
         <FieldControl

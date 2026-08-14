@@ -31,9 +31,11 @@ const INPUT_TYPE: Partial<Record<MetaAccessorType, string>> = {
  * into the input that edits it. Centralizing the type→control choice is what
  * lets a form stay generic, the same way `CellValue` keeps a table generic.
  *
- * A relation (`link`/`linkCollection`) is rendered read-only here — editing one
- * needs a dedicated picker, a separate control — so a form composes that in
- * through a slot rather than getting a broken text box by default.
+ * A relation (`link`/`linkCollection`) is rendered read-only here, deliberately:
+ * editing one needs a picker that can search and page the target, which is a
+ * different control with different dependencies. `EntityForm` wires that in one
+ * level up from its `linkSources`, so this atom stays a pure type→input map and
+ * a relation never falls back to a broken text box.
  */
 export function FieldControl({
   descriptor,

@@ -24,6 +24,11 @@ spec:
           # `../zitadel/deployment.yaml`. The login is a client of Zitadel's
           # session API, not an independent product: the two move together or
           # they disagree about a protocol nobody versioned for a dev lab.
+          #
+          # That is enforced, not remembered: `pnpm nx test @r10c/docs-check`
+          # reads both literals and fails the build on a mismatch. It has to be
+          # a build check rather than a probe, because a skew renders a login
+          # screen fine and then fails somewhere inside the flow.
           image: ghcr.io/zitadel/zitadel-login:v4.16.2
           ports:
             - name: http

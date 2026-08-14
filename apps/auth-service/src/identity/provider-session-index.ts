@@ -46,10 +46,22 @@ const key = (providerSessionId: string) => `oidc:sid:${providerSessionId}`;
  * the route falls back to revoking by `sub` when a `sid` resolves to nothing,
  * which is exactly what a lost write looks like from there.
  *
- * Ids of sessions r10c revoked itself (`logout`, revoke-others, the admin path)
- * are left in the set on purpose. Revoking an already-revoked session is a
- * no-op, and unlinking would mean threading this store through every revocation
- * site to buy nothing.
+ * **The set is append-only until `take`, deliberately.** Ids of sessions r10c
+ * revoked itself (`logout`, revoke-others, the admin path, `provider-events`,
+ * a role change) are left behind. Revoking an already-revoked session is a
+ * no-op, and the key expires at the session absolute ceiling, so a set cannot
+ * grow without bound.
+ *
+ * It is also the only thing available: there is no `sessionId -> sid` mapping
+ * anywhere in the system, and `SREM` needs the key. Four of the six revocation
+ * sites never even learn the ids they killed — `revokeAllForUser`,
+ * `revokeAllForUserExcept` and the `sub` fallback all return `void`. Unlinking
+ * would mean a second Redis namespace written at the callback, not a call.
+ *
+ * The invariant that keeps the argument true: **anything added to the
+ * back-channel route must stay idempotent.** A stale id is harmless only while
+ * the route does nothing with it but revoke. That is the same footing as the
+ * deliberately absent `jti` replay store; the two stand or fall together.
  */
 export const makeRedisProviderSessionIndex = (
   redis: Redis,
