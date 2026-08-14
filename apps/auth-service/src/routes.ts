@@ -52,6 +52,7 @@ import {
   serializeEntity,
   serializeEntityCollection,
 } from '@r10c/entifix-ts-core';
+import { isLocale } from '@r10c/entifix-ts-i18n/routing';
 import { publicJwks } from '@r10c/entifix-ts-jwt-client';
 import {
   makeMongoRepository,
@@ -433,6 +434,14 @@ interface PendingAuthorization {
  *
  * The PKCE verifier never leaves the server. That is what makes a public client
  * safe: an intercepted authorization code cannot be exchanged without it.
+ *
+ * `uiLocale` is the one caller-supplied value that reaches the redirect URL, and
+ * it originates in a cookie the browser controls — so it is checked against the
+ * fleet's locale list here rather than trusted from the app that forwarded it.
+ * This service answers on `:3102` and is callable directly; validating at the
+ * edge that happens to be in front of it today would not be validating at all.
+ * An unrecognised tag is dropped, never echoed, which leaves the provider to
+ * negotiate the language exactly as it did before.
  */
 const oidcStartRoute = Effect.gen(function* () {
   const body = yield* readBody;
@@ -452,10 +461,12 @@ const oidcStartRoute = Effect.gen(function* () {
     JSON.stringify(pending),
     OIDC_STATE_TTL_SECONDS,
   );
+  const requestedLocale = asString(body['uiLocale']);
   const authorizationUrl = yield* oidc.authorizationUrl({
     state,
     nonce,
     codeChallenge,
+    uiLocales: isLocale(requestedLocale) ? requestedLocale : undefined,
   });
 
   return yield* HttpServerResponse.json({ authorizationUrl });

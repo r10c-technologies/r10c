@@ -163,6 +163,36 @@ describe('authorizationUrl', () => {
     expect(url.searchParams.get('nonce')).toBe('nonce-1');
   });
 
+  it('asks the hosted login for the locale the caller chose', async () => {
+    stubEndpoints({ body: {} });
+
+    const url = new URL(
+      await Effect.runPromise(
+        makeZitadelOidc(config).authorizationUrl({
+          ...AUTH_INPUT,
+          uiLocales: 'en',
+        }),
+      ),
+    );
+
+    expect(url.searchParams.get('ui_locales')).toBe('en');
+  });
+
+  it('omits ui_locales entirely when the caller states none', async () => {
+    // Absent, not empty: a blank `ui_locales` is a language preference of ""
+    // rather than "no preference", and the provider should be left to negotiate
+    // from `Accept-Language` exactly as it did before the parameter existed.
+    stubEndpoints({ body: {} });
+
+    const url = new URL(
+      await Effect.runPromise(
+        makeZitadelOidc(config).authorizationUrl(AUTH_INPUT),
+      ),
+    );
+
+    expect(url.searchParams.has('ui_locales')).toBe(false);
+  });
+
   it('honours configured scopes', async () => {
     stubEndpoints({ body: {} });
 

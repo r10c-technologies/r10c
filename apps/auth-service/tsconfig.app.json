@@ -44,6 +44,9 @@
       "path": "../../packages/entifix/ts/jwt-client/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/entifix/ts/i18n/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/entifix/ts/core/tsconfig.lib.json"
     },
     {

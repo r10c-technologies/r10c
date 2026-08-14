@@ -38,9 +38,9 @@ export const BACKCHANNEL_LOGOUT_EVENT =
 /**
  * What the caller must have decided before a browser can be sent anywhere.
  *
- * All three are minted by the caller rather than here, because all three have
- * to be *stored* before the redirect and read back after it — and where they
- * are stored (Redis, with a TTL and single-use semantics) is a composition
+ * The first three are minted by the caller rather than here, because all three
+ * have to be *stored* before the redirect and read back after it — and where
+ * they are stored (Redis, with a TTL and single-use semantics) is a composition
  * concern this client has no business knowing about.
  */
 export interface AuthorizationUrlInput {
@@ -50,6 +50,21 @@ export interface AuthorizationUrlInput {
   readonly nonce: string;
   /** The public half of the PKCE pair, from {@link createPkcePair}. */
   readonly codeChallenge: string;
+  /**
+   * Which language the hosted login should render in — a space-separated list
+   * of BCP 47 tags, most preferred first, as `ui_locales` (OIDC Core §3.1.2.1).
+   *
+   * **Already validated by the caller.** This client has no opinion on which
+   * locales exist: the fleet's list lives in `@r10c/entifix-ts-i18n`, and the
+   * value arrives here from a browser cookie, so whoever reads that cookie is
+   * the one that must check it against the list rather than echo it into a
+   * redirect URL.
+   *
+   * Optional, and omitted from the URL when absent rather than defaulted: a
+   * caller with no locale to state should leave the provider to negotiate from
+   * `Accept-Language`, which is what it does with no parameter at all.
+   */
+  readonly uiLocales?: string;
 }
 
 /** Who Zitadel says signed in, reduced to what r10c projects onto its own record. */
@@ -158,6 +173,9 @@ export const makeZitadelOidc = (config: ZitadelOidcConfig): ZitadelOidc => {
         url.searchParams.set('code_challenge_method', CODE_CHALLENGE_METHOD);
         url.searchParams.set('state', input.state);
         url.searchParams.set('nonce', input.nonce);
+        if (input.uiLocales !== undefined) {
+          url.searchParams.set('ui_locales', input.uiLocales);
+        }
         return url.toString();
       }),
     );

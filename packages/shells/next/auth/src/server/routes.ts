@@ -1,3 +1,4 @@
+import { LOCALE_COOKIE } from '@r10c/entifix-ts-i18n/routing';
 import {
   applyDeviceCookie,
   readDeviceContext,
@@ -42,9 +43,18 @@ import {
  * between the two legs — the callback validates it against the allowlist again
  * regardless, because a value that made a round trip through a third party is
  * not ours until it has been checked.
+ *
+ * The locale rides along for the same reason it is a URL prefix everywhere else:
+ * the hosted login is the one screen in the fleet the i18n gate cannot reach, so
+ * without `ui_locales` a visitor reading Spanish is handed an English sign-in
+ * page and back. It is read from the cookie rather than from `getRequestLocale`
+ * because the middleware skips `/api` wholesale, so no locale header reaches
+ * here — and it is forwarded raw, since auth-service is what checks it against
+ * the fleet's list before it can reach a redirect URL.
  */
 export async function oidcStartRoute(request: NextRequest) {
   const redirect = request.nextUrl.searchParams.get('redirect') ?? undefined;
+  const uiLocale = request.cookies.get(LOCALE_COOKIE)?.value;
 
   // `.catch`, not just an `!ok` check: a service that is down makes `fetch`
   // *throw*, and an uncaught throw here is a 500 on the one page a signed-out
@@ -53,7 +63,7 @@ export async function oidcStartRoute(request: NextRequest) {
   const res = await fetch(`${AUTH_SERVICE_URL}/api/auth/oidc/start`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ redirect }),
+    body: JSON.stringify({ redirect, uiLocale }),
     cache: 'no-store',
   }).catch(() => undefined);
 

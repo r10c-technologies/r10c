@@ -74,6 +74,7 @@
     "@r10c/business-ts-party-management": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-i18n": "workspace:*",
     "@r10c/entifix-ts-jwt-client": "workspace:*",
     "@r10c/entifix-ts-mongo-client": "workspace:*",
     "@r10c/entifix-ts-redis-client": "workspace:*",

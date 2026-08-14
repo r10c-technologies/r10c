@@ -336,6 +336,9 @@ importers:
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/core
+      '@r10c/entifix-ts-i18n':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/i18n
       '@r10c/entifix-ts-jwt-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/jwt-client
@@ -1307,6 +1310,9 @@ importers:
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../../entifix/ts/core
+      '@r10c/entifix-ts-i18n':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/i18n
       '@r10c/shells-next-common':
         specifier: workspace:*
         version: link:../common

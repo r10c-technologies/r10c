@@ -38,6 +38,28 @@ describe('auth-service', () => {
       expect(url.searchParams.get('code_challenge_method')).toBe('S256');
       expect(url.searchParams.get('state')).toBeTruthy();
       expect(url.searchParams.get('nonce')).toBeTruthy();
+      // Nothing asked for a language, so nothing is stated and the provider
+      // negotiates from `Accept-Language` as before.
+      expect(url.searchParams.has('ui_locales')).toBe(false);
+    });
+
+    it('asks the hosted login for a locale it recognises, and drops one it does not', async () => {
+      const accepted = await service.client.post('/api/auth/oidc/start', {
+        uiLocale: 'en',
+      });
+      expect(
+        new URL(accepted.data.authorizationUrl).searchParams.get('ui_locales'),
+      ).toBe('en');
+
+      // The value reaches here from a cookie the browser controls, so the
+      // allowlist is the only thing standing between it and a redirect URL the
+      // provider renders. An unknown tag is dropped, not echoed.
+      const rejected = await service.client.post('/api/auth/oidc/start', {
+        uiLocale: 'klingon',
+      });
+      expect(
+        new URL(rejected.data.authorizationUrl).searchParams.has('ui_locales'),
+      ).toBe(false);
     });
 
     it('provisions an unknown subject on first sign-in, at the lowest tier', async () => {

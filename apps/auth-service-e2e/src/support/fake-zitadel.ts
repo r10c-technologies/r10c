@@ -152,6 +152,13 @@ export const makeFakeZitadel = () => {
         url.searchParams.set('nonce', input.nonce);
         url.searchParams.set('code_challenge', input.codeChallenge);
         url.searchParams.set('code_challenge_method', 'S256');
+        // Echoed rather than ignored so a spec can see what the route decided
+        // to send: the whole point of the parameter is that auth-service drops
+        // a locale it does not recognise, and that is invisible if the fake
+        // swallows it.
+        if (input.uiLocales !== undefined) {
+          url.searchParams.set('ui_locales', input.uiLocales);
+        }
         return url.toString();
       }),
     exchangeCode: input =>

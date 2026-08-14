@@ -34,22 +34,25 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../common/tsconfig.lib.json"
-    },
-    {
       "path": "../i18n/tsconfig.lib.json"
     },
     {
-      "path": "../../../entifix/react/controls/tsconfig.lib.json"
+      "path": "../common/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/i18n/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/core/tsconfig.lib.json"
     },
     {
-      "path": "../../../business/ts/authn/tsconfig.lib.json"
+      "path": "../../../entifix/react/controls/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/authz/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/authn/tsconfig.lib.json"
     }
   ]
 }
