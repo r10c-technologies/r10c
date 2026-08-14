@@ -181,12 +181,25 @@ address serving nothing is the failure this rung exists to prevent.
 **The L7 rung.** `ensure.sh` then extracts the seed's own machine token
 (`infra/local/zitadel/.pat`) and runs `tools/zitadel-seed.mjs`, which is
 idempotent and ensures the `r10c` project, a **public** OIDC app (PKCE, no
-secret), login v2 required and pointed at `:30081`, a login policy with
-self-registration and OTP available but **not forced**, SMTP pointed at Mailpit,
+secret), login v2 required and pointed at `:30081`, an instance label policy
+carrying the r10c palette (aurora light / midnight dark — the login reads it
+through `GET /v2/settings/branding`), a login policy with self-registration and
+OTP available but **not forced**, SMTP pointed at Mailpit,
 and a Google IdP _only when_ `infra/local/zitadel/.env` carries credentials. It
 writes the per-instance client id and token to
 `infra/local/zitadel/.generated.env` (gitignored), which config-service's seed
 reads.
+
+**Checking the branding takes a real sign-in, not `:30081` on its own.** Opening
+`http://localhost:30081/ui/v2/login/loginname` directly gives the login no
+request context, and it falls back to its built-in default theme — which is
+Zitadel's palette, so a correctly branded instance looks exactly like an
+unbranded one. Measured: restarting the login pod does not change it, because it
+is not a cache. Go through `/oauth/v2/authorize` (or just start
+`back-office-app` and click sign in) so the URL carries a `requestId`; then the
+page is on `#f7f9fc` with `#3b6ff5` controls and the light/dark switcher is gone,
+`THEME_MODE_LIGHT` having settled the question. The API-level check that needs no
+browser is `GET /v2/settings/branding` with the seed's PAT.
 
 All three files are deleted by `reset.sh`, which is deliberate: the instance and
 the configuration naming it are recreated together, so a stale client id can

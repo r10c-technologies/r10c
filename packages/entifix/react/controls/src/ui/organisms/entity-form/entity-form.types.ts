@@ -57,7 +57,10 @@ export interface EntityFormProps<TEntity extends Entity> {
   /**
    * A search/browse source per relation, keyed by accessor name. A `link` field
    * with a source gets the full editor; one without keeps its read-only display,
-   * which is what a form that only shows a relation still wants.
+   * which is what a form that only shows a relation still wants. A key naming a
+   * **to-many** member throws instead: `linkCollection` has no editor anywhere
+   * yet, so the entry could only be dropped, and a dropped source looks exactly
+   * like a member the entity declared read-only.
    *
    * A registry rather than a slot per relation: the whole point is that an entity
    * declaring a `link` needs no bespoke control. The sources are built by the

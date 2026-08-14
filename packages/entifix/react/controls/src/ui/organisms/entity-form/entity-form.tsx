@@ -2,6 +2,7 @@
 
 import {
   describeEntityColumns,
+  EntifixLogicError,
   type Entity,
   type EntityLinkSource,
 } from '@r10c/entifix-ts-core';
@@ -34,7 +35,9 @@ import { resolveEntityFormFields } from './use-entity-form-fields';
  * - **modes** — `read` renders each member through `CellValue`; `edit` renders
  *   the matching `FieldControl`. A to-one `link` with an entry in `linkSources`
  *   gets the full editor instead; without one — and for `linkCollection`
- *   always, the to-many editor being a follow-up — it stays read-only.
+ *   always, the to-many editor being a follow-up — it stays read-only. A source
+ *   *aimed at* a `linkCollection` is a wiring mistake rather than a no-op, and
+ *   throws.
  * - **slots** — `<EntityField>` children override one field's label, control or
  *   read display, or add a computed field.
  *
@@ -71,6 +74,7 @@ export function EntityForm<TEntity extends Entity>({
   // Before slots resolve, so an `<EntityField label>` override still wins.
   const described = useLocalizedDescriptors(metadata);
   const fields = resolveEntityFormFields(described, slots.fields);
+  assertLinkSourcesAreEditable(fields, linkSources);
 
   const [internalMode, setInternalMode] = useState<EntityFormMode>(
     defaultMode ?? (entity ? 'read' : 'edit'),
@@ -183,6 +187,58 @@ export function EntityForm<TEntity extends Entity>({
         {slots.rest}
       </Stack>
     </Card>
+  );
+}
+
+/**
+ * Refuse a `linkSources` entry that names a to-many member.
+ *
+ * `FieldRow` asks for `field.type === 'link'` before it builds an editor, so a
+ * source handed to a `linkCollection` used to fall through to the read-only
+ * display with nothing said: the caller wired a picker, no picker appeared, and
+ * the field was indistinguishable from one the entity had declared read-only.
+ * That is a wiring mistake rather than a state — the entry is dead in *every*
+ * shape a collection can render, since an `<EntityField render>` slot is handed
+ * the draft and never the source — so it costs the render instead of a warning
+ * nobody reads. `useEntityLinkSource` already throws `EntifixLogicError` at
+ * render for the sibling mistake (a search property the target does not declare
+ * `filterable`); this is the same fault caught one level up.
+ *
+ * Here rather than inside `FieldRow`, and that is the whole reason it is a
+ * separate pass: a row only reaches its editor branch in **edit** mode, so a
+ * per-row check would stay silent on a form that opens in `read` — the default
+ * whenever there is a record — and then throw on a click, minutes later. One
+ * pass over the registry fires on the first render either way.
+ *
+ * Against the resolved fields rather than the raw metadata: a slot may drop a
+ * member, and a source left behind for a field that no longer renders is not
+ * worth a page.
+ */
+function assertLinkSourcesAreEditable<TEntity extends Entity>(
+  fields: Array<EntityFormField<TEntity>>,
+  // Same reason as the prop's own declaration: a source's target is another
+  // entity entirely and cannot be expressed in terms of `TEntity`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  linkSources: Record<string, EntityLinkSource<any>> | undefined,
+): void {
+  if (linkSources === undefined) return;
+
+  const toMany = fields
+    .filter(
+      field =>
+        field.type === 'linkCollection' &&
+        linkSources[field.name] !== undefined,
+    )
+    .map(field => field.name);
+  if (toMany.length === 0) return;
+
+  throw new EntifixLogicError(
+    `EntityForm was given a link source for a to-many member: ${toMany.join(', ')}. ` +
+      'A `linkCollection` has no editor yet, so the source can only be dropped ' +
+      'and the field would render read-only with no sign anything was wired. ' +
+      'Remove the entry, or point it at the to-one `link` you meant.',
+    undefined,
+    { fields: toMany },
   );
 }
 

@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-08-08
+- Revised: 2026-08-14 — the hosted login is no longer the one screen in the
+  fleet that ignores `@r10c/entifix-style`; the seed writes r10c's colours into
+  the instance label policy. The decision is unchanged.
 
 ## Context
 
@@ -27,6 +30,17 @@ the lab needs landing only in v2, or wanting the hosted login to look like r10c.
 The third is the one that fired. The hosted login is the only screen in the fleet
 that ignores `@r10c/entifix-style`, and v2 is themable in ways v1 is not. Doing
 the move now means doing it without a 404 setting the schedule.
+
+> **Revised 2026-08-14 — done.** The paragraph above is kept as the motivation it
+> was on 2026-08-08; the login is no longer that screen. `ensureBranding` in
+> `tools/zitadel-seed.mjs` writes the **aurora** (light) and **midnight** (dark)
+> preset colours into the instance label policy and pins `THEME_MODE_LIGHT`, and
+> the v2 container reads them back through `GET /v2/settings/branding`, so
+> sign-in and back-office-app render the same palette (issue #57). Colours only:
+> a logo is a multipart asset upload and the repo owns no brand mark, so that
+> half is deferred for want of an asset rather than for want of an API. The
+> decision below is unchanged — branding is instance configuration, so it lands
+> in the seed and not in the login image.
 
 ## Decision
 
