@@ -502,7 +502,7 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   request-free, hence prerenderable. That binder lives in `@r10c/entifix-ts-i18n`
   (a `layer:shell` package may not import another, and the storefront shell needs
   it) and is re-exported from `shells-next-i18n/server`. **A new binder must be
-  added to `BINDERS` in `tools/eslint-rules/no-foreign-app-namespace.mjs` or it
+  added to `BINDERS` in `tools/eslint/no-foreign-app-namespace.mjs` or it
   escapes the `app:`-namespace gate.** Every internal href carries the prefix:
   `LocaleLink`/`useLocaleHref()` in the back-offices (client, they read context),
   the server-side `StoreLink` in the storefront. Entity labels are

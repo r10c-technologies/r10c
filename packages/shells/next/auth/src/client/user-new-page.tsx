@@ -9,6 +9,7 @@ import {
   TextInput,
   useT,
 } from '@r10c/entifix-react-controls';
+import { useLocaleHref } from '@r10c/shells-next-common';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, type ReactNode, useState } from 'react';
 
@@ -30,6 +31,8 @@ export function NewUserPage() {
   const t = useT('shell');
   const errorT = useT('errors');
   const router = useRouter();
+  // Every internal navigation carries the locale, or the middleware bounces it.
+  const withLocale = useLocaleHref();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState<string>('user');
@@ -57,7 +60,7 @@ export function NewUserPage() {
       setMessage(body?.error ?? errorT('unexpected'));
       return;
     }
-    router.push('/users');
+    router.push(withLocale('/users'));
     router.refresh();
   };
 

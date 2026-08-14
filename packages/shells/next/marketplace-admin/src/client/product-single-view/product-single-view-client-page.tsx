@@ -16,6 +16,7 @@ import {
   ProductForm,
   type ProductFormDraft,
 } from '@r10c/implementation-product-configuration-management-react';
+import { useLocaleHref } from '@r10c/shells-next-common';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -60,6 +61,10 @@ export function ProductSingleViewClientPage({
 }: ProductSingleViewClientPageProps = {}) {
   const { productRest, configurationStore } = useMarketplaceAdminAdapters();
   const router = useRouter();
+  // Every internal navigation carries the locale. Unprefixed, each one is
+  // bounced by the middleware — and the form's back link is a plain `<a>`,
+  // so that redirect rides on top of a full document load.
+  const withLocale = useLocaleHref();
   const params = useParams<{ slug: string }>();
   const id = slugToEntityId(slug ?? params.slug);
 
@@ -87,8 +92,8 @@ export function ProductSingleViewClientPage({
     ctx,
   });
 
-  const afterSave = onSaved ?? (() => router.push(LIST_HREF));
-  const afterDelete = onDeleted ?? (() => router.push(LIST_HREF));
+  const afterSave = onSaved ?? (() => router.push(withLocale(LIST_HREF)));
+  const afterDelete = onDeleted ?? (() => router.push(withLocale(LIST_HREF)));
 
   const handleSave = async (product: ProductSpecification) => {
     if (await save(product)) {
@@ -112,7 +117,7 @@ export function ProductSingleViewClientPage({
       error={loadError ?? writeError}
       onSave={handleSave}
       onDelete={id == null ? undefined : handleDelete}
-      backHref={LIST_HREF}
+      backHref={withLocale(LIST_HREF)}
       initialDraft={initialDraft}
       onDraftChange={onDraftChange}
     />

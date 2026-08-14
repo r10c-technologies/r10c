@@ -98,6 +98,36 @@ describe('WorkspaceShell URL sync', () => {
     expect(useTabsState.getState().activeParam).toBe('catalog:category');
   });
 
+  // The persisted snapshot lands *after* the first commit, and it carries its
+  // own `activeParam`. Before the shell held its URL effects back, that
+  // restored value overwrote the tab the deep link named, and the write-back
+  // then projected the wrong tab into the address bar — so a shared link
+  // opened whatever the recipient had open last.
+  it('keeps the deep-linked tab when rehydration restores another one', async () => {
+    vi.spyOn(useTabsState.persist, 'rehydrate').mockImplementation(async () => {
+      await Promise.resolve();
+      useTabsState.setState({
+        tabs: [{ param: 'catalog:category', title: 'category catalog' }],
+        activeParam: 'catalog:category',
+      });
+    });
+
+    tabParam = 'catalog:brand';
+    renderShell();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('body')).toHaveTextContent('list brand'),
+    );
+    await act(() => new Promise(resolve => setTimeout(resolve, 200)));
+
+    expect(useTabsState.getState().activeParam).toBe('catalog:brand');
+    expect(tabParam).toBe('catalog:brand');
+    // The restored tab is still open — only the *active* one is the URL's.
+    expect(useTabsState.getState().tabs.map(tab => tab.param)).toContain(
+      'catalog:category',
+    );
+  });
+
   it('settles after the user clicks another open tab', async () => {
     tabParam = 'catalog:brand';
     renderShell();

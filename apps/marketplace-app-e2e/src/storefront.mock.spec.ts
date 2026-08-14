@@ -18,6 +18,11 @@ test.describe('browsing the catalog', () => {
 
     await page.getByRole('link', { name: 'Ver producto' }).first().click();
 
+    // Wait for the navigation, then assert the URL. Every click here is a full
+    // server navigation, and `toHaveURL` polls on the 5s *expect* timeout — a
+    // dynamic render that outlives it fails the spec for no reason of its own.
+    // `waitForURL` waits on the navigation timeout instead.
+    await page.waitForURL(/\/es\/p\//);
     await expect(page).toHaveURL(/\/es\/p\//);
     await expect(
       page.getByRole('button', { name: 'Añadir al carrito' }),
@@ -37,6 +42,7 @@ test.describe('browsing the catalog', () => {
     await page.goto('/es/c/lighting');
     await page.getByRole('link', { name: 'Referencia' }).click();
 
+    await page.waitForURL(/sort=code/);
     await expect(page).toHaveURL(/sort=code/);
     await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
   });
@@ -46,6 +52,7 @@ test.describe('browsing the catalog', () => {
     await page.getByRole('searchbox').fill('mug');
     await page.getByRole('button', { name: 'Buscar' }).click();
 
+    await page.waitForURL(/q=mug/);
     await expect(page).toHaveURL(/q=mug/);
     await expect(page.getByText('Terra Ceramic Mug')).toBeVisible();
     await expect(page.getByText('Aurora Desk Lamp')).toHaveCount(0);
@@ -63,6 +70,7 @@ test.describe('the cart', () => {
 
     // The action redirects here, which is the visitor's only feedback that it
     // worked — the header badge cannot update in place.
+    await page.waitForURL(/\/es\/cart$/);
     await expect(page).toHaveURL(/\/es\/cart$/);
     await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
 
@@ -75,6 +83,7 @@ test.describe('the cart', () => {
   test('the header badge fills in from the cookie', async ({ page }) => {
     await page.goto('/es/p/TER-MUG-01');
     await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page.waitForURL(/\/es\/cart$/);
     await expect(page).toHaveURL(/\/es\/cart$/);
 
     // Home is prerendered, so its HTML carries no count at all — the island
@@ -86,6 +95,7 @@ test.describe('the cart', () => {
   test('an item can be removed', async ({ page }) => {
     await page.goto('/es/p/AUR-LAMP-01');
     await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page.waitForURL(/\/es\/cart$/);
     await expect(page).toHaveURL(/\/es\/cart$/);
 
     await page.getByRole('button', { name: 'Quitar' }).click();

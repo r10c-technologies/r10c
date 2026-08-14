@@ -1,12 +1,16 @@
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { loadUCFactory } from '@r10c/entifix-ts-business';
 import { ProductTable } from '@r10c/implementation-product-configuration-management-react';
+import { useLocaleHref } from '@r10c/shells-next-common';
 import { Context } from 'effect';
 
 import { useMarketplaceAdminAdapters } from '../marketplace-admin-context';
 
 export function ProductListClientPage() {
   const { productRest, configurationStore } = useMarketplaceAdminAdapters();
+  // Every internal href carries the locale. An unprefixed one still resolves —
+  // the middleware redirects it — but the visitor pays a round trip per click.
+  const withLocale = useLocaleHref();
 
   // No link resolver here any more. Brand and category are plain ids on
   // `ProductSpecification`: their entities live in `catalog-reference`, a
@@ -20,8 +24,8 @@ export function ProductListClientPage() {
     <ProductTable
       ctx={ctx}
       uc={uc}
-      hrefFor={id => `/catalog/product/${String(id)}`}
-      newHref="/catalog/product/new"
+      hrefFor={id => withLocale(`/catalog/product/${String(id)}`)}
+      newHref={withLocale('/catalog/product/new')}
     />
   );
 }

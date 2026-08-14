@@ -2,6 +2,7 @@
 
 import { UserIdentity } from '@r10c/business-ts-authn';
 import { EntityTable } from '@r10c/entifix-react-controls';
+import { useLocaleHref } from '@r10c/shells-next-common';
 import { useState } from 'react';
 
 import { useUsers } from './use-users';
@@ -13,6 +14,9 @@ import { useUsers } from './use-users';
  * anything about it.
  */
 export function UsersPage() {
+  // Every internal href carries the locale. An unprefixed one still resolves —
+  // the middleware redirects it — but the visitor pays a round trip per click.
+  const withLocale = useLocaleHref();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const { items, total, isLoading, error } = useUsers(page, pageSize);
@@ -33,8 +37,8 @@ export function UsersPage() {
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
         isLoading={isLoading}
-        hrefFor={id => `/users/${String(id)}`}
-        newHref="/users/new"
+        hrefFor={id => withLocale(`/users/${String(id)}`)}
+        newHref={withLocale('/users/new')}
       />
     </>
   );
