@@ -8,7 +8,7 @@ import {
   useTranslateKey,
 } from '@r10c/entifix-react-controls';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 import { useDraftsState } from './drafts-state';
 import type { TabRegistry } from './tab-kind';
@@ -59,9 +59,19 @@ export function WorkspaceShell({
 
   // Load the persisted tab set and drafts once, on the client (hydration is
   // skipped at creation so SSR never touches IndexedDB).
+  //
+  // Both URL effects below wait on this flag, because the read is async and
+  // lands *after* the first commit: opening the deep-linked tab before it
+  // resolves means the restored snapshot's `activeParam` overwrites the tab the
+  // URL asked for, and the write-back then projects that wrong tab into the
+  // address bar. The URL is the more specific instruction, so it is applied
+  // once the store has finished restoring rather than before.
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    void useTabsState.persist.rehydrate();
-    void useDraftsState.persist.rehydrate();
+    void Promise.all([
+      useTabsState.persist.rehydrate(),
+      useDraftsState.persist.rehydrate(),
+    ]).finally(() => setHydrated(true));
   }, []);
 
   // A tab is dirty while its address has an unsaved draft; closing one confirms.
@@ -75,12 +85,12 @@ export function WorkspaceShell({
 
   // Deep link → open/focus the addressed tab (ignored when the kind is unknown).
   useEffect(() => {
-    if (!urlTab) return;
+    if (!hydrated || !urlTab) return;
     const resolved = registry.resolve(urlTab, translate);
     if (resolved) {
       open({ param: resolved.param, title: resolved.title });
     }
-  }, [urlTab, registry, open, translate]);
+  }, [hydrated, urlTab, registry, open, translate]);
 
   // Project the active tab back to the URL so it stays shareable.
   //
@@ -92,12 +102,16 @@ export function WorkspaceShell({
   // address bar back and forth forever (a visible flicker between, say, brands
   // and categories). The effect above runs first in the same commit, so by the
   // time this one reads the store the URL's tab is already active.
+  // That ordering is also what makes the `hydrated` gate work: when the flag
+  // flips, the effect above has already re-applied the URL's tab over the
+  // restored snapshot, so there is nothing here to write back.
   useEffect(() => {
+    if (!hydrated) return;
     const active = useTabsState.getState().activeParam;
     if (active && active !== urlTab) {
       router.replace(`${pathname}?tab=${encodeURIComponent(active)}`);
     }
-  }, [activeParam, urlTab, pathname, router]);
+  }, [hydrated, activeParam, urlTab, pathname, router]);
 
   const copyDeepLink = (param: string) => {
     void navigator.clipboard.writeText(

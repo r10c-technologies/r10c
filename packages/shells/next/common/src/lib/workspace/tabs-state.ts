@@ -30,7 +30,9 @@ const WORKSPACE_STORE = 'stores';
 /**
  * The open tab set, persisted to IndexedDB so a refresh restores the workspace.
  * Hydration is skipped on creation (it would touch IndexedDB during SSR) and
- * triggered from the client — see {@link useTabsHydrated}.
+ * triggered from the client by `WorkspaceShell`, which also holds every URL
+ * effect back until the read has landed — otherwise the restored `activeParam`
+ * overwrites a `?tab=` deep link.
  */
 export const useTabsState = create<TabsState>()(
   persist(
