@@ -333,9 +333,25 @@ framework-free port in `entifix-ts-core` (plain data + callbacks: `quick`,
   declares a `link` gets an editor for free, plus `onLinkChange` → `useEntityForm`'s
   `setLink`, which writes the id into the draft and remembers the instance in `links`.
   Submit reconstructs with `applyEntityLinks` (see
-  [ENTIFIX.md](./ENTIFIX.md#writing-a-relation-back-applyentitylinks)), so
-  `Product.brand` travels embedded and `category` as a key because _the entity_ says
-  so — the form wrapper no longer knows the difference.
+  [ENTIFIX.md](./ENTIFIX.md#writing-a-relation-back-applyentitylinks)), so a relation
+  travels embedded or as a key because _the entity_ says so — the form wrapper no
+  longer knows the difference.
+- **A `string` member gets the same editor**, and that is not a special case bolted
+  on. When the target lives in **another slice's store** a typed `EntityLink` is both
+  an illegal import and a cross-store join, so the member is a bare foreign key
+  ([ADR 0022](./adr/0022-v1-marketplace-module-boundaries.md); `ProductSpecification`
+  holds `brandId`/`categoryId` into `catalog-reference`). Nothing about the editor
+  changes — `EntityLinkInput` writes `String(target.id)` into the draft either way,
+  and `applyEntityLinks` skips a non-`link` descriptor, so the id simply stays the
+  truth. The one type test lives in `EntityForm`'s `PICKABLE_TYPES` (`link`,
+  `string`); a source aimed at anything else throws rather than being dropped,
+  because a dropped source is indistinguishable from a read-only field.
+  The label/search members come from the descriptor, and a scalar id's `@accessor()`
+  cannot name them (it may not import the target), so the entity-tight wrapper states
+  them at the `useEntityLinkSource` call.
+- **The target must declare its search member `filterable`.** That metadata is also
+  the server-side RSQL allowlist, so losing it fails silently at both ends: the
+  service answers `400` and the picker renders it as an empty suggestion list.
 
 One `useEntityLinkSource` call per relation, in the entity-tight wrapper: React's
 hook count must stay fixed, and a generic per-field host would have to live in

@@ -47,6 +47,20 @@ describe('ProductBrand', () => {
       ['website', 'string', 'Website'],
     ]);
   });
+
+  it('declares `name` filterable, because that is what a picker searches', () => {
+    // `ProductSpecification.brandId` is a bare id into this store — a typed link
+    // across the slice boundary is not a legal edge (ADR 0022) — so the admin
+    // form's picker finds a brand with a `like` query on `name`. The same flag is
+    // the server-side RSQL allowlist, and losing it fails silently at both ends:
+    // marketplace-service answers `400`, and the picker renders that as an empty
+    // suggestion list that reads as "there are no brands".
+    const name = describeEntityColumns(ProductBrand).find(
+      column => column.name === 'name',
+    );
+
+    expect(name?.filterable).toBe(true);
+  });
 });
 
 describe('ProductCategory', () => {
@@ -69,5 +83,14 @@ describe('ProductCategory', () => {
     expect(
       describeEntityColumns(ProductCategory).map(column => column.name),
     ).toEqual(['id', 'code', 'name', 'description']);
+  });
+
+  /** Same contract, same silent failure. See the sibling on `ProductBrand`. */
+  it('declares `name` filterable, because that is what a picker searches', () => {
+    const name = describeEntityColumns(ProductCategory).find(
+      column => column.name === 'name',
+    );
+
+    expect(name?.filterable).toBe(true);
   });
 });

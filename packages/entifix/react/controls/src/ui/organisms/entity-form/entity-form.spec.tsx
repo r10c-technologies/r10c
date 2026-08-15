@@ -462,6 +462,58 @@ describe('EntityForm', () => {
         ),
       ).toThrow(EntifixLogicError);
     });
+
+    // A foreign key into another slice's store cannot be a typed `link` — the
+    // import would be an illegal edge and the resolution a cross-store join
+    // (ADR 0022) — so the member is a plain `string` and the picker has to work
+    // over it. Nothing about the editor changes; only the type test in front.
+    it('edits a scalar foreign key through the same picker', async () => {
+      const onLinkChange = vi.fn();
+      const source = brandSource();
+      render(
+        <Harness
+          mode="edit"
+          linkSources={{ code: source }}
+          onLinkChange={onLinkChange}
+        />,
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Ver sugerencias de Code' }),
+      );
+      await userEvent.click(screen.getByRole('option', { name: 'Acme' }));
+
+      // The id lands in the draft exactly as it does for a `link`; what the
+      // member's type changes is only what happens to it at submit, where
+      // `applyEntityLinks` skips a non-`link` and leaves the id standing.
+      expect(screen.getByTestId('entity-link-value-code')).toHaveTextContent(
+        'Acme',
+      );
+      expect(onLinkChange).toHaveBeenCalledWith(
+        'code',
+        source.quick.options[0],
+      );
+    });
+
+    // A `string` with no source is still an ordinary text box — the picker is
+    // opt-in per field, not a new default for every string on the entity.
+    it('leaves a string with no source as a plain input', () => {
+      render(<Harness mode="edit" linkSources={{ brand: brandSource() }} />);
+
+      expect(screen.getByLabelText('Code')).toHaveValue('');
+      expect(
+        screen.queryByRole('button', { name: 'Examinar Code' }),
+      ).not.toBeInTheDocument();
+    });
+
+    // The other half of the widened guard. A number can never name another
+    // record, so the entry is dead in every shape the row can render — and a
+    // dropped source is indistinguishable from a member declared read-only.
+    it('refuses a source aimed at a member that cannot hold a reference', () => {
+      expect(() =>
+        render(<Harness mode="edit" linkSources={{ stock: brandSource() }} />),
+      ).toThrow(EntifixLogicError);
+    });
   });
 
   it('shows per-field validation errors while editing', () => {

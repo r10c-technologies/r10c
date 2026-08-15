@@ -1,4 +1,9 @@
+import type {
+  ProductBrand,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import type { EntityLinkSourceConfig } from '@r10c/entifix-react-integration';
 import type { EntifixError } from '@r10c/entifix-ts-core';
 
 /**
@@ -10,9 +15,26 @@ import type { EntifixError } from '@r10c/entifix-ts-core';
  */
 export type ProductFormDraft = Record<string, string>;
 
-export interface ProductFormProps {
+export interface ProductFormProps<TContext> {
   /** The record being edited; `undefined` means this is a create. */
   entity?: ProductSpecification;
+  /**
+   * Where each classification's picker looks for its targets: the list use-case,
+   * the optional get use-case that turns a held id back into a name, the adapter
+   * context, and any standing restriction on what may be assigned.
+   *
+   * The page owns these because it owns the adapters; the form only turns them
+   * into sources. Restricting what is assignable is therefore a use-case change,
+   * never a UI one — and here the use-cases run against **marketplace-service**,
+   * not the admin service, because `catalog-reference` is another slice's store
+   * (ADR 0022). Resolving an id therefore goes through that domain's own read
+   * path, which is the only legal way across the boundary.
+   *
+   * Required rather than optional: `useEntityLinkSource` is a hook, and React's
+   * hook count has to stay fixed across renders.
+   */
+  brandLink: EntityLinkSourceConfig<ProductBrand, TContext>;
+  categoryLink: EntityLinkSourceConfig<ProductCategory, TContext>;
   isLoading?: boolean;
   isSaving?: boolean;
   isDeleting?: boolean;

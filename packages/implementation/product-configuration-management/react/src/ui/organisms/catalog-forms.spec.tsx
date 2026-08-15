@@ -4,14 +4,26 @@ import {
 } from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import {
+  ConfigurationRepositoryTag,
+  EntityRepositoryTag,
+  getUCFactory,
+  loadUCFactory,
+} from '@r10c/entifix-ts-business';
+import { EntifixConnError, type Entity } from '@r10c/entifix-ts-core';
+import {
+  makeInMemoryEntityRepository,
+  makeStubConfigurationClient,
+} from '@r10c/entifix-ts-testing-unit';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { Context } from 'effect';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProductBrandForm } from './product-brand-form/product-brand-form.js';
 import { ProductCategoryForm } from './product-category-form/product-category-form.js';
 import { ProductForm } from './product-form/product-form.js';
+import type { ProductFormProps } from './product-form/product-form.types.js';
 
 const makeBrand = (id: string, name: string) => {
   const brand = new ProductBrand(name);
@@ -253,14 +265,64 @@ describe('ProductCategoryForm', () => {
 });
 
 describe('ProductForm', () => {
-  const renderForm = (
-    props: Partial<Parameters<typeof ProductForm>[0]> = {},
-  ) => {
+  /**
+   * The two classifications are pickers again, over `string` members rather than
+   * `link`s — their targets live in `catalog-reference`, another slice's store
+   * (ADR 0022). So these specs read the *held value* out of
+   * `entity-link-value-<field>` rather than out of an input: the combobox input
+   * carries the search term, and the id is what the draft carries.
+   */
+  const heldValue = (field: string) =>
+    screen.getByTestId(`entity-link-value-${field}`);
+
+  let brands: ReturnType<typeof makeInMemoryEntityRepository>;
+  let categories: ReturnType<typeof makeInMemoryEntityRepository>;
+
+  beforeEach(() => {
+    brands = makeInMemoryEntityRepository([
+      makeBrand('product-brand-1', 'Acme'),
+      makeBrand('product-brand-7', 'Globex'),
+    ] as Entity[]);
+    categories = makeInMemoryEntityRepository([
+      makeCategory('product-category-1', 'CAT-1', 'Tools'),
+    ] as Entity[]);
+  });
+
+  const configurationStore = () =>
+    Context.make(ConfigurationRepositoryTag, makeStubConfigurationClient());
+
+  // Named rather than inferred: `TContext` is what both link configs are keyed
+  // on, and letting each prop infer its own widens one of them to `unknown`.
+  type LinkContext = ConfigurationRepositoryTag | EntityRepositoryTag;
+
+  const renderForm = (props: Partial<ProductFormProps<LinkContext>> = {}) => {
     const onSave = vi.fn();
     const user = userEvent.setup();
     render(
       <EntifixQueryProvider>
-        <ProductForm onSave={onSave} backHref="/catalog" {...props} />
+        <ProductForm<LinkContext>
+          onSave={onSave}
+          backHref="/catalog"
+          brandLink={{
+            entityConstructor: ProductBrand,
+            loadUc: loadUCFactory<ProductBrand>(),
+            getUc: getUCFactory<ProductBrand>(),
+            ctx: Context.merge(
+              configurationStore(),
+              Context.make(EntityRepositoryTag, brands),
+            ),
+          }}
+          categoryLink={{
+            entityConstructor: ProductCategory,
+            loadUc: loadUCFactory<ProductCategory>(),
+            getUc: getUCFactory<ProductCategory>(),
+            ctx: Context.merge(
+              configurationStore(),
+              Context.make(EntityRepositoryTag, categories),
+            ),
+          }}
+          {...props}
+        />
       </EntifixQueryProvider>,
     );
     return { onSave, user };
@@ -274,22 +336,36 @@ describe('ProductForm', () => {
     return product;
   };
 
-  it('renders the classifications as plain id fields', async () => {
-    // They were relation pickers until ADR 0022 moved their targets into
-    // another slice's store. A picker over a scalar id is follow-up work; what
-    // must not regress is that the ids remain editable at all.
+  it('resolves each held id to the target’s name', async () => {
+    // The whole point of #75: an operator sees "Acme", not `product-brand-1`.
+    // The name is fetched through `catalog-reference`'s own read path — these
+    // repositories stand in for marketplace-service — never joined at storage.
     renderForm({ entity: makeProduct() });
 
-    expect(await screen.findByDisplayValue('product-brand-1')).toBeVisible();
-    expect(screen.getByDisplayValue('product-category-1')).toBeVisible();
+    await waitFor(() => expect(heldValue('brandId')).toHaveTextContent('Acme'));
+    expect(heldValue('categoryId')).toHaveTextContent('Tools');
   });
 
-  it('submits the ids the user typed', async () => {
-    const { onSave, user } = renderForm({ entity: makeProduct() });
+  it('shows the bare id when the target no longer exists', async () => {
+    // Nothing enforces this reference across the store boundary, so a dangling
+    // id is a display gap and never a corrupt record. Showing the key beats
+    // showing an empty box.
+    const product = makeProduct();
+    product.brandId = 'product-brand-404';
 
-    const brand = await screen.findByDisplayValue('product-brand-1');
-    await user.clear(brand);
-    await user.type(brand, 'product-brand-7');
+    renderForm({ entity: product });
+
+    await waitFor(() =>
+      expect(heldValue('brandId')).toHaveTextContent('product-brand-404'),
+    );
+  });
+
+  it('submits the id of the target the user picked', async () => {
+    const { onSave, user } = renderForm({ entity: makeProduct() });
+    await waitFor(() => expect(heldValue('brandId')).toHaveTextContent('Acme'));
+
+    await user.type(screen.getByLabelText('Buscar Marca'), 'Globex');
+    await user.click(await screen.findByRole('option', { name: 'Globex' }));
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
@@ -299,12 +375,13 @@ describe('ProductForm', () => {
   });
 
   it('clears a classification the user empties', async () => {
-    // An empty input means "unclassified", not the empty string — a dangling or
+    // An empty field means "unclassified", not the empty string — a dangling or
     // absent reference is a display gap, never a broken record.
     const { onSave, user } = renderForm({ entity: makeProduct() });
+    await waitFor(() => expect(heldValue('brandId')).toHaveTextContent('Acme'));
 
-    await user.clear(await screen.findByDisplayValue('product-category-1'));
-    await user.clear(screen.getByDisplayValue('product-brand-1'));
+    await user.click(screen.getByRole('button', { name: 'Quitar Marca' }));
+    await user.click(screen.getByRole('button', { name: 'Quitar Categoría' }));
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
@@ -331,17 +408,21 @@ describe('ProductForm', () => {
   });
 
   it('seeds from a persisted draft instead of the entity', async () => {
+    // A restored draft holds an id and no instance, which is exactly the case
+    // `selected` exists for — it resolves the name the sidecar cannot supply.
     renderForm({
       entity: makeProduct(),
       initialDraft: {
         code: 'P-1',
         name: 'Widget',
         description: '',
-        brandId: 'product-brand-9',
+        brandId: 'product-brand-7',
         categoryId: '',
       },
     });
 
-    expect(await screen.findByDisplayValue('product-brand-9')).toBeVisible();
+    await waitFor(() =>
+      expect(heldValue('brandId')).toHaveTextContent('Globex'),
+    );
   });
 });

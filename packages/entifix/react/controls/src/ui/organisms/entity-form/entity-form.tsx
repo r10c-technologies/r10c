@@ -5,6 +5,7 @@ import {
   EntifixLogicError,
   type Entity,
   type EntityLinkSource,
+  type MetaAccessorType,
 } from '@r10c/entifix-ts-core';
 import { type ReactNode, useId, useState } from 'react';
 
@@ -26,6 +27,27 @@ import { readEntityFormFields } from './entity-form-slots';
 import { resolveEntityFormFields } from './use-entity-form-fields';
 
 /**
+ * The member types a `linkSources` entry can actually produce an editor for.
+ *
+ * `link` is the obvious one. `string` is here because a foreign key does not
+ * have to be a typed relation: when the target lives in **another slice's
+ * store**, an `EntityLink` would be an illegal edge and a storage-layer join
+ * across a store boundary, so the member is a plain id and the relation exists
+ * only in the operator's head (ADR 0022, and `ProductSpecification.brandId` is
+ * the live case). Nothing about the editor cares which of the two it is —
+ * `EntityLinkInput` writes `String(target.id)` into the draft either way, and
+ * the *only* place `link`-ness still matters is `applyEntityLinks` at submit,
+ * which skips a non-`link` descriptor and so leaves the id as the truth.
+ *
+ * Everything else is excluded on purpose rather than by omission: a `boolean`,
+ * `enum`, `number` or `date` member cannot name another record, so a source
+ * pointed at one is a wiring mistake — see {@link assertLinkSourcesAreEditable}.
+ */
+const PICKABLE_TYPES: ReadonlySet<MetaAccessorType> = new Set<MetaAccessorType>(
+  ['link', 'string'],
+);
+
+/**
  * A form that builds itself from an entity's metadata: fields, labels and value
  * formatting all come from `@accessor()` declarations, so editing a new entity
  * needs no bespoke form. The read/edit toggle is the whole point — the same
@@ -33,11 +55,12 @@ import { resolveEntityFormFields } from './use-entity-form-fields';
  *
  * Two things layer on top of that default:
  * - **modes** — `read` renders each member through `CellValue`; `edit` renders
- *   the matching `FieldControl`. A to-one `link` with an entry in `linkSources`
- *   gets the full editor instead; without one — and for `linkCollection`
- *   always, the to-many editor being a follow-up — it stays read-only. A source
- *   *aimed at* a `linkCollection` is a wiring mistake rather than a no-op, and
- *   throws.
+ *   the matching `FieldControl`. A member in {@link PICKABLE_TYPES} with an
+ *   entry in `linkSources` gets the full picker instead — a to-one `link`, or a
+ *   `string` holding a foreign key into another slice's store. Without a source,
+ *   a relation stays read-only, and a `linkCollection` always does, the to-many
+ *   editor being a follow-up. A source aimed at a member that can render no
+ *   picker is a wiring mistake rather than a no-op, and throws.
  * - **slots** — `<EntityField>` children override one field's label, control or
  *   read display, or add a computed field.
  *
@@ -191,18 +214,25 @@ export function EntityForm<TEntity extends Entity>({
 }
 
 /**
- * Refuse a `linkSources` entry that names a to-many member.
+ * Refuse a `linkSources` entry that names a member no picker can be built for.
  *
- * `FieldRow` asks for `field.type === 'link'` before it builds an editor, so a
- * source handed to a `linkCollection` used to fall through to the read-only
- * display with nothing said: the caller wired a picker, no picker appeared, and
- * the field was indistinguishable from one the entity had declared read-only.
- * That is a wiring mistake rather than a state — the entry is dead in *every*
- * shape a collection can render, since an `<EntityField render>` slot is handed
- * the draft and never the source — so it costs the render instead of a warning
- * nobody reads. `useEntityLinkSource` already throws `EntifixLogicError` at
- * render for the sibling mistake (a search property the target does not declare
- * `filterable`); this is the same fault caught one level up.
+ * `FieldRow` asks for {@link PICKABLE_TYPES} before it builds an editor, so a
+ * source handed to anything else used to fall through to the read-only display
+ * or a plain `FieldControl` with nothing said: the caller wired a picker, no
+ * picker appeared, and the field was indistinguishable from one the entity had
+ * declared read-only. That is a wiring mistake rather than a state — the entry
+ * is dead in *every* shape such a field can render, since an
+ * `<EntityField render>` slot is handed the draft and never the source — so it
+ * costs the render instead of a warning nobody reads. `useEntityLinkSource`
+ * already throws `EntifixLogicError` at render for the sibling mistake (a search
+ * property the target does not declare `filterable`); this is the same fault
+ * caught one level up.
+ *
+ * Two messages, because the two faults are not the same thing. A
+ * `linkCollection` is a member the editor has simply not been built for yet
+ * (#26), so the fix is to wait or to point at the to-one you meant. Any other
+ * type is a member that can never name another record at all, so the fix is to
+ * remove the entry.
  *
  * Here rather than inside `FieldRow`, and that is the whole reason it is a
  * separate pass: a row only reaches its editor branch in **edit** mode, so a
@@ -223,22 +253,34 @@ function assertLinkSourcesAreEditable<TEntity extends Entity>(
 ): void {
   if (linkSources === undefined) return;
 
-  const toMany = fields
-    .filter(
-      field =>
-        field.type === 'linkCollection' &&
-        linkSources[field.name] !== undefined,
-    )
-    .map(field => field.name);
-  if (toMany.length === 0) return;
+  const sourced = fields.filter(
+    field =>
+      linkSources[field.name] !== undefined && !PICKABLE_TYPES.has(field.type),
+  );
+  if (sourced.length === 0) return;
 
+  const toMany = sourced
+    .filter(field => field.type === 'linkCollection')
+    .map(field => field.name);
+  if (toMany.length > 0) {
+    throw new EntifixLogicError(
+      `EntityForm was given a link source for a to-many member: ${toMany.join(', ')}. ` +
+        'A `linkCollection` has no editor yet, so the source can only be dropped ' +
+        'and the field would render read-only with no sign anything was wired. ' +
+        'Remove the entry, or point it at the to-one `link` you meant.',
+      undefined,
+      { fields: toMany },
+    );
+  }
+
+  const unpickable = sourced.map(field => `${field.name} (${field.type})`);
   throw new EntifixLogicError(
-    `EntityForm was given a link source for a to-many member: ${toMany.join(', ')}. ` +
-      'A `linkCollection` has no editor yet, so the source can only be dropped ' +
-      'and the field would render read-only with no sign anything was wired. ' +
-      'Remove the entry, or point it at the to-one `link` you meant.',
+    `EntityForm was given a link source for a member that cannot hold one: ${unpickable.join(', ')}. ` +
+      'A picker writes the target’s id into the draft, so the member has to be a ' +
+      '`link` or the `string` that carries a foreign key. Remove the entry, or ' +
+      'point it at the member that actually holds the reference.',
     undefined,
-    { fields: toMany },
+    { fields: sourced.map(field => field.name) },
   );
 }
 
@@ -261,9 +303,12 @@ interface FieldRowProps<TEntity extends Entity> {
 /**
  * One label + control (or value) row. A `readonly` member renders its read
  * display even in edit mode, and so does a relation with no source; everything
- * else edits through `FieldControl` — or, for a relation that has a source,
- * through `EntityLinkInput`. A boolean edited inline carries its own label, so
- * the row does not add a second one.
+ * else edits through `FieldControl` — or, when a source was supplied for a
+ * member in {@link PICKABLE_TYPES}, through `EntityLinkInput`. A boolean edited
+ * inline carries its own label, so the row does not add a second one.
+ *
+ * The source branch sits above the `virtual || isRelation` fallback and below
+ * `field.render`, which is what lets a slot still override a picked field.
  */
 function FieldRow<TEntity extends Entity>({
   field,
@@ -295,7 +340,7 @@ function FieldRow<TEntity extends Entity>({
     control = readNode;
   } else if (field.render) {
     control = field.render({ draft, value, setField, id });
-  } else if (field.type === 'link' && linkSource) {
+  } else if (linkSource && PICKABLE_TYPES.has(field.type)) {
     control = (
       <EntityLinkInput
         descriptor={field}

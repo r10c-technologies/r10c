@@ -7,17 +7,20 @@ import { expect, PRODUCT_URL, test } from './support/fixtures';
 /**
  * Setting a specification's brand and category, and what that puts on the wire.
  *
- * This file used to exercise two relation **pickers** — a quick type-ahead and a
- * browse dialog — and assert that `brand` left embedded while `category` left as
- * a bare key, because the entity declared those two wire shapes.
+ * Both are **pickers over plain ids**. Their targets moved to
+ * `catalog-reference` — a platform-plane store owned by another slice — so
+ * `ProductSpecification` carries `brandId` / `categoryId` strings rather than
+ * `link` members ([ADR 0022](../../../docs/adr/0022-v1-marketplace-module-boundaries.md)),
+ * and the editor writes the chosen target's id straight into the draft. Two
+ * things are therefore worth asserting end to end: that a *name* is what an
+ * operator picks and reads back, and that an *id* is what reaches the service —
+ * absent, not `''`, when the field is emptied.
  *
- * Neither holds now. Both targets moved to `catalog-reference`, a platform-plane
- * store owned by another slice, so `ProductSpecification` carries plain
- * `brandId` / `categoryId` strings and the form renders them as ordinary inputs
- * ([ADR 0022](../../../docs/adr/0022-v1-marketplace-module-boundaries.md)).
- * What is still worth asserting end to end is the payload: the ids must reach
- * the service as scalars, and an emptied field must arrive as *absent* rather
- * than as an empty string.
+ * The search half is not decoration. The mock backend runs the real query
+ * pipeline and answers the same `400` the service does for a member the entity
+ * never declared `filterable`, which the picker would render as an empty
+ * suggestion list. Typing a term and getting a row back is what proves
+ * `ProductBrand.name` is still queryable.
  *
  * Mock-only by nature: observing the request body means choosing the response.
  */
@@ -48,16 +51,34 @@ const openCreateForm = async (page: Page) => {
   await expect(page.getByLabel('Código')).toBeVisible();
 };
 
+/** The held id, which the picker renders as a name once it resolves. */
+const heldValue = (page: Page, field: string) =>
+  page.getByTestId(`entity-link-value-${field}`);
+
+/**
+ * Picks a target by typing part of its name and clicking the suggestion.
+ *
+ * The seed cycles ten base names across 20 brands and 14 categories, so a term
+ * matches several rows and the exact option name is what makes the choice
+ * unambiguous — the point being that the row came back from a filtered query
+ * rather than from a preloaded first page.
+ */
+const pickByName = async (page: Page, field: string, name: string) => {
+  await page.getByRole('combobox', { name: `Buscar ${field}` }).fill(name);
+  await page.getByRole('option', { name, exact: true }).click();
+};
+
 test('sends both classifications as scalar ids', async ({ page, network }) => {
   const captured = captureCreate(network);
   await openCreateForm(page);
 
   await page.getByLabel('Código').fill('P-100');
   await page.getByLabel('Nombre').fill('Widget 100');
-  await page.getByRole('textbox', { name: 'Marca' }).fill('product-brand-1');
-  await page
-    .getByRole('textbox', { name: 'Categoría' })
-    .fill('product-category-1');
+  await pickByName(page, 'Marca', 'Acme 1');
+  await pickByName(page, 'Categoría', 'Acme tools 1');
+
+  // What the operator picked was a name; what the draft holds is the id.
+  await expect(heldValue(page, 'brandId')).toHaveText('Acme 1');
   await page.getByRole('button', { name: 'Guardar' }).click();
 
   await expect
@@ -69,19 +90,45 @@ test('sends both classifications as scalar ids', async ({ page, network }) => {
     });
 });
 
-test('reads stored classifications back into their fields', async ({
-  page,
-}) => {
+test('picks a brand through the browse dialog', async ({ page, network }) => {
+  // The other half of the editor: the target's own table, with its filters and
+  // paging, rather than a type-ahead. It exists for "I need to look at the
+  // catalog to find it", and it writes the same scalar id.
+  const captured = captureCreate(network);
+  await openCreateForm(page);
+
+  await page.getByLabel('Código').fill('P-102');
+  await page.getByLabel('Nombre').fill('Widget 102');
+
+  await page.getByRole('button', { name: 'Examinar Marca' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  // Selection is a per-row button, not a row click: in a picker the row must set
+  // the value rather than navigate away from the form it was opened from.
+  await dialog
+    .getByRole('row')
+    .filter({ hasText: 'Globex 1' })
+    .first()
+    .getByRole('button', { name: 'Seleccionar' })
+    .click();
+
+  await expect(heldValue(page, 'brandId')).toHaveText('Globex 1');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+
+  await expect
+    .poll(() => captured.body)
+    .toMatchObject({ brandId: 'product-brand-2' });
+});
+
+test('reads stored classifications back as names', async ({ page }) => {
   await page.goto('/catalog/product/product-1');
 
-  // The seeded specification names both, so a reload must repopulate both —
-  // this is the round trip a draft restore depends on.
-  await expect(page.getByRole('textbox', { name: 'Marca' })).toHaveValue(
-    'product-brand-1',
-  );
-  await expect(page.getByRole('textbox', { name: 'Categoría' })).toHaveValue(
-    'product-category-1',
-  );
+  // The seeded specification names both by id, and neither lives in the store
+  // this page loaded the product from — resolving them is a read through
+  // `catalog-reference`'s own service, which is the only legal way across the
+  // boundary. This is the round trip a draft restore depends on.
+  await expect(heldValue(page, 'brandId')).toHaveText('Acme 1');
+  await expect(heldValue(page, 'categoryId')).toHaveText('Acme tools 1');
 });
 
 test('omits a classification the user clears', async ({ page, network }) => {
@@ -90,8 +137,8 @@ test('omits a classification the user clears', async ({ page, network }) => {
 
   await page.getByLabel('Código').fill('P-101');
   await page.getByLabel('Nombre').fill('Widget 101');
-  await page.getByRole('textbox', { name: 'Marca' }).fill('product-brand-1');
-  await page.getByRole('textbox', { name: 'Marca' }).clear();
+  await pickByName(page, 'Marca', 'Acme 1');
+  await page.getByRole('button', { name: 'Quitar Marca' }).click();
   await page.getByRole('button', { name: 'Guardar' }).click();
 
   // Absent, not `''`. Nothing enforces this reference across the store
