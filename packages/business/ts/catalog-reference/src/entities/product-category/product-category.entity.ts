@@ -52,11 +52,16 @@ export class ProductCategory implements Entity {
     this.#code = value;
   }
 
+  // Declared for the same reason as `ProductBrand.name`: a specification holds
+  // `categoryId` as a bare id into this store, so choosing a category by name is
+  // a `like` query on this member, and the flag is also the server-side RSQL
+  // allowlist marketplace-service checks before it will answer one.
   @accessor({
     type: 'string',
     label: 'Name',
     labelKey: 'entity:product-category.fields.name',
     required: true,
+    filterable: true,
   })
   get name(): string {
     return this.#name;

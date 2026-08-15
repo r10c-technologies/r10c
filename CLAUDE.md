@@ -201,6 +201,24 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   entity-tight wrapper (React's hook count must stay fixed). A picker's
   `linkSearchProperty` must be `filterable` on the **target** or the service answers
   `400` — the hook throws instead. To-many (`linkCollection`) is not editable yet.
+- **A picker also edits a bare foreign key, and that is the normal case now.** When
+  the target lives in another slice's store a typed `EntityLink` is an illegal import
+  _and_ a cross-store join, so the member is a plain `string`
+  (`ProductSpecification.brandId`/`.categoryId` into `catalog-reference`). Nothing in
+  the editor changes: `EntityLinkInput` writes `String(target.id)` into the draft for
+  either shape, and `applyEntityLinks` skips a non-`link` descriptor, so the id stays
+  the truth and the form wrapper reconstructs from the draft string. The whole type
+  test is `PICKABLE_TYPES` (`link`, `string`) in `EntityForm`; a source aimed at
+  anything else **throws**, because a dropped source renders identically to a
+  read-only field — the same fault `assertLinkSourcesAreEditable` already caught for
+  `linkCollection`. Two traps: `linkLabelProperty`/`linkSearchProperty` come from the
+  _owner's_ accessor and default to `'name'`, but a scalar id's `@accessor()` cannot
+  name the target's members (it may not import it), so the entity-tight wrapper
+  states them at the `useEntityLinkSource` call rather than leaning on the default;
+  and the target's search member must stay `filterable` — that flag is the
+  server-side allowlist, and losing it is silent at both ends (`400`, rendered as an
+  empty suggestion list). Resolving an id goes through the owning domain's own read
+  path — a second adapter in the same shell, never a join.
 - **Adding a filter operator** touches four places or it half-works: the const
   arrays in `core/types/EntityFiltering.ts`, the token map in
   `core/src/rsql/rsql-operators.ts`, `mongo-client`'s `filter-translator.ts`, and

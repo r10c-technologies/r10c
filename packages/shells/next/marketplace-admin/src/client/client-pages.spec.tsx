@@ -259,19 +259,49 @@ describe('the single-record pages', () => {
 });
 
 describe('the product form’s classifications', () => {
-  // They were relation pickers, searching the brand and category catalogs
-  // through the page's adapters. Those catalogs moved to `catalog-reference` —
-  // another slice's store — so `ProductSpecification` carries plain ids and the
-  // form renders them as ordinary inputs (ADR 0022). Restoring a picker over a
-  // scalar id is follow-up work, not a dead end.
-  it('renders the held ids as editable fields', async () => {
+  // `ProductSpecification` carries plain ids, because the two catalogs moved to
+  // `catalog-reference` — another slice's store — and a typed link across that
+  // boundary is not a legal edge (ADR 0022). The picker is back over those
+  // scalars, which is what this page is on the hook for: it composes the
+  // sources, and it has to point them at the **other** service.
+  it('resolves each held id through its own service', async () => {
     slug = 'p-1';
 
     renderPage(<ProductSingleViewClientPage />);
 
+    // Names, not ids — and they can only have come from `productBrandRest` /
+    // `productCategoryRest`, since the product repository holds neither record.
     await waitFor(() =>
-      expect(screen.getByDisplayValue('b-1')).toBeInTheDocument(),
+      expect(screen.getByTestId('entity-link-value-brandId')).toHaveTextContent(
+        'Acme',
+      ),
     );
-    expect(screen.getByDisplayValue('c-1')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('entity-link-value-categoryId'),
+    ).toHaveTextContent('Tools');
+  });
+
+  // Nothing enforces either reference across the store boundary — no foreign
+  // key spans two slices — so a target that was deleted leaves an id pointing at
+  // nothing. That is a display gap, never a corrupt record, and the field has to
+  // keep showing the key rather than emptying itself.
+  it('falls back to the bare id when a target no longer exists', async () => {
+    const orphan = new ProductSpecification('P-2', 'Gizmo');
+    orphan.id = 'p-2';
+    orphan.brandId = 'b-404';
+    orphan.categoryId = 'c-1';
+    repositories.product = makeInMemoryEntityRepository([orphan] as Entity[]);
+    slug = 'p-2';
+
+    renderPage(<ProductSingleViewClientPage />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('entity-link-value-categoryId'),
+      ).toHaveTextContent('Tools'),
+    );
+    expect(screen.getByTestId('entity-link-value-brandId')).toHaveTextContent(
+      'b-404',
+    );
   });
 });

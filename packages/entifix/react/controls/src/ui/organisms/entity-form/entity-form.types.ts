@@ -55,15 +55,22 @@ export interface EntityFormProps<TEntity extends Entity> {
   onFieldChange?: (name: string, value: string) => void;
 
   /**
-   * A search/browse source per relation, keyed by accessor name. A `link` field
+   * A search/browse source per reference, keyed by accessor name. A `link` field
    * with a source gets the full editor; one without keeps its read-only display,
-   * which is what a form that only shows a relation still wants. A key naming a
-   * **to-many** member throws instead: `linkCollection` has no editor anywhere
-   * yet, so the entry could only be dropped, and a dropped source looks exactly
-   * like a member the entity declared read-only.
+   * which is what a form that only shows a relation still wants.
+   *
+   * A **`string`** field with a source gets the same editor, because a foreign
+   * key whose target lives in another slice's store cannot be a typed `link` at
+   * all and is a plain id member (ADR 0022). The editor does not know the
+   * difference — it writes the target's id into the draft either way.
+   *
+   * A key naming any other member throws: `linkCollection` has no editor
+   * anywhere yet, and a `boolean`/`enum`/`number`/`date` can never name another
+   * record, so the entry could only be dropped — and a dropped source looks
+   * exactly like a member the entity declared read-only.
    *
    * A registry rather than a slot per relation: the whole point is that an entity
-   * declaring a `link` needs no bespoke control. The sources are built by the
+   * declaring a reference needs no bespoke control. The sources are built by the
    * caller because fetching them is the integration layer's job, and this package
    * cannot reach it.
    */

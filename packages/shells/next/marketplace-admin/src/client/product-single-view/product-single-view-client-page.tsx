@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  ProductBrand,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
   useEntityMutation,
@@ -10,6 +14,7 @@ import {
   deleteUCFactory,
   EntityRepositoryTag,
   getUCFactory,
+  loadUCFactory,
   saveUCFactory,
 } from '@r10c/entifix-ts-business';
 import {
@@ -46,11 +51,19 @@ export interface ProductSingleViewClientPageProps {
  * its slug from the URL and returns to the list on save; rendered in a workspace
  * tab it takes the slug and post-save action as props.
  *
- * Unlike the list page this wires no link resolver: the form edits relations by
- * id, and both links expose their id whether or not the target was resolved. What
- * it does wire is a picker source per relation — the same base adapters pointed at
- * a different entity, handed over as use-cases rather than as loaded rows, so the
- * picker searches and pages the catalog instead of holding all of it.
+ * Unlike the list page this wires no link resolver: the form edits both
+ * classifications by id, and holds that id whether or not the target resolves.
+ * What it does wire is a picker source per classification — handed over as
+ * use-cases rather than as loaded rows, so the picker searches and pages the
+ * catalog instead of holding all of it.
+ *
+ * Those two sources point at a **different service** than the record itself.
+ * `ProductSpecification` is tenant-plane and comes from marketplace-admin-service
+ * through `productRest`; `ProductBrand` and `ProductCategory` are the
+ * platform-plane vocabulary in `catalog-reference`, so they come from
+ * marketplace-service through `productBrandRest`/`productCategoryRest`
+ * (ADR 0022). Resolving an id therefore goes through the owning domain's own
+ * read path, which is the only legal way across a store boundary — never a join.
  */
 export function ProductSingleViewClientPage({
   slug,
@@ -59,7 +72,12 @@ export function ProductSingleViewClientPage({
   initialDraft,
   onDraftChange,
 }: ProductSingleViewClientPageProps = {}) {
-  const { productRest, configurationStore } = useMarketplaceAdminAdapters();
+  const {
+    productRest,
+    productBrandRest,
+    productCategoryRest,
+    configurationStore,
+  } = useMarketplaceAdminAdapters();
   const router = useRouter();
   // Every internal navigation carries the locale. Unprefixed, each one is
   // bounced by the middleware — and the form's back link is a plain `<a>`,
@@ -117,6 +135,21 @@ export function ProductSingleViewClientPage({
       error={loadError ?? writeError}
       onSave={handleSave}
       onDelete={id == null ? undefined : handleDelete}
+      // Rebuilt inline on every render on purpose: `useEntityLinkSource` holds
+      // these in a ref and keeps them out of its query keys, precisely so a
+      // caller does not have to memoise them.
+      brandLink={{
+        entityConstructor: ProductBrand,
+        loadUc: loadUCFactory<ProductBrand>(),
+        getUc: getUCFactory<ProductBrand>(),
+        ctx: Context.merge(configurationStore, productBrandRest),
+      }}
+      categoryLink={{
+        entityConstructor: ProductCategory,
+        loadUc: loadUCFactory<ProductCategory>(),
+        getUc: getUCFactory<ProductCategory>(),
+        ctx: Context.merge(configurationStore, productCategoryRest),
+      }}
       backHref={withLocale(LIST_HREF)}
       initialDraft={initialDraft}
       onDraftChange={onDraftChange}
