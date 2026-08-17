@@ -39,13 +39,13 @@
     }
   },
   "dependencies": {
-    "@effect/platform": "0.97.0",
-    "@effect/platform-node": "0.108.0",
+    "@effect/platform": "0.97.1",
+    "@effect/platform-node": "0.108.1",
     "@r10c/business-ts-authz": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "3.22.0"
+    "effect": "3.22.1"
   },
   "devDependencies": {
     "@r10c/entifix-ts-testing-unit": "workspace:*"

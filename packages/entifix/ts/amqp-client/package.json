@@ -48,7 +48,7 @@
     "@r10c/entifix-ts-core": "workspace:*",
     "@swc/helpers": "0.5.23",
     "amqplib": "2.0.1",
-    "effect": "3.22.0"
+    "effect": "3.22.1"
   },
   "devDependencies": {
     "@types/amqplib": "0.10.5",
