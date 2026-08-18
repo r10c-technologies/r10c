@@ -654,6 +654,62 @@ never blocks — it can only see that a doc was not edited, not that it is wrong
 and a blocking version would teach everyone to make a trivial edit to whatever
 file it names.
 
+## Where knowledge goes
+
+Four artifacts, one job each. Putting a fact in the wrong one is how it stops
+being true without anything failing. The decision is
+[ADR 0025](adr/0025-where-planning-and-business-knowledge-live.md).
+
+| Artifact                                         | Answers                        | Enforced by              |
+| ------------------------------------------------ | ------------------------------ | ------------------------ |
+| **Notion** — `r10c — Procesos GT`                | how the business actually works | nothing; deliberately    |
+| **ADR** — `docs/adr/`                            | what we decided, and why       | `@r10c/docs-check`       |
+| `BUSINESS-ARCHITECTURE.md` + `tools/slices/`     | what the contract is           | `@r10c/slices`           |
+| **GitHub issue** under a milestone               | what is next, and is it done   | the milestone's own test |
+
+The flow is one direction: a process question goes to **Notion**; the moment it
+forces a modelling call, that call becomes an **ADR** in the same session; the
+consequence lands in the **register**; the work becomes an **issue** that cites
+all three and duplicates none of them.
+
+```
+#104  Persist a certified DTE against a ProductOrder
+  Milestone:  M4 — Pay for it
+  Labels:     order, fiscal
+  Why:        Notion → Procesos GT / Fiscal-FEL
+  Decision:   ADR 00XX — who issues the DTE
+  Contract:   order-management, `order` store; FiscalCertifierPort
+```
+
+**Business processes do not go in `docs/`.** The checked corpus is `docs/*.md`
+flat files (`tools/docs/src/corpus.ts`), so a subdirectory is unchecked; and a
+top-level file inherits the check that every backticked `CapWord` must resolve
+to a real identifier — which a document about Guatemalan tax law cannot satisfy
+and should not have to. The inverse also holds: the domain map does **not** get
+copied into Notion, because `pnpm nx test @r10c/slices` already enforces it and
+a copy would not.
+
+**Milestones are slice promotions**, which is what makes "done" a test rather
+than a judgement:
+
+| Milestone                    | Completes when                                                   |
+| ---------------------------- | ---------------------------------------------------------------- |
+| **M1 — Publish a catalog**   | `catalog.published` fills `published-catalog`; the storefront's fixture repository is deleted |
+| **M2 — Stock is real**       | the `stock` slice is `active`                                    |
+| **M3 — Buy something**       | the `order` slice is `active`                                    |
+| **M4 — Pay for it**          | the `payment` slice is `active`                                  |
+| **M5 — Sell at the counter** | the `sales` slice is `active`                                    |
+| **M6 — Pay the vendor**      | the `settlement` slice is `active`                               |
+
+Labels name the domain — `catalog`, `stock`, `order`, `payment`, `settlement`,
+`sales`, `fiscal`, `delivery` — which is simultaneously the package, the
+permission namespace and the `@entity({ domain })` value.
+
+**The repository is public today.** Making it private later detaches existing
+forks and leaves them public, so nothing un-publishes a commit that was public
+when it was made. Public law and our own mechanism are committable; commission
+rates, named pilot vendors and negotiated courier terms are Notion-only.
+
 ## Commits & PRs
 
 - **Conventional Commits with Nx scopes** (`@commitlint/config-nx-scopes`) — the
