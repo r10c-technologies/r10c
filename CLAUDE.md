@@ -179,6 +179,27 @@ them), and everything deep is a link — loaded only when a task needs it.
   that changed without its docs being touched, into the job summary, and never
   blocks, because "not edited" is not "wrong". See
   [DEVELOPING.md → Keeping the documentation true](docs/DEVELOPING.md#keeping-the-documentation-true).
+- **Four artifacts hold knowledge, one job each — do not merge them.**
+  _How the Guatemalan business works_ lives in **Notion** (`r10c — Procesos GT`,
+  reached through the Notion MCP server); _what we decided and why_ is an
+  **ADR**; _the contract_ is `BUSINESS-ARCHITECTURE.md` + `tools/slices/`; _what
+  is next and whether it is done_ is a **GitHub issue under a milestone**. A
+  process question goes to Notion, and the moment it forces a modelling call
+  that call becomes an ADR in the same session — a settled Notion page does not
+  update anything by itself. Business processes are **not** put in `docs/`: the
+  corpus is `docs/*.md` flat files only, so a subdirectory gets zero checks,
+  and lifting it to the top level hits the check that forbids naming anything
+  the source does not declare — which is precisely what a process document
+  exists to do. The inverse mistake is copying the domain map into Notion; it is
+  already executable and a Notion copy has no test behind it. Milestones **M1–M6
+  are slice promotions**, so each one's definition of done is a test
+  `@r10c/slices` already runs. Projects v2 is declined: its `Status` field is a
+  second truth beside the issue's own. And the repo is public now and private
+  later, which does **not** run backwards — forks detach and stay public — so
+  exposure is decided per commit, permanently: public law and our own mechanism
+  are committable, our commission rates, named vendors and negotiated courier
+  terms are Notion-only. See
+  [ADR 0025](docs/adr/0025-where-planning-and-business-knowledge-live.md).
 - **The business map is a separate document.** Which capability owns an entity,
   which plane it lives in, and the ODA/SID name for it are in
   [BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) — read it before
