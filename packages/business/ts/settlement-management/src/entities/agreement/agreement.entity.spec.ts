@@ -43,6 +43,7 @@ describe('Agreement', () => {
     expect(agreement.vendorId).toBe('');
     expect(agreement.commissionBasisPoints).toBe(0);
     expect(agreement.effectiveFrom).toBeUndefined();
+    expect(agreement.channelCommissionBasisPoints).toBeUndefined();
   });
 
   it('accepts the setters a repository writes back through', () => {
@@ -50,10 +51,12 @@ describe('Agreement', () => {
     agreement.vendorId = 'vendor-3';
     agreement.commissionBasisPoints = 500;
     agreement.effectiveFrom = undefined;
+    agreement.channelCommissionBasisPoints = undefined;
 
     expect(agreement.vendorId).toBe('vendor-3');
     expect(agreement.commissionBasisPoints).toBe(500);
     expect(agreement.effectiveFrom).toBeUndefined();
+    expect(agreement.channelCommissionBasisPoints).toBeUndefined();
   });
 
   it('holds commission as integer basis points, never a float percentage', () => {
@@ -63,6 +66,41 @@ describe('Agreement', () => {
 
     expect(Number.isInteger(agreement.commissionBasisPoints)).toBe(true);
     expect((10_000 * agreement.commissionBasisPoints) / 10_000).toBe(250);
+  });
+
+  it('prices a counter sale at nothing while the storefront still pays', () => {
+    // The term per-channel rates exist for: the platform has a much weaker claim
+    // on a sale the vendor made to their own walk-in than on one it sourced
+    // (ADR 0024).
+    const agreement = new Agreement('vendor-5', 800);
+    agreement.channelCommissionBasisPoints = { counter: 0 };
+
+    expect(agreement.commissionFor('counter')).toBe(0);
+    expect(agreement.commissionFor('storefront')).toBe(800);
+    expect(agreement.commissionFor(undefined)).toBe(800);
+  });
+
+  it('serializes the rate table and rebuilds from it', () => {
+    const agreement = new Agreement('vendor-6', 800);
+    agreement.channelCommissionBasisPoints = { counter: 0, phone: 400 };
+
+    expect(serializeEntity(Agreement, agreement)).toEqual({
+      vendorId: 'vendor-6',
+      commissionBasisPoints: 800,
+      channelCommissionBasisPoints: { counter: 0, phone: 400 },
+    });
+  });
+
+  it('keeps the rate table out of the query allowlist', () => {
+    // An embedded object compared as a scalar matches nothing, and member
+    // metadata is the server-side RSQL allowlist. Settling reads the whole
+    // agreement; it never selects one by its rate table.
+    const rates = describeEntityColumns(Agreement).find(
+      column => column.name === 'channelCommissionBasisPoints',
+    );
+
+    expect(rates?.filterable).toBe(false);
+    expect(rates?.sortable).toBe(false);
   });
 
   it('lets a settlement find the agreement in force during a period', () => {

@@ -8,6 +8,7 @@ import { type Role } from './role';
  */
 export const CATALOG_DOMAIN = 'product-configuration-management';
 export const CATALOG_REFERENCE_DOMAIN = 'catalog-reference';
+export const SALES_DOMAIN = 'sales-management';
 export const AUTHN_DOMAIN = 'authn';
 
 /**
@@ -22,7 +23,13 @@ export const AUTHN_DOMAIN = 'authn';
  */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   // Reads the catalog in the admin app; no back-office of its own.
-  user: [`${CATALOG_DOMAIN}:*:read`, `${CATALOG_REFERENCE_DOMAIN}:*:read`],
+  user: [
+    `${CATALOG_DOMAIN}:*:read`,
+    `${CATALOG_REFERENCE_DOMAIN}:*:read`,
+    // Seeing which counters exist, so a member of staff can be shown the one
+    // they are standing at. Authoring them is an `admin` act.
+    `${SALES_DOMAIN}:*:read`,
+  ],
   // Catalog authoring plus user management, bounded by the role-assignment rule.
   admin: [
     `${CATALOG_DOMAIN}:*:read`,
@@ -36,6 +43,15 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // that could write it would let one vendor rewrite the browse tree every
     // other vendor is classified into.
     `${CATALOG_REFERENCE_DOMAIN}:*:read`,
+    // A vendor's own selling channels, authored in full — the mirror image of
+    // the line above rather than a copy of it. `catalog-reference` is read-only
+    // here because it is operator-owned platform vocabulary that every vendor
+    // shares; a `SalesChannel` is tenant-plane and belongs to the one
+    // organization whose handle the request resolved to, so writing it can
+    // reach nobody else's data (ADR 0024).
+    `${SALES_DOMAIN}:*:read`,
+    `${SALES_DOMAIN}:*:write`,
+    `${SALES_DOMAIN}:*:delete`,
     `${AUTHN_DOMAIN}:user-identity:read`,
     `${AUTHN_DOMAIN}:user-identity:write`,
     // Reading identifiers is how the user list shows who an account is; it is

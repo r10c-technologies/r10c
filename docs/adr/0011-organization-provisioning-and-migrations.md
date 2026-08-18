@@ -6,6 +6,10 @@
   an organization has **two** tenant databases, so provisioning and migration fan
   out over stores × organizations.
 
+- Revised: 2026-08-17 by [ADR 0024](0024-selling-through-a-vendors-own-channel.md) —
+  a third tenant store (`sales`) means three tenant databases per organization,
+  not two.
+
 ## Context
 
 [ADR 0006](0006-multitenancy-planes-and-tenant-storage.md) puts each
@@ -35,12 +39,14 @@ from config-service. The organization id is the only input, so a name is always
 derivable and never stored twice.
 
 **There is one prefix per store, not one per organization.** An organization has
-two tenant databases — `tenant_<organizationId>` for the `catalog` store and
-`stock_<organizationId>` for `stock` — because they are two stores with two
-writing slices ([ADR 0022](0022-v1-marketplace-module-boundaries.md)). Both are
-still lazily created and still cost nothing until written, so provisioning is
-unchanged in substance: a registry record plus a naming convention, now applied
-once per store.
+three tenant databases — `tenant_<organizationId>` for the `catalog` store,
+`stock_<organizationId>` for `stock` and `sales_<organizationId>` for `sales` —
+because they are three stores with three writing slices
+([ADR 0022](0022-v1-marketplace-module-boundaries.md),
+[ADR 0024](0024-selling-through-a-vendors-own-channel.md)). All are still lazily
+created and still cost nothing until written, so provisioning is unchanged in
+substance: a registry record plus a naming convention, now applied once per
+store.
 
 (Postgres would need a real `CREATE SCHEMA` step. That is part of
 [ADR 0013](0013-tenant-storage-on-postgres.md), not this record.)

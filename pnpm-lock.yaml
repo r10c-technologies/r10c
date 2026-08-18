@@ -875,6 +875,15 @@ importers:
         specifier: workspace:*
         version: link:../../../entifix/ts/testing-unit
 
+  packages/business/ts/sales-management:
+    dependencies:
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+
   packages/business/ts/settlement-management:
     dependencies:
       '@r10c/entifix-ts-core':

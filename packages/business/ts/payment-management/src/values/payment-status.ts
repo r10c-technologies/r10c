@@ -9,6 +9,18 @@
  *
  * `captured` is the state order-management converts a stock reservation on;
  * `failed` releases it.
+ *
+ * A deliberate **narrowing of TMF676**, which carries seven states
+ * (`pendingAuthorization`, `authorized`, `captured`, `failed`, `canceled`,
+ * `denied`, `done`). Three of those are distinctions only a real PSP makes —
+ * `denied` versus `failed` is the issuer's answer versus the network's, and
+ * `done` is a settlement-side terminal — so adopting them now would be modelling
+ * a system nobody has integrated. They are addable as members here, which is the
+ * point of keeping the set closed.
+ *
+ * Cash skips the middle: a counter payment goes straight to `captured`, because
+ * there is nothing to authorize when the money is already in the drawer
+ * ([ADR 0024](../../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
  */
 export const PaymentStatuses = [
   'pending',

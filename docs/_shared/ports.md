@@ -15,6 +15,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | payment (6)             | —      | 3106⁵               |
 | settlement (7)          | —      | 3107⁵               |
 | stock (8)               | —      | 3108⁵               |
+| sales (9)               | —      | 3109⁵               |
 | — platform —            |        | config-service 3190 |
 
 **The index is per host, not per pair.** ADR 0008 allocated `300N`/`310N` to
@@ -60,13 +61,19 @@ the process did, so splitting it back out means pointing its declaration in
 database. It serves `/api/transaction{,/:id}` on `:3101`, and the catalog's
 `202` link is relative so callers never encoded either arrangement.
 
-⁵ **Reserved, not bound.** The `order`, `payment`, `settlement` and `stock`
-slices exist in the register and own their stores, but are `planned` — no process
-runs them, so nothing listens on these ports yet
-([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md)). The index is
+⁵ **Reserved, not bound.** The `order`, `payment`, `settlement`, `stock` and
+`sales` slices exist in the register and own their stores, but are `planned` — no
+process runs them, so nothing listens on these ports yet
+([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md),
+[ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)). The index is
 allocated now so that promoting a slice is a `deployments` edit rather than a
 port negotiation. They are deliberately **not** in `ALL_PORTS`
 (`tools/free-ports.sh`) until something binds them.
+
+`sales` takes index 9 rather than the free `3103`, which stays reserved for the
+`transaction` slice splitting back out of marketplace-admin-service. Reclaiming
+an index that already means something else is how a port table stops being
+readable.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

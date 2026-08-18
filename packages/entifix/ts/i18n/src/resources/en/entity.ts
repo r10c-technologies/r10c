@@ -228,6 +228,7 @@ export const entity: EsEntity = {
       buyerId: 'Buyer ID',
       status: 'Status',
       items: 'Lines',
+      channel: 'Sales channel',
       placedAt: 'Placed at',
     },
     values: {
@@ -248,6 +249,8 @@ export const entity: EsEntity = {
       amount: 'Amount',
       currency: 'Currency',
       status: 'Status',
+      paymentMethod: 'Payment method',
+      channelId: 'Channel ID',
       providerReference: 'Provider reference',
     },
     values: {
@@ -256,6 +259,12 @@ export const entity: EsEntity = {
         authorized: 'Authorized',
         captured: 'Captured',
         failed: 'Failed',
+      },
+      method: {
+        cash: 'Cash',
+        card: 'Card',
+        voucher: 'Voucher',
+        transfer: 'Transfer',
       },
     },
   },
@@ -266,6 +275,7 @@ export const entity: EsEntity = {
       id: 'ID',
       vendorId: 'Vendor ID',
       commissionBasisPoints: 'Commission (basis points)',
+      channelCommissionBasisPoints: 'Commission per channel (basis points)',
       effectiveFrom: 'Effective from',
     },
   },
@@ -363,6 +373,28 @@ export const entity: EsEntity = {
         number: 'Number',
         boolean: 'Yes/No',
         enum: 'Value list',
+      },
+    },
+  },
+  'sales-channel': {
+    label: 'Sales channel',
+    plural: 'Sales channels',
+    fields: {
+      id: 'ID',
+      name: 'Name',
+      type: 'Type',
+      status: 'Status',
+    },
+    values: {
+      type: {
+        storefront: 'Storefront',
+        counter: 'Counter',
+        phone: 'Phone',
+        external: 'External',
+      },
+      status: {
+        active: 'Active',
+        inactive: 'Inactive',
       },
     },
   },

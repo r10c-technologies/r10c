@@ -45,6 +45,7 @@ recorded on the declaration as `bindingReason`.
 | `published-catalog` | platform | `marketplace`       | active       | —                   | `marketplace-catalog`                                         | single           | `projection-of:catalog` |
 | `saga-coordination` | control  | `marketplace-admin` | active       | `transaction`       | —                                                             | single           | system-of-record        |
 | `saga`              | control  | `transaction`       | active       | `marketplace-admin` | —                                                             | single           | system-of-record        |
+| `sales`             | tenant   | `sales`             | **planned**  | —                   | `sales-management`                                            | per-organization | system-of-record        |
 | `session`           | control  | `auth`              | active       | —                   | —                                                             | single           | system-of-record        |
 | `settlement`        | control  | `settlement`        | **planned**  | —                   | `settlement-management`                                       | single           | system-of-record        |
 | `stock`             | tenant   | `stock`             | **planned**  | —                   | `stock-management`                                            | per-organization | system-of-record        |
@@ -77,17 +78,17 @@ A plane is a property of the **Store** — it answers _who may read it_. An
 entity's plane is derived from the store that hosts it, so two entities in one
 store can never disagree about theirs.
 
-| Plane        | Storage                                                                   | Holds                                                                                                           |
-| ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **control**  | one shared database                                                       | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration, agreements and payouts |
-| **platform** | one shared database                                                       | published catalog, the brand/category/dictionary vocabulary, buyer orders, payments                             |
-| **tenant**   | **two Mongo databases per organization** — `tenant_<id>` and `stock_<id>` | vendor-authored offerings and specifications, pricing, stock                                                    |
+| Plane        | Storage                                                                                | Holds                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **control**  | one shared database                                                                    | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration, agreements and payouts |
+| **platform** | one shared database                                                                    | published catalog, the brand/category/dictionary vocabulary, buyer orders, payments                             |
+| **tenant**   | **three Mongo databases per organization** — `tenant_<id>`, `stock_<id>`, `sales_<id>` | vendor-authored offerings and specifications, pricing, stock, selling channels                                  |
 
-**Two tenant databases, not one.** `catalog` and `stock` are the same plane and
-the same partitioning but different stores with different writing slices, so they
-get different handles — which makes one-writer a property of the connection
-rather than of review. They must never transact together anyway; a cross-domain
-write goes through the saga.
+**Three tenant databases, not one.** `catalog`, `stock` and `sales` are the same
+plane and the same partitioning but different stores with different writing
+slices, so they get different handles — which makes one-writer a property of the
+connection rather than of review. They must never transact together anyway; a
+cross-domain write goes through the saga.
 
 **Choosing a plane** — ask who may read it: everyone, including anonymous
 storefront traffic → `platform`; exactly one organization → `tenant`; the

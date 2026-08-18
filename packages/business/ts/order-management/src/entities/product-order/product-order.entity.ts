@@ -3,6 +3,7 @@ import { accessor, entity } from '@r10c/entifix-ts-core';
 
 import type { OrderItem } from '../../values/order-item';
 import { type OrderStatus, OrderStatuses } from '../../values/order-status';
+import type { RelatedChannel } from '../../values/related-channel';
 
 /**
  * A party's request for one or more offerings — one checkout, one receipt, even
@@ -22,6 +23,14 @@ import { type OrderStatus, OrderStatuses } from '../../values/order-status';
  *
  * The cart is **not** here. It is a cookie, so the storefront's first response is
  * correct without a round trip, and it becomes a `ProductOrder` only at checkout.
+ *
+ * **A storefront checkout is not the only way one of these is born.** A vendor
+ * selling at their own counter produces this same entity with a different
+ * {@link channel} — TM Forum models an in-store sale as a channel on the order
+ * rather than a second kind of order, and following that is what keeps
+ * settlement, returns and the buyer's history from splitting in two
+ * ([ADR 0024](../../../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
+ * The counter case is also why {@link buyerId} is optional.
  */
 @entity({
   domain: 'order-management',
@@ -32,14 +41,15 @@ import { type OrderStatus, OrderStatuses } from '../../values/order-status';
 export class ProductOrder implements Entity {
   // #region properties
   #id?: EntityId;
-  #buyerId: string;
+  #buyerId?: string;
+  #channel?: RelatedChannel;
   #status: OrderStatus = 'pending';
   #items: readonly OrderItem[] = [];
   #placedAt?: Date;
   // #endregion
 
   // #region constructors
-  constructor(buyerId = '') {
+  constructor(buyerId?: string) {
     this.#buyerId = buyerId;
   }
   // #endregion
@@ -53,18 +63,65 @@ export class ProductOrder implements Entity {
     this.#id = value;
   }
 
-  /** The `Party` that placed it. Filterable — "my orders" is the buyer's page. */
+  /**
+   * The `Party` that placed it. Filterable — "my orders" is the buyer's page.
+   *
+   * **Optional, and that is a decision rather than laxity.** A walk-in buying at
+   * a vendor's counter has no account, and demanding one at the register is
+   * friction that gets worked around by inventing junk parties — which is worse
+   * than an honest absence. {@link channel} is what explains the gap: an order
+   * with no buyer came through a channel where anonymity is normal.
+   *
+   * The cost, stated so it is not rediscovered: a buyer's order list simply does
+   * not match these, and attaching a party to a past counter sale — for a return
+   * or a loyalty scheme — is a backfill, not a lookup
+   * ([ADR 0024](../../../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
+   */
   @accessor({
     type: 'string',
     labelKey: 'entity:product-order.fields.buyerId',
-    required: true,
     filterable: true,
   })
-  get buyerId(): string {
+  get buyerId(): string | undefined {
     return this.#buyerId;
   }
-  set buyerId(value: string) {
+  set buyerId(value: string | undefined) {
     this.#buyerId = value;
+  }
+
+  /**
+   * Where the sale came from — the storefront, a vendor's counter, a phone line.
+   *
+   * TM Forum's answer to in-store selling, and the reason this class did not
+   * need a sibling: TMF622 carries a `RelatedChannel` on the order rather than
+   * forking by origin, so a counter sale is *this* entity with a different
+   * channel. Building a separate in-store order would have split settlement,
+   * returns and the buyer's history in two for no gain.
+   *
+   * A denormalized copy rather than a link, because a `SalesChannel` lives in
+   * another slice's tenant store and this order is platform plane — see
+   * {@link RelatedChannel}.
+   *
+   * Optional: orders captured before channels existed have none, and the
+   * storefront may leave it unset when there is only one place a sale could have
+   * come from. Absent is read as the storefront.
+   *
+   * Not filterable, for the same reason {@link items} is not — member metadata
+   * is the server-side allowlist, and an embedded object compared as a scalar
+   * matches nothing. Selecting orders by channel needs an index on the embedded
+   * path.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.channel',
+    sortable: false,
+    filterable: false,
+  })
+  get channel(): RelatedChannel | undefined {
+    return this.#channel;
+  }
+  set channel(value: RelatedChannel | undefined) {
+    this.#channel = value;
   }
 
   @accessor({
