@@ -180,8 +180,8 @@ them), and everything deep is a link — loaded only when a task needs it.
   blocks, because "not edited" is not "wrong". See
   [DEVELOPING.md → Keeping the documentation true](docs/DEVELOPING.md#keeping-the-documentation-true).
 - **Four artifacts hold knowledge, one job each — do not merge them.**
-  _How the Guatemalan business works_ lives in **Notion** (`r10c — Procesos GT`,
-  reached through the Notion MCP server); _what we decided and why_ is an
+  _How the business works_ lives in **Notion** (the `r10c` space, reached through
+  the Notion MCP server); _what we decided and why_ is an
   **ADR**; _the contract_ is `BUSINESS-ARCHITECTURE.md` + `tools/slices/`; _what
   is next and whether it is done_ is a **GitHub issue under a milestone**. A
   process question goes to Notion, and the moment it forces a modelling call
