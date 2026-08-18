@@ -238,6 +238,7 @@ export const entity = {
       buyerId: 'ID de comprador',
       status: 'Estado',
       items: 'Líneas',
+      channel: 'Canal de venta',
       placedAt: 'Fecha del pedido',
     },
     values: {
@@ -258,6 +259,8 @@ export const entity = {
       amount: 'Importe',
       currency: 'Moneda',
       status: 'Estado',
+      paymentMethod: 'Forma de pago',
+      channelId: 'ID de canal',
       providerReference: 'Referencia del proveedor',
     },
     values: {
@@ -266,6 +269,12 @@ export const entity = {
         authorized: 'Autorizado',
         captured: 'Cobrado',
         failed: 'Fallido',
+      },
+      method: {
+        cash: 'Efectivo',
+        card: 'Tarjeta',
+        voucher: 'Vale',
+        transfer: 'Transferencia',
       },
     },
   },
@@ -276,6 +285,7 @@ export const entity = {
       id: 'ID',
       vendorId: 'ID de vendedor',
       commissionBasisPoints: 'Comisión (puntos básicos)',
+      channelCommissionBasisPoints: 'Comisión por canal (puntos básicos)',
       effectiveFrom: 'Vigente desde',
     },
   },
@@ -373,6 +383,28 @@ export const entity = {
         number: 'Número',
         boolean: 'Sí/No',
         enum: 'Lista de valores',
+      },
+    },
+  },
+  'sales-channel': {
+    label: 'Canal de venta',
+    plural: 'Canales de venta',
+    fields: {
+      id: 'ID',
+      name: 'Nombre',
+      type: 'Tipo',
+      status: 'Estado',
+    },
+    values: {
+      type: {
+        storefront: 'Tienda en línea',
+        counter: 'Mostrador',
+        phone: 'Teléfono',
+        external: 'Externo',
+      },
+      status: {
+        active: 'Activo',
+        inactive: 'Inactivo',
       },
     },
   },

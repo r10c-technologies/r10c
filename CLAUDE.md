@@ -99,13 +99,40 @@ them), and everything deep is a link — loaded only when a task needs it.
   `DictionaryTerm` are **platform-plane** `catalog-reference`, because a
   marketplace has to merge and per-vendor taxonomy cannot; that domain is
   **never entitlement-grantable**, which is the first exception to ADR 0007's
-  ceiling; `catalog` and `stock` are two tenant stores in **two** databases
-  (`tenant_<id>`, `stock_<id>`) so one-writer is a property of the handle; and
+  ceiling; `catalog`, `stock` and `sales` are three tenant stores in **three**
+  databases (`tenant_<id>`, `stock_<id>`, `sales_<id>`) so one-writer is a
+  property of the handle; and
   the `marketplace` slice writes `published-catalog` by **consuming**
   `catalog.published`, not the slice that authored the offering — which is what
   keeps the public read host out of tenant storage. SID's `Product` is the
   instance a buyer owns, in `order-management`; the catalog record is
   `ProductSpecification`.
+- **An in-store sale is a channel on the same order, not a different order.**
+  TM Forum settles this and it is the non-obvious half: TMF622's `ProductOrder`
+  carries a `RelatedChannel`, TMF676's `Payment` carries a channel, and SID names
+  the concept in the Market/Sales **Sales Channel ABE** — nowhere does the
+  standard fork the order by origin. So a vendor selling at their own counter
+  produces the _same_ `ProductOrder`, and building a parallel in-store entity
+  would split settlement, returns and the buyer's history permanently to avoid
+  adding one member ([ADR 0024](docs/adr/0024-selling-through-a-vendors-own-channel.md)).
+  The new domain is `sales-management`, **tenant plane**, one entity
+  (`SalesChannel`) in its own `sales` store — the exact inverse of
+  `catalog-reference`, which is platform plane _because_ a marketplace must merge
+  brands and categories; channels never merge. Four consequences worth not
+  re-deriving: the channel lands on `ProductOrder` as a **denormalized copy**
+  (a platform-plane buyer cannot dereference a tenant pointer — the
+  `PublishedOffering` precedent) but on `Payment` as a bare `channelId`, because
+  a vendor and settlement both _can_ resolve it; `buyerId` is **optional**, since
+  a walk-in has no account and forcing one breeds junk parties; commission is
+  per channel type on `Agreement`, resolved through `commissionFor` — never
+  `rates[type] || fallback`, which charges full commission for a 0% channel; and
+  `settlement-management` **duplicates** the four channel-type literals because
+  `business:domain` may not import another, so the two lists can drift and both
+  are spec-pinned. No new tenant crossing: a counter sale calls the order slice's
+  own `POST /api/product-order`, so ADR 0023 stays the single named path. The
+  **till** — drawers, shifts, floats, variance — is deliberately absent: it has
+  no ODA or SID name, so every field would be invented.
+
 - **A service may name a tenant explicitly — one path, and it is authorized.**
   Checkout is platform-plane and must reserve tenant-plane stock, but a buyer's
   session carries no organization: the vendor comes from the _item_. So

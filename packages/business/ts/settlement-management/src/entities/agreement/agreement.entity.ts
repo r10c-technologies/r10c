@@ -1,6 +1,11 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { accessor, entity } from '@r10c/entifix-ts-core';
 
+import {
+  type ChannelCommissionRates,
+  commissionForChannel,
+} from '../../values/channel-commission';
+
 /**
  * The contract between the platform and a vendor: what the platform takes, and
  * from when.
@@ -14,6 +19,15 @@ import { accessor, entity } from '@r10c/entifix-ts-core';
  * `commissionBasisPoints` is an integer — 250 is 2.5% — for the same reason
  * prices are minor units: a percentage held as a float compounds a rounding
  * error across every line of every payout.
+ *
+ * **The rate is per channel**, with a default. Once a vendor can sell in their
+ * own shop, one rate stops being expressible: a platform that takes 8% on a sale
+ * it sourced through the storefront has a much weaker claim on a sale the vendor
+ * made to their own walk-in customer, and "0% on your own counter" is a term
+ * people actually negotiate. Putting it here rather than in code makes it a
+ * contract term that varies per vendor and is auditable as of a date, which is
+ * the same argument that kept commission off `Organization`
+ * ([ADR 0024](../../../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
  *
  * **Control plane**, unlike its neighbours in commerce. The rule is who may read
  * it, and this is the platform's own record about a vendor — the same character
@@ -34,6 +48,7 @@ export class Agreement implements Entity {
   #id?: EntityId;
   #vendorId: string;
   #commissionBasisPoints: number;
+  #channelCommissionBasisPoints?: ChannelCommissionRates;
   #effectiveFrom?: Date;
   // #endregion
 
@@ -41,6 +56,21 @@ export class Agreement implements Entity {
   constructor(vendorId = '', commissionBasisPoints = 0) {
     this.#vendorId = vendorId;
     this.#commissionBasisPoints = commissionBasisPoints;
+  }
+  // #endregion
+
+  // #region methods
+  /**
+   * What the platform takes on a line that came through `channelType`, in basis
+   * points. An explicit channel rate wins; everything else falls back to
+   * {@link commissionBasisPoints}.
+   */
+  commissionFor(channelType: string | undefined): number {
+    return commissionForChannel(
+      this.#channelCommissionBasisPoints,
+      this.#commissionBasisPoints,
+      channelType,
+    );
   }
   // #endregion
 
@@ -67,7 +97,12 @@ export class Agreement implements Entity {
     this.#vendorId = value;
   }
 
-  /** Hundredths of a percent. `250` is 2.5%. */
+  /**
+   * Hundredths of a percent. `250` is 2.5%.
+   *
+   * The **default** rate: what applies to a line whose channel has no explicit
+   * term, and to every line placed before channels existed.
+   */
   @accessor({
     type: 'number',
     labelKey: 'entity:agreement.fields.commissionBasisPoints',
@@ -80,6 +115,32 @@ export class Agreement implements Entity {
   }
   set commissionBasisPoints(value: number) {
     this.#commissionBasisPoints = value;
+  }
+
+  /**
+   * Per-channel overrides, keyed by channel type. Absent entries take the
+   * default above; `{ counter: 0 }` is the term this member exists for.
+   *
+   * Not filterable or sortable — it is an embedded object, and member metadata
+   * is the server-side RSQL allowlist, so declaring it queryable would advertise
+   * a comparison that matches nothing. Settling reads the whole agreement
+   * anyway; it never selects one by its rate table.
+   *
+   * Resolve it through {@link commissionFor}, never by indexing this directly —
+   * a rate of `0` is meaningful and a truthiness check would charge full
+   * commission for a free channel.
+   */
+  @accessor({
+    type: 'number',
+    labelKey: 'entity:agreement.fields.channelCommissionBasisPoints',
+    sortable: false,
+    filterable: false,
+  })
+  get channelCommissionBasisPoints(): ChannelCommissionRates | undefined {
+    return this.#channelCommissionBasisPoints;
+  }
+  set channelCommissionBasisPoints(value: ChannelCommissionRates | undefined) {
+    this.#channelCommissionBasisPoints = value;
   }
 
   /**

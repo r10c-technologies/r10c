@@ -54,10 +54,45 @@ describe('ProductOrder', () => {
   it('opens pending with no lines, so an empty order promises nothing', () => {
     const order = new ProductOrder();
 
-    expect(order.buyerId).toBe('');
+    expect(order.buyerId).toBeUndefined();
     expect(order.status).toBe('pending');
     expect(order.items).toEqual([]);
     expect(order.placedAt).toBeUndefined();
+    expect(order.channel).toBeUndefined();
+  });
+
+  it('captures a counter sale with no buyer at all', () => {
+    // A walk-in has no account, and demanding one at the register is friction
+    // that gets worked around by inventing junk parties. The channel is what
+    // explains the absence (ADR 0024).
+    const order = new ProductOrder();
+    order.channel = { id: 'sc-1', name: 'Tienda Centro', type: 'counter' };
+    order.items = [line('vendor-a', 1000)];
+
+    expect(serializeEntity(ProductOrder, order)).toEqual({
+      status: 'pending',
+      items: [line('vendor-a', 1000)],
+      channel: { id: 'sc-1', name: 'Tienda Centro', type: 'counter' },
+    });
+  });
+
+  it('copies the channel name onto the order rather than pointing at it', () => {
+    // A SalesChannel lives in another slice's tenant store, and this order is
+    // platform plane — a platform-plane reader cannot dereference a tenant
+    // pointer. Same reason PublishedOffering copies price and vendor.
+    const order = new ProductOrder('buyer-9');
+    order.channel = { id: 'sc-2', name: 'Mostrador 2', type: 'counter' };
+
+    expect(order.channel.name).toBe('Mostrador 2');
+  });
+
+  it('keeps the channel out of the query allowlist, like the lines', () => {
+    const channel = describeEntityColumns(ProductOrder).find(
+      column => column.name === 'channel',
+    );
+
+    expect(channel?.filterable).toBe(false);
+    expect(channel?.sortable).toBe(false);
   });
 
   it('accepts the setters a repository writes back through', () => {
@@ -66,11 +101,13 @@ describe('ProductOrder', () => {
     order.status = 'cancelled';
     order.items = [];
     order.placedAt = undefined;
+    order.channel = undefined;
 
     expect(order.buyerId).toBe('buyer-3');
     expect(order.status).toBe('cancelled');
     expect(order.items).toEqual([]);
     expect(order.placedAt).toBeUndefined();
+    expect(order.channel).toBeUndefined();
   });
 
   it('keeps a multi-vendor basket as one order, tagged per line', () => {

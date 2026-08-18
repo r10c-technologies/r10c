@@ -2,6 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-08-12
+- Revised: 2026-08-17 by [ADR 0024](0024-selling-through-a-vendors-own-channel.md) —
+  a twelfth domain (`sales-management`), a thirteenth store (`sales`) and a tenth
+  slice join the register, so the inventory in Decision reads 12 / 29 / 13 / 10;
+  `ProductOrder.buyerId` is no longer required.
 
 ## Context
 
@@ -42,6 +46,12 @@ store hosts them, which slice writes it, and which of those slices run yet.
 ## Decision
 
 Eleven domains, 28 entities, 12 stores, 9 slices, 6 deployments.
+
+> **Revised 2026-08-17.** Twelve, 29, 13 and 10 as of
+> [ADR 0024](0024-selling-through-a-vendors-own-channel.md), which adds the
+> `sales-management` domain, the `SalesChannel` entity, the tenant-plane `sales`
+> store and the planned `sales` slice. Deployments are unchanged at six: the new
+> slice is `planned`, which is this record's own mechanism working as intended.
 
 ### Ownership is recorded before a process exists
 
@@ -175,6 +185,11 @@ compensation, so the hop costs nothing new
 ### 3. Two tenant stores, two databases per organization
 
 `catalog` is `tenant_<organizationId>`; `stock` is `stock_<organizationId>`.
+
+> **Revised 2026-08-17.** Three, as of
+> [ADR 0024](0024-selling-through-a-vendors-own-channel.md): `sales` is
+> `sales_<organizationId>`. The reasoning below is unchanged and is what the
+> third store was decided by.
 
 They could share one database and differ only by collection. Separating them
 makes one-writer-per-store a property of **which handle a request resolves to**

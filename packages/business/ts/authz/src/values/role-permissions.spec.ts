@@ -7,6 +7,7 @@ import {
   CATALOG_DOMAIN,
   CATALOG_REFERENCE_DOMAIN,
   ROLE_PERMISSIONS,
+  SALES_DOMAIN,
 } from './role-permissions.js';
 
 describe('ROLE_PERMISSIONS', () => {
@@ -42,6 +43,46 @@ describe('ROLE_PERMISSIONS', () => {
         permissionMatches(permission, `${AUTHN_DOMAIN}:user-identity:write`),
       ),
     ).toBe(true);
+  });
+
+  // ADR 0024: a `SalesChannel` is tenant-plane and belongs to the one
+  // organization whose handle the request resolved to, so an admin writing one
+  // can reach nobody else's data. That is the whole difference from
+  // `catalog-reference` below, which looks similar and is granted differently.
+  it('lets an admin author their own selling channels, unlike the platform\n    vocabulary they may only read', () => {
+    const granted = ROLE_PERMISSIONS.admin;
+
+    for (const action of ['read', 'write', 'delete'] as const) {
+      expect(
+        granted.some(permission =>
+          permissionMatches(
+            permission,
+            `${SALES_DOMAIN}:sales-channel:${action}`,
+          ),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it('lets a plain user see which counters exist but never author one', () => {
+    const granted = ROLE_PERMISSIONS.user;
+
+    expect(
+      granted.some(permission =>
+        permissionMatches(permission, `${SALES_DOMAIN}:sales-channel:read`),
+      ),
+    ).toBe(true);
+
+    for (const action of ['write', 'delete'] as const) {
+      expect(
+        granted.some(permission =>
+          permissionMatches(
+            permission,
+            `${SALES_DOMAIN}:sales-channel:${action}`,
+          ),
+        ),
+      ).toBe(false);
+    }
   });
 
   // ADR 0022 decision 1: `catalog-reference` is operator-owned. A tenant role

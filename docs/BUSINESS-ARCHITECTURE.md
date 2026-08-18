@@ -101,6 +101,8 @@ different things by "product".
 | **ProductOrder**          | A party's request for one or more offerings.                                                                                                                                                                                                                                                                                                            | SID           |
 | **StockItem**             | Physical availability of an offering for a vendor. A **materialized total**, not the truth — `StockMovement` is.                                                                                                                                                                                                                                        | ours          |
 | **PublishedOffering**     | The storefront's **snapshot** of a vendor's offering, taken at publication. Copies price and vendor rather than linking, because a platform-plane reader cannot dereference a tenant pointer.                                                                                                                                                           | ours          |
+| **SalesChannel**          | A route a vendor sells through — the storefront, a counter in their own shop, a phone line. Per-vendor, so it never merges the way a brand or a category has to.                                                                                                                                                                                        | SID           |
+| **RelatedChannel**        | The channel copied onto a `ProductOrder`. TM Forum models an in-store sale as a channel on the same order rather than as a second kind of order, which is why a counter sale is a `ProductOrder` and no in-store equivalent exists.                                                                                                                     | SID           |
 | **OrderItem**             | One line of a `ProductOrder`, tagged with the vendor that owes it. A **value**, not an entity — no identity apart from its order.                                                                                                                                                                                                                       | SID           |
 | **CommissionEntry**       | One sale's commission, **captured when the sale happens**. Computing it at payout time would let a rate change silently rewrite history.                                                                                                                                                                                                                | ours          |
 | **SettlementRun**         | One period's batch, folding commission entries into payouts. A record rather than a job invocation, so "the March run" stays answerable.                                                                                                                                                                                                                | ours          |
@@ -242,6 +244,7 @@ land on when asking _where does this entity go?_
 | `catalog-reference` | platform | `marketplace`       | `catalog-reference`                                   | single           | system-of-record        |
 | `published-catalog` | platform | `marketplace`       | `marketplace-catalog`                                 | single           | `projection-of:catalog` |
 | `stock`             | tenant   | `stock`             | `stock-management`                                    | per-organization | system-of-record        |
+| `sales`             | tenant   | `sales`             | `sales-management`                                    | per-organization | system-of-record        |
 | `order`             | platform | `order`             | `order-management`                                    | single           | system-of-record        |
 | `payment`           | platform | `payment`           | `payment-management`                                  | single           | system-of-record        |
 | `settlement`        | control  | `settlement`        | `settlement-management`                               | single           | system-of-record        |
@@ -258,11 +261,12 @@ Four rows worth their reasoning:
   owned by one slice.** One is authored reference data, the other is derived. A
   store carries exactly one `truth`, which is what makes them two stores and
   therefore two domains rather than one "catalog" module.
-- **`catalog` and `stock` are two tenant stores**, physically
-  `tenant_<organizationId>` and `stock_<organizationId>`. Same plane, same
-  partitioning, separate databases — so one-writer is a property of which handle
-  a request resolves to rather than of review. They must never transact together
-  anyway; a cross-domain write goes through the saga.
+- **`catalog`, `stock` and `sales` are three tenant stores**, physically
+  `tenant_<organizationId>`, `stock_<organizationId>` and
+  `sales_<organizationId>`. Same plane, same partitioning, separate databases —
+  so one-writer is a property of which handle a request resolves to rather than
+  of review. They must never transact together anyway; a cross-domain write goes
+  through the saga.
 - **`settlement` is control plane** while its commerce neighbours are platform.
   An `Agreement` is the platform's own record about a vendor, the same character
   as `Entitlement`. A slice may own stores in several planes.
@@ -283,6 +287,7 @@ Four rows worth their reasoning:
 | `order`             | planned | order                                | — (target `:3105`)                |
 | `payment`           | planned | payment                              | — (target `:3106`)                |
 | `settlement`        | planned | settlement                           | — (target `:3107`)                |
+| `sales`             | planned | sales                                | — (target `:3109`)                |
 
 **Co-deployment is reversible; merging stores is not.** Two slices sharing a
 process keeps ownership where it was — splitting back out means pointing a
@@ -332,11 +337,11 @@ Then two rules that apply to the entity itself:
 
 ### The three planes
 
-| Plane        | Storage                                                                       | Holds                                                                                                           |
-| ------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Control**  | one shared database                                                           | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration, agreements and payouts |
-| **Platform** | one shared database                                                           | published catalog, catalog vocabulary, buyer orders, payments                                                   |
-| **Tenant**   | **two databases per organization** — `tenant_<id>` (catalog) and `stock_<id>` | vendor-authored offerings, specifications, pricing, stock                                                       |
+| Plane        | Storage                                                                          | Holds                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Control**  | one shared database                                                              | Organization, Individual, Membership, Role, Entitlement, users, sessions, configuration, agreements and payouts |
+| **Platform** | one shared database                                                              | published catalog, catalog vocabulary, buyer orders, payments                                                   |
+| **Tenant**   | **three databases per organization** — `tenant_<id>`, `stock_<id>`, `sales_<id>` | vendor-authored offerings, specifications, pricing, stock, selling channels                                     |
 
 ## Capability map
 
@@ -353,6 +358,7 @@ Then two rules that apply to the entity itself:
 | Order Management           | Product Order Capture & Validation (TMFC002)                   | `business-ts-order-management`                 | platform | `order`             | entities |
 | Payment Management         | Payment Management (TMFC029)                                   | `business-ts-payment-management`               | platform | `payment`           | entities |
 | Settlement Management      | Agreement Mgmt (TMFC039), partner revenue                      | `business-ts-settlement-management`            | control  | `settlement`        | entities |
+| Sales Management           | SID Market/Sales — the Sales Channel ABE                       | `business-ts-sales-management`                 | tenant   | `sales`             | entities |
 | Fulfillment                | Shipping & Logistics                                           | _not yet_                                      | —        | —                   | —        |
 
 `entities` means the domain's entity skeletons and its store are declared, with
