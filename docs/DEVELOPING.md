@@ -662,7 +662,7 @@ being true without anything failing. The decision is
 
 | Artifact                                         | Answers                        | Enforced by              |
 | ------------------------------------------------ | ------------------------------ | ------------------------ |
-| **Notion** — `r10c — Procesos GT`                | how the business actually works | nothing; deliberately    |
+| **Notion** — the `r10c` space                    | how the business actually works | nothing; deliberately    |
 | **ADR** — `docs/adr/`                            | what we decided, and why       | `@r10c/docs-check`       |
 | `BUSINESS-ARCHITECTURE.md` + `tools/slices/`     | what the contract is           | `@r10c/slices`           |
 | **GitHub issue** under a milestone               | what is next, and is it done   | the milestone's own test |
@@ -676,7 +676,7 @@ all three and duplicates none of them.
 #104  Persist a certified DTE against a ProductOrder
   Milestone:  M4 — Pay for it
   Labels:     order, fiscal
-  Why:        Notion → Procesos GT / Fiscal-FEL
+  Why:        Notion → 30 · Mercados / Guatemala / Fiscal · SAT-FEL
   Decision:   ADR 00XX — who issues the DTE
   Contract:   order-management, `order` store; FiscalCertifierPort
 ```

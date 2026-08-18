@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-17
+- Revised: 2026-08-17 — the Notion space is `r10c`, split by process and
+  market, rather than the single `Procesos GT` this record first named
 
 ## Context
 
@@ -51,7 +53,7 @@ putting them in one place:
 
 | Artifact                                     | Answers                                | Enforced by             |
 | -------------------------------------------- | -------------------------------------- | ----------------------- |
-| **Notion** — `r10c — Procesos GT`            | how the business actually works        | nothing; that is fine   |
+| **Notion** — the `r10c` space                | how the business actually works        | nothing; that is fine   |
 | **ADR** — `docs/adr/`                        | what we decided, and why               | `@r10c/docs-check`      |
 | **`BUSINESS-ARCHITECTURE.md` + `tools/slices/`** | what the contract is               | `@r10c/slices`          |
 | **GitHub issue** under a **milestone**       | what is next, and is it done           | the milestone's own test |
@@ -59,6 +61,31 @@ putting them in one place:
 A process question goes to Notion. When it forces a modelling call, that call
 becomes an ADR. The consequence lands in the register. The work becomes an issue
 that cites all three and adds nothing of its own.
+
+### The space is split by process, then by market
+
+The first draft of this record named the space `r10c — Procesos GT`, which bakes
+one market into the tree and makes the second one a rewrite. The split that
+holds instead is the one the codebase already uses everywhere else:
+
+> **The process is the port. The market is the adapter.**
+
+`20 · Procesos` describes what happens and in what order, for any market — a
+buyer orders, stock is held, the vendor is paid a commission. `30 · Mercados`
+holds everything that changes when the country changes: the tax regime, the
+document that makes a sale legal, the payment rails people actually use, the
+couriers, the shape of an address. A second market costs a sibling folder.
+
+Two further pages carry their own rule. `00 · Mapa` **points and does not
+explain** — it links to `tools/slices/`, the ADRs and the milestones, and if it
+ever starts describing the model instead of linking to it, it has become the
+second copy this record exists to prevent. `10 · Referencias` holds external
+material, split the same way the rest is: a TM Forum reference we have
+**applied** lives where we applied it — in the glossary's `Source` column, or
+quoted in the ADR that used it — while one we are **still reading** lives in
+Notion. Issue #95, "confirm the ODA TMFC component code for Sales Management",
+is the shape of the second kind: a question against an external standard that
+our own source cannot answer.
 
 ### Why business processes do not live in `docs/`
 
