@@ -745,6 +745,50 @@ forks and leaves them public, so nothing un-publishes a commit that was public
 when it was made. Public law and our own mechanism are committable; commission
 rates, named pilot vendors and negotiated courier terms are Notion-only.
 
+## Dependency updates
+
+Two mechanisms own the dependency tree, and they must not overlap.
+
+**Nx owns the toolchain.** `pnpm nx migrate latest` bumps `nx` together with
+every package the `@nx/*` plugins pin — the authoritative list is the
+`packageJsonUpdates` block in each `node_modules/@nx/*/migrations.json`, and it
+currently covers `typescript`, `@swc/*`, `@swc-node/*`, `verdaccio`,
+`typescript-eslint`, `@typescript-eslint/*`, `vite`, `vitest`, `@vitest/*`,
+`next`, `eslint-config-next` and `webpack*`. It moves them to a combination Nx
+has tested and writes any codemods into `migrations.json`. `.github/dependabot.yml`
+**ignores** all of them, so `nx migrate` is the only thing that moves them.
+
+That ignore list is not tidiness. Dependabot raised `typescript` 6.0.3 → 7.0.2 on
+its own, and TypeScript 7 — the Go-native rewrite — no longer exposes
+`ts.readConfigFile`, `ts.ScriptTarget` or `ts.ModifierFlags`, all of which Nx 23
+calls while building the project graph. The graph never built, so every `nx`
+command in CI failed and the 54 healthy updates grouped alongside it were
+unreachable.
+
+**Dependabot owns everything else**, weekly, with majors excluded from both
+groups (`update-types: ['minor', 'patch']`). A major therefore arrives as its own
+PR, where a red check names the package instead of hiding behind a group that
+cannot be bisected. Two families are grouped so they can never be split:
+`effect` + `@effect/*` (`@effect/sql*` must stay aligned with the pinned
+`@effect/platform`) and `react` + `react-dom` + their `@types`.
+
+**Never merge a Dependabot lockfile as-is.** It rewrites `pnpm-lock.yaml`
+surgically rather than resolving it, which can produce a lock `pnpm install`
+would never emit — in one PR the `entifix-ts-testing-unit` importer, whose
+optional peer is `react: '*'`, kept `react-dom@19.2.8(react@19.2.7)` and React
+threw `Incompatible React versions` at test time. Check out the branch, run
+`pnpm install`, and commit the regenerated lock. The `overrides` block in
+`pnpm-workspace.yaml` pins that particular pair to the root spec via the `$name`
+form, so react and react-dom can no longer disagree; it lives there because
+pnpm 11 no longer reads `pnpm.overrides` from `package.json` and ignores the
+field with a warning.
+
+**A datastore driver major is not something CI can clear.** The e2e job runs
+`E2E_PROFILE: mock`, which replaces Redis, Mongo, RabbitMQ and config-service at
+the transport boundary, so a green check says nothing about `ioredis`, `mongodb`,
+`amqplib` or `@effect/sql*`. Those need a `live` run — see
+[E2E and `E2E_PROFILE`](#e2e-and-e2e_profile).
+
 ## Commits & PRs
 
 - **Conventional Commits with Nx scopes** (`@commitlint/config-nx-scopes`) — the

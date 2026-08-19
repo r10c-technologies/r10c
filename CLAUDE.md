@@ -7,15 +7,15 @@ them), and everything deep is a link — loaded only when a task needs it.
 
 ## Documentation map
 
-| Doc                                                            | When you need it                                                                                                                    |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                   | Layering, the use-case + adapter mechanism, Effect-native backends, auth, transactions, observability, domain structure.            |
-| [docs/BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) | The **business** side: capability map, ODA/SID glossary, personas as party roles, data planes, catalog publication, stock rules.    |
-| [docs/ENTIFIX.md](docs/ENTIFIX.md)                             | The entity framework in depth: entities, links, the Effect-agnostic use-case, adapter contract, the RSQL query protocol.            |
-| [docs/FRONTEND.md](docs/FRONTEND.md)                           | The client side: design system (tokens, flex-first layout primitives, Storybook) **and** the workspace tabs + TanStack data layer.  |
-| [docs/I18N.md](docs/I18N.md)                                   | Locales, catalogs, locale routing, entity label keys, error codes, and the three gates that make i18n mandatory.                    |
-| [docs/DEVELOPING.md](docs/DEVELOPING.md)                       | Nx/pnpm workspace, commands, local infra, **module boundaries**, entities, backends, testing (`E2E_PROFILE`), conventions, commits. |
-| [docs/adr/](docs/adr/)                                         | Architecture Decision Records (e.g. [0001 observability & tooling](docs/adr/0001-observability-and-tooling.md)).                    |
+| Doc                                                            | When you need it                                                                                                                                        |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                   | Layering, the use-case + adapter mechanism, Effect-native backends, auth, transactions, observability, domain structure.                                |
+| [docs/BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) | The **business** side: capability map, ODA/SID glossary, personas as party roles, data planes, catalog publication, stock rules.                        |
+| [docs/ENTIFIX.md](docs/ENTIFIX.md)                             | The entity framework in depth: entities, links, the Effect-agnostic use-case, adapter contract, the RSQL query protocol.                                |
+| [docs/FRONTEND.md](docs/FRONTEND.md)                           | The client side: design system (tokens, flex-first layout primitives, Storybook) **and** the workspace tabs + TanStack data layer.                      |
+| [docs/I18N.md](docs/I18N.md)                                   | Locales, catalogs, locale routing, entity label keys, error codes, and the three gates that make i18n mandatory.                                        |
+| [docs/DEVELOPING.md](docs/DEVELOPING.md)                       | Nx/pnpm workspace, commands, local infra, **module boundaries**, entities, backends, testing (`E2E_PROFILE`), dependency updates, conventions, commits. |
+| [docs/adr/](docs/adr/)                                         | Architecture Decision Records (e.g. [0001 observability & tooling](docs/adr/0001-observability-and-tooling.md)).                                        |
 
 `docs/_shared/` holds the small snippets imported below; edit the snippet, not the copies.
 
