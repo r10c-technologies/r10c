@@ -50,7 +50,7 @@
   "dependencies": {
     "@swc/helpers": "0.5.23",
     "@r10c/entifix-ts-tooling": "workspace:*",
-    "posthog-node": "5.46.0",
-    "posthog-js": "1.407.0"
+    "posthog-node": "5.49.0",
+    "posthog-js": "1.417.0"
   }
 }

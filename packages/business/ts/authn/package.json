@@ -49,6 +49,6 @@
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "3.22.0"
+    "effect": "3.22.1"
   }
 }
