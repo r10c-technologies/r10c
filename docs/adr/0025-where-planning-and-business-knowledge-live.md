@@ -4,6 +4,9 @@
 - Date: 2026-08-17
 - Revised: 2026-08-17 — the Notion space is `r10c`, split by process and
   market, rather than the single `Procesos GT` this record first named
+- Revised: 2026-08-19 — records M0, which is a milestone that promotes no
+  slice; the Backlog milestone and what an absent milestone now means; and
+  the triage rule for work found while doing other work
 
 ## Context
 
@@ -51,12 +54,12 @@ putting them in one place:
 
 **Four artifacts, one job each, and a named seam between them.**
 
-| Artifact                                     | Answers                                | Enforced by             |
-| -------------------------------------------- | -------------------------------------- | ----------------------- |
-| **Notion** — the `r10c` space                | how the business actually works        | nothing; that is fine   |
-| **ADR** — `docs/adr/`                        | what we decided, and why               | `@r10c/docs-check`      |
-| **`BUSINESS-ARCHITECTURE.md` + `tools/slices/`** | what the contract is               | `@r10c/slices`          |
-| **GitHub issue** under a **milestone**       | what is next, and is it done           | the milestone's own test |
+| Artifact                                         | Answers                         | Enforced by              |
+| ------------------------------------------------ | ------------------------------- | ------------------------ |
+| **Notion** — the `r10c` space                    | how the business actually works | nothing; that is fine    |
+| **ADR** — `docs/adr/`                            | what we decided, and why        | `@r10c/docs-check`       |
+| **`BUSINESS-ARCHITECTURE.md` + `tools/slices/`** | what the contract is            | `@r10c/slices`           |
+| **GitHub issue** under a **milestone**           | what is next, and is it done    | the milestone's own test |
 
 A process question goes to Notion. When it forces a modelling call, that call
 becomes an ADR. The consequence lands in the register. The work becomes an issue
@@ -127,17 +130,21 @@ Issues are already the unit here: ninety-six of them, `sales`-labelled work
 already shaped this way, and `/create-pr` already closes them from the commit.
 What was missing is grouping, not tooling.
 
-**Milestones are the release grouping, and each one is the promotion of a
-planned slice**, which is what makes "done" a fact rather than an opinion:
+**Milestones are the release grouping, and each business one is the promotion
+of a planned slice**, which is what makes "done" a fact rather than an
+opinion. Two milestones deliberately promote nothing, and both say so in
+their own description rather than being inferred from an empty diff:
 
-| Milestone                  | Completes when                                        |
-| -------------------------- | ----------------------------------------------------- |
-| **M1 — Publish a catalog** | `catalog.published` fills `published-catalog`; the storefront's fixture repository is deleted |
-| **M2 — Stock is real**     | the `stock` slice is `active`                         |
-| **M3 — Buy something**     | the `order` slice is `active`                         |
-| **M4 — Pay for it**        | the `payment` slice is `active`                       |
-| **M5 — Sell at the counter** | the `sales` slice is `active`                       |
-| **M6 — Pay the vendor**    | the `settlement` slice is `active`                    |
+| Milestone                     | Completes when                                                                                |
+| ----------------------------- | --------------------------------------------------------------------------------------------- |
+| **M1 — Publish a catalog**    | `catalog.published` fills `published-catalog`; the storefront's fixture repository is deleted |
+| **M2 — Stock is real**        | the `stock` slice is `active`                                                                 |
+| **M3 — Buy something**        | the `order` slice is `active`                                                                 |
+| **M4 — Pay for it**           | the `payment` slice is `active`                                                               |
+| **M5 — Sell at the counter**  | the `sales` slice is `active`                                                                 |
+| **M6 — Pay the vendor**       | the `settlement` slice is `active`                                                            |
+| **M0 — Platform foundations** | M1 can be built without inventing a new control                                               |
+| **Backlog**                   | never; it is where triaged, not-in-v1 work waits                                              |
 
 A slice is promoted by the commit that writes its store and never earlier, and
 `@r10c/slices` fails the build in both directions. So the milestone's definition
@@ -146,12 +153,57 @@ of done is a test that already exists.
 Projects v2 is **declined**, not deferred by accident. Its `Status` field is not
 the issue's open/closed state, so adopting it creates a second truth to
 reconcile by hand — for a single repository with one committer, that is cost
-with no return. Milestones, labels and native sub-issues live *on* the issue and
-need no synchronisation. Adding a board later costs nothing, because the issues
-survive the move.
+with no return. Adding a board later costs nothing, because the issues survive
+the move.
+
+That bet has since paid: hierarchy, dependency order and type all live **on**
+the issue now. Sub-issues make a tracking issue's progress computed rather than
+a checklist someone maintains; `blocked_by` makes "what can start today" a
+query instead of a paragraph; issue types are a native facet. Each of those was
+a common reason to reach for a board, and none of them needs one.
+
+What a board would still add is **rank** — issues cannot hold an order, so the
+tie-break between two issues that block each other not at all is judgement
+restated each time it is asked for. That is carried as `wave-1`…`wave-4`
+labels, which is cheaper and stored. Revisit the board if ranking _across_
+lanes — a bug that blocks nothing, against planned work — starts being a
+decision made more than occasionally. Until then the rule below answers it
+without a field to keep true.
 
 Domain labels are the mapping back to the model: one word that names a domain, a
 permission namespace and a package at once.
+
+### Discovered work, and the one thing an absent milestone may mean
+
+Planned work and work found while doing it have different lifecycles, and making
+them compete in one flat list loses the second kind. The separation is a rule
+rather than a second tool:
+
+> A bug or debt that **blocks planned work becomes a `blocked_by` on it** — it
+> then surfaces on its own, because the planned issue cannot start. One that
+> **blocks nothing goes to Backlog**, and by that definition it is not urgent.
+
+No priority field, because a priority field is an opinion that goes stale
+against the dependency graph, which is a fact. The `found-during-work` label
+records **origin, never priority**.
+
+This only works if "not in v1" and "nobody has looked at this yet" stop being
+indistinguishable, which is what the Backlog milestone is for. **An issue with
+no milestone is untriaged — a defect, not a state** — so `is:open no:milestone`
+must stay empty, and that is checkable in one query rather than being a habit.
+
+The queries that follow from it:
+
+```sh
+gh issue list --state open --label bug                    # always, ignoring wave order
+gh issue list --state open --label wave-1 --search 'no:blocked-by'
+gh issue list --state open --search 'no:milestone'        # must return nothing
+```
+
+Bugs jump the wave ordering by construction, because waves order _planned_ work
+and nothing else. Choosing between an unblocked issue in one milestone and an
+unblocked issue in another stays a human decision: it is a portfolio call, and
+no graph holds the reason.
 
 ### What may be committed
 
@@ -165,11 +217,11 @@ un-publishes a commit that was public when it was made.
 So exposure is decided **per commit, at commit time, permanently**, and the line
 is drawn by ownership rather than by sensitivity:
 
-| Committable, forever public                                            | Notion only                                     |
-| ---------------------------------------------------------------------- | ----------------------------------------------- |
+| Committable, forever public                                                        | Notion only                                   |
+| ---------------------------------------------------------------------------------- | --------------------------------------------- |
 | Public law and public mechanism: IVA rates, DTE types, how FEL certification works | our commission percentages and tier structure |
-| Ports, entity shapes, ADR reasoning                                    | named pilot vendors and real agreement terms    |
-| Milestone and story titles                                             | negotiated courier rates, margin assumptions    |
+| Ports, entity shapes, ADR reasoning                                                | named pilot vendors and real agreement terms  |
+| Milestone and story titles                                                         | negotiated courier rates, margin assumptions  |
 
 The test is not "is this secret" but "is this ours". Guatemalan tax law is
 already public; our position on it is not.
