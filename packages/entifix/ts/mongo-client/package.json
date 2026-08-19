@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@swc/helpers": "0.5.23",
-    "effect": "3.22.0",
+    "effect": "3.22.1",
     "mongodb": "7.5.0",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*"

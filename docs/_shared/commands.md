@@ -77,4 +77,11 @@ pnpm nx show project <project>
 pnpm nx graph
 pnpm nx sync                 # sync tsconfig project references after adding deps
 pnpm nx local-registry       # verdaccio, for testing publishes
+
+# Toolchain upgrades. Nx pins typescript, @swc/*, typescript-eslint, vite,
+# vitest, next and webpack* and bumps them as a set it has tested, with
+# codemods; Dependabot ignores that list, so this command is the only way they
+# move. Run it, read the generated migrations.json, then apply and delete it.
+pnpm nx migrate latest
+pnpm nx migrate --run-migrations
 ```

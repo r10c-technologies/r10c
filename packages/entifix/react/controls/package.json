@@ -10,7 +10,7 @@
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-i18n": "workspace:*",
     "class-variance-authority": "^0.7.1",
-    "effect": "3.22.0",
+    "effect": "3.22.1",
     "i18next": "26.3.6",
     "react-i18next": "17.0.11"
   },
