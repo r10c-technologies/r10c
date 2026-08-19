@@ -772,16 +772,26 @@ cannot be bisected. Two families are grouped so they can never be split:
 `effect` + `@effect/*` (`@effect/sql*` must stay aligned with the pinned
 `@effect/platform`) and `react` + `react-dom` + their `@types`.
 
-**Never merge a Dependabot lockfile as-is.** It rewrites `pnpm-lock.yaml`
-surgically rather than resolving it, which can produce a lock `pnpm install`
-would never emit — in one PR the `entifix-ts-testing-unit` importer, whose
-optional peer is `react: '*'`, kept `react-dom@19.2.8(react@19.2.7)` and React
-threw `Incompatible React versions` at test time. Check out the branch, run
-`pnpm install`, and commit the regenerated lock. The `overrides` block in
-`pnpm-workspace.yaml` pins that particular pair to the root spec via the `$name`
-form, so react and react-dom can no longer disagree; it lives there because
-pnpm 11 no longer reads `pnpm.overrides` from `package.json` and ignores the
-field with a warning.
+**Never merge a Dependabot lockfile as-is.** This is the rule that keeps the
+tree coherent, and there is no mechanism standing behind it — it rewrites
+`pnpm-lock.yaml` surgically rather than resolving it, so it can produce a lock
+`pnpm install` would never emit. In one PR the `entifix-ts-testing-unit`
+importer, whose optional peer is `react: '*'`, kept
+`react-dom@19.2.8(react@19.2.7)` and React threw `Incompatible React versions`
+at test time. Check out the branch, run `pnpm install`, and commit the
+regenerated lock; pnpm resolves that same `'*'` peer to the matching version
+every time.
+
+A `pnpm-workspace.yaml` `overrides` block pinning react to the root spec was
+tried and reverted. The `$name` form that makes such a pin follow a Dependabot
+bump is deprecated in pnpm 11, and the deprecation warning prints to **stdout**
+— which put `[WARN] …` in front of the JSON the CI `initialize` job parses with
+`jq`, failing both matrices before they produced a job. A literal version
+instead would pin react back on every bump, and pnpm's suggested replacement,
+a catalog, has open Dependabot bugs of exactly the kind being defended against
+([dependabot-core#14339](https://github.com/dependabot/dependabot-core/issues/14339)).
+The `react` group plus regenerating the lock covers it without a mechanism that
+can break the build.
 
 **A datastore driver major is not something CI can clear.** The e2e job runs
 `E2E_PROFILE: mock`, which replaces Redis, Mongo, RabbitMQ and config-service at

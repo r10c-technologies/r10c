@@ -51,11 +51,18 @@ jobs:
       - name: Compute affected chunks
         id: chunks
         run: |
+          # `tail -n1` is load-bearing: pnpm prints its warnings to STDOUT, so
+          # anything it has to say (a deprecated setting, a peer-dependency
+          # complaint) lands in front of the JSON and `jq` dies on it —
+          # `Invalid numeric literal at line 1, column 6`, which is `[WARN`.
+          # Both matrices then expand from an empty string and fail before they
+          # produce a job, so the run shows a red gate with no build or test job
+          # to point at. nx prints the array as a single last line.
           affected() {
             pnpm nx show projects --affected \
               --base=${{ steps.shas.outputs.base }} \
               --head=${{ steps.shas.outputs.head }} \
-              --withTarget "$1" --json
+              --withTarget "$1" --json | tail -n1
           }
           chunk() {
             jq -c --argjson n "$2" '[range(0; length; $n) as $i | .[$i:$i+$n] | join(",")]' <<<"$1"
