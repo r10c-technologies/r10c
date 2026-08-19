@@ -660,12 +660,12 @@ Four artifacts, one job each. Putting a fact in the wrong one is how it stops
 being true without anything failing. The decision is
 [ADR 0025](adr/0025-where-planning-and-business-knowledge-live.md).
 
-| Artifact                                         | Answers                        | Enforced by              |
-| ------------------------------------------------ | ------------------------------ | ------------------------ |
-| **Notion** — the `r10c` space                    | how the business actually works | nothing; deliberately    |
-| **ADR** — `docs/adr/`                            | what we decided, and why       | `@r10c/docs-check`       |
-| `BUSINESS-ARCHITECTURE.md` + `tools/slices/`     | what the contract is           | `@r10c/slices`           |
-| **GitHub issue** under a milestone               | what is next, and is it done   | the milestone's own test |
+| Artifact                                     | Answers                         | Enforced by              |
+| -------------------------------------------- | ------------------------------- | ------------------------ |
+| **Notion** — the `r10c` space                | how the business actually works | nothing; deliberately    |
+| **ADR** — `docs/adr/`                        | what we decided, and why        | `@r10c/docs-check`       |
+| `BUSINESS-ARCHITECTURE.md` + `tools/slices/` | what the contract is            | `@r10c/slices`           |
+| **GitHub issue** under a milestone           | what is next, and is it done    | the milestone's own test |
 
 The flow is one direction: a process question goes to **Notion**; the moment it
 forces a modelling call, that call becomes an **ADR** in the same session; the
@@ -673,9 +673,9 @@ consequence lands in the **register**; the work becomes an **issue** that cites
 all three and duplicates none of them.
 
 ```
-#104  Persist a certified DTE against a ProductOrder
+Persist a certified DTE against a ProductOrder
   Milestone:  M4 — Pay for it
-  Labels:     order, fiscal
+  Labels:     order, fiscal, build
   Why:        Notion → 30 · Mercados / Guatemala / Fiscal · SAT-FEL
   Decision:   ADR 00XX — who issues the DTE
   Contract:   order-management, `order` store; FiscalCertifierPort
@@ -689,21 +689,56 @@ and should not have to. The inverse also holds: the domain map does **not** get
 copied into Notion, because `pnpm nx test @r10c/slices` already enforces it and
 a copy would not.
 
-**Milestones are slice promotions**, which is what makes "done" a test rather
-than a judgement:
+**Business milestones are slice promotions**, which is what makes "done" a test
+rather than a judgement. Two milestones promote nothing and say so:
 
-| Milestone                    | Completes when                                                   |
-| ---------------------------- | ---------------------------------------------------------------- |
-| **M1 — Publish a catalog**   | `catalog.published` fills `published-catalog`; the storefront's fixture repository is deleted |
-| **M2 — Stock is real**       | the `stock` slice is `active`                                    |
-| **M3 — Buy something**       | the `order` slice is `active`                                    |
-| **M4 — Pay for it**          | the `payment` slice is `active`                                  |
-| **M5 — Sell at the counter** | the `sales` slice is `active`                                    |
-| **M6 — Pay the vendor**      | the `settlement` slice is `active`                               |
+| Milestone                     | Completes when                                                                                |
+| ----------------------------- | --------------------------------------------------------------------------------------------- |
+| **M1 — Publish a catalog**    | `catalog.published` fills `published-catalog`; the storefront's fixture repository is deleted |
+| **M2 — Stock is real**        | the `stock` slice is `active`                                                                 |
+| **M3 — Buy something**        | the `order` slice is `active`                                                                 |
+| **M4 — Pay for it**           | the `payment` slice is `active`                                                               |
+| **M5 — Sell at the counter**  | the `sales` slice is `active`                                                                 |
+| **M6 — Pay the vendor**       | the `settlement` slice is `active`                                                            |
+| **M0 — Platform foundations** | M1 can be built without inventing a new control                                               |
+| **Backlog**                   | never — it holds triaged work deliberately outside v1                                         |
 
-Labels name the domain — `catalog`, `stock`, `order`, `payment`, `settlement`,
-`sales`, `fiscal`, `delivery` — which is simultaneously the package, the
-permission namespace and the `@entity({ domain })` value.
+Labels carry four independent axes, and mixing them is what makes a label set
+stop meaning anything:
+
+| Axis      | Values                                                                              | Says                                                                                     |
+| --------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| domain    | `catalog`, `stock`, `order`, `payment`, `settlement`, `sales`, `fiscal`, `delivery` | simultaneously the package, the permission namespace and the `@entity({ domain })` value |
+| work type | `spec`, `design`, `build`, `adopt`                                                  | what the issue produces, and therefore what closes it                                    |
+| order     | `wave-1`…`wave-4`                                                                   | the tie-break between issues that block each other not at all                            |
+| origin    | `found-during-work`                                                                 | discovered rather than planned — **never** a priority                                    |
+
+A `spec` closes when its ADR is Accepted, a `design` when its Storybook stories
+render, a `build` when its tests pass, and an `adopt` when the path it replaced
+is deleted. `adopt` is the one that gets skipped, and skipping it is how a
+mechanism ships with nothing using it.
+
+### Work found while doing other work
+
+> A bug or debt that **blocks planned work becomes a `blocked_by` on it** — it
+> surfaces on its own, because the planned issue cannot start. One that **blocks
+> nothing goes to Backlog**, and by that definition it is not urgent.
+
+The dependency graph is the priority mechanism, so there is no priority field to
+keep true. **An issue with no milestone is untriaged — a defect, not a state**,
+which is what makes the leak visible:
+
+```sh
+gh issue list --state open --label bug                    # always, ignoring wave order
+gh issue list --state open --label wave-1 --search 'no:blocked-by'
+gh issue list --state open --search 'no:milestone'        # must return nothing
+```
+
+Hierarchy, dependency and type live on the issue: a tracking issue's progress is
+computed from its sub-issues rather than from a checklist someone edits, and
+"what can start today" is a query. See
+[ADR 0025](adr/0025-where-planning-and-business-knowledge-live.md) for why this
+is issues rather than a board, and for what would reopen that.
 
 **The repository is public today.** Making it private later detaches existing
 forks and leaves them public, so nothing un-publishes a commit that was public
