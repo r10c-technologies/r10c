@@ -1,16 +1,49 @@
 version: 2
 updates:
-  - package-ecosystem: "npm" # pnpm workspace, root manifest covers all packages/*
-    directory: "/"
+  - package-ecosystem: 'npm' # pnpm workspace, root manifest covers all packages/*
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     open-pull-requests-limit: 10
+    ignore:
+      # `pnpm nx migrate latest` owns these pins and bumps them as a set Nx has
+      # tested together, with codemods. Dependabot moving one in isolation breaks
+      # the set: PR #63 raised typescript 6.0.3 -> 7.0.2, and TypeScript 7 is the
+      # Go-native rewrite whose JS API drops `ts.readConfigFile`,
+      # `ts.ScriptTarget` and `ts.ModifierFlags`. @nx/js/typescript calls all
+      # three while building the project graph, so every `nx` command failed and
+      # nothing in the PR could be salvaged.
+      - dependency-name: 'typescript'
+      - dependency-name: 'typescript-eslint'
+      - dependency-name: '@typescript-eslint/*'
+      - dependency-name: '@swc/*'
+      - dependency-name: '@swc-node/*'
+      - dependency-name: 'vite'
+      - dependency-name: 'vitest'
+      - dependency-name: '@vitest/*'
+      - dependency-name: 'next'
+      - dependency-name: 'eslint-config-next'
+      - dependency-name: 'webpack*'
+      - dependency-name: 'nx'
+      - dependency-name: '@nx/*'
+      - dependency-name: 'verdaccio'
     groups:
+      # `@effect/sql*` must stay aligned with the pinned `@effect/platform`, so
+      # the family moves as one PR or not at all.
+      effect:
+        patterns: ['effect', '@effect/*']
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+      # Majors are deliberately excluded: a grouped major PR cannot be bisected,
+      # so one dead member hides every healthy one (#63 was 55 updates behind a
+      # single broken bump). Ungrouped, a red check names the package.
       dev-dependencies:
-        dependency-type: "development"
+        dependency-type: 'development'
+        update-types: ['minor', 'patch']
       production-dependencies:
-        dependency-type: "production"
+        dependency-type: 'production'
+        update-types: ['minor', 'patch']
     commit-message:
-      prefix: "chore(deps)"
-      prefix-development: "chore(deps-dev)"
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'

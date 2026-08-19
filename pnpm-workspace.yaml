@@ -29,6 +29,15 @@ allowBuilds:
   nx: false
   sharp: false
   unrs-resolver: false
+# react and react-dom must resolve to the exact same version everywhere: the
+# `$name` form follows whatever the root manifest declares, so a bump keeps them
+# together. Without it a partial lockfile rewrite can split them — Dependabot
+# #90 left `@testing-library/react` on `react-dom@19.2.8(react@19.2.7)` in the
+# `entifix-ts-testing-unit` importer, whose optional `react: '*'` peer never
+# moved, and React itself threw `Incompatible React versions` at test time.
+overrides:
+  react: $react
+  react-dom: $react-dom
 autoInstallPeers: true
 ignoreWorkspaceRootCheck: true
 minimumReleaseAgeExclude:
