@@ -211,6 +211,40 @@ them), and everything deep is a link — loaded only when a task needs it.
   reasoned through but not yet built are **Proposed** ADRs (operator cross-tenant
   access, Postgres tenancy, vendor-authored entity specifications); read the
   relevant one before designing in that area rather than re-deriving it.
+- **A use case is a class, and its descriptor is served — not imported.** Entifix
+  generated UI from entities only, because `Actions = ['read','write','delete']`
+  left `publish`/`approve`/`cancel` with no permission to name. A use case is now
+  a `@useCase()`-decorated **class**: stage-3 decorators cannot decorate a
+  standalone function, so the class is what makes annotation possible at all, and
+  `save`/`delete`/`get`/`load` stay generic functions because they _are_ the CRUD
+  triple. `Action` keeps its three values; a verb is a per-entity string that
+  `permissionForUseCase(Ctor, key)` validates at **runtime** — compile-time
+  narrowing does not survive `Symbol.metadata`, and `parsePermission` never had
+  the typo check it looks like it has (it casts `segments[2] as Action`). The
+  browser reads affordances from `GET /api/<entity>/$metadata` — a new
+  `entityMetadata` envelope type, the same discriminant extension the
+  transactions layer made — **authenticated and permission-filtered from the
+  verified principal**, which is a security gain over nav filtering's `can()`
+  against `unverifiedRoles` (an unsigned cookie), and which keeps the `Effect`
+  body out of the client bundle. Per **entity**, not per service like real OData,
+  because `EntifixEnvelopeMeta.entity` is the target's key and `entity: '*'`
+  would be a wart; cost is N fetches on an N-entity screen. **Columns stay
+  local** — `coerce-rsql.ts` needs them synchronously on the server — and that is
+  the real line: a column is a property of the class, an action's _availability_
+  is a property of the caller. Discovery is a **source scan**
+  (`declaredUseCases()` beside `declaredEntityDomains()`), never `Symbol.metadata`,
+  for `source-scan.ts`'s stated reason — metadata is reachable only through a
+  barrel, so an unexported class passes every invariant vacuously. **The wildcard
+  is unchanged, deliberately**: measured, only `super-admin: '*:*:*'` wildcards
+  the action segment, every other grant wildcards entityKey, so a new verb
+  escalates to nobody. The recorded residual is the tidy-up — collapsing three
+  `catalog:*:read|write|delete` lines into `catalog:*:*` absorbs every future verb
+  in a commit that touches only an entity file. **If any role but `super-admin`
+  ever wildcards the action segment, reopen it.** Amends ADR 0003 ("no metadata
+  endpoint had to be invented" is now false; keys still never resolve on the
+  wire) and ADR 0014 (this is how a vendor-authored spec's descriptors reach the
+  browser). See
+  [ADR 0026](docs/adr/0026-the-use-case-descriptor-and-served-entity-metadata.md).
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never
