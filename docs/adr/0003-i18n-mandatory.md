@@ -2,6 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-07-26
+- Revised: 2026-08-19 by [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md) —
+  "No metadata endpoint had to be invented" is no longer true: `$metadata` serves
+  descriptors per entity. The decision is untouched — the document carries keys,
+  never copy, so labels are still resolved in the browser.
 - Revised: 2026-08-13 — the two sections reasoning from rollup/Vite bundling are
   clarified in place: `packages/` builds per-file with `@nx/js:swc` and no bundler
   config remains. Both decisions stand. The i18n gates themselves are untouched.
@@ -84,9 +88,18 @@ and can be bounced into whatever their cookie says.
 an enum member gained `enumLabelKey`. `describeEntityColumns` **carries** the key
 and never resolves it.
 
-This works because entity labels never cross the wire: `serializeEntity` emits
-values only, and `describeEntityColumns` runs client-side against the shared
-entity class. No metadata endpoint had to be invented.
+This works because entity labels never cross the wire _as copy_: `serializeEntity`
+emits values only, and `describeEntityColumns` runs client-side against the shared
+entity class.
+
+> **Corrected 2026-08-19 by [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md).**
+> This section originally closed "No metadata endpoint had to be invented", which
+> is no longer true — `GET /api/<entity>/$metadata` serves use-case descriptors,
+> because a use case's availability depends on the caller and cannot be read from
+> a shared class. The decision above is unaffected: that document carries catalog
+> **keys**, never resolved copy, so translation still happens in the browser and
+> `describeEntityColumns` still never resolves. Columns stay client-side —
+> `coerce-rsql.ts` needs them synchronously on the server.
 
 **Rejected: resolving inside `describeEntityColumns`.** The same descriptors are
 the server-side filter allowlist (`coerce-rsql.ts`), where a translated label is

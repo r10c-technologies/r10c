@@ -3,9 +3,10 @@
  * `labelKey` is derivable rather than invented: `entity:product-specification.fields.code`,
  * `entity:user-identity.values.role.admin`.
  *
- * These never cross the wire — `serializeEntity` emits values only, and
- * `describeEntityColumns` runs client-side against the shared entity class — so
- * translation happens in the browser with no metadata endpoint involved.
+ * Resolved copy never crosses the wire — `serializeEntity` emits values only, and
+ * `describeEntityColumns` runs client-side against the shared entity class, so
+ * translation always happens in the browser. `$metadata` (ADR 0026) serves
+ * **use-case** descriptors, and carries these keys rather than resolving them.
  */
 export const entity = {
   configuration: {

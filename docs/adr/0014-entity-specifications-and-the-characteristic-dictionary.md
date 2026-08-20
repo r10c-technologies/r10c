@@ -8,6 +8,11 @@
   `CharacteristicSpecification` and `DictionaryTerm` exist as entities, but no
   offering carries a vendor-authored characteristic yet.
 
+- Revised: 2026-08-19 by [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md) —
+  supplies the delivery mechanism this record needed and did not name:
+  `EntityForm`'s runtime `fields: EntityFieldDescriptor[]` reach the browser
+  through the served `$metadata` document.
+
 ## Trigger
 
 The first `ProductOffering` that carries a vendor-authored characteristic, or the
