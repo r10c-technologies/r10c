@@ -54,15 +54,32 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${SALES_DOMAIN}:*:delete`,
     `${AUTHN_DOMAIN}:user-identity:read`,
     `${AUTHN_DOMAIN}:user-identity:write`,
+    // Two use-case verbs, not CRUD. Changing somebody's role or status and
+    // ending every session they hold are acts a generic `write` was standing in
+    // for; naming them is what lets a surface offer them and a route guard say
+    // what it is guarding (ADR 0026).
+    //
+    // Written as literals rather than imported from the use cases that declare
+    // them: this package is `business:policy`, which may depend only on
+    // `layer:entifix`/`layer:utils`, so it cannot reach a domain package. The
+    // source scan in `@r10c/slices` is what keeps these two strings and the
+    // `@useCase()` declarations from drifting apart.
+    `${AUTHN_DOMAIN}:user-identity:update-aspects`,
+    `${AUTHN_DOMAIN}:user-identity:revoke-sessions`,
     // Reading identifiers is how the user list shows who an account is; it is
     // granted explicitly rather than as `authn:*:read` so a future sensitive
     // entity in this domain is not swept in by accident.
     `${AUTHN_DOMAIN}:entity-identifier:read`,
-    // Seeing where a user is signed in, and ending those sessions — incident
-    // response. Note this is another person's device and IP history, so it is
-    // granted deliberately and not folded into `user-identity:read`.
+    // Seeing where a user is signed in — incident response. Note this is
+    // another person's device and IP history, so it is granted deliberately and
+    // not folded into `user-identity:read`.
+    //
+    // Read only. Ending those sessions used to ride on `user-device:write`,
+    // which named the record they are listed against rather than the act; it is
+    // now `user-identity:revoke-sessions` above, and nothing writes a
+    // `UserDevice` through a guarded route, so the write grant is gone rather
+    // than left behind to look like it still authorizes something.
     `${AUTHN_DOMAIN}:user-device:read`,
-    `${AUTHN_DOMAIN}:user-device:write`,
   ],
   // The developer tier: everything, including future tooling not yet modelled.
   'super-admin': ['*:*:*'],

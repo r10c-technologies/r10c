@@ -234,7 +234,27 @@ them), and everything deep is a link — loaded only when a task needs it.
   is a property of the caller. Discovery is a **source scan**
   (`declaredUseCases()` beside `declaredEntityDomains()`), never `Symbol.metadata`,
   for `source-scan.ts`'s stated reason — metadata is reachable only through a
-  barrel, so an unexported class passes every invariant vacuously. **The wildcard
+  barrel, so an unexported class passes every invariant vacuously; `@r10c/slices`
+  therefore also asserts every `@useCase()` class is **reachable from its package
+  barrel**, because a class nothing imports leaves the entity serving an empty
+  action list, which is a `200` that reads as "no actions here". Three mechanics
+  worth not rediscovering. The decorator writes **two** bags: the descriptor onto
+  the _entity's_ metadata — via its **own** property, never the inherited
+  `Symbol.metadata` lookup, which resolves along the prototype chain and would
+  register the verb on a base class for every subclass to inherit — and the
+  entity/verb pair onto the _use-case class's_. That second bag is what lets
+  `permissionForUseCase(SomeUC)` take **one** argument, so the verb is written
+  once, in the decorator, and every guard imports the derived const; the lone
+  exception is `ROLE_PERMISSIONS`, which repeats the literal because
+  `business:policy` may not import a domain package, and that is precisely why
+  "every declared verb is granted somewhere" is a real check rather than a
+  tidiness one. And a descriptor's `labelKey`/`keywordsKey`/`confirm.messageKey`
+  are **runtime** catalog keys, so types cannot see a typo (the render path casts
+  the augmentation away) and locale parity cannot either (a key missing from both
+  locales is symmetric) — `@r10c/i18n-check` is the only thing that looks. Write
+  the descriptor **inline**: `@useCase({ ...DESCRIPTOR })` compiles and makes the
+  scan stop matching, which turns every invariant above into a vacuous pass.
+  **The wildcard
   is unchanged, deliberately**: measured, only `super-admin: '*:*:*'` wildcards
   the action segment, every other grant wildcards entityKey, so a new verb
   escalates to nobody. The recorded residual is the tidy-up — collapsing three

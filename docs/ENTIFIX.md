@@ -209,6 +209,62 @@ Same use-case, same links, same serializer — **only the four lines at the edge
 change**. Swapping REST for Mongo (or later a cache) is a composition-root edit;
 the business logic is untouched. That is the whole point of entifix.
 
+### A named verb is a class: `@useCase()`
+
+The factories above are anonymous — they carry no key, no label and no
+permission of their own, which is why entifix generated UI from entities alone.
+A verb beyond the `read`/`write`/`delete` triple is declared instead as a
+**class**, because stage-3 decorators apply to classes, methods, fields and
+accessors and never to a standalone function
+([ADR 0026](adr/0026-the-use-case-descriptor-and-served-entity-metadata.md)):
+
+```ts
+@useCase({
+  entity: UserIdentity,
+  key: 'revoke-sessions',
+  binding: 'entity',                     // 'entity' | 'collection' | 'unbound'
+  placement: 'context-independent',      // where a surface puts it
+  labelKey: 'entity:user-identity.useCases.revokeSessions',
+  confirm: { tone: 'destructive', messageKey: '…revokeSessionsConfirm' },
+})
+export class RevokeUserSessionsUC {
+  static run() {
+    return Effect.gen(function* () { … });  // tags, exactly as above
+  }
+}
+
+export const REVOKE_SESSIONS = permissionForUseCase(RevokeUserSessionsUC);
+```
+
+Four things follow, and each has bitten:
+
+- **`placement` is not derivable from `binding`.** An entity-bound action can be
+  determining (a footer "Publish" that finalizes the page) or
+  context-independent (a toolbar action available whenever a record is open).
+- **Every human-readable member is a catalog key**, never copy —
+  `react/jsx-no-literals` fails the build on a string written into JSX, so a
+  descriptor carrying a sentence could not be rendered. `keywordsKey` is a key
+  rather than a `string[]` so an English term reaches a Spanish command.
+- **Write the descriptor inline.** `@useCase({ ...DESCRIPTOR })` compiles and
+  makes the source scan in `@r10c/slices` stop seeing the declaration, which
+  turns every invariant below into a vacuous pass.
+- **Export the class from its package barrel.** A `@useCase()` registers itself
+  onto its entity when its module evaluates, so a class nothing can import
+  leaves `describeEntityUseCases` returning `[]` — an entity that silently reads
+  as having no actions. `@r10c/slices` fails the build on it, along with a verb
+  no `ROLE_PERMISSIONS` grant names, a grant naming a verb nothing declares, and
+  two implementations of one verb.
+
+`saveUCFactory`, `deleteUCFactory`, `getUCFactory` and `loadUCFactory` stay plain
+functions. They are not use cases in this sense — they _are_ the CRUD triple.
+
+`permissionForUseCase` has a second, two-argument form
+(`permissionForUseCase(UserIdentity, 'revoke-sessions')`) for a caller holding
+only the entity. Prefer the one-argument form: it is what keeps the verb string
+written once. The grant table is the exception and has no choice —
+`business:policy` may not import a domain package, so it repeats the literal and
+the source scan is what keeps the two in step.
+
 ## 4. Adapter contract, precisely
 
 ```ts

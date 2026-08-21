@@ -80,6 +80,15 @@ export const entity = {
   'user-identity': {
     label: 'Usuario',
     plural: 'Usuarios',
+    // Whole phrases rather than a verb plus `label`, for the reason recorded on
+    // the form titles above. The voice matches `shell.sessions.revoke`, which
+    // says "Cerrar", not "Revocar".
+    useCases: {
+      revokeSessions: 'Cerrar todas las sesiones',
+      revokeSessionsConfirm:
+        'Se cerrarán todas las sesiones de este usuario en todos sus dispositivos. Recibirá un aviso por correo.',
+      updateAspects: 'Cambiar rol y estado',
+    },
     fields: {
       id: 'ID',
       displayName: 'Nombre visible',

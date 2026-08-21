@@ -1,6 +1,10 @@
 import { Context } from 'effect';
 
-import { type Action, permissionOf, type Resource } from '../values/permission';
+import {
+  type PermissionAction,
+  permissionOf,
+  type Resource,
+} from '../values/permission';
 import { can } from './can';
 
 /** The subject half of a policy request — a `Principal` structurally satisfies it. */
@@ -19,7 +23,7 @@ export interface PolicyRequest {
   readonly subject: PolicySubject;
   /** `<domain>:<entityKey>` — what is being acted on. */
   readonly resource: Resource;
-  readonly action: Action;
+  readonly action: PermissionAction;
   /** Request-time facts a future policy may read (tenant, time, ownership). */
   readonly context?: Readonly<Record<string, unknown>>;
 }

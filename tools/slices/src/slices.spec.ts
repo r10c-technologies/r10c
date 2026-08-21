@@ -6,8 +6,11 @@ import { describe, expect, it } from 'vitest';
 import { SLICES } from './registry.js';
 import {
   APPS_ROOT,
+  barrelReaches,
   BUSINESS_ROOT,
+  declaredEntityClasses,
   declaredEntityDomains,
+  declaredUseCases,
   sourceFiles,
 } from './source-scan.js';
 
@@ -324,6 +327,123 @@ describe('Every business domain package is claimed by a slice', () => {
             'under packages/business/ts declares',
         ).toBe(true);
       }
+    }
+  });
+});
+
+/**
+ * ADR 0026 opened the action segment of a permission to per-entity verbs. That
+ * removed the only thing narrowing it, so nothing but this file now connects a
+ * declared verb to the grant that allows it and the class that implements it.
+ *
+ * Everything here reads source rather than metadata, and for a sharper reason
+ * than the entity scans above: a `@useCase()` registers itself onto its entity
+ * when its module evaluates, so a class nothing imports leaves the entity
+ * looking as though it had no actions. A metadata-based check cannot see that
+ * at all.
+ */
+describe('ADR 0026 — declared use cases, their grants and their implementations', () => {
+  /** Verb segments that are the CRUD triple or a wildcard, not use cases. */
+  const NOT_A_VERB = new Set(['read', 'write', 'delete', '*']);
+
+  /**
+   * The action segment of every permission in the grant table.
+   *
+   * Read from source because the grants are the one place a verb is written as
+   * a literal: `business:policy` may depend only on `layer:entifix`/`layer:utils`,
+   * so `role-permissions.ts` cannot import the constant a use case derives.
+   */
+  const grantedActions = (): Map<string, string[]> => {
+    const file = join(
+      BUSINESS_ROOT,
+      'authz',
+      'src',
+      'values',
+      'role-permissions.ts',
+    );
+    const text = readFileSync(file, 'utf8');
+    const found = new Map<string, string[]>();
+    for (const match of text.matchAll(
+      /[`']\$?\{?[A-Za-z_]*\}?[^`':]*:[^`':]+:([A-Za-z*-]+)[`']/g,
+    )) {
+      const action = match[1];
+      found.set(action, [...(found.get(action) ?? []), match[0]]);
+    }
+    return found;
+  };
+
+  it('finds the declarations it is meant to check', () => {
+    // Same guard as every other scan here: a regex that silently stops matching
+    // would make the assertions below pass while checking nothing.
+    expect(declaredUseCases().length).toBeGreaterThanOrEqual(2);
+    expect(grantedActions().size).toBeGreaterThanOrEqual(4);
+  });
+
+  it('declares every use case against an entity that exists', () => {
+    const classes = declaredEntityClasses();
+    for (const useCase of declaredUseCases()) {
+      expect(
+        classes.has(useCase.entity),
+        `${useCase.className} declares '${useCase.key}' against ` +
+          `${useCase.entity}, which is not an @entity() class under ` +
+          'packages/business/ts',
+      ).toBe(true);
+    }
+  });
+
+  it('gives each entity at most one implementation per verb', () => {
+    const byVerb = new Map<string, string[]>();
+    for (const useCase of declaredUseCases()) {
+      const id = `${useCase.entity}:${useCase.key}`;
+      byVerb.set(id, [...(byVerb.get(id) ?? []), useCase.className]);
+    }
+
+    for (const [id, classNames] of byVerb) {
+      expect(
+        classNames,
+        `${classNames.length} use cases implement '${id}': ` +
+          `[${classNames.join(', ')}]. A verb is the third segment of one ` +
+          'permission, so two implementations are one permission with two ' +
+          'meanings.',
+      ).toHaveLength(1);
+    }
+  });
+
+  it('grants every declared verb to somebody', () => {
+    const granted = grantedActions();
+    for (const useCase of declaredUseCases()) {
+      expect(
+        granted.has(useCase.key),
+        `${useCase.className} declares the verb '${useCase.key}', which no ` +
+          'ROLE_PERMISSIONS grant names. Nobody but super-admin can reach it, ' +
+          'and super-admin only because *:*:* covers everything.',
+      ).toBe(true);
+    }
+  });
+
+  it('grants no verb that nothing declares', () => {
+    const declared = new Set(declaredUseCases().map(useCase => useCase.key));
+    for (const [action, grants] of grantedActions()) {
+      if (NOT_A_VERB.has(action)) continue;
+      expect(
+        declared.has(action),
+        `ROLE_PERMISSIONS grants '${action}' (${grants.join(', ')}), which no ` +
+          '@useCase() declares. A grant for a verb that does not exist is ' +
+          'either a typo or a permission left behind by a rename.',
+      ).toBe(true);
+    }
+  });
+
+  it('exports every use case from its package barrel', () => {
+    for (const useCase of declaredUseCases()) {
+      expect(
+        barrelReaches(useCase.packageName, useCase.file),
+        `${useCase.className} is not reachable from ` +
+          `packages/business/ts/${useCase.packageName}/src/index.ts. A ` +
+          '@useCase() registers itself onto its entity when its module ' +
+          'evaluates, so a class no importer can reach makes the entity serve ' +
+          'an empty action list — a 200 that reads as "no actions here".',
+      ).toBe(true);
     }
   });
 });
