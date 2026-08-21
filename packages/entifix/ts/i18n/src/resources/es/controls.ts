@@ -164,6 +164,11 @@ export const controls = {
     auth: 'Identidad',
     authDark: 'Identidad oscura',
   },
+  confirm: {
+    confirm: 'Confirmar',
+    cancel: 'Cancelar',
+    title: 'Confirmar',
+  },
   breadcrumbs: {
     label: 'Ruta de navegación',
   },

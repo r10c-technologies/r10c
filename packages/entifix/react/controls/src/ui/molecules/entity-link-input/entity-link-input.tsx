@@ -16,6 +16,7 @@ import type {
 import { useErrorMessage, useT } from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { EntityLinkPicker } from '../entity-link-picker';
+import { LoadingBoundary } from '../loading-boundary';
 
 export interface EntityLinkInputProps<TTarget extends Entity> {
   /** The relation being edited. Its label names the controls. */
@@ -147,9 +148,14 @@ export function EntityLinkInput<TTarget extends Entity>({
               ].join(' ')}
             >
               {source.quick.isLoading && (
-                <div className="px-2xs py-3xs text-step-sm text-content-muted">
-                  {t('link.loading')}
-                </div>
+                <LoadingBoundary
+                  isLoading
+                  lines={2}
+                  label={t('link.loading')}
+                  className="px-2xs py-3xs"
+                >
+                  {null}
+                </LoadingBoundary>
               )}
               {!source.quick.isLoading && source.quick.options.length === 0 && (
                 <div className="px-2xs py-3xs text-step-sm text-content-muted">

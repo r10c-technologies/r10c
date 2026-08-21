@@ -265,6 +265,38 @@ them), and everything deep is a link — loaded only when a task needs it.
   wire) and ADR 0014 (this is how a vendor-authored spec's descriptors reach the
   browser). See
   [ADR 0026](docs/adr/0026-the-use-case-descriptor-and-served-entity-metadata.md).
+- **The `$metadata` route is per entity and its path is a literal — a parametric
+  one is dead.** `HttpRouter` resolves through `find-my-way-ts`, where a static
+  segment beats a parametric one and there is **no backtracking once the
+  parametric branch matches**. So `/api/:entity/$metadata` registered beside an
+  existing `/api/<entity>/:id` never runs: the by-id handler wins with
+  `id === "$metadata"`, misses, and returns its own `404` — the endpoint reads as
+  "this entity has no metadata" while appearing mounted, and no test that only
+  checks the route is registered can see it. `shells-effect-service` exports
+  `entityMetadataRoute(Ctor)`; each service mounts it per entity (four services,
+  six entities today). It cannot be a `withHealthRoutes`-style wrapper, and
+  duplicate `method + path` throws, so composition is opt-out, never override.
+  The served document is **`{ actions, useCases }`** — the CRUD triple beside the
+  declared verbs, both filtered through `PolicyDecisionTag` against the verified
+  principal — which is why `ENTITY_ACTIONS` now lives in `entifix-ts-core` with
+  `business-ts-authz` aliasing it: `entifix:react` reads the same triple and may
+  not import the business layer. Three rules that are not obvious from the code:
+  an entity the caller may not read answers **`404`**, identical to one the
+  service does not host, because a `403` makes the endpoint an oracle for the
+  model; the **ETag hashes the computed document**, never the descriptor set (the
+  same hash for two principals `304`s one onto the other's affordances) and never
+  `permissionsOf(roles)` (that bypasses `PolicyDecisionTag`); and `$metadata`
+  skips `requireOrganization` even on a tenant-plane service, because it
+  describes the model rather than tenant data and resolving a handle would leave
+  a vendor with no active organization unable to see their own affordances.
+  `EntityForm` renders from it, and **absent metadata keeps the old behaviour**,
+  so an un-migrated call site is unaffected — but the generic Next proxy
+  (`createServiceProxyRoute`) still rebuilds responses as
+  `NextResponse.json(body, { status })`, which strips `ETag`/`Cache-Control`/
+  `Vary` and forwards no `If-None-Match`; only the auth shell's
+  `userMetadataRoute` passes them through, so migrating a catalog form to
+  `$metadata` without fixing the proxy (#140) ships a document that never
+  revalidates.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never

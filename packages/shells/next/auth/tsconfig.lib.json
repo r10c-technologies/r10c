@@ -40,10 +40,16 @@
       "path": "../common/tsconfig.lib.json"
     },
     {
+      "path": "../../../entifix/ts/rest-client/tsconfig.lib.json"
+    },
+    {
       "path": "../../../entifix/ts/i18n/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/react/integration/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/react/controls/tsconfig.lib.json"

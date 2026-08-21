@@ -317,14 +317,14 @@ Every message on the wire is an `EntifixEnvelope`: `{ meta, data }`, built in
 `entifix-ts-core` (`src/envelope/make-envelope.ts`) and therefore transport-free —
 the same shape goes over HTTP, over the bus, and into a test double.
 
-`meta.type` is one of `entity`, `entityCollection`, `entityPage`, `command` or
-`transactionEvent`, and `meta.entity` is the **routing label**: `key ?? class
+`meta.type` is one of `entity`, `entityCollection`, `entityPage`, `command`,
+`transactionEvent` or `entityMetadata`, and `meta.entity` is the **routing label**: `key ?? class
 name`, resolved by `envelopeEntityName` — the identical resolution the REST
 adapter uses to build an endpoint and the Mongo adapter uses to pick a
 collection. One rule, three consumers, so a renamed `key` cannot move the
 endpoint without moving the envelope with it.
 
-Four builders wrap the shared serializer, which is why a route never hand-rolls a
+Five builders wrap the shared serializer, which is why a route never hand-rolls a
 payload:
 
 | Builder                        | `meta.type`        | `data`                        |
@@ -332,7 +332,14 @@ payload:
 | `makeEntityEnvelope`           | `entity`           | one serialized entity         |
 | `makeEntityCollectionEnvelope` | `entityCollection` | serialized entities           |
 | `makeEntityPageEnvelope`       | `entityPage`       | `{ items, total, request }`   |
+| `makeEntityMetadataEnvelope`   | `entityMetadata`   | `{ actions, useCases }`       |
 | `makeEnvelope`                 | any                | a caller-defined `data` shape |
+
+`makeEntityMetadataEnvelope` is the odd one: it serializes nothing, because its
+`data` describes the **class** rather than any instance of it. That document is
+what `GET /api/<entity>/$metadata` answers — the CRUD actions and the declared
+use-case verbs this caller holds, already filtered against the verified
+principal, so a UI renders it without re-deciding anything (ADR 0026).
 
 `makeEnvelope` is the escape hatch for payloads that are **not** serialized
 entities — a `command` or a `transactionEvent` carries a shape the transactions

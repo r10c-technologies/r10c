@@ -46,6 +46,8 @@ export * from './ui/layout/switcher';
 // Molecules that compose the above and nothing else.
 export * from './ui/molecules/breadcrumbs';
 export * from './ui/molecules/card';
+export * from './ui/molecules/confirm-dialog';
+export * from './ui/molecules/loading-boundary';
 export * from './ui/molecules/menu';
 export * from './ui/molecules/pagination';
 export * from './ui/molecules/stack';

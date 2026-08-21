@@ -29,6 +29,7 @@ import {
 } from '@r10c/entifix-ts-core';
 import { makeSqlRepository } from '@r10c/entifix-ts-sql-client';
 import {
+  entityMetadataRoute,
   type RequestPrincipal,
   requirePermission,
 } from '@r10c/shells-effect-service';
@@ -371,6 +372,15 @@ export const configurationRoutes = <E, R>(
       `/api/${KEY}`,
       guarded('read', () => listRoute),
     ),
+    // What this caller may do with the entity, permission-filtered from the
+    // verified principal. `Configuration` declares no `@useCase()` verb, so the
+    // document is the CRUD subset and an empty verb list — which is the honest
+    // answer, not a missing one.
+    //
+    // The path stays a literal: a parametric `/api/:entity/$metadata` would be
+    // shadowed by the by-id route below and never run (ADR 0026). `$m` is not
+    // `${`, so it survives the template literal unescaped.
+    HttpRouter.get(`/api/${KEY}/$metadata`, entityMetadataRoute(Configuration)),
     HttpRouter.get(
       `/api/${KEY}/:id`,
       guarded('read', () => byIdRoute),

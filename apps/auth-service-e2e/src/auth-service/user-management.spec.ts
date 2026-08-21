@@ -201,4 +201,95 @@ describe('auth-service user management', () => {
       expect(res.status).toBe(403);
     });
   });
+  /**
+   * The served affordance document (ADR 0026). What makes these worth running in
+   * both profiles is that the filtering is a **security** boundary, not
+   * presentation: the document names domains, entity keys and verbs, so it is a
+   * map of the model.
+   */
+  describe('the $metadata document', () => {
+    it('rejects an anonymous request with 401', async () => {
+      const res = await service.client.get('/api/user-identity/$metadata');
+
+      expect(res.status).toBe(401);
+    });
+
+    it('answers 404 — not 403 — to a caller who may not read the entity', async () => {
+      const email = uniqueEmail('metadata-plain');
+      await signIn(service, email);
+
+      const res = await service.client.get(
+        '/api/user-identity/$metadata',
+        await asUser(email),
+      );
+
+      // Deliberately indistinguishable from an entity this service does not
+      // host, so the endpoint cannot be walked to enumerate the model. A 403
+      // here would confirm the entity exists to somebody who may not see it.
+      expect(res.status).toBe(404);
+      expect(res.data.code).toBe('notFound');
+    });
+
+    it('serves an admin the actions and verbs they actually hold', async () => {
+      const res = await service.client.get(
+        '/api/user-identity/$metadata',
+        await asUser('alan@example.com'),
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.meta).toMatchObject({
+        type: 'entityMetadata',
+        entity: 'user-identity',
+      });
+      // `admin` holds read and write on this entity, and not delete.
+      expect(res.data.data.actions).toEqual(['read', 'write']);
+      expect(
+        res.data.data.useCases.map((d: { key: string }) => d.key).sort(),
+      ).toEqual(['revoke-sessions', 'update-aspects']);
+    });
+
+    it('serves the whole triple on a wildcard grant', async () => {
+      const res = await service.client.get(
+        '/api/user-identity/$metadata',
+        await asUser('ada@example.com'),
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.data.data.actions).toEqual(['read', 'write', 'delete']);
+    });
+
+    it('marks the response private and revalidates on its ETag', async () => {
+      const auth = await asUser('alan@example.com');
+      const first = await service.client.get(
+        '/api/user-identity/$metadata',
+        auth,
+      );
+
+      expect(first.headers['cache-control']).toContain('private');
+      expect(first.headers['vary']).toBe('Cookie, Authorization');
+
+      const etag = first.headers['etag'];
+      const second = await service.client.get('/api/user-identity/$metadata', {
+        headers: { ...auth.headers, 'If-None-Match': etag },
+        // The client treats a 304 as a success rather than throwing on it.
+        validateStatus: () => true,
+      });
+
+      expect(second.status).toBe(304);
+    });
+
+    it('is reached at its literal path, not swallowed by the by-id route', async () => {
+      // The regression test for the routing trap: `find-my-way-ts` prefers a
+      // static segment, but only because the path is a literal. A parametric
+      // `/api/:entity/$metadata` would lose to `/api/user-identity/:id`, which
+      // would look up a user with the id "$metadata" and answer its own 404 —
+      // an endpoint that appears mounted and never runs.
+      const res = await service.client.get(
+        '/api/user-identity/$metadata',
+        await asUser('alan@example.com'),
+      );
+
+      expect(res.data.meta?.type).toBe('entityMetadata');
+    });
+  });
 });

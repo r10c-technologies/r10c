@@ -2,15 +2,25 @@ import {
   describeEntityUseCases,
   EntifixBuildError,
   type Entity,
+  ENTITY_ACTIONS,
+  type EntityAction,
   type EntityConstructor,
   extractMetaEntity,
   extractMetaUseCaseBinding,
   type UseCaseConstructor,
 } from '@r10c/entifix-ts-core';
 
-/** What a caller wants to do with a resource. */
-export const Actions = ['read', 'write', 'delete'] as const;
-export type Action = (typeof Actions)[number];
+/**
+ * What a caller wants to do with a resource.
+ *
+ * Defined in `@r10c/entifix-ts-core` and aliased here, not duplicated: a UI
+ * reads the same triple off a served `EntityMetadataDocument` to decide whether
+ * to render Save and Delete, and `entifix:react` may not import the business
+ * layer. Aliasing keeps one definition and leaves every call site below
+ * unchanged.
+ */
+export const Actions = ENTITY_ACTIONS;
+export type Action = EntityAction;
 
 /**
  * A verb declared by `@useCase()` — `publish`, `revoke-sessions`, `approve`.

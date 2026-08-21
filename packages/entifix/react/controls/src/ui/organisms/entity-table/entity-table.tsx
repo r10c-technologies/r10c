@@ -24,6 +24,7 @@ import { Link } from '../../atoms/text';
 import { ColumnSettings } from '../../molecules/column-settings';
 import { EntityRecordCard } from '../../molecules/entity-record-card';
 import { FilterBuilder } from '../../molecules/filter-builder';
+import { LoadingBoundary } from '../../molecules/loading-boundary';
 import { Pagination } from '../../molecules/pagination';
 import { SortBuilder } from '../../molecules/sort-builder';
 import { TableToolbar } from '../../molecules/table-toolbar';
@@ -249,7 +250,12 @@ export function EntityTable<TEntity extends Entity>({
           <TableBody>
             {isLoading && items.length === 0 && (
               <TableMessageRow colSpan={columnCount}>
-                {t('table.loading')}
+                {/* A skeleton rather than the word "Loading": it holds the row's
+                    height, so the swap to real rows shifts nothing. The label is
+                    what assistive tech hears, since the shimmer is aria-hidden. */}
+                <LoadingBoundary isLoading lines={3} label={t('table.loading')}>
+                  {null}
+                </LoadingBoundary>
               </TableMessageRow>
             )}
             {!isLoading && items.length === 0 && (
@@ -282,9 +288,9 @@ export function EntityTable<TEntity extends Entity>({
       {/* Narrow viewports: the same columns pivoted into cards. */}
       <div className={`${pivot.cards} flex flex-col gap-2xs`}>
         {isLoading && items.length === 0 && (
-          <p className="text-step-sm text-content-muted">
-            {t('table.loading')}
-          </p>
+          <LoadingBoundary isLoading lines={3} label={t('table.loading')}>
+            {null}
+          </LoadingBoundary>
         )}
         {!isLoading && items.length === 0 && (
           <p className="text-step-sm text-content-muted">{emptyMessage}</p>

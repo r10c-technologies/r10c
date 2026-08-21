@@ -25,6 +25,13 @@ export const button = cva(
         secondary:
           'border border-border bg-surface-elevated text-content shadow-xs hover:border-primary hover:shadow-sm',
         ghost: 'bg-transparent text-content hover:bg-surface-elevated',
+        // For an act that destroys something — ending every session a user
+        // holds, deleting a record. The `--color-danger*` tokens already
+        // existed and were being reached for as raw classes at call sites; this
+        // only gives them a name, so a destructive action looks the same
+        // wherever it appears rather than depending on who wrote the screen.
+        destructive:
+          'bg-danger text-danger-content shadow-sm hover:opacity-90 hover:shadow-card',
       },
       // Padding uses the fluid spacing tokens so buttons scale with the viewport.
       size: {

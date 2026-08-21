@@ -558,7 +558,10 @@ describe('EntityForm', () => {
   it('surfaces loading and error states', () => {
     render(<Harness isLoading error={new EntifixConnError('Service down')} />);
 
-    expect(screen.getByTestId('entity-form-loading')).toBeInTheDocument();
+    // A skeleton, not the word "Loading": it holds the region's geometry so the
+    // swap to real fields shifts nothing, and it needs no translation.
+    expect(screen.getByTestId('loading-boundary')).toBeInTheDocument();
+    expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0);
     expect(screen.getByTestId('entity-form-error')).toHaveTextContent(
       'Service down',
     );
@@ -649,5 +652,176 @@ describe('EntityForm', () => {
     );
 
     expect(screen.getByText('extra content')).toBeInTheDocument();
+  });
+});
+
+/**
+ * #119 — the action row is driven by served metadata rather than hardcoded.
+ *
+ * Note what these do NOT assert: that hiding a button prevents anything. It does
+ * not. The route guard is the authorization boundary (ADR 0002); this is about
+ * not offering an action the service will refuse.
+ */
+describe('EntityForm actions from served metadata', () => {
+  const useCases = [
+    {
+      key: 'update-aspects',
+      binding: 'entity' as const,
+      placement: 'determining' as const,
+      labelKey: 'entity:gadget.useCases.updateAspects',
+    },
+    {
+      key: 'revoke-sessions',
+      binding: 'entity' as const,
+      placement: 'context-independent' as const,
+      labelKey: 'entity:gadget.useCases.revokeSessions',
+      confirm: {
+        tone: 'destructive' as const,
+        messageKey: 'entity:gadget.useCases.revokeSessionsConfirm',
+      },
+    },
+  ];
+
+  it('renders Save and Delete unchanged when no metadata is supplied', () => {
+    render(<Harness mode="edit" onDelete={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Eliminar' }),
+    ).toBeInTheDocument();
+  });
+
+  it('drops Save when the caller may not write, and Delete when they may not delete', () => {
+    render(
+      <Harness
+        mode="edit"
+        onDelete={vi.fn()}
+        metadata={{ actions: ['read'], useCases: [] }}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Guardar' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Eliminar' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps Delete when the caller holds it', () => {
+    render(
+      <Harness
+        mode="edit"
+        onDelete={vi.fn()}
+        metadata={{ actions: ['read', 'write', 'delete'], useCases: [] }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Eliminar' }),
+    ).toBeInTheDocument();
+  });
+
+  it('fires a verb with no confirm straight away', async () => {
+    const onUseCase = vi.fn();
+    render(
+      <Harness
+        mode="edit"
+        metadata={{ actions: ['read', 'write'], useCases: [useCases[0]] }}
+        onUseCase={onUseCase}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'gadget.useCases.updateAspects',
+      }),
+    );
+
+    expect(onUseCase).toHaveBeenCalledWith('update-aspects');
+  });
+
+  it('asks before a verb that declares a confirmation, and only then fires', async () => {
+    const onUseCase = vi.fn();
+    render(
+      <Harness
+        mode="edit"
+        metadata={{ actions: ['read', 'write'], useCases: [useCases[1]] }}
+        onUseCase={onUseCase}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'gadget.useCases.revokeSessions',
+      }),
+    );
+    expect(onUseCase).not.toHaveBeenCalled();
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    expect(onUseCase).toHaveBeenCalledWith('revoke-sessions');
+  });
+
+  it('fires nothing when the confirmation is dismissed', async () => {
+    const onUseCase = vi.fn();
+    render(
+      <Harness
+        mode="edit"
+        metadata={{ actions: ['read', 'write'], useCases: [useCases[1]] }}
+        onUseCase={onUseCase}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'gadget.useCases.revokeSessions',
+      }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(onUseCase).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+  });
+
+  it('skips a verb that needs a selection, and one bound to a collection', () => {
+    render(
+      <Harness
+        mode="edit"
+        metadata={{
+          actions: ['read', 'write'],
+          useCases: [
+            {
+              key: 'compare',
+              binding: 'entity',
+              // Needs a selection to act on, which a single-record form has not
+              // got — that is the bulk bar's job (#121).
+              placement: 'context-dependent',
+              labelKey: 'entity:gadget.useCases.compare',
+            },
+            {
+              key: 'import',
+              binding: 'collection',
+              placement: 'determining',
+              labelKey: 'entity:gadget.useCases.import',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'gadget.useCases.compare' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'gadget.useCases.import' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('holds the action row with a skeleton while the document is in flight', () => {
+    render(<Harness mode="edit" isMetadataLoading />);
+
+    expect(screen.getByTestId('loading-boundary')).toBeInTheDocument();
   });
 });

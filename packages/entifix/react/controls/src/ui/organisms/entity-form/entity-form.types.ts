@@ -4,6 +4,7 @@ import type {
   EntityConstructor,
   EntityFieldDescriptor,
   EntityLinkSource,
+  EntityMetadataDocument,
 } from '@r10c/entifix-ts-core';
 import type { ReactNode } from 'react';
 
@@ -102,6 +103,27 @@ export interface EntityFormProps<TEntity extends Entity> {
 
   onSubmit?: (draft: EntityFormDraft) => void;
   onDelete?: () => void;
+
+  /**
+   * What this caller may do with the entity, as served by
+   * `GET /api/<entity>/$metadata` and already filtered against the verified
+   * principal (ADR 0026).
+   *
+   * **Optional, and absent means "as before".** Without it the form renders Save
+   * and Delete exactly as it always has, so a call site that has not migrated is
+   * unaffected. This is not a security control — hiding a button protects
+   * nothing; the route guard does. It is what stops a screen offering an action
+   * the service will refuse.
+   */
+  metadata?: EntityMetadataDocument;
+  /** The document is still in flight; the action row renders as a skeleton. */
+  isMetadataLoading?: boolean;
+  /**
+   * A declared use case was invoked, by its `key`. The form renders the button
+   * and asks for confirmation where the descriptor says to; performing the act
+   * is the caller's — the browser must never import a use-case class.
+   */
+  onUseCase?: (key: string) => void;
 
   isLoading?: boolean;
   isSaving?: boolean;

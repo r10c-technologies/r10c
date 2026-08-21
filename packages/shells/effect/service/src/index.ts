@@ -1,4 +1,5 @@
 export * from './auth';
+export * from './entity-metadata-route';
 export * from './health-routes';
 export * from './load-remote-configuration';
 export * from './make-service';

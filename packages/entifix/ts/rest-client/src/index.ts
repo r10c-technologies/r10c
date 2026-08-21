@@ -1,3 +1,4 @@
+export * from './adapters/entity-metadata/make-entity-metadata-source';
 export * from './adapters/entity-rest/build-entity-rest-adapter-delete';
 export * from './adapters/entity-rest/build-entity-rest-adapter-get';
 export * from './adapters/entity-rest/build-entity-rest-adapter-load';

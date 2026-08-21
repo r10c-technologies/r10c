@@ -944,6 +944,9 @@ importers:
 
   packages/entifix/react/integration:
     dependencies:
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../ts/core
       '@r10c/entifix-ts-i18n':
         specifier: workspace:*
         version: link:../../ts/i18n
@@ -1316,12 +1319,18 @@ importers:
       '@r10c/entifix-react-controls':
         specifier: workspace:*
         version: link:../../../entifix/react/controls
+      '@r10c/entifix-react-integration':
+        specifier: workspace:*
+        version: link:../../../entifix/react/integration
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../../entifix/ts/core
       '@r10c/entifix-ts-i18n':
         specifier: workspace:*
         version: link:../../../entifix/ts/i18n
+      '@r10c/entifix-ts-rest-client':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/rest-client
       '@r10c/shells-next-common':
         specifier: workspace:*
         version: link:../common
