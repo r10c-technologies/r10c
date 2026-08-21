@@ -1466,6 +1466,9 @@ importers:
       '@r10c/entifix-ts-i18n':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/i18n
+      '@r10c/slices':
+        specifier: workspace:*
+        version: link:../slices
 
   tools/slices: {}
 

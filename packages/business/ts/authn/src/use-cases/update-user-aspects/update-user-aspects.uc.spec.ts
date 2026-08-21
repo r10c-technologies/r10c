@@ -13,7 +13,7 @@ import {
 } from '../../repository/index.js';
 import {
   UpdateUserAspectsInputTag,
-  updateUserAspectsUCFactory,
+  UpdateUserAspectsUC,
 } from './update-user-aspects.uc.js';
 
 const userWith = (role: Role, id = 'target-1'): UserIdentity => {
@@ -56,7 +56,7 @@ const runUpdate = (
   },
 ) =>
   Effect.runPromiseExit(
-    updateUserAspectsUCFactory().pipe(
+    UpdateUserAspectsUC.run().pipe(
       Effect.provideService(AccountRepositoryTag, accounts),
       Effect.provideService(UpdateUserAspectsInputTag, {
         userId: input.userId ?? 'target-1',
@@ -83,7 +83,7 @@ const failedWithAuthnError = (exit: Exit.Exit<unknown, unknown>) =>
 const failedWithForbidden = (exit: Exit.Exit<unknown, unknown>) =>
   failedWith(exit, 'ForbiddenError');
 
-describe('updateUserAspectsUCFactory', () => {
+describe('UpdateUserAspectsUC', () => {
   it('applies a role change within the actor’s tier', async () => {
     let changes: UpdateUserAspects | undefined;
     const exit = await runUpdate(

@@ -1,4 +1,4 @@
-import { EntifixBuildError, entity } from '@r10c/entifix-ts-core';
+import { EntifixBuildError, entity, useCase } from '@r10c/entifix-ts-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,6 +7,7 @@ import {
   type Permission,
   permissionFor,
   permissionForEntity,
+  permissionForUseCase,
   permissionMatches,
   permissionOf,
 } from './permission.js';
@@ -25,6 +26,26 @@ class DomainlessEntity {
 class KeylessEntity {
   id: string | undefined = undefined;
 }
+
+@useCase({
+  entity: DescribedEntity,
+  key: 'revoke-sessions',
+  binding: 'entity',
+  placement: 'context-independent',
+  labelKey: 'entity:user-identity.useCases.revokeSessions',
+})
+class RevokeSessionsUC {}
+
+@useCase({
+  entity: DomainlessEntity,
+  key: 'publish',
+  binding: 'entity',
+  placement: 'determining',
+  labelKey: 'entity:no-domain.useCases.publish',
+})
+class PublishDomainlessUC {}
+
+class UndecoratedUC {}
 
 describe('permission values', () => {
   it('exposes the three actions', () => {
@@ -121,5 +142,49 @@ describe('permission values', () => {
         permissionMatches('catalog:*:read', 'catalog:product' as Permission),
       ).toBe(false);
     });
+  });
+});
+
+describe('permissionForUseCase', () => {
+  it('derives the permission from the use-case class alone', () => {
+    expect(permissionForUseCase(RevokeSessionsUC)).toBe(
+      'authn:user-identity:revoke-sessions',
+    );
+  });
+
+  it('derives the same permission from the entity and the verb', () => {
+    expect(permissionForUseCase(DescribedEntity, 'revoke-sessions')).toBe(
+      'authn:user-identity:revoke-sessions',
+    );
+  });
+
+  it('refuses a verb the entity does not declare', () => {
+    // The typo a guard would otherwise carry to production as a silent deny.
+    expect(() =>
+      permissionForUseCase(DescribedEntity, 'revoke-sesions'),
+    ).toThrow(EntifixBuildError);
+  });
+
+  it('refuses an entity that cannot name itself', () => {
+    expect(() => permissionForUseCase(PublishDomainlessUC)).toThrow(
+      EntifixBuildError,
+    );
+  });
+
+  it('refuses a class that is not a use case', () => {
+    expect(() => permissionForUseCase(UndecoratedUC)).toThrow(
+      EntifixBuildError,
+    );
+  });
+});
+
+describe('a use-case verb in the grant table', () => {
+  it('is covered by the developer tier and by nothing else', () => {
+    const verb = 'authn:user-identity:revoke-sessions' as Permission;
+    expect(permissionMatches('*:*:*', verb)).toBe(true);
+    // The measured claim ADR 0026 rests on: an entityKey wildcard does not
+    // reach a new verb, so declaring one escalates to nobody. If this ever
+    // fails, the residual recorded in that ADR has become live.
+    expect(permissionMatches('authn:*:write', verb)).toBe(false);
   });
 });

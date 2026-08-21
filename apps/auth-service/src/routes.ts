@@ -16,10 +16,14 @@ import {
   RegisterInputTag,
   registerUserUCFactory,
   resolveSessionUCFactory,
+  REVOKE_SESSIONS,
+  RevokeUserSessionsInputTag,
+  RevokeUserSessionsUC,
   SessionIdTag,
   UnauthenticatedError,
+  UPDATE_ASPECTS,
   UpdateUserAspectsInputTag,
-  updateUserAspectsUCFactory,
+  UpdateUserAspectsUC,
   UserDevice,
   UserDeviceRepositoryTag,
   UserIdentity,
@@ -951,9 +955,8 @@ const myDevicesRoute = requirePrincipal(principal =>
 const USER_READ = permissionForEntity(UserIdentity, 'read');
 const USER_WRITE = permissionForEntity(UserIdentity, 'write');
 const IDENTIFIER_READ = permissionForEntity(EntityIdentifier, 'read');
-/** Looking at, and ending, somebody else's sessions. */
+/** Looking at somebody else's sessions. Ending them is a verb of its own. */
 const DEVICE_READ = permissionForEntity(UserDevice, 'read');
-const DEVICE_WRITE = permissionForEntity(UserDevice, 'write');
 
 /**
  * `GET /api/user-identity/:id/sessions` — an administrator's view of where a
@@ -974,36 +977,21 @@ const userSessionsRoute = requirePermission(DEVICE_READ)(principal =>
 /**
  * `DELETE /api/user-identity/:id/sessions` — sign a user out everywhere.
  *
- * The owner is told, because they did not do it: being signed out of every
- * device with no explanation looks exactly like an account compromise, and
- * someone who cannot tell those apart cannot report either. Best-effort, like
- * every other notification — a mail failure must not leave the sessions alive.
+ * Guarded by the verb the use case declares, not by `user-device:write`. That
+ * grant described the record the sessions are listed against; this one describes
+ * the act. Telling the owner is the use case's job, and stays best-effort.
  */
-const revokeUserSessionsRoute = requirePermission(DEVICE_WRITE)(() =>
+const revokeUserSessionsRoute = requirePermission(REVOKE_SESSIONS)(() =>
   Effect.gen(function* () {
     const params = yield* HttpRouter.params;
-    const userId = params.id ?? '';
-    const sessions = yield* SessionStoreTag;
-    yield* sessions.revokeAllForUser(userId);
-    yield* notifySessionsRevoked(userId);
+    yield* RevokeUserSessionsUC.run().pipe(
+      Effect.provideService(RevokeUserSessionsInputTag, {
+        userId: params.id ?? '',
+      }),
+    );
     return yield* HttpServerResponse.json({ ok: true });
   }).pipe(Effect.catchAll(serverError)),
 );
-
-/** Tell the owner their sessions were ended for them. Never blocking. */
-const notifySessionsRevoked = (userId: Principal['userId']) =>
-  Effect.gen(function* () {
-    const accounts = yield* AccountRepositoryTag;
-    const notifications = yield* NotificationPortTag;
-    const to = yield* accounts.findContactAddress(userId);
-    // A username-only account has nowhere to send it, which is not an error.
-    if (to === null) return;
-    yield* notifications.send({
-      kind: NotificationKind.SessionsRevoked,
-      userId,
-      to,
-    });
-  }).pipe(Effect.catchAll(() => Effect.void));
 
 /** Read the requested role from a body, rejecting an unrecognised one. */
 const parseRole = (value: unknown): Role | undefined =>
@@ -1074,7 +1062,7 @@ const createUserRoute = requirePermission(USER_WRITE)(principal =>
  * derived from the `roles` claim, so without it a demoted user would keep their
  * old access until the token expired.
  */
-const updateUserRoute = requirePermission(USER_WRITE)(principal =>
+const updateUserRoute = requirePermission(UPDATE_ASPECTS)(principal =>
   Effect.gen(function* () {
     const params = yield* HttpRouter.params;
     const body = yield* readBody;
@@ -1098,7 +1086,7 @@ const updateUserRoute = requirePermission(USER_WRITE)(principal =>
       );
     }
 
-    const updated = yield* updateUserAspectsUCFactory().pipe(
+    const updated = yield* UpdateUserAspectsUC.run().pipe(
       Effect.provideService(UpdateUserAspectsInputTag, {
         userId,
         role,

@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-08-19
+- Revised: 2026-08-20 — two facts found while building it (#118): the decorator
+  writes two metadata bags rather than one, and `permissionForUseCase` gained a
+  one-argument form; grants cannot import the constant it derives.
 
 ## Context
 
@@ -118,6 +121,16 @@ export class PublishSpecificationUC {
 
 The decorator writes `context.metadata`, identically to `@entity()`.
 
+> **Revised 2026-08-20.** It writes **two** bags, and the second one was not
+> foreseen here. The descriptor goes onto the **entity's** metadata, because
+> that is what a form or a table holds; the entity/verb pair goes onto the
+> **use-case class's own** metadata, which is what makes the one-argument
+> `permissionForUseCase` below possible. Appending to another class's bag also
+> needs the target's _own_ metadata rather than the inherited lookup every other
+> `extract*` helper uses: `Symbol.metadata` resolves along the prototype chain,
+> so a plain read would register the verb on a base class and leak it to every
+> subclass.
+
 `saveUCFactory`, `deleteUCFactory`, `getUCFactory` and `loadUCFactory` stay
 generic functions and are **not** decorated. They are not use cases in this
 sense — they _are_ the `read`/`write`/`delete` triple every entity has
@@ -130,6 +143,21 @@ have permissions.
 and `permissionForUseCase(Ctor, key)` derives `<domain>:<entityKey>:<key>` after
 checking that the entity actually declares that use case, throwing
 `EntifixBuildError` the way the existing missing-`domain` check already does.
+
+> **Revised 2026-08-20.** There are two forms, and the one this record names is
+> the secondary one. `permissionForUseCase(SomeUC)` — a single argument, the
+> use-case class — is what call sites use, because the class already knows both
+> the entity and the verb, so the verb string is written exactly once, in the
+> decorator, and every guard imports the derived constant. The two-argument form
+> stated above is kept for the `$metadata` route, which walks an entity's
+> descriptors and holds no use-case class.
+>
+> The one place that still repeats the string is the grant table, and it has no
+> choice: `role-permissions.ts` is `business:policy`, which may depend only on
+> `layer:entifix`/`layer:utils`, so it cannot import from the domain package
+> that declares the verb. The source scan below is what holds the two together —
+> which is why "every declared verb appears in at least one grant" is a real
+> check rather than a tidiness one.
 
 Rejected: widening `Actions` into one global union that every domain appends to.
 It makes an unrelated domain's verb assignable everywhere and grows without

@@ -10,6 +10,9 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../slices"
+    },
+    {
       "path": "../../packages/entifix/ts/i18n"
     }
   ]

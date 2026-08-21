@@ -69,6 +69,12 @@ export const entity: EsEntity = {
   'user-identity': {
     label: 'User',
     plural: 'Users',
+    useCases: {
+      revokeSessions: 'End all sessions',
+      revokeSessionsConfirm:
+        'Every session this user holds will be ended on all their devices. They will be notified by email.',
+      updateAspects: 'Change role and status',
+    },
     fields: {
       id: 'ID',
       displayName: 'Display name',
