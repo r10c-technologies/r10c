@@ -5,6 +5,11 @@
 - Revised: 2026-08-20 — two facts found while building it (#118): the decorator
   writes two metadata bags rather than one, and `permissionForUseCase` gained a
   one-argument form; grants cannot import the constant it derives.
+- Revised: 2026-08-21 — four facts found while building the delivery half (#157):
+  the document carries `actions` beside `useCases`; the ETag hashes the computed
+  document, not the descriptor set; an unreadable entity answers `404`, not
+  `403`; and the route mounts per entity at a **literal** path, because a
+  parametric one is shadowed by `/:id` and never runs.
 
 ## Context
 
@@ -212,6 +217,24 @@ already added `command`/`transactionEvent` on the stated principle that "core
 only owns the discriminant so every artifact agrees on it". The document's
 `data` shape, `EntityMetadataDocument`, lives in core beside the descriptor.
 
+**The document carries `actions` beside `useCases`**, which this record did not
+originally say. Save and Delete are the three most common affordances on any
+screen and they have no descriptor, so a document of verbs alone would leave a
+form rendering its buttons unconditionally and describe only the rare half of
+the surface. `ENTITY_ACTIONS` therefore moved down from `business-ts-authz` into
+core, and authz aliases it: `entifix-react-controls` reads the same triple off
+the served document, and `entifix:react` may not import the business layer.
+
+**The route mounts per entity at a literal path.** `HttpRouter` resolves through
+`find-my-way-ts`, where a static segment beats a parametric one and there is no
+backtracking once the parametric branch has matched. A `/api/:entity/$metadata`
+route registered alongside an existing `/api/<entity>/:id` therefore **never
+runs**: the by-id handler wins with `id === "$metadata"`, misses, and answers its
+own `404` — an endpoint that appears mounted and silently reads as "this entity
+has no metadata". Measured both ways. So `shells-effect-service` exports
+`entityMetadataRoute(Ctor)` and each service registers it for each of its own
+entities; it cannot be a `withHealthRoutes`-style wrapper.
+
 **Divergence from OData, named.** OData's `$metadata` is one CSDL document per
 _service_, describing every entity set. Ours is per entity, because
 `EntifixEnvelopeMeta.entity` is defined as "the target entity's `key`" and a
@@ -231,9 +254,24 @@ reads the cookie _without checking its signature_. Serving affordances makes
 "what can I do" and "what will the service permit" one computation instead of two
 lists that drift.
 
-Because the response varies by principal it is `Cache-Control: private`, `Vary`
-on the session cookie, with an ETag over the descriptor set so an unchanged model
-costs a `304`.
+**An entity the caller may not read answers `404`, exactly as one this service
+does not host.** A `403` would confirm the entity exists to somebody not allowed
+to see it, which turns the endpoint into an oracle for the model — the very thing
+authenticating it was for.
+
+Because the response varies by principal it is `Cache-Control: private` and
+`Vary: Cookie, Authorization` — **both** carriers, because the service shell
+accepts the access token from the `r10c_at` cookie or an `Authorization: Bearer`
+header, and a cache keyed on one would serve across the other.
+
+The ETag hashes the **computed document**. An earlier draft of this record said
+"an ETag over the descriptor set", which is wrong: that hash is identical for two
+principals with different grants, so a shared `If-None-Match` would `304` one
+caller onto another's affordances. Hashing the permission set instead would read
+`ROLE_PERMISSIONS` directly and bypass `PolicyDecisionTag`, letting an injected
+ABAC policy change affordances without changing the tag. Computing first costs a
+metadata read and a handful of pure `decide` calls — no IO — and is exact by
+construction.
 
 Hiding an action still protects nothing. `requirePermission` on the route remains
 the enforcement, exactly as before; this changes where _visibility_ is computed,

@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 
 import { EntifixBuildError } from '../base-entities/entifix-error';
+import type { EntityMetadataDocument } from '../entity-definition/metadata';
 import {
   deserializeEntityCollection,
   deserializeSingleEntity,
@@ -155,4 +156,40 @@ export const readEntityPageEnvelope = <TEntity extends Entity>(
       total: envelope.data?.total ?? 0,
       request: envelope.data?.request ?? {},
     } satisfies EntityPage<TEntity>;
+  });
+
+/**
+ * Reads a `$metadata` response back into its document.
+ *
+ * No deserialization step, and no defaulting of the members either: an envelope
+ * whose `data` is missing a list would leave a form guessing whether "no
+ * actions" meant "denied" or "malformed", so a broken payload fails loudly here
+ * the way a half-populated entity does.
+ */
+export const readEntityMetadataEnvelope = <TEntity extends Entity>(
+  entityConstructor: EntityConstructor<TEntity>,
+  body: unknown,
+) =>
+  Effect.gen(function* () {
+    const envelope = yield* assertEnvelope<TEntity, EntityMetadataDocument>(
+      entityConstructor,
+      body,
+      'entityMetadata',
+    );
+    const document = envelope.data;
+    if (
+      !Array.isArray(document?.actions) ||
+      !Array.isArray(document?.useCases)
+    ) {
+      return yield* Effect.fail(
+        new EntifixBuildError(
+          `EntifixEnvelope for "${envelopeEntityName(
+            entityConstructor,
+          )}" carried no metadata document`,
+          undefined,
+          { entity: envelopeEntityName(entityConstructor) },
+        ),
+      );
+    }
+    return document;
   });

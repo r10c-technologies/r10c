@@ -1,3 +1,4 @@
+import type { EntityMetadataDocument } from '../entity-definition/metadata';
 import type { SerializedEntity } from '../entity-definition/serializer';
 import type { Entity } from '../types/Entity';
 import type { EntityLoadRequest } from '../types/EntityLoadRequest';
@@ -9,9 +10,19 @@ import type { EntityLoadRequest } from '../types/EntityLoadRequest';
  * a write is issued as a `command` and the saga reports progress as
  * `transactionEvent`s. Their `data` shapes live in `@r10c/entifix-transactions`
  * — core only owns the discriminant so every artifact agrees on it.
+ *
+ * `entityMetadata` is the same extension made once more, for the action model:
+ * its `data` is an {@link EntityMetadataDocument}, which core does own because
+ * both the service that computes it and the controls that render it are already
+ * below the layer that would otherwise host it.
  */
 export type EntifixEnvelopeType =
-  'entity' | 'entityCollection' | 'entityPage' | 'command' | 'transactionEvent';
+  | 'entity'
+  | 'entityCollection'
+  | 'entityPage'
+  | 'command'
+  | 'transactionEvent'
+  | 'entityMetadata';
 
 export type EntifixEnvelopeMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
@@ -62,3 +73,4 @@ export type EntityEnvelope = EntifixEnvelope<SerializedEntity>;
 export type EntityCollectionEnvelope = EntifixEnvelope<SerializedEntity[]>;
 export type EntityPageEnvelope<TEntity extends Entity = Entity> =
   EntifixEnvelope<SerializedEntityPage<TEntity>>;
+export type EntityMetadataEnvelope = EntifixEnvelope<EntityMetadataDocument>;

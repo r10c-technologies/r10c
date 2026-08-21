@@ -1,4 +1,5 @@
 import { extractMetaEntity } from '../entity-definition/helpers';
+import type { EntityMetadataDocument } from '../entity-definition/metadata';
 import {
   serializeEntity,
   serializeEntityCollection,
@@ -11,6 +12,7 @@ import type {
   EntifixEnvelopeType,
   EntityCollectionEnvelope,
   EntityEnvelope,
+  EntityMetadataEnvelope,
   EntityPageEnvelope,
 } from './types';
 
@@ -95,5 +97,28 @@ export function makeEntityPageEnvelope<TEntity extends Entity>(
       total: page.total,
       request: page.request,
     },
+  };
+}
+
+/**
+ * The response to `GET /api/<entity>/$metadata`.
+ *
+ * Unlike its neighbours this serializes nothing: the document is already a plain
+ * shape of catalog keys and verbs, and it describes the class rather than any
+ * instance of it. `meta.entity` is still the target entity's key, which is what
+ * makes the document per entity rather than per service.
+ */
+export function makeEntityMetadataEnvelope<TEntity extends Entity>(
+  entityConstructor: EntityConstructor<TEntity>,
+  document: EntityMetadataDocument,
+  links?: EntifixEnvelopeLink[],
+): EntityMetadataEnvelope {
+  return {
+    meta: {
+      type: 'entityMetadata',
+      entity: envelopeEntityName(entityConstructor),
+      ...(links ? { links } : {}),
+    },
+    data: document,
   };
 }

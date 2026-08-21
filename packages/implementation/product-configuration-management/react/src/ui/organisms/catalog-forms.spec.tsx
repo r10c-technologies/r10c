@@ -123,7 +123,9 @@ describe('ProductBrandForm', () => {
   it('reports loading and failure', () => {
     renderForm({ isLoading: true, error: new EntifixConnError('unreachable') });
 
-    expect(screen.getByTestId('entity-form-loading')).toBeInTheDocument();
+    // A skeleton now holds the region's geometry rather than the word
+    // "Loading", so the swap to real fields shifts nothing (#117).
+    expect(screen.getByTestId('loading-boundary')).toBeInTheDocument();
     expect(screen.getByTestId('entity-form-error')).toHaveTextContent(
       'unreachable',
     );
@@ -235,7 +237,9 @@ describe('ProductCategoryForm', () => {
   it('reports loading and failure', () => {
     renderForm({ isLoading: true, error: new EntifixConnError('unreachable') });
 
-    expect(screen.getByTestId('entity-form-loading')).toBeInTheDocument();
+    // A skeleton now holds the region's geometry rather than the word
+    // "Loading", so the swap to real fields shifts nothing (#117).
+    expect(screen.getByTestId('loading-boundary')).toBeInTheDocument();
     expect(screen.getByTestId('entity-form-error')).toHaveTextContent(
       'unreachable',
     );

@@ -270,6 +270,47 @@ export async function createUserRoute(request: Request) {
   return NextResponse.json(await res.json(), { status: res.status });
 }
 
+/**
+ * Proxy the entity's `$metadata` document, **preserving its caching headers**.
+ *
+ * Every other proxy here rebuilds the response as `NextResponse.json(body,
+ * { status })`, which drops `ETag`, `Cache-Control` and `Vary` and forwards no
+ * `If-None-Match`. That is harmless for a list, and inert for this one: the
+ * conditional-request half of the endpoint would never fire, so the browser
+ * would refetch the whole document on every mount. So this route forwards the
+ * validator in both directions and returns a bodyless `304` when the service
+ * says nothing changed.
+ *
+ * `Vary` matters as much as the ETag: the document is computed per principal,
+ * and passing it through is what stops any cache in between treating one
+ * caller's affordances as another's.
+ */
+export async function userMetadataRoute(request: Request) {
+  const ifNoneMatch = request.headers.get('if-none-match');
+  const res = await fetch(`${AUTH_SERVICE_URL}/api/user-identity/$metadata`, {
+    headers: {
+      ...(await authorizationHeader()),
+      ...(ifNoneMatch ? { 'if-none-match': ifNoneMatch } : {}),
+    },
+    cache: 'no-store',
+  });
+
+  const headers = new Headers();
+  for (const name of ['etag', 'cache-control', 'vary']) {
+    const value = res.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+
+  // A `304` carries no body by definition, and `NextResponse.json(null)` would
+  // give it one.
+  if (res.status === 304) {
+    return new NextResponse(null, { status: 304, headers });
+  }
+
+  headers.set('content-type', 'application/json');
+  return new NextResponse(await res.text(), { status: res.status, headers });
+}
+
 type IdParams = { params: Promise<{ id: string }> };
 
 /** Read one user, forwarding the access cookie as a bearer token. */

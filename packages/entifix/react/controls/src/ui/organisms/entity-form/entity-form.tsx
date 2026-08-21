@@ -4,18 +4,27 @@ import {
   describeEntityColumns,
   EntifixLogicError,
   type Entity,
+  type EntityAction,
   type EntityLinkSource,
   type MetaAccessorType,
+  type UseCaseDescriptor,
 } from '@r10c/entifix-ts-core';
 import { type ReactNode, useId, useState } from 'react';
 
-import { useErrorMessage, useLocalizedDescriptors, useT } from '../../../i18n';
+import {
+  useErrorMessage,
+  useLocalizedDescriptors,
+  useT,
+  useTranslateKey,
+} from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { CellValue } from '../../atoms/cell-value';
 import { FieldControl } from '../../atoms/field-control';
 import { Text } from '../../atoms/text';
 import { Card } from '../../molecules/card';
+import { ConfirmDialog } from '../../molecules/confirm-dialog';
 import { EntityLinkInput } from '../../molecules/entity-link-input';
+import { LoadingBoundary } from '../../molecules/loading-boundary';
 import { Stack } from '../../molecules/stack';
 import type {
   EntityFormDraft,
@@ -67,6 +76,13 @@ const PICKABLE_TYPES: ReadonlySet<MetaAccessorType> = new Set<MetaAccessorType>(
  * It is presentational: the draft, its errors and the save/delete actions are
  * all props, so the same form hosts on a plain route and inside a workspace tab.
  */
+/** A verb waiting on its confirmation — narrowed so `confirm` is not optional. */
+interface PendingConfirmation {
+  key: string;
+  labelKey: string;
+  confirm: NonNullable<UseCaseDescriptor['confirm']>;
+}
+
 export function EntityForm<TEntity extends Entity>({
   entityConstructor,
   entity,
@@ -87,15 +103,22 @@ export function EntityForm<TEntity extends Entity>({
   error,
   backHref,
   title,
+  metadata,
+  isMetadataLoading = false,
+  onUseCase,
   children,
 }: EntityFormProps<TEntity>) {
   const formId = useId();
   const slots = readEntityFormFields<TEntity>(children);
-  const metadata = describeEntityColumns(entityConstructor, entity) as Array<
-    EntityFormField<TEntity>
-  >;
+  // The *field* descriptors, which stay local and synchronous — a column is a
+  // property of the class every caller holds. Only an action's availability is
+  // a property of the caller, which is why that half arrives as `metadata`.
+  const columnDescriptors = describeEntityColumns(
+    entityConstructor,
+    entity,
+  ) as Array<EntityFormField<TEntity>>;
   // Before slots resolve, so an `<EntityField label>` override still wins.
-  const described = useLocalizedDescriptors(metadata);
+  const described = useLocalizedDescriptors(columnDescriptors);
   const fields = resolveEntityFormFields(described, slots.fields);
   assertLinkSourcesAreEditable(fields, linkSources);
 
@@ -116,8 +139,69 @@ export function EntityForm<TEntity extends Entity>({
   };
 
   const t = useT();
+  const translateKey = useTranslateKey();
   const errorMessage = useErrorMessage();
   const busy = isSaving || isDeleting;
+
+  // Absent metadata keeps the pre-ADR-0026 behaviour, so an un-migrated call
+  // site renders exactly as before. Present metadata is authoritative: it is
+  // what the service already decided this caller may do.
+  const may = (action: EntityAction) =>
+    metadata === undefined || metadata.actions.includes(action);
+
+  // A single-record form shows the verbs that act on *this* record. A
+  // `context-dependent` one needs a selection to act on, which only a list has —
+  // that is the bulk bar, not this. `collection`-bound verbs are not this
+  // form's either.
+  const useCases = (metadata?.useCases ?? []).filter(
+    descriptor =>
+      descriptor.binding === 'entity' &&
+      descriptor.placement !== 'context-dependent',
+  );
+  const headerUseCases = useCases.filter(
+    descriptor => descriptor.placement === 'context-independent',
+  );
+  const footerUseCases = useCases.filter(
+    descriptor => descriptor.placement === 'determining',
+  );
+
+  // A descriptor carrying `confirm` must be asked about before it fires;
+  // `revoke-sessions` ends every session a user holds. The state holds the
+  // confirmation itself rather than the descriptor, so the dialog cannot be
+  // opened for a verb that never asked for one.
+  const [pending, setPending] = useState<PendingConfirmation | undefined>(
+    undefined,
+  );
+  const invoke = (descriptor: UseCaseDescriptor) => {
+    const confirm = descriptor.confirm;
+    if (confirm) {
+      setPending({
+        key: descriptor.key,
+        labelKey: descriptor.labelKey,
+        confirm,
+      });
+      return;
+    }
+    onUseCase?.(descriptor.key);
+  };
+
+  const useCaseButton = (descriptor: UseCaseDescriptor) => (
+    <Button
+      key={descriptor.key}
+      type="button"
+      variant={
+        descriptor.confirm?.tone === 'destructive' ? 'destructive' : 'secondary'
+      }
+      size={descriptor.placement === 'context-independent' ? 'sm' : 'md'}
+      disabled={busy}
+      onClick={() => invoke(descriptor)}
+    >
+      {/* A descriptor's labels are *runtime* catalog keys — they never resolve
+          at compile time, which is why `@r10c/i18n-check` is what catches a
+          typo here rather than the type system. */}
+      {translateKey(descriptor.labelKey)}
+    </Button>
+  );
 
   return (
     <Card>
@@ -138,10 +222,20 @@ export function EntityForm<TEntity extends Entity>({
               {editing ? t('form.view') : t('form.edit')}
             </Button>
           )}
+          <LoadingBoundary isLoading={isMetadataLoading} lines={0}>
+            <>{headerUseCases.map(useCaseButton)}</>
+          </LoadingBoundary>
         </Stack>
 
         {isLoading && (
-          <Text data-testid="entity-form-loading">{t('form.loading')}</Text>
+          <LoadingBoundary
+            isLoading
+            lines={3}
+            label={t('form.loading')}
+            className="w-full"
+          >
+            {null}
+          </LoadingBoundary>
         )}
 
         {error && (
@@ -180,14 +274,16 @@ export function EntityForm<TEntity extends Entity>({
 
         {editing && (
           <Stack direction="row" gap="xs">
-            <Button
-              type="button"
-              onClick={() => onSubmit?.(draft)}
-              disabled={busy}
-            >
-              {isSaving ? t('form.saving') : t('form.save')}
-            </Button>
-            {onDelete && (
+            {may('write') && (
+              <Button
+                type="button"
+                onClick={() => onSubmit?.(draft)}
+                disabled={busy}
+              >
+                {isSaving ? t('form.saving') : t('form.save')}
+              </Button>
+            )}
+            {onDelete && may('delete') && (
               <Button
                 type="button"
                 variant="secondary"
@@ -197,6 +293,7 @@ export function EntityForm<TEntity extends Entity>({
                 {isDeleting ? t('form.deleting') : t('form.delete')}
               </Button>
             )}
+            {footerUseCases.map(useCaseButton)}
             {backHref && (
               <a href={backHref}>
                 <Button type="button" variant="ghost" disabled={busy}>
@@ -209,6 +306,22 @@ export function EntityForm<TEntity extends Entity>({
 
         {slots.rest}
       </Stack>
+
+      {pending && (
+        <ConfirmDialog
+          open
+          tone={pending.confirm.tone}
+          title={translateKey(pending.labelKey)}
+          message={translateKey(pending.confirm.messageKey)}
+          busy={busy}
+          onCancel={() => setPending(undefined)}
+          onConfirm={() => {
+            const key = pending.key;
+            setPending(undefined);
+            onUseCase?.(key);
+          }}
+        />
+      )}
     </Card>
   );
 }

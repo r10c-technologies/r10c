@@ -71,6 +71,7 @@ import {
   ZitadelOidcTag,
 } from '@r10c/entifix-ts-zitadel-client';
 import {
+  entityMetadataRoute,
   LoadedConfigurationTag,
   redactConfiguration,
   requirePermission,
@@ -1177,6 +1178,14 @@ const userManagementRoutes = HttpRouter.empty.pipe(
     '/api/user-identity',
     requirePermission(USER_READ)(() => listRoute(UserIdentity)),
   ),
+  // What this caller may do with the entity, permission-filtered from the
+  // verified principal. A literal path, and it has to stay one: a parametric
+  // `/api/:entity/$metadata` is shadowed by the `/api/user-identity/:id` route
+  // below and would never run (ADR 0026).
+  HttpRouter.get(
+    '/api/user-identity/$metadata',
+    entityMetadataRoute(UserIdentity),
+  ),
   HttpRouter.post('/api/user-identity', createUserRoute),
   HttpRouter.get(
     '/api/user-identity/:id',
@@ -1189,6 +1198,10 @@ const userManagementRoutes = HttpRouter.empty.pipe(
   HttpRouter.get(
     '/api/entity-identifier',
     requirePermission(IDENTIFIER_READ)(() => listRoute(EntityIdentifier)),
+  ),
+  HttpRouter.get(
+    '/api/entity-identifier/$metadata',
+    entityMetadataRoute(EntityIdentifier),
   ),
   HttpRouter.get(
     '/api/entity-identifier/:id',

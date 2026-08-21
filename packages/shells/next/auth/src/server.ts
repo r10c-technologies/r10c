@@ -25,6 +25,7 @@ export {
   sessionListRoute,
   userByIdRoute,
   userListRoute,
+  userMetadataRoute,
   userSessionListRoute,
 } from './server/routes';
 export {

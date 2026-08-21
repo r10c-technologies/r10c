@@ -149,6 +149,11 @@ export const controls: EsControls = {
     auth: 'Identity',
     authDark: 'Identity dark',
   },
+  confirm: {
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    title: 'Confirm',
+  },
   breadcrumbs: {
     label: 'Breadcrumb',
   },

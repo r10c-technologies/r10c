@@ -42,6 +42,7 @@
     "!**/*.tsbuildinfo"
   ],
   "dependencies": {
+    "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-i18n": "workspace:*",
     "@tanstack/react-form": "1.33.5",
     "react-i18next": "17.0.11"
