@@ -34,6 +34,19 @@ export interface EntityTableProps<TEntity extends Entity> {
 
   isLoading: boolean;
   /**
+   * What holds the table's shape during the first load.
+   *
+   * `true` (the default) renders the built-in placeholder, which is derived from
+   * the table's own resolved geometry — one shimmer cell per visible column, so
+   * the swap to real rows shifts nothing. A node replaces that default; `false`
+   * renders no placeholder at all.
+   *
+   * Only the *first* load is held this way. A refetch that already has rows
+   * keeps them and marks the region busy instead — replacing populated rows with
+   * shimmer on every pagination click is a grey flash, not a loading state.
+   */
+  skeleton?: boolean | ReactNode;
+  /**
    * The failure of the last load, if it failed.
    *
    * A listing that renders an empty table when the service is unreachable tells

@@ -56,8 +56,10 @@ export function ProductCategoryForm({
       isDeleting={isDeleting}
       error={error}
       backHref={backHref}
+      // `entity` is undefined until the record lands, so testing it alone
+      // titled a loading edit form "New" and then relabelled it (#139).
       title={et(
-        entity
+        entity || isLoading
           ? 'product-category.form.editTitle'
           : 'product-category.form.newTitle',
       )}

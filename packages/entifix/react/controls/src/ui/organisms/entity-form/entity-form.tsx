@@ -20,6 +20,7 @@ import {
 import { Button } from '../../atoms/button';
 import { CellValue } from '../../atoms/cell-value';
 import { FieldControl } from '../../atoms/field-control';
+import { Skeleton } from '../../atoms/skeleton';
 import { Text } from '../../atoms/text';
 import { Card } from '../../molecules/card';
 import { ConfirmDialog } from '../../molecules/confirm-dialog';
@@ -98,6 +99,7 @@ export function EntityForm<TEntity extends Entity>({
   onSubmit,
   onDelete,
   isLoading = false,
+  skeleton = true,
   isSaving = false,
   isDeleting = false,
   error,
@@ -121,6 +123,16 @@ export function EntityForm<TEntity extends Entity>({
   const described = useLocalizedDescriptors(columnDescriptors);
   const fields = resolveEntityFormFields(described, slots.fields);
   assertLinkSourcesAreEditable(fields, linkSources);
+
+  /**
+   * `true`/omitted → the built-in default, which draws one label+control pair
+   * per resolved field; a node → that node; `false` → nothing. The field list
+   * comes from the constructor's metadata, not from the record, so it is already
+   * complete while the record is still in flight — which is what lets the
+   * placeholder match the form it is standing in for.
+   */
+  const customSkeleton = typeof skeleton === 'boolean' ? undefined : skeleton;
+  const showSkeleton = isLoading && skeleton !== false;
 
   const [internalMode, setInternalMode] = useState<EntityFormMode>(
     defaultMode ?? (entity ? 'read' : 'edit'),
@@ -208,7 +220,11 @@ export function EntityForm<TEntity extends Entity>({
       <Stack gap="s">
         <Stack direction="row" gap="xs" align="center">
           <Text as="h2" step={1} weight="semibold">
-            {title ?? (entity ? t('form.details') : t('form.new'))}
+            {/* `entity` is undefined while the record is still in flight, so
+                testing it alone made a loading edit form announce itself as
+                "New" for as long as the fetch took, then relabel when the
+                record landed. A form that is loading is never a create. */}
+            {title ?? (entity || isLoading ? t('form.details') : t('form.new'))}
           </Text>
           {/* The built-in toggle only appears when the form owns its mode and
               there is a record to view — a create form has nothing to read. */}
@@ -227,16 +243,10 @@ export function EntityForm<TEntity extends Entity>({
           </LoadingBoundary>
         </Stack>
 
-        {isLoading && (
-          <LoadingBoundary
-            isLoading
-            lines={3}
-            label={t('form.loading')}
-            className="w-full"
-          >
-            {null}
-          </LoadingBoundary>
-        )}
+        {/* One announcement for the form; the shimmer below is aria-hidden. */}
+        <span role="status" aria-live="polite" className="sr-only">
+          {isLoading ? t('form.loading') : ''}
+        </span>
 
         {error && (
           <p
@@ -248,21 +258,33 @@ export function EntityForm<TEntity extends Entity>({
           </p>
         )}
 
-        {fields.map(field => (
-          <FieldRow
-            key={field.name}
-            field={field}
-            entity={entity}
-            draft={draft}
-            value={draft[field.name] ?? ''}
-            editing={editing}
-            error={editing ? errors?.[field.name] : undefined}
-            setField={setField}
-            linkSource={linkSources?.[field.name]}
-            onLinkChange={onLinkChange}
-            id={`${formId}-${field.name}`}
-          />
-        ))}
+        {/* The placeholder *replaces* the rows rather than sitting above them.
+            Rendering both meant a shimmer stacked on a full set of empty fields,
+            which is two loading signals for one region and twice the height the
+            loaded form settles at. */}
+        {showSkeleton
+          ? (customSkeleton ??
+            fields.map(field => (
+              <Stack key={field.name} gap="3xs">
+                <Skeleton shape="line" className="w-24" />
+                <Skeleton className="h-9 w-full" />
+              </Stack>
+            )))
+          : fields.map(field => (
+              <FieldRow
+                key={field.name}
+                field={field}
+                entity={entity}
+                draft={draft}
+                value={draft[field.name] ?? ''}
+                editing={editing}
+                error={editing ? errors?.[field.name] : undefined}
+                setField={setField}
+                linkSource={linkSources?.[field.name]}
+                onLinkChange={onLinkChange}
+                id={`${formId}-${field.name}`}
+              />
+            ))}
 
         {/* A cross-field rule has no row to sit under, so it sits with the
             actions it blocks. */}

@@ -7,9 +7,13 @@ import type { StorybookConfig } from '@storybook/react-vite';
  *  - the `@r10c/source` resolution condition so workspace packages resolve to
  *    their TypeScript `src` (a single `MetaEntity` registry, no prior build).
  *
- * Stories cover only presentational components — none instantiate decorated
- * entities — so the default React-Vite transform suffices (no SWC decorator
- * pass needed here, unlike the Vitest config).
+ * Stories **do** instantiate decorated entities — `EntityTable`, `EntityForm`
+ * and `EntityLinkInput` build themselves from metadata, so there is no way to
+ * show them without one. The default React-Vite transform handles the stage-3
+ * decorators, and `Symbol.metadata` is polyfilled by `entifix-ts-core` itself on
+ * first import, so no SWC pass is needed here (unlike the Vitest config, which
+ * runs one for the spec files). `nx build-storybook` runs in CI precisely
+ * because that arrangement is load-bearing and nothing else checks it.
  */
 const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],

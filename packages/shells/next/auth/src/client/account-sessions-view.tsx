@@ -5,7 +5,9 @@ import {
   Card,
   HeadingOne,
   Lead,
+  LoadingBoundary,
   Overline,
+  SkeletonText,
   Stack,
   Text,
   useFormatters,
@@ -115,10 +117,25 @@ export function SessionsView() {
         </Card>
       ) : null}
 
+      {/* Card-shaped placeholders rather than the word "Loading": the rows that
+          land are cards, so the swap shifts nothing. The copy survives as the
+          announcement, since the shimmer is hidden from assistive tech. */}
       {isLoading ? (
-        <Card>
-          <Text muted>{t('auth.sessions.loading')}</Text>
-        </Card>
+        <LoadingBoundary
+          isLoading
+          label={t('auth.sessions.loading')}
+          fallback={
+            <Stack gap="2xs">
+              {[0, 1].map(row => (
+                <Card key={row}>
+                  <SkeletonText lines={3} />
+                </Card>
+              ))}
+            </Stack>
+          }
+        >
+          {null}
+        </LoadingBoundary>
       ) : null}
 
       {rows?.map(row => (
