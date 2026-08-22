@@ -15,9 +15,17 @@ import {
   isEntityEditorKey,
 } from './entity-tab';
 
-/** The catalogs a `catalog:<key>` tab can open — the list client pages. */
+/**
+ * The catalogs a `catalog:<key>` tab can open — the list client pages.
+ *
+ * The key is the **entity key**, the same one `ENTITY_EDITORS` and the nav's
+ * `workspace:` addresses use. It was `product` here and `product-specification`
+ * everywhere else, which is a `catalog:product-specification` that resolves to
+ * nothing: the sidebar's open-in-workspace control did nothing at all, and so
+ * did the return to the list after saving a product in a tab.
+ */
 const CATALOGS = {
-  product: {
+  'product-specification': {
     titleKey: 'app:admin.nav.products',
     render: () => <ProductListClientPage />,
   },

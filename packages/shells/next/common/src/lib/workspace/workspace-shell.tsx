@@ -19,7 +19,7 @@ export interface WorkspaceShellProps {
   registry: TabRegistry;
   /** Right-aligned actions above the tab strip (search, the user menu). */
   actions?: ReactNode;
-  /** Body when the URL addresses a tab kind that is not registered. */
+  /** Body when `?tab=` names something the registry cannot resolve. */
   fallback?: ReactNode;
   /** Body when no tab is open. */
   emptyState?: ReactNode;
@@ -74,16 +74,38 @@ export function WorkspaceShell({
     ]).finally(() => setHydrated(true));
   }, []);
 
+  // The `?tab=` value the registry cannot resolve, if any — derived, so it is
+  // known on the very first render rather than an effect later. An
+  // unresolvable address used to be dropped on the floor: no tab, no error,
+  // and the write-back below then replaced it with the previously active tab,
+  // so even the URL stopped saying what was asked for. Here it answers with
+  // the fallback and the bad address stays in the bar, where it can be read.
+  //
+  // `dismissed` is the escape: a deliberate tab interaction is a newer
+  // instruction than the address that failed, and it holds the *value* rather
+  // than a flag so the next dead link is dead again.
+  const [dismissed, setDismissed] = useState<string | null>(null);
+  const deadLink =
+    urlTab && urlTab !== dismissed && !registry.resolve(urlTab, translate)
+      ? urlTab
+      : null;
+
   // A tab is dirty while its address has an unsaved draft; closing one confirms.
   const handleClose = (param: string) => {
     if (param in drafts) {
       if (!window.confirm(t('workspace.discard'))) return;
       clearDraft(param);
     }
+    setDismissed(urlTab);
     close(param);
   };
 
-  // Deep link → open/focus the addressed tab (ignored when the kind is unknown).
+  const handleActivate = (param: string) => {
+    setDismissed(urlTab);
+    activate(param);
+  };
+
+  // Deep link → open/focus the addressed tab (a dead one shows the fallback).
   useEffect(() => {
     if (!hydrated || !urlTab) return;
     const resolved = registry.resolve(urlTab, translate);
@@ -105,13 +127,16 @@ export function WorkspaceShell({
   // That ordering is also what makes the `hydrated` gate work: when the flag
   // flips, the effect above has already re-applied the URL's tab over the
   // restored snapshot, so there is nothing here to write back.
+  //
+  // A dead deep link suspends it: overwriting the address the visitor typed
+  // with an unrelated tab is what made the failure invisible in the first place.
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || deadLink) return;
     const active = useTabsState.getState().activeParam;
     if (active && active !== urlTab) {
       router.replace(`${pathname}?tab=${encodeURIComponent(active)}`);
     }
-  }, [hydrated, activeParam, urlTab, pathname, router]);
+  }, [hydrated, deadLink, activeParam, urlTab, pathname, router]);
 
   const copyDeepLink = (param: string) => {
     void navigator.clipboard.writeText(
@@ -122,10 +147,10 @@ export function WorkspaceShell({
   const activeResolved = activeParam
     ? registry.resolve(activeParam, translate)
     : null;
-  const body = activeResolved
-    ? activeResolved.render()
-    : urlTab && !registry.resolve(urlTab, translate)
-      ? fallback
+  const body = deadLink
+    ? fallback
+    : activeResolved
+      ? activeResolved.render()
       : emptyState;
 
   return (
@@ -153,9 +178,11 @@ export function WorkspaceShell({
             // store: the persisted title is whatever locale it was opened
             // in, so a locale switch would leave stale captions behind.
             label={registry.resolve(tab.param, translate)?.title ?? tab.title}
-            active={tab.param === activeParam}
+            // Nothing is selected while the fallback is up: a highlighted
+            // tab beside a body that is not its own reads as a render bug.
+            active={!deadLink && tab.param === activeParam}
             state={tab.param in drafts ? 'dirty' : 'idle'}
-            onSelect={() => activate(tab.param)}
+            onSelect={() => handleActivate(tab.param)}
             onClose={() => handleClose(tab.param)}
           />
         ))}
