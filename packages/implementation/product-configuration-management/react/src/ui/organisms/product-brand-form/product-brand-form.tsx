@@ -63,8 +63,12 @@ export function ProductBrandForm({
       isDeleting={isDeleting}
       error={error}
       backHref={backHref}
+      // `entity` is undefined until the record lands, so testing it alone
+      // titled a loading edit form "New" and then relabelled it (#139).
       title={et(
-        entity ? 'product-brand.form.editTitle' : 'product-brand.form.newTitle',
+        entity || isLoading
+          ? 'product-brand.form.editTitle'
+          : 'product-brand.form.newTitle',
       )}
     >
       <EntityField<ProductBrand> field="id" hidden />

@@ -559,12 +559,48 @@ describe('EntityForm', () => {
     render(<Harness isLoading error={new EntifixConnError('Service down')} />);
 
     // A skeleton, not the word "Loading": it holds the region's geometry so the
-    // swap to real fields shifts nothing, and it needs no translation.
-    expect(screen.getByTestId('loading-boundary')).toBeInTheDocument();
+    // swap to real fields shifts nothing, and it needs no translation. The copy
+    // survives as the screen-reader announcement, since the shimmer is hidden
+    // from assistive tech.
     expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0);
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando…');
     expect(screen.getByTestId('entity-form-error')).toHaveTextContent(
       'Service down',
     );
+  });
+
+  // The defect this replaced: the shimmer used to render *beside* the field
+  // rows, so a loading form was a placeholder stacked on a full set of empty
+  // inputs — twice the height it settles at, and two loading signals at once.
+  it('replaces the field rows with the placeholder rather than stacking', () => {
+    render(<Harness isLoading />);
+
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0);
+  });
+
+  // The record has not arrived yet, so `entity` is undefined — but that is not
+  // the same as there being no record. Titling it "New" for the length of the
+  // fetch and then relabelling is a lie the user watches correct itself.
+  it('does not call a loading edit form a create', () => {
+    render(<Harness isLoading />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Detalles' }),
+    ).toBeInTheDocument();
+  });
+
+  it('lets a caller replace the placeholder', () => {
+    render(<Harness isLoading skeleton={<span>Custom placeholder</span>} />);
+
+    expect(screen.getByText('Custom placeholder')).toBeInTheDocument();
+    expect(screen.queryAllByTestId('skeleton')).toHaveLength(0);
+  });
+
+  it('renders no placeholder when the caller opts out', () => {
+    render(<Harness isLoading skeleton={false} />);
+
+    expect(screen.queryAllByTestId('skeleton')).toHaveLength(0);
   });
 
   it('lets a slot replace a field control and its read display', () => {

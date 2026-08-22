@@ -108,6 +108,26 @@ describe('useDataLoading', () => {
     expect(result.current.items[0]?.id).toBe('w-21');
   });
 
+  // The page is part of the query key, so without `keepPreviousData` `data`
+  // goes undefined the moment it changes — and a table reading
+  // `isLoading && items.length === 0` as "first load" would blank its rows to
+  // skeleton on every pagination click. Keeping the previous page is what makes
+  // the loading contract's "skeleton only on first load" actually hold.
+  it('keeps the previous page on screen while the next one loads', async () => {
+    const { result } = renderLoading();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const firstPage = result.current.items[0]?.id;
+
+    act(() => result.current.onPageChange(3));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(true));
+    expect(result.current.items).not.toHaveLength(0);
+    expect(result.current.items[0]?.id).toBe(firstPage);
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.items[0]?.id).toBe('w-21');
+  });
+
   // Changing page size while deep in a listing would otherwise land on a page
   // that no longer exists, so it resets to the first page.
   it('returns to page 1 when the page size changes', async () => {

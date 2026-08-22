@@ -185,7 +185,7 @@ describe('EntityTable controls', () => {
     children?: ReactNode,
   ) => {
     const user = userEvent.setup();
-    render(
+    const { container } = render(
       <EntityTable<Widget>
         entityConstructor={Widget}
         items={[makeWidget()]}
@@ -195,7 +195,7 @@ describe('EntityTable controls', () => {
         {children}
       </EntityTable>,
     );
-    return { user };
+    return { user, container };
   };
 
   it('shows the toolbar and pager by default', () => {
@@ -404,6 +404,61 @@ describe('EntityTable controls', () => {
 
       expect(screen.queryByText('Cargando…')).not.toBeInTheDocument();
       expect(screen.getAllByText('Sprocket').length).toBeGreaterThan(0);
+      expect(screen.queryAllByTestId('skeleton')).toHaveLength(0);
+    });
+
+    // The busy state still has to reach assistive tech during a refetch, but
+    // through the container's state rather than a second announcement.
+    it('marks the region busy while reloading', () => {
+      const { container } = renderTable({ isLoading: true });
+
+      expect(container.querySelectorAll('[aria-busy="true"]').length).toBe(2);
+    });
+
+    // The placeholder occupies the real grid: one shimmer per visible column,
+    // so nothing moves sideways when the rows land. A single full-width blob
+    // was the thing this replaced.
+    it('holds one skeleton cell per column on the first load', () => {
+      const { container } = renderTable({ items: [], isLoading: true });
+
+      const firstRow = container.querySelector('tbody tr');
+      expect(firstRow?.querySelectorAll('td')).toHaveLength(4);
+      expect(
+        firstRow?.querySelectorAll('[data-testid="skeleton"]'),
+      ).toHaveLength(4);
+    });
+
+    // A row action is part of the geometry too, so the placeholder grows a
+    // column with it.
+    it('adds a skeleton cell for the actions column', () => {
+      const { container } = renderTable({
+        items: [],
+        isLoading: true,
+        hrefFor: (id: EntityId) => `/widget/${String(id)}`,
+      });
+
+      expect(
+        container.querySelector('tbody tr')?.querySelectorAll('td'),
+      ).toHaveLength(5);
+    });
+
+    it('lets a caller replace the placeholder', () => {
+      renderTable({
+        items: [],
+        isLoading: true,
+        skeleton: <span>Custom placeholder</span>,
+      });
+
+      expect(screen.getAllByText('Custom placeholder').length).toBeGreaterThan(
+        0,
+      );
+      expect(screen.queryAllByTestId('skeleton')).toHaveLength(0);
+    });
+
+    it('renders no placeholder when the caller opts out', () => {
+      renderTable({ items: [], isLoading: true, skeleton: false });
+
+      expect(screen.queryAllByTestId('skeleton')).toHaveLength(0);
     });
 
     it('reports an empty result set', () => {

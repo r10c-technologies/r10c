@@ -11,6 +11,7 @@ import { Fragment, type ReactNode, useState } from 'react';
 import { useErrorMessage, useT } from '../../../i18n';
 import { Button } from '../../atoms/button';
 import { CellValue } from '../../atoms/cell-value';
+import { Skeleton } from '../../atoms/skeleton';
 import {
   Table,
   TableBody,
@@ -24,7 +25,6 @@ import { Link } from '../../atoms/text';
 import { ColumnSettings } from '../../molecules/column-settings';
 import { EntityRecordCard } from '../../molecules/entity-record-card';
 import { FilterBuilder } from '../../molecules/filter-builder';
-import { LoadingBoundary } from '../../molecules/loading-boundary';
 import { Pagination } from '../../molecules/pagination';
 import { SortBuilder } from '../../molecules/sort-builder';
 import { TableToolbar } from '../../molecules/table-toolbar';
@@ -54,6 +54,16 @@ const PIVOT_CLASS: Record<
 type Panel = 'none' | 'filters' | 'sorting';
 
 /**
+ * How many placeholder rows the built-in skeleton draws.
+ *
+ * The column count is taken from the real geometry, because that is the axis a
+ * mismatch shifts; the row count is capped instead of tracking `pageSize`, since
+ * a fifty-row page would otherwise paint fifty shimmer rows to stand in for
+ * content that arrives below the fold anyway.
+ */
+const SKELETON_ROW_CAP = 5;
+
+/**
  * A table that builds itself from an entity's metadata: columns, labels, value
  * formatting and the filter/sort controls all come from `@accessor()`
  * declarations, so listing a new entity needs no bespoke table.
@@ -69,6 +79,7 @@ type Panel = 'none' | 'filters' | 'sorting';
 export function EntityTable<TEntity extends Entity>({
   entityConstructor,
   isLoading,
+  skeleton = true,
   error,
   items,
   totalItems,
@@ -105,6 +116,31 @@ export function EntityTable<TEntity extends Entity>({
   const pivot = PIVOT_CLASS[pivotBreakpoint];
   const hasRowAction = onSelect !== undefined || hrefFor !== undefined;
   const columnCount = visibleColumns.length + (hasRowAction ? 1 : 0);
+
+  /**
+   * The first load has nothing to show and is held with a skeleton; a refetch
+   * already has rows, so it keeps them and only marks the region busy. Splitting
+   * the two is what stops every pagination click flashing grey.
+   */
+  const isFirstLoad = isLoading && items.length === 0;
+  const isRefetching = isLoading && items.length > 0;
+
+  /** `true`/omitted → the built-in default; a node → that node; `false` → none. */
+  const customSkeleton = typeof skeleton === 'boolean' ? undefined : skeleton;
+  const showSkeleton = isFirstLoad && skeleton !== false;
+  const skeletonRows = Array.from(
+    { length: Math.min(pageSize, SKELETON_ROW_CAP) },
+    (_, index) => index,
+  );
+
+  /**
+   * The refetch hint, and it is deliberately the only one: rows stay readable
+   * and simply dim, because a second skeleton over live data would be two
+   * loading signals in one region.
+   */
+  const busyClass = isRefetching
+    ? 'opacity-60 transition-opacity duration-200 ease-smooth'
+    : '';
 
   const renderCell = (
     column: EntityTableColumn<TEntity>,
@@ -150,6 +186,17 @@ export function EntityTable<TEntity extends Entity>({
 
   return (
     <div className="flex flex-col gap-s">
+      {/*
+        One announcement for the whole table, not one per layout. Both the grid
+        and the card list are always in the DOM — CSS picks which is visible —
+        so a live region inside each meant assistive tech was told twice that
+        the table was loading. The shimmer itself is aria-hidden, so this is the
+        only thing that carries the news.
+      */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {isFirstLoad ? t('table.loading') : ''}
+      </span>
+
       {showControls && (
         <TableToolbar
           start={
@@ -229,7 +276,7 @@ export function EntityTable<TEntity extends Entity>({
       )}
 
       {/* Wide viewports: a grid. */}
-      <div className={pivot.grid}>
+      <div className={`${pivot.grid} ${busyClass}`}>
         <Table>
           <TableHead>
             {slots.header ? (
@@ -247,17 +294,33 @@ export function EntityTable<TEntity extends Entity>({
               </tr>
             )}
           </TableHead>
-          <TableBody>
-            {isLoading && items.length === 0 && (
-              <TableMessageRow colSpan={columnCount}>
-                {/* A skeleton rather than the word "Loading": it holds the row's
-                    height, so the swap to real rows shifts nothing. The label is
-                    what assistive tech hears, since the shimmer is aria-hidden. */}
-                <LoadingBoundary isLoading lines={3} label={t('table.loading')}>
-                  {null}
-                </LoadingBoundary>
-              </TableMessageRow>
-            )}
+          <TableBody aria-busy={isLoading || undefined}>
+            {/* Skeleton rows rather than the word "Loading", and one per column
+                rather than a single full-width blob: the placeholder occupies
+                the real grid, so the swap to rows shifts nothing sideways.
+                `TableMessageRow` is deliberately bypassed — it is one centred
+                full-span cell and cannot express the geometry. */}
+            {showSkeleton &&
+              (customSkeleton ? (
+                <TableMessageRow colSpan={columnCount}>
+                  {customSkeleton}
+                </TableMessageRow>
+              ) : (
+                skeletonRows.map(row => (
+                  <TableRow key={row}>
+                    {visibleColumns.map(column => (
+                      <TableCell key={column.name}>
+                        <Skeleton shape="line" className="w-full" />
+                      </TableCell>
+                    ))}
+                    {hasRowAction && (
+                      <TableCell>
+                        <Skeleton shape="line" className="w-16" />
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              ))}
             {!isLoading && items.length === 0 && (
               <TableMessageRow colSpan={columnCount}>
                 {emptyMessage}
@@ -286,12 +349,21 @@ export function EntityTable<TEntity extends Entity>({
       </div>
 
       {/* Narrow viewports: the same columns pivoted into cards. */}
-      <div className={`${pivot.cards} flex flex-col gap-2xs`}>
-        {isLoading && items.length === 0 && (
-          <LoadingBoundary isLoading lines={3} label={t('table.loading')}>
-            {null}
-          </LoadingBoundary>
-        )}
+      <div
+        className={`${pivot.cards} flex flex-col gap-2xs ${busyClass}`}
+        aria-busy={isLoading || undefined}
+      >
+        {/* The card pivot gets card-shaped placeholders, not a bare shimmer
+            block: the border, radius and padding are the geometry here. */}
+        {showSkeleton &&
+          (customSkeleton ??
+            skeletonRows.map(row => (
+              <EntityRecordCard
+                key={row}
+                columns={visibleColumns}
+                renderCell={() => <Skeleton shape="line" className="w-24" />}
+              />
+            )))}
         {!isLoading && items.length === 0 && (
           <p className="text-step-sm text-content-muted">{emptyMessage}</p>
         )}

@@ -83,8 +83,12 @@ export function ConfigurationForm({
       isDeleting={isDeleting}
       error={error}
       backHref={backHref}
+      // `entity` is undefined until the record lands, so testing it alone
+      // titled a loading edit form "New" and then relabelled it (#139).
       title={et(
-        entity ? 'configuration.form.editTitle' : 'configuration.form.newTitle',
+        entity || isLoading
+          ? 'configuration.form.editTitle'
+          : 'configuration.form.newTitle',
       )}
     >
       <EntityField<Configuration> field="id" hidden />

@@ -134,8 +134,17 @@ pnpm nx run entifix-react-controls:build-storybook  # static build
 Stories are co-located (`*.stories.tsx`) with `tags: ['autodocs']`; MDX pages
 (`Introduction.mdx`, `ui/layout/Layout.mdx`) carry the prose. Story material
 (`*.stories.tsx`, `_demo.tsx`) is excluded from the coverage gate in
-`vitest.config.mts`. Stories must **not** instantiate decorated entities, so the
-default React-Vite transform suffices (no SWC decorator pass, unlike Vitest).
+`vitest.config.mts`. Stories **may** instantiate decorated entities, and the
+entity-aware organisms have to — `EntityTable` and `EntityForm` build themselves
+from metadata, so there is no way to show one without an entity. The default
+React-Vite transform compiles the stage-3 decorators, and `entifix-ts-core`
+polyfills `Symbol.metadata` on first import, so no SWC pass is configured here
+(unlike Vitest, which runs one for the spec files).
+
+Stories are in **no tsconfig project** (`tsconfig.lib.json` excludes them,
+`tsconfig.spec.json` does not include them), so `nx typecheck` cannot see a type
+error in a story and Vitest never loads one. `nx build-storybook` is therefore
+the only thing that compiles them, which is why it runs in CI.
 
 ## Adding a new component — checklist
 
@@ -157,6 +166,11 @@ default React-Vite transform suffices (no SWC decorator pass, unlike Vitest).
 6. `<name>.stories.tsx` with `tags: ['autodocs']` (+ an MDX page for a whole new
    family). The Storybook toolbar has a locale switch — flip it, since that is
    where a caption that outgrew its button gets noticed.
+   **If the component takes `isLoading`** it must also take
+   `skeleton?: boolean | ReactNode`, its default must mirror its own resolved
+   geometry, and it must export a `Loading` story — the loading-contract spec
+   fails the build otherwise. See
+   [the loading contract](#the-loading-contract).
 7. If an app renders it and it ships classes as source, add its `src` to the
    app's `global.css` `@source` list.
 8. `pnpm nx run-many -t lint test typecheck build --projects=<pkg>` green.
@@ -377,6 +391,53 @@ Three-phase paint, tuned to kill spinners:
 3. **Data load** via `useDataLoading` → skeleton → content. **Skeleton only on first load**;
    thereafter stale-while-revalidate keeps the last data visible and refetches in the background —
    no spinner.
+
+### The loading contract
+
+One question decides the shape: are users waiting for an **action to complete**,
+or for **content to appear**? An action keeps its text — `form.saving`,
+`auth.sessions.revoking`, and the combobox placeholder while a held link
+resolves. Content gets a **skeleton**. Never both in one region: one signal per
+region, or the user is being told the same thing twice.
+
+Four rules follow, and each of them is a defect that was actually shipped:
+
+- **A placeholder replaces the content, never stacks above it.** `EntityForm`
+  used to render its shimmer _beside_ the field rows, so a loading form was
+  twice the height it settled at.
+- **The default mirrors the control's own resolved geometry**, which the control
+  already holds while loading — `visibleColumns` for `EntityTable`,
+  `resolveEntityFormFields` for `EntityForm`, both derived from class metadata
+  rather than from the record. So the table draws one shimmer cell per column and
+  the form one label+control pair per field, and the swap shifts nothing. A
+  single full-width blob spanning the table is what this replaced.
+- **First load only.** The gate is `isLoading && items.length === 0`. A refetch
+  that already has rows keeps them and dims, with `aria-busy` on the container;
+  replacing populated rows with shimmer on every pagination click is a grey
+  flash, not a loading state.
+- **Skeletons stay `aria-hidden`; the container takes `aria-busy`.** The catalog
+  key is not deleted — it moves from visible text to a single `role="status"`
+  announcement. Single, because both the grid and the card pivot are always in
+  the DOM (CSS picks one), so a live region inside each announced twice. Never
+  put `role="alert"` on a skeleton.
+
+Every control taking `isLoading` also takes `skeleton?: boolean | ReactNode` —
+`true`/omitted for the built-in default, a node to override, `false` for none.
+`EntityLinkInput` and `EntityLinkPicker` are the deliberate exceptions: they take
+no `isLoading` prop, reading it off the `EntityLinkSource` port instead, and the
+picker's loading state simply _is_ the `EntityTable` it wraps.
+
+For a streaming RSC route the equivalent is a `<Suspense fallback>` built from
+the same `Skeleton` atoms — `ProductGridSkeleton`
+(`shells/next/marketplace/src/lib/catalog/product-grid.tsx`) is the reference:
+same `Grid`, same aspect ratio, so the shell does not reflow. `LoadingBoundary`
+is the wrong tool there; it gates on an `isLoading` prop, which a Suspense
+boundary does not have.
+
+**Enforcement.** A lint rule for "supports a skeleton" is not writable. What is:
+`src/ui/loading-contract.spec.ts` scans the source for components whose props
+type declares `isLoading` and fails the build unless each ships a `Loading`
+Storybook story — and `nx build-storybook` in CI proves that story renders.
 
 ## 7. Reactive updates (WebSocket-ready)
 

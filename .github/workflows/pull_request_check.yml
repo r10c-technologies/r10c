@@ -118,6 +118,18 @@ jobs:
         if: always()
         run: pnpm nx test @r10c/i18n-check
 
+      # Stories are in no tsconfig project, so `typecheck` never sees them and
+      # only the Storybook build does. Without this a `Loading` story that
+      # throws at render still satisfies the loading-contract spec, which can
+      # only see that the export exists. Affected-scoped: `entifix-react-controls`
+      # is the one project declaring the target.
+      - name: Build Storybook
+        if: always()
+        run: |
+          pnpm nx affected -t build-storybook \
+            --base=${{ needs.initialize.outputs.base }} \
+            --head=${{ needs.initialize.outputs.head }}
+
       # The generated documentation blocks: the port table, the store register
       # and the ADR index are written from source, so a hand-edit or a stale
       # block fails here.

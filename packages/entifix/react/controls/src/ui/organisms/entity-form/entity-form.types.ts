@@ -126,6 +126,16 @@ export interface EntityFormProps<TEntity extends Entity> {
   onUseCase?: (key: string) => void;
 
   isLoading?: boolean;
+  /**
+   * What holds the form's shape while the record is in flight.
+   *
+   * `true` (the default) renders the built-in placeholder — one label+control
+   * pair per resolved field, so the swap to the real rows shifts nothing. A node
+   * replaces that default; `false` renders no placeholder at all.
+   *
+   * The placeholder *replaces* the field rows; it never stacks above them.
+   */
+  skeleton?: boolean | ReactNode;
   isSaving?: boolean;
   isDeleting?: boolean;
   /** The failure of the last load/save, shown as an alert. */

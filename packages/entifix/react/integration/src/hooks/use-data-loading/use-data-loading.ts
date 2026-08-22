@@ -9,7 +9,7 @@ import {
   serializeRsql,
   serializeSort,
 } from '@r10c/entifix-ts-core';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Context, Effect } from 'effect';
 import {
   useCallback,
@@ -142,6 +142,16 @@ export function useDataLoading<TEntity extends Entity, TContext>({
 
   const query = useQuery<EntityPage<TEntity>, EntifixError>({
     enabled,
+    /**
+     * Page, size, filter and sort are all part of the key, so every one of them
+     * is a *different* query — and without this, `data` goes undefined the
+     * instant any of them changes. The table would then see `items.length === 0`
+     * with `isFetching` true, read it as a first load, and blank populated rows
+     * to skeleton on every pagination click: the grey flash the loading contract
+     * exists to prevent. Keeping the previous page is what makes "skeleton only
+     * on first load" true rather than merely intended.
+     */
+    placeholderData: keepPreviousData,
     queryKey: [
       ...scope,
       'load',
