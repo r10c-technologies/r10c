@@ -240,16 +240,27 @@ The workspace is a single fixed route with the **active** tab encoded in the que
 
 ```
 /workspace?tab=<kind>:<args>
-    ?tab=catalog:product            # a product list tab
-    ?tab=entity:product:123         # a product editor tab
-    ?tab=operation:price-import     # future
+    ?tab=catalog:product-specification        # a product list tab
+    ?tab=entity:product-specification:123     # a product editor tab
+    ?tab=operation:price-import               # future
 ```
 
 Invariant: **`?tab=` present ⇒ it is a tab**; any other real path is a normal page (login,
 settings, 404) that the workspace ignores. This enforces "not every path is a tab" by URL
 shape rather than a match-list. The URL projects the **active** tab only; the full tab _set_
-lives in IndexedDB. An unknown `<kind>` renders a "can't open this tab" fallback instead of
+lives in IndexedDB. Any `?tab=` the registry cannot resolve — an unknown `<kind>`, or a
+known kind whose payload names nothing — renders a "can't open this tab" fallback instead of
 crashing. Sharing a whole workspace (multiple tabs in one link) is deferred.
+
+**The payload after `<kind>:` is the entity key**, the same string `@entity({ key })`
+derives and the sidebar's `workspace:` address carries. It is currently written in two
+places that must agree — the nav and the host's tab registry — and a mismatch is invisible
+by construction: the address resolves to nothing, so the control does nothing at all. That
+is why an unresolvable address is answered rather than ignored: the fallback wins over the
+tab that happens to be open, and the write-back below is suspended so the bad address stays
+in the bar instead of being replaced by an unrelated tab. Recovery is any deliberate tab
+interaction. Until the nav collapses into one source, `back-office-app`'s
+`specs/workspace-registry.spec.tsx` walks every nav address through the registry.
 
 The two directions of that projection — URL → store and store → URL — run as separate
 effects, and **the write-back reads the committed store (`useTabsState.getState()`), never
@@ -267,7 +278,7 @@ Client state splits from server state:
 - **Client state → Zustand + IndexedDB** (via `zustand-indexeddb`, which keys multiple
   stores in one database by the `persist` `name`):
   - `tabsStore` — `{ tabs, order, activeId, dirty }` + `openOrFocus` / `close` / `setActive`.
-  - `draftsStore` — keyed by **address** (`entity:product:123`), debounced autosave. Autosave
+  - `draftsStore` — keyed by **address** (`entity:product-specification:123`), debounced autosave. Autosave
     is **workspace-host only**; the route host stays ephemeral. Keying by address means a tab
     and (optionally) a route view of the same entity converge on one draft.
 - **`UiPreferencesState` migrates from localStorage to IndexedDB.** The Effect port

@@ -92,6 +92,48 @@ describe('WorkspaceShell', () => {
     expect(await screen.findByTestId('fallback')).toBeInTheDocument();
   });
 
+  // The reported bug's second half: an unresolvable `?tab=` was dropped on the
+  // floor. With a tab already open the fallback never showed — the open tab's
+  // body did — and the write-back then replaced the address with that tab, so
+  // even the URL stopped saying what had been asked for.
+  it('answers a dead deep link with the fallback over an open tab', async () => {
+    act(() => {
+      useTabsState
+        .getState()
+        .open({ param: 'catalog:product', title: 'product catalog' });
+    });
+    tabParam = 'operation:import';
+    renderShell();
+
+    expect(await screen.findByTestId('fallback')).toBeInTheDocument();
+    expect(screen.queryByTestId('body')).not.toBeInTheDocument();
+    // Nothing in the strip claims to be what is on screen.
+    expect(
+      screen.getByRole('tab', { name: /product catalog/ }),
+    ).toHaveAttribute('aria-selected', 'false');
+    // And the address the visitor followed is left where they can read it.
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('recovers from a dead deep link when a tab is clicked', async () => {
+    const user = userEvent.setup();
+    act(() => {
+      useTabsState
+        .getState()
+        .open({ param: 'catalog:product', title: 'product catalog' });
+    });
+    tabParam = 'operation:import';
+    renderShell();
+    await screen.findByTestId('fallback');
+
+    await user.click(screen.getByText('product catalog'));
+
+    expect(await screen.findByTestId('body')).toHaveTextContent('list product');
+    await waitFor(() =>
+      expect(replace).toHaveBeenCalledWith('/workspace?tab=catalog%3Aproduct'),
+    );
+  });
+
   // Captions are re-derived from the registry each render so a locale switch
   // relabels open tabs. A tab persisted under a kind that no longer exists has
   // nothing to re-derive from, and falls back to whatever was stored.
