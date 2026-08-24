@@ -44,7 +44,7 @@
   "dependencies": {
     "@swc/helpers": "0.5.23",
     "effect": "3.22.1",
-    "jose": "6.2.8",
+    "jose": "6.2.9",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*"
   },
