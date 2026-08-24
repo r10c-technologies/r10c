@@ -81,7 +81,7 @@
     "@r10c/entifix-ts-zitadel-client": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "effect": "3.22.1",
-    "ioredis": "5.11.1",
+    "ioredis": "6.0.0",
     "jose": "6.2.8",
     "mongodb": "7.5.0",
     "tslib": "2.8.1"

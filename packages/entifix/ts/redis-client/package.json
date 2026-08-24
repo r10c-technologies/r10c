@@ -45,7 +45,7 @@
   "dependencies": {
     "@swc/helpers": "0.5.23",
     "effect": "3.22.1",
-    "ioredis": "5.11.1",
+    "ioredis": "6.0.0",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-transactions": "workspace:*"
