@@ -358,7 +358,7 @@ Then two rules that apply to the entity itself:
 | Order Management           | Product Order Capture & Validation (TMFC002)                   | `business-ts-order-management`                 | platform | `order`             | entities |
 | Payment Management         | Payment Management (TMFC029)                                   | `business-ts-payment-management`               | platform | `payment`           | entities |
 | Settlement Management      | Agreement Mgmt (TMFC039), partner revenue                      | `business-ts-settlement-management`            | control  | `settlement`        | entities |
-| Sales Management           | SID Market/Sales — the Sales Channel ABE                       | `business-ts-sales-management`                 | tenant   | `sales`             | entities |
+| Sales Management           | — (no ODA analog); SID Market/Sales, Sales Channel ABE         | `business-ts-sales-management`                 | tenant   | `sales`             | entities |
 | Fulfillment                | Shipping & Logistics                                           | _not yet_                                      | —        | —                   | —        |
 
 `entities` means the domain's entity skeletons and its store are declared, with
@@ -368,6 +368,19 @@ store, and every store has one writing slice — see the register.
 Authorization vocabulary (`business-ts-authz`) is not a capability — it is the
 shared policy language every capability expresses itself in, which is why it is
 tagged `business:policy` rather than `business:domain`.
+
+Sales Management is the one capability whose ODA half stays empty. The SID
+side is confirmed — the Sales Channel ABE is in the Market/Sales domain of
+GB922 — but no ODA component covers sales channel management in any source that
+can be read: `tmforum.org/oda/directory/components-map` answers `403` to every
+fetch, the `oda-directory.labs.tmforum.org` mirror `500`s or redirects into the
+same `403`, and the one readable inventory (TM Forum's repository of delivered
+components) contains none. That inventory is a subset of IG1242, so this is
+"none found in what is reachable" rather than proof of absence — recorded here
+so the next person does not repeat the four lookups. It is also why the cell
+carries no code: a web search will confidently return one (`TMFC019` for
+"Channel Management") and it is wrong — TMFC019 is Event Management, and the
+same search misnames TMFC035, which the row above already has right.
 
 Note that ODA separates Permissions Management (TMFC035) from Party Management
 (TMFC028) as distinct components. Our split is the same split, for the same
