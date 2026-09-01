@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ConfirmDialog,
   Tab,
   TabStrip,
   TopBar,
@@ -91,13 +92,29 @@ export function WorkspaceShell({
       : null;
 
   // A tab is dirty while its address has an unsaved draft; closing one confirms.
-  const handleClose = (param: string) => {
-    if (param in drafts) {
-      if (!window.confirm(t('workspace.discard'))) return;
-      clearDraft(param);
-    }
+  //
+  // The confirmation is a rendered dialog, so the decision spans two commits
+  // rather than one blocking call: `handleClose` either closes outright or
+  // parks the address, and the dialog's own buttons finish it. `window.confirm`
+  // could not be styled, blocked the thread while it was up, and in Playwright
+  // had to be driven by a global `page.on('dialog')` handler registered before
+  // the click — which is why the workspace had no end-to-end test at all.
+  const [pendingClose, setPendingClose] = useState<string | null>(null);
+
+  const commitClose = (param: string) => {
+    // Unconditional: `clearDraft` returns the state unchanged when the address
+    // holds no draft, so the clean path costs a no-op rather than a branch.
+    clearDraft(param);
     setDismissed(urlTab);
     close(param);
+  };
+
+  const handleClose = (param: string) => {
+    if (param in drafts) {
+      setPendingClose(param);
+      return;
+    }
+    commitClose(param);
   };
 
   const handleActivate = (param: string) => {
@@ -161,7 +178,7 @@ export function WorkspaceShell({
             <button
               type="button"
               onClick={() => copyDeepLink(activeParam)}
-              className="focus-ring rounded-md px-2xs py-3xs text-step-sm text-content-muted transition hover:bg-surface hover:text-content"
+              className="rounded-md px-2xs py-3xs text-step-sm text-content-muted focus-ring transition hover:bg-surface hover:text-content"
             >
               {t('workspace.copyLink')}
             </button>
@@ -189,6 +206,21 @@ export function WorkspaceShell({
       </TabStrip>
 
       <div className="min-w-0 flex-1 p-m">{body}</div>
+
+      {pendingClose && (
+        <ConfirmDialog
+          open
+          tone="destructive"
+          title={t('workspace.discardTitle')}
+          message={t('workspace.discard')}
+          confirmLabel={t('workspace.discardConfirm')}
+          onCancel={() => setPendingClose(null)}
+          onConfirm={() => {
+            commitClose(pendingClose);
+            setPendingClose(null);
+          }}
+        />
+      )}
     </div>
   );
 }

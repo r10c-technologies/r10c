@@ -108,7 +108,9 @@ export const shell: EsShell = {
     copyLink: 'Copy link',
     empty: 'No open tabs. Pick a catalog from the sidebar to start.',
     unsupported: "This tab can't be opened here.",
-    discard: 'Discard unsaved changes in this tab?',
+    discardTitle: 'Discard changes',
+    discard: 'This tab has unsaved changes. Closing it will lose them.',
+    discardConfirm: 'Discard',
   },
   storefront: {
     nav: {
