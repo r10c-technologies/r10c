@@ -31,19 +31,13 @@
     "eslint.config.cjs",
     "eslint.config.mjs"
   ],
-  "include": [
-    "src/**/*.js",
-    "src/**/*.jsx",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/pages/product-category-single-view"
-  ],
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../../implementation/product-configuration-management/react/tsconfig.lib.json"
+      "path": "../../../entifix/react/integration/tsconfig.lib.json"
     },
     {
-      "path": "../../../entifix/react/integration/tsconfig.lib.json"
+      "path": "../common/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/rest-client/tsconfig.lib.json"
@@ -55,10 +49,10 @@
       "path": "../../../entifix/ts/business/tsconfig.lib.json"
     },
     {
-      "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
+      "path": "../../../entifix/react/controls/tsconfig.lib.json"
     },
     {
-      "path": "../common/tsconfig.lib.json"
+      "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/catalog-reference/tsconfig.lib.json"

@@ -37,13 +37,22 @@
       "path": "../../../entifix/ts/i18n/tsconfig.lib.json"
     },
     {
+      "path": "../../../entifix/ts/core/tsconfig.lib.json"
+    },
+    {
       "path": "../../../entifix/ts/business/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/react/integration/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/react/controls/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/authn/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/testing-unit"
     }
   ]
 }

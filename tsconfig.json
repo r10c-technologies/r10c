@@ -49,9 +49,6 @@
       "path": "./packages/entifix/react/controls"
     },
     {
-      "path": "./packages/implementation/product-configuration-management/react"
-    },
-    {
       "path": "./packages/shells/next/marketplace-admin"
     },
     {

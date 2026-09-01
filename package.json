@@ -62,7 +62,6 @@
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-rest-client": "workspace:*",
-    "@r10c/implementation-product-configuration-management-react": "workspace:*",
     "@r10c/shells-next-common": "workspace:*",
     "@r10c/shells-next-marketplace-admin": "workspace:*",
     "@r10c/utils-ts-array": "workspace:*",

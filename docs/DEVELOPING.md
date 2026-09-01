@@ -20,7 +20,7 @@ packages/
   entifix/react/{controls,integration}                  React side of the framework
   entifix/style/                                        design tokens (CSS-only)
   business/ts/<domain>/     pure entities + use-cases (no framework)
-  implementation/<domain>/react/   React organisms for a domain
+  implementation/<domain>/react/   entity-tight React organisms (none today — see below)
   shells/next/<shell>/      Next pages + client adapters
   shells/effect/service/    shared backend base (makeService, config helpers)
   utils/ts/{array,date,object,type}   generic helpers
@@ -398,10 +398,16 @@ backend is composition — cookies, proxying, RSC aggregation — never data acc
    `packages/entifix/ts/i18n/src/resources/{es,en}/entity.ts`. Keys mirror the
    entity's own `key`, so they are derivable: `entity:product.fields.code`. See
    [I18N.md](I18N.md).
-2. **Organism** — a React component in `implementation/<domain>/react` that runs
-   the UC with `useDataLoading`.
-3. **Page** — wire the adapter(s) and any link resolver in `shells/next/<shell>`
-   (the page is the composition root).
+2. **CRUD surfaces** — one `makeEntityCrud(Ctor, { … })` call in the domain
+   shell's `catalog-crud.tsx`, naming the route, the catalog key, which adapter
+   answers for the record, what the form hides, and where any picker looks. It
+   returns the list page and the single-record page; both hosts (route and
+   workspace tab) mount the same pair. There is **no organism to write** — the
+   table and form build themselves from the entity's accessor metadata.
+   A screen the factory cannot express is still a hand-written component in
+   `shells/next/<shell>`; that is the exception, not the starting point.
+3. **Routes** — a `page.tsx` and a `[slug]/page.tsx` in the app, each a
+   nine-line re-export. Next needs a module per path, so these stay.
 4. **Backend route** — in the `-service`, provide `makeMongoRepository(db, Ctor)`
    for `EntityRepositoryTag` and serialize the result.
 5. **Config** — if it introduces a new service/URL, add a seed row in

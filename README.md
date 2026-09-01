@@ -34,7 +34,7 @@ Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over REST, Mongo and Po
 ```
 apps/                               ← runtime hosts (Next.js frontends / Effect-native services)
 packages/shells/{next,effect}/*     ← framework shells: Next pages+adapters / the effect-service base
-packages/implementation/<domain>/*  ← domain wired to a delivery mechanism (React organisms)
+packages/implementation/<domain>/*  ← domain wired to a delivery mechanism (currently unpopulated)
 packages/business/ts/<domain>       ← pure domain entities & use-cases (no framework)
 packages/entifix/{ts,react}/*       ← the entity framework (core / business / rest-client / mongo-client / sql-client / react/*)
 packages/utils/ts/*                 ← generic TS helpers

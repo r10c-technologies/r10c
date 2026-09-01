@@ -378,6 +378,42 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   Read-only members are skipped here even though `describeEntityColumns` keeps
   them, because a form shows one and cannot write it. Closes #126; #127
   `makeEntityCrud` stands on it.
+- **A catalog's pages are generated, and the implementation layer is empty
+  because of it.** `makeEntityCrud(Ctor, opts)` in **`shells-next-common`** builds
+  the list page and the single-record page for one entity and returns a named
+  descriptor (`entityConstructor`/`entityKey`/`basePath`/`ListPage`/
+  `SingleViewPage`), so #141 can derive a nav entry and a `TabKind` from the same
+  object instead of the two const maps and the literal ternary it replaces. It
+  **cannot** live beside the hooks: it needs `EntityTable`/`EntityForm` from
+  `entifix-react-controls` and `useDataLoading`/`useEntityForm`/`useEntityRecord`/
+  `useEntityMutation`/`useEntityLinkSource` from `entifix-react-integration`, and
+  `entifix:react` is absent from its own allow-list — the shell layer is the
+  lowest place that reaches both, and it already owns `useLocaleHref` and the
+  `TabRegistry`. Six options are what metadata cannot know (`basePath`,
+  `catalogKey`, the record's repository adapter, the configuration adapter,
+  `hiddenFields`, `links`); everything else is `describeEntityColumns`. Four
+  things not to re-derive. The title key is a **derived union**
+  (`EntityCatalogKey` maps the `entity` catalog down to the keys carrying both
+  `form.editTitle` and `form.newTitle`), which keeps `useT` checking it with no
+  `useTranslateKey` — the escape hatch authored copy must not use, and the only
+  thing that _could_ check it, since `@r10c/i18n-check` scans
+  `packages/business/ts` for `@useCase()` decorators and never `.tsx`; the
+  factory also asserts the key **is** the entity's `@entity({ key })`, because a
+  drifted one titles the form after another entity. `links` is **frozen at
+  factory time**, which is what makes the source loop legal at all —
+  `use-entity-link-sources.ts` carries the repo's single
+  `react-hooks/rules-of-hooks` disable, because the array is the same object
+  every render and the rule reasons syntactically about the loop instead. A
+  member in `hiddenFields` is dropped from the rendered fields, **not** from the
+  draft, so `ProductBrand.code` survives an update that never showed it. And
+  `use-entity-link-sources.ts` needs its own `'use client'`: the crud barrel is
+  re-exported from `shells-next-common`'s flat client entry, so without it a
+  Server Component importing anything from that package drags `useEffect` in and
+  the Next build fails — per-file swc keeps each file's directive, and a module
+  with hooks and no directive is the hole. `packages/implementation/*` is now
+  **empty**: every organism it held was a pass-through whose only non-generic
+  token was a class name. The layer stays declared and tagged for the first
+  component that genuinely cannot be derived. Closes #127 and #140.
 - **Adding a filter operator** touches four places or it half-works: the const
   arrays in `core/types/EntityFiltering.ts`, the token map in
   `core/src/rsql/rsql-operators.ts`, `mongo-client`'s `filter-translator.ts`, and

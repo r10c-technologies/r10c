@@ -7,8 +7,8 @@
 
 /* Class detection for workspace UI packages consumed as source (@r10c/source). */
 @source '../../../../packages/entifix/react/controls/src';
-@source '../../../../packages/implementation/product-configuration-management/react/src';
 @source '../../../../packages/shells/next/common/src';
+@source '../../../../packages/shells/next/marketplace-admin/src';
 
 html {
   -webkit-text-size-adjust: 100%;
