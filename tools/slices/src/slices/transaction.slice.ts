@@ -27,5 +27,9 @@ export const transactionSlice: SliceDeclaration = {
   exposedAPIs: ['GET /api/transaction', 'GET /api/transaction/:id'],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],
-  subscribedEvents: ['transaction.*'],
+  subscriptions: [
+    // Work: the fold is an idempotent upsert that wants exactly one replica,
+    // and it must not lose an event across its own restart.
+    { event: 'transaction.*', mode: 'work', maxAttempts: 5 },
+  ],
 };

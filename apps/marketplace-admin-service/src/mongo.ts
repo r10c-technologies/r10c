@@ -40,7 +40,11 @@ import { Layer } from 'effect';
 import { Effect } from 'effect';
 
 import { makeObservabilityLayer } from './observability';
-import { startOutboxRelay, TenantDatabasePrefix } from './outbox/relay';
+import {
+  OutboxMaxAttempts,
+  startOutboxRelay,
+  TenantDatabasePrefix,
+} from './outbox/relay';
 import { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
 import { startTracking } from './saga/tracking';
 import { seedCatalog } from './seed';
@@ -75,6 +79,13 @@ export const AppLayer = Layer.unwrapEffect(
       .getString('demoOrganizationId');
     const redisUri = yield* store.in('redis').getString('uri');
     const amqpUri = yield* store.in('rabbitmq').getString('uri');
+    // Publish attempts before the relay quarantines an entry and moves the head
+    // of the line. `getNumber` rather than a cast: this is the one config value
+    // arithmetic is done on, and `'five'` would otherwise become `NaN` and make
+    // every comparison false — quarantining nothing, silently.
+    const outboxMaxAttempts = yield* store
+      .in('outbox')
+      .getNumber('maxAttempts');
     // The `saga` store's database. A *named* handle over the same pool, beside
     // the catalog's per-request tenant handles — see `saga/store.ts` for why it
     // is a name rather than a second `MongoDatabaseLayer`.
@@ -128,6 +139,7 @@ export const AppLayer = Layer.unwrapEffect(
       // The outbox relay sweeps every `tenant_<organizationId>` database this
       // slice owns, so it needs the prefix those handles are named with.
       Layer.succeed(TenantDatabasePrefix, tenantPrefix),
+      Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),

@@ -71,6 +71,40 @@ export interface StoreDeclaration {
  */
 export type SliceStatus = 'active' | 'planned';
 
+/**
+ * How a subscriber's queue is shaped. Mirrors `SubscriptionMode` in
+ * `@r10c/entifix-transactions` — the register may not import a package, so the
+ * two literal sets are duplicated the way `settlement-management` duplicates
+ * `SalesChannelType`, and both are pinned by a spec.
+ */
+export const SUBSCRIPTION_MODES = ['work', 'broadcast'] as const;
+
+export type SubscriptionMode = (typeof SUBSCRIPTION_MODES)[number];
+
+/**
+ * One event a slice consumes, together with the delivery policy the broker
+ * enforces for it.
+ *
+ * The register already made store ownership executable; carrying the policy
+ * here makes *delivery* executable in the same way, so "how does this fail" is
+ * answered where a test can read it rather than in a review comment
+ * ([ADR 0030](../../../docs/adr/0030-failure-retry-and-quarantine-on-the-bus.md)).
+ *
+ * `dedupe` is deliberately absent until #178 builds the `TransactionInbox`:
+ * a declaration nothing enforces is the same defect as a store nothing writes.
+ */
+export interface SubscriptionDeclaration {
+  /** The event name or pattern, used verbatim as the AMQP binding. */
+  readonly event: string;
+  readonly mode: SubscriptionMode;
+  /**
+   * Deliveries the broker allows before dead-lettering the message. `work`
+   * queues carry it as `x-delivery-limit`; a `broadcast` queue has no
+   * dead-letter path, so it is declared and unenforced there.
+   */
+  readonly maxAttempts: number;
+}
+
 export interface SliceDeclaration {
   readonly name: string;
   /**
@@ -92,5 +126,10 @@ export interface SliceDeclaration {
   readonly exposedAPIs: readonly string[];
   readonly dependantAPIs: readonly string[];
   readonly publishedEvents: readonly string[];
-  readonly subscribedEvents: readonly string[];
+  /**
+   * What this slice consumes, and how a failed delivery is treated. Replaced
+   * `subscribedEvents: readonly string[]`, which said what a consumer wanted
+   * and nothing about what happens when it cannot have it.
+   */
+  readonly subscriptions: readonly SubscriptionDeclaration[];
 }

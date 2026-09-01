@@ -37,5 +37,5 @@ export const settlementSlice: SliceDeclaration = {
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: ['settlement.run.completed'],
-  subscribedEvents: ['payment.captured'],
+  subscriptions: [{ event: 'payment.captured', mode: 'work', maxAttempts: 5 }],
 };

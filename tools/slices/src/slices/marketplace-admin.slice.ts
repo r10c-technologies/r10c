@@ -47,5 +47,5 @@ export const marketplaceAdminSlice: SliceDeclaration = {
   // `published-catalog` projection. The authoring slice emits and never writes
   // that store — which is how a projection keeps exactly one writer.
   publishedEvents: ['transaction.*', 'catalog.published'],
-  subscribedEvents: [],
+  subscriptions: [],
 };

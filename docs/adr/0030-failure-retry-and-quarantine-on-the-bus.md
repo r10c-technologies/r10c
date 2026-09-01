@@ -1,6 +1,6 @@
 # 30. Failure, retry and quarantine on the bus
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-01
 
 ## Context
@@ -174,8 +174,22 @@ and a `maxAttempts: 5` nothing enforces would be the same lie in a smaller font.
 
 ## Consequences
 
-- The queue topology changes shape, so a `dev:reset` is required. Nothing runs in
-  production and there is no migration.
+- A `dev:reset` is required, though not for the reason first written here. The
+  queue topology needs none: the work queues are **new names**, and the
+  anonymous exclusive queues they replace auto-delete with their connection. What
+  does need it is the outbox's partial index — `{ createdAt: 1 }` gains
+  `quarantined: false` in its `partialFilterExpression`, and Mongo rejects a
+  re-declaration of the same key pattern with different options
+  (`IndexOptionsConflict`). `ensureOutboxIndexes` runs on every sweep and every
+  create, so a database that predates the change fails on every pass. Nothing
+  runs in production and there is no migration.
+- **`x-delivery-limit` is immutable once a queue exists.** Re-declaring a quorum
+  queue with a different `maxAttempts` fails `PRECONDITION_FAILED` and closes the
+  channel, and the connector would retry straight back into it. So a
+  subscription's ceiling is a literal beside its register declaration rather than
+  a config-service value: a tunable nothing can adopt is worse than a constant.
+  The outbox relay's ceiling _is_ configuration, because it is re-read on every
+  sweep and nothing in the broker pins it.
 - #146 can be built. Until #177 lands, a projection consumer would be built on a
   queue that loses messages across its own restart.
 - #135 stops having to invent dead-lettering. What remains there is retry with
@@ -195,8 +209,16 @@ and a `maxAttempts: 5` nothing enforces would be the same lie in a smaller font.
 
 Promoted to Accepted by #177 (durable work queues, the dead-letter exchange and
 the bounded retry), which is the commit that also lands the register's
-subscription declaration. #178 (the inbox), #179 (the relay's ceiling) and #180
-(graceful shutdown) complete it.
+subscription declaration and #179 (the relay's ceiling). #178 (the inbox) and
+#180 (graceful shutdown) complete it.
+
+Two things that commit deliberately did **not** land, because the code that
+would read them does not exist yet — the same rule this record applies to the
+register. `SubscriptionDeclaration` carries `{ event, mode, maxAttempts }` and
+**no `dedupe`**: the strategy and its required reason arrive with #178, which is
+what enforces them. And `Subscription` carries no `onPoison`, because the
+decision above gives a poison message exactly one treatment; a field with one
+legal value describes nothing.
 
 ## Amends
 

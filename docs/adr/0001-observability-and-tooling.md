@@ -135,9 +135,12 @@ instrumentation):
 - **Bus** — events published, consumed, failed and quarantined, by event name and
   subscription.
 - **Outbox** — pending depth, and the **age of the oldest unsent entry**. That
-  second one is the metric that makes a stuck relay visible: an entry that can
-  never publish blocks the ones behind it, and today nothing reports it
-  ([ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md)).
+  second one is the metric that makes a stuck relay visible. An entry that can
+  never publish no longer blocks the ones behind it — #179 gave the relay a
+  ceiling, so it is quarantined and skipped
+  ([ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md)) — but it is
+  reported only as a log line until this exporter exists, so how _many_ are
+  stuck is still unanswerable.
 - **Transactions** — count by state, so `STALE` is something a dashboard shows
   rather than something a poll discovers.
 

@@ -27,5 +27,5 @@ export const configSlice: SliceDeclaration = {
   ],
   dependantAPIs: [],
   publishedEvents: [],
-  subscribedEvents: [],
+  subscriptions: [],
 };

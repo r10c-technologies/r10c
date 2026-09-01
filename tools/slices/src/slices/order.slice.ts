@@ -41,5 +41,8 @@ export const orderSlice: SliceDeclaration = {
     'DELETE /api/reservation/:id',
   ],
   publishedEvents: ['order.placed', 'order.cancelled'],
-  subscribedEvents: ['payment.captured', 'payment.failed'],
+  subscriptions: [
+    { event: 'payment.captured', mode: 'work', maxAttempts: 5 },
+    { event: 'payment.failed', mode: 'work', maxAttempts: 5 },
+  ],
 };

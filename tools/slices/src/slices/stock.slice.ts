@@ -47,5 +47,5 @@ export const stockSlice: SliceDeclaration = {
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],
-  subscribedEvents: [],
+  subscriptions: [],
 };

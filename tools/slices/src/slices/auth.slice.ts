@@ -49,5 +49,5 @@ export const authSlice: SliceDeclaration = {
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],
-  subscribedEvents: [],
+  subscriptions: [],
 };

@@ -32,5 +32,5 @@ export const paymentSlice: SliceDeclaration = {
   exposedAPIs: ['GET|POST /api/payment', 'GET /api/payment/:id'],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: ['payment.captured', 'payment.failed'],
-  subscribedEvents: ['order.placed'],
+  subscriptions: [{ event: 'order.placed', mode: 'work', maxAttempts: 5 }],
 };

@@ -137,9 +137,12 @@ export const makeRecordingEventBus = (): RecordingEventBus => {
         published.push(event);
         return Effect.void;
       }),
-    subscribe: (pattern, handle) =>
+    subscribe: (subscription, handle) =>
       Effect.sync(() => {
-        handlers.push({ pattern, handle });
+        // Only the pattern is retained: queue durability and the delivery
+        // ceiling are broker facts with no in-memory analogue, and faking them
+        // would assert against the double rather than against a broker.
+        handlers.push({ pattern: subscription.pattern, handle });
       }),
     deliver: event =>
       Effect.forEach(

@@ -22,8 +22,10 @@ import {
   fakeRedisLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import {
+  EventSourceTag,
   makeInMemoryObservabilityLayer,
   MongoTransactionStoreLayer,
+  OutboxMaxAttempts,
   router,
   SagaDatabaseName,
   seedCatalog,
@@ -56,6 +58,7 @@ const CONFIGURATION = {
     { key: 'dbPrefix', value: 'tenant_' },
     { key: 'demoOrganizationId', value: 'e2e-organization' },
   ],
+  outbox: [{ key: 'maxAttempts', value: '5' }],
 };
 
 // The key pair itself lives in `@r10c/entifix-ts-testing-e2e` so this layer and
@@ -92,6 +95,14 @@ const MockAppLayer = (() => {
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
     Layer.succeed(SagaDatabaseName, 'transaction_manager'),
+    // The shipped layer reads this from config-service; here it is a literal
+    // beside the other resolved values, mirroring `SagaDatabaseName`. The
+    // matching entry in `CONFIGURATION` is what `GET /api/config` reports.
+    Layer.succeed(OutboxMaxAttempts, 5),
+    // The slice every event this process publishes is stamped with, matching
+    // the shipped layer. The *publishing* slice, so `marketplace-admin` — the
+    // co-deployed `transaction` slice consumes, it does not emit.
+    Layer.succeed(EventSourceTag, 'marketplace-admin'),
   );
 
   const infra = Layer.provideMerge(

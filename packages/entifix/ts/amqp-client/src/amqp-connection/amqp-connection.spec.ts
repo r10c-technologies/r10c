@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   AmqpLayer,
+  EVENTS_DLX,
   EVENTS_EXCHANGE,
   makeAmqpConnector,
 } from './amqp-connection.js';
@@ -46,16 +47,31 @@ beforeEach(() => {
 });
 
 describe('makeAmqpConnector', () => {
-  it('asserts the shared exchange on connect, so publishers can assume it', async () => {
+  it('asserts both exchanges on connect, so publishers can assume them', async () => {
     const fake = makeFakeConnection();
     connect.mockResolvedValue(fake.connection);
 
     const { connector } = makeAmqpConnector('amqp://localhost');
     await connector.withChannel(async () => undefined);
 
-    expect(fake.channel.assertExchange).toHaveBeenCalledWith(
+    // Asserted as a pair, in order, rather than with two `toHaveBeenCalledWith`
+    // checks that would each pass on the other's call. The **types** are the
+    // load-bearing half: a broker will not retype an existing exchange, so a
+    // `topic` dead-letter exchange is a mistake nothing can undo in place —
+    // the same reason 0029's fanout was abandoned rather than migrated.
+    expect(fake.channel.assertExchange).toHaveBeenCalledTimes(2);
+    expect(fake.channel.assertExchange).toHaveBeenNthCalledWith(
+      1,
       EVENTS_EXCHANGE,
       'topic',
+      { durable: true },
+    );
+    // `direct`, because a quarantine routes on the *queue's* name, not the
+    // event's.
+    expect(fake.channel.assertExchange).toHaveBeenNthCalledWith(
+      2,
+      EVENTS_DLX,
+      'direct',
       { durable: true },
     );
   });

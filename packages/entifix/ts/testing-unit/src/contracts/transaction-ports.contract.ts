@@ -3,6 +3,7 @@ import type {
   EventBus,
   LockService,
   SequenceService,
+  Subscription,
 } from '@r10c/entifix-transactions';
 import type { DomainEvent } from '@r10c/entifix-ts-core';
 import { Duration, Effect, Exit, Fiber, TestClock } from 'effect';
@@ -127,6 +128,18 @@ export interface EventBusContractHarness {
 const ANY_WIDGET_EVENT = 'contract.widget.*';
 
 /**
+ * A `work` subscription for `pattern`. The mode and the ceiling are broker
+ * facts with no bearing on routing, so a test about routing states them once
+ * here rather than repeating them at every call.
+ */
+const on = (pattern: string): Subscription => ({
+  slice: 'contract',
+  pattern,
+  mode: 'work',
+  maxAttempts: 5,
+});
+
+/**
  * A handler that records what it is given. Shared by both routing tests so the
  * "nothing was delivered" case asserts on the *same* handler the positive case
  * proves works — otherwise it could pass against a handler that was simply
@@ -172,7 +185,9 @@ export const describeEventBusContract = (
     it('delivers published events to a subscriber', async () => {
       const harness = await makeHarness();
       const received: DomainEvent[] = [];
-      await run(harness.bus.subscribe(ANY_WIDGET_EVENT, collectInto(received)));
+      await run(
+        harness.bus.subscribe(on(ANY_WIDGET_EVENT), collectInto(received)),
+      );
 
       await harness.deliver(anEvent('tx-2'));
 
@@ -186,7 +201,7 @@ export const describeEventBusContract = (
       const harness = await makeHarness();
       const received: DomainEvent[] = [];
       await run(
-        harness.bus.subscribe('contract.other.*', collectInto(received)),
+        harness.bus.subscribe(on('contract.other.*'), collectInto(received)),
       );
 
       await harness.deliver(anEvent('tx-5'));

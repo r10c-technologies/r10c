@@ -242,6 +242,18 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'dbPrefix',
     value: 'tenant_',
   },
+  // How many times the outbox relay tries to publish an entry before
+  // quarantining it and moving to the next one. Configuration rather than a
+  // constant because raising it while a flaky broker settles should not need a
+  // deploy; the next sweep reads the new value. Deliberately *not* the source
+  // of a subscription's `maxAttempts`, which becomes an immutable
+  // `x-delivery-limit` on a declared queue and so cannot be re-tuned in place.
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'outbox',
+    key: 'maxAttempts',
+    value: '5',
+  },
   // The local demo vendor. Both services need the same id — auth-service seeds
   // the `Organization`/`Membership` records under it, marketplace-admin-service
   // seeds that vendor's catalog into its database — so it is configuration
