@@ -3,14 +3,15 @@
 import { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
 import { useEntityForm } from '@r10c/entifix-react-integration';
+import { reconstructEntity } from '@r10c/entifix-ts-core';
 
 import type { ProductCategoryFormProps } from './product-category-form.types';
 
 /**
  * Create/update form for a {@link ProductCategory}. Like {@link ProductBrandForm},
  * a thin wrapper over the agnostic {@link EntityForm}: every field, label and
- * validation rule comes from the entity's own accessor metadata, and the only
- * domain code left is rebuilding the instance at submit.
+ * validation rule comes from the entity's own accessor metadata, and
+ * `reconstructEntity` derives the submit rebuild from that same metadata.
  *
  * It never learns the transport — it hands a fully-built entity to `onSave` and
  * lets the page decide what running the use-case means.
@@ -29,15 +30,10 @@ export function ProductCategoryForm({
   const form = useEntityForm<ProductCategory>({
     entityConstructor: ProductCategory,
     entity,
-    onSubmit: values => {
-      // Build a fresh instance rather than mutating the loaded one: `entity` is
-      // a prop, and every persisted field is on this form, so nothing is lost.
-      const target = new ProductCategory(values.code, values.name);
-      target.id = entity?.id;
-      target.description =
-        values.description === '' ? undefined : values.description;
-      onSave(target);
-    },
+    // A fresh instance rather than the loaded one mutated: `entity` is a prop,
+    // and every persisted field is on this form, so nothing is lost.
+    onSubmit: values =>
+      onSave(reconstructEntity(ProductCategory, values, { existing: entity })),
   });
 
   return (

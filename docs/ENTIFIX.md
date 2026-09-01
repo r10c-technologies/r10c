@@ -158,6 +158,42 @@ and that is the branch where `setIds`/`setValues` will land.
 The browser half of this (the two-mode picker, the source port) is in
 [FRONTEND.md → Editing a relation](./FRONTEND.md#editing-a-relation).
 
+### Rebuilding the whole entity: `reconstructEntity`
+
+`applyEntityLinks` writes the relations; **`reconstructEntity(Ctor, values,
+{ existing?, selection? })`** writes everything and calls it for the relation
+half. It is the last hand-written part of an entity form, derived from the same
+metadata as the fields:
+
+```ts
+onSubmit: values => onSave(reconstructEntity(ProductBrand, values, { existing: entity }));
+```
+
+Four things it decides, none of them obvious:
+
+- **Construction is zero-argument** — `new Ctor()`, then assignment through the
+  setters, the shape `buildEntityInstance` already uses to rebuild a record off
+  the wire. Entities default their constructor parameters and a required member
+  is filled by its setter a moment later, so required-ness stays one fact (the
+  `@accessor({ required })` flag) instead of a second list of argument names that
+  nothing verifies. Constructing first also hands `describeEntityColumns` a
+  sample, which is how an undeclared relation is still recognized as one.
+- **`existing` supplies the id and nothing else.** Every other member comes from
+  the draft, which was seeded from the record — so the create/update distinction
+  lives here once rather than as a `target.id = entity?.id` line per form.
+- **The coercion is the exact inverse of the form layer's `seedFieldValue`**, and
+  the two must agree or a member seeded from a record and submitted untouched
+  comes back changed. `''` reads as `undefined`, except that `boolean` is decided
+  first (`raw === 'true'`) because a cleared checkbox drafts as `''` and means
+  `false`, and `number` checks empty first because `Number('')` is `0`. Both
+  disagreements survive validation and reach the service, so the round trip is
+  pinned by a fixed-point spec in `entifix-react-integration` — the only package
+  that can import both halves.
+- **Read-only members are skipped**, unlike the column list: a form still shows
+  one, it just cannot write it back.
+
+A form that genuinely needs a custom rebuild simply does not call it.
+
 ## 3. Effect makes the use-case agnostic
 
 This is the crux. A use-case never receives a repository or a resolver as an

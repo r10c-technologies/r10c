@@ -37,7 +37,7 @@ export class ProductSpecification implements Entity {
   // #endregion
 
   // #region constructors
-  constructor(code: string, name: string) {
+  constructor(code = '', name = '') {
     this.#code = code;
     this.#name = name;
   }
