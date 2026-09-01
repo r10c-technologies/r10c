@@ -20,6 +20,20 @@ import { Context, Effect, Layer } from 'effect';
  */
 export const EVENTS_EXCHANGE = 'entifix.events';
 
+/**
+ * Where a message goes when its queue gives up on it.
+ *
+ * **`direct`**, not topic: it routes on the *queue's* name rather than on the
+ * event's, because a quarantine is per queue. One shared quarantine would mean
+ * a replay redelivers another subscriber's messages — a recovery step that
+ * causes a second incident (ADR 0030).
+ *
+ * Declared beside the event exchange rather than inside `subscribe`, so it is
+ * restored on every reconnect and a publisher-only service still agrees with
+ * the fleet about the topology it is part of.
+ */
+export const EVENTS_DLX = 'entifix.events.dlx';
+
 /** Re-establishes a consumer against a freshly opened channel. */
 export type AmqpConsumerSetup = (channel: amqp.Channel) => Promise<void>;
 
@@ -101,6 +115,7 @@ export const makeAmqpConnector = (uri: string) => {
     await channel.assertExchange(EVENTS_EXCHANGE, 'topic', {
       durable: true,
     });
+    await channel.assertExchange(EVENTS_DLX, 'direct', { durable: true });
 
     // Forget this connection the moment it breaks, so the next call reopens
     // instead of writing into a dead socket. The handlers are also what keep an

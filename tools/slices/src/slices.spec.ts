@@ -13,6 +13,7 @@ import {
   declaredUseCases,
   sourceFiles,
 } from './source-scan.js';
+import { SUBSCRIPTION_MODES } from './types.js';
 
 const allStores = SLICES.flatMap(slice =>
   slice.stores.map(store => ({ slice, store })),
@@ -490,9 +491,9 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
 
   const allDeclared = SLICES.flatMap(slice => [
     ...slice.publishedEvents.map(name => ({ slice, name, side: 'published' })),
-    ...slice.subscribedEvents.map(name => ({
+    ...slice.subscriptions.map(subscription => ({
       slice,
-      name,
+      name: subscription.event,
       side: 'subscribed',
     })),
   ]);
@@ -524,7 +525,7 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
    */
   it('gives every subscribed event a slice that declares it published', () => {
     for (const slice of SLICES) {
-      for (const wanted of slice.subscribedEvents) {
+      for (const { event: wanted } of slice.subscriptions) {
         const publishers = SLICES.filter(candidate =>
           candidate.publishedEvents.some(
             offered => matches(offered, wanted) || matches(wanted, offered),
@@ -543,7 +544,7 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
 
   it('subscribes no slice to its own events', () => {
     for (const slice of SLICES) {
-      for (const wanted of slice.subscribedEvents) {
+      for (const { event: wanted } of slice.subscriptions) {
         const own = slice.publishedEvents.some(
           offered => matches(offered, wanted) || matches(wanted, offered),
         );
@@ -556,6 +557,40 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
           `slice '${slice.name}' both publishes and subscribes '${wanted}'. ` +
             'The register then cannot say which slice a consumer depends on.',
         ).toBe(false);
+      }
+    }
+  });
+
+  /**
+   * The half of a subscription that is not "what do I want" but "what happens
+   * when I cannot have it". Delivery policy is declared here rather than left
+   * to the adapter's defaults, because a consumer that silently discards a
+   * failed message looks identical to one that never received it
+   * (ADR 0030).
+   *
+   * `maxAttempts` is bounded on both sides on purpose: 0 would dead-letter a
+   * message the broker has not yet tried, and an unbounded ceiling is the
+   * infinite redelivery the record exists to stop.
+   */
+  it('gives every subscription a delivery policy', () => {
+    for (const slice of SLICES) {
+      for (const subscription of slice.subscriptions) {
+        expect(
+          SUBSCRIPTION_MODES.includes(subscription.mode),
+          `slice '${slice.name}' subscribes '${subscription.event}' in mode ` +
+            `'${subscription.mode}', which is not one of ` +
+            `${SUBSCRIPTION_MODES.join(' | ')}.`,
+        ).toBe(true);
+
+        expect(
+          Number.isInteger(subscription.maxAttempts) &&
+            subscription.maxAttempts >= 1 &&
+            subscription.maxAttempts <= 20,
+          `slice '${slice.name}' subscribes '${subscription.event}' with ` +
+            `maxAttempts ${subscription.maxAttempts}. It is the queue's ` +
+            '`x-delivery-limit`, so it must be a whole number of deliveries ' +
+            'between 1 and 20.',
+        ).toBe(true);
       }
     }
   });

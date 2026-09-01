@@ -29,9 +29,42 @@ export interface FakeAmqpChannel {
     exchange: string;
     pattern: string;
   }>;
-  /** Messages acked and nacked, so the failure policy can be asserted. */
+  /**
+   * Every exchange the adapter declared, with its type. Recorded because the
+   * dead-letter exchange is `direct` while the event exchange is `topic`, and a
+   * broker will not retype an existing exchange — declaring the wrong type is a
+   * failure that only appears against a real broker.
+   */
+  readonly exchanges: ReadonlyArray<{
+    exchange: string;
+    type: string;
+    options: Record<string, unknown> | undefined;
+  }>;
+  /**
+   * Every queue the adapter declared, with the arguments it declared it with.
+   * The arguments *are* the delivery policy — `x-queue-type`,
+   * `x-delivery-limit`, `x-dead-letter-exchange` — so a fake that swallowed
+   * them would let a queue with no retry ceiling and no dead-letter path pass
+   * every test, which is the exact defect ADR 0030 exists to close.
+   */
+  readonly queues: ReadonlyArray<{
+    queue: string;
+    options: Record<string, unknown> | undefined;
+  }>;
+  /** Messages acked, so the success policy can be asserted. */
   readonly acked: FakeAmqpMessage[];
-  readonly nacked: FakeAmqpMessage[];
+  /**
+   * Messages nacked, **with their flags**. `requeue` is the whole distinction
+   * between a transient failure the broker should retry and a poison message it
+   * should quarantine at once, so recording only that a nack happened is how
+   * "dead-letters a failed message" stayed a passing test for a bus that
+   * discarded it.
+   */
+  readonly nacked: ReadonlyArray<{
+    message: FakeAmqpMessage;
+    allUpTo: boolean;
+    requeue: boolean;
+  }>;
   /** The prefetch the adapter asked for — 1, or the fold races. */
   readonly prefetchCount: number | undefined;
   /**
@@ -65,8 +98,21 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
   }> = [];
   const bindings: Array<{ queue: string; exchange: string; pattern: string }> =
     [];
+  const exchanges: Array<{
+    exchange: string;
+    type: string;
+    options: Record<string, unknown> | undefined;
+  }> = [];
+  const queues: Array<{
+    queue: string;
+    options: Record<string, unknown> | undefined;
+  }> = [];
   const acked: FakeAmqpMessage[] = [];
-  const nacked: FakeAmqpMessage[] = [];
+  const nacked: Array<{
+    message: FakeAmqpMessage;
+    allUpTo: boolean;
+    requeue: boolean;
+  }> = [];
   let consumer: ((message: FakeAmqpMessage | null) => void) | undefined;
   let boundQueue: string | undefined;
   let prefetchCount: number | undefined;
@@ -90,13 +136,20 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
       guard();
       prefetchCount = count;
     },
-    assertExchange: async (exchange: string) => {
+    assertExchange: async (
+      exchange: string,
+      type: string,
+      options?: Record<string, unknown>,
+    ) => {
       guard();
+      exchanges.push({ exchange, type, options });
       return { exchange };
     },
-    assertQueue: async (queue: string) => {
+    assertQueue: async (queue: string, options?: Record<string, unknown>) => {
       guard();
-      return { queue: queue === '' ? 'amq.gen-fake' : queue };
+      const name = queue === '' ? 'amq.gen-fake' : queue;
+      queues.push({ queue: name, options });
+      return { queue: name };
     },
     bindQueue: async (queue: string, exchange: string, pattern: string) => {
       guard();
@@ -114,8 +167,8 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
     ack: (message: FakeAmqpMessage) => {
       acked.push(message);
     },
-    nack: (message: FakeAmqpMessage) => {
-      nacked.push(message);
+    nack: (message: FakeAmqpMessage, allUpTo: boolean, requeue: boolean) => {
+      nacked.push({ message, allUpTo, requeue });
     },
     close: async () => {
       guard();
@@ -162,6 +215,12 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
     },
     get bindings() {
       return bindings;
+    },
+    get exchanges() {
+      return exchanges;
+    },
+    get queues() {
+      return queues;
     },
     get acked() {
       return acked;

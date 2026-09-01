@@ -552,15 +552,22 @@ describe('makeFakeRedis', () => {
 interface FakeChannel {
   publish(exchange: string, routingKey: string, content: Buffer): boolean;
   prefetch(count: number): Promise<void>;
-  assertExchange(exchange: string): Promise<{ exchange: string }>;
-  assertQueue(queue: string): Promise<{ queue: string }>;
+  assertExchange(
+    exchange: string,
+    type: string,
+    options?: Record<string, unknown>,
+  ): Promise<{ exchange: string }>;
+  assertQueue(
+    queue: string,
+    options?: Record<string, unknown>,
+  ): Promise<{ queue: string }>;
   bindQueue(queue: string, exchange: string, pattern: string): Promise<void>;
   consume(
     queue: string,
     handler: (message: { content: Buffer } | null) => void,
   ): Promise<{ consumerTag: string }>;
   ack(message: { content: Buffer }): void;
-  nack(message: { content: Buffer }): void;
+  nack(message: { content: Buffer }, allUpTo: boolean, requeue: boolean): void;
   close(): Promise<void>;
 }
 
@@ -595,7 +602,7 @@ describe('makeFakeAmqpChannel', () => {
   it('asserts an exchange and a named queue', async () => {
     const channel = channelOf(makeFakeAmqpChannel());
 
-    expect(await channel.assertExchange('events')).toEqual({
+    expect(await channel.assertExchange('events', 'topic')).toEqual({
       exchange: 'events',
     });
     expect(await channel.assertQueue('work')).toEqual({ queue: 'work' });
@@ -731,10 +738,54 @@ describe('makeFakeAmqpChannel', () => {
     const message = { content: Buffer.from('{}') };
 
     channelOf(fake).ack(message);
-    channelOf(fake).nack(message);
+    channelOf(fake).nack(message, false, true);
 
     expect(fake.acked).toEqual([message]);
-    expect(fake.nacked).toEqual([message]);
+    // The flags, not just the fact: `requeue` is the whole difference between
+    // "retry this" and "quarantine it", and a fake that dropped them let a bus
+    // that discarded every failure pass a test named for dead-lettering.
+    expect(fake.nacked).toEqual([{ message, allUpTo: false, requeue: true }]);
+  });
+
+  it('records every exchange it declared, with its type', async () => {
+    const fake = makeFakeAmqpChannel();
+
+    await channelOf(fake).assertExchange('entifix.events', 'topic', {
+      durable: true,
+    });
+    await channelOf(fake).assertExchange('entifix.events.dlx', 'direct', {
+      durable: true,
+    });
+
+    expect(fake.exchanges).toEqual([
+      { exchange: 'entifix.events', type: 'topic', options: { durable: true } },
+      {
+        exchange: 'entifix.events.dlx',
+        type: 'direct',
+        options: { durable: true },
+      },
+    ]);
+  });
+
+  it('records every queue it declared, with the arguments that are its policy', async () => {
+    const fake = makeFakeAmqpChannel();
+    const args = {
+      'x-queue-type': 'quorum',
+      'x-delivery-limit': 5,
+      'x-dead-letter-exchange': 'entifix.events.dlx',
+    };
+
+    await channelOf(fake).assertQueue('slice.event', {
+      durable: true,
+      arguments: args,
+    });
+    // A server-named queue still records under the name the broker hands back.
+    await channelOf(fake).assertQueue('', { exclusive: true });
+
+    expect(fake.queues).toEqual([
+      { queue: 'slice.event', options: { durable: true, arguments: args } },
+      { queue: 'amq.gen-fake', options: { exclusive: true } },
+    ]);
   });
 
   it('closes', async () => {
@@ -749,7 +800,10 @@ describe('makeFakeAmqpChannel', () => {
       (channel: FakeChannel) => channel.publish('e', '', Buffer.from('{}')),
     ],
     ['prefetch', (channel: FakeChannel) => channel.prefetch(1)],
-    ['assertExchange', (channel: FakeChannel) => channel.assertExchange('e')],
+    [
+      'assertExchange',
+      (channel: FakeChannel) => channel.assertExchange('e', 'topic'),
+    ],
     ['assertQueue', (channel: FakeChannel) => channel.assertQueue('q')],
     ['bindQueue', (channel: FakeChannel) => channel.bindQueue('q', 'e', '#')],
     [

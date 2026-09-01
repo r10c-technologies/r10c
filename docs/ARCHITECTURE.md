@@ -686,24 +686,35 @@ not change an existing exchange's type. `@r10c/slices` now asserts that every
 subscribed event has a slice declaring it published, that no slice subscribes to
 its own, and that every name is routable.
 
-**What happens when a message cannot be processed is decided and not yet
-built** ([ADR 0030](adr/0030-failure-retry-and-quarantine-on-the-bus.md)). Today
-a failed handler and a malformed payload both end in `nack(message, false,
-false)` against a queue with no dead-letter exchange, so the message is
-**discarded**; and a subscriber's exclusive queue dies with its connection, so
-anything published while it is down is dropped by the broker even though the
-outbox recorded it as sent — the durability chain ends one hop short of the
-consumer. 0030 separates three failure classes (transient, retried by the broker
-under `x-delivery-limit`; poison, quarantined without a retry, because a payload
-that cannot be deserialized never becomes deserializable; and a business
-failure, which is not the bus's concern at all), splits a subscription into
-`work` (a named durable quorum queue, shared by replicas) and `broadcast` (the
-exclusive queue, for a consumer every replica must receive), routes failures to
-`entifix.events.dlx` with a `<queue>.quarantine` per queue, adds a
-`TransactionInbox` claiming `event.id` alongside the side effect, gives the
-outbox relay a ceiling so one unpublishable entry stops blocking the rest, and
-specifies graceful shutdown. #177–#180 build it, and #146 is blocked on the
-first.
+**What happens when a message cannot be processed is decided, and most of it is
+built** ([ADR 0030](adr/0030-failure-retry-and-quarantine-on-the-bus.md)).
+Until #177 a failed handler and a malformed payload both ended in
+`nack(message, false, false)` against a queue with no dead-letter exchange, so
+the message was **discarded**; and a subscriber's exclusive queue died with its
+connection, so anything published while it was down was dropped by the broker
+even though the outbox had recorded it sent — the durability chain ended one hop
+short of the consumer.
+
+0030 separates three failure classes: **transient**, requeued so the broker
+counts the redelivery against `x-delivery-limit` and dead-letters at the
+ceiling; **poison**, quarantined without a single retry, because a payload that
+cannot be deserialized never becomes deserializable; and a **business failure**,
+which is not the bus's concern at all, having been processed successfully and
+produced its own event. A subscription declares its shape — `work`, a named
+durable quorum queue replicas share and that accumulates while the consumer is
+gone, or `broadcast`, the exclusive queue for a consumer every replica must
+receive — and failures route to `entifix.events.dlx` with a
+`<queue>.quarantine` per queue, never one shared, since replaying a mixed
+quarantine redelivers another subscriber's messages. The queue is named after
+the **subscribing** slice, which is not `EventSourceTag`: that names the
+emitter, and one deployment hosts several slices. On the publisher side the
+outbox relay has a ceiling, so an entry that can never publish is quarantined
+and skipped rather than blocking that tenant's outbox forever.
+
+#177 and #179 built that, and #146 is unblocked. What remains is #178's
+`TransactionInbox` — claiming `event.id` in the same storage transaction as the
+side effect, which is why a subscription carries no `dedupe` declaration yet —
+and #180's graceful shutdown.
 
 The engine gains two more consumers as the business domains land, both
 cross-plane and both already designed: **catalog publication**, which projects a

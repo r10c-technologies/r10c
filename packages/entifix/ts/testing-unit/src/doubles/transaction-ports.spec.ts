@@ -1,3 +1,4 @@
+import type { Subscription } from '@r10c/entifix-transactions';
 import type { DomainEvent } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -71,6 +72,14 @@ describe('makeInMemorySequenceService', () => {
 describe('makeRecordingEventBus', () => {
   const ALL = '#';
 
+  /** A `work` subscription for `pattern`; the double retains only the pattern. */
+  const on = (pattern: string): Subscription => ({
+    slice: 'widget-slice',
+    pattern,
+    mode: 'work',
+    maxAttempts: 5,
+  });
+
   const anEvent = (id: string, name = 'widget.created'): DomainEvent => ({
     name,
     id,
@@ -85,14 +94,14 @@ describe('makeRecordingEventBus', () => {
     const first: string[] = [];
     const second: string[] = [];
     await Effect.runPromise(
-      bus.subscribe(ALL, event =>
+      bus.subscribe(on(ALL), event =>
         Effect.sync(() => {
           first.push(event.id);
         }),
       ),
     );
     await Effect.runPromise(
-      bus.subscribe('widget.*', event =>
+      bus.subscribe(on('widget.*'), event =>
         Effect.sync(() => {
           second.push(event.id);
         }),
@@ -111,7 +120,7 @@ describe('makeRecordingEventBus', () => {
     const bus = makeRecordingEventBus();
     const received: string[] = [];
     await Effect.runPromise(
-      bus.subscribe('gadget.*', event =>
+      bus.subscribe(on('gadget.*'), event =>
         Effect.sync(() => {
           received.push(event.id);
         }),
@@ -136,7 +145,7 @@ describe('makeRecordingEventBus', () => {
   it('surfaces a handler failure to the caller of deliver', async () => {
     const bus = makeRecordingEventBus();
     await Effect.runPromise(
-      bus.subscribe(ALL, () =>
+      bus.subscribe(on(ALL), () =>
         Effect.fail(new Error('handler blew up') as never),
       ),
     );

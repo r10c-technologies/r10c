@@ -131,6 +131,11 @@ const makeWorld = (
       ),
     pending: () => Effect.succeed([]),
     markSent: () => Effect.void,
+    // The engine never publishes, so it never records a failed publish either.
+    // Dying rather than resolving keeps that true: a call here means the engine
+    // grew a relay responsibility it must not have.
+    recordFailure: () =>
+      Effect.die('the engine must not publish; the relay records failures'),
   };
 
   // The engine must never reach the broker — every event it produces goes to

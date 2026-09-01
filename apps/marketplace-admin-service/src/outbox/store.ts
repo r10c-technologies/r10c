@@ -43,6 +43,12 @@ export const outboxDocument = (event: DomainEvent): OutboxEntry => ({
   eventId: event.id,
   event,
   sent: false,
+  // Defaulted here rather than at each write site because there are two of
+  // them: the relay's `enqueue`, and the transaction handler's own insert
+  // inside the entity's Mongo session. An entry missing `attempts` would sort
+  // into `pending` and then fail `attempts + 1` arithmetic on a `undefined`.
+  attempts: 0,
+  quarantined: false,
   createdAt: event.at,
 });
 
@@ -55,7 +61,15 @@ export const outboxDocument = (event: DomainEvent): OutboxEntry => ({
  * `eventId` — `<transactionId>:<step>` for a transaction — so the claim and the
  * bus's deduplication key are one value rather than two that can drift. The
  * partial one keeps the relay's `pending` query cheap once the collection fills
- * with sent entries.
+ * with sent entries; it filters on `quarantined` too, so an entry past its
+ * ceiling leaves the index rather than being read and skipped forever.
+ *
+ * Mongo rejects a `createIndex` that reuses a key pattern with a different
+ * `partialFilterExpression` (`IndexOptionsConflict`), and this runs on every
+ * sweep and every create. A database that predates the `quarantined` filter
+ * therefore fails here on every pass — which is loud only because the sweep now
+ * logs what it catches. The fix is `pnpm run <app>:dev:reset`; nothing runs in
+ * production, so there is no migration to write.
  */
 export const ensureOutboxIndexes = (db: Db) =>
   Effect.tryPromise({
@@ -64,7 +78,7 @@ export const ensureOutboxIndexes = (db: Db) =>
       await collection.createIndex({ eventId: 1 }, { unique: true });
       await collection.createIndex(
         { createdAt: 1 },
-        { partialFilterExpression: { sent: false } },
+        { partialFilterExpression: { sent: false, quarantined: false } },
       );
     },
     catch: error =>
@@ -116,7 +130,7 @@ export const makeMongoOutbox = (db: Db): TransactionOutbox => {
         // for the same transaction and the tracker folds them in order.
         try: () =>
           collection
-            .find({ sent: false }, WITHOUT_MONGO_ID)
+            .find({ sent: false, quarantined: false }, WITHOUT_MONGO_ID)
             .sort({ createdAt: 1 })
             .limit(limit)
             .toArray(),
@@ -135,6 +149,26 @@ export const makeMongoOutbox = (db: Db): TransactionOutbox => {
           ),
         catch: error =>
           fail('Failed to mark outbox entry sent', error, {
+            eventId: entry.eventId,
+          }),
+      }).pipe(Effect.asVoid),
+
+    recordFailure: (entry, error, quarantine) =>
+      Effect.tryPromise({
+        // `$inc` rather than a read-modify-write: two relays can be draining the
+        // same tenant (the request's inline drain and the daemon sweep), and an
+        // absolute write would let one of them lose the other's attempt and
+        // stretch the ceiling indefinitely.
+        try: () =>
+          collection.updateOne(
+            { eventId: entry.eventId },
+            {
+              $inc: { attempts: 1 },
+              $set: { lastError: error, quarantined: quarantine },
+            },
+          ),
+        catch: cause =>
+          fail('Failed to record an outbox publish failure', cause, {
             eventId: entry.eventId,
           }),
       }).pipe(Effect.asVoid),

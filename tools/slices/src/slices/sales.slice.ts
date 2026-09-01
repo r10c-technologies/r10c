@@ -50,5 +50,5 @@ export const salesSlice: SliceDeclaration = {
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],
-  subscribedEvents: [],
+  subscriptions: [],
 };

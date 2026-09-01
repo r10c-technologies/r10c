@@ -55,7 +55,7 @@ import {
   type CatalogHandlerOptions,
   makeCatalogTransactionHandler,
 } from '../catalog-transaction-handler';
-import { drainOutbox } from '../outbox/relay';
+import { drainOutbox, OutboxMaxAttempts } from '../outbox/relay';
 import { ensureOutboxIndexes, makeMongoOutbox } from '../outbox/store';
 
 /**
@@ -299,6 +299,7 @@ export const createTransactionRoute = <
     const store = yield* ConfigurationRepositoryTag;
     const sequence = yield* SequenceServiceTag;
     const bus = yield* EventBusTag;
+    const maxAttempts = yield* OutboxMaxAttempts;
 
     const request = yield* HttpServerRequest.HttpServerRequest;
     const body = yield* request.json;
@@ -337,7 +338,14 @@ export const createTransactionRoute = <
         Effect.provideService(CommandTag, command),
         Effect.provideService(TransactionHandlerTag, handler),
         Effect.provideService(TransactionOutboxTag, outbox),
-        Effect.andThen(Effect.ignore(drainOutbox(outbox, bus))),
+        Effect.andThen(
+          Effect.ignore(
+            drainOutbox(outbox, bus, {
+              maxAttempts,
+              database: db.databaseName,
+            }),
+          ),
+        ),
         Effect.forkDaemon,
       );
     }

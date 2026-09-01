@@ -598,41 +598,67 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   process); asserting _emission_ would red-build until #145, so that check ships
   with the commit that makes it true. Amends ADR 0028: every one of its decisions
   stands, only the dedup key and `OutboxEntry`'s shape move.
-- **A failed message is discarded today, and ADR 0030 is the decision that stops
-  it — read it before touching the bus's failure paths.** Measured, not
-  suspected: `nack(message, false, false)` in `amqp-event-bus.ts` runs against a
-  queue with **no dead-letter exchange anywhere in the repo**, so a failed
-  handler and a malformed payload both drop the message with nothing to replay
-  from; the code comment and the spec name both said "dead-letter", which is how
-  it survived review. And `assertQueue('', { exclusive: true })` dies with its
-  connection, so anything published while a subscriber is down is dropped by the
-  broker **although the outbox already marked it sent** — ADR 0028's durability
-  chain ends at the exchange, one hop short. That is an M1 defect already
-  designed in: #146's projection would lose an offering across its own restart
-  and nothing could notice, which is why #146 is `blocked_by` #177. The
-  decisions, none of them built yet: **three failure classes** — transient
-  (retried by the broker under `x-delivery-limit`), poison (quarantined with
-  **zero** retries, because a payload `readEventEnvelope` rejects never becomes
-  readable), and a business failure, which is _not the bus's concern at all_
-  since that message was processed successfully and already produced a `failed`
-  event; a subscription splits into **`work`** (named durable quorum queue,
-  replicas share it) and **`broadcast`** (the exclusive queue 0029 built, for
-  #136's socket push where every replica must receive) — 0029 did not pick the
-  wrong queue, it picked broadcast semantics for a workload that is work; one
-  **`entifix.events.dlx` direct** exchange with a `<queue>.quarantine` per queue,
-  never one shared, because replaying a mixed quarantine redelivers another
-  subscriber's messages; a **`TransactionInbox`** claiming `event.id` in the same
-  storage transaction as the side effect, which is what turns `relay.ts`'s
-  unenforced "a consumer that is not idempotent may not subscribe" into a
-  declaration; a **ceiling on the relay** — `drainOutbox` stops at the first
-  failure and the sweep swallows it, so one unpublishable entry blocks that
-  tenant's outbox head-of-line forever, invisibly; and **graceful shutdown**,
-  because an unacked message at SIGTERM is the same redelivery question. Quorum
-  queues and `x-delivery-limit` exist on the 3.13 broker, so none of this waits
-  on the 4.x bump (#181). Delayed redelivery is deliberately **not** built. The
-  register change (`subscribedEvents` → `subscriptions` with a policy, failing
-  the build without one) ships in #177's commit, never earlier — declared config
-  no code reads is the phantom store in another costume.
+- **The bus has a failure vocabulary now: delivered, retrying, quarantined —
+  read [ADR 0030](docs/adr/0030-failure-retry-and-quarantine-on-the-bus.md)
+  before touching either side of it.** What it replaced, measured rather than
+  suspected: `nack(message, false, false)` ran against a queue with **no
+  dead-letter exchange anywhere in the repo**, so a failed handler and a
+  malformed payload both dropped the message with nothing to replay from — the
+  code comment and the spec name both said "dead-letter", which is how it
+  survived review — and `assertQueue('', { exclusive: true })` died with its
+  connection, so anything published while a subscriber restarted was dropped by
+  the broker **although the outbox had already marked it sent**. Three failure
+  classes, and they must not be conflated: **transient** (the handler threw —
+  `nack(…, requeue: true)`, and the broker counts the redelivery against
+  `x-delivery-limit`), **poison** (`readEventEnvelope` rejects the payload, or it
+  is not even JSON — `nack(…, requeue: false)`, straight to quarantine with
+  **zero** retries, because a payload that cannot be deserialized never becomes
+  deserializable and retrying it only spends the budget of the messages behind
+  it), and a **business failure**, which is _not the bus's concern at all_ since
+  that message was processed successfully and already produced a `failed` event.
+  A subscription is `{ slice, pattern, mode, maxAttempts }`. **`work`** binds a
+  named durable quorum queue that replicas share and that accumulates while the
+  consumer is gone; **`broadcast`** keeps the exclusive queue 0029 built, for
+  #136's socket push where every replica must receive — 0029 did not pick the
+  wrong queue, it picked broadcast semantics for a workload that is work.
+  Failures dead-letter to one **`entifix.events.dlx` direct** exchange with a
+  `<queue>.quarantine` per queue, never one shared, because replaying a mixed
+  quarantine redelivers another subscriber's messages. Five things not to
+  re-derive. **`slice` is the _subscribing_ slice, never `EventSourceTag`**,
+  which names the emitter: one deployment hosts several slices (the tracker is
+  `transaction`, co-deployed into marketplace-admin-service), so deriving the
+  queue name from the publisher files a consumer's queue under whoever shares
+  its process, and splitting the slice back out to `:3103` would then rename a
+  durable queue and abandon whatever was still in it. **`x-delivery-limit` is
+  immutable once the queue exists** — re-declaring with a different
+  `maxAttempts` fails `PRECONDITION_FAILED` and closes the channel, with no safe
+  automatic recovery — so a subscription's ceiling is a **literal beside its
+  register declaration**, not config-service: a tunable nothing can adopt is
+  worse than a constant. The relay's ceiling _is_ config (`outbox.maxAttempts`),
+  because it is re-read every sweep and nothing in the broker pins it; it is
+  also the repo's first `getNumber` caller, deliberately, since `'five'` cast to
+  a number makes every comparison false and quarantines nothing, silently. The
+  **quarantine queue is declared before the queue that dead-letters into it**, a
+  `direct` exchange dropping what it cannot route. And **`JSON.parse` belongs
+  inside the Effect**: outside it, a non-JSON body threw synchronously into
+  amqplib's callback and the message was never even nacked — a third poison
+  class with no path at all. On the publisher side `OutboxEntry` gained
+  `attempts`/`lastError`/`quarantined`: past the ceiling an entry is quarantined
+  and **skipped**, so the head of the line moves, where before one unpublishable
+  entry blocked that tenant's outbox forever and invisibly. It logs rather than
+  counts — the count is #186's and needs a meter provider — and the sweep's
+  `catchAll` logs too, which is what makes the `IndexOptionsConflict` below
+  visible instead of silent. `pending` now filters `quarantined: false` and so
+  does the partial index, which is why this change needs a **`dev:reset`**: the
+  queues are new names and auto-delete, but Mongo rejects re-declaring
+  `{ createdAt: 1 }` with different options. Delayed redelivery is deliberately
+  **not** built, and the 3.13 broker already has quorum queues, so none of this
+  waited on the 4.x bump (#181). Still open, and the reason the register carries
+  **no `dedupe` field yet**: #178's `TransactionInbox` claiming `event.id` in the
+  same storage transaction as the side effect — until it exists every consumer
+  must be naturally idempotent, and both of today's are — and #180's graceful
+  shutdown, because an unacked message at SIGTERM is the same redelivery
+  question.
 - **A service will describe its own wiring, and the point is the diff**
   ([ADR 0031](docs/adr/0031-a-service-describes-its-own-wiring.md), Proposed).
   `GET /api/$service` — stores opened, events published, subscriptions bound,
