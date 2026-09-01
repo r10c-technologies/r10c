@@ -47,6 +47,11 @@ export interface CatalogHandlerOptions {
  * session, and a session cannot live in the framework-free `EntityRepository`
  * port. `rollback` deletes by the transaction id (which doubles as the entity
  * id), so it is idempotent whether or not the write landed.
+ *
+ * `source` is the publishing slice's name, stamped onto every event this handler
+ * records. It is a constructor argument rather than a `TransactionHandlerTag`
+ * dependency for the same reason the rest are: the handler's methods are
+ * `R = never`, so everything it needs is closed over at the composition site.
  */
 export function makeCatalogTransactionHandler<T extends Codeable>(
   client: MongoClient,
@@ -55,6 +60,7 @@ export function makeCatalogTransactionHandler<T extends Codeable>(
   sequence: SequenceService,
   entityConstructor: EntityConstructor<T>,
   options: CatalogHandlerOptions,
+  source: string,
 ): TransactionHandler {
   const repository = makeMongoRepository(db, entityConstructor);
 
@@ -138,9 +144,10 @@ export function makeCatalogTransactionHandler<T extends Codeable>(
                   );
                 await db
                   .collection(OUTBOX_COLLECTION)
-                  .insertOne(outboxDocument(completedEvent(command, outcome)), {
-                    session,
-                  });
+                  .insertOne(
+                    outboxDocument(completedEvent(command, outcome, source)),
+                    { session },
+                  );
               });
             } finally {
               await session.endSession();

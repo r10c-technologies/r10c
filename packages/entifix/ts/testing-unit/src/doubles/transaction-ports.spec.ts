@@ -1,4 +1,4 @@
-import type { TransactionEvent } from '@r10c/entifix-transactions';
+import type { DomainEvent } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -69,29 +69,32 @@ describe('makeInMemorySequenceService', () => {
 });
 
 describe('makeRecordingEventBus', () => {
-  const anEvent = (transactionId: string): TransactionEvent => ({
-    transactionId,
-    entity: 'widget',
-    state: 'PENDING',
-    step: 'accepted',
+  const ALL = '#';
+
+  const anEvent = (id: string, name = 'widget.created'): DomainEvent => ({
+    name,
+    id,
+    source: 'widget-slice',
     at: '2026-01-01T00:00:00.000Z',
+    correlationId: id,
+    data: { entity: 'widget' },
   });
 
-  it('fans a delivery out to every subscriber', async () => {
+  it('fans a delivery out to every matching subscriber', async () => {
     const bus = makeRecordingEventBus();
     const first: string[] = [];
     const second: string[] = [];
     await Effect.runPromise(
-      bus.subscribe(event =>
+      bus.subscribe(ALL, event =>
         Effect.sync(() => {
-          first.push(event.transactionId);
+          first.push(event.id);
         }),
       ),
     );
     await Effect.runPromise(
-      bus.subscribe(event =>
+      bus.subscribe('widget.*', event =>
         Effect.sync(() => {
-          second.push(event.transactionId);
+          second.push(event.id);
         }),
       ),
     );
@@ -102,6 +105,24 @@ describe('makeRecordingEventBus', () => {
     expect(second).toEqual(['tx-1']);
   });
 
+  // The double routes, because the broker does. A subscriber bound to one
+  // domain must not be handed another's traffic and left to filter it.
+  it('skips a subscriber whose pattern does not match', async () => {
+    const bus = makeRecordingEventBus();
+    const received: string[] = [];
+    await Effect.runPromise(
+      bus.subscribe('gadget.*', event =>
+        Effect.sync(() => {
+          received.push(event.id);
+        }),
+      ),
+    );
+
+    await Effect.runPromise(bus.deliver(anEvent('tx-1')));
+
+    expect(received).toEqual([]);
+  });
+
   it('fails one publish on demand, then recovers', async () => {
     const bus = makeRecordingEventBus();
     bus.failNextPublish();
@@ -109,13 +130,15 @@ describe('makeRecordingEventBus', () => {
     await runFailure(bus.publish(anEvent('tx-1')));
     await Effect.runPromise(bus.publish(anEvent('tx-2')));
 
-    expect(bus.published.map(event => event.transactionId)).toEqual(['tx-2']);
+    expect(bus.published.map(event => event.id)).toEqual(['tx-2']);
   });
 
   it('surfaces a handler failure to the caller of deliver', async () => {
     const bus = makeRecordingEventBus();
     await Effect.runPromise(
-      bus.subscribe(() => Effect.fail(new Error('handler blew up') as never)),
+      bus.subscribe(ALL, () =>
+        Effect.fail(new Error('handler blew up') as never),
+      ),
     );
 
     const error = await runFailure(bus.deliver(anEvent('tx-1')));

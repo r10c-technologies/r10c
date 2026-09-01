@@ -7,6 +7,7 @@ import {
   LockHandlesTag,
   OutcomeTag,
 } from '../mixins/transaction-mixins';
+import { EventSourceTag } from '../ports/event-source';
 import type { LockHandle } from '../ports/lock-service';
 import {
   executeUCFactory,
@@ -38,8 +39,8 @@ import {
  *
  * The order is deliberate: validate, then **claim, then lock**. The claim is the
  * outbox insert for the `accepted` event, and its uniqueness on
- * `transactionId + step` is what makes the client-generated id an idempotency
- * key — a replayed command is recognised here, before a lock is taken and
+ * the message id (`<transactionId>:<step>`) is what makes the client-generated
+ * id an idempotency key — a replayed command is recognised here, before a lock is taken and
  * before any work is forked. Locking first would make a retry queue behind its
  * own original.
  */
@@ -47,10 +48,11 @@ export function acceptTransaction() {
   return Effect.gen(function* () {
     const command = yield* CommandTag;
     const outbox = yield* TransactionOutboxTag;
+    const source = yield* EventSourceTag;
 
     yield* validateUCFactory();
 
-    const claim = yield* outbox.enqueue(acceptedEvent(command));
+    const claim = yield* outbox.enqueue(acceptedEvent(command, source));
     if (claim === 'duplicate') {
       return { status: 'duplicate' } as const;
     }
@@ -82,6 +84,7 @@ export function completeTransaction(handles: readonly LockHandle[]) {
   return Effect.gen(function* () {
     const command = yield* CommandTag;
     const outbox = yield* TransactionOutboxTag;
+    const source = yield* EventSourceTag;
 
     const free = freeUCFactory().pipe(
       Effect.provideService(LockHandlesTag, handles),
@@ -99,7 +102,9 @@ export function completeTransaction(handles: readonly LockHandle[]) {
               // Best-effort: the transaction already failed, and a store that
               // cannot take the failure record must not turn into an unhandled
               // defect in a forked daemon. The recovery sweep is what notices.
-              Effect.ignore(outbox.enqueue(failedEvent(command, error))),
+              Effect.ignore(
+                outbox.enqueue(failedEvent(command, error, source)),
+              ),
             ),
           ),
       }),

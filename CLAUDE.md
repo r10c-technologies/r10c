@@ -555,10 +555,49 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   database beside the entity (single-database ⇒ single-shard; and an outbox holds
   event payloads, so a control-plane one would drag a whole offering out of the
   tenant plane once `catalog.published` uses it). Delivery is **at-least-once**:
-  every consumer must dedupe on `transactionId`. Two relay speeds — the committing
+  a consumer that must not fold twice dedupes on `event.id`, never
+  `transactionId` — one transaction emits three messages, so the correlation id
+  would make `completed` look like a redelivery of `accepted`. Two relay speeds — the committing
   request drains its own handle inline, a daemon sweeps `tenant_*` for what it
   missed. This does **not** weaken ADR 0022's "never one transaction": the
   transaction is one domain, one slice, one database.
+- **Every bus message is an `event` envelope, and the exchange routes**
+  ([ADR 0029](docs/adr/0029-the-event-envelope-and-a-routed-bus.md)). The
+  `{ meta, data }` split was already right; what `meta` lacked were the facts a
+  _bus_ message needs, so it gained an optional `event` block (`name`, `id`,
+  `source`, `at`, `correlationId`) and `meta.entity` became **optional** — it was
+  a required string meaning the target class on HTTP and the subject on the bus,
+  it has no honest value for `settlement.run.completed`, and grepping shows
+  **nothing ever read it** (only `meta.type` is, twice, in `read-envelope.ts`),
+  which is how it drifted into two meanings unnoticed. The rule that settles
+  every future field: **`meta` describes the message, `data` describes the
+  occurrence** — so `correlationId` is metadata and an outcome's `code` is not.
+  Four things not to re-derive. `EventBus` is typed on `DomainEvent`, not
+  `TransactionEvent`, because a bus that knew one publisher's payload left
+  ADR 0009's `catalog.published` needing a second framing and #136's
+  `EntityChangeEvent` a third. **`source` is the emitting slice** — not the
+  deployment (co-deployment moves it, ADR 0021) and not the domain (a slice holds
+  several) — provided as `EventSourceTag` at each composition root so a service
+  that forgets it fails to build its layer instead of publishing events signed by
+  nobody; and it is for routing, observability and audit, **never a consumer
+  branch**, which is the one transferable half of .NET's `(sender, eventArgs)`,
+  whose `sender` is bare `object` precisely to make depending on it awkward.
+  **One dedup key, `event.id` = `<transactionId>:<step>`** — exactly what the
+  outbox's unique index enforces, so the idempotency claim and the dedup key are
+  one value rather than two that drift; `TransactionEvent` keeps its own
+  `transactionId`/`at` as payload members anyway, the way CloudEvents duplicates
+  `subject`, because a payload must stand alone once unwrapped. And the exchange
+  is **`entifix.events`, type topic**, routing key = `event.name`, with
+  `subscribe(pattern, handler)` binding the string `tools/slices/` already
+  declared as `subscribedEvents` — fanout meant every subscriber received every
+  publisher's traffic and filtered in its own handler, which is the fault #136
+  warns about for sockets, already live. A broker will not retype an exchange, so
+  the old `entifix.transactions` fanout is abandoned rather than migrated and a
+  `dev:reset` clears it. `@r10c/slices` asserts a publisher exists for every
+  subscribed name (planned slices count — ADR 0022 records ownership before a
+  process); asserting _emission_ would red-build until #145, so that check ships
+  with the commit that makes it true. Amends ADR 0028: every one of its decisions
+  stands, only the dedup key and `OutboxEntry`'s shape move.
 - **The AMQP connection heals itself, and nothing else in `amqplib` does.**
   Measured: a channel opened at boot and held in a `Layer` is dead **permanently**
   once the broker restarts — publishes fail forever and a subscriber stops

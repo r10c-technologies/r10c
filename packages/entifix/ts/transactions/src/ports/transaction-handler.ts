@@ -28,7 +28,9 @@ export interface TransactionHandler {
    * Assign the code and persist — the actual write.
    *
    * **The implementation must write the `completed` outbox entry in the same
-   * storage transaction as its state change.** The engine deliberately records
+   * storage transaction as its state change**, as a full `OutboxEntry` whose
+   * `event` is the `DomainEvent` `completedEvent` builds and whose `eventId` is
+   * that event's `id`. The engine deliberately records
    * nothing on the success path, because only an implementation holds the
    * driver session that can make those two writes one fact; an engine-level
    * record would be a second dual write, announcing a state change that may

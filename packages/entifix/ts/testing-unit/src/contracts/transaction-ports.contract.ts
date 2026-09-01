@@ -3,8 +3,8 @@ import type {
   EventBus,
   LockService,
   SequenceService,
-  TransactionEvent,
 } from '@r10c/entifix-transactions';
+import type { DomainEvent } from '@r10c/entifix-ts-core';
 import { Duration, Effect, Exit, Fiber, TestClock } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -118,24 +118,42 @@ export const describeSequenceServiceContract = (
 export interface EventBusContractHarness {
   bus: EventBus;
   /** Delivers `event` to whatever subscribed, as the broker would. */
-  deliver(event: TransactionEvent): Promise<void>;
+  deliver(event: DomainEvent): Promise<void>;
   /** Everything the bus published, decoded back into events. */
-  published(): TransactionEvent[];
+  published(): DomainEvent[];
 }
 
-const anEvent = (transactionId: string): TransactionEvent => ({
-  transactionId,
-  entity: 'contract-widget',
-  state: 'PENDING',
-  step: 'accepted',
+/** Every subscription in this contract, unless a test says otherwise. */
+const ANY_WIDGET_EVENT = 'contract.widget.*';
+
+/**
+ * A handler that records what it is given. Shared by both routing tests so the
+ * "nothing was delivered" case asserts on the *same* handler the positive case
+ * proves works — otherwise it could pass against a handler that was simply
+ * never wired up.
+ */
+const collectInto = (sink: DomainEvent[]) => (event: DomainEvent) =>
+  Effect.sync(() => {
+    sink.push(event);
+  });
+
+const anEvent = (
+  id: string,
+  name = 'contract.widget.created',
+): DomainEvent => ({
+  name,
+  id,
+  source: 'contract-slice',
   at: new Date('2026-01-01T00:00:00.000Z').toISOString(),
+  correlationId: id,
+  data: { entity: 'contract-widget' },
 });
 
 /**
  * What every {@link EventBus} must guarantee: what goes out comes back
- * unchanged, and subscribers receive deliveries. The transports differ wildly
- * (an array here, a fanout exchange in RabbitMQ) — the observable contract does
- * not.
+ * unchanged, subscribers receive deliveries, and a subscriber receives only what
+ * its pattern matches. The transports differ wildly (an array here, a topic
+ * exchange in RabbitMQ) — the observable contract does not.
  */
 export const describeEventBusContract = (
   name: string,
@@ -153,18 +171,27 @@ export const describeEventBusContract = (
 
     it('delivers published events to a subscriber', async () => {
       const harness = await makeHarness();
-      const received: TransactionEvent[] = [];
-      await run(
-        harness.bus.subscribe(event =>
-          Effect.sync(() => {
-            received.push(event);
-          }),
-        ),
-      );
+      const received: DomainEvent[] = [];
+      await run(harness.bus.subscribe(ANY_WIDGET_EVENT, collectInto(received)));
 
       await harness.deliver(anEvent('tx-2'));
 
-      expect(received.map(event => event.transactionId)).toEqual(['tx-2']);
+      expect(received.map(event => event.id)).toEqual(['tx-2']);
+    });
+
+    // Routing is the transport's job. A bus that hands every subscriber every
+    // event lets a consumer pass while receiving traffic it never bound to —
+    // which is precisely the fault the fanout exchange had.
+    it('delivers nothing to a subscriber whose pattern does not match', async () => {
+      const harness = await makeHarness();
+      const received: DomainEvent[] = [];
+      await run(
+        harness.bus.subscribe('contract.other.*', collectInto(received)),
+      );
+
+      await harness.deliver(anEvent('tx-5'));
+
+      expect(received).toEqual([]);
     });
 
     it('preserves publication order', async () => {
@@ -173,7 +200,7 @@ export const describeEventBusContract = (
       await run(harness.bus.publish(anEvent('tx-3')));
       await run(harness.bus.publish(anEvent('tx-4')));
 
-      expect(harness.published().map(event => event.transactionId)).toEqual([
+      expect(harness.published().map(event => event.id)).toEqual([
         'tx-3',
         'tx-4',
       ]);

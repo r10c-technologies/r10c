@@ -1,10 +1,14 @@
 import {
+  type DomainEvent,
   EntifixConnError,
   EntifixLockError,
   EntifixTransactionError,
 } from '@r10c/entifix-ts-core';
 import { Effect, Exit, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
+
+/** The slice every event in this file is published by. */
+const TEST_SOURCE = 'test-slice';
 
 import type { TransactionCommand } from '../contracts/command.js';
 import type { TransactionEvent } from '../contracts/event.js';
@@ -18,6 +22,7 @@ import {
   OutcomeTag,
 } from '../mixins/transaction-mixins.js';
 import { EventBusTag } from '../ports/event-bus.js';
+import { EventSourceTag } from '../ports/event-source.js';
 import { type LockHandle, LockServiceTag } from '../ports/lock-service.js';
 import {
   type TransactionHandler,
@@ -62,7 +67,7 @@ const makeWorld = (
   const calls: string[] = [];
   const held: LockHandle[] = [];
   const released: LockHandle[] = [];
-  const recorded: TransactionEvent[] = [];
+  const recorded: DomainEvent<TransactionEvent>[] = [];
 
   const handler: TransactionHandler = {
     validate: received => {
@@ -109,17 +114,18 @@ const makeWorld = (
   // builds some of these effects ahead of running them, and a port that acted
   // on construction would report an ordering no real adapter produces.
   const outbox = {
-    enqueue: (event: TransactionEvent) =>
+    enqueue: (event: DomainEvent) =>
       Effect.suspend(
         (): Effect.Effect<OutboxEnqueueResult, EntifixConnError> => {
-          calls.push(`enqueue:${event.step}`);
+          const payload = event.data as TransactionEvent;
+          calls.push(`enqueue:${payload.step}`);
           if (script.enqueueFails) {
             return Effect.fail(new EntifixConnError('outbox unreachable'));
           }
           if (script.duplicate) {
             return Effect.succeed('duplicate');
           }
-          recorded.push(event);
+          recorded.push(event as DomainEvent<TransactionEvent>);
           return Effect.succeed('enqueued');
         },
       ),
@@ -142,6 +148,7 @@ const makeWorld = (
     Layer.succeed(TransactionOutboxTag, outbox),
     Layer.succeed(EventBusTag, bus),
     Layer.succeed(CommandTag, command),
+    Layer.succeed(EventSourceTag, TEST_SOURCE),
   );
 
   return { calls, held, released, recorded, layer };
@@ -261,11 +268,20 @@ describe('acceptTransaction', () => {
     Effect.runSync(acceptTransaction().pipe(Effect.provide(world.layer)));
 
     expect(world.recorded).toHaveLength(1);
+    // The message is addressed and signed as well as carried: `name` is what the
+    // broker routes on, `id` is what a consumer deduplicates on, and `source`
+    // says which slice published it.
     expect(world.recorded[0]).toMatchObject({
-      transactionId: 'tx-1',
-      entity: 'product',
-      state: 'PENDING',
-      step: 'accepted',
+      name: 'transaction.accepted',
+      id: 'tx-1:accepted',
+      source: TEST_SOURCE,
+      correlationId: 'tx-1',
+      data: {
+        transactionId: 'tx-1',
+        entity: 'product',
+        state: 'PENDING',
+        step: 'accepted',
+      },
     });
   });
 
@@ -319,7 +335,7 @@ describe('acceptTransaction', () => {
     );
 
     expect(error).toBeInstanceOf(EntifixLockError);
-    expect(world.recorded.map(event => event.step)).toEqual(['accepted']);
+    expect(world.recorded.map(event => event.data.step)).toEqual(['accepted']);
   });
 });
 
@@ -358,9 +374,10 @@ describe('completeTransaction', () => {
       'release:product:code',
     ]);
     expect(world.recorded[0]).toMatchObject({
-      state: 'FAILED',
-      step: 'failed',
-      error: 'write failed',
+      name: 'transaction.failed',
+      id: 'tx-1:failed',
+      source: TEST_SOURCE,
+      data: { state: 'FAILED', step: 'failed', error: 'write failed' },
     });
   });
 
@@ -392,8 +409,7 @@ describe('completeTransaction', () => {
 
     expect(Exit.isSuccess(exit)).toBe(true);
     expect(world.recorded[0]).toMatchObject({
-      step: 'failed',
-      error: 'write failed',
+      data: { step: 'failed', error: 'write failed' },
     });
     expect(world.calls).toContain('release:product:code');
   });

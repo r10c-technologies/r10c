@@ -111,22 +111,51 @@ describe('the fake infrastructure layers', () => {
     expect(driver.read('sequence:widget')).toBe('1');
   });
 
-  it('provides an amqp channel that records what was published', async () => {
+  // Through `withChannel`, because that is how the adapter reaches a channel:
+  // the tag carries a connector that reopens on demand, never a held channel.
+  it('provides an amqp connector that records what was published', async () => {
     const { driver, layer } = fakeAmqpLayer();
 
     await Effect.runPromise(
       Effect.gen(function* () {
-        const channel = yield* AmqpChannelTag;
-        channel.publish(
-          'transactions',
-          '',
-          Buffer.from(JSON.stringify({ hello: 'world' })),
+        const connector = yield* AmqpChannelTag;
+        yield* Effect.promise(() =>
+          connector.withChannel(async channel => {
+            channel.publish(
+              'entifix.events',
+              'widget.created',
+              Buffer.from(JSON.stringify({ hello: 'world' })),
+            );
+          }),
         );
       }).pipe(Effect.provide(layer)),
     );
 
     expect(driver.published).toEqual([
-      { exchange: 'transactions', body: { hello: 'world' } },
+      {
+        exchange: 'entifix.events',
+        routingKey: 'widget.created',
+        body: { hello: 'world' },
+      },
+    ]);
+  });
+
+  it('registers a consumer against the fake channel', async () => {
+    const { driver, layer } = fakeAmqpLayer();
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const connector = yield* AmqpChannelTag;
+        yield* Effect.promise(() =>
+          connector.addConsumer(async channel => {
+            await channel.bindQueue('q', 'entifix.events', 'widget.*');
+          }),
+        );
+      }).pipe(Effect.provide(layer)),
+    );
+
+    expect(driver.bindings).toEqual([
+      { queue: 'q', exchange: 'entifix.events', pattern: 'widget.*' },
     ]);
   });
 

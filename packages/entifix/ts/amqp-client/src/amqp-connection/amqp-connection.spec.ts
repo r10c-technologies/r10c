@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   AmqpLayer,
+  EVENTS_EXCHANGE,
   makeAmqpConnector,
-  TRANSACTION_EXCHANGE,
 } from './amqp-connection.js';
 
 const connect = vi.hoisted(() => vi.fn());
@@ -54,8 +54,8 @@ describe('makeAmqpConnector', () => {
     await connector.withChannel(async () => undefined);
 
     expect(fake.channel.assertExchange).toHaveBeenCalledWith(
-      TRANSACTION_EXCHANGE,
-      'fanout',
+      EVENTS_EXCHANGE,
+      'topic',
       { durable: true },
     );
   });

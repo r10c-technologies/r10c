@@ -623,8 +623,12 @@ engine's success path therefore records nothing, which a spec asserts. The outbo
 collection lives in the **tenant** database beside the entity: same database
 keeps the transaction single-shard, and an outbox holds event payloads, so a
 control-plane one would move a whole offering out of the tenant plane the day
-`catalog.published` rides it. Delivery is **at-least-once** — every consumer must
-dedupe on `transactionId`, which the tracker's `upsertFromEvent` already does.
+`catalog.published` rides it. Delivery is **at-least-once** — a consumer that
+must not fold twice dedupes on the message's own `event.id`, never on
+`transactionId`: one transaction emits up to three messages, so keying on the
+correlation id would treat `completed` as a redelivery of `accepted` and drop the
+outcome. The tracker needs nothing, because `upsertFromEvent` is an idempotent
+upsert rather than a dedupe.
 
 This needs a replica set, so local Mongo runs as a single-node one; production is
 three nodes. Dev has no elections and no lag, so two rules are in the code rather
@@ -633,6 +637,30 @@ than left to production: drive every transaction with `session.withTransaction`
 retry), and keep the Redis sequence draw **outside** that retried callback or a
 retry burns a code. `directConnection=true` on the local URI is local only —
 against a hosted set it would defeat failover.
+
+**Every bus message is an `event` envelope, and the exchange routes**
+([ADR 0029](adr/0029-the-event-envelope-and-a-routed-bus.md)). `meta` gained an
+optional `event` block — `name`, `id`, `source`, `at`, `correlationId` — and
+`meta.entity` became optional with it, because a message about a settlement _run_
+has no entity to name. The dividing rule is that **`meta` describes the message
+and `data` describes the occurrence**, which is why a correlation id is metadata
+and an outcome's `code` is not.
+
+`EventBus` is typed on `DomainEvent` rather than on `TransactionEvent`, so
+ADR 0009's catalog publication travels in the same envelope rather than inventing
+a second framing. `source` is the emitting **slice** — not the deployment, which
+co-deployment moves, and not the domain, of which a slice may hold several — and
+it is for routing, observability and audit, **never a consumer branch**: a
+handler that behaves differently depending on who published re-couples the
+services the bus decoupled.
+
+The exchange is `entifix.events`, type **topic**, published to with `event.name`
+as the routing key; `subscribe` takes the pattern the subscriber declared in
+`tools/slices/`, so the register is executable at the transport instead of prose
+about it. It is a new exchange rather than a redeclared one because a broker will
+not change an existing exchange's type. `@r10c/slices` now asserts that every
+subscribed event has a slice declaring it published, that no slice subscribes to
+its own, and that every name is routable.
 
 The engine gains two more consumers as the business domains land, both
 cross-plane and both already designed: **catalog publication**, which projects a

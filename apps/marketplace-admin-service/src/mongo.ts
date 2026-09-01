@@ -6,6 +6,7 @@ import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
+import { EventSourceTag } from '@r10c/entifix-transactions';
 import {
   AmqpEventBusLayer,
   AmqpHealthProbeLayer,
@@ -45,6 +46,8 @@ import { startTracking } from './saga/tracking';
 import { seedCatalog } from './seed';
 
 const SERVICE_NAME = 'marketplace-admin-service';
+/** The slice publishing this process's events (ADR 0020, `tools/slices/`). */
+const SLICE_NAME = 'marketplace-admin';
 const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 
 /**
@@ -117,6 +120,11 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
       Layer.succeed(SagaDatabaseName, sagaDbName),
+      // Stamped onto every event this process publishes. The **slice**, not the
+      // deployment: the `transaction` slice is co-deployed here, and a source
+      // that named the process would relabel marketplace-admin's events the day
+      // the two split apart again.
+      Layer.succeed(EventSourceTag, SLICE_NAME),
       // The outbox relay sweeps every `tenant_<organizationId>` database this
       // slice owns, so it needs the prefix those handles are named with.
       Layer.succeed(TenantDatabasePrefix, tenantPrefix),
@@ -128,8 +136,8 @@ export const AppLayer = Layer.unwrapEffect(
     // Transaction ports built from those connections (lock/sequence over Redis,
     // event bus over AMQP), merged back so the routes can use every service.
     // `MongoTransactionStoreLayer` is the co-deployed `transaction` slice's
-    // store — the same fanout exchange this process publishes to, consumed
-    // through the tracker's own exclusive queue.
+    // store — the same topic exchange this process publishes to, consumed
+    // through the tracker's own exclusive queue bound to `transaction.*`.
     const infra = Layer.provideMerge(
       Layer.mergeAll(
         RedisLockServiceLayer,

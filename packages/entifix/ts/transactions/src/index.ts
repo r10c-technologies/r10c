@@ -5,6 +5,7 @@ export * from './contracts/record';
 export * from './engine/run-transaction';
 export * from './mixins/transaction-mixins';
 export * from './ports/event-bus';
+export * from './ports/event-source';
 export * from './ports/lock-service';
 export * from './ports/sequence-service';
 export * from './ports/transaction-handler';

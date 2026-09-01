@@ -2,8 +2,23 @@ import { EntifixConnError } from '@r10c/entifix-ts-core';
 import * as amqp from 'amqplib';
 import { Context, Effect, Layer } from 'effect';
 
-/** The fanout exchange every transaction event is broadcast through. */
-export const TRANSACTION_EXCHANGE = 'entifix.transactions';
+/**
+ * The topic exchange every domain event is published to, keyed on the event's
+ * own name (`transaction.completed`, `catalog.published`).
+ *
+ * Topic rather than fanout, and a **new name** rather than a redeclaration: a
+ * broker will not change an existing exchange's type, so the old
+ * `entifix.transactions` fanout had to be left behind rather than migrated. It
+ * lingers, unbound and unused, in any dev broker that predates this — a
+ * `dev:reset` is what clears it.
+ *
+ * Fanout meant every subscriber received every publisher's traffic and threw
+ * away what it did not want, in its own handler. That put the routing rule in
+ * the one place no register can check it, and it does not survive a second
+ * publisher: ADR 0009's catalog projection would have been folding transaction
+ * events to find its own.
+ */
+export const EVENTS_EXCHANGE = 'entifix.events';
 
 /** Re-establishes a consumer against a freshly opened channel. */
 export type AmqpConsumerSetup = (channel: amqp.Channel) => Promise<void>;
@@ -83,7 +98,7 @@ export const makeAmqpConnector = (uri: string) => {
   const open = async (): Promise<Live> => {
     const connection = await amqp.connect(uri);
     const channel = await connection.createChannel();
-    await channel.assertExchange(TRANSACTION_EXCHANGE, 'fanout', {
+    await channel.assertExchange(EVENTS_EXCHANGE, 'topic', {
       durable: true,
     });
 

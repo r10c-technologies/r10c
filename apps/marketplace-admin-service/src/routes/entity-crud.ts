@@ -9,6 +9,7 @@ import {
   CommandTag,
   completeTransaction,
   EventBusTag,
+  EventSourceTag,
   readCommandEnvelope,
   SequenceServiceTag,
   TransactionHandlerTag,
@@ -310,6 +311,7 @@ export const createTransactionRoute = <
     yield* ensureOutboxIndexes(db);
     const outbox = makeMongoOutbox(db);
 
+    const source = yield* EventSourceTag;
     const handler = makeCatalogTransactionHandler(
       client,
       db,
@@ -317,6 +319,7 @@ export const createTransactionRoute = <
       sequence,
       entityConstructor,
       options,
+      source,
     );
 
     const accepted = yield* acceptTransaction().pipe(

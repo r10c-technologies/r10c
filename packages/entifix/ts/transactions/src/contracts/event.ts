@@ -1,8 +1,8 @@
 import {
+  type DomainEvent,
   type EntifixEnvelope,
   type EntifixError,
   type EntityId,
-  makeEnvelope,
   readEnvelope,
 } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
@@ -17,9 +17,16 @@ export type TransactionState = 'PENDING' | 'COMPLETED' | 'FAILED' | 'STALE';
 export type TransactionStep = 'accepted' | 'completed' | 'failed';
 
 /**
- * What a service publishes to the bus as its transaction progresses. The
- * the saga tracker is a passive consumer of these — it never dispatches
- * work, it only records what the events tell it.
+ * What a service reports as its transaction progresses — the **payload** of a
+ * {@link DomainEvent}, not the message itself. The saga tracker is a passive
+ * consumer of these: it never dispatches work, it only records what the events
+ * tell it.
+ *
+ * `transactionId` and `at` are also reachable as the message's `correlationId`
+ * and `at`. That duplication is deliberate and standard (CloudEvents' `subject`
+ * does the same): metadata is what the *transport* routes and deduplicates on,
+ * and the payload has to stand on its own for a consumer that has already
+ * unwrapped it.
  */
 export interface TransactionEvent {
   transactionId: string;
@@ -39,51 +46,92 @@ export interface TransactionEvent {
 
 const now = (): string => new Date().toISOString();
 
+/** The register's name for a transaction message: `transaction.completed`. */
+export const transactionEventName = (step: TransactionStep): string =>
+  `transaction.${step}`;
+
+/**
+ * The message id for one step of one transaction — and therefore the
+ * deduplication key.
+ *
+ * It is the transaction id **and** the step, never the transaction id alone.
+ * One transaction emits up to three messages, so a consumer keying on the
+ * transaction id would treat `completed` as a redelivery of `accepted` and drop
+ * the outcome. The outbox's unique index is on exactly this value, which is what
+ * keeps the idempotency claim and the dedup key the same fact rather than two
+ * that can drift.
+ */
+export const transactionEventId = (
+  transactionId: string,
+  step: TransactionStep,
+): string => `${transactionId}:${step}`;
+
+/** Wraps a payload as a routable message from `source`. */
+const message = (
+  source: string,
+  data: TransactionEvent,
+): DomainEvent<TransactionEvent> => ({
+  name: transactionEventName(data.step),
+  id: transactionEventId(data.transactionId, data.step),
+  source,
+  at: data.at,
+  correlationId: data.transactionId,
+  data,
+});
+
 export const acceptedEvent = (
   command: TransactionCommand,
-): TransactionEvent => ({
-  transactionId: command.transactionId,
-  entity: command.entity,
-  state: 'PENDING',
-  step: 'accepted',
-  at: now(),
-});
+  source: string,
+): DomainEvent<TransactionEvent> =>
+  message(source, {
+    transactionId: command.transactionId,
+    entity: command.entity,
+    state: 'PENDING',
+    step: 'accepted',
+    at: now(),
+  });
 
 export const completedEvent = (
   command: TransactionCommand,
   outcome: TransactionOutcome,
-): TransactionEvent => ({
-  transactionId: command.transactionId,
-  entity: command.entity,
-  state: 'COMPLETED',
-  step: 'completed',
-  code: outcome.code,
-  entityId: outcome.entityId,
-  at: now(),
-});
+  source: string,
+): DomainEvent<TransactionEvent> =>
+  message(source, {
+    transactionId: command.transactionId,
+    entity: command.entity,
+    state: 'COMPLETED',
+    step: 'completed',
+    code: outcome.code,
+    entityId: outcome.entityId,
+    at: now(),
+  });
 
 export const failedEvent = (
   command: TransactionCommand,
   error: unknown,
-): TransactionEvent => ({
-  transactionId: command.transactionId,
-  entity: command.entity,
-  state: 'FAILED',
-  step: 'failed',
-  error: error instanceof Error ? error.message : String(error),
-  at: now(),
-});
+  source: string,
+): DomainEvent<TransactionEvent> =>
+  message(source, {
+    transactionId: command.transactionId,
+    entity: command.entity,
+    state: 'FAILED',
+    step: 'failed',
+    error: error instanceof Error ? error.message : String(error),
+    at: now(),
+  });
 
 export type TransactionEventEnvelope = EntifixEnvelope<TransactionEvent>;
 
-/** Frames an event as a `transactionEvent` envelope for the bus. */
-export function makeTransactionEventEnvelope(
-  event: TransactionEvent,
-): TransactionEventEnvelope {
-  return makeEnvelope('transactionEvent', event.entity, event);
-}
-
-/** Parses a `transactionEvent` envelope off the bus. */
+/**
+ * Parses a `transactionEvent` envelope off the **HTTP** surface.
+ *
+ * Not the bus — bus messages are `event` envelopes and are read with core's
+ * `readEventEnvelope`. This one survives for the `202` accept body and the
+ * tracker's read routes, which frame a transaction *record* under the
+ * `transactionEvent` discriminant. A record is not an event and that is a wart,
+ * but unpicking it changes the browser's accept-shape assertion and the e2e
+ * mocks, so it is tracked separately.
+ */
 export function readTransactionEventEnvelope(
   body: unknown,
 ): Effect.Effect<TransactionEvent, EntifixError> {

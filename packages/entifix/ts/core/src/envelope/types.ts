@@ -11,6 +11,13 @@ import type { EntityLoadRequest } from '../types/EntityLoadRequest';
  * `transactionEvent`s. Their `data` shapes live in `@r10c/entifix-transactions`
  * — core only owns the discriminant so every artifact agrees on it.
  *
+ * `event` is what actually rides the bus, and it is deliberately not
+ * `transactionEvent`: once a message can be `catalog.published` as easily as
+ * `transaction.completed`, naming the envelope after one publisher's flow is
+ * wrong. `transactionEvent` survives for the HTTP surface that frames a
+ * transaction *record* — the `202` body and the tracker's read routes — which
+ * is a separate wart, not a synonym for this one.
+ *
  * `entityMetadata` is the same extension made once more, for the action model:
  * its `data` is an {@link EntityMetadataDocument}, which core does own because
  * both the service that computes it and the controls that render it are already
@@ -21,6 +28,7 @@ export type EntifixEnvelopeType =
   | 'entityCollection'
   | 'entityPage'
   | 'command'
+  | 'event'
   | 'transactionEvent'
   | 'entityMetadata';
 
@@ -37,11 +45,72 @@ export interface EntifixEnvelopeLink {
   method?: EntifixEnvelopeMethod;
 }
 
+/**
+ * The facts a message carries about *itself*, as opposed to about what
+ * happened. Present only when the envelope is a bus message.
+ *
+ * The split rule: `meta` describes the message, `data` describes the
+ * occurrence. So `correlationId` belongs here and an outcome's `code` does not.
+ *
+ * **`source` is never a consumer branch.** It is there for routing,
+ * observability and audit. A handler that behaves differently depending on who
+ * published re-couples the two services the bus decoupled — which is why .NET's
+ * canonical `(sender, eventArgs)` types its sender as bare `object`, making the
+ * dependency awkward on purpose. TypeScript cannot reproduce that friction, so
+ * here it is a rule rather than a type.
+ */
+export interface EntifixEventMeta {
+  /**
+   * What happened, in the register's vocabulary: `catalog.published`,
+   * `transaction.completed`. Declared in `tools/slices/*.slice.ts` as
+   * `publishedEvents`/`subscribedEvents`, and used verbatim as the AMQP routing
+   * key — which is what makes a subscriber's declared interest and its actual
+   * queue binding the same string.
+   */
+  name: string;
+  /**
+   * Unique per message, and **the** deduplication key. Delivery is
+   * at-least-once, so a consumer that must not fold twice keys on this.
+   *
+   * Not `correlationId`: one flow emits several messages, so correlating and
+   * deduplicating are different questions. Keying dedup on the correlation id
+   * makes a transaction's `completed` look like a duplicate of its `accepted`.
+   */
+  id: string;
+  /** The emitting **slice** (ADR 0020's ownership noun), e.g. `marketplace-admin`. */
+  source: string;
+  /** ISO-8601 emission time. */
+  at: string;
+  /** Ties every message of one flow together — a transaction id, a saga id. */
+  correlationId?: string;
+}
+
 export interface EntifixEnvelopeMeta {
   type: EntifixEnvelopeType;
-  /** The target entity's `key` (falling back to its class name). */
-  entity: string;
+  /**
+   * The target entity's `key` (falling back to its class name).
+   *
+   * Optional, because a bus message need not be about an entity at all —
+   * `settlement.run.completed` is about a run. What a message *is* lives in
+   * {@link EntifixEventMeta.name}; this stays the entity label the HTTP arm
+   * routes on.
+   */
+  entity?: string;
   links?: EntifixEnvelopeLink[];
+  /** Present only on a bus message. */
+  event?: EntifixEventMeta;
+}
+
+/**
+ * One message on the bus: its own metadata, plus the payload describing what
+ * happened.
+ *
+ * Generic in the payload so a publisher keeps its own shape —
+ * `DomainEvent<TransactionEvent>` today, `DomainEvent<PublishedOffering>` when
+ * ADR 0009's projection event lands — without the transport learning either.
+ */
+export interface DomainEvent<TData = unknown> extends EntifixEventMeta {
+  data: TData;
 }
 
 /**
@@ -74,3 +143,11 @@ export type EntityCollectionEnvelope = EntifixEnvelope<SerializedEntity[]>;
 export type EntityPageEnvelope<TEntity extends Entity = Entity> =
   EntifixEnvelope<SerializedEntityPage<TEntity>>;
 export type EntityMetadataEnvelope = EntifixEnvelope<EntityMetadataDocument>;
+
+/**
+ * A bus message on the wire. `meta.event` is always populated, and
+ * `readEventEnvelope` is what proves it before a consumer sees the payload.
+ */
+export type EventEnvelope<TData = unknown> = EntifixEnvelope<TData> & {
+  meta: EntifixEnvelopeMeta & { event: EntifixEventMeta };
+};

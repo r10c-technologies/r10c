@@ -10,8 +10,10 @@ import type { Entity, EntityConstructor } from '../types/Entity';
 import type { EntityPage } from '../types/EntityPage';
 import { envelopeEntityName } from './make-envelope';
 import type {
+  DomainEvent,
   EntifixEnvelope,
   EntifixEnvelopeType,
+  EntifixEventMeta,
   SerializedEntityPage,
 } from './types';
 
@@ -193,3 +195,44 @@ export const readEntityMetadataEnvelope = <TEntity extends Entity>(
     }
     return document;
   });
+
+/** Every member `meta.event` must carry for a message to be routable at all. */
+const REQUIRED_EVENT_META = ['name', 'id', 'source', 'at'] as const;
+
+/**
+ * Reads a bus message back into a {@link DomainEvent}.
+ *
+ * The metadata is validated rather than defaulted, and that is the point: a
+ * message missing `id` cannot be deduplicated and a message missing `name`
+ * cannot be routed, so both are failures a consumer must see rather than
+ * absences it silently works around. It is the same call
+ * {@link readEntityMetadataEnvelope} makes — a broken payload fails loudly
+ * instead of arriving half-populated.
+ *
+ * Note this does not validate `data`. The transport has no idea what a
+ * `catalog.published` payload should look like, and inventing an opinion here
+ * is how the bus would start knowing about domains.
+ */
+export function readEventEnvelope<TData = unknown>(
+  body: unknown,
+): Effect.Effect<DomainEvent<TData>, EntifixBuildError> {
+  return Effect.gen(function* () {
+    const envelope = yield* readEnvelope<TData>(body, 'event', 'event');
+    const event = envelope.meta.event;
+    const missing = REQUIRED_EVENT_META.filter(
+      member => typeof event?.[member] !== 'string' || event[member] === '',
+    );
+    if (missing.length > 0) {
+      return yield* Effect.fail(
+        new EntifixBuildError(
+          `event envelope carried incomplete meta.event (missing ${missing.join(
+            ', ',
+          )})`,
+          undefined,
+          { missing, body },
+        ),
+      );
+    }
+    return { ...(event as EntifixEventMeta), data: envelope.data };
+  });
+}
