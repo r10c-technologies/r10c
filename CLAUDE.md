@@ -598,6 +598,63 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   process); asserting _emission_ would red-build until #145, so that check ships
   with the commit that makes it true. Amends ADR 0028: every one of its decisions
   stands, only the dedup key and `OutboxEntry`'s shape move.
+- **A failed message is discarded today, and ADR 0030 is the decision that stops
+  it — read it before touching the bus's failure paths.** Measured, not
+  suspected: `nack(message, false, false)` in `amqp-event-bus.ts` runs against a
+  queue with **no dead-letter exchange anywhere in the repo**, so a failed
+  handler and a malformed payload both drop the message with nothing to replay
+  from; the code comment and the spec name both said "dead-letter", which is how
+  it survived review. And `assertQueue('', { exclusive: true })` dies with its
+  connection, so anything published while a subscriber is down is dropped by the
+  broker **although the outbox already marked it sent** — ADR 0028's durability
+  chain ends at the exchange, one hop short. That is an M1 defect already
+  designed in: #146's projection would lose an offering across its own restart
+  and nothing could notice, which is why #146 is `blocked_by` #177. The
+  decisions, none of them built yet: **three failure classes** — transient
+  (retried by the broker under `x-delivery-limit`), poison (quarantined with
+  **zero** retries, because a payload `readEventEnvelope` rejects never becomes
+  readable), and a business failure, which is _not the bus's concern at all_
+  since that message was processed successfully and already produced a `failed`
+  event; a subscription splits into **`work`** (named durable quorum queue,
+  replicas share it) and **`broadcast`** (the exclusive queue 0029 built, for
+  #136's socket push where every replica must receive) — 0029 did not pick the
+  wrong queue, it picked broadcast semantics for a workload that is work; one
+  **`entifix.events.dlx` direct** exchange with a `<queue>.quarantine` per queue,
+  never one shared, because replaying a mixed quarantine redelivers another
+  subscriber's messages; a **`TransactionInbox`** claiming `event.id` in the same
+  storage transaction as the side effect, which is what turns `relay.ts`'s
+  unenforced "a consumer that is not idempotent may not subscribe" into a
+  declaration; a **ceiling on the relay** — `drainOutbox` stops at the first
+  failure and the sweep swallows it, so one unpublishable entry blocks that
+  tenant's outbox head-of-line forever, invisibly; and **graceful shutdown**,
+  because an unacked message at SIGTERM is the same redelivery question. Quorum
+  queues and `x-delivery-limit` exist on the 3.13 broker, so none of this waits
+  on the 4.x bump (#181). Delayed redelivery is deliberately **not** built. The
+  register change (`subscribedEvents` → `subscriptions` with a policy, failing
+  the build without one) ships in #177's commit, never earlier — declared config
+  no code reads is the phantom store in another costume.
+- **A service will describe its own wiring, and the point is the diff**
+  ([ADR 0031](docs/adr/0031-a-service-describes-its-own-wiring.md), Proposed).
+  `GET /api/$service` — stores opened, events published, subscriptions bound,
+  upstreams called — generated from the **health probe registry**, so readiness
+  and the description come from one registration and there is no second list to
+  drift. It is a sibling of `/api/config`, not part of it: config is _inputs_
+  (values, redacted), this is _shape_ (wiring). Three things worth not
+  re-deriving. It is **not** `$metadata`: ADR 0026's per-entity choice is about
+  entity affordances and stands, and `entity: '*'` was the wart it rejected. It
+  is **service-token gated**, because a list of every store, exchange and
+  upstream is a reconnaissance map — same category as `$metadata` answering
+  `404` rather than `403`, readiness serving probe names only, and
+  `redactConfiguration`; and it carries **logical names only**, never a URI and
+  emphatically never `tenant_<organizationId>`, which would make it an
+  organization enumerator. And the endpoint is only worth serving with its
+  **reader** (#184: `dev-infra:map` plus a declared-vs-observed assertion), which
+  is what finally catches a slice declaring an event nothing emits — the check
+  ADR 0029 had to defer, since a source scan cannot see emission. Metrics stay
+  out of it: per-replica and un-alertable, they belong in OTLP (#185/#186), which
+  is ADR 0001's still-unbuilt half — `observability.ts` has an
+  `OTLPTraceExporter` and no `MeterProvider`, so a `Metric.*` call today goes
+  nowhere.
 - **The AMQP connection heals itself, and nothing else in `amqplib` does.**
   Measured: a channel opened at boot and held in a `Layer` is dead **permanently**
   once the broker restarts — publishes fail forever and a subscriber stops

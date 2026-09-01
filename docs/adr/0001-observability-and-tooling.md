@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-07-22
+- Revised: 2026-09-01 — the metrics half of this record is still unbuilt, and the
+  first metric set is named. See "Metrics are still deferred" below. The
+  pipeline decision is unchanged.
 
 ## Context
 
@@ -115,9 +118,32 @@ Notable gotchas found and fixed:
   app layer runs, so `Logger.replace(defaultLogger, …)` finds nothing; `makeService`
   now passes `disablePrettyLogger: true`.
 
+## Metrics are still deferred
+
+> Added 2026-09-01. The decision below is unchanged; this records how far the
+> implementation actually got, because the gap is easy to miss from the outside.
+
+`observability.ts` builds `NodeSdk` with an `OTLPTraceExporter` and nothing else.
+There is no `MeterProvider` and no metric exporter, so logs and traces reach the
+Collector and **metrics have no path at all** — a service can call `Metric.*` and
+the value goes nowhere. The destination chosen below is unaffected; what is
+missing is the exporter at this end.
+
+The first metric set, when it is built (#185 for the pipeline, #186 for the
+instrumentation):
+
+- **Bus** — events published, consumed, failed and quarantined, by event name and
+  subscription.
+- **Outbox** — pending depth, and the **age of the oldest unsent entry**. That
+  second one is the metric that makes a stuck relay visible: an entry that can
+  never publish blocks the ones behind it, and today nothing reports it
+  ([ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md)).
+- **Transactions** — count by state, so `STALE` is something a dashboard shows
+  rather than something a poll discovers.
+
 ## Deferred
 
-Metrics / custom `Metric.*`; the `/api/telemetry` browser proxy + Faro RUM;
+The `/api/telemetry` browser proxy + Faro RUM;
 wiring `TrackerTag`/PostHog into a running app; fleet-wide rollout; the OTel
 Collector DaemonSet/gateway (prod only); the Grafana Cloud connection; and
 Phase-2 self-hosting of the storage backend (SigNoz or Grafana LGTM on GCS) —

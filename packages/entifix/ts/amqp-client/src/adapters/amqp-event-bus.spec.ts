@@ -123,7 +123,7 @@ describe('makeAmqpEventBus', () => {
     expect(fake.nacked).toHaveLength(0);
   });
 
-  it('dead-letters a message whose handler failed', async () => {
+  it('discards a message whose handler failed', async () => {
     const { fake, bus } = withFakeChannel();
     await Effect.runPromise(
       bus.subscribe(ANY_TRANSACTION, () =>
@@ -134,12 +134,13 @@ describe('makeAmqpEventBus', () => {
     await fake.deliver(anEnvelope(anEvent()));
 
     // `nack(message, false, false)` — no requeue, so a poison message cannot
-    // spin forever.
+    // spin forever. Nothing catches it either: there is no dead-letter
+    // exchange yet, so the message is discarded (ADR 0030, #177).
     expect(fake.nacked).toHaveLength(1);
     expect(fake.acked).toHaveLength(0);
   });
 
-  it('dead-letters a message that is not an event envelope', async () => {
+  it('discards a message that is not an event envelope', async () => {
     const { fake, bus } = withFakeChannel();
     await Effect.runPromise(bus.subscribe(ANY_TRANSACTION, () => Effect.void));
 

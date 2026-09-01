@@ -64,9 +64,16 @@ export const makeAmqpEventBus = (connector: AmqpConnector): EventBus => ({
               return;
             }
             const parsed: unknown = JSON.parse(message.content.toString());
-            // The handler carries no requirements (the manager closes over its
-            // store), so it runs standalone; ack on success, dead-letter on
-            // failure.
+            // The handler carries no requirements (the manager closes over
+            // its store), so it runs standalone; ack on success, nack without
+            // requeue on failure.
+            //
+            // That nack **discards** the message. This queue has no
+            // dead-letter exchange, and neither does any other in the fleet, so
+            // a failed handler and a malformed payload both drop the message
+            // with nothing to replay from — and there is no retry either, since
+            // one failure is terminal. ADR 0030 decides the topology that fixes
+            // both (#177); until then, do not read this as dead-lettering.
             void Effect.runPromise(
               readEventEnvelope(parsed).pipe(Effect.flatMap(handler)),
             ).then(

@@ -228,15 +228,31 @@ Apps check only their own configuration, never the domain backend: cascading
 readiness turns one degraded service into a fleet-wide outage, and a page that
 renders against a degraded backend is still worth serving.
 
+**A third endpoint is decided and not yet built**: `GET /api/$service`, which
+describes a service's _wiring_ — the stores it opened, the events it publishes
+and the subscriptions it bound, the upstreams it calls
+([ADR 0031](adr/0031-a-service-describes-its-own-wiring.md)). It generates from
+the same probe registry, so there is no second list to drift, and its value is
+the **diff** against `tools/slices/`: a slice declaring an event nothing emits,
+a datastore handle no slice declares, a queue bound to an undeclared pattern.
+Three endpoints, one registry, three different gates — liveness stays
+process-only, readiness stays unauthenticated and names-only, and the
+description is service-token gated because it is a map of the system. #182–#184
+build it.
+
 Clients recover on their own rather than being restarted: Mongo and Redis retry
 the initial connect with backoff (30s window, so a service that boots while
 infra is still rolling out survives), and Redis carries an explicit
 `retryStrategy` plus `enableOfflineQueue: false` so a dropped connection
 re-establishes and commands fail fast meanwhile. Measured on a live stack:
 `ready` → Redis scaled to 0 → `503 failing:["redis"]` → Redis back → `200`
-within 7s, no restart. **RabbitMQ does not reconnect on its own** (amqplib has
-no recovery); its probe reports the truth, and connection recovery there is
-still open.
+within 7s, no restart. **amqplib has no recovery of its own**, so
+`AmqpChannelTag` carries an `AmqpConnector` rather than a channel: it reopens on
+demand and re-registers every consumer against the new channel, because a
+subscriber's queue died with the old connection and nothing else rebinds it. Its
+probe runs through the connector for the same reason — a failed passive
+`checkExchange` closes the channel, so probing a held one was itself a way to
+break the bus.
 
 ## Observability & tooling
 
@@ -261,6 +277,14 @@ swappable seam — Grafana Cloud in production (via an OpenTelemetry Collector),
   default logger with the tooling logger + stands up the OTel tracer), reading
   `logging.level`/`logging.sink`/`otel.endpoint` from config-service.
   `marketplace-admin-service` is the reference wiring (`src/observability.ts`).
+
+**Metrics have no exporter yet.** `observability.ts` builds `NodeSdk` with an
+`OTLPTraceExporter` and nothing else — no `MeterProvider` — so a `Metric.*` call
+goes nowhere while logs and traces reach the Collector. The destination was
+decided in ADR 0001 and is unchanged; the first metric set (bus published /
+consumed / failed / quarantined, outbox depth and oldest-entry age, transactions
+by state) is named in that record's 2026-09-01 revision. #185 builds the
+pipeline, #186 the instrumentation.
 
 Two Effect/OTel gotchas the reference wiring handles: `@effect/opentelemetry`
 does not register an OTel context manager (the service registers
@@ -661,6 +685,25 @@ about it. It is a new exchange rather than a redeclared one because a broker wil
 not change an existing exchange's type. `@r10c/slices` now asserts that every
 subscribed event has a slice declaring it published, that no slice subscribes to
 its own, and that every name is routable.
+
+**What happens when a message cannot be processed is decided and not yet
+built** ([ADR 0030](adr/0030-failure-retry-and-quarantine-on-the-bus.md)). Today
+a failed handler and a malformed payload both end in `nack(message, false,
+false)` against a queue with no dead-letter exchange, so the message is
+**discarded**; and a subscriber's exclusive queue dies with its connection, so
+anything published while it is down is dropped by the broker even though the
+outbox recorded it as sent — the durability chain ends one hop short of the
+consumer. 0030 separates three failure classes (transient, retried by the broker
+under `x-delivery-limit`; poison, quarantined without a retry, because a payload
+that cannot be deserialized never becomes deserializable; and a business
+failure, which is not the bus's concern at all), splits a subscription into
+`work` (a named durable quorum queue, shared by replicas) and `broadcast` (the
+exclusive queue, for a consumer every replica must receive), routes failures to
+`entifix.events.dlx` with a `<queue>.quarantine` per queue, adds a
+`TransactionInbox` claiming `event.id` alongside the side effect, gives the
+outbox relay a ceiling so one unpublishable entry stops blocking the rest, and
+specifies graceful shutdown. #177–#180 build it, and #146 is blocked on the
+first.
 
 The engine gains two more consumers as the business domains land, both
 cross-plane and both already designed: **catalog publication**, which projects a

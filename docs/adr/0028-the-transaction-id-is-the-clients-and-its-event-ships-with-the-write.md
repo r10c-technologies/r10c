@@ -6,6 +6,10 @@
   deduplication key is the message's own `event.id` (`<transactionId>:<step>`),
   not `transactionId`, and `OutboxEntry` carries a `DomainEvent`. Every decision
   in this record stands.
+- Amended by: [ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md) —
+  at-least-once delivery acquires a ceiling. `OutboxEntry` gains `attempts`, and
+  an entry that exhausts them is quarantined and skipped rather than retried
+  forever. The outbox itself, and every other decision here, stands.
 
 ## Context
 
