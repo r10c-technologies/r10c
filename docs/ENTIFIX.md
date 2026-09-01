@@ -401,6 +401,15 @@ Two envelope arms, one contract. The HTTP arm is unchanged by any of this — th
 `transactionEvent` type still frames the transaction _record_ a `202` and
 `GET /api/transaction/:id` answer with, which is a wart tracked separately.
 
+`event.id` being the deduplication key is what makes a consumer-side **inbox**
+the symmetric half of the outbox: the consumer claims that id in the same
+storage transaction as its side effect, exactly as the producer writes its
+outbox entry in the same transaction as the entity. Delivery is at-least-once in
+both directions, so each end owns one unique index. The inbox is decided and not
+yet built ([ADR 0030](adr/0030-failure-retry-and-quarantine-on-the-bus.md),
+#178); until it exists, every consumer on the bus has to be naturally
+idempotent, which both of today's are.
+
 Optional `meta.links` carry `EntifixEnvelopeLink`s, which is how a `202` points
 at the transaction it started.
 

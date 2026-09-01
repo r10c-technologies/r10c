@@ -1,7 +1,13 @@
 # 29. The event envelope, and a bus that routes
 
 - Status: Accepted
-- Date: 2026-09-02
+- Date: 2026-09-01
+- Amended by: [ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md) — a
+  subscriber's queue is no longer unconditionally exclusive. A `work`
+  subscription binds a named, durable queue with a dead-letter exchange and a
+  delivery limit; `broadcast` keeps the exclusive queue described below. The
+  envelope, the topic exchange, the routing key and the single deduplication key
+  all stand.
 
 ## Context
 
