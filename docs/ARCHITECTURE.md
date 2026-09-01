@@ -689,7 +689,9 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
 
 **Delivery** (`packages/implementation/*`, `packages/shells/*`):
 
-- `implementation-product-configuration-management-react` — React organisms.
+- `packages/implementation/*` holds no project today. It existed for entity-tight
+  React organisms, and `makeEntityCrud` derives those from entity metadata now;
+  the layer stays declared for the first component that cannot be derived.
 - `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-auth`,
   `shells-next-system-management` (`scope:shared`, so a second host can mount it
   with no moves), `shells-next-common` and `shells-next-i18n` — Next pages +

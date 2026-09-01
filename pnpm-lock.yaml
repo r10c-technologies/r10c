@@ -138,9 +138,6 @@ importers:
       '@r10c/entifix-ts-rest-client':
         specifier: workspace:*
         version: link:packages/entifix/ts/rest-client
-      '@r10c/implementation-product-configuration-management-react':
-        specifier: workspace:*
-        version: link:packages/implementation/product-configuration-management/react
       '@r10c/shells-next-common':
         specifier: workspace:*
         version: link:packages/shells/next/common
@@ -1270,16 +1267,6 @@ importers:
         specifier: workspace:*
         version: link:../testing-unit
 
-  packages/implementation/product-configuration-management/react:
-    dependencies:
-      '@r10c/business-ts-catalog-reference':
-        specifier: workspace:*
-        version: link:../../../business/ts/catalog-reference
-    devDependencies:
-      '@r10c/entifix-ts-testing-unit':
-        specifier: workspace:*
-        version: link:../../../entifix/ts/testing-unit
-
   packages/shells/effect/service:
     dependencies:
       '@effect/platform':
@@ -1346,12 +1333,22 @@ importers:
       '@r10c/entifix-react-controls':
         specifier: workspace:*
         version: link:../../../entifix/react/controls
+      '@r10c/entifix-react-integration':
+        specifier: workspace:*
+        version: link:../../../entifix/react/integration
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../../../entifix/ts/business
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
       '@r10c/entifix-ts-i18n':
         specifier: workspace:*
         version: link:../../../entifix/ts/i18n
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/testing-unit
 
   packages/shells/next/i18n:
     dependencies:
@@ -1395,6 +1392,21 @@ importers:
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../../business/ts/catalog-reference
+      '@r10c/business-ts-product-configuration-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/product-configuration-management
+      '@r10c/entifix-react-controls':
+        specifier: workspace:*
+        version: link:../../../entifix/react/controls
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/business
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
+      '@r10c/entifix-ts-rest-client':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/rest-client
       '@r10c/shells-next-common':
         specifier: workspace:*
         version: link:../common

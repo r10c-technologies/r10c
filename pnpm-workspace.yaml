@@ -5,7 +5,6 @@ packages:
   - 'packages/utils/ts/*'
   - 'packages/entifix/react/*'
   - 'packages/entifix/style'
-  - 'packages/implementation/product-configuration-management/*'
   - 'packages/shells/next/*'
   - 'packages/shells/effect/*'
   # Not shipped code: checks that run against the repository's own structure.

@@ -1,6 +1,7 @@
 // Use this file to export React client components (e.g. those with 'use client' directive) or other non-server utilities
 
 export * from './lib/back-office';
+export * from './lib/crud';
 export * from './lib/i18n';
 export * from './lib/session';
 // Type-only, so it stays erased: the account-link *values* ship from `/server`

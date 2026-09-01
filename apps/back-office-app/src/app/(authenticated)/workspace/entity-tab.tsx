@@ -1,7 +1,10 @@
 'use client';
 
-import type { ProductFormDraft } from '@r10c/implementation-product-configuration-management-react';
-import { useDraft, useTabEntityNav } from '@r10c/shells-next-common';
+import {
+  type EntityCrudDraft,
+  useDraft,
+  useTabEntityNav,
+} from '@r10c/shells-next-common';
 import {
   ProductBrandSingleViewClientPage,
   ProductCategorySingleViewClientPage,
@@ -30,7 +33,7 @@ export function isEntityEditorKey(value: string): value is EntityEditorKey {
  */
 function ProductEditorTab({ id }: { id: string }) {
   const nav = useTabEntityNav();
-  const { draft, setDraft, clearDraft } = useDraft<ProductFormDraft>(
+  const { draft, setDraft, clearDraft } = useDraft<EntityCrudDraft>(
     `entity:product-specification:${id}`,
   );
 

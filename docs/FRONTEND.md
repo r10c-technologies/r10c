@@ -16,8 +16,11 @@ The agnostic UI kit and the conventions for extending it. Two homes:
 - **`@r10c/entifix-react-controls`** (`packages/entifix/react/controls`) — every
   **entity-agnostic** component: `ui/atoms`, `ui/molecules`, `ui/layout`,
   `ui/organisms`. Knows nothing about any domain.
-- **`implementation/<domain>/react`** — **entity-tight** components (e.g.
-  `ProductTable`, `ProductForm`), usually thin wrappers over agnostic organisms.
+- **`implementation/<domain>/react`** — **entity-tight** components. Empty today:
+  every organism it held (`ProductTable`, `ProductForm`, …) was a pass-through
+  whose only non-generic token was a class name, and `makeEntityCrud` derives
+  those from metadata now. The layer is reserved for a component that is
+  genuinely specific to one domain and cannot be derived.
 
 The two metadata-driven organisms are **`EntityTable`** and **`EntityForm`**: both
 build themselves from `describeEntityColumns` (see [ENTIFIX.md](./ENTIFIX.md)), so
@@ -28,6 +31,45 @@ two-mode editor below when the form is handed a source for it, and stays read-on
 otherwise (an `<EntityField>` slot still overrides either). Both are
 presentational — draft, errors and actions arrive as props — so the same form hosts
 on a plain route and inside a workspace tab.
+
+### `makeEntityCrud` — the pages, generated
+
+`makeEntityCrud(Ctor, options)` (`@r10c/shells-next-common`) builds the list page
+and the single-record page for one entity, and returns them as a **named
+descriptor** — `entityConstructor`, `entityKey`, `basePath`, `ListPage`,
+`SingleViewPage` — so a nav entry and a workspace `TabKind` can be derived from
+the same object rather than restated in a const map.
+
+It **cannot live beside the hooks**: it needs `EntityTable`/`EntityForm` from
+`entifix-react-controls` and `useDataLoading`/`useEntityForm`/`useEntityRecord`/
+`useEntityMutation`/`useEntityLinkSource` from `entifix-react-integration`, and
+those two are both `entifix:react`, which is absent from its own allow-list. The
+shell layer is the lowest place that can reach both — and it is also where
+`useLocaleHref` and the `TabRegistry` already are.
+
+Six things it cannot derive, and so takes as options: `basePath`, `catalogKey`,
+which adapter holds the record's repository, which holds configuration,
+`hiddenFields`, and `links`. Everything else — columns, inputs, labels, the
+validation rules, the submit rebuild — comes from the entity's own accessor
+metadata.
+
+Three details worth not rediscovering:
+
+- **The catalog key is a derived union, not a `string`.** `EntityCatalogKey` maps
+  over the `entity` catalog and keeps only the keys carrying both
+  `form.editTitle` and `form.newTitle`, so the title stays checked by `useT` with
+  no `useTranslateKey` escape hatch — and a new reference entity cannot call the
+  factory until its copy exists in both locales. The factory additionally asserts
+  the key is the entity's own `@entity({ key })`; a drifted one would title the
+  form after a different entity.
+- **`links` is frozen at factory time**, which is what lets the sources be built
+  in a loop at all. `useEntityLinkSources` carries the codebase's single
+  `react-hooks/rules-of-hooks` disable, with the reason: the array is the same
+  object on every render, so the hook count is fixed — the invariant the rule
+  protects and the one it cannot see.
+- **A hidden member still round-trips.** `hiddenFields` drops a member from the
+  rendered fields, not from the draft, so a value the create transaction assigned
+  (`ProductBrand.code`) survives an update that never showed it.
 
 Styling foundation lives in **`@r10c/entifix-style`** (`packages/entifix/style`,
 CSS-only): `tokens.css` declares the Utopia fluid scales, the layout tokens, and
@@ -149,7 +191,9 @@ the only thing that compiles them, which is why it runs in CI.
 ## Adding a new component — checklist
 
 1. Pick the layer: agnostic → `controls/src/ui/{atoms|molecules|layout|organisms}/<name>/`;
-   entity-tight → `implementation/<domain>/react`.
+   entity-tight → `implementation/<domain>/react`. Before writing an entity-tight
+   one, check it is not a `makeEntityCrud` call — a table or form that varies only
+   by class name is generated, not written.
 2. `<name>.tsx` following an idiom above (`as`, token unions, `cn` last,
    `'use client'` only if stateful).
 3. `index.ts` in the folder (`export * from './<name>'`) and a line in the

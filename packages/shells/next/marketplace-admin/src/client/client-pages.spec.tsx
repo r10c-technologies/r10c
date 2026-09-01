@@ -19,15 +19,22 @@ import { Context } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  ProductBrandListClientPage,
+  ProductBrandSingleViewClientPage,
+  ProductCategoryListClientPage,
+  ProductCategorySingleViewClientPage,
+  ProductListClientPage,
+  ProductSingleViewClientPage,
+} from './catalog-crud.js';
 import type { MarketplaceAdminAdapters } from './client-types.js';
 import { MarketplaceAdminAdaptersProvider } from './marketplace-admin-context/marketplace-admin-context.js';
-import { ProductBrandListClientPage } from './product-brand-list/product-brand-list-client-page.js';
-import { ProductBrandSingleViewClientPage } from './product-brand-single-view/product-brand-single-view-client-page.js';
-import { ProductCategoryListClientPage } from './product-category-list/product-category-list-client-page.js';
-import { ProductCategorySingleViewClientPage } from './product-category-single-view/product-category-single-view-client-page.js';
-import { ProductListClientPage } from './product-list/product-list-client-page.js';
-import { ProductSingleViewClientPage } from './product-single-view/product-single-view-client-page.js';
 
+// These six pages are `makeEntityCrud` output, not hand-written modules — which
+// is exactly why the suite is unchanged from the one that covered the six
+// hand-written ones. A generator earns its keep by passing the tests the code it
+// replaced passed.
+//
 // The pages read the route through `next/navigation`, which only exists inside
 // a running Next app; the slug is the one input a test needs to vary.
 const push = vi.fn();
@@ -115,6 +122,24 @@ describe('the listing pages', () => {
   // materialized the foreign-key category. It does not any more: brand and
   // category live in another slice's store, so the list shows the ids it holds
   // and a screen wanting names asks the owning domain (ADR 0022).
+  // The `brandId` column override is the escape hatch for presentation the
+  // metadata cannot express: an unclassified product must read as an em dash
+  // rather than an empty cell.
+  it('renders an em dash for a product with no brand', async () => {
+    const unclassified = new ProductSpecification('P-9', 'Doohickey');
+    unclassified.id = 'p-9';
+    repositories.product = makeInMemoryEntityRepository([
+      unclassified,
+    ] as Entity[]);
+
+    renderPage(<ProductListClientPage />);
+
+    await waitFor(() =>
+      expect(screen.getAllByText('Doohickey').length).toBeGreaterThan(0),
+    );
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
   it('shows the classification ids it holds, without resolving them', async () => {
     renderPage(<ProductListClientPage />);
 
