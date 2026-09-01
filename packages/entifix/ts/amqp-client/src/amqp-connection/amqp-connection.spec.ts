@@ -1,6 +1,6 @@
 import { EntifixConnError } from '@r10c/entifix-ts-core';
 import type * as amqp from 'amqplib';
-import { Cause, Effect, Exit } from 'effect';
+import { Cause, Effect, Exit, Option } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -221,9 +221,9 @@ describe('AmqpLayer', () => {
 
     expect(Exit.isFailure(exit)).toBe(true);
     const failure = Exit.isFailure(exit)
-      ? Cause.failureOption(exit.cause)
+      ? Option.getOrUndefined(Cause.failureOption(exit.cause))
       : undefined;
-    expect(String(failure?.value)).toContain('Failed to connect to RabbitMQ');
+    expect(String(failure)).toContain('Failed to connect to RabbitMQ');
   });
 
   it('provides a connector and closes it on release', async () => {
@@ -249,8 +249,8 @@ describe('AmqpLayer', () => {
     );
 
     const failure = Exit.isFailure(exit)
-      ? Cause.failureOption(exit.cause)
+      ? Option.getOrUndefined(Cause.failureOption(exit.cause))
       : undefined;
-    expect(failure?.value).toBeInstanceOf(EntifixConnError);
+    expect(failure).toBeInstanceOf(EntifixConnError);
   });
 });

@@ -40,7 +40,6 @@ import {
   makeEntityPageEnvelope,
   parseLoadRequestParams,
   readEntityEnvelope,
-  serializeEntity,
 } from '@r10c/entifix-ts-core';
 import {
   makeMongoRepository,
