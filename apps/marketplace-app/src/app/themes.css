@@ -14,6 +14,7 @@
   --color-primary-content: #ffffff;
   --color-border: #cfe8db;
   --color-accent: #d97706;
+  --color-focus-ring: #0b7a44;
 
   --color-danger: #b3261e;
   --color-danger-subtle: #fdf1f0;
@@ -31,6 +32,7 @@
   --color-primary-content: #06120c;
   --color-border: #234034;
   --color-accent: #f59e0b;
+  --color-focus-ring: #4fd693;
 
   /* Dark surface: a light `-subtle` would glare, so it is a deep tint and the
      danger colour is lifted to stay readable on it. */
@@ -38,9 +40,12 @@
   --color-danger-subtle: #2a1614;
   --color-danger-content: #06120c;
 
-  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
+  /* Dark elevation. Black at the light scale's alphas is invisible on a dark
+     ground, so the tint carries a strength multiplier; the two large shadows
+     are restated because a dark surface needs different blur geometry. */
+  --shadow-tint: 0 0 0;
+  --shadow-strength: 6.5;
   --shadow-card:
     0 8px 24px -6px rgb(0 0 0 / 0.55), 0 2px 8px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 20px 48px -12px rgb(0 0 0 / 0.65);
+  --shadow-overlay: 0 20px 48px -12px rgb(0 0 0 / 0.65);
 }

@@ -85,20 +85,72 @@ API and cannot take CSS. Nothing enforces that copy — this package ships no TS
 export a Node script could import — so changing one of those four in a preset
 means changing the seed with it, and bumping `ZITADEL_SEED_REVISION`.
 
-## Foundations (Utopia)
+## Foundations: two scales, one contract
 
-Spacing (`--spacing-3xs…3xl`) and type (`--text-step-xs…3`) are `clamp()` scales
-generated with the [Utopia](https://utopia.fyi) calculator — they interpolate
-with the viewport, so there are far fewer breakpoints. Two layout tokens back the
-primitives:
+Spacing (`--spacing-3xs…3xl`) and type (`--text-step-xs…4`) keep **one set of
+names** and take **different values per app** — the mechanism `--color-*`
+already used, extended to measurement. It works because Tailwind emits these
+utilities by reference (`.p-s { padding: var(--spacing-s) }`), so redefining the
+custom property re-scales every existing call site and no component learns which
+app it is in.
+
+| Scale                            | Who             | Shape                                                                                  |
+| -------------------------------- | --------------- | -------------------------------------------------------------------------------------- |
+| fluid, `tokens.css` (default)    | marketplace-app | Utopia `clamp()` at an 18–20px prose base; interpolates with the viewport              |
+| fixed, `presets/fixed-scale.css` | back-office-app | 4 / 8 / 12 / 16 / 24 / 32 / 48px; type fixed at 11 / 12 / **14** / 16 / 20 / 24 / 32px |
+
+The preset changes nothing when imported — every rule is keyed to an attribute,
+exactly like a palette is keyed to `[data-theme]`. An app opts in once:
+
+```html
+<html data-theme="aurora" data-scale="fixed" data-density="compact"></html>
+```
+
+**Density compacts spacing, never type.** `[data-density]` is a property of the
+work, not of the viewport, which is why it is an attribute and not a media query
+— it does not breach the no-media-query rule below. `2xl`/`3xl` are untouched
+(page rhythm, not row density), and `[data-density-exclude]` opts a subtree out:
+alerts, help panels and date pickers do not compact.
+
+Each type step carries its own line-height and letter-spacing via Tailwind's
+`--text-*--line-height` / `--text-*--letter-spacing`, so a size utility brings
+its whole typographic setting with it.
+
+Two layout tokens back the primitives:
 
 - `--measure` — max line length (readability cap for `Center`).
 - `--grid-min` — minimum card-column width for `Grid`.
 
+**Typeface.** Inter (UI) and JetBrains Mono (ids, code, keys), loaded with
+`next/font/google` in each app and exposed as `--font-inter` /
+`--font-jetbrains-mono` at the front of `--font-sans` / `--font-mono`. The fonts
+module is duplicated per app on purpose: `next/font/google` is a compiler macro,
+and a workspace library ships as prebuilt `dist`, so the call would reach the
+runtime unprocessed. **Three weights** — 400 / 500 / 600; `bold` is not in the
+`Text` API. Tabular figures are not on the face (prose needs proportional ones);
+`CellValue` applies `tabular-nums` for `number` and `date` members.
+
+**Elevation is four named rungs** — `shadow-edge` ‹ `shadow-raised` ‹
+`shadow-card` ‹ `shadow-overlay` — declared as plain custom properties with
+hand-written utilities, **not** in `@theme`. Tailwind parses a themed shadow at
+build time and inlines its color, so a palette redefining `--shadow-*` did
+nothing (which is what every palette here was doing, in dead CSS); and a custom
+`@utility` loses to a theme-generated one, so the size names could not be
+reused. A palette now re-tints in one line with `--shadow-tint` /
+`--shadow-strength`.
+
+**One focus utility.** `focus-ring` on every interactive control — an `outline`,
+so it follows `border-radius`, survives an ancestor's `overflow: hidden`, and
+costs no layout. It matches `:focus-visible` **and** `[data-focus]`, because
+HeadlessUI drives some controls with the attribute rather than native focus.
+`--color-focus-ring` is its own token per palette, each measured against the 3:1
+non-text contrast minimum.
+
 Components **never** use raw colours or pixel gaps: they reference token
-utilities (`bg-surface`, `text-content`, `gap-s`, `p-m`, `text-step-1`). Tailwind
-is v4 **CSS-first** — no config file; tokens are declared via `@theme` in
-`tokens.css`.
+utilities (`bg-surface`, `text-content`, `gap-s`, `p-m`, `text-step-1`).
+Tailwind is v4 **CSS-first** — no config file; tokens are declared via `@theme`
+in `tokens.css`. The full specimen is Storybook → Foundations → Typography and
+Tokens. See [ADR 0027](adr/0027-two-scales-a-density-mode-and-the-type-system.md).
 
 ## Layout: flex-first + one grid escape
 

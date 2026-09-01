@@ -49,7 +49,7 @@ export function EntityLinkPicker<TTarget extends Entity>({
       {/* Backdrop and panel are separate so a click outside closes the dialog
           without the table's own clicks bubbling into it. */}
       <div aria-hidden className="fixed inset-0 bg-black/40" />
-      <DialogPanel className="relative w-full max-w-4xl rounded-lg border border-border bg-surface p-s shadow-lg">
+      <DialogPanel className="relative w-full max-w-4xl rounded-lg border border-border bg-surface p-s shadow-overlay">
         <div className="flex items-center justify-between gap-s">
           <DialogTitle className="text-step-1 font-semibold text-content">
             {t('link.browseTitle', { field: descriptor.label })}

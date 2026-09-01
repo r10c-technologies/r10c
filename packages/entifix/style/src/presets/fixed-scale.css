@@ -1,0 +1,141 @@
+/*
+ * Fixed scale — the dense operator scale, opted into per app.
+ *
+ * The default scale in tokens.css is fluid Utopia at an 18-20px prose base.
+ * That is right for the storefront and wrong for a back office: its steps land
+ * at 4.5 / 9 / 13.5 / 18 / 27px, so nothing sits on 4, 8, 12 or 16, `2xs → s`
+ * is a 2x jump, and the measured consequence is that the bottom three steps of
+ * a nine-step scale carry ~80% of every call site while the top half goes
+ * unused. A dense grid cannot express itself on a scale with no small
+ * increments, so it stops trying and reaches for whatever is nearest.
+ *
+ * Same token NAMES, different VALUES — the mechanism --color-* already uses.
+ * Tailwind emits `padding: var(--spacing-s)`, by reference, so importing this
+ * file re-scales every existing `p-s` / `gap-2xs` in the tree and not one call
+ * site changes. That is the whole design: a component must never learn which
+ * app it is running in.
+ *
+ * Importing this file changes NOTHING on its own — every rule is keyed to a
+ * `data-scale` / `data-density` attribute, exactly like `data-theme` on the
+ * palettes. An app opts in once, on <html>:
+ *
+ *   @import '@r10c/entifix-style/tokens.css';
+ *   @import '@r10c/entifix-style/presets/fixed-scale.css';
+ *
+ *   <html data-scale="fixed" data-density="compact">
+ *
+ * Opt-in by attribute rather than by import is what makes the Storybook
+ * specimen possible: custom properties inherit, so the nearest ancestor that
+ * sets one wins for its subtree, and one page can show the fluid and the fixed
+ * scale side by side. It also lets a comfortable screen hold one compact
+ * region — a dense table inside a roomy page — without a second stylesheet.
+ *
+ * See ADR 0027.
+ */
+
+[data-scale='fixed'] {
+  /* 4px grid. Every step is a multiple of 4, and the steps a dense screen
+     actually needs (4, 8, 12, 16) exist as distinct tokens instead of being
+     three roundings of the same 9px. */
+  --spacing-3xs: 0.25rem; /*  4px */
+  --spacing-2xs: 0.5rem; /*   8px */
+  --spacing-xs: 0.75rem; /*  12px */
+  --spacing-s: 1rem; /*      16px */
+  --spacing-m: 1.5rem; /*    24px */
+  --spacing-l: 2rem; /*      32px */
+  --spacing-xl: 3rem; /*     48px */
+  --spacing-2xl: 4rem; /*    64px */
+  --spacing-3xl: 6rem; /*    96px */
+
+  /* Type is fixed, not fluid: an operator screen is not read at arm's length
+     on a phone, and a size that interpolates with the viewport cannot be
+     aligned to a row height. Body is 14px — admin tables want 13-14px, and the
+     fluid scale's 18-20px body was a step or two too large before spacing was
+     ever considered.
+
+     Line-height and tracking are restated per step because the modifiers are
+     part of the step, not of the scale: at 14px, body wants more leading than
+     the 18px fluid version, and a 32px heading wants less. */
+  --text-step-xs: 0.6875rem; /* 11px */
+  --text-step-xs--line-height: 1.45;
+  --text-step-xs--letter-spacing: 0.01em;
+  --text-step-sm: 0.75rem; /*   12px */
+  --text-step-sm--line-height: 1.45;
+  --text-step-sm--letter-spacing: 0.005em;
+  --text-step-0: 0.875rem; /*   14px — body */
+  --text-step-0--line-height: 1.5;
+  --text-step-0--letter-spacing: 0em;
+  --text-step-1: 1rem; /*       16px */
+  --text-step-1--line-height: 1.45;
+  --text-step-1--letter-spacing: -0.005em;
+  --text-step-2: 1.25rem; /*    20px */
+  --text-step-2--line-height: 1.3;
+  --text-step-2--letter-spacing: -0.01em;
+  --text-step-3: 1.5rem; /*     24px */
+  --text-step-3--line-height: 1.25;
+  --text-step-3--letter-spacing: -0.015em;
+  --text-step-4: 2rem; /*       32px */
+  --text-step-4--line-height: 1.15;
+  --text-step-4--letter-spacing: -0.02em;
+}
+
+/*
+ * Density.
+ *
+ * `[data-density]` on the root element, set by the app. Not a per-component
+ * prop — that is combinatorial, and every control would carry it forever. Not
+ * a media query either: density is a property of the work, not of the
+ * viewport, which is why it does not violate the flex-first / no-media-query
+ * rule in FRONTEND.md.
+ *
+ * Only SPACING compacts. Type deliberately does not: shrinking text is how a
+ * compact mode becomes an accessibility problem, and the base size is already
+ * corrected above. This matches the prior art — Cloudscape reduces spacing in
+ * increments of 4 and leaves type alone.
+ *
+ * `comfortable` is spelled out rather than left implicit so an app can set it
+ * explicitly and mean it.
+ */
+[data-density='comfortable'] {
+  --spacing-3xs: 0.25rem; /*  4px */
+  --spacing-2xs: 0.5rem; /*   8px */
+  --spacing-xs: 0.75rem; /*  12px */
+  --spacing-s: 1rem; /*      16px */
+  --spacing-m: 1.5rem; /*    24px */
+  --spacing-l: 2rem; /*      32px */
+  --spacing-xl: 3rem; /*     48px */
+}
+
+[data-density='compact'] {
+  --spacing-3xs: 0.125rem; /*  2px */
+  --spacing-2xs: 0.25rem; /*   4px */
+  --spacing-xs: 0.5rem; /*     8px */
+  --spacing-s: 0.75rem; /*    12px */
+  --spacing-m: 1.25rem; /*    20px */
+  --spacing-l: 1.75rem; /*    28px */
+  --spacing-xl: 2.5rem; /*    40px */
+  /* 2xl and 3xl are untouched on purpose: they carry page-level rhythm — the
+     gap between major regions — and compacting those buys nothing per row
+     while making a screen feel cramped rather than dense. */
+}
+
+/*
+ * The exclusion list.
+ *
+ * Density is selective, not blanket. These surfaces keep comfortable spacing
+ * even in a compact app, because compacting them works against what they are
+ * for: an alert must interrupt, help text is read rather than scanned, and a
+ * date picker is a hit-target grid whose cells are already at the floor.
+ *
+ * Marked by data attribute rather than class so the opt-out survives a
+ * component being restyled, and so it is greppable.
+ */
+[data-density='compact'] [data-density-exclude] {
+  --spacing-3xs: 0.25rem;
+  --spacing-2xs: 0.5rem;
+  --spacing-xs: 0.75rem;
+  --spacing-s: 1rem;
+  --spacing-m: 1.5rem;
+  --spacing-l: 2rem;
+  --spacing-xl: 3rem;
+}

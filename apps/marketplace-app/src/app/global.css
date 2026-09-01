@@ -8,26 +8,20 @@
 
 html {
   -webkit-text-size-adjust: 100%;
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    Segoe UI,
-    Roboto,
-    Helvetica Neue,
-    Arial,
-    Noto Sans,
-    sans-serif,
-    Apple Color Emoji,
-    Segoe UI Emoji,
-    Segoe UI Symbol,
-    Noto Color Emoji;
-  line-height: 1.5;
+  /* No `font-family` here any more. Tailwind's `--default-font-family` reads
+     `--font-sans` from the token file, so the face is a token like every other
+     value — and `line-height` is now carried per type step by the scale, not
+     imposed once on the document. */
 }
 
 body {
   margin: 0;
   background-color: var(--color-surface);
   color: var(--color-content);
+  /* The base step, so text that names no size still lands on the scale. Without
+     this the document inherits the browser's 16px and the whole point of a 14px
+     back-office base is lost on anything untagged. Line-height comes from the
+     step's own modifier rather than a document-wide 1.5. */
+  font-size: var(--text-step-0);
+  line-height: var(--text-step-0--line-height);
 }

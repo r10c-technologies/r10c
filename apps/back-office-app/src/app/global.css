@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 @import '@r10c/entifix-style/tokens.css';
+/* Dense operator scale: fixed 4px spacing + 14px base type, and the
+   [data-density] blocks. The storefront omits this and keeps fluid Utopia. */
+@import '@r10c/entifix-style/presets/fixed-scale.css';
 /* Static palettes this app ships. Pick only the presets you want. */
 @import '@r10c/entifix-style/presets/aurora.css';
 @import '@r10c/entifix-style/presets/sunset.css';
@@ -9,29 +12,29 @@
 @source '../../../../packages/entifix/react/controls/src';
 @source '../../../../packages/shells/next/common/src';
 @source '../../../../packages/shells/next/marketplace-admin/src';
+/* back-office-app mounts four shells, and Tailwind only emits utilities it can
+   SEE. Without these two, a class used exclusively in the auth or
+   system-management screens is never generated — the markup ships with a
+   class name that matches no rule, which fails silently. */
+@source '../../../../packages/shells/next/auth/src';
+@source '../../../../packages/shells/next/system-management/src';
 
 html {
   -webkit-text-size-adjust: 100%;
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    Segoe UI,
-    Roboto,
-    Helvetica Neue,
-    Arial,
-    Noto Sans,
-    sans-serif,
-    Apple Color Emoji,
-    Segoe UI Emoji,
-    Segoe UI Symbol,
-    Noto Color Emoji;
-  line-height: 1.5;
+  /* No `font-family` here any more. Tailwind's `--default-font-family` reads
+     `--font-sans` from the token file, so the face is a token like every other
+     value — and `line-height` is now carried per type step by the scale, not
+     imposed once on the document. */
 }
 
 body {
   margin: 0;
   background-color: var(--color-surface);
   color: var(--color-content);
+  /* The base step, so text that names no size still lands on the scale. Without
+     this the document inherits the browser's 16px and the whole point of a 14px
+     back-office base is lost on anything untagged. Line-height comes from the
+     step's own modifier rather than a document-wide 1.5. */
+  font-size: var(--text-step-0);
+  line-height: var(--text-step-0--line-height);
 }

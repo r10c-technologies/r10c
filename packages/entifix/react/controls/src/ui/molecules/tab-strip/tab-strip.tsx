@@ -63,7 +63,7 @@ export function Tab({
         'group relative flex items-center gap-2xs rounded-t-md px-s py-2xs text-step-sm',
         'transition duration-200 ease-smooth',
         active
-          ? '-mb-px bg-surface-elevated font-medium text-content shadow-xs'
+          ? '-mb-px bg-surface-elevated font-medium text-content shadow-edge'
           : 'text-content-muted hover:bg-surface-elevated/60',
         state === 'error' && 'bg-danger-subtle text-danger',
         className,
@@ -78,7 +78,7 @@ export function Tab({
       <button
         type="button"
         onClick={onSelect}
-        className="max-w-[12rem] truncate focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="max-w-[12rem] truncate focus-ring"
       >
         {label}
       </button>
@@ -99,7 +99,7 @@ export function Tab({
           aria-label={t('tabs.close', { label })}
           onClick={onClose}
           className={cn(
-            'ml-2xs rounded p-3xs text-content-muted opacity-0 transition',
+            'focus-ring ml-2xs rounded p-3xs text-content-muted opacity-0 transition',
             'group-hover:opacity-100 hover:bg-surface hover:text-content focus:opacity-100',
             active && 'opacity-100',
           )}
@@ -124,7 +124,7 @@ export function TabAddButton({ className, ...props }: TabAddButtonProps) {
       className={cn(
         'mb-3xs shrink-0 rounded-md px-2xs py-3xs text-step-sm text-content-muted',
         'transition hover:bg-surface-elevated hover:text-content',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'focus-ring',
         className,
       )}
       {...props}

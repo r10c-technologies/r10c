@@ -100,6 +100,17 @@ function formatByType(
   }
 }
 
+/**
+ * Tabular figures, applied once, here — not on `--font-sans` and not per call
+ * site. A column of numbers or dates must align on the digit; a paragraph must
+ * not, because proportional figures are what prose is set in. The descriptor
+ * already knows which is which, so the cell is the only place that has to.
+ */
+const NUMERIC_CLASS: Partial<Record<MetaAccessorType, string>> = {
+  number: 'tabular-nums',
+  date: 'tabular-nums',
+};
+
 export interface CellValueProps {
   value: unknown;
   descriptor: EntityFieldDescriptor;
@@ -135,5 +146,5 @@ export function CellValue({ value, descriptor }: CellValueProps) {
     return <span className="text-content-muted">{EMPTY}</span>;
   }
 
-  return <span>{text}</span>;
+  return <span className={NUMERIC_CLASS[descriptor.type] ?? undefined}>{text}</span>;
 }

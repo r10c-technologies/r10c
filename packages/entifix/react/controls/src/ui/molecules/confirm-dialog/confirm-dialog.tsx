@@ -58,7 +58,7 @@ export function ConfirmDialog({
       <div aria-hidden className="fixed inset-0 bg-black/40" />
       <DialogPanel
         data-testid="confirm-dialog"
-        className="relative w-full max-w-md rounded-lg border border-border bg-surface p-s shadow-lg"
+        className="relative w-full max-w-md rounded-lg border border-border bg-surface p-s shadow-overlay"
       >
         <DialogTitle className="text-step-1 font-semibold text-content">
           {title}

@@ -14,13 +14,22 @@ const STEP_CLASS: Record<Step, string> = {
   3: 'text-step-3',
 };
 
-type Weight = 'normal' | 'medium' | 'semibold' | 'bold';
+/**
+ * Three weights, and no fourth.
+ *
+ * 400 body, 500 secondary emphasis, 600 headings and labels. `bold` (700) was
+ * removed: "heading" and "emphatic heading" were never distinct roles here,
+ * only different authors — measured, `font-bold` appeared three times against
+ * `font-semibold`'s thirteen, all of them headings that had no reason to differ
+ * from their neighbours. A fourth weight comes back when a role needs it, not
+ * when a screen wants one.
+ */
+type Weight = 'normal' | 'medium' | 'semibold';
 
 const WEIGHT_CLASS: Record<Weight, string> = {
   normal: 'font-normal',
   medium: 'font-medium',
   semibold: 'font-semibold',
-  bold: 'font-bold',
 };
 
 /** Semantic content color. Superset of the legacy `muted` flag. */
@@ -171,7 +180,7 @@ export function Code({
     <code
       className={cn(
         'rounded-sm border border-border bg-surface px-2xs py-3xs',
-        'font-mono text-step-sm text-content',
+        'font-mono text-step-sm text-content tabular-nums',
         className,
       )}
       {...props}
@@ -185,7 +194,7 @@ export function Kbd({ className, ...props }: ComponentPropsWithoutRef<'kbd'>) {
     <kbd
       className={cn(
         'inline-flex items-center rounded-md border border-border bg-surface-elevated',
-        'px-2xs py-3xs font-mono text-step-xs text-content-muted shadow-xs',
+        'px-2xs py-3xs font-mono text-step-xs text-content-muted shadow-edge',
         className,
       )}
       {...props}
@@ -204,7 +213,7 @@ export function Link({
       className={cn(
         'font-medium text-primary underline underline-offset-2',
         'transition-colors duration-200 ease-smooth hover:text-accent',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'focus-ring',
         className,
       )}
       {...props}
@@ -297,7 +306,7 @@ export function Heading({
 export type NamedHeadingProps = Omit<HeadingProps, 'as' | 'step'>;
 
 export function HeadingOne(props: NamedHeadingProps) {
-  return <Heading as="h1" step={3} weight="bold" {...props} />;
+  return <Heading as="h1" step={3} weight="semibold" {...props} />;
 }
 
 export function HeadingTwo(props: NamedHeadingProps) {

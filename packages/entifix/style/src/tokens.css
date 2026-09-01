@@ -2,22 +2,60 @@
  * @r10c/entifix-style / tokens.css — the shared, immutable base.
  *
  * Two things live here and only here:
- *   1. Structural tokens (spacing, type, radius, shadow, motion) — universal,
- *      never vary per app.
+ *   1. Structural tokens (typeface, spacing, type, radius, border, shadow,
+ *      motion, focus) — the NAMES are universal and never vary per app.
  *   2. The color *contract*: the semantic --color-* NAMES, with neutral
  *      fallback values. Declaring them in @theme is what makes bg-surface,
- *      text-content, border-border, … exist as utilities. Apps override the
- *      VALUES per palette (see presets/ or an app-local themes.css); the names
- *      stay constant so components never care which app they run in.
+ *      text-content, border-border, … exist as utilities.
+ *
+ * Apps override the VALUES; the names stay constant so components never care
+ * which app they run in. There are two override surfaces, and they are the
+ * same mechanism:
+ *   - palette   → presets/*.css or an app-local themes.css, on [data-theme]
+ *   - scale     → presets/fixed-scale.css, on :root, opted into by an app
  *
  * Consumed by an app stylesheet that has already run `@import "tailwindcss"`.
  *
- * Fluid spacing & type are generated with the Utopia calculator:
- *   viewport 360px .. 1240px, base 18px/1.2 .. 20px/1.25.
+ * The DEFAULT scale here is the fluid one: spacing and type generated with the
+ * Utopia calculator (viewport 360..1240, base 18px/1.2 .. 20px/1.25). It is
+ * built for reading, and the storefront keeps it. Dense operator UI imports
+ * `presets/fixed-scale.css` instead — see ADR 0027.
  */
 
 @theme {
-  /* Fluid spacing — Tailwind's --spacing-* namespace emits p-s, gap-l, m-xl, … */
+  /* Typeface. The --font-* value each app injects (next/font) comes first and
+     the stack behind it is a real fallback, not decoration: it is what renders
+     during the swap and on any surface that cannot load a webfont.
+     Tailwind's --default-font-family reads --font-sans, so setting it here is
+     what puts Inter on <body> — no `html { font-family }` needed anywhere. */
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-mono:
+    var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, 'SF Mono', Menlo,
+    Consolas, 'Liberation Mono', monospace;
+
+  /* Tabular figures are NOT set on the face. A column of money must align, but
+     proportional figures are correct in prose, and putting `tnum` on --font-sans
+     would apply it to every paragraph in the storefront to fix a table. The
+     `tabular-nums` utility carries it, applied once in the table atom and in
+     CellValue rather than per call site. */
+
+  /* Weight — THREE, deliberately. 400 body, 500 secondary emphasis, 600
+     headings and labels. A fourth needs a stated reason; `bold` (700) was
+     removed because "heading" and "emphatic heading" were never distinct
+     roles here, only different authors. Tailwind still generates font-bold
+     from its own defaults — the rule is a review rule, and the specimen in
+     Storybook is where it is visible. */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Fluid spacing — Tailwind's --spacing-* namespace emits p-s, gap-l, m-xl, …
+     Utility output is `padding: var(--spacing-s)`, by reference, which is what
+     lets `presets/fixed-scale.css` and [data-density] swap the whole scale at
+     runtime without a single call site changing. */
   --spacing-3xs: clamp(0.2813rem, 0.2685rem + 0.0568vw, 0.3125rem);
   --spacing-2xs: clamp(0.5625rem, 0.5369rem + 0.1136vw, 0.625rem);
   --spacing-xs: clamp(0.8438rem, 0.8054rem + 0.1705vw, 0.9375rem);
@@ -28,14 +66,38 @@
   --spacing-2xl: clamp(4.5rem, 4.2955rem + 0.9091vw, 5rem);
   --spacing-3xl: clamp(6.75rem, 6.4432rem + 1.3636vw, 7.5rem);
 
-  /* Fluid type — Tailwind's --text-* namespace emits text-step-0 … text-step-3.
-     Down-steps (sm, xs) taper below body for captions/fine print. */
+  /* Fluid type — Tailwind's --text-* namespace emits text-step-0 … text-step-4.
+     Down-steps (sm, xs) taper below body for captions/fine print.
+     Each step carries its own line-height and tracking through Tailwind's
+     `--text-*--line-height` / `--text-*--letter-spacing` modifiers, so a size
+     utility brings its whole typographic setting with it: headings track
+     tighter and lead shorter than body, which is the entire reason a type
+     scale is not just a list of sizes. */
   --text-step-xs: clamp(0.78125rem, 0.7736rem + 0.0341vw, 0.8rem);
+  --text-step-xs--line-height: 1.5;
+  --text-step-xs--letter-spacing: 0.01em;
   --text-step-sm: clamp(0.9375rem, 0.9119rem + 0.1136vw, 1rem);
+  --text-step-sm--line-height: 1.5;
+  --text-step-sm--letter-spacing: 0.005em;
   --text-step-0: clamp(1.125rem, 1.0739rem + 0.2273vw, 1.25rem);
+  --text-step-0--line-height: 1.5;
+  --text-step-0--letter-spacing: 0em;
   --text-step-1: clamp(1.35rem, 1.2631rem + 0.3864vw, 1.5625rem);
+  --text-step-1--line-height: 1.35;
+  --text-step-1--letter-spacing: -0.01em;
   --text-step-2: clamp(1.62rem, 1.4837rem + 0.6057vw, 1.9531rem);
+  --text-step-2--line-height: 1.25;
+  --text-step-2--letter-spacing: -0.015em;
   --text-step-3: clamp(1.944rem, 1.7405rem + 0.9044vw, 2.4414rem);
+  --text-step-3--line-height: 1.2;
+  --text-step-3--letter-spacing: -0.02em;
+  /* step-4 is new. The storefront's product page has been asking for it since
+     it was written — `text-step-4` was used there against a scale that stopped
+     at step-3, so Tailwind emitted no utility and the price rendered at
+     inherited size. */
+  --text-step-4: clamp(2.3328rem, 2.0886rem + 1.0853vw, 2.9297rem);
+  --text-step-4--line-height: 1.15;
+  --text-step-4--letter-spacing: -0.025em;
 
   /* Layout — measures for the flex-first layout primitives (Every Layout).
      `--measure` caps line length (Center); `--grid-min` is the minimum card
@@ -52,18 +114,19 @@
   --radius-xl: 1.125rem;
   --radius-2xl: 1.5rem;
 
-  /* Elevation — --shadow-* namespace emits shadow-sm, shadow-card, …
-     Palettes may re-tint these (e.g. warm/dark) alongside their colors. */
-  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.06);
-  --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.06);
-  --shadow-card:
-    0 4px 16px -4px rgb(15 23 42 / 0.1), 0 2px 6px -2px rgb(15 23 42 / 0.06);
-  --shadow-lg: 0 16px 40px -12px rgb(15 23 42 / 0.18);
-
-  /* Motion — tunes every `transition` utility + adds a smooth easing token. */
+  /* Motion — a three-step duration scale plus an enter/exit easing split.
+     `--default-transition-*` still tunes every bare `transition` utility, so
+     nothing that already transitions changes. Enter decelerates (fast in,
+     settle), exit accelerates (leave decisively): the asymmetry is what makes
+     a menu feel responsive rather than sluggish in both directions. */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
   --default-transition-duration: 200ms;
   --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 
   /* Color CONTRACT — semantic --color-* names with NEUTRAL fallbacks.
      Unbranded on purpose: an app with no palette still renders legibly, and
@@ -78,6 +141,13 @@
   --color-border: #dfe3e8;
   --color-accent: #6b7480;
 
+  /* The focus ring is a color in the contract, not a reuse of --color-accent.
+     Operator efficiency IS keyboard use, so where the ring lands must be
+     decidable per palette against that palette's surfaces — it has to clear
+     3:1 non-text contrast, and an accent chosen to look good as a link does
+     not automatically do that. */
+  --color-focus-ring: #2f3742;
+
   /* Failure. Part of the contract rather than an app-local choice: "this did
      not work" is the one message a component must never render in the same
      voice as ordinary content — a listing that reports a dead backend the way
@@ -86,4 +156,112 @@
   --color-danger: #b42318;
   --color-danger-subtle: #fef3f2;
   --color-danger-content: #ffffff;
+}
+
+/*
+ * Elevation — deliberately NOT in @theme, and NOT named after sizes.
+ *
+ * Two things forced this shape, both measured rather than assumed.
+ *
+ * First, Tailwind parses a @theme shadow at BUILD time so it can support the
+ * `shadow-<color>` modifier, and inlines the resolved color into the utility:
+ *
+ *   .shadow-card { --tw-shadow: 0 4px 16px -4px var(--tw-shadow-color,#0f172a1a) }
+ *
+ * A [data-theme] block redefining --shadow-card therefore changed nothing —
+ * which is exactly what every palette in this package was doing, in dead CSS,
+ * from the day it was written. Plain custom properties plus hand-written
+ * utilities cost the color modifier (nothing uses it) and buy back the one
+ * property elevation actually needs: a palette re-tints in ONE line.
+ *
+ * Second, the names. `xs`/`sm`/`lg` are Tailwind's OWN namespace, and a custom
+ * @utility does not win against a theme-generated one — `shadow-sm` kept
+ * resolving to Tailwind's default while looking like ours. So the ladder is
+ * named for what each rung means instead, which is what it should have been:
+ *
+ *   edge     a control barely off the surface — inputs, secondary buttons
+ *   raised   a primary control, or one under the pointer
+ *   card     a panel that owns its own region
+ *   overlay  something floating over the page — menus, dialogs, popovers
+ *
+ * `--shadow-tint` is a bare rgb triple so it can carry an alpha per layer;
+ * `--shadow-strength` scales every layer at once, which is what a dark palette
+ * needs (black at 0.06 is invisible on a dark surface).
+ */
+:root {
+  --shadow-tint: 15 23 42;
+  --shadow-strength: 1;
+
+  --shadow-edge: 0 1px 2px
+    rgb(var(--shadow-tint) / calc(0.06 * var(--shadow-strength)));
+  --shadow-raised:
+    0 1px 3px rgb(var(--shadow-tint) / calc(0.08 * var(--shadow-strength))),
+    0 1px 2px rgb(var(--shadow-tint) / calc(0.06 * var(--shadow-strength)));
+  --shadow-card:
+    0 4px 16px -4px rgb(var(--shadow-tint) / calc(0.1 * var(--shadow-strength))),
+    0 2px 6px -2px rgb(var(--shadow-tint) / calc(0.06 * var(--shadow-strength)));
+  --shadow-overlay: 0 16px 40px -12px
+    rgb(var(--shadow-tint) / calc(0.18 * var(--shadow-strength)));
+}
+
+@utility shadow-edge {
+  box-shadow: var(--shadow-edge);
+}
+@utility shadow-raised {
+  box-shadow: var(--shadow-raised);
+}
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+@utility shadow-overlay {
+  box-shadow: var(--shadow-overlay);
+}
+
+/*
+ * Border width. Tailwind v4 has no --border-width-* theme namespace (widths are
+ * static utilities), so these are plain custom properties with named utilities
+ * over them — the point being that "the emphatic border" has one value, not a
+ * `border-2` guessed per component.
+ */
+:root {
+  --border-width-hairline: 1px;
+  --border-width-strong: 2px;
+}
+
+@utility border-hairline {
+  border-width: var(--border-width-hairline);
+}
+@utility border-strong {
+  border-width: var(--border-width-strong);
+}
+
+/*
+ * The focus ring.
+ *
+ * One utility replaces the three-class incantation
+ * (`focus:outline-none focus-visible:ring-2 focus-visible:ring-accent`) that
+ * was copied into six controls and forgotten in the rest — nine call sites
+ * killed the outline and only six put anything back.
+ *
+ * `outline` rather than a box-shadow ring, for three reasons that all matter on
+ * a dense screen: it follows border-radius, it is not clipped by an ancestor's
+ * `overflow: hidden` (a table cell, a menu), and it costs no layout.
+ * `:focus-visible` alone, so a mouse click does not ring.
+ */
+@utility focus-ring {
+  &:focus-visible {
+    outline: var(--border-width-strong) solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* HeadlessUI drives some of its controls (Radio, MenuItem, ComboboxOption)
+     with a `data-focus` attribute rather than native focus, and it applies it
+     on keyboard interaction only — the same intent as :focus-visible. Covering
+     both here is what keeps ONE utility true for every control; without it a
+     HeadlessUI control silently has no ring while wearing the class that says
+     it does. */
+  &[data-focus] {
+    outline: var(--border-width-strong) solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
 }

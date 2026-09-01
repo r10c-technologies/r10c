@@ -42,7 +42,7 @@ export function SidebarNav({ sections, collapsed = false }: SidebarNavProps) {
                   aria-current={active ? 'page' : undefined}
                   title={collapsed ? item.label : undefined}
                   className={cn(
-                    'flex flex-1 items-center gap-2xs rounded-md px-2xs py-3xs text-step-sm transition-colors',
+                    'focus-ring flex flex-1 items-center gap-2xs rounded-md px-2xs py-3xs text-step-sm transition-colors',
                     active
                       ? 'bg-primary text-primary-content'
                       : 'text-content hover:bg-surface',
@@ -60,7 +60,7 @@ export function SidebarNav({ sections, collapsed = false }: SidebarNavProps) {
                     href={`/workspace?tab=${encodeURIComponent(item.workspace)}`}
                     aria-label={t('nav.openInWorkspace', { label: item.label })}
                     title={t('nav.openInWorkspaceShort')}
-                    className="rounded p-3xs text-content-muted opacity-0 transition group-hover/nav:opacity-100 hover:bg-surface hover:text-content focus:opacity-100"
+                    className="focus-ring rounded p-3xs text-content-muted opacity-0 transition group-hover/nav:opacity-100 hover:bg-surface hover:text-content focus:opacity-100"
                   >
                     <span aria-hidden="true">⧉</span>
                   </LocaleLink>

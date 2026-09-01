@@ -130,7 +130,7 @@ export function EntityLinkInput<TTarget extends Entity>({
               className={[
                 'w-full rounded-lg border border-border bg-surface-elevated px-2xs py-3xs',
                 'text-step-sm text-content',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'focus-ring',
                 'disabled:cursor-not-allowed disabled:opacity-50',
               ].join(' ')}
             />
@@ -143,7 +143,10 @@ export function EntityLinkInput<TTarget extends Entity>({
             <ComboboxOptions
               className={[
                 'absolute z-50 mt-3xs max-h-64 w-full overflow-auto',
-                'rounded-lg border border-border bg-surface-elevated p-3xs shadow-lg',
+                'rounded-lg border border-border bg-surface-elevated p-3xs shadow-overlay',
+                // The panel itself is a focus-managed CONTAINER, not a target: the ring
+                // belongs on the item inside it. Stripping the outline here is
+                // correct, and is not a missing `focus-ring`.
                 'focus:outline-none',
               ].join(' ')}
             >
