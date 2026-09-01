@@ -192,6 +192,9 @@ describe('WorkspaceShell', () => {
         screen.queryByRole('tab', { name: /product catalog/ }),
       ).not.toBeInTheDocument(),
     );
+    // Asserted rather than implied: the guard is a rendered dialog now, so a
+    // clean close is only correct if nothing was put on screen to dismiss.
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
   });
 
   it('marks a tab dirty when its address has a draft', async () => {
@@ -210,7 +213,6 @@ describe('WorkspaceShell', () => {
 
   it('guards closing a dirty tab and keeps it when cancelled', async () => {
     tabParam = 'catalog:product';
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const user = userEvent.setup();
     renderShell();
     await screen.findByTestId('body');
@@ -222,16 +224,20 @@ describe('WorkspaceShell', () => {
       screen.getByRole('button', { name: 'Cerrar product catalog' }),
     );
 
-    expect(confirm).toHaveBeenCalled();
+    expect(await screen.findByTestId('confirm-dialog')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
     expect(
       screen.getByRole('tab', { name: /product catalog/ }),
     ).toBeInTheDocument();
-    confirm.mockRestore();
+    // The draft is the thing being protected — surviving the cancel is the
+    // whole point, and a tab that stays while its draft is dropped would pass
+    // the assertion above.
+    expect('catalog:product' in useDraftsState.getState().drafts).toBe(true);
   });
 
   it('closes a dirty tab and clears its draft when confirmed', async () => {
     tabParam = 'catalog:product';
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const user = userEvent.setup();
     renderShell();
     await screen.findByTestId('body');
@@ -242,6 +248,9 @@ describe('WorkspaceShell', () => {
     await user.click(
       screen.getByRole('button', { name: 'Cerrar product catalog' }),
     );
+
+    await screen.findByTestId('confirm-dialog');
+    await user.click(screen.getByRole('button', { name: 'Descartar' }));
 
     await waitFor(() =>
       expect(
@@ -249,6 +258,5 @@ describe('WorkspaceShell', () => {
       ).not.toBeInTheDocument(),
     );
     expect('catalog:product' in useDraftsState.getState().drafts).toBe(false);
-    confirm.mockRestore();
   });
 });

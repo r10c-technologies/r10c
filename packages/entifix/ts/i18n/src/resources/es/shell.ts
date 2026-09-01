@@ -126,7 +126,14 @@ export const shell = {
     empty:
       'No hay pestañas abiertas. Elige un catálogo en la barra lateral para empezar.',
     unsupported: 'Esta pestaña no se puede abrir aquí.',
-    discard: '¿Descartar los cambios sin guardar de esta pestaña?',
+    // The confirmation that guards closing a dirty tab. The title carries the
+    // question, so the message states the consequence rather than repeating it
+    // — it was phrased as a question while `window.confirm` rendered it, which
+    // had nowhere to put a title.
+    discardTitle: 'Descartar cambios',
+    discard:
+      'Esta pestaña tiene cambios sin guardar. Si la cierras, se perderán.',
+    discardConfirm: 'Descartar',
   },
   /**
    * The storefront. Its pages live in `shells-next-marketplace`, so its copy
