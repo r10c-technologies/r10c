@@ -31,7 +31,7 @@ export function EntityRecordCard({
   return (
     <div
       className={cn(
-        'rounded-xl border border-border bg-surface-elevated p-s text-content shadow-xs',
+        'rounded-xl border border-border bg-surface-elevated p-s text-content shadow-edge',
         className,
       )}
     >

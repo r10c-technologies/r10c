@@ -44,6 +44,25 @@ describe('Breadcrumbs', () => {
     expect(screen.getAllByTestId('custom')).toHaveLength(2);
   });
 
+  it('hands the link styling to the custom renderer', () => {
+    // The host owns routing, the design system owns how a link LOOKS. Passing
+    // `className` through is what stopped every app-rendered breadcrumb from
+    // silently losing its focus ring.
+    render(
+      <Breadcrumbs
+        items={trail}
+        renderLink={item => (
+          <a data-testid="custom" href={item.href} className={item.className}>
+            {item.label}
+          </a>
+        )}
+      />,
+    );
+    for (const link of screen.getAllByTestId('custom')) {
+      expect(link).toHaveClass('focus-ring');
+    }
+  });
+
   it('renders a plain span for a non-last crumb without an href', () => {
     render(<Breadcrumbs items={[{ label: 'Root' }, { label: 'Leaf' }]} />);
     const nav = screen.getByRole('navigation', { name: 'Ruta de navegación' });

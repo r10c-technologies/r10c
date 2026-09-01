@@ -8,15 +8,14 @@
   --color-primary-content: #fff8f3;
   --color-border: #f0dccb;
   --color-accent: #d9316b;
+  --color-focus-ring: #c2481c;
 
   --color-danger: #c23b1e;
   --color-danger-subtle: #fdeee8;
   --color-danger-content: #fff8f3;
 
-  /* Warm-tinted elevation */
-  --shadow-xs: 0 1px 2px rgb(120 60 20 / 0.08);
-  --shadow-sm: 0 1px 3px rgb(120 60 20 / 0.1), 0 1px 2px rgb(120 60 20 / 0.07);
-  --shadow-card:
-    0 4px 16px -4px rgb(120 60 20 / 0.14), 0 2px 6px -2px rgb(120 60 20 / 0.08);
-  --shadow-lg: 0 16px 40px -12px rgb(120 60 20 / 0.22);
+  /* Warm-tinted elevation. One line, and it now actually applies: these
+     tokens are plain custom properties, not @theme entries Tailwind bakes. */
+  --shadow-tint: 120 60 20;
+  --shadow-strength: 1.3;
 }

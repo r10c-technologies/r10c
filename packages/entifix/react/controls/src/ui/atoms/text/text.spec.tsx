@@ -61,7 +61,6 @@ describe('Text', () => {
     ['normal', 'font-normal'],
     ['medium', 'font-medium'],
     ['semibold', 'font-semibold'],
-    ['bold', 'font-bold'],
   ] as const)('maps weight %s', (weight, expected) => {
     render(
       <Text data-testid="t" weight={weight}>
@@ -272,14 +271,14 @@ describe('the headings', () => {
 
   it('renders as another element and step on request', () => {
     render(
-      <Heading data-testid="t" as="h4" step={0} weight="bold">
+      <Heading data-testid="t" as="h4" step={0} weight="semibold">
         Title
       </Heading>,
     );
 
     expect(tagOf('t')).toBe('h4');
     expect(classesOf('t')).toEqual(
-      expect.arrayContaining(['text-step-0', 'font-bold']),
+      expect.arrayContaining(['text-step-0', 'font-semibold']),
     );
   });
 

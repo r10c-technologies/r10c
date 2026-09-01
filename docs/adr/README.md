@@ -110,6 +110,7 @@ binding record from one that is binding except in three places.
 | [0024](0024-selling-through-a-vendors-own-channel.md)                   | Selling through a vendor's own channel                                                               | Accepted | 2026-08-17 | —                                                                                                                                                  |
 | [0025](0025-where-planning-and-business-knowledge-live.md)              | Where planning and business knowledge live                                                           | Accepted | 2026-08-17 | in place                                                                                                                                           |
 | [0026](0026-the-use-case-descriptor-and-served-entity-metadata.md)      | The use-case descriptor, and entity metadata as a served document                                    | Accepted | 2026-08-19 | in place                                                                                                                                           |
+| [0027](0027-two-scales-a-density-mode-and-the-type-system.md)           | Two scales, a density mode, and the type system                                                      | Accepted | 2026-09-01 | —                                                                                                                                                  |
 
 <!-- docs:end adr-index -->
 

@@ -761,6 +761,43 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   `@effect/opentelemetry` NodeSdk tracer, reading `logging.*`/`otel.endpoint` from
   config-service (`marketplace-admin-service/src/observability.ts` is the reference).
   See [ADR 0001](docs/adr/0001-observability-and-tooling.md) and [[observability-stack-decision]].
+- **One contract, two scales — and the opt-in is an attribute.** Spacing and
+  type keep one set of token names and take different values per app: fluid
+  Utopia stays the default in `tokens.css` (the storefront keeps it), and
+  `presets/fixed-scale.css` carries the 4px-aligned scale with a **14px** body
+  for dense operator UI. This works only because Tailwind emits these utilities
+  **by reference** (`.p-s { padding: var(--spacing-s) }`), so redefining the
+  property re-scales every existing call site — `SpacingToken`, `GAP`, `PADDING`
+  and ~150 `p-s`/`gap-2xs` sites were untouched by the whole migration. The
+  preset is inert until something opts in (`<html data-scale="fixed"
+data-density="compact">`), exactly like `[data-theme]`; properties inherit, so
+  a subtree can differ, which is what makes a Storybook specimen showing both
+  scales possible. **Density compacts spacing, never type** — shrinking text is
+  how a compact mode becomes an accessibility problem — and it is an attribute
+  rather than a media query because density is a property of the work, not the
+  viewport, so the no-media-query rule stands. `2xl`/`3xl` are exempt (page
+  rhythm), as is `[data-density-exclude]` (alerts, help panels, date pickers).
+  Three traps that are only visible from the compiled CSS. **A `@theme` shadow
+  is baked, not referenced**: Tailwind inlines its color at build time so it can
+  offer `shadow-<color>`, which means every palette's `--shadow-*` override in
+  this repo was dead CSS from the day it was written — elevation is now four
+  plain custom properties (`shadow-edge` ‹ `raised` ‹ `card` ‹ `overlay`) with
+  hand-written utilities, and a palette re-tints in one line via
+  `--shadow-tint`/`--shadow-strength`. **A custom `@utility` loses to a
+  theme-generated one**, which is why those rungs are named for meaning rather
+  than reusing `xs`/`sm`/`lg`. And **`focus-ring` must match `[data-focus]` as
+  well as `:focus-visible`**, because HeadlessUI drives Radio/MenuItem/
+  ComboboxOption with the attribute — without that arm a control has no ring
+  while wearing the class that says it does. The typeface (Inter + JetBrains
+  Mono) is `next/font/google` **per app, duplicated on purpose**: it is a
+  compiler macro, and a workspace library ships as prebuilt `dist`, so the call
+  would reach the runtime unprocessed; Storybook loads the same families from
+  `@fontsource-variable/*` instead, and those two paths meeting at
+  `--font-inter`/`--font-jetbrains-mono` is the seam to check when a specimen
+  stops matching the app. Three weights only (400/500/600); `bold` is gone from
+  the `Text` API. `tabular-nums` lives in `CellValue` for `number`/`date`, never
+  on `--font-sans` — prose needs proportional figures. See
+  [ADR 0027](docs/adr/0027-two-scales-a-density-mode-and-the-type-system.md).
 - **Frontend**: agnostic UI in `@r10c/entifix-react-controls` + tokens in
   `@r10c/entifix-style`; layout is flex-first (Every Layout, no media queries) with
   `Grid` the single CSS-Grid escape hatch. Page shells compose primitives and live in

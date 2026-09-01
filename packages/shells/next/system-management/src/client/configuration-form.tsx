@@ -1,7 +1,12 @@
 'use client';
 
 import { Configuration } from '@r10c/business-ts-configuration';
-import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
+import {
+  EntityField,
+  EntityForm,
+  TextInput,
+  useT,
+} from '@r10c/entifix-react-controls';
 import { useEntityForm } from '@r10c/entifix-react-integration';
 import type { EntifixError } from '@r10c/entifix-ts-core';
 
@@ -99,7 +104,10 @@ export function ConfigurationForm({
           field="value"
           render={({ value, setField, id }) => (
             <>
-              <input
+              {/* `TextInput`, not a bare <input>: every other field in this
+                  form is one, and a raw element renders unstyled and without
+                  the design system's focus ring. */}
+              <TextInput
                 id={id}
                 type="password"
                 value={value}

@@ -26,8 +26,8 @@ export function ThemeSwitcher({ className }: { className?: string }) {
           className={cn(
             'cursor-pointer rounded-lg border border-border px-s py-2xs text-step-0',
             'transition duration-200 ease-smooth active:scale-[0.97]',
-            'text-content hover:border-primary hover:shadow-sm',
-            'focus:outline-none data-focus:ring-2 data-focus:ring-accent',
+            'text-content hover:border-primary hover:shadow-raised',
+            'focus-ring',
             'data-checked:border-primary data-checked:bg-primary data-checked:text-primary-content data-checked:shadow-card',
           )}
         >

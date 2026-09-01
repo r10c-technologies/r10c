@@ -1,7 +1,30 @@
 /* Mirror of an app's global.css: the Tailwind v4 CSS-first pipeline plus the
    design-system tokens and every shipped preset, so stories render themed. */
 @import 'tailwindcss';
+
+/* The faces, by a DIFFERENT mechanism than the apps use — and that difference
+   is the thing to keep an eye on.
+
+   An app gets Inter and JetBrains Mono from `next/font/google`, which is a
+   compiler macro: Next downloads the files at build time, self-hosts them, and
+   generates a `size-adjust` fallback. Storybook has no Next compiler, so it
+   self-hosts the same two families from `@fontsource-variable/*` instead.
+
+   Both paths end at the same place — the CSS variables `--font-inter` and
+   `--font-jetbrains-mono`, which `tokens.css` puts at the front of
+   `--font-sans` / `--font-mono`. Declaring them here is what connects the
+   fontsource faces to the token contract. If a specimen ever looks different
+   from the app, this is the seam that drifted. */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
 @import '@r10c/entifix-style/tokens.css';
+
+/* The dense operator scale. Inert until something opts in with `data-scale`,
+   so every story renders fluid unless it scopes a `[data-scale="fixed"]`
+   subtree — which is how the specimen shows both scales on one page. */
+@import '@r10c/entifix-style/presets/fixed-scale.css';
+
 @import '@r10c/entifix-style/presets/aurora.css';
 @import '@r10c/entifix-style/presets/sunset.css';
 @import '@r10c/entifix-style/presets/midnight.css';
@@ -10,8 +33,12 @@
    components emit (they are consumed as source via @r10c/source). */
 @source '../src';
 
+:root {
+  --font-inter: 'Inter Variable';
+  --font-jetbrains-mono: 'JetBrains Mono Variable';
+}
+
 body {
   background-color: var(--color-surface);
   color: var(--color-content);
-  font-family: ui-sans-serif, system-ui, sans-serif;
 }

@@ -9,15 +9,19 @@
   --color-primary-content: #0b1220;
   --color-border: #2a3546;
   --color-accent: #a17cff;
+  --color-focus-ring: #7ea6ff;
 
   --color-danger: #ff8b80;
   --color-danger-subtle: #2c1a1a;
   --color-danger-content: #0b1220;
 
-  /* Deeper elevation for dark surfaces */
-  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
+  /* Deeper elevation for dark surfaces. Black at the light scale's alphas is
+     invisible on a dark ground, so the tint carries a strength multiplier —
+     and the two large shadows are restated because a dark surface needs
+     different blur GEOMETRY, not just more opacity. */
+  --shadow-tint: 0 0 0;
+  --shadow-strength: 6.5;
   --shadow-card:
     0 8px 24px -6px rgb(0 0 0 / 0.55), 0 2px 8px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 20px 48px -12px rgb(0 0 0 / 0.65);
+  --shadow-overlay: 0 20px 48px -12px rgb(0 0 0 / 0.65);
 }

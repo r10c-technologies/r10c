@@ -22,8 +22,19 @@ export interface BreadcrumbsProps extends Omit<
    * last one — lets a Next shell inject `<Link>` for client-side navigation.
    * Falls back to a plain `<a>`.
    */
-  renderLink?: (item: Required<BreadcrumbItem>) => ReactNode;
+  /**
+   * Routing escape hatch. It receives `className` alongside the item and must
+   * spread it onto whatever it renders — the design system owns how a
+   * breadcrumb link looks, including its focus ring, and a host that supplied
+   * only an href silently lost both.
+   */
+  renderLink?: (
+    item: Required<BreadcrumbItem> & { className: string },
+  ) => ReactNode;
 }
+
+/** How a breadcrumb link looks, wherever it is rendered from. */
+const LINK_CLASS = 'focus-ring rounded-sm hover:text-content hover:underline';
 
 /** Accessible breadcrumb trail. Presentational only — no routing knowledge. */
 export function Breadcrumbs({
@@ -52,12 +63,12 @@ export function Breadcrumbs({
             >
               {linkable ? (
                 renderLink ? (
-                  renderLink(item as Required<BreadcrumbItem>)
+                  renderLink({
+                    ...(item as Required<BreadcrumbItem>),
+                    className: LINK_CLASS,
+                  })
                 ) : (
-                  <a
-                    href={item.href}
-                    className="hover:text-content hover:underline"
-                  >
+                  <a href={item.href} className={LINK_CLASS}>
                     {item.label}
                   </a>
                 )

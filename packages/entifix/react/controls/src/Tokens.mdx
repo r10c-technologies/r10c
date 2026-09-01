@@ -1,0 +1,179 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Foundations/Tokens" />
+
+# Tokens
+
+Spacing, elevation, borders, radius, motion and the focus ring. Switch the theme
+with the toolbar to see every one of these re-tint.
+
+## Spacing, and density
+
+Nine step names. The values come from whichever scale the root opted into, and
+`data-density` compacts the spacing — **not** the type. Shrinking text is how a
+compact mode becomes an accessibility problem; the base size is corrected by the
+scale instead.
+
+`2xl` and `3xl` are deliberately untouched by density: they carry page-level
+rhythm, and compacting them buys nothing per row while making a screen feel
+cramped rather than dense.
+
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))',
+    gap: 'var(--spacing-m)',
+  }}
+>
+  {[
+    ['Fluid — storefront', {}],
+    [
+      'Fixed — comfortable',
+      { 'data-scale': 'fixed', 'data-density': 'comfortable' },
+    ],
+    ['Fixed — compact', { 'data-scale': 'fixed', 'data-density': 'compact' }],
+  ].map(([label, attrs]) => (
+    <div key={label} {...attrs}>
+      <p className="text-step-sm text-content-muted">{label}</p>
+      {['3xs', '2xs', 'xs', 's', 'm', 'l', 'xl'].map(step => (
+        <div
+          key={step}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          <code
+            className="font-mono text-step-xs text-content-muted"
+            style={{ minWidth: '2.5rem' }}
+          >
+            {step}
+          </code>
+          <div
+            className="bg-primary"
+            style={{ height: '0.5rem', width: `var(--spacing-${step})` }}
+          />
+        </div>
+      ))}
+    </div>
+  ))}
+</div>
+
+## Elevation
+
+Four rungs, named for what they mean rather than for a size. They are **not**
+`@theme` entries: Tailwind parses a themed shadow at build time and inlines its
+color, so a palette redefining `--shadow-*` changed nothing — which is what
+every palette in this package was doing, in dead CSS, until this was fixed. A
+palette now re-tints in one line with `--shadow-tint`.
+
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(11rem, 1fr))',
+    gap: 'var(--spacing-m)',
+  }}
+>
+  {[
+    ['shadow-edge', 'barely off the surface — inputs, secondary buttons'],
+    ['shadow-raised', 'a primary control, or one under the pointer'],
+    ['shadow-card', 'a panel that owns its region'],
+    ['shadow-overlay', 'floating over the page — menus, dialogs'],
+  ].map(([cls, meaning]) => (
+    <div
+      key={cls}
+      className={`rounded-lg bg-surface-elevated p-s ${cls}`}
+      style={{ display: 'grid', gap: '0.25rem' }}
+    >
+      <code className="font-mono text-step-xs">{cls}</code>
+      <span className="text-step-xs text-content-muted">{meaning}</span>
+    </div>
+  ))}
+</div>
+
+## The focus ring
+
+One utility, `focus-ring`, on every interactive control. Tab into these rather
+than clicking them — the ring is `:focus-visible` only, so a mouse click does
+not draw it.
+
+It is an `outline`, not a box-shadow ring, for three reasons that all matter on
+a dense screen: it follows `border-radius`, an ancestor's `overflow: hidden`
+cannot clip it, and it costs no layout. Every palette sets its own
+`--color-focus-ring`, each measured to clear the 3:1 non-text contrast minimum
+against both that palette's surfaces.
+
+<div style={{ display: 'flex', gap: 'var(--spacing-2xs)', flexWrap: 'wrap' }}>
+  <button
+    type="button"
+    className="rounded-lg border border-border bg-surface-elevated px-s py-2xs text-step-0 focus-ring"
+  >
+    Tab to me
+  </button>
+  <button
+    type="button"
+    className="rounded-lg bg-primary px-s py-2xs text-step-0 text-primary-content focus-ring"
+  >
+    And me
+  </button>
+  <a
+    href="#the-focus-ring"
+    className="rounded-md text-step-0 text-primary underline focus-ring"
+  >
+    Links too
+  </a>
+</div>
+
+## Borders and radius
+
+Tailwind v4 has no `--border-width-*` theme namespace, so the two widths are
+custom properties with named utilities over them. The point is that "the
+emphatic border" has one value rather than a `border-2` guessed per component.
+
+<div style={{ display: 'flex', gap: 'var(--spacing-2xs)', flexWrap: 'wrap' }}>
+  <div className="rounded-md border-hairline border-border bg-surface-elevated p-2xs text-step-xs">
+    border-hairline
+  </div>
+  <div className="rounded-md border-strong border-border bg-surface-elevated p-2xs text-step-xs">
+    border-strong
+  </div>
+  {/* Static class strings, never `rounded-${r}` — Tailwind's scanner reads the
+      source text, so an interpolated class name simply never gets emitted. */}
+  {[
+    [
+      'rounded-sm',
+      'border border-border bg-surface-elevated p-2xs text-step-xs rounded-sm',
+    ],
+    [
+      'rounded-md',
+      'border border-border bg-surface-elevated p-2xs text-step-xs rounded-md',
+    ],
+    [
+      'rounded-lg',
+      'border border-border bg-surface-elevated p-2xs text-step-xs rounded-lg',
+    ],
+    [
+      'rounded-xl',
+      'border border-border bg-surface-elevated p-2xs text-step-xs rounded-xl',
+    ],
+    [
+      'rounded-2xl',
+      'border border-border bg-surface-elevated p-2xs text-step-xs rounded-2xl',
+    ],
+  ].map(([label, cls]) => (
+    <div key={label} className={cls}>
+      {label}
+    </div>
+  ))}
+</div>
+
+## Motion
+
+A three-step duration scale and an enter/exit easing split. Enter decelerates
+(fast in, then settle); exit accelerates (leave decisively). The asymmetry is
+what makes a menu feel responsive in both directions rather than sluggish in
+one.
+
+<div className="font-mono text-step-xs text-content-muted">
+  <div>
+    --duration-fast 120ms · --duration-base 200ms · --duration-slow 320ms
+  </div>
+  <div>--ease-enter · --ease-exit · --ease-smooth</div>
+</div>

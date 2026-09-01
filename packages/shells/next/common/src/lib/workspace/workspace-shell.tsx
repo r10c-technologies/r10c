@@ -161,7 +161,7 @@ export function WorkspaceShell({
             <button
               type="button"
               onClick={() => copyDeepLink(activeParam)}
-              className="rounded-md px-2xs py-3xs text-step-sm text-content-muted transition hover:bg-surface hover:text-content"
+              className="focus-ring rounded-md px-2xs py-3xs text-step-sm text-content-muted transition hover:bg-surface hover:text-content"
             >
               {t('workspace.copyLink')}
             </button>

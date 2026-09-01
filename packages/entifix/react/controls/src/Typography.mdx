@@ -1,0 +1,119 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Foundations/Typography" />
+
+# Typography
+
+Two families and three weights. Everything below is a token — no component sets
+a raw size, weight, line-height or tracking of its own.
+
+<div style={{ display: 'grid', gap: 'var(--spacing-m)' }}>
+  <div>
+    <p className="text-step-sm text-content-muted">Inter — UI</p>
+    <p className="text-step-2">Product specifications</p>
+    <p className="text-step-0">
+      A vendor authors a versioned specification; an offering pins the version
+      it was written under.
+    </p>
+  </div>
+  <div>
+    <p className="text-step-sm text-content-muted">
+      JetBrains Mono — ids, code, keys
+    </p>
+    <p className="font-mono text-step-0 tabular-nums">
+      txn_01JB4K2M8Q · catalog:published · 12,000.75
+    </p>
+  </div>
+</div>
+
+## The scale
+
+Each step carries its own line-height and letter-spacing through Tailwind's
+`--text-*--line-height` and `--text-*--letter-spacing` modifiers, so a size
+utility brings its whole typographic setting with it. Headings track tighter and
+lead shorter than body; that is the difference between a type scale and a list
+of sizes.
+
+<div style={{ display: 'grid', gap: 'var(--spacing-2xs)' }}>
+  {[
+    ['text-step-4', 'Settlement run'],
+    ['text-step-3', 'Settlement run'],
+    ['text-step-2', 'Settlement run'],
+    ['text-step-1', 'Settlement run'],
+    ['text-step-0', 'Settlement run — body'],
+    ['text-step-sm', 'Settlement run — small'],
+    ['text-step-xs', 'Settlement run — caption'],
+  ].map(([cls, sample]) => (
+    <div
+      key={cls}
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 'var(--spacing-s)',
+      }}
+    >
+      <code
+        className="font-mono text-step-xs text-content-muted"
+        style={{ minWidth: '9rem' }}
+      >
+        {cls}
+      </code>
+      <span className={cls}>{sample}</span>
+    </div>
+  ))}
+</div>
+
+## Two scales, one contract
+
+The same seven step names resolve to different values per app. The storefront
+keeps the fluid Utopia scale it was built on; dense operator UI opts into the
+fixed 4px-aligned scale with `data-scale="fixed"` on the root. A component never
+learns which one it is rendering under.
+
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
+    gap: 'var(--spacing-m)',
+  }}
+>
+  <div>
+    <p className="text-step-sm text-content-muted">Fluid — storefront</p>
+    <p className="text-step-2">Settlement run</p>
+    <p className="text-step-0">Body copy at the reading scale.</p>
+  </div>
+  <div data-scale="fixed">
+    <p className="text-step-sm text-content-muted">Fixed — back office</p>
+    <p className="text-step-2">Settlement run</p>
+    <p className="text-step-0">Body copy at 14px, aligned to the 4px grid.</p>
+  </div>
+</div>
+
+## Weight
+
+Three, and no fourth. 400 body, 500 secondary emphasis, 600 headings and
+labels. `bold` (700) was removed: "heading" and "emphatic heading" were never
+distinct roles here, only different authors.
+
+<div style={{ display: 'grid', gap: 'var(--spacing-2xs)' }}>
+  <p className="text-step-1 font-normal">400 — body</p>
+  <p className="text-step-1 font-medium">
+    500 — secondary emphasis, table keys
+  </p>
+  <p className="text-step-1 font-semibold">600 — headings, labels</p>
+</div>
+
+## Figures
+
+Tabular figures are **not** set on the face — proportional figures are correct
+in prose, and putting `tnum` on `--font-sans` would restyle every paragraph in
+the storefront to fix a table. `CellValue` applies `tabular-nums` for `number`
+and `date` members, which is the one place that already knows which is which.
+
+<div style={{ display: 'grid', gap: 'var(--spacing-2xs)' }}>
+  <div className="text-step-0 tabular-nums">
+    <div>1,204.50</div>
+    <div>99.00</div>
+    <div>12,000.75</div>
+  </div>
+</div>

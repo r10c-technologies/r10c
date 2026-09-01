@@ -14,16 +14,16 @@ export const button = cva(
   [
     'inline-flex items-center justify-center rounded-lg font-medium',
     'transition duration-200 ease-smooth active:scale-[0.97]',
-    'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+    'focus-ring',
     'disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:active:scale-100',
   ],
   {
     variants: {
       variant: {
         primary:
-          'bg-primary text-primary-content shadow-sm hover:opacity-90 hover:shadow-card',
+          'bg-primary text-primary-content shadow-raised hover:opacity-90 hover:shadow-card',
         secondary:
-          'border border-border bg-surface-elevated text-content shadow-xs hover:border-primary hover:shadow-sm',
+          'border border-border bg-surface-elevated text-content shadow-edge hover:border-primary hover:shadow-raised',
         ghost: 'bg-transparent text-content hover:bg-surface-elevated',
         // For an act that destroys something — ending every session a user
         // holds, deleting a record. The `--color-danger*` tokens already
@@ -31,7 +31,7 @@ export const button = cva(
         // only gives them a name, so a destructive action looks the same
         // wherever it appears rather than depending on who wrote the screen.
         destructive:
-          'bg-danger text-danger-content shadow-sm hover:opacity-90 hover:shadow-card',
+          'bg-danger text-danger-content shadow-raised hover:opacity-90 hover:shadow-card',
       },
       // Padding uses the fluid spacing tokens so buttons scale with the viewport.
       size: {

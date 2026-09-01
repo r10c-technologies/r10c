@@ -37,7 +37,7 @@ function Trigger({ className, ...props }: ComponentPropsWithoutRef<'button'>) {
       className={cn(
         'inline-flex items-center gap-2xs rounded-lg px-2xs py-3xs text-step-sm text-content',
         'transition duration-200 ease-smooth hover:bg-surface',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'focus-ring',
         className,
       )}
       {...props}
@@ -55,7 +55,10 @@ function Items({
   return (
     <MenuItems
       className={cn(
-        'absolute right-0 z-50 mt-2xs min-w-[12rem] rounded-lg border border-border bg-surface-elevated p-3xs shadow-lg',
+        'absolute right-0 z-50 mt-2xs min-w-[12rem] rounded-lg border border-border bg-surface-elevated p-3xs shadow-overlay',
+        // The panel itself is a focus-managed CONTAINER, not a target: the ring
+        // belongs on the item inside it. Stripping the outline here is
+        // correct, and is not a missing `focus-ring`.
         'focus:outline-none',
         className,
       )}

@@ -58,7 +58,9 @@ export function BackOfficeBreadcrumbs({
     <Breadcrumbs
       items={items}
       renderLink={item => (
-        <LocaleLink href={item.href}>{item.label}</LocaleLink>
+        <LocaleLink href={item.href} className={item.className}>
+          {item.label}
+        </LocaleLink>
       )}
     />
   );

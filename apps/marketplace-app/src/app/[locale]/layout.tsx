@@ -4,6 +4,7 @@ import { isLocale, type Locale, LOCALES } from '@r10c/entifix-ts-i18n/routing';
 import { getServerTFor } from '@r10c/shells-next-i18n/server';
 import { notFound } from 'next/navigation';
 
+import { fontVariables } from '../fonts';
 import { Providers } from '../providers';
 
 /**
@@ -52,7 +53,15 @@ export default async function RootLayout({
   const locale = requireLocale((await params).locale);
 
   return (
-    <html lang={locale} data-theme="marketplace" suppressHydrationWarning>
+    // No `data-density`, and no fixed-scale import: the storefront keeps the
+    // fluid Utopia scale. It is read at arm's length on a phone, which is what
+    // that scale is for — density is for operator work.
+    <html
+      lang={locale}
+      data-theme="marketplace"
+      className={fontVariables}
+      suppressHydrationWarning
+    >
       <body>
         {/*
           `Providers` is a client component, but `children` reaches it as a
