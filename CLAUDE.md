@@ -559,6 +559,22 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   request drains its own handle inline, a daemon sweeps `tenant_*` for what it
   missed. This does **not** weaken ADR 0022's "never one transaction": the
   transaction is one domain, one slice, one database.
+- **The AMQP connection heals itself, and nothing else in `amqplib` does.**
+  Measured: a channel opened at boot and held in a `Layer` is dead **permanently**
+  once the broker restarts — publishes fail forever and a subscriber stops
+  consuming while raising nothing ever again. Sharper form: a failed passive
+  `checkExchange` _closes the channel_, so the readiness probe was itself a way
+  to break the bus for the whole process. `AmqpChannelTag` therefore carries an
+  `AmqpConnector` (`withChannel`/`addConsumer`), not a `Channel`: it reopens on
+  demand, retries a call once on a dead channel, and **re-registers every
+  consumer against the new channel** — a subscriber's exclusive queue died with
+  the old connection and nothing else rebinds it. Binding is tracked per channel
+  (`Consumer.boundTo`), because a consumer registered while the first connection
+  is still opening otherwise binds twice and folds every event twice. Connecting
+  stays **eager** at boot so an unreachable broker still fails startup rather
+  than leaving a service up with a silently dead bus. The reopen is lazy, so the
+  outbox relay's 15s sweep is what heals a dead subscriber — a service that
+  consumes but never publishes would not heal on its own.
 - **Mongo is a replica set, and dev hides the two things that break in prod.**
   Local runs single-node (`--replSet rs0`), production three; multi-document
   transactions do not exist on a standalone server at all. Dev has no elections

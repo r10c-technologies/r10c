@@ -93,6 +93,33 @@ the bus with the latency it had before the outbox existed. A daemon sweeps every
 `tenant_*` database on an interval for what the fast path missed: the process
 died after committing, or the broker was down when it ran.
 
+### The bus reconnects, because otherwise none of the above delivers
+
+Measured while verifying this, and older than it: **`amqplib` never
+reconnects.** The channel `AmqpLayer` opened at boot was held in a `Layer` for
+the process's life, so once the broker restarted it was dead permanently — and
+both halves of the bus died with it. Publishes failed forever, and the saga
+tracker's consumer stopped folding events without ever raising anything again.
+The observed behaviour was an outbox that correctly survived a broker outage and
+then never drained, the transaction stuck short of a terminal state until the
+service was restarted by hand.
+
+A second, sharper form of the same bug: a failed passive `checkExchange` _closes
+the channel_ in amqplib. The readiness probe ran against the shared boot-time
+channel, so one probe against a blipping broker permanently broke publishing and
+consuming for everything else in the process. The health check was a way to
+break the bus.
+
+So `AmqpChannelTag` now carries a connector rather than a channel. It reopens on
+demand, retries a call once against a fresh channel, and — the part that is easy
+to miss — **re-registers every consumer against the new channel**, because a
+subscriber's exclusive queue died with the old connection and nothing else would
+ever rebind it. Connecting stays eager at boot, so an unreachable broker still
+fails startup rather than leaving a service up with a silently dead bus.
+
+Durability without delivery is not a fix, which is why this is in this record
+rather than a follow-up.
+
 ### Local Mongo becomes a single-node replica set
 
 Because none of the above exists on a standalone server. Production is a 3-node
@@ -184,3 +211,8 @@ the thing to design — not an optional `session` argument added quietly.
   retry path is therefore exercised by no local test. It is handled by
   `withTransaction` rather than by our own code, which is precisely why that
   helper is mandated instead of a hand-rolled pair.
+- **The relay's sweep is what heals a dead subscriber.** Consumers are
+  re-registered when the connector reopens, and the connector only reopens when
+  something asks it for a channel. The sweep publishing every 15s is currently
+  that heartbeat. A service that consumes but never publishes would not heal on
+  its own — worth remembering before adding one.
