@@ -7,11 +7,22 @@ import type * as amqp from 'amqplib';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import type { AmqpConnector } from './amqp-connection.js';
 import { AmqpChannelTag, TRANSACTION_EXCHANGE } from './amqp-connection.js';
 import { AMQP_PROBE_NAME, AmqpHealthProbeLayer } from './amqp-health-probe.js';
 
 const channelWithCheck = (checkExchange: (name: string) => Promise<unknown>) =>
   ({ checkExchange }) as unknown as amqp.Channel;
+
+/**
+ * The probe asks the connector for a channel rather than holding one, because a
+ * failed passive check closes the channel in amqplib — against a single
+ * boot-time channel, one probe failure broke publishing and consuming for good.
+ */
+const connectorFor = (channel: amqp.Channel): AmqpConnector => ({
+  withChannel: use => use(channel),
+  addConsumer: setup => setup(channel),
+});
 
 const reportWith = (channel: amqp.Channel): Promise<HealthReport> =>
   Effect.runPromise(
@@ -22,7 +33,9 @@ const reportWith = (channel: amqp.Channel): Promise<HealthReport> =>
       Effect.provide(
         AmqpHealthProbeLayer.pipe(
           Layer.provideMerge(HealthRegistryLayer),
-          Layer.provideMerge(Layer.succeed(AmqpChannelTag, channel)),
+          Layer.provideMerge(
+            Layer.succeed(AmqpChannelTag, connectorFor(channel)),
+          ),
         ),
       ),
     ),

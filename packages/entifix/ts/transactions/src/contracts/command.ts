@@ -15,7 +15,16 @@ import { Effect } from 'effect';
  * (de)serializer.
  */
 export interface TransactionCommand<TPayload = SerializedEntity> {
-  /** Correlates every event and record for this run. */
+  /**
+   * Correlates every event and record for this run, and **the client mints it**
+   * (ADR 0028).
+   *
+   * It is also the stored entity's id and the idempotency key: re-sending a
+   * command with the same id returns the first one's answer instead of writing
+   * twice. That makes it untrusted input which becomes a primary key, so
+   * {@link readCommandEnvelope} constrains it to a UUID rather than accepting
+   * any string.
+   */
   transactionId: string;
   /** What to do — only `create` in phase 1. */
   type: 'create';
@@ -36,7 +45,29 @@ export function makeCommandEnvelope<TPayload = SerializedEntity>(
   return makeEnvelope('command', command.entity, command);
 }
 
-/** Parses a `command` envelope, failing on a wrong shape/type. */
+/**
+ * A canonical RFC 9562 UUID — any version, standard variant.
+ *
+ * The transaction id arrives from the client and becomes a primary key, so the
+ * key space it may address has to be fixed rather than "whatever string was
+ * sent". Accepting every version keeps v4 (random) and v7 (time-ordered) both
+ * usable without the wire format becoming a second decision.
+ */
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Whether a value is a usable transaction id. */
+export const isTransactionId = (value: unknown): value is string =>
+  typeof value === 'string' && UUID.test(value);
+
+/**
+ * Parses a `command` envelope, failing on a wrong shape/type.
+ *
+ * A command carrying no valid transaction id is rejected outright — there is no
+ * server-side fallback that mints one. That is deliberate: the id is the
+ * idempotency key, and a caller who omits it silently loses retry safety while
+ * appearing to succeed.
+ */
 export function readCommandEnvelope<TPayload = SerializedEntity>(
   body: unknown,
 ): Effect.Effect<TransactionCommand<TPayload>, EntifixBuildError> {
@@ -49,7 +80,7 @@ export function readCommandEnvelope<TPayload = SerializedEntity>(
     const command = envelope.data;
     if (
       command == null ||
-      typeof command.transactionId !== 'string' ||
+      !isTransactionId(command.transactionId) ||
       typeof command.entity !== 'string'
     ) {
       return yield* Effect.fail(

@@ -18,6 +18,10 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     {
       name: 'catalog',
       plane: 'tenant',
+      // Also carries the transaction outbox — not an `@entity()` class, so it
+      // adds no host. It lives here rather than in a control-plane store so the
+      // entity write and the event announcing it are one single-database
+      // transaction (ADR 0028).
       hosts: ['product-configuration-management'],
       partitioning: 'per-organization',
       truth: 'system-of-record',

@@ -24,7 +24,24 @@ export interface TransactionHandler {
   validate(command: TransactionCommand): Effect.Effect<void, EntifixError>;
   /** The resource keys to lock for this command (e.g. the code sequence). */
   lockKeys(command: TransactionCommand): readonly string[];
-  /** Assign the code and persist — the actual write. */
+  /**
+   * Assign the code and persist — the actual write.
+   *
+   * **The implementation must write the `completed` outbox entry in the same
+   * storage transaction as its state change.** The engine deliberately records
+   * nothing on the success path, because only an implementation holds the
+   * driver session that can make those two writes one fact; an engine-level
+   * record would be a second dual write, announcing a state change that may
+   * still roll back.
+   *
+   * Two rules that only a replica set will teach you, and only in production:
+   * drive the transaction with the driver's retrying helper (Mongo's
+   * `session.withTransaction`), because an election aborts in-flight
+   * transactions with a `TransientTransactionError` the *application* is
+   * expected to retry; and keep any non-transactional side effect — drawing a
+   * code from the Redis sequence, say — **outside** that retried callback, or a
+   * retry consumes a second value and skips a code.
+   */
   execute(
     command: TransactionCommand,
   ): Effect.Effect<TransactionOutcome, EntifixError>;

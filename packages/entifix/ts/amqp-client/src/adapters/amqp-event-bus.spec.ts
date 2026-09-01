@@ -5,7 +5,19 @@ import type { Channel } from 'amqplib';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import type { AmqpConnector } from '../amqp-connection/amqp-connection.js';
 import { makeAmqpEventBus } from './amqp-event-bus.js';
+
+/**
+ * A connector that always hands back the same fake channel. The bus asks for a
+ * channel per call now (a held one does not survive a broker restart), so the
+ * doubles have to supply that indirection — the reconnect behaviour itself is
+ * covered in `amqp-connection.spec.ts`.
+ */
+const connectorFor = (channel: Channel): AmqpConnector => ({
+  withChannel: use => use(channel),
+  addConsumer: setup => setup(channel),
+});
 
 const anEvent = (transactionId = 'tx-1'): TransactionEvent => ({
   transactionId,
@@ -21,7 +33,10 @@ const anEvent = (transactionId = 'tx-1'): TransactionEvent => ({
  */
 const withFakeChannel = () => {
   const fake = makeFakeAmqpChannel();
-  return { fake, bus: makeAmqpEventBus(fake.channel as Channel) };
+  return {
+    fake,
+    bus: makeAmqpEventBus(connectorFor(fake.channel as Channel)),
+  };
 };
 
 describeEventBusContract('amqp adapter over a fake channel', async () => {

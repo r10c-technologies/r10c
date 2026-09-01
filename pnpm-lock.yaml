@@ -1110,6 +1110,9 @@ importers:
 
   packages/entifix/ts/rest-client:
     dependencies:
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../transactions
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../business

@@ -22,9 +22,49 @@ spec:
       labels:
         app: mongodb
     spec:
+      # mongod demands the cluster keyfile be readable by *nobody but its owner*
+      # and owned by the user it runs as, and a Secret volume cannot satisfy
+      # both: `defaultMode: 0400` still projects it owned by root (mongod runs
+      # as 999 and cannot read it), while `fsGroup` fixes the ownership by
+      # widening the mode to group-readable — which mongod rejects as
+      # "permissions on /etc/mongodb-keyfile/keyfile are too open". Copying it
+      # to an emptyDir and fixing both is the only arrangement that satisfies
+      # mongod, and it is why this initContainer exists.
+      initContainers:
+        - name: keyfile
+          image: mongo:7.0
+          securityContext:
+            runAsUser: 0
+          command:
+            - sh
+            - -c
+            - install -o 999 -g 999 -m 0400 /keyfile-src/keyfile /keyfile/keyfile
+          volumeMounts:
+            - name: mongodb-keyfile-src
+              mountPath: /keyfile-src
+              readOnly: true
+            - name: mongodb-keyfile
+              mountPath: /keyfile
       containers:
         - name: mongodb
           image: mongo:7.0
+          # `args`, not `command`: this replaces the image's CMD while leaving
+          # docker-entrypoint.sh as the ENTRYPOINT, which is what creates the
+          # root user from MONGO_INITDB_ROOT_*. Overriding `command` would skip
+          # that and leave an unauthenticated server.
+          #
+          # A single-node replica set, because multi-document transactions do
+          # not exist on a standalone mongod — and the catalog write needs the
+          # entity and its outbox entry to commit as one fact (ADR 0028). It is
+          # also the same wire protocol production runs, so `withTransaction`
+          # and retryable writes behave here the way they will there.
+          args:
+            - mongod
+            - --replSet
+            - rs0
+            - --keyFile
+            - /etc/mongodb-keyfile/keyfile
+            - --bind_ip_all
           ports:
             - containerPort: 27017
           envFrom:
@@ -33,10 +73,19 @@ spec:
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db
+            - name: mongodb-keyfile
+              mountPath: /etc/mongodb-keyfile
+              readOnly: true
           # `ping` is one of the few commands mongod answers before auth, so the
           # probe needs no credentials. It is what makes `readyReplicas` mean
           # "answers the wire protocol" — a replayed journal can keep mongod
           # busy for tens of seconds after the container is up.
+          #
+          # Deliberately NOT a replica-set check. `rs.initiate()` has to run
+          # against a live pod, and the ladder's L4 waits for Ready before it
+          # can exec one — so a readiness probe demanding a primary would wait
+          # for an init that is waiting for readiness. Initiation is its own
+          # rung (L5b) with its own probe.
           readinessProbe:
             exec:
               command:
@@ -56,3 +105,10 @@ spec:
         - name: mongodb-data
           persistentVolumeClaim:
             claimName: mongodb-pvc
+        - name: mongodb-keyfile-src
+          secret:
+            secretName: mongodb-keyfile
+        # Written by the initContainer above, never mounted from the Secret
+        # directly. Recreated per pod, which is correct — it is a copy.
+        - name: mongodb-keyfile
+          emptyDir: {}

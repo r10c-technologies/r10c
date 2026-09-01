@@ -39,6 +39,7 @@ import { Layer } from 'effect';
 import { Effect } from 'effect';
 
 import { makeObservabilityLayer } from './observability';
+import { startOutboxRelay, TenantDatabasePrefix } from './outbox/relay';
 import { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
 import { startTracking } from './saga/tracking';
 import { seedCatalog } from './seed';
@@ -116,6 +117,9 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
       Layer.succeed(SagaDatabaseName, sagaDbName),
+      // The outbox relay sweeps every `tenant_<organizationId>` database this
+      // slice owns, so it needs the prefix those handles are named with.
+      Layer.succeed(TenantDatabasePrefix, tenantPrefix),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
@@ -177,6 +181,11 @@ export const AppLayer = Layer.unwrapEffect(
             seedCatalog(`${tenantPrefix}${demoOrganizationId}`),
           ),
           Layer.effectDiscard(startTracking),
+          // The slow half of the outbox relay. The fast half runs inline in the
+          // create route, which already holds the tenant handle; this sweep is
+          // what carries an entry the process died before publishing, or one
+          // written while the broker was down.
+          Layer.effectDiscard(startOutboxRelay),
         ),
         withProbes,
       ),

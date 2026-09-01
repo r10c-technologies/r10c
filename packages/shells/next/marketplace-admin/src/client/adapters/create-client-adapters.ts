@@ -38,7 +38,13 @@ const restOptionsFor = (domainKey: string): BuildEntityRestOptions => ({
  * how the brand and category pages ended up requesting routes that no longer
  * existed — the host rewrites each key to its own same-origin proxy.
  */
-const CATALOG_SERVICE = restOptionsFor('marketplace-admin-service-domain');
+// `create: 'command'` because marketplace-admin-service writes a specification
+// through the saga: the POST carries a client-minted transaction id and answers
+// `202`, not a stored entity. The reference service below is a plain REST write.
+const CATALOG_SERVICE: BuildEntityRestOptions = {
+  ...restOptionsFor('marketplace-admin-service-domain'),
+  create: 'command',
+};
 const REFERENCE_SERVICE = restOptionsFor('marketplace-service-domain');
 
 /**

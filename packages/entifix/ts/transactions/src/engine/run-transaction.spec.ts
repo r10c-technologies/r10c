@@ -9,6 +9,10 @@ import { describe, expect, it } from 'vitest';
 import type { TransactionCommand } from '../contracts/command.js';
 import type { TransactionEvent } from '../contracts/event.js';
 import {
+  type OutboxEnqueueResult,
+  TransactionOutboxTag,
+} from '../contracts/outbox.js';
+import {
   CommandTag,
   LockHandlesTag,
   OutcomeTag,
@@ -51,12 +55,14 @@ const makeWorld = (
     rollback?: EntifixTransactionError;
     acquireFailsOn?: string;
     releaseFails?: boolean;
+    duplicate?: boolean;
+    enqueueFails?: boolean;
   } = {},
 ) => {
   const calls: string[] = [];
   const held: LockHandle[] = [];
   const released: LockHandle[] = [];
-  const published: TransactionEvent[] = [];
+  const recorded: TransactionEvent[] = [];
 
   const handler: TransactionHandler = {
     validate: received => {
@@ -99,26 +105,46 @@ const makeWorld = (
     },
   };
 
-  // `publish` records inside `Effect.sync`, not when it is called: the engine
+  // `enqueue` records inside `Effect.sync`, not when it is called: the engine
   // builds some of these effects ahead of running them, and a port that acted
   // on construction would report an ordering no real adapter produces.
+  const outbox = {
+    enqueue: (event: TransactionEvent) =>
+      Effect.suspend(
+        (): Effect.Effect<OutboxEnqueueResult, EntifixConnError> => {
+          calls.push(`enqueue:${event.step}`);
+          if (script.enqueueFails) {
+            return Effect.fail(new EntifixConnError('outbox unreachable'));
+          }
+          if (script.duplicate) {
+            return Effect.succeed('duplicate');
+          }
+          recorded.push(event);
+          return Effect.succeed('enqueued');
+        },
+      ),
+    pending: () => Effect.succeed([]),
+    markSent: () => Effect.void,
+  };
+
+  // The engine must never reach the broker — every event it produces goes to
+  // the outbox, and the relay is what publishes. A bus that throws on contact
+  // turns a regression into a failing test rather than a silently reintroduced
+  // dual write.
   const bus = {
-    publish: (event: TransactionEvent) =>
-      Effect.sync(() => {
-        calls.push(`publish:${event.step}`);
-        published.push(event);
-      }),
+    publish: () => Effect.die('the engine must not publish; use the outbox'),
     subscribe: () => Effect.void,
   };
 
   const layer = Layer.mergeAll(
     Layer.succeed(TransactionHandlerTag, handler),
     Layer.succeed(LockServiceTag, lockService),
+    Layer.succeed(TransactionOutboxTag, outbox),
     Layer.succeed(EventBusTag, bus),
     Layer.succeed(CommandTag, command),
   );
 
-  return { calls, held, released, published, layer };
+  return { calls, held, released, recorded, layer };
 };
 
 describe('the facade steps', () => {
@@ -206,30 +232,36 @@ describe('the facade steps', () => {
 
 describe('acceptTransaction', () => {
   // This phase runs before the service answers 202, so its ordering is what a
-  // client observes: nothing is announced until the locks are actually held.
-  it('validates, locks, then announces acceptance', () => {
+  // client observes. Claiming *before* locking is what makes a replay cheap: a
+  // repeated command is recognised without ever queueing behind its original.
+  it('validates, claims, then locks', () => {
     const world = makeWorld();
 
-    const handles = Effect.runSync(
+    const accepted = Effect.runSync(
       acceptTransaction().pipe(Effect.provide(world.layer)),
     );
 
     expect(world.calls).toEqual([
       'validate:tx-1',
+      'enqueue:accepted',
       'lockKeys:product',
       'acquire:product:code',
-      'publish:accepted',
     ]);
-    expect(handles.map(handle => handle.key)).toEqual(['product:code']);
+    expect(accepted.status).toBe('accepted');
+    expect(
+      accepted.status === 'accepted'
+        ? accepted.handles.map(handle => handle.key)
+        : [],
+    ).toEqual(['product:code']);
   });
 
-  it('publishes an accepted event in the PENDING state', () => {
+  it('records an accepted event in the PENDING state', () => {
     const world = makeWorld();
 
     Effect.runSync(acceptTransaction().pipe(Effect.provide(world.layer)));
 
-    expect(world.published).toHaveLength(1);
-    expect(world.published[0]).toMatchObject({
+    expect(world.recorded).toHaveLength(1);
+    expect(world.recorded[0]).toMatchObject({
       transactionId: 'tx-1',
       entity: 'product',
       state: 'PENDING',
@@ -237,7 +269,22 @@ describe('acceptTransaction', () => {
     });
   });
 
-  it('takes no lock and announces nothing when validation rejects', () => {
+  // The idempotency key at work: the outbox's uniqueness on transactionId+step
+  // rejects the claim, and the engine stops there. Locking or forking work for
+  // a replay is what would execute the same command twice.
+  it('reports a duplicate and takes no lock when the claim is already held', () => {
+    const world = makeWorld({ duplicate: true });
+
+    const accepted = Effect.runSync(
+      acceptTransaction().pipe(Effect.provide(world.layer)),
+    );
+
+    expect(accepted.status).toBe('duplicate');
+    expect(world.calls).toEqual(['validate:tx-1', 'enqueue:accepted']);
+    expect(world.held).toEqual([]);
+  });
+
+  it('takes no lock and records nothing when validation rejects', () => {
     const world = makeWorld({
       validate: new EntifixTransactionError('illegal'),
     });
@@ -248,10 +295,23 @@ describe('acceptTransaction', () => {
 
     expect(Exit.isFailure(exit)).toBe(true);
     expect(world.calls).toEqual(['validate:tx-1']);
-    expect(world.published).toEqual([]);
+    expect(world.recorded).toEqual([]);
   });
 
-  it('announces nothing when a lock is contended', () => {
+  // A claim that cannot be written must fail the request rather than proceed:
+  // executing without it would leave a write nothing can announce or replay.
+  it('fails without locking when the claim cannot be recorded', () => {
+    const world = makeWorld({ enqueueFails: true });
+
+    const error = Effect.runSync(
+      Effect.flip(acceptTransaction().pipe(Effect.provide(world.layer))),
+    );
+
+    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(world.held).toEqual([]);
+  });
+
+  it('records nothing extra when a lock is contended', () => {
     const world = makeWorld({ acquireFailsOn: 'product:code' });
 
     const error = Effect.runSync(
@@ -259,7 +319,7 @@ describe('acceptTransaction', () => {
     );
 
     expect(error).toBeInstanceOf(EntifixLockError);
-    expect(world.published).toEqual([]);
+    expect(world.recorded.map(event => event.step)).toEqual(['accepted']);
   });
 });
 
@@ -268,27 +328,21 @@ describe('completeTransaction', () => {
     { key: 'product:code', token: 'token-1' },
   ];
 
-  it('executes, announces completion, then frees the locks', () => {
+  // The invariant the outbox design rests on: `execute` wrote the completed
+  // entry inside its own storage transaction, so the engine recording one here
+  // as well would announce a state change that may still have rolled back.
+  it('executes and frees, recording nothing on success', () => {
     const world = makeWorld();
 
     Effect.runSync(
       completeTransaction(handles).pipe(Effect.provide(world.layer)),
     );
 
-    expect(world.calls).toEqual([
-      'execute',
-      'publish:completed',
-      'release:product:code',
-    ]);
-    expect(world.published[0]).toMatchObject({
-      state: 'COMPLETED',
-      step: 'completed',
-      code: 'product-001',
-      entityId: 'p-1',
-    });
+    expect(world.calls).toEqual(['execute', 'release:product:code']);
+    expect(world.recorded).toEqual([]);
   });
 
-  it('rolls back, announces failure, then frees the locks when execute fails', () => {
+  it('rolls back, records failure, then frees the locks when execute fails', () => {
     const world = makeWorld({
       execute: new EntifixTransactionError('write failed'),
     });
@@ -300,10 +354,10 @@ describe('completeTransaction', () => {
     expect(world.calls).toEqual([
       'execute',
       'rollback:undefined',
-      'publish:failed',
+      'enqueue:failed',
       'release:product:code',
     ]);
-    expect(world.published[0]).toMatchObject({
+    expect(world.recorded[0]).toMatchObject({
       state: 'FAILED',
       step: 'failed',
       error: 'write failed',
@@ -324,9 +378,9 @@ describe('completeTransaction', () => {
     expect(world.calls).toContain('rollback:undefined');
   });
 
-  // A failing rollback must not swallow the failure announcement: the client is
+  // A failing rollback must not swallow the failure record: the client is
   // polling for a terminal state and would otherwise wait forever.
-  it('still announces failure and frees when rollback itself fails', () => {
+  it('still records failure and frees when rollback itself fails', () => {
     const world = makeWorld({
       execute: new EntifixTransactionError('write failed'),
       rollback: new EntifixTransactionError('rollback failed'),
@@ -337,10 +391,27 @@ describe('completeTransaction', () => {
     );
 
     expect(Exit.isSuccess(exit)).toBe(true);
-    expect(world.published[0]).toMatchObject({
+    expect(world.recorded[0]).toMatchObject({
       step: 'failed',
       error: 'write failed',
     });
+    expect(world.calls).toContain('release:product:code');
+  });
+
+  // The transaction already failed; an outbox that cannot take the record must
+  // not become an unhandled defect in a forked daemon. The sweep is what
+  // notices such a transaction.
+  it('survives an outbox that cannot record the failure', () => {
+    const world = makeWorld({
+      execute: new EntifixTransactionError('write failed'),
+      enqueueFails: true,
+    });
+
+    const exit = Effect.runSyncExit(
+      completeTransaction(handles).pipe(Effect.provide(world.layer)),
+    );
+
+    expect(Exit.isSuccess(exit)).toBe(true);
     expect(world.calls).toContain('release:product:code');
   });
 
@@ -354,7 +425,6 @@ describe('completeTransaction', () => {
     );
 
     expect(Exit.isSuccess(exit)).toBe(true);
-    expect(world.published[0]).toMatchObject({ step: 'completed' });
   });
 
   it('frees every held lock', () => {
@@ -379,6 +449,7 @@ describe('context tags', () => {
       EventBusTag,
       LockServiceTag,
       TransactionHandlerTag,
+      TransactionOutboxTag,
     ].map(tag => tag.key);
 
     expect(new Set(identifiers).size).toBe(identifiers.length);

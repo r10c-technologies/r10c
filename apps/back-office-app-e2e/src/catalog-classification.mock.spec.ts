@@ -25,22 +25,49 @@ import { expect, PRODUCT_URL, test } from './support/fixtures';
  * Mock-only by nature: observing the request body means choosing the response.
  */
 
-/** Captures the create payload and answers with a readable envelope. */
-const captureCreate = (network: NetworkFixture): { body?: unknown } => {
-  const captured: { body?: unknown } = {};
+/**
+ * Captures the created entity and answers the way the real service does.
+ *
+ * A specification is created through the saga, so the `POST` carries a
+ * **command** envelope whose `payload` is the entity, and the answer is a `202`
+ * naming the transaction rather than an entity envelope to read back
+ * ([ADR 0028](../../../docs/adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).
+ * The client already knows the stored id — it minted it as the transaction id —
+ * so what is asserted below is the `payload`, which is the part the picker
+ * actually decides.
+ */
+const captureCreate = (
+  network: NetworkFixture,
+): { body?: unknown; transactionId?: string } => {
+  const captured: { body?: unknown; transactionId?: string } = {};
   network.use(
     http.post(PRODUCT_URL, async ({ request }) => {
       const envelope = (await request.json()) as {
-        meta: unknown;
-        data: Record<string, unknown>;
+        meta: { entity: string };
+        data: { transactionId: string; payload: Record<string, unknown> };
       };
-      captured.body = envelope.data;
-      // Echo it back: the client deserializes the *response*, because the
-      // service is the authority on the stored entity.
-      return HttpResponse.json({
-        meta: envelope.meta,
-        data: { ...envelope.data, id: 'product-99' },
-      });
+      captured.body = envelope.data.payload;
+      captured.transactionId = envelope.data.transactionId;
+      return HttpResponse.json(
+        {
+          meta: {
+            type: 'transactionEvent',
+            entity: envelope.meta.entity,
+            links: [
+              {
+                rel: 'status',
+                href: `/api/transaction/${envelope.data.transactionId}`,
+                method: 'GET',
+              },
+            ],
+          },
+          data: {
+            transactionId: envelope.data.transactionId,
+            state: 'PENDING',
+          },
+        },
+        { status: 202 },
+      );
     }),
   );
   return captured;
@@ -88,6 +115,13 @@ test('sends both classifications as scalar ids', async ({ page, network }) => {
       brandId: 'product-brand-1',
       categoryId: 'product-category-1',
     });
+
+  // The browser minted the transaction id, and it is the id the record will be
+  // stored under — which is what lets a create render before the write lands,
+  // and what makes a resend a retry rather than a second record (ADR 0028).
+  expect(captured.transactionId).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+  );
 });
 
 test('picks a brand through the browse dialog', async ({ page, network }) => {

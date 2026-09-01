@@ -11,6 +11,7 @@
 #   L3 workloads    namespace + deployments reconciled   -> apply.sh
 #   L4 rollout      each deployment has a Ready replica  -> restart the pod once
 #   L5 probes       TCP + protocol handshake             -> back to L4
+#   L5b mongo rs    the replica set has a primary         -> rs.initiate()
 #   L6 hosted login v2 login container up on :30081      -> secret + apply -k
 #   L7 zitadel seed instance has project/app/branding/actions/policy/SMTP -> zitadel-seed.mjs
 #
@@ -51,7 +52,9 @@ wait_for_probes() {
 # `zitadel_seeded` is a file test and `login_ready` one local HTTP call, so
 # adding L6 and L7 to this question costs almost nothing — and leaving the login
 # out would let the fast path green-light a fleet whose sign-in button 404s.
-if all_probes_green && login_ready && zitadel_seeded; then
+# `mongo_rs_ready` is here for the same reason: an uninitiated replica set
+# answers every other probe and fails every transactional write.
+if all_probes_green && mongo_rs_ready && login_ready && zitadel_seeded; then
   log_ok "local infra healthy ($(probed_labels))"
   exit 0
 fi
@@ -60,7 +63,7 @@ require_tools || exit 1
 acquire_heal_lock || exit 1
 
 # Someone else may have healed while we queued on the lock.
-if all_probes_green && login_ready && zitadel_seeded; then
+if all_probes_green && mongo_rs_ready && login_ready && zitadel_seeded; then
   log_ok "local infra healthy (healed by a parallel task)"
   exit 0
 fi
@@ -174,6 +177,16 @@ if ! wait_for_probes; then
     probe_datastore "$label" "$port" || echo "  down: $label (:$port)" >&2
   done
   kubectl -n "$NS" get pods 2>/dev/null || true
+  reset_hint
+  exit 1
+fi
+
+# ------------------------------------------------------------- L5b mongo replica set
+# After L5 because it needs mongod answering the wire protocol, and it cannot be
+# a readinessProbe: `rs.initiate()` runs against a live pod, and L4 waits for
+# Ready before anything can exec one, so a probe demanding a primary would wait
+# on an init that is waiting on the probe.
+if ! ensure_mongo_replica_set; then
   reset_hint
   exit 1
 fi

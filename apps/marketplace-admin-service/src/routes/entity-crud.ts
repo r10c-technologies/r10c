@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import {
   HttpRouter,
   HttpServerRequest,
@@ -10,9 +8,11 @@ import {
   acceptTransaction,
   CommandTag,
   completeTransaction,
+  EventBusTag,
+  readCommandEnvelope,
   SequenceServiceTag,
-  type TransactionCommand,
   TransactionHandlerTag,
+  TransactionOutboxTag,
 } from '@r10c/entifix-transactions';
 import {
   ConfigurationRepositoryTag,
@@ -44,6 +44,7 @@ import {
 } from '@r10c/entifix-ts-core';
 import {
   makeMongoRepository,
+  MongoClientTag,
   MongoDatabaseTag,
 } from '@r10c/entifix-ts-mongo-client';
 import { requireOrganization } from '@r10c/shells-effect-service';
@@ -54,6 +55,8 @@ import {
   type CatalogHandlerOptions,
   makeCatalogTransactionHandler,
 } from '../catalog-transaction-handler';
+import { drainOutbox } from '../outbox/relay';
+import { ensureOutboxIndexes, makeMongoOutbox } from '../outbox/store';
 
 /**
  * The generic entity CRUD and the tenant guard every catalog route module in
@@ -272,13 +275,17 @@ export const saveRoute = <T extends Entity>(
 
 /**
  * Transactional create route (the CQRS write path). A `POST` is a *command*:
- * the service runs the accept phase (validate -> lock) synchronously, answers
- * `202` with a transaction id, and forks the execute phase (assign code ->
- * persist -> free, or rollback -> free) as a daemon that publishes lifecycle
- * events. The client polls the saga tracker for the outcome.
+ * the service runs the accept phase (validate -> claim -> lock) synchronously,
+ * answers `202` with the transaction id, and forks the execute phase as a
+ * daemon. The client polls the saga tracker for the outcome.
  *
- * The request body is still an entity envelope (the admin app is unchanged on
- * the wire), which is re-serialized into the command payload.
+ * **The client mints the transaction id** (ADR 0028) and sends a `command`
+ * envelope, rather than an entity envelope the service turns into a command.
+ * That is what lets the browser render the created record before the response
+ * arrives — the id is also the stored entity's id — and what makes the id an
+ * idempotency key. There is no server-side fallback that generates one: a
+ * command without a valid id is a `400`, because a caller who omits it silently
+ * loses retry safety while appearing to succeed.
  */
 export const createTransactionRoute = <
   T extends Entity & { code?: string; name?: string },
@@ -287,22 +294,25 @@ export const createTransactionRoute = <
   options: CatalogHandlerOptions,
 ) =>
   Effect.gen(function* () {
+    const client = yield* MongoClientTag;
     const db = yield* MongoDatabaseTag;
     const store = yield* ConfigurationRepositoryTag;
     const sequence = yield* SequenceServiceTag;
+    const bus = yield* EventBusTag;
 
     const request = yield* HttpServerRequest.HttpServerRequest;
     const body = yield* request.json;
-    const entity = yield* readEntityEnvelope(entityConstructor, body);
+    const command = yield* readCommandEnvelope(body);
+    const { transactionId } = command;
 
-    const transactionId = randomUUID();
-    const command: TransactionCommand = {
-      transactionId,
-      type: 'create',
-      entity: options.key,
-      payload: serializeEntity(entityConstructor, entity),
-    };
+    // Tenant databases appear on first write, so the indexes are ensured per
+    // handle rather than at boot. The unique one is what enforces idempotency,
+    // so it must exist before the first claim, not eventually.
+    yield* ensureOutboxIndexes(db);
+    const outbox = makeMongoOutbox(db);
+
     const handler = makeCatalogTransactionHandler(
+      client,
       db,
       store,
       sequence,
@@ -310,18 +320,28 @@ export const createTransactionRoute = <
       options,
     );
 
-    // Accept phase — synchronous; its failure is the client's 400/409.
-    const handles = yield* acceptTransaction().pipe(
+    const accepted = yield* acceptTransaction().pipe(
       Effect.provideService(CommandTag, command),
       Effect.provideService(TransactionHandlerTag, handler),
+      Effect.provideService(TransactionOutboxTag, outbox),
     );
 
-    // Execute phase — forked past the 202 so the request returns immediately.
-    yield* completeTransaction(handles).pipe(
-      Effect.provideService(CommandTag, command),
-      Effect.provideService(TransactionHandlerTag, handler),
-      Effect.forkDaemon,
-    );
+    if (accepted.status === 'accepted') {
+      // Execute phase — forked past the 202 so the request returns immediately.
+      // The fast half of the relay runs after it: the request already holds this
+      // tenant's handle, so the normal case reaches the bus with the latency it
+      // had before the outbox existed. The sweep only covers what this misses.
+      yield* completeTransaction(accepted.handles).pipe(
+        Effect.provideService(CommandTag, command),
+        Effect.provideService(TransactionHandlerTag, handler),
+        Effect.provideService(TransactionOutboxTag, outbox),
+        Effect.andThen(Effect.ignore(drainOutbox(outbox, bus))),
+        Effect.forkDaemon,
+      );
+    }
+    // A duplicate claim is a *retry*, so it gets the first command's answer:
+    // same `202`, same status link, nothing executed a second time. A `409`
+    // here would make the safe thing to do — resend — look like a conflict.
 
     return yield* HttpServerResponse.json(
       {

@@ -109,7 +109,11 @@ probe_datastore() {
   case "$label" in
     postgres) has pg_isready && { pg_isready -q -h 127.0.0.1 -p "$port" -t 2 >/dev/null 2>&1 || return 1; } ;;
     redis)    has redis-cli  && { redis-cli -h 127.0.0.1 -p "$port" --no-auth-warning ping 2>/dev/null | grep -qE 'PONG|NOAUTH' || return 1; } ;;
-    mongo)    has mongosh    && { mongosh "mongodb://127.0.0.1:$port" --quiet --eval 'db.adminCommand({ping:1})' >/dev/null 2>&1 || return 1; } ;;
+    # `directConnection=true` is required once mongod runs with --replSet: the
+    # set advertises its in-cluster member address, which resolves to nothing on
+    # this machine, so a discovering client hangs against a healthy server.
+    # Still `ping` rather than a primary check — initiation is L5b's rung.
+    mongo)    has mongosh    && { mongosh "$(mongo_uri "$port")" --quiet --eval 'db.adminCommand({ping:1})' >/dev/null 2>&1 || return 1; } ;;
     # Zitadel spends ~1min self-initialising behind an open socket, so TCP is
     # even less of a signal here than elsewhere: it answers from the moment the
     # container starts and long before the instance can serve a login.
@@ -196,6 +200,87 @@ ensure_login_secret() {
   kubectl -n "$NS" create secret generic "$LOGIN_SECRET" \
     --from-file="login-client.pat=$ZITADEL_LOGIN_PAT_FILE" \
     --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+}
+
+# The replica set the local mongod runs as. Single-node: it exists for
+# transactions and for parity with the production topology, not for redundancy.
+MONGO_REPLICA_SET=rs0
+
+# How a host-side tool reaches mongod. See the probe above for why
+# `directConnection` is not optional.
+mongo_uri() {
+  echo "mongodb://127.0.0.1:${1:-30017}/?directConnection=true"
+}
+
+# L5b's probe: is the replica set initiated and electable?
+#
+# `hello` is answered before authentication, so this needs no credentials, and
+# `isWritablePrimary` is true only once a primary has actually been elected —
+# which is the thing transactions require. An uninitiated set answers `hello`
+# perfectly happily with `isWritablePrimary: false`, so probing anything weaker
+# would green-light a fleet whose every transactional write fails.
+#
+# Unlike `probe_datastore`, a missing host `mongosh` must NOT read as "fine".
+# There the host tool is a sharper signal layered on top of a TCP check; here it
+# *is* the check, and defaulting to true skips the init rung below and leaves a
+# ladder that is green for a fleet that cannot write. So it falls back to
+# running the same query inside the pod.
+mongo_rs_ready() {
+  port_open 30017 || return 1
+  if has mongosh; then
+    mongosh "$(mongo_uri 30017)" --quiet \
+      --eval 'if (!db.hello().isWritablePrimary) quit(1)' >/dev/null 2>&1
+  else
+    kubectl -n "$NS" exec deploy/mongodb -c mongodb -- \
+      mongosh --quiet --eval 'if (!db.hello().isWritablePrimary) quit(1)' \
+      >/dev/null 2>&1
+  fi
+}
+
+# L5b proper. Runs `rs.initiate()` once, then waits for the election.
+#
+# Ordered after L5 because it needs mongod answering, and it cannot be a
+# readinessProbe: `rs.initiate()` runs against a live pod and L4 waits for Ready
+# before anything can exec one, so a probe demanding a primary would wait on an
+# init that is waiting on the probe.
+#
+# Credentials are required and the localhost exception does not help: the image's
+# entrypoint creates the root user on first boot, and once any user exists an
+# unauthenticated `rs.initiate()` answers `Unauthorized`. They are read back out
+# of the Secret rather than out of `mongodb/.env`, because the Secret is what the
+# pod is actually running with — a file read can drift from it, and cannot.
+#
+# The member advertises `127.0.0.1:27017` — correct inside the pod, which is the
+# only place replication ever looks. Host clients reach it through the NodePort
+# with `directConnection=true` and never consult this address.
+ensure_mongo_replica_set() {
+  local attempts="${INFRA_PROBE_ATTEMPTS:-45}" i user pass
+  mongo_rs_ready && return 0
+
+  user="$(kubectl -n "$NS" get secret mongodb-secret \
+    -o jsonpath='{.data.MONGO_INITDB_ROOT_USERNAME}' 2>/dev/null | base64 -d)"
+  pass="$(kubectl -n "$NS" get secret mongodb-secret \
+    -o jsonpath='{.data.MONGO_INITDB_ROOT_PASSWORD}' 2>/dev/null | base64 -d)"
+  if [[ -z "$user" || -z "$pass" ]]; then
+    log_err "could not read mongodb-secret; is the namespace applied?"
+    return 1
+  fi
+
+  log_heal "mongodb: initiating the ${MONGO_REPLICA_SET} replica set"
+  kubectl -n "$NS" exec deploy/mongodb -c mongodb -- mongosh --quiet \
+    -u "$user" -p "$pass" --authenticationDatabase admin \
+    --eval "rs.initiate({_id: '${MONGO_REPLICA_SET}', members: [{_id: 0, host: '127.0.0.1:27017'}]})" \
+    >/dev/null 2>&1 || true
+
+  for (( i = 0; i < attempts; i++ )); do
+    mongo_rs_ready && return 0
+    sleep 2
+  done
+
+  log_err "mongodb is up but the ${MONGO_REPLICA_SET} replica set has no primary."
+  echo "  Transactions (and every catalog create) fail without one." >&2
+  echo "  kubectl -n $NS logs deploy/mongodb --tail=50" >&2
+  return 1
 }
 
 # L6's probe. `/ui/v2/login/healthy` is served without touching the Zitadel API,
