@@ -13,6 +13,7 @@ import {
 import {
   describeEntityColumns,
   type EntityFieldDescriptor,
+  reconstructEntity,
 } from '@r10c/entifix-ts-core';
 import { useEffect, useMemo } from 'react';
 
@@ -56,8 +57,10 @@ function pointAtTarget(
  * typed relation across that boundary is neither a legal import nor a join we
  * would want ([ADR 0022](../../../../../../../docs/adr/0022-v1-marketplace-module-boundaries.md)).
  * `EntityForm` writes the picked target's id straight into the draft, and
- * `applyEntityLinks` deliberately skips a non-`link` descriptor, so `onSubmit`
- * below keeps reading the draft strings and the id stays the truth.
+ * `applyEntityLinks` deliberately skips a non-`link` descriptor, so
+ * `reconstructEntity` rebuilds them as the plain strings they are and the id
+ * stays the truth. Nothing here passes it a link selection, because this entity
+ * declares no `link` member for one to apply to.
  *
  * `form.setLink` still carries the picked instance in the selection sidecar. It
  * is not needed to *write* the relation — the id already went into the draft —
@@ -92,19 +95,14 @@ export function ProductForm<TContext>({
     entityConstructor: ProductSpecification,
     entity,
     initialValues: initialDraft,
-    onSubmit: values => {
-      const product = new ProductSpecification(values.code, values.name);
-      product.id = entity?.id;
-      product.description =
-        values.description === '' ? undefined : values.description;
-      // Absent, not `''`. Nothing enforces this reference across the store
-      // boundary, so an empty string would be a dangling id rather than "unset".
-      product.brandId = values.brandId === '' ? undefined : values.brandId;
-      product.categoryId =
-        values.categoryId === '' ? undefined : values.categoryId;
-
-      onSave(product);
-    },
+    // `brandId`/`categoryId` land as `undefined` rather than `''`, because that
+    // is what `reconstructEntity` does with every empty scalar — and it is what
+    // this pair needs: nothing enforces the reference across the store boundary,
+    // so an empty string would be a dangling id rather than "unset".
+    onSubmit: values =>
+      onSave(
+        reconstructEntity(ProductSpecification, values, { existing: entity }),
+      ),
   });
 
   // The selection sidecar is keyed by field name and holds bare `Entity`, so the

@@ -15,6 +15,7 @@ export * from './entity-definition/meta-entities/meta-entity';
 export * from './entity-definition/meta-entities/meta-method';
 export * from './entity-definition/meta-entities/meta-use-case';
 export * from './entity-definition/metadata';
+export * from './entity-definition/reconstruct';
 export * from './entity-definition/serializer';
 export * from './envelope';
 export * from './rsql';

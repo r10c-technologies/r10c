@@ -353,6 +353,31 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   server-side allowlist, and losing it is silent at both ends (`400`, rendered as an
   empty suggestion list). Resolving an id goes through the owning domain's own read
   path — a second adapter in the same shell, never a join.
+- **A form's submit rebuild is derived, not written.** Core's
+  `reconstructEntity(Ctor, values, options?)` — where `options` carries
+  `existing` and `selection` — replaces the one hand-written
+  function every entity form used to carry: it walks `describeEntityColumns`,
+  coerces each draft string, and hands the relations to `applyEntityLinks`. Four
+  things not to re-derive. Construction is **zero-argument** (`new Ctor()` then
+  setters, the shape `buildEntityInstance` already uses): entities default their
+  ctor parameters and a required member is filled by its setter a moment later,
+  so required-ness stays the `@accessor({ required })` flag rather than a second
+  list of argument names nothing verifies — and constructing first is what gives
+  `describeEntityColumns` a sample, so an undeclared relation is still recognized
+  as one. `existing` supplies the **id and nothing else**, which is the
+  create/update distinction that used to be a `target.id = entity?.id` line per
+  form. The coercion is the exact **inverse of `seedFieldValue`**, and the two
+  live in different packages (core is below `entifix:react` and cannot import the
+  other half), so a fixed-point spec in `entifix-react-integration` is the only
+  thing that can see them disagree — which matters because both disagreements are
+  silent and survive validation: `boolean` is decided **before** the empty check
+  (`raw === 'true'`; a cleared checkbox drafts as `''` and means `false`, not
+  absent) and `number` checks empty **first** (`Number('')` is `0`, so the other
+  order turns every blank numeric field into a real zero). And assignment is by
+  `descriptor.name`, never `.key` — `key` is `alias ?? name`, the wire/SQL column.
+  Read-only members are skipped here even though `describeEntityColumns` keeps
+  them, because a form shows one and cannot write it. Closes #126; #127
+  `makeEntityCrud` stands on it.
 - **Adding a filter operator** touches four places or it half-works: the const
   arrays in `core/types/EntityFiltering.ts`, the token map in
   `core/src/rsql/rsql-operators.ts`, `mongo-client`'s `filter-translator.ts`, and

@@ -51,7 +51,7 @@ export class EntityIdentifier implements Entity {
   // #endregion
 
   // #region constructors
-  constructor(type: IdentifierType, value: string) {
+  constructor(type: IdentifierType = IdentifierType.Email, value = '') {
     this.#type = type;
     this.#value = value;
   }

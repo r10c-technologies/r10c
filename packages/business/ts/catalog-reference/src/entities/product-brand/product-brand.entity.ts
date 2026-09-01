@@ -17,7 +17,7 @@ export class ProductBrand implements Entity {
   // #endregion
 
   // #region constructors
-  constructor(name: string) {
+  constructor(name = '') {
     this.#name = name;
   }
   // #endregion
