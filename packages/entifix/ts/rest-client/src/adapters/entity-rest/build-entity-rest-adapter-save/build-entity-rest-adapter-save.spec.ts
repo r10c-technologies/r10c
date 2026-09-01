@@ -81,6 +81,43 @@ const runSave = (widget: Widget) =>
     )(widget).pipe(Effect.provide(configuration)),
   );
 
+/** The same adapter, opted into the transactional (CQRS) create path. */
+const commandOptions: BuildEntityRestOptions = {
+  ...restOptions,
+  create: 'command',
+};
+
+const runCommandSave = (widget: Widget) =>
+  Effect.runPromise(
+    buildEntityRestAdapterSave(
+      Widget,
+      commandOptions,
+    )(widget).pipe(Effect.provide(configuration)),
+  );
+
+/** What marketplace-admin-service answers a command with. */
+const acceptedTransaction = (transactionId: string) =>
+  HttpResponse.json(
+    {
+      meta: {
+        type: 'transactionEvent',
+        entity: 'widget',
+        links: [
+          {
+            rel: 'status',
+            href: `/api/transaction/${transactionId}`,
+            method: 'GET',
+          },
+        ],
+      },
+      data: { transactionId, state: 'PENDING' },
+    },
+    { status: 202 },
+  );
+
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 describe('buildEntityRestAdapterSave', () => {
   it('POSTs to the collection when the entity has no id', async () => {
     const requests = recordRequests();
@@ -152,5 +189,110 @@ describe('buildEntityRestAdapterSave', () => {
     server.use(respondWith500(`${BASE_URL}/:id`, 'put'));
 
     await expect(runSave(makeWidget('widget-1', 'Sprocket'))).rejects.toThrow();
+  });
+});
+
+describe('buildEntityRestAdapterSave, transactional create', () => {
+  it('POSTs a command envelope carrying a client-minted transaction id', async () => {
+    let received: { meta?: unknown; data?: Record<string, unknown> } = {};
+    server.use(
+      http.post(BASE_URL, async ({ request }) => {
+        received = (await request.json()) as typeof received;
+        return acceptedTransaction(
+          String(received.data?.['transactionId'] ?? ''),
+        );
+      }),
+    );
+
+    await runCommandSave(makeWidget(undefined, 'Sprocket'));
+
+    expect(received.meta).toEqual({ type: 'command', entity: 'widget' });
+    expect(received.data).toMatchObject({ type: 'create', entity: 'widget' });
+    // The service constrains the key space a caller may address, so an id that
+    // is merely unique is not enough — it has to be a UUID.
+    expect(String(received.data?.['transactionId'])).toMatch(UUID);
+  });
+
+  // The whole point of the client owning the id: the record is addressable
+  // immediately, without waiting for a write that has not happened yet.
+  it('returns the entity carrying the id the service will store it under', async () => {
+    let sent = '';
+    server.use(
+      http.post(BASE_URL, async ({ request }) => {
+        const body = (await request.json()) as {
+          data: { transactionId: string };
+        };
+        sent = body.data.transactionId;
+        return acceptedTransaction(sent);
+      }),
+    );
+
+    const result = await runCommandSave(makeWidget(undefined, 'Sprocket'));
+
+    expect(result.id).toBe(sent);
+    expect(result.name).toBe('Sprocket');
+  });
+
+  it('serializes the entity into the command payload', async () => {
+    let received: { data?: { payload?: unknown } } = {};
+    server.use(
+      http.post(BASE_URL, async ({ request }) => {
+        received = (await request.json()) as typeof received;
+        return acceptedTransaction('3f2504e0-4f89-41d3-9a0c-0305e82c3301');
+      }),
+    );
+
+    await runCommandSave(makeWidget(undefined, 'Sprocket'));
+
+    expect(received.data?.payload).toMatchObject({ name: 'Sprocket' });
+  });
+
+  // The defect this path exists to fix ran the other way: a `202` describing a
+  // transaction was parsed as an entity envelope, so a create that was about to
+  // succeed reported an error. Reading it as what it is must not fail.
+  it('accepts the 202 without trying to read it as an entity', async () => {
+    server.use(
+      http.post(BASE_URL, () =>
+        acceptedTransaction('3f2504e0-4f89-41d3-9a0c-0305e82c3301'),
+      ),
+    );
+
+    await expect(
+      runCommandSave(makeWidget(undefined, 'Sprocket')),
+    ).resolves.toBeInstanceOf(Widget);
+  });
+
+  // A 2xx carrying something other than a transaction means the service is not
+  // the one we think it is — which is exactly what the old code could not tell
+  // apart from a successful create.
+  it('fails when a 2xx does not describe a transaction', async () => {
+    server.use(
+      http.post(BASE_URL, () =>
+        HttpResponse.json(
+          {
+            meta: { type: 'entity', entity: 'widget' },
+            data: { id: 'widget-1', name: 'Sprocket' },
+          },
+          { status: 202 },
+        ),
+      ),
+    );
+
+    await expect(
+      runCommandSave(makeWidget(undefined, 'Sprocket')),
+    ).rejects.toThrow(/transactionEvent/);
+  });
+
+  // An update is not a command: the record exists, so it is a plain REST write
+  // on its own URL regardless of how this entity is created.
+  it('still PUTs an existing entity', async () => {
+    const requests = recordRequests();
+
+    await runCommandSave(makeWidget('widget-1', 'Sprocket'));
+
+    expect(requests).toContainEqual({
+      method: 'PUT',
+      url: `${BASE_URL}/widget-1`,
+    });
   });
 });

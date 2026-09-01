@@ -592,17 +592,47 @@ in the entity-use-case style), the `runTransaction` engine, and the ports
 (lock via `SET NX`, sequences via atomic `INCR`) and `entifix-ts-amqp-client`
 (RabbitMQ fanout event bus).
 
-The engine splits at the `202` boundary: **accept** (validate + lock) is
+The engine splits at the `202` boundary: **accept** (validate + claim + lock) is
 synchronous — its failure is the client's `400`/`409`; **execute** (assign the
-result, persist, free — or roll back and free) is forked past the `202` and
-publishes lifecycle events. It is **choreography** — the service owns its
-transaction and emits events; the saga tracker only observes and recovers
-(passive). The client polls the tracker for the outcome, through the relative
-`rel: 'status'` link the `202` carries. The first concrete
-transaction assigns a unique incremental `code` (`product-001`, `category-001`,
-`brand-001`) to the catalog entities; `INCR`'s atomicity is what guarantees
-uniqueness across service instances. Websockets and multi-service sagas are
-deferred.
+result, persist, free — or roll back and free) is forked past the `202`. It is
+**choreography** — the service owns its transaction and emits events; the saga
+tracker only observes and recovers (passive). The client polls the tracker for
+the outcome, through the relative `rel: 'status'` link the `202` carries. The
+first concrete transaction assigns a unique incremental `code` (`product-001`,
+`category-001`, `brand-001`) to the catalog entities; `INCR`'s atomicity is what
+guarantees uniqueness across service instances. Websockets and multi-service
+sagas are deferred.
+
+**The client mints the transaction id, and the event ships with the write**
+([ADR 0028](adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).
+Two things follow from that one record.
+
+The `POST` body is a **`command` envelope** carrying a client-generated UUID,
+not an entity envelope the service turns into a command. The id is also the
+stored entity's id, so the browser can address the record before the response
+arrives — and it is the **idempotency key**: a repeated id is a retry, answered
+`202` with the same status link and executed exactly once. There is no
+server-side fallback that mints one; a command without a valid UUID is `400`.
+
+The engine **never publishes**. Every event goes to a `TransactionOutbox`, and a
+relay carries the outbox to RabbitMQ. `accepted` and `failed` are written by the
+engine; `completed` is written by the **handler**, in the same Mongo transaction
+as the entity — because only the handler holds a session, and a session may not
+enter the framework-free `EntityRepository` or `TransactionOutbox` ports. The
+engine's success path therefore records nothing, which a spec asserts. The outbox
+collection lives in the **tenant** database beside the entity: same database
+keeps the transaction single-shard, and an outbox holds event payloads, so a
+control-plane one would move a whole offering out of the tenant plane the day
+`catalog.published` rides it. Delivery is **at-least-once** — every consumer must
+dedupe on `transactionId`, which the tracker's `upsertFromEvent` already does.
+
+This needs a replica set, so local Mongo runs as a single-node one; production is
+three nodes. Dev has no elections and no lag, so two rules are in the code rather
+than left to production: drive every transaction with `session.withTransaction`
+(an election aborts with a `TransientTransactionError` the _application_ must
+retry), and keep the Redis sequence draw **outside** that retried callback or a
+retry burns a code. `directConnection=true` on the local URI is local only —
+against a hosted set it would defeat failover.
 
 The engine gains two more consumers as the business domains land, both
 cross-plane and both already designed: **catalog publication**, which projects a

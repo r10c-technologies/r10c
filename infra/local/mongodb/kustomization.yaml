@@ -10,6 +10,13 @@ secretGenerator:
   - name: mongodb-secret
     envs:
       - .env
+  # The replica-set cluster keyfile. Enabling `--replSet` while authentication
+  # is on makes mongod *require* internal cluster auth, and it refuses to start
+  # without this file — the single most common way this conversion fails. It is
+  # LOCAL DEV ONLY, committed like `.env` beside it.
+  - name: mongodb-keyfile
+    files:
+      - keyfile
 generatorOptions:
   # Stable Secret name (no content-hash suffix) so the Deployment's
   # envFrom.secretRef keeps resolving and applies stay idempotent.

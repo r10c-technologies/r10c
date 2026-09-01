@@ -146,6 +146,9 @@ A7+9n9qvFfOGzGP1dUXy291V+fzntwfBmkJJ7w1KOwW02My+tYzTkA4fyC1iNoV2
  * services resolve at boot. Local-dev defaults (minikube NodePorts); production
  * overrides live in the table itself.
  */
+const MONGO_URI =
+  'mongodb://admin:password@127.0.0.1:30017/?directConnection=true';
+
 const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // Locale policy, per frontend. `default` is what an unprefixed URL negotiates
   // to when the visitor has no cookie and their `Accept-Language` names nothing
@@ -204,6 +207,18 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'config-service-domain',
     value: 'http://localhost:3190/api',
   },
+  // How every service reaches the local mongod.
+  //
+  // `directConnection=true` is **local only** and load-bearing here: mongod runs
+  // as a single-node replica set (transactions do not exist on a standalone
+  // server, and the catalog write needs its entity and outbox entry to commit
+  // as one fact — ADR 0028). A replica set advertises its in-cluster member
+  // address, which resolves to nothing on the host, so a driver doing topology
+  // discovery hangs against a perfectly healthy server.
+  //
+  // It must NOT survive into a real deployment. Against a hosted 3-node set the
+  // URI is `mongodb+srv://`, and `directConnection` there pins the driver to one
+  // member and defeats failover entirely — the opposite of what it does here.
   // Backend → MongoDB connection settings (consumed at boot). No `mongo.db`:
   // this service owns no single named database. Every catalog handle is a
   // per-organization `tenant_<id>` resolved inside the request, so a name here
@@ -213,7 +228,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     service: 'marketplace-admin-service',
     group_name: 'mongo',
     key: 'uri',
-    value: 'mongodb://admin:password@127.0.0.1:30017',
+    value: MONGO_URI,
     is_secret: true,
   },
   // Tenant storage. The catalog is tenant plane: each organization authors its
@@ -247,7 +262,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     service: 'auth-service',
     group_name: 'mongo',
     key: 'uri',
-    value: 'mongodb://admin:password@127.0.0.1:30017',
+    value: MONGO_URI,
     is_secret: true,
   },
   { service: 'auth-service', group_name: 'mongo', key: 'db', value: 'auth' },
@@ -444,7 +459,7 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     service: 'marketplace-service',
     group_name: 'mongo',
     key: 'uri',
-    value: 'mongodb://admin:password@127.0.0.1:30017',
+    value: MONGO_URI,
     is_secret: true,
   },
   {

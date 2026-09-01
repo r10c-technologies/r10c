@@ -6,7 +6,11 @@ import { Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TransactionCommand } from './command.js';
-import { makeCommandEnvelope, readCommandEnvelope } from './command.js';
+import {
+  isTransactionId,
+  makeCommandEnvelope,
+  readCommandEnvelope,
+} from './command.js';
 import {
   acceptedEvent,
   completedEvent,
@@ -17,8 +21,11 @@ import {
 
 const AT = '2026-07-20T12:00:00.000Z';
 
+/** A v4 UUID — the client mints the transaction id, and it must be one. */
+const TX = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
 const aCommand = (): TransactionCommand => ({
-  transactionId: 'tx-1',
+  transactionId: TX,
   type: 'create',
   entity: 'product',
   payload: { name: 'Widget' },
@@ -53,7 +60,7 @@ describe('command envelopes', () => {
 
   it('rejects a body that is not an envelope at all', () => {
     const error = Effect.runSync(
-      Effect.flip(readCommandEnvelope({ transactionId: 'tx-1' })),
+      Effect.flip(readCommandEnvelope({ transactionId: TX })),
     );
 
     expect(error).toBeInstanceOf(EntifixBuildError);
@@ -81,7 +88,24 @@ describe('command envelopes', () => {
     ['null data', null],
     ['a non-string transactionId', { transactionId: 1, entity: 'product' }],
     ['no transactionId', { entity: 'product' }],
-    ['a non-string entity', { transactionId: 'tx-1', entity: 7 }],
+    ['a non-string entity', { transactionId: TX, entity: 7 }],
+    // The id becomes a primary key, so the key space a caller may address is
+    // fixed rather than "whatever string was sent".
+    ['an opaque transactionId', { transactionId: 'tx-1', entity: 'product' }],
+    [
+      'a UUID with the wrong variant',
+      {
+        transactionId: '3f2504e0-4f89-41d3-1a0c-0305e82c3301',
+        entity: 'product',
+      },
+    ],
+    [
+      'a UUID with a trailing segment',
+      {
+        transactionId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301-x',
+        entity: 'product',
+      },
+    ],
   ])('rejects a well-framed envelope carrying %s', (_label, data) => {
     const error = Effect.runSync(
       Effect.flip(
@@ -97,10 +121,33 @@ describe('command envelopes', () => {
   });
 });
 
+describe('isTransactionId', () => {
+  // Both versions a client would plausibly mint: v4 from `crypto.randomUUID`,
+  // v7 if it ever wants time-ordered keys. Neither is privileged on the wire.
+  it.each([
+    ['a v4 UUID', TX],
+    ['a v7 UUID', '01890a5d-ac96-774b-bcce-b302099a8057'],
+    ['an uppercase UUID', TX.toUpperCase()],
+  ])('accepts %s', (_label, value) => {
+    expect(isTransactionId(value)).toBe(true);
+  });
+
+  it.each([
+    ['an opaque string', 'tx-1'],
+    ['an empty string', ''],
+    ['a nil UUID', '00000000-0000-0000-0000-000000000000'],
+    ['a number', 7],
+    ['undefined', undefined],
+    ['null', null],
+  ])('rejects %s', (_label, value) => {
+    expect(isTransactionId(value)).toBe(false);
+  });
+});
+
 describe('event builders', () => {
   it('reports accepted as PENDING, carrying no outcome yet', () => {
     expect(acceptedEvent(aCommand())).toEqual({
-      transactionId: 'tx-1',
+      transactionId: TX,
       entity: 'product',
       state: 'PENDING',
       step: 'accepted',
@@ -112,7 +159,7 @@ describe('event builders', () => {
     expect(
       completedEvent(aCommand(), { code: 'product-001', entityId: 'p-1' }),
     ).toEqual({
-      transactionId: 'tx-1',
+      transactionId: TX,
       entity: 'product',
       state: 'COMPLETED',
       step: 'completed',

@@ -28,9 +28,18 @@ the build** when they drift. Edit a `*.slice.ts`, run `node tools/sync-docs.mjs`
 and stage the result — editing between the markers fails the commit.
 
 A store with no hosts holds records that are not `@entity()` classes (sessions,
-locks, sequences). A ⚠️ on the hosts column marks a multi-domain store, which is
-a **binding**: those domains are permanently co-deployed and the reason is
-recorded on the declaration as `bindingReason`.
+locks, sequences). By the same rule, `catalog` also carries the **transaction
+outbox** — one collection per `tenant_<id>` database, written in the same Mongo
+transaction as the entity it announces
+([ADR 0028](../adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).
+It sits here rather than in a control-plane store for two reasons: same database
+keeps that transaction single-database and therefore single-shard, and an outbox
+holds event payloads — harmless while a `TransactionEvent` carries no tenant
+data, decisive once `catalog.published` carries a whole offering.
+
+A ⚠️ on the hosts column marks a multi-domain store, which is a **binding**:
+those domains are permanently co-deployed and the reason is recorded on the
+declaration as `bindingReason`.
 
 <!-- docs:begin store-register -->
 

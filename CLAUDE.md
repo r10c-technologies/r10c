@@ -530,6 +530,71 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   config-service; add `ioredis`/`amqplib` to `externalDependencies`. The domain half is
   a `TransactionHandler` closing over its deps. See [[entifix-transactions-phase1]] and
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#transactions-cqrs-writes).
+- **The client mints the transaction id, and the engine never publishes**
+  ([ADR 0028](docs/adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).
+  A transactional `POST` carries a **`command` envelope** with a client-generated
+  UUID — not an entity envelope the service converts — because the id is also the
+  stored entity's id (`entity.id = command.transactionId` was already true) and
+  therefore the **idempotency key**: a repeat is a retry, answered `202` with the
+  same status link and executed once, never a `409`. No server-side fallback mints
+  one; a missing or non-UUID id is `400`, and the key space is narrow because
+  untrusted input is becoming a primary key. This is also what fixed a create that
+  **reported an error in the browser while succeeding on the server** — the save
+  adapter parsed the `202`'s `transactionEvent` envelope with `readEntityEnvelope`,
+  and `fetch-client` treats `202` as `ok`, so it surfaced as an `EntifixBuildError`
+  that no test could see. Opt an entity in with `create: 'command'` in
+  `BuildEntityRestOptions`; plain REST creates are unchanged.
+  Every event now goes to a **`TransactionOutbox`** and a relay carries it to
+  RabbitMQ — `execute` used to commit Mongo and then `bus.publish` separately, so a
+  broker outage between them left a successful write mislabelled `STALE`.
+  `accepted`/`failed` are written by the engine; **`completed` is written by the
+  handler, inside the entity's own Mongo transaction**, because only the handler
+  holds a session and a session may not enter the framework-free
+  `EntityRepository`/`TransactionOutbox` ports — so the engine's success path
+  records nothing, and a spec asserts it. The outbox lives in the **tenant**
+  database beside the entity (single-database ⇒ single-shard; and an outbox holds
+  event payloads, so a control-plane one would drag a whole offering out of the
+  tenant plane once `catalog.published` uses it). Delivery is **at-least-once**:
+  every consumer must dedupe on `transactionId`. Two relay speeds — the committing
+  request drains its own handle inline, a daemon sweeps `tenant_*` for what it
+  missed. This does **not** weaken ADR 0022's "never one transaction": the
+  transaction is one domain, one slice, one database.
+- **The AMQP connection heals itself, and nothing else in `amqplib` does.**
+  Measured: a channel opened at boot and held in a `Layer` is dead **permanently**
+  once the broker restarts — publishes fail forever and a subscriber stops
+  consuming while raising nothing ever again. Sharper form: a failed passive
+  `checkExchange` _closes the channel_, so the readiness probe was itself a way
+  to break the bus for the whole process. `AmqpChannelTag` therefore carries an
+  `AmqpConnector` (`withChannel`/`addConsumer`), not a `Channel`: it reopens on
+  demand, retries a call once on a dead channel, and **re-registers every
+  consumer against the new channel** — a subscriber's exclusive queue died with
+  the old connection and nothing else rebinds it. Binding is tracked per channel
+  (`Consumer.boundTo`), because a consumer registered while the first connection
+  is still opening otherwise binds twice and folds every event twice. Connecting
+  stays **eager** at boot so an unreachable broker still fails startup rather
+  than leaving a service up with a silently dead bus. The reopen is lazy, so the
+  outbox relay's 15s sweep is what heals a dead subscriber — a service that
+  consumes but never publishes would not heal on its own.
+- **Mongo is a replica set, and dev hides the two things that break in prod.**
+  Local runs single-node (`--replSet rs0`), production three; multi-document
+  transactions do not exist on a standalone server at all. Dev has no elections
+  and no lag, so both rules live in code: drive every transaction with
+  **`session.withTransaction`**, never a hand-rolled
+  `startTransaction`/`commitTransaction` — an election aborts with a
+  `TransientTransactionError` the _application_ is expected to retry, which a
+  single-node set never raises — and keep non-transactional side effects
+  (the Redis `sequence.next()` code draw) **outside** that retried callback, or a
+  retry consumes a second value and gaps the code series. Three traps in the
+  conversion: `--replSet` with auth on makes mongod **require** a cluster keyFile
+  and refuse to start without one (mounted `defaultMode: 0400` + `fsGroup: 999`,
+  since a Secret's default 0644 root-owned projection is rejected);
+  `directConnection=true` on the seeded URI is **local only**, because a set
+  advertises an in-cluster address the host cannot resolve — against a hosted
+  `mongodb+srv://` the same flag pins the driver to one member and defeats
+  failover; and initiation is ladder rung **L5b**, never a readinessProbe, because
+  `rs.initiate()` needs a live pod while L4 waits for Ready, so a probe demanding
+  a primary would deadlock against its own init. Changing the URI seed needs a
+  `dev:reset` (`ON CONFLICT DO NOTHING`).
 - **Zitadel authenticates; r10c authorizes.** auth-service holds **no credential** —
   no hash, no lockout ledger, no `PasswordHasher`, and no `AccountRepository`
   method that could read or write one. Sign-in is authorization code + PKCE

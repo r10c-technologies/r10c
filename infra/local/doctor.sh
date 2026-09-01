@@ -44,7 +44,7 @@ else
     bad "L1 cluster" "minikube $state"
   fi
   skip "L2 portmap" ""; skip "L3 workloads" ""; skip "L4 rollout" ""; skip "L5 probes" ""
-  skip "L6 login" ""; skip "L7 zitadel" ""
+  skip "L5b mongo rs" ""; skip "L6 login" ""; skip "L7 zitadel" ""
   echo
   if [[ "$state" == "Drifted" ]]; then
     echo "fix: minikube update-context    # instant; ensure.sh also does it for you"
@@ -100,6 +100,16 @@ if [[ -z "$down" ]]; then
   ok "L5 probes" "$(probed_labels)"
 else
   bad "L5 probes" "unreachable:$down"
+fi
+
+# L5b ------------------------------------------------------------------------
+# The rung that fails at the *write* rather than at boot: an uninitiated replica
+# set answers every probe above and rejects every multi-document transaction, so
+# a green fleet cannot create a catalog record.
+if mongo_rs_ready; then
+  ok "L5b mongo rs" "replica set $MONGO_REPLICA_SET has a primary"
+else
+  bad "L5b mongo rs" "replica set $MONGO_REPLICA_SET has no primary — transactional writes fail"
 fi
 
 # L6 -------------------------------------------------------------------------

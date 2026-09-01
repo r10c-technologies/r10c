@@ -1,5 +1,6 @@
 export * from './contracts/command';
 export * from './contracts/event';
+export * from './contracts/outbox';
 export * from './contracts/record';
 export * from './engine/run-transaction';
 export * from './mixins/transaction-mixins';
