@@ -166,7 +166,8 @@ agree, both spec-pinned.
 **record** under the `transactionEvent` discriminant. A record is not an event.
 Unpicking it needs a new discriminant, which changes the browser's accept-shape
 assertion in `build-entity-rest-adapter-save.ts` and the e2e mocks, so it is
-tracked separately rather than folded in here.
+tracked separately rather than folded in here — issue
+[#176](https://github.com/r10c-technologies/r10c/issues/176).
 
 ## Amends
 
