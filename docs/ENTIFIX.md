@@ -354,13 +354,17 @@ Every message on the wire is an `EntifixEnvelope`: `{ meta, data }`, built in
 the same shape goes over HTTP, over the bus, and into a test double.
 
 `meta.type` is one of `entity`, `entityCollection`, `entityPage`, `command`,
-`transactionEvent` or `entityMetadata`, and `meta.entity` is the **routing label**: `key ?? class
-name`, resolved by `envelopeEntityName` — the identical resolution the REST
-adapter uses to build an endpoint and the Mongo adapter uses to pick a
-collection. One rule, three consumers, so a renamed `key` cannot move the
-endpoint without moving the envelope with it.
+`event`, `transactionEvent` or `entityMetadata`, and `meta.entity` is the
+**routing label**: `key ?? class name`, resolved by `envelopeEntityName` — the
+identical resolution the REST adapter uses to build an endpoint and the Mongo
+adapter uses to pick a collection. One rule, three consumers, so a renamed `key`
+cannot move the endpoint without moving the envelope with it.
 
-Five builders wrap the shared serializer, which is why a route never hand-rolls a
+`meta.entity` is **optional**, and only bus messages leave it out: a message
+about a settlement _run_ has no entity to name, and what a message _is_ lives in
+`meta.event.name` instead (ADR 0029).
+
+Six builders wrap the shared serializer, which is why a route never hand-rolls a
 payload:
 
 | Builder                        | `meta.type`        | `data`                        |
@@ -369,6 +373,7 @@ payload:
 | `makeEntityCollectionEnvelope` | `entityCollection` | serialized entities           |
 | `makeEntityPageEnvelope`       | `entityPage`       | `{ items, total, request }`   |
 | `makeEntityMetadataEnvelope`   | `entityMetadata`   | `{ actions, useCases }`       |
+| `makeEventEnvelope`            | `event`            | a bus message's payload       |
 | `makeEnvelope`                 | any                | a caller-defined `data` shape |
 
 `makeEntityMetadataEnvelope` is the odd one: it serializes nothing, because its
@@ -378,10 +383,23 @@ use-case verbs this caller holds, already filtered against the verified
 principal, so a UI renders it without re-deciding anything (ADR 0026).
 
 `makeEnvelope` is the escape hatch for payloads that are **not** serialized
-entities — a `command` or a `transactionEvent` carries a shape the transactions
-layer defines, so it cannot go through the entity builders. It still takes an
-`entity` label, because routing does not stop applying just because the body is
-not an entity.
+entities — a `command` carries a shape the transactions layer defines, so it
+cannot go through the entity builders. It still takes an `entity` label, because
+routing does not stop applying just because the body is not an entity.
+
+`makeEventEnvelope` is the bus's builder, and it is the one that splits
+differently. Everything about the **message** goes to `meta.event` — `name`
+(also the AMQP routing key), `id` (the deduplication key), `source` (the emitting
+slice), `at`, and an optional `correlationId`; everything about the
+**occurrence** stays in `data`. So a consumer never digs into metadata to find
+its own domain object, and never digs into the payload to find the routing key.
+`readEventEnvelope` validates that block rather than defaulting it: a message
+with no `name` cannot be routed and one with no `id` cannot be deduplicated, so
+both fail loudly the way a half-populated entity does.
+
+Two envelope arms, one contract. The HTTP arm is unchanged by any of this — the
+`transactionEvent` type still frames the transaction _record_ a `202` and
+`GET /api/transaction/:id` answer with, which is a wart tracked separately.
 
 Optional `meta.links` carry `EntifixEnvelopeLink`s, which is how a `202` points
 at the transaction it started.

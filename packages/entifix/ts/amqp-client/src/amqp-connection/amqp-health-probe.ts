@@ -1,14 +1,14 @@
 import { HealthRegistryTag } from '@r10c/entifix-ts-business';
 import { Effect, Layer } from 'effect';
 
-import { AmqpChannelTag, TRANSACTION_EXCHANGE } from './amqp-connection';
+import { AmqpChannelTag, EVENTS_EXCHANGE } from './amqp-connection';
 
 /** Probe name reported by `/api/health/ready` when RabbitMQ is unreachable. */
 export const AMQP_PROBE_NAME = 'amqp';
 
 /**
  * Registers a readiness probe for the AMQP connection: a passive assert of the
- * shared transaction exchange. Passive means it never creates anything — it
+ * shared events exchange. Passive means it never creates anything — it
  * asks the broker whether the exchange is there, which fails fast on both a
  * dead connection and a broker that lost the topology.
  *
@@ -32,7 +32,7 @@ export const AmqpHealthProbeLayer: Layer.Layer<
       name: AMQP_PROBE_NAME,
       check: Effect.tryPromise(() =>
         connector.withChannel(channel =>
-          channel.checkExchange(TRANSACTION_EXCHANGE),
+          channel.checkExchange(EVENTS_EXCHANGE),
         ),
       ).pipe(
         Effect.as(true),

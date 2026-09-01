@@ -1,9 +1,8 @@
 import type {
   OutboxEntry,
-  TransactionEvent,
   TransactionOutbox,
 } from '@r10c/entifix-transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { type DomainEvent, EntifixConnError } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 
@@ -40,9 +39,8 @@ const isDuplicateKey = (error: unknown): boolean =>
  * cannot live in a framework-free contract. The handler inserts this document
  * itself; everything else goes through {@link makeMongoOutbox}.
  */
-export const outboxDocument = (event: TransactionEvent): OutboxEntry => ({
-  transactionId: event.transactionId,
-  step: event.step,
+export const outboxDocument = (event: DomainEvent): OutboxEntry => ({
+  eventId: event.id,
   event,
   sent: false,
   createdAt: event.at,
@@ -53,7 +51,9 @@ export const outboxDocument = (event: TransactionEvent): OutboxEntry => ({
  *
  * The unique one is load-bearing rather than defensive: it *is* the idempotency
  * check behind the client-generated transaction id, so a replayed command is
- * rejected by the storage engine rather than by a read-then-write race. The
+ * rejected by the storage engine rather than by a read-then-write race. It is on
+ * `eventId` — `<transactionId>:<step>` for a transaction — so the claim and the
+ * bus's deduplication key are one value rather than two that can drift. The
  * partial one keeps the relay's `pending` query cheap once the collection fills
  * with sent entries.
  */
@@ -61,10 +61,7 @@ export const ensureOutboxIndexes = (db: Db) =>
   Effect.tryPromise({
     try: async () => {
       const collection = db.collection(OUTBOX_COLLECTION);
-      await collection.createIndex(
-        { transactionId: 1, step: 1 },
-        { unique: true },
-      );
+      await collection.createIndex({ eventId: 1 }, { unique: true });
       await collection.createIndex(
         { createdAt: 1 },
         { partialFilterExpression: { sent: false } },
@@ -102,7 +99,7 @@ export const makeMongoOutbox = (db: Db): TransactionOutbox => {
             return 'enqueued' as const;
           } catch (error) {
             // Not a failure: the unique index rejected a second claim for this
-            // transaction id, which is precisely how a retry is identified.
+            // message id, which is precisely how a retry is identified.
             if (isDuplicateKey(error)) {
               return 'duplicate' as const;
             }
@@ -110,10 +107,7 @@ export const makeMongoOutbox = (db: Db): TransactionOutbox => {
           }
         },
         catch: error =>
-          fail('Failed to enqueue outbox entry', error, {
-            transactionId: event.transactionId,
-            step: event.step,
-          }),
+          fail('Failed to enqueue outbox entry', error, { eventId: event.id }),
       }),
 
     pending: limit =>
@@ -136,13 +130,12 @@ export const makeMongoOutbox = (db: Db): TransactionOutbox => {
       Effect.tryPromise({
         try: () =>
           collection.updateOne(
-            { transactionId: entry.transactionId, step: entry.step },
+            { eventId: entry.eventId },
             { $set: { sent: true } },
           ),
         catch: error =>
           fail('Failed to mark outbox entry sent', error, {
-            transactionId: entry.transactionId,
-            step: entry.step,
+            eventId: entry.eventId,
           }),
       }).pipe(Effect.asVoid),
   };

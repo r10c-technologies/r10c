@@ -7,6 +7,7 @@ import {
 import type { Entity, EntityConstructor } from '../types/Entity';
 import type { EntityPage } from '../types/EntityPage';
 import type {
+  DomainEvent,
   EntifixEnvelope,
   EntifixEnvelopeLink,
   EntifixEnvelopeType,
@@ -14,6 +15,7 @@ import type {
   EntityEnvelope,
   EntityMetadataEnvelope,
   EntityPageEnvelope,
+  EventEnvelope,
 } from './types';
 
 /**
@@ -120,5 +122,28 @@ export function makeEntityMetadataEnvelope<TEntity extends Entity>(
       ...(links ? { links } : {}),
     },
     data: document,
+  };
+}
+
+/**
+ * Frames a domain event for the bus.
+ *
+ * The split is mechanical and worth stating: everything about the *message*
+ * (name, id, source, time, correlation) goes to `meta.event`; the payload — what
+ * actually happened — is `data`. A consumer therefore never has to reach into
+ * metadata to read its own domain object, and never has to reach into the
+ * payload to find the routing key.
+ *
+ * `meta.entity` is deliberately left unset. A bus message says what it *is* in
+ * `meta.event.name`; only the HTTP arm needs an entity label, and inventing one
+ * here would put `settlement` on a message about a settlement *run*.
+ */
+export function makeEventEnvelope<TData>(
+  event: DomainEvent<TData>,
+): EventEnvelope<TData> {
+  const { data, ...eventMeta } = event;
+  return {
+    meta: { type: 'event', event: eventMeta },
+    data,
   };
 }

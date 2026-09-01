@@ -8,7 +8,7 @@ import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import type { AmqpConnector } from './amqp-connection.js';
-import { AmqpChannelTag, TRANSACTION_EXCHANGE } from './amqp-connection.js';
+import { AmqpChannelTag, EVENTS_EXCHANGE } from './amqp-connection.js';
 import { AMQP_PROBE_NAME, AmqpHealthProbeLayer } from './amqp-health-probe.js';
 
 const channelWithCheck = (checkExchange: (name: string) => Promise<unknown>) =>
@@ -54,7 +54,7 @@ describe('AmqpHealthProbeLayer', () => {
     expect(report).toEqual({ ready: true, failing: [] });
     // Passive check of the exchange the transactions layer publishes through —
     // asserting it here would create topology from a health probe.
-    expect(seen).toEqual([TRANSACTION_EXCHANGE]);
+    expect(seen).toEqual([EVENTS_EXCHANGE]);
   });
 
   it('reports failing when the broker rejects the check', async () => {

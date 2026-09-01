@@ -1,3 +1,5 @@
+import { matchesEventPattern } from '@r10c/entifix-ts-core';
+
 /**
  * A fake of the amqplib channel, not of the {@link EventBus} port.
  *
@@ -12,14 +14,32 @@ export interface FakeAmqpMessage {
 
 export interface FakeAmqpChannel {
   /** Everything published, decoded from the wire. */
-  readonly published: ReadonlyArray<{ exchange: string; body: unknown }>;
+  readonly published: ReadonlyArray<{
+    exchange: string;
+    routingKey: string;
+    body: unknown;
+  }>;
+  /**
+   * Every queue binding the adapter asked for. Recorded because the exchange is
+   * a topic now: the pattern a subscriber binds is the whole of its routing, so
+   * a fake that swallowed it would let a wrong binding pass every test.
+   */
+  readonly bindings: ReadonlyArray<{
+    queue: string;
+    exchange: string;
+    pattern: string;
+  }>;
   /** Messages acked and nacked, so the failure policy can be asserted. */
   readonly acked: FakeAmqpMessage[];
   readonly nacked: FakeAmqpMessage[];
   /** The prefetch the adapter asked for — 1, or the fold races. */
   readonly prefetchCount: number | undefined;
-  /** Pushes a message to the registered consumer, as the broker would. */
-  deliver(body: unknown): Promise<void>;
+  /**
+   * Pushes a message to the consumers whose binding matches it, as the broker
+   * would. The routing key defaults to the envelope's own `meta.event.name`,
+   * which is what the adapter publishes with.
+   */
+  deliver(body: unknown, routingKey?: string): Promise<void>;
   /** Pushes a raw payload, for malformed-message paths. */
   deliverRaw(payload: string): Promise<void>;
   /** Simulates the broker cancelling the consumer (amqplib delivers `null`). */
@@ -30,11 +50,25 @@ export interface FakeAmqpChannel {
   readonly channel: unknown;
 }
 
+/** The routing key a body would have been published with. */
+const routingKeyOf = (body: unknown): string => {
+  const event = (body as { meta?: { event?: { name?: unknown } } })?.meta
+    ?.event;
+  return typeof event?.name === 'string' ? event.name : '';
+};
+
 export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
-  const published: Array<{ exchange: string; body: unknown }> = [];
+  const published: Array<{
+    exchange: string;
+    routingKey: string;
+    body: unknown;
+  }> = [];
+  const bindings: Array<{ queue: string; exchange: string; pattern: string }> =
+    [];
   const acked: FakeAmqpMessage[] = [];
   const nacked: FakeAmqpMessage[] = [];
   let consumer: ((message: FakeAmqpMessage | null) => void) | undefined;
+  let boundQueue: string | undefined;
   let prefetchCount: number | undefined;
   let failure: unknown;
 
@@ -43,10 +77,11 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
   };
 
   const channel = {
-    publish: (exchange: string, _routingKey: string, content: Buffer) => {
+    publish: (exchange: string, routingKey: string, content: Buffer) => {
       guard();
       published.push({
         exchange,
+        routingKey,
         body: JSON.parse(content.toString()) as unknown,
       });
       return true;
@@ -63,15 +98,17 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
       guard();
       return { queue: queue === '' ? 'amq.gen-fake' : queue };
     },
-    bindQueue: async () => {
+    bindQueue: async (queue: string, exchange: string, pattern: string) => {
       guard();
+      bindings.push({ queue, exchange, pattern });
     },
     consume: async (
-      _queue: string,
+      queue: string,
       handler: (message: FakeAmqpMessage | null) => void,
     ) => {
       guard();
       consumer = handler;
+      boundQueue = queue;
       return { consumerTag: 'fake-consumer' };
     },
     ack: (message: FakeAmqpMessage) => {
@@ -91,9 +128,29 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
    */
   const settle = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
-  const push = async (payload: string) => {
+  /**
+   * Whether the consumer's queue is bound to a pattern matching `routingKey`.
+   * The broker decides this in production, so the fake has to as well — without
+   * it every subscriber sees every message and the topic exchange is untested.
+   */
+  const routes = (routingKey: string) =>
+    bindings.some(
+      binding =>
+        binding.queue === boundQueue &&
+        matchesEventPattern(binding.pattern, routingKey),
+    );
+
+  /**
+   * `routingKey === undefined` means "the broker already routed this" — used by
+   * the malformed-payload path, where the message reached the queue and it is
+   * the *content* that is wrong.
+   */
+  const push = async (payload: string, routingKey: string | undefined) => {
     if (consumer === undefined) {
       throw new Error('fake amqp: nothing subscribed yet');
+    }
+    if (routingKey !== undefined && !routes(routingKey)) {
+      return;
     }
     consumer({ content: Buffer.from(payload) });
     await settle();
@@ -102,6 +159,9 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
   return {
     get published() {
       return published;
+    },
+    get bindings() {
+      return bindings;
     },
     get acked() {
       return acked;
@@ -112,8 +172,9 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
     get prefetchCount() {
       return prefetchCount;
     },
-    deliver: body => push(JSON.stringify(body)),
-    deliverRaw: payload => push(payload),
+    deliver: (body, routingKey) =>
+      push(JSON.stringify(body), routingKey ?? routingKeyOf(body)),
+    deliverRaw: payload => push(payload, undefined),
     deliverCancellation: async () => {
       if (consumer === undefined) {
         throw new Error('fake amqp: nothing subscribed yet');

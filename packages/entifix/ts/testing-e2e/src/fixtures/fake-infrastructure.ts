@@ -1,4 +1,7 @@
-import { AmqpChannelTag } from '@r10c/entifix-ts-amqp-client';
+import {
+  AmqpChannelTag,
+  type AmqpConnector,
+} from '@r10c/entifix-ts-amqp-client';
 import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
@@ -98,14 +101,25 @@ export const fakeRedisLayer = (): FakeInfrastructure<FakeRedis, RedisTag> => {
   };
 };
 
+/**
+ * The tag carries an `AmqpConnector`, not a channel — a held channel does not
+ * survive the broker restarting, so the real adapter asks for one per call. The
+ * fixture therefore has to supply that indirection rather than handing the fake
+ * channel over directly: a layer that provided the channel would satisfy the
+ * type through a cast and then fail at the first `withChannel` call.
+ */
 export const fakeAmqpLayer = (): FakeInfrastructure<
   FakeAmqpChannel,
   AmqpChannelTag
 > => {
   const channel = makeFakeAmqpChannel();
+  const connector: AmqpConnector = {
+    withChannel: use => use(channel.channel as never),
+    addConsumer: setup => setup(channel.channel as never),
+  };
   return {
     driver: channel,
-    layer: Layer.succeed(AmqpChannelTag, channel.channel as never),
+    layer: Layer.succeed(AmqpChannelTag, connector),
   };
 };
 

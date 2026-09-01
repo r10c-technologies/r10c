@@ -1,4 +1,8 @@
-import { EventBusTag, TransactionStoreTag } from '@r10c/entifix-transactions';
+import {
+  EventBusTag,
+  type TransactionEvent,
+  TransactionStoreTag,
+} from '@r10c/entifix-transactions';
 import { Duration, Effect } from 'effect';
 
 /** How often the recovery sweep runs. */
@@ -22,7 +26,13 @@ export const startTracking = Effect.gen(function* () {
 
   // Fold each observed event into the persisted record. The handler carries no
   // requirements (store is closed over), so the bus can run it standalone.
-  yield* bus.subscribe(event => Effect.asVoid(store.upsertFromEvent(event)));
+  // `transaction.*` and nothing else: the exchange is a topic now, so this
+  // slice's interest is expressed to the broker rather than in the handler. It
+  // is the same string `tools/slices/transaction.slice.ts` declares as
+  // `subscribedEvents`, which is what keeps the register honest.
+  yield* bus.subscribe('transaction.*', event =>
+    Effect.asVoid(store.upsertFromEvent(event.data as TransactionEvent)),
+  );
 
   // Recovery sweep as a detached daemon so it outlives the boot effect.
   const sweep = Effect.gen(function* () {

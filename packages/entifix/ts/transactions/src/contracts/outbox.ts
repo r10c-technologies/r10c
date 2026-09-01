@@ -1,7 +1,5 @@
-import type { EntifixConnError } from '@r10c/entifix-ts-core';
+import type { DomainEvent, EntifixConnError } from '@r10c/entifix-ts-core';
 import { Context, type Effect } from 'effect';
-
-import type { TransactionEvent, TransactionStep } from './event';
 
 /**
  * A transaction event recorded durably *before* it reaches the broker.
@@ -15,10 +13,16 @@ import type { TransactionEvent, TransactionStep } from './event';
  * afterwards.
  */
 export interface OutboxEntry {
-  transactionId: string;
-  /** Which facade step this entry announces — unique per transaction. */
-  step: TransactionStep;
-  event: TransactionEvent;
+  /**
+   * The message's own id, denormalized out of `event` so the unique index sits
+   * on a plain top-level field rather than a nested path.
+   *
+   * This **is** the idempotency claim: for a transaction step it is
+   * `<transactionId>:<step>`, so a replayed command collides here and is
+   * recognised as a retry before any lock is taken or work forked.
+   */
+  eventId: string;
+  event: DomainEvent;
   sent: boolean;
   /** ISO-8601, and the drain order: entries publish oldest-first. */
   createdAt: string;
@@ -31,8 +35,8 @@ export interface OutboxEntry {
  * transaction id is the client's idempotency key (ADR 0028), so a repeated
  * command must return the first one's answer rather than execute twice. The
  * adapter owns the detection because the mechanism is storage-specific (a Mongo
- * `E11000` against the unique index on `transactionId + step`), and translating
- * it here keeps driver error codes out of route handlers.
+ * `E11000` against the unique index on `eventId`), and translating it here keeps
+ * driver error codes out of route handlers.
  */
 export type OutboxEnqueueResult = 'enqueued' | 'duplicate';
 
@@ -51,9 +55,9 @@ export type OutboxEnqueueResult = 'enqueued' | 'duplicate';
  * {@link TransactionHandler}.
  */
 export interface TransactionOutbox {
-  /** Record an event durably. Idempotent per `transactionId + step`. */
+  /** Record an event durably. Idempotent per `event.id`. */
   enqueue(
-    event: TransactionEvent,
+    event: DomainEvent,
   ): Effect.Effect<OutboxEnqueueResult, EntifixConnError>;
   /** Unsent entries, oldest first — the relay's input. */
   pending(
@@ -62,7 +66,7 @@ export interface TransactionOutbox {
   /**
    * Mark an entry published. A crash between the publish and this call re-sends
    * the event on the next drain, which is why delivery is at-least-once and why
-   * consumers must dedupe on `transactionId`.
+   * a consumer that must not fold twice dedupes on `event.id`.
    */
   markSent(entry: OutboxEntry): Effect.Effect<void, EntifixConnError>;
 }

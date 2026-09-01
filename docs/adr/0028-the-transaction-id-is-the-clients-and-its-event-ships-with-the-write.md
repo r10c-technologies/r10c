@@ -2,6 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Amended by: [ADR 0029](0029-the-event-envelope-and-a-routed-bus.md) — the
+  deduplication key is the message's own `event.id` (`<transactionId>:<step>`),
+  not `transactionId`, and `OutboxEntry` carries a `DomainEvent`. Every decision
+  in this record stands.
 
 ## Context
 

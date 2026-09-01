@@ -447,3 +447,116 @@ describe('ADR 0026 — declared use cases, their grants and their implementation
     }
   });
 });
+
+describe('ADR 0029 — declared events have a publisher and a legal name', () => {
+  /**
+   * AMQP topic semantics: `*` matches exactly one dot-separated word, `#` zero
+   * or more.
+   *
+   * Duplicated from `matchesEventPattern` in `@r10c/entifix-ts-core` on purpose:
+   * this tool is outside the workspace's package graph and importing a library
+   * from it would make the register check depend on a build. The duplication is
+   * the same shape as `SalesChannelType`'s (#96) — two small lists that must
+   * agree, both spec-pinned, rather than a dependency that must not exist.
+   */
+  const matches = (pattern: string, name: string): boolean => {
+    const walk = (
+      patternWords: readonly string[],
+      nameWords: readonly string[],
+    ): boolean => {
+      if (patternWords.length === 0) return nameWords.length === 0;
+      const [head, ...rest] = patternWords;
+      if (head === '#') {
+        return (
+          walk(rest, nameWords) ||
+          (nameWords.length > 0 && walk(patternWords, nameWords.slice(1)))
+        );
+      }
+      if (nameWords.length === 0) return false;
+      return (
+        (head === '*' || head === nameWords[0]) &&
+        walk(rest, nameWords.slice(1))
+      );
+    };
+    return walk(pattern.split('.'), name.split('.'));
+  };
+
+  /**
+   * `<domain>.<thing>[.<state>]`, lowercase, with `*`/`#` allowed as whole
+   * words. The name is the AMQP routing key verbatim, so a name a broker cannot
+   * route is a subscription that silently receives nothing.
+   */
+  const LEGAL_NAME = /^([a-z0-9-]+|\*|#)(\.([a-z0-9-]+|\*|#))+$/;
+
+  const allDeclared = SLICES.flatMap(slice => [
+    ...slice.publishedEvents.map(name => ({ slice, name, side: 'published' })),
+    ...slice.subscribedEvents.map(name => ({
+      slice,
+      name,
+      side: 'subscribed',
+    })),
+  ]);
+
+  it('finds the event declarations it is meant to check', () => {
+    // The same guard the entity and domain scans carry: an empty register would
+    // make every assertion below pass while checking nothing.
+    expect(allDeclared.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('names every event in the routing grammar', () => {
+    for (const { slice, name, side } of allDeclared) {
+      expect(
+        LEGAL_NAME.test(name),
+        `slice '${slice.name}' declares ${side} event '${name}', which is not ` +
+          'a lowercase dotted name. The name is used verbatim as the AMQP ' +
+          'routing key, so one the broker cannot route binds a queue that ' +
+          'never receives anything — and nothing errors.',
+      ).toBe(true);
+    }
+  });
+
+  /**
+   * A subscriber with no publisher is the failure this check exists for: the
+   * binding succeeds, the queue stays empty, and the consumer looks healthy
+   * forever. Planned slices count, because ownership is declared before the
+   * process exists (ADR 0022) — what must be on file is *who will publish it*,
+   * not that something already does.
+   */
+  it('gives every subscribed event a slice that declares it published', () => {
+    for (const slice of SLICES) {
+      for (const wanted of slice.subscribedEvents) {
+        const publishers = SLICES.filter(candidate =>
+          candidate.publishedEvents.some(
+            offered => matches(offered, wanted) || matches(wanted, offered),
+          ),
+        );
+
+        expect(
+          publishers.length,
+          `slice '${slice.name}' subscribes to '${wanted}', which no slice ` +
+            'declares in publishedEvents. A binding with no publisher is a ' +
+            'queue that stays empty while every probe stays green.',
+        ).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('subscribes no slice to its own events', () => {
+    for (const slice of SLICES) {
+      for (const wanted of slice.subscribedEvents) {
+        const own = slice.publishedEvents.some(
+          offered => matches(offered, wanted) || matches(wanted, offered),
+        );
+        // `transaction` consuming marketplace-admin's `transaction.*` is the
+        // shape to protect: a slice that both publishes and consumes a name is
+        // usually a copy-paste, and it makes the register unable to say which
+        // way an event actually flows.
+        expect(
+          own,
+          `slice '${slice.name}' both publishes and subscribes '${wanted}'. ` +
+            'The register then cannot say which slice a consumer depends on.',
+        ).toBe(false);
+      }
+    }
+  });
+});

@@ -3,12 +3,13 @@ import type {
   LockHandle,
   LockService,
   SequenceService,
-  TransactionEvent,
 } from '@r10c/entifix-transactions';
 import {
+  type DomainEvent,
   EntifixConnError,
   type EntifixError,
   EntifixLockError,
+  matchesEventPattern,
 } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 
@@ -97,9 +98,14 @@ export const makeInMemorySequenceService = (): InMemorySequenceService => {
 
 export interface RecordingEventBus extends EventBus {
   /** Every event published, in order. */
-  readonly published: TransactionEvent[];
-  /** Pushes an event to all subscribers, as a delivery from the broker would. */
-  deliver(event: TransactionEvent): Effect.Effect<void, EntifixError>;
+  readonly published: DomainEvent[];
+  /**
+   * Pushes an event to the subscribers whose pattern matches it, as a topic
+   * exchange would. Deliberately not "to all subscribers": routing is the
+   * broker's job in production, so a double that ignored it would let a
+   * consumer pass its tests while receiving traffic it never bound to.
+   */
+  deliver(event: DomainEvent): Effect.Effect<void, EntifixError>;
   /** Makes the next `publish` fail, for the broker-unavailable branch. */
   failNextPublish(): void;
 }
@@ -110,10 +116,11 @@ export interface RecordingEventBus extends EventBus {
  * assertions: the expectation then reads as state, not as a spy protocol.
  */
 export const makeRecordingEventBus = (): RecordingEventBus => {
-  const published: TransactionEvent[] = [];
-  const handlers: Array<
-    (event: TransactionEvent) => Effect.Effect<void, EntifixError>
-  > = [];
+  const published: DomainEvent[] = [];
+  const handlers: Array<{
+    pattern: string;
+    handle: (event: DomainEvent) => Effect.Effect<void, EntifixError>;
+  }> = [];
   let failNext = false;
 
   return {
@@ -123,21 +130,25 @@ export const makeRecordingEventBus = (): RecordingEventBus => {
           failNext = false;
           return Effect.fail(
             new EntifixConnError('Event bus unavailable', undefined, {
-              transactionId: event.transactionId,
+              eventId: event.id,
             }),
           );
         }
         published.push(event);
         return Effect.void;
       }),
-    subscribe: handler =>
+    subscribe: (pattern, handle) =>
       Effect.sync(() => {
-        handlers.push(handler);
+        handlers.push({ pattern, handle });
       }),
     deliver: event =>
-      Effect.forEach(handlers, handler => handler(event), {
-        discard: true,
-      }),
+      Effect.forEach(
+        handlers.filter(({ pattern }) =>
+          matchesEventPattern(pattern, event.name),
+        ),
+        ({ handle }) => handle(event),
+        { discard: true },
+      ),
     get published() {
       return published;
     },

@@ -1,24 +1,28 @@
+import { type EventBus, EventBusTag } from '@r10c/entifix-transactions';
 import {
-  type EventBus,
-  EventBusTag,
-  makeTransactionEventEnvelope,
-  readTransactionEventEnvelope,
-} from '@r10c/entifix-transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+  EntifixConnError,
+  makeEventEnvelope,
+  readEventEnvelope,
+} from '@r10c/entifix-ts-core';
 import type { ConsumeMessage } from 'amqplib';
 import { Effect, Layer } from 'effect';
 
 import {
   AmqpChannelTag,
   type AmqpConnector,
-  TRANSACTION_EXCHANGE,
+  EVENTS_EXCHANGE,
 } from '../amqp-connection/amqp-connection';
 
 /**
- * RabbitMQ-backed {@link EventBus}. Events go out as `transactionEvent`
- * envelopes on the fanout exchange — the adapter owns the wire framing, so the
- * port stays event-typed. Each subscriber binds its own exclusive queue, so the
- * saga tracker receives a full broadcast of every service's events.
+ * RabbitMQ-backed {@link EventBus}. Events go out as `event` envelopes on the
+ * shared topic exchange — the adapter owns the wire framing, so the port stays
+ * event-typed.
+ *
+ * **The event's own name is the routing key**, which is what lets a subscriber
+ * bind the exact pattern it declared in `tools/slices/*.slice.ts`. Each
+ * subscriber still gets its own exclusive queue, so two replicas of one service
+ * both see every matching event — a shared queue would deliver each event to
+ * one of them, which reads as flakiness rather than as a design.
  *
  * Both methods go through the {@link AmqpConnector} rather than holding a
  * channel, because a channel does not survive the broker restarting. `publish`
@@ -32,19 +36,20 @@ export const makeAmqpEventBus = (connector: AmqpConnector): EventBus => ({
       try: () =>
         connector.withChannel(async channel => {
           channel.publish(
-            TRANSACTION_EXCHANGE,
-            '',
-            Buffer.from(JSON.stringify(makeTransactionEventEnvelope(event))),
+            EVENTS_EXCHANGE,
+            event.name,
+            Buffer.from(JSON.stringify(makeEventEnvelope(event))),
             { persistent: true },
           );
         }),
       catch: error =>
         new EntifixConnError('AMQP publish failed', error, {
-          transactionId: event.transactionId,
+          eventId: event.id,
+          name: event.name,
         }),
     }),
 
-  subscribe: handler =>
+  subscribe: (pattern, handler) =>
     Effect.tryPromise({
       try: () =>
         connector.addConsumer(async channel => {
@@ -53,7 +58,7 @@ export const makeAmqpEventBus = (connector: AmqpConnector): EventBus => ({
           // pair can't race into two upserts.
           await channel.prefetch(1);
           const { queue } = await channel.assertQueue('', { exclusive: true });
-          await channel.bindQueue(queue, TRANSACTION_EXCHANGE, '');
+          await channel.bindQueue(queue, EVENTS_EXCHANGE, pattern);
           await channel.consume(queue, (message: ConsumeMessage | null) => {
             if (message === null) {
               return;
@@ -63,16 +68,15 @@ export const makeAmqpEventBus = (connector: AmqpConnector): EventBus => ({
             // store), so it runs standalone; ack on success, dead-letter on
             // failure.
             void Effect.runPromise(
-              readTransactionEventEnvelope(parsed).pipe(
-                Effect.flatMap(handler),
-              ),
+              readEventEnvelope(parsed).pipe(Effect.flatMap(handler)),
             ).then(
               () => channel.ack(message),
               () => channel.nack(message, false, false),
             );
           });
         }),
-      catch: error => new EntifixConnError('AMQP subscribe failed', error),
+      catch: error =>
+        new EntifixConnError('AMQP subscribe failed', error, { pattern }),
     }),
 });
 

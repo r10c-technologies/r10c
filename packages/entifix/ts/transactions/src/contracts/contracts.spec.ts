@@ -15,7 +15,6 @@ import {
   acceptedEvent,
   completedEvent,
   failedEvent,
-  makeTransactionEventEnvelope,
   readTransactionEventEnvelope,
 } from './event.js';
 
@@ -23,6 +22,8 @@ const AT = '2026-07-20T12:00:00.000Z';
 
 /** A v4 UUID — the client mints the transaction id, and it must be one. */
 const TX = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+/** The slice every event in this file is published by. */
+const SOURCE = 'test-slice';
 
 const aCommand = (): TransactionCommand => ({
   transactionId: TX,
@@ -146,27 +147,71 @@ describe('isTransactionId', () => {
 
 describe('event builders', () => {
   it('reports accepted as PENDING, carrying no outcome yet', () => {
-    expect(acceptedEvent(aCommand())).toEqual({
-      transactionId: TX,
-      entity: 'product',
-      state: 'PENDING',
-      step: 'accepted',
+    expect(acceptedEvent(aCommand(), SOURCE)).toEqual({
+      name: 'transaction.accepted',
+      id: `${TX}:accepted`,
+      source: SOURCE,
+      correlationId: TX,
       at: AT,
+      data: {
+        transactionId: TX,
+        entity: 'product',
+        state: 'PENDING',
+        step: 'accepted',
+        at: AT,
+      },
     });
   });
 
   it('reports completed as COMPLETED, echoing the outcome', () => {
     expect(
-      completedEvent(aCommand(), { code: 'product-001', entityId: 'p-1' }),
+      completedEvent(
+        aCommand(),
+        { code: 'product-001', entityId: 'p-1' },
+        SOURCE,
+      ),
     ).toEqual({
-      transactionId: TX,
-      entity: 'product',
-      state: 'COMPLETED',
-      step: 'completed',
-      code: 'product-001',
-      entityId: 'p-1',
+      name: 'transaction.completed',
+      id: `${TX}:completed`,
+      source: SOURCE,
+      correlationId: TX,
       at: AT,
+      data: {
+        transactionId: TX,
+        entity: 'product',
+        state: 'COMPLETED',
+        step: 'completed',
+        code: 'product-001',
+        entityId: 'p-1',
+        at: AT,
+      },
     });
+  });
+
+  // The whole point of keying on the step as well: one transaction emits three
+  // messages, and a dedup key that ignored the step would make `completed` look
+  // like a redelivery of `accepted` and drop the outcome.
+  it('gives each step of one transaction a distinct message id', () => {
+    const command = aCommand();
+    const ids = [
+      acceptedEvent(command, SOURCE),
+      completedEvent(command, { code: 'product-001', entityId: 'p-1' }, SOURCE),
+      failedEvent(command, 'boom', SOURCE),
+    ].map(event => event.id);
+
+    expect(new Set(ids).size).toBe(3);
+    expect(ids).toEqual([`${TX}:accepted`, `${TX}:completed`, `${TX}:failed`]);
+  });
+
+  it('correlates every step of one transaction under the same id', () => {
+    const command = aCommand();
+
+    expect(
+      [
+        acceptedEvent(command, SOURCE),
+        failedEvent(command, 'boom', SOURCE),
+      ].map(event => event.correlationId),
+    ).toEqual([TX, TX]);
   });
 
   // The failure reason crosses a message boundary, so it has to be a string by
@@ -181,33 +226,28 @@ describe('event builders', () => {
     ['an object', { code: 'E' }, '[object Object]'],
     ['undefined', undefined, 'undefined'],
   ])('reports failed as FAILED, stringifying %s', (_label, error, expected) => {
-    expect(failedEvent(aCommand(), error)).toMatchObject({
-      state: 'FAILED',
-      step: 'failed',
-      error: expected,
-      at: AT,
+    expect(failedEvent(aCommand(), error, SOURCE)).toMatchObject({
+      name: 'transaction.failed',
+      source: SOURCE,
+      data: { state: 'FAILED', step: 'failed', error: expected, at: AT },
     });
   });
 });
 
 describe('event envelopes', () => {
-  it('frames an event routed by its entity key', () => {
-    const event = acceptedEvent(aCommand());
-
-    expect(makeTransactionEventEnvelope(event)).toEqual({
+  // Bus messages are framed by core's `makeEventEnvelope`; what survives here is
+  // the HTTP reader for the `202` body and the tracker's read routes, which
+  // frame a transaction *record* under the `transactionEvent` discriminant.
+  it('reads a transactionEvent envelope off the HTTP surface', () => {
+    const body = {
       meta: { type: 'transactionEvent', entity: 'product' },
-      data: event,
+      data: { transactionId: TX, state: 'PENDING' },
+    };
+
+    expect(Effect.runSync(readTransactionEventEnvelope(body))).toEqual({
+      transactionId: TX,
+      state: 'PENDING',
     });
-  });
-
-  it('round-trips through make/read', () => {
-    const event = acceptedEvent(aCommand());
-
-    expect(
-      Effect.runSync(
-        readTransactionEventEnvelope(makeTransactionEventEnvelope(event)),
-      ),
-    ).toEqual(event);
   });
 
   it('rejects an envelope of the wrong type', () => {

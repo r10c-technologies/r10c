@@ -554,7 +554,7 @@ interface FakeChannel {
   prefetch(count: number): Promise<void>;
   assertExchange(exchange: string): Promise<{ exchange: string }>;
   assertQueue(queue: string): Promise<{ queue: string }>;
-  bindQueue(): Promise<void>;
+  bindQueue(queue: string, exchange: string, pattern: string): Promise<void>;
   consume(
     queue: string,
     handler: (message: { content: Buffer } | null) => void,
@@ -568,16 +568,18 @@ describe('makeFakeAmqpChannel', () => {
   const channelOf = (fake: ReturnType<typeof makeFakeAmqpChannel>) =>
     fake.channel as FakeChannel;
 
-  it('records what was published, decoded', () => {
+  it('records what was published, decoded, with its routing key', () => {
     const fake = makeFakeAmqpChannel();
 
     channelOf(fake).publish(
       'events',
-      '',
+      'widget.created',
       Buffer.from(JSON.stringify({ a: 1 })),
     );
 
-    expect(fake.published).toEqual([{ exchange: 'events', body: { a: 1 } }]);
+    expect(fake.published).toEqual([
+      { exchange: 'events', routingKey: 'widget.created', body: { a: 1 } },
+    ]);
   });
 
   // The saga tracker's event fold depends on `prefetch(1)`: without it,
@@ -599,35 +601,95 @@ describe('makeFakeAmqpChannel', () => {
     expect(await channel.assertQueue('work')).toEqual({ queue: 'work' });
   });
 
-  // An empty queue name means "give me an exclusive generated one", which the
-  // fanout subscriber relies on.
+  // An empty queue name means "give me an exclusive generated one", which every
+  // subscriber relies on: a shared queue would deliver each event to one
+  // replica.
   it('generates a queue name for the empty string', async () => {
     expect(await channelOf(makeFakeAmqpChannel()).assertQueue('')).toEqual({
       queue: 'amq.gen-fake',
     });
   });
 
-  it('binds a queue', async () => {
-    await expect(
-      channelOf(makeFakeAmqpChannel()).bindQueue(),
-    ).resolves.toBeUndefined();
+  it('records the binding a queue was given', async () => {
+    const fake = makeFakeAmqpChannel();
+
+    await channelOf(fake).bindQueue('work', 'events', 'widget.*');
+
+    expect(fake.bindings).toEqual([
+      { queue: 'work', exchange: 'events', pattern: 'widget.*' },
+    ]);
   });
 
-  it('delivers to whatever subscribed', async () => {
+  it('delivers to a subscriber whose binding matches the routing key', async () => {
     const fake = makeFakeAmqpChannel();
     const received: unknown[] = [];
+    await channelOf(fake).bindQueue('work', 'events', 'widget.*');
     await channelOf(fake).consume('work', message => {
       received.push(JSON.parse(message?.content.toString() ?? 'null'));
     });
 
-    await fake.deliver({ a: 1 });
+    await fake.deliver({ a: 1 }, 'widget.created');
 
     expect(received).toEqual([{ a: 1 }]);
+  });
+
+  // Routing is the broker's job, so the fake has to do it too: a fake that
+  // handed every message to every consumer would let a wrong bind pattern pass
+  // every test the adapters have.
+  it('drops a delivery no binding matches', async () => {
+    const fake = makeFakeAmqpChannel();
+    const received: unknown[] = [];
+    await channelOf(fake).bindQueue('work', 'events', 'gadget.*');
+    await channelOf(fake).consume('work', message => received.push(message));
+
+    await fake.deliver({ a: 1 }, 'widget.created');
+
+    expect(received).toEqual([]);
+  });
+
+  // An envelope routes under its own `meta.event.name`, which is the key the
+  // adapter publishes with — so a delivery needs no second copy of it.
+  it('derives the routing key from the envelope’s own event name', async () => {
+    const fake = makeFakeAmqpChannel();
+    const received: unknown[] = [];
+    await channelOf(fake).bindQueue('work', 'events', 'widget.*');
+    await channelOf(fake).consume('work', message => received.push(message));
+
+    await fake.deliver({
+      meta: { type: 'event', event: { name: 'widget.created', id: 'w-1' } },
+      data: { a: 1 },
+    });
+
+    expect(received).toHaveLength(1);
+  });
+
+  // A body carrying no `meta.event.name` has no routing key at all, so nothing
+  // but a `#` binding can receive it. That is the honest simulation: the broker
+  // would have routed on whatever key the publisher set, not on the content.
+  it('routes a body with no event metadata under an empty key', async () => {
+    const fake = makeFakeAmqpChannel();
+    const narrow: unknown[] = [];
+    await channelOf(fake).bindQueue('work', 'events', 'widget.*');
+    await channelOf(fake).consume('work', message => narrow.push(message));
+
+    await fake.deliver({ not: 'an envelope' });
+
+    expect(narrow).toEqual([]);
+
+    const wide = makeFakeAmqpChannel();
+    const caught: unknown[] = [];
+    await channelOf(wide).bindQueue('work', 'events', '#');
+    await channelOf(wide).consume('work', message => caught.push(message));
+
+    await wide.deliver({ not: 'an envelope' });
+
+    expect(caught).toHaveLength(1);
   });
 
   it('delivers a raw payload, so a malformed message can be tested', async () => {
     const fake = makeFakeAmqpChannel();
     const received: string[] = [];
+    // No binding: a raw payload is the already-routed, malformed-content path.
     await channelOf(fake).consume('work', message => {
       received.push(message?.content.toString() ?? '');
     });
@@ -689,7 +751,7 @@ describe('makeFakeAmqpChannel', () => {
     ['prefetch', (channel: FakeChannel) => channel.prefetch(1)],
     ['assertExchange', (channel: FakeChannel) => channel.assertExchange('e')],
     ['assertQueue', (channel: FakeChannel) => channel.assertQueue('q')],
-    ['bindQueue', (channel: FakeChannel) => channel.bindQueue()],
+    ['bindQueue', (channel: FakeChannel) => channel.bindQueue('q', 'e', '#')],
     [
       'consume',
       (channel: FakeChannel) => channel.consume('q', () => undefined),
