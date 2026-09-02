@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { FLEET, matchesPattern } from './fleet.js';
 import { SLICES } from './registry.js';
 import {
   APPS_ROOT,
@@ -593,5 +594,78 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
         ).toBe(true);
       }
     }
+  });
+});
+
+/**
+ * ADR 0031 — the reader that makes `GET /api/$service` worth serving.
+ *
+ * `tools/fleet-map.mjs` needs an address per deployment, and an address is not
+ * something a `SliceDeclaration` carries. That table is therefore a second place
+ * a deployment is named, so it is checked here rather than trusted: a slice
+ * promoted to `active` whose process is missing from it would simply never be
+ * walked, and the diff would pass by looking at nothing.
+ */
+describe('ADR 0031 — every running deployment has an address to describe itself', () => {
+  it('finds the fleet table it is meant to check', () => {
+    expect(FLEET.length).toBeGreaterThan(0);
+  });
+
+  it('gives every active slice deployment an entry in the fleet table', () => {
+    const known = new Set(FLEET.map(entry => entry.project));
+
+    for (const slice of SLICES) {
+      if (slice.status !== 'active') continue;
+      for (const deployment of slice.deployments) {
+        expect(
+          known.has(deployment),
+          `slice '${slice.name}' runs as '${deployment}', which is not in ` +
+            "`tools/slices/src/fleet.ts`'s FLEET table. " +
+            '`pnpm run dev-infra:map` ' +
+            'would never walk it, so the declared-vs-observed diff would pass ' +
+            'by never asking that process anything.',
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('lists no fleet entry that no active slice deploys', () => {
+    const deployed = new Set(
+      SLICES.filter(slice => slice.status === 'active').flatMap(
+        slice => slice.deployments,
+      ),
+    );
+
+    for (const entry of FLEET) {
+      expect(
+        deployed.has(entry.project),
+        `\`tools/slices/src/fleet.ts\` walks '${entry.project}' on ` +
+          `:${entry.port}, ` +
+          'but no active slice declares it as a deployment.',
+      ).toBe(true);
+    }
+  });
+
+  it('binds each fleet entry to its own port', () => {
+    const ports = FLEET.map(entry => entry.port);
+
+    expect(
+      new Set(ports).size,
+      `two fleet entries share a port: ${ports.join(', ')}`,
+    ).toBe(ports.length);
+  });
+
+  /**
+   * The matcher the diff compares a declaration against an observation with.
+   * A declaration carries `transaction.*`; what a process emits is
+   * `transaction.completed`, so a string comparison would report every wildcard
+   * publisher as undeclared and the check would be noise from the first run.
+   */
+  it('matches an observed event name against a declared pattern', () => {
+    expect(matchesPattern('transaction.*', 'transaction.completed')).toBe(true);
+    expect(matchesPattern('transaction.*', 'transaction.a.b')).toBe(false);
+    expect(matchesPattern('catalog.published', 'catalog.published')).toBe(true);
+    expect(matchesPattern('catalog.published', 'catalog.retired')).toBe(false);
+    expect(matchesPattern('catalog.#', 'catalog.a.b')).toBe(true);
   });
 });

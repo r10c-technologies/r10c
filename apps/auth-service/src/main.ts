@@ -15,6 +15,7 @@ import { router } from './routes';
 makeService({
   name: SERVICE_NAME,
   port: Number(process.env.PORT) || DEFAULT_PORT,
+  slices: ['auth'],
   router,
   appLayer: AppLayer,
 });

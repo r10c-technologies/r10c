@@ -1,3 +1,4 @@
+export * from './fleet.js';
 export { SLICES } from './registry.js';
 export * from './slices/auth.slice.js';
 export * from './slices/config.slice.js';

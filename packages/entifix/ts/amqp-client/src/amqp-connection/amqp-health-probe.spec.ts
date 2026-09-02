@@ -41,6 +41,24 @@ const reportWith = (channel: amqp.Channel): Promise<HealthReport> =>
     ),
   );
 
+/** The registrations themselves, without running any of them. */
+const probesWith = (channel: amqp.Channel) =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const registry = yield* HealthRegistryTag;
+      return yield* registry.probes;
+    }).pipe(
+      Effect.provide(
+        AmqpHealthProbeLayer.pipe(
+          Layer.provideMerge(HealthRegistryLayer),
+          Layer.provideMerge(
+            Layer.succeed(AmqpChannelTag, connectorFor(channel)),
+          ),
+        ),
+      ),
+    ),
+  );
+
 describe('AmqpHealthProbeLayer', () => {
   it('reports ready when the shared exchange is there', async () => {
     const seen: string[] = [];
@@ -63,5 +81,21 @@ describe('AmqpHealthProbeLayer', () => {
     );
 
     expect(report).toEqual({ ready: false, failing: [AMQP_PROBE_NAME] });
+  });
+  /**
+   * The exchange is the logical name, and it is the same for every service — so
+   * unlike a store this probe needs no argument from the composition root
+   * (ADR 0031).
+   */
+  it('declares the shared exchange, as a broker', async () => {
+    const probes = await probesWith(
+      channelWithCheck(() => Promise.resolve({})),
+    );
+
+    expect(
+      probes.map(({ name, kind, targets }) => ({ name, kind, targets })),
+    ).toEqual([
+      { name: AMQP_PROBE_NAME, kind: 'broker', targets: [EVENTS_EXCHANGE] },
+    ]);
   });
 });

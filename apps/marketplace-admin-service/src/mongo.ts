@@ -175,8 +175,11 @@ export const AppLayer = Layer.unwrapEffect(
     // "ready" means. `HealthRegistryTag` comes from `makeServerLayer`.
     const withProbes = Layer.provideMerge(
       Layer.mergeAll(
-        MongoHealthProbeLayer,
-        RedisHealthProbeLayer,
+        // The logical Stores each connection backs, by their register name in
+        // `tools/slices/`. Mongo carries two: this slice's `catalog` and the
+        // co-deployed `transaction` slice's `saga` (ADR 0031).
+        MongoHealthProbeLayer(['catalog', 'saga']),
+        RedisHealthProbeLayer(['saga-coordination']),
         AmqpHealthProbeLayer,
       ),
       infra,

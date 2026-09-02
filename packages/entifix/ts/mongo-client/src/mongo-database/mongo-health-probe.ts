@@ -20,25 +20,32 @@ export const MONGO_PROBE_NAME = 'mongo';
  * Merge it beside {@link MongoClientLayer} in a service's `AppLayer` and the
  * service's readiness endpoint starts reporting Mongo — nothing in the service
  * describes the probe, so it cannot drift from the dependency it describes.
+ *
+ * `stores` names the Stores this connection backs, by their register name in
+ * `tools/slices/` — `['catalog', 'saga']`, never a database name and never a
+ * URI. It is the composition root's to supply because a client package cannot
+ * know it, and it is a list because one connection routinely backs several
+ * Stores (ADR 0031).
  */
-export const MongoHealthProbeLayer: Layer.Layer<
-  never,
-  never,
-  MongoClientTag | HealthRegistryTag
-> = Layer.effectDiscard(
-  Effect.gen(function* () {
-    const client = yield* MongoClientTag;
-    const registry = yield* HealthRegistryTag;
+export const MongoHealthProbeLayer = (
+  stores: readonly string[],
+): Layer.Layer<never, never, MongoClientTag | HealthRegistryTag> =>
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const client = yield* MongoClientTag;
+      const registry = yield* HealthRegistryTag;
 
-    yield* registry.register({
-      name: MONGO_PROBE_NAME,
-      check: Effect.tryPromise(() =>
-        client.db('admin').command({ ping: 1 }),
-      ).pipe(
-        Effect.as(true),
-        // Unreachable is a `false`, never a failed endpoint.
-        Effect.catchAll(() => Effect.succeed(false)),
-      ),
-    });
-  }),
-);
+      yield* registry.register({
+        name: MONGO_PROBE_NAME,
+        kind: 'datastore',
+        targets: stores,
+        check: Effect.tryPromise(() =>
+          client.db('admin').command({ ping: 1 }),
+        ).pipe(
+          Effect.as(true),
+          // Unreachable is a `false`, never a failed endpoint.
+          Effect.catchAll(() => Effect.succeed(false)),
+        ),
+      });
+    }),
+  );

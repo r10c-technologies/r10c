@@ -87,9 +87,9 @@ describe('sseResponse', () => {
       return Chunk.toReadonlyArray(yield* reading);
     });
 
-    expect(await run(first.pipe(Effect.provide(TestContext.TestContext)))).toEqual(
-      [': keepalive\n\n'],
-    );
+    expect(
+      await run(first.pipe(Effect.provide(TestContext.TestContext))),
+    ).toEqual([': keepalive\n\n']);
   });
 
   // The bound every REST route gets implicitly: verification is stateless, so

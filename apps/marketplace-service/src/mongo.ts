@@ -87,7 +87,12 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
     );
 
-    const withProbes = Layer.provideMerge(MongoHealthProbeLayer, connections);
+    // One Mongo database backing two platform-plane Stores: the operator's
+    // `catalog-reference` vocabulary and the `published-catalog` projection.
+    const withProbes = Layer.provideMerge(
+      MongoHealthProbeLayer(['catalog-reference', 'published-catalog']),
+      connections,
+    );
 
     return Layer.merge(
       observability,

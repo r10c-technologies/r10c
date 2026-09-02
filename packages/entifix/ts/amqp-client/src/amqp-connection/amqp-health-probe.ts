@@ -30,6 +30,11 @@ export const AmqpHealthProbeLayer: Layer.Layer<
 
     yield* registry.register({
       name: AMQP_PROBE_NAME,
+      kind: 'broker',
+      // The exchange itself is the logical name, and it is the same for every
+      // service — so unlike a store this one needs no argument from the
+      // composition root (ADR 0031).
+      targets: [EVENTS_EXCHANGE],
       check: Effect.tryPromise(() =>
         connector.withChannel(channel =>
           channel.checkExchange(EVENTS_EXCHANGE),

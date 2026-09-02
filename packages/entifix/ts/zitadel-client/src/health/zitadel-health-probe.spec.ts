@@ -13,6 +13,21 @@ import {
 
 const ISSUER = 'https://idp.test';
 
+/** The registrations themselves, without running any of them. */
+const probesFor = (issuer = ISSUER) =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const registry = yield* HealthRegistryTag;
+      return yield* registry.probes;
+    }).pipe(
+      Effect.provide(
+        ZitadelHealthProbeLayer(issuer).pipe(
+          Layer.provideMerge(HealthRegistryLayer),
+        ),
+      ),
+    ),
+  );
+
 let fetchMock: ReturnType<typeof vi.fn>;
 
 const reportFor = (issuer = ISSUER): Promise<HealthReport> =>
@@ -99,5 +114,23 @@ describe('ZitadelHealthProbeLayer', () => {
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+  /**
+   * An `upstream`, deliberately not a Store: Zitadel's Postgres is a foreign
+   * system with an owner, and the owner is not us (`docs/_shared/planes.md`).
+   * The document names the service, never its issuer URL.
+   */
+  it('declares the provider as an upstream, by name and not by URL', async () => {
+    const probes = await probesFor();
+
+    expect(
+      probes.map(({ name, kind, targets }) => ({ name, kind, targets })),
+    ).toEqual([
+      {
+        name: ZITADEL_PROBE_NAME,
+        kind: 'upstream',
+        targets: [ZITADEL_PROBE_NAME],
+      },
+    ]);
   });
 });

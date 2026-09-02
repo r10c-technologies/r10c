@@ -23,7 +23,23 @@ const reportWith = (redis: Redis): Promise<HealthReport> =>
       return yield* registry.report;
     }).pipe(
       Effect.provide(
-        RedisHealthProbeLayer.pipe(
+        RedisHealthProbeLayer(['session']).pipe(
+          Layer.provideMerge(HealthRegistryLayer),
+          Layer.provideMerge(Layer.succeed(RedisTag, redis)),
+        ),
+      ),
+    ),
+  );
+
+/** The registrations themselves, without running any of them. */
+const probesWith = (redis: Redis) =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const registry = yield* HealthRegistryTag;
+      return yield* registry.probes;
+    }).pipe(
+      Effect.provide(
+        RedisHealthProbeLayer(['session']).pipe(
           Layer.provideMerge(HealthRegistryLayer),
           Layer.provideMerge(Layer.succeed(RedisTag, redis)),
         ),
@@ -56,5 +72,18 @@ describe('RedisHealthProbeLayer', () => {
     );
 
     expect(report).toEqual({ ready: false, failing: [REDIS_PROBE_NAME] });
+  });
+  // What `GET /api/$service` reports (ADR 0031) — a Store's register name, never
+  // the Redis URI.
+  it('declares the stores it was given, as a datastore', async () => {
+    const probes = await probesWith(
+      redisWithPing(() => Promise.resolve('PONG')),
+    );
+
+    expect(
+      probes.map(({ name, kind, targets }) => ({ name, kind, targets })),
+    ).toEqual([
+      { name: REDIS_PROBE_NAME, kind: 'datastore', targets: ['session'] },
+    ]);
   });
 });

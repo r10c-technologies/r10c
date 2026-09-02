@@ -160,7 +160,17 @@ up by hand:
 pnpm run back-office:dev        # heals whatever rung is broken, then runs the app
 pnpm run back-office:dev:reset  # recreate the datastores first (WIPES local data)
 pnpm run dev-infra:doctor       # read-only ladder view + the command that fixes it
+pnpm run dev-infra:map          # what each running service is wired to, vs. what
+                                # tools/slices/ declares (add --check to fail on drift)
 ```
+
+`dev-infra:map` is doctor's sibling for the _fleet_ rather than the
+infrastructure: read-only, and a service that is not running is a `SKIP`. It
+walks each `GET /api/$service` with the service token and diffs the answers
+against the register. `--check` exits non-zero when something **observed** is
+not **declared**; the reverse is printed as an advisory, because a fleet that
+has just booted has emitted nothing yet
+([ADR 0031](adr/0031-a-service-describes-its-own-wiring.md)).
 
 Reset is the answer to **bad data**, which `ensure-infra` deliberately will not
 touch: it deletes the namespace, the PVs _and_ the hostPaths (a plain

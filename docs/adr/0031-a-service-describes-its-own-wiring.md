@@ -1,6 +1,6 @@
 # 31. A service describes its own wiring
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-01
 
 ## Context
@@ -63,15 +63,39 @@ artifact earns its keep by being _read_, not by being current.
 
 ### One source of truth: the health registry
 
-`HealthProbe` gains `kind` (`datastore | broker | upstream`) and `target` (a
-logical name). Readiness and this document then generate from the **same**
-registration, so there is no second list to drift — the same reasoning that put
-the probe in the client layer rather than in a hand-written list in `main.ts`.
+`HealthProbe` gains `kind` (`datastore | broker | upstream`) and **`targets`**,
+a list of logical names. Readiness and this document then generate from the
+**same** registration, so there is no second list to drift — the same reasoning
+that put the probe in the client layer rather than in a hand-written list in
+`main.ts`.
 
-Subscriptions self-register when `subscribe` runs, so the document reports what
-the process actually bound rather than what someone typed into a declaration.
-That is the whole point: a document generated from the declaration would agree
-with the declaration by construction and catch nothing.
+`targets` is a **list**, not the single string this record first sketched. One
+connection routinely backs several Stores: marketplace-admin-service opens one
+Mongo client for `catalog` and for the co-deployed `transaction` slice's `saga`.
+Registering one probe per Store was the alternative, and it is worse — the
+readiness response's `failing` array is a list of probe names, so splitting them
+would change an unauthenticated wire format to serve a gated document.
+
+The names are the composition root's to supply, and that is the one place this
+record's "a service gains a line with no edit of its own" promise is qualified:
+a client package cannot know a Store's _register_ name, only that it has a
+connection. So a service that gains a datastore writes the Store's name once, at
+the line that opens it — which is where it is already choosing a database — and
+nothing else in the service changes.
+
+Subscriptions self-register when `subscribe` runs, into a `WiringRegistry`
+beside the health one, so the document reports what the process actually bound
+rather than what someone typed into a declaration. That is the whole point: a
+document generated from the declaration would agree with the declaration by
+construction and catch nothing. It is a **sibling** registry rather than a field
+on the health one because a bound queue is not a readiness fact — nothing about
+it can be probed — and folding the two together would put entries in the
+readiness response that no probe can check.
+
+Publishes are recorded the same way, by event **name** only and after the
+publish succeeds. Recording the intent instead would let the diff pass for a
+service whose every publish is failing; recording counts would be the per-replica
+telemetry this record rejects below.
 
 ### Gated by `X-Service-Token`
 
@@ -108,6 +132,27 @@ cannot become a free lever on the datastore. The description is gated. They shar
 the registry underneath and nothing else; merging any two of them erodes exactly
 the property that makes the other safe.
 
+### The diff fails in one direction, and reports the other
+
+`--check` fails when something **observed** is not **declared**: an event emitted
+that no hosted slice declares, a store opened that none declares, a queue bound
+on a pattern none carries, or a slice hosted by a deployment its own declaration
+does not list. Both failures #184 names are that direction.
+
+Declared and never observed is printed as an **advisory**. A fleet that has just
+booted has published nothing, so asserting it would mean the diff passes only
+after every flow has been exercised — a check that is red by default is a check
+people learn to ignore. On today's fleet the advisories are exactly the three
+drifts this record was written about: `catalog.published` declared and never
+emitted, `marketplace`'s subscription to it never bound, and `published-catalog`
+never opened.
+
+Upstreams are reported and **not** asserted. `dependantAPIs` holds API strings
+(`GET /api/config/:service`), not service names, so it is not comparable to a
+probe's target; and Zitadel is a foreign system, correctly not a Store. Making
+the two comparable means changing what `dependantAPIs` is, which is a separate
+decision from this one.
+
 ## Consequences
 
 - A service that gains a datastore gains a line in its own description, with no
@@ -121,8 +166,15 @@ the property that makes the other safe.
 - The endpoint is one more unauthenticated-adjacent surface to get right. It is
   gated from the first commit rather than opened and narrowed later.
 
-## Trigger
+## Residuals
 
-Promoted to Accepted by #183 (the endpoint) together with #184 (the reader and
-the diff), which depend on #182 (probes declaring what they probe). #183 should
-not merge without #184.
+- A Store's name still reaches the document through a human typing it at the
+  composition root. That is more honest than `tools/slices/` — it sits on the
+  line that opens the connection — but it is not observation, and nothing can
+  catch a name that is merely wrong rather than undeclared.
+- The advisory half is the interesting half and it is not enforced, by the
+  reasoning above. If a fleet exercise ever becomes a routine step, revisit it.
+- `dev-infra:map` needs an address per deployment, which no `SliceDeclaration`
+  carries. The table is in `tools/slices/src/fleet.ts` and `slices.spec.ts`
+  checks it against the register in both directions, because a promoted slice
+  missing from it would leave the diff passing by asking nobody anything.

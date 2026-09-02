@@ -4,6 +4,8 @@ import {
   type Subscription,
   type SubscriptionMode,
 } from '@r10c/entifix-transactions';
+import type { WiringRegistry } from '@r10c/entifix-ts-business';
+import { WiringRegistryTag } from '@r10c/entifix-ts-business';
 import {
   EntifixConnError,
   makeEventEnvelope,
@@ -144,7 +146,10 @@ const requeues = (failure: DeliveryFailure, mode: SubscriptionMode): boolean =>
  * connector can re-run it against the new channel after a reconnect. A durable
  * queue outlives that reconnect; the consumer bound to it does not.
  */
-export const makeAmqpEventBus = (connector: AmqpConnector): EventBus => ({
+export const makeAmqpEventBus = (
+  connector: AmqpConnector,
+  wiring: WiringRegistry,
+): EventBus => ({
   publish: event =>
     Effect.tryPromise({
       try: () =>
@@ -161,7 +166,11 @@ export const makeAmqpEventBus = (connector: AmqpConnector): EventBus => ({
           eventId: event.id,
           name: event.name,
         }),
-    }),
+      // Recorded **after** the publish succeeds, so `GET /api/$service` reports
+      // what this process actually put on the exchange. Recording the intent
+      // instead would make the declared-vs-observed diff pass on a service whose
+      // every publish is failing (ADR 0031).
+    }).pipe(Effect.tap(() => wiring.recordPublish(event.name))),
 
   subscribe: (subscription, handler) =>
     Effect.tryPromise({
@@ -173,6 +182,17 @@ export const makeAmqpEventBus = (connector: AmqpConnector): EventBus => ({
           await channel.prefetch(1);
           const queue = await declareQueue(channel, subscription);
           await channel.bindQueue(queue, EVENTS_EXCHANGE, subscription.pattern);
+          // What the process **bound**, recorded at the point it bound it. The
+          // registry deduplicates, so re-running this setup after a reconnect
+          // does not double the entry.
+          await Effect.runPromise(
+            wiring.recordSubscription({
+              slice: subscription.slice,
+              pattern: subscription.pattern,
+              mode: subscription.mode,
+              queue,
+            }),
+          );
           await channel.consume(queue, (message: ConsumeMessage | null) => {
             if (message === null) {
               return;
@@ -224,8 +244,18 @@ export const makeAmqpEventBus = (connector: AmqpConnector): EventBus => ({
     }),
 });
 
-/** Provides {@link EventBusTag} from an {@link AmqpChannelTag}. */
+/**
+ * Provides {@link EventBusTag} from an {@link AmqpChannelTag}.
+ *
+ * It also takes {@link WiringRegistryTag}, which `makeServerLayer` provides once
+ * per service — so the bus and `GET /api/$service` share one instance, and the
+ * document reports the bindings this very process made.
+ */
 export const AmqpEventBusLayer = Layer.effect(
   EventBusTag,
-  Effect.map(AmqpChannelTag, makeAmqpEventBus),
+  Effect.gen(function* () {
+    const connector = yield* AmqpChannelTag;
+    const wiring = yield* WiringRegistryTag;
+    return makeAmqpEventBus(connector, wiring);
+  }),
 );
