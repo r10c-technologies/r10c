@@ -5,6 +5,7 @@ import {
   newRowKey,
   readRowDrafts,
   ROW_KEY,
+  seededRowKey,
 } from '../index.js';
 
 describe('ROW_KEY', () => {
@@ -18,6 +19,28 @@ describe('newRowKey', () => {
     const keys = new Set(Array.from({ length: 50 }, () => newRowKey()));
 
     expect(keys.size).toBe(50);
+  });
+});
+
+describe('seededRowKey', () => {
+  it('is deterministic, so re-seeding a record rebuilds the same draft', () => {
+    // The load-bearing property: `useEntityForm` re-seeds whenever its `entity`
+    // changes identity — every render for a caller that builds the record
+    // inline — so a random key here makes the draft differ on every pass and
+    // React stops with `Maximum update depth exceeded`.
+    expect(seededRowKey(2)).toBe(seededRowKey(2));
+  });
+
+  it('distinguishes the rows of one record', () => {
+    expect(seededRowKey(0)).not.toBe(seededRowKey(1));
+  });
+
+  it('never collides with a key minted for an added row', () => {
+    const seeded = new Set(
+      Array.from({ length: 20 }, (_row, index) => seededRowKey(index)),
+    );
+
+    expect(seeded.has(newRowKey())).toBe(false);
   });
 });
 
