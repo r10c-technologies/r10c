@@ -25,6 +25,16 @@ export interface SessionScope {
    * could hardly differ more.
    */
   readonly partyRole: PartyRoleName;
+  /**
+   * The business domains {@link SessionScope.organizationId} is provisioned for
+   * — ADR 0007's second assignment ceiling, resolved here because this is
+   * already the one place a session's organization is decided.
+   *
+   * Empty for a session with no organization, and the caller must not read that
+   * as "entitled to nothing": `organizationId` is what says whether the ceiling
+   * applies, and a party holding no membership is simply outside it.
+   */
+  readonly entitlements: readonly string[];
 }
 
 /**
@@ -75,7 +85,7 @@ export const makeMongoSessionScopeResolver = (
     Effect.promise(async () => {
       const party = await db.collection('individual').findOne({ userId });
       if (party === null) {
-        return { partyRole: DEFAULT_PARTY_ROLE };
+        return { partyRole: DEFAULT_PARTY_ROLE, entitlements: [] };
       }
 
       // The role is a `PartyRole` **record**, not a column on the party: a party
@@ -113,9 +123,34 @@ export const makeMongoSessionScopeResolver = (
         (await memberships.findOne({ partyId: party['id'] }));
 
       const organizationId = preferred?.['organizationId'];
-      return typeof organizationId === 'string'
-        ? { organizationId, partyRole }
-        : { partyRole };
+      if (typeof organizationId !== 'string') {
+        // No membership, so no organization and nothing to be provisioned for.
+        // The empty list is never consulted: `organizationId` being absent is
+        // what tells every consumer the ceiling does not apply.
+        return { partyRole, entitlements: [] };
+      }
+
+      // What the organization actually bought (ADR 0007). Read here rather than
+      // per request because it changes on provisioning, which is rare, and a
+      // lookup on the hot path is exactly what carrying it on the session
+      // avoids. The cost is stated: a change is stale until the next sign-in.
+      const entitlement = await db
+        .collection('entitlement')
+        .findOne({ organizationId });
+      const domains = entitlement?.['domains'];
+
+      return {
+        organizationId,
+        partyRole,
+        // A row whose `domains` is missing or malformed reads as provisioned for
+        // nothing rather than for everything: this is a ceiling, so the
+        // direction to be wrong in is the narrow one.
+        entitlements: Array.isArray(domains)
+          ? domains.filter(
+              (domain): domain is string => typeof domain === 'string',
+            )
+          : [],
+      };
     }),
 });
 

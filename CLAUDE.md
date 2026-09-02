@@ -225,7 +225,7 @@ them), and everything deep is a link — loaded only when a task needs it.
   `entityMetadata` envelope type, the same discriminant extension the
   transactions layer made — **authenticated and permission-filtered from the
   verified principal**, which is a security gain over nav filtering's `can()`
-  against `unverifiedRoles` (an unsigned cookie), and which keeps the `Effect`
+  against `unverifiedClaims` (an unsigned cookie), and which keeps the `Effect`
   body out of the client bundle. Per **entity**, not per service like real OData,
   because `EntifixEnvelopeMeta.entity` is the target's key and `entity: '*'`
   would be a wart; cost is N fetches on an N-entity screen. **Columns stay
@@ -1157,16 +1157,49 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   still 404s in production.
 - **Authorization**: a permission is `<domain>:<entityKey>:<action>`, derived from the
   entity's own `@entity({domain,key})` (`permissionForEntity`); grants come from
-  `ROLE_PERMISSIONS` in `@r10c/business-ts-authz`, never from the token, which still
-  carries only `roles`. Guard a route with `requirePermission(...)` from
+  `ROLE_PERMISSIONS` in `@r10c/business-ts-authz`, never from the token, which
+  carries no grant — `roles`, `activeOrganizationId`, `partyRole` and
+  `entitlements` are all context or ceilings, resolved to grants at the consumer. Guard a route with `requirePermission(...)` from
   `@r10c/shells-effect-service` (401 vs 403) — **hiding a nav item protects nothing**.
   `PolicyDecisionTag` is the ABAC seam; `canAssignRole` caps role creation at the
   actor's own tier. Creating a user always runs `registerUserUCFactory`, never a
-  generic entity write. `unverifiedRoles` reads the cookie **without checking its
+  generic entity write. `unverifiedClaims` reads the cookie **without checking its
   signature** — nav filtering only, never a decision. Gated Next apps need a
   `seedSession` e2e fixture and a `readyPath` outside the matcher. See
   [ADR 0002](docs/adr/0002-authorization-roles-and-abac.md) and
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#authorization-role-aspects--permissions).
+- **Navigation has two ceilings now, and one list**
+  ([ADR 0037](docs/adr/0037-entitlement-aware-navigation.md)). ADR 0007's second
+  assignment ceiling — what the organization was **provisioned for** — had never
+  been read by anything: `Entitlement` is an entity, `entitlementSeedData` writes
+  a row, and `isPermissionEntitled` sat beside them as a pure function with
+  **zero callers**, so an organization provisioned for nothing still saw every
+  link. It now rides the access token as an `entitlements` claim resolved once at
+  sign-in by `SessionScopeResolver` (already the one place a session's
+  organization is decided) and re-signed unchanged on refresh — the `partyRole`
+  arrangement exactly, so the refresh path stays store-only. A nav item opts in
+  with **`entitled: true`**, a boolean and not a domain name, because the domain
+  is already written one line up in `permission` and a second string could
+  disagree with what the route behind it checks. **Omitting it is right for most
+  items**: nobody is provisioned for `catalog-reference`, `config` or `authn`, so
+  deriving the gate would have hidden brands, categories, Configuración and
+  Usuarios from every vendor — today exactly one item carries the flag. Four
+  things not to re-derive. The skip is keyed on **`activeOrganizationId`, never
+  on an empty entitlement list**: platform staff hold no tenant scope and are
+  _outside_ the ceiling, while a member of an unprovisioned organization is
+  inside it and entitled to nothing — collapsing them empties a super-admin's
+  sidebar, silently, with every organization-seeding test still passing.
+  `entitled` with no `permission` **throws**, because there is no domain to read
+  and both defaults surface as a bug in something else. The claim is **stale
+  until the next sign-in** (same as `partyRole`), which is acceptable only while
+  this is presentation — **when something enforces the ceiling, revisit the
+  bound**, and `RequestPrincipal` gains the field then rather than now, since a
+  verified claim nothing consults is the same defect as the endpoint this
+  deleted. And `GET /api/menu` + `workspaceMenu` are **gone**: `git log --all -S`
+  found no revision in which anything fetched them — the workspace reuses the
+  sidebar — so the "second source" was never drift, it was an untested second
+  projection waiting to become one. `unverifiedRoles` went with them, since
+  `navPrincipal` decodes once with `unverifiedClaims`.
 - **i18n is mandatory.** Ships `es` (default) + `en`. Copy goes through `useT`
   (`getServerT` on the server), typed against the catalogs in
   `@r10c/entifix-ts-i18n` — a bad key is a compile error, and

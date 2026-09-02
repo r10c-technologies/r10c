@@ -5,6 +5,9 @@
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   the entitlement vocabulary is the set of **tenant-facing** domains;
   `catalog-reference` is operator-owned and never grantable.
+- Amended by: [ADR 0037](0037-entitlement-aware-navigation.md) — the entitlement
+  is read for the first time. It rides the access token and filters navigation;
+  the `PermissionResolver` follow-up below is still unbuilt.
 
 ## Context
 
@@ -93,10 +96,17 @@ the first domain to sit outside it.
 ## Consequences
 
 - **Nav filtering must move from role names to resolved permissions.**
-  `unverifiedRoles` reads the cookie without checking its signature to filter
+  `unverifiedClaims` reads the cookie without checking its signature to filter
   navigation. Static nav configuration cannot know a role a vendor invented last
   week, so the filter has to key off resolved permissions. It stays presentation
   only and never a decision — hiding a nav item still protects nothing.
+  _Revised 2026-09-02 ([ADR 0037](0037-entitlement-aware-navigation.md)): half of
+  this is now built and half is not, and the halves are independent. The
+  **entitlement** ceiling is live — it rides the token as a claim resolved at
+  sign-in, and an item opts into it with `entitled: true`. The move off **role
+  names** is not, because it waits on the `PermissionResolver` below: until a
+  tenant-defined role can be resolved to grants, `can(roles, permission)` against
+  the static table is all there is to filter with._
 - **Role revocation is eventually consistent, bounded by the access-token TTL.**
   The token carries role names, so removing someone from a role goes stale until
   the token refreshes. For urgent revocation the existing session-revoke path is

@@ -45,6 +45,23 @@ export interface TokenClaims {
    * principal may do still comes from `roles` resolved at the consumer.
    */
   readonly partyRole?: string;
+  /**
+   * The business domains the acting organization is provisioned for — the
+   * second assignment ceiling (ADR 0007), carried so a server-rendered menu can
+   * shape itself without a lookup on every render.
+   *
+   * Absent for a session with no organization, and that is **not** the same as
+   * an empty list: an operator holds no tenant scope, so the ceiling does not
+   * apply at all, while a member of an organization provisioned for nothing is
+   * entitled to nothing. Consumers therefore decide from
+   * {@link TokenClaims.activeOrganizationId} whether to consult this at all.
+   *
+   * Plain strings for the same reason `roles` is: the domain names live in the
+   * business layer, which this one may not import.
+   *
+   * Like `activeOrganizationId` and `partyRole` this is context, not a grant.
+   */
+  readonly entitlements?: readonly string[];
   /** Room for a few extra stable claims without a type change. */
   readonly [key: string]: unknown;
 }

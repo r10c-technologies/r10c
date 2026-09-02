@@ -9,6 +9,10 @@
   `registerUserUCFactory` no longer hashes anything. The role model, the
   entity-derived permissions, `canAssignRole` and the three enforcement layers are
   untouched and still binding.
+- Amended by: [ADR 0037](0037-entitlement-aware-navigation.md) — nav filtering
+  gained a second ceiling (the organization's provisioning) and lost the
+  `/api/menu` endpoint this record's consequences named. The three enforcement
+  layers are untouched: the new filter is layer 2, and still not security.
 
 ## Context
 
@@ -115,13 +119,19 @@ of every page.
 > page, not about secret distribution. Keeping it also means the one place that
 > _must_ be right (`requirePermission`, on the service) stays the only verifier.
 
-So `unverifiedRoles` (`entifix-ts-jwt-client`) decodes the cookie **without
+So `unverifiedClaims` (`entifix-ts-jwt-client`) decodes the cookie **without
 checking its signature**, and is used only where being wrong costs a menu item.
-The name is blunt and the warning is at the definition, because the failure mode
-if someone reaches for it in a real decision is silent. auth-app's back-office
-gate — which decides whether to render user management at all — does the
-opposite: it resolves the principal from auth-service `/api/me` and fails closed
-when it cannot.
+
+> _Revised 2026-09-02 ([ADR 0037](0037-entitlement-aware-navigation.md)):_ this
+> paragraph said `unverifiedRoles`, a roles-only helper over the same primitive.
+> The nav now needs the roles, the organization and the entitlements from one
+> cookie, so it decodes once with `unverifiedClaims` and the helper was deleted
+> with its last caller. The mechanism and the warning are unchanged.
+> The name is blunt and the warning is at the definition, because the failure mode
+> if someone reaches for it in a real decision is silent. auth-app's back-office
+> gate — which decides whether to render user management at all — does the
+> opposite: it resolves the principal from auth-service `/api/me` and fails closed
+> when it cannot.
 
 ### Three enforcement layers, one of which is security
 
@@ -159,7 +169,11 @@ still cannot import a sibling domain.
 - `requirePrincipal` moves out of `apps/marketplace-admin-service/src/auth.ts`
   into the service shell, gaining a `requirePermission` sibling and a real `403`.
 - marketplace-admin-app's duplicated nav collapses into one permission-annotated
-  definition that both the sidebar layout and `/api/menu` derive from.
+  definition that the sidebar layout derives from.
+  _Revised 2026-09-02 ([ADR 0037](0037-entitlement-aware-navigation.md)): this
+  line named a second consumer, `/api/menu`, which served a `workspaceMenu`
+  projection of the same list. Nothing ever fetched it — the workspace reuses the
+  sidebar — so it was deleted rather than kept in step._
 - The admin-app middleware matcher widens from `/account/:path*` to the whole
   app, which the catalog Playwright suite must survive — hence a session-seeding
   e2e fixture lands before the matcher changes.

@@ -351,11 +351,14 @@ const establishSession = (
     // a normal answer: a buyer or an operator holds no tenant scope, and
     // `partyRole` is what tells those two apart.
     const scopes = yield* SessionScopeResolverTag;
-    const { organizationId: activeOrganizationId, partyRole } =
-      yield* scopes.forUser(String(subject.userId));
+    const {
+      organizationId: activeOrganizationId,
+      partyRole,
+      entitlements,
+    } = yield* scopes.forUser(String(subject.userId));
 
     const sessionId = yield* sessions.create(
-      { ...subject, activeOrganizationId, partyRole, device },
+      { ...subject, activeOrganizationId, partyRole, entitlements, device },
       DEFAULT_SESSION_LIFETIME,
     );
     const accessToken = yield* tokens.sign(
@@ -366,6 +369,7 @@ const establishSession = (
         roles: subject.roles,
         activeOrganizationId,
         partyRole,
+        entitlements,
       },
       ACCESS_TOKEN_TTL_SECONDS,
     );
@@ -781,6 +785,10 @@ const refreshRoute = Effect.gen(function* () {
       // membership change silently move a live session to another plane.
       activeOrganizationId: record.activeOrganizationId,
       partyRole: record.partyRole,
+      // And the same for what the organization is provisioned for: re-reading
+      // it here would put a Mongo query on a path that is deliberately
+      // store-only, to refresh a value that only shapes a menu.
+      entitlements: record.entitlements,
     },
     ACCESS_TOKEN_TTL_SECONDS,
   );

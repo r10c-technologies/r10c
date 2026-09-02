@@ -10,7 +10,7 @@ import {
 import type { ReactNode } from 'react';
 
 import { sidebarNav } from './nav';
-import { navRoles } from './roles';
+import { navPrincipal } from './nav-principal';
 
 /**
  * The back-office chrome, shared by all three route groups.
@@ -35,7 +35,7 @@ export async function BackOfficeChrome({
   /** Shown in the account menu. The principal's subject where one is loaded. */
   label?: string;
 }) {
-  const roles = await navRoles();
+  const principal = await navPrincipal();
   const locale = await getRequestLocale();
   const t = await getServerT('app');
   // Nav labels are keys held in a route table, so they need the widened form.
@@ -67,7 +67,7 @@ export async function BackOfficeChrome({
 
   return (
     <BackOfficeShell
-      nav={sidebarNav(roles, translateKey)}
+      nav={sidebarNav(principal, translateKey)}
       brand={t('admin.brand')}
       breadcrumbLabels={breadcrumbLabels}
       accountMenu={

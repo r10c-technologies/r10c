@@ -48,9 +48,6 @@
   ],
   "references": [
     {
-      "path": "../../packages/entifix/react/integration"
-    },
-    {
       "path": "../../packages/shells/next/system-management"
     },
     {
@@ -72,10 +69,16 @@
       "path": "../../packages/entifix/ts/i18n"
     },
     {
+      "path": "../../packages/entifix/react/integration"
+    },
+    {
       "path": "../../packages/entifix/react/controls"
     },
     {
       "path": "../../packages/business/ts/authz"
+    },
+    {
+      "path": "../../packages/business/ts/access-management"
     }
   ]
 }

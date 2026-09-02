@@ -32,6 +32,30 @@ export interface GuardedNavItem {
   workspace?: string;
   /** Omit to show the item to every signed-in user. */
   permission?: Permission;
+  /**
+   * Also gate this item on the acting organization's provisioning — ADR 0007's
+   * second ceiling — using the domain segment of its own {@link permission}.
+   *
+   * A boolean rather than a domain name, because the domain is already written
+   * one line up: a second string here could disagree with the permission the
+   * route behind it actually checks, which is the drift this whole interface
+   * exists to prevent.
+   *
+   * **Omitted is the right answer for most items.** An organization is not
+   * "provisioned for" `catalog-reference`, `config` or `authn` — those are
+   * operator-owned, and `catalog-reference` is explicitly never grantable
+   * (ADR 0022). Setting this on one of them would hide the platform's own
+   * vocabulary from every vendor.
+   *
+   * Setting it without a `permission` is a declaration error and throws: there
+   * would be no domain to read, and both possible defaults — always shown,
+   * always hidden — read as a bug somewhere else entirely.
+   *
+   * A session with **no** organization ignores this flag: the ceiling is a
+   * property of an organization, so an operator is outside it rather than
+   * refused by it.
+   */
+  entitled?: boolean;
 }
 
 export interface GuardedNavSection {
