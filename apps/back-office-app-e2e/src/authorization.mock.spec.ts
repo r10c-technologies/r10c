@@ -77,4 +77,50 @@ base.describe('without an admin session', () => {
       ).toBeVisible();
     },
   );
+
+  base(
+    'hides a domain the organization was never provisioned for',
+    async ({ page, context }) => {
+      // The second ceiling (ADR 0007): the role grants the catalog, the
+      // organization did not buy it. `admin` still holds
+      // `product-configuration-management:*:read`, so a nav filtered on roles
+      // alone would show Productos here.
+      await seedSession(context, { roles: ['admin'], entitlements: [] });
+
+      await page.goto('/account');
+
+      const nav = page.getByRole('navigation');
+      await expect(nav.getByRole('link', { name: 'Productos' })).toHaveCount(0);
+      // `catalog-reference` is operator-owned and never grantable (ADR 0022),
+      // so an unprovisioned vendor keeps the vocabulary its offerings are
+      // classified in. Gating these too is the failure this asserts against.
+      await expect(
+        nav.getByRole('link', { name: 'Marcas' }).first(),
+      ).toBeVisible();
+    },
+  );
+
+  base(
+    'leaves platform staff outside the entitlement ceiling',
+    async ({ page, context }) => {
+      // No organization, so nothing to be provisioned for. The ceiling must not
+      // apply at all — reading an empty entitlement list as "entitled to
+      // nothing" would empty an operator's sidebar.
+      await seedSession(context, {
+        roles: ['super-admin'],
+        activeOrganizationId: null,
+        partyRole: 'operator',
+        entitlements: [],
+      });
+
+      await page.goto('/account');
+
+      await expect(
+        page
+          .getByRole('navigation')
+          .getByRole('link', { name: 'Productos' })
+          .first(),
+      ).toBeVisible();
+    },
+  );
 });

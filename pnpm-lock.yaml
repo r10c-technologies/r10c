@@ -412,6 +412,9 @@ importers:
 
   apps/back-office-app:
     dependencies:
+      '@r10c/business-ts-access-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/access-management
       '@r10c/business-ts-authz':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz

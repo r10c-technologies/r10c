@@ -460,7 +460,7 @@ by construction: the address resolves to nothing, so the control does nothing at
 is why an unresolvable address is answered rather than ignored: the fallback wins over the
 tab that happens to be open, and the write-back below is suspended so the bad address stays
 in the bar instead of being replaced by an unrelated tab. Recovery is any deliberate tab
-interaction. Until the nav collapses into one source, `back-office-app`'s
+interaction. Until the registry derives from the nav (#141), `back-office-app`'s
 `specs/workspace-registry.spec.tsx` walks every nav address through the registry.
 
 The two directions of that projection — URL → store and store → URL — run as separate
@@ -726,22 +726,31 @@ shells, per the design-system rule.
 
 ## Component / package map
 
-| Concern                                                                                                                                                                          | Package                               |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`, `useEntityLinkSource`                                               | `@r10c/entifix-react-integration`     |
-| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`, `EntityLinkInput`/`EntityLinkPicker`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`                                        | `@r10c/entifix-react-controls`        |
-| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                                                           | `@r10c/shells-next-common`            |
-| `PageView({addr})` pages, registrations, adapters                                                                                                                                | `@r10c/shells-next-marketplace-admin` |
-| `(back-office)` user management over `EntityTable`/`EntityForm`, account surface, sign-in                                                                                        | `@r10c/shells-next-auth`              |
-| `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions), the three route groups, proxy route handlers | `back-office-app`                     |
-| Storefront pages, chrome, `StoreLink`, fixture catalog + cookie cart — all server components                                                                                     | `@r10c/shells-next-marketplace`       |
-| `app/[locale]` route tree, `loading.tsx`, cart route                                                                                                                             | `marketplace-app`                     |
+| Concern                                                                                                                                                                                           | Package                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`, `useEntityLinkSource`                                                                | `@r10c/entifix-react-integration`     |
+| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`, `EntityLinkInput`/`EntityLinkPicker`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`                                                         | `@r10c/entifix-react-controls`        |
+| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                                                                            | `@r10c/shells-next-common`            |
+| `PageView({addr})` pages, registrations, adapters                                                                                                                                                 | `@r10c/shells-next-marketplace-admin` |
+| `(back-office)` user management over `EntityTable`/`EntityForm`, account surface, sign-in                                                                                                         | `@r10c/shells-next-auth`              |
+| `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions and entitlements), the three route groups, proxy route handlers | `back-office-app`                     |
+| Storefront pages, chrome, `StoreLink`, fixture catalog + cookie cart — all server components                                                                                                      | `@r10c/shells-next-marketplace`       |
+| `app/[locale]` route tree, `loading.tsx`, cart route                                                                                                                                              | `marketplace-app`                     |
 
-**Navigation is permission-filtered, server-side.** One definition per app
-(`lib/nav`) carries a `permission` per item; the sidebar layout and the workspace
-menu both derive from it, so the two lists cannot disagree. Filtering is
-presentation — the service refuses the request regardless — which is why the
-roles behind it may be read from the cookie unverified. See
+**Navigation is filtered server-side, under two ceilings.** One definition per
+app (`lib/nav`) carries a `permission` per item, and the sidebar layout is its
+only consumer — a second projection served at `/api/menu` was deleted rather than
+kept in step, because nothing had ever fetched it
+([ADR 0037](./adr/0037-entitlement-aware-navigation.md)). The first ceiling is
+what the roles grant (`can`); the second is what the **organization was
+provisioned for**, which an item opts into with `entitled: true` and which reads
+the domain segment of that item's own `permission`. Most items omit it: nobody is
+provisioned for `catalog-reference`, `config` or `authn`, so gating those would
+hide the platform's own vocabulary from every vendor. A session with no
+organization skips the second ceiling entirely — an operator is outside it, not
+refused by it. Filtering is presentation — the service refuses the request
+regardless — which is why the claims behind it may be read from the cookie
+unverified. See
 [ARCHITECTURE → Authorization](./ARCHITECTURE.md#authorization-role-aspects--permissions).
 
 ---

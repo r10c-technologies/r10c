@@ -255,8 +255,8 @@ security half of this decision rather than a detail of it. The document names
 domains, entity keys and verbs — a map of the model — so anonymous access would
 hand it over. Filtering runs in the service, through `PolicyDecisionTag`, against
 the **verified** principal. That is a strict improvement on what exists: nav
-filtering today calls `can()` in the browser against `unverifiedRoles`, which
-reads the cookie _without checking its signature_. Serving affordances makes
+filtering calls `can()` against claims read with `unverifiedClaims`, which
+decodes the cookie _without checking its signature_. Serving affordances makes
 "what can I do" and "what will the service permit" one computation instead of two
 lists that drift.
 

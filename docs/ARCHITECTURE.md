@@ -527,8 +527,10 @@ context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
   reason has lapsed while the placement has not
   ([ADR 0002](adr/0002-authorization-roles-and-abac.md), revised).
 - **How each layer gets the roles** differs, on purpose. A **presentation**
-  decision (which nav entries to render) reads them with `unverifiedRoles`
-  (`entifix-ts-jwt-client`) — the cookie is decoded, _not_ verified. Forging it
+  decision (which nav entries to render) reads them with `unverifiedClaims`
+  (`entifix-ts-jwt-client`) — the cookie is decoded, _not_ verified. The same
+  read also yields the organization and its entitlements, which is the nav's
+  second ceiling ([ADR 0037](adr/0037-entitlement-aware-navigation.md)). Forging it
   shows someone a menu; every route behind it still goes to a service that
   verifies properly. That avoids a service round trip per server render. A
   **real** decision — the `(back-office)` route group's gate — resolves the

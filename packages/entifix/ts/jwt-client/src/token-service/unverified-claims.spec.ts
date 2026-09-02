@@ -6,7 +6,7 @@ import {
   signAccessToken,
   TOKEN_ALGORITHM,
 } from './jose-token-service.js';
-import { unverifiedClaims, unverifiedRoles } from './unverified-claims.js';
+import { unverifiedClaims } from './unverified-claims.js';
 
 const keyPair = async (): Promise<
   Pick<JoseTokenServiceOptions, 'privateKeyPem' | 'publicKeyPem'>
@@ -81,37 +81,5 @@ describe('unverifiedClaims', () => {
   it('returns undefined when the payload is not an object', () => {
     const payload = Buffer.from('42').toString('base64url');
     expect(unverifiedClaims(`a.${payload}.c`)).toBeUndefined();
-  });
-});
-
-describe('unverifiedRoles', () => {
-  it('is empty without a token', () => {
-    expect(unverifiedRoles(undefined)).toEqual([]);
-  });
-
-  it('is empty for an unparseable token', () => {
-    expect(unverifiedRoles('nonsense')).toEqual([]);
-  });
-
-  it('is empty when the payload carries no roles', () => {
-    const payload = Buffer.from(JSON.stringify({ userId: 'u' })).toString(
-      'base64url',
-    );
-    expect(unverifiedRoles(`a.${payload}.c`)).toEqual([]);
-  });
-
-  it('returns the roles claim', async () => {
-    const token = await signAccessToken(
-      {
-        userId: 'user-1',
-        subject: 'user-1',
-        sessionId: 'session-1',
-        roles: ['user'],
-      },
-      options,
-      60,
-    );
-
-    expect(unverifiedRoles(token)).toEqual(['user']);
   });
 });

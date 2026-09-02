@@ -36,7 +36,7 @@ const NO_ORGANIZATION = '-';
  * restore, nothing more. It follows that deriving it from unverified token
  * claims is safe: forging one shows you your own drafts under a different name,
  * and every request behind a restored draft is still authorized by the service
- * that answers it. Same reasoning as the nav's `unverifiedRoles`.
+ * that answers it. Same reasoning as the nav's `unverifiedClaims` read.
  *
  * A session with no organization is scoped explicitly rather than left blank, so
  * `user-1` with no organization and `user-1` acting for organization `-` are not

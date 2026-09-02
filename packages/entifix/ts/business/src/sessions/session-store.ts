@@ -52,6 +52,17 @@ export interface SessionData {
    * business layer above this one.
    */
   readonly partyRole?: string;
+  /**
+   * The business domains {@link SessionData.activeOrganizationId} is
+   * provisioned for. Resolved once when the session opens and carried from here
+   * into every access token minted from it, so no service re-reads an
+   * entitlement per request — the same arrangement `partyRole` already has.
+   *
+   * Absent for a session with no organization, which is a different statement
+   * from an empty list: the ceiling does not apply rather than denying
+   * everything.
+   */
+  readonly entitlements?: readonly string[];
   /** Absent for sessions opened by a non-browser caller. */
   readonly device?: DeviceContext;
 }

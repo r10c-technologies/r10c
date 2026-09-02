@@ -44,14 +44,3 @@ export const unverifiedClaims = (token: string): TokenClaims | undefined => {
     return undefined;
   }
 };
-
-/** The roles claim, or an empty list. Same warning as {@link unverifiedClaims}. */
-export const unverifiedRoles = (
-  token: string | undefined,
-): readonly string[] => {
-  if (token === undefined) {
-    return [];
-  }
-  const roles = unverifiedClaims(token)?.roles;
-  return Array.isArray(roles) ? roles : [];
-};

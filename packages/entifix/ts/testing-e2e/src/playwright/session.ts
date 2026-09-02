@@ -39,6 +39,17 @@ export interface SeedSessionOptions {
    */
   partyRole?: string;
   /**
+   * The domains the seeded organization is provisioned for — ADR 0007's second
+   * ceiling, which the back-office nav reads.
+   *
+   * Defaults to the one domain `entitlementSeedData` gives the demo
+   * organization, so the fixture keeps mirroring what a real sign-in produces.
+   * Pass `[]` to seed a member of an organization provisioned for nothing;
+   * that is a different principal from one with `activeOrganizationId: null`,
+   * who is outside the ceiling rather than refused by it.
+   */
+  entitlements?: readonly string[];
+  /**
    * Locale to pin the run to. Seeded in both profiles so a run does not depend
    * on the CI machine's `Accept-Language` — without it the same spec renders
    * Spanish locally and English on a differently-configured runner.
@@ -65,7 +76,7 @@ const base64url = (value: string): string =>
 /**
  * A structurally valid, **deliberately unsigned** access token. It satisfies
  * exactly the two things the mock profile exercises — the middleware's cookie
- * presence check and the server-rendered nav's unverified role read — and
+ * presence check and the server-rendered nav's unverified claim read — and
  * nothing else: no service verifies it, because in `mock` the services are msw
  * fixtures. Signing it would need the private key, which the suite has no
  * business knowing and which is exactly what asymmetric signing exists to keep
@@ -75,6 +86,7 @@ const fabricateToken = (
   roles: readonly string[],
   activeOrganizationId: string | null,
   partyRole: string,
+  entitlements: readonly string[],
 ): string => {
   const header = base64url(
     JSON.stringify({ alg: 'RS256', kid: 'e2e-not-a-real-key', typ: 'JWT' }),
@@ -86,7 +98,9 @@ const fabricateToken = (
       sessionId: 'e2e-session',
       roles,
       partyRole,
-      ...(activeOrganizationId === null ? {} : { activeOrganizationId }),
+      ...(activeOrganizationId === null
+        ? {}
+        : { activeOrganizationId, entitlements }),
       exp: Math.floor(Date.now() / 1000) + 3600,
     }),
   );
@@ -277,6 +291,7 @@ export const seedSession = async (
     roles = ['user'],
     activeOrganizationId = 'e2e-organization',
     partyRole = 'vendor',
+    entitlements = ['product-configuration-management'],
     locale = 'es',
     identifier = 'ada@example.com',
     password = 'Password123!',
@@ -299,7 +314,12 @@ export const seedSession = async (
   await context.addCookies([
     {
       name: ACCESS_COOKIE,
-      value: fabricateToken(roles, activeOrganizationId, partyRole),
+      value: fabricateToken(
+        roles,
+        activeOrganizationId,
+        partyRole,
+        entitlements,
+      ),
       domain: 'localhost',
       path: '/',
     },
