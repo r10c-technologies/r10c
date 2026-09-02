@@ -389,7 +389,7 @@ it renders one page at a time — navigating replaces the current view and drops
 in-progress edit. The **tab workspace** lets an operator keep several work contexts
 open at once, each persisted across a browser refresh and each autosaving its edit
 state, plus the **client data layer** (TanStack Query over the Entifix use-cases)
-that makes the workspace optimistic-first and ready for the coming WebSocket.
+that makes the workspace optimistic-first and ready for the reactive stream.
 
 ## Goals
 
@@ -623,7 +623,7 @@ controls, which cannot call an integration hook.
 `applyEntityLinks` are shaped for it, but a to-many relation still renders read-only.
 
 Effect ships its own `Cache`/`Query`, but TanStack wins on React optimistic ergonomics,
-devtools, and the WebSocket-invalidation story — and since the fetch stays Effect, we keep both.
+devtools, and the push-invalidation story — and since the fetch stays Effect, we keep both.
 
 ## 6. Loading model — server skeletons, then hydrate, then data
 
@@ -687,11 +687,15 @@ boundary does not have.
 type declares `isLoading` and fails the build unless each ships a `Loading`
 Storybook story — and `nx build-storybook` in CI proves that story renders.
 
-## 7. Reactive updates (WebSocket-ready)
+## 7. Reactive updates (the reactive stream)
 
 A framework-free **`ReactiveChannel` port** (a `Context.Tag`, mirroring the entifix adapter
-philosophy) emits entity-change events. It is mockable today (no transport yet); a real socket
-drops in later. Events feed the query client:
+philosophy) emits entity-change events. It is mockable today (no transport yet); the transport
+is decided and lands with #136 — **server-sent events** on a plain `GET` through the app's own
+same-origin proxy, scoped per connection to the principal's organization
+([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)). Not a WebSocket:
+the repo's browser traffic is never cross-origin, and a duplex frame has no caller here.
+Events feed the query client:
 
 ```
 edit → optimistic patch cache (instant, no spinner)
@@ -805,7 +809,7 @@ aspect-ratio placeholders, PPR, a CI bundle-size budget.
 
 # Deferred (workspace)
 
-Real WebSocket transport; cross-browser-tab collision sync (BroadcastChannel vs last-write-wins);
+The reactive stream's transport (#136, decided in ADR 0036); cross-browser-tab collision sync (BroadcastChannel vs last-write-wins);
 stale-draft-vs-server conflict resolution on Save; whole-workspace share link; operations/wizards
 tab kinds; server-side TanStack dehydration/prefetch; the to-many link editor
 (`linkCollection`) and an ABAC `canLink` policy behind the picker's use-case seam.

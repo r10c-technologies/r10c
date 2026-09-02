@@ -10,6 +10,11 @@
   at-least-once delivery acquires a ceiling. `OutboxEntry` gains `attempts`, and
   an entry that exhausts them is quarantined and skipped rather than retried
   forever. The outbox itself, and every other decision here, stands.
+- Amended by:
+  [ADR 0036](0036-the-reactive-stream-is-server-sent-and-same-origin.md) —
+  `TransactionEvent` gains an `organizationId` member, because an event routed to
+  a browser has to say whose it is and could not. The id, the idempotency key,
+  the outbox and at-least-once delivery all stand.
 
 ## Context
 

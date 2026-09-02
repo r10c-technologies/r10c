@@ -836,6 +836,49 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   must be naturally idempotent, and both of today's are — and #180's graceful
   shutdown, because an unacked message at SIGTERM is the same redelivery
   question.
+- **The reactive stream is server-sent, same-origin, and scoped per connection**
+  ([ADR 0036](docs/adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)).
+  `ReactiveChannel` was always the right port; what it lacked was a transport,
+  and the issue's premise — a WebSocket — was wrong for this repo. Every browser
+  address is rewritten to a same-origin proxy path (`rewriteServiceDomains`)
+  because `r10c_at` is `httpOnly` + `sameSite: 'lax'`, and the `WebSocket`
+  constructor accepts **no headers**, so a socket would need a second class of
+  bearer token handed to client JavaScript — the exact thing `httpOnly` prevents.
+  SSE keeps the cookie path unchanged and throws in the half #137 would otherwise
+  hand-write: `EventSource` reconnects with backoff and re-sends `Last-Event-ID`.
+  The plumbing for the rejected option is all present (`HttpServerRequest.upgrade`,
+  `ws` transitively, an upgrade handler already routing through the same
+  `HttpRouter`) — the cost was never the transport, it was the token. Six things
+  not to re-derive. The route is **`GET /api/transaction/events`, owned by the
+  `transaction` slice**, because `slices.spec.ts` asserts no slice subscribes to
+  its own events and `marketplace-admin` publishes `transaction.*` — and because
+  it is `GET /api/transaction/:id` upgraded from poll to push, same facts, same
+  caller. It is the first **`mode: 'broadcast'`** in the register, which is the
+  consumer ADR 0030 named by number when it built the mode: every replica holds
+  different connections, so `work` would deliver to one replica and the clients on
+  the others would silently never learn. The frame is an **`EventEnvelope`**, not
+  a fourth framing — the `transactionId`, timestamp and sequence #136 asked to add
+  already exist one level up as `meta.event.correlationId` / `.at` / `.id`, so
+  `EntityChangeListener` widens to `(event: DomainEvent<EntityChangeEvent>) => void`
+  and nothing is duplicated onto the payload. ⚠️ **`TransactionEvent` gains
+  `organizationId`** (in `data`, not `meta` — 0029's rule is that data describes
+  the occurrence) because it carried none, so per-connection scoping was not
+  expressible at all; the filter is server-side per connection and **fails
+  closed**, since defaulting the other way makes every pre-existing event a
+  cross-tenant delivery. ⚠️ The connection is **bounded by the token's `exp`**,
+  not held open: a revoked session stops within 15 min, which is exactly the bound
+  `requirePrincipal` already gives every REST call — an immediate close needs an
+  `auth`-published revocation event and a session→connection index, and is #53's.
+  And the server **does not replay**: `Last-Event-ID` is accepted and ignored,
+  because answering it from the outbox makes it a per-connection backlog with a
+  retention policy and a second durability contract beside ADR 0028's. Two traps
+  the build must not miss: `createServiceProxyRoute` **buffers the upstream body**,
+  which against `text/event-stream` holds the request open forever and delivers
+  nothing with no error and no timeout; and `GET /api/transaction{,/:id}` carry
+  **no `requirePrincipal` and no organization filter** today — `listRoute` answers
+  every organization's transactions to anyone — so they are guarded in the same
+  commit or the stream's scoping is theatre. Amends ADR 0028 (the payload member;
+  every other decision there stands).
 - **A service will describe its own wiring, and the point is the diff**
   ([ADR 0031](docs/adr/0031-a-service-describes-its-own-wiring.md), Proposed).
   `GET /api/$service` — stores opened, events published, subscriptions bound,
