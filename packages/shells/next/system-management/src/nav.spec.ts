@@ -27,6 +27,15 @@ describe('SYSTEM_MANAGEMENT_NAV', () => {
     }
   });
 
+  it('declares itself Definiciones, with no exception made for it', () => {
+    // ADR 0033: the operator authors the row, it has no lifecycle, and every
+    // service references it. That it is opened rarely is a fact about
+    // frequency, not about shape.
+    expect(SYSTEM_MANAGEMENT_NAV.map(section => section.type)).toEqual([
+      'master',
+    ]);
+  });
+
   it('keys its copy to the shared shell namespace, never an app catalog', () => {
     // An `app:` key would be lint-rejected outside `apps/`, and a second host
     // must not have to re-translate these screens.
