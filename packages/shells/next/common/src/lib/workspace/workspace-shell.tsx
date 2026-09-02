@@ -16,6 +16,16 @@ import type { TabRegistry } from './tab-kind';
 import { useTabsState } from './tabs-state';
 
 export interface WorkspaceShellProps {
+  /**
+   * Who this workspace belongs to — `workspaceScopeKey({ userId,
+   * organizationId })`, resolved on the server from the session.
+   *
+   * Required, deliberately: IndexedDB is a property of the browser profile, so a
+   * host that forgets to pass one hands the next account to sign in on that
+   * machine the previous account's open tabs and half-finished edits. A default
+   * would make that the quiet outcome of doing nothing.
+   */
+  scope: string;
   /** Resolves `?tab=` values to renderable tabs. */
   registry: TabRegistry;
   /** Right-aligned actions above the tab strip (search, the user menu). */
@@ -36,6 +46,7 @@ export interface WorkspaceShellProps {
  * instead of crashing.
  */
 export function WorkspaceShell({
+  scope,
   registry,
   actions,
   fallback,
@@ -69,11 +80,19 @@ export function WorkspaceShell({
   // once the store has finished restoring rather than before.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
+    // The scope is applied *before* the read, not after: the storage key is what
+    // decides whose tabs and drafts come back, so setting it late would restore
+    // the unscoped set first and only then start writing to the right key. Both
+    // stores are module singletons with `skipHydration`, and this is the only
+    // place that rehydrates them, so re-pointing them here is enough — no store
+    // factory or provider is needed to keep two accounts apart.
+    useTabsState.persist.setOptions({ name: `tabs:${scope}` });
+    useDraftsState.persist.setOptions({ name: `drafts:${scope}` });
     void Promise.all([
       useTabsState.persist.rehydrate(),
       useDraftsState.persist.rehydrate(),
     ]).finally(() => setHydrated(true));
-  }, []);
+  }, [scope]);
 
   // The `?tab=` value the registry cannot resolve, if any — derived, so it is
   // known on the very first render rather than an effect later. An

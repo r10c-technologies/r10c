@@ -18,14 +18,18 @@ const reactiveChannel = makeInMemoryReactiveChannel();
  * Sidebar navigation (including "open in workspace" links) comes from the
  * host `(authenticated)/layout.tsx` — this view is only the tab strip + body,
  * so there is exactly one, permission-filtered nav list instead of two.
+ *
+ * `scope` is resolved by the server page from the session; it keys the persisted
+ * tabs and drafts so two accounts on one browser profile never share them.
  */
-export function WorkspaceView() {
+export function WorkspaceView({ scope }: { scope: string }) {
   const t = useT('app');
   const shellT = useT('shell');
   useReactiveInvalidation(reactiveChannel);
 
   return (
     <WorkspaceShell
+      scope={scope}
       registry={workspaceRegistry}
       actions={
         <Menu>

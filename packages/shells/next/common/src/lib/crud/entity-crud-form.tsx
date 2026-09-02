@@ -89,6 +89,27 @@ export function EntityCrudForm<TEntity extends Entity>({
     if (form.isDirty) onDraftChange?.(form.values);
   }, [form.values, form.isDirty, onDraftChange]);
 
+  // Refill the relation sidecar from the ids the draft did keep.
+  //
+  // A draft is JSON, so it holds ids and nothing else; the instances behind them
+  // die with the page. Each picker already resolves its id — that is how a
+  // restored draft shows a brand's name instead of its key — so the instance is
+  // in hand and only has to be handed back. Without this, a member declared
+  // `linkSerialization: 'embedded'` reaches `applyEntityLinks` with an id and no
+  // target, which it refuses rather than writing the wrong wire shape.
+  //
+  // `hydrateLink`, not `setLink`: this is a lookup landing, not a pick, so it
+  // must leave the draft — and the form's dirty flag — alone.
+  const { links: selection, hydrateLink } = form;
+  useEffect(() => {
+    for (const [field, source] of Object.entries(linkSources)) {
+      const resolved = source.selected.entity;
+      if (resolved !== undefined && selection[field] === undefined) {
+        hydrateLink(field, resolved);
+      }
+    }
+  }, [linkSources, selection, hydrateLink]);
+
   return (
     <EntityForm<TEntity>
       entityConstructor={entityConstructor}

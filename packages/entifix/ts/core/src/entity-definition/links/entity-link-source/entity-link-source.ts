@@ -59,8 +59,17 @@ export interface EntityLinkSource<TEntity extends Entity> {
   entityConstructor: EntityConstructor<TEntity>;
   /** Reads a target's display label, per the owner's `linkLabelProperty`. */
   labelOf: (entity: TEntity) => string;
-  /** The label of the currently held id, resolved when no instance is at hand. */
-  selected: { label?: string; isLoading: boolean };
+  /**
+   * The currently held id, resolved into something a form can use.
+   *
+   * `entity` is the whole target, not just its name, and that matters: a draft
+   * restored from storage holds ids only, so the instance a `linkSerialization:
+   * 'embedded'` member needs at submit is gone. Resolving the id was already
+   * happening for the label — carrying the instance out is what lets the form
+   * rehydrate its selection instead of quietly writing the `id` shape onto an
+   * `embedded` member.
+   */
+  selected: { label?: string; entity?: TEntity; isLoading: boolean };
   quick: EntityLinkQuickSearch<TEntity>;
   browse: EntityLinkBrowse<TEntity>;
 }

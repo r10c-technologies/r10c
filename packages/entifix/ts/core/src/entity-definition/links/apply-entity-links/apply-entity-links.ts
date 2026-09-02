@@ -1,3 +1,4 @@
+import { EntifixLogicError } from '../../../base-entities/entifix-error';
 import { Entity, EntityId } from '../../../types/Entity';
 import { EntityFieldDescriptor } from '../../describe';
 import { EntityLink } from '../entity-link';
@@ -8,9 +9,13 @@ import { EntityLink } from '../entity-link';
  *
  * A draft holds ids because it must stay JSON (a workspace autosaves it), but an
  * id alone cannot be written as an embedded relation. So the picker remembers the
- * instance it handed over, and this map is that memory. It is a *cache*: the
- * draft stays the source of truth, and a missing entry only costs the embedded
- * shape, never the relation.
+ * instance it handed over, and this map is that memory.
+ *
+ * It is a *cache*, and it is not persisted — it dies with the page, and a
+ * restored draft arrives holding ids and nothing else. What refills it is
+ * `EntityLinkSource.selected.entity`, which resolves the id the draft did keep.
+ * For an `id` member a missing entry costs nothing; for an `embedded` one
+ * {@link applyEntityLinks} throws rather than write the wrong wire shape.
  */
 export type EntityLinkSelection = Record<string, Entity | undefined>;
 
@@ -32,6 +37,10 @@ export type EntityLinkDraft = Record<string, string>;
  *
  * `linkCollection` members are left untouched: the to-many editor is a follow-up,
  * and this is the branch where `setIds`/`setValues` will land.
+ *
+ * Throws {@link EntifixLogicError} when an `embedded` member holds an id with no
+ * instance to inline — see the branch below for why that is a fault and not a
+ * fallback.
  */
 export function applyEntityLinks<TEntity extends Entity>(
   instance: TEntity,
@@ -53,6 +62,24 @@ export function applyEntityLinks<TEntity extends Entity>(
     const rawId = values[descriptor.name] ?? '';
 
     if (picked === undefined) {
+      // An `embedded` member cannot be written from an id: `serializeEntity`
+      // inlines whatever `isLoaded`, so falling through here would emit the `id`
+      // shape onto a member the entity declares as inlined — silently, and
+      // differently from the same save a moment earlier when the picker still
+      // held the instance. The wire shape is metadata, not a function of what
+      // the UI happens to have in memory, so this is a fault rather than a
+      // degradation. The caller's job is to resolve the id first
+      // (`EntityLinkSource.selected.entity`) and hand the instance over.
+      if (descriptor.linkSerialization === 'embedded' && rawId !== '') {
+        throw new EntifixLogicError(
+          `Cannot write "${descriptor.name}" as an embedded relation: the draft ` +
+            'holds an id but no instance. Resolve the id through the link ' +
+            "source's `selected.entity` before submitting, or declare the " +
+            "member `linkSerialization: 'id'`.",
+          undefined,
+          { member: descriptor.name, id: rawId },
+        );
+      }
       link.setValue(undefined);
       link.setId(rawId === '' ? undefined : (rawId as EntityId));
       continue;

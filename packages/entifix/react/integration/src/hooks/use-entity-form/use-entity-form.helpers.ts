@@ -65,6 +65,43 @@ export function seedEntityDraft(
   return draft;
 }
 
+/**
+ * Restores a persisted draft **over** a freshly seeded one, rather than in place
+ * of it.
+ *
+ * A draft outlives the entity that wrote it — it sits in IndexedDB across
+ * refreshes and deployments — so the two can disagree by the time it comes back.
+ * Replacing the seed outright is how that disagreement becomes a bug the user
+ * sees: a member added since the draft was written has no entry, reaches the form
+ * engine as `undefined`, and its input flips from controlled to uncontrolled
+ * mid-render. A member since removed goes the other way, surviving as a value
+ * nothing renders and `reconstructEntity` cannot assign.
+ *
+ * So the seed decides the *keys* and the draft decides the *values*: a name the
+ * entity no longer declares is dropped, and a name it declares that the draft
+ * lacks keeps its seeded value. Non-string values are dropped for the same
+ * reason — the draft is JSON, and JSON is not the form's own type.
+ *
+ * This is the shape guard at the one place the shape is actually known. The
+ * store-level version check (`drafts-state.ts`) can only decide that a whole
+ * generation of drafts is unreadable; it cannot know which members one entity
+ * declares.
+ */
+export function restoreEntityDraft(
+  descriptors: readonly EntityFieldDescriptor[],
+  seed: EntityFormValues,
+  persisted: EntityFormValues | undefined,
+): EntityFormValues {
+  if (persisted === undefined) return seed;
+
+  const restored: EntityFormValues = { ...seed };
+  for (const descriptor of descriptors) {
+    const value = persisted[descriptor.name];
+    if (typeof value === 'string') restored[descriptor.name] = value;
+  }
+  return restored;
+}
+
 /** The slice of a form field's state this module reads: its error list. */
 export interface FieldErrorMeta {
   errors?: readonly unknown[];

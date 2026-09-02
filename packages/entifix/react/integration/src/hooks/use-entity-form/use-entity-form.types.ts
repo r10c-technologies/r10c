@@ -14,8 +14,13 @@ export interface UseEntityFormOptions<TEntity extends Entity> {
   /** The record being edited; seeds the initial draft. Omit to create. */
   entity?: TEntity;
   /**
-   * A draft to seed from instead of the record — how a workspace restores an
-   * autosaved, half-finished edit. Wins over `entity` when present.
+   * A persisted draft, layered over the record's seed — how a workspace restores
+   * an autosaved, half-finished edit.
+   *
+   * It wins on *values*, never on *keys*: a member the entity no longer declares
+   * is dropped and one the draft never held keeps its seeded value, so a draft
+   * written under an older shape cannot leave a field uncontrolled. See
+   * `restoreEntityDraft`.
    */
   initialValues?: EntityFormValues;
   /**
@@ -56,11 +61,13 @@ export interface UseEntityFormResult {
   setField: (name: string, value: string) => void;
   /**
    * The instances behind the relation ids the draft holds — seeded from the
-   * record's already-materialized links and extended by every pick.
+   * record's already-materialized links, extended by every pick, and refilled
+   * from a resolved id by {@link UseEntityFormResult.hydrateLink}.
    *
    * Pass to `applyEntityLinks` at submit: the draft alone cannot express an
-   * embedded relation, because an id is not an entity. It is a cache, so a
-   * missing entry costs the embedded shape and never the relation itself.
+   * embedded relation, because an id is not an entity. It is not persisted — a
+   * restored draft arrives with ids and no instances, which is what
+   * `hydrateLink` exists to repair.
    */
   links: EntityLinkSelection;
   /**
@@ -68,6 +75,16 @@ export interface UseEntityFormResult {
    * writes its id into the draft, which stays the serializable source of truth.
    */
   setLink: (name: string, entity: Entity | undefined) => void;
+  /**
+   * Record an instance resolved from an id the draft already held — the restore
+   * path, not a pick.
+   *
+   * Unlike {@link UseEntityFormResult.setLink} it writes only the sidecar, so it
+   * cannot dirty a form the user has not touched. It also never overwrites an
+   * entry that is already there: a pick in flight is newer than a lookup that
+   * started before it.
+   */
+  hydrateLink: (name: string, resolved: Entity) => void;
   /**
    * Validate, then submit when clean. Feed into `EntityForm`'s `onSubmit`.
    *

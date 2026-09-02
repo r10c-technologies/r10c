@@ -30,6 +30,7 @@ const registry = new TabRegistry().register(catalogKind);
 const renderShell = (actions?: boolean) =>
   render(
     <WorkspaceShell
+      scope="user-1:org-1"
       registry={registry}
       actions={actions ? <button type="button">User</button> : undefined}
       emptyState={<div data-testid="empty">No open tabs</div>}
@@ -42,6 +43,12 @@ beforeEach(() => {
   tabParam = null;
   useTabsState.setState({ tabs: [], activeParam: null });
   useDraftsState.setState({ drafts: {} });
+  vi.spyOn(useTabsState.persist, 'setOptions').mockImplementation(
+    () => undefined,
+  );
+  vi.spyOn(useDraftsState.persist, 'setOptions').mockImplementation(
+    () => undefined,
+  );
   vi.spyOn(useTabsState.persist, 'rehydrate').mockResolvedValue(undefined);
   vi.spyOn(useDraftsState.persist, 'rehydrate').mockResolvedValue(undefined);
 });
@@ -50,6 +57,35 @@ describe('WorkspaceShell', () => {
   it('shows the empty state when no tab is open', async () => {
     renderShell();
     expect(await screen.findByTestId('empty')).toBeInTheDocument();
+  });
+
+  // Order is the whole assertion. The storage key decides *whose* tabs and
+  // drafts come back, so pointing the stores after the read would restore the
+  // unscoped set first and only then start writing to the right key.
+  it('points both stores at the caller’s scope before reading them', async () => {
+    const order: string[] = [];
+    vi.mocked(useTabsState.persist.setOptions).mockImplementation(() => {
+      order.push('tabs:setOptions');
+    });
+    vi.mocked(useDraftsState.persist.setOptions).mockImplementation(() => {
+      order.push('drafts:setOptions');
+    });
+    vi.mocked(useTabsState.persist.rehydrate).mockImplementation(async () => {
+      order.push('rehydrate');
+    });
+
+    renderShell();
+    await screen.findByTestId('empty');
+
+    expect(useTabsState.persist.setOptions).toHaveBeenCalledWith({
+      name: 'tabs:user-1:org-1',
+    });
+    expect(useDraftsState.persist.setOptions).toHaveBeenCalledWith({
+      name: 'drafts:user-1:org-1',
+    });
+    expect(order.indexOf('rehydrate')).toBeGreaterThan(
+      order.indexOf('drafts:setOptions'),
+    );
   });
 
   it('renders top-bar actions when given', () => {

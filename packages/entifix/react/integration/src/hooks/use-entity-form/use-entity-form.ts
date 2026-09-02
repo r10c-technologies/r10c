@@ -14,6 +14,7 @@ import { I18nContext, initReactI18next, useTranslation } from 'react-i18next';
 import {
   composeEntityFormErrors,
   readFieldErrors,
+  restoreEntityDraft,
   seedEntityDraft,
 } from './use-entity-form.helpers';
 import type {
@@ -61,8 +62,16 @@ export function useEntityForm<TEntity extends Entity>({
     () => describeEntityColumns(entityConstructor, entity),
     [entityConstructor, entity],
   );
+  // A persisted draft is layered over the seed, never substituted for it: the
+  // entity decides which members exist, the draft only decides their values.
+  // See `restoreEntityDraft` for what a straight substitution costs.
   const seed = useMemo(
-    () => initialValues ?? seedEntityDraft(descriptors, entity),
+    () =>
+      restoreEntityDraft(
+        descriptors,
+        seedEntityDraft(descriptors, entity),
+        initialValues,
+      ),
     [descriptors, entity, initialValues],
   );
 
@@ -165,6 +174,17 @@ export function useEntityForm<TEntity extends Entity>({
     [form],
   );
 
+  // The sidecar half alone. A restored draft holds the id and lost the instance,
+  // and something resolved it back — that is not a user pick, so it must not
+  // touch the draft: writing the field would be an edit the user did not make,
+  // and on a form whose seed *is* the restored draft it would also be a no-op
+  // that only risks disagreeing with the engine about equality.
+  const hydrateLink = useCallback((name: string, resolved: Entity) => {
+    setLinks(current =>
+      current[name] === undefined ? { ...current, [name]: resolved } : current,
+    );
+  }, []);
+
   return {
     values,
     errors,
@@ -172,6 +192,7 @@ export function useEntityForm<TEntity extends Entity>({
     setField: form.setFieldValue,
     links,
     setLink,
+    hydrateLink,
     submit,
     isDirty: !isDefaultValue,
   };

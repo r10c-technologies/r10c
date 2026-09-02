@@ -414,6 +414,43 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   **empty**: every organism it held was a pass-through whose only non-generic
   token was a class name. The layer stays declared and tagged for the first
   component that genuinely cannot be derived. Closes #127 and #140.
+- **An autosaved draft is JSON round-trippable, period — and it belongs to one
+  principal** ([ADR 0032](docs/adr/0032-what-may-live-in-an-autosaved-draft.md)).
+  Four decisions, each enforced somewhere rather than written down and hoped for.
+  **JSON**: a draft goes through `createJSONStorage`, so a class instance, an
+  `EntityLink` or a `Date` does not degrade — it returns as something else,
+  silently. `JsonValue` in core types `DraftsState.drafts` and
+  `useDraft<TDraft extends JsonValue>`; `mergeDrafts` runs `isJsonValue` **per
+  entry** at restore, so one bad draft does not take the workspace's others with
+  it. Declare a draft type as a `type`, never an `interface` — TS gives an
+  interface no implicit index signature, and the resulting "Index signature for
+  type 'string' is missing" explains nothing. `UiPreferencesState` is
+  deliberately exempt: it writes through **structured clone** and does keep a
+  `Date`. **Relations**: ids live in the draft, instances beside it, and the
+  sidecar is _not_ persisted — it is refilled from the id via
+  `EntityLinkSource.selected.entity` (the lookup already fetched the whole target;
+  only its label was being used) handed to `useEntityForm`'s **`hydrateLink`**,
+  which writes the sidecar without touching the draft or the dirty flag, because a
+  lookup landing is not a pick. `applyEntityLinks` now **throws** on an
+  `embedded` member holding an id with no instance instead of quietly writing the
+  `id` shape — which is what made two saves of one unchanged form differ across a
+  refresh — and `EntityForm` disables Save while any source resolves so that
+  throw stays unreachable. Latent today: nothing in `packages/business` declares
+  `type: 'link'` at all. **Versioning**: `DRAFTS_VERSION`/`TABS_VERSION` with an
+  explicit `migrate` to empty (zustand discards anyway, but logs an error for a
+  deliberate decision); it covers the _envelope_ only, and member drift is
+  `restoreEntityDraft` layering a restored draft **over** a freshly seeded one —
+  the entity decides the keys, the draft decides the values, so a member added
+  since no longer arrives `undefined` and flips its input uncontrolled.
+  **Scope**: the key is `drafts:<userId>:<activeOrganizationId>`, resolved
+  server-side (the cookies are httpOnly) and applied with `persist.setOptions`
+  **before** rehydrating — set it after and the unscoped set is restored first.
+  `WorkspaceShell`'s `scope` prop is required on purpose. Unverified claims are
+  fine here for `navRoles`' reason, and ⚠️ **IndexedDB is not a confidentiality
+  boundary** — whoever can read that object store already holds the session
+  cookie, so this stops an accidental cross-account restore and nothing more.
+  Recorded residual: no clearing on sign-out, because there is no client sign-out
+  handler to hook.
 - **Adding a filter operator** touches four places or it half-works: the const
   arrays in `core/types/EntityFiltering.ts`, the token map in
   `core/src/rsql/rsql-operators.ts`, `mongo-client`'s `filter-translator.ts`, and
