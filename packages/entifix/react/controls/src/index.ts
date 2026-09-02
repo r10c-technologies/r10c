@@ -34,6 +34,7 @@ export * from './ui/molecules/stack';
 export * from './ui/molecules/tab-strip';
 export * from './ui/molecules/table-toolbar';
 export * from './ui/molecules/theme-switcher';
+export * from './ui/organisms/entity-detail-grid';
 export * from './ui/organisms/entity-form';
 export * from './ui/organisms/entity-table';
 export * from './ui/organisms/top-bar';

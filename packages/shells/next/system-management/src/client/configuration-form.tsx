@@ -8,7 +8,7 @@ import {
   useT,
 } from '@r10c/entifix-react-controls';
 import { useEntityForm } from '@r10c/entifix-react-integration';
-import type { EntifixError } from '@r10c/entifix-ts-core';
+import { type EntifixError, readDraftString } from '@r10c/entifix-ts-core';
 
 export interface ConfigurationFormProps {
   entity?: Configuration;
@@ -58,15 +58,16 @@ export function ConfigurationForm({
     onSubmit: values => {
       const target = new Configuration();
       target.id = entity?.id;
-      target.service = values.service;
-      target.groupName = values.groupName;
-      target.key = values.key;
-      target.isSecret = values.isSecret === 'true';
+      target.service = readDraftString(values, 'service');
+      target.groupName = readDraftString(values, 'groupName');
+      target.key = readDraftString(values, 'key');
+      target.isSecret = readDraftString(values, 'isSecret') === 'true';
 
       // Blank on a secret means "keep what is stored", so the member is left
       // undefined rather than sent as an empty string — the serializer omits
       // undefined, and the service reads its absence as "unchanged".
-      target.value = isSecret && values.value === '' ? undefined : values.value;
+      const value = readDraftString(values, 'value');
+      target.value = isSecret && value === '' ? undefined : value;
 
       onSave(target);
     },

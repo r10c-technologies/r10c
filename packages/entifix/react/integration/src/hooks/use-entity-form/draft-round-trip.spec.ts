@@ -4,6 +4,7 @@ import {
   type Entity,
   entity,
   EntityCollectionLink,
+  type EntityDraft,
   type EntityId,
   EntityLink,
   reconstructEntity,
@@ -156,8 +157,8 @@ const descriptors = describeEntityColumns(RoundTrip, new RoundTrip());
 
 /** Seed a draft, rebuild from it, seed again — the second draft must match. */
 function roundTrip(record: RoundTrip): {
-  before: Record<string, string>;
-  after: Record<string, string>;
+  before: EntityDraft;
+  after: EntityDraft;
 } {
   const before = seedEntityDraft(descriptors, record);
   const rebuilt = reconstructEntity(RoundTrip, before);

@@ -3,7 +3,11 @@
 import { UserIdentity } from '@r10c/business-ts-authn';
 import { EntityForm, useT } from '@r10c/entifix-react-controls';
 import { useEntityUseCases } from '@r10c/entifix-react-integration';
-import { deserializeSingleEntity } from '@r10c/entifix-ts-core';
+import {
+  deserializeSingleEntity,
+  type EntityDraft,
+  readDraftString,
+} from '@r10c/entifix-ts-core';
 import { makeEntityMetadataSource } from '@r10c/entifix-ts-rest-client';
 import { useLocaleHref } from '@r10c/shells-next-common';
 import { Effect } from 'effect';
@@ -69,11 +73,11 @@ export function UserDetailPage() {
 
   // Edits made since the record loaded; the loaded values are the fallback, so
   // the draft needs no effect to seed it.
-  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [edits, setEdits] = useState<EntityDraft>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
 
-  const values: Record<string, string> = {
+  const values: EntityDraft = {
     displayName: user?.displayName ?? '',
     role: user?.role ?? '',
     status: user?.status ?? '',
@@ -86,7 +90,10 @@ export function UserDetailPage() {
     const res = await fetch(`/api/user-identity/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ role: values.role, status: values.status }),
+      body: JSON.stringify({
+        role: readDraftString(values, 'role'),
+        status: readDraftString(values, 'status'),
+      }),
     });
     const body = await res.json();
     setIsSaving(false);

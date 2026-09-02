@@ -3,6 +3,7 @@ import type {
   Entity,
   EntityConstructor,
   EntityDraft,
+  EntityDraftValue,
   EntityFieldDescriptor,
   EntityLinkSource,
   EntityMetadataDocument,
@@ -16,7 +17,7 @@ export type EntityFormMode = 'read' | 'edit';
 export interface EntityFieldRenderContext {
   draft: EntityDraft;
   value: string;
-  setField: (name: string, value: string) => void;
+  setField: (name: string, value: EntityDraftValue) => void;
   /** The id the field's label points at — put it on your control. */
   id: string;
 }
@@ -46,8 +47,15 @@ export interface EntityFormProps<TEntity extends Entity> {
   /** The current draft. The form is controlled — a host (the `useEntityForm`
    *  hook or a `useState`) owns this and updates it via `onFieldChange`. */
   values?: EntityDraft;
-  /** Called when one field changes. */
-  onFieldChange?: (name: string, value: string) => void;
+  /**
+   * Called when one field changes.
+   *
+   * The value is a union rather than a string because a `composition`
+   * member's is its list of rows — the one member with no lossless string form.
+   * Every scalar editor still writes a string, so a host that only edits
+   * scalars is unaffected.
+   */
+  onFieldChange?: (name: string, value: EntityDraftValue) => void;
 
   /**
    * A search/browse source per reference, keyed by accessor name. A `link` field

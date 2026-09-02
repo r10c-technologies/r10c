@@ -11,6 +11,20 @@ import { Checkbox, Select, TextInput } from '../field';
 export interface FieldControlProps {
   descriptor: EntityFieldDescriptor;
   /**
+   * ARIA wiring the caller owns, because only the caller knows the shape it is
+   * rendered into.
+   *
+   * A form labels its control with a `<label for>` and needs none of this; a
+   * detail grid's cell has no label of its own — the column header is the
+   * label, and the cell's message is the description — so it points at both by
+   * id. Passing them through here rather than duplicating the type→input map
+   * in the grid is what keeps one control deciding what a `date` member looks
+   * like.
+   */
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
+  /**
    * The draft value as a string — the shape a native input round-trips. A form
    * holds its whole draft as `Record<string, string>` and reconstructs typed
    * values only at submit, so the control never sees a domain value.
@@ -53,6 +67,7 @@ export function FieldControl({
   value,
   onChange,
   id,
+  ...aria
 }: FieldControlProps) {
   const enumLabel = useEnumLabel();
   const disabled =
@@ -65,6 +80,7 @@ export function FieldControl({
     return (
       <Checkbox
         id={id}
+        {...aria}
         label={descriptor.label}
         checked={value === 'true'}
         disabled={disabled}
@@ -77,6 +93,7 @@ export function FieldControl({
     return (
       <Select
         id={id}
+        {...aria}
         value={value}
         disabled={disabled}
         onChange={event => onChange(event.currentTarget.value)}
@@ -94,6 +111,7 @@ export function FieldControl({
   return (
     <TextInput
       id={id}
+      {...aria}
       type={INPUT_TYPE[descriptor.type] ?? 'text'}
       value={value}
       disabled={disabled}

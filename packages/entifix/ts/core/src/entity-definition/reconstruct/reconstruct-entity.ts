@@ -1,5 +1,6 @@
 import { Entity, EntityConstructor } from '../../types/Entity';
-import { EntityDraft } from '../../types/EntityDraft';
+import { EntityDraft, readDraftString } from '../../types/EntityDraft';
+import { isRowDraftArray } from '../../types/EntityRowDraft';
 import { describeEntityColumns, EntityFieldDescriptor } from '../describe';
 import {
   applyEntityLinks,
@@ -7,6 +8,8 @@ import {
 } from '../links/apply-entity-links';
 import { EntityCollectionLink } from '../links/entity-collection-link';
 import { EntityLink } from '../links/entity-link';
+import { coerceFieldValue } from './coerce-field-value';
+import { reconstructChild } from './reconstruct-child';
 
 /** Everything {@link reconstructEntity} needs beyond the draft itself. */
 export interface ReconstructEntityOptions<TEntity extends Entity> {
@@ -23,44 +26,47 @@ export interface ReconstructEntityOptions<TEntity extends Entity> {
 }
 
 /**
- * The typed value a draft string stands for.
+ * Writes an entity's owned collections back from the rows its draft holds.
  *
- * This is the exact inverse of the form layer's `seedFieldValue`, and the two
- * have to agree or the round trip is lossy — a member seeded from a record and
- * submitted untouched must come back equal. Two rules are not obvious:
+ * A **second pass** rather than a branch inside the scalar walk, and the reason
+ * is the invariant it protects: `isWritableScalar` must go on refusing
+ * `composition`, because assigning a coerced string to a member that holds rows
+ * is how the master's own lines get blanked on a save that touches nothing else.
+ * Keeping the two walks separate means a `composition` is written by exactly one
+ * piece of code, and that code cannot be reached with a string.
  *
- * - **`boolean` is decided before the empty check, and never yields
- *   `undefined`.** A checkbox renders `''` as unchecked, so `''` means `false`;
- *   letting the blanket empty rule run first would write `undefined` where the
- *   user saw a box they had deliberately left clear.
- * - **`number` checks empty first.** `Number('')` is `0`, so the other order
- *   turns every blank numeric field into a real zero.
+ * A member whose draft entry is missing or unreadable is **skipped, not
+ * cleared** — the same rule the scalar walk applies to a member the form hides.
+ * A draft written before this member existed, or one restored from a build that
+ * did not know it, must leave the record's rows exactly as they were rather than
+ * emptying them, which is a data loss the user never asked for and cannot see.
+ * An explicitly empty list *is* a value and is written: that is a user who
+ * removed every row.
  *
- * A malformed `number` or `date` is passed through as `NaN` / an invalid `Date`
- * rather than dropped: the form's metadata validation rejects both before
- * submit, and silently discarding a value the user typed would be worse than
- * surfacing it.
- *
- * `scalarCollection` is the one collection with a lossless string form, so it
- * round-trips here rather than waiting for an editor: a comma list in, a
- * `string[]` out. It reads **empty as `[]`, never `undefined`** — a member the
- * user cleared holds no values, which is a different fact from a member that
- * was never set, and only the empty array survives a `required` check honestly.
- * `composition` has no string form at all and never reaches this function; see
- * {@link isWritableScalar}.
+ * Read-only is honoured for the same reason as everywhere else, and the
+ * `childType` guard is not defensive — a `composition` that declared no child
+ * has no columns to coerce against, so there is nothing to rebuild.
  */
-function coerceFieldValue(
-  descriptor: EntityFieldDescriptor,
-  raw: string,
-): unknown {
-  if (descriptor.type === 'boolean') return raw === 'true';
-  if (descriptor.type === 'scalarCollection') {
-    return raw === '' ? [] : raw.split(',');
+function applyEntityComposition(
+  instance: object,
+  descriptors: readonly EntityFieldDescriptor[],
+  values: EntityDraft,
+): void {
+  for (const descriptor of descriptors) {
+    if (descriptor.type !== 'composition') continue;
+    if (descriptor.readonly || descriptor.childType === undefined) continue;
+
+    const drafted = values[descriptor.name];
+    if (!isRowDraftArray(drafted)) continue;
+
+    const rows = drafted;
+    const childType = descriptor.childType;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (instance as any)[descriptor.name] = rows.map(row =>
+      reconstructChild(childType, row),
+    );
   }
-  if (raw === '') return undefined;
-  if (descriptor.type === 'number') return Number(raw);
-  if (descriptor.type === 'date') return new Date(raw);
-  return raw;
 }
 
 /**
@@ -149,10 +155,11 @@ export function reconstructEntity<TEntity extends Entity>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (instance as any)[descriptor.name] = coerceFieldValue(
       descriptor,
-      values[descriptor.name] ?? '',
+      readDraftString(values, descriptor.name),
     );
   }
 
+  applyEntityComposition(instance, descriptors, values);
   applyEntityLinks(instance, descriptors, values, selection);
 
   if (existing !== undefined) instance.id = existing.id;

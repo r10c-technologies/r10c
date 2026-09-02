@@ -115,6 +115,14 @@ export const controls: EsControls = {
     error: 'Could not load options',
     close: 'Close',
   },
+  detail: {
+    addRow: 'Add row',
+    removeRow: 'Remove row {{row}}',
+    rowActions: 'Row actions',
+    empty: 'No rows yet.',
+    errorSummary_one: '{{count}} cell has errors',
+    errorSummary_other: '{{count}} cells have errors',
+  },
   value: {
     none: '— none —',
     yes: 'Yes',

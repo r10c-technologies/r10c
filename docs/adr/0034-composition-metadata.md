@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Revised: 2026-09-02 by [ADR 0038](0038-master-detail-the-rows-a-record-owns.md) — four of its residuals are now built; the decisions are unchanged.
 
 ## Context
 
@@ -238,17 +239,18 @@ other site already reads.
 
 ## Residuals
 
-- **Row identity before the server assigns an id** is not decided here. Rows
-  need a client-side key the moment they are editable; that is #110's, together
-  with the draft widening.
-- **Nested error addressing does not exist.** `issueFieldName` reads only
-  `issue.path?.[0]`, so `['items', 2, 'quantity']` collapses to `'items'`, and
-  every error map in the stack is `Record<string, string>`. #122 needs this.
+- ~~**Row identity before the server assigns an id**~~ and ~~**the draft
+  widening**~~ — settled by [ADR 0038](./0038-master-detail-the-rows-a-record-owns.md):
+  the key is `ROW_KEY`, carried inside the row, and the draft holds
+  `string | EntityRowDraft[]`.
+- ~~**Nested error addressing does not exist.**~~ Also 0038's: `issueFieldName`
+  joins the whole issue path, so a row member is keyed `items[2].quantity`.
 - **SQL persistence is still flat-scalar only** (`make-sql-repository.ts` says
   so). A composition persists in Mongo today and nowhere else.
-- **A composition's rows are not validated.** `hasCheckableFormat` excludes the
-  member, so a child's `required` and `number` declarations are metadata nothing
-  reads yet.
+- ~~**A composition's rows are not validated.**~~ Settled by
+  [ADR 0038](./0038-master-detail-the-rows-a-record-owns.md), which walks each
+  row against the child's descriptors and reads `required` on the collection
+  itself as "at least one row".
 - **`linkCollection` still has no editor** (#26). Unchanged by this record, and
   deliberately not folded into it: association and composition are different
   problems with different controls.

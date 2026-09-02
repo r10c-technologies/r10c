@@ -438,10 +438,49 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   can no longer be added silently: core exports `COLLECTION_TYPES` beside
   `SCALAR_TYPES` and a spec asserts they partition `MetaAccessorTypes` with
   `id`/`link`, because every switch over that union has a `default` that treats
-  the value as a string. Not built: the detail grid (#110 → #122), client-side
-  row keys, nested error addressing (`issueFieldName` reads only `path[0]`, so
-  `items[2].quantity` collapses to `items`), child validation, and SQL
-  persistence for embedded collections.
+  the value as a string. Still not built: SQL persistence for embedded
+  collections, and `linkCollection`'s editor (#26). The detail grid, row keys,
+  nested error addressing and child validation are the next bullet.
+- **A composition is edited in place, and the draft grew a second shape to hold
+  it** ([ADR 0038](docs/adr/0038-master-detail-the-rows-a-record-owns.md)).
+  `EntityDetailGrid` renders an owned collection as inline cells and
+  `EntityForm` mounts it **itself** for any `composition` carrying a
+  `childType` — so an entity that declares owned rows gets an editor with no
+  per-entity component, which is what makes it reachable through
+  `makeEntityCrud`. Placement is a **partition, not an ordering hint**: every
+  grid renders below every field whatever `order` it declared, because a grid
+  between two labelled inputs reads as a field and it is a second record list.
+  Six things not to re-derive. **`EntityDraft` is
+  `Record<string, string | EntityRowDraft[]>`, deliberately not `JsonValue`** —
+  that would permit shapes with no editor and no coercion, and it is _recursive_,
+  which makes TanStack Form's field-path derivation unbounded (`Type
+instantiation is excessively deep`); every scalar read is now
+  `readDraftString`. Flattening rows into `items[0].quantity` draft keys was the
+  tempting alternative and is **impossible**: `restoreEntityDraft` lets the
+  **seed** decide the keys, a row count is not derivable from the entity, so
+  every row entry would be dropped on restore and autosave would lose the lines
+  it exists to protect. **A seeded row key is positional (`row-0`) and a
+  user-added one is a UUID**, and that asymmetry is a measured hang, not taste:
+  `useEntityForm` re-seeds whenever `entity` changes identity — every render for
+  a caller that builds the record inline — so a random key there makes the draft
+  differ on every pass and React stops with `Maximum update depth exceeded`.
+  **Rows are keyed by `$key` and errors by index** (`items[2].quantity`), two
+  identities for two jobs: a Standard Schema issue carries only a positional
+  path, so the metadata rules and the schema rules would otherwise address one
+  cell two ways and `composeEntityFormErrors` could not merge them; the stale
+  index is harmless only because `revalidateLogic` re-runs the whole validator on
+  every edit. **`required` means two things one level apart** — per row on a
+  child member, `rows.length > 0` on the collection member. **The write is a
+  second pass**: `isWritableScalar` goes on refusing `composition` so a coerced
+  string can never reach it, and an _unreadable_ draft entry is **skipped, not
+  cleared**, since blanking a record's lines on a save that touched one scalar is
+  invisible data loss. And **`Enter` appends a row only because `EntityForm` is a
+  `<Card>`, not a `<form>`** — wrapping it in a real form for accessibility would
+  hand the key back to the browser and break the grid. It is bound to the _row_,
+  not its last cell, because the last column may be `readonly` and a disabled
+  input never receives a key. Not built: reorder (no metadata distinguishes a
+  child whose order means something), derived totals (a `footer` slot — summing
+  minor units across currencies is wrong), and nested composition.
 - **A picker also edits a bare foreign key, and that is the normal case now.** When
   the target lives in another slice's store a typed `EntityLink` is an illegal import
   _and_ a cross-store join, so the member is a plain `string`

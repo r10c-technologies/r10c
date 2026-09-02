@@ -224,11 +224,27 @@ describe('seedFieldValue', () => {
   });
 
   /**
-   * Owned rows have no string form and no editor yet (#122), so the field seeds
-   * empty rather than with `[object Object]`.
+   * Owned rows are the one member that does not seed as a string — they have no
+   * lossless string form at all, so they seed as row drafts the detail grid
+   * edits directly.
    */
-  it('seeds an owned collection as empty', () => {
-    expect(seedFieldValue(byName('lines'), makeGadget())).toBe('');
+  it('seeds an owned collection as keyed row drafts', () => {
+    expect(seedFieldValue(byName('lines'), makeGadget())).toEqual([
+      { $key: 'row-0', id: '', name: '' },
+    ]);
+  });
+
+  it('seeds a row key that survives re-seeding the same record', () => {
+    // A caller that builds its record inline re-seeds on every render; a fresh
+    // random key there makes the draft differ on every pass and the form engine
+    // never settles.
+    expect(seedFieldValue(byName('lines'), makeGadget())).toEqual(
+      seedFieldValue(byName('lines'), makeGadget()),
+    );
+  });
+
+  it('seeds no rows for a record that holds none', () => {
+    expect(seedFieldValue(byName('lines'), new Gadget())).toEqual([]);
   });
 });
 

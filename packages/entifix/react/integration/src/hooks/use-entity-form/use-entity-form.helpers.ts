@@ -1,9 +1,20 @@
 import {
+  describeChildColumns,
+  editableChildColumns,
   EntifixLogicError,
   EntityCollectionLink,
   type EntityDraft,
+  type EntityDraftValue,
   type EntityFieldDescriptor,
   EntityLink,
+  type EntityRowDraft,
+  isRowDraftArray,
+  joinFieldPath,
+  readDraftString,
+  readRowDrafts,
+  ROW_KEY,
+  rowFieldPath,
+  seededRowKey,
   type StandardSchemaV1,
   type StandardSchemaV1Issue,
 } from '@r10c/entifix-ts-core';
@@ -30,10 +41,13 @@ function isNeverEdited(descriptor: EntityFieldDescriptor): boolean {
  * one is present at all is checked, which is what `required` on a relation has
  * to mean.
  *
- * `composition` joins them for a different reason: its draft value is empty
- * until the detail grid exists (#122), so any format rule would be judging a
- * string the user was never shown. `scalarCollection` is deliberately *not*
- * excluded — its comma list is real text the user typed.
+ * A `composition` is excluded here too, but it is no longer unjudged: its rows
+ * are checked one at a time by {@link validateRowDrafts}, against the child's
+ * own descriptors. What has no meaning is a *format* rule on the collection
+ * itself — there is no string to judge, only rows.
+ *
+ * `scalarCollection` is deliberately *not* excluded — its comma list is real
+ * text the user typed.
  */
 function hasCheckableFormat(descriptor: EntityFieldDescriptor): boolean {
   return (
@@ -44,9 +58,10 @@ function hasCheckableFormat(descriptor: EntityFieldDescriptor): boolean {
 }
 
 /**
- * The string a field seeds with from a record. Links seed with their foreign
- * key(s) and dates with a `yyyy-mm-dd` value a `date` input accepts; everything
- * else stringifies directly.
+ * The value a field seeds with from a record.
+ *
+ * A scalar seeds as a **string**: links with their foreign key(s), dates with a
+ * `yyyy-mm-dd` value a `date` input accepts, everything else stringified.
  *
  * The array branch is explicit rather than left to `String(raw)`, even though
  * the two produce the same characters today. `String(['a','b'])` is `'a,b'` by
@@ -57,11 +72,24 @@ function hasCheckableFormat(descriptor: EntityFieldDescriptor): boolean {
  * not see it. Now the join is declared here and the split is declared there,
  * and they are inverses on purpose.
  *
- * A `composition`'s rows have no string form, so they seed as `''` — there is
- * no editor to show them in yet, and a `[object Object]` list would be worse
- * than an empty field.
+ * A **`composition`** is the one member that does not seed as a string, because
+ * it has no lossless string form at all — its rows seed as row drafts, each
+ * with a freshly minted key. That key is the only thing here the record does not
+ * supply, and it is minted at seed time rather than at render so that the rows a
+ * form starts with are already addressable.
  */
 export function seedFieldValue(
+  descriptor: EntityFieldDescriptor,
+  entity: unknown,
+): EntityDraftValue {
+  if (descriptor.type === 'composition') {
+    return seedRowDrafts(descriptor, entity);
+  }
+  return seedScalarValue(descriptor, entity);
+}
+
+/** {@link seedFieldValue} for every member that round-trips through a string. */
+function seedScalarValue(
   descriptor: EntityFieldDescriptor,
   entity: unknown,
 ): string {
@@ -71,9 +99,44 @@ export function seedFieldValue(
   if (raw instanceof EntityLink) return raw.id == null ? '' : String(raw.id);
   if (raw instanceof EntityCollectionLink) return raw.ids.map(String).join(',');
   if (raw instanceof Date) return raw.toISOString().slice(0, 10);
-  if (descriptor.type === 'composition') return '';
   if (Array.isArray(raw)) return raw.map(String).join(',');
   return String(raw);
+}
+
+/**
+ * The rows a composition member seeds with.
+ *
+ * Each row is walked with the child's **own** descriptors, through the same
+ * `seedScalarValue` the master's members use — so a child's `date` seeds as
+ * `yyyy-mm-dd` on a line exactly as it would on a record, and
+ * `reconstructChild` is its inverse for the same reason `coerceFieldValue` is.
+ *
+ * A row arrives as a plain object as readily as an instance (a payload off the
+ * wire, a fixture), which is fine: nothing here asks what class it is, matching
+ * `ChildConstructor`'s rule that a child is never `instanceof`-tested.
+ *
+ * A member with no declared child seeds as no rows — there are no columns to
+ * walk, so there is nothing a row could be.
+ */
+function seedRowDrafts(
+  descriptor: EntityFieldDescriptor,
+  entity: unknown,
+): EntityRowDraft[] {
+  if (entity == null || descriptor.childType === undefined) return [];
+  const raw = (entity as Record<string, unknown>)[descriptor.name];
+  if (!Array.isArray(raw)) return [];
+
+  const columns = describeChildColumns(descriptor.childType);
+
+  return raw.map((row, index) => {
+    // Deterministic, so re-seeding the same record produces the same draft —
+    // see `seededRowKey` for the render loop the random one causes.
+    const draft: EntityRowDraft = { [ROW_KEY]: seededRowKey(index) };
+    for (const column of columns) {
+      draft[column.name] = seedScalarValue(column, row);
+    }
+    return draft;
+  });
 }
 
 /** Builds the initial draft for a record (or an empty one for a create). */
@@ -102,8 +165,15 @@ export function seedEntityDraft(
  *
  * So the seed decides the *keys* and the draft decides the *values*: a name the
  * entity no longer declares is dropped, and a name it declares that the draft
- * lacks keeps its seeded value. Non-string values are dropped for the same
- * reason — the draft is JSON, and JSON is not the form's own type.
+ * lacks keeps its seeded value.
+ *
+ * **A value is restored only in the shape its member can hold**, which is now
+ * two shapes rather than one. A scalar takes a string; a `composition` takes a
+ * readable row list. Anything else is dropped back to its seed — a member that
+ * changed type between the write and the read, or a row list from a build that
+ * did not carry keys, restores as the record's own value instead of as
+ * something no editor can render. This is per member, so one unreadable entry
+ * never costs the user the rest of the form.
  *
  * This is the shape guard at the one place the shape is actually known. The
  * store-level version check (`drafts-state.ts`) can only decide that a whole
@@ -120,6 +190,12 @@ export function restoreEntityDraft(
   const restored: EntityDraft = { ...seed };
   for (const descriptor of descriptors) {
     const value = persisted[descriptor.name];
+    if (value === undefined) continue;
+
+    if (descriptor.type === 'composition') {
+      if (isRowDraftArray(value)) restored[descriptor.name] = value;
+      continue;
+    }
     if (typeof value === 'string') restored[descriptor.name] = value;
   }
   return restored;
@@ -183,7 +259,12 @@ export function validateEntityDraft(
   for (const descriptor of descriptors) {
     if (isNeverEdited(descriptor)) continue;
 
-    const raw = values[descriptor.name] ?? '';
+    if (descriptor.type === 'composition') {
+      Object.assign(errors, validateComposition(descriptor, values, messages));
+      continue;
+    }
+
+    const raw = readDraftString(values, descriptor.name);
 
     if (descriptor.required && raw.trim() === '') {
       errors[descriptor.name] = messages.required(descriptor.label);
@@ -191,30 +272,123 @@ export function validateEntityDraft(
     }
     if (raw === '' || !hasCheckableFormat(descriptor)) continue;
 
-    if (descriptor.type === 'number' && Number.isNaN(Number(raw))) {
-      errors[descriptor.name] = messages.number(descriptor.label);
-    } else if (
-      descriptor.type === 'date' &&
-      Number.isNaN(new Date(raw).getTime())
-    ) {
-      errors[descriptor.name] = messages.date(descriptor.label);
-    } else if (
-      descriptor.type === 'enum' &&
-      descriptor.enumValues &&
-      !descriptor.enumValues.includes(raw)
-    ) {
-      errors[descriptor.name] = messages.option(descriptor.label);
-    }
+    const message = formatMessage(descriptor, raw, messages);
+    if (message !== undefined) errors[descriptor.name] = message;
   }
 
   return errors;
 }
 
-/** The head of an issue's path — the field it belongs to, if it names one. */
+/**
+ * The metadata rule for one filled scalar draft value, or `undefined` when it
+ * passes.
+ *
+ * Extracted so a row's cell is judged by the **same** rule as a record's field.
+ * Two copies is how a child's `number` member would quietly start accepting
+ * something its master's would reject.
+ */
+function formatMessage(
+  descriptor: EntityFieldDescriptor,
+  raw: string,
+  messages: EntityDraftMessages,
+): string | undefined {
+  if (descriptor.type === 'number' && Number.isNaN(Number(raw))) {
+    return messages.number(descriptor.label);
+  }
+  if (descriptor.type === 'date' && Number.isNaN(new Date(raw).getTime())) {
+    return messages.date(descriptor.label);
+  }
+  if (
+    descriptor.type === 'enum' &&
+    descriptor.enumValues &&
+    !descriptor.enumValues.includes(raw)
+  ) {
+    return messages.option(descriptor.label);
+  }
+  return undefined;
+}
+
+/**
+ * The rules an owned collection carries, at both of its levels.
+ *
+ * **`required` on the collection means "at least one row"** — the only thing a
+ * master can assert about a collection it owns, and a genuinely different fact
+ * from `required` on a child member, which is per row. Conflating the two would
+ * make an order with three lines, one of them blank, indistinguishable from an
+ * order with none.
+ *
+ * A row's own members are judged against the child's descriptors and reported at
+ * `items[2].quantity`, so the grid can put the message in the cell that caused
+ * it. Read-only child members are skipped for the reason they always are: no
+ * editor exists for them, so no rule the user could satisfy applies.
+ */
+function validateComposition(
+  descriptor: EntityFieldDescriptor,
+  values: EntityDraft,
+  messages: EntityDraftMessages,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const rows = readRowDrafts(values[descriptor.name]);
+
+  if (descriptor.required && rows.length === 0) {
+    errors[descriptor.name] = messages.required(descriptor.label);
+    return errors;
+  }
+  if (descriptor.childType === undefined) return errors;
+
+  const columns = editableChildColumns(
+    describeChildColumns(descriptor.childType),
+  );
+
+  rows.forEach((row, index) => {
+    for (const column of columns) {
+      if (isNeverEdited(column)) continue;
+
+      const raw = row[column.name] ?? '';
+      const path = rowFieldPath(descriptor.name, index, column.name);
+
+      if (column.required && raw.trim() === '') {
+        errors[path] = messages.required(column.label);
+        continue;
+      }
+      if (raw === '') continue;
+
+      const message = formatMessage(column, raw, messages);
+      if (message !== undefined) errors[path] = message;
+    }
+  });
+
+  return errors;
+}
+
+/**
+ * The error-map key an issue belongs to — the **whole** path, not its head.
+ *
+ * It used to read `issue.path?.[0]`, which was right while every member was a
+ * scalar and wrong the moment one held rows: `['items', 2, 'quantity']`
+ * collapsed to `'items'`, so a rule about the third line's quantity reported
+ * itself against the collection and the grid had no way to know which cell it
+ * meant. Joining instead produces `items[2].quantity`, which is the key
+ * `validateComposition` already writes — so a schema rule and a metadata rule
+ * address the same cell the same way and `composeEntityFormErrors` can merge
+ * them.
+ *
+ * A one-segment path still yields exactly the head, so no existing rule changes
+ * meaning.
+ */
 function issueFieldName(issue: StandardSchemaV1Issue): string | undefined {
-  const head = issue.path?.[0];
-  if (head == null) return undefined;
-  return String(typeof head === 'object' && 'key' in head ? head.key : head);
+  const path = issue.path;
+  if (path == null || path.length === 0) return undefined;
+
+  const segments = path.map(segment => {
+    const raw =
+      typeof segment === 'object' && segment !== null && 'key' in segment
+        ? segment.key
+        : segment;
+    return typeof raw === 'number' ? raw : String(raw);
+  });
+
+  return joinFieldPath(segments);
 }
 
 /**
