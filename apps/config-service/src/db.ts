@@ -732,6 +732,6 @@ const AuthLive = Layer.unwrapEffect(
  * readiness probe, and the auth services the guarded CRUD routes need.
  */
 export const AppLayer = Layer.provideMerge(
-  Layer.mergeAll(SqlHealthProbeLayer, AuthLive),
+  Layer.mergeAll(SqlHealthProbeLayer(['configuration']), AuthLive),
   DbLive,
 ).pipe(Layer.orDie);

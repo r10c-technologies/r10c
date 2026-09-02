@@ -1,6 +1,12 @@
 import { Context, Effect, Layer, Ref } from 'effect';
 
 /**
+ * What a probe is talking to. Read by `GET /api/$service` to sort the wiring
+ * document into stores, brokers and upstreams; readiness ignores it entirely.
+ */
+export type ProbeKind = 'datastore' | 'broker' | 'upstream';
+
+/**
  * One named readiness fact — "can this service still reach Mongo?".
  *
  * `check` is fully applied: whoever registers the probe has already closed over
@@ -11,6 +17,29 @@ import { Context, Effect, Layer, Ref } from 'effect';
  */
 export interface HealthProbe {
   readonly name: string;
+  /**
+   * What sort of thing is on the other end. `datastore` is a Store's backing
+   * engine, `broker` an exchange, `upstream` another service.
+   */
+  readonly kind: ProbeKind;
+  /**
+   * The **logical** names this probe covers — a Store's register name
+   * (`catalog`, `saga`), an exchange (`entifix.events`), a service (`zitadel`).
+   * Never a URI, never a database name: `catalog` is physically
+   * `tenant_<organizationId>`, and a document naming those is an organization
+   * enumerator (ADR 0031).
+   *
+   * It is a list rather than one string because a single connection can back
+   * several Stores: marketplace-admin-service opens one Mongo client for the
+   * `catalog` store and the co-deployed `transaction` slice's `saga` store.
+   * Registering one probe per Store instead would put both names into the
+   * readiness response's `failing` array, which must not change.
+   *
+   * The client package that opens the connection cannot know a Store's register
+   * name, so the composition root passes it in — the one thing about a probe
+   * that is not derivable from the client.
+   */
+  readonly targets: readonly string[];
   readonly check: Effect.Effect<boolean>;
 }
 
@@ -37,6 +66,16 @@ export interface HealthRegistry {
   readonly register: (probe: HealthProbe) => Effect.Effect<void>;
   /** Run every probe and summarise. Never fails. */
   readonly report: Effect.Effect<HealthReport>;
+  /**
+   * The registrations themselves, in registration order — what each probe is
+   * for, without running any of them.
+   *
+   * This is what makes the wiring document and readiness generate from **one**
+   * registration rather than from two lists that drift. Deliberately separate
+   * from {@link report}: describing a service must never cost a round trip to
+   * every datastore it has.
+   */
+  readonly probes: Effect.Effect<readonly HealthProbe[]>;
 }
 
 /**
@@ -68,6 +107,8 @@ export const HealthRegistryLayer: Layer.Layer<HealthRegistryTag> = Layer.effect(
 
     return {
       register: probe => Ref.update(probes, current => [...current, probe]),
+
+      probes: Ref.get(probes),
 
       report: Effect.gen(function* () {
         const current = yield* Ref.get(probes);

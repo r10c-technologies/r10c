@@ -21,7 +21,28 @@ const reportOver = (fake: FakeSqlClient): Promise<HealthReport> =>
       return yield* registry.report;
     }).pipe(
       Effect.provide(
-        SqlHealthProbeLayer.pipe(
+        SqlHealthProbeLayer(['configuration']).pipe(
+          Layer.provideMerge(HealthRegistryLayer),
+          Layer.provideMerge(
+            Layer.succeed(
+              SqlClient.SqlClient,
+              fake.client as SqlClient.SqlClient,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+/** The registrations themselves, without running any of them. */
+const probesOver = (fake: FakeSqlClient) =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const registry = yield* HealthRegistryTag;
+      return yield* registry.probes;
+    }).pipe(
+      Effect.provide(
+        SqlHealthProbeLayer(['configuration']).pipe(
           Layer.provideMerge(HealthRegistryLayer),
           Layer.provideMerge(
             Layer.succeed(
@@ -58,5 +79,20 @@ describe('SqlHealthProbeLayer', () => {
     await reportOver(fake);
 
     expect(fake.lastExecution?.sql).toBe('SELECT 1');
+  });
+  // What `GET /api/$service` reports (ADR 0031): the Store's register name, not
+  // the database, and never the connection string.
+  it('declares the stores it was given, as a datastore', async () => {
+    const probes = await probesOver(makeFakeSqlClient());
+
+    expect(
+      probes.map(({ name, kind, targets }) => ({ name, kind, targets })),
+    ).toEqual([
+      {
+        name: SQL_PROBE_NAME,
+        kind: 'datastore',
+        targets: ['configuration'],
+      },
+    ]);
   });
 });

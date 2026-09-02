@@ -5,10 +5,13 @@ import { NodeHttpServer, NodeRuntime } from '@effect/platform-node';
 import {
   HealthRegistryLayer,
   HealthRegistryTag,
+  WiringRegistryLayer,
+  WiringRegistryTag,
 } from '@r10c/entifix-ts-business';
 import { Layer } from 'effect';
 
 import { withHealthRoutes } from './health-routes.js';
+import { withServiceDescriptionRoute } from './service-description-route.js';
 
 /**
  * Definition of an Effect-native backend service.
@@ -25,16 +28,31 @@ export interface ServiceDefinition<E, R> {
   readonly name: string;
   /** Port to bind. Convention: 310N for domain services, 319x for platform. */
   readonly port: number;
+  /**
+   * The slices this process hosts, by their `tools/slices/` name.
+   *
+   * It cannot be derived. `EventSourceTag` names only the *emitting* slice, and
+   * one deployment may host several: ADR 0021 co-deploys `transaction` inside
+   * marketplace-admin-service. `dev-infra:map` checks each name against the
+   * register's own `deployments`, so a wrong one fails the diff rather than
+   * quietly mislabelling the fleet.
+   */
+  readonly slices: readonly string[];
   /** The service's routes; its `R` is satisfied by `appLayer`. */
   readonly router: HttpRouter.HttpRouter<E, R>;
   /**
    * Composition root providing everything `router` requires.
    *
    * It may also *require* {@link HealthRegistryTag} — that is how a client
-   * layer's readiness probe registers itself. The registry instance is provided
-   * here, once, so the probes and the `/api/health/ready` route share it.
+   * layer's readiness probe registers itself — and {@link WiringRegistryTag},
+   * which is how the bus records what it bound. Both instances are provided
+   * here, once, so the probes, the bus and the routes that read them share one.
    */
-  readonly appLayer: Layer.Layer<R, never, HealthRegistryTag>;
+  readonly appLayer: Layer.Layer<
+    R,
+    never,
+    HealthRegistryTag | WiringRegistryTag
+  >;
 }
 
 /**
@@ -54,13 +72,20 @@ export const makeServerLayer = <E, R>(
   def: ServiceDefinition<E, R>,
   port: number = def.port,
 ) => {
-  const router = withHealthRoutes(def.router, def.name);
+  const router = withServiceDescriptionRoute(
+    withHealthRoutes(def.router, def.name),
+    def.name,
+    def.slices,
+  );
 
   // Request logging + permissive CORS (frontends call these services
   // cross-origin from their dev ports). Tighten CORS per-environment later.
-  // `provideMerge` (not `provide`) so the registry the client layers registered
-  // their probes into is the same instance the readiness route reads.
-  const appLayer = def.appLayer.pipe(Layer.provideMerge(HealthRegistryLayer));
+  // `provideMerge` (not `provide`) so the registries the client layers
+  // registered into are the same instances the readiness and description routes
+  // read.
+  const appLayer = def.appLayer.pipe(
+    Layer.provideMerge(Layer.merge(HealthRegistryLayer, WiringRegistryLayer)),
+  );
 
   return HttpServer.serve(router, app =>
     HttpMiddleware.logger(HttpMiddleware.cors()(app)),

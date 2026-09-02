@@ -30,6 +30,10 @@ export const ZitadelHealthProbeLayer = (
 
       yield* registry.register({
         name: ZITADEL_PROBE_NAME,
+        kind: 'upstream',
+        // A foreign system, deliberately not a Store (`docs/_shared/planes.md`):
+        // it has an owner, and the owner is not us.
+        targets: [ZITADEL_PROBE_NAME],
         check: Effect.tryPromise(() =>
           fetch(url, {
             signal: AbortSignal.timeout(PROBE_TIMEOUT_MILLIS),

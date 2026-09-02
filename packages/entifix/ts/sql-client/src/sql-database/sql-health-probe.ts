@@ -17,23 +17,28 @@ export const SQL_PROBE_NAME = 'postgres';
  * Merge it beside the client layer in a service's `AppLayer` and readiness starts
  * reporting the database, with nothing in the service describing the probe — so
  * it cannot drift from the dependency it describes.
+ *
+ * `stores` names the Stores this connection backs, by their register name in
+ * `tools/slices/`. See {@link MongoHealthProbeLayer} for why it is the
+ * composition root's to supply and why it is a list (ADR 0031).
  */
-export const SqlHealthProbeLayer: Layer.Layer<
-  never,
-  never,
-  SqlClient.SqlClient | HealthRegistryTag
-> = Layer.effectDiscard(
-  Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-    const registry = yield* HealthRegistryTag;
+export const SqlHealthProbeLayer = (
+  stores: readonly string[],
+): Layer.Layer<never, never, SqlClient.SqlClient | HealthRegistryTag> =>
+  Layer.effectDiscard(
+    Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      const registry = yield* HealthRegistryTag;
 
-    yield* registry.register({
-      name: SQL_PROBE_NAME,
-      check: sql`SELECT 1`.pipe(
-        Effect.as(true),
-        // Unreachable is a `false`, never a failed endpoint.
-        Effect.catchAll(() => Effect.succeed(false)),
-      ),
-    });
-  }),
-);
+      yield* registry.register({
+        name: SQL_PROBE_NAME,
+        kind: 'datastore',
+        targets: stores,
+        check: sql`SELECT 1`.pipe(
+          Effect.as(true),
+          // Unreachable is a `false`, never a failed endpoint.
+          Effect.catchAll(() => Effect.succeed(false)),
+        ),
+      });
+    }),
+  );

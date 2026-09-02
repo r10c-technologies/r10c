@@ -23,6 +23,7 @@ const withService = async (
   const service = await serveTestService({
     name: '@r10c/spec-config-service',
     port: 0,
+    slices: ['test'],
     router,
     appLayer: Layer.empty,
   });

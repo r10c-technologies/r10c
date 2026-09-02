@@ -230,6 +230,7 @@ export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
     port: 0,
+    slices: ['auth'],
     router,
     appLayer: MockAppLayer,
   });

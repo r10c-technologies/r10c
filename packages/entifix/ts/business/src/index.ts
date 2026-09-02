@@ -11,3 +11,4 @@ export * from './use-case/delete';
 export * from './use-case/get';
 export * from './use-case/load';
 export * from './use-case/save';
+export * from './wiring/wiring-registry';

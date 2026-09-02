@@ -9,6 +9,7 @@
     "back-office:dev": "nx run back-office-app:dev",
     "back-office:dev:reset": "bash infra/local/reset.sh && nx run back-office-app:dev",
     "dev-infra:doctor": "bash infra/local/doctor.sh",
+    "dev-infra:map": "node tools/fleet-map.mjs",
     "dev-ports:free": "bash tools/free-ports.sh"
   },
   "engines": {

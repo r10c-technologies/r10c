@@ -165,6 +165,9 @@ export const startMockService = (): Promise<RunningTestService> =>
     name: SERVICE_NAME,
     // Overridden by `serveTestService`, which binds an ephemeral port.
     port: 0,
+    // The same pair the real process hosts, so `/api/$service` describes the
+    // thing under test rather than a reduced version of it.
+    slices: ['marketplace-admin', 'transaction'],
     router,
     appLayer: MockAppLayerWithObservability,
   });

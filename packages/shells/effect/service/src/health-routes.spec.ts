@@ -19,7 +19,14 @@ const serveWithProbes = async (probes: ReadonlyArray<[string, boolean]>) => {
     Effect.gen(function* () {
       const registry = yield* HealthRegistryTag;
       for (const [name, ok] of probes) {
-        yield* registry.register({ name, check: Effect.succeed(ok) });
+        // `kind`/`targets` are for `GET /api/$service`; readiness ignores both,
+        // which is what these cases exist to keep true.
+        yield* registry.register({
+          name,
+          kind: 'datastore',
+          targets: [name],
+          check: Effect.succeed(ok),
+        });
       }
     }),
   );
@@ -27,6 +34,7 @@ const serveWithProbes = async (probes: ReadonlyArray<[string, boolean]>) => {
   running = await serveTestService({
     name: SERVICE_NAME,
     port: 0,
+    slices: ['test'],
     router: HttpRouter.empty,
     appLayer: registerProbes,
   });
@@ -107,6 +115,8 @@ describe('withHealthRoutes', () => {
         const registry = yield* HealthRegistryTag;
         yield* registry.register({
           name: 'counted',
+          kind: 'datastore',
+          targets: ['counted'],
           check: Effect.sync(() => {
             runs += 1;
             return true;
@@ -118,6 +128,7 @@ describe('withHealthRoutes', () => {
     running = await serveTestService({
       name: SERVICE_NAME,
       port: 0,
+      slices: ['test'],
       router: HttpRouter.empty,
       appLayer: countingProbe,
     });

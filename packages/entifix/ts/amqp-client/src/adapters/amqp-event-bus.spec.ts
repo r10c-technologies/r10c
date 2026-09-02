@@ -1,13 +1,23 @@
-import type { Subscription } from '@r10c/entifix-transactions';
+import { EventBusTag, type Subscription } from '@r10c/entifix-transactions';
+import type {
+  BoundSubscription,
+  WiringRegistry,
+} from '@r10c/entifix-ts-business';
+import { WiringRegistryTag } from '@r10c/entifix-ts-business';
 import type { DomainEvent } from '@r10c/entifix-ts-core';
 import { describeEventBusContract } from '@r10c/entifix-ts-testing-unit/contracts';
 import { makeFakeAmqpChannel } from '@r10c/entifix-ts-testing-unit/drivers';
 import type { Channel } from 'amqplib';
-import { Effect, Exit } from 'effect';
+import { Effect, Exit, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import type { AmqpConnector } from '../amqp-connection/amqp-connection.js';
-import { makeAmqpEventBus, queueNameFor } from './amqp-event-bus.js';
+import { AmqpChannelTag } from '../amqp-connection/amqp-connection.js';
+import {
+  AmqpEventBusLayer,
+  makeAmqpEventBus,
+  queueNameFor,
+} from './amqp-event-bus.js';
 
 /**
  * A connector that always hands back the same fake channel. The bus asks for a
@@ -53,14 +63,41 @@ const anEnvelope = (event: DomainEvent) => {
 };
 
 /**
+ * A wiring registry that just remembers, so a case can assert what the adapter
+ * recorded without standing up the real `Ref`-backed layer.
+ */
+const recordingWiring = () => {
+  const subscriptions: BoundSubscription[] = [];
+  const published: string[] = [];
+  const registry: WiringRegistry = {
+    recordSubscription: bound =>
+      Effect.sync(() => {
+        subscriptions.push(bound);
+      }),
+    recordPublish: name =>
+      Effect.sync(() => {
+        published.push(name);
+      }),
+    subscriptions: Effect.sync(() => subscriptions),
+    published: Effect.sync(() => published),
+  };
+  return { registry, subscriptions, published };
+};
+
+/**
  * The bus runs against a fake amqplib channel, so the envelope framing, the
  * `prefetch(1)`, and the ack/nack policy are the real adapter's.
  */
 const withFakeChannel = () => {
   const fake = makeFakeAmqpChannel();
+  const wiring = recordingWiring();
   return {
     fake,
-    bus: makeAmqpEventBus(connectorFor(fake.channel as Channel)),
+    wiring,
+    bus: makeAmqpEventBus(
+      connectorFor(fake.channel as Channel),
+      wiring.registry,
+    ),
   };
 };
 
@@ -297,5 +334,89 @@ describe('makeAmqpEventBus', () => {
     );
 
     expect(Exit.isFailure(exit)).toBe(true);
+  });
+
+  /**
+   * ADR 0031 — what the process actually did, recorded where it did it. A source
+   * scan cannot see emission, which is why `tools/slices/` has been able to
+   * declare `catalog.published` with nothing publishing it.
+   */
+  it('records the event names it published', async () => {
+    const { bus, wiring } = withFakeChannel();
+
+    await Effect.runPromise(bus.publish(anEvent()));
+
+    expect(wiring.published).toEqual(['transaction.accepted']);
+  });
+
+  // Recorded after the publish succeeds. Recording the intent instead would let
+  // the diff pass for a service whose every publish is failing.
+  it('records nothing when the publish fails', async () => {
+    const { fake, bus, wiring } = withFakeChannel();
+    fake.failWith(new Error('channel closed'));
+
+    await Effect.runPromiseExit(bus.publish(anEvent()));
+
+    expect(wiring.published).toEqual([]);
+  });
+
+  it('records the queue a subscription bound, with its mode', async () => {
+    const { bus, wiring } = withFakeChannel();
+
+    await Effect.runPromise(bus.subscribe(WORK, () => Effect.void));
+
+    expect(wiring.subscriptions).toEqual([
+      {
+        slice: 'transaction',
+        pattern: ANY_TRANSACTION,
+        mode: 'work',
+        queue: WORK_QUEUE,
+      },
+    ]);
+  });
+
+  // A broadcast queue is named by the broker, so the recorded name is whatever
+  // `assertQueue('')` came back with — which is what an operator needs to find
+  // it in the management UI.
+  it('records the generated name of a broadcast queue', async () => {
+    const { bus, wiring } = withFakeChannel();
+
+    await Effect.runPromise(bus.subscribe(BROADCAST, () => Effect.void));
+
+    expect(wiring.subscriptions[0]?.mode).toBe('broadcast');
+    expect(wiring.subscriptions[0]?.queue).not.toBe(WORK_QUEUE);
+  });
+});
+
+describe('AmqpEventBusLayer', () => {
+  // The layer takes both tags because the registry it records into has to be the
+  // instance `makeServerLayer` provided — a second one would be written to by
+  // the bus and read by nobody.
+  it('builds a bus from the connector and the wiring registry', async () => {
+    const fake = makeFakeAmqpChannel();
+    const wiring = recordingWiring();
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const bus = yield* EventBusTag;
+        yield* bus.publish(anEvent());
+      }).pipe(
+        Effect.provide(
+          AmqpEventBusLayer.pipe(
+            Layer.provide(
+              Layer.mergeAll(
+                Layer.succeed(
+                  AmqpChannelTag,
+                  connectorFor(fake.channel as Channel),
+                ),
+                Layer.succeed(WiringRegistryTag, wiring.registry),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(wiring.published).toEqual(['transaction.accepted']);
   });
 });

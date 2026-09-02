@@ -24,6 +24,7 @@ loadEnv({
 makeService({
   name: '@r10c/config-service',
   port: Number(process.env.PORT) || 3190,
+  slices: ['config'],
   router,
   appLayer: AppLayer,
 });

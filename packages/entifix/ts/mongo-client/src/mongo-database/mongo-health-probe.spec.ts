@@ -26,7 +26,7 @@ const reportWith = (client: MongoClient): Promise<HealthReport> =>
       return yield* registry.report;
     }).pipe(
       Effect.provide(
-        MongoHealthProbeLayer.pipe(
+        MongoHealthProbeLayer(['catalog', 'saga']).pipe(
           Layer.provideMerge(HealthRegistryLayer),
           Layer.provideMerge(Layer.succeed(MongoClientTag, client)),
         ),
@@ -62,5 +62,40 @@ describe('MongoHealthProbeLayer', () => {
     await reportWith(client);
 
     expect(db).toHaveBeenCalledWith('admin');
+  });
+
+  /**
+   * The Stores this connection backs, for `GET /api/$service` (ADR 0031). It is
+   * a list because one Mongo client routinely serves several — marketplace-
+   * admin-service opens one for `catalog` and the co-deployed `transaction`
+   * slice's `saga` — and it is an argument because a client package cannot know
+   * a Store's register name.
+   */
+  it('declares the stores it was given, as a datastore', async () => {
+    const { client } = clientWithCommand(() => Promise.resolve({ ok: 1 }));
+
+    const probes = await Effect.runPromise(
+      Effect.gen(function* () {
+        const registry = yield* HealthRegistryTag;
+        return yield* registry.probes;
+      }).pipe(
+        Effect.provide(
+          MongoHealthProbeLayer(['catalog', 'saga']).pipe(
+            Layer.provideMerge(HealthRegistryLayer),
+            Layer.provideMerge(Layer.succeed(MongoClientTag, client)),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      probes.map(({ name, kind, targets }) => ({ name, kind, targets })),
+    ).toEqual([
+      {
+        name: MONGO_PROBE_NAME,
+        kind: 'datastore',
+        targets: ['catalog', 'saga'],
+      },
+    ]);
   });
 });

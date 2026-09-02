@@ -221,6 +221,15 @@ in the service hand-maintains a list that can drift. `makeServerLayer` provides
 the registry (`Layer.provideMerge`, so probes and the route share one instance)
 and mounts the routes.
 
+A probe also says **what** it is for: `kind` (`datastore` / `broker` /
+`upstream`) and `targets`, the logical names it covers — a Store's register name
+(`catalog`, `saga`), an exchange (`entifix.events`), a service (`zitadel`).
+Readiness ignores both, and its wire format is unchanged; they exist so the
+description below generates from this one registration. `targets` is a **list**
+because one connection routinely backs several Stores, and the datastore layers
+take it as an argument (`MongoHealthProbeLayer(['catalog', 'saga'])`) because a
+client package cannot know a Store's register name.
+
 Two properties the implementation is load-bearing on:
 
 - **Every probe is deadlined** (2s, in the registry). ioredis queues commands
@@ -233,17 +242,36 @@ Apps check only their own configuration, never the domain backend: cascading
 readiness turns one degraded service into a fleet-wide outage, and a page that
 renders against a degraded backend is still worth serving.
 
-**A third endpoint is decided and not yet built**: `GET /api/$service`, which
-describes a service's _wiring_ — the stores it opened, the events it publishes
-and the subscriptions it bound, the upstreams it calls
-([ADR 0031](adr/0031-a-service-describes-its-own-wiring.md)). It generates from
-the same probe registry, so there is no second list to drift, and its value is
-the **diff** against `tools/slices/`: a slice declaring an event nothing emits,
-a datastore handle no slice declares, a queue bound to an undeclared pattern.
-Three endpoints, one registry, three different gates — liveness stays
+### The wiring document: `GET /api/$service`
+
+A third endpoint describes a service's _wiring_ — the slices it hosts, the
+stores it opened, the events it published and the subscriptions it bound, the
+upstreams it calls ([ADR 0031](adr/0031-a-service-describes-its-own-wiring.md)).
+It is a sibling of `/api/config`, never part of it: config serves the _inputs_ a
+service was given (values, redacted); this serves its _shape_.
+
+It is mounted by `makeServerLayer`, like the health routes, so a service gains
+it by composition. `ServiceDefinition` carries one new field, `slices` — it
+cannot be derived, because `EventSourceTag` names only the _emitting_ slice and
+one deployment may host several (marketplace-admin-service also runs
+`transaction`). Stores, brokers and upstreams come from the probe registrations;
+publishes and bindings come from a `WiringRegistry` the AMQP adapter records
+into as it publishes and subscribes, so the document reports what the process
+**did**, not what a declaration says.
+
+Three endpoints, one process, three different gates — liveness stays
 process-only, readiness stays unauthenticated and names-only, and the
-description is service-token gated because it is a map of the system. #182–#184
-build it.
+description is **service-token gated** because it is a map of the system.
+**Logical names only**: `catalog`, never `mongodb://…` and emphatically never
+`tenant_<organizationId>`, which would make it an organization enumerator.
+
+The value is the **diff**, not the document. `pnpm run dev-infra:map` walks the
+fleet and prints it; `--check` fails when something _observed_ is not
+_declared_ — an emitted event no hosted slice declares, a store opened that none
+declares, a queue bound on an undeclared pattern, a slice hosted by a deployment
+its declaration does not list. Declared-and-never-observed is printed as an
+advisory rather than asserted, because a fleet that has just booted has emitted
+nothing.
 
 Clients recover on their own rather than being restarted: Mongo and Redis retry
 the initial connect with backoff (30s window, so a service that boots while

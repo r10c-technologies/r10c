@@ -314,8 +314,10 @@ export const AppLayer = Layer.unwrapEffect(
     // provided by `makeServerLayer`, which is also what reads the probes back.
     const withProbes = Layer.provideMerge(
       Layer.mergeAll(
-        MongoHealthProbeLayer,
-        RedisHealthProbeLayer,
+        // `auth` is the control-plane store holding identity, party and access
+        // records; `session` is the Redis one beside it (ADR 0031).
+        MongoHealthProbeLayer(['auth']),
+        RedisHealthProbeLayer(['session']),
         // A service that cannot reach its identity provider cannot sign anyone
         // in, so readiness has to say so — this is now as load-bearing as Mongo.
         ZitadelHealthProbeLayer(zitadelIssuer),

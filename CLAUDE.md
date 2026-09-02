@@ -894,28 +894,47 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   record, since a distinguishable status makes it an oracle for ids that are also
   primary keys. Amends ADR 0028 (the payload member; every other decision there
   stands).
-- **A service will describe its own wiring, and the point is the diff**
-  ([ADR 0031](docs/adr/0031-a-service-describes-its-own-wiring.md), Proposed).
-  `GET /api/$service` — stores opened, events published, subscriptions bound,
-  upstreams called — generated from the **health probe registry**, so readiness
-  and the description come from one registration and there is no second list to
-  drift. It is a sibling of `/api/config`, not part of it: config is _inputs_
-  (values, redacted), this is _shape_ (wiring). Three things worth not
-  re-deriving. It is **not** `$metadata`: ADR 0026's per-entity choice is about
-  entity affordances and stands, and `entity: '*'` was the wart it rejected. It
-  is **service-token gated**, because a list of every store, exchange and
-  upstream is a reconnaissance map — same category as `$metadata` answering
-  `404` rather than `403`, readiness serving probe names only, and
-  `redactConfiguration`; and it carries **logical names only**, never a URI and
-  emphatically never `tenant_<organizationId>`, which would make it an
-  organization enumerator. And the endpoint is only worth serving with its
-  **reader** (#184: `dev-infra:map` plus a declared-vs-observed assertion), which
-  is what finally catches a slice declaring an event nothing emits — the check
-  ADR 0029 had to defer, since a source scan cannot see emission. Metrics stay
-  out of it: per-replica and un-alertable, they belong in OTLP (#185/#186), which
-  is ADR 0001's still-unbuilt half — `observability.ts` has an
-  `OTLPTraceExporter` and no `MeterProvider`, so a `Metric.*` call today goes
-  nowhere.
+- **A service describes its own wiring, and the point is the diff**
+  ([ADR 0031](docs/adr/0031-a-service-describes-its-own-wiring.md)).
+  `GET /api/$service` — slices hosted, stores opened, events published,
+  subscriptions bound, upstreams called — generated from the **health probe
+  registry**, so readiness and the description come from one registration and
+  there is no second list to drift. It is a sibling of `/api/config`, not part
+  of it: config is _inputs_ (values, redacted), this is _shape_ (wiring); and it
+  is **not** `$metadata`, whose per-entity choice is about entity affordances and
+  stands. Six things worth not re-deriving. **`HealthProbe.targets` is a list**,
+  not the single string the issue sketched: marketplace-admin-service's one Mongo
+  client backs `catalog` **and** the co-deployed `transaction` slice's `saga`,
+  and the alternative — one probe per store — would put both names in
+  `/api/health/ready`'s `failing` array, changing an unauthenticated wire format
+  to serve a gated document. The composition root supplies those names
+  (`MongoHealthProbeLayer(['catalog', 'saga'])`), which is the one place the
+  "gains a datastore, gains a line, with no edit" promise is qualified — a client
+  package knows it has a connection, never a Store's _register_ name.
+  **Subscriptions and publishes go into a second registry**, `WiringRegistryTag`
+  beside `HealthRegistryTag`, because a bound queue is not a readiness fact and
+  folding them would put unprobeable entries in the readiness response; the AMQP
+  adapter records a publish **after** it succeeds (recording the intent would let
+  the diff pass for a service whose every publish fails) and both recorders
+  deduplicate, since a reconnect re-runs every consumer's setup and a publisher
+  emits the same name forever. **`ServiceDefinition.slices` cannot be derived** —
+  `EventSourceTag` is the _emitting_ slice and one deployment hosts several — so
+  it is stated in `main.ts` and checked against the register's `deployments`.
+  **The diff fails in one direction only**: observed-but-undeclared fails,
+  declared-but-never-observed is an advisory, because a fleet that has just
+  booted has emitted nothing and a check that is red by default is one people
+  learn to ignore; on today's fleet the advisories are precisely the three drifts
+  the record was written about (`catalog.published` declared and never emitted,
+  `marketplace`'s subscription to it never bound, `published-catalog` never
+  opened). **`tools/slices/src/fleet.ts` holds the address per deployment** —
+  no `SliceDeclaration` carries one — and `slices.spec.ts` checks it both ways,
+  since a promoted slice missing from it leaves `dev-infra:map` passing by asking
+  nobody anything. And it is **service-token gated** with **logical names only**,
+  never a URI and emphatically never `tenant_<organizationId>`, which would make
+  it an organization enumerator. Metrics stay out: per-replica and un-alertable,
+  they belong in OTLP (#185/#186), which is ADR 0001's still-unbuilt half —
+  `observability.ts` has an `OTLPTraceExporter` and no `MeterProvider`, so a
+  `Metric.*` call today goes nowhere.
 - **The AMQP connection heals itself, and nothing else in `amqplib` does.**
   Measured: a channel opened at boot and held in a `Layer` is dead **permanently**
   once the broker restarts — publishes fail forever and a subscriber stops

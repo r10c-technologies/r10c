@@ -15,6 +15,10 @@ import { router } from './routes';
 makeService({
   name: SERVICE_NAME,
   port: Number(process.env.PORT) || DEFAULT_PORT,
+  // Two slices in one process. `transaction` is co-deployed here (ADR 0021):
+  // ownership never moved, only the process did, so both are named rather than
+  // one standing in for the other.
+  slices: ['marketplace-admin', 'transaction'],
   router,
   appLayer: AppLayer,
 });

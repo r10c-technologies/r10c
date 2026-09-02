@@ -115,6 +115,7 @@ const router = HttpRouter.empty.pipe(
 const definition = {
   name: '@r10c/spec-metadata-service',
   port: 0,
+  slices: ['test'],
   router,
   appLayer: Layer.mergeAll(
     Layer.succeed(TokenServiceTag, fakeTokens),
