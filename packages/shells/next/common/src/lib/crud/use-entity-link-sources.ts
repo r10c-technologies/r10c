@@ -1,11 +1,12 @@
 'use client';
 
 import { useEntityLinkSource } from '@r10c/entifix-react-integration';
-import type {
-  Entity,
-  EntityDraft,
-  EntityLinkSelection,
-  EntityLinkSource,
+import {
+  type Entity,
+  type EntityDraft,
+  type EntityLinkSelection,
+  type EntityLinkSource,
+  readDraftString,
 } from '@r10c/entifix-ts-core';
 
 import type { EntityCrudLinkSource } from './make-entity-crud.types';
@@ -38,7 +39,10 @@ export function useEntityLinkSources(
 ): Record<string, EntityLinkSource<Entity>> {
   const sources: Record<string, EntityLinkSource<Entity>> = {};
   for (const link of links) {
-    const held = values[link.field];
+    // Read as a string: a relation's draft value is a foreign key, and a
+    // member that came back from storage in any other shape must read as unset
+    // rather than be handed to the picker as an id.
+    const held = readDraftString(values, link.field);
     // eslint-disable-next-line react-hooks/rules-of-hooks -- fixed-length loop over a factory-time array; see the note above.
     sources[link.field] = useEntityLinkSource(link.config, {
       descriptor: link.descriptor,

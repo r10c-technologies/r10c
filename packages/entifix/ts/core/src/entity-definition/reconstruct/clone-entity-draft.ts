@@ -1,5 +1,6 @@
 import { Entity, EntityConstructor } from '../../types/Entity';
-import { EntityDraft } from '../../types/EntityDraft';
+import { EntityDraft, type EntityDraftValue } from '../../types/EntityDraft';
+import { newRowKey, readRowDrafts, ROW_KEY } from '../../types/EntityRowDraft';
 import { describeEntityColumns } from '../describe';
 
 /** The member `Entity` requires every record to carry. */
@@ -51,10 +52,39 @@ export function cloneEntityDraft<TEntity extends Entity>(
   if (ID_MEMBER in cloned) cloned[ID_MEMBER] = '';
 
   for (const descriptor of describeEntityColumns(entityConstructor)) {
+    if (descriptor.type === 'composition') {
+      cloned[descriptor.name] = clonedRows(
+        cloned[descriptor.name],
+        descriptor.resetOnClone,
+      );
+      continue;
+    }
     if (descriptor.type !== 'id' && !descriptor.resetOnClone) continue;
     if (!(descriptor.name in cloned)) continue;
     cloned[descriptor.name] = '';
   }
 
   return cloned;
+}
+
+/**
+ * The rows a copy starts with.
+ *
+ * Two things the `''` rule above cannot express. A collection is **emptied to
+ * `[]`, never to `''`**: an empty string is not a readable row list, so
+ * `reconstructEntity` would skip the member and the "reset" collection would
+ * come back holding the original's lines — a `resetOnClone` that resets nothing.
+ *
+ * And a row that *is* copied gets a **fresh key**. The key identifies a row
+ * within one editing session; carrying the original's over means the copy and
+ * the original name their lines identically, so a workspace holding both open
+ * has two tabs whose rows claim the same identity — harmless until anything
+ * addresses a row across them, and impossible to debug once it does.
+ */
+function clonedRows(
+  value: EntityDraftValue | undefined,
+  reset: boolean,
+): EntityDraftValue {
+  if (reset) return [];
+  return readRowDrafts(value).map(row => ({ ...row, [ROW_KEY]: newRowKey() }));
 }

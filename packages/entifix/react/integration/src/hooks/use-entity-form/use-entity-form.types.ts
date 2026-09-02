@@ -2,6 +2,7 @@ import type {
   Entity,
   EntityConstructor,
   EntityDraft,
+  EntityDraftValue,
   EntityLinkSelection,
   StandardSchemaV1,
 } from '@r10c/entifix-ts-core';
@@ -55,8 +56,13 @@ export interface UseEntityFormResult {
    * Feed into `EntityForm`'s `formError`, which has nowhere else to show it.
    */
   formError?: string;
-  /** Feed into `EntityForm`'s `onFieldChange`. */
-  setField: (name: string, value: string) => void;
+  /**
+   * Feed into `EntityForm`'s `onFieldChange`.
+   *
+   * A scalar takes a string; a `composition` takes its list of rows, the one
+   * member with no lossless string form.
+   */
+  setField: (name: string, value: EntityDraftValue) => void;
   /**
    * The instances behind the relation ids the draft holds — seeded from the
    * record's already-materialized links, extended by every pick, and refilled

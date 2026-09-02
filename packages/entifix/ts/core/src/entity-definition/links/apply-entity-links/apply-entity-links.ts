@@ -1,6 +1,6 @@
 import { EntifixLogicError } from '../../../base-entities/entifix-error';
 import { Entity, EntityId } from '../../../types/Entity';
-import { EntityDraft } from '../../../types/EntityDraft';
+import { EntityDraft, readDraftString } from '../../../types/EntityDraft';
 import { EntityFieldDescriptor } from '../../describe';
 import { EntityLink } from '../entity-link';
 
@@ -57,7 +57,11 @@ export function applyEntityLinks<TEntity extends Entity>(
     if (!(link instanceof EntityLink)) continue;
 
     const picked = selection[descriptor.name];
-    const rawId = values[descriptor.name] ?? '';
+    // Read as a string rather than trusting the draft's `JsonValue`: a
+    // relation's draft value is a foreign key, and a member that came back
+    // from storage as anything else must read as absent rather than be cast
+    // onto the link as an id.
+    const rawId = readDraftString(values, descriptor.name);
 
     if (picked === undefined) {
       // An `embedded` member cannot be written from an id: `serializeEntity`

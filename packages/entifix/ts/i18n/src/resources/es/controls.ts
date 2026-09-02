@@ -131,6 +131,21 @@ export const controls = {
     error: 'No se pudieron cargar las opciones',
     close: 'Cerrar',
   },
+  /**
+   * La rejilla de detalle: las filas que un registro **posee** — las líneas de
+   * un pedido, los renglones de una factura. `errorSummary` es el único
+   * `role="alert"` del control: un aviso por celda anunciaría la rejilla entera
+   * en cada pulsación, y un mensaje que sólo vive en la celda es inalcanzable
+   * cuando la fila que falla está fuera de pantalla.
+   */
+  detail: {
+    addRow: 'Añadir fila',
+    removeRow: 'Quitar fila {{row}}',
+    rowActions: 'Acciones de fila',
+    empty: 'Todavía no hay filas.',
+    errorSummary_one: '{{count}} celda con errores',
+    errorSummary_other: '{{count}} celdas con errores',
+  },
   value: {
     none: '— ninguno —',
     yes: 'Sí',

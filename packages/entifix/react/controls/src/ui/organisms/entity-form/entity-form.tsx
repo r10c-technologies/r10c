@@ -7,8 +7,11 @@ import {
   type Entity,
   type EntityAction,
   type EntityDraft,
+  type EntityDraftValue,
   type EntityLinkSource,
   type MetaAccessorType,
+  readDraftString,
+  readRowDrafts,
   type UseCaseDescriptor,
 } from '@r10c/entifix-ts-core';
 import { type ReactNode, useId, useState } from 'react';
@@ -31,6 +34,7 @@ import { EntityLinkInput } from '../../molecules/entity-link-input';
 import { LoadingBoundary } from '../../molecules/loading-boundary';
 import { Menu } from '../../molecules/menu';
 import { Stack } from '../../molecules/stack';
+import { EntityDetailGrid } from '../entity-detail-grid';
 import type {
   EntityFormField,
   EntityFormMode,
@@ -134,8 +138,17 @@ export function EntityForm<TEntity extends Entity>({
   ) as Array<EntityFormField<TEntity>>;
   // Before slots resolve, so an `<EntityField label>` override still wins.
   const described = useLocalizedDescriptors(columnDescriptors);
-  const fields = resolveEntityFormFields(described, slots.fields);
-  assertLinkSourcesAreEditable(fields, linkSources);
+  const resolved = resolveEntityFormFields(described, slots.fields);
+  assertLinkSourcesAreEditable(resolved, linkSources);
+
+  // **Form above, table below**, and it is a partition rather than an ordering
+  // hint. A grid rendered between two labelled inputs reads as a field, which
+  // it is not — it is a second record list — so every owned collection is
+  // pulled out of the field stack whatever `order` it declared, and rendered
+  // full width beneath it. A composition that named no child has nothing to
+  // render and stays where it was, showing its row count as before.
+  const fields = resolved.filter(field => !isOwnedCollection(field));
+  const ownedCollections = resolved.filter(isOwnedCollection);
 
   /**
    * `true`/omitted → the built-in default, which draws one label+control pair
@@ -154,7 +167,7 @@ export function EntityForm<TEntity extends Entity>({
   const editing = mode === 'edit';
 
   const draft: EntityDraft = values ?? {};
-  const setField = (name: string, value: string) =>
+  const setField = (name: string, value: EntityDraftValue) =>
     onFieldChange?.(name, value);
 
   const toggleMode = () => {
@@ -342,7 +355,7 @@ export function EntityForm<TEntity extends Entity>({
                 field={field}
                 entity={entity}
                 draft={draft}
-                value={draft[field.name] ?? ''}
+                value={readDraftString(draft, field.name)}
                 editing={editing}
                 error={editing ? errors?.[field.name] : undefined}
                 setField={setField}
@@ -351,6 +364,23 @@ export function EntityForm<TEntity extends Entity>({
                 id={`${formId}-${field.name}`}
               />
             ))}
+
+        {/* The rows the record owns, full width and below every field. Each
+            grid is handed the *whole* error map and picks out the keys naming
+            its own member, so a record owning two collections needs no
+            bookkeeping here. */}
+        {ownedCollections.map(field => (
+          <EntityDetailGrid
+            key={field.name}
+            descriptor={field}
+            rows={readRowDrafts(draft[field.name])}
+            onRowsChange={rows => setField(field.name, rows)}
+            errors={editing ? errors : undefined}
+            editing={editing}
+            isLoading={isLoading}
+            skeleton={skeleton}
+          />
+        ))}
 
         {/* A cross-field rule has no row to sit under, so it sits with the
             actions it blocks. */}
@@ -429,6 +459,21 @@ export function EntityForm<TEntity extends Entity>({
       )}
     </Card>
   );
+}
+
+/**
+ * A member the detail grid renders rather than the field stack.
+ *
+ * The `childType` half is not defensive: a `composition` that declared no child
+ * has no columns, so there is nothing for a grid to draw. It keeps its place in
+ * the field stack and reads as its row count, which is what it did before this
+ * control existed — an honest "some rows" rather than an empty table implying
+ * there are none.
+ */
+function isOwnedCollection<TEntity extends Entity>(
+  field: EntityFormField<TEntity>,
+): boolean {
+  return field.type === 'composition' && field.childType !== undefined;
 }
 
 /**
@@ -523,7 +568,7 @@ interface FieldRowProps<TEntity extends Entity> {
   value: string;
   editing: boolean;
   error: string | undefined;
-  setField: (name: string, value: string) => void;
+  setField: (name: string, value: EntityDraftValue) => void;
   // The target of a relation is a different entity than the form's own.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   linkSource: EntityLinkSource<any> | undefined;

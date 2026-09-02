@@ -622,6 +622,45 @@ controls, which cannot call an integration hook.
 **Deferred**: `linkCollection` (chips + checkbox rows) — the port and
 `applyEntityLinks` are shaped for it, but a to-many relation still renders read-only.
 
+### Editing an owned collection
+
+A `composition` is the rows a record **owns** — an order and its lines. They have
+no life outside the master, they save in the same write, and they are edited in
+place by **`EntityDetailGrid`**, which `EntityForm` mounts by itself for any
+`composition` carrying a `childType`. An entity that declares owned rows gets an
+editor with no per-entity component, so a generated catalog page needs no change.
+The full reasoning is [ADR 0038](./adr/0038-master-detail-the-rows-a-record-owns.md).
+
+- **Form above, table below, and it is a partition.** Every grid renders after
+  every field, whatever `order` the member declared — a grid between two labelled
+  inputs reads as a field, and it is a second record list.
+- **The draft holds two shapes.** `EntityDraft` is
+  `Record<string, string | EntityRowDraft[]>`. Scalars are unchanged; read one
+  with `readDraftString`, never by assuming the value is a string.
+- **A row carries `$key`**, minted `row-N` when the record supplied it and as a
+  UUID when the user added it. A child declaring a member of that name throws.
+- **Errors are keyed `items[2].quantity`**, by index, because that is the only
+  path a Standard Schema issue can carry. Rows are keyed by `$key` because a
+  React key cannot be recomputed on every validation.
+- **`required` reads two ways**: per row on a child member, "at least one row" on
+  the collection member.
+- **The keyboard is the point.** `Tab` walks a row and crosses into the next;
+  `Enter` anywhere in the last row appends one and lands in its first cell. That
+  works because `EntityForm` is a `<Card>` with a `<button onClick>` Save —
+  ⚠️ **wrapping it in a `<form>` element would hand `Enter` back to the browser
+  and break it.**
+- **One live region.** A failing cell carries `aria-invalid` and points at its
+  message; the grid carries a single `role="alert"` summary, so a row scrolled
+  out of view is still findable and a screen reader is not read the whole grid on
+  every keystroke.
+- **Totals are a `footer` slot**, never derived: summing an amount in minor units
+  across currencies is wrong, and summing a quantity across offerings is
+  meaningless.
+
+**Deferred**: reorder (nothing in the metadata says whether a child's order
+carries meaning), nested composition, and SQL persistence — a composition
+persists in Mongo only.
+
 Effect ships its own `Cache`/`Query`, but TanStack wins on React optimistic ergonomics,
 devtools, and the push-invalidation story — and since the fetch stays Effect, we keep both.
 
