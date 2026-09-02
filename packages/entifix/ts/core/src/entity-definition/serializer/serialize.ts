@@ -2,6 +2,7 @@ import { Entity, EntityConstructor } from '../../types/Entity';
 import { extractMetaAccessors } from '../helpers';
 import { EntityCollectionLink } from '../links/entity-collection-link';
 import { EntityLink } from '../links/entity-link';
+import type { ChildConstructor } from '../meta-entities/meta-accessor';
 
 /**
  * A plain, JSON-safe representation of an entity — the inverse of
@@ -11,6 +12,8 @@ import { EntityLink } from '../links/entity-link';
  *   scalar foreign-key id.
  * - an {@link EntityCollectionLink} → an array mixing embedded objects (loaded)
  *   or scalar ids.
+ * - a `composition` member → an array of plain child objects, each walked with
+ *   the child's own accessor metadata.
  *
  * This one serialization serves both persistence (entity → Mongo document) and
  * transport (entity → HTTP wire shape), so a value written by an adapter reads
@@ -25,6 +28,27 @@ function serializeLink<TEntity extends Entity>(
     return serializeEntity(link.entityConstructor, link.value);
   }
   return link.id ?? undefined;
+}
+
+/**
+ * Owned rows, each flattened through the child's own accessors.
+ *
+ * A child is a class whose private fields carry its state, so passing the array
+ * through untouched would put `[{}, {}]` on the wire and in the database — the
+ * rows would silently never persist. Walking each one is also what keeps a
+ * child's `alias` meaning what it means everywhere else: its column name.
+ *
+ * It reads a plain object just as happily as an instance, which is deliberate:
+ * a row that never went through the deserializer (a fixture, a hand-built
+ * command payload) serializes to the same document.
+ */
+function serializeComposition(
+  rows: readonly unknown[],
+  childType: ChildConstructor,
+): unknown {
+  return rows.map(row =>
+    serializeEntity(childType as EntityConstructor<Entity>, row as Entity),
+  );
 }
 
 function serializeCollectionLink<TEntity extends Entity>(
@@ -68,6 +92,12 @@ export function serializeEntity<TEntity extends Entity>(
         serialized = serializeLink(value);
       } else if (value instanceof EntityCollectionLink) {
         serialized = serializeCollectionLink(value);
+      } else if (
+        metaAccessor.type === 'composition' &&
+        metaAccessor.childType !== undefined &&
+        Array.isArray(value)
+      ) {
+        serialized = serializeComposition(value, metaAccessor.childType());
       } else {
         serialized = value;
       }

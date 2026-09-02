@@ -1,13 +1,12 @@
 import {
   EntifixLogicError,
   EntityCollectionLink,
+  type EntityDraft,
   type EntityFieldDescriptor,
   EntityLink,
   type StandardSchemaV1,
   type StandardSchemaV1Issue,
 } from '@r10c/entifix-ts-core';
-
-import type { EntityFormValues } from './use-entity-form.types';
 
 /**
  * A member no form writes back, whatever the draft says about it — and the only
@@ -30,15 +29,37 @@ function isNeverEdited(descriptor: EntityFieldDescriptor): boolean {
  * "is this a real id" is a question only the service can answer — but whether
  * one is present at all is checked, which is what `required` on a relation has
  * to mean.
+ *
+ * `composition` joins them for a different reason: its draft value is empty
+ * until the detail grid exists (#122), so any format rule would be judging a
+ * string the user was never shown. `scalarCollection` is deliberately *not*
+ * excluded — its comma list is real text the user typed.
  */
 function hasCheckableFormat(descriptor: EntityFieldDescriptor): boolean {
-  return descriptor.type !== 'link' && descriptor.type !== 'linkCollection';
+  return (
+    descriptor.type !== 'link' &&
+    descriptor.type !== 'linkCollection' &&
+    descriptor.type !== 'composition'
+  );
 }
 
 /**
  * The string a field seeds with from a record. Links seed with their foreign
  * key(s) and dates with a `yyyy-mm-dd` value a `date` input accepts; everything
  * else stringifies directly.
+ *
+ * The array branch is explicit rather than left to `String(raw)`, even though
+ * the two produce the same characters today. `String(['a','b'])` is `'a,b'` by
+ * way of `Array.prototype.toString`, which is an accident: it was doing the
+ * work of a `scalarCollection` seed before the type existed, and
+ * `reconstructEntity` was handing the same string straight back as a `string`.
+ * Both halves were wrong in the same direction, so the fixed-point spec could
+ * not see it. Now the join is declared here and the split is declared there,
+ * and they are inverses on purpose.
+ *
+ * A `composition`'s rows have no string form, so they seed as `''` — there is
+ * no editor to show them in yet, and a `[object Object]` list would be worse
+ * than an empty field.
  */
 export function seedFieldValue(
   descriptor: EntityFieldDescriptor,
@@ -50,6 +71,8 @@ export function seedFieldValue(
   if (raw instanceof EntityLink) return raw.id == null ? '' : String(raw.id);
   if (raw instanceof EntityCollectionLink) return raw.ids.map(String).join(',');
   if (raw instanceof Date) return raw.toISOString().slice(0, 10);
+  if (descriptor.type === 'composition') return '';
+  if (Array.isArray(raw)) return raw.map(String).join(',');
   return String(raw);
 }
 
@@ -57,8 +80,8 @@ export function seedFieldValue(
 export function seedEntityDraft(
   descriptors: readonly EntityFieldDescriptor[],
   entity: unknown,
-): EntityFormValues {
-  const draft: EntityFormValues = {};
+): EntityDraft {
+  const draft: EntityDraft = {};
   for (const descriptor of descriptors) {
     draft[descriptor.name] = seedFieldValue(descriptor, entity);
   }
@@ -89,12 +112,12 @@ export function seedEntityDraft(
  */
 export function restoreEntityDraft(
   descriptors: readonly EntityFieldDescriptor[],
-  seed: EntityFormValues,
-  persisted: EntityFormValues | undefined,
-): EntityFormValues {
+  seed: EntityDraft,
+  persisted: EntityDraft | undefined,
+): EntityDraft {
   if (persisted === undefined) return seed;
 
-  const restored: EntityFormValues = { ...seed };
+  const restored: EntityDraft = { ...seed };
   for (const descriptor of descriptors) {
     const value = persisted[descriptor.name];
     if (typeof value === 'string') restored[descriptor.name] = value;
@@ -152,7 +175,7 @@ export interface EntityDraftMessages {
  */
 export function validateEntityDraft(
   descriptors: readonly EntityFieldDescriptor[],
-  values: EntityFormValues,
+  values: EntityDraft,
   messages: EntityDraftMessages,
 ): Record<string, string> {
   const errors: Record<string, string> = {};
@@ -209,7 +232,7 @@ function issueFieldName(issue: StandardSchemaV1Issue): string | undefined {
  */
 export function readSchemaIssues(
   schema: StandardSchemaV1,
-  values: EntityFormValues,
+  values: EntityDraft,
   translateIssue: (message: string, field: string | undefined) => string,
 ): { fields: Record<string, string>; form?: string } {
   const result = schema['~standard'].validate(values);
@@ -239,11 +262,11 @@ export function readSchemaIssues(
 /** Everything {@link composeEntityFormErrors} needs to judge one draft. */
 export interface ComposeEntityFormErrorsOptions {
   descriptors: readonly EntityFieldDescriptor[];
-  values: EntityFormValues;
+  values: EntityDraft;
   messages: EntityDraftMessages;
   schema?: StandardSchemaV1;
   translateIssue: (message: string, field: string | undefined) => string;
-  validate?: (values: EntityFormValues) => Record<string, string>;
+  validate?: (values: EntityDraft) => Record<string, string>;
 }
 
 /**

@@ -39,7 +39,14 @@ const INPUT_TYPE: Partial<Record<MetaAccessorType, string>> = {
  * For a to-one `link` that is only half the story — `EntityForm` wires the
  * picker in one level up from its `linkSources`, so the member does get an
  * editor, just not from here. A `linkCollection` has no editor anywhere yet
- * (#26), and read-only is all it gets.
+ * (#26), and read-only is all it gets. A `composition` is the same: its rows
+ * need a detail grid (#122), and a text box holding `[object Object]` would be
+ * strictly worse than an honest disabled field.
+ *
+ * A `scalarCollection` is the exception among the collections and falls through
+ * to the plain text input on purpose: a `string[]` has a lossless comma form,
+ * so the draft it round-trips through *is* editable text. Splitting on the
+ * comma is `reconstructEntity`'s half of that same contract.
  */
 export function FieldControl({
   descriptor,
@@ -51,7 +58,8 @@ export function FieldControl({
   const disabled =
     descriptor.readonly ||
     descriptor.type === 'link' ||
-    descriptor.type === 'linkCollection';
+    descriptor.type === 'linkCollection' ||
+    descriptor.type === 'composition';
 
   if (descriptor.type === 'boolean') {
     return (

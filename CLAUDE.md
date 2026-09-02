@@ -335,6 +335,65 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   entity-tight wrapper (React's hook count must stay fixed). A picker's
   `linkSearchProperty` must be `filterable` on the **target** or the service answers
   `400` — the hook throws instead. To-many (`linkCollection`) is not editable yet.
+- **An entity can declare that it _owns_ a collection, and that is a different
+  relation from a link** ([ADR 0034](docs/adr/0034-composition-metadata.md)).
+  Two new `MetaAccessorType`s. **`composition`** is owned rows — an order's
+  lines — which have no life outside the record and go out in the **same
+  write**; `linkCollection` is association, where the target exists on its own
+  and saves separately, and building master-detail on `EntityCollectionLink`
+  would have inherited the per-row `EntityLinkResolver` fetch a composition
+  never wants. **`scalarCollection`** is a bare `string[]`; it is a separate
+  type rather than the same one because it has a **lossless string form**, so
+  it round-trips through the string draft as a comma list while a row array has
+  no string form at all. What this replaced was measured, not suspected: **five
+  members declared `type: 'string'` while holding an array** — `ProductOrder.items`,
+  whose own comment admitted it "falls outside the `MetaAccessorTypes`
+  taxonomy", plus `DictionaryTerm.values`, `Role.permissions`,
+  `Entitlement.domains` and `Membership.roleIds` — each with a hand-written
+  `sortable: false, filterable: false`, which is five authors independently
+  working around the same gap. One of those was live: `seedFieldValue` fell
+  through to `String(raw)` (`'a,b'`, via `Array.prototype.toString`) and
+  `coerceFieldValue` handed the same string straight back, so **saving a
+  `Membership` without touching its roles replaced two ids with one
+  comma-joined value** — and the seed/coerce fixed-point spec could not see it,
+  because both halves were wrong in the same direction; only asserting the
+  rebuilt member's _type_ catches that. Five things not to re-derive. **A child
+  is described by its accessors, not by being an `Entity`**: `@accessor()`
+  writes to its own class's `Symbol.metadata` with no help from `@entity()`, so
+  `describeEntityColumns`/`extractMetaAccessors` now take a `ChildConstructor`
+  and one walk describes an entity _and_ one of its rows — `OrderItem` is a
+  value class with no id, no domain and no permission namespace, and
+  `childType` is a **thunk** so decorator evaluation order stays irrelevant.
+  **The serializer had to learn about it**, both ways: a child's state lives in
+  private fields, so passing the array through untouched writes `[{}, {}]` and
+  the lines silently never persist — a write that succeeds and stores nothing.
+  A child's `alias` is still its storage column (`quantity` → `qty`), and
+  serialization reads a plain object as happily as an instance, so a fixture
+  produces the same document. **A collection declared `sortable`/`filterable`
+  throws** rather than clamping, because the descriptor is also the server-side
+  RSQL allowlist and an array compared as a scalar does not fail — it matches
+  nothing, so clamping hides an empty result page behind a declaration that
+  reads as honoured; the consequence is that `coerce-rsql.ts` needed **no**
+  change, since a collection can never reach `coerceValue`. **`scalarCollection`
+  round-trips now and `composition` does not**: the comma join and split are
+  declared as inverses on both sides, empty reads as `[]` and never `undefined`
+  (the same ordering trap `boolean` and `number` carry), while a composition is
+  excluded from `reconstructEntity`'s scalar walk beside the two link types —
+  writing it from a draft that never holds rows would blank a record's own lines
+  on every unrelated save. And **the draft was not widened**; what did land is
+  four structurally identical aliases (`EntityFormValues`, `EntityFormDraft`,
+  `EntityLinkDraft`, `EntityCrudDraft`) collapsing into one `EntityDraft` in
+  core, so #122 widens one type instead of finding four by search. Detail must be
+  **same-store, same-slice** — one write is one transaction, and
+  [planes](docs/_shared/planes.md) sends a cross-domain write through the saga —
+  which `childType` cannot check, so it is a review rule. A tenth accessor type
+  can no longer be added silently: core exports `COLLECTION_TYPES` beside
+  `SCALAR_TYPES` and a spec asserts they partition `MetaAccessorTypes` with
+  `id`/`link`, because every switch over that union has a `default` that treats
+  the value as a string. Not built: the detail grid (#110 → #122), client-side
+  row keys, nested error addressing (`issueFieldName` reads only `path[0]`, so
+  `items[2].quantity` collapses to `items`), child validation, and SQL
+  persistence for embedded collections.
 - **A picker also edits a bare foreign key, and that is the normal case now.** When
   the target lives in another slice's store a typed `EntityLink` is an illegal import
   _and_ a cross-store join, so the member is a plain `string`

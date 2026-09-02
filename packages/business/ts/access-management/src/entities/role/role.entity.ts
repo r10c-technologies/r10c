@@ -79,12 +79,10 @@ export class Role implements Entity {
     this.#name = value;
   }
 
-  /** A string array, unsortable and unfilterable — see `Membership.roleIds`. */
+  /** A `scalarCollection`, never queryable — see `Membership.roleIds`. */
   @accessor({
-    type: 'string',
+    type: 'scalarCollection',
     labelKey: 'entity:role.fields.permissions',
-    sortable: false,
-    filterable: false,
   })
   get permissions(): readonly Permission[] {
     return this.#permissions;

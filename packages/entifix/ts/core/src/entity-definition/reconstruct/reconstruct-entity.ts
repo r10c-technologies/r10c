@@ -1,8 +1,8 @@
 import { Entity, EntityConstructor } from '../../types/Entity';
+import { EntityDraft } from '../../types/EntityDraft';
 import { describeEntityColumns, EntityFieldDescriptor } from '../describe';
 import {
   applyEntityLinks,
-  type EntityLinkDraft,
   type EntityLinkSelection,
 } from '../links/apply-entity-links';
 import { EntityCollectionLink } from '../links/entity-collection-link';
@@ -40,12 +40,23 @@ export interface ReconstructEntityOptions<TEntity extends Entity> {
  * rather than dropped: the form's metadata validation rejects both before
  * submit, and silently discarding a value the user typed would be worse than
  * surfacing it.
+ *
+ * `scalarCollection` is the one collection with a lossless string form, so it
+ * round-trips here rather than waiting for an editor: a comma list in, a
+ * `string[]` out. It reads **empty as `[]`, never `undefined`** — a member the
+ * user cleared holds no values, which is a different fact from a member that
+ * was never set, and only the empty array survives a `required` check honestly.
+ * `composition` has no string form at all and never reaches this function; see
+ * {@link isWritableScalar}.
  */
 function coerceFieldValue(
   descriptor: EntityFieldDescriptor,
   raw: string,
 ): unknown {
   if (descriptor.type === 'boolean') return raw === 'true';
+  if (descriptor.type === 'scalarCollection') {
+    return raw === '' ? [] : raw.split(',');
+  }
   if (raw === '') return undefined;
   if (descriptor.type === 'number') return Number(raw);
   if (descriptor.type === 'date') return new Date(raw);
@@ -64,13 +75,24 @@ function coerceFieldValue(
  * `instanceof` catches a bare `@accessor()` on a relation that declared no
  * type: those accessors are getter-only, so assigning a coerced string to one
  * would throw rather than misbehave quietly.
+ *
+ * `composition` is excluded for the reason `linkCollection` is: it has no
+ * editor yet, so a draft never holds its rows and writing one would mean
+ * writing `undefined` over the master's own lines on every save. The rows'
+ * write path lands with the detail control (#122). `scalarCollection` is *not*
+ * excluded — it is a scalar as far as this walk is concerned, because its
+ * comma-list draft coerces losslessly back to a `string[]`.
  */
 function isWritableScalar(
   descriptor: EntityFieldDescriptor,
   current: unknown,
 ): boolean {
   if (descriptor.readonly) return false;
-  if (descriptor.type === 'link' || descriptor.type === 'linkCollection') {
+  if (
+    descriptor.type === 'link' ||
+    descriptor.type === 'linkCollection' ||
+    descriptor.type === 'composition'
+  ) {
     return false;
   }
   return !(
@@ -111,7 +133,7 @@ function isWritableScalar(
  */
 export function reconstructEntity<TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
-  values: EntityLinkDraft,
+  values: EntityDraft,
   { existing, selection }: ReconstructEntityOptions<TEntity> = {},
 ): TEntity {
   const instance = new entityConstructor();

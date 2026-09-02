@@ -14,3 +14,13 @@ export type {
 } from './lib/session/account-links';
 export * from './lib/shells-next-common';
 export * from './lib/workspace';
+
+/**
+ * Re-exported, not redeclared. A workspace host holds an entity form's draft to
+ * autosave it, so it has to be able to name the type — but the type is core's,
+ * and a fourth structural copy of `Record<string, string>` beside
+ * `EntityFormValues`/`EntityFormDraft`/`EntityLinkDraft` is exactly what
+ * [ADR 0034](../../../../docs/adr/0034-composition-metadata.md) collapsed. One
+ * declaration, reachable from the layer its consumers already depend on.
+ */
+export type { EntityDraft } from '@r10c/entifix-ts-core';

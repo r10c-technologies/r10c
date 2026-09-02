@@ -15,8 +15,33 @@ export const MetaAccessorTypes = [
   'id',
   'link',
   'linkCollection',
+  'composition',
+  'scalarCollection',
 ] as const;
 export type MetaAccessorType = (typeof MetaAccessorTypes)[number];
+
+/**
+ * The class whose accessors describe one row of a `composition` member.
+ *
+ * Deliberately not `EntityConstructor`: a child of a composition is a **value**,
+ * not an entity. It has no identity of its own, is never addressed apart from
+ * the master that holds it, and therefore has no `id` for `Entity` to require.
+ * What it does have is `@accessor()` metadata, which is written to its own
+ * class's `Symbol.metadata` bag independently of `@entity()` — so a child is
+ * described by its accessors and by nothing else.
+ *
+ * ⚠️ It is a **shape declaration, not a runtime constructor contract.** Children
+ * arrive off the wire as plain objects — the serializer walks `instanceof
+ * EntityLink`, not the declared type, so an embedded array passes straight
+ * through — and ADR 0032 forbids a class instance inside an autosaved draft
+ * anyway. Nothing may branch on `instanceof` against this constructor.
+ */
+export type ChildConstructor<TChild extends object = object> = new (
+  // Mirrors `EntityConstructor`: the arguments are the child's business, only
+  // the class identity matters here.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ...args: any[]
+) => TChild;
 
 /**
  * The wire shape a relation takes: the target's foreign key, or the whole
@@ -77,6 +102,21 @@ export interface MetaAccessorOptions {
    * the UI.
    */
   linkSerialization?: EntityLinkSerialization;
+  /**
+   * The class describing one row of a `composition` member — the child's own
+   * `@accessor()` metadata is what a detail grid renders its columns from.
+   *
+   * A **thunk**, because a child module and the entity that owns it are usually
+   * declared in the same package and a direct reference makes the decorator's
+   * evaluation order load-bearing. Deferring the read to first use removes the
+   * ordering question entirely, which is the same reason a to-one relation's
+   * target is reached through a resolver rather than an import.
+   *
+   * Meaningless on any other type. There is no inference fallback: an empty
+   * array cannot be told apart from an empty `string[]` at runtime, so a
+   * collection must be declared.
+   */
+  childType?: () => ChildConstructor;
 }
 
 export class MetaAccessor {
@@ -99,6 +139,7 @@ export class MetaAccessor {
   readonly linkLabelProperty?: string;
   readonly linkSearchProperty?: string;
   readonly linkSerialization?: EntityLinkSerialization;
+  readonly childType?: () => ChildConstructor;
 
   //#endregion
 
@@ -125,6 +166,7 @@ export class MetaAccessor {
     this.linkLabelProperty = options?.linkLabelProperty;
     this.linkSearchProperty = options?.linkSearchProperty;
     this.linkSerialization = options?.linkSerialization;
+    this.childType = options?.childType;
   }
   //#endregion
 

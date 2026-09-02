@@ -21,6 +21,7 @@ export * from './envelope';
 export * from './rsql';
 export * from './types/Entity';
 export * from './types/EntityAction';
+export * from './types/EntityDraft';
 export * from './types/EntityFiltering';
 export * from './types/EntityLoadRequest';
 export * from './types/EntityPage';

@@ -6,8 +6,8 @@ import type {
 import type {
   Entity,
   EntityConstructor,
+  EntityDraft,
   EntityFieldDescriptor,
-  EntityLinkDraft,
 } from '@r10c/entifix-ts-core';
 import type { Resources } from '@r10c/entifix-ts-i18n';
 import type { Context } from 'effect/Context';
@@ -108,13 +108,6 @@ export interface EntityCrudOptions<TAdapters> {
 }
 
 /**
- * The serialisable form draft a workspace host autosaves — keyed by the
- * entity's accessor names, so it round-trips through `useEntityForm` and
- * `reconstructEntity` without translation.
- */
-export type EntityCrudDraft = EntityLinkDraft;
-
-/**
  * Props both hosts pass. A route host passes none — the slug comes from the URL
  * and a save returns to the list; the workspace tab host passes all of them.
  */
@@ -125,9 +118,9 @@ export interface EntityCrudSingleViewProps {
   readonly onSaved?: () => void;
   readonly onDeleted?: () => void;
   /** Seed the fields from a persisted draft instead of the record. */
-  readonly initialDraft?: EntityCrudDraft;
+  readonly initialDraft?: EntityDraft;
   /** Called on every edit, so the host can autosave. */
-  readonly onDraftChange?: (draft: EntityCrudDraft) => void;
+  readonly onDraftChange?: (draft: EntityDraft) => void;
 }
 
 /**

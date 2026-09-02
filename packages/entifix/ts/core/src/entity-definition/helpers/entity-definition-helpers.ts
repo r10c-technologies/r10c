@@ -3,7 +3,10 @@
 import { EntifixBuildError } from '../../base-entities/entifix-error';
 import { Entity, EntityConstructor } from '../../types/Entity';
 import { UseCaseConstructor } from '../../types/UseCase';
-import { MetaAccessor } from '../meta-entities/meta-accessor';
+import {
+  type ChildConstructor,
+  MetaAccessor,
+} from '../meta-entities/meta-accessor';
 import { MetaEntity } from '../meta-entities/meta-entity';
 import { MetaMethod } from '../meta-entities/meta-method';
 import {
@@ -104,8 +107,8 @@ export function setMetaUseCaseBinding(
   requireMetadata(metadata)[META_USE_CASE_BINDING_KEY] = binding;
 }
 
-function readMetadata<TEntity extends Entity>(
-  target: EntityConstructor<TEntity>,
+function readMetadata(
+  target: ChildConstructor,
 ): DecoratorMetadataObject | undefined {
   return target[Symbol.metadata] ?? undefined;
 }
@@ -121,9 +124,15 @@ export function extractMetaEntity<TEntity extends Entity>(
   return metaEntity;
 }
 
-export function extractMetaAccessors<TEntity extends Entity>(
-  target: EntityConstructor<TEntity>,
-): MetaAccessor[] {
+/**
+ * Every accessor declared on a class.
+ *
+ * The target is a {@link ChildConstructor}, not an `EntityConstructor`: an
+ * `@accessor()` writes to its own class's metadata bag with no help from
+ * `@entity()`, so a `composition` member's child — a value with no `id` — is
+ * described by exactly this walk.
+ */
+export function extractMetaAccessors(target: ChildConstructor): MetaAccessor[] {
   const metadata = readMetadata(target);
   return (metadata?.[META_ACCESSOR_KEY] as MetaAccessor[] | undefined) ?? [];
 }

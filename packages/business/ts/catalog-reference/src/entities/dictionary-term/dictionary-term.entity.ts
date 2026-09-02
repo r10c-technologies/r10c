@@ -70,20 +70,16 @@ export class DictionaryTerm implements Entity {
   }
 
   /**
-   * The permitted value set. A string array, so — like `Membership.roleIds` —
-   * it sits outside the `MetaAccessorTypes` taxonomy and is declared as its
-   * element type with sorting and filtering **off**: member metadata is also
-   * the server-side allowlist, and an array compared as a scalar matches
-   * nothing.
+   * The permitted value set. A **`scalarCollection`** — like
+   * `Membership.roleIds` — never queryable, because member metadata is also the
+   * server-side allowlist and an array compared as a scalar matches nothing.
    *
    * Empty means an open term: a code and a unit with no enumerated values, which
    * is the right shape for something like `weight`.
    */
   @accessor({
-    type: 'string',
+    type: 'scalarCollection',
     labelKey: 'entity:dictionary-term.fields.values',
-    sortable: false,
-    filterable: false,
   })
   get values(): readonly string[] {
     return this.#values;

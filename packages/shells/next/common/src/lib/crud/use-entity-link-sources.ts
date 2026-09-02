@@ -3,7 +3,7 @@
 import { useEntityLinkSource } from '@r10c/entifix-react-integration';
 import type {
   Entity,
-  EntityLinkDraft,
+  EntityDraft,
   EntityLinkSelection,
   EntityLinkSource,
 } from '@r10c/entifix-ts-core';
@@ -12,7 +12,7 @@ import type { EntityCrudLinkSource } from './make-entity-crud.types';
 
 export interface UseEntityLinkSourcesOptions {
   /** The form's current draft — ids are the truth. */
-  readonly values: EntityLinkDraft;
+  readonly values: EntityDraft;
   /** The picked-instance sidecar, so a chosen name needs no round trip. */
   readonly selection: EntityLinkSelection;
 }

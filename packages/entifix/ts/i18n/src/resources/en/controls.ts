@@ -98,6 +98,12 @@ export const controls: EsControls = {
     none: '— none —',
     yes: 'Yes',
     no: 'No',
+    /**
+     * A `composition` in a table: its rows are edited on the master's own
+     * screen rather than in the cell, so the cell says how many there are.
+     */
+    rowCount_one: '{{count}} row',
+    rowCount_other: '{{count}} rows',
   },
   /**
    * `required`…`option` are the metadata-derived rules. The rest are the

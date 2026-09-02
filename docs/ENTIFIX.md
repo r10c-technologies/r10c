@@ -72,9 +72,10 @@ allowlist. See
 
 `@accessor()` also carries what generic UI needs to render a member without
 knowing the entity: `type` (`MetaAccessorType`: `string | number | boolean | date
-| enum | id | link | linkCollection`), `label`, `sortable`, `filterable`,
+| enum | id | link | linkCollection | composition | scalarCollection`), `label`,
+`sortable`, `filterable`,
 `order`, `enumValues`, `linkLabelProperty`, `linkSearchProperty`,
-`linkSerialization`, `readonly`, and `required`. All are
+`linkSerialization`, `childType`, `readonly`, and `required`. All are
 optional — annotate what the UI should not have to guess. `required` and
 `readonly` are what a form reads: `required` blocks submit while the field is
 empty, `readonly` disables its input (the member still shows). On a relation,
@@ -168,6 +169,55 @@ and that is the branch where `setIds`/`setValues` will land.
 
 The browser half of this (the two-mode picker, the source port) is in
 [FRONTEND.md → Editing a relation](./FRONTEND.md#editing-a-relation).
+
+### The third shape: a member that _owns_ its collection
+
+A `link` and a `linkCollection` are **association** — the target exists on its
+own, is picked from records that are already there, and saves as a second write.
+`composition` is the other relation UML names: rows that have no life outside
+the record holding them and go out in the **same** write. An order's lines, an
+invoice's items ([ADR 0034](./adr/0034-composition-metadata.md)).
+
+```ts
+@accessor({ type: 'composition', childType: () => OrderItem })
+get items(): readonly OrderItem[] { … }
+```
+
+Four things that follow, none of them obvious.
+
+**A child is described by its accessors, not by being an `Entity`.**
+`@accessor()` writes to its own class's metadata bag with no help from
+`@entity()`, so a child needs neither a domain, a key nor an `id` —
+`OrderItem` is a value class, and `describeEntityColumns` walks it with the
+same code that walks an entity. `childType` is a **thunk** so the two modules'
+evaluation order stays irrelevant.
+
+**The serializer flattens each row through the child's own accessors**, in both
+directions. It has to: a child's state lives in its private fields, so passing
+the array through untouched would write `[{}, {}]` and the rows would silently
+never persist. A child's `alias` is its storage column exactly as an entity's is
+— so `quantity` can persist as `qty` and there is still no mapping layer — and
+serialization reads a plain object as happily as an instance, which keeps a
+fixture or a hand-built command payload producing the same document.
+
+**A collection is never sortable or filterable, and declaring otherwise
+throws.** `describeEntityColumns` raises `EntifixBuildError` rather than
+clamping, because this descriptor is also the server-side RSQL allowlist and an
+array compared as a scalar does not fail — it matches nothing, so the symptom
+would be an empty result page. `scalarCollection` (a bare `string[]`,
+`Membership.roleIds`) is held to the same rule; what makes it a separate type is
+that it has a **lossless string form**, so it round-trips through the string
+draft as a comma list while a composition has no string form at all.
+
+**Detail is same-store, same-slice.** One write means one transaction, and
+[planes](./_shared/planes.md) sends a cross-domain write through the saga and
+never through one transaction. A child in another store is not a master-detail
+form, it is a saga. The metadata cannot check this — `childType` names a class,
+not a store — so it is a review rule.
+
+The editor is not built: a composition member renders read-only in a form and as
+a row count in a table, deliberately, because a disabled text box holding
+`[object Object]` is worse than an honest absence.
 
 ### Rebuilding the whole entity: `reconstructEntity`
 

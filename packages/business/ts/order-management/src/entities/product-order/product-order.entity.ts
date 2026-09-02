@@ -1,7 +1,7 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { accessor, entity } from '@r10c/entifix-ts-core';
 
-import type { OrderItem } from '../../values/order-item';
+import { OrderItem } from '../../values/order-item';
 import { type OrderStatus, OrderStatuses } from '../../values/order-status';
 import type { RelatedChannel } from '../../values/related-channel';
 
@@ -140,10 +140,22 @@ export class ProductOrder implements Entity {
   }
 
   /**
-   * An object array, so it falls outside the `MetaAccessorTypes` taxonomy — the
-   * same situation as `Membership.roleIds`. Declared with sorting and filtering
-   * **off**, because member metadata is also the server-side filter allowlist
-   * and an embedded array compared as a scalar matches nothing.
+   * The lines. A **`composition`**: they are owned by this order, have no life
+   * outside it, and go out in the same write
+   * ([ADR 0034](../../../../../../docs/adr/0034-composition-metadata.md)).
+   *
+   * Not a `linkCollection`, which is association — targets that exist on their
+   * own, are picked from existing records and save separately. An order line is
+   * never picked and never outlives its receipt.
+   *
+   * `childType` is what a detail grid reads its columns from: `OrderItem`'s own
+   * `@accessor()` metadata. A thunk, so the two modules' evaluation order stays
+   * irrelevant.
+   *
+   * Sorting and filtering are off by construction — `describeEntityColumns`
+   * defaults every collection to unqueryable and **throws** on a declaration
+   * that says otherwise — because member metadata is the server-side query
+   * allowlist and an embedded array compared as a scalar matches nothing.
    *
    * `hidden` would be the wrong tool here: it drops a member from serialization
    * *and* deserialization, so the lines would never persist.
@@ -152,10 +164,9 @@ export class ProductOrder implements Entity {
    * projection — the accepted cost of one receipt per checkout.
    */
   @accessor({
-    type: 'string',
+    type: 'composition',
+    childType: () => OrderItem,
     labelKey: 'entity:product-order.fields.items',
-    sortable: false,
-    filterable: false,
   })
   get items(): readonly OrderItem[] {
     return this.#items;
