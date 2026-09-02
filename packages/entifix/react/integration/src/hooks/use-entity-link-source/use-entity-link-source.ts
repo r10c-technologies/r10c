@@ -211,6 +211,10 @@ export function useEntityLinkSource<TTarget extends Entity, TContext>(
     labelOf,
     selected: {
       label: resolved === undefined ? undefined : labelOf(resolved),
+      // The whole target, not only its name. The lookup above already fetched
+      // it, and a form restoring a draft has nothing else to rebuild an
+      // `embedded` relation from — the draft kept the id and lost the instance.
+      entity: resolved,
       isLoading: needsLabel && labelQuery.isFetching,
     },
     quick: {

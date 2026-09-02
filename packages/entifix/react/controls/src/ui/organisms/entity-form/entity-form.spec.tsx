@@ -514,6 +514,39 @@ describe('EntityForm', () => {
         render(<Harness mode="edit" linkSources={{ stock: brandSource() }} />),
       ).toThrow(EntifixLogicError);
     });
+
+    // The restored-draft window: the draft holds an id, the instance behind it
+    // has not landed yet, and an `embedded` member submitted now has nothing to
+    // inline. The form is still assembling itself, so it does not offer to save.
+    it('holds the save back while a relation is still resolving', () => {
+      const resolving = brandSource();
+      render(
+        <Harness
+          mode="edit"
+          initial={{ brand: 'brand-1' }}
+          linkSources={{
+            brand: {
+              ...resolving,
+              selected: { label: undefined, isLoading: true },
+            },
+          }}
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled();
+    });
+
+    it('offers the save once every relation has resolved', () => {
+      render(
+        <Harness
+          mode="edit"
+          initial={{ brand: 'brand-1' }}
+          linkSources={{ brand: brandSource() }}
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled();
+    });
   });
 
   it('shows per-field validation errors while editing', () => {

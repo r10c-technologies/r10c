@@ -3,6 +3,9 @@ import 'fake-indexeddb/auto';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  type DraftsState,
+  mergeDrafts,
+  migrateDrafts,
   persistedDrafts,
   selectIsDirty,
   useDraftsState,
@@ -64,5 +67,56 @@ describe('persistedDrafts', () => {
     });
 
     expect(persisted).toEqual({ drafts: { a: 1 } });
+  });
+});
+
+describe('migrateDrafts', () => {
+  // Discard, never guess: a draft whose envelope this build cannot read is an
+  // unfinished edit, so losing it costs a retype — while migrating it blind
+  // risks submitting values whose meaning has changed.
+  it('drops every draft written under an older envelope', () => {
+    expect(migrateDrafts()).toEqual({ drafts: {} });
+  });
+});
+
+describe('mergeDrafts', () => {
+  const current: DraftsState = {
+    drafts: {},
+    setDraft: () => undefined,
+    clearDraft: () => undefined,
+  };
+
+  it('restores the drafts that survived a JSON round trip', () => {
+    const merged = mergeDrafts(
+      { drafts: { 'entity:product:1': { name: 'A', stock: '2' } } },
+      current,
+    );
+
+    expect(merged.drafts).toEqual({
+      'entity:product:1': { name: 'A', stock: '2' },
+    });
+    expect(merged.setDraft).toBe(current.setDraft);
+  });
+
+  // Per entry, not all-or-nothing: one draft written by a build that predates
+  // the JSON rule must not take the rest of the workspace's drafts with it.
+  it('drops only the entry that is not JSON', () => {
+    const merged = mergeDrafts(
+      {
+        drafts: {
+          good: { name: 'A' },
+          bad: { at: new Date() } as unknown as Record<string, string>,
+        },
+      },
+      current,
+    );
+
+    expect(Object.keys(merged.drafts)).toEqual(['good']);
+  });
+
+  it('keeps the current state when nothing readable was persisted', () => {
+    expect(mergeDrafts(undefined, current)).toBe(current);
+    expect(mergeDrafts({ drafts: null }, current)).toBe(current);
+    expect(mergeDrafts({ drafts: 'nonsense' }, current)).toBe(current);
   });
 });

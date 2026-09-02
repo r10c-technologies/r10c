@@ -4,6 +4,7 @@ import {
   accessor,
   applyEntityLinks,
   describeEntityColumns,
+  EntifixLogicError,
   Entity,
   entity,
   EntityCollectionLink,
@@ -130,14 +131,24 @@ describe('applyEntityLinks', () => {
   it('writes the draft id when nothing was picked', () => {
     const product = new Product();
 
-    applyEntityLinks(product, descriptors, {
-      brand: 'brand-3',
-      category: 'brand-4',
-    });
+    applyEntityLinks(product, descriptors, { category: 'brand-4' });
 
-    expect(product.brand.isLoaded).toBe(false);
-    expect(product.brand.id).toBe('brand-3');
+    expect(product.category.isLoaded).toBe(false);
     expect(product.category.id).toBe('brand-4');
+  });
+
+  // The case a restored draft produces: ids survived the JSON round trip, the
+  // picked instances did not. Writing the id shape here would flip what goes on
+  // the wire depending on whether the page had been refreshed.
+  it('refuses to write an embedded member from an id alone', () => {
+    const product = new Product();
+
+    expect(() =>
+      applyEntityLinks(product, descriptors, { brand: 'brand-3' }),
+    ).toThrow(EntifixLogicError);
+    expect(() =>
+      applyEntityLinks(product, descriptors, { brand: 'brand-3' }),
+    ).toThrow(/embedded relation/);
   });
 
   // Clearing a relation must survive a re-apply: a link that still holds the

@@ -442,7 +442,7 @@ describe('useEntityForm', () => {
     expect(result.current.isDirty).toBe(false);
   });
 
-  it('seeds from initialValues over the entity when given', () => {
+  it('layers a persisted draft over the record it was written from', () => {
     const { result } = renderHook(() =>
       useEntityForm({
         entityConstructor: Gadget,
@@ -453,6 +453,56 @@ describe('useEntityForm', () => {
     );
 
     expect(result.current.values.code).toBe('DRAFT');
+    // Every other member keeps the record's value rather than vanishing with it.
+    expect(result.current.values.stock).toBe('42');
+  });
+
+  // A draft outlives the entity that wrote it, so the two can disagree. Both
+  // directions are silent and both reach the user: a member the draft never held
+  // would arrive `undefined` and flip its input from controlled to uncontrolled,
+  // and one the entity no longer declares would ride along as a value nothing
+  // renders.
+  it('drops draft keys the entity no longer declares', () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        initialValues: { code: 'DRAFT', retired: 'yes' },
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    expect(result.current.values.code).toBe('DRAFT');
+    expect('retired' in result.current.values).toBe(false);
+  });
+
+  it('keeps the seeded value for a member the draft never held', () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        initialValues: { code: 'DRAFT' },
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    expect(result.current.values.tier).toBe('gold');
+    expect(result.current.values.tier).not.toBeUndefined();
+  });
+
+  it('ignores a draft value that is not a string', () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        // What a draft written by an older shape can hold: the store guarantees
+        // JSON, not this form's own type.
+        initialValues: { code: 42 } as unknown as EntityFormValues,
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    expect(result.current.values.code).toBe('G-1');
   });
 
   // The sidecar: the draft keeps ids because it must stay JSON, so the instances
@@ -520,6 +570,50 @@ describe('useEntityForm', () => {
 
     expect(result.current.values.brand).toBe('');
     expect(result.current.links['brand']).toBeUndefined();
+  });
+
+  // The restore path: the draft kept `brand-1`, the instance behind it died with
+  // the page, and the link source resolved it back.
+  it('refills the sidecar from a resolved id without touching the draft', () => {
+    const brand = new GadgetBrand();
+    brand.id = 'brand-1';
+    brand.name = 'Acme';
+
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    act(() => result.current.hydrateLink('brand', brand));
+
+    expect(result.current.links['brand']).toBe(brand);
+    expect(result.current.values.brand).toBe('brand-1');
+    // A lookup is not an edit, so the form stays pristine and the workspace has
+    // nothing new to autosave.
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('leaves a pick in place when a slower lookup lands after it', () => {
+    const picked = new GadgetBrand();
+    picked.id = 'brand-9';
+    const stale = new GadgetBrand();
+    stale.id = 'brand-1';
+
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    act(() => result.current.setLink('brand', picked));
+    act(() => result.current.hydrateLink('brand', stale));
+
+    expect(result.current.links['brand']).toBe(picked);
   });
 
   it('holds no key for a picked target that has none', () => {

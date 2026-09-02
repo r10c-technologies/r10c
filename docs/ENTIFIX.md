@@ -149,8 +149,19 @@ that gap, both pure and in `core`:
   is at hand**. An empty draft value clears the link.
 - **`selection`** (`EntityLinkSelection`, keyed by accessor name) is the sidecar
   holding those instances — seeded from a record's already-materialized links by
-  `seedEntityLinkSelection` and extended by each pick. It is a _cache_: a missing
-  entry costs the embedded shape, never the relation.
+  `seedEntityLinkSelection`, extended by each pick, and refilled from an id by
+  `useEntityForm`'s `hydrateLink`. It is a _cache_ and it is **not persisted**, so
+  a restored draft arrives holding ids and nothing else.
+
+An `embedded` member reaching `applyEntityLinks` with an id and no instance
+**throws** rather than falling back to the `id` shape. That fallback is what made
+two saves of one unchanged form put different things on the wire either side of a
+refresh; the wire shape is metadata, not a function of what the UI happens to
+hold. The caller resolves the id first — `EntityLinkSource.selected.entity`
+carries the whole target out of the lookup that was already running for the label
+— and `EntityForm` disables Save while any source is still resolving, so the
+throw is a developer-facing contract rather than something a user can reach. See
+[ADR 0032](./adr/0032-what-may-live-in-an-autosaved-draft.md).
 
 `linkCollection` members are left untouched — the to-many editor is a follow-up,
 and that is the branch where `setIds`/`setValues` will land.

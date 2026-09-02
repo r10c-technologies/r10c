@@ -369,19 +369,55 @@ holds this: a spy that swallows the write cannot see the loop at all.
 
 ## 4. State & persistence
 
-Client state splits from server state:
+Client state splits from server state. Three things are persisted in the browser,
+and they do **not** share a contract — see
+[ADR 0032](adr/0032-what-may-live-in-an-autosaved-draft.md).
 
-- **Client state → Zustand + IndexedDB** (via `zustand-indexeddb`, which keys multiple
-  stores in one database by the `persist` `name`):
-  - `tabsStore` — `{ tabs, order, activeId, dirty }` + `openOrFocus` / `close` / `setActive`.
-  - `draftsStore` — keyed by **address** (`entity:product-specification:123`), debounced autosave. Autosave
-    is **workspace-host only**; the route host stays ephemeral. Keying by address means a tab
-    and (optionally) a route view of the same entity converge on one draft.
-- **`UiPreferencesState` migrates from localStorage to IndexedDB.** The Effect port
-  (`read`/`write`/`remove`) is unchanged — only a new `makeIndexedDbUiPreferencesState` +
-  `IndexedDbUiPreferencesLayer` swap in at the provider. This unifies all persisted client
-  state in one store (no localStorage/IndexedDB split) with no consumer changes — `useUiPreference`
-  already handles async reads.
+- **Zustand + IndexedDB**, through the hand-rolled `makeIndexedDbStateStorage`
+  (`shells-next-common/lib/workspace/`), which keys several stores into one
+  object store by the `persist` `name`. There is no `zustand-indexeddb` package.
+  - `useTabsState` — `{ tabs, activeParam }` + `open` / `close` / `activate`.
+    A tab's dirtiness is **derived** (`selectIsDirty` asks whether the drafts map
+    holds that address), never stored twice.
+  - `useDraftsState` — keyed by **address**
+    (`entity:product-specification:123`). Autosave is **workspace-host only**; a
+    plain route stays ephemeral. Keying by address means a tab and a route view
+    of the same entity converge on one draft.
+- **`UiPreferencesState`** (column layout, sidebar collapse) is the Effect port,
+  backed by `makeIndexedDbUiPreferencesState` + `IndexedDbUiPreferencesLayer`
+  at the provider. `useUiPreference` already handles async reads, so consumers
+  are unchanged.
+
+Four rules govern a draft, and each one is enforced somewhere rather than
+asserted here:
+
+- **A draft is JSON round-trippable, period.** It is written through
+  `createJSONStorage`, so a class instance, an `EntityLink` or a `Date` does not
+  degrade — it comes back as something else, silently. `JsonValue` (in
+  `entifix-ts-core`) is the compile-time half; `mergeDrafts` running `isJsonValue`
+  per entry at restore is the runtime half. `UiPreferencesState` is deliberately
+  **not** held to this: structured clone keeps a `Date`, and the two contracts
+  must not be conflated. Declare a draft type as a `type`, never an `interface` —
+  TypeScript gives an interface no implicit index signature, so it can never
+  satisfy the constraint.
+- **Relations are ids in the draft and instances beside it.** The sidecar
+  (`EntityLinkSelection`) is not persisted; it is refilled from the id by
+  `EntityLinkSource.selected.entity` → `useEntityForm`'s `hydrateLink`, which
+  writes the sidecar without touching the draft or the dirty flag. An `embedded`
+  member reaching `applyEntityLinks` with an id and no instance **throws**, and
+  `EntityForm` holds Save back while any source is still resolving.
+- **A version mismatch discards.** `DRAFTS_VERSION` / `TABS_VERSION` with an
+  explicit `migrate` to the empty state. That covers the envelope only; member
+  drift is `restoreEntityDraft`, which layers a restored draft **over** a freshly
+  seeded one so the entity decides the keys and the draft decides the values.
+- **Drafts are scoped by user and active organization.** `WorkspaceShell` takes a
+  required `scope` prop, resolved server-side from the session (the cookies are
+  httpOnly), and applies it with `persist.setOptions` **before** rehydrating.
+  Without it, two accounts on one browser profile share tabs and drafts — and a
+  record id is tenant-scoped, so a draft carried across an organization switch
+  would be submitted into the wrong tenant. It is a separation mechanism, not a
+  confidentiality boundary: whoever can read that object store already holds the
+  session cookie.
 
 ## 5. The client data layer — TanStack Query **wraps** Entifix (never replaces it)
 

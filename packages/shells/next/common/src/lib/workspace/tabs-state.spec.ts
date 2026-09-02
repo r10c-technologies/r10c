@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { persistedTabs, useTabsState } from './tabs-state.js';
+import { migrateTabs, persistedTabs, useTabsState } from './tabs-state.js';
 
 afterEach(() => {
   useTabsState.setState({ tabs: [], activeParam: null });
@@ -68,5 +68,14 @@ describe('persistedTabs', () => {
       activeParam: 'a',
     });
     expect('open' in persisted).toBe(false);
+  });
+});
+
+describe('migrateTabs', () => {
+  // A restored tab whose `param` this build cannot resolve renders the dead-link
+  // fallback, so a drifted snapshot is a strip of broken tabs. Opening empty is
+  // the better failure.
+  it('drops a tab set written under an older shape', () => {
+    expect(migrateTabs()).toEqual({ tabs: [], activeParam: null });
   });
 });

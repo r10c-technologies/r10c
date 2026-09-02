@@ -234,6 +234,7 @@ describe('useEntityLinkSource', () => {
 
     expect(result.current.selected).toEqual({
       label: 'Acme',
+      entity: BRANDS[0]!,
       isLoading: false,
     });
   });
@@ -243,6 +244,18 @@ describe('useEntityLinkSource', () => {
     const { result } = renderSource({ selectedId: 'b-2' });
 
     await waitFor(() => expect(result.current.selected.label).toBe('Globex'));
+  });
+
+  // The instance, not only the name: a form rebuilding an `embedded` relation
+  // from a restored draft has the id and nothing else to inline.
+  it('carries the resolved instance out, not just its label', async () => {
+    const { result } = renderSource({ selectedId: 'b-2' });
+
+    await waitFor(() =>
+      expect(result.current.selected.entity).toEqual(
+        BRANDS.find(candidate => candidate.id === 'b-2'),
+      ),
+    );
   });
 
   it('has no label to show without a get use-case', async () => {

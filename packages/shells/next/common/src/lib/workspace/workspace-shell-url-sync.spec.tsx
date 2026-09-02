@@ -53,6 +53,7 @@ const registry = new TabRegistry().register(catalogKind);
 const renderShell = () =>
   render(
     <WorkspaceShell
+      scope="user-1:org-1"
       registry={registry}
       emptyState={<div data-testid="empty">No open tabs</div>}
       fallback={<div data-testid="fallback">Unknown tab</div>}
@@ -65,6 +66,12 @@ beforeEach(() => {
   notify = null;
   useTabsState.setState({ tabs: [], activeParam: null });
   useDraftsState.setState({ drafts: {} });
+  vi.spyOn(useTabsState.persist, 'setOptions').mockImplementation(
+    () => undefined,
+  );
+  vi.spyOn(useDraftsState.persist, 'setOptions').mockImplementation(
+    () => undefined,
+  );
   vi.spyOn(useTabsState.persist, 'rehydrate').mockResolvedValue(undefined);
   vi.spyOn(useDraftsState.persist, 'rehydrate').mockResolvedValue(undefined);
 });

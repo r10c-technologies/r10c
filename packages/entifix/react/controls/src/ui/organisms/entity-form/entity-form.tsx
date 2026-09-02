@@ -155,6 +155,19 @@ export function EntityForm<TEntity extends Entity>({
   const errorMessage = useErrorMessage();
   const busy = isSaving || isDeleting;
 
+  // A draft restored from storage holds relation ids and no instances, so every
+  // picker is resolving its target for a moment after mount. Saving inside that
+  // window is exactly the case `applyEntityLinks` refuses: an `embedded` member
+  // with an id and nothing to inline. Gating the save is the honest answer —
+  // the form is still assembling itself, and the wait is one lookup long.
+  //
+  // Deliberately not narrowed to `embedded` members: a descriptor's
+  // serialization is not what makes an in-flight lookup a bad moment to submit,
+  // and a form that saves half-resolved is confusing whichever shape it writes.
+  const resolvingLinks = Object.values(linkSources ?? {}).some(
+    source => source.selected.isLoading,
+  );
+
   // Absent metadata keeps the pre-ADR-0026 behaviour, so an un-migrated call
   // site renders exactly as before. Present metadata is authoritative: it is
   // what the service already decided this caller may do.
@@ -300,7 +313,7 @@ export function EntityForm<TEntity extends Entity>({
               <Button
                 type="button"
                 onClick={() => onSubmit?.(draft)}
-                disabled={busy}
+                disabled={busy || resolvingLinks}
               >
                 {isSaving ? t('form.saving') : t('form.save')}
               </Button>

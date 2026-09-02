@@ -25,5 +25,6 @@ export * from './types/EntityFiltering';
 export * from './types/EntityLoadRequest';
 export * from './types/EntityPage';
 export * from './types/EntitySorting';
+export * from './types/Json';
 export * from './types/StandardSchema';
 export * from './types/UseCase';

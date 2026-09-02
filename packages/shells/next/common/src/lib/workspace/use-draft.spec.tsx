@@ -14,9 +14,10 @@ afterEach(() => {
   useDraftsState.setState({ drafts: {} });
 });
 
-interface Fields {
-  name: string;
-}
+// A `type`, not an `interface`: TypeScript gives an interface no implicit index
+// signature, so it never satisfies `JsonValue` however JSON-shaped it is. See
+// `useDraft`'s note — that is the constraint's one sharp edge.
+type Fields = { name: string };
 
 describe('useDraft', () => {
   it('starts empty, persists edits, and clears', async () => {
