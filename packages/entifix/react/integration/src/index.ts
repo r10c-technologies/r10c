@@ -9,5 +9,6 @@ export * from './hooks/use-entity-use-cases';
 export * from './query/combine-filtering';
 export * from './query/entity-query-key';
 export * from './query/query-provider';
+export * from './reactive/event-source-channel';
 export * from './reactive/reactive-channel';
 export * from './reactive/use-reactive-invalidation';

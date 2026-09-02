@@ -36,6 +36,17 @@ export interface RequestPrincipal {
    * through {@link PolicyDecisionTag}.
    */
   readonly partyRole?: string;
+  /**
+   * When the verified token stops being valid, as a Unix timestamp in seconds.
+   *
+   * Every REST route is already bounded by it implicitly — verification is
+   * stateless, so the next call after expiry simply fails. A **held-open**
+   * response has no next call, so `GET /api/transaction/events` reads it and
+   * closes the connection there (ADR 0036). Absent when the token carries no
+   * `exp`, which a signed one always does; the guard is for the type, not for a
+   * case the fleet produces.
+   */
+  readonly expiresAt?: number;
   readonly attributes: Readonly<Record<string, unknown>>;
 }
 
@@ -62,6 +73,9 @@ const claimsToPrincipal = (claims: TokenClaims): RequestPrincipal => ({
   // Same rule, same reason: it comes from the verified token, never from
   // anything the caller can set on the request.
   partyRole: claims.partyRole,
+  // `TokenClaims` carries an index signature, so `exp` arrives as `unknown`
+  // even though jose always sets it — hence the guard rather than a cast.
+  expiresAt: typeof claims.exp === 'number' ? claims.exp : undefined,
   // Rich/volatile attributes are not in the token; a handler that needs them
   // reads the session store by `sessionId`.
   attributes: {},

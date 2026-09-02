@@ -59,6 +59,20 @@ describe('command envelopes', () => {
     ).toEqual(command);
   });
 
+  // The organization decides which browsers see the events this command emits,
+  // so a caller able to set it could name another tenant's connections.
+  it('drops an organizationId the caller put in the body', () => {
+    const parsed = Effect.runSync(
+      readCommandEnvelope({
+        meta: { type: 'command', entity: 'product' },
+        data: { ...aCommand(), organizationId: 'org-someone-else' },
+      }),
+    );
+
+    expect(parsed.organizationId).toBeUndefined();
+    expect(parsed).toEqual(aCommand());
+  });
+
   it('rejects a body that is not an envelope at all', () => {
     const error = Effect.runSync(
       Effect.flip(readCommandEnvelope({ transactionId: TX })),
@@ -186,6 +200,21 @@ describe('event builders', () => {
         at: AT,
       },
     });
+  });
+
+  // ADR 0036: the stream scopes per connection off this member, so every step
+  // has to carry it — a `failed` that lost it would reach nobody, and the
+  // browser that optimistically rendered the row would never take it back.
+  it('carries the command’s organization onto all three steps', () => {
+    const command = { ...aCommand(), organizationId: 'org-1' };
+
+    expect(
+      [
+        acceptedEvent(command, SOURCE),
+        completedEvent(command, { code: 'p-001', entityId: 'p-1' }, SOURCE),
+        failedEvent(command, 'boom', SOURCE),
+      ].map(event => event.data.organizationId),
+    ).toEqual(['org-1', 'org-1', 'org-1']);
   });
 
   // The whole point of keying on the step as well: one transaction emits three

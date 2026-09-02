@@ -6,7 +6,11 @@ import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
-import { EventSourceTag } from '@r10c/entifix-transactions';
+import {
+  EventSourceTag,
+  makeTransactionStreamHubEffect,
+  TransactionStreamHubTag,
+} from '@r10c/entifix-transactions';
 import {
   AmqpEventBusLayer,
   AmqpHealthProbeLayer,
@@ -156,6 +160,12 @@ export const AppLayer = Layer.unwrapEffect(
         RedisSequenceServiceLayer,
         AmqpEventBusLayer,
         MongoTransactionStoreLayer,
+        // The in-process fan-out behind `GET /api/transaction/events`. Scoped,
+        // so the connections it holds are released with the server, and shared
+        // by the whole process: one bus subscription feeds every browser rather
+        // than a broker queue per open tab, which would be a broker resource a
+        // client controls.
+        Layer.scoped(TransactionStreamHubTag, makeTransactionStreamHubEffect),
       ),
       connections,
     );

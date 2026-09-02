@@ -84,6 +84,36 @@ describe('requirePrincipal', () => {
     });
   });
 
+  // ADR 0036: a held-open response has no next request to fail verification,
+  // so the stream route reads this and closes the connection itself.
+  it('carries the token expiry through to the principal', async () => {
+    await withService(async baseUrl => {
+      const res = await fetch(`${baseUrl}/api/me`, {
+        headers: {
+          Authorization: `Bearer ${JSON.stringify({
+            userId: 'user-1',
+            subject: 'user-1',
+            sessionId: 'session-1',
+            roles: [],
+            exp: 1_800_000_000,
+          } satisfies TokenClaims)}`,
+        },
+      });
+
+      expect(await res.json()).toMatchObject({ expiresAt: 1_800_000_000 });
+    });
+  });
+
+  it('leaves the expiry unset when the token carries no exp', async () => {
+    await withService(async baseUrl => {
+      const res = await fetch(`${baseUrl}/api/me`, {
+        headers: { Authorization: `Bearer ${tokenFor(['admin'])}` },
+      });
+
+      expect(await res.json()).not.toHaveProperty('expiresAt');
+    });
+  });
+
   it('accepts the token from the forwarded cookie too', async () => {
     await withService(async baseUrl => {
       const res = await fetch(`${baseUrl}/api/me`, {

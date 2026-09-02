@@ -871,14 +871,29 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   `auth`-published revocation event and a session→connection index, and is #53's.
   And the server **does not replay**: `Last-Event-ID` is accepted and ignored,
   because answering it from the outbox makes it a per-connection backlog with a
-  retention policy and a second durability contract beside ADR 0028's. Two traps
-  the build must not miss: `createServiceProxyRoute` **buffers the upstream body**,
-  which against `text/event-stream` holds the request open forever and delivers
-  nothing with no error and no timeout; and `GET /api/transaction{,/:id}` carry
-  **no `requirePrincipal` and no organization filter** today — `listRoute` answers
-  every organization's transactions to anyone — so they are guarded in the same
-  commit or the stream's scoping is theatre. Amends ADR 0028 (the payload member;
-  every other decision there stands).
+  retention policy and a second durability contract beside ADR 0028's. Four
+  mechanics from the build, none of them guessable from the record.
+  `createServiceProxyRoute` used to **buffer the upstream body**, which against
+  `text/event-stream` holds the request open forever and delivers nothing with no
+  error and no timeout; it now has a pass-through arm keyed on the content type,
+  and the catch-all route is `dynamic = 'force-dynamic'`. The stream **opens with
+  a `: open` comment**: a chunked response writes its headers with its first
+  chunk, so a stream that stays silent until something happens — which is most of
+  the time, by design — leaves the client in `CONNECTING` indefinitely; measured,
+  `fetch` against the route did not resolve at all without it. `readCommandEnvelope`
+  **drops an `organizationId` the caller sent** and the route stamps the verified
+  one, the `entity.id = params.id` rule again, because the member decides which
+  browsers a write reaches. And a caller with **no** organization gets an empty
+  stream rather than a `409` — the connection is legitimate, there is simply
+  nothing tenant-scoped to send, and failing would leave a vendor who has not
+  picked an organization unable to load the workspace at all. `GET /api/transaction`
+  — unauthenticated, unscoped, `store.list()` over every organization — was
+  **deleted rather than filtered** (#194): nothing called it, and a readable index
+  of what every vendor is creating and what is failing is a surface worth removing.
+  `GET /api/transaction/:id` is guarded and answers **`404`** for another tenant's
+  record, since a distinguishable status makes it an oracle for ids that are also
+  primary keys. Amends ADR 0028 (the payload member; every other decision there
+  stands).
 - **A service will describe its own wiring, and the point is the diff**
   ([ADR 0031](docs/adr/0031-a-service-describes-its-own-wiring.md), Proposed).
   `GET /api/$service` — stores opened, events published, subscriptions bound,

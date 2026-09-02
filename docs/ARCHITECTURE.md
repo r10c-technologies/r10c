@@ -180,7 +180,12 @@ Effect Layers.
 - **the `transaction` slice** (co-deployed into marketplace-admin-service on
   `:3101`; Mongo + RabbitMQ) — passive saga tracker: subscribes to the
   transaction event bus, records each transaction's lifecycle, and flags stalls.
-  `GET /api/transaction/:id` is what a client polls. It owns the `saga` store and
+  `GET /api/transaction/:id` is what a client polls, and
+  `GET /api/transaction/events` is the same facts pushed instead
+  ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)).
+  Both are behind `requirePrincipal` and scoped to the caller's organization; the
+  unfiltered `GET /api/transaction` was deleted rather than filtered, because it
+  answered every organization's transactions to anyone. It owns the `saga` store and
   is therefore a Slice in its own right; sharing a process with
   `marketplace-admin` is a deployment fact, not an ownership one, and its code
   lives together under `apps/marketplace-admin-service/src/saga/` so that
@@ -626,9 +631,15 @@ the outcome, through the relative `rel: 'status'` link the `202` carries. The
 first concrete transaction assigns a unique incremental `code` (`product-001`,
 `category-001`, `brand-001`) to the catalog entities; `INCR`'s atomicity is what
 guarantees uniqueness across service instances. Multi-service sagas are
-deferred (#105); the reactive stream is not — it is
-[ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md), and
-it is server-sent rather than a WebSocket.
+deferred (#105); the reactive stream is not. It is
+[ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md), it is
+server-sent rather than a WebSocket, and it is built: the tracker takes a
+**second** subscription to `transaction.*` in `mode: 'broadcast'` — the first in
+the register, and the consumer ADR 0030 built the mode for, since every replica
+holds different browser connections — feeding an in-process hub that each
+connection reads a filtered view of. A `TransactionEvent` therefore carries
+`organizationId`, stamped by the route from the verified token, and the filter
+**fails closed**: an event carrying none reaches no tenant-scoped connection.
 
 **The client mints the transaction id, and the event ships with the write**
 ([ADR 0028](adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).
@@ -734,8 +745,9 @@ The marketplace-admin frontend has a **browser-like tab workspace** backed by a
 client data layer where **TanStack Query wraps the Entifix use-cases** (it caches
 and orchestrates; the Effect UC/adapter pattern is untouched). Client state lives
 in Zustand + IndexedDB, server state in the query cache, and a framework-free
-`ReactiveChannel` port lets the reactive stream reconcile optimistic writes —
-server-sent, same-origin and scoped per connection
+`ReactiveChannel` port carries the reactive stream — server-sent, same-origin and
+scoped per connection, reached at `/api/admin/transaction/events` through the
+app's own proxy
 ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)). Full
 design: [FRONTEND.md → Workspace tabs](./FRONTEND.md#part-2--workspace-tabs--the-client-data-layer).
 

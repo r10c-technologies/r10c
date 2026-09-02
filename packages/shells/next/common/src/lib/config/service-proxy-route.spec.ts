@@ -37,6 +37,51 @@ afterEach(() => {
 });
 
 describe('createServiceProxyRoute', () => {
+  // The whole point: reading this body to completion holds the request open
+  // forever and delivers nothing, with no error and no timeout (ADR 0036).
+  it('pipes an event stream through instead of buffering it', async () => {
+    const frames = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('id: a\ndata: {}\n\n'));
+        controller.close();
+      },
+    });
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response(frames, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await forward(
+      new Request('http://app.test/api/admin/transaction/events'),
+      params(['transaction', 'events']),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('text/event-stream');
+    // Scoped to one principal, so a cached copy is a cross-account delivery.
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.text()).toBe('id: a\ndata: {}\n\n');
+  });
+
+  it('still rebuilds a JSON body as JSON', async () => {
+    const fetchMock = answering('{"ok":true}', 200, {
+      'content-type': 'application/json',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await forward(
+      new Request('http://app.test/api/admin/product-specification'),
+      params(['product-specification']),
+    );
+
+    expect(response.headers.get('content-type')).toBe('application/json');
+  });
+
   it('forwards the path and query, carrying the cookie as a bearer token', async () => {
     const fetchMock = answering('{"data":[]}', 200);
     vi.stubGlobal('fetch', fetchMock);

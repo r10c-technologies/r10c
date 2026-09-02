@@ -19,7 +19,7 @@ export function useReactiveInvalidation(channel: ReactiveChannel): void {
     () =>
       channel.subscribe(event => {
         void queryClient.invalidateQueries({
-          queryKey: ['entity', event.entity],
+          queryKey: ['entity', event.data.entity],
         });
       }),
     [channel, queryClient],

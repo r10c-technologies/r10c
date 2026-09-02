@@ -50,6 +50,19 @@ export interface ServiceProxyRouteOptions {
  */
 const CACHE_HEADERS = ['etag', 'cache-control', 'vary'] as const;
 
+/**
+ * Whether the upstream answer must be piped rather than rebuilt.
+ *
+ * Reading a `text/event-stream` body to completion holds the request open
+ * forever and delivers nothing — no error, no timeout, and the browser's
+ * `EventSource` sits in `CONNECTING` while the service is happily emitting.
+ * It is the most likely way to build the reactive stream, see silence, and go
+ * looking in the wrong service (ADR 0036).
+ */
+const isStreamed = (upstream: Response): boolean =>
+  upstream.headers.get('content-type')?.startsWith('text/event-stream') ===
+  true;
+
 const passThrough = (upstream: Response): Record<string, string> => {
   const headers: Record<string, string> = {};
   for (const name of CACHE_HEADERS) {
@@ -99,6 +112,20 @@ export const createServiceProxyRoute = ({
     // with a body is no longer a `304`.
     if (upstream.status === 304) {
       return new NextResponse(null, { status: 304, headers: passed });
+    }
+
+    // Piped, never buffered, and never re-typed as JSON: the body is an open
+    // stream of frames, and `no-store` is correctness rather than politeness —
+    // this response is scoped to one principal.
+    if (isStreamed(upstream)) {
+      return new NextResponse(upstream.body, {
+        status: upstream.status,
+        headers: {
+          ...passed,
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-store',
+        },
+      });
     }
 
     // 204s and empty bodies must not be run through `json()`.

@@ -42,6 +42,20 @@ export interface TransactionEvent {
   error?: string;
   /** ISO-8601 emission time. */
   at: string;
+  /**
+   * Whose organization this happened in — the per-connection scoping key for
+   * the reactive stream (ADR 0036).
+   *
+   * In `data` rather than in `meta`, under ADR 0029's rule: `meta` describes the
+   * message, `data` describes the occurrence, and which vendor's catalog a
+   * record was written in is a fact about what happened.
+   *
+   * **Optional, and absence is not a wildcard.** An event carrying no
+   * organization is delivered to no tenant-scoped connection. Defaulting the
+   * other way would make every event emitted before this member existed a
+   * cross-tenant delivery, and it fails silently in the direction that matters.
+   */
+  organizationId?: string;
 }
 
 const now = (): string => new Date().toISOString();
@@ -89,6 +103,7 @@ export const acceptedEvent = (
     state: 'PENDING',
     step: 'accepted',
     at: now(),
+    organizationId: command.organizationId,
   });
 
 export const completedEvent = (
@@ -104,6 +119,7 @@ export const completedEvent = (
     code: outcome.code,
     entityId: outcome.entityId,
     at: now(),
+    organizationId: command.organizationId,
   });
 
 export const failedEvent = (
@@ -118,6 +134,7 @@ export const failedEvent = (
     step: 'failed',
     error: error instanceof Error ? error.message : String(error),
     at: now(),
+    organizationId: command.organizationId,
   });
 
 export type TransactionEventEnvelope = EntifixEnvelope<TransactionEvent>;
