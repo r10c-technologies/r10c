@@ -378,6 +378,39 @@ type: 'link', linkSerialization: 'embedded' })` (default `'id'`) is what decides
   Read-only members are skipped here even though `describeEntityColumns` keeps
   them, because a form shows one and cannot write it. Closes #126; #127
   `makeEntityCrud` stands on it.
+- **Four screen types, and the sidebar's top tier is the type, not the domain**
+  ([ADR 0033](docs/adr/0033-the-screen-taxonomy.md)). **Definiciones** (`master`
+  — you authored the record, no lifecycle, CRUD), **Operaciones** (`operation` —
+  a process made it, it has state, the verbs are domain verbs), **Asistentes**
+  (`wizard` — guided, multi-step, ends), **Consultas** (`report` — aggregate,
+  nothing to edit). `makeEntityCrud` is the generator for `master` **and only**
+  `master`, so a screen that is not Definiciones is not a gap in it — Fiori
+  reached the same split, every floorplan generated except the wizard and the
+  initial page. The rule that keeps the four from dissolving: **"publish" is an
+  action on a `master` screen, not a fifth type** — ADR 0026 gave every entity a
+  way to declare verbs, so a verb as grounds for promotion promotes all of them;
+  and a **worklist** is an `operation` with a default filter bound to the
+  principal, never a type, because a type would put one record class in two nav
+  places. Four things not to re-derive. The **identifiers are English and the
+  copy is Spanish, and three of the four differ** — `query` collides three ways
+  here (RSQL, TanStack Query, `filterable`) and `assistant` reads as an AI agent
+  — so `SCREEN_TYPE_LABEL_KEYS` sits next to the enum in `business-ts-authz`,
+  `shell:`-namespaced copy in a `business:policy` package on purpose, because a
+  second declaration site is the drift `nav.ts` was already merged once to stop.
+  **`Definiciones`, not `Maestros`**: the ERP word needs the ERP background to
+  parse, and `Catálogos`/`Referencias` are both out on live collisions — the
+  product catalog, and `storefront.category.sortByCode` already rendering
+  "Referencia" for a product's code. **`type` is optional and exactly one
+  section may skip it** (the account surface, which is not administrative and
+  carries no permission for the same reason); a second untyped section means the
+  taxonomy is missing a case. And **every contributing shell declares its own**,
+  because `GuardedNavSection` is the only layer a `layer:shell` package and a
+  `layer:app` both reach — this is never an edit in the host, and `visibleNav`
+  must propagate `type` or the tier is unbuildable downstream while every test
+  still passes. Not built yet: the nested rendering (#113, #123), and `TabKind`'s
+  `catalog:`/`entity:`/`system:` prefixes becoming type-derived when #141 makes
+  the registry derive from the nav — renaming them by hand now is work done
+  twice, and a rename abandons whatever tabs a workspace was holding.
 - **A catalog's pages are generated, and the implementation layer is empty
   because of it.** `makeEntityCrud(Ctor, opts)` in **`shells-next-common`** builds
   the list page and the single-record page for one entity and returns a named

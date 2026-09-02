@@ -28,6 +28,18 @@ describe('AUTH_NAV', () => {
     );
   });
 
+  it('types the identity section and leaves the account surface untyped', () => {
+    // ADR 0033. `Cuenta` is the one section entitled to no type: it is the
+    // signed-in person's own account, not a group of administrative screens —
+    // the same reason none of its items carries a permission.
+    const byTitle = new Map(
+      AUTH_NAV.map(section => [section.title, section.type]),
+    );
+
+    expect(byTitle.get('shell:auth.nav.identity')).toBe('master');
+    expect(byTitle.get('shell:auth.nav.accountSection')).toBeUndefined();
+  });
+
   it('names copy in the shared shell namespace', () => {
     // An `app:` key is lint-restricted to `apps/`, so a shell binding one would
     // fail the build — and a second host would have to re-translate.

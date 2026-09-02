@@ -116,6 +116,7 @@ binding record from one that is binding except in three places.
 | [0030](0030-failure-retry-and-quarantine-on-the-bus.md)                              | Failure, retry and quarantine on the bus                                                             | Accepted | 2026-09-01 | —                                                                                                                                                  |
 | [0031](0031-a-service-describes-its-own-wiring.md)                                   | A service describes its own wiring                                                                   | Proposed | 2026-09-01 | —                                                                                                                                                  |
 | [0032](0032-what-may-live-in-an-autosaved-draft.md)                                  | What may live in an autosaved draft                                                                  | Accepted | 2026-09-01 | —                                                                                                                                                  |
+| [0033](0033-the-screen-taxonomy.md)                                                  | The screen taxonomy: Definiciones, Operaciones, Asistentes, Consultas                                | Accepted | 2026-09-01 | —                                                                                                                                                  |
 
 <!-- docs:end adr-index -->
 

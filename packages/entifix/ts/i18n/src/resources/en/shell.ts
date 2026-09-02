@@ -86,6 +86,17 @@ export const shell: EsShell = {
     primary: 'Primary',
     openInWorkspace: 'Open {{label}} in workspace',
     openInWorkspaceShort: 'Open in workspace',
+    /**
+     * The screen taxonomy (ADR 0033). Translated like every other string rather
+     * than kept in Spanish: what that decision fixed was which *Spanish* word
+     * ships to the default locale, not that the term is untranslatable.
+     */
+    screenType: {
+      master: 'Definitions',
+      operation: 'Operations',
+      wizard: 'Wizards',
+      report: 'Reports',
+    },
   },
   sidebar: {
     expand: 'Expand sidebar',

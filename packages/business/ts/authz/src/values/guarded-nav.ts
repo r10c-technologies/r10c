@@ -1,4 +1,5 @@
 import type { Permission } from './permission';
+import type { ScreenType } from './screen-type';
 
 /**
  * A navigation destination plus the permission it requires, if any.
@@ -36,4 +37,19 @@ export interface GuardedNavItem {
 export interface GuardedNavSection {
   title?: string;
   items: GuardedNavItem[];
+  /**
+   * What shape these screens are — the top tier of the sidebar, above the
+   * domain ([ADR 0033](../../../../../../docs/adr/0033-the-screen-taxonomy.md)).
+   *
+   * Every contributing shell declares its own, because this interface is the
+   * only thing a `layer:shell` package and a `layer:app` both reach: adding the
+   * tier is not an edit in the host.
+   *
+   * **Optional, and narrowly so.** A section with no type is not a fifth
+   * category, it is a section that is not a screen group at all — the account
+   * surface is the one case, and it carries no permission for the same reason.
+   * A second untyped section appearing without a written reason means the
+   * taxonomy is missing a case.
+   */
+  type?: ScreenType;
 }

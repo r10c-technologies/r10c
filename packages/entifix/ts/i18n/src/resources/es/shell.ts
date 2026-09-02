@@ -98,6 +98,19 @@ export const shell = {
     primary: 'Principal',
     openInWorkspace: 'Abrir {{label}} en el espacio de trabajo',
     openInWorkspaceShort: 'Abrir en el espacio de trabajo',
+    /**
+     * The screen taxonomy (ADR 0033) — the sidebar's top tier, above the
+     * domain. `Definiciones` rather than `Maestros` because the ERP term needs
+     * the ERP background to parse, and rather than `Catálogos` or `Referencias`
+     * because both already mean something else here: the product catalog, and a
+     * product's code in `storefront.category.sortByCode`.
+     */
+    screenType: {
+      master: 'Definiciones',
+      operation: 'Operaciones',
+      wizard: 'Asistentes',
+      report: 'Consultas',
+    },
   },
   sidebar: {
     expand: 'Expandir barra lateral',

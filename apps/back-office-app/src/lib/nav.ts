@@ -31,6 +31,10 @@ const CATALOG_REFERENCE = 'catalog-reference';
 export const NAV: GuardedNavSection[] = [
   {
     title: 'app:admin.nav.catalog',
+    // Definiciones: the operator authors these, they have no lifecycle, and an
+    // offering references them (ADR 0033). "Publish" arriving on a product is
+    // an action on this screen, not grounds to promote it to Operaciones.
+    type: 'master',
     items: [
       {
         label: 'app:admin.nav.products',
@@ -67,10 +71,17 @@ export const NAV: GuardedNavSection[] = [
   ...AUTH_NAV,
 ];
 
-/** Keep only what `roles` grant, dropping any section left empty. */
+/**
+ * Keep only what `roles` grant, dropping any section left empty.
+ *
+ * `type` rides through untouched. It is the sidebar's top tier (ADR 0033), so a
+ * filter that rebuilt the section without it would leave the tier unbuildable
+ * downstream while every test here still passed.
+ */
 export const visibleNav = (roles: readonly string[]): GuardedNavSection[] =>
   NAV.map(section => ({
     title: section.title,
+    type: section.type,
     items: section.items.filter(
       item => item.permission === undefined || can(roles, item.permission),
     ),

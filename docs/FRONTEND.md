@@ -85,6 +85,56 @@ API and cannot take CSS. Nothing enforces that copy — this package ships no TS
 export a Node script could import — so changing one of those four in a preset
 means changing the seed with it, and bumping `ZITADEL_SEED_REVISION`.
 
+## The screen taxonomy — what shape a new screen takes
+
+Four types, and they are the sidebar's **top tier**, above the domain
+([ADR 0033](./adr/0033-the-screen-taxonomy.md)):
+
+| Rendered         | Identifier  | The record came from | Lifecycle | Verbs        | Examples                                       |
+| ---------------- | ----------- | -------------------- | --------- | ------------ | ---------------------------------------------- |
+| **Definiciones** | `master`    | _you_ authored it    | none      | CRUD         | brand, category, courier, tipo de DTE, channel |
+| **Operaciones**  | `operation` | a _process_ made it  | yes       | domain verbs | order, payment, settlement run, reservation    |
+| **Asistentes**   | `wizard`    | guided, multi-step   | ends      | next/finish  | vendor onboarding, publish an offering         |
+| **Consultas**    | `report`    | nothing — aggregate  | n/a       | read only    | commission reports, settlement summaries       |
+
+`makeEntityCrud` is the generator for **`master`, and only `master`**. A screen
+that is not Definiciones is not a gap in the generator — SAP Fiori reached the
+same split independently: every one of its floorplans is metadata-generated
+except the wizard and the initial page.
+
+The rule that keeps the four from dissolving: **"publish" is an action on a
+`master` screen, not a fifth type.** ADR 0026 gave every entity a way to declare
+verbs, so treating a verb as grounds for promotion to `operation` promotes all of
+them. A **worklist** ("orders awaiting me") is likewise not a type — it is an
+`operation` screen with a default filter bound to the principal, and making it
+one would put a record class in two nav places.
+
+Three things worth not re-deriving:
+
+- **The identifiers are English, the copy is Spanish, and three of the four
+  differ.** `query` was unusable (RSQL, TanStack Query and `filterable` metadata
+  all already mean something by it) and `assistant` reads as an AI agent, so the
+  enum took `report` and `wizard`. `SCREEN_TYPE_LABEL_KEYS`, next to the enum in
+  `business-ts-authz`, is the single place that reconciles them — the names are
+  one vocabulary, and a second declaration site is the drift `nav.ts` was already
+  merged once to stop.
+- **`Definiciones`, not `Maestros`.** The ERP-standard word needs the ERP
+  background to parse. `Catálogos` and `Referencias` are both out on collisions
+  that already exist in this repo: "catálogo" is the product catalog, and
+  `shell:storefront.category.sortByCode` already renders "Referencia" for a
+  product's code.
+- **`type` is optional, and exactly one section may skip it.** The account
+  surface is not a group of administrative screens, which is the same reason none
+  of its items carries a permission. A second untyped section means the taxonomy
+  is missing a case, not that the field is loose.
+
+`GuardedNavSection` carries the type, so **every contributing shell declares its
+own** — that interface is the only layer a `layer:shell` package and a `layer:app`
+both reach, and adding the tier is not an edit in the host. The nested rendering
+itself is not built yet (#113, #123), and `TabKind`'s `catalog:`/`entity:`/
+`system:` prefixes become type-derived when #141 makes the workspace registry
+derive from the nav rather than restating it.
+
 ## Foundations: two scales, one contract
 
 Spacing (`--spacing-3xs…3xl`) and type (`--text-step-xs…4`) keep **one set of
