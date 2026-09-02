@@ -32,6 +32,22 @@ export interface TransactionCommand<TPayload = SerializedEntity> {
   entity: string;
   /** The serialized entity to act on. */
   payload: TPayload;
+  /**
+   * Whose organization this command acts in — **stamped by the route from the
+   * verified token, never read from the wire**.
+   *
+   * {@link readCommandEnvelope} drops whatever a caller sent under this name, so
+   * a client cannot name another tenant by writing one into the body. It is the
+   * same rule the id already follows (`entity.id = params.id`), and the same
+   * rule `requireOrganization` states: the organization comes from the token and
+   * nowhere else.
+   *
+   * Optional because the parser produces a command without it and the route
+   * fills it in a moment later. A command that reaches the engine still carrying
+   * `undefined` emits events that no tenant-scoped stream connection receives —
+   * which is the intended direction to fail (ADR 0036).
+   */
+  organizationId?: string;
 }
 
 export type CommandEnvelope<TPayload = SerializedEntity> = EntifixEnvelope<
@@ -93,6 +109,10 @@ export function readCommandEnvelope<TPayload = SerializedEntity>(
         ),
       );
     }
-    return command;
+    // `organizationId` is deliberately **not** carried over from the parsed
+    // body. Spreading the caller's object here would let a request name another
+    // tenant, which is precisely the scoping the stream depends on.
+    const { organizationId: _ignored, ...trusted } = command;
+    return trusted as TransactionCommand<TPayload>;
   });
 }

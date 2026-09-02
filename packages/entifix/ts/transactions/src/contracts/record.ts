@@ -16,6 +16,15 @@ export interface TransactionRecord {
   error?: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Whose organization this transaction happened in, folded from the event.
+   *
+   * The `saga` store is control-plane and single-partition — it holds every
+   * organization's records by design — so isolation on the read routes has to be
+   * this filter. A record written before the member existed carries none and is
+   * therefore readable by nobody, which is the direction to fail (ADR 0036).
+   */
+  organizationId?: string;
 }
 
 /**

@@ -1,3 +1,4 @@
+import type { DomainEvent, EntityChangeEvent } from '@r10c/entifix-ts-core';
 import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,15 @@ import {
 } from '../query/query-provider.js';
 import { makeInMemoryReactiveChannel } from './reactive-channel.js';
 import { useReactiveInvalidation } from './use-reactive-invalidation.js';
+
+const change = (entity: string): DomainEvent<EntityChangeEvent> => ({
+  name: 'transaction.completed',
+  id: 'txn-1:completed',
+  source: 'marketplace-admin',
+  at: '2026-09-02T00:00:00.000Z',
+  correlationId: 'txn-1',
+  data: { entity, change: 'updated', id: 'w-1' },
+});
 
 describe('useReactiveInvalidation', () => {
   it('invalidates the entity scope when a change event arrives', () => {
@@ -20,7 +30,7 @@ describe('useReactiveInvalidation', () => {
 
     renderHook(() => useReactiveInvalidation(channel), { wrapper });
 
-    channel.emit({ entity: 'widget', change: 'updated', id: 'w-1' });
+    channel.emit(change('widget'));
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['entity', 'widget'] });
   });
@@ -38,7 +48,7 @@ describe('useReactiveInvalidation', () => {
     });
     unmount();
 
-    channel.emit({ entity: 'widget', change: 'updated', id: 'w-1' });
+    channel.emit(change('widget'));
 
     expect(invalidate).not.toHaveBeenCalled();
   });

@@ -418,6 +418,9 @@ importers:
       '@r10c/entifix-react-controls':
         specifier: workspace:*
         version: link:../../packages/entifix/react/controls
+      '@r10c/entifix-react-integration':
+        specifier: workspace:*
+        version: link:../../packages/entifix/react/integration
       '@r10c/entifix-style':
         specifier: workspace:*
         version: link:../../packages/entifix/style
@@ -605,6 +608,9 @@ importers:
       '@r10c/business-ts-authz':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/transactions
     devDependencies:
       '@r10c/business-ts-authn':
         specifier: workspace:*

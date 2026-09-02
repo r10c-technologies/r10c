@@ -44,12 +44,16 @@ export const productSpecificationRoutes = HttpRouter.empty.pipe(
   ),
   HttpRouter.post(
     '/api/product-specification',
-    guarded(ProductSpecification, 'write', () =>
-      createTransactionRoute(ProductSpecification, {
-        key: 'product-specification',
-        sequenceName: 'product-specification',
-        codePrefix: 'product',
-      }),
+    guarded(ProductSpecification, 'write', organizationId =>
+      createTransactionRoute(
+        ProductSpecification,
+        {
+          key: 'product-specification',
+          sequenceName: 'product-specification',
+          codePrefix: 'product',
+        },
+        organizationId,
+      ),
     ),
   ),
   HttpRouter.put(

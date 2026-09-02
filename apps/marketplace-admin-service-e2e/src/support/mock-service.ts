@@ -6,6 +6,11 @@ import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
+import {
+  EventSourceTag,
+  makeTransactionStreamHubEffect,
+  TransactionStreamHubTag,
+} from '@r10c/entifix-transactions';
 import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client';
 import { TokenServiceTag } from '@r10c/entifix-ts-business';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
@@ -22,7 +27,6 @@ import {
   fakeRedisLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import {
-  EventSourceTag,
   makeInMemoryObservabilityLayer,
   MongoTransactionStoreLayer,
   OutboxMaxAttempts,
@@ -110,6 +114,10 @@ const MockAppLayer = (() => {
       RedisLockServiceLayer,
       RedisSequenceServiceLayer,
       AmqpEventBusLayer,
+      // The reactive stream's in-process fan-out. Real, not a stub: the SSE
+      // route resolves it per connection, so a missing layer would fail the
+      // whole router rather than just that route.
+      Layer.scoped(TransactionStreamHubTag, makeTransactionStreamHubEffect),
       // The co-deployed `transaction` slice's store, over the same fake pool.
       // It is here rather than stubbed because the router now serves
       // `/api/transaction` — the tracker is passive, so a broken subscription

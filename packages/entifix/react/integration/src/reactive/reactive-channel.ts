@@ -1,19 +1,20 @@
-import { type EntityId } from '@r10c/entifix-ts-core';
+import type { DomainEvent, EntityChangeEvent } from '@r10c/entifix-ts-core';
 import { Context } from 'effect';
 
-/**
- * A change to an entity that happened on the server, delivered out-of-band
- * (today from an in-memory mock, tomorrow from a WebSocket). The `entity` is the
- * `key ?? name` an adapter routes on — the same string {@link entityQueryScope}
- * uses — so a subscriber can invalidate exactly the affected query keys.
- */
-export interface EntityChangeEvent {
-  entity: string;
-  change: 'created' | 'updated' | 'deleted';
-  id: EntityId;
-}
+export type { EntityChangeEvent };
 
-export type EntityChangeListener = (event: EntityChangeEvent) => void;
+/**
+ * A listener on the reactive stream.
+ *
+ * It receives the whole message, not just the payload: the transaction id, the
+ * emission time and the sequence a consumer needs are `meta.event.correlationId`,
+ * `.at` and `.id`, and duplicating them onto {@link EntityChangeEvent} is how
+ * two sources of one fact drift (ADR 0036). `#137` settles an optimistic write
+ * on the correlation id; `useReactiveInvalidation` reads only `data.entity`.
+ */
+export type EntityChangeListener = (
+  event: DomainEvent<EntityChangeEvent>,
+) => void;
 
 /**
  * The reactive-updates port. Framework-free on purpose (like the OTel tooling):
@@ -36,12 +37,16 @@ export const NoopReactiveChannel: ReactiveChannel = {
 
 export interface InMemoryReactiveChannel extends ReactiveChannel {
   /** Push an event to every current subscriber (drives tests and the mock). */
-  emit(event: EntityChangeEvent): void;
+  emit(event: DomainEvent<EntityChangeEvent>): void;
 }
 
 /**
  * A synchronous in-memory channel: `emit` fans out to every live subscriber.
- * Backs specs and stands in for the real socket while the transport is deferred.
+ *
+ * It backs specs. It is no longer what the workspace runs on — that is
+ * `makeEventSourceReactiveChannel`, and until ADR 0036 landed a transport this
+ * one was mounted in its place, emitting nothing, so a reader of the workspace
+ * could not tell "the transport is missing" from "nothing changed".
  */
 export function makeInMemoryReactiveChannel(): InMemoryReactiveChannel {
   const listeners = new Set<EntityChangeListener>();

@@ -292,6 +292,7 @@ export const createTransactionRoute = <
 >(
   entityConstructor: EntityConstructor<T>,
   options: CatalogHandlerOptions,
+  organizationId: string,
 ) =>
   Effect.gen(function* () {
     const client = yield* MongoClientTag;
@@ -303,7 +304,15 @@ export const createTransactionRoute = <
 
     const request = yield* HttpServerRequest.HttpServerRequest;
     const body = yield* request.json;
-    const command = yield* readCommandEnvelope(body);
+    // Stamped from the verified token, never read from the body —
+    // `readCommandEnvelope` drops whatever the caller sent under this name. It
+    // is what every event this transaction emits is scoped by on the reactive
+    // stream, so a caller able to set it could address another tenant's
+    // connections (ADR 0036).
+    const command = {
+      ...(yield* readCommandEnvelope(body)),
+      organizationId,
+    };
     const { transactionId } = command;
 
     // Tenant databases appear on first write, so the indexes are ensured per
@@ -428,7 +437,7 @@ export const deleteRoute = <T extends Entity>(
 export const guarded = <T extends Entity, A, E, R>(
   entityConstructor: EntityConstructor<T>,
   action: Action,
-  route: () => Effect.Effect<A, E, R>,
+  route: (organizationId: string) => Effect.Effect<A, E, R>,
 ) =>
   requireOrganization(permissionForEntity(entityConstructor, action))(
     organizationId =>
@@ -438,7 +447,9 @@ export const guarded = <T extends Entity, A, E, R>(
         // that a Postgres adapter can satisfy it later; this service knows it
         // provided the Mongo one, which is what the cast records.
         const db = (yield* resolver.forOrganization(organizationId)) as Db;
-        return yield* route().pipe(Effect.provideService(MongoDatabaseTag, db));
+        return yield* route(organizationId).pipe(
+          Effect.provideService(MongoDatabaseTag, db),
+        );
       }).pipe(
         // Each route already maps its own failures; what can still fail here is
         // resolving the tenant handle.

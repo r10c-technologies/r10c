@@ -2,7 +2,9 @@ import {
   EventBusTag,
   type TransactionEvent,
   TransactionStoreTag,
+  TransactionStreamHubTag,
 } from '@r10c/entifix-transactions';
+import type { DomainEvent } from '@r10c/entifix-ts-core';
 import { Duration, Effect } from 'effect';
 
 /**
@@ -50,6 +52,7 @@ const STALE_TIMEOUT_MS = 60_000;
 export const startTracking = Effect.gen(function* () {
   const store = yield* TransactionStoreTag;
   const bus = yield* EventBusTag;
+  const hub = yield* TransactionStreamHubTag;
 
   // Fold each observed event into the persisted record. The handler carries no
   // requirements (store is closed over), so the bus can run it standalone.
@@ -73,6 +76,31 @@ export const startTracking = Effect.gen(function* () {
     },
     event =>
       Effect.asVoid(store.upsertFromEvent(event.data as TransactionEvent)),
+  );
+
+  // The same events again, on a second subscription, feeding the connections
+  // held by `GET /api/transaction/events`.
+  //
+  // **`broadcast`, and it is not interchangeable with the fold above.** Every
+  // replica holds *different* browser connections, so every replica must receive
+  // every event; a `work` queue delivers each one to exactly one replica and the
+  // clients attached to the others silently never learn — which reads as
+  // flakiness rather than as a defect, because nothing errors. This is the
+  // consumer ADR 0030 named by number when it declined to make broadcast the
+  // default, and the first one in the register.
+  //
+  // Two subscriptions on one slice and one pattern do not collide: only a `work`
+  // queue is named (`queueNameFor`), and a broadcast queue is an anonymous
+  // exclusive one that dies with its connection — correct here, since a message
+  // published while a replica restarts has no audience anyway.
+  yield* bus.subscribe(
+    {
+      slice: TRACKER_SLICE,
+      pattern: 'transaction.*',
+      mode: 'broadcast',
+      maxAttempts: MAX_ATTEMPTS,
+    },
+    event => hub.publish(event as DomainEvent<TransactionEvent>),
   );
 
   // Recovery sweep as a detached daemon so it outlives the boot effect.

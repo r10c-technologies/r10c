@@ -690,12 +690,22 @@ Storybook story — and `nx build-storybook` in CI proves that story renders.
 ## 7. Reactive updates (the reactive stream)
 
 A framework-free **`ReactiveChannel` port** (a `Context.Tag`, mirroring the entifix adapter
-philosophy) emits entity-change events. It is mockable today (no transport yet); the transport
-is decided and lands with #136 — **server-sent events** on a plain `GET` through the app's own
-same-origin proxy, scoped per connection to the principal's organization
+philosophy) emits entity-change events. Its transport is **server-sent events** on a plain `GET`
+through the app's own same-origin proxy, scoped per connection to the principal's organization
 ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)). Not a WebSocket:
-the repo's browser traffic is never cross-origin, and a duplex frame has no caller here.
-Events feed the query client:
+`r10c_at` is `httpOnly` and the `WebSocket` constructor accepts no headers, so a socket would
+need a second class of bearer token in client JavaScript — and a duplex frame has no caller here
+anyway.
+
+`makeEventSourceReactiveChannel(url)` is the browser end. It opens **one** `EventSource` on the
+first subscriber and closes it with the last, parses each frame with `readEventEnvelope`, and
+hands listeners the whole `DomainEvent<EntityChangeEvent>` — the correlation id, timestamp and
+sequence live on `meta.event`, not duplicated onto the payload. A frame it cannot read is
+dropped rather than thrown: `onmessage` runs in the browser's event loop, where a throw reaches
+no caller and would take the rest of that delivery's listeners with it. `makeInMemoryReactiveChannel`
+survives, but only as spec material — it is no longer what the workspace runs on.
+
+The workspace mounts it at `/api/admin/transaction/events`. Events feed the query client:
 
 ```
 edit → optimistic patch cache (instant, no spinner)
@@ -809,7 +819,7 @@ aspect-ratio placeholders, PPR, a CI bundle-size budget.
 
 # Deferred (workspace)
 
-The reactive stream's transport (#136, decided in ADR 0036); cross-browser-tab collision sync (BroadcastChannel vs last-write-wins);
+Optimistic mutation and reconnect reconciliation over the stream (#137); cross-browser-tab collision sync (BroadcastChannel vs last-write-wins);
 stale-draft-vs-server conflict resolution on Save; whole-workspace share link; operations/wizards
 tab kinds; server-side TanStack dehydration/prefetch; the to-many link editor
 (`linkCollection`) and an ABAC `canLink` policy behind the picker's use-case seam.

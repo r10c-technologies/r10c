@@ -48,6 +48,9 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
           state: event.state,
           updatedAt: event.at,
         };
+        if (event.organizationId !== undefined) {
+          set.organizationId = event.organizationId;
+        }
         if (event.code !== undefined) set.code = event.code;
         if (event.entityId !== undefined) set.entityId = event.entityId;
         if (event.error !== undefined) set.error = event.error;

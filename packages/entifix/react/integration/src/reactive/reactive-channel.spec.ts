@@ -1,15 +1,20 @@
+import type { DomainEvent, EntityChangeEvent } from '@r10c/entifix-ts-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  type EntityChangeEvent,
   makeInMemoryReactiveChannel,
   NoopReactiveChannel,
 } from './reactive-channel.js';
 
-const event: EntityChangeEvent = {
-  entity: 'widget',
-  change: 'updated',
-  id: 'w-1',
+// The whole message, not the payload alone: the correlation id, the timestamp
+// and the sequence live one level up rather than on the change (ADR 0036).
+const event: DomainEvent<EntityChangeEvent> = {
+  name: 'transaction.completed',
+  id: 'txn-1:completed',
+  source: 'marketplace-admin',
+  at: '2026-09-02T00:00:00.000Z',
+  correlationId: 'txn-1',
+  data: { entity: 'widget', change: 'updated', id: 'w-1' },
 };
 
 describe('NoopReactiveChannel', () => {

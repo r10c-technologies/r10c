@@ -58,7 +58,10 @@ store; it is **co-deployed** into marketplace-admin-service rather than running
 as its own process. That distinction is the point: ownership did not move, only
 the process did, so splitting it back out means pointing its declaration in
 `tools/slices/` at a new app and reclaiming this index — not untangling a
-database. It serves `/api/transaction{,/:id}` on `:3101`, and the catalog's
+database. It serves `/api/transaction/:id` and `/api/transaction/events` on
+`:3101` — both authenticated and organization-scoped since
+[ADR 0036](../adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md) —
+and the catalog's
 `202` link is relative so callers never encoded either arrangement.
 
 ⁵ **Reserved, not bound.** The `order`, `payment`, `settlement`, `stock` and

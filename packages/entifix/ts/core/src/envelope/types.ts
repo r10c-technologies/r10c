@@ -1,6 +1,6 @@
 import type { EntityMetadataDocument } from '../entity-definition/metadata';
 import type { SerializedEntity } from '../entity-definition/serializer';
-import type { Entity } from '../types/Entity';
+import type { Entity, EntityId } from '../types/Entity';
 import type { EntityLoadRequest } from '../types/EntityLoadRequest';
 
 /**
@@ -111,6 +111,27 @@ export interface EntifixEnvelopeMeta {
  */
 export interface DomainEvent<TData = unknown> extends EntifixEventMeta {
   data: TData;
+}
+
+/**
+ * A change to an entity that happened on the server, delivered out-of-band —
+ * the `data` of a bus/stream `event` envelope rather than a framing of its own
+ * (ADR 0036). `entity` is the `key ?? name` an adapter routes on, the same
+ * string `entityQueryScope` uses, so a subscriber can invalidate exactly the
+ * affected query keys.
+ *
+ * It lives in core rather than beside the React `ReactiveChannel` that consumes
+ * it because both ends need it: the service maps a `TransactionEvent` onto it,
+ * and `entifix:react` sits above every layer that does the mapping.
+ *
+ * Deliberately **no** `transactionId`, timestamp or sequence: all three already
+ * exist one level up as `meta.event.correlationId`, `.at` and `.id`, and
+ * duplicating them onto the payload is how two sources of the same fact drift.
+ */
+export interface EntityChangeEvent {
+  entity: string;
+  change: 'created' | 'updated' | 'deleted';
+  id: EntityId;
 }
 
 /**
