@@ -1,12 +1,10 @@
 import type {
   Entity,
   EntityConstructor,
+  EntityDraft,
   EntityLinkSelection,
   StandardSchemaV1,
 } from '@r10c/entifix-ts-core';
-
-/** The whole form value as strings — the shape native inputs round-trip. */
-export type EntityFormValues = Record<string, string>;
 
 export interface UseEntityFormOptions<TEntity extends Entity> {
   /** Metadata source; fields and their validation rules derive from it. */
@@ -22,7 +20,7 @@ export interface UseEntityFormOptions<TEntity extends Entity> {
    * written under an older shape cannot leave a field uncontrolled. See
    * `restoreEntityDraft`.
    */
-  initialValues?: EntityFormValues;
+  initialValues?: EntityDraft;
   /**
    * A Standard Schema (Zod, Valibot, ArkType — anything exposing `~standard`)
    * for the rules metadata cannot express: regex, min/max, cross-field.
@@ -42,14 +40,14 @@ export interface UseEntityFormOptions<TEntity extends Entity> {
    * Extra validation beyond the metadata and schema rules, returning a
    * field-name → message map. Applied last, so it wins on conflict.
    */
-  validate?: (values: EntityFormValues) => Record<string, string>;
+  validate?: (values: EntityDraft) => Record<string, string>;
   /** Called with the draft once it passes validation. */
-  onSubmit: (values: EntityFormValues) => void | Promise<void>;
+  onSubmit: (values: EntityDraft) => void | Promise<void>;
 }
 
 export interface UseEntityFormResult {
   /** The current draft. Feed straight into `EntityForm`'s `values`. */
-  values: EntityFormValues;
+  values: EntityDraft;
   /** Field-name → message, surfaced only after a submit attempt. */
   errors: Record<string, string>;
   /**

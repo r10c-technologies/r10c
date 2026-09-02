@@ -5,6 +5,7 @@ import {
   EntifixLogicError,
   type Entity,
   type EntityAction,
+  type EntityDraft,
   type EntityLinkSource,
   type MetaAccessorType,
   type UseCaseDescriptor,
@@ -28,7 +29,6 @@ import { EntityLinkInput } from '../../molecules/entity-link-input';
 import { LoadingBoundary } from '../../molecules/loading-boundary';
 import { Stack } from '../../molecules/stack';
 import type {
-  EntityFormDraft,
   EntityFormField,
   EntityFormMode,
   EntityFormProps,
@@ -140,7 +140,7 @@ export function EntityForm<TEntity extends Entity>({
   const mode = modeProp ?? internalMode;
   const editing = mode === 'edit';
 
-  const draft: EntityFormDraft = values ?? {};
+  const draft: EntityDraft = values ?? {};
   const setField = (name: string, value: string) =>
     onFieldChange?.(name, value);
 
@@ -421,6 +421,20 @@ function assertLinkSourcesAreEditable<TEntity extends Entity>(
     );
   }
 
+  const owned = sourced
+    .filter(field => field.type === 'composition')
+    .map(field => field.name);
+  if (owned.length > 0) {
+    throw new EntifixLogicError(
+      `EntityForm was given a link source for an owned collection: ${owned.join(', ')}. ` +
+        'A `composition` is not a reference — its rows have no life outside this ' +
+        'record and are never picked from existing ones, so there is nothing for a ' +
+        'picker to look up. The detail grid that edits them is #122.',
+      undefined,
+      { fields: owned },
+    );
+  }
+
   const unpickable = sourced.map(field => `${field.name} (${field.type})`);
   throw new EntifixLogicError(
     `EntityForm was given a link source for a member that cannot hold one: ${unpickable.join(', ')}. ` +
@@ -435,7 +449,7 @@ function assertLinkSourcesAreEditable<TEntity extends Entity>(
 interface FieldRowProps<TEntity extends Entity> {
   field: EntityFormField<TEntity>;
   entity: TEntity | undefined;
-  draft: EntityFormDraft;
+  draft: EntityDraft;
   value: string;
   editing: boolean;
   error: string | undefined;
@@ -481,7 +495,14 @@ function FieldRow<TEntity extends Entity>({
     />
   );
 
-  const isRelation = field.type === 'link' || field.type === 'linkCollection';
+  // Members with no editor of their own here: a to-one `link` whose picker was
+  // never wired, a `linkCollection` (#26) and a `composition` (#122). All three
+  // fall back to the read display, which is honest — a disabled text box
+  // holding `[object Object]` is not.
+  const isRelation =
+    field.type === 'link' ||
+    field.type === 'linkCollection' ||
+    field.type === 'composition';
 
   let control: ReactNode;
   if (!editing) {

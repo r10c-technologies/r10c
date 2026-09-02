@@ -234,6 +234,20 @@ export const entity: EsEntity = {
       buyerId: 'Buyer ID',
       status: 'Status',
       items: 'Lines',
+      /**
+       * One line's members. `items` is a `composition`, so the detail grid
+       * takes its columns from `OrderItem`'s metadata and needs these keys —
+       * nested under the master because a line is not an entity and has no
+       * `@entity({ key })` of its own to hang them off.
+       */
+      item: {
+        offeringId: 'Offering ID',
+        vendorId: 'Vendor ID',
+        quantity: 'Quantity',
+        amount: 'Amount',
+        currency: 'Currency',
+        reservationId: 'Reservation ID',
+      },
       channel: 'Sales channel',
       placedAt: 'Placed at',
     },

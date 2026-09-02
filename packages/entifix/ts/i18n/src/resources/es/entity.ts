@@ -248,6 +248,20 @@ export const entity = {
       buyerId: 'ID de comprador',
       status: 'Estado',
       items: 'Líneas',
+      /**
+       * Los miembros de una línea. `items` es una `composition`, así que la
+       * rejilla de detalle saca sus columnas de la metadata de `OrderItem` y
+       * necesita estas claves — anidadas bajo el maestro porque una línea no
+       * es una entidad y no tiene clave propia.
+       */
+      item: {
+        offeringId: 'ID de oferta',
+        vendorId: 'ID de vendedor',
+        quantity: 'Cantidad',
+        amount: 'Importe',
+        currency: 'Moneda',
+        reservationId: 'ID de reserva',
+      },
       channel: 'Canal de venta',
       placedAt: 'Fecha del pedido',
     },

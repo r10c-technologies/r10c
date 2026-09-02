@@ -66,6 +66,7 @@ interface CellFormatting {
   readonly yes: string;
   readonly no: string;
   readonly enumLabel: (value: string) => string;
+  readonly rowCount: (count: number) => string;
 }
 
 function formatByType(
@@ -94,6 +95,18 @@ function formatByType(
     case 'linkCollection':
       return value instanceof EntityCollectionLink
         ? formatCollectionLink(value, linkLabelProperty)
+        : String(value);
+    case 'scalarCollection':
+      // The same comma list the draft holds, spaced for reading. Not `String`:
+      // an array's own `toString` joins on a bare comma, which reads as one
+      // run-on token in a narrow column.
+      return Array.isArray(value) ? value.join(', ') : String(value);
+    case 'composition':
+      // Owned rows have no useful one-line form — a receipt's lines are not a
+      // sentence — and the master's own screen is where they are read and
+      // edited. So the cell reports the count and stops.
+      return Array.isArray(value)
+        ? formatting.rowCount(value.length)
         : String(value);
     default:
       return String(value);
@@ -139,6 +152,7 @@ export function CellValue({ value, descriptor }: CellValueProps) {
       yes: t('value.yes'),
       no: t('value.no'),
       enumLabel: raw => enumLabel(descriptor, raw),
+      rowCount: count => t('value.rowCount', { count }),
     },
   );
 
@@ -146,5 +160,7 @@ export function CellValue({ value, descriptor }: CellValueProps) {
     return <span className="text-content-muted">{EMPTY}</span>;
   }
 
-  return <span className={NUMERIC_CLASS[descriptor.type] ?? undefined}>{text}</span>;
+  return (
+    <span className={NUMERIC_CLASS[descriptor.type] ?? undefined}>{text}</span>
+  );
 }

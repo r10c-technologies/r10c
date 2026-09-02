@@ -1,11 +1,16 @@
 import {
   accessor,
+  COLLECTION_TYPES,
   describeEntityColumns,
+  EntifixBuildError,
   Entity,
   entity,
   EntityCollectionLink,
   EntityId,
   EntityLink,
+  MetaAccessorType,
+  MetaAccessorTypes,
+  SCALAR_TYPES,
 } from '../../index.js';
 
 @entity({ key: 'brand' })
@@ -311,5 +316,170 @@ describe('describeEntityColumns deduplication', () => {
     const columns = describeEntityColumns(SpecialWidget);
 
     expect(columns.filter(column => column.name === 'label')).toHaveLength(1);
+  });
+});
+
+describe('the accessor-type partition', () => {
+  /**
+   * Nothing in the repo guards `MetaAccessorType` exhaustively: every switch
+   * over it — `coerceValue`, `formatByType`, `coerceFieldValue` — carries a
+   * `default` that treats the value as a string. So an eleventh type would
+   * compile, render as `String(value)` and be silently unqueryable-by-accident
+   * rather than by decision.
+   *
+   * This is what makes that impossible. Adding a type without classifying it
+   * fails here, and the classification is the thing every other site reads.
+   */
+  it('classifies every declared type exactly once', () => {
+    const REFERENCE_TYPES: MetaAccessorType[] = ['id', 'link'];
+    const classified = [
+      ...SCALAR_TYPES,
+      ...COLLECTION_TYPES,
+      ...REFERENCE_TYPES,
+    ];
+
+    expect([...classified].sort()).toEqual([...MetaAccessorTypes].sort());
+    expect(new Set(classified).size).toBe(classified.length);
+  });
+
+  it('defaults every collection to unqueryable', () => {
+    @entity({ key: 'basket' })
+    class Basket implements Entity {
+      #id?: EntityId;
+      #tags: readonly string[] = [];
+      #lines: readonly object[] = [];
+
+      @accessor({ type: 'id' })
+      get id(): EntityId {
+        return this.#id;
+      }
+      set id(value: EntityId) {
+        this.#id = value;
+      }
+
+      @accessor({ type: 'scalarCollection' })
+      get tags(): readonly string[] {
+        return this.#tags;
+      }
+      set tags(value: readonly string[]) {
+        this.#tags = value;
+      }
+
+      @accessor({ type: 'composition', childType: () => Brand })
+      get lines(): readonly object[] {
+        return this.#lines;
+      }
+      set lines(value: readonly object[]) {
+        this.#lines = value;
+      }
+    }
+
+    const columns = describeEntityColumns(Basket);
+    const tags = columns.find(column => column.name === 'tags');
+    const lines = columns.find(column => column.name === 'lines');
+
+    expect(tags).toMatchObject({ sortable: false, filterable: false });
+    expect(lines).toMatchObject({ sortable: false, filterable: false });
+  });
+
+  it('resolves a composition child constructor from its thunk', () => {
+    @entity({ key: 'crate' })
+    class Crate implements Entity {
+      #id?: EntityId;
+      #lines: readonly object[] = [];
+
+      @accessor({ type: 'id' })
+      get id(): EntityId {
+        return this.#id;
+      }
+      set id(value: EntityId) {
+        this.#id = value;
+      }
+
+      @accessor({ type: 'composition', childType: () => Brand })
+      get lines(): readonly object[] {
+        return this.#lines;
+      }
+      set lines(value: readonly object[]) {
+        this.#lines = value;
+      }
+    }
+
+    const lines = describeEntityColumns(Crate).find(
+      column => column.name === 'lines',
+    );
+
+    expect(lines?.childType).toBe(Brand);
+    // The child is described by the very same walk — that is the whole
+    // mechanism, and the reason a child needs no `@entity()` and no `id`.
+    expect(describeEntityColumns(lines?.childType ?? Brand)).not.toHaveLength(
+      0,
+    );
+  });
+
+  it.each([
+    ['sortable', { type: 'scalarCollection', sortable: true }],
+    ['filterable', { type: 'composition', filterable: true }],
+  ] as const)('throws when a collection is declared %s', (_which, options) => {
+    @entity({ key: 'bad-bag' })
+    class BadBag implements Entity {
+      #id?: EntityId;
+      #many: readonly string[] = [];
+
+      @accessor({ type: 'id' })
+      get id(): EntityId {
+        return this.#id;
+      }
+      set id(value: EntityId) {
+        this.#id = value;
+      }
+
+      @accessor(options)
+      get many(): readonly string[] {
+        return this.#many;
+      }
+      set many(value: readonly string[]) {
+        this.#many = value;
+      }
+    }
+
+    expect(() => describeEntityColumns(BadBag)).toThrow(EntifixBuildError);
+  });
+
+  /**
+   * There is deliberately no inference for either collection type: an empty
+   * array is indistinguishable from an empty `string[]`, so guessing would be
+   * wrong exactly when a record has no rows yet. A collection must be declared,
+   * and an undeclared array member keeps the old `string` fallback rather than
+   * silently changing shape.
+   */
+  it('does not infer a collection from a sample', () => {
+    @entity({ key: 'sack' })
+    class Sack implements Entity {
+      #id?: EntityId;
+      #things: readonly string[] = ['a'];
+
+      @accessor({ type: 'id' })
+      get id(): EntityId {
+        return this.#id;
+      }
+      set id(value: EntityId) {
+        this.#id = value;
+      }
+
+      @accessor()
+      get things(): readonly string[] {
+        return this.#things;
+      }
+      set things(value: readonly string[]) {
+        this.#things = value;
+      }
+    }
+
+    const things = describeEntityColumns(Sack, new Sack()).find(
+      column => column.name === 'things',
+    );
+
+    expect(things?.type).toBe('string');
   });
 });

@@ -1,5 +1,6 @@
 import { EntifixLogicError } from '../../../base-entities/entifix-error';
 import { Entity, EntityId } from '../../../types/Entity';
+import { EntityDraft } from '../../../types/EntityDraft';
 import { EntityFieldDescriptor } from '../../describe';
 import { EntityLink } from '../entity-link';
 
@@ -18,9 +19,6 @@ import { EntityLink } from '../entity-link';
  * {@link applyEntityLinks} throws rather than write the wrong wire shape.
  */
 export type EntityLinkSelection = Record<string, Entity | undefined>;
-
-/** A draft value, as the string a native input round-trips. */
-export type EntityLinkDraft = Record<string, string>;
 
 /**
  * Writes a draft's relations onto a freshly built entity, following each
@@ -45,7 +43,7 @@ export type EntityLinkDraft = Record<string, string>;
 export function applyEntityLinks<TEntity extends Entity>(
   instance: TEntity,
   descriptors: readonly EntityFieldDescriptor[],
-  values: EntityLinkDraft,
+  values: EntityDraft,
   selection: EntityLinkSelection = {},
 ): void {
   for (const descriptor of descriptors) {

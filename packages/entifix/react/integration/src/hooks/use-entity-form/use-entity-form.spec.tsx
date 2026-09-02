@@ -4,6 +4,7 @@ import {
   type Entity,
   entity,
   EntityCollectionLink,
+  type EntityDraft,
   type EntityId,
   EntityLink,
   type StandardSchemaV1,
@@ -22,7 +23,6 @@ import {
   validateEntityDraft,
 } from './use-entity-form.helpers';
 import { useEntityForm } from './use-entity-form.js';
-import type { EntityFormValues } from './use-entity-form.types';
 
 @entity({ key: 'gadget-brand' })
 class GadgetBrand implements Entity {
@@ -56,6 +56,8 @@ class Gadget implements Entity {
   #sku?: string;
   #brand = new EntityLink(GadgetBrand);
   #tags = new EntityCollectionLink(GadgetBrand);
+  #labels: readonly string[] = [];
+  #lines: readonly object[] = [];
 
   @accessor({ type: 'id', hidden: true })
   get id(): EntityId {
@@ -111,6 +113,26 @@ class Gadget implements Entity {
   get tags(): EntityCollectionLink<GadgetBrand> {
     return this.#tags;
   }
+
+  @accessor({ type: 'scalarCollection', label: 'Labels' })
+  get labels(): readonly string[] {
+    return this.#labels;
+  }
+  set labels(value: readonly string[]) {
+    this.#labels = value;
+  }
+
+  @accessor({
+    type: 'composition',
+    label: 'Lines',
+    childType: () => GadgetBrand,
+  })
+  get lines(): readonly object[] {
+    return this.#lines;
+  }
+  set lines(value: readonly object[]) {
+    this.#lines = value;
+  }
 }
 
 @entity({ key: 'widget' })
@@ -155,6 +177,8 @@ function makeGadget(): Gadget {
   gadget.releasedAt = new Date('2026-07-20T00:00:00.000Z');
   gadget.brand.setId('brand-1');
   gadget.tags.setIds(['t-1', 't-2']);
+  gadget.labels = ['a', 'b'];
+  gadget.lines = [{ sku: 'x' }];
   return gadget;
 }
 
@@ -187,6 +211,24 @@ describe('seedFieldValue', () => {
     expect(seedFieldValue(byName('releasedAt'), makeGadget())).toBe(
       '2026-07-20',
     );
+  });
+
+  /**
+   * The join is declared rather than left to `String(raw)`, which produced the
+   * same characters by way of `Array.prototype.toString` while
+   * `reconstructEntity` handed them back as one string. Both halves were wrong
+   * in the same direction, so the round-trip spec could not see it.
+   */
+  it('seeds a scalar collection as a comma list', () => {
+    expect(seedFieldValue(byName('labels'), makeGadget())).toBe('a,b');
+  });
+
+  /**
+   * Owned rows have no string form and no editor yet (#122), so the field seeds
+   * empty rather than with `[object Object]`.
+   */
+  it('seeds an owned collection as empty', () => {
+    expect(seedFieldValue(byName('lines'), makeGadget())).toBe('');
   });
 });
 
@@ -327,13 +369,13 @@ describe('validateEntityDraft', () => {
  */
 function schemaOf(
   issues: readonly StandardSchemaV1Issue[],
-): StandardSchemaV1<EntityFormValues> {
+): StandardSchemaV1<EntityDraft> {
   return {
     '~standard': {
       version: 1,
       vendor: 'spec',
       validate: value =>
-        issues.length === 0 ? { value: value as EntityFormValues } : { issues },
+        issues.length === 0 ? { value: value as EntityDraft } : { issues },
     },
   };
 }
@@ -416,7 +458,7 @@ describe('composeEntityFormErrors', () => {
   );
 
   it('refuses an async schema instead of passing it silently', () => {
-    const asyncSchema: StandardSchemaV1<EntityFormValues> = {
+    const asyncSchema: StandardSchemaV1<EntityDraft> = {
       '~standard': {
         version: 1,
         vendor: 'spec',
@@ -497,7 +539,7 @@ describe('useEntityForm', () => {
         entity: makeGadget(),
         // What a draft written by an older shape can hold: the store guarantees
         // JSON, not this form's own type.
-        initialValues: { code: 42 } as unknown as EntityFormValues,
+        initialValues: { code: 42 } as unknown as EntityDraft,
         onSubmit: vi.fn(),
       }),
     );

@@ -144,6 +144,26 @@ function buildEntityInstance<TEntity extends Entity>(
         return;
       }
 
+      // Owned rows are rebuilt through the child's own accessors, the mirror of
+      // what `serializeEntity` wrote. Without this the member would hold plain
+      // objects while its declared type says otherwise — and a child whose
+      // accessor carries an `alias` would keep the storage column name as its
+      // property, which is exactly the mapping layer the serializer exists to
+      // remove.
+      if (metaAccessor.type === 'composition' && metaAccessor.childType) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rows = (entityData as any)[propertyName];
+        if (Array.isArray(rows)) {
+          const childType =
+            metaAccessor.childType() as EntityConstructor<Entity>;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (newInstance as any)[metaAccessor.name] = rows.map(row =>
+            buildEntityInstance(childType, row as object),
+          );
+        }
+        return;
+      }
+
       if (
         propertyName in entityData &&
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

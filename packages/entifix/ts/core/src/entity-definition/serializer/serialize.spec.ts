@@ -130,3 +130,120 @@ describe('serializeEntity', () => {
       });
     }));
 });
+
+/**
+ * A child of a `composition`: a **value**, so no `@entity()` and no `id`. It is
+ * described entirely by its accessors, which is what lets one walk serialize an
+ * entity and one row of the collection it owns.
+ */
+class Line {
+  #sku: string;
+  #quantity: number;
+
+  constructor(sku = '', quantity = 0) {
+    this.#sku = sku;
+    this.#quantity = quantity;
+  }
+
+  @accessor({ type: 'string' })
+  get sku(): string {
+    return this.#sku;
+  }
+  set sku(value: string) {
+    this.#sku = value;
+  }
+
+  @accessor({ type: 'number', alias: 'qty' })
+  get quantity(): number {
+    return this.#quantity;
+  }
+  set quantity(value: number) {
+    this.#quantity = value;
+  }
+}
+
+@entity({ key: 'invoice' })
+class Invoice implements Entity {
+  #id?: EntityId;
+  #lines: readonly Line[] = [];
+
+  @accessor({ type: 'id' })
+  get id(): EntityId {
+    return this.#id;
+  }
+  set id(value: EntityId) {
+    this.#id = value;
+  }
+
+  @accessor({ type: 'composition', childType: () => Line })
+  get lines(): readonly Line[] {
+    return this.#lines;
+  }
+  set lines(value: readonly Line[]) {
+    this.#lines = value;
+  }
+}
+
+describe('composition members', () => {
+  /**
+   * The whole reason the serializer had to learn about `composition`: a child's
+   * state lives in its private fields, so passing the array through untouched
+   * writes `[{}, {}]` and the rows never persist.
+   */
+  it('flattens each row through the child’s accessors', () => {
+    const invoice = new Invoice();
+    invoice.id = 'inv-1';
+    invoice.lines = [new Line('SKU-1', 2), new Line('SKU-2', 5)];
+
+    expect(serializeEntity(Invoice, invoice)).toEqual({
+      id: 'inv-1',
+      // `qty`, not `quantity` — a child's `alias` is its column name exactly as
+      // an entity's is, which is what keeps the mapping layer non-existent.
+      lines: [
+        { sku: 'SKU-1', qty: 2 },
+        { sku: 'SKU-2', qty: 5 },
+      ],
+    });
+  });
+
+  it('serializes a row that never went through the deserializer', () => {
+    const invoice = new Invoice();
+    // A fixture or a hand-built command payload: plain data, same document.
+    invoice.lines = [{ sku: 'SKU-3', quantity: 1 } as Line];
+
+    expect(serializeEntity(Invoice, invoice)).toEqual({
+      lines: [{ sku: 'SKU-3', qty: 1 }],
+    });
+  });
+
+  it('round-trips owned rows back into children', () =>
+    Effect.runPromise(
+      deserializeSingleEntity(Invoice, {
+        id: 'inv-2',
+        lines: [{ sku: 'SKU-9', qty: 3 }],
+      }),
+    ).then(instance => {
+      const invoice = instance as Invoice;
+
+      expect(invoice.lines[0]).toBeInstanceOf(Line);
+      expect(invoice.lines[0]?.quantity).toBe(3);
+      expect(serializeEntity(Invoice, invoice)).toEqual({
+        id: 'inv-2',
+        lines: [{ sku: 'SKU-9', qty: 3 }],
+      });
+    }));
+
+  it('leaves a composition alone when the stored value is not an array', () =>
+    Effect.runPromise(
+      deserializeSingleEntity(Invoice, { id: 'inv-3', lines: 'nonsense' }),
+    ).then(instance => {
+      expect((instance as Invoice).lines).toEqual([]);
+    }));
+
+  it('passes a non-array through on the way out', () => {
+    const invoice = new Invoice();
+    invoice.lines = 'nonsense' as unknown as readonly Line[];
+
+    expect(serializeEntity(Invoice, invoice)).toEqual({ lines: 'nonsense' });
+  });
+});

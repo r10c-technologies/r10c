@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  type EntityCrudDraft,
+  type EntityDraft,
   useDraft,
   useTabEntityNav,
 } from '@r10c/shells-next-common';
@@ -33,7 +33,7 @@ export function isEntityEditorKey(value: string): value is EntityEditorKey {
  */
 function ProductEditorTab({ id }: { id: string }) {
   const nav = useTabEntityNav();
-  const { draft, setDraft, clearDraft } = useDraft<EntityCrudDraft>(
+  const { draft, setDraft, clearDraft } = useDraft<EntityDraft>(
     `entity:product-specification:${id}`,
   );
 

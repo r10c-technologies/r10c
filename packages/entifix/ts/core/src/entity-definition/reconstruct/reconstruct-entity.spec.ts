@@ -361,3 +361,66 @@ describe('reconstructEntity', () => {
     expect(result.id).toBeUndefined();
   });
 });
+
+describe('collections', () => {
+  @entity({ key: 'hamper' })
+  class Hamper implements Entity {
+    #id?: EntityId;
+    #tags: readonly string[] = ['seeded'];
+    #lines: readonly object[] = [{ sku: 'a' }];
+
+    @accessor({ type: 'id' })
+    get id(): EntityId {
+      return this.#id;
+    }
+    set id(value: EntityId) {
+      this.#id = value;
+    }
+
+    @accessor({ type: 'scalarCollection' })
+    get tags(): readonly string[] {
+      return this.#tags;
+    }
+    set tags(value: readonly string[]) {
+      this.#tags = value;
+    }
+
+    @accessor({ type: 'composition', childType: () => Brand })
+    get lines(): readonly object[] {
+      return this.#lines;
+    }
+    set lines(value: readonly object[]) {
+      this.#lines = value;
+    }
+  }
+
+  it('splits a scalar collection back out of its comma list', () => {
+    const rebuilt = reconstructEntity(Hamper, { tags: 'red,green,blue' });
+
+    expect(rebuilt.tags).toEqual(['red', 'green', 'blue']);
+  });
+
+  /**
+   * Empty means "no values", not "not set". Falling into the blanket
+   * empty-string rule would write `undefined` over a member the entity declares
+   * as an array, so a `required` check would then be judging the wrong thing —
+   * the same class of ordering bug as `boolean` and `number`.
+   */
+  it('reads a cleared scalar collection as empty, never undefined', () => {
+    const rebuilt = reconstructEntity(Hamper, { tags: '' });
+
+    expect(rebuilt.tags).toEqual([]);
+  });
+
+  /**
+   * A composition has no editor yet (#122), so a draft never holds its rows.
+   * Writing the member anyway would blank a record's own lines on every save of
+   * an unrelated field — which is why it is excluded from the scalar walk
+   * rather than coerced to something.
+   */
+  it('leaves an owned collection untouched', () => {
+    const rebuilt = reconstructEntity(Hamper, { lines: '' });
+
+    expect(rebuilt.lines).toEqual([{ sku: 'a' }]);
+  });
+});

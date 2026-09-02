@@ -61,12 +61,10 @@ export class Entitlement implements Entity {
     this.#organizationId = value;
   }
 
-  /** A string array, unsortable and unfilterable — see `Membership.roleIds`. */
+  /** A `scalarCollection`, never queryable — see `Membership.roleIds`. */
   @accessor({
-    type: 'string',
+    type: 'scalarCollection',
     labelKey: 'entity:entitlement.fields.domains',
-    sortable: false,
-    filterable: false,
   })
   get domains(): readonly string[] {
     return this.#domains;

@@ -6,13 +6,13 @@ import {
   type EntifixError,
   type Entity,
   type EntityConstructor,
+  type EntityDraft,
   reconstructEntity,
 } from '@r10c/entifix-ts-core';
 import { useEffect } from 'react';
 
 import type {
   EntityCatalogKey,
-  EntityCrudDraft,
   EntityCrudLinkSource,
 } from './make-entity-crud.types';
 import { useEntityLinkSources } from './use-entity-link-sources';
@@ -32,8 +32,8 @@ export interface EntityCrudFormProps<TEntity extends Entity> {
   /** Omitted for a create — there is nothing to delete yet. */
   readonly onDelete?: () => void;
   readonly backHref: string;
-  readonly initialDraft?: EntityCrudDraft;
-  readonly onDraftChange?: (draft: EntityCrudDraft) => void;
+  readonly initialDraft?: EntityDraft;
+  readonly onDraftChange?: (draft: EntityDraft) => void;
 }
 
 /**

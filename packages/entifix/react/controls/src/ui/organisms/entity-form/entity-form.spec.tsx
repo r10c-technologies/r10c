@@ -5,6 +5,7 @@ import {
   type Entity,
   entity,
   EntityCollectionLink,
+  type EntityDraft,
   type EntityId,
   EntityLink,
   type EntityLinkSource,
@@ -16,11 +17,7 @@ import { type ReactNode, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { EntityForm } from './entity-form';
-import type {
-  EntityFormDraft,
-  EntityFormField,
-  EntityFormProps,
-} from './entity-form.types';
+import type { EntityFormField, EntityFormProps } from './entity-form.types';
 import { EntityField } from './entity-form-slots';
 import { resolveEntityFormFields } from './use-entity-form-fields';
 
@@ -117,6 +114,7 @@ class GadgetBundle implements Entity {
   #id?: EntityId;
   #brand = new EntityLink(GadgetBrand);
   #tags = new EntityCollectionLink(GadgetBrand);
+  #lines: readonly object[] = [];
 
   @accessor({ type: 'id', label: 'ID', hidden: true })
   get id(): EntityId {
@@ -134,6 +132,18 @@ class GadgetBundle implements Entity {
   @accessor({ type: 'linkCollection', label: 'Tags' })
   get tags(): EntityCollectionLink<GadgetBrand> {
     return this.#tags;
+  }
+
+  @accessor({
+    type: 'composition',
+    label: 'Lines',
+    childType: () => GadgetBrand,
+  })
+  get lines(): readonly object[] {
+    return this.#lines;
+  }
+  set lines(value: readonly object[]) {
+    this.#lines = value;
   }
 }
 
@@ -158,10 +168,10 @@ function Harness({
   children,
   ...props
 }: Partial<EntityFormProps<Gadget>> & {
-  initial?: EntityFormDraft;
+  initial?: EntityDraft;
   children?: ReactNode;
 }) {
-  const [values, setValues] = useState<EntityFormDraft>(initial);
+  const [values, setValues] = useState<EntityDraft>(initial);
   return (
     <EntityForm<Gadget>
       entityConstructor={Gadget}
@@ -461,6 +471,22 @@ describe('EntityForm', () => {
           />,
         ),
       ).toThrow(EntifixLogicError);
+    });
+
+    // A composition is not a reference at all: its rows have no life outside
+    // the record and are never picked from existing ones, so there is nothing
+    // for a lookup to search. The message has to say that rather than repeat
+    // the to-many one, or the caller goes looking for the editor that is coming.
+    it('refuses a source aimed at an owned collection', () => {
+      expect(() =>
+        render(
+          <EntityForm<GadgetBundle>
+            entityConstructor={GadgetBundle}
+            mode="edit"
+            linkSources={{ lines: brandSource() }}
+          />,
+        ),
+      ).toThrow(/owned collection/);
     });
 
     // A foreign key into another slice's store cannot be a typed `link` — the

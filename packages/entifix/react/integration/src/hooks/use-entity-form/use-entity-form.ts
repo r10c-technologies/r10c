@@ -3,6 +3,7 @@
 import {
   describeEntityColumns,
   type Entity,
+  type EntityDraft,
   type EntityLinkSelection,
   seedEntityLinkSelection,
 } from '@r10c/entifix-ts-core';
@@ -18,7 +19,6 @@ import {
   seedEntityDraft,
 } from './use-entity-form.helpers';
 import type {
-  EntityFormValues,
   UseEntityFormOptions,
   UseEntityFormResult,
 } from './use-entity-form.types';
@@ -130,7 +130,7 @@ export function useEntityForm<TEntity extends Entity>({
     // behaviour the hand-rolled `submitted` flag used to produce.
     validationLogic: revalidateLogic(),
     validators: {
-      onDynamic: ({ value }: { value: EntityFormValues }) => {
+      onDynamic: ({ value }: { value: EntityDraft }) => {
         const { fields, form } = composeEntityFormErrors({
           descriptors,
           values: value,

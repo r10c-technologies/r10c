@@ -263,4 +263,38 @@ describe('CellValue', () => {
       expect(screen.getByText('b-1')).toBeInTheDocument();
     });
   });
+
+  describe('collections', () => {
+    it('joins a scalar collection for reading', () => {
+      renderCell(['red', 'green'], 'scalarCollection');
+
+      // Spaced, unlike the comma list the draft holds: `String(['a','b'])`
+      // reads as one run-on token in a narrow column.
+      expect(screen.getByText('red, green')).toBeInTheDocument();
+    });
+
+    it('falls back to the raw text when a scalar collection is not an array', () => {
+      renderCell('red', 'scalarCollection');
+
+      expect(screen.getByText('red')).toBeInTheDocument();
+    });
+
+    /**
+     * Owned rows have no useful one-line form — a receipt's lines are not a
+     * sentence — and they are read on the master's own screen, so the cell
+     * reports the count and stops.
+     */
+    it('reports how many rows an owned collection holds', () => {
+      renderCell([{ sku: 'a' }, { sku: 'b' }], 'composition');
+
+      // Spanish is the default locale; the count drives the plural form.
+      expect(screen.getByText('2 filas')).toBeInTheDocument();
+    });
+
+    it('falls back to the raw text when a composition is not an array', () => {
+      renderCell('nope', 'composition');
+
+      expect(screen.getByText('nope')).toBeInTheDocument();
+    });
+  });
 });

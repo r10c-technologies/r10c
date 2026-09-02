@@ -76,21 +76,26 @@ export class Membership implements Entity {
   }
 
   /**
-   * `MetaAccessorTypes` is a presentation taxonomy of scalars plus the two link
-   * kinds; a plain array of ids is none of them. It is declared `string` — the
-   * element type — with sorting and filtering switched **off**, because member
-   * metadata is also the server-side query allowlist and an array compared as a
-   * string would silently match nothing.
+   * A **`scalarCollection`**: an array of ids, with no child shape of its own
+   * ([ADR 0034](../../../../../../docs/adr/0034-composition-metadata.md)). It
+   * used to be declared `string` — the element type — because the taxonomy
+   * could not say "many of these"; the cost was that a form seeded it through
+   * `Array.prototype.toString` and handed the same string back untouched, so
+   * saving an unedited record turned the array into one comma-joined id.
+   *
+   * Sorting and filtering are off by construction, not by declaration:
+   * `describeEntityColumns` defaults every collection to unqueryable and
+   * throws on a declaration that says otherwise, because member metadata is
+   * also the server-side query allowlist and an array compared as a string
+   * silently matches nothing.
    *
    * Note `hidden` would be the wrong tool here: it drops a member from
    * serialization *and* deserialization, exactly as `readonly` does, so the
    * roles would never reach storage.
    */
   @accessor({
-    type: 'string',
+    type: 'scalarCollection',
     labelKey: 'entity:membership.fields.roleIds',
-    sortable: false,
-    filterable: false,
   })
   get roleIds(): readonly string[] {
     return this.#roleIds;

@@ -1,8 +1,9 @@
-import { Entity, EntityConstructor } from '../../types/Entity';
+import { EntifixBuildError } from '../../base-entities/entifix-error';
 import { extractMetaAccessors } from '../helpers';
 import { EntityCollectionLink } from '../links/entity-collection-link';
 import { EntityLink } from '../links/entity-link';
 import {
+  type ChildConstructor,
   type EntityLinkSerialization,
   MetaAccessor,
   MetaAccessorType,
@@ -44,15 +45,39 @@ export interface EntityFieldDescriptor {
   linkSearchProperty: string;
   /** Whether a `link` writes back its foreign key or the inlined target. */
   linkSerialization: EntityLinkSerialization;
+  /**
+   * The class describing one row of a `composition` member, resolved from the
+   * accessor's thunk. Absent on every other type.
+   */
+  childType?: ChildConstructor;
 }
 
 /** Types whose values are scalars a user can meaningfully sort/filter on. */
-const SCALAR_TYPES: readonly MetaAccessorType[] = [
+export const SCALAR_TYPES: readonly MetaAccessorType[] = [
   'string',
   'number',
   'boolean',
   'date',
   'enum',
+];
+
+/**
+ * Types whose value is a collection. None of them may ever be sorted or
+ * filtered: this descriptor is also the **server-side RSQL allowlist**, and an
+ * array compared as a scalar matches nothing — so the query would not fail, it
+ * would quietly return an empty page.
+ *
+ * Exported so `describe-entity-columns.spec.ts` can assert that this list,
+ * {@link SCALAR_TYPES} and the two reference types partition
+ * `MetaAccessorTypes` exactly. Nothing in the repo guards `MetaAccessorType`
+ * exhaustively — every switch over it has a `default` that treats the value as
+ * a string — so that partition spec is what makes an eleventh type impossible
+ * to add silently.
+ */
+export const COLLECTION_TYPES: readonly MetaAccessorType[] = [
+  'linkCollection',
+  'composition',
+  'scalarCollection',
 ];
 
 /** `productCode` / `product-code` / `product_code` → `Product Code`. */
@@ -80,6 +105,27 @@ function inferType(name: string, value: unknown): MetaAccessorType {
   return 'string';
 }
 
+/**
+ * A collection member declared queryable is always a mistake, so it breaks the
+ * developer rather than the query — the same posture as `applyEntityLinks`
+ * throwing on an `embedded` link it cannot build.
+ *
+ * Silently clamping to `false` was the alternative and is worse: the author
+ * keeps a declaration that reads as honoured, and the symptom is an empty
+ * result page rather than an error anyone can act on.
+ */
+function assertNotQueryable(
+  metaAccessor: MetaAccessor,
+  type: MetaAccessorType,
+) {
+  if (!COLLECTION_TYPES.includes(type)) return;
+  if (metaAccessor.sortable !== true && metaAccessor.filterable !== true)
+    return;
+  throw new EntifixBuildError(
+    `"${String(metaAccessor.name)}" is a ${type} and cannot be sortable or filterable — member metadata is the server-side query allowlist, and a collection compared as a scalar matches nothing.`,
+  );
+}
+
 function toDescriptor(
   metaAccessor: MetaAccessor,
   index: number,
@@ -89,6 +135,7 @@ function toDescriptor(
   const type =
     metaAccessor.type ??
     inferType(name, (sample as Record<string, unknown> | undefined)?.[name]);
+  assertNotQueryable(metaAccessor, type);
   const isScalar = SCALAR_TYPES.includes(type);
   const linkLabelProperty = metaAccessor.linkLabelProperty ?? 'name';
 
@@ -108,6 +155,7 @@ function toDescriptor(
     linkLabelProperty,
     linkSearchProperty: metaAccessor.linkSearchProperty ?? linkLabelProperty,
     linkSerialization: metaAccessor.linkSerialization ?? 'id',
+    childType: metaAccessor.childType?.(),
   };
 }
 
@@ -121,10 +169,16 @@ function toDescriptor(
  *
  * `sample` is an optional instance used only to infer the `type` of accessors
  * that did not declare one.
+ *
+ * The target is a {@link ChildConstructor} rather than an `EntityConstructor`,
+ * which is wider than it looks: nothing here reads `id`, and a `composition`
+ * member's child is a **value** with accessors and no identity. So the same
+ * walk describes an entity and describes one row of the collection it owns,
+ * from one implementation.
  */
-export function describeEntityColumns<TEntity extends Entity>(
-  entityConstructor: EntityConstructor<TEntity>,
-  sample?: TEntity,
+export function describeEntityColumns<TTarget extends object>(
+  entityConstructor: ChildConstructor<TTarget>,
+  sample?: TTarget,
 ): EntityFieldDescriptor[] {
   const seen = new Set<string>();
 

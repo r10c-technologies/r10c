@@ -6,10 +6,21 @@ import {
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import type { OrderItem } from '../../values/order-item.js';
+import { OrderItem } from '../../values/order-item.js';
 import { ProductOrder } from './product-order.entity.js';
 
-const line = (vendorId: string, amount: number): OrderItem => ({
+const line = (vendorId: string, amount: number): OrderItem =>
+  new OrderItem(
+    `off-${vendorId}`,
+    vendorId,
+    1,
+    amount,
+    'EUR',
+    `res-${vendorId}`,
+  );
+
+/** The plain document one {@link line} becomes on the wire and in storage. */
+const lineData = (vendorId: string, amount: number) => ({
   offeringId: `off-${vendorId}`,
   vendorId,
   quantity: 1,
@@ -30,7 +41,7 @@ describe('ProductOrder', () => {
       id: 'order-1',
       buyerId: 'buyer-1',
       status: 'pending',
-      items: [line('vendor-a', 1000), line('vendor-b', 250)],
+      items: [lineData('vendor-a', 1000), lineData('vendor-b', 250)],
       placedAt,
     });
   });
@@ -41,7 +52,7 @@ describe('ProductOrder', () => {
         id: 'order-2',
         buyerId: 'buyer-2',
         status: 'paid',
-        items: [line('vendor-a', 500)],
+        items: [lineData('vendor-a', 500)],
         placedAt: new Date('2026-08-12T10:00:00.000Z'),
       }),
     );
@@ -71,7 +82,7 @@ describe('ProductOrder', () => {
 
     expect(serializeEntity(ProductOrder, order)).toEqual({
       status: 'pending',
-      items: [line('vendor-a', 1000)],
+      items: [lineData('vendor-a', 1000)],
       channel: { id: 'sc-1', name: 'Tienda Centro', type: 'counter' },
     });
   });
@@ -132,16 +143,41 @@ describe('ProductOrder', () => {
   });
 
   it('keeps the embedded lines on the wire but out of the query allowlist', () => {
-    // An object array is outside the `MetaAccessorTypes` taxonomy, so it is
-    // declared as its element type with sorting and filtering off — member
-    // metadata is also the server-side allowlist, and an array compared as a
-    // scalar matches nothing. `hidden` would be wrong: it drops a member from
+    // A `composition`: owned rows, one write, no life outside this order
+    // (ADR 0034). Never queryable — member metadata is also the server-side
+    // allowlist and an array compared as a scalar matches nothing — and
+    // `hidden` would be wrong for the opposite reason: it drops a member from
     // deserialization too, so the lines would never persist.
     const items = describeEntityColumns(ProductOrder).find(
       column => column.name === 'items',
     );
 
+    expect(items?.type).toBe('composition');
+    expect(items?.childType).toBe(OrderItem);
     expect(items?.filterable).toBe(false);
     expect(items?.sortable).toBe(false);
+  });
+
+  /**
+   * The line a `composition` draws that nothing else does: a child's state
+   * lives in its private fields, so an array passed through untouched reaches
+   * Mongo as `[{}, {}]` and the order comes back with lines that hold nothing.
+   * Serializing each row through the child's own accessors is what makes "one
+   * write, master and rows together" actually store anything.
+   */
+  it('flattens each line through the child’s own accessors', async () => {
+    const order = new ProductOrder('buyer-6');
+    order.items = [line('vendor-a', 1000)];
+
+    const document = serializeEntity(ProductOrder, order);
+
+    expect(document['items']).toEqual([lineData('vendor-a', 1000)]);
+
+    const rebuilt = await Effect.runPromise(
+      deserializeSingleEntity(ProductOrder, document),
+    );
+
+    expect(rebuilt?.items[0]?.amount).toBe(1000);
+    expect(rebuilt?.items[0]?.currency).toBe('EUR');
   });
 });

@@ -2,6 +2,7 @@ import type {
   EntifixError,
   Entity,
   EntityConstructor,
+  EntityDraft,
   EntityFieldDescriptor,
   EntityLinkSource,
   EntityMetadataDocument,
@@ -11,16 +12,9 @@ import type { ReactNode } from 'react';
 /** Whether the form shows values as text (`read`) or as inputs (`edit`). */
 export type EntityFormMode = 'read' | 'edit';
 
-/**
- * The whole form value, held as strings — the shape native inputs round-trip.
- * Typed reconstruction into a domain entity happens in the per-entity wrapper at
- * submit, never inside this agnostic form.
- */
-export type EntityFormDraft = Record<string, string>;
-
 /** What a custom edit control for one field is handed. */
 export interface EntityFieldRenderContext {
-  draft: EntityFormDraft;
+  draft: EntityDraft;
   value: string;
   setField: (name: string, value: string) => void;
   /** The id the field's label points at — put it on your control. */
@@ -51,7 +45,7 @@ export interface EntityFormProps<TEntity extends Entity> {
 
   /** The current draft. The form is controlled — a host (the `useEntityForm`
    *  hook or a `useState`) owns this and updates it via `onFieldChange`. */
-  values?: EntityFormDraft;
+  values?: EntityDraft;
   /** Called when one field changes. */
   onFieldChange?: (name: string, value: string) => void;
 
@@ -101,7 +95,7 @@ export interface EntityFormProps<TEntity extends Entity> {
    */
   formError?: string;
 
-  onSubmit?: (draft: EntityFormDraft) => void;
+  onSubmit?: (draft: EntityDraft) => void;
   onDelete?: () => void;
 
   /**

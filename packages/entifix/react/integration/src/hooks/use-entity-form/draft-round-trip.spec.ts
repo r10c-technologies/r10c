@@ -74,6 +74,8 @@ class RoundTrip implements Entity {
   #tier?: string;
   #brand = new EntityLink(Brand);
   #tags = new EntityCollectionLink(Tag);
+  #labels: readonly string[] = [];
+  #lines: readonly object[] = [];
 
   @accessor({ type: 'id' })
   get id(): EntityId {
@@ -132,6 +134,22 @@ class RoundTrip implements Entity {
   get tags(): EntityCollectionLink<Tag> {
     return this.#tags;
   }
+
+  @accessor({ type: 'scalarCollection' })
+  get labels(): readonly string[] {
+    return this.#labels;
+  }
+  set labels(value: readonly string[]) {
+    this.#labels = value;
+  }
+
+  @accessor({ type: 'composition', childType: () => Brand })
+  get lines(): readonly object[] {
+    return this.#lines;
+  }
+  set lines(value: readonly object[]) {
+    this.#lines = value;
+  }
 }
 
 const descriptors = describeEntityColumns(RoundTrip, new RoundTrip());
@@ -156,6 +174,8 @@ describe('draft round trip', () => {
     record.releasedAt = new Date('2026-01-15T00:00:00.000Z');
     record.tier = 'gold';
     record.brand.setId('brand-1');
+    record.labels = ['red', 'green'];
+    record.lines = [{ sku: 'a' }];
 
     const { before, after } = roundTrip(record);
 
@@ -199,5 +219,27 @@ describe('draft round trip', () => {
     expect(rebuilt.quantity).toBe(42);
     expect(rebuilt.active).toBe(true);
     expect(rebuilt.releasedAt).toBeInstanceOf(Date);
+  });
+
+  /**
+   * ⚠️ Worth knowing why this assertion is here and not in the fixed-point
+   * tests above. Before `scalarCollection` existed the member was declared
+   * `string`, so `seedFieldValue` produced `'a,b'` through
+   * `Array.prototype.toString` and `coerceFieldValue` handed the same `'a,b'`
+   * straight back — as a string. The record came out of a save holding one
+   * comma-joined value where it had held two, and **the round trip was still a
+   * fixed point**, because both halves were wrong in the same direction. Only
+   * checking the rebuilt member's actual type catches that class of bug.
+   */
+  it('rebuilds a scalar collection as an array, not as its own comma list', () => {
+    const record = new RoundTrip();
+    record.labels = ['red', 'green'];
+
+    const rebuilt = reconstructEntity(
+      RoundTrip,
+      seedEntityDraft(descriptors, record),
+    );
+
+    expect(rebuilt.labels).toEqual(['red', 'green']);
   });
 });
