@@ -82,5 +82,24 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${AUTHN_DOMAIN}:user-device:read`,
   ],
   // The developer tier: everything, including future tooling not yet modelled.
-  'super-admin': ['*:*:*'],
+  'super-admin': [
+    '*:*:*',
+    // Declared explicitly although the line above already covers it.
+    //
+    // `*:*:*` is the catch-all for capabilities that do not exist yet; it is
+    // not a substitute for naming a verb that does. `@r10c/slices` asserts that
+    // every declared verb appears in some grant, and a wildcard satisfying that
+    // check would make it vacuous for exactly the verbs most worth checking —
+    // the ones only the operator holds.
+    //
+    // Retiring the shared brand and category vocabulary is `super-admin`'s
+    // alone, and deliberately not `admin`'s: ADR 0022 makes `catalog-reference`
+    // operator-owned, because a tenant role that could retire a brand would let
+    // one vendor take a classification away from every other vendor using it.
+    // The entityKey segment is wildcarded (both entities, one lifecycle); the
+    // **action** segment is not, which is what keeps ADR 0026's residual intact
+    // — no role but `super-admin` wildcards an action, so a new verb still
+    // escalates to nobody.
+    `${CATALOG_REFERENCE_DOMAIN}:*:retire`,
+  ],
 };

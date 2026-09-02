@@ -7,6 +7,7 @@ import {
   type Entity,
   type EntityConstructor,
   type EntityDraft,
+  type EntityMetadataSource,
   reconstructEntity,
 } from '@r10c/entifix-ts-core';
 import { useEffect } from 'react';
@@ -15,6 +16,7 @@ import type {
   EntityCatalogKey,
   EntityCrudLinkSource,
 } from './make-entity-crud.types';
+import { useEntityAffordances } from './use-entity-affordances';
 import { useEntityLinkSources } from './use-entity-link-sources';
 
 export interface EntityCrudFormProps<TEntity extends Entity> {
@@ -34,6 +36,14 @@ export interface EntityCrudFormProps<TEntity extends Entity> {
   readonly backHref: string;
   readonly initialDraft?: EntityDraft;
   readonly onDraftChange?: (draft: EntityDraft) => void;
+  /**
+   * Where this caller's affordances come from. Absent keeps the pre-ADR-0026
+   * behaviour: Save and Delete render unconditionally and no declared verb
+   * appears — which is what every generated catalog did before it existed.
+   */
+  readonly metadataSource?: EntityMetadataSource;
+  /** Runs a declared `entity`-bound verb on this record, by its key. */
+  readonly onUseCase?: (key: string) => void;
 }
 
 /**
@@ -66,6 +76,8 @@ export function EntityCrudForm<TEntity extends Entity>({
   backHref,
   initialDraft,
   onDraftChange,
+  metadataSource,
+  onUseCase,
 }: EntityCrudFormProps<TEntity>) {
   const et = useT('entity');
 
@@ -110,6 +122,8 @@ export function EntityCrudForm<TEntity extends Entity>({
     }
   }, [linkSources, selection, hydrateLink]);
 
+  const affordances = useEntityAffordances(entityConstructor, metadataSource);
+
   return (
     <EntityForm<TEntity>
       entityConstructor={entityConstructor}
@@ -124,6 +138,8 @@ export function EntityCrudForm<TEntity extends Entity>({
       formError={form.formError}
       onSubmit={form.submit}
       onDelete={onDelete}
+      {...affordances}
+      onUseCase={onUseCase}
       isLoading={isLoading}
       isSaving={isSaving}
       isDeleting={isDeleting}

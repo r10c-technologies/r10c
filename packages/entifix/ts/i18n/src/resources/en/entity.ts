@@ -37,6 +37,10 @@ export const entity: EsEntity = {
       category: 'Category',
     },
   },
+  'reference-status': {
+    active: 'Active',
+    retired: 'Retired',
+  },
   'product-brand': {
     form: {
       editTitle: 'Edit brand',
@@ -50,6 +54,12 @@ export const entity: EsEntity = {
       name: 'Name',
       description: 'Description',
       website: 'Website',
+      status: 'Status',
+    },
+    useCases: {
+      retire: 'Retire',
+      retireConfirm:
+        'These brands will stop being offered when classifying products. Offerings already published under them are unchanged.',
     },
   },
   'product-category': {
@@ -64,6 +74,12 @@ export const entity: EsEntity = {
       code: 'Code',
       name: 'Name',
       description: 'Description',
+      status: 'Status',
+    },
+    useCases: {
+      retire: 'Retire',
+      retireConfirm:
+        'These categories will stop being offered when classifying products and will leave the browse tree. Offerings already published under them are unchanged.',
     },
   },
   'user-identity': {

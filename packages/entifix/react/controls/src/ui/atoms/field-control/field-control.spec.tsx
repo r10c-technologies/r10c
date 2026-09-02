@@ -24,6 +24,7 @@ const descriptor = (
   linkLabelProperty: 'name',
   linkSearchProperty: 'name',
   linkSerialization: 'id',
+  resetOnClone: false,
   ...extra,
 });
 

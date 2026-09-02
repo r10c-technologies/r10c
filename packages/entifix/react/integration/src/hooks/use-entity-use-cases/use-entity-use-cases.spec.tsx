@@ -63,6 +63,27 @@ describe('useEntityUseCases', () => {
     expect(source.fetchMetadata).toHaveBeenCalledWith(UserIdentity);
   });
 
+  /**
+   * A caller with no source to offer — a generated page whose service has no
+   * `$metadata` route. A hook cannot be called conditionally, so the query is
+   * created and skipped; asking-and-failing instead would have TanStack Query
+   * *retry* a rejecting promise on a loop for a capability nobody used.
+   *
+   * `isLoading` must be **false**, not the `pending` a disabled query reports:
+   * every action surface holds a skeleton while it is true, and one that never
+   * resolves is a permanent shimmer where the buttons should be.
+   */
+  it('asks for nothing, and reports no loading, without a source', () => {
+    const { result } = renderHook(
+      () => useEntityUseCases(UserIdentity, undefined),
+      { wrapper },
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.metadata).toBeUndefined();
+    expect(result.current.error).toBeUndefined();
+  });
+
   it('surfaces a failure instead of pretending the caller has no affordances', async () => {
     const source = sourceOf(
       vi.fn(async () => {

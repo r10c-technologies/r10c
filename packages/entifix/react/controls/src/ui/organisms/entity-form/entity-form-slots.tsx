@@ -30,8 +30,30 @@ export function EntityField<TEntity extends Entity = Entity>(
   return null;
 }
 
+export interface EntityActionsSlotProps {
+  /** Where the nodes go: beside the title, or beside Save. */
+  placement?: 'header' | 'footer';
+  children?: ReactNode;
+}
+
+/**
+ * The genuinely bespoke action, so a page never has to render outside the card.
+ *
+ * Everything metadata can describe should be a `@useCase()` — that is what
+ * makes it permission-filtered, translatable and reachable from the command
+ * palette. This slot is for what metadata cannot: an action wired to something
+ * only this page knows, a link into another product, a one-off. It renders
+ * *after* the declared verbs so the derived actions keep a stable position.
+ */
+export function EntityActions(_props: EntityActionsSlotProps): ReactNode {
+  return null;
+}
+
 export interface EntityFormSlots<TEntity extends Entity> {
   fields: Array<EntityFieldSlotProps<TEntity>>;
+  /** Bespoke actions, by placement. */
+  headerActions: ReactNode[];
+  footerActions: ReactNode[];
   /** Children that matched no slot — rendered below the fields untouched. */
   rest: ReactNode[];
 }
@@ -43,7 +65,12 @@ export interface EntityFormSlots<TEntity extends Entity> {
 export function readEntityFormFields<TEntity extends Entity>(
   children: ReactNode,
 ): EntityFormSlots<TEntity> {
-  const slots: EntityFormSlots<TEntity> = { fields: [], rest: [] };
+  const slots: EntityFormSlots<TEntity> = {
+    fields: [],
+    headerActions: [],
+    footerActions: [],
+    rest: [],
+  };
 
   Children.toArray(children).forEach(child => {
     if (!isValidElement(child)) {
@@ -53,6 +80,13 @@ export function readEntityFormFields<TEntity extends Entity>(
 
     if (child.type === EntityField) {
       slots.fields.push(child.props as EntityFieldSlotProps<TEntity>);
+    } else if (child.type === EntityActions) {
+      const props = child.props as EntityActionsSlotProps;
+      const target =
+        props.placement === 'header'
+          ? slots.headerActions
+          : slots.footerActions;
+      target.push(props.children);
     } else {
       slots.rest.push(child);
     }

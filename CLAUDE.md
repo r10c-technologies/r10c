@@ -290,13 +290,61 @@ them), and everything deep is a link — loaded only when a task needs it.
   describes the model rather than tenant data and resolving a handle would leave
   a vendor with no active organization unable to see their own affordances.
   `EntityForm` renders from it, and **absent metadata keeps the old behaviour**,
-  so an un-migrated call site is unaffected — but the generic Next proxy
-  (`createServiceProxyRoute`) still rebuilds responses as
-  `NextResponse.json(body, { status })`, which strips `ETag`/`Cache-Control`/
-  `Vary` and forwards no `If-None-Match`; only the auth shell's
-  `userMetadataRoute` passes them through, so migrating a catalog form to
-  `$metadata` without fixing the proxy (#140) ships a document that never
-  revalidates.
+  so an un-migrated call site is unaffected. The generic Next proxy
+  (`createServiceProxyRoute`) now **carries the caching contract** — it forwards
+  `If-None-Match` and passes `ETag`/`Cache-Control`/`Vary` back, answering a
+  `304` body-less; it used to rebuild every response and strip all four, so
+  `$metadata` could never revalidate. `Vary` is the half that is _correctness_:
+  the document differs per caller, and one cached without
+  `Vary: Cookie, Authorization` can be served to a different principal. The
+  pass-through is a short allow-list, never a copy of every header — the
+  upstream's `content-length` describes its own body, and carrying it onto a
+  rebuilt response is how a proxy serves a truncated payload.
+- **Placement decides the surface; binding decides the payload — and every one
+  of the nine cells is decided** ([ADR 0035](docs/adr/0035-entity-actions-selection-and-bulk.md)).
+  ADR 0026 said "one vocabulary, three surfaces" and built one, so `EntityForm`
+  filtered `binding === 'entity' && placement !== 'context-dependent'` and
+  **dropped four of the nine cells in silence** — the worst failure available
+  here, because such a verb is declared, granted, exported and passes every
+  `@r10c/slices` invariant, so its author reads the absence as a permission bug.
+  `ui/actions/action-surfaces.ts` is now the one map: entity+context-independent
+  → form header, entity+determining → form footer, entity+context-dependent →
+  **row overflow menu**, collection+context-dependent → **bulk bar**,
+  collection+context-independent → **table toolbar**, `unbound` → the palette
+  (#129). **`collection` + `determining` throws**, because a determining action
+  finalizes a _page_ and a list has none to finalize; it fires on the first
+  render of **any** surface, not just the one that would have shown the verb —
+  the `assertLinkSourcesAreEditable` reasoning. A spec asserts every cell is
+  mapped-or-rejected, so a tenth cannot appear silently. Five things not to
+  re-derive. **Two select-alls are two state shapes**: `EntitySelection` is a
+  union of `ids` (what the browser holds) and `matching` (a filter the _server_
+  evaluates, plus `excluded` and the `total` the confirmation must show) —
+  written as one shape with a flag, the second quietly becomes the first and
+  "the 25 rows I can see" runs over the store; the escalation is a **separate
+  affordance carrying the count**, never a wider header checkbox. **The wire
+  form is arrays** — a `Set` serializes to `{}` silently, so a selection sent
+  raw arrives with its exclusions gone and acts on rows the operator removed;
+  `readWireSelection` rejects a non-selection rather than defaulting, since
+  defaulting to `ids` acts on nothing and to `matching` on everything.
+  **`BulkOutcome` is per row**: forty selected and three failed is neither a
+  success nor a failure, `code` resolves through the shared `errors` catalog, a
+  retry re-runs **only** the failures, and the selection survives the action —
+  a bulk run is deliberately **not one transaction**, since the rows share no
+  invariant and atomicity would only turn a partial success into a total one.
+  **Clone stays off the descriptor** (ADR 0026 closed it against per-verb
+  payloads): it is `@accessor({ resetOnClone: true })`, and the id is cleared
+  **without consulting the descriptors**, because `describeEntityColumns` drops
+  `hidden` members and every generated form hides its id — a descriptor-driven
+  sweep would leave it in place on exactly the forms a Clone button appears on
+  and the "copy" would save over the original. And **`onSelect` and `selection`
+  are mutually exclusive**, throwing: a picker chooses one value for a field
+  holding one reference. `retire` on `ProductBrand`/`ProductCategory` is the
+  first collection verb — retiring is _not_ deleting, because another slice's
+  `ProductSpecification` holds a bare `brandId` nothing enforces — and it is
+  granted to `super-admin` **as a literal beside `*:*:*`**, since a wildcard
+  satisfying "every declared verb is granted somewhere" makes that check vacuous
+  for precisely the verbs only the operator holds. The entityKey segment is
+  wildcarded; the **action** segment is not, so ADR 0026's residual stands.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never

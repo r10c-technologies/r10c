@@ -52,6 +52,7 @@ const descriptor: EntityFieldDescriptor = {
   linkLabelProperty: 'name',
   linkSearchProperty: 'name',
   linkSerialization: 'id',
+  resetOnClone: false,
 };
 
 const ITEMS = [

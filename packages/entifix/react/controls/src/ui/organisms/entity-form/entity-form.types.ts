@@ -119,6 +119,19 @@ export interface EntityFormProps<TEntity extends Entity> {
    */
   onUseCase?: (key: string) => void;
 
+  /**
+   * Copies the record into a new draft, dropping the members declared
+   * `@accessor({ resetOnClone: true })` and always the id.
+   *
+   * A prop rather than something the form does by itself, because the *result*
+   * of a clone is a navigation — a create form holding the copy — and this
+   * package knows no router. The form supplies the cleaned draft
+   * (`cloneEntityDraft`); where it lands is the caller's.
+   *
+   * Absent renders no Clone action.
+   */
+  onClone?: (draft: EntityDraft) => void;
+
   isLoading?: boolean;
   /**
    * What holds the form's shape while the record is in flight.

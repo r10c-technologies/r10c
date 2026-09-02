@@ -1,6 +1,7 @@
 export * from './i18n';
 export * from './preferences';
 export * from './theme';
+export * from './ui/actions';
 export * from './ui/atoms/button';
 export * from './ui/atoms/cell-value';
 export * from './ui/atoms/field';
@@ -16,6 +17,8 @@ export * from './ui/layout/grid';
 export * from './ui/layout/sidebar';
 export * from './ui/layout/switcher';
 export * from './ui/molecules/breadcrumbs';
+export * from './ui/molecules/bulk-action-bar';
+export * from './ui/molecules/bulk-result';
 export * from './ui/molecules/card';
 export * from './ui/molecules/column-settings';
 export * from './ui/molecules/confirm-dialog';

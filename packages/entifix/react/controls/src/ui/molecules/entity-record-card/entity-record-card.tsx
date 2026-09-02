@@ -14,6 +14,15 @@ export interface EntityRecordCardProps {
   renderCell: (column: EntityRecordCardColumn) => ReactNode;
   /** Optional trailing actions (a link to the record, …). */
   actions?: ReactNode;
+  /**
+   * Rendered above the fields — the card's equivalent of a leading column.
+   *
+   * A selection box goes here rather than beside the actions because it is not
+   * an action on the record: it decides whether the record is *in the set* the
+   * actions will run over, and putting the two in one row reads as a third
+   * button.
+   */
+  leading?: ReactNode;
   className?: string;
 }
 
@@ -26,6 +35,7 @@ export function EntityRecordCard({
   columns,
   renderCell,
   actions,
+  leading,
   className,
 }: EntityRecordCardProps) {
   return (
@@ -35,6 +45,7 @@ export function EntityRecordCard({
         className,
       )}
     >
+      {leading && <div className="mb-2xs flex">{leading}</div>}
       <dl className="flex flex-col gap-2xs">
         {columns.map(column => (
           <div

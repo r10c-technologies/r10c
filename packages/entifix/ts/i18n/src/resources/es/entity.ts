@@ -48,6 +48,15 @@ export const entity = {
       category: 'Categoría',
     },
   },
+  /**
+   * El ciclo de vida del vocabulario compartido, en un solo sitio: marcas y
+   * categorías comparten `enumLabelKey`, porque es el mismo estado retirado por
+   * el mismo operador en la misma pantalla.
+   */
+  'reference-status': {
+    active: 'Activo',
+    retired: 'Retirado',
+  },
   'product-brand': {
     form: {
       editTitle: 'Editar marca',
@@ -61,6 +70,15 @@ export const entity = {
       name: 'Nombre',
       description: 'Descripción',
       website: 'Sitio web',
+      status: 'Estado',
+    },
+    // "Retirar", no "Eliminar": el registro sigue existiendo y las ofertas ya
+    // clasificadas con él siguen resolviendo — lo que cambia es que deja de
+    // ofrecerse para clasificar nuevas.
+    useCases: {
+      retire: 'Retirar',
+      retireConfirm:
+        'Estas marcas dejarán de ofrecerse al clasificar productos. Las ofertas ya publicadas con ellas no cambian.',
     },
   },
   'product-category': {
@@ -75,6 +93,12 @@ export const entity = {
       code: 'Código',
       name: 'Nombre',
       description: 'Descripción',
+      status: 'Estado',
+    },
+    useCases: {
+      retire: 'Retirar',
+      retireConfirm:
+        'Estas categorías dejarán de ofrecerse al clasificar productos y desaparecerán del árbol de navegación. Las ofertas ya publicadas con ellas no cambian.',
     },
   },
   'user-identity': {

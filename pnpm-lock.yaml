@@ -796,12 +796,21 @@ importers:
 
   packages/business/ts/catalog-reference:
     dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../authz
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/business
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../../entifix/ts/core
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
+      effect:
+        specifier: 3.22.1
+        version: 3.22.1
 
   packages/business/ts/common:
     dependencies:

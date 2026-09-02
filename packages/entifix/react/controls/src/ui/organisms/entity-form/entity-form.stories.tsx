@@ -3,6 +3,7 @@ import {
   type Entity,
   entity,
   type EntityId,
+  type UseCaseDescriptor,
 } from '@r10c/entifix-ts-core';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
@@ -110,3 +111,91 @@ export const Loading: Story = {
     <EntityForm<StoryGadget> entityConstructor={StoryGadget} isLoading />
   ),
 };
+
+/** A declared verb, as the service reports it after filtering by permission. */
+const verb = (
+  key: string,
+  placement: 'context-independent' | 'determining',
+  destructive = false,
+) => ({
+  key,
+  binding: 'entity' as const,
+  placement,
+  labelKey: `entity:user-identity.useCases.${key}`,
+  ...(destructive
+    ? {
+        confirm: {
+          tone: 'destructive' as const,
+          messageKey: 'entity:user-identity.useCases.revokeSessionsConfirm',
+        },
+      }
+    : {}),
+});
+
+function ActionsDemo({ useCases }: { useCases: UseCaseDescriptor[] }) {
+  const [values, setValues] = useState<Record<string, string>>({
+    id: 'g-1',
+    name: 'Sprocket',
+    code: 'SPR-001',
+    stock: '1200',
+  });
+
+  return (
+    <EntityForm<StoryGadget>
+      entityConstructor={StoryGadget}
+      entity={GADGET}
+      values={values}
+      mode="edit"
+      onFieldChange={(name, value) =>
+        setValues(current => ({ ...current, [name]: value }))
+      }
+      onSubmit={() => undefined}
+      onDelete={() => undefined}
+      onClone={() => undefined}
+      metadata={{ actions: ['read', 'write', 'delete'], useCases }}
+      onUseCase={() => undefined}
+    />
+  );
+}
+
+/**
+ * The verbs an entity declares, placed by the served descriptor:
+ * `context-independent` sits beside the title, `determining` finalizes the page
+ * from the footer. A destructive one asks before it fires.
+ */
+export const DeclaredActions: Story = {
+  render: () => (
+    <ActionsDemo
+      useCases={[
+        verb('revokeSessions', 'context-independent', true),
+        verb('updateAspects', 'determining'),
+      ]}
+    />
+  ),
+};
+
+/**
+ * Four fit a row; twelve do not. The fifth and beyond fold into one overflow
+ * menu, in **declaration order** — the entity's author decided which verbs
+ * matter by writing them first.
+ */
+export const OverflowActions: Story = {
+  render: () => (
+    <ActionsDemo
+      useCases={[
+        ...Array.from({ length: 4 }, (_unused, index) =>
+          verb(`verb${index}`, 'context-independent'),
+        ),
+        verb('revokeSessions', 'context-independent', true),
+        verb('updateAspects', 'context-independent'),
+      ]}
+    />
+  ),
+};
+
+/**
+ * Absent metadata is the un-migrated call site, and it renders exactly as it did
+ * before ADR 0026: Save and Delete unconditional, no declared verbs. Hiding a
+ * button protects nothing either way — the route guard is the boundary.
+ */
+export const WithoutMetadata: Story = { render: () => <Demo mode="edit" /> };

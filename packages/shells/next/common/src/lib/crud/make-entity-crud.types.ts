@@ -4,10 +4,13 @@ import type {
   EntityRepositoryTag,
 } from '@r10c/entifix-ts-business';
 import type {
+  BulkOutcome,
   Entity,
   EntityConstructor,
   EntityDraft,
   EntityFieldDescriptor,
+  EntityMetadataSource,
+  EntitySelection,
 } from '@r10c/entifix-ts-core';
 import type { Resources } from '@r10c/entifix-ts-i18n';
 import type { Context } from 'effect/Context';
@@ -76,7 +79,7 @@ export type AdapterKey<TAdapters, TValue> = {
   [K in keyof TAdapters]: TAdapters[K] extends TValue ? K : never;
 }[keyof TAdapters];
 
-export interface EntityCrudOptions<TAdapters> {
+export interface EntityCrudOptions<TAdapters, TEntity extends Entity> {
   /** The domain shell's adapters hook, e.g. `useMarketplaceAdminAdapters`. */
   readonly useAdapters: () => TAdapters;
   /** Route prefix for both pages, e.g. `'/catalog/product-brand'`. */
@@ -105,6 +108,33 @@ export interface EntityCrudOptions<TAdapters> {
   readonly columns?: ReactNode;
   /** Frozen at factory time — see `use-entity-link-sources.ts`. */
   readonly links?: readonly EntityCrudLink<TAdapters>[];
+  /**
+   * Where the entity's served affordances come from — `GET /api/<entity>/$metadata`.
+   *
+   * Supplying it is what turns on everything ADR 0026 and ADR 0035 describe:
+   * Save and Delete filtered against the caller's real grants, the declared
+   * verbs on the form, the row overflow menu, and the bulk bar. Omitting it
+   * keeps the pre-0026 behaviour exactly, which is what every generated catalog
+   * rendered before this option existed.
+   *
+   * A `EntityMetadataSource` rather than a URL because the two hosts reach
+   * their service differently — one through the config-driven REST adapters,
+   * one through a shell's own same-origin routes.
+   */
+  readonly metadataSource?: EntityMetadataSource;
+  /**
+   * Runs a `collection`-bound verb over a selection, and reports **per row**.
+   *
+   * Supplying it opts the list into the selection column and the bulk bar.
+   * It is separate from `metadataSource` because the two are independent: an
+   * entity can declare no collection verb and still want permission-filtered
+   * Save, and the endpoint a verb posts to is the shell's knowledge, not
+   * metadata's.
+   */
+  readonly runBulkUseCase?: (
+    key: string,
+    selection: EntitySelection<TEntity>,
+  ) => Promise<readonly BulkOutcome[]>;
 }
 
 /**

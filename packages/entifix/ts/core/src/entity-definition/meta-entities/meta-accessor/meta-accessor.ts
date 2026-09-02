@@ -117,6 +117,20 @@ export interface MetaAccessorOptions {
    * collection must be declared.
    */
   childType?: () => ChildConstructor;
+  /**
+   * Reset this member when the record is copied.
+   *
+   * It lives on the **accessor**, not on a use case's descriptor, and that is a
+   * decision already on file: ADR 0026 closed `UseCaseDescriptor` against
+   * per-verb payloads and named this exact case, because a descriptor that
+   * grows a field per verb ends up a union of every verb's arguments. Which
+   * members a copy must not carry is a property of the *member* — a unique
+   * code, an audit stamp, a sequence number — and it is the same answer however
+   * the copy is triggered.
+   *
+   * The identity member is always reset and needs no flag.
+   */
+  resetOnClone?: boolean;
 }
 
 export class MetaAccessor {
@@ -140,6 +154,7 @@ export class MetaAccessor {
   readonly linkSearchProperty?: string;
   readonly linkSerialization?: EntityLinkSerialization;
   readonly childType?: () => ChildConstructor;
+  readonly resetOnClone?: boolean;
 
   //#endregion
 
@@ -167,6 +182,7 @@ export class MetaAccessor {
     this.linkSearchProperty = options?.linkSearchProperty;
     this.linkSerialization = options?.linkSerialization;
     this.childType = options?.childType;
+    this.resetOnClone = options?.resetOnClone;
   }
   //#endregion
 

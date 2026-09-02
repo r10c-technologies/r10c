@@ -50,6 +50,11 @@ export interface EntityFieldDescriptor {
    * accessor's thunk. Absent on every other type.
    */
   childType?: ChildConstructor;
+  /**
+   * The member is dropped when the record is copied — a unique code, an audit
+   * stamp. The identity member is always reset and is not flagged.
+   */
+  resetOnClone: boolean;
 }
 
 /** Types whose values are scalars a user can meaningfully sort/filter on. */
@@ -156,6 +161,7 @@ function toDescriptor(
     linkSearchProperty: metaAccessor.linkSearchProperty ?? linkLabelProperty,
     linkSerialization: metaAccessor.linkSerialization ?? 'id',
     childType: metaAccessor.childType?.(),
+    resetOnClone: metaAccessor.resetOnClone ?? false,
   };
 }
 

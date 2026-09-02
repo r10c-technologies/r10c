@@ -22,9 +22,13 @@ const params = (path: string[]) => ({ params: Promise.resolve({ path }) });
 
 const forward = createServiceProxyRoute({ baseUrl: SERVICE_URL });
 
-const answering = (body: string | null, status: number) =>
+const answering = (
+  body: string | null,
+  status: number,
+  headers?: Record<string, string>,
+) =>
   vi.fn((..._args: Parameters<typeof fetch>) =>
-    Promise.resolve(new Response(body, { status })),
+    Promise.resolve(new Response(body, { status, headers })),
   );
 
 afterEach(() => {
@@ -131,6 +135,88 @@ describe('createServiceProxyRoute', () => {
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
       method: 'DELETE',
       body: undefined,
+    });
+  });
+
+  /**
+   * The caching contract, in both directions. Without it `$metadata` — which
+   * computes and hashes a permission-filtered document per request — can never
+   * answer `304`, because the validator never reaches the service.
+   */
+  describe('the caching contract', () => {
+    it('forwards the validator upstream', async () => {
+      const fetchMock = answering('{}', 200);
+      vi.stubGlobal('fetch', fetchMock);
+
+      await forward(
+        new Request('http://app.test/api/marketplace/product-brand/$metadata', {
+          headers: { 'if-none-match': '"abc"' },
+        }),
+        params(['product-brand', '$metadata']),
+      );
+
+      expect(
+        (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+          'if-none-match'
+        ],
+      ).toBe('"abc"');
+    });
+
+    it('carries the validator and the cache directives back', async () => {
+      vi.stubGlobal(
+        'fetch',
+        answering('{"actions":[]}', 200, {
+          etag: '"abc"',
+          'cache-control': 'private, no-cache',
+          vary: 'Cookie, Authorization',
+        }),
+      );
+
+      const response = await forward(
+        new Request('http://app.test/api/marketplace/product-brand/$metadata'),
+        params(['product-brand', '$metadata']),
+      );
+
+      expect(response.headers.get('etag')).toBe('"abc"');
+      expect(response.headers.get('cache-control')).toBe('private, no-cache');
+      // `Vary` is correctness, not tuning: the document differs per caller, and
+      // one cached without it can be served to a different principal.
+      expect(response.headers.get('vary')).toBe('Cookie, Authorization');
+    });
+
+    /** A `304` reconstructed with a body is no longer a `304`. */
+    it('answers a 304 with no body', async () => {
+      vi.stubGlobal('fetch', answering(null, 304, { etag: '"abc"' }));
+
+      const response = await forward(
+        new Request('http://app.test/api/marketplace/product-brand/$metadata', {
+          headers: { 'if-none-match': '"abc"' },
+        }),
+        params(['product-brand', '$metadata']),
+      );
+
+      expect(response.status).toBe(304);
+      expect(response.headers.get('etag')).toBe('"abc"');
+      expect(await response.text()).toBe('');
+    });
+
+    /**
+     * A short allow-list, not a copy of every header: the upstream's
+     * `content-length` describes *its* body, and carrying it onto a rebuilt
+     * response is how a proxy serves a truncated payload.
+     */
+    it('does not carry headers that describe the upstream body', async () => {
+      vi.stubGlobal(
+        'fetch',
+        answering('{"a":1}', 200, { 'content-length': '9999' }),
+      );
+
+      const response = await forward(
+        new Request('http://app.test/api/marketplace/product-brand'),
+        params(['product-brand']),
+      );
+
+      expect(response.headers.get('content-length')).not.toBe('9999');
     });
   });
 

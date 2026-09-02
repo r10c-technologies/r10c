@@ -3,7 +3,15 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
-import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
+import {
+  type Action,
+  type Permission,
+  permissionForEntity,
+} from '@r10c/business-ts-authz';
+import {
+  RetireReferenceInputTag,
+  retireReferences,
+} from '@r10c/business-ts-catalog-reference';
 import {
   deleteUCFactory,
   EntityIdTag,
@@ -21,12 +29,14 @@ import {
   type EntityConstructor,
   type EntityId,
   type EntityLoadRequest,
+  type EntitySelection,
   envelopeEntityName,
   extractMetaEntity,
   makeEntityEnvelope,
   makeEntityPageEnvelope,
   parseLoadRequestParams,
   readEntityEnvelope,
+  readWireSelection,
 } from '@r10c/entifix-ts-core';
 import {
   makeMongoRepository,
@@ -222,3 +232,129 @@ export const guardedWrite = <T extends Entity, A, E, R>(
   requirePermission(permissionForEntity(entityConstructor, action))(
     () => route,
   );
+
+/**
+ * Resolve the rows a bulk request names into a list of ids.
+ *
+ * The two selection modes are two different jobs, which is exactly why the wire
+ * shape keeps them apart. `ids` is already the answer. `matching` is a **filter
+ * the server evaluates** — the set is by definition larger than the page the
+ * browser was showing, so there is nothing for the client to enumerate and
+ * asking it to would be both a huge request and a lie about what it saw.
+ *
+ * The `matching` branch reads through the same `loadUCFactory` the listing
+ * does, so the rows a bulk action touches are the rows the filter shows: one
+ * query path, one RSQL allowlist, no second interpretation of the filter to
+ * drift.
+ *
+ * `excluded` is applied here rather than pushed into the query — it is a
+ * handful of ids the operator ticked off, and turning it into a `nin` clause
+ * would put user input into a filter for no benefit.
+ */
+const resolveSelection = <T extends Entity>(
+  entityConstructor: EntityConstructor<T>,
+  selection: EntitySelection<T>,
+) =>
+  Effect.gen(function* () {
+    // `Array.from`, never a spread: this package compiles through SWC's loose
+    // helper, which wraps a `Set` rather than iterating it (see
+    // `toWireSelection` in core).
+    if (selection.mode === 'ids') return Array.from(selection.ids);
+
+    const db = yield* MongoDatabaseTag;
+    const page = yield* loadUCFactory<T>().pipe(
+      Effect.provideService(
+        EntityRepositoryTag,
+        makeMongoRepository(db, entityConstructor),
+      ),
+      Effect.provideService(EntityLoadRequestTag, {
+        filtering: selection.filtering,
+        // One page, capped. A bulk action over more rows than this is a saga
+        // rather than a request (#121), and returning a partial result under a
+        // cap is honest where a silent timeout is not.
+        page: 1,
+        pageSize: BULK_SELECTION_CAP,
+      } as unknown as EntityLoadRequest),
+    );
+
+    const excluded = new Set(Array.from(selection.excluded).map(String));
+    return page.items
+      .map(item => item.id)
+      .filter(id => !excluded.has(String(id)));
+  });
+
+/**
+ * The most rows one bulk request will touch.
+ *
+ * A ceiling rather than unbounded, because the alternative is a request that
+ * holds a connection open for minutes and then fails as a whole. Past this the
+ * work belongs to the transaction stream (#121), which is not built — so the
+ * cap is deliberately visible rather than a silent truncation: the response
+ * reports outcomes only for what it acted on, and the operator sees the count.
+ */
+const BULK_SELECTION_CAP = 500;
+
+/**
+ * Run a `collection`-bound verb over a selection, reporting **per row**.
+ *
+ * The response is a plain `BulkOutcome[]` rather than an entity envelope: what
+ * comes back is not a record, and dressing it as one would mean inventing an
+ * entity for "the result of retiring some brands". A row that failed is `200`
+ * data — the *request* succeeded, and only some of the rows did not.
+ */
+export const retireRoute = <T extends Entity>(
+  entityConstructor: EntityConstructor<T>,
+  { retired }: { retired: boolean },
+) =>
+  Effect.gen(function* () {
+    const db = yield* MongoDatabaseTag;
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const body = (yield* request.json) as { selection?: unknown };
+
+    // Read rather than cast. The body is untrusted and decides which rows a
+    // write touches, and a `Set` does not survive JSON — so the wire form is
+    // arrays and `readWireSelection` is what turns it back, rejecting anything
+    // that is not a selection instead of defaulting to one.
+    const selection = readWireSelection<T>(body.selection);
+    if (!selection) {
+      return yield* HttpServerResponse.json(
+        {
+          error: 'invalid request body',
+          code: 'invalidBody',
+          detail:
+            'A bulk request carries a `selection` in `ids` or `matching` mode.',
+        },
+        { status: 400 },
+      );
+    }
+
+    const ids = yield* resolveSelection(entityConstructor, selection);
+
+    const outcomes = yield* retireReferences.pipe(
+      Effect.provideService(
+        EntityRepositoryTag,
+        makeMongoRepository(db, entityConstructor),
+      ),
+      Effect.provideService(RetireReferenceInputTag, { ids, retired }),
+    );
+
+    return yield* HttpServerResponse.json({
+      meta: {
+        type: 'bulkOutcome',
+        entity: envelopeEntityName(entityConstructor),
+      },
+      data: outcomes,
+    });
+  }).pipe(Effect.catchAll(serverError));
+
+/**
+ * Guard a declared verb with the permission that verb derives.
+ *
+ * `permissionForUseCase` rather than `permissionForEntity`: the whole point of
+ * ADR 0026 is that `retire` is not a shape of `write`, so it carries its own
+ * third segment and its own grant.
+ */
+export const guardedUseCase = <A, E, R>(
+  permission: Permission,
+  route: Effect.Effect<A, E, R>,
+) => requirePermission(permission)(() => route);

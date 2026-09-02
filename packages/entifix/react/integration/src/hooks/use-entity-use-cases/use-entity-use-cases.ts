@@ -5,7 +5,7 @@ import {
   type EntityMetadataSource,
   envelopeEntityName,
 } from '@r10c/entifix-ts-core';
-import { useQuery } from '@tanstack/react-query';
+import { skipToken, useQuery } from '@tanstack/react-query';
 
 export interface UseEntityUseCasesResult {
   /** Undefined until the document arrives; a surface renders its defaults meanwhile. */
@@ -32,17 +32,30 @@ export interface UseEntityUseCasesResult {
  */
 export function useEntityUseCases<TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
-  source: EntityMetadataSource,
+  source: EntityMetadataSource | undefined,
 ): UseEntityUseCasesResult {
+  // An **optional** source, so a caller with none to offer — a generated page
+  // whose service exposes no `$metadata` route — needs no placeholder to hand
+  // over. A hook cannot be called conditionally, so the query is always created
+  // and simply disabled; fetching-and-failing instead would have TanStack Query
+  // *retry* a rejecting promise on a loop for a capability nobody asked for.
+  const enabled = source !== undefined;
+
   const query = useQuery({
     queryKey: ['entity-metadata', envelopeEntityName(entityConstructor)],
-    queryFn: () => source.fetchMetadata(entityConstructor),
+    // `skipToken` rather than `enabled`, because it is what lets the closure
+    // keep the narrowed `source` — the `enabled` form needs a non-null
+    // assertion in a `queryFn` that provably never runs.
+    queryFn: source ? () => source.fetchMetadata(entityConstructor) : skipToken,
     staleTime: Infinity,
   });
 
   return {
     metadata: query.data,
-    isLoading: query.isLoading,
+    // A disabled query sits in `pending` forever, so `isLoading` would be
+    // permanently true and every action surface would render a skeleton that
+    // never resolves. Nothing is in flight when nothing was asked for.
+    isLoading: enabled && query.isLoading,
     error: query.error ?? undefined,
   };
 }

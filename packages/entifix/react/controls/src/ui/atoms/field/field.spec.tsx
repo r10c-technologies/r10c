@@ -2,7 +2,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import { Checkbox, Select, TextInput } from './field.js';
+import { Checkbox } from './checkbox.js';
+import { Select, TextInput } from './field.js';
 
 describe('TextInput', () => {
   it('renders an input the caller can type into', async () => {

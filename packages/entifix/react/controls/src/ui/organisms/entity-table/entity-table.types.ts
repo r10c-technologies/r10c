@@ -1,9 +1,12 @@
 import type {
+  BulkOutcome,
   EntifixError,
   Entity,
   EntityConstructor,
   EntityFieldDescriptor,
   EntityId,
+  EntityMetadataDocument,
+  EntitySelection,
   EntitySorting,
   FilterGroup,
 } from '@r10c/entifix-ts-core';
@@ -103,6 +106,46 @@ export interface EntityTableProps<TEntity extends Entity> {
   onFilteringChange?: (filtering: FilterGroup<TEntity>) => void;
   /** Notified when the sort panel is applied. */
   onSortingChange?: (sorting: EntitySorting<TEntity>) => void;
+
+  /**
+   * The rows a collection-bound action would act on.
+   *
+   * **Controlled from above the table**, exactly as `filtering` and `sorting`
+   * are, and for the same reason plus one more: a selection has to survive
+   * pagination, and the page owns the pager. A selection held inside the table
+   * would be reset by the very navigation the user performs to add to it.
+   *
+   * Omit it and no selection column is rendered — a listing that is only read
+   * gains nothing from a column of empty boxes.
+   */
+  selection?: EntitySelection<TEntity>;
+  onSelectionChange?: (selection: EntitySelection<TEntity>) => void;
+
+  /**
+   * What this caller may do with the entity, as the service decided it.
+   *
+   * The same document `EntityForm` takes. The table reads only the
+   * `collection`-bound half of `useCases` — the entity-bound verbs belong to a
+   * record, and a row's own overflow menu is fed from the
+   * `context-dependent` ones.
+   *
+   * Absent keeps the pre-ADR-0026 behaviour: no bulk bar and no row menu, which
+   * is what every un-migrated call site renders today.
+   */
+  metadata?: EntityMetadataDocument;
+  isMetadataLoading?: boolean;
+
+  /** Runs a `collection`-bound verb over {@link selection}. */
+  onBulkUseCase?: (key: string, selection: EntitySelection<TEntity>) => void;
+  /** Runs an `entity`-bound, `context-dependent` verb on one row. */
+  onUseCase?: (key: string, item: TEntity) => void;
+
+  /** The outcome of the last bulk run, rendered per row until dismissed. */
+  bulkOutcomes?: readonly BulkOutcome[];
+  onBulkDismiss?: () => void;
+  onBulkRetry?: (ids: EntityId[]) => void;
+  /** A bulk run is in flight — every verb is disabled while it is. */
+  isBulkRunning?: boolean;
 
   /** Customization slots — see `entity-table-slots`. */
   children?: ReactNode;

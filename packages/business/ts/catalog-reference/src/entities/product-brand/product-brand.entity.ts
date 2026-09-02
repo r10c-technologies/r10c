@@ -1,6 +1,12 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { accessor, entity } from '@r10c/entifix-ts-core';
 
+import {
+  DEFAULT_REFERENCE_STATUS,
+  type ReferenceStatus,
+  ReferenceStatuses,
+} from '../../values/reference-status';
+
 @entity({
   domain: 'catalog-reference',
   key: 'product-brand',
@@ -14,6 +20,7 @@ export class ProductBrand implements Entity {
   #name: string;
   #description?: string;
   #website?: string;
+  #status: ReferenceStatus = DEFAULT_REFERENCE_STATUS;
   // #endregion
 
   // #region constructors
@@ -97,6 +104,26 @@ export class ProductBrand implements Entity {
   }
   set website(value: string | undefined) {
     this.#website = value;
+  }
+
+  // Retiring is not deleting: a specification in another slice's store holds a
+  // bare `brandId`/`categoryId` and nothing enforces the reference, so removing
+  // the row would leave every offering classified under it pointing at nothing.
+  // `filterable` because the first thing an operator does on this screen is
+  // narrow it to what is still active.
+  @accessor({
+    type: 'enum',
+    label: 'Status',
+    labelKey: 'entity:product-brand.fields.status',
+    enumValues: ReferenceStatuses,
+    enumLabelKey: 'entity:reference-status',
+    filterable: true,
+  })
+  get status(): ReferenceStatus {
+    return this.#status;
+  }
+  set status(value: ReferenceStatus) {
+    this.#status = value;
   }
   // #endregion
 }

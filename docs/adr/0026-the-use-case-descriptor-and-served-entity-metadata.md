@@ -10,6 +10,12 @@
   document, not the descriptor set; an unreadable entity answers `404`, not
   `403`; and the route mounts per entity at a **literal** path, because a
   parametric one is shadowed by `/:id` and never runs.
+- Amended by: [ADR 0035](0035-entity-actions-selection-and-bulk.md) — this
+  record's "one vocabulary, three surfaces" built one of them, and four of the
+  nine `binding × placement` cells were dropped in silence. 0035 maps every
+  cell, rejects the one no surface owns, and adds the selection and per-row
+  bulk result the collection surfaces need. Its decisions on `Clone` and on the
+  action-segment wildcard **uphold** this record's rather than changing them.
 
 ## Context
 

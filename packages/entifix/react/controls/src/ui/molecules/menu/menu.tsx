@@ -68,13 +68,37 @@ function Items({
   );
 }
 
-function Item({ className, ...props }: ComponentPropsWithoutRef<'button'>) {
+/** How an entry reads: an ordinary action, or one that destroys something. */
+export type MenuItemTone = 'neutral' | 'destructive';
+
+export interface MenuItemProps extends ComponentPropsWithoutRef<'button'> {
+  /**
+   * `destructive` colours the entry as a deletion.
+   *
+   * It exists because an overflow menu is where a destructive verb ends up once
+   * the visible actions are full, and a `Button` in that position would carry
+   * `variant="destructive"` — a menu that cannot say the same thing makes the
+   * appearance of a verb depend on how many siblings it happens to have.
+   *
+   * Colour is not the affordance, and must not be the only warning: a verb
+   * whose descriptor carries `confirm` still asks before it fires.
+   */
+  tone?: MenuItemTone;
+}
+
+const ITEM_TONE_CLASS: Record<MenuItemTone, string> = {
+  neutral: 'text-content data-focus:text-content',
+  destructive: 'text-danger data-focus:text-danger',
+};
+
+function Item({ className, tone = 'neutral', ...props }: MenuItemProps) {
   return (
     <HuiMenuItem
       as="button"
       className={cn(
-        'flex w-full items-center gap-2xs rounded-md px-2xs py-3xs text-step-sm text-content',
-        'data-focus:bg-surface data-focus:text-content',
+        'flex w-full items-center gap-2xs rounded-md px-2xs py-3xs text-step-sm',
+        'data-focus:bg-surface',
+        ITEM_TONE_CLASS[tone],
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
