@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  cloneEntityDraft,
   describeEntityColumns,
   EntifixLogicError,
   type Entity,
@@ -18,6 +19,7 @@ import {
   useT,
   useTranslateKey,
 } from '../../../i18n';
+import { OVERFLOW_GLYPH, useCasesForSurface } from '../../actions';
 import { Button } from '../../atoms/button';
 import { CellValue } from '../../atoms/cell-value';
 import { FieldControl } from '../../atoms/field-control';
@@ -27,6 +29,7 @@ import { Card } from '../../molecules/card';
 import { ConfirmDialog } from '../../molecules/confirm-dialog';
 import { EntityLinkInput } from '../../molecules/entity-link-input';
 import { LoadingBoundary } from '../../molecules/loading-boundary';
+import { Menu } from '../../molecules/menu';
 import { Stack } from '../../molecules/stack';
 import type {
   EntityFormField,
@@ -77,6 +80,15 @@ const PICKABLE_TYPES: ReadonlySet<MetaAccessorType> = new Set<MetaAccessorType>(
  * It is presentational: the draft, its errors and the save/delete actions are
  * all props, so the same form hosts on a plain route and inside a workspace tab.
  */
+/**
+ * How many verbs a surface shows before the rest fold into an overflow menu.
+ *
+ * Four, because that is roughly what fits beside a title at a laptop width
+ * without the row wrapping — the same number Fiori's object-page header settles
+ * on. It is a layout constant, not a policy: raising it does not grant anything.
+ */
+const VISIBLE_ACTION_LIMIT = 4;
+
 /** A verb waiting on its confirmation — narrowed so `confirm` is not optional. */
 interface PendingConfirmation {
   key: string;
@@ -108,6 +120,7 @@ export function EntityForm<TEntity extends Entity>({
   metadata,
   isMetadataLoading = false,
   onUseCase,
+  onClone,
   children,
 }: EntityFormProps<TEntity>) {
   const formId = useId();
@@ -174,21 +187,13 @@ export function EntityForm<TEntity extends Entity>({
   const may = (action: EntityAction) =>
     metadata === undefined || metadata.actions.includes(action);
 
-  // A single-record form shows the verbs that act on *this* record. A
-  // `context-dependent` one needs a selection to act on, which only a list has —
-  // that is the bulk bar, not this. `collection`-bound verbs are not this
-  // form's either.
-  const useCases = (metadata?.useCases ?? []).filter(
-    descriptor =>
-      descriptor.binding === 'entity' &&
-      descriptor.placement !== 'context-dependent',
-  );
-  const headerUseCases = useCases.filter(
-    descriptor => descriptor.placement === 'context-independent',
-  );
-  const footerUseCases = useCases.filter(
-    descriptor => descriptor.placement === 'determining',
-  );
+  // A single-record form shows the verbs that act on *this* record. Which cell
+  // lands where is `action-surfaces`' business and nobody else's — a
+  // `context-dependent` entity verb belongs to a row's overflow menu and a
+  // `collection`-bound one to the bulk bar, and resolving that here as well is
+  // how the two surfaces drifted apart in the first place.
+  const headerUseCases = useCasesForSurface('form-header', metadata?.useCases);
+  const footerUseCases = useCasesForSurface('form-footer', metadata?.useCases);
 
   // A descriptor carrying `confirm` must be asked about before it fires;
   // `revoke-sessions` ends every session a user holds. The state holds the
@@ -228,6 +233,51 @@ export function EntityForm<TEntity extends Entity>({
     </Button>
   );
 
+  const useCaseMenuItem = (descriptor: UseCaseDescriptor) => (
+    <Menu.Item
+      key={descriptor.key}
+      tone={
+        descriptor.confirm?.tone === 'destructive' ? 'destructive' : 'neutral'
+      }
+      disabled={busy}
+      onClick={() => invoke(descriptor)}
+    >
+      {translateKey(descriptor.labelKey)}
+    </Menu.Item>
+  );
+
+  /**
+   * Four actions fit a row; twelve do not.
+   *
+   * So a surface renders its first {@link VISIBLE_ACTION_LIMIT} verbs as
+   * buttons and folds the rest behind one overflow trigger, in **declaration
+   * order** — the entity's author decided which verbs matter by writing them
+   * first, and a rule that sorted by anything else (alphabetical, destructive
+   * last) would reorder the row every time a verb was added.
+   *
+   * The split is only applied when there is something to fold: a fifth action
+   * is the point at which a menu is cheaper than a wider row, and a menu
+   * holding one entry is strictly worse than the button it replaced.
+   */
+  const withOverflow = (descriptors: UseCaseDescriptor[]) => {
+    if (descriptors.length <= VISIBLE_ACTION_LIMIT) {
+      return descriptors.map(useCaseButton);
+    }
+
+    const visible = descriptors.slice(0, VISIBLE_ACTION_LIMIT);
+    const folded = descriptors.slice(VISIBLE_ACTION_LIMIT);
+
+    return [
+      ...visible.map(useCaseButton),
+      <Menu key="overflow">
+        <Menu.Trigger aria-label={t('form.moreActions')}>
+          {OVERFLOW_GLYPH}
+        </Menu.Trigger>
+        <Menu.Items>{folded.map(useCaseMenuItem)}</Menu.Items>
+      </Menu>,
+    ];
+  };
+
   return (
     <Card>
       <Stack gap="s">
@@ -252,7 +302,10 @@ export function EntityForm<TEntity extends Entity>({
             </Button>
           )}
           <LoadingBoundary isLoading={isMetadataLoading} lines={0}>
-            <>{headerUseCases.map(useCaseButton)}</>
+            <>
+              {withOverflow(headerUseCases)}
+              {slots.headerActions}
+            </>
           </LoadingBoundary>
         </Stack>
 
@@ -328,7 +381,24 @@ export function EntityForm<TEntity extends Entity>({
                 {isDeleting ? t('form.deleting') : t('form.delete')}
               </Button>
             )}
-            {footerUseCases.map(useCaseButton)}
+            {withOverflow(footerUseCases)}
+            {/* Clone is the CRUD triple's, not a declared verb's: every entity
+                can be copied, so giving it a `@useCase()` would mean declaring
+                the same verb on all 28 of them. It needs `write`, because what
+                it produces is a create. */}
+            {onClone && entity && may('write') && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() =>
+                  onClone(cloneEntityDraft(entityConstructor, draft))
+                }
+              >
+                {t('form.clone')}
+              </Button>
+            )}
+            {slots.footerActions}
             {backHref && (
               <a href={backHref}>
                 <Button type="button" variant="ghost" disabled={busy}>

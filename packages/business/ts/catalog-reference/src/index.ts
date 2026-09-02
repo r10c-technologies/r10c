@@ -35,3 +35,5 @@ export { CATALOG_REFERENCE_DOMAIN } from './domain';
 export * from './entities/dictionary-term';
 export * from './entities/product-brand';
 export * from './entities/product-category';
+export * from './use-cases';
+export * from './values';

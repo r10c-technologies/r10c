@@ -118,6 +118,34 @@ describe('ROLE_PERMISSIONS', () => {
   });
 
   it('gives a super-admin the unrestricted wildcard', () => {
-    expect(ROLE_PERMISSIONS['super-admin']).toEqual(['*:*:*']);
+    expect(ROLE_PERMISSIONS['super-admin']).toContain('*:*:*');
+  });
+
+  /**
+   * The wildcard already covers them, and they are written out anyway.
+   *
+   * `*:*:*` is the catch-all for capabilities that do not exist yet, not a
+   * substitute for naming a verb that does — and `@r10c/slices` asserts every
+   * declared verb appears in some grant, a check a wildcard would satisfy
+   * vacuously for precisely the verbs only the operator holds.
+   */
+  it('still names the operator-only verbs it declares', () => {
+    expect(ROLE_PERMISSIONS['super-admin']).toContain(
+      `${CATALOG_REFERENCE_DOMAIN}:*:retire`,
+    );
+  });
+
+  /**
+   * ADR 0026's recorded residual, and its reopen condition: measured, only
+   * `super-admin` wildcards the **action** segment, so a newly declared verb
+   * escalates to nobody. If any other role ever does, that decision reopens.
+   */
+  it('lets no other role wildcard the action segment', () => {
+    for (const [role, grants] of Object.entries(ROLE_PERMISSIONS)) {
+      if (role === 'super-admin') continue;
+      for (const grant of grants) {
+        expect(grant.split(':')[2], `${role} grants ${grant}`).not.toBe('*');
+      }
+    }
   });
 });

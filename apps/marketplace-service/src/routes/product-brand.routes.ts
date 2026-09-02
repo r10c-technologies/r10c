@@ -1,12 +1,17 @@
 import { HttpRouter } from '@effect/platform';
-import { ProductBrand } from '@r10c/business-ts-catalog-reference';
+import {
+  ProductBrand,
+  RETIRE_PRODUCT_BRAND,
+} from '@r10c/business-ts-catalog-reference';
 import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import {
   byIdRoute,
   deleteRoute,
+  guardedUseCase,
   guardedWrite,
   listRoute,
+  retireRoute,
   saveRoute,
 } from './entity-crud';
 
@@ -45,5 +50,26 @@ export const productBrandRoutes = HttpRouter.empty.pipe(
   HttpRouter.del(
     '/api/product-brand/:id',
     guardedWrite(ProductBrand, 'delete', deleteRoute(ProductBrand)),
+  ),
+  // Literal paths, like `$metadata` above and for the same measured reason: a
+  // parametric route registered beside `/:id` is shadowed by it and never runs.
+  //
+  // `POST` rather than `PATCH`: the body is a *selection*, not a partial
+  // record, and the endpoint is a verb rather than an edit to one resource.
+  // Guarded by the permission the use case derives — `retire` is not a shape
+  // of `write`, which is the whole point of ADR 0026.
+  HttpRouter.post(
+    '/api/product-brand/retire',
+    guardedUseCase(
+      RETIRE_PRODUCT_BRAND,
+      retireRoute(ProductBrand, { retired: true }),
+    ),
+  ),
+  HttpRouter.post(
+    '/api/product-brand/restore',
+    guardedUseCase(
+      RETIRE_PRODUCT_BRAND,
+      retireRoute(ProductBrand, { retired: false }),
+    ),
   ),
 );

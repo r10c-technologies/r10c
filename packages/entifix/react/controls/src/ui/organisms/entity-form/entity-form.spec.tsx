@@ -18,7 +18,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { EntityForm } from './entity-form';
 import type { EntityFormField, EntityFormProps } from './entity-form.types';
-import { EntityField } from './entity-form-slots';
+import { EntityActions, EntityField } from './entity-form-slots';
 import { resolveEntityFormFields } from './use-entity-form-fields';
 
 @entity({ key: 'gadget-brand' })
@@ -203,6 +203,7 @@ describe('resolveEntityFormFields', () => {
     linkLabelProperty: 'name',
     linkSearchProperty: 'name',
     linkSerialization: 'id',
+    resetOnClone: false,
     ...extra,
   });
 
@@ -898,7 +899,9 @@ describe('EntityForm actions from served metadata', () => {
             {
               key: 'import',
               binding: 'collection',
-              placement: 'determining',
+              // A collection verb belongs to the table's bulk bar or toolbar,
+              // never to one record's form.
+              placement: 'context-dependent',
               labelKey: 'entity:gadget.useCases.import',
             },
           ],
@@ -912,6 +915,206 @@ describe('EntityForm actions from served metadata', () => {
     expect(
       screen.queryByRole('button', { name: 'gadget.useCases.import' }),
     ).not.toBeInTheDocument();
+  });
+
+  /**
+   * `collection` + `determining` is the one cell no surface owns, and it now
+   * costs the render rather than vanishing. Before ADR 0035 this descriptor was
+   * dropped in silence: the verb was declared, granted, exported, passed every
+   * `@r10c/slices` invariant and simply never appeared, which reads to its
+   * author as a permission bug and sends them looking in the wrong place.
+   */
+  it('refuses a verb no surface can render, rather than dropping it', () => {
+    expect(() =>
+      render(
+        <Harness
+          mode="edit"
+          metadata={{
+            actions: ['read', 'write'],
+            useCases: [
+              {
+                key: 'settle-all',
+                binding: 'collection',
+                placement: 'determining',
+                labelKey: 'entity:gadget.useCases.settleAll',
+              },
+            ],
+          }}
+        />,
+      ),
+    ).toThrow(/no surface renders/);
+  });
+
+  /**
+   * Four fit a row; twelve do not. The split is in **declaration order** — the
+   * entity's author decided which verbs matter by writing them first.
+   */
+  describe('the overflow menu', () => {
+    const many = (count: number) =>
+      Array.from({ length: count }, (_unused, index) => ({
+        key: `verb-${index}`,
+        binding: 'entity' as const,
+        placement: 'context-independent' as const,
+        labelKey: `entity:gadget.useCases.verb${index}`,
+      }));
+
+    it('renders four actions as buttons with no overflow trigger', () => {
+      render(
+        <Harness
+          mode="edit"
+          metadata={{ actions: ['read', 'write'], useCases: many(4) }}
+        />,
+      );
+
+      expect(
+        screen.getByRole('button', { name: 'gadget.useCases.verb3' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Más acciones' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('folds the fifth and beyond behind one trigger', async () => {
+      render(
+        <Harness
+          mode="edit"
+          metadata={{ actions: ['read', 'write'], useCases: many(6) }}
+        />,
+      );
+
+      // The first four stay visible…
+      expect(
+        screen.getByRole('button', { name: 'gadget.useCases.verb3' }),
+      ).toBeInTheDocument();
+      // …the rest are not buttons any more.
+      expect(
+        screen.queryByRole('button', { name: 'gadget.useCases.verb4' }),
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Más acciones' }),
+      );
+
+      expect(
+        screen.getByRole('menuitem', { name: 'gadget.useCases.verb4' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitem', { name: 'gadget.useCases.verb5' }),
+      ).toBeInTheDocument();
+    });
+
+    it('fires a folded verb, confirmation and all', async () => {
+      const onUseCase = vi.fn();
+      render(
+        <Harness
+          mode="edit"
+          metadata={{
+            actions: ['read', 'write'],
+            useCases: [
+              ...many(4),
+              {
+                key: 'purge',
+                binding: 'entity' as const,
+                placement: 'context-independent' as const,
+                labelKey: 'entity:gadget.useCases.purge',
+                confirm: {
+                  tone: 'destructive' as const,
+                  messageKey: 'entity:gadget.useCases.purgeConfirm',
+                },
+              },
+            ],
+          }}
+          onUseCase={onUseCase}
+        />,
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Más acciones' }),
+      );
+      await userEvent.click(
+        screen.getByRole('menuitem', { name: 'gadget.useCases.purge' }),
+      );
+
+      // A folded verb is still a verb: the confirmation is not skipped.
+      expect(onUseCase).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+      expect(onUseCase).toHaveBeenCalledWith('purge');
+    });
+  });
+
+  describe('Clone', () => {
+    /**
+     * Clone belongs to the CRUD triple rather than to a declared verb: every
+     * entity can be copied, so a `@useCase()` for it would have to be declared
+     * on all 28 of them.
+     */
+    it('hands back a draft with the id and the reset members cleared', async () => {
+      const onClone = vi.fn();
+      render(
+        <Harness
+          mode="edit"
+          entity={makeGadget()}
+          initial={{ id: '1', code: 'G-1', stock: '5' }}
+          onClone={onClone}
+        />,
+      );
+
+      await userEvent.click(screen.getByRole('button', { name: 'Duplicar' }));
+
+      expect(onClone).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '', stock: '5' }),
+      );
+    });
+
+    it('is absent on a create form, where there is nothing to copy', () => {
+      render(<Harness mode="edit" onClone={vi.fn()} />);
+
+      expect(
+        screen.queryByRole('button', { name: 'Duplicar' }),
+      ).not.toBeInTheDocument();
+    });
+
+    /** A copy is a create, so it needs `write`. */
+    it('is absent when the caller may not write', () => {
+      render(
+        <Harness
+          mode="edit"
+          entity={makeGadget()}
+          onClone={vi.fn()}
+          metadata={{ actions: ['read'], useCases: [] }}
+        />,
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Duplicar' }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  /**
+   * The escape hatch for what metadata cannot describe — so a page never has to
+   * render its action outside the card.
+   */
+  describe('the actions slot', () => {
+    it('renders bespoke nodes in the header and the footer', () => {
+      render(
+        <Harness mode="edit">
+          <EntityActions placement="header">
+            <button type="button">{'Ver en Zitadel'}</button>
+          </EntityActions>
+          <EntityActions>
+            <button type="button">{'Exportar'}</button>
+          </EntityActions>
+        </Harness>,
+      );
+
+      expect(
+        screen.getByRole('button', { name: 'Ver en Zitadel' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Exportar' }),
+      ).toBeInTheDocument();
+    });
   });
 
   it('holds the action row with a skeleton while the document is in flight', () => {

@@ -25,11 +25,40 @@ export interface ServiceProxyRouteOptions {
  * nothing** — the service still verifies the token and applies its own
  * `requirePermission`. It only carries.
  *
+ * It also carries the **caching contract** in both directions, which it did not
+ * always: rebuilding every response as a fresh body dropped `ETag`,
+ * `Cache-Control` and `Vary`, and forwarded no `If-None-Match`. The effect was
+ * invisible and entirely wasteful — `GET /api/<entity>/$metadata` computes and
+ * hashes a permission-filtered document per request, and a validator that never
+ * reaches the service means it can never answer `304`. Worse, `Vary` is a
+ * *correctness* header here: the document differs per caller, and one stripped
+ * of `Vary: Cookie, Authorization` may be cached and served to a different
+ * principal.
+ *
  * A factory, because a host mounts one of these per backend it talks to, and
  * back-office-app now talks to two: marketplace-admin-service for the catalog a
  * vendor authors, marketplace-service for the platform vocabulary it is
  * classified in (ADR 0022).
  */
+/**
+ * Response headers that must survive the rebuild.
+ *
+ * Deliberately a short allow-list rather than copying every header: the
+ * upstream's `content-length` and `content-encoding` describe *its* body, and
+ * carrying them onto a response this function reconstructs is how a proxy
+ * serves a truncated payload.
+ */
+const CACHE_HEADERS = ['etag', 'cache-control', 'vary'] as const;
+
+const passThrough = (upstream: Response): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  for (const name of CACHE_HEADERS) {
+    const value = upstream.headers.get(name);
+    if (value !== null) headers[name] = value;
+  }
+  return headers;
+};
+
 export const createServiceProxyRoute = ({
   baseUrl,
 }: ServiceProxyRouteOptions) => {
@@ -48,6 +77,13 @@ export const createServiceProxyRoute = ({
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Forwarded, or the validator never reaches the service and every
+    // `$metadata` read is a full document — see {@link CACHE_HEADERS}.
+    const ifNoneMatch = request.headers.get('if-none-match');
+    if (ifNoneMatch !== null) {
+      headers['if-none-match'] = ifNoneMatch;
+    }
+
     const hasBody = request.method !== 'GET' && request.method !== 'DELETE';
     const upstream = await fetch(`${baseUrl}/api/${path.join('/')}${search}`, {
       method: request.method,
@@ -56,13 +92,22 @@ export const createServiceProxyRoute = ({
       cache: 'no-store',
     });
 
+    const passed = passThrough(upstream);
+
+    // A `304` carries no body by definition, and neither does a `204`. Running
+    // either through a body read is not merely wasteful — a `304` reconstructed
+    // with a body is no longer a `304`.
+    if (upstream.status === 304) {
+      return new NextResponse(null, { status: 304, headers: passed });
+    }
+
     // 204s and empty bodies must not be run through `json()`.
     const text = await upstream.text();
     return text === ''
-      ? new NextResponse(null, { status: upstream.status })
+      ? new NextResponse(null, { status: upstream.status, headers: passed })
       : new NextResponse(text, {
           status: upstream.status,
-          headers: { 'content-type': 'application/json' },
+          headers: { ...passed, 'content-type': 'application/json' },
         });
   };
 

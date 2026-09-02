@@ -32,6 +32,7 @@ const descriptor = (
   linkLabelProperty: 'name',
   linkSearchProperty: 'name',
   linkSerialization: 'id',
+  resetOnClone: false,
 });
 
 const descriptors = [descriptor('name', 'Name'), descriptor('stock', 'Stock')];

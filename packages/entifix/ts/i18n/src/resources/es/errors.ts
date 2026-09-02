@@ -26,6 +26,10 @@ export const errors = {
   invalidQuery: 'La consulta no es válida.',
   invalidCommand: 'El comando no es válido.',
   notFound: 'No se encontró el registro.',
+  // Un fallo *por fila* de una acción masiva: el registro ya estaba en el
+  // estado pedido, así que no se escribió nada. No es un error de la ejecución
+  // — se informa por fila para que un recuento de éxitos no mienta sobre ella.
+  alreadyRetired: 'Ya estaba retirado.',
   resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
   emailRequired: 'Se requiere un identificador de correo electrónico.',

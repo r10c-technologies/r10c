@@ -1,7 +1,8 @@
 'use client';
 
-import { EntityTable } from '@r10c/entifix-react-controls';
+import { EntityTable, useCasesForSurface } from '@r10c/entifix-react-controls';
 import {
+  entityQueryScope,
   useDataLoading,
   useEntityMutation,
   useEntityRecord,
@@ -21,6 +22,7 @@ import {
   type EntityConstructor,
   extractMetaEntity,
 } from '@r10c/entifix-ts-core';
+import { useQueryClient } from '@tanstack/react-query';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -33,6 +35,8 @@ import type {
   EntityCrudSingleViewProps,
 } from './make-entity-crud.types';
 import { CATALOG_NEW_SLUG, slugToEntityId } from './slug';
+import { useEntityAffordances } from './use-entity-affordances';
+import { useEntityBulk } from './use-entity-bulk';
 
 /** What a picker defaults to reading off its target. */
 const TARGET_NAME_PROPERTY = 'name';
@@ -83,7 +87,7 @@ function mergeContext<TAdapters>(
  */
 export function makeEntityCrud<TEntity extends Entity, TAdapters>(
   entityConstructor: EntityConstructor<TEntity>,
-  options: EntityCrudOptions<TAdapters>,
+  options: EntityCrudOptions<TAdapters, TEntity>,
 ): EntityCrud<TEntity> {
   const {
     useAdapters,
@@ -94,6 +98,8 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     hiddenFields = [],
     columns,
     links = [],
+    metadataSource,
+    runBulkUseCase,
   } = options;
 
   const declaredKey = extractMetaEntity(entityConstructor).key;
@@ -131,9 +137,46 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     // the middleware redirects it — but the visitor pays a round trip per click.
     const withLocale = useLocaleHref();
 
+    const queryClient = useQueryClient();
+    const scope = entityQueryScope(entityConstructor);
+    const affordances = useEntityAffordances(entityConstructor, metadataSource);
+
     const pager = useDataLoading<TEntity, CrudContext>({
       uc: loadUCFactory<TEntity>(),
       ctx: mergeContext(adapters, configuration, repository),
+      // Scoped rather than left to the per-instance fallback, which is correct
+      // but unshared: with the entity's own scope one invalidation refreshes
+      // every page and filter of it, which is what a bulk run needs — and it is
+      // the same prefix `useReactiveInvalidation`already targets, so a generated
+      // list now also refreshes on a reactive change event.
+      queryKey: scope,
+    });
+
+    // Only when this caller may actually run something over a selection.
+    //
+    // Measured live: an `admin` holds `catalog-reference:*:read` and no
+    // `retire`, so the service filters the verb out of `$metadata` — but the
+    // selection column still rendered, offering a set that no action could be
+    // taken on. A checkbox that can lead nowhere is worse than no checkbox: it
+    // reads as a permission the user does not have.
+    //
+    // Decided from the served document rather than from the runner, because
+    // the runner is a property of the *shell* (it knows the route) and the
+    // grant is a property of the *caller*. The column therefore appears when
+    // the document lands, which is the asynchrony ADR 0026 already accepts for
+    // every action surface.
+    const canRunBulk =
+      useCasesForSurface('bulk-bar', affordances.metadata?.useCases).length > 0;
+
+    const bulk = useEntityBulk<TEntity>({
+      run: canRunBulk ? runBulkUseCase : undefined,
+      // A bulk write changed the rows underneath the listing, so the page is
+      // re-read; the selection deliberately survives it (#121 — "the selection
+      // is still there afterwards"), because the operator's next act is usually
+      // to retry the failures or run a second verb on the same rows.
+      onCompleted: () => {
+        void queryClient.invalidateQueries({ queryKey: scope });
+      },
     });
 
     return (
@@ -142,6 +185,8 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
         {...pager}
         hrefFor={id => withLocale(`${basePath}/${String(id)}`)}
         newHref={withLocale(`${basePath}/${CATALOG_NEW_SLUG}`)}
+        {...affordances}
+        {...bulk.tableProps}
       >
         {columns}
       </EntityTable>
@@ -225,6 +270,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
         key={String(entity?.id ?? CATALOG_NEW_SLUG)}
         entityConstructor={entityConstructor}
         catalogKey={catalogKey}
+        metadataSource={metadataSource}
         hiddenFields={hiddenFields}
         links={linkSources}
         entity={entity}

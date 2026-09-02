@@ -135,6 +135,61 @@ itself is not built yet (#113, #123), and `TabKind`'s `catalog:`/`entity:`/
 `system:` prefixes become type-derived when #141 makes the workspace registry
 derive from the nav rather than restating it.
 
+## Action surfaces — where a declared verb appears
+
+A `@useCase()` carries two independent axes, `binding` and `placement`
+([ADR 0026](adr/0026-the-use-case-descriptor-and-served-entity-metadata.md)).
+Their product is nine cells, and **every one is decided** in
+`ui/actions/action-surfaces.ts` — mapped to a surface, or rejected with an error
+that names the fix
+([ADR 0035](adr/0035-entity-actions-selection-and-bulk.md)):
+
+| binding      | placement             | surface                        |
+| ------------ | --------------------- | ------------------------------ |
+| `entity`     | `context-independent` | form header                    |
+| `entity`     | `determining`         | form footer                    |
+| `entity`     | `context-dependent`   | row overflow menu              |
+| `collection` | `context-dependent`   | bulk bar                       |
+| `collection` | `context-independent` | table toolbar                  |
+| `collection` | `determining`         | **invalid — throws at render** |
+| `unbound`    | any                   | command palette (#129)         |
+
+The rules, each of them a defect that was live before it was one:
+
+- **A cell no surface owns throws.** `EntityForm` used to filter to
+  `binding === 'entity' && placement !== 'context-dependent'` and drop the rest
+  in silence, which is the worst possible failure here: the verb is declared,
+  granted, exported and passes every `@r10c/slices` invariant, so its author
+  reads the absence as a permission bug and goes looking in `ROLE_PERMISSIONS`.
+  The check runs on the first render of **any** surface, not only the one that
+  would have shown the verb.
+- **Four actions fit a row; twelve do not.** A surface renders its first four as
+  buttons and folds the rest behind one overflow menu, in declaration order —
+  the entity's author decided what matters by writing it first, and sorting by
+  anything else reorders the row every time a verb is added.
+- **Two select-alls, and they are different features.** "Select all on this
+  page" is a list of ids; "select all 3.200 matching" is a filter the _server_
+  evaluates. They are two members of a discriminated union, never one shape with
+  a flag, and the escalation is a separate affordance carrying the count. The
+  wire form is **arrays**: a `Set` serializes to `{}`, silently, and a selection
+  whose exclusions evaporate acts on rows the operator removed on purpose.
+- **A bulk result is per row.** Forty selected, three fail: one notice lies
+  either way. Both counts are stated, every failure is named with an error
+  **code** the `errors` catalog resolves, a retry re-runs only the failures, and
+  the selection survives the action until cleared.
+- **Clone is metadata, not a verb.** `@accessor({ resetOnClone: true })` names
+  the members a copy drops; the id is always dropped, and **without consulting
+  the descriptors** — `describeEntityColumns` skips `hidden` members, and every
+  generated form hides its id, so a descriptor-driven sweep would leave it in
+  place on exactly the forms a Clone button appears on.
+- **A picker and a multi-selection are mutually exclusive**, and wiring both
+  throws: a picker chooses one value for a field that holds one reference.
+
+`EntityActions` is the slot for what metadata cannot describe, so a page never
+has to render its action outside the card. Everything metadata _can_ describe
+should be a `@useCase()` — that is what makes it permission-filtered,
+translatable, and reachable from the command palette when #129 lands.
+
 ## Foundations: two scales, one contract
 
 Spacing (`--spacing-3xs…3xl`) and type (`--text-step-xs…4`) keep **one set of

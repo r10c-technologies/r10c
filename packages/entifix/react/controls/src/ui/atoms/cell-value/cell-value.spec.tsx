@@ -37,6 +37,7 @@ const descriptor = (
   linkLabelProperty,
   linkSearchProperty: linkLabelProperty,
   linkSerialization: 'id',
+  resetOnClone: false,
 });
 
 const renderCell = (

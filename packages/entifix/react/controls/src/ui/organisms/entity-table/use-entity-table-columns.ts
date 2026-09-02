@@ -51,6 +51,9 @@ function mergeSlots<TEntity extends Entity>(
       linkLabelProperty: 'name',
       linkSearchProperty: 'name',
       linkSerialization: 'id',
+      // A slot-only column has no accessor, so there is nothing for a copy to
+      // reset — the value is computed from members that are cloned themselves.
+      resetOnClone: false,
       header: slot.header,
       render: slot.render,
       virtual: true,

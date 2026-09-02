@@ -15,6 +15,38 @@ export const controls = {
     loading: 'Cargando…',
     empty: 'Sin registros',
     error: 'No se pudieron cargar los registros',
+    /**
+     * La columna de selección. `selectRow` nombra la fila porque una casilla
+     * sin etiqueta visible sólo se anuncia por su `aria-label`, y repetir el
+     * encabezado en cada fila no diría cuál es.
+     */
+    selection: 'Selección',
+    selectRow: 'Seleccionar {{record}}',
+    selectAllOnPage: 'Seleccionar todo en esta página',
+    /**
+     * La segunda selección — la que el servidor evalúa — lleva el número
+     * siempre: es la diferencia entre actuar sobre 25 filas y sobre 3.200.
+     */
+    selectAllMatching_one: 'Seleccionar {{count}} coincidencia',
+    selectAllMatching_other: 'Seleccionar las {{count}} coincidencias',
+    selectedCount_one: '{{count}} seleccionado',
+    selectedCount_other: '{{count}} seleccionados',
+    clearSelection: 'Limpiar selección',
+  },
+  /**
+   * Una acción sobre una selección. El resultado es por fila, nunca un aviso
+   * único: 40 seleccionadas y 3 fallidas no es ni un éxito ni un error.
+   */
+  bulk: {
+    running: 'Ejecutando…',
+    succeeded_one: '{{count}} registro actualizado',
+    succeeded_other: '{{count}} registros actualizados',
+    failed_one: '{{count}} registro falló',
+    failed_other: '{{count}} registros fallaron',
+    retryFailed: 'Reintentar los fallidos',
+    dismiss: 'Cerrar resultado',
+    resultLabel: 'Resultado de la acción masiva',
+    barLabel: 'Acciones sobre la selección',
   },
   form: {
     details: 'Detalles',
@@ -25,6 +57,8 @@ export const controls = {
     saving: 'Guardando…',
     delete: 'Eliminar',
     deleting: 'Eliminando…',
+    clone: 'Duplicar',
+    moreActions: 'Más acciones',
     back: 'Volver',
     loading: 'Cargando…',
   },

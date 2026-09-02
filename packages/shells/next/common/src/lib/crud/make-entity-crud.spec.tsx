@@ -16,7 +16,7 @@ import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context } from 'effect';
 import type { ReactElement } from 'react';
@@ -215,6 +215,26 @@ const productCrud = makeEntityCrud<Product, TestAdapters>(Product, {
   ],
 });
 
+/**
+ * The same entity again, opted into the affordances half: a metadata source and
+ * a bulk runner. Separate from `brandCrud` on purpose — the un-opted factory
+ * has to keep rendering exactly as it did before either option existed, and one
+ * shared instance could not show both.
+ */
+const runBulk = vi.fn();
+const fetchMetadata = vi.fn();
+
+const bulkBrandCrud = makeEntityCrud<Brand, TestAdapters>(Brand, {
+  useAdapters,
+  basePath: '/catalog/brand',
+  catalogKey: 'product-brand',
+  repository: 'brandRest',
+  configuration: 'configurationStore',
+  hiddenFields: ['id', 'code'],
+  metadataSource: { fetchMetadata: () => fetchMetadata() },
+  runBulkUseCase: (key, selection) => runBulk(key, selection),
+});
+
 const makeBrand = (id: string, name: string, code?: string) => {
   const brand = new Brand(name);
   brand.id = id;
@@ -296,6 +316,103 @@ describe('the generated list page', () => {
 
     await waitFor(() =>
       expect(screen.getAllByText('—').length).toBeGreaterThan(0),
+    );
+  });
+});
+
+/**
+ * The adopt half: a generated catalog only gains the ADR 0026/0035 surfaces
+ * when it is handed the two options. Before they existed every generated page
+ * ran the pre-0026 behaviour, and omitting them still does.
+ */
+describe('the generated list page, opted into affordances', () => {
+  const RETIRE = {
+    key: 'retire',
+    binding: 'collection' as const,
+    placement: 'context-dependent' as const,
+    labelKey: 'entity:product-brand.useCases.retire',
+  };
+
+  beforeEach(() => {
+    runBulk.mockReset().mockResolvedValue([{ id: 'b-1', ok: true }]);
+    fetchMetadata
+      .mockReset()
+      .mockResolvedValue({ actions: ['read', 'write'], useCases: [RETIRE] });
+  });
+
+  it('renders no selection column without a bulk runner', async () => {
+    renderPage(<brandCrud.ListPage />);
+
+    await waitFor(() =>
+      expect(screen.getAllByText('Acme').length).toBeGreaterThan(0),
+    );
+    expect(
+      within(screen.getByRole('table')).queryAllByRole('checkbox'),
+    ).toHaveLength(0);
+  });
+
+  it('renders the selection column once a runner is supplied', async () => {
+    renderPage(<bulkBrandCrud.ListPage />);
+
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('table')).getAllByRole('checkbox').length,
+      ).toBeGreaterThan(0),
+    );
+  });
+
+  /**
+   * Measured live against an `admin`, who holds `catalog-reference:*:read` and
+   * no `retire`: the service filters the verb out of the document, but the
+   * selection column still rendered — offering a set no action could be taken
+   * on. A checkbox that leads nowhere reads as a permission the user does not
+   * have, which is worse than no checkbox.
+   */
+  it('renders no selection column when the caller may run no collection verb', async () => {
+    fetchMetadata.mockResolvedValue({ actions: ['read'], useCases: [] });
+    renderPage(<bulkBrandCrud.ListPage />);
+
+    await waitFor(() =>
+      expect(screen.getAllByText('Acme').length).toBeGreaterThan(0),
+    );
+    expect(
+      within(screen.getByRole('table')).queryAllByRole('checkbox'),
+    ).toHaveLength(0);
+  });
+
+  /**
+   * The whole adopt step in one assertion: a served verb reaches a generated
+   * page, runs over the ticked rows, and the listing re-reads what it changed.
+   */
+  it('runs a served collection verb over the selection and re-reads the rows', async () => {
+    const user = userEvent.setup();
+    renderPage(<bulkBrandCrud.ListPage />);
+
+    await waitFor(() =>
+      expect(screen.getAllByText('Acme').length).toBeGreaterThan(0),
+    );
+
+    // Named after the first column that is not the identifier — here the
+    // brand's `code`, which is what an operator reads the row as. `hiddenFields`
+    // hides members from the *form*, not from the listing.
+    await user.click(
+      within(screen.getByRole('table')).getByRole('checkbox', {
+        name: 'Seleccionar brand-001',
+      }),
+    );
+    // The served document arrives asynchronously — which is the accepted cost
+    // ADR 0026 recorded: rendering an action is a fetch where rendering a field
+    // is not. So the verb appears a tick after the selection does.
+    // "Retirar", not the key: this verb's copy is in the real catalog, so the
+    // runtime `labelKey` resolves — which is the half `@r10c/i18n-check` exists
+    // to keep true, since the type system cannot see a `translateKey` argument.
+    await user.click(await screen.findByRole('button', { name: 'Retirar' }));
+
+    await waitFor(() => expect(runBulk).toHaveBeenCalled());
+    expect(runBulk.mock.calls[0]?.[0]).toBe('retire');
+    // And the result is reported per row rather than as one notice.
+    await waitFor(() =>
+      expect(screen.getByTestId('bulk-result')).toBeInTheDocument(),
     );
   });
 });

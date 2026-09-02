@@ -16,6 +16,7 @@ export const errors: EsErrors = {
   invalidQuery: 'The query is not valid.',
   invalidCommand: 'The command is not valid.',
   notFound: 'The record was not found.',
+  alreadyRetired: 'It was already retired.',
   resourceBusy: 'The resource is busy, try again.',
   identifierRequired: 'An account needs at least one identifier.',
   emailRequired: 'An email identifier is required.',

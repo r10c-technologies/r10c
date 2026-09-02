@@ -24,25 +24,3 @@ export function Select({
 }: ComponentPropsWithoutRef<'select'>) {
   return <select className={cn(CONTROL_CLASS, className)} {...props} />;
 }
-
-export interface CheckboxProps extends Omit<
-  ComponentPropsWithoutRef<'input'>,
-  'type'
-> {
-  label: string;
-}
-
-/** Checkbox with its label — the pair is always used together. */
-export function Checkbox({ label, className, ...props }: CheckboxProps) {
-  return (
-    <label
-      className={cn(
-        'flex cursor-pointer items-center gap-2xs text-step-sm text-content',
-        className,
-      )}
-    >
-      <input type="checkbox" className="size-4 accent-primary" {...props} />
-      {label}
-    </label>
-  );
-}
