@@ -614,7 +614,8 @@ in the entity-use-case style), the `runTransaction` engine, and the ports
 (`LockService`, `SequenceService`, `EventBus`, `TransactionStore`,
 `TransactionHandler`). Adapters mirror the entity ones: `entifix-ts-redis-client`
 (lock via `SET NX`, sequences via atomic `INCR`) and `entifix-ts-amqp-client`
-(RabbitMQ fanout event bus).
+(RabbitMQ topic event bus — `entifix.events`, routed by the event's own name
+since [ADR 0029](adr/0029-the-event-envelope-and-a-routed-bus.md)).
 
 The engine splits at the `202` boundary: **accept** (validate + claim + lock) is
 synchronous — its failure is the client's `400`/`409`; **execute** (assign the
@@ -624,8 +625,10 @@ tracker only observes and recovers (passive). The client polls the tracker for
 the outcome, through the relative `rel: 'status'` link the `202` carries. The
 first concrete transaction assigns a unique incremental `code` (`product-001`,
 `category-001`, `brand-001`) to the catalog entities; `INCR`'s atomicity is what
-guarantees uniqueness across service instances. Websockets and multi-service
-sagas are deferred.
+guarantees uniqueness across service instances. Multi-service sagas are
+deferred (#105); the reactive stream is not — it is
+[ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md), and
+it is server-sent rather than a WebSocket.
 
 **The client mints the transaction id, and the event ships with the write**
 ([ADR 0028](adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).
@@ -731,7 +734,9 @@ The marketplace-admin frontend has a **browser-like tab workspace** backed by a
 client data layer where **TanStack Query wraps the Entifix use-cases** (it caches
 and orchestrates; the Effect UC/adapter pattern is untouched). Client state lives
 in Zustand + IndexedDB, server state in the query cache, and a framework-free
-`ReactiveChannel` port lets the coming WebSocket reconcile optimistic writes. Full
+`ReactiveChannel` port lets the reactive stream reconcile optimistic writes —
+server-sent, same-origin and scoped per connection
+([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)). Full
 design: [FRONTEND.md → Workspace tabs](./FRONTEND.md#part-2--workspace-tabs--the-client-data-layer).
 
 ## Current domain structure
