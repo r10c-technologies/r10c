@@ -19,8 +19,12 @@ export type TransactionStep = 'accepted' | 'completed' | 'failed';
 /**
  * What a service reports as its transaction progresses — the **payload** of a
  * {@link DomainEvent}, not the message itself. The saga tracker is a passive
- * consumer of these: it never dispatches work, it only records what the events
- * tell it.
+ * consumer of these: for a single-step write it dispatches nothing and only
+ * records what the events tell it, which is what keeps such a write
+ * choreographed. A flow spanning slices is orchestrated instead, from a
+ * declarative definition (ADR 0039), and its coordinator both reads these and
+ * issues the next step — but that engine is not built, and single-step writes
+ * stay exactly as described here when it is.
  *
  * `transactionId` and `at` are also reachable as the message's `correlationId`
  * and `at`. That duplication is deliberate and standard (CloudEvents' `subject`

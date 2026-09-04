@@ -15,6 +15,12 @@
   `TransactionEvent` gains an `organizationId` member, because an event routed to
   a browser has to say whose it is and could not. The id, the idempotency key,
   the outbox and at-least-once delivery all stand.
+- Amended by:
+  [ADR 0039](0039-multi-step-sagas-are-orchestrated.md) — the engine gains a
+  second, orchestrated mode for flows that span slices, and the
+  persist-before-publish rule extends from events to command dispatch. The
+  single-step engine this record describes is unchanged, and every decision here
+  stands.
 
 ## Context
 

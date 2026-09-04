@@ -974,6 +974,57 @@ instantiation is excessively deep`); every scalar read is now
   they belong in OTLP (#185/#186), which is ADR 0001's still-unbuilt half —
   `observability.ts` has an `OTLPTraceExporter` and no `MeterProvider`, so a
   `Metric.*` call today goes nowhere.
+- **A flow that spans slices is orchestrated; a single-step write stays
+  choreography** ([ADR 0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md)).
+  The engine runs **one** step in **one** service — `TransactionCommand.type` is
+  the literal `'create'`, `executeUCFactory()` is a single call — and that is
+  correct for what it does. Checkout is four steps over three slices and three
+  databases that [planes](docs/_shared/planes.md) forbids from transacting
+  together, so it is a different engine, not a bigger handler. Multi-step flows
+  are **orchestrated, per flow, opt-in**: single-step writes are not rewritten
+  and do not pay coordinator cost. Six things not to re-derive. **The step
+  definition is data, not a class, and the boundary rule is why** — an
+  orchestrator knowing checkout's steps must reference three domains, and a
+  `business:domain` package may not import another, so a `SagaDefinition` walked
+  by a generic engine is the only legal shape; the constraint is the design, the
+  same move `makeEntityCrud` made against the empty implementation layer. Steps
+  are **`compensatable` / `pivot` / `retriable`** (Richardson), and the engine
+  **throws at definition load** on two pivots, a pre-pivot step with no
+  compensation, or a post-pivot step that declares one — the last because it
+  could never run, so it is false assurance rather than dead code; load-time, not
+  step-time, for ADR 0035's reason. **Commands go out over HTTP on ADR 0023's
+  path and results come back over the bus**, and the asymmetry is the point: HTTP
+  gives a synchronous `400` before there is state to unwind, the bus gives
+  durable at-least-once completion. A command exchange was rejected — there is no
+  principal on an AMQP frame, so it needs an authentication scheme invented
+  beside the fleet's own, and `tools/slices/` has no command vocabulary, without
+  which ADR 0031's `/api/$service` diff goes quietly blind. **Dispatch goes
+  through the outbox**, extending ADR 0028's persist-before-publish rule to
+  commands; a relay that POSTs rather than publishes is the one genuinely new
+  mechanism. **Compensation is a semantic reversal with its own events** — a
+  refund is not an uncharge — and a _failed_ compensation is the state nobody
+  plans for: it leaves a reservation held and a customer charged, so it is
+  surfaced, never swallowed. Coordination state stays in the existing **`saga`
+  store** and the `transaction` slice keeps `domains: []`, because orchestration
+  is a mechanism and a domain name would enter the permission namespace and the
+  entitlement key for something no organization is provisioned for; splitting to
+  `:3103` waits for a participant outside marketplace-admin-service.
+  **Durable execution (Temporal/Restate) is rejected with a stated reopen
+  condition** — its own tripwire ("building state tables, custom retry logic and
+  DLQ consumers means you are already writing a workflow engine") does describe
+  us; it is declined for a second programming model beside Effect, a rung the
+  health ladder must learn, and because it displaces ADR 0028's outbox rather
+  than extending it. **If the definition grammar grows conditionals, timers or
+  human tasks, stop and adopt one.** The multi-step engine is **not built**; what
+  is in effect is the vocabulary, the constraints, and three corrections that
+  shipped with the record — `TransactionStore.list()` deleted (no callers since
+  #194 removed the unauthenticated cross-tenant index it served), the single-step
+  rollback failure now **logged** instead of vanishing into `Effect.ignore` (the
+  ignore itself is right — the client must still get a terminal state — but the
+  recorded `error` is `execute`'s, so the compensation's own error reached
+  nothing), and `rollback`'s `outcome` documented as always `undefined` and
+  structurally unreachable until that engine exists. Amends ADR 0028; applies
+  ADR 0023 and ADR 0029 without changing them.
 - **The AMQP connection heals itself, and nothing else in `amqplib` does.**
   Measured: a channel opened at boot and held in a `Layer` is dead **permanently**
   once the broker restarts — publishes fail forever and a subscriber stops
@@ -1272,7 +1323,26 @@ instantiation is excessively deep`); every scalar read is now
 - **Observability**: a `-service` merges an observability layer that replaces Effect's
   default logger with the `@r10c/entifix-ts-tooling` logger and stands up the
   `@effect/opentelemetry` NodeSdk tracer, reading `logging.*`/`otel.endpoint` from
-  config-service (`marketplace-admin-service/src/observability.ts` is the reference).
+  config-service (`marketplace-admin-service/src/observability.ts` is the reference,
+  and `marketplace-service`'s copy is byte-identical — edit both).
+  **The Effect→tooling bridge in that file had two silent faults, and both are the
+  kind that pass every test.** Effect's `LogLevel.label` is **upper case**
+  (`"ERROR"`, `"WARN"`, `"DEBUG"`); the mapper switched on `'Error'`/`'Warning'`/
+  `'Debug'`, so **no case ever matched** and every log in every service was emitted
+  at `info` — an `Effect.logError` reached Loki as `severity_text: INFO`, invisible
+  to any level-based alert while still present in the log, which reads as "the
+  service has no errors". And `annotations` was destructured away and never
+  forwarded, so **every `Effect.annotateLogs` was discarded** — the outbox relay's
+  tenant/event id and the engine's transaction id among them, each with a comment
+  beside it claiming they were queryable structured fields. Both were found by
+  querying Loki during a live pass, not by a test: the e2e's level assertion is
+  `expect(['debug','info','warn','error']).toContain(record.level)`, which every
+  record satisfied _because_ every record was `info`. `observability.spec.ts` now
+  pins each level to its own `severityNumber` and asserts annotations arrive as
+  attributes. Note `error` takes `(message, error?, attributes?)` — passing
+  attributes positionally as the second argument files them as the cause and loses
+  them again — and Effect's own minimum level is `Info`, so a `logDebug` is dropped
+  before any logger sees it regardless of the tooling logger's configured `level`.
   See [ADR 0001](docs/adr/0001-observability-and-tooling.md) and [[observability-stack-decision]].
 - **One contract, two scales — and the opt-in is an attribute.** Spacing and
   type keep one set of token names and take different values per app: fluid

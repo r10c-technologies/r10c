@@ -39,7 +39,11 @@ export interface TransactionStore {
   get(
     transactionId: string,
   ): Effect.Effect<TransactionRecord | undefined, EntifixConnError>;
-  list(): Effect.Effect<readonly TransactionRecord[], EntifixConnError>;
+  // There is deliberately no `list`. The `saga` store is control-plane and
+  // single-partition, so an unfiltered index is every organization's
+  // transactions — which is the surface #194 deleted `GET /api/transaction` for.
+  // Anything that needs a set of records asks for one narrow enough to scope,
+  // the way `findStale` does.
   /** Non-terminal records not updated within `olderThanMs` — recovery input. */
   findStale(
     olderThanMs: number,

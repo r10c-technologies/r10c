@@ -48,8 +48,17 @@ export interface TransactionHandler {
     command: TransactionCommand,
   ): Effect.Effect<TransactionOutcome, EntifixError>;
   /**
-   * Undo a failed execution. Runs whether or not `execute` produced an
-   * `outcome`, so it must be idempotent (e.g. delete-if-exists).
+   * Undo a failed execution. Must be idempotent (e.g. delete-if-exists), since
+   * the recovery sweep may reach a transaction whose rollback already ran.
+   *
+   * **`outcome` is always `undefined` in this engine, and cannot be anything
+   * else.** `rollback` runs on exactly one path — the arm where `execute`
+   * failed — so there is no outcome to hand it. The parameter is not unused but
+   * *unreachable*, and what makes it reachable is the multi-step engine
+   * ADR 0039 decides: there, each compensation receives the outcome its own
+   * step produced, because reversing a payment capture needs the capture's id
+   * and a delete-if-exists does not. The signature changes with that engine and
+   * not before.
    */
   rollback(
     command: TransactionCommand,

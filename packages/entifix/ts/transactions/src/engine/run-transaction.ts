@@ -97,6 +97,34 @@ export function completeTransaction(handles: readonly LockHandle[]) {
         onFailure: error =>
           rollbackUCFactory().pipe(
             Effect.provideService(OutcomeTag, undefined),
+            // The compensation's own failure is reported before it is
+            // discarded. Discarding it is right — the client is polling for a
+            // terminal state and must still get one, so the `failed` record
+            // below is written either way — but until this line the error
+            // reached nothing: not the record, whose `error` is `execute`'s,
+            // and not the log. An operator reading `FAILED` then reasonably
+            // concluded the write had been undone when it had not.
+            //
+            // Annotations rather than message arguments, matching the outbox
+            // relay: they reach a sink as structured fields, so a stranded
+            // transaction is queryable by its id instead of being parsed out of
+            // a rendered string.
+            //
+            // That is true as of this change and was not before it. A service's
+            // Effect→tooling logger bridge (`observability.ts`) dropped
+            // `annotations` outright and matched Effect's level labels with the
+            // wrong casing, so every annotated field was discarded and every
+            // level arrived as INFO — measured in Loki while verifying this log.
+            Effect.tapError(rollbackError =>
+              Effect.logError('transaction rollback failed').pipe(
+                Effect.annotateLogs({
+                  transactionId: command.transactionId,
+                  entity: command.entity,
+                  executeError: String(error),
+                  rollbackError: String(rollbackError),
+                }),
+              ),
+            ),
             Effect.ignore,
             Effect.andThen(
               // Best-effort: the transaction already failed, and a store that

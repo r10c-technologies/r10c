@@ -95,12 +95,6 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
           fail('Failed to read transaction record', error, { transactionId }),
       }).pipe(Effect.map(doc => doc ?? undefined)),
 
-    list: () =>
-      Effect.tryPromise({
-        try: () => collection.find({}, WITHOUT_MONGO_ID).toArray(),
-        catch: error => fail('Failed to list transaction records', error),
-      }),
-
     findStale: olderThanMs =>
       Effect.tryPromise({
         try: () => {
