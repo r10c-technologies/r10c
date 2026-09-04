@@ -3,6 +3,11 @@
 export * from './lib/back-office';
 export * from './lib/crud';
 export * from './lib/i18n';
+// The browser half of record search: a typed `fetch` and the shapes it returns.
+// The route handler and the source declarations stay in `/server`, since they
+// read cookies and would be stamped as client references here.
+export type * from './lib/search/record-search.types';
+export * from './lib/search/search-records';
 export * from './lib/session';
 // Type-only, so it stays erased: the account-link *values* ship from `/server`
 // (see src/server.ts), but `AccountMenuProps` names these types and a consumer

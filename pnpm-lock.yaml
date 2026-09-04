@@ -1372,6 +1372,9 @@ importers:
       '@r10c/entifix-ts-i18n':
         specifier: workspace:*
         version: link:../../../entifix/ts/i18n
+      effect:
+        specifier: 3.22.1
+        version: 3.22.1
     devDependencies:
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*

@@ -52,7 +52,8 @@
     "@r10c/entifix-react-integration": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-i18n": "workspace:*"
+    "@r10c/entifix-ts-i18n": "workspace:*",
+    "effect": "3.22.1"
   },
   "files": []
 }
