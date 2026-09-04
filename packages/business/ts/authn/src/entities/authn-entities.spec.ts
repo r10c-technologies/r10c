@@ -120,6 +120,18 @@ describe('UserIdentity', () => {
     expect(roleColumn?.enumValues).toEqual([...Roles]);
   });
 
+  // The member the back office's record search matches a term against. The flag
+  // is also the server-side RSQL allowlist, and losing it is silent at both
+  // ends: auth-service answers `400`, and the palette renders that as a group it
+  // could not reach — which reads as "there are no users".
+  it('describes displayName as a filterable string', () => {
+    const displayName = describeEntityColumns(UserIdentity).find(
+      column => column.name === 'displayName',
+    );
+
+    expect(displayName).toMatchObject({ type: 'string', filterable: true });
+  });
+
   it('initializes identifiers as an empty collection link', () => {
     const user = new UserIdentity();
 

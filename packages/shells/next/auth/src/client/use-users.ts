@@ -1,7 +1,7 @@
 'use client';
 
 import { UserIdentity } from '@r10c/business-ts-authn';
-import { deserializeEntityCollection } from '@r10c/entifix-ts-core';
+import { readEntityPageEnvelope } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 
 import { useAsyncResource } from './use-async-resource';
@@ -23,13 +23,13 @@ const readPage = async (
   if (!res.ok) {
     throw new Error(body?.error ?? 'could not load users');
   }
-  // The wire shape is the shared entifix serialization, so the same
-  // deserializer the REST adapters use rebuilds real entities here — which is
-  // what lets `EntityTable` derive its columns from the metadata.
-  const items = Effect.runSync(
-    deserializeEntityCollection(UserIdentity, body.items ?? []),
-  ) as UserIdentity[];
-  return { items, total: Number(body.total ?? items.length) };
+  // The wire shape is the shared `entityPage` envelope, so the same reader the
+  // REST adapters use rebuilds real entities here — which is what lets
+  // `EntityTable` derive its columns from the metadata. Reading the envelope
+  // rather than hand-picking `body.items`/`body.total` is also what makes a
+  // malformed body a typed failure instead of an empty table.
+  const page = Effect.runSync(readEntityPageEnvelope(UserIdentity, body));
+  return { items: page.items, total: page.total };
 };
 
 /**

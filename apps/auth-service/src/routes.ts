@@ -49,10 +49,14 @@ import {
 } from '@r10c/entifix-ts-business';
 import {
   EntifixBuildError,
+  type EntifixEnvelopeLink,
   Entity,
   EntityConstructor,
   EntityLoadRequest,
+  envelopeEntityName,
   extractMetaEntity,
+  makeEntityPageEnvelope,
+  parseLoadRequestParams,
   serializeEntity,
   serializeEntityCollection,
 } from '@r10c/entifix-ts-core';
@@ -92,15 +96,32 @@ import {
 } from './identity/session-policy';
 import { SessionScopeResolverTag } from './identity/session-scope';
 
-/** Reads `page`/`pageSize` from the request query string. */
-const readLoadRequest = Effect.gen(function* () {
-  const req = yield* HttpServerRequest.HttpServerRequest;
-  const search = new URL(req.url, 'http://localhost').searchParams;
-  return {
-    page: Number(search.get('page')) || 1,
-    pageSize: Number(search.get('pageSize')) || 10,
-  } satisfies EntityLoadRequest;
-});
+/**
+ * Reads `rsql`/`sort`/`page`/`pageSize`, validated against the entity's own
+ * metadata — the same protocol every other service in the fleet speaks.
+ *
+ * This used to read `page`/`pageSize` and nothing else, which was not a missing
+ * feature but a silent wrong answer: a caller sending `rsql=displayName=like=Juan`
+ * got the first page of *every* user back, presented as matches. A filter the
+ * server drops is worse than one it rejects, because nothing on either end says
+ * so — and `parseLoadRequestParams` is also where the `filterable`/`sortable`
+ * allowlist lives, so before this there was no allowlist here at all.
+ */
+const readLoadRequest = <T extends Entity>(
+  entityConstructor: EntityConstructor<T>,
+) =>
+  Effect.gen(function* () {
+    const req = yield* HttpServerRequest.HttpServerRequest;
+    const search = new URL(req.url, 'http://localhost').searchParams;
+    return yield* Effect.try({
+      try: () =>
+        parseLoadRequestParams(
+          entityConstructor,
+          search,
+        ) as unknown as EntityLoadRequest,
+      catch: error => error as EntifixBuildError,
+    });
+  });
 
 const serverError = (error: unknown) =>
   HttpServerResponse.json(
@@ -108,11 +129,36 @@ const serverError = (error: unknown) =>
     { status: 500 },
   );
 
-/** Generic list route backed by Mongo + the entifix load UC. */
+/**
+ * A malformed query, an unknown member, or one the entity does not declare
+ * `filterable` — the client sent something wrong, so it is a `400` and never a
+ * `500`. Same shape and same code as the other three services.
+ */
+const readError = (error: unknown) =>
+  error instanceof EntifixBuildError
+    ? HttpServerResponse.json(
+        { error: 'invalid query', code: 'invalidQuery', detail: error.message },
+        { status: 400 },
+      )
+    : serverError(error);
+
+const collectionLinks = (key: string): EntifixEnvelopeLink[] => [
+  { rel: 'self', href: `/api/${key}`, method: 'GET' },
+  { rel: 'create', href: `/api/${key}`, method: 'POST' },
+];
+
+/**
+ * Generic list route backed by Mongo + the entifix load UC.
+ *
+ * Answers an `entityPage` **envelope**, like every other list in the fleet. It
+ * used to answer a bare `{ items, total, request }` with no `meta`, which meant
+ * `readEntityPageEnvelope` — the reader every client already has — could not
+ * read it, and each caller hand-picked the fields instead.
+ */
 const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
-    const request = yield* readLoadRequest;
+    const request = yield* readLoadRequest(entityConstructor);
     const page = yield* loadUCFactory<T>().pipe(
       Effect.provideService(
         EntityRepositoryTag,
@@ -120,12 +166,14 @@ const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
       ),
       Effect.provideService(EntityLoadRequestTag, request),
     );
-    return yield* HttpServerResponse.json({
-      items: serializeEntityCollection(entityConstructor, page.items),
-      total: page.total,
-      request: page.request,
-    });
-  }).pipe(Effect.catchAll(serverError));
+    return yield* HttpServerResponse.json(
+      makeEntityPageEnvelope(
+        entityConstructor,
+        page,
+        collectionLinks(envelopeEntityName(entityConstructor)),
+      ),
+    );
+  }).pipe(Effect.catchAll(readError));
 
 /** Generic single-record route by `:id`. */
 const byIdRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
