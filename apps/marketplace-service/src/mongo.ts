@@ -63,12 +63,23 @@ export const AppLayer = Layer.unwrapEffect(
 
     const logLevel = yield* store.in('logging').getString('level');
     const logSink = yield* store.in('logging').getString('sink');
-    const otelEndpoint = yield* store.in('otel').getString('endpoint');
+    // Both optional, and both for the same reason. The endpoint is what makes
+    // telemetry a *degradable* dependency: a service with no OTLP destination
+    // boots and serves, it simply logs to stdout and exports nothing. And the
+    // interval is a seed row added after these services existed — config-service
+    // seeds `ON CONFLICT DO NOTHING`, so it reaches an existing Postgres only
+    // through a `dev:reset`, and a required read would fail the boot on every
+    // machine that has not run one.
+    const otelEndpoint = yield* store.in('otel').getOptionalString('endpoint');
+    const metricIntervalMs = yield* store
+      .in('otel')
+      .getOptionalNumber('metricIntervalMs');
     const observability = makeObservabilityLayer({
       serviceName: SERVICE_NAME,
       level: logLevel as LogLevel,
       sink: logSink === 'stdout' ? 'stdout' : 'otlp',
       otelEndpoint,
+      metricIntervalMs,
     });
 
     const connections = Layer.mergeAll(

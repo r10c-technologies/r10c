@@ -3,8 +3,11 @@
 - Status: Accepted
 - Date: 2026-07-22
 - Revised: 2026-09-01 — the metrics half of this record is still unbuilt, and the
-  first metric set is named. See "Metrics are still deferred" below. The
-  pipeline decision is unchanged.
+  first metric set is named. See "Metrics" below. The pipeline decision is
+  unchanged.
+- Revised: 2026-09-04 — the metric pipeline is built (#185): a `MeterProvider`
+  and an OTLP metric exporter now sit beside the tracer. What remains is the
+  instrumentation (#186). The destination decided below never changed.
 
 ## Context
 
@@ -118,19 +121,42 @@ Notable gotchas found and fixed:
   app layer runs, so `Logger.replace(defaultLogger, …)` finds nothing; `makeService`
   now passes `disablePrettyLogger: true`.
 
-## Metrics are still deferred
+## Metrics
 
-> Added 2026-09-01. The decision below is unchanged; this records how far the
-> implementation actually got, because the gap is easy to miss from the outside.
+> Added 2026-09-01 as "metrics are still deferred"; rewritten 2026-09-04 when the
+> pipeline landed. The decision below is unchanged — this records how far the
+> implementation actually got, because the gap was easy to miss from the outside
+> and its absence had no symptom at the call site.
 
-`observability.ts` builds `NodeSdk` with an `OTLPTraceExporter` and nothing else.
-There is no `MeterProvider` and no metric exporter, so logs and traces reach the
-Collector and **metrics have no path at all** — a service can call `Metric.*` and
-the value goes nowhere. The destination chosen below is unaffected; what is
-missing is the exporter at this end.
+For a year of this record's life `observability.ts` built `NodeSdk` with an
+`OTLPTraceExporter` and nothing else. There was no `MeterProvider` and no metric
+exporter, so logs and traces reached the Collector and **metrics had no path at
+all** — a service could call `Metric.*`, the counter incremented, the program
+was correct, and the value went nowhere.
 
-The first metric set, when it is built (#185 for the pipeline, #186 for the
-instrumentation):
+`observability.ts` now passes a `PeriodicExportingMetricReader` over an
+`OTLPMetricExporter` into the same `NodeSdk.layer` that carries the span
+processor. One layer for both signals, deliberately: `NodeSdk` builds the OTel
+`Resource` once, so a metric and the span it belongs beside cannot disagree
+about `service.name`. **No producer is written here** — `NodeSdk` wires a
+reader through `@effect/opentelemetry`'s `Metrics.layer`, whose `MetricProducer`
+reads _Effect's own metric registry_, so `Metric.counter(…)` at any call site is
+exported and a domain counter stays one line where it is incremented.
+
+Two properties of that wiring are worth stating because neither is visible from
+a call site. The OTLP **endpoint is optional**: with none, the layer builds and
+runs, logs fall back to the stdout sink, and neither exporter exists. It used to
+be a required configuration read, which meant an unreachable telemetry
+destination took the _service_ down — the wrong trade for a signal that is not
+on the request path. A **blank** endpoint counts as absent for the same reason:
+config-service's operator CRUD writes empty strings, and `''` taken literally
+aims the exporters at a relative `/v1/traces` and `/v1/metrics` that resolve
+against nothing — a service that exports nothing while reading as configured. And the export interval is `otel.metricIntervalMs` in
+config-service, optional with a 60s default, because that seed is
+`ON CONFLICT DO NOTHING` and so reaches an existing database only through a
+`dev:reset`.
+
+The first metric set is still unbuilt; it is #186's scope:
 
 - **Bus** — events published, consumed, failed and quarantined, by event name and
   subscription.
@@ -139,8 +165,8 @@ instrumentation):
   never publish no longer blocks the ones behind it — #179 gave the relay a
   ceiling, so it is quarantined and skipped
   ([ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md)) — but it is
-  reported only as a log line until this exporter exists, so how _many_ are
-  stuck is still unanswerable.
+  reported only as a log line until it is counted, so how _many_ are stuck is
+  still unanswerable.
 - **Transactions** — count by state, so `STALE` is something a dashboard shows
   rather than something a poll discovers.
 

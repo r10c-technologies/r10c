@@ -311,13 +311,23 @@ swappable seam — Grafana Cloud in production (via an OpenTelemetry Collector),
   `logging.level`/`logging.sink`/`otel.endpoint` from config-service.
   `marketplace-admin-service` is the reference wiring (`src/observability.ts`).
 
-**Metrics have no exporter yet.** `observability.ts` builds `NodeSdk` with an
-`OTLPTraceExporter` and nothing else — no `MeterProvider` — so a `Metric.*` call
-goes nowhere while logs and traces reach the Collector. The destination was
-decided in ADR 0001 and is unchanged; the first metric set (bus published /
-consumed / failed / quarantined, outbox depth and oldest-entry age, transactions
-by state) is named in that record's 2026-09-01 revision. #185 builds the
-pipeline, #186 the instrumentation.
+**Metrics reach the Collector through the same layer as the spans.**
+`observability.ts` passes a `PeriodicExportingMetricReader` over an
+`OTLPMetricExporter` into the one `NodeSdk.layer` that already carried the span
+processor — one layer for both signals, so the OTel `Resource` is built once and
+a metric cannot disagree with its spans about `service.name`. Nothing registers a
+producer by hand: `NodeSdk` wires the reader through `@effect/opentelemetry`'s
+`Metrics.layer`, whose `MetricProducer` reads **Effect's own metric registry**,
+so `Metric.counter(…)` at any call site is exported and a domain counter stays
+one line where it is incremented. The export interval is `otel.metricIntervalMs`
+(60s default); `otel.endpoint` is **optional** — absent _or blank_, since the
+operator CRUD writes empty strings and `''` would aim the exporters at a
+relative path that resolves against nothing — and with none the layer still
+builds: logs fall back to the stdout sink and neither exporter exists, because
+an unreachable telemetry destination must not take the service down. #185 built
+this; the first metric set (bus published / consumed / failed / quarantined,
+outbox depth and oldest-entry age, transactions by state) is named in ADR 0001
+and is #186's remaining scope.
 
 Two Effect/OTel gotchas the reference wiring handles: `@effect/opentelemetry`
 does not register an OTel context manager (the service registers
