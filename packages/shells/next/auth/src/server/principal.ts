@@ -1,7 +1,7 @@
-import { cookies } from 'next/headers';
+import { bearerHeader, sessionToken } from '@r10c/shells-next-common/server';
 
 import type { Principal } from '../principal-types';
-import { AT_COOKIE, AUTH_SERVICE_URL } from './session';
+import { AUTH_SERVICE_URL } from './session';
 
 export type { Principal };
 
@@ -15,13 +15,13 @@ export type { Principal };
  * runtime just so a layout can read a role.
  */
 export async function loadPrincipal(): Promise<Principal | null> {
-  const token = (await cookies()).get(AT_COOKIE)?.value;
+  const token = await sessionToken();
   if (token === undefined) {
     return null;
   }
   try {
     const res = await fetch(`${AUTH_SERVICE_URL}/api/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: bearerHeader(token),
       cache: 'no-store',
     });
     return res.ok ? ((await res.json()) as Principal) : null;
@@ -32,6 +32,5 @@ export async function loadPrincipal(): Promise<Principal | null> {
 
 /** Forward the access cookie as a bearer header, for a proxy route handler. */
 export async function authorizationHeader(): Promise<HeadersInit> {
-  const token = (await cookies()).get(AT_COOKIE)?.value;
-  return token === undefined ? {} : { Authorization: `Bearer ${token}` };
+  return bearerHeader(await sessionToken());
 }

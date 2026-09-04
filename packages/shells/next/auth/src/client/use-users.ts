@@ -28,8 +28,8 @@ const readPage = async (
   // `EntityTable` derive its columns from the metadata. Reading the envelope
   // rather than hand-picking `body.items`/`body.total` is also what makes a
   // malformed body a typed failure instead of an empty table.
-  const page = Effect.runSync(readEntityPageEnvelope(UserIdentity, body));
-  return { items: page.items, total: page.total };
+  const loaded = Effect.runSync(readEntityPageEnvelope(UserIdentity, body));
+  return { items: loaded.items, total: loaded.total };
 };
 
 /**

@@ -22,6 +22,11 @@ export * from './lib/config/service-proxy-route';
 export * from './lib/session/cookies';
 export * from './lib/session/refresh-route';
 
+// The access cookie, read once and forwarded as a bearer. Three server surfaces
+// carry it the same way — the per-backend proxy, the auth shell's hand-written
+// handlers, and the record search fan-out — and none of them grants anything.
+export * from './lib/session/bearer';
+
 // Account-link builders. Pure functions, but server layouts call them directly,
 // and anything exported from the client entry becomes a client function.
 export * from './lib/session/account-links';

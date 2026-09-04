@@ -1,7 +1,6 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-import { AT_COOKIE } from '../session/cookies';
+import { bearerHeader, sessionToken } from '../session/bearer';
 
 type Params = { params: Promise<{ path: string[] }> };
 
@@ -80,15 +79,12 @@ export const createServiceProxyRoute = ({
     { params }: Params,
   ): Promise<Response> => {
     const { path } = await params;
-    const token = (await cookies()).get(AT_COOKIE)?.value;
     const search = new URL(request.url).search;
 
     const headers: Record<string, string> = {
       'content-type': 'application/json',
+      ...bearerHeader(await sessionToken()),
     };
-    if (token !== undefined) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
 
     // Forwarded, or the validator never reaches the service and every
     // `$metadata` read is a full document — see {@link CACHE_HEADERS}.
