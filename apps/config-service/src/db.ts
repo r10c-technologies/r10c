@@ -453,6 +453,16 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'endpoint',
     value: 'http://127.0.0.1:30318',
   },
+  // How often the metric reader pushes to the Collector. The endpoint above is
+  // the destination; this is the only dial on the metric half, and it is a row
+  // rather than a constant so resolution can be traded against export volume
+  // without a rebuild.
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
   // The `saga` store. The `transaction` slice is co-deployed into
   // marketplace-admin-service, so it needs no `uri` of its own — the pool and
   // the bus are already this service's, and only the database name is the
@@ -511,6 +521,16 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'otel',
     key: 'endpoint',
     value: 'http://127.0.0.1:30318',
+  },
+  // How often the metric reader pushes to the Collector. The endpoint above is
+  // the destination; this is the only dial on the metric half, and it is a row
+  // rather than a constant so resolution can be traded against export volume
+  // without a rebuild.
+  {
+    service: 'marketplace-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
   },
 ];
 

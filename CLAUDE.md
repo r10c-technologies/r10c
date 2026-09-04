@@ -987,9 +987,16 @@ instantiation is excessively deep`); every scalar read is now
   nobody anything. And it is **service-token gated** with **logical names only**,
   never a URI and emphatically never `tenant_<organizationId>`, which would make
   it an organization enumerator. Metrics stay out: per-replica and un-alertable,
-  they belong in OTLP (#185/#186), which is ADR 0001's still-unbuilt half —
-  `observability.ts` has an `OTLPTraceExporter` and no `MeterProvider`, so a
-  `Metric.*` call today goes nowhere.
+  they belong in OTLP, and **that path exists now** — #185 put a
+  `PeriodicExportingMetricReader` over an `OTLPMetricExporter` into the same
+  `NodeSdk.layer` as the span processor, so `Metric.*` at any call site is
+  exported with no producer written by hand (`@effect/opentelemetry`'s
+  `Metrics.layer` reads Effect's own registry). One layer for both signals
+  because `NodeSdk` builds the `Resource` once and a metric must not disagree
+  with its spans about `service.name`. `otel.endpoint` is **optional**: with
+  none the layer still builds, logs fall back to stdout and nothing exports —
+  a telemetry destination being unreachable must not take a service down. The
+  first metric set is still #186's.
 - **A flow that spans slices is orchestrated; a single-step write stays
   choreography** ([ADR 0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md)).
   The engine runs **one** step in **one** service — `TransactionCommand.type` is
