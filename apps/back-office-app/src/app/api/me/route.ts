@@ -1,9 +1,6 @@
-import { cookies } from 'next/headers';
+import { bearerHeader, sessionToken } from '@r10c/shells-next-common/server';
+import { MARKETPLACE_ADMIN_SERVICE_URL } from '@r10c/shells-next-marketplace-admin/server';
 import { NextResponse } from 'next/server';
-
-const AT_COOKIE = 'r10c_at';
-const ADMIN_SERVICE_URL =
-  process.env.MARKETPLACE_ADMIN_SERVICE_URL ?? 'http://localhost:3101';
 
 /**
  * Server-side proxy to the token-verified backend route. Reads the httpOnly
@@ -13,13 +10,16 @@ const ADMIN_SERVICE_URL =
  * same-origin so no CORS is involved.
  */
 export async function GET() {
-  const token = (await cookies()).get(AT_COOKIE)?.value;
+  const token = await sessionToken();
   if (token === undefined) {
-    return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'unauthenticated', code: 'unauthenticated' },
+      { status: 401 },
+    );
   }
 
-  const res = await fetch(`${ADMIN_SERVICE_URL}/api/me`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const res = await fetch(`${MARKETPLACE_ADMIN_SERVICE_URL}/api/me`, {
+    headers: bearerHeader(token),
     cache: 'no-store',
   });
   const data = await res.json();

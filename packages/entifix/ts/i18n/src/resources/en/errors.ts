@@ -30,5 +30,6 @@ export const errors: EsErrors = {
   configUnavailable: 'The configuration could not be loaded.',
   secretRequiresValue: 'To stop marking a value as secret, enter a new one.',
   network: 'Network error. Check that the service is reachable.',
+  timeout: 'The service took too long to respond.',
   unexpected: 'Something went wrong.',
 };

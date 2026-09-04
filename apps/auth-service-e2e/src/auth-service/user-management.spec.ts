@@ -62,10 +62,13 @@ describe('auth-service user management', () => {
       );
 
       expect(res.status).toBe(200);
-      expect(res.data.items.length).toBeGreaterThan(0);
+      // An `entityPage` envelope, like every other list in the fleet: `meta`
+      // describes the payload, `data` is the payload.
+      expect(res.data.meta.type).toBe('entityPage');
+      expect(res.data.data.items.length).toBeGreaterThan(0);
       // The role aspect is part of the record, which is what lets the
       // back-office render and edit it without a bespoke endpoint.
-      expect(res.data.items[0]).toHaveProperty('role');
+      expect(res.data.data.items[0]).toHaveProperty('role');
     });
   });
 

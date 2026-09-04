@@ -1025,6 +1025,55 @@ instantiation is excessively deep`); every scalar read is now
   nothing), and `rollback`'s `outcome` documented as always `undefined` and
   structurally unreachable until that engine exists. Amends ADR 0028; applies
   ADR 0023 and ADR 0029 without changing them.
+- **Record search fans out per request, holds no index, and ranks nothing**
+  ([ADR 0040](docs/adr/0040-the-record-search-aggregator.md)). `GET /api/search`
+  on the Next host asks each declared source over the same guarded route its
+  screens use, carrying the caller's `r10c_at` and nothing else — no service
+  token, no elevation, and a tenant-plane source resolves its handle from the
+  session exactly as its own routes do, so ADR 0023 stays the one named
+  crossing. **A prefetched client index is permanently out**: it is the shape
+  that surfaces another organization's record the first time a session's scope
+  moves under it. The issue said to fan out through the app's own proxies; that
+  is not buildable, because **auth-service has no proxy** — its handlers set and
+  clear cookies and cannot be a generic pipe — so the fan-out goes to the
+  service base URLs, and what the two paths share is the credential carry
+  (`bearerHeader(await sessionToken())`, one place instead of three copies of a
+  cookie name). Six things not to re-derive. A source **declares** its search
+  and label members, because metadata cannot supply them —
+  `linkSearchProperty`/`linkLabelProperty` describe a _referring_ accessor and
+  no entity says what it is called — and `defineRecordSearchSource` validates
+  the declaration at **module load**, refusing a member that is absent, not
+  `filterable`, not `sortable` (the label), or not a **`string`**: an enum
+  passes the filterable test and is permanently broken anyway, since `like`
+  reaches `coerceValue` and every partial term answers `400`. Every one of those
+  failures is silent at both ends, which is `assertSearchable`'s reasoning, and
+  the throw is wider here — it fails the app at boot, not one render. A degraded
+  source is **named** in `unavailable[]`, deliberately against the issue's
+  "surface it as an empty group": an empty group is a confident claim that
+  nothing matched, which the server cannot make about a service it could not
+  reach — and `reason` splits "not yours" (`forbidden`,
+  `noActiveOrganization` — the _normal_ state for an operator, on every
+  keystroke) from "unreachable" (`timeout`, `network`, …), because rendering a
+  warning for the ordinary case teaches people to ignore it. The fan-out is
+  **`Promise.all` over a runner that never rejects**, not `allSettled`, whose
+  `rejected` arm is then unreachable and cannot meet the 100% gate honestly;
+  concurrency plus a per-source `AbortSignal.timeout` is what makes one slow
+  service cost one group **and one timeout of wall clock**. The `401` on a
+  missing cookie is **not** redundant with the services' guards —
+  `catalog-reference` reads are unauthenticated by design, so without it a
+  signed-out caller gets brands back and the answer reads as a real search, and
+  the endpoint becomes an anonymous amplifier against `:3100`. Ranking is
+  **declared source order plus an explicit `sort=+<label>`**; the services apply
+  no default order, so without the sort "ranked" is false and results reshuffle
+  as records are rewritten. And there is a **two-character floor**, because a
+  `like` is an unanchored `$regex` no index can serve — this endpoint is a
+  collection scan by construction, accepted and recorded, with a text index or a
+  projection as the named remedy. ⚠️ It needed auth-service corrected first: its
+  list route read `page`/`pageSize` and **silently dropped `rsql`**, so a search
+  for a name returned the first page of every user presented as matches, and it
+  answered a bare `{items,total,request}` no envelope reader could parse. Both
+  now match the other three services, which also gave that route the
+  `filterable` allowlist it had never had.
 - **The AMQP connection heals itself, and nothing else in `amqplib` does.**
   Measured: a channel opened at boot and held in a `Layer` is dead **permanently**
   once the broker restarts — publishes fail forever and a subscriber stops
@@ -1183,10 +1232,15 @@ instantiation is excessively deep`); every scalar read is now
   other app can reach them — that is the trap. `@r10c/shells-next-system-management`
   is `layer:shell` + **`scope:shared`** on purpose: back-office-app mounts it
   today and a bastion app mounts it later with zero moves. Do not "fix" the
-  asymmetry by scoping it. Consequences: **`layer:shell` forbids same-layer edges**,
-  so it cannot import `shells-next-common` and carries its own REST adapters
-  (`config-service-domain`) and its own `/server` proxy factory; and the
-  permission-annotated nav vocabulary (`GuardedNavItem`/`GuardedNavSection`) lives in
+  asymmetry by scoping it. Consequences: it carries its own REST adapters
+  (`config-service-domain`) and its own `/server` proxy factory, because those
+  are config-service's and not the base shell's — **not** because the edge is
+  illegal, which this file used to claim. `shell:domain` may depend on
+  `shell:base` (`eslint.config.mjs:196`) and both domain shells already do; what
+  is forbidden is the reverse, so `shells-next-common` may import **no** other
+  shell — which is why a shell contributes its nav and its search sources and
+  the host concatenates them. The permission-annotated nav vocabulary
+  (`GuardedNavItem`/`GuardedNavSection`) lives in
   `business-ts-authz`, the only layer both a shell and an app may depend on. Copy
   goes in the shared `shell:` namespace — `app:` keys are lint-restricted to `apps/`.
   A host keeps composition: route files, nav concat, the workspace `TabRegistry`, and

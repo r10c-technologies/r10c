@@ -1,4 +1,5 @@
 import { createServiceProxyRoute } from '@r10c/shells-next-common/server';
+import { MARKETPLACE_ADMIN_SERVICE_URL } from '@r10c/shells-next-marketplace-admin/server';
 
 /**
  * Same-origin proxy for marketplace-admin-service — the catalog a vendor
@@ -16,7 +17,7 @@ import { createServiceProxyRoute } from '@r10c/shells-next-common/server';
 export const dynamic = 'force-dynamic';
 
 const forward = createServiceProxyRoute({
-  baseUrl: process.env.MARKETPLACE_ADMIN_SERVICE_URL ?? 'http://localhost:3101',
+  baseUrl: MARKETPLACE_ADMIN_SERVICE_URL,
 });
 
 export const GET = forward;

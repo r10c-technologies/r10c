@@ -105,7 +105,7 @@ describe('auth-service', () => {
         { headers: { Authorization: `Bearer ${admin.data.accessToken}` } },
       );
 
-      const rows = identifiers.data.items as Array<{
+      const rows = identifiers.data.data.items as Array<{
         type: string;
         value: string;
       }>;

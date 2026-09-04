@@ -1,4 +1,5 @@
 import { createServiceProxyRoute } from '@r10c/shells-next-common/server';
+import { MARKETPLACE_SERVICE_URL } from '@r10c/shells-next-marketplace-admin/server';
 
 /**
  * Same-origin proxy for marketplace-service — the platform-plane vocabulary a
@@ -12,7 +13,7 @@ import { createServiceProxyRoute } from '@r10c/shells-next-common/server';
  * browser never holds a real backend address either way.
  */
 const forward = createServiceProxyRoute({
-  baseUrl: process.env.MARKETPLACE_SERVICE_URL ?? 'http://localhost:3100',
+  baseUrl: MARKETPLACE_SERVICE_URL,
 });
 
 export const GET = forward;

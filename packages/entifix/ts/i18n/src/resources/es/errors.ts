@@ -44,5 +44,10 @@ export const errors = {
   secretRequiresValue:
     'Para dejar de marcar un valor como secreto, escribe uno nuevo.',
   network: 'Error de red. Comprueba que el servicio esté disponible.',
+  // Un servicio que no respondió dentro del plazo. Se distingue de `network`
+  // a propósito: la búsqueda de registros consulta varios servicios a la vez y
+  // uno lento degrada solo su grupo, así que el lector necesita saber cuál de
+  // las dos cosas pasó.
+  timeout: 'El servicio tardó demasiado en responder.',
   unexpected: 'Algo salió mal.',
 };

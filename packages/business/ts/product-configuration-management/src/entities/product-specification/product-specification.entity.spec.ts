@@ -92,4 +92,15 @@ describe('ProductSpecification', () => {
     expect(byName.get('brandId')?.filterable).toBe(true);
     expect(byName.get('categoryId')?.filterable).toBe(true);
   });
+
+  // The member the back office's record search matches a term against. Declared
+  // rather than inherited from the scalar default, because the flag is also the
+  // server-side RSQL allowlist and losing it is silent at both ends.
+  it('declares name filterable, because that is what record search matches', () => {
+    const name = describeEntityColumns(ProductSpecification).find(
+      column => column.name === 'name',
+    );
+
+    expect(name?.filterable).toBe(true);
+  });
 });

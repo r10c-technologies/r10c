@@ -72,11 +72,18 @@ export class ProductSpecification implements Entity {
     this.#code = value;
   }
 
+  // `filterable` is declared rather than inherited from the scalar default, for
+  // the reason `ProductBrand.name` spells out at length: the flag is
+  // simultaneously the server-side RSQL allowlist, and this is the member the
+  // back office's record search matches a term against. Losing it is silent at
+  // both ends — the service answers `400`, and the palette renders that as a
+  // group that could not be reached, which reads as "there are no products".
   @accessor({
     type: 'string',
     label: 'Name',
     labelKey: 'entity:product-specification.fields.name',
     required: true,
+    filterable: true,
   })
   get name(): string {
     return this.#name;

@@ -72,7 +72,18 @@ export class UserIdentity implements Entity {
     this.#id = value;
   }
 
-  @accessor({ labelKey: 'entity:user-identity.fields.displayName' })
+  // `type` and `filterable` are both declared rather than inferred. Without
+  // `type` this member reaches `inferType`, whose final fallthrough happens to
+  // return `'string'` — the right answer by accident, from a function that never
+  // saw a value. And `filterable` is the server-side RSQL allowlist as well as a
+  // description: it is the member the back office's record search matches a term
+  // against, and losing it is silent at both ends — the service answers `400`,
+  // which the palette renders as a group it could not reach.
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:user-identity.fields.displayName',
+    filterable: true,
+  })
   get displayName(): string | undefined {
     return this.#displayName;
   }
