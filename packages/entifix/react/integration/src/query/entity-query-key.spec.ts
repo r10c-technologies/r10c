@@ -6,7 +6,11 @@ import {
 } from '@r10c/entifix-ts-core';
 import { describe, expect, it } from 'vitest';
 
-import { entityQueryKey, entityQueryScope } from './entity-query-key.js';
+import {
+  entityQueryKey,
+  entityQueryScope,
+  entityQueryScopeFor,
+} from './entity-query-key.js';
 
 @entity({ key: 'widget' })
 class Widget implements Entity {
@@ -60,5 +64,12 @@ describe('entityQueryKey', () => {
 
     expect(scope).toEqual(['entity', 'widget']);
     expect(key.slice(0, 2)).toEqual(scope);
+  });
+
+  // What arrives out of band — a record search result, a change event — is the
+  // wire name, never a constructor. Both paths have to land on one key or
+  // "invalidate the same scope" is a convention rather than a guarantee.
+  it('derives the same scope from the wire name alone', () => {
+    expect(entityQueryScopeFor('widget')).toEqual(entityQueryScope(Widget));
   });
 });

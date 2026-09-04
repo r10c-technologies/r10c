@@ -28,6 +28,9 @@ export {
   userMetadataRoute,
   userSessionListRoute,
 } from './server/routes';
+// People, as a source the command palette can search (ADR 0040). Contributed
+// beside `AUTH_NAV`, so a host that mounts this shell gains both together.
+export { AUTH_SEARCH_SOURCES } from './server/search-sources';
 export {
   AT_COOKIE,
   AUTH_SERVICE_URL,
