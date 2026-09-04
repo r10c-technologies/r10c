@@ -482,8 +482,8 @@ and they do **not** share a contract — see
   (`shells-next-common/lib/workspace/`), which keys several stores into one
   object store by the `persist` `name`. There is no `zustand-indexeddb` package.
   - `useTabsState` — `{ tabs, activeParam }` + `open` / `close` / `activate`.
-    A tab's dirtiness is **derived** (`selectIsDirty` asks whether the drafts map
-    holds that address), never stored twice.
+    A tab's dirtiness is **derived** — `WorkspaceShell` asks whether the drafts
+    map holds that address — never stored twice.
   - `useDraftsState` — keyed by **address**
     (`entity:product-specification:123`). Autosave is **workspace-host only**; a
     plain route stays ephemeral. Keying by address means a tab and a route view
@@ -492,6 +492,21 @@ and they do **not** share a contract — see
   backed by `makeIndexedDbUiPreferencesState` + `IndexedDbUiPreferencesLayer`
   at the provider. `useUiPreference` already handles async reads, so consumers
   are unchanged.
+
+**The autosave seam is a port on `useEntityForm`, not per-page plumbing.**
+`UseEntityFormOptions.draft` takes an `EntityDraftStore`
+(`draft` / `save` / `clear`), the hook writes to it from an effect whenever the
+values differ from their seed, and `useEntityDraft(address)` in
+`shells-next-common` is the workspace's implementation. It is a port because
+`useDraft` is `layer:shell` and `useEntityForm` is `layer:entifix` — the hook
+cannot import the store. Handing a store to a form is the **whole** opt-in, so a
+plain route stays ephemeral by omission rather than by a flag, and every entity
+a `makeEntityCrud` catalog generates autosaves without its page knowing.
+
+The port declares `clear` but the hook never calls it: a draft is spent when the
+write _commits_, and `useEntityForm` neither fetches nor saves. `SingleViewPage`
+clears it on a successful save or delete, and deliberately keeps it on a failed
+one — the edit is still the user's only copy of what they typed.
 
 Four rules govern a draft, and each one is enforced somewhere rather than
 asserted here:

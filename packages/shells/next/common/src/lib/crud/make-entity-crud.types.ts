@@ -1,4 +1,7 @@
-import type { EntityLinkSourceConfig } from '@r10c/entifix-react-integration';
+import type {
+  EntityDraftStore,
+  EntityLinkSourceConfig,
+} from '@r10c/entifix-react-integration';
 import type {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
@@ -7,7 +10,6 @@ import type {
   BulkOutcome,
   Entity,
   EntityConstructor,
-  EntityDraft,
   EntityFieldDescriptor,
   EntityMetadataSource,
   EntitySelection,
@@ -147,10 +149,16 @@ export interface EntityCrudSingleViewProps {
   /** Defaults to navigating back to the list. */
   readonly onSaved?: () => void;
   readonly onDeleted?: () => void;
-  /** Seed the fields from a persisted draft instead of the record. */
-  readonly initialDraft?: EntityDraft;
-  /** Called on every edit, so the host can autosave. */
-  readonly onDraftChange?: (draft: EntityDraft) => void;
+  /**
+   * Where to autosave the edit. Supplying it is the whole opt-in: the form
+   * seeds from the persisted draft, writes to it on every edit, and the page
+   * clears it once a save or delete commits.
+   *
+   * A route host omits it and stays ephemeral, which is the rule stated as a
+   * missing prop rather than as a flag — there is no value of "absent" that
+   * accidentally starts persisting.
+   */
+  readonly draft?: EntityDraftStore;
 }
 
 /**

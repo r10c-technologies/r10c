@@ -7,7 +7,6 @@ import {
   mergeDrafts,
   migrateDrafts,
   persistedDrafts,
-  selectIsDirty,
   useDraftsState,
 } from './drafts-state.js';
 
@@ -47,14 +46,6 @@ describe('useDraftsState', () => {
     useDraftsState.getState().clearDraft('missing');
 
     expect(useDraftsState.getState().drafts).toBe(before);
-  });
-});
-
-describe('selectIsDirty', () => {
-  it('is true only while a draft exists for the address', () => {
-    expect(selectIsDirty('a')(useDraftsState.getState())).toBe(false);
-    useDraftsState.getState().setDraft('a', 1);
-    expect(selectIsDirty('a')(useDraftsState.getState())).toBe(true);
   });
 });
 

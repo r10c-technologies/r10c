@@ -1,12 +1,14 @@
 'use client';
 
 import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
-import { useEntityForm } from '@r10c/entifix-react-integration';
+import {
+  type EntityDraftStore,
+  useEntityForm,
+} from '@r10c/entifix-react-integration';
 import {
   type EntifixError,
   type Entity,
   type EntityConstructor,
-  type EntityDraft,
   type EntityMetadataSource,
   reconstructEntity,
 } from '@r10c/entifix-ts-core';
@@ -34,8 +36,11 @@ export interface EntityCrudFormProps<TEntity extends Entity> {
   /** Omitted for a create — there is nothing to delete yet. */
   readonly onDelete?: () => void;
   readonly backHref: string;
-  readonly initialDraft?: EntityDraft;
-  readonly onDraftChange?: (draft: EntityDraft) => void;
+  /**
+   * Where to autosave this form's draft. Omitted by a route host, which is what
+   * keeps a plain route ephemeral; the workspace tab host supplies one.
+   */
+  readonly draft?: EntityDraftStore;
   /**
    * Where this caller's affordances come from. Absent keeps the pre-ADR-0026
    * behaviour: Save and Delete render unconditionally and no declared verb
@@ -74,8 +79,7 @@ export function EntityCrudForm<TEntity extends Entity>({
   onSave,
   onDelete,
   backHref,
-  initialDraft,
-  onDraftChange,
+  draft,
   metadataSource,
   onUseCase,
 }: EntityCrudFormProps<TEntity>) {
@@ -84,7 +88,7 @@ export function EntityCrudForm<TEntity extends Entity>({
   const form = useEntityForm<TEntity>({
     entityConstructor,
     entity,
-    initialValues: initialDraft,
+    draft,
     onSubmit: values =>
       onSave(
         reconstructEntity(entityConstructor, values, { existing: entity }),
@@ -95,11 +99,6 @@ export function EntityCrudForm<TEntity extends Entity>({
     values: form.values,
     selection: form.links,
   });
-
-  // Emit the draft on every edit so a workspace host can autosave it.
-  useEffect(() => {
-    if (form.isDirty) onDraftChange?.(form.values);
-  }, [form.values, form.isDirty, onDraftChange]);
 
   // Refill the relation sidecar from the ids the draft did keep.
   //

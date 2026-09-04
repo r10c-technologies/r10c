@@ -119,11 +119,6 @@ export const useDraftsState = create<DraftsState>()(
   ),
 );
 
-/** Whether an address currently has an unsaved draft. */
-export function selectIsDirty(address: string) {
-  return (state: DraftsState): boolean => address in state.drafts;
-}
-
 /**
  * Bind an editor to its persisted draft. Returns the current draft (restored
  * from IndexedDB on mount), a setter the editor calls as fields change, and a
