@@ -615,7 +615,23 @@ instantiation is excessively deep`); every scalar read is now
   `id` shape — which is what made two saves of one unchanged form differ across a
   refresh — and `EntityForm` disables Save while any source resolves so that
   throw stays unreachable. Latent today: nothing in `packages/business` declares
-  `type: 'link'` at all. **Versioning**: `DRAFTS_VERSION`/`TABS_VERSION` with an
+  `type: 'link'` at all. The seam itself is a **port**, not per-page plumbing:
+  `UseEntityFormOptions.draft` takes an `EntityDraftStore`
+  (`draft`/`save`/`clear`) and `useEntityForm` writes to it from an effect
+  whenever the values differ from their seed, with `useEntityDraft(address)` in
+  `shells-next-common` as the workspace's implementation. A port because
+  `useDraft` is `layer:shell` and the hook is `layer:entifix`, so it cannot
+  import the store — and it lives beside the options rather than in core,
+  unlike `EntityLinkSource`, which had to sit below two `entifix:react`
+  packages that may not import each other. Handing a store to a form is the
+  **whole** opt-in, so a route stays ephemeral by omission rather than by a
+  flag, and the hook never calls `clear`: a draft is spent when the write
+  _commits_, which only the page owning the mutation knows — it clears on a
+  successful save or delete and deliberately keeps the draft on a failed one.
+  What this replaced was two of three editors having no draft at all
+  (`ProductEditorTab` hand-wired `useDraft`, `CatalogEditorTab` wired nothing),
+  so brand and category tabs lost an edit on refresh, never showed the dirty
+  marker, and closed with no confirmation. **Versioning**: `DRAFTS_VERSION`/`TABS_VERSION` with an
   explicit `migrate` to empty (zustand discards anyway, but logs an error for a
   deliberate decision); it covers the _envelope_ only, and member drift is
   `restoreEntityDraft` layering a restored draft **over** a freshly seeded one —

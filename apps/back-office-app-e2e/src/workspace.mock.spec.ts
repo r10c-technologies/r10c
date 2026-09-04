@@ -12,10 +12,15 @@ import { expect, test } from './support/fixtures';
  * A rendered `ConfirmDialog` is just another element, so the tab's whole
  * lifecycle is one linear script.
  *
- * The draft it protects is written on every keystroke: `EntityCrudForm` fires
- * `onDraftChange` from an effect over `form.values` while the form is dirty
- * (no debounce), and the workspace binds that to the tab's own address. So
- * typing a single character is enough to make a tab dirty.
+ * The draft it protects is written on every keystroke: `useEntityForm` writes
+ * to its draft port from an effect over its own values while the form differs
+ * from its seed (no debounce), and the workspace binds that port to the tab's
+ * own address through `useEntityDraft`. So typing a single character is enough
+ * to make a tab dirty.
+ *
+ * That seam used to be per-page plumbing, which is why the brand journey below
+ * exists: brand and category tabs had no draft at all — no autosave, no dirty
+ * marker, and closing one lost the edit with no confirmation (#131).
  *
  * Mock-only because it is about the browser's state machine, not the service:
  * the seeded `product-1` is a fixture either profile could serve, but the
@@ -24,6 +29,8 @@ import { expect, test } from './support/fixtures';
 
 const PRODUCT_TAB = 'entity:product-specification:product-1';
 const CLOSE_PRODUCT = 'Cerrar Producto #product-1';
+const BRAND_TAB = 'entity:product-brand:product-brand-1';
+const CLOSE_BRAND = 'Cerrar Marca #product-brand-1';
 
 /** Fails the test if anything reaches for the native dialog we just removed. */
 const forbidNativeDialogs = (page: Page) => {
@@ -87,6 +94,38 @@ test('closes a dirty tab and drops its draft when the discard is confirmed', asy
   // come straight back.
   await page.goto(`/workspace?tab=${PRODUCT_TAB}`);
   await expect(page.getByLabel('Nombre')).toHaveValue('Widget');
+});
+
+/**
+ * The same journey on a brand, which is the regression #131 closes: the two
+ * catalog editors reached the generated page with no draft, so this tab was
+ * never dirty and its close was never guarded. Nothing here is brand-specific —
+ * that is the point, the seam is the entity's metadata and one hook.
+ */
+test('autosaves and guards a brand tab, not only the product one', async ({
+  page,
+}) => {
+  forbidNativeDialogs(page);
+  await page.goto(`/workspace?tab=${BRAND_TAB}`);
+
+  const name = page.getByLabel('Nombre');
+  await expect(name).toHaveValue('Acme 1');
+  await name.fill('Acme renamed');
+  await expect(page.getByTestId('tab-indicator')).toBeVisible();
+
+  // The edit survives a reload, which is the whole feature: the form seeds from
+  // the persisted draft rather than from the record.
+  await page.reload();
+  await expect(page.getByLabel('Nombre')).toHaveValue('Acme renamed');
+
+  await page.getByRole('button', { name: CLOSE_BRAND }).click();
+  await page
+    .getByTestId('confirm-dialog')
+    .getByRole('button', { name: 'Descartar' })
+    .click();
+
+  await page.goto(`/workspace?tab=${BRAND_TAB}`);
+  await expect(page.getByLabel('Nombre')).toHaveValue('Acme 1');
 });
 
 test('closes a clean tab with no confirmation at all', async ({ page }) => {

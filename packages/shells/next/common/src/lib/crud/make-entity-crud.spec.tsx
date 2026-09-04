@@ -10,6 +10,7 @@ import {
   EntifixConnError,
   type Entity,
   entity,
+  type EntityDraft,
   type EntityId,
 } from '@r10c/entifix-ts-core';
 import {
@@ -171,6 +172,14 @@ interface TestAdapters {
   brandRest: Context.Context<EntityRepositoryTag>;
   productRest: Context.Context<EntityRepositoryTag>;
   configurationStore: Context.Context<ConfigurationRepositoryTag>;
+}
+
+/**
+ * A draft store double. `save`/`clear` are stable identities because the port
+ * requires it: `useEntityForm` autosaves from an effect keyed on `save`.
+ */
+function draftStore(draft?: EntityDraft) {
+  return { draft, save: vi.fn(), clear: vi.fn() };
 }
 
 let repositories: {
@@ -563,21 +572,72 @@ describe('the generated form', () => {
   });
 
   it('seeds from a persisted draft and reports every edit', async () => {
-    const onDraftChange = vi.fn();
+    const store = draftStore({ name: 'Hooli' });
     const user = userEvent.setup();
 
-    renderPage(
-      <brandCrud.SingleViewPage
-        initialDraft={{ name: 'Hooli' }}
-        onDraftChange={onDraftChange}
-      />,
-    );
+    renderPage(<brandCrud.SingleViewPage draft={store} />);
 
     await waitFor(() =>
       expect(screen.getByLabelText(/nombre/i)).toHaveValue('Hooli'),
     );
     await user.type(screen.getByLabelText(/nombre/i), '!');
-    await waitFor(() => expect(onDraftChange).toHaveBeenCalled());
+    await waitFor(() => expect(store.save).toHaveBeenCalled());
+  });
+
+  // The draft is spent once the write commits, and this page is the only place
+  // that knows it did — `useEntityForm` neither fetches nor saves.
+  it('clears the draft once a save commits', async () => {
+    slug = 'b-1';
+    const store = draftStore();
+    const user = userEvent.setup();
+
+    renderPage(<brandCrud.SingleViewPage slug="b-1" draft={store} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText(/nombre/i)).toHaveValue('Acme'),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() => expect(store.clear).toHaveBeenCalledTimes(1));
+  });
+
+  it('clears the draft once a delete commits', async () => {
+    slug = 'b-1';
+    const store = draftStore();
+    const user = userEvent.setup();
+
+    renderPage(<brandCrud.SingleViewPage slug="b-1" draft={store} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText(/nombre/i)).toHaveValue('Acme'),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+
+    await waitFor(() => expect(store.clear).toHaveBeenCalledTimes(1));
+  });
+
+  /**
+   * A failed write leaves the draft alone: what the user typed is still their
+   * only copy of it, and clearing here would discard the edit at the exact
+   * moment they need to retry it.
+   */
+  it('keeps the draft when the save fails', async () => {
+    slug = 'b-1';
+    const store = draftStore();
+    const user = userEvent.setup();
+
+    renderPage(<brandCrud.SingleViewPage slug="b-1" draft={store} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText(/nombre/i)).toHaveValue('Acme'),
+    );
+    repositories.brand.failNext(new EntifixConnError('unreachable'));
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId(/form-error$/)).toBeInTheDocument(),
+    );
+    expect(store.clear).not.toHaveBeenCalled();
   });
 });
 

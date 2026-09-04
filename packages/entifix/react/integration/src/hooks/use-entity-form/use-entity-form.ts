@@ -9,7 +9,7 @@ import {
 } from '@r10c/entifix-ts-core';
 import { sharedFallbackI18n } from '@r10c/entifix-ts-i18n';
 import { revalidateLogic, useForm, useStore } from '@tanstack/react-form';
-import { useCallback, useContext, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { I18nContext, initReactI18next, useTranslation } from 'react-i18next';
 
 import {
@@ -53,7 +53,7 @@ import type {
 export function useEntityForm<TEntity extends Entity>({
   entityConstructor,
   entity,
-  initialValues,
+  draft,
   schema,
   validate,
   onSubmit,
@@ -65,14 +65,15 @@ export function useEntityForm<TEntity extends Entity>({
   // A persisted draft is layered over the seed, never substituted for it: the
   // entity decides which members exist, the draft only decides their values.
   // See `restoreEntityDraft` for what a straight substitution costs.
+  const restored = draft?.draft;
   const seed = useMemo(
     () =>
       restoreEntityDraft(
         descriptors,
         seedEntityDraft(descriptors, entity),
-        initialValues,
+        restored,
       ),
-    [descriptors, entity, initialValues],
+    [descriptors, entity, restored],
   );
 
   // The relations the record already carries, so opening a loaded record needs no
@@ -184,6 +185,22 @@ export function useEntityForm<TEntity extends Entity>({
       current[name] === undefined ? { ...current, [name]: resolved } : current,
     );
   }, []);
+
+  // Autosave. The seam lives here rather than in each page, so a form gets
+  // persistence by naming a store and no call site threads a draft through.
+  //
+  // Two properties keep it from writing more than it means to. It writes only
+  // while the draft *differs* from its seed — and on mount over a restored
+  // draft the seed **is** that draft, so opening a tab re-persists nothing. And
+  // it is keyed on `save`, which the port requires to be referentially stable;
+  // a new identity per render would make every render a write.
+  //
+  // Nothing here clears: a draft is spent when the write commits, and this hook
+  // never learns whether it did. See `EntityDraftStore.clear`.
+  const save = draft?.save;
+  useEffect(() => {
+    if (!isDefaultValue) save?.(values);
+  }, [values, isDefaultValue, save]);
 
   return {
     values,

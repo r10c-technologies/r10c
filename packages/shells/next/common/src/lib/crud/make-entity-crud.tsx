@@ -202,8 +202,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     slug,
     onSaved,
     onDeleted,
-    initialDraft,
-    onDraftChange,
+    draft,
   }: EntityCrudSingleViewProps = {}) {
     const adapters = useAdapters();
     const router = useRouter();
@@ -252,14 +251,20 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     const afterSave = onSaved ?? (() => router.push(withLocale(basePath)));
     const afterDelete = onDeleted ?? (() => router.push(withLocale(basePath)));
 
+    // The draft is spent once the write *commits*, and only here is that known:
+    // `useEntityForm` neither fetches nor saves, so it cannot clear its own.
+    // A failed mutation deliberately keeps the draft — the edit is still the
+    // user's only copy of what they typed.
     const handleSave = async (next: TEntity) => {
       if (await save(next)) {
+        draft?.clear();
         afterSave();
       }
     };
 
     const handleDelete = async () => {
       if (await remove(id)) {
+        draft?.clear();
         afterDelete();
       }
     };
@@ -281,8 +286,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
         onSave={handleSave}
         onDelete={id == null ? undefined : handleDelete}
         backHref={withLocale(basePath)}
-        initialDraft={initialDraft}
-        onDraftChange={onDraftChange}
+        draft={draft}
       />
     );
   }

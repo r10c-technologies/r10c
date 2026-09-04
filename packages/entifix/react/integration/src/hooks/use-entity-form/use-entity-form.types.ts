@@ -7,21 +7,68 @@ import type {
   StandardSchemaV1,
 } from '@r10c/entifix-ts-core';
 
-export interface UseEntityFormOptions<TEntity extends Entity> {
-  /** Metadata source; fields and their validation rules derive from it. */
-  entityConstructor: EntityConstructor<TEntity>;
-  /** The record being edited; seeds the initial draft. Omit to create. */
-  entity?: TEntity;
+/**
+ * Where an autosaved draft is persisted, as the form sees it.
+ *
+ * A **port**, because the store cannot be imported: `useDraft` and the zustand
+ * store behind it are `layer:shell`, this package is `layer:entifix`, and
+ * `@nx/enforce-module-boundaries` fails the build on the upward edge. Retagging
+ * to make it legal would put an IndexedDB store under the framework layer, so
+ * the shell implements this instead — `useEntityDraft` in `shells-next-common`
+ * is the one adapter today.
+ *
+ * It lives here rather than in `entifix-ts-core`, and the asymmetry with
+ * `EntityLinkSource` is deliberate: that port sits in core because
+ * `entifix-react-controls` and `entifix-react-integration` are both
+ * `entifix:react` and may not import each other, so they *had* to meet below
+ * both. Nothing forces that here — `shells-next-common` already imports this
+ * hook — so the port stays beside the options it joins.
+ *
+ * Everything it carries is JSON round-trippable, because a draft is written
+ * through `createJSONStorage`
+ * ([ADR 0032](../../../../../../../docs/adr/0032-what-may-live-in-an-autosaved-draft.md)).
+ * `EntityDraft` is that guarantee's compile-time half.
+ */
+export interface EntityDraftStore {
   /**
-   * A persisted draft, layered over the record's seed — how a workspace restores
-   * an autosaved, half-finished edit.
+   * The persisted draft, layered over the record's seed — how a workspace
+   * restores an autosaved, half-finished edit.
    *
    * It wins on *values*, never on *keys*: a member the entity no longer declares
    * is dropped and one the draft never held keeps its seeded value, so a draft
    * written under an older shape cannot leave a field uncontrolled. See
    * `restoreEntityDraft`.
    */
-  initialValues?: EntityDraft;
+  readonly draft?: EntityDraft;
+  /**
+   * Persist the draft. Called on every edit away from the seed.
+   *
+   * Must be referentially stable across renders: the hook writes from an effect
+   * keyed on it, so a new identity each render turns every render into a write.
+   */
+  save(draft: EntityDraft): void;
+  /**
+   * Discard the persisted draft.
+   *
+   * **The hook never calls this.** A draft is spent when the write *commits*,
+   * and the hook does not know whether it did — it neither fetches nor saves.
+   * The host that owns the mutation calls it on success. Naming it on the port
+   * anyway is what stops each host re-deriving the address it would clear by.
+   */
+  clear(): void;
+}
+
+export interface UseEntityFormOptions<TEntity extends Entity> {
+  /** Metadata source; fields and their validation rules derive from it. */
+  entityConstructor: EntityConstructor<TEntity>;
+  /** The record being edited; seeds the initial draft. Omit to create. */
+  entity?: TEntity;
+  /**
+   * Where to persist this form's draft, so a half-finished edit survives a
+   * refresh. Omit and the form is ephemeral — which is what a plain route wants,
+   * and why autosave is opt-in rather than a flag a host can set wrong.
+   */
+  draft?: EntityDraftStore;
   /**
    * A Standard Schema (Zod, Valibot, ArkType — anything exposing `~standard`)
    * for the rules metadata cannot express: regex, min/max, cross-field.

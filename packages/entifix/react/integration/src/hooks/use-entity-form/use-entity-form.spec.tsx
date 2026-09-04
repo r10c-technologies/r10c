@@ -182,6 +182,16 @@ function makeGadget(): Gadget {
   return gadget;
 }
 
+/**
+ * A draft store double. `save`/`clear` are stable across renders because the
+ * port requires it — the hook autosaves from an effect keyed on `save`, so a
+ * fresh identity per render would make every render a write and hide exactly
+ * the behaviour these tests assert.
+ */
+function draftStore(draft?: EntityDraft) {
+  return { draft, save: vi.fn(), clear: vi.fn() };
+}
+
 describe('seedFieldValue', () => {
   const byName = (name: string) =>
     descriptors.find(descriptor => descriptor.name === name)!;
@@ -505,7 +515,7 @@ describe('useEntityForm', () => {
       useEntityForm({
         entityConstructor: Gadget,
         entity: makeGadget(),
-        initialValues: { code: 'DRAFT' },
+        draft: draftStore({ code: 'DRAFT' }),
         onSubmit: vi.fn(),
       }),
     );
@@ -525,7 +535,7 @@ describe('useEntityForm', () => {
       useEntityForm({
         entityConstructor: Gadget,
         entity: makeGadget(),
-        initialValues: { code: 'DRAFT', retired: 'yes' },
+        draft: draftStore({ code: 'DRAFT', retired: 'yes' }),
         onSubmit: vi.fn(),
       }),
     );
@@ -539,13 +549,98 @@ describe('useEntityForm', () => {
       useEntityForm({
         entityConstructor: Gadget,
         entity: makeGadget(),
-        initialValues: { code: 'DRAFT' },
+        draft: draftStore({ code: 'DRAFT' }),
         onSubmit: vi.fn(),
       }),
     );
 
     expect(result.current.values.tier).toBe('gold');
     expect(result.current.values.tier).not.toBeUndefined();
+  });
+
+  /**
+   * The autosave seam. It lives in the hook rather than in each page because
+   * every page that wanted it used to hand-write the same effect, and the two
+   * that never did — brand and category — had no autosave at all (#131).
+   */
+  it('persists the draft once a field is edited', () => {
+    const store = draftStore();
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        draft: store,
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.setField('code', 'G-2');
+    });
+
+    expect(store.save).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'G-2' }),
+    );
+  });
+
+  it('writes nothing while the draft still matches its seed', () => {
+    const store = draftStore();
+    renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        draft: store,
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    expect(store.save).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Opening a tab must not re-persist what it just restored. The seed *is* the
+   * restored draft, so the form is not dirty — without that the workspace would
+   * write to IndexedDB on every mount, for every tab, forever.
+   */
+  it('does not re-persist a restored draft on mount', () => {
+    const store = draftStore({ code: 'DRAFT' });
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        draft: store,
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    expect(result.current.values.code).toBe('DRAFT');
+    expect(store.save).not.toHaveBeenCalled();
+  });
+
+  /**
+   * A draft is spent when the write *commits*, and this hook never learns
+   * whether it did — it neither fetches nor saves. The host that owns the
+   * mutation clears it.
+   */
+  it('never clears the draft itself', () => {
+    const store = draftStore();
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        draft: store,
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    act(() => {
+      result.current.setField('code', 'G-2');
+    });
+    act(() => {
+      result.current.submit();
+    });
+
+    expect(store.clear).not.toHaveBeenCalled();
   });
 
   it('ignores a draft value that is not a string', () => {
@@ -555,7 +650,7 @@ describe('useEntityForm', () => {
         entity: makeGadget(),
         // What a draft written by an older shape can hold: the store guarantees
         // JSON, not this form's own type.
-        initialValues: { code: 42 } as unknown as EntityDraft,
+        draft: draftStore({ code: 42 } as unknown as EntityDraft),
         onSubmit: vi.fn(),
       }),
     );
