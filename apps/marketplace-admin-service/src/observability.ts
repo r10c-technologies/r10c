@@ -10,6 +10,7 @@ import {
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import {
+  type Attributes,
   createLogger,
   type Logger as ToolingLogger,
   type LogLevel,
@@ -18,7 +19,7 @@ import {
   makeOtlpHttpLogSink,
   makeStdoutJsonSink,
 } from '@r10c/entifix-ts-tooling/logging';
-import { Layer, Logger } from 'effect';
+import { HashMap, Layer, Logger } from 'effect';
 
 /** Resolved observability settings (from config-service `logging.*`/`otel.*`). */
 export interface ObservabilityConfig {
@@ -63,21 +64,58 @@ const makeSink = (config: ObservabilityConfig): LogSink =>
       })
     : makeStdoutJsonSink();
 
-/** Map Effect's log-level labels onto the tooling logger's four levels. */
+/**
+ * Effect's `LogLevel.label` mapped onto the four levels the tooling logger has.
+ *
+ * ⚠️ **The labels are upper case** — `"TRACE" | "DEBUG" | "INFO" | "WARN" |
+ * "ERROR" | "FATAL" | "ALL" | "NONE"`, as `effect/LogLevel` declares them. This
+ * switch used to read `'Trace'`/`'Debug'`/`'Warning'`/`'Error'`/`'Fatal'`, so
+ * **no case could ever match** and every log in the service fell through to
+ * `default` and was emitted at `info`. Measured in Loki: an `Effect.logError`
+ * arrived as `severity_text: INFO`, `severity_number: 9`, which makes an error
+ * invisible to every level-based alert and dashboard while still appearing in
+ * the log — the failure mode that reads as "we have no errors".
+ *
+ * `'WARNING'` is deliberately absent: Effect's label is `WARN`, and adding the
+ * other spelling would suggest one of them is live when only this one is.
+ */
 const toToolingLevel = (label: string): LogLevel => {
   switch (label) {
-    case 'Trace':
-    case 'Debug':
+    case 'TRACE':
+    case 'DEBUG':
       return 'debug';
-    case 'Warning':
+    case 'WARN':
       return 'warn';
-    case 'Error':
-    case 'Fatal':
+    case 'ERROR':
+    case 'FATAL':
       return 'error';
     default:
       return 'info';
   }
 };
+
+/**
+ * `Effect.annotateLogs`' entries flattened into tooling `Attributes`.
+ *
+ * The annotations arrive as a `HashMap<string, unknown>` and the attribute
+ * values are a closed scalar set, so anything else is stringified rather than
+ * dropped — an annotation that reaches a sink as `[object Object]` is still
+ * more use than one that silently is not there.
+ */
+const toAttributes = (
+  annotations: HashMap.HashMap<string, unknown>,
+): Attributes =>
+  Object.fromEntries(
+    Array.from(HashMap.entries(annotations), ([key, value]) => [
+      key,
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean' ||
+      value === null
+        ? value
+        : String(value),
+    ]),
+  );
 
 const messageToString = (message: unknown): string =>
   Array.isArray(message)
@@ -88,12 +126,33 @@ const messageToString = (message: unknown): string =>
  * An Effect `Logger` that forwards every Effect log (including the HTTP request
  * logs from `HttpMiddleware.logger`) to the tooling logger — so the whole
  * service logs through one structured, trace-correlated pipeline.
+ *
+ * **`annotations` are forwarded**, and used not to be: they were destructured
+ * away, so every `Effect.annotateLogs` in every service was discarded before it
+ * reached a sink. That made the annotated fields the outbox relay and the
+ * transaction engine attach — the tenant database, the event id, the
+ * transaction id, the rollback's own error — unqueryable, while the comments
+ * beside them said they were structured fields in Loki. Measured: the records
+ * arrived carrying the message and nothing else.
+ *
+ * `error` is called through its own arm because the tooling `Logger` gives it a
+ * different signature — `(message, error?, attributes?)` — so passing the
+ * attributes positionally as the second argument would file them as the *cause*
+ * and lose them again.
  */
 const makeEffectLogger = (
   logger: ToolingLogger,
 ): Logger.Logger<unknown, void> =>
-  Logger.make(({ logLevel, message }) => {
-    logger[toToolingLevel(logLevel.label)](messageToString(message));
+  Logger.make(({ logLevel, message, annotations }) => {
+    const level = toToolingLevel(logLevel.label);
+    const text = messageToString(message);
+    const attributes = toAttributes(annotations);
+
+    if (level === 'error') {
+      logger.error(text, undefined, attributes);
+      return;
+    }
+    logger[level](text, attributes);
   });
 
 /** Lower-level inputs to {@link makeObservabilityLayerWith}. */

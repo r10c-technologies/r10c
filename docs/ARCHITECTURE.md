@@ -654,14 +654,32 @@ since [ADR 0029](adr/0029-the-event-envelope-and-a-routed-bus.md)).
 
 The engine splits at the `202` boundary: **accept** (validate + claim + lock) is
 synchronous — its failure is the client's `400`/`409`; **execute** (assign the
-result, persist, free — or roll back and free) is forked past the `202`. It is
-**choreography** — the service owns its transaction and emits events; the saga
-tracker only observes and recovers (passive). The client polls the tracker for
-the outcome, through the relative `rel: 'status'` link the `202` carries. The
-first concrete transaction assigns a unique incremental `code` (`product-001`,
-`category-001`, `brand-001`) to the catalog entities; `INCR`'s atomicity is what
-guarantees uniqueness across service instances. Multi-service sagas are
-deferred (#105); the reactive stream is not. It is
+result, persist, free — or roll back and free) is forked past the `202`. A
+single-step write is **choreography** — the service owns its transaction and
+emits events, and the saga tracker only observes and recovers (passive). The
+client polls the tracker for the outcome, through the relative `rel: 'status'`
+link the `202` carries. The first concrete transaction assigns a unique
+incremental `code` (`product-001`, `category-001`, `brand-001`) to the catalog
+entities; `INCR`'s atomicity is what guarantees uniqueness across service
+instances.
+
+**A flow that spans slices is orchestrated instead, per flow**
+([ADR 0039](adr/0039-multi-step-sagas-are-orchestrated.md)). Single-step writes
+are untouched; a multi-step flow declares a `SagaDefinition` — steps classified
+`compensatable` / `pivot` / `retriable`, Richardson's taxonomy — that a generic
+engine walks. It is **data rather than a class** because an orchestrator knowing
+checkout's four steps would have to import three domains, and a `business:domain`
+package may not import another; the boundary rule is what shaped the design.
+Commands go out over HTTP on
+[ADR 0023](adr/0023-service-to-service-tenant-crossing.md)'s path — a synchronous
+`400` is not a saga failure — and results come back over the bus, which is where
+durable at-least-once completion lives. Dispatch goes through the **outbox**,
+extending ADR 0028's persist-before-publish rule to commands. The coordinator
+lives in the `transaction` slice and its state in the `saga` store; splitting it
+out to `:3103` is deferred until a participant runs outside
+marketplace-admin-service. The multi-step engine is **not built** — what is in
+effect is the vocabulary and its constraints. The reactive stream, by contrast,
+is built. It is
 [ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md), it is
 server-sent rather than a WebSocket, and it is built: the tracker takes a
 **second** subscription to `transaction.*` in `mode: 'broadcast'` — the first in

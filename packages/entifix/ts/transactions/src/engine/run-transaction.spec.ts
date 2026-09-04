@@ -4,7 +4,7 @@ import {
   EntifixLockError,
   EntifixTransactionError,
 } from '@r10c/entifix-ts-core';
-import { Effect, Exit, Layer } from 'effect';
+import { Effect, Exit, HashMap, Layer, Logger } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 /** The slice every event in this file is published by. */
@@ -417,6 +417,75 @@ describe('completeTransaction', () => {
       data: { step: 'failed', error: 'write failed' },
     });
     expect(world.calls).toContain('release:product:code');
+  });
+
+  // The recorded event's `error` is `execute`'s, so without this log the
+  // compensation's own failure reaches nothing at all and an operator reading
+  // `FAILED` concludes the write was undone when it was not (ADR 0039).
+  it('logs the compensation failure it has to discard', () => {
+    const world = makeWorld({
+      execute: new EntifixTransactionError('write failed'),
+      rollback: new EntifixTransactionError('rollback failed'),
+    });
+    const logs: Array<{
+      message: string;
+      annotations: Record<string, unknown>;
+    }> = [];
+
+    Effect.runSync(
+      completeTransaction(handles).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(
+          Logger.replace(
+            Logger.defaultLogger,
+            Logger.make(({ message, annotations }) => {
+              logs.push({
+                message: String(message),
+                annotations: Object.fromEntries(HashMap.toEntries(annotations)),
+              });
+            }),
+          ),
+        ),
+      ),
+    );
+
+    expect(logs).toEqual([
+      {
+        message: 'transaction rollback failed',
+        annotations: {
+          transactionId: 'tx-1',
+          entity: 'product',
+          executeError: expect.stringContaining('write failed'),
+          rollbackError: expect.stringContaining('rollback failed'),
+        },
+      },
+    ]);
+  });
+
+  // A rollback that succeeds says nothing: the failure record already tells the
+  // client what happened, and a log per ordinary failed transaction is noise
+  // that makes the stranded ones above harder to find.
+  it('logs nothing when the compensation succeeds', () => {
+    const world = makeWorld({
+      execute: new EntifixTransactionError('write failed'),
+    });
+    const logs: string[] = [];
+
+    Effect.runSync(
+      completeTransaction(handles).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(
+          Logger.replace(
+            Logger.defaultLogger,
+            Logger.make(({ message }) => {
+              logs.push(String(message));
+            }),
+          ),
+        ),
+      ),
+    );
+
+    expect(logs).toEqual([]);
   });
 
   // The transaction already failed; an outbox that cannot take the record must

@@ -46,8 +46,15 @@ const STALE_TIMEOUT_MS = 60_000;
 /**
  * The manager's passive role: subscribe to the bus and fold every event into
  * the store, and run a recovery sweep that flags transactions stuck in a
- * non-terminal state. It never dispatches work — choreography lives in the
- * services; the manager only observes and recovers.
+ * non-terminal state.
+ *
+ * It dispatches no work **today**, because every transaction in the fleet is a
+ * single-step write and those stay choreography: the service owns its
+ * transaction and emits events. ADR 0039 decides that a flow spanning slices is
+ * *orchestrated* instead, from a declarative `SagaDefinition`, and that the
+ * coordinator lives in this slice. So this becomes the orchestrator's host when
+ * the first multi-step flow lands; it is passive until then, and single-step
+ * writes stay passive after.
  */
 export const startTracking = Effect.gen(function* () {
   const store = yield* TransactionStoreTag;

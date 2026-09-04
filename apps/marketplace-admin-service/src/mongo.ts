@@ -203,8 +203,10 @@ export const AppLayer = Layer.unwrapEffect(
     // infra services in the output so the routes can use them. Observability
     // (logger replacement + tracer) is merged so it is active for the server.
     // `startTracking` is the co-deployed slice's boot step: it subscribes to the
-    // bus and forks the recovery sweep. Passive by design — it observes and
-    // recovers, and never dispatches work.
+    // bus and forks the recovery sweep. Passive today — it observes and
+    // recovers, and dispatches nothing, because every transaction here is a
+    // single-step write and those stay choreography. ADR 0039 makes this slice
+    // the host of the orchestrator that multi-step, cross-slice flows need.
     return Layer.merge(
       observability,
       Layer.provideMerge(
