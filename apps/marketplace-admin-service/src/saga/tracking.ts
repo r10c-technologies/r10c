@@ -4,8 +4,9 @@ import {
   TransactionStoreTag,
   TransactionStreamHubTag,
 } from '@r10c/entifix-transactions';
+import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
 import type { DomainEvent } from '@r10c/entifix-ts-core';
-import { Duration, Effect } from 'effect';
+import { Duration, Effect, Fiber } from 'effect';
 
 /**
  * The slice this consumer belongs to, and half of its queue's name.
@@ -60,6 +61,7 @@ export const startTracking = Effect.gen(function* () {
   const store = yield* TransactionStoreTag;
   const bus = yield* EventBusTag;
   const hub = yield* TransactionStreamHubTag;
+  const shutdown = yield* ShutdownRegistryTag;
 
   // Fold each observed event into the persisted record. The handler carries no
   // requirements (store is closed over), so the bus can run it standalone.
@@ -127,5 +129,14 @@ export const startTracking = Effect.gen(function* () {
     Effect.forever,
   );
 
-  yield* Effect.forkDaemon(sweep);
+  const daemon = yield* Effect.forkDaemon(sweep);
+
+  // `stop-intake`: the sweep writes, so it must stop before the Mongo client
+  // does — a `markStale` issued into a closing pool fails for a reason that has
+  // nothing to do with the transaction it was about to describe.
+  yield* shutdown.register({
+    name: 'saga-recovery-sweep',
+    phase: 'stop-intake',
+    run: Fiber.interrupt(daemon).pipe(Effect.asVoid),
+  });
 });

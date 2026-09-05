@@ -213,6 +213,14 @@ caused. Readiness answers `200`, or `503 {status:'degraded', failing:[…]}` wit
 probe **names** only: the endpoint is unauthenticated by necessity, so it never
 returns a URI, host, or driver message.
 
+A process that has received SIGTERM answers `503 {status:'terminating'}`
+instead, ahead of the cache and without running a probe — nothing is failing,
+and a terminating pod is not a degraded one. Liveness goes on answering `live`
+throughout: the process is healthy, it is leaving. The drain that follows is
+[ADR 0030](adr/0030-failure-retry-and-quarantine-on-the-bus.md)'s and runs as a
+`Layer` finalizer, so consumers are cancelled, in-flight handlers finish and the
+outbox relay sweeps once more before any connection closes.
+
 Backends build the answer from a **probe registry** (`HealthRegistryTag` in
 `@r10c/entifix-ts-business`): `MongoHealthProbeLayer`, `RedisHealthProbeLayer`
 and `AmqpHealthProbeLayer` ship with the clients they describe, so a service
@@ -313,7 +321,7 @@ swappable seam — Grafana Cloud in production (via an OpenTelemetry Collector),
   beside `observabilityFromConfiguration(store, serviceName)`, which performs that
   read — the way `MongoHealthProbeLayer` ships from the Mongo client. Only the
   merge is per service, and all four do it. config-service is the one that cannot
-  read its configuration over HTTP (it *is* config-service), so it hands the helper
+  read its configuration over HTTP (it _is_ config-service), so it hands the helper
   the `ConfigurationClient` it builds from its own table.
 
 **Metrics reach the Collector through the same layer as the spans.**

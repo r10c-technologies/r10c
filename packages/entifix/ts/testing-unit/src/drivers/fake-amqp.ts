@@ -68,6 +68,15 @@ export interface FakeAmqpChannel {
   /** The prefetch the adapter asked for — 1, or the fold races. */
   readonly prefetchCount: number | undefined;
   /**
+   * The consumer tags cancelled, in order.
+   *
+   * Recorded rather than merely accepted because a graceful shutdown's first
+   * phase *is* the cancel (ADR 0030): a connector that dropped the tag on the
+   * floor would pass every test while leaving the broker delivering into a
+   * process that is closing its connection.
+   */
+  readonly cancelled: readonly string[];
+  /**
    * Pushes a message to the consumers whose binding matches it, as the broker
    * would. The routing key defaults to the envelope's own `meta.event.name`,
    * which is what the adapter publishes with.
@@ -114,6 +123,8 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
     requeue: boolean;
   }> = [];
   let consumer: ((message: FakeAmqpMessage | null) => void) | undefined;
+  const cancelled: string[] = [];
+  let consumerTags = 0;
   let boundQueue: string | undefined;
   let prefetchCount: number | undefined;
   let failure: unknown;
@@ -162,7 +173,16 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
       guard();
       consumer = handler;
       boundQueue = queue;
-      return { consumerTag: 'fake-consumer' };
+      // A fresh tag per `consume`, so a reconnect's re-bind is distinguishable
+      // from the binding it replaced — the connector cancels what it currently
+      // holds, and a constant tag would hide it cancelling a stale one.
+      consumerTags += 1;
+      return { consumerTag: `fake-consumer-${consumerTags}` };
+    },
+    cancel: async (consumerTag: string) => {
+      guard();
+      cancelled.push(consumerTag);
+      consumer = undefined;
     },
     ack: (message: FakeAmqpMessage) => {
       acked.push(message);
@@ -230,6 +250,9 @@ export const makeFakeAmqpChannel = (): FakeAmqpChannel => {
     },
     get prefetchCount() {
       return prefetchCount;
+    },
+    get cancelled() {
+      return cancelled;
     },
     deliver: (body, routingKey) =>
       push(JSON.stringify(body), routingKey ?? routingKeyOf(body)),

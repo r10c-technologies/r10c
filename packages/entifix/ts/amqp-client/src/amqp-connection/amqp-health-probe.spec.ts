@@ -21,7 +21,10 @@ const channelWithCheck = (checkExchange: (name: string) => Promise<unknown>) =>
  */
 const connectorFor = (channel: amqp.Channel): AmqpConnector => ({
   withChannel: use => use(channel),
-  addConsumer: setup => setup(channel),
+  addConsumer: async setup => {
+    await setup(channel);
+  },
+  cancelConsumers: async () => undefined,
 });
 
 const reportWith = (channel: amqp.Channel): Promise<HealthReport> =>

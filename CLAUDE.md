@@ -700,6 +700,39 @@ instantiation is excessively deep`); every scalar read is now
   probe; a service `AppLayer` merges the probe layer, `makeServerLayer`
   provides the registry. App readiness checks **only** its own config — never
   chain to a backend, that turns one degraded service into a fleet outage.
+- **A shutdown is a finalizer, and its position is the mechanism.**
+  `ShutdownRegistryTag` (`entifix-ts-business`, beside `HealthRegistryTag` and
+  `WiringRegistryTag`, and there for the same reason: a service that gains a bus
+  gains its drain with nothing to remember) collects `stop-intake` then `flush`
+  hooks, and `makeServerLayer` releases them from a `Layer` finalizer built
+  **between** the composition root and `HttpServer.serve`. Build order
+  `appLayer → drain → serve` gives release order `serve → drain → appLayer`, so
+  the drain runs with its connections still open. A signal handler cannot give
+  that: `runMain` interrupts the fiber on SIGTERM, so a handler racing it drains
+  against a closing client — which is why the SIGTERM listener in `makeService`
+  does one thing, flip the readiness latch, and `/api/health/ready` then answers
+  `503 {status:'terminating'}` **ahead of the 1s cache** (a report cached a
+  moment before the signal would keep answering `200` for exactly the window a
+  rolling restart lives in). `terminating`, not `degraded`: `failing: […]` names
+  probes someone would go and look at, and nothing is failing. Three mechanics
+  worth not re-deriving. **`channel.consume` hands its tag to the caller and
+  nowhere else**, so `AmqpConsumerSetup` had to start returning tags before
+  cancelling was expressible at all; `cancelConsumers` also latches the
+  connector, because a shutdown racing a broker reconnect would otherwise let
+  `bindAll` re-arm the consumers the drain just stopped. **Cancelling says
+  nothing about the delivery already running** — the adapter's settle was
+  `void Effect.runPromise(...)`, tracked by nothing — so the bus counts
+  in-flight handlers and the same hook waits for them; the count lives in the
+  adapter and not on `EventBus`, since a framework-free port has no deliveries.
+  And the relay's hook is **`flush`**: it interrupts the sweep daemon and runs
+  one more pass, because an event committed a moment before SIGTERM otherwise
+  waits out the _next_ process's 15s interval, and the browser watching the
+  transaction reads `PENDING` for a rollout that succeeded. The `preStop` grace
+  period ADR 0030 also names is deliberately **absent** — `infra/local/` holds
+  datastores only, there is no app or service Deployment to carry the hook, and
+  Kubernetes runs `preStop` _before_ SIGTERM so nothing in the in-process
+  sequence depends on it. See
+  [ADR 0030](docs/adr/0030-failure-retry-and-quarantine-on-the-bus.md).
 - **Dev ports self-clear.** Every app/service `dev` depends on `free-ports`
   (`tools/free-ports.sh <port>`), which kills a leftover listener from a previous
   run — but **only** a process running from inside this repo (cwd/argv under the
@@ -1403,7 +1436,7 @@ instantiation is excessively deep`); every scalar read is now
   `@r10c/shells-effect-service` (`src/observability.ts`) — it used to be a
   byte-identical 351-line copy in two apps with a "edit both" instruction, and one
   of the two copies had no test project at all. `observabilityFromConfiguration(store,
-  serviceName)` reads `logging.level`/`logging.sink` (required) and
+serviceName)` reads `logging.level`/`logging.sink` (required) and
   `otel.endpoint`/`otel.metricIntervalMs` (optional) from a `ConfigurationClient`
   and returns the layer; **each service still merges it into its own `AppLayer`**,
   so composition stays at the roots — what moved is the factory, a sibling of

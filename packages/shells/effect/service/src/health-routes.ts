@@ -1,6 +1,9 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import type { HealthReport } from '@r10c/entifix-ts-business';
-import { HealthRegistryTag } from '@r10c/entifix-ts-business';
+import {
+  HealthRegistryTag,
+  ShutdownRegistryTag,
+} from '@r10c/entifix-ts-business';
 import { Effect, Ref } from 'effect';
 
 /**
@@ -28,7 +31,10 @@ interface CacheEntry {
  * - `GET /api/health/ready` — **readiness**: `200` when every registered probe
  *   passes, `503 {status:'degraded', failing:[…]}` otherwise. Kubernetes pulls
  *   a not-ready pod out of the load balancer without killing it, which is what
- *   a reconnecting client wants.
+ *   a reconnecting client wants. A process that has begun terminating answers
+ *   `503 {status:'terminating'}` instead, **before** any probe runs: nothing is
+ *   failing, and running the probes would ask a closing pool a question whose
+ *   answer changes nothing.
  *
  * The failing list carries probe **names** only — never a URI, host, or driver
  * message. This endpoint answers anyone who can reach the port.
@@ -67,6 +73,17 @@ export const withHealthRoutes = <E, R>(
     HttpRouter.get(
       '/api/health/ready',
       Effect.gen(function* () {
+        const shutdown = yield* ShutdownRegistryTag;
+        // Ahead of the cache, deliberately: a report cached a moment before the
+        // signal landed would go on answering `200` for up to READY_CACHE_MS,
+        // which is precisely the window a rolling restart lives in.
+        if (yield* shutdown.terminating) {
+          return yield* HttpServerResponse.json(
+            { status: 'terminating', service: serviceName },
+            { status: 503 },
+          );
+        }
+
         const report = yield* cachedReport;
         return yield* HttpServerResponse.json(
           report.ready

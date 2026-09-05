@@ -3,8 +3,9 @@ import {
   EventBusTag,
   type TransactionOutbox,
 } from '@r10c/entifix-transactions';
+import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
 import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
-import { Context, Duration, Effect, Either } from 'effect';
+import { Context, Duration, Effect, Either, Fiber } from 'effect';
 import type { MongoClient } from 'mongodb';
 
 import { ensureOutboxIndexes, makeMongoOutbox } from './store';
@@ -144,8 +145,9 @@ export const startOutboxRelay = Effect.gen(function* () {
   const bus = yield* EventBusTag;
   const prefix = yield* TenantDatabasePrefix;
   const maxAttempts = yield* OutboxMaxAttempts;
+  const shutdown = yield* ShutdownRegistryTag;
 
-  const sweep = Effect.gen(function* () {
+  const sweepOnce = Effect.gen(function* () {
     const names = yield* tenantDatabases(client, prefix);
     for (const name of names) {
       const db = client.db(name);
@@ -166,9 +168,23 @@ export const startOutboxRelay = Effect.gen(function* () {
         Effect.annotateLogs({ error: String(error) }),
       ),
     ),
-    Effect.delay(SWEEP_INTERVAL),
-    Effect.forever,
   );
 
-  yield* Effect.forkDaemon(sweep);
+  const daemon = yield* Effect.forkDaemon(
+    sweepOnce.pipe(Effect.delay(SWEEP_INTERVAL), Effect.forever),
+  );
+
+  // `flush`, so it runs after the consumers have stopped: a sweep racing a live
+  // handler would keep finding entries that handler is still writing.
+  //
+  // Interrupting the daemon first is what stops two sweeps publishing the same
+  // entry; running one more afterwards is what this hook is *for*. Without it
+  // an event committed a moment before SIGTERM waits out the next process's
+  // 15s interval, and the browser watching the transaction sees `PENDING` for a
+  // rollout that actually succeeded.
+  yield* shutdown.register({
+    name: 'outbox-relay',
+    phase: 'flush',
+    run: Fiber.interrupt(daemon).pipe(Effect.andThen(sweepOnce)),
+  });
 });

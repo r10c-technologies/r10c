@@ -34,8 +34,18 @@ export const EVENTS_EXCHANGE = 'entifix.events';
  */
 export const EVENTS_DLX = 'entifix.events.dlx';
 
-/** Re-establishes a consumer against a freshly opened channel. */
-export type AmqpConsumerSetup = (channel: amqp.Channel) => Promise<void>;
+/**
+ * Re-establishes a consumer against a freshly opened channel.
+ *
+ * It returns the consumer tags it created, which is what makes cancelling
+ * possible: `channel.consume` hands its tag back to the caller and nowhere
+ * else, so a setup that swallowed it would leave the connector able to open
+ * consumers and never to stop them. `void` is accepted for a setup that starts
+ * none (a declaration-only one).
+ */
+export type AmqpConsumerSetup = (
+  channel: amqp.Channel,
+) => Promise<void | readonly string[]>;
 
 /**
  * A RabbitMQ connection that survives the broker going away.
@@ -60,6 +70,17 @@ export interface AmqpConnector {
    * outage — its exclusive queue died with the old connection.
    */
   addConsumer(setup: AmqpConsumerSetup): Promise<void>;
+  /**
+   * Stop delivering. Cancels every registered consumer and latches the
+   * connector so a reconnect does not quietly re-arm them.
+   *
+   * The first phase of a graceful shutdown (ADR 0030): the messages already
+   * being handled are still being handled — cancelling only stops *new*
+   * deliveries — so the caller waits for those separately before the connection
+   * closes. Without this a rollout kills handlers mid-flight and the broker
+   * redelivers whatever was unacked.
+   */
+  cancelConsumers(): Promise<void>;
 }
 
 /** DI tag carrying the self-healing connection (closed on release). */
@@ -88,6 +109,8 @@ interface Live {
 interface Consumer {
   setup: AmqpConsumerSetup;
   boundTo?: amqp.Channel;
+  /** The tags this consumer holds on {@link Consumer.boundTo}, for cancelling. */
+  tags: readonly string[];
 }
 
 /**
@@ -97,13 +120,24 @@ export const makeAmqpConnector = (uri: string) => {
   let live: Live | undefined;
   let opening: Promise<Live> | undefined;
   let closed = false;
+  let cancelled = false;
   const consumers: Consumer[] = [];
 
-  /** Bind every consumer that is not already bound to this channel. */
+  /**
+   * Bind every consumer that is not already bound to this channel.
+   *
+   * A no-op once the consumers have been cancelled: a shutdown that races a
+   * broker reconnect would otherwise re-arm the very consumers the drain just
+   * stopped, and start taking deliveries the process has no time left to
+   * finish.
+   */
   const bindAll = async (channel: amqp.Channel) => {
+    if (cancelled) {
+      return;
+    }
     for (const consumer of consumers) {
       if (consumer.boundTo !== channel) {
-        await consumer.setup(channel);
+        consumer.tags = (await consumer.setup(channel)) ?? [];
         consumer.boundTo = channel;
       }
     }
@@ -169,10 +203,26 @@ export const makeAmqpConnector = (uri: string) => {
       }
     },
     addConsumer: async setup => {
-      consumers.push({ setup });
+      consumers.push({ setup, tags: [] });
       // `ensure` may have bound it already, if it opened a connection for this
       // very call — `bindAll` is what makes running it twice impossible.
       await bindAll((await ensure()).channel);
+    },
+    cancelConsumers: async () => {
+      cancelled = true;
+      const channel = live?.channel;
+      if (channel === undefined) {
+        return;
+      }
+      for (const consumer of consumers) {
+        for (const tag of consumer.tags) {
+          // A cancel that fails has already achieved what it was for — the
+          // channel is gone, so nothing is being delivered on it — and a
+          // shutdown must not stall on the way out.
+          await channel.cancel(tag).catch(() => undefined);
+        }
+        consumer.tags = [];
+      }
     },
   };
 

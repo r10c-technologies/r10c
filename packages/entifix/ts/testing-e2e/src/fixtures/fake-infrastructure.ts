@@ -115,7 +115,12 @@ export const fakeAmqpLayer = (): FakeInfrastructure<
   const channel = makeFakeAmqpChannel();
   const connector: AmqpConnector = {
     withChannel: use => use(channel.channel as never),
-    addConsumer: setup => setup(channel.channel as never),
+    addConsumer: async setup => {
+      await setup(channel.channel as never);
+    },
+    // The mock profile boots and closes services in-process, so the drain runs
+    // for real against this — it simply has one channel and no broker to tell.
+    cancelConsumers: async () => undefined,
   };
   return {
     driver: channel,

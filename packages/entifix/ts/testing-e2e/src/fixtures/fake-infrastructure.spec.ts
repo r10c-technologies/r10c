@@ -159,6 +159,28 @@ describe('the fake infrastructure layers', () => {
     ]);
   });
 
+  // The mock profile boots and closes services in-process, so `makeServerLayer`'s
+  // drain finalizer really does run against this connector on every teardown.
+  it('accepts the cancel the shutdown drain issues', async () => {
+    const { driver, layer } = fakeAmqpLayer();
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const connector = yield* AmqpChannelTag;
+        yield* Effect.promise(() =>
+          connector.addConsumer(async channel => {
+            await channel.bindQueue('q', 'entifix.events', 'widget.*');
+          }),
+        );
+        yield* Effect.promise(() => connector.cancelConsumers());
+      }).pipe(Effect.provide(layer)),
+    );
+
+    // One channel and no broker, so there is nothing to tell — the drain
+    // completing is the whole assertion.
+    expect(driver.cancelled).toEqual([]);
+  });
+
   it('provides the configuration a service would fetch at boot', async () => {
     const store = await Effect.runPromise(
       ConfigurationRepositoryTag.pipe(

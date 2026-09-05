@@ -31,7 +31,11 @@ const makeFakeConnection = () => {
     assertExchange: vi.fn(() => Promise.resolve({})),
     on,
     publish: vi.fn(),
-  } as unknown as amqp.Channel & { publish: ReturnType<typeof vi.fn> };
+    cancel: vi.fn(() => Promise.resolve()),
+  } as unknown as amqp.Channel & {
+    publish: ReturnType<typeof vi.fn>;
+    cancel: ReturnType<typeof vi.fn>;
+  };
 
   const connection = {
     createChannel: vi.fn(() => Promise.resolve(channel)),
@@ -164,6 +168,70 @@ describe('makeAmqpConnector', () => {
     await connector.withChannel(async () => undefined);
 
     expect(boundTo).toEqual([first.channel, second.channel]);
+  });
+
+  // The first phase of a graceful shutdown. Cancelling is what makes the
+  // difference between "the handlers finished" and "the broker redelivers
+  // whatever was in flight" (ADR 0030).
+  it('cancels every tag its consumers reported', async () => {
+    const fake = makeFakeConnection();
+    connect.mockResolvedValue(fake.connection);
+
+    const { connector } = makeAmqpConnector('amqp://localhost');
+    await connector.addConsumer(async () => ['work-tag', 'broadcast-tag']);
+    await connector.cancelConsumers();
+
+    expect(fake.channel.cancel.mock.calls.map(([tag]) => tag)).toEqual([
+      'work-tag',
+      'broadcast-tag',
+    ]);
+  });
+
+  // A shutdown racing a broker reconnect: re-arming the consumers the drain
+  // just stopped starts deliveries the process has no time left to finish.
+  it('does not re-bind consumers after they are cancelled', async () => {
+    const first = makeFakeConnection();
+    const second = makeFakeConnection();
+    connect.mockResolvedValueOnce(first.connection);
+    connect.mockResolvedValueOnce(second.connection);
+
+    const { connector } = makeAmqpConnector('amqp://localhost');
+    const boundTo: unknown[] = [];
+    await connector.addConsumer(async channel => {
+      boundTo.push(channel);
+      return ['tag'];
+    });
+
+    await connector.cancelConsumers();
+    first.emitConnection('close');
+    await connector.withChannel(async () => undefined);
+
+    expect(boundTo).toEqual([first.channel]);
+  });
+
+  // A process that never reached the broker still shuts down.
+  it('cancels nothing when no connection was ever opened', async () => {
+    const { connector } = makeAmqpConnector('amqp://localhost');
+
+    await expect(connector.cancelConsumers()).resolves.toBeUndefined();
+    expect(connect).not.toHaveBeenCalled();
+  });
+
+  // A cancel against a channel that has already gone has achieved its purpose;
+  // stalling the drain on it would spend the shutdown budget of what follows.
+  it('keeps cancelling after one tag fails', async () => {
+    const fake = makeFakeConnection();
+    fake.channel.cancel.mockRejectedValueOnce(new Error('channel closed'));
+    connect.mockResolvedValue(fake.connection);
+
+    const { connector } = makeAmqpConnector('amqp://localhost');
+    await connector.addConsumer(async () => ['first', 'second']);
+    await connector.cancelConsumers();
+
+    expect(fake.channel.cancel.mock.calls.map(([tag]) => tag)).toEqual([
+      'first',
+      'second',
+    ]);
   });
 
   // A burst of publishes arriving together after an outage must not each open
