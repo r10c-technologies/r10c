@@ -853,8 +853,8 @@ instantiation is excessively deep`); every scalar read is now
   `transactionId`/`at` as payload members anyway, the way CloudEvents duplicates
   `subject`, because a payload must stand alone once unwrapped. And the exchange
   is **`entifix.events`, type topic**, routing key = `event.name`, with
-  `subscribe(pattern, handler)` binding the string `tools/slices/` already
-  declared as `subscribedEvents` — fanout meant every subscriber received every
+  `subscribe(subscription, handler)` binding the string `tools/slices/` already
+  declares in `subscriptions` — fanout meant every subscriber received every
   publisher's traffic and filtered in its own handler, which is the fault #136
   warns about for sockets, already live. A broker will not retype an exchange, so
   the old `entifix.transactions` fanout is abandoned rather than migrated and a
@@ -918,12 +918,38 @@ instantiation is excessively deep`); every scalar read is now
   queues are new names and auto-delete, but Mongo rejects re-declaring
   `{ createdAt: 1 }` with different options. Delayed redelivery is deliberately
   **not** built, and the 3.13 broker already has quorum queues, so none of this
-  waited on the 4.x bump (#181). Still open, and the reason the register carries
-  **no `dedupe` field yet**: #178's `TransactionInbox` claiming `event.id` in the
-  same storage transaction as the side effect — until it exists every consumer
-  must be naturally idempotent, and both of today's are — and #180's graceful
-  shutdown, because an unacked message at SIGTERM is the same redelivery
-  question.
+  waited on the 4.x bump (#181). #180's graceful shutdown and #178's inbox both
+  landed on 2026-09-05, so nothing from this record is still open.
+- **A consumer claims an event with its side effect, and the key has two halves**
+  (#178, the mechanism ADR 0030 specified). `TransactionInbox.claim(eventId)` is
+  symmetric to `TransactionOutbox.enqueue` and framework-free for the same
+  reason — there is no `claimWithin(session)`, because a driver session may not
+  enter a framework-free contract, so the **consumer** writes the claim under its
+  own session exactly as a `TransactionHandler` writes the `completed` outbox
+  entry. Four things not to re-derive. **The key is `(consumer, eventId)`, not
+  `eventId`**: two consumers legitimately process the same event — the tracker's
+  fold and the SSE hub both bind `transaction.*` — so a single-column unique
+  index lets whichever claimed first starve the other of every message while the
+  broker, the queue and both handlers go on reporting success. The consumer half
+  is the **durable work-queue name** (`queueNameFor`), which is why
+  **`dedupe: 'inbox'` is legal only on `mode: 'work'`** and `@r10c/slices` fails
+  the build on the pair: a broadcast queue is anonymous, dies with its
+  connection, and every replica is _meant_ to process the event. **The inbox
+  lives with the side effect, never centrally** — the claim and the write must be
+  one transaction, so the outbox is per-tenant and the tracker's inbox is in the
+  `saga` database. And **claim-then-act is the wrong order**: it leaves a window
+  where the claim is held and the effect never ran, so the redelivery is skipped
+  and the work is lost, which is strictly worse than doing it twice — hence one
+  `session.withTransaction` around both, with a duplicate-key error recognised as
+  the redelivery it is and **acked, never nacked** (a nack would requeue against
+  `x-delivery-limit` and quarantine a message that was in fact processed). The
+  register's `dedupe` is `'inbox' | 'natural'`, and `'natural'` must state its
+  reason, because natural idempotency is a property of the handler that nothing
+  else checks and the next edit can remove it without touching the declaration.
+  The tracker's fold is declared `inbox` **although it is genuinely natural**, so
+  the mechanism has a live exerciser before the first consumer that cannot be
+  natural depends on it; the cost is one claim write per delivery, accepted
+  deliberately.
 - **The reactive stream is server-sent, same-origin, and scoped per connection**
   ([ADR 0036](docs/adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)).
   `ReactiveChannel` was always the right port; what it lacked was a transport,
@@ -1029,7 +1055,43 @@ instantiation is excessively deep`); every scalar read is now
   with its spans about `service.name`. `otel.endpoint` is **optional**: with
   none the layer still builds, logs fall back to stdout and nothing exports —
   a telemetry destination being unreachable must not take a service down. The
-  first metric set is still #186's.
+  first metric set is #186's, and it is built.
+- **The first metric set is emitted, and two of its limits are real** (#186,
+  ADR 0001's revision). **Counters and gauges need no plumbing**: `NodeSdk` wires
+  the reader through `Metrics.layer`, whose producer reads **Effect's own global
+  registry**, so an increment in the AMQP consumer's detached settle fiber —
+  outside the observability layer entirely — is still exported. ⚠️ A metric's
+  registry key includes its **description**, so a reader that rebuilds one by
+  name without it addresses a different series that is permanently zero; the
+  metric objects are therefore exported and every spec imports them rather than
+  re-declaring. Four things not to re-derive. **A consumer-side failure carries
+  no event name** — the parsed event exists only inside the handler arm and a
+  poison message by definition has none — so `bus_events_failed_total` is
+  dimensioned by subscription (`queue`, `slice`, `mode`) and failure class;
+  dimensioning only the arm that has a name would make the two counts
+  incomparable. **There is no in-process dead-letter count**: `x-delivery-limit`
+  moves a message to `<queue>.quarantine` and the broker does it without telling
+  the adapter, so a transient failure on its fifth delivery counts exactly like
+  its first — the honest quarantine number is the publisher-side outbox gauge.
+  **Both gauges read through aggregate port methods** (`TransactionOutbox.stats`,
+  `TransactionStore.countByState`), never a listing: `TransactionStore` has no
+  `list` because an unfiltered read of that store is every organization's
+  transactions (#194), and a count names nobody — state that distinction beside
+  any new method there. ⚠️ **A dimensionless gauge reaches Prometheus with a `_ratio` suffix** — the OTel
+  convention for unit `1`, so `outbox_pending_entries` is queried as
+  `outbox_pending_entries_ratio`; counters are unaffected. A real unit is set by
+  **tagging** (`Metric.tagged(m, 'unit', 's')`), which is the only way
+  `@effect/opentelemetry` accepts one (`tags.unit ?? tags.time_unit ?? '1'`) and
+  which also adds a constant label, since the same tags become the datapoint's
+  attributes. And **an absent series is not a zero**: an empty outbox
+  reports an age of `0` and `countByState` fills every state including the ones
+  at none, because a series that stops being reported reads on most dashboards as
+  "no data", which is indistinguishable from a broken exporter at exactly the
+  moment a healthy fleet looks idle. Both are sampled by daemons that already run
+  on an interval — the outbox by the relay's sweep, the states by the recovery
+  sweep — so nothing new is scheduled. Dashboards are **not** provisioned:
+  `infra/local/otel-lgtm` mounts nothing and has no PVC, so one must be a
+  committed file plus a ConfigMap.
 - **A flow that spans slices is orchestrated; a single-step write stays
   choreography** ([ADR 0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md)).
   The engine runs **one** step in **one** service — `TransactionCommand.type` is

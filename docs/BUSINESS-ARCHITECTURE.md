@@ -73,7 +73,7 @@ for them:
   guidelines name neither the store, nor its ownership, nor its relation to the
   SID entities the component manages. **Store** is therefore ours; **Slice** is
   our name for what ODA calls a Component, and its declaration borrows ODA's
-  `exposedAPIs` / `dependantAPIs` / `publishedEvents` / `subscribedEvents`
+  `exposedAPIs` / `dependantAPIs` / `publishedEvents` / `subscriptions`
   vocabulary ([ADR 0020](adr/0020-stores-and-slices.md)).
 - **ODA's "Product Inventory" is not stock.** See the glossary entry.
 

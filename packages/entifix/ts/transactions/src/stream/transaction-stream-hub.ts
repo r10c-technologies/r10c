@@ -1,7 +1,4 @@
-import type {
-  DomainEvent,
-  EntityChangeEvent,
-} from '@r10c/entifix-ts-core';
+import type { DomainEvent, EntityChangeEvent } from '@r10c/entifix-ts-core';
 import { Context, Effect, PubSub, Stream } from 'effect';
 
 import type { TransactionEvent, TransactionState } from '../contracts/event';

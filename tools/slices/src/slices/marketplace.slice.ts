@@ -66,6 +66,14 @@ export const marketplaceSlice: SliceDeclaration = {
     // Work: the projection is this slice's system of record for the published
     // catalog, so a message lost while it restarts is an offering the
     // storefront never shows and nothing can notice.
-    { event: 'catalog.published', mode: 'work', maxAttempts: 5 },
+    {
+      event: 'catalog.published',
+      mode: 'work',
+      maxAttempts: 5,
+      dedupe: 'natural',
+      dedupeReason:
+        'The projection is a full-document upsert keyed on the offering id, ' +
+        'so re-applying one publication writes the same document.',
+    },
   ],
 };

@@ -63,7 +63,7 @@ export interface EntifixEventMeta {
   /**
    * What happened, in the register's vocabulary: `catalog.published`,
    * `transaction.completed`. Declared in `tools/slices/*.slice.ts` as
-   * `publishedEvents`/`subscribedEvents`, and used verbatim as the AMQP routing
+   * `publishedEvents`/`subscriptions`, and used verbatim as the AMQP routing
    * key — which is what makes a subscriber's declared interest and its actual
    * queue binding the same string.
    */

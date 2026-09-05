@@ -49,6 +49,24 @@ export interface TransactionStore {
     olderThanMs: number,
   ): Effect.Effect<readonly TransactionRecord[], EntifixConnError>;
   markStale(transactionId: string): Effect.Effect<void, EntifixConnError>;
+  /**
+   * How many records sit in each state — the recovery sweep samples it.
+   *
+   * ⚠️ **This is a count, and is not the `list` above.** It returns no record,
+   * no id and no organization, so it does not reopen the surface #194 deleted
+   * `GET /api/transaction` for: an unfiltered *listing* of this store is every
+   * organization's transactions, while a total of how many are `STALE` is a
+   * fleet health number that names nobody. The distinction is the whole reason
+   * one is here and the other is refused.
+   *
+   * It exists so `STALE` is something a dashboard shows rather than something a
+   * poll discovers — which is what the recovery sweep, whose only action is to
+   * apply that label, otherwise leaves entirely unobservable.
+   */
+  countByState(): Effect.Effect<
+    Record<TransactionState, number>,
+    EntifixConnError
+  >;
 }
 
 export class TransactionStoreTag extends Context.Tag('TransactionStoreTag')<

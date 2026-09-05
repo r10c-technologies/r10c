@@ -32,5 +32,9 @@ export const paymentSlice: SliceDeclaration = {
   exposedAPIs: ['GET|POST /api/payment', 'GET /api/payment/:id'],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: ['payment.captured', 'payment.failed'],
-  subscriptions: [{ event: 'order.placed', mode: 'work', maxAttempts: 5 }],
+  // `inbox`: capturing a payment twice charges a customer twice, which is the
+  // exact case ADR 0030 named when it said a consumer cannot always be natural.
+  subscriptions: [
+    { event: 'order.placed', mode: 'work', maxAttempts: 5, dedupe: 'inbox' },
+  ],
 };

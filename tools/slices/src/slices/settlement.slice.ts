@@ -37,5 +37,14 @@ export const settlementSlice: SliceDeclaration = {
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: ['settlement.run.completed'],
-  subscriptions: [{ event: 'payment.captured', mode: 'work', maxAttempts: 5 }],
+  // `inbox`: a settlement run accumulates, so folding one capture twice
+  // overpays a vendor by its amount.
+  subscriptions: [
+    {
+      event: 'payment.captured',
+      mode: 'work',
+      maxAttempts: 5,
+      dedupe: 'inbox',
+    },
+  ],
 };

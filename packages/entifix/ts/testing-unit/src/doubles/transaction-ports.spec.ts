@@ -7,9 +7,11 @@ import {
   describeEventBusContract,
   describeLockServiceContract,
   describeSequenceServiceContract,
+  describeTransactionInboxContract,
 } from '../contracts/transaction-ports.contract';
 import { runFailure } from '../effect/run';
 import {
+  makeInMemoryInboxes,
   makeInMemoryLockService,
   makeInMemorySequenceService,
   makeRecordingEventBus,
@@ -24,6 +26,28 @@ describeEventBusContract('recording fake', () => {
     deliver: event => Effect.runPromise(bus.deliver(event)),
     published: () => bus.published,
   };
+});
+
+// One factory per `describe...Contract` run, so the shared claim set is fresh
+// per suite while still being shared between the two consumers the contract's
+// isolation case asks for.
+const inboxes = makeInMemoryInboxes();
+describeTransactionInboxContract('in-memory fake', consumer =>
+  inboxes.for(consumer),
+);
+
+describe('makeInMemoryInboxes', () => {
+  it('reports what has been claimed, by consumer', async () => {
+    const shared = makeInMemoryInboxes();
+
+    await Effect.runPromise(shared.for('a').claim('tx-1:completed'));
+    await Effect.runPromise(shared.for('b').claim('tx-1:completed'));
+
+    expect(shared.claims).toEqual([
+      { consumer: 'a', eventId: 'tx-1:completed' },
+      { consumer: 'b', eventId: 'tx-1:completed' },
+    ]);
+  });
 });
 
 describe('makeInMemoryLockService', () => {

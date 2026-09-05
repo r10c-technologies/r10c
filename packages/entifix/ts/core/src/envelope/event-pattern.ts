@@ -6,7 +6,7 @@
  * The broker does this itself in production — a subscriber binds its pattern and
  * never sees a non-matching message. This exists for the places that have no
  * broker: the in-memory bus double, and any register check that has to decide
- * whether a declared `subscribedEvents` entry is covered by someone's
+ * whether a declared `subscriptions` entry is covered by someone's
  * `publishedEvents`. Keeping one implementation of the semantics is what stops a
  * test passing against a rule the real exchange applies differently.
  */

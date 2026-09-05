@@ -3,6 +3,7 @@ import type {
   LockHandle,
   LockService,
   SequenceService,
+  TransactionInbox,
 } from '@r10c/entifix-transactions';
 import {
   type DomainEvent,
@@ -157,6 +158,38 @@ export const makeRecordingEventBus = (): RecordingEventBus => {
     },
     failNextPublish: () => {
       failNext = true;
+    },
+  };
+};
+
+/**
+ * An in-memory {@link TransactionInbox}, one per consumer, over a shared claim
+ * set.
+ *
+ * Sharing the set across the inboxes one factory hands out is what makes the
+ * contract's "one consumer cannot consume another's claim" case a real
+ * assertion, rather than one the double satisfies by only ever having seen a
+ * single consumer.
+ */
+export const makeInMemoryInboxes = () => {
+  const claimed = new Set<string>();
+
+  return {
+    /** An inbox for `consumer`, over the shared claim set. */
+    for: (consumer: string): TransactionInbox => ({
+      claim: eventId =>
+        Effect.sync(() => {
+          const key = JSON.stringify([consumer, eventId]);
+          if (claimed.has(key)) return 'duplicate' as const;
+          claimed.add(key);
+          return 'claimed' as const;
+        }),
+    }),
+    get claims(): readonly { consumer: string; eventId: string }[] {
+      return [...claimed].map(key => {
+        const [consumer, eventId] = JSON.parse(key) as [string, string];
+        return { consumer, eventId };
+      });
     },
   };
 };

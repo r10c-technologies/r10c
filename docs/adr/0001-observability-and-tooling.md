@@ -8,6 +8,9 @@
 - Revised: 2026-09-04 — the metric pipeline is built (#185): a `MeterProvider`
   and an OTLP metric exporter now sit beside the tracer. What remains is the
   instrumentation (#186). The destination decided below never changed.
+- Revised: 2026-09-05 — the first metric set is built (#186): bus, outbox and
+  transaction instrumentation, with two limits and the dashboard gap recorded
+  under "Metrics" below.
 - Revised: 2026-09-04 — "fleet-wide rollout", listed under Deferred below, is
   done and that entry is struck. It had stalled at the first pair: auth-service
   and config-service emitted **nothing** — no tracer, no meter, no structured
@@ -167,19 +170,68 @@ config-service, optional with a 60s default, because that seed is
 `ON CONFLICT DO NOTHING` and so reaches an existing database only through a
 `dev:reset`.
 
-The first metric set is still unbuilt; it is #186's scope:
+The first metric set is built (#186):
 
-- **Bus** — events published, consumed, failed and quarantined, by event name and
-  subscription.
-- **Outbox** — pending depth, and the **age of the oldest unsent entry**. That
-  second one is the metric that makes a stuck relay visible. An entry that can
-  never publish no longer blocks the ones behind it — #179 gave the relay a
-  ceiling, so it is quarantined and skipped
-  ([ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md)) — but it is
-  reported only as a log line until it is counted, so how _many_ are stuck is
-  still unanswerable.
-- **Transactions** — count by state, so `STALE` is something a dashboard shows
-  rather than something a poll discovers.
+- **Bus** — `bus_events_published_total` and `bus_publish_failures_total` by
+  event name; `bus_events_consumed_total` and `bus_events_failed_total` by
+  subscription (`queue`, `slice`, `mode`), the latter also by failure class.
+- **Outbox** — `outbox_pending_entries`, `outbox_oldest_pending_age_seconds` and
+  `outbox_quarantined_entries`, per tenant database. The age is the metric that
+  makes a stuck relay visible. An entry that can never publish no longer blocks
+  the ones behind it — #179 gave the relay a ceiling, so it is quarantined and
+  skipped ([ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md)) — but it
+  was reported only as a log line, so how _many_ were stuck was unanswerable. A
+  flat depth beside a climbing age is the signature.
+- **Transactions** — `transactions_by_state`, so `STALE` is something a
+  dashboard shows rather than something a poll discovers. That sweep is the only
+  writer of the label and emits no event, so it was previously observable only
+  by polling a known transaction id.
+
+Two limits recorded rather than papered over.
+
+**Consumer-side failures carry no event name.** The parsed event exists only
+inside the handler arm, and a poison message by definition has none — so
+`bus_events_failed_total` is dimensioned by subscription and failure class.
+Dimensioning only the arm that _has_ a name would make the two counts
+incomparable.
+
+**There is no in-process dead-letter count.** `x-delivery-limit` is what moves a
+message to `<queue>.quarantine`, and the broker does that without telling the
+adapter; a transient failure on its fifth delivery is counted exactly like its
+first. The honest quarantine count is the publisher-side outbox gauge above. The
+consumer-side signal is a rising `failure="transient"` rate against a fixed
+`maxAttempts`, with the quarantine queue's own depth as confirmation.
+
+Two mechanics worth not rediscovering. Nothing needed plumbing: `NodeSdk` wires
+the reader through `Metrics.layer`, whose producer reads **Effect's own global
+registry**, so an increment in the AMQP consumer's detached settle fiber — which
+is outside the observability layer entirely — is still exported. And a metric's
+registry key includes its **description**, so a reader that rebuilds one by name
+without it addresses a different series that is permanently zero; the metric
+objects are exported for that reason, and the specs import them.
+
+Both gauges are sampled by daemons that already run on an interval — the outbox
+by the relay's sweep, the transaction states by the recovery sweep — so nothing
+new is scheduled to produce them. Both read through **aggregate** port methods
+(`TransactionOutbox.stats`, `TransactionStore.countByState`) rather than a
+listing: `TransactionStore` deliberately has no `list`, because an unfiltered
+read of that store is every organization's transactions (#194), and a count
+names nobody.
+
+**A dimensionless gauge reaches Prometheus with a `_ratio` suffix.** That is the
+OTel exporter's convention for unit `1`, so `outbox_pending_entries` is queried
+as `outbox_pending_entries_ratio` and `transactions_by_state` as
+`transactions_by_state_ratio`; counters are unaffected. Where a metric has a real
+unit, **tag it** — `@effect/opentelemetry`'s producer reads
+`tags.unit ?? tags.time_unit ?? '1'`, which is the only way to set one, and the
+cost is a constant label because the same tag set becomes the datapoint's
+attributes. Measured during the live pass: the age gauge first arrived as
+`outbox_oldest_pending_age_seconds_ratio`, a duration announcing itself as a
+ratio.
+
+**Dashboards are not provisioned.** `infra/local/otel-lgtm` mounts nothing and
+has no PVC, so a dashboard has to be a committed file plus a ConfigMap. The
+metrics are queried directly against `:30000` until that lands.
 
 ## Deferred
 

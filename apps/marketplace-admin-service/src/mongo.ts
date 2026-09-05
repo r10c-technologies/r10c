@@ -49,7 +49,11 @@ import {
   TenantDatabasePrefix,
 } from './outbox/relay';
 import { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
-import { startTracking } from './saga/tracking';
+import {
+  SagaRecoveryIntervalMs,
+  SagaStaleTimeoutMs,
+  startTracking,
+} from './saga/tracking';
 import { seedCatalog } from './seed';
 
 const SERVICE_NAME = 'marketplace-admin-service';
@@ -93,6 +97,16 @@ export const AppLayer = Layer.unwrapEffect(
     // the catalog's per-request tenant handles — see `saga/store.ts` for why it
     // is a name rather than a second `MongoDatabaseLayer`.
     const sagaDbName = yield* store.in('saga').getString('db');
+    // The recovery sweep's two dials. `getNumber` for the reason stated above:
+    // both are arithmetic — one becomes a `Duration`, the other a cutoff
+    // subtracted from `Date.now()` — and a non-numeric value would sweep either
+    // continuously or never, with nothing said about it.
+    const sagaStaleTimeoutMs = yield* store
+      .in('saga')
+      .getNumber('staleTimeoutMs');
+    const sagaRecoveryIntervalMs = yield* store
+      .in('saga')
+      .getNumber('recoveryIntervalMs');
     // The public half only. This service verifies access tokens and never mints
     // one, so it is configured with material that cannot sign.
     const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
@@ -140,6 +154,8 @@ export const AppLayer = Layer.unwrapEffect(
       // slice owns, so it needs the prefix those handles are named with.
       Layer.succeed(TenantDatabasePrefix, tenantPrefix),
       Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
+      Layer.succeed(SagaStaleTimeoutMs, sagaStaleTimeoutMs),
+      Layer.succeed(SagaRecoveryIntervalMs, sagaRecoveryIntervalMs),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
