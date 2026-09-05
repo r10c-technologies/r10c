@@ -5,14 +5,17 @@ import {
   type SubscriptionMode,
 } from '@r10c/entifix-transactions';
 import type { WiringRegistry } from '@r10c/entifix-ts-business';
-import { WiringRegistryTag } from '@r10c/entifix-ts-business';
+import {
+  ShutdownRegistryTag,
+  WiringRegistryTag,
+} from '@r10c/entifix-ts-business';
 import {
   EntifixConnError,
   makeEventEnvelope,
   readEventEnvelope,
 } from '@r10c/entifix-ts-core';
 import type { Channel, ConsumeMessage } from 'amqplib';
-import { Effect, Layer } from 'effect';
+import { Duration, Effect, Layer } from 'effect';
 
 import {
   AmqpChannelTag,
@@ -23,6 +26,16 @@ import {
 
 /** Appended to a work queue's name to make the queue that holds its failures. */
 const QUARANTINE_SUFFIX = '.quarantine';
+
+/**
+ * How often the shutdown drain re-checks whether the handlers have finished.
+ *
+ * A poll rather than a latch because a delivery is started from amqplib's own
+ * callback, outside any fiber this module holds; the drain's own bound is the
+ * shutdown hook's, so this interval only decides how promptly the process
+ * notices it is free to go.
+ */
+const DELIVERY_POLL = Duration.millis(25);
 
 /**
  * Why a delivery did not succeed, which is the whole of the nack decision.
@@ -145,104 +158,143 @@ const requeues = (failure: DeliveryFailure, mode: SubscriptionMode): boolean =>
  * asks for a live one per call, and `subscribe` registers its setup so the
  * connector can re-run it against the new channel after a reconnect. A durable
  * queue outlives that reconnect; the consumer bound to it does not.
+ *
+ * It returns the bus **and** its `drainDeliveries`, rather than only the port:
+ * waiting for in-flight handlers is an adapter fact — it is this module that
+ * runs them — and putting it on `EventBus` would make every implementation of
+ * a framework-free port carry a shutdown concern it has no deliveries to drain.
  */
 export const makeAmqpEventBus = (
   connector: AmqpConnector,
   wiring: WiringRegistry,
-): EventBus => ({
-  publish: event =>
-    Effect.tryPromise({
-      try: () =>
-        connector.withChannel(async channel => {
-          channel.publish(
-            EVENTS_EXCHANGE,
-            event.name,
-            Buffer.from(JSON.stringify(makeEventEnvelope(event))),
-            { persistent: true },
-          );
-        }),
-      catch: error =>
-        new EntifixConnError('AMQP publish failed', error, {
-          eventId: event.id,
-          name: event.name,
-        }),
-      // Recorded **after** the publish succeeds, so `GET /api/$service` reports
-      // what this process actually put on the exchange. Recording the intent
-      // instead would make the declared-vs-observed diff pass on a service whose
-      // every publish is failing (ADR 0031).
-    }).pipe(Effect.tap(() => wiring.recordPublish(event.name))),
+): { bus: EventBus; drainDeliveries: Effect.Effect<void> } => {
+  /**
+   * Handlers started and not yet settled.
+   *
+   * Nothing tracked them before, so a SIGTERM killed them mid-flight and the
+   * broker redelivered whatever was unacked — safe only while every consumer
+   * happens to be idempotent, which is the assumption #178 stops making.
+   */
+  let inFlight = 0;
 
-  subscribe: (subscription, handler) =>
-    Effect.tryPromise({
-      try: () =>
-        connector.addConsumer(async channel => {
-          // One unacked message at a time: events for a transaction are then
-          // folded serially (never concurrently), so an `accepted`/`completed`
-          // pair can't race into two upserts.
-          await channel.prefetch(1);
-          const queue = await declareQueue(channel, subscription);
-          await channel.bindQueue(queue, EVENTS_EXCHANGE, subscription.pattern);
-          // What the process **bound**, recorded at the point it bound it. The
-          // registry deduplicates, so re-running this setup after a reconnect
-          // does not double the entry.
-          await Effect.runPromise(
-            wiring.recordSubscription({
-              slice: subscription.slice,
-              pattern: subscription.pattern,
-              mode: subscription.mode,
+  const bus: EventBus = {
+    publish: event =>
+      Effect.tryPromise({
+        try: () =>
+          connector.withChannel(async channel => {
+            channel.publish(
+              EVENTS_EXCHANGE,
+              event.name,
+              Buffer.from(JSON.stringify(makeEventEnvelope(event))),
+              { persistent: true },
+            );
+          }),
+        catch: error =>
+          new EntifixConnError('AMQP publish failed', error, {
+            eventId: event.id,
+            name: event.name,
+          }),
+        // Recorded **after** the publish succeeds, so `GET /api/$service` reports
+        // what this process actually put on the exchange. Recording the intent
+        // instead would make the declared-vs-observed diff pass on a service whose
+        // every publish is failing (ADR 0031).
+      }).pipe(Effect.tap(() => wiring.recordPublish(event.name))),
+
+    subscribe: (subscription, handler) =>
+      Effect.tryPromise({
+        try: () =>
+          connector.addConsumer(async channel => {
+            // One unacked message at a time: events for a transaction are then
+            // folded serially (never concurrently), so an `accepted`/`completed`
+            // pair can't race into two upserts.
+            await channel.prefetch(1);
+            const queue = await declareQueue(channel, subscription);
+            await channel.bindQueue(
               queue,
-            }),
-          );
-          await channel.consume(queue, (message: ConsumeMessage | null) => {
-            if (message === null) {
-              return;
-            }
-
-            // Reading the payload and running the handler are separated on
-            // purpose: they fail for different reasons and earn different
-            // treatment. `JSON.parse` is inside the Effect because it throws
-            // *synchronously* — outside, it escaped into amqplib's callback and
-            // the message was never even nacked.
-            const settle = Effect.try({
-              try: () => JSON.parse(message.content.toString()) as unknown,
-              catch: (): DeliveryFailure => 'poison',
-            }).pipe(
-              Effect.flatMap(parsed =>
-                readEventEnvelope(parsed).pipe(
-                  Effect.mapError((): DeliveryFailure => 'poison'),
-                ),
-              ),
-              // The handler carries no requirements (the subscriber closes over
-              // its store), so it runs standalone.
-              Effect.flatMap(event =>
-                handler(event).pipe(
-                  Effect.mapError((): DeliveryFailure => 'transient'),
-                ),
-              ),
+              EVENTS_EXCHANGE,
+              subscription.pattern,
             );
+            // What the process **bound**, recorded at the point it bound it. The
+            // registry deduplicates, so re-running this setup after a reconnect
+            // does not double the entry.
+            await Effect.runPromise(
+              wiring.recordSubscription({
+                slice: subscription.slice,
+                pattern: subscription.pattern,
+                mode: subscription.mode,
+                queue,
+              }),
+            );
+            const { consumerTag } = await channel.consume(
+              queue,
+              (message: ConsumeMessage | null) => {
+                if (message === null) {
+                  return;
+                }
 
-            void Effect.runPromise(
-              settle.pipe(
-                Effect.match({
-                  onSuccess: () => channel.ack(message),
-                  onFailure: failure =>
-                    channel.nack(
-                      message,
-                      false,
-                      requeues(failure, subscription.mode),
+                // Reading the payload and running the handler are separated on
+                // purpose: they fail for different reasons and earn different
+                // treatment. `JSON.parse` is inside the Effect because it throws
+                // *synchronously* — outside, it escaped into amqplib's callback and
+                // the message was never even nacked.
+                const settle = Effect.try({
+                  try: () => JSON.parse(message.content.toString()) as unknown,
+                  catch: (): DeliveryFailure => 'poison',
+                }).pipe(
+                  Effect.flatMap(parsed =>
+                    readEventEnvelope(parsed).pipe(
+                      Effect.mapError((): DeliveryFailure => 'poison'),
                     ),
-                }),
-              ),
+                  ),
+                  // The handler carries no requirements (the subscriber closes over
+                  // its store), so it runs standalone.
+                  Effect.flatMap(event =>
+                    handler(event).pipe(
+                      Effect.mapError((): DeliveryFailure => 'transient'),
+                    ),
+                  ),
+                );
+
+                // Counted around the whole settle, so a shutdown waits for the ack
+                // as well as the handler: cancelling a consumer stops *new*
+                // deliveries and says nothing about this one.
+                inFlight += 1;
+                void Effect.runPromise(
+                  settle.pipe(
+                    Effect.match({
+                      onSuccess: () => channel.ack(message),
+                      onFailure: failure =>
+                        channel.nack(
+                          message,
+                          false,
+                          requeues(failure, subscription.mode),
+                        ),
+                    }),
+                  ),
+                ).finally(() => {
+                  inFlight -= 1;
+                });
+              },
             );
-          });
-        }),
-      catch: error =>
-        new EntifixConnError('AMQP subscribe failed', error, {
-          slice: subscription.slice,
-          pattern: subscription.pattern,
-        }),
+            return [consumerTag];
+          }),
+        catch: error =>
+          new EntifixConnError('AMQP subscribe failed', error, {
+            slice: subscription.slice,
+            pattern: subscription.pattern,
+          }),
+      }),
+  };
+
+  return {
+    bus,
+    drainDeliveries: Effect.gen(function* () {
+      while (inFlight > 0) {
+        yield* Effect.sleep(DELIVERY_POLL);
+      }
     }),
-});
+  };
+};
 
 /**
  * Provides {@link EventBusTag} from an {@link AmqpChannelTag}.
@@ -256,6 +308,22 @@ export const AmqpEventBusLayer = Layer.effect(
   Effect.gen(function* () {
     const connector = yield* AmqpChannelTag;
     const wiring = yield* WiringRegistryTag;
-    return makeAmqpEventBus(connector, wiring);
+    const shutdown = yield* ShutdownRegistryTag;
+    const { bus, drainDeliveries } = makeAmqpEventBus(connector, wiring);
+
+    // `stop-intake`, and both halves are it: cancelling stops the broker
+    // handing over anything new, then the drain waits for the deliveries
+    // already in progress. Registered here rather than in a service's `main.ts`
+    // for the reason every registry in this repo exists — a service that gains
+    // a bus gains its drain, with nothing to remember.
+    yield* shutdown.register({
+      name: 'amqp-consumers',
+      phase: 'stop-intake',
+      run: Effect.promise(() => connector.cancelConsumers()).pipe(
+        Effect.andThen(drainDeliveries),
+      ),
+    });
+
+    return bus;
   }),
 );

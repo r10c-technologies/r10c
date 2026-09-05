@@ -1,5 +1,9 @@
 import { HttpRouter } from '@effect/platform';
-import { HealthRegistryTag } from '@r10c/entifix-ts-business';
+import type { ShutdownRegistry } from '@r10c/entifix-ts-business';
+import {
+  HealthRegistryTag,
+  ShutdownRegistryTag,
+} from '@r10c/entifix-ts-business';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -137,5 +141,48 @@ describe('withHealthRoutes', () => {
     await fetch(`${running.baseUrl}/api/health/ready`);
 
     expect(runs).toBe(1);
+  });
+
+  // A terminating process is not a degraded one, and the distinction is not
+  // cosmetic: `failing: […]` is a list of probes an operator would go and look
+  // at. Here nothing is failing — and the probes must not even be asked, or a
+  // rolling restart spends a round trip per pod on an answer nobody acts on.
+  it('answers 503 terminating once the drain has begun, without running a probe', async () => {
+    let runs = 0;
+    let shutdown: ShutdownRegistry | undefined;
+    const appLayer = Layer.effectDiscard(
+      Effect.gen(function* () {
+        shutdown = yield* ShutdownRegistryTag;
+        const registry = yield* HealthRegistryTag;
+        yield* registry.register({
+          name: 'counted',
+          kind: 'datastore',
+          targets: ['counted'],
+          check: Effect.sync(() => {
+            runs += 1;
+            return true;
+          }),
+        });
+      }),
+    );
+
+    running = await serveTestService({
+      name: SERVICE_NAME,
+      port: 0,
+      slices: ['test'],
+      router: HttpRouter.empty,
+      appLayer,
+    });
+    // What the `Layer` finalizer does on SIGTERM, minus the signal.
+    await Effect.runPromise((shutdown as ShutdownRegistry).drain);
+
+    const response = await fetch(`${running.baseUrl}/api/health/ready`);
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      status: 'terminating',
+      service: SERVICE_NAME,
+    });
+    expect(runs).toBe(0);
   });
 });

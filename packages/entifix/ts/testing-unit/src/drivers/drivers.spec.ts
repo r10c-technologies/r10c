@@ -566,6 +566,7 @@ interface FakeChannel {
     queue: string,
     handler: (message: { content: Buffer } | null) => void,
   ): Promise<{ consumerTag: string }>;
+  cancel(consumerTag: string): Promise<void>;
   ack(message: { content: Buffer }): void;
   nack(message: { content: Buffer }, allUpTo: boolean, requeue: boolean): void;
   close(): Promise<void>;
@@ -704,6 +705,28 @@ describe('makeFakeAmqpChannel', () => {
     await fake.deliverRaw('not json');
 
     expect(received).toEqual(['not json']);
+  });
+
+  // Cancelling is a graceful shutdown's first phase, and the tag is the only
+  // handle on it — so the fake hands out a distinct one per `consume` and
+  // records what was cancelled.
+  it('records a cancelled consumer by its own tag, and stops delivering', async () => {
+    const fake = makeFakeAmqpChannel();
+    const received: unknown[] = [];
+    const first = await channelOf(fake).consume('work', () =>
+      received.push('first'),
+    );
+    const second = await channelOf(fake).consume('other', () =>
+      received.push('second'),
+    );
+
+    expect(first.consumerTag).not.toBe(second.consumerTag);
+
+    await channelOf(fake).cancel(second.consumerTag);
+
+    expect(fake.cancelled).toEqual([second.consumerTag]);
+    await expect(fake.deliver({ a: 1 })).rejects.toThrow(/nothing subscribed/);
+    expect(received).toEqual([]);
   });
 
   // A null delivery is how amqplib signals the consumer was cancelled.

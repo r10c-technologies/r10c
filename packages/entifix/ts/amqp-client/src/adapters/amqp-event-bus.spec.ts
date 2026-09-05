@@ -3,7 +3,11 @@ import type {
   BoundSubscription,
   WiringRegistry,
 } from '@r10c/entifix-ts-business';
-import { WiringRegistryTag } from '@r10c/entifix-ts-business';
+import {
+  makeShutdownRegistry,
+  ShutdownRegistryTag,
+  WiringRegistryTag,
+} from '@r10c/entifix-ts-business';
 import type { DomainEvent } from '@r10c/entifix-ts-core';
 import { describeEventBusContract } from '@r10c/entifix-ts-testing-unit/contracts';
 import { makeFakeAmqpChannel } from '@r10c/entifix-ts-testing-unit/drivers';
@@ -27,7 +31,10 @@ import {
  */
 const connectorFor = (channel: Channel): AmqpConnector => ({
   withChannel: use => use(channel),
-  addConsumer: setup => setup(channel),
+  addConsumer: async setup => {
+    await setup(channel);
+  },
+  cancelConsumers: async () => undefined,
 });
 
 /** What the tracker binds, and what the contract harness subscribes with. */
@@ -94,10 +101,7 @@ const withFakeChannel = () => {
   return {
     fake,
     wiring,
-    bus: makeAmqpEventBus(
-      connectorFor(fake.channel as Channel),
-      wiring.registry,
-    ),
+    ...makeAmqpEventBus(connectorFor(fake.channel as Channel), wiring.registry),
   };
 };
 
@@ -410,6 +414,10 @@ describe('AmqpEventBusLayer', () => {
                   connectorFor(fake.channel as Channel),
                 ),
                 Layer.succeed(WiringRegistryTag, wiring.registry),
+                Layer.succeed(
+                  ShutdownRegistryTag,
+                  makeShutdownRegistry().registry,
+                ),
               ),
             ),
           ),
@@ -418,5 +426,83 @@ describe('AmqpEventBusLayer', () => {
     );
 
     expect(wiring.published).toEqual(['transaction.accepted']);
+  });
+
+  // The half a cancel does not cover: cancelling stops the broker handing over
+  // anything new and says nothing about the delivery already being handled.
+  // Without this wait, SIGTERM kills the handler mid-flight and the broker
+  // redelivers a message that had all but finished.
+  it('waits for an in-flight delivery before the drain completes', async () => {
+    const { fake, bus, drainDeliveries } = withFakeChannel();
+    let release = () => undefined as void;
+    const handled = new Promise<void>(resolve => {
+      release = resolve;
+    });
+
+    await Effect.runPromise(
+      bus.subscribe(WORK, () => Effect.promise(() => handled)),
+    );
+    // Not awaited: the delivery is deliberately still in flight while the drain
+    // runs, which is the state under test.
+    void fake.deliver(anEnvelope(anEvent()));
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    let drained = false;
+    const draining = Effect.runPromise(drainDeliveries).then(() => {
+      drained = true;
+    });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(drained).toBe(false);
+
+    release();
+    await draining;
+
+    expect(drained).toBe(true);
+    expect(fake.acked).toHaveLength(1);
+  });
+
+  it('completes at once when nothing is in flight', async () => {
+    const { drainDeliveries } = withFakeChannel();
+
+    await expect(Effect.runPromise(drainDeliveries)).resolves.toBeUndefined();
+  });
+
+  // The drain has to be registered by the adapter that owns the deliveries, or
+  // every service's composition root grows a shutdown sequence to remember.
+  it('registers a stop-intake hook that cancels the consumers', async () => {
+    const fake = makeFakeAmqpChannel();
+    const wiring = recordingWiring();
+    const shutdown = makeShutdownRegistry();
+    let cancelled = 0;
+    const connector: AmqpConnector = {
+      withChannel: use => use(fake.channel as Channel),
+      addConsumer: async setup => {
+        await setup(fake.channel as Channel);
+      },
+      cancelConsumers: async () => {
+        cancelled += 1;
+      },
+    };
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        yield* EventBusTag;
+        yield* shutdown.registry.drain;
+      }).pipe(
+        Effect.provide(
+          AmqpEventBusLayer.pipe(
+            Layer.provide(
+              Layer.mergeAll(
+                Layer.succeed(AmqpChannelTag, connector),
+                Layer.succeed(WiringRegistryTag, wiring.registry),
+                Layer.succeed(ShutdownRegistryTag, shutdown.registry),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(cancelled).toBe(1);
   });
 });

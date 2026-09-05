@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Revised: 2026-09-05 — graceful shutdown built (#180); the `preStop` half is
+  restated as pending a service Deployment, which this repo does not declare.
 
 ## Context
 
@@ -148,11 +150,26 @@ an infinite loop.
 
 ### Graceful shutdown is part of message handling
 
-On SIGTERM: readiness flips to `degraded` so kubelet removes the pod from the
-load balancer, a `preStop` grace period lets that propagate, consumers are
+On SIGTERM: readiness stops claiming to be ready so kubelet removes the pod from
+the load balancer, a `preStop` grace period lets that propagate, consumers are
 cancelled, in-flight handlers finish under a bound, the relay drains once more,
 and only then are the connections closed. Liveness keeps answering `live`
 throughout — the process is healthy, it is leaving.
+
+Two corrections from building it (#180). The readiness answer is
+`503 {status:'terminating'}` rather than `degraded` — `failing: […]` names
+probes an operator would go and look at, and here nothing is failing. And the
+draining is a **`Layer` finalizer**, not a signal handler: `runMain` interrupts
+the fiber on SIGTERM, so a handler racing that interrupt would drain against a
+closing connection, whereas build order (composition root → drain → server)
+gives release order (server → drain → composition root) for free. The signal
+handler is left with one job, flipping the readiness latch in the same tick.
+
+The `preStop` period is the one step **not** built, and deliberately: this repo
+declares no Deployment for an app or a service — `infra/local/` holds the
+datastores only — so there is no manifest to carry the hook. It is also the step
+Kubernetes runs _before_ it sends SIGTERM, so its absence changes nothing about
+the in-process sequence; it lands with the first service Deployment.
 
 This is not deployment trivia. Without it every rollout redelivers whatever was
 unacked, which is safe only under the assumption the inbox decision above stops
@@ -210,7 +227,7 @@ and a `maxAttempts: 5` nothing enforces would be the same lie in a smaller font.
 Promoted to Accepted by #177 (durable work queues, the dead-letter exchange and
 the bounded retry), which is the commit that also lands the register's
 subscription declaration and #179 (the relay's ceiling). #178 (the inbox) and
-#180 (graceful shutdown) complete it.
+#180 (graceful shutdown) complete it — #180 landed on 2026-09-05.
 
 Two things that commit deliberately did **not** land, because the code that
 would read them does not exist yet — the same rule this record applies to the
