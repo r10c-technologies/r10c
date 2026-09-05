@@ -218,6 +218,17 @@ listing: `TransactionStore` deliberately has no `list`, because an unfiltered
 read of that store is every organization's transactions (#194), and a count
 names nobody.
 
+**A dimensionless gauge reaches Prometheus with a `_ratio` suffix.** That is the
+OTel exporter's convention for unit `1`, so `outbox_pending_entries` is queried
+as `outbox_pending_entries_ratio` and `transactions_by_state` as
+`transactions_by_state_ratio`; counters are unaffected. Where a metric has a real
+unit, **tag it** — `@effect/opentelemetry`'s producer reads
+`tags.unit ?? tags.time_unit ?? '1'`, which is the only way to set one, and the
+cost is a constant label because the same tag set becomes the datapoint's
+attributes. Measured during the live pass: the age gauge first arrived as
+`outbox_oldest_pending_age_seconds_ratio`, a duration announcing itself as a
+ratio.
+
 **Dashboards are not provisioned.** `infra/local/otel-lgtm` mounts nothing and
 has no PVC, so a dashboard has to be a committed file plus a ConfigMap. The
 metrics are queried directly against `:30000` until that lands.

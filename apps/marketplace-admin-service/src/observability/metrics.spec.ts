@@ -51,6 +51,9 @@ describe('recordOutboxStats', () => {
 
   it('derives the oldest entry’s age in seconds', async () => {
     const database = 'tenant_age';
+    // The gauge carries a constant `unit` tag, which the OTel producer reads to
+    // set the instrument's unit — and which therefore also appears as a label,
+    // so a reader must include it.
     const thirtySecondsAgo = new Date(Date.now() - 30_000).toISOString();
 
     await Effect.runPromise(
@@ -63,11 +66,11 @@ describe('recordOutboxStats', () => {
     // A depth that is flat while this climbs is the signature of a relay whose
     // head has stopped moving — the whole reason the age is reported at all.
     expect(
-      await readGauge(outboxOldestPendingAge, { database }),
+      await readGauge(outboxOldestPendingAge, { database, unit: 's' }),
     ).toBeGreaterThanOrEqual(29);
-    expect(await readGauge(outboxOldestPendingAge, { database })).toBeLessThan(
-      35,
-    );
+    expect(
+      await readGauge(outboxOldestPendingAge, { database, unit: 's' }),
+    ).toBeLessThan(35);
   });
 
   it('reports an age of zero for an empty outbox rather than nothing', async () => {
@@ -78,7 +81,9 @@ describe('recordOutboxStats', () => {
     // Not reporting the series would read on most dashboards as "no data",
     // which is indistinguishable from the exporter having broken at exactly the
     // moment a healthy relay looks idle.
-    expect(await readGauge(outboxOldestPendingAge, { database })).toBe(0);
+    expect(
+      await readGauge(outboxOldestPendingAge, { database, unit: 's' }),
+    ).toBe(0);
   });
 
   it('never reports a negative age for a clock skewed forward', async () => {
@@ -92,7 +97,9 @@ describe('recordOutboxStats', () => {
       ),
     );
 
-    expect(await readGauge(outboxOldestPendingAge, { database })).toBe(0);
+    expect(
+      await readGauge(outboxOldestPendingAge, { database, unit: 's' }),
+    ).toBe(0);
   });
 
   it('keeps two tenant databases apart', async () => {

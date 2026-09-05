@@ -13,6 +13,13 @@ import { Effect, Metric } from 'effect';
  * question is how many are waiting right now, not how many there have ever
  * been. They are sampled by the two daemons that already run on an interval, so
  * nothing new is scheduled to produce them.
+ *
+ * ⚠️ **A dimensionless gauge reaches Prometheus with a `_ratio` suffix.** That
+ * is the OTel exporter's convention for unit `1`, not a mistake here, so
+ * `outbox_pending_entries` is queried as `outbox_pending_entries_ratio` and
+ * `transactions_by_state` as `transactions_by_state_ratio`. Counters are
+ * unaffected. Where a metric has a real unit, tag it — see
+ * {@link outboxOldestPendingAge}.
  */
 
 /** Unsent, un-quarantined entries, per tenant database. */
@@ -30,13 +37,24 @@ export const outboxPending = Metric.gauge('outbox_pending_entries', {
  * A depth that is flat and an age that climbs is the signature of a relay whose
  * head has stopped moving.
  */
-export const outboxOldestPendingAge = Metric.gauge(
-  'outbox_oldest_pending_age_seconds',
+export const outboxOldestPendingAge: Metric.Metric.Gauge<number> = Metric.gauge(
+  'outbox_oldest_pending_age',
   {
     description:
       'Age of the oldest unsent outbox entry, by tenant database. Zero when ' +
       'the outbox is empty.',
   },
+).pipe(
+  // ⚠️ **The unit is carried as a tag, and that is the only way to set it.**
+  // `@effect/opentelemetry`'s producer reads `tags.unit ?? tags.time_unit ??
+  // '1'`, so a gauge with no `unit` tag is exported as dimensionless — and the
+  // Prometheus exporter then appends `_ratio` to a dimensionless gauge's name.
+  // Measured: this series arrived as `outbox_oldest_pending_age_seconds_ratio`,
+  // a duration announcing itself as a ratio. Tagging it makes the exporter name
+  // it `_seconds`, which is why the name above no longer carries that suffix
+  // itself. The cost is a constant `unit` label, because the producer builds the
+  // datapoint attributes from the same tag set it reads the unit from.
+  Metric.tagged('unit', 's'),
 );
 
 /** Entries past the ceiling, which nothing retries and nothing deletes. */

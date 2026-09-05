@@ -1077,7 +1077,13 @@ instantiation is excessively deep`); every scalar read is now
   `TransactionStore.countByState`), never a listing: `TransactionStore` has no
   `list` because an unfiltered read of that store is every organization's
   transactions (#194), and a count names nobody — state that distinction beside
-  any new method there. And **an absent series is not a zero**: an empty outbox
+  any new method there. ⚠️ **A dimensionless gauge reaches Prometheus with a `_ratio` suffix** — the OTel
+  convention for unit `1`, so `outbox_pending_entries` is queried as
+  `outbox_pending_entries_ratio`; counters are unaffected. A real unit is set by
+  **tagging** (`Metric.tagged(m, 'unit', 's')`), which is the only way
+  `@effect/opentelemetry` accepts one (`tags.unit ?? tags.time_unit ?? '1'`) and
+  which also adds a constant label, since the same tags become the datapoint's
+  attributes. And **an absent series is not a zero**: an empty outbox
   reports an age of `0` and `countByState` fills every state including the ones
   at none, because a series that stops being reported reads on most dashboards as
   "no data", which is indistinguishable from a broken exporter at exactly the
