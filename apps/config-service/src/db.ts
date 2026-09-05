@@ -527,6 +527,29 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'db',
     value: 'transaction_manager',
   },
+  // How long a transaction may sit in a non-terminal state before the recovery
+  // sweep presumes it stuck and marks it `STALE`. Configuration rather than a
+  // constant for the same reason `outbox.maxAttempts` is: it is a genuine
+  // operational dial, and the value that is right for a laptop is not the one
+  // that is right for a fleet under load. Kept well above the worst case a
+  // command spends queued behind the per-type resource lock, so a merely slow
+  // transaction is not mistaken for a stalled one.
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'saga',
+    key: 'staleTimeoutMs',
+    value: '60000',
+  },
+  // How often that sweep runs. Deliberately *not* the same dial as the timeout
+  // above: shortening the interval makes a stuck transaction visible sooner,
+  // shortening the timeout changes what counts as stuck. Tuning one by moving
+  // the other is how a fleet ends up flagging healthy work.
+  {
+    service: 'marketplace-admin-service',
+    group_name: 'saga',
+    key: 'recoveryIntervalMs',
+    value: '10000',
+  },
   // marketplace-service — the storefront's platform-plane read host. It owns the
   // `catalog-reference` and `published-catalog` stores, both `single`, so unlike
   // the admin service it names a database at boot rather than resolving one per

@@ -1,12 +1,13 @@
 import {
   EventBusTag,
   type TransactionEvent,
+  type TransactionStore,
   TransactionStoreTag,
   TransactionStreamHubTag,
 } from '@r10c/entifix-transactions';
 import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
 import type { DomainEvent } from '@r10c/entifix-ts-core';
-import { Duration, Effect, Fiber } from 'effect';
+import { Context, Duration, Effect, Fiber } from 'effect';
 
 /**
  * The slice this consumer belongs to, and half of its queue's name.
@@ -35,14 +36,70 @@ const TRACKER_SLICE = 'transaction';
  */
 const MAX_ATTEMPTS = 5;
 
-/** How often the recovery sweep runs. */
-const RECOVERY_INTERVAL = Duration.seconds(10);
 /**
- * A non-terminal transaction older than this is presumed stuck. Kept well above
- * the worst-case time a command spends queued behind the per-type resource lock,
- * so a merely-slow transaction is not mistaken for a stalled one.
+ * How often the recovery sweep runs, from config-service.
+ *
+ * Configuration rather than a constant for the same reason the outbox relay's
+ * ceiling is, and for the exact reason {@link MAX_ATTEMPTS} above is not:
+ * nothing about this value is baked into a broker declaration, so an edit is
+ * adopted on the next boot instead of failing `PRECONDITION_FAILED` against a
+ * queue that already exists.
  */
-const STALE_TIMEOUT_MS = 60_000;
+export class SagaRecoveryIntervalMs extends Context.Tag(
+  'SagaRecoveryIntervalMs',
+)<SagaRecoveryIntervalMs, number>() {}
+
+/**
+ * How old a non-terminal transaction must be before the sweep presumes it stuck,
+ * from config-service.
+ *
+ * A separate dial from {@link SagaRecoveryIntervalMs} on purpose: the interval
+ * decides how soon a stuck transaction is noticed, this decides what counts as
+ * stuck. Kept well above the worst-case time a command spends queued behind the
+ * per-type resource lock, so a merely-slow transaction is not mistaken for a
+ * stalled one.
+ */
+export class SagaStaleTimeoutMs extends Context.Tag('SagaStaleTimeoutMs')<
+  SagaStaleTimeoutMs,
+  number
+>() {}
+
+/**
+ * One pass of the recovery sweep: flag every non-terminal transaction older
+ * than `staleTimeoutMs` as `STALE`.
+ *
+ * Exported and separate from {@link startTracking} for the reason
+ * `drainOutbox` is separate from `startOutboxRelay` — a pass is assertable, a
+ * forked daemon on an interval is not.
+ *
+ * **It never fails.** A sweep failure must not kill the loop, so the error is
+ * caught here rather than by the caller; what changed is that it is now
+ * *reported*. The handler used to be `() => Effect.void` under a comment
+ * claiming "log-and-continue", so a `findStale` that could not run — a lost
+ * Mongo connection, an index conflict — produced no record anywhere and
+ * recovery silently stopped happening while the daemon went on looping. The
+ * outbox relay logs its equivalent, and that is what made its
+ * `IndexOptionsConflict` visible rather than silent.
+ *
+ * Annotations rather than message interpolation, matching the relay: they reach
+ * the sink as structured fields, so a sweep that has begun failing is queryable
+ * instead of being parsed out of a rendered string.
+ */
+export const sweepStale = (store: TransactionStore, staleTimeoutMs: number) =>
+  Effect.gen(function* () {
+    const stale = yield* store.findStale(staleTimeoutMs);
+    yield* Effect.forEach(
+      stale,
+      record => store.markStale(record.transactionId),
+      { discard: true },
+    );
+  }).pipe(
+    Effect.catchAll(error =>
+      Effect.logError('saga recovery sweep failed').pipe(
+        Effect.annotateLogs({ error: String(error) }),
+      ),
+    ),
+  );
 
 /**
  * The manager's passive role: subscribe to the bus and fold every event into
@@ -62,6 +119,8 @@ export const startTracking = Effect.gen(function* () {
   const bus = yield* EventBusTag;
   const hub = yield* TransactionStreamHubTag;
   const shutdown = yield* ShutdownRegistryTag;
+  const recoveryInterval = yield* SagaRecoveryIntervalMs;
+  const staleTimeoutMs = yield* SagaStaleTimeoutMs;
 
   // Fold each observed event into the persisted record. The handler carries no
   // requirements (store is closed over), so the bus can run it standalone.
@@ -113,23 +172,12 @@ export const startTracking = Effect.gen(function* () {
   );
 
   // Recovery sweep as a detached daemon so it outlives the boot effect.
-  const sweep = Effect.gen(function* () {
-    const stale = yield* store.findStale(STALE_TIMEOUT_MS);
-    yield* Effect.forEach(
-      stale,
-      record => store.markStale(record.transactionId),
-      {
-        discard: true,
-      },
-    );
-  }).pipe(
-    // A sweep failure must not kill the loop — log-and-continue.
-    Effect.catchAll(() => Effect.void),
-    Effect.delay(RECOVERY_INTERVAL),
-    Effect.forever,
+  const daemon = yield* Effect.forkDaemon(
+    sweepStale(store, staleTimeoutMs).pipe(
+      Effect.delay(Duration.millis(recoveryInterval)),
+      Effect.forever,
+    ),
   );
-
-  const daemon = yield* Effect.forkDaemon(sweep);
 
   // `stop-intake`: the sweep writes, so it must stop before the Mongo client
   // does — a `markStale` issued into a closing pool fails for a reason that has

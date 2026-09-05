@@ -4,6 +4,10 @@
 - Date: 2026-09-01
 - Revised: 2026-09-05 — graceful shutdown built (#180); the `preStop` half is
   restated as pending a service Deployment, which this repo does not declare.
+- Revised: 2026-09-05 — the consequence this record stated for #135 is corrected:
+  [ADR 0039](0039-multi-step-sagas-are-orchestrated.md) took retry and
+  compensation, so only the sweep's constants remained here. See Consequences
+  below.
 
 ## Context
 
@@ -209,9 +213,18 @@ and a `maxAttempts: 5` nothing enforces would be the same lie in a smaller font.
   sweep and nothing in the broker pins it.
 - #146 can be built. Until #177 lands, a projection consumer would be built on a
   queue that loses messages across its own restart.
-- #135 stops having to invent dead-lettering. What remains there is retry with
+- #135 stops having to invent dead-lettering. What remained there was retry with
   backoff, compensation on exhaustion, and moving the sweep's constants into
-  config.
+  config — and the first two left as well, so only the third was ever built.
+  [ADR 0039](0039-multi-step-sagas-are-orchestrated.md) shows why retry was never
+  buildable where this record expected it: the tracker holds no command to
+  re-issue. `TransactionRecord` is a fold of observed events, and the command
+  lives only in `CommandTag` for the length of the request, so re-executing needs
+  the command persisted — which makes the tracker the orchestrator ADR 0039
+  defers to the first multi-step flow. The sweep's own failure being silent
+  turned out to be the live defect underneath the missing retry: it caught into
+  `Effect.void` under a comment claiming otherwise, so a sweep that stopped
+  working reported nothing while its daemon went on looping. It logs now.
 - #105 inherits a failure vocabulary. Its compensation question stays a domain
   question, because a business failure is explicitly not something the transport
   retries.
