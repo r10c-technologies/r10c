@@ -20,6 +20,7 @@ import {
 } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import { SqlHealthProbeLayer } from '@r10c/entifix-ts-sql-client';
+import { observabilityFromConfiguration } from '@r10c/shells-effect-service';
 import { Config, Effect, Layer, Redacted } from 'effect';
 
 /**
@@ -376,6 +377,33 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
       'http://localhost:3001/',
     ),
   },
+  // Observability, same four rows every service gets. auth-service had none
+  // until the layer became shared, so sign-in, back-channel logout and the
+  // provider lifecycle webhook were invisible in Grafana.
+  {
+    service: 'auth-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'auth-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'auth-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'auth-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
   // Where the account page sends someone to change a password, enrol a second
   // factor or link a social account. Self-service is the provider's screen now,
   // so this is a link rather than a feature.
@@ -414,6 +442,32 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'jwt',
     key: 'keyId',
     value: DEV_KEY_ID,
+  },
+  // Observability. Read the same way as the keys above — out of this table via
+  // SQL — because config-service cannot fetch its own configuration over HTTP.
+  {
+    service: 'config-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'config-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'config-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'config-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
   },
   // Transaction event bus (Redis locks/sequences + RabbitMQ) for the admin
   // service's transactional writes.
@@ -726,6 +780,12 @@ const AuthLive = Layer.unwrapEffect(
       });
     }
 
+    const store = new ConfigurationClientInMemory(plain);
+    const observability = yield* observabilityFromConfiguration(
+      store,
+      SERVICE_NAME,
+    );
+
     return Layer.mergeAll(
       Layer.succeed(
         TokenServiceTag,
@@ -739,10 +799,14 @@ const AuthLive = Layer.unwrapEffect(
       // Static role→permission table today; swapping in an attribute-aware
       // engine is a change of this line alone.
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
-      Layer.succeed(
-        ConfigurationRepositoryTag,
-        new ConfigurationClientInMemory(plain),
-      ),
+      Layer.succeed(ConfigurationRepositoryTag, store),
+      // Observability, read from the very rows this service serves to everyone
+      // else. It cannot call `loadRemoteConfiguration` — it *is* config-service,
+      // and asking itself over HTTP would reopen the bootstrap cycle the key
+      // read above closes — but it needs no special path either: the store built
+      // from its own table satisfies the same `ConfigurationClient` port every
+      // other service hands the helper.
+      observability,
     );
   }),
 );

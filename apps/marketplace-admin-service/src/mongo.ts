@@ -35,15 +35,14 @@ import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
 } from '@r10c/entifix-ts-redis-client';
-import type { LogLevel } from '@r10c/entifix-ts-tooling/logging';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
+  observabilityFromConfiguration,
 } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 import { Effect } from 'effect';
 
-import { makeObservabilityLayer } from './observability';
 import {
   OutboxMaxAttempts,
   startOutboxRelay,
@@ -101,27 +100,13 @@ export const AppLayer = Layer.unwrapEffect(
 
     // Observability parameters (log level + sink, OTLP endpoint). The tooling
     // logger replaces Effect's default logger and the OTel tracer exports spans,
-    // so every request logs through one trace-correlated pipeline.
-    const logLevel = yield* store.in('logging').getString('level');
-    const logSink = yield* store.in('logging').getString('sink');
-    // Both optional, and both for the same reason. The endpoint is what makes
-    // telemetry a *degradable* dependency: a service with no OTLP destination
-    // boots and serves, it simply logs to stdout and exports nothing. And the
-    // interval is a seed row added after these services existed — config-service
-    // seeds `ON CONFLICT DO NOTHING`, so it reaches an existing Postgres only
-    // through a `dev:reset`, and a required read would fail the boot on every
-    // machine that has not run one.
-    const otelEndpoint = yield* store.in('otel').getOptionalString('endpoint');
-    const metricIntervalMs = yield* store
-      .in('otel')
-      .getOptionalNumber('metricIntervalMs');
-    const observability = makeObservabilityLayer({
-      serviceName: SERVICE_NAME,
-      level: logLevel as LogLevel,
-      sink: logSink === 'stdout' ? 'stdout' : 'otlp',
-      otelEndpoint,
-      metricIntervalMs,
-    });
+    // so every request logs through one trace-correlated pipeline. Which keys
+    // and which are optional is the shell's, so every service reads them the
+    // same way.
+    const observability = yield* observabilityFromConfiguration(
+      store,
+      SERVICE_NAME,
+    );
 
     // Connections resolved from config-service: Mongo (catalog), Redis (locks +
     // code sequences), RabbitMQ (transaction event bus). The token service

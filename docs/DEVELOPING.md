@@ -562,7 +562,7 @@ Put a journey in `*.spec.ts` unless it _cannot_ run in both.
 
 **Asserting emitted telemetry.** Because `serveTestService` runs the real
 `AppLayer`, a service can merge an observability layer built with **in-memory
-exporters** and assert on what it emitted. `marketplace-admin-service` exports
+exporters** and assert on what it emitted. `@r10c/shells-effect-service` exports
 `makeInMemoryObservabilityLayer(serviceName)` (real logger replacement + OTel
 tracer, in-memory sink + span exporter); the mock `mock-service.ts` merges it and
 re-exports `capturedLogRecords`/`capturedSpans`, and `logging.mock.spec.ts`

@@ -307,9 +307,14 @@ swappable seam — Grafana Cloud in production (via an OpenTelemetry Collector),
   already vendor-neutral. The product-analytics SDK _is_ wrapped (a real vendor).
 - **Composition** happens at the existing roots, never in the shared packages: a
   service merges an observability layer into its `AppLayer` (replaces Effect's
-  default logger with the tooling logger + stands up the OTel tracer), reading
-  `logging.level`/`logging.sink`/`otel.endpoint` from config-service.
-  `marketplace-admin-service` is the reference wiring (`src/observability.ts`).
+  default logger with the tooling logger + stands up the OTel tracer and meter),
+  reading `logging.level`/`logging.sink`/`otel.endpoint` from config-service.
+  The **factory** ships from `@r10c/shells-effect-service` — `makeObservabilityLayer`
+  beside `observabilityFromConfiguration(store, serviceName)`, which performs that
+  read — the way `MongoHealthProbeLayer` ships from the Mongo client. Only the
+  merge is per service, and all four do it. config-service is the one that cannot
+  read its configuration over HTTP (it *is* config-service), so it hands the helper
+  the `ConfigurationClient` it builds from its own table.
 
 **Metrics reach the Collector through the same layer as the spans.**
 `observability.ts` passes a `PeriodicExportingMetricReader` over an

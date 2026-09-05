@@ -5,10 +5,6 @@
  * than re-declaring a stand-in that could drift from the real route surface.
  */
 export { AppLayer } from './mongo';
-export {
-  type InMemoryObservability,
-  makeInMemoryObservabilityLayer,
-} from './observability';
 // Re-exported so the e2e `mock` profile can provide what the real router
 // requires without opening its own edge onto `@r10c/entifix-transactions`. The
 // create route resolves both: the slice it stamps events with, and the relay's

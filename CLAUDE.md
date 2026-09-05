@@ -1397,11 +1397,20 @@ instantiation is excessively deep`); every scalar read is now
   argument; it is forward-only, since `network`/`unexpected`/`configUnavailable`
   are synthesized in the browser. See
   [ADR 0003](docs/adr/0003-i18n-mandatory.md) and [docs/I18N.md](docs/I18N.md).
-- **Observability**: a `-service` merges an observability layer that replaces Effect's
-  default logger with the `@r10c/entifix-ts-tooling` logger and stands up the
-  `@effect/opentelemetry` NodeSdk tracer, reading `logging.*`/`otel.endpoint` from
-  config-service (`marketplace-admin-service/src/observability.ts` is the reference,
-  and `marketplace-service`'s copy is byte-identical — edit both).
+- **Observability is one module, and every service merges it.** The layer replaces
+  Effect's default logger with the `@r10c/entifix-ts-tooling` logger and stands up
+  the `@effect/opentelemetry` NodeSdk tracer + meter. It lives **once**, in
+  `@r10c/shells-effect-service` (`src/observability.ts`) — it used to be a
+  byte-identical 351-line copy in two apps with a "edit both" instruction, and one
+  of the two copies had no test project at all. `observabilityFromConfiguration(store,
+  serviceName)` reads `logging.level`/`logging.sink` (required) and
+  `otel.endpoint`/`otel.metricIntervalMs` (optional) from a `ConfigurationClient`
+  and returns the layer; **each service still merges it into its own `AppLayer`**,
+  so composition stays at the roots — what moved is the factory, a sibling of
+  `MongoHealthProbeLayer`. config-service passes the store it builds from its **own
+  SQL rows**, because it cannot fetch config over HTTP from itself. Adding a service
+  to the pipeline is: the helper call, `Layer.merge(observability, …)`, the OTel
+  entries in `webpack.config.js` `externalDependencies`, and four seed rows.
   **The Effect→tooling bridge in that file had two silent faults, and both are the
   kind that pass every test.** Effect's `LogLevel.label` is **upper case**
   (`"ERROR"`, `"WARN"`, `"DEBUG"`); the mapper switched on `'Error'`/`'Warning'`/
