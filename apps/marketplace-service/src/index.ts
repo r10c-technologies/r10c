@@ -5,10 +5,6 @@
  * re-declaring a stand-in that could drift.
  */
 export { AppLayer } from './mongo';
-export {
-  type InMemoryObservability,
-  makeInMemoryObservabilityLayer,
-} from './observability';
 export { router } from './routes';
 export { seedCatalogReference } from './seed';
 

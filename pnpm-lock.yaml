@@ -318,12 +318,42 @@ importers:
 
   apps/auth-service:
     dependencies:
+      '@effect/opentelemetry':
+        specifier: 0.64.0
+        version: 0.64.0(@effect/platform@0.97.1(effect@3.22.1))(@opentelemetry/api@1.9.1)(@opentelemetry/resources@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.221.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-node@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-web@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.43.0)(effect@3.22.1)
       '@effect/platform':
         specifier: 0.97.1
         version: 0.97.1(effect@3.22.1)
       '@effect/platform-node':
         specifier: 0.108.1
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
+      '@opentelemetry/api':
+        specifier: 1.9.1
+        version: 1.9.1
+      '@opentelemetry/context-async-hooks':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http':
+        specifier: 0.221.0
+        version: 0.221.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http':
+        specifier: 0.221.0
+        version: 0.221.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-base':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-node':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions':
+        specifier: 1.43.0
+        version: 1.43.0
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
@@ -351,6 +381,9 @@ importers:
       '@r10c/entifix-ts-redis-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/redis-client
+      '@r10c/entifix-ts-tooling':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/tooling
       '@r10c/entifix-ts-zitadel-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/zitadel-client
@@ -473,6 +506,9 @@ importers:
 
   apps/config-service:
     dependencies:
+      '@effect/opentelemetry':
+        specifier: 0.64.0
+        version: 0.64.0(@effect/platform@0.97.1(effect@3.22.1))(@opentelemetry/api@1.9.1)(@opentelemetry/resources@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.221.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-node@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-web@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.43.0)(effect@3.22.1)
       '@effect/platform':
         specifier: 0.97.1
         version: 0.97.1(effect@3.22.1)
@@ -485,6 +521,33 @@ importers:
       '@effect/sql-pg':
         specifier: 0.53.0
         version: 0.53.0(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
+      '@opentelemetry/api':
+        specifier: 1.9.1
+        version: 1.9.1
+      '@opentelemetry/context-async-hooks':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http':
+        specifier: 0.221.0
+        version: 0.221.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http':
+        specifier: 0.221.0
+        version: 0.221.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-base':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-node':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/semantic-conventions':
+        specifier: 1.43.0
+        version: 1.43.0
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
@@ -506,6 +569,9 @@ importers:
       '@r10c/entifix-ts-sql-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/sql-client
+      '@r10c/entifix-ts-tooling':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/tooling
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -1308,12 +1374,33 @@ importers:
 
   packages/shells/effect/service:
     dependencies:
+      '@effect/opentelemetry':
+        specifier: 0.64.0
+        version: 0.64.0(@effect/platform@0.97.1(effect@3.22.1))(@opentelemetry/api@1.9.1)(@opentelemetry/resources@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.221.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-node@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-web@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.43.0)(effect@3.22.1)
       '@effect/platform':
         specifier: 0.97.1
         version: 0.97.1(effect@3.22.1)
       '@effect/platform-node':
         specifier: 0.108.1
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
+      '@opentelemetry/api':
+        specifier: 1.9.1
+        version: 1.9.1
+      '@opentelemetry/context-async-hooks':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http':
+        specifier: 0.221.0
+        version: 0.221.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-trace-otlp-http':
+        specifier: 0.221.0
+        version: 0.221.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-trace-base':
+        specifier: 2.10.0
+        version: 2.10.0(@opentelemetry/api@1.9.1)
       '@r10c/business-ts-authz':
         specifier: workspace:*
         version: link:../../../business/ts/authz
@@ -1323,6 +1410,9 @@ importers:
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../../entifix/ts/core
+      '@r10c/entifix-ts-tooling':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/tooling
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23

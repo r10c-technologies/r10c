@@ -11,7 +11,7 @@ import {
   makeInMemoryObservabilityLayer,
   makeObservabilityLayer,
   makeObservabilityLayerWith,
-} from './observability';
+} from './observability.js';
 
 /**
  * The Effect → tooling logger bridge, asserted at the two points where it was

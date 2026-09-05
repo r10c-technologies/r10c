@@ -26,6 +26,16 @@ module.exports = {
       // Bundle @r10c/* from src; keep third-party runtime deps external.
       externalDependencies: [
         'effect',
+        '@effect/opentelemetry',
+        '@opentelemetry/api',
+        '@opentelemetry/context-async-hooks',
+        '@opentelemetry/exporter-metrics-otlp-http',
+        '@opentelemetry/exporter-trace-otlp-http',
+        '@opentelemetry/resources',
+        '@opentelemetry/sdk-metrics',
+        '@opentelemetry/sdk-trace-base',
+        '@opentelemetry/sdk-trace-node',
+        '@opentelemetry/semantic-conventions',
         '@effect/platform',
         '@effect/platform-node',
         '@effect/sql',

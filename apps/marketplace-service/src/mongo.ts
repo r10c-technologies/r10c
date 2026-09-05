@@ -16,14 +16,13 @@ import {
   MongoDatabaseLayer,
   MongoHealthProbeLayer,
 } from '@r10c/entifix-ts-mongo-client';
-import type { LogLevel } from '@r10c/entifix-ts-tooling/logging';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
+  observabilityFromConfiguration,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { makeObservabilityLayer } from './observability';
 import { seedCatalogReference } from './seed';
 
 const SERVICE_NAME = 'marketplace-service';
@@ -61,26 +60,13 @@ export const AppLayer = Layer.unwrapEffect(
     const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
     const jwtKeyId = yield* store.in('jwt').getString('keyId');
 
-    const logLevel = yield* store.in('logging').getString('level');
-    const logSink = yield* store.in('logging').getString('sink');
-    // Both optional, and both for the same reason. The endpoint is what makes
-    // telemetry a *degradable* dependency: a service with no OTLP destination
-    // boots and serves, it simply logs to stdout and exports nothing. And the
-    // interval is a seed row added after these services existed — config-service
-    // seeds `ON CONFLICT DO NOTHING`, so it reaches an existing Postgres only
-    // through a `dev:reset`, and a required read would fail the boot on every
-    // machine that has not run one.
-    const otelEndpoint = yield* store.in('otel').getOptionalString('endpoint');
-    const metricIntervalMs = yield* store
-      .in('otel')
-      .getOptionalNumber('metricIntervalMs');
-    const observability = makeObservabilityLayer({
-      serviceName: SERVICE_NAME,
-      level: logLevel as LogLevel,
-      sink: logSink === 'stdout' ? 'stdout' : 'otlp',
-      otelEndpoint,
-      metricIntervalMs,
-    });
+    // Log level + sink and the OTLP endpoint, read from this service's own
+    // configuration. Which keys and which are optional is the shell's, so every
+    // service reads them the same way.
+    const observability = yield* observabilityFromConfiguration(
+      store,
+      SERVICE_NAME,
+    );
 
     const connections = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),

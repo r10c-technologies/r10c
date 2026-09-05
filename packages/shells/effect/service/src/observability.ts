@@ -17,6 +17,10 @@ import {
   SimpleSpanProcessor,
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
+import type {
+  ConfigurationClient,
+  EntifixBuildError,
+} from '@r10c/entifix-ts-core';
 import {
   type Attributes,
   createLogger,
@@ -27,7 +31,7 @@ import {
   makeOtlpHttpLogSink,
   makeStdoutJsonSink,
 } from '@r10c/entifix-ts-tooling/logging';
-import { HashMap, Layer, Logger } from 'effect';
+import { Effect, HashMap, Layer, Logger } from 'effect';
 
 /** Resolved observability settings (from config-service `logging.*`/`otel.*`). */
 export interface ObservabilityConfig {
@@ -49,10 +53,12 @@ export interface ObservabilityConfig {
   /**
    * How often the metric reader exports, in milliseconds. Config rather than a
    * constant because it is a real operational dial (a shorter interval buys
-   * resolution with cardinality-independent request volume), and optional for
-   * the reason every new seed row is: config-service seeds
-   * `ON CONFLICT DO NOTHING`, so this key reaches an existing Postgres only
-   * through a `dev:reset`.
+   * resolution with cardinality-independent request volume), and optional
+   * because a fleet whose seed predates the key should not fail to boot over an
+   * export interval. (Optional for that reason alone: config-service reconciles
+   * `SEED_ROWS` per row on every boot, so a *new* key does reach an existing
+   * Postgres — `ON CONFLICT DO NOTHING` declines to overwrite an operator's
+   * changed *value*, which is the case that needs a `dev:reset`.)
    */
   readonly metricIntervalMs?: number | undefined;
 }
@@ -349,3 +355,52 @@ export const makeInMemoryObservabilityLayer = (
     },
   };
 };
+
+/**
+ * The observability layer for a service, read from its own configuration.
+ *
+ * This is the whole per-service wiring: a composition root yields it and merges
+ * the result into its `AppLayer`. It exists because the four reads below were
+ * byte-identical in every service that had them, sitting directly above a
+ * `makeObservabilityLayer` call that mapped them one-for-one — the same
+ * duplication the module itself carried, one level up.
+ *
+ * `logging.level` and `logging.sink` are **required**: the rows are seeded for
+ * every service and reach an existing table on config-service's next boot (the
+ * seed reconciles per row and only declines to overwrite a value that is already
+ * there), so a missing one is a real misconfiguration and should be loud.
+ *
+ * `otel.endpoint` and `otel.metricIntervalMs` are **optional**, for two
+ * different reasons. The endpoint is what makes telemetry a *degradable*
+ * dependency — with none, the service boots and serves, logs to stdout and
+ * exports nothing, rather than an unreachable telemetry destination taking the
+ * service down. The interval is a dial with a sane default, and requiring it
+ * would fail the boot on any fleet whose seed predates it.
+ *
+ * Takes the {@link ConfigurationClient} port rather than a concrete client, so
+ * config-service can pass the store it builds from its **own** SQL rows: it is
+ * the one service that cannot fetch its configuration over HTTP, because it is
+ * the thing being fetched from.
+ */
+export const observabilityFromConfiguration = (
+  store: ConfigurationClient,
+  serviceName: string,
+): Effect.Effect<ReturnType<typeof makeObservabilityLayer>, EntifixBuildError> =>
+  Effect.gen(function* () {
+    const level = yield* store.in('logging').getString('level');
+    const sink = yield* store.in('logging').getString('sink');
+    const otelEndpoint = yield* store.in('otel').getOptionalString('endpoint');
+    const metricIntervalMs = yield* store
+      .in('otel')
+      .getOptionalNumber('metricIntervalMs');
+
+    return makeObservabilityLayer({
+      serviceName,
+      level: level as LogLevel,
+      // Anything but the explicit `stdout` is the OTLP sink, which is what makes
+      // a mistyped value degrade to shipping rather than to silence.
+      sink: sink === 'stdout' ? 'stdout' : 'otlp',
+      otelEndpoint,
+      metricIntervalMs,
+    });
+  });

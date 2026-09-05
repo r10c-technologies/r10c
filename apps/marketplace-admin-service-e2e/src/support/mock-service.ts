@@ -27,7 +27,6 @@ import {
   fakeRedisLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import {
-  makeInMemoryObservabilityLayer,
   MongoTransactionStoreLayer,
   OutboxMaxAttempts,
   router,
@@ -36,7 +35,9 @@ import {
   SERVICE_NAME,
 } from '@r10c/marketplace-admin-service';
 import {
+  type InMemoryObservability,
   LoadedConfigurationTag,
+  makeInMemoryObservabilityLayer,
   type RunningTestService,
   serveTestService,
 } from '@r10c/shells-effect-service';
@@ -151,8 +152,15 @@ const observability = makeInMemoryObservabilityLayer(SERVICE_NAME);
 /** Log records the service emitted during the in-process mock run. */
 export const capturedLogRecords = observability.logRecords;
 
-/** Spans the service exported during the in-process mock run. */
-export const capturedSpans = observability.getSpans;
+/**
+ * Spans the service exported during the in-process mock run.
+ *
+ * Annotated rather than inferred: the return type names `ReadableSpan`, which
+ * this project does not depend on directly, and an inferred alias for it is not
+ * portable across the declaration emit.
+ */
+export const capturedSpans: InMemoryObservability['getSpans'] =
+  observability.getSpans;
 
 const MockAppLayerWithObservability = Layer.merge(
   observability.layer,

@@ -36,6 +36,7 @@ import {
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
+  observabilityFromConfiguration,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
@@ -332,6 +333,14 @@ export const AppLayer = Layer.unwrapEffect(
         discard: true,
       }).pipe(Effect.andThen(seedIdentityProvider)),
     );
-    return Layer.provideMerge(seed, withProbes);
+    // Replaces Effect's default logger with the tooling logger and stands up
+    // the OTel tracer + meter, so sign-in, back-channel logout and the provider
+    // lifecycle webhook are traceable. Merged rather than provided: it supplies
+    // no service anything here requires, it changes how the whole layer logs.
+    const observability = yield* observabilityFromConfiguration(
+      store,
+      SERVICE_NAME,
+    );
+    return Layer.merge(observability, Layer.provideMerge(seed, withProbes));
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

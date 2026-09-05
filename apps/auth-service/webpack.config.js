@@ -37,6 +37,16 @@ module.exports = {
       // loads it as real CJS instead of webpack's broken ESM-interop wrapper.
       externalDependencies: [
         'effect',
+        '@effect/opentelemetry',
+        '@opentelemetry/api',
+        '@opentelemetry/context-async-hooks',
+        '@opentelemetry/exporter-metrics-otlp-http',
+        '@opentelemetry/exporter-trace-otlp-http',
+        '@opentelemetry/resources',
+        '@opentelemetry/sdk-metrics',
+        '@opentelemetry/sdk-trace-base',
+        '@opentelemetry/sdk-trace-node',
+        '@opentelemetry/semantic-conventions',
         '@effect/platform',
         '@effect/platform-node',
         'mongodb',
