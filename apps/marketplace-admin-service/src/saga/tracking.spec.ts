@@ -1,12 +1,14 @@
 import type {
+  TransactionEvent,
   TransactionRecord,
   TransactionStore,
 } from '@r10c/entifix-transactions';
 import { EntifixConnError } from '@r10c/entifix-ts-core';
 import { Effect, HashMap, Logger } from 'effect';
+import type { Db, MongoClient } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
-import { sweepStale } from './tracking';
+import { foldClaimed, sweepStale } from './tracking';
 
 const STALE_TIMEOUT_MS = 60_000;
 
@@ -121,5 +123,218 @@ describe('sweepStale', () => {
     );
 
     expect(outcome._tag).toBe('Right');
+  });
+});
+
+const anEvent = (transactionId: string): TransactionEvent => ({
+  transactionId,
+  entity: 'product-specification',
+  state: 'COMPLETED',
+  step: 'completed',
+  at: '2026-01-01T00:00:00.000Z',
+  organizationId: 'demo-organization',
+});
+
+/**
+ * A client and database whose `withTransaction` runs the callback for real, so
+ * the spec observes what actually commits together. The inbox collection throws
+ * `E11000` on a repeated `(consumer, eventId)` exactly as the unique index
+ * does, and — the half that matters — the transaction's *other* write is rolled
+ * back with it, which is what makes the claim and the fold one fact.
+ */
+const fakeMongo = () => {
+  const claims: string[] = [];
+  const folds: string[] = [];
+  let ended = 0;
+
+  const client = {
+    startSession: () => ({
+      withTransaction: async (body: () => Promise<unknown>) => {
+        const claimsBefore = [...claims];
+        const foldsBefore = [...folds];
+        try {
+          return await body();
+        } catch (error) {
+          // Abort: neither write survives.
+          claims.length = 0;
+          claims.push(...claimsBefore);
+          folds.length = 0;
+          folds.push(...foldsBefore);
+          throw error;
+        }
+      },
+      endSession: async () => {
+        ended += 1;
+      },
+    }),
+  } as unknown as MongoClient;
+
+  const db = {
+    databaseName: 'transaction_manager',
+    collection: (name: string) => ({
+      insertOne: async (doc: { consumer: string; eventId: string }) => {
+        const key = `${doc.consumer} ${doc.eventId}`;
+        if (claims.includes(key)) {
+          throw Object.assign(new Error('E11000'), { code: 11000 });
+        }
+        claims.push(key);
+        return { acknowledged: true };
+      },
+      updateOne: async (filter: { transactionId: string }) => {
+        folds.push(`${name} ${filter.transactionId}`);
+        return { acknowledged: true };
+      },
+    }),
+  } as unknown as Db;
+
+  return {
+    client,
+    db,
+    claims,
+    folds,
+    get sessionsEnded() {
+      return ended;
+    },
+  };
+};
+
+const CONSUMER = 'transaction.transaction._star_';
+
+describe('foldClaimed', () => {
+  it('claims and folds a first delivery', async () => {
+    const mongo = fakeMongo();
+
+    const outcome = await Effect.runPromise(
+      foldClaimed(
+        mongo.client,
+        mongo.db,
+        CONSUMER,
+        'tx-1:completed',
+        anEvent('tx-1'),
+      ),
+    );
+
+    expect(outcome).toBe('claimed');
+    expect(mongo.claims).toEqual([`${CONSUMER} tx-1:completed`]);
+    expect(mongo.folds).toEqual(['transactions tx-1']);
+  });
+
+  it('recognises a redelivery and folds nothing a second time', async () => {
+    const mongo = fakeMongo();
+    const event = anEvent('tx-2');
+    await Effect.runPromise(
+      foldClaimed(mongo.client, mongo.db, CONSUMER, 'tx-2:completed', event),
+    );
+
+    const outcome = await Effect.runPromise(
+      foldClaimed(mongo.client, mongo.db, CONSUMER, 'tx-2:completed', event),
+    );
+
+    // `duplicate`, not a failure: the handler must ack. Nacking would requeue
+    // against `x-delivery-limit` and eventually quarantine a message that was
+    // in fact processed.
+    expect(outcome).toBe('duplicate');
+    expect(mongo.folds).toEqual(['transactions tx-2']);
+  });
+
+  it('claims each step of one transaction separately', async () => {
+    const mongo = fakeMongo();
+
+    await Effect.runPromise(
+      foldClaimed(
+        mongo.client,
+        mongo.db,
+        CONSUMER,
+        'tx-3:accepted',
+        anEvent('tx-3'),
+      ),
+    );
+    const outcome = await Effect.runPromise(
+      foldClaimed(
+        mongo.client,
+        mongo.db,
+        CONSUMER,
+        'tx-3:completed',
+        anEvent('tx-3'),
+      ),
+    );
+
+    // `<transactionId>:<step>`, never the correlation id — which would make
+    // `completed` read as a redelivery of `accepted`.
+    expect(outcome).toBe('claimed');
+    expect(mongo.folds).toEqual(['transactions tx-3', 'transactions tx-3']);
+  });
+
+  it('does not let one consumer consume another consumer’s claim', async () => {
+    const mongo = fakeMongo();
+    await Effect.runPromise(
+      foldClaimed(
+        mongo.client,
+        mongo.db,
+        'a',
+        'tx-4:completed',
+        anEvent('tx-4'),
+      ),
+    );
+
+    const outcome = await Effect.runPromise(
+      foldClaimed(
+        mongo.client,
+        mongo.db,
+        'b',
+        'tx-4:completed',
+        anEvent('tx-4'),
+      ),
+    );
+
+    expect(outcome).toBe('claimed');
+  });
+
+  it('ends the session on both paths', async () => {
+    const mongo = fakeMongo();
+    const event = anEvent('tx-5');
+
+    await Effect.runPromise(
+      foldClaimed(mongo.client, mongo.db, CONSUMER, 'tx-5:completed', event),
+    );
+    await Effect.runPromise(
+      foldClaimed(mongo.client, mongo.db, CONSUMER, 'tx-5:completed', event),
+    );
+
+    expect(mongo.sessionsEnded).toBe(2);
+  });
+
+  it('surfaces a failure that is not a duplicate key', async () => {
+    const client = {
+      startSession: () => ({
+        withTransaction: async () => {
+          throw new Error('not primary');
+        },
+        endSession: async () => undefined,
+      }),
+    } as unknown as MongoClient;
+
+    const outcome = await Effect.runPromise(
+      Effect.either(
+        foldClaimed(
+          client,
+          fakeMongo().db,
+          CONSUMER,
+          'tx-6:completed',
+          anEvent('tx-6'),
+        ),
+      ),
+    );
+
+    expect(outcome._tag).toBe('Left');
+    if (outcome._tag === 'Left') {
+      expect(outcome.left.message).toContain(
+        'Failed to fold transaction event',
+      );
+      expect(outcome.left.details).toMatchObject({
+        consumer: CONSUMER,
+        eventId: 'tx-6:completed',
+      });
+    }
   });
 });

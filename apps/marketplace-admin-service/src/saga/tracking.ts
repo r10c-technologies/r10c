@@ -1,13 +1,30 @@
 import {
   EventBusTag,
+  type InboxClaim,
+  type Subscription,
   type TransactionEvent,
   type TransactionStore,
   TransactionStoreTag,
   TransactionStreamHubTag,
 } from '@r10c/entifix-transactions';
+import { queueNameFor } from '@r10c/entifix-ts-amqp-client';
 import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
-import type { DomainEvent } from '@r10c/entifix-ts-core';
+import { type DomainEvent, EntifixConnError } from '@r10c/entifix-ts-core';
+import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
 import { Context, Duration, Effect, Fiber } from 'effect';
+import type { Db, MongoClient } from 'mongodb';
+
+import {
+  ensureInboxIndexes,
+  INBOX_COLLECTION,
+  inboxDocument,
+  isDuplicateKey,
+} from '../inbox/store';
+import {
+  SagaDatabaseName,
+  transactionFold,
+  transactionsCollection,
+} from './store';
 
 /**
  * The slice this consumer belongs to, and half of its queue's name.
@@ -63,6 +80,74 @@ export class SagaStaleTimeoutMs extends Context.Tag('SagaStaleTimeoutMs')<
   SagaStaleTimeoutMs,
   number
 >() {}
+
+/**
+ * The fold, claimed and applied as one fact.
+ *
+ * `insertOne` into the inbox and `updateOne` into `transactions` under a single
+ * `session.withTransaction`, so a redelivery finds the claim taken **and** the
+ * fold already applied. Claim-then-fold would leave a crash window in which the
+ * claim is held and the fold never ran, so the redelivery is skipped and the
+ * event is lost — strictly worse than folding it twice.
+ *
+ * `session.withTransaction` rather than a hand-rolled begin/commit, for the
+ * reason `catalog-transaction-handler.ts` states: an election aborts an
+ * in-flight transaction with a `TransientTransactionError` the *application* is
+ * expected to retry, which a single-node dev replica set never raises. A
+ * duplicate-key error is not transient, so it propagates out of the retry and is
+ * recognised here as the redelivery it is.
+ *
+ * Nothing non-transactional happens inside the callback, so a retry cannot
+ * consume a second one of anything.
+ */
+export const foldClaimed = (
+  client: MongoClient,
+  db: Db,
+  consumer: string,
+  eventId: string,
+  event: TransactionEvent,
+) =>
+  Effect.tryPromise({
+    try: async () => {
+      const session = client.startSession();
+      try {
+        await session.withTransaction(async () => {
+          await db
+            .collection<InboxClaim>(INBOX_COLLECTION)
+            .insertOne(inboxDocument(consumer, eventId), { session });
+
+          const { filter, update } = transactionFold(event);
+          await transactionsCollection(db).updateOne(filter, update, {
+            upsert: true,
+            session,
+          });
+        });
+        return 'claimed' as const;
+      } finally {
+        await session.endSession();
+      }
+    },
+    catch: error => {
+      // Not a failure: the unique index rejected a second claim for this
+      // consumer and message, which is how a redelivery is identified. The
+      // transaction aborted with it, so the fold did not run twice either.
+      if (isDuplicateKey(error)) return 'duplicate' as const;
+      return new EntifixConnError('Failed to fold transaction event', error, {
+        consumer,
+        eventId,
+      });
+    },
+  }).pipe(
+    // The duplicate arm above leaves the "error" channel carrying a literal, so
+    // lift it back: a redelivery must ack, never nack. Nacking would requeue it
+    // against `x-delivery-limit` and eventually quarantine a message that was
+    // in fact processed.
+    Effect.catchAll(outcome =>
+      outcome === 'duplicate'
+        ? Effect.succeed('duplicate' as const)
+        : Effect.fail(outcome),
+    ),
+  );
 
 /**
  * One pass of the recovery sweep: flag every non-terminal transaction older
@@ -121,6 +206,12 @@ export const startTracking = Effect.gen(function* () {
   const shutdown = yield* ShutdownRegistryTag;
   const recoveryInterval = yield* SagaRecoveryIntervalMs;
   const staleTimeoutMs = yield* SagaStaleTimeoutMs;
+  const client = yield* MongoClientTag;
+  const sagaDb = client.db(yield* SagaDatabaseName);
+
+  // Before the first claim, not eventually: without the unique index two
+  // concurrent first deliveries both insert and both fold.
+  yield* ensureInboxIndexes(sagaDb);
 
   // Fold each observed event into the persisted record. The handler carries no
   // requirements (store is closed over), so the bus can run it standalone.
@@ -135,15 +226,36 @@ export const startTracking = Effect.gen(function* () {
   // queue this used to bind, such an event was routed to zero queues and
   // dropped by the broker, while the outbox had already recorded it sent
   // (ADR 0030).
-  yield* bus.subscribe(
-    {
-      slice: TRACKER_SLICE,
-      pattern: 'transaction.*',
-      mode: 'work',
-      maxAttempts: MAX_ATTEMPTS,
-    },
-    event =>
-      Effect.asVoid(store.upsertFromEvent(event.data as TransactionEvent)),
+  //
+  // `dedupe: 'inbox'` in the register, and the claim is what makes it true: the
+  // fold and its claim commit together, so a redelivery is recognised and
+  // skipped rather than re-applied. The fold *is* an idempotent upsert and so
+  // would survive one anyway — it is routed through the inbox regardless, so the
+  // mechanism has a live exerciser before the first consumer that genuinely
+  // cannot be natural (a stock decrement, a payment capture) depends on it.
+  const foldSubscription: Subscription = {
+    slice: TRACKER_SLICE,
+    pattern: 'transaction.*',
+    mode: 'work',
+    maxAttempts: MAX_ATTEMPTS,
+  };
+  // The consumer half of the claim key: the durable work-queue name this
+  // subscription binds. Derived rather than written out, so it cannot drift
+  // from the queue the broker actually delivers on — and durable, which an
+  // anonymous broadcast queue's server-generated name is not. That is why
+  // `dedupe: 'inbox'` is only legal on a `work` subscription.
+  const foldConsumer = queueNameFor(foldSubscription);
+
+  yield* bus.subscribe(foldSubscription, event =>
+    Effect.asVoid(
+      foldClaimed(
+        client,
+        sagaDb,
+        foldConsumer,
+        event.id,
+        event.data as TransactionEvent,
+      ),
+    ),
   );
 
   // The same events again, on a second subscription, feeding the connections

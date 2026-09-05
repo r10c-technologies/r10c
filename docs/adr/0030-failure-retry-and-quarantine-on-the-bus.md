@@ -4,6 +4,9 @@
 - Date: 2026-09-01
 - Revised: 2026-09-05 — graceful shutdown built (#180); the `preStop` half is
   restated as pending a service Deployment, which this repo does not declare.
+- Revised: 2026-09-05 — the inbox is built (#178): the register carries `dedupe`,
+  the claim key gains its consumer half, and two claims in this record are
+  corrected. See Trigger below.
 - Revised: 2026-09-05 — the consequence this record stated for #135 is corrected:
   [ADR 0039](0039-multi-step-sagas-are-orchestrated.md) took retry and
   compensation, so only the sweep's constants remained here. See Consequences
@@ -140,9 +143,22 @@ entry does, so the port stays framework-free and the adapter lives in the
 service.
 
 A subscription declares `dedupe: 'inbox' | 'natural'`, and `'natural'` requires a
-stated reason on the declaration. The tracker's fold and the projection's upsert
-are genuinely natural; saying so out loud is what stops the next consumer
-inheriting an assumption nobody re-checked.
+stated reason on the declaration. Saying so out loud is what stops the next
+consumer inheriting an assumption nobody re-checked.
+
+The claim key is **`(consumer, eventId)`**, not `eventId` alone. Two consumers
+legitimately process the same event — the tracker's fold and the SSE hub both
+bind `transaction.*` — so a single-column unique index would let whichever
+claimed first starve the other of every message, while the broker, the queue and
+both handlers went on reporting success. It follows that `'inbox'` is legal only
+on a **`work`** subscription: a broadcast queue is anonymous and dies with its
+connection, so it has no durable name to claim against, and every replica is
+meant to process the event anyway.
+
+And the inbox lives **with the side effect**, never centrally — the claim and
+the write must be in one database to be one transaction. The outbox is
+per-tenant because the entity is; the tracker's inbox is in the `saga` database
+because that is where its fold writes.
 
 ### The outbox relay gets an attempt count, a ceiling and a quarantine
 
@@ -244,9 +260,20 @@ subscription declaration and #179 (the relay's ceiling). #178 (the inbox) and
 
 Two things that commit deliberately did **not** land, because the code that
 would read them does not exist yet — the same rule this record applies to the
-register. `SubscriptionDeclaration` carries `{ event, mode, maxAttempts }` and
-**no `dedupe`**: the strategy and its required reason arrive with #178, which is
-what enforces them. And `Subscription` carries no `onPoison`, because the
+register. `SubscriptionDeclaration` carried `{ event, mode, maxAttempts }` and
+**no `dedupe`**: the strategy and its required reason arrived with #178, which is
+what enforces them — landed on 2026-09-05, and `@r10c/slices` now fails the build
+on a `natural` with no reason and on an `inbox` bound to a broadcast queue.
+
+Two corrections that shipped with it. **The "projection's upsert" named above
+does not exist**: marketplace-service has no AMQP connection at all, so
+`catalog.published` is declared and never bound, and the second consumer running
+today is the SSE hub. And the tracker's fold is declared **`inbox` although it is
+genuinely natural** — the upsert would survive a redelivery unaided. It is routed
+through the claim anyway so the mechanism has a live exerciser before the first
+consumer that cannot be natural (a stock decrement, a payment capture) depends on
+it being correct. The cost is one claim write per delivery on a consumer that
+does not need one, accepted deliberately. And `Subscription` carries no `onPoison`, because the
 decision above gives a poison message exactly one treatment; a field with one
 legal value describes nothing.
 

@@ -677,6 +677,10 @@ importers:
       tslib:
         specifier: 2.8.1
         version: 2.8.1
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/testing-unit
 
   apps/marketplace-admin-service-e2e:
     dependencies:

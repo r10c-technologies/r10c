@@ -14,7 +14,7 @@ import {
   declaredUseCases,
   sourceFiles,
 } from './source-scan.js';
-import { SUBSCRIPTION_MODES } from './types.js';
+import { DEDUPE_STRATEGIES, SUBSCRIPTION_MODES } from './types.js';
 
 const allStores = SLICES.flatMap(slice =>
   slice.stores.map(store => ({ slice, store })),
@@ -592,6 +592,61 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
             '`x-delivery-limit`, so it must be a whole number of deliveries ' +
             'between 1 and 20.',
         ).toBe(true);
+      }
+    }
+  });
+
+  // ADR 0030 built the vocabulary and withheld the field until #178 gave it a
+  // mechanism. The check is the point of the field: an idempotency assumption
+  // that lives only in a reviewer's head is the one the third consumer inherits
+  // without knowing it was ever made.
+  it('makes every subscription answer how it survives a redelivery', () => {
+    for (const slice of SLICES) {
+      for (const subscription of slice.subscriptions) {
+        expect(
+          DEDUPE_STRATEGIES.includes(subscription.dedupe),
+          `slice '${slice.name}' subscribes '${subscription.event}' with ` +
+            `dedupe '${subscription.dedupe}', which is not one of ` +
+            `${DEDUPE_STRATEGIES.join(' | ')}. Delivery is at-least-once, so ` +
+            'every consumer has an answer to a redelivery.',
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('makes a `natural` consumer state why it is idempotent', () => {
+    for (const slice of SLICES) {
+      for (const subscription of slice.subscriptions) {
+        if (subscription.dedupe !== 'natural') continue;
+
+        expect(
+          (subscription.dedupeReason ?? '').trim().length > 0,
+          `slice '${slice.name}' subscribes '${subscription.event}' with ` +
+            'dedupe `natural` and no reason. Natural idempotency is a property ' +
+            'of the handler that nothing else checks, and the next edit to it ' +
+            'can remove the property without touching this declaration — so ' +
+            'the claim has to be written down where it can be re-read.',
+        ).toBe(true);
+      }
+    }
+  });
+
+  // A broadcast queue is anonymous and exclusive: its name is server-generated
+  // and changes on every reconnect, so there is no durable consumer identity to
+  // key a claim on. A claim scoped to a name that will not exist next boot
+  // dedupes nothing while reading as though it does.
+  it('keeps `inbox` off a broadcast subscription', () => {
+    for (const slice of SLICES) {
+      for (const subscription of slice.subscriptions) {
+        if (subscription.dedupe !== 'inbox') continue;
+
+        expect(
+          subscription.mode,
+          `slice '${slice.name}' subscribes '${subscription.event}' in mode ` +
+            "'broadcast' with dedupe 'inbox'. A broadcast queue is anonymous " +
+            'and dies with its connection, so it has no durable name to claim ' +
+            'against — and every replica is *meant* to process the event.',
+        ).toBe('work');
       }
     }
   });

@@ -4,6 +4,7 @@ import type {
   LockService,
   SequenceService,
   Subscription,
+  TransactionInbox,
 } from '@r10c/entifix-transactions';
 import type { DomainEvent } from '@r10c/entifix-ts-core';
 import { Duration, Effect, Exit, Fiber, TestClock } from 'effect';
@@ -219,6 +220,64 @@ export const describeEventBusContract = (
         'tx-3',
         'tx-4',
       ]);
+    });
+  });
+};
+
+/**
+ * What every {@link TransactionInbox} must guarantee: a first claim is granted,
+ * every repeat of it is refused, and one consumer's claim says nothing about
+ * another's.
+ *
+ * That last one is the property with teeth. Two consumers legitimately process
+ * the same event — the saga tracker's fold and the SSE hub both bind
+ * `transaction.*` — so an implementation keyed on `eventId` alone passes the
+ * first two cases and silently starves every consumer but the first. It looks
+ * like exactly-once from inside one consumer, which is why it is asserted here
+ * rather than left to each adapter's own spec.
+ */
+export const describeTransactionInboxContract = (
+  name: string,
+  makeInbox: (consumer: string) => TransactionInbox | Promise<TransactionInbox>,
+): void => {
+  describe(`TransactionInbox contract: ${name}`, () => {
+    it('grants a first claim', async () => {
+      const inbox = await makeInbox('contract.consumer');
+
+      expect(await run(inbox.claim('tx-1:completed'))).toBe('claimed');
+    });
+
+    it('refuses a redelivery of the same event', async () => {
+      const inbox = await makeInbox('contract.consumer');
+      await run(inbox.claim('tx-2:completed'));
+
+      expect(await run(inbox.claim('tx-2:completed'))).toBe('duplicate');
+    });
+
+    it('refuses every repeat, not only the second', async () => {
+      const inbox = await makeInbox('contract.consumer');
+      await run(inbox.claim('tx-3:completed'));
+
+      expect(await run(inbox.claim('tx-3:completed'))).toBe('duplicate');
+      expect(await run(inbox.claim('tx-3:completed'))).toBe('duplicate');
+    });
+
+    it('claims each step of one transaction separately', async () => {
+      // `<transactionId>:<step>`, never the transaction id alone: one
+      // transaction emits up to three messages, and keying on the correlation
+      // id would make `completed` read as a redelivery of `accepted`.
+      const inbox = await makeInbox('contract.consumer');
+
+      expect(await run(inbox.claim('tx-4:accepted'))).toBe('claimed');
+      expect(await run(inbox.claim('tx-4:completed'))).toBe('claimed');
+    });
+
+    it('does not let one consumer consume another consumer’s claim', async () => {
+      const first = await makeInbox('contract.first');
+      const second = await makeInbox('contract.second');
+      await run(first.claim('tx-5:completed'));
+
+      expect(await run(second.claim('tx-5:completed'))).toBe('claimed');
     });
   });
 };

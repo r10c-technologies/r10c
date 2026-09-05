@@ -42,7 +42,15 @@ export const orderSlice: SliceDeclaration = {
   ],
   publishedEvents: ['order.placed', 'order.cancelled'],
   subscriptions: [
-    { event: 'payment.captured', mode: 'work', maxAttempts: 5 },
-    { event: 'payment.failed', mode: 'work', maxAttempts: 5 },
+    // `inbox` on both: advancing an order's state on a capture is not a
+    // rewrite of the same value, so a redelivery must be recognised rather
+    // than survived.
+    {
+      event: 'payment.captured',
+      mode: 'work',
+      maxAttempts: 5,
+      dedupe: 'inbox',
+    },
+    { event: 'payment.failed', mode: 'work', maxAttempts: 5, dedupe: 'inbox' },
   ],
 };

@@ -30,12 +30,31 @@ export const transactionSlice: SliceDeclaration = {
   subscriptions: [
     // Work: the fold is an idempotent upsert that wants exactly one replica,
     // and it must not lose an event across its own restart.
-    { event: 'transaction.*', mode: 'work', maxAttempts: 5 },
+    //
+    // `inbox` although the upsert *is* naturally idempotent: the claim and the
+    // fold commit in one Mongo transaction, so the mechanism has a live
+    // exerciser before the first consumer that genuinely cannot be natural — a
+    // stock decrement, a payment capture — depends on it being correct.
+    { event: 'transaction.*', mode: 'work', maxAttempts: 5, dedupe: 'inbox' },
     // Broadcast, and the first in the register: this one feeds the browser
     // connections held by `GET /api/transaction/events`. Every replica holds
     // *different* connections, so a `work` queue would deliver each event to one
     // replica and the clients on the others would silently never learn
     // (ADR 0030 built the mode for this consumer; ADR 0036 is the consumer).
-    { event: 'transaction.*', mode: 'broadcast', maxAttempts: 5 },
+    //
+    // `natural`, and it could not be otherwise: a broadcast queue is anonymous
+    // and dies with its connection, so there is no durable consumer identity to
+    // key a claim on. The handler pushes into a bounded in-memory hub and the
+    // browsers behind it re-read the record, so a repeat costs a duplicate hint
+    // and nothing else.
+    {
+      event: 'transaction.*',
+      mode: 'broadcast',
+      maxAttempts: 5,
+      dedupe: 'natural',
+      dedupeReason:
+        'Publishes into an in-memory pub/sub hub; a repeated delivery is a ' +
+        'duplicate hint and the browsers behind it re-read the record.',
+    },
   ],
 };

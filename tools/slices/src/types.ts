@@ -82,6 +82,21 @@ export const SUBSCRIPTION_MODES = ['work', 'broadcast'] as const;
 export type SubscriptionMode = (typeof SUBSCRIPTION_MODES)[number];
 
 /**
+ * How a consumer survives an at-least-once redelivery.
+ *
+ * `inbox` claims `event.id` in the same storage transaction as the side effect
+ * (`TransactionInbox`); `natural` asserts the handler is idempotent by
+ * construction and must say **why**, because that is a property of the code
+ * which nothing else checks and which the next edit can quietly remove.
+ *
+ * Duplicated from `@r10c/entifix-transactions` for the reason
+ * {@link SUBSCRIPTION_MODES} is.
+ */
+export const DEDUPE_STRATEGIES = ['inbox', 'natural'] as const;
+
+export type DedupeStrategy = (typeof DEDUPE_STRATEGIES)[number];
+
+/**
  * One event a slice consumes, together with the delivery policy the broker
  * enforces for it.
  *
@@ -90,8 +105,9 @@ export type SubscriptionMode = (typeof SUBSCRIPTION_MODES)[number];
  * answered where a test can read it rather than in a review comment
  * ([ADR 0030](../../../docs/adr/0030-failure-retry-and-quarantine-on-the-bus.md)).
  *
- * `dedupe` is deliberately absent until #178 builds the `TransactionInbox`:
- * a declaration nothing enforces is the same defect as a store nothing writes.
+ * `dedupe` landed with #178, which is what enforces it — it was withheld until
+ * then for the reason ADR 0020 struck a phantom store: a declaration nothing
+ * reads is the same defect as a store nothing writes.
  */
 export interface SubscriptionDeclaration {
   /** The event name or pattern, used verbatim as the AMQP binding. */
@@ -103,6 +119,18 @@ export interface SubscriptionDeclaration {
    * dead-letter path, so it is declared and unenforced there.
    */
   readonly maxAttempts: number;
+  /**
+   * How this consumer survives a redelivery. Delivery is at-least-once by
+   * construction, so every subscription has an answer; the field exists to stop
+   * the next one inheriting an assumption nobody re-checked.
+   */
+  readonly dedupe: DedupeStrategy;
+  /**
+   * Why the handler is idempotent by construction. **Required when `dedupe` is
+   * `'natural'`** and meaningless otherwise — an `inbox` consumer's mechanism is
+   * the claim, and needs no prose.
+   */
+  readonly dedupeReason?: string;
 }
 
 export interface SliceDeclaration {
