@@ -8,6 +8,17 @@
 - Revised: 2026-09-04 — the metric pipeline is built (#185): a `MeterProvider`
   and an OTLP metric exporter now sit beside the tracer. What remains is the
   instrumentation (#186). The destination decided below never changed.
+- Revised: 2026-09-04 — "fleet-wide rollout", listed under Deferred below, is
+  done and that entry is struck. It had stalled at the first pair: auth-service
+  and config-service emitted **nothing** — no tracer, no meter, no structured
+  logs, no OTel dependency and no `logging.*`/`otel.*` seed row — so half the
+  fleet was invisible in Grafana, including every sign-in and every fleet
+  configuration read. All four services are now instrumented, and the layer
+  factory they share moved out of the apps into `@r10c/shells-effect-service`;
+  it had been a byte-identical 351-line copy in two of them, under an "edit
+  both" instruction, with only one copy under a test project. Composition is
+  unchanged — each service still merges the layer into its own `AppLayer`. No
+  decision here is revised.
 
 ## Context
 
@@ -173,7 +184,7 @@ The first metric set is still unbuilt; it is #186's scope:
 ## Deferred
 
 The `/api/telemetry` browser proxy + Faro RUM;
-wiring `TrackerTag`/PostHog into a running app; fleet-wide rollout; the OTel
+wiring `TrackerTag`/PostHog into a running app; the OTel
 Collector DaemonSet/gateway (prod only); the Grafana Cloud connection; and
 Phase-2 self-hosting of the storage backend (SigNoz or Grafana LGTM on GCS) —
 the Collector seam keeps that a config-only swap, so instrumentation never
