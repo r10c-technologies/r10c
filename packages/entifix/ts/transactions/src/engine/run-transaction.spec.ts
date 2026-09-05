@@ -136,6 +136,10 @@ const makeWorld = (
     // grew a relay responsibility it must not have.
     recordFailure: () =>
       Effect.die('the engine must not publish; the relay records failures'),
+    // Same reasoning: depth and age are the relay's to sample, and the engine
+    // has no business asking how far behind the outbox is.
+    stats: () =>
+      Effect.die('the engine must not publish; the relay samples the outbox'),
   };
 
   // The engine must never reach the broker — every event it produces goes to

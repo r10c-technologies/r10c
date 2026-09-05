@@ -62,6 +62,30 @@ export interface OutboxEntry {
 export type OutboxEnqueueResult = 'enqueued' | 'duplicate';
 
 /**
+ * An aggregate view of one outbox, for {@link TransactionOutbox.stats}.
+ *
+ * Counts and one timestamp — **no ids and no payloads**. That is what makes it
+ * safe where a listing is not: an outbox holds event payloads, and once
+ * `catalog.published` carries a whole offering an unfiltered read of one is a
+ * tenant-data surface.
+ */
+export interface OutboxStats {
+  /** Unsent, un-quarantined entries — the same set {@link pending} drains. */
+  pending: number;
+  /**
+   * `createdAt` of the oldest such entry, absent when there are none.
+   *
+   * The age derived from this is the metric that makes a stuck relay visible.
+   * An entry that can never publish no longer blocks the ones behind it — #179
+   * gave the relay a ceiling — but a quarantine is reported only as a log line,
+   * so *how far behind* the head has fallen is otherwise unanswerable.
+   */
+  oldestPendingAt?: string;
+  /** Entries past the ceiling, which {@link pending} skips and nothing deletes. */
+  quarantined: number;
+}
+
+/**
  * The durable hand-off between a transactional write and the event bus.
  *
  * Deliberately **not** a publisher: it never touches the broker. `enqueue` is
@@ -108,6 +132,15 @@ export interface TransactionOutbox {
     error: string,
     quarantine: boolean,
   ): Effect.Effect<void, EntifixConnError>;
+  /**
+   * Depth and age, for the relay to sample once per sweep.
+   *
+   * An aggregate rather than a read, deliberately: `pending(limit)` truncates at
+   * the relay's batch size, so counting what it returns answers "is the batch
+   * full" and not "how far behind are we" — which are the same number right up
+   * to the moment the second one starts to matter.
+   */
+  stats(): Effect.Effect<OutboxStats, EntifixConnError>;
 }
 
 export class TransactionOutboxTag extends Context.Tag('TransactionOutboxTag')<

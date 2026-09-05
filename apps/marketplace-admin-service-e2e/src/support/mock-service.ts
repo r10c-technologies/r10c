@@ -162,6 +162,16 @@ export const capturedLogRecords = observability.logRecords;
 export const capturedSpans: InMemoryObservability['getSpans'] =
   observability.getSpans;
 
+/**
+ * Metrics the service exported during the in-process mock run.
+ *
+ * Annotated for the same reason `capturedSpans` is. Flushes the reader on each
+ * call — the in-memory reader's own interval is an hour, so a metric is only
+ * collected when something explicitly asks.
+ */
+export const collectCapturedMetrics: InMemoryObservability['collectMetrics'] =
+  observability.collectMetrics;
+
 const MockAppLayerWithObservability = Layer.merge(
   observability.layer,
   MockAppLayer,

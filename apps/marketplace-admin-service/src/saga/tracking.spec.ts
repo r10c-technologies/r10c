@@ -36,6 +36,13 @@ const recordingStore = (stale: readonly TransactionRecord[]) => {
       Effect.sync(() => {
         marked.push(transactionId);
       }),
+    countByState: () =>
+      Effect.succeed({
+        PENDING: stale.length,
+        COMPLETED: 0,
+        FAILED: 0,
+        STALE: 0,
+      }),
   };
 
   return { store, marked };
@@ -47,6 +54,7 @@ const failingStore = (message: string): TransactionStore => ({
   get: () => Effect.succeed(undefined),
   findStale: () => Effect.fail(new EntifixConnError(message)),
   markStale: () => Effect.void,
+  countByState: () => Effect.fail(new EntifixConnError(message)),
 });
 
 /** Runs one sweep and returns the log records it emitted. */

@@ -23,6 +23,13 @@ import {
   EVENTS_DLX,
   EVENTS_EXCHANGE,
 } from '../amqp-connection/amqp-connection';
+import {
+  recordConsumed,
+  recordFailed,
+  recordPublished,
+  recordPublishFailure,
+  type SubscriptionTags,
+} from './bus-metrics.js';
 
 /** Appended to a work queue's name to make the queue that holds its failures. */
 const QUARANTINE_SUFFIX = '.quarantine';
@@ -198,7 +205,19 @@ export const makeAmqpEventBus = (
         // what this process actually put on the exchange. Recording the intent
         // instead would make the declared-vs-observed diff pass on a service whose
         // every publish is failing (ADR 0031).
-      }).pipe(Effect.tap(() => wiring.recordPublish(event.name))),
+      }).pipe(
+        Effect.tapBoth({
+          onSuccess: () =>
+            wiring
+              .recordPublish(event.name)
+              .pipe(Effect.andThen(recordPublished(event.name))),
+          // Counted here and not in the `catch` above, which only builds the
+          // error: a rising publish-failure rate against a flat published rate
+          // is what a broker outage looks like from the publisher's side, and
+          // the outbox's own backlog is the confirmation.
+          onFailure: () => recordPublishFailure(event.name),
+        }),
+      ),
 
     subscribe: (subscription, handler) =>
       Effect.tryPromise({
@@ -225,6 +244,14 @@ export const makeAmqpEventBus = (
                 queue,
               }),
             );
+            // Resolved once per binding rather than per delivery: `queue` is the
+            // durable name for a `work` subscription and the broker's generated
+            // one for a `broadcast` queue, so it is only knowable here.
+            const tags: SubscriptionTags = {
+              queue,
+              slice: subscription.slice,
+              mode: subscription.mode,
+            };
             const { consumerTag } = await channel.consume(
               queue,
               (message: ConsumeMessage | null) => {
@@ -261,13 +288,29 @@ export const makeAmqpEventBus = (
                 inFlight += 1;
                 void Effect.runPromise(
                   settle.pipe(
-                    Effect.match({
-                      onSuccess: () => channel.ack(message),
+                    // Effect's metric registry is a process-wide singleton, so an
+                    // increment inside this detached `runPromise` reaches the same
+                    // producer `NodeSdk` exports from. That is the only reason a
+                    // metric works here at all — nothing about this fiber is
+                    // inside the observability layer.
+                    Effect.matchEffect({
+                      onSuccess: () =>
+                        recordConsumed(tags).pipe(
+                          Effect.andThen(
+                            Effect.sync(() => channel.ack(message)),
+                          ),
+                        ),
                       onFailure: failure =>
-                        channel.nack(
-                          message,
-                          false,
-                          requeues(failure, subscription.mode),
+                        recordFailed(tags, failure).pipe(
+                          Effect.andThen(
+                            Effect.sync(() =>
+                              channel.nack(
+                                message,
+                                false,
+                                requeues(failure, subscription.mode),
+                              ),
+                            ),
+                          ),
                         ),
                     }),
                   ),

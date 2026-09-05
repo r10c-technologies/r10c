@@ -20,6 +20,7 @@ import {
   inboxDocument,
   isDuplicateKey,
 } from '../inbox/store';
+import { recordTransactionStates } from '../observability/metrics';
 import {
   SagaDatabaseName,
   transactionFold,
@@ -178,6 +179,11 @@ export const sweepStale = (store: TransactionStore, staleTimeoutMs: number) =>
       record => store.markStale(record.transactionId),
       { discard: true },
     );
+    // Sampled after the marking, so the gauge reflects the labels this pass
+    // just applied. This sweep is the only writer of `STALE`, and until it was
+    // counted that label reached no event, no stream and no operator — so a
+    // transaction going stale was discoverable only by polling its own id.
+    yield* recordTransactionStates(yield* store.countByState());
   }).pipe(
     Effect.catchAll(error =>
       Effect.logError('saga recovery sweep failed').pipe(

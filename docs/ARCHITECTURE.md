@@ -338,9 +338,13 @@ operator CRUD writes empty strings and `''` would aim the exporters at a
 relative path that resolves against nothing — and with none the layer still
 builds: logs fall back to the stdout sink and neither exporter exists, because
 an unreachable telemetry destination must not take the service down. #185 built
-this; the first metric set (bus published / consumed / failed / quarantined,
-outbox depth and oldest-entry age, transactions by state) is named in ADR 0001
-and is #186's remaining scope.
+this and #186 the first metric set: bus published / publish-failed / consumed /
+failed, outbox depth, oldest-entry age and quarantine count per tenant database,
+and transactions by state. Two limits ADR 0001 records — a consumer-side failure
+carries no event name (a poison message has none), and there is no in-process
+dead-letter count, because `x-delivery-limit` moves a message to the quarantine
+queue without telling the adapter. Dashboards are still not provisioned; the
+metrics are queried directly against the local Grafana.
 
 Two Effect/OTel gotchas the reference wiring handles: `@effect/opentelemetry`
 does not register an OTel context manager (the service registers

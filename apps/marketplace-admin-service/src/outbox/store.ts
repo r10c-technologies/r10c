@@ -153,6 +153,36 @@ export const makeMongoOutbox = (db: Db): TransactionOutbox => {
           }),
       }).pipe(Effect.asVoid),
 
+    stats: () =>
+      Effect.tryPromise({
+        // Two counts and one `findOne`, rather than reading the entries: the
+        // pending set can be arbitrarily large when the relay is stuck, which
+        // is exactly the moment this must stay cheap. Both queries ride the
+        // partial index on `{ createdAt: 1 }` filtered to the same predicate.
+        try: async () => {
+          const pendingFilter = { sent: false, quarantined: false };
+          const [pending, quarantined, oldest] = await Promise.all([
+            collection.countDocuments(pendingFilter),
+            collection.countDocuments({ quarantined: true }),
+            collection.findOne(pendingFilter, {
+              sort: { createdAt: 1 },
+              projection: { _id: 0, createdAt: 1 },
+            }),
+          ]);
+
+          return {
+            pending,
+            quarantined,
+            // Absent rather than zero when the outbox is empty: an age of zero
+            // and "nothing is waiting" are opposite conditions, and a gauge
+            // that reports 0 for both is indistinguishable from a healthy relay
+            // at exactly the moment it is not one.
+            ...(oldest === null ? {} : { oldestPendingAt: oldest.createdAt }),
+          };
+        },
+        catch: error => fail('Failed to read outbox stats', error),
+      }),
+
     recordFailure: (entry, error, quarantine) =>
       Effect.tryPromise({
         // `$inc` rather than a read-modify-write: two relays can be draining the

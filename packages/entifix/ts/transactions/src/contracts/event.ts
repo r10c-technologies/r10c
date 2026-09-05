@@ -10,8 +10,27 @@ import { Effect } from 'effect';
 import type { TransactionOutcome } from '../ports/transaction-handler';
 import type { TransactionCommand } from './command';
 
+/**
+ * The lifecycle states a transaction record settles into.
+ *
+ * A const array rather than a bare union because something has to **enumerate**
+ * them: a by-state gauge must report every state including the ones at zero, and
+ * a series that simply stops being reported reads on most dashboards as "no
+ * data" rather than as "none" — so `STALE` falling to zero would look exactly
+ * like the metric having broken.
+ *
+ * Note there are four states but only three {@link TransactionStep}s: `STALE` is
+ * applied by the recovery sweep and has no event of its own.
+ */
+export const TRANSACTION_STATES = [
+  'PENDING',
+  'COMPLETED',
+  'FAILED',
+  'STALE',
+] as const;
+
 /** The lifecycle state a transaction record settles into. */
-export type TransactionState = 'PENDING' | 'COMPLETED' | 'FAILED' | 'STALE';
+export type TransactionState = (typeof TRANSACTION_STATES)[number];
 
 /** The facade step a given event reports. */
 export type TransactionStep = 'accepted' | 'completed' | 'failed';

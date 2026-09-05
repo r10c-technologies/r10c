@@ -1,4 +1,5 @@
 import {
+  TRANSACTION_STATES,
   type TransactionEvent,
   type TransactionRecord,
   type TransactionState,
@@ -131,6 +132,33 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
             .toArray();
         },
         catch: error => fail('Failed to query stale transactions', error),
+      }),
+
+    countByState: () =>
+      Effect.tryPromise({
+        // An aggregation rather than one `countDocuments` per state, so the
+        // number of round trips does not grow with `TransactionState`.
+        try: async () => {
+          const rows = await collection
+            .aggregate<{ _id: TransactionState; count: number }>([
+              { $group: { _id: '$state', count: { $sum: 1 } } },
+            ])
+            .toArray();
+
+          // Every state, always — including the ones at zero. A gauge that
+          // simply stops reporting a series is read by most dashboards as "no
+          // data" rather than as "none", so `STALE` dropping to zero would look
+          // identical to the metric having broken.
+          const counts = Object.fromEntries(
+            TRANSACTION_STATES.map(state => [state, 0]),
+          ) as Record<TransactionState, number>;
+          for (const row of rows) {
+            if (TRANSACTION_STATES.includes(row._id))
+              counts[row._id] = row.count;
+          }
+          return counts;
+        },
+        catch: error => fail('Failed to count transactions by state', error),
       }),
 
     markStale: transactionId =>

@@ -8,6 +8,7 @@ import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
 import { Context, Duration, Effect, Either, Fiber } from 'effect';
 import type { MongoClient } from 'mongodb';
 
+import { recordOutboxStats } from '../observability/metrics';
 import { ensureOutboxIndexes, makeMongoOutbox } from './store';
 
 /** How often the sweep looks for entries the fast path did not carry. */
@@ -152,10 +153,13 @@ export const startOutboxRelay = Effect.gen(function* () {
     for (const name of names) {
       const db = client.db(name);
       yield* ensureOutboxIndexes(db);
-      yield* drainOutbox(makeMongoOutbox(db), bus, {
-        maxAttempts,
-        database: name,
-      });
+      const outbox = makeMongoOutbox(db);
+      yield* drainOutbox(outbox, bus, { maxAttempts, database: name });
+      // Sampled **after** the drain, so the gauge reports what is still waiting
+      // rather than what was waiting a moment before this pass cleared it.
+      // Here rather than on its own timer because this loop already enumerates
+      // every tenant database once per sweep.
+      yield* recordOutboxStats(name, yield* outbox.stats());
     }
   }).pipe(
     // A sweep failure must not kill the loop — the next pass retries whatever

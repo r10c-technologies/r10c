@@ -1055,7 +1055,37 @@ instantiation is excessively deep`); every scalar read is now
   with its spans about `service.name`. `otel.endpoint` is **optional**: with
   none the layer still builds, logs fall back to stdout and nothing exports —
   a telemetry destination being unreachable must not take a service down. The
-  first metric set is still #186's.
+  first metric set is #186's, and it is built.
+- **The first metric set is emitted, and two of its limits are real** (#186,
+  ADR 0001's revision). **Counters and gauges need no plumbing**: `NodeSdk` wires
+  the reader through `Metrics.layer`, whose producer reads **Effect's own global
+  registry**, so an increment in the AMQP consumer's detached settle fiber —
+  outside the observability layer entirely — is still exported. ⚠️ A metric's
+  registry key includes its **description**, so a reader that rebuilds one by
+  name without it addresses a different series that is permanently zero; the
+  metric objects are therefore exported and every spec imports them rather than
+  re-declaring. Four things not to re-derive. **A consumer-side failure carries
+  no event name** — the parsed event exists only inside the handler arm and a
+  poison message by definition has none — so `bus_events_failed_total` is
+  dimensioned by subscription (`queue`, `slice`, `mode`) and failure class;
+  dimensioning only the arm that has a name would make the two counts
+  incomparable. **There is no in-process dead-letter count**: `x-delivery-limit`
+  moves a message to `<queue>.quarantine` and the broker does it without telling
+  the adapter, so a transient failure on its fifth delivery counts exactly like
+  its first — the honest quarantine number is the publisher-side outbox gauge.
+  **Both gauges read through aggregate port methods** (`TransactionOutbox.stats`,
+  `TransactionStore.countByState`), never a listing: `TransactionStore` has no
+  `list` because an unfiltered read of that store is every organization's
+  transactions (#194), and a count names nobody — state that distinction beside
+  any new method there. And **an absent series is not a zero**: an empty outbox
+  reports an age of `0` and `countByState` fills every state including the ones
+  at none, because a series that stops being reported reads on most dashboards as
+  "no data", which is indistinguishable from a broken exporter at exactly the
+  moment a healthy fleet looks idle. Both are sampled by daemons that already run
+  on an interval — the outbox by the relay's sweep, the states by the recovery
+  sweep — so nothing new is scheduled. Dashboards are **not** provisioned:
+  `infra/local/otel-lgtm` mounts nothing and has no PVC, so one must be a
+  committed file plus a ConfigMap.
 - **A flow that spans slices is orchestrated; a single-step write stays
   choreography** ([ADR 0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md)).
   The engine runs **one** step in **one** service — `TransactionCommand.type` is
