@@ -1472,6 +1472,9 @@ importers:
       '@r10c/entifix-react-integration':
         specifier: workspace:*
         version: link:../../../entifix/react/integration
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/transactions
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../../../entifix/ts/business

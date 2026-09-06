@@ -43,6 +43,9 @@
       "path": "../../../entifix/ts/business/tsconfig.lib.json"
     },
     {
+      "path": "../../../entifix/ts/transactions/tsconfig.lib.json"
+    },
+    {
       "path": "../../../entifix/react/integration/tsconfig.lib.json"
     },
     {
