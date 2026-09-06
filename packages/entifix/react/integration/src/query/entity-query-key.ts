@@ -52,32 +52,3 @@ export function entityQueryKey<TEntity extends Entity>(
   ];
 }
 
-/**
- * Matches only the *default* view of an entity's list — first page, no filter,
- * no sort — among the many variants `useDataLoading` caches.
- *
- * ⚠️ **Why an optimistic insert may not use the scope.** `entityQueryScope` is a
- * key *prefix*, and TanStack matches prefixes, so `setQueriesData` against it
- * patches every cached page, filter and sort at once: a filter that excludes the
- * new record would still show it, an unconditional prepend violates whatever
- * sort is applied, and `total` goes wrong on each — which on a list being paged
- * through produces a phantom extra page. The default view is the one place
- * "prepend to the top" is unambiguous; every other variant is corrected by the
- * invalidation on settle, which is the smaller failure (ADR 0043).
- *
- * The key is `[...scope, 'load', page, pageSize, rsql, sort]`, where an absent
- * filter and sort both serialize to `''`. `pageSize` is deliberately not pinned:
- * it is a display preference, not part of what makes a view the default one.
- */
-export function isDefaultListQuery<TEntity extends Entity>(
-  entityConstructor: EntityConstructor<TEntity>,
-): (query: { queryKey: readonly unknown[] }) => boolean {
-  const entity = envelopeEntityName(entityConstructor);
-  return ({ queryKey }) =>
-    queryKey[0] === 'entity' &&
-    queryKey[1] === entity &&
-    queryKey[2] === 'load' &&
-    queryKey[3] === 1 &&
-    queryKey[5] === '' &&
-    queryKey[6] === '';
-}

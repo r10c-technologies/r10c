@@ -19,6 +19,20 @@ export interface PendingTransaction {
 export type PendingEntry = PendingTransaction & {
   readonly state: 'pending' | 'failed';
   /**
+   * The record as the browser holds it, so a list can show it before the server
+   * has one.
+   *
+   * ⚠️ **In memory only — never persisted.** The store's `partialize` strips it,
+   * for ADR 0032's reason: a class instance does not survive a JSON round trip,
+   * it comes back as something else. So a refresh keeps the *watch* and loses
+   * the row, which is the documented behaviour — past a refresh, server truth
+   * plus an honest notice beats a record rebuilt from a blob.
+   *
+   * Typed `unknown` because this package must not care what an entity is; the
+   * shell that put it here is the only thing that reads it back.
+   */
+  readonly record?: unknown;
+  /**
    * Free text from whatever threw, in whatever language it was written in.
    *
    * ⚠️ Diagnostic only — never the headline of anything a user reads. A
@@ -89,6 +103,22 @@ export interface PendingTransactionStore extends TransactionSink {
   readonly entries: readonly PendingEntry[];
   /** The write landed. Drop it; the server's copy is the truth now. */
   settle(transactionId: string): void;
+  /**
+   * Holds the record the browser already has, so the list can render it while
+   * the write is still in flight — and answers whether this id was being
+   * watched at all.
+   *
+   * ⚠️ **The return value is why this is one call and not two.** A caller that
+   * asked `entries.some(...)` first would be reading a React render closure
+   * captured *before* its own `await`, so the announcement the save adapter made
+   * during that await is invisible to it and every transactional write reads as
+   * a plain one. Answering from the store's current state is the only version
+   * without that race.
+   *
+   * Separate from `began` because the save adapter announces before it returns
+   * and has no reason to know about lists.
+   */
+  attach(transactionId: string, record: unknown): boolean;
   /** The write failed terminally. Keep it, marked, until it is dismissed. */
   fail(transactionId: string, reason?: string): void;
   /** The operator has read the failure. */

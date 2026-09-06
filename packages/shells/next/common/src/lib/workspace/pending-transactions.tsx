@@ -25,6 +25,7 @@ import { usePendingState } from './pending-state';
 const noopStore: PendingTransactionStore = {
   ...NoopTransactionSink,
   entries: [],
+  attach: () => false,
   settle: () => undefined,
   fail: () => undefined,
   dismiss: () => undefined,
@@ -59,6 +60,7 @@ export function PendingTransactionsProvider({
 }: PendingTransactionsProviderProps) {
   const pending = usePendingState(state => state.pending);
   const began = usePendingState(state => state.began);
+  const attach = usePendingState(state => state.attach);
   const settle = usePendingState(state => state.settle);
   const fail = usePendingState(state => state.fail);
   const dismiss = usePendingState(state => state.dismiss);
@@ -83,11 +85,12 @@ export function PendingTransactionsProvider({
     () => ({
       entries: Object.values(pending),
       began,
+      attach,
       settle,
       fail,
       dismiss,
     }),
-    [pending, began, settle, fail, dismiss],
+    [pending, began, attach, settle, fail, dismiss],
   );
 
   return (
@@ -108,4 +111,28 @@ export function pendingFor(
   entity: string,
 ): readonly PendingEntry[] {
   return store.entries.filter(entry => entry.entity === entity);
+}
+
+/**
+ * The records a list should show that its own query cannot yet return.
+ *
+ * ⚠️ **Why this is not a cache patch.** Writing the row into the TanStack cache
+ * looks simpler and does not survive: the list refetches on mount — which is
+ * exactly when the operator arrives, having just been navigated here — and the
+ * server legitimately does not have the record yet, so the refetch replaces the
+ * patched page and the row disappears. The pending set outlives every refetch,
+ * so merging at render time is the only version that holds until the write
+ * actually settles.
+ *
+ * A failed entry contributes no row: the write did not happen, and the notice
+ * beside the table is what says so.
+ */
+export function pendingRecordsFor<TRecord>(
+  store: PendingTransactionStore,
+  entity: string,
+): TRecord[] {
+  return store.entries
+    .filter(entry => entry.entity === entity && entry.state === 'pending')
+    .map(entry => entry.record)
+    .filter((record): record is TRecord => record !== undefined);
 }

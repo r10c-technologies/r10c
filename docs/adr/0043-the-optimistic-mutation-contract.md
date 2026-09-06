@@ -179,22 +179,33 @@ Past a refresh that window is over: server truth plus an explicit "this one
 failed" is more honest than a synthetic row, and strictly more useful than the
 current silence.
 
-### The optimistic patch touches one cache key, not the scope
+### ⚠️ The optimistic row is merged at render time, never patched into the cache
 
-`entityQueryScope(Ctor)` is `['entity', name]` — a **prefix**. The real keys are
-`[...scope, 'load', page, pageSize, rsql, sort]`, and `setQueriesData` matches
-prefixes by default, so patching "the scope" would prepend the row to *every*
-cached page, filter and sort variant at once: a filter that excludes the record
-would still show it, an unconditional prepend violates whatever sort is applied,
-and `total` would be wrong on each of them until settle — which on a list being
-paged through produces a phantom extra page.
+Patching the TanStack cache is the obvious move and it does not work. Measured,
+in a browser: the list **refetches on mount** — which is precisely when the
+operator arrives, having just been navigated there by `afterSave()` — and the
+server legitimately does not hold the record yet, because that is what "pending"
+means. The refetch replaces the patched page and the row disappears a moment
+after appearing, which is worse than never having shown it.
 
-So the patch is restricted by predicate to the **default** variant only: page 1,
-no filter, no sort. That is the one view where "prepend to the top" is
-unambiguous. Every other cached variant is corrected by the `invalidateQueries`
-on settle, which turns "visibly wrong for a few seconds" into "simply absent
-until settle" — a much smaller failure mode, and consistent with the server being
-the truth.
+So the pending set holds the record and the generated list prepends its entries
+to `items`. The pending set outlives every refetch, so the row stays until the
+write actually settles, at which point the entry is dropped and the server's own
+copy takes its place.
+
+Two consequences of holding a record rather than a cache page. It is
+**in-memory only** — `partialize` strips it before persisting, because a class
+instance does not survive a JSON round trip (ADR 0032), so a refresh keeps the
+watch and loses the row, exactly as the persistence decision above describes. And
+**`attach` returns whether the write was being watched**, which is how a caller
+tells a transactional create from a plain one: asking `entries.some(...)` first
+reads a React closure captured *before* the caller's own `await`, so the
+announcement the save adapter made during that await is invisible and every
+transactional write reads as a plain one. One call, answered from current state,
+has no such race.
+
+A failed entry contributes no row: the write did not happen, and the notice
+beside the table is what says so.
 
 ### `STALE` is reachable only by asking
 

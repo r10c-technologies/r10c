@@ -30,15 +30,29 @@ import { WORKSPACE_DB } from './tabs-state';
 export interface PendingState {
   pending: Record<string, PendingEntry>;
   began(transaction: PendingTransaction): void;
+  attach(transactionId: string, record: unknown): boolean;
   settle(transactionId: string): void;
   fail(transactionId: string, reason?: string): void;
   dismiss(transactionId: string): void;
 }
 
+/**
+ * ⚠️ **`record` is stripped before persisting.** It is a class instance, and a
+ * draft-style JSON round trip does not preserve one — it returns as something
+ * else, silently (ADR 0032). So a refresh keeps the *watch* and loses the row,
+ * which is the documented behaviour: past a refresh, server truth plus an honest
+ * notice beats a record rebuilt from a blob.
+ */
 export function persistedPending(
   store: PendingState,
 ): Pick<PendingState, 'pending'> {
-  return { pending: store.pending };
+  const pending: Record<string, PendingEntry> = {};
+  for (const [transactionId, { record: _dropped, ...rest }] of Object.entries(
+    store.pending,
+  )) {
+    pending[transactionId] = rest;
+  }
+  return { pending };
 }
 
 const PENDING_STORE = 'stores';
@@ -128,7 +142,7 @@ function capPending(
 
 export const usePendingState = create<PendingState>()(
   persist(
-    set => ({
+    (set, get) => ({
       pending: {},
       began: transaction =>
         set(state => ({
@@ -137,6 +151,16 @@ export const usePendingState = create<PendingState>()(
             [transaction.transactionId]: { ...transaction, state: 'pending' },
           }),
         })),
+      // Reads current state rather than taking it from the caller, so a save
+      // handler cannot ask about a store snapshot older than its own `await`.
+      attach: (transactionId, record) => {
+        const entry = get().pending[transactionId];
+        if (entry === undefined) return false;
+        set(state => ({
+          pending: { ...state.pending, [transactionId]: { ...entry, record } },
+        }));
+        return true;
+      },
       // Settling drops the entry rather than marking it done: the server's copy
       // is the truth now, and the list query that just refetched is showing it.
       settle: transactionId =>

@@ -10,7 +10,6 @@ import {
   entityQueryKey,
   entityQueryScope,
   entityQueryScopeFor,
-  isDefaultListQuery,
 } from './entity-query-key.js';
 
 @entity({ key: 'widget' })
@@ -75,43 +74,3 @@ describe('entityQueryKey', () => {
   });
 });
 
-describe('isDefaultListQuery', () => {
-  const key = (
-    entity: string,
-    page: number,
-    rsql: string,
-    sort: string,
-  ): { queryKey: readonly unknown[] } => ({
-    queryKey: ['entity', entity, 'load', page, 10, rsql, sort],
-  });
-
-  const matches = isDefaultListQuery(Widget);
-
-  // The one view where "prepend to the top" is unambiguous.
-  it('matches the first page with no filter and no sort', () => {
-    expect(matches(key('widget', 1, '', ''))).toBe(true);
-  });
-
-  // `pageSize` is a display preference, not part of what makes a view default.
-  it('ignores the page size', () => {
-    expect(
-      matches({ queryKey: ['entity', 'widget', 'load', 1, 50, '', ''] }),
-    ).toBe(true);
-  });
-
-  // Each of these is a view the record may not belong on, or does not belong at
-  // the top of — the reason the patch may not use the scope prefix.
-  it('rejects a later page, a filtered view and a sorted one', () => {
-    expect(matches(key('widget', 2, '', ''))).toBe(false);
-    expect(matches(key('widget', 1, 'name==Acme', ''))).toBe(false);
-    expect(matches(key('widget', 1, '', '+name'))).toBe(false);
-  });
-
-  it('rejects another entity, and any key that is not a list load', () => {
-    expect(matches(key('gadget', 1, '', ''))).toBe(false);
-    expect(matches({ queryKey: ['entity', 'widget', 'link-label', 'w-1'] })).toBe(
-      false,
-    );
-    expect(matches({ queryKey: ['entity-metadata', 'widget'] })).toBe(false);
-  });
-});

@@ -789,7 +789,9 @@ The workspace mounts it at `/api/admin/transaction/events`. Events feed the quer
 ```
 create → save UC → 202 (the client already minted the id)
        → adapter announces the pending write through the TransactionSink port
-       → optimistic row patched onto the DEFAULT list key only (page 1, no filter, no sort)
+       → the record is held in the pending set; the list prepends it to its own rows
+         (NOT a cache patch — the list refetches on mount and the server has no record yet,
+          so a patched page is replaced and the row vanishes a moment after appearing)
        → transaction.completed  → settle + invalidateQueries (server truth replaces the patch)
          transaction.failed     → re-read GET /api/transaction/:id for the reason, then settle
          stream was down        → onConnect re-queries every pending id

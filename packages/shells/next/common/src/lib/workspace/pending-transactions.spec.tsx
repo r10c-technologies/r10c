@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 
+import type { PendingEntry } from '@r10c/entifix-transactions';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePendingState } from './pending-state.js';
 import {
   pendingFor,
+  pendingRecordsFor,
   PendingTransactionsProvider,
   usePendingTransactions,
 } from './pending-transactions.js';
@@ -152,5 +154,59 @@ describe('pendingFor', () => {
     expect(pendingFor(store, 'product').map(entry => entry.transactionId)).toEqual(
       ['a'],
     );
+  });
+});
+
+describe('pendingRecordsFor', () => {
+  const store = (entries: PendingEntry[]) => ({
+    entries,
+    began: () => undefined,
+    attach: () => false,
+    settle: () => undefined,
+    fail: () => undefined,
+    dismiss: () => undefined,
+  });
+
+  // The rows a list must show that its own query cannot return yet — merged at
+  // render time rather than patched into the cache, which a refetch undoes.
+  it('returns the held record for each in-flight write', () => {
+    const record = { id: 'a' };
+
+    expect(
+      pendingRecordsFor(
+        store([{ ...aPending('a'), state: 'pending', record }]),
+        'product',
+      ),
+    ).toEqual([record]);
+  });
+
+  // A failed write did not happen, so it contributes no row; the notice beside
+  // the table is what says so.
+  it('contributes no row for a failed write', () => {
+    expect(
+      pendingRecordsFor(
+        store([{ ...aPending('a'), state: 'failed', record: { id: 'a' } }]),
+        'product',
+      ),
+    ).toEqual([]);
+  });
+
+  // Restored from IndexedDB, an entry has no record: the payload is stripped
+  // before persisting, because a class instance does not survive JSON.
+  it('skips an entry whose record did not survive a refresh', () => {
+    expect(
+      pendingRecordsFor(store([{ ...aPending('a'), state: 'pending' }]), 'product'),
+    ).toEqual([]);
+  });
+
+  it('ignores another entity\u2019s writes', () => {
+    expect(
+      pendingRecordsFor(
+        store([
+          { ...aPending('a', 'product-brand'), state: 'pending', record: {} },
+        ]),
+        'product',
+      ),
+    ).toEqual([]);
   });
 });

@@ -3,7 +3,6 @@
 import { EntityTable, useCasesForSurface } from '@r10c/entifix-react-controls';
 import {
   entityQueryScope,
-  isDefaultListQuery,
   useDataLoading,
   useEntityMutation,
   useEntityRecord,
@@ -23,7 +22,6 @@ import {
   EntifixBuildError,
   type Entity,
   type EntityConstructor,
-  type EntityPage,
   envelopeEntityName,
   extractMetaEntity,
 } from '@r10c/entifix-ts-core';
@@ -34,6 +32,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useLocaleHref } from '../i18n';
 import {
   pendingFor,
+  pendingRecordsFor,
   usePendingTransactions,
 } from '../workspace/pending-transactions';
 import { EntityCrudForm } from './entity-crud-form';
@@ -44,7 +43,6 @@ import type {
   EntityCrudSingleViewProps,
 } from './make-entity-crud.types';
 import { PendingNotice } from './pending-notice';
-import { prependOptimistic } from './prepend-optimistic';
 import { CATALOG_NEW_SLUG, slugToEntityId } from './slug';
 import { useEntityAffordances } from './use-entity-affordances';
 import { useEntityBulk } from './use-entity-bulk';
@@ -179,6 +177,11 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     const scope = entityQueryScope(entityConstructor);
     const affordances = useEntityAffordances(entityConstructor, metadataSource);
 
+    // Records this browser has created but the service has not finished
+    // writing. Prepended below rather than patched into the cache, which a
+    // refetch would undo.
+    const optimistic = pendingRecordsFor<TEntity>(pending, entityName);
+
     const pager = useDataLoading<TEntity, CrudContext>({
       uc: loadUCFactory<TEntity>(),
       ctx: mergeContext(adapters, configuration, repository, pending),
@@ -229,6 +232,8 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
         <EntityTable
           entityConstructor={entityConstructor}
           {...pager}
+          items={[...optimistic, ...pager.items]}
+          totalItems={pager.totalItems + optimistic.length}
           hrefFor={id => withLocale(`${basePath}/${String(id)}`)}
           newHref={withLocale(`${basePath}/${CATALOG_NEW_SLUG}`)}
           {...affordances}
@@ -253,7 +258,6 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
   }: EntityCrudSingleViewProps = {}) {
     const adapters = useAdapters();
     const pending = usePendingTransactions();
-    const queryClient = useQueryClient();
     const router = useRouter();
     const withLocale = useLocaleHref();
     const params = useParams<{ slug: string }>();
@@ -310,22 +314,17 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
 
       // A transactional create resolves at the `202`, before the write is
       // durable, so the save adapter announced it and the id is in the pending
-      // set. That is how this tells the two apart — the returned entity is
-      // otherwise indistinguishable from a plain REST create.
-      const watched = pending.entries.some(
-        entry => entry.transactionId === String(saved.id),
-      );
-
-      if (watched) {
-        // Render it now, so leaving for the list does not look like a write that
-        // vanished. Restricted to the *default* list view: the scope is a key
-        // prefix, so patching it would prepend the row to every cached filter,
-        // sort and page at once and leave `total` wrong on each. Every other
-        // variant is corrected by the invalidation on settle.
-        queryClient.setQueriesData<EntityPage<TEntity>>(
-          { predicate: isDefaultListQuery(entityConstructor) },
-          prependOptimistic(saved),
-        );
+      // set. Handing the record over *is* the question — the returned entity is
+      // otherwise indistinguishable from a plain REST create, and asking
+      // `entries.some(...)` first would read a closure captured before this
+      // `await`, so the announcement made during it would be invisible.
+      //
+      // ⚠️ Deliberately *not* a `setQueriesData` patch. The list refetches on
+      // mount — precisely when the operator arrives, having just been navigated
+      // here — and the server legitimately does not hold the record yet, so the
+      // refetch would replace the patched page and the row would vanish a
+      // moment after appearing. The pending set outlives refetches.
+      if (pending.attach(String(saved.id), saved)) {
         // The draft is deliberately *not* cleared: the write has not committed,
         // and a failure minutes from now would otherwise have destroyed the
         // operator's only copy of what they typed.

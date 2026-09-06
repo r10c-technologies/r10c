@@ -150,3 +150,36 @@ describe('persistence', () => {
     expect(mergePending({ pending: null }, current)).toBe(current);
   });
 });
+
+describe('holding the record a list has to show', () => {
+  // The row must outlive the list's own refetch, which a cache patch cannot:
+  // the server legitimately has no record yet, so a refetch would drop it.
+  it('attaches the record and says the write was being watched', () => {
+    usePendingState.getState().began(aPending());
+
+    const attached = usePendingState.getState().attach(TX, { id: TX });
+
+    expect(attached).toBe(true);
+    expect(usePendingState.getState().pending[TX]?.record).toEqual({ id: TX });
+  });
+
+  // ⚠️ This is how a caller tells a transactional create from a plain one, and
+  // it has to answer from current state: a save handler asking `entries` first
+  // would be reading a closure captured before its own `await`.
+  it('answers false for a write nobody announced', () => {
+    expect(usePendingState.getState().attach('never-seen', {})).toBe(false);
+    expect(usePendingState.getState().pending).toEqual({});
+  });
+
+  // A class instance does not survive a JSON round trip, so the payload is
+  // dropped on the way to IndexedDB and only the watch is restored.
+  it('strips the record before persisting', () => {
+    usePendingState.getState().began(aPending());
+    usePendingState.getState().attach(TX, { id: TX });
+
+    const persisted = persistedPending(usePendingState.getState());
+
+    expect(persisted.pending[TX]).toBeDefined();
+    expect('record' in (persisted.pending[TX] ?? {})).toBe(false);
+  });
+});
