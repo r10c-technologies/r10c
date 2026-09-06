@@ -1066,6 +1066,46 @@ instantiation is excessively deep`); every scalar read is now
   record, since a distinguishable status makes it an oracle for ids that are also
   primary keys. Amends ADR 0028 (the payload member; every other decision there
   stands).
+- **A `202` is a write the browser now keeps watching, and reconciliation is a
+  re-query** ([ADR 0043](docs/adr/0043-the-optimistic-mutation-contract.md)).
+  `docs/FRONTEND.md` claimed mutations were already optimistic with
+  `onMutate`/`onError`/`onSettled` rollback; none of it existed —
+  `useEntityMutation` is `useReducer` + `Effect.runPromise` and holds no
+  `QueryClient` — so a create **navigated away at the `202`** and a later failure
+  left no row, no message and nothing to retry from. The save adapter is the only
+  place that knows a save was transactional, so it announces into a
+  `TransactionSink` read with **`Effect.serviceOption`**: the tag never enters the
+  adapter's `R`, so the storefront and every plain REST caller compile untouched —
+  ⚠️ and that erasure means **nothing forces `mergeContext` to provide it**, so a
+  spec pins that it does, the `@r10c/slices` barrel-reachability guard applied to a
+  context. Rejected in its place: a `transactional: true` crud option, which
+  restates `create: 'command'` once per entity forever. Six things not to
+  re-derive. ⚠️ **The pending set is session-scoped, not workspace-scoped** — a
+  create is `/catalog/<entity>/new` on the **plain route**, outside any
+  `WorkspaceShell`, so a store mounted in the workspace would be written by nothing
+  or, worse, written before `persist.setOptions` had scoped it, which is ADR 0032's
+  unscoped cross-account restore; it is provided at the `(authenticated)` layout
+  and the sink is a `Noop` where no provider is mounted. ⚠️ **A `404` from
+  `GET /api/transaction/:id` means _not tracked yet_, never _failed_**: with the
+  broker down the write commits (the outbox is in the same Mongo transaction) and
+  no `accepted` ever reaches the tracker, so rolling back there un-renders a
+  healthy write at exactly the moment nobody can tell a UI bug from an outage —
+  only `FAILED`/`STALE` roll back. ⚠️ **`onConnect` replays for a listener
+  registered while the stream is already open**, and that is the mechanism, not a
+  nicety: the channel is refcounted and opened by its first subscriber, so a
+  settlement hook mounting after `useReactiveInvalidation` would register for an
+  `onopen` that already fired and reconcile a restored pending set **never**.
+  **The optimistic patch touches one key, not the scope** — `entityQueryScope` is
+  a *prefix* and `setQueriesData` matches prefixes, so patching it prepends the row
+  to every cached filter, sort and page at once and leaves `total` wrong on each;
+  it is restricted by predicate to page 1 / no filter / no sort, and settle is
+  `invalidateQueries`. **The pending set persists but its payload does not**, so no
+  row is fabricated after a refresh — reconcile at once, and name the failure in a
+  notice. And **the tab strip is deliberately left unwired**: only creates are
+  transactional and a create has no tab (`EntityEditorTab` requires an id), so a
+  badge keyed on a pending record id is unreachable by construction — wiring it
+  would ship the very defect this record opens by naming. Amends ADR 0028 and
+  ADR 0036; every decision in both stands.
 - **A service describes its own wiring, and the point is the diff**
   ([ADR 0031](docs/adr/0031-a-service-describes-its-own-wiring.md)).
   `GET /api/$service` — slices hosted, stores opened, events published,
