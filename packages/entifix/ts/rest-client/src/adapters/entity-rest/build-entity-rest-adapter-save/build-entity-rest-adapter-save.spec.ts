@@ -1,3 +1,5 @@
+import type { PendingTransaction } from '@r10c/entifix-transactions';
+import { TransactionSinkTag } from '@r10c/entifix-transactions';
 import {
   accessor,
   type Entity,
@@ -13,7 +15,7 @@ import {
   respondWithMalformedEnvelope,
   setupEntifixServer,
 } from '@r10c/entifix-ts-testing-unit/http';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import type { BuildEntityRestOptions } from '../types.js';
@@ -93,6 +95,28 @@ const runCommandSave = (widget: Widget) =>
       Widget,
       commandOptions,
     )(widget).pipe(Effect.provide(configuration)),
+  );
+
+/**
+ * The same again, with something watching for pending writes.
+ *
+ * Two runners rather than one with a flag, because "no sink provided" is a real
+ * caller — the storefront and every plain REST adapter — and not a test double.
+ */
+const runCommandSaveWatchedBy = (sink: PendingTransaction[]) => (widget: Widget) =>
+  Effect.runPromise(
+    buildEntityRestAdapterSave(
+      Widget,
+      commandOptions,
+    )(widget).pipe(
+      Effect.provide(
+        Layer.succeed(TransactionSinkTag, {
+          began: pending => {
+            sink.push(pending);
+          },
+        }).pipe(Layer.merge(configuration)),
+      ),
+    ),
   );
 
 /** What marketplace-admin-service answers a command with. */
@@ -281,6 +305,92 @@ describe('buildEntityRestAdapterSave, transactional create', () => {
     await expect(
       runCommandSave(makeWidget(undefined, 'Sprocket')),
     ).rejects.toThrow(/transactionEvent/);
+  });
+
+  // The announcement is what lets the browser keep watching a write it cannot
+  // see the result of. Without it a create navigates away at the `202` and a
+  // later failure leaves no row, no message and nothing to retry from.
+  it('announces the pending write to a sink that is watching', async () => {
+    let sent = '';
+    server.use(
+      http.post(BASE_URL, async ({ request }) => {
+        const body = (await request.json()) as {
+          data: { transactionId: string };
+        };
+        sent = body.data.transactionId;
+        return acceptedTransaction(sent);
+      }),
+    );
+
+    const announced: PendingTransaction[] = [];
+    await runCommandSaveWatchedBy(announced)(makeWidget(undefined, 'Sprocket'));
+
+    expect(announced).toHaveLength(1);
+    expect(announced[0]?.transactionId).toBe(sent);
+    expect(announced[0]?.entity).toBe('widget');
+    expect(Date.parse(announced[0]?.at ?? '')).not.toBeNaN();
+  });
+
+  // The tag is read with `serviceOption` precisely so this stays a supported
+  // caller rather than a missing layer: the storefront and every plain REST
+  // adapter run with no sink at all.
+  it('runs unchanged when nothing is watching', async () => {
+    server.use(
+      http.post(BASE_URL, () =>
+        acceptedTransaction('3f2504e0-4f89-41d3-9a0c-0305e82c3301'),
+      ),
+    );
+
+    await expect(
+      runCommandSave(makeWidget(undefined, 'Sprocket')),
+    ).resolves.toBeInstanceOf(Widget);
+  });
+
+  // Announcing before the shape assertion would register a pending id that
+  // nothing will ever settle — a phantom entry, permanently.
+  it('announces nothing when the 2xx does not describe a transaction', async () => {
+    server.use(
+      http.post(BASE_URL, () =>
+        HttpResponse.json(
+          {
+            meta: { type: 'entity', entity: 'widget' },
+            data: { id: 'widget-1', name: 'Sprocket' },
+          },
+          { status: 202 },
+        ),
+      ),
+    );
+
+    const announced: PendingTransaction[] = [];
+    await expect(
+      runCommandSaveWatchedBy(announced)(makeWidget(undefined, 'Sprocket')),
+    ).rejects.toThrow(/transactionEvent/);
+
+    expect(announced).toEqual([]);
+  });
+
+  // A plain REST create is synchronous and durable when it answers, so there is
+  // nothing to watch — announcing one would put an id in the pending set that no
+  // transaction event will ever arrive for.
+  it('announces nothing for a non-transactional create', async () => {
+    const announced: PendingTransaction[] = [];
+
+    await Effect.runPromise(
+      buildEntityRestAdapterSave(
+        Widget,
+        restOptions,
+      )(makeWidget(undefined, 'Sprocket')).pipe(
+        Effect.provide(
+          Layer.succeed(TransactionSinkTag, {
+            began: pending => {
+              announced.push(pending);
+            },
+          }).pipe(Layer.merge(configuration)),
+        ),
+      ),
+    );
+
+    expect(announced).toEqual([]);
   });
 
   // An update is not a command: the record exists, so it is a plain REST write
