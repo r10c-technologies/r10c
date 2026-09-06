@@ -1,5 +1,7 @@
 import { EntityColumn } from '@r10c/entifix-react-controls';
 import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
+import type { TransactionSink } from '@r10c/entifix-transactions';
+import { TransactionSinkTag } from '@r10c/entifix-transactions';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
@@ -19,7 +21,7 @@ import {
 } from '@r10c/entifix-ts-testing-unit';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Context } from 'effect';
+import { Context, Effect, Option } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -815,5 +817,45 @@ describe('the generated form, saving a write that is still in flight', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     await waitFor(() => expect(store.clear).toHaveBeenCalledTimes(1));
+  });
+});
+
+/**
+ * ⚠️ The guard the type system cannot give.
+ *
+ * The sink is read with `Effect.serviceOption`, which erases the tag from the
+ * adapter's `R` — that is what keeps every existing caller compiling with no
+ * layer to provide, and it is also why **nothing forces the composition root to
+ * provide it**. Forget to, and the read returns `None`, everything type-checks,
+ * the adapter's own spec still reaches 100% on both arms, and the feature is
+ * silently dead. So the wiring is asserted where it is done.
+ */
+describe('the context the generated pages run their use-cases in', () => {
+  it('carries a transaction sink, so an announcement has somewhere to go', async () => {
+    let seen: Option.Option<TransactionSink> | undefined;
+
+    // A repository whose only job is to report what it can see in context —
+    // driven through the real `SingleViewPage`, so what is asserted is the
+    // context `mergeContext` actually built rather than a re-derivation of it.
+    repositories.brand = {
+      ...repositories.brand,
+      save: () =>
+        Effect.gen(function* () {
+          seen = yield* Effect.serviceOption(TransactionSinkTag);
+          return yield* Effect.succeed(makeBrand('b-1', 'Acme', 'brand-001'));
+        }),
+    } as ReturnType<typeof makeInMemoryEntityRepository>;
+
+    slug = 'b-1';
+    const user = userEvent.setup();
+    renderPage(<brandCrud.SingleViewPage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText(/nombre/i)).toHaveValue('Acme'),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() => expect(seen).toBeDefined());
+    expect(Option.isSome(seen!)).toBe(true);
   });
 });
