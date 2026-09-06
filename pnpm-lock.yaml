@@ -1047,6 +1047,9 @@ importers:
 
   packages/entifix/react/integration:
     dependencies:
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../../ts/transactions
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../ts/core
