@@ -10,6 +10,7 @@ import {
   pendingFor,
   pendingRecordsFor,
   PendingTransactionsProvider,
+  resetPendingHydration,
   usePendingTransactions,
 } from './pending-transactions.js';
 
@@ -30,6 +31,7 @@ const wrapper =
   );
 
 beforeEach(() => {
+  resetPendingHydration();
   usePendingState.setState({ pending: {} });
   vi.spyOn(usePendingState.persist, 'rehydrate').mockResolvedValue(undefined);
   vi.spyOn(usePendingState.persist, 'setOptions');
@@ -79,6 +81,35 @@ describe('PendingTransactionsProvider', () => {
     expect(setOptionsOrder).toBeLessThan(rehydrateOrder ?? 0);
   });
 
+  // ⚠️ Measured on the live fleet, and the reason this is once per *scope*
+  // rather than once per mount: `rehydrate()` replaces in-memory state with what
+  // is on disk, and the write that follows a `began` is asynchronous — so a
+  // second read lands between the two and wipes the entry that was just
+  // recorded. The notice appeared and vanished while the write was still in
+  // flight.
+  it('does not read the store again on a remount, which would wipe a fresh entry', async () => {
+    const { unmount } = renderHook(() => usePendingTransactions(), {
+      wrapper: wrapper('user-1:org-1'),
+    });
+    await waitFor(() =>
+      expect(usePendingState.persist.rehydrate).toHaveBeenCalledTimes(1),
+    );
+
+    act(() => {
+      usePendingState.getState().began(aPending());
+    });
+    unmount();
+
+    renderHook(() => usePendingTransactions(), {
+      wrapper: wrapper('user-1:org-1'),
+    });
+
+    await waitFor(() =>
+      expect(usePendingState.persist.rehydrate).toHaveBeenCalledTimes(1),
+    );
+    expect(usePendingState.getState().pending[TX]).toBeDefined();
+  });
+
   it('re-scopes when the account changes', async () => {
     const { rerender } = renderHook(() => usePendingTransactions(), {
       wrapper: wrapper('user-1:org-1'),
@@ -93,6 +124,28 @@ describe('PendingTransactionsProvider', () => {
     rerender();
 
     expect(usePendingState.persist.setOptions).toHaveBeenCalled();
+  });
+
+  // A different account *must* re-read: the guard is per scope, not global.
+  it('reads again when the scope actually changes', async () => {
+    const { unmount } = renderHook(() => usePendingTransactions(), {
+      wrapper: wrapper('user-1:org-1'),
+    });
+    await waitFor(() =>
+      expect(usePendingState.persist.rehydrate).toHaveBeenCalledTimes(1),
+    );
+    unmount();
+
+    renderHook(() => usePendingTransactions(), {
+      wrapper: wrapper('user-9:org-9'),
+    });
+
+    await waitFor(() =>
+      expect(usePendingState.persist.setOptions).toHaveBeenCalledWith({
+        name: 'pending:user-9:org-9',
+      }),
+    );
+    expect(usePendingState.persist.rehydrate).toHaveBeenCalledTimes(2);
   });
 
   it('settles and fails through the provided store', async () => {

@@ -34,6 +34,21 @@ const noopStore: PendingTransactionStore = {
 const PendingTransactionsContext =
   createContext<PendingTransactionStore>(noopStore);
 
+/**
+ * Which scope the module-level store has already been read for.
+ *
+ * Module-level because the store it guards is: `usePendingState` is a singleton,
+ * so "has this been hydrated" is a fact about the module and not about any one
+ * component instance. A ref would reset on remount, which is the case this
+ * exists to survive.
+ */
+let hydratedScope: string | undefined;
+
+/** Test seam: forget that any scope was hydrated. */
+export function resetPendingHydration(): void {
+  hydratedScope = undefined;
+}
+
 export interface PendingTransactionsProviderProps {
   /**
    * Who these pending writes belong to — the same `workspaceScopeKey({ userId,
@@ -69,13 +84,20 @@ export function PendingTransactionsProvider({
   // what decides whose in-flight writes come back, so setting it late would
   // restore the unscoped set first and only then start writing to the right key.
   //
-  // Unlike `WorkspaceShell` there is no hydration gate here, deliberately. This
+  // ⚠️ **And the read happens once per scope, not once per mount.** Measured on
+  // the live fleet: `rehydrate()` *replaces* in-memory state with what is on
+  // disk, and the disk write that follows a `began` is asynchronous — so a
+  // second call (a remount, or React's development double-invoke) lands between
+  // the two and wipes the very entry that was just recorded. The symptom is a
+  // notice that appears and vanishes, with the write still in flight.
+  //
+  // Unlike `WorkspaceShell` there is no hydration *gate*, deliberately: this
   // provider wraps every authenticated page, so holding render back on an
-  // IndexedDB read would blank the whole app on each load — and it buys nothing,
-  // because the store starts empty and its subscribers re-render when the read
-  // lands. A tab set has to gate; a pending set has nothing to be wrong about
-  // while it is still empty.
+  // IndexedDB read would blank the whole app on each load. A tab set has to
+  // gate; a pending set has nothing to be wrong about while it is still empty.
   useEffect(() => {
+    if (hydratedScope === scope) return;
+    hydratedScope = scope;
     usePendingState.persist.setOptions({ name: `pending:${scope}` });
     // `rehydrate()` is typed `void | Promise<void>`, hence the wrap.
     void Promise.resolve(usePendingState.persist.rehydrate());
