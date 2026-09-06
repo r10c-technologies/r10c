@@ -22,6 +22,7 @@ export * from './ui/molecules/bulk-result';
 export * from './ui/molecules/card';
 export * from './ui/molecules/column-settings';
 export * from './ui/molecules/confirm-dialog';
+export * from './ui/molecules/drawer';
 export * from './ui/molecules/entity-link-input';
 export * from './ui/molecules/entity-link-picker';
 export * from './ui/molecules/entity-record-card';

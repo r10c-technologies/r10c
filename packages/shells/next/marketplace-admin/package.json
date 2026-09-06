@@ -47,6 +47,7 @@
     "@r10c/entifix-ts-testing-unit": "workspace:*"
   },
   "dependencies": {
+    "@r10c/business-ts-authz": "workspace:*",
     "@r10c/business-ts-catalog-reference": "workspace:*",
     "@r10c/business-ts-product-configuration-management": "workspace:*",
     "@r10c/entifix-react-controls": "workspace:*",

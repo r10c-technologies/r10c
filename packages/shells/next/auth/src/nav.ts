@@ -2,6 +2,7 @@ import { UserIdentity } from '@r10c/business-ts-authn';
 import {
   type GuardedNavSection,
   permissionForEntity,
+  screenAddress,
 } from '@r10c/business-ts-authz';
 import { ACCOUNT_DESTINATIONS } from '@r10c/shells-next-common/server';
 
@@ -37,6 +38,12 @@ export const AUTH_NAV: GuardedNavSection[] = [
         label: 'shell:auth.nav.users',
         href: '/users',
         icon: '◉',
+        // Definiciones, so the same `master:` grammar every other tab uses
+        // (ADR 0042). It carried no address at all until the pages grew the
+        // dual-host seam: `UserDetailPage` read its id from `useParams`, which
+        // resolves to nothing under `/workspace`, so an address here would have
+        // opened a form for a record with no id.
+        workspace: screenAddress({ type: 'master', key: 'user-identity' }),
         permission: permissionForEntity(UserIdentity, 'read'),
       },
     ],

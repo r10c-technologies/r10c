@@ -1,34 +1,9 @@
 'use client';
 
+import { screenAddress } from '@r10c/business-ts-authz';
+import type { EntityCrudSingleViewProps } from '@r10c/shells-next-common';
 import { useEntityDraft, useTabEntityNav } from '@r10c/shells-next-common';
-import {
-  ProductBrandSingleViewClientPage,
-  ProductCategorySingleViewClientPage,
-  ProductSingleViewClientPage,
-} from '@r10c/shells-next-marketplace-admin';
-
-// The entity's own `@entity({ labelKey })` vocabulary — the same keys the table
-// and form resolve, so a tab caption cannot drift from its column header.
-export const ENTITY_EDITORS = {
-  'product-specification': {
-    labelKey: 'entity:product-specification.label',
-    Page: ProductSingleViewClientPage,
-  },
-  'product-brand': {
-    labelKey: 'entity:product-brand.label',
-    Page: ProductBrandSingleViewClientPage,
-  },
-  'product-category': {
-    labelKey: 'entity:product-category.label',
-    Page: ProductCategorySingleViewClientPage,
-  },
-} as const;
-
-export type EntityEditorKey = keyof typeof ENTITY_EDITORS;
-
-export function isEntityEditorKey(value: string): value is EntityEditorKey {
-  return value in ENTITY_EDITORS;
-}
+import type { ReactElement } from 'react';
 
 /**
  * An entity editor hosted in a workspace tab, with continuous autosave: every
@@ -44,20 +19,29 @@ export function isEntityEditorKey(value: string): value is EntityEditorKey {
  * The same fact drives the tab's dirty marker and its close confirmation,
  * because `WorkspaceShell` reads the draft store directly.
  *
- * The address is built here and is the third spelling of `entity:<key>:<id>` —
- * `entityKind.toParam` in `workspace-registry.tsx` is the second. #141 rewrites
- * that registry, so the duplication is collapsed there rather than now.
+ * `Page` arrives as a prop rather than being looked up in a const map here. That
+ * map was one of three that restated the same entity keys, and the one whose
+ * absence was silent: a key missing from it opened a tab onto nothing. The
+ * registry derives it from the generated screens now.
+ *
+ * The draft address is `screenAddress`, the same builder the registry and the
+ * nav use. It used to be spelled out here as a template literal — the third
+ * spelling of a grammar that had to agree with itself at five call sites, and
+ * the one whose drift silently detached a tab from its own autosaved draft.
  */
 export function EntityEditorTab({
   entityKey,
   id,
+  Page,
 }: {
-  entityKey: EntityEditorKey;
+  entityKey: string;
   id: string;
+  Page: (props?: EntityCrudSingleViewProps) => ReactElement;
 }) {
   const nav = useTabEntityNav();
-  const draft = useEntityDraft(`entity:${entityKey}:${id}`);
-  const { Page } = ENTITY_EDITORS[entityKey];
+  const draft = useEntityDraft(
+    screenAddress({ type: 'master', key: entityKey, id }),
+  );
 
   const done = () => nav.toList(entityKey);
 

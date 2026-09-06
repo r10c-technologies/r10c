@@ -19,7 +19,8 @@ import type { Context } from 'effect/Context';
 import type { ReactElement, ReactNode } from 'react';
 
 /**
- * The `entity` catalog keys that carry **both** form titles.
+ * The `entity` catalog keys that carry **both** form titles, a `label` and a
+ * `plural`.
  *
  * Derived from the Spanish catalog rather than written out, so the union is the
  * catalog: an entity whose subtree has no `form.editTitle`/`form.newTitle`
@@ -28,6 +29,13 @@ import type { ReactElement, ReactNode } from 'react';
  * i18n gate for this factory — `@r10c/i18n-check` scans only
  * `packages/business/ts` for `@useCase()` decorators and never `.tsx`, so a
  * runtime key here would be checked by nothing.
+ *
+ * `label`/`plural` joined the condition when {@link EntityCrud} began carrying
+ * them, so that a workspace tab and a nav entry derived from this descriptor
+ * name the entity in the catalog's own words. They are part of the **type**
+ * rather than a runtime assertion in the factory, because the catalog is
+ * statically known here: a missing `plural` should fail at the call site that
+ * generates the screens, not on the render that first tries to title a tab.
  *
  * Keeping the key typed is what lets the generated form call `useT('entity')`
  * with a template literal and still fail the build on a typo, instead of
@@ -38,6 +46,8 @@ import type { ReactElement, ReactNode } from 'react';
 export type EntityCatalogKey = {
   [K in keyof Resources['entity']]: Resources['entity'][K] extends {
     form: { editTitle: string; newTitle: string };
+    label: string;
+    plural: string;
   }
     ? K
     : never;
@@ -164,14 +174,23 @@ export interface EntityCrudSingleViewProps {
 /**
  * What the factory returns: a **named descriptor**, not four loose components.
  *
- * The identity fields are here so the workspace registry and the nav can be
- * derived from a list of these rather than from the hand-written const maps and
- * the literal ternary they replace (#141).
+ * The identity fields are here so the workspace registry and the nav are derived
+ * from a list of these rather than from the hand-written const maps they replace
+ * (#141).
  */
 export interface EntityCrud<TEntity extends Entity> {
   readonly entityConstructor: EntityConstructor<TEntity>;
   /** `@entity({ key })`, which is also `catalogKey` and the tab address payload. */
   readonly entityKey: EntityCatalogKey;
+  /**
+   * `@entity({ labelKey })` — how one record is named. A record tab's title.
+   *
+   * Read off the decorator rather than passed, so the tab strip, the nav and the
+   * search results all name the entity from the one place it names itself.
+   */
+  readonly entityLabelKey: string;
+  /** `@entity({ pluralKey })` — how the collection is named. A list tab's title. */
+  readonly entityPluralKey: string;
   readonly basePath: string;
   readonly ListPage: () => ReactElement;
   readonly SingleViewPage: (props?: EntityCrudSingleViewProps) => ReactElement;

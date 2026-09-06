@@ -102,10 +102,22 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     runBulkUseCase,
   } = options;
 
-  const declaredKey = extractMetaEntity(entityConstructor).key;
-  if (declaredKey !== catalogKey) {
+  const meta = extractMetaEntity(entityConstructor);
+  if (meta.key !== catalogKey) {
     throw new EntifixBuildError(
-      `${entityConstructor.name} declares key "${String(declaredKey)}" but was given catalog key "${catalogKey}"`,
+      `${entityConstructor.name} declares key "${String(meta.key)}" but was given catalog key "${catalogKey}"`,
+    );
+  }
+  // Read off `@entity()` rather than rebuilt from `catalogKey`. Both spellings
+  // produce the same string today, and that is exactly the problem: a second
+  // place that knows how an entity's catalog subtree is laid out is a second
+  // place to fix when one moves. `MetaEntityOptions` makes them optional, so an
+  // entity that never declared them fails here — where a screen is generated —
+  // rather than on the render that first tries to title a tab with `undefined`.
+  const { labelKey: entityLabelKey, pluralKey: entityPluralKey } = meta;
+  if (entityLabelKey === undefined || entityPluralKey === undefined) {
+    throw new EntifixBuildError(
+      `${entityConstructor.name} must declare labelKey and pluralKey on @entity() to be generated`,
     );
   }
 
@@ -294,6 +306,8 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
   return {
     entityConstructor,
     entityKey: catalogKey,
+    entityLabelKey,
+    entityPluralKey,
     basePath,
     ListPage,
     SingleViewPage,

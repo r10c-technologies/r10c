@@ -1,5 +1,6 @@
 'use client';
 
+import { screenAddress } from '@r10c/business-ts-authz';
 import { useRouter } from 'next/navigation';
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 
@@ -37,10 +38,13 @@ export function useTabEntityNav(): EntityNav {
   return useMemo(
     () => ({
       toList: entityKey =>
-        open({ param: `catalog:${entityKey}`, title: entityKey }),
+        open({
+          param: screenAddress({ type: 'master', key: entityKey }),
+          title: entityKey,
+        }),
       toEntity: (entityKey, id) =>
         open({
-          param: `entity:${entityKey}:${id}`,
+          param: screenAddress({ type: 'master', key: entityKey, id }),
           title: `${entityKey} #${id}`,
         }),
     }),

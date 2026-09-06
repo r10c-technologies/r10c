@@ -42,14 +42,17 @@ describe('useRouteEntityNav', () => {
 });
 
 describe('useTabEntityNav', () => {
-  it('opens list and entity tabs', () => {
+  it('opens list and entity tabs at one address grammar', () => {
+    // One `master:` kind for both, not a `catalog:`/`entity:` pair — the list
+    // and the record are the same screen type, so the id is what distinguishes
+    // them (ADR 0042).
     const { result } = renderHook(() => useTabEntityNav());
 
     result.current.toList('product');
-    expect(useTabsState.getState().activeParam).toBe('catalog:product');
+    expect(useTabsState.getState().activeParam).toBe('master:product');
 
     result.current.toEntity('product', '123');
-    expect(useTabsState.getState().activeParam).toBe('entity:product:123');
+    expect(useTabsState.getState().activeParam).toBe('master:product:123');
   });
 });
 

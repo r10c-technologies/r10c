@@ -11,6 +11,30 @@ describe('AUTH_NAV', () => {
     expect(users?.permission).toBe('authn:user-identity:read');
   });
 
+  it('addresses user administration as a workspace tab', () => {
+    // It carried none until the pages grew the dual-host seam — `useParams`
+    // resolves to nothing under `/workspace`, so an address without it opened a
+    // form for a record with no id.
+    const users = AUTH_NAV.flatMap(section => section.items).find(
+      item => item.href === '/users',
+    );
+
+    expect(users?.workspace).toBe('master:user-identity');
+  });
+
+  it('gives no account destination a workspace address', () => {
+    // Not an omission: `screenAddress` takes a `ScreenType`, and the account
+    // section deliberately declares none (ADR 0033), so an address for it
+    // cannot be constructed at all.
+    const account = AUTH_NAV.find(
+      section => section.title === 'shell:auth.nav.accountSection',
+    );
+
+    expect(account?.items.every(item => item.workspace === undefined)).toBe(
+      true,
+    );
+  });
+
   it('leaves every account destination unguarded', () => {
     // Your own account is not an administrative screen. A plain `user` must
     // reach all three, which is why none of them carries a permission.

@@ -280,6 +280,34 @@ describe('makeEntityCrud, at factory time', () => {
     ).toThrow(EntifixBuildError);
   });
 
+  // `MetaEntityOptions` makes both keys optional, and a screen generated without
+  // them titles its tabs `undefined` — at render, on a surface nobody generated
+  // deliberately, rather than here where the entity was handed over.
+  it('rejects an entity that declares no label or plural key', () => {
+    @entity({ domain: 'testing', key: 'product-category' })
+    class Unnamed implements Entity {
+      #id?: EntityId;
+
+      @accessor({ type: 'id', label: 'ID' })
+      get id(): EntityId | undefined {
+        return this.#id;
+      }
+      set id(value: EntityId | undefined) {
+        this.#id = value;
+      }
+    }
+
+    expect(() =>
+      makeEntityCrud<Unnamed, TestAdapters>(Unnamed, {
+        useAdapters,
+        basePath: '/catalog/product-category',
+        catalogKey: 'product-category',
+        repository: 'brandRest',
+        configuration: 'configurationStore',
+      }),
+    ).toThrow(/labelKey and pluralKey/);
+  });
+
   // A picker aimed at a member that does not exist renders identically to a
   // read-only field — the same silent failure `assertLinkSourcesAreEditable`
   // exists to catch one layer down.
@@ -306,6 +334,14 @@ describe('makeEntityCrud, at factory time', () => {
     expect(brandCrud.entityKey).toBe('product-brand');
     expect(brandCrud.basePath).toBe('/catalog/product-brand');
     expect(brandCrud.entityConstructor).toBe(Brand);
+  });
+
+  it('names the entity from its own catalog subtree, singular and plural', () => {
+    // A list tab is titled with the plural and a record tab with the label, so
+    // both are computed here rather than restated at the registry — which is
+    // what let three const maps disagree about what a product is called.
+    expect(brandCrud.entityLabelKey).toBe('entity:product-brand.label');
+    expect(brandCrud.entityPluralKey).toBe('entity:product-brand.plural');
   });
 });
 

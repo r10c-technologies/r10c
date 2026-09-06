@@ -49,6 +49,9 @@
       "path": "../../../entifix/react/controls/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/authz/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/authn/tsconfig.lib.json"
     },
     {

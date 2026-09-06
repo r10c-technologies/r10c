@@ -7,10 +7,6 @@ export const app: EsApp = {
     description: 'Back office for the r10c marketplace.',
     nav: {
       dashboard: 'Dashboard',
-      catalog: 'Catalog',
-      products: 'Products',
-      brands: 'Brands',
-      categories: 'Categories',
       account: 'Account',
     },
     menu: {

@@ -1,98 +1,116 @@
 'use client';
 
+import { parseScreenPayload } from '@r10c/business-ts-authz';
+import { UserDetailPage, UsersPage } from '@r10c/shells-next-auth';
 import { type TabKind, TabRegistry } from '@r10c/shells-next-common';
-import {
-  ProductBrandListClientPage,
-  ProductCategoryListClientPage,
-  ProductListClientPage,
-} from '@r10c/shells-next-marketplace-admin';
+import { MARKETPLACE_ADMIN_CRUDS } from '@r10c/shells-next-marketplace-admin';
 import { ConfigurationListClientPage } from '@r10c/shells-next-system-management';
+import type { ReactNode } from 'react';
 
-import {
-  ENTITY_EDITORS,
-  type EntityEditorKey,
-  EntityEditorTab,
-  isEntityEditorKey,
-} from './entity-tab';
+import { EntityEditorTab } from './entity-tab';
 
 /**
- * The catalogs a `catalog:<key>` tab can open — the list client pages.
+ * Every screen a `master:` tab can open, derived from the generated catalogs.
  *
- * The key is the **entity key**, the same one `ENTITY_EDITORS` and the nav's
- * `workspace:` addresses use. It was `product` here and `product-specification`
- * everywhere else, which is a `catalog:product-specification` that resolves to
- * nothing: the sidebar's open-in-workspace control did nothing at all, and so
- * did the return to the list after saving a product in a tab.
- */
-const CATALOGS = {
-  'product-specification': {
-    titleKey: 'app:admin.nav.products',
-    render: () => <ProductListClientPage />,
-  },
-  'product-brand': {
-    titleKey: 'app:admin.nav.brands',
-    render: () => <ProductBrandListClientPage />,
-  },
-  'product-category': {
-    titleKey: 'app:admin.nav.categories',
-    render: () => <ProductCategoryListClientPage />,
-  },
-} as const;
-
-type CatalogKey = keyof typeof CATALOGS;
-
-const catalogKind: TabKind<{ key: CatalogKey }> = {
-  kind: 'catalog',
-  match: payload =>
-    payload in CATALOGS ? { key: payload as CatalogKey } : null,
-  toParam: addr => addr.key,
-  title: (addr, translate) => translate(CATALOGS[addr.key].titleKey),
-  render: addr => CATALOGS[addr.key].render(),
-};
-
-/** An `entity:<key>:<id>` editor tab. */
-const entityKind: TabKind<{ entityKey: EntityEditorKey; id: string }> = {
-  kind: 'entity',
-  match: payload => {
-    const separator = payload.indexOf(':');
-    if (separator === -1) return null;
-    const entityKey = payload.slice(0, separator);
-    const id = payload.slice(separator + 1);
-    return isEntityEditorKey(entityKey) && id ? { entityKey, id } : null;
-  },
-  toParam: addr => `${addr.entityKey}:${addr.id}`,
-  title: (addr, translate) =>
-    `${translate(ENTITY_EDITORS[addr.entityKey].labelKey)} #${addr.id}`,
-  render: addr => <EntityEditorTab entityKey={addr.entityKey} id={addr.id} />,
-};
-
-/**
- * A `system:<key>` tab — the system-management shell's screens as workspace tabs.
+ * This was two hand-written const maps and a third in `entity-tab.tsx`, all
+ * keyed by the same three entity keys — against the 28 entities ADR 0022 fixes
+ * for v1. Nothing failed when one was missed: a key absent from the list map
+ * opened a tab onto nothing, and one absent from the editor map made the
+ * sidebar's open-in-workspace control silently do nothing at all (#133). The
+ * list, the editor, the tab caption and the route now all come from the
+ * `EntityCrud` descriptor the pages themselves were generated from.
  *
- * The screens come from a `scope:shared` shell, but the *registry* stays here:
- * which tabs a host offers is the host's decision, and a second host may want a
- * different set.
+ * `Configuration` is the one hand-built entry, and it earns the exception: its
+ * screen is not `makeEntityCrud` output and it has no record tab — there is no
+ * single-configuration page to open. A screen that genuinely cannot be derived
+ * is a line here; an entity that can is not.
  */
-const SYSTEM_SCREENS = {
+const MASTER_LISTS: Record<
+  string,
+  { titleKey: string; render: () => ReactNode }
+> = {
+  ...Object.fromEntries(
+    MARKETPLACE_ADMIN_CRUDS.map(crud => [
+      crud.entityKey,
+      {
+        // The entity's own `@entity({ pluralKey })`, so a tab caption cannot
+        // drift from the heading of the table inside it.
+        titleKey: crud.entityPluralKey,
+        render: () => <crud.ListPage />,
+      },
+    ]),
+  ),
   configuration: {
     titleKey: 'shell:systemManagement.nav.configuration',
     render: () => <ConfigurationListClientPage />,
   },
-} as const;
-
-type SystemKey = keyof typeof SYSTEM_SCREENS;
-
-const systemKind: TabKind<{ key: SystemKey }> = {
-  kind: 'system',
-  match: payload =>
-    payload in SYSTEM_SCREENS ? { key: payload as SystemKey } : null,
-  toParam: addr => addr.key,
-  title: (addr, translate) => translate(SYSTEM_SCREENS[addr.key].titleKey),
-  render: addr => SYSTEM_SCREENS[addr.key].render(),
+  'user-identity': {
+    titleKey: 'entity:user-identity.plural',
+    render: () => <UsersPage />,
+  },
 };
 
-/** The workspace's tab registry. Adding a tab kind is one `register` call. */
-export const workspaceRegistry = new TabRegistry()
-  .register(catalogKind)
-  .register(entityKind)
-  .register(systemKind);
+const MASTER_RECORDS: Record<
+  string,
+  { labelKey: string; Page: typeof UserDetailPage }
+> = {
+  ...Object.fromEntries(
+    MARKETPLACE_ADMIN_CRUDS.map(crud => [
+      crud.entityKey,
+      { labelKey: crud.entityLabelKey, Page: crud.SingleViewPage },
+    ]),
+  ),
+  // Hand-written rather than generated — auth-service's PATCH accepts two
+  // aspects and nothing else — but it takes the same props every generated
+  // single view does, which is what lets it be a record tab at all.
+  'user-identity': {
+    labelKey: 'entity:user-identity.label',
+    Page: UserDetailPage,
+  },
+};
+
+/**
+ * The one tab kind: `master:<key>` for a list, `master:<key>:<id>` for a record.
+ *
+ * Three kinds — `catalog:`, `entity:` and `system:` — collapse into this one,
+ * because all three addressed Definiciones screens (ADR 0033) and the taxonomy
+ * is what the prefix should name. The list and the record are not different
+ * kinds; they are the same screen with and without a record, which is exactly
+ * what the optional id in the payload says.
+ */
+const masterKind: TabKind<{ key: string; id?: string }> = {
+  kind: 'master',
+  match: payload => {
+    const parsed = parseScreenPayload(payload);
+    if (parsed === null) return null;
+    const known =
+      parsed.id === undefined
+        ? parsed.key in MASTER_LISTS
+        : parsed.key in MASTER_RECORDS;
+    return known ? parsed : null;
+  },
+  toParam: addr => (addr.id === undefined ? addr.key : `${addr.key}:${addr.id}`),
+  title: (addr, translate) =>
+    addr.id === undefined
+      ? translate(MASTER_LISTS[addr.key].titleKey)
+      : `${translate(MASTER_RECORDS[addr.key].labelKey)} #${addr.id}`,
+  render: addr =>
+    addr.id === undefined ? (
+      MASTER_LISTS[addr.key].render()
+    ) : (
+      <EntityEditorTab
+        entityKey={addr.key}
+        id={addr.id}
+        Page={MASTER_RECORDS[addr.key].Page}
+      />
+    ),
+};
+
+/**
+ * The workspace's tab registry.
+ *
+ * Which screens a host offers as tabs stays the host's decision — a second host
+ * mounting the same shells may want a different set — but *how* one is addressed
+ * and what renders it no longer is.
+ */
+export const workspaceRegistry = new TabRegistry().register(masterKind);

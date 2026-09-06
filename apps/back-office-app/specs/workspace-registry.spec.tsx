@@ -5,8 +5,13 @@ import { NAV } from '../src/lib/nav';
  * The nav's `workspace:` address and the registry's key are two independently
  * maintained strings that must agree, and once did not — `catalog:product-
  * specification` against a `product` key, which resolved to nothing and made
- * "open in workspace" on Productos do nothing at all, silently. Until #125
- * makes the two one list, this is what notices.
+ * "open in workspace" on Productos do nothing at all, silently.
+ *
+ * Both sides now derive from the same `CatalogSurface`, so the drift this was
+ * written to catch is structurally gone for the catalog. It stays because the
+ * host still composes fragments from three shells and can still gain one that
+ * addresses a screen this registry does not offer — which is the same failure,
+ * one level up.
  */
 describe('the nav and the workspace registry agree', () => {
   const addresses = NAV.flatMap(section => section.items)

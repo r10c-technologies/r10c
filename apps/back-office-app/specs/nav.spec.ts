@@ -22,13 +22,13 @@ const labels = (nav: ReturnType<typeof visibleNav>): string[] =>
 
 describe('visibleNav', () => {
   it('shows a provisioned organization its own catalog', () => {
-    expect(labels(visibleNav(principal()))).toContain('app:admin.nav.products');
+    expect(labels(visibleNav(principal()))).toContain('shell:marketplaceAdmin.nav.products');
   });
 
   it('hides Productos from an organization provisioned for nothing', () => {
     // The whole behavioural claim of #125, in one assertion.
     expect(labels(visibleNav(principal({ entitlements: [] })))).not.toContain(
-      'app:admin.nav.products',
+      'shell:marketplaceAdmin.nav.products',
     );
   });
 
@@ -39,8 +39,8 @@ describe('visibleNav', () => {
     // entitlement is the mistake this test exists to catch.
     const visible = labels(visibleNav(principal({ entitlements: [] })));
 
-    expect(visible).toContain('app:admin.nav.brands');
-    expect(visible).toContain('app:admin.nav.categories');
+    expect(visible).toContain('shell:marketplaceAdmin.nav.brands');
+    expect(visible).toContain('shell:marketplaceAdmin.nav.categories');
   });
 
   it('ignores the entitlement ceiling for a session with no organization', () => {
@@ -52,13 +52,13 @@ describe('visibleNav', () => {
       entitlements: [],
     });
 
-    expect(labels(operator)).toContain('app:admin.nav.products');
+    expect(labels(operator)).toContain('shell:marketplaceAdmin.nav.products');
   });
 
   it('applies both ceilings, not whichever one passes', () => {
     // Entitled to the catalog, but holding no grant over it.
     expect(labels(visibleNav(principal({ roles: ['nobody'] })))).not.toContain(
-      'app:admin.nav.products',
+      'shell:marketplaceAdmin.nav.products',
     );
   });
 
@@ -67,14 +67,14 @@ describe('visibleNav', () => {
       section => section.title,
     );
 
-    expect(titles).not.toContain('app:admin.nav.catalog');
+    expect(titles).not.toContain('shell:marketplaceAdmin.nav.catalog');
   });
 
   it('carries the screen type through the filter', () => {
     // ADR 0033's top tier. Nothing renders it yet (#113/#123), so a filter that
     // dropped it would break nothing here and everything downstream.
     const catalog = visibleNav(principal()).find(
-      section => section.title === 'app:admin.nav.catalog',
+      section => section.title === 'shell:marketplaceAdmin.nav.catalog',
     );
 
     expect(catalog?.type).toBe('master');

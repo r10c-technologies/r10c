@@ -1,13 +1,13 @@
 import {
-  ProductBrand,
-  ProductCategory,
-} from '@r10c/business-ts-catalog-reference';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
-import {
   defineRecordSearchSource,
   type RecordSearchSource,
 } from '@r10c/shells-next-common/server';
 
+import {
+  type CatalogService,
+  type CatalogSurface,
+  MARKETPLACE_ADMIN_CATALOG_SURFACES,
+} from '../catalog-surfaces';
 import {
   MARKETPLACE_ADMIN_SERVICE_URL,
   MARKETPLACE_SERVICE_URL,
@@ -32,38 +32,29 @@ import {
  *
  * `DictionaryTerm` is deliberately absent, though it is served from the same
  * place: the back office has no screen for it, so there is no `href` to declare
- * and a result would have nowhere to go.
+ * and a result would have nowhere to go — which is why it declares no surface.
+ *
+ * Derived from the surfaces rather than written out, so a source cannot go
+ * missing for an entity the sidebar already offers. The `href`s are built from
+ * the very `basePath` the screens are generated at, which closes the drift this
+ * file's own comment used to warn about: `/catalog/product` for
+ * `product-specification` is stated once now, not agreed on twice.
  */
-export const MARKETPLACE_ADMIN_SEARCH_SOURCES: readonly RecordSearchSource[] = [
+const SERVICE_URLS: Record<CatalogService, string> = {
+  'marketplace-admin': MARKETPLACE_ADMIN_SERVICE_URL,
+  marketplace: MARKETPLACE_SERVICE_URL,
+};
+
+const searchSourceFor = (surface: CatalogSurface): RecordSearchSource =>
   defineRecordSearchSource({
-    entityConstructor: ProductSpecification,
-    baseUrl: MARKETPLACE_ADMIN_SERVICE_URL,
-    searchProperty: 'name',
-    labelProperty: 'name',
-    sublabelProperty: 'code',
-    labelKey: 'entity:product-specification.plural',
-    // `/catalog/product`, not `/catalog/product-specification`: the route
-    // segment and the entity key differ here, and they have drifted apart once
-    // already — a `catalog:product-specification` tab address against a
-    // `product` registry key, which resolved to nothing at all.
-    href: id => `/catalog/product/${id}`,
-  }),
-  defineRecordSearchSource({
-    entityConstructor: ProductBrand,
-    baseUrl: MARKETPLACE_SERVICE_URL,
-    searchProperty: 'name',
-    labelProperty: 'name',
-    sublabelProperty: 'code',
-    labelKey: 'entity:product-brand.plural',
-    href: id => `/catalog/product-brand/${id}`,
-  }),
-  defineRecordSearchSource({
-    entityConstructor: ProductCategory,
-    baseUrl: MARKETPLACE_SERVICE_URL,
-    searchProperty: 'name',
-    labelProperty: 'name',
-    sublabelProperty: 'code',
-    labelKey: 'entity:product-category.plural',
-    href: id => `/catalog/product-category/${id}`,
-  }),
-];
+    entityConstructor: surface.entityConstructor,
+    baseUrl: SERVICE_URLS[surface.service],
+    searchProperty: surface.searchProperty,
+    labelProperty: surface.labelProperty,
+    sublabelProperty: surface.sublabelProperty,
+    labelKey: surface.entityPluralKey,
+    href: id => `${surface.basePath}/${id}`,
+  });
+
+export const MARKETPLACE_ADMIN_SEARCH_SOURCES: readonly RecordSearchSource[] =
+  MARKETPLACE_ADMIN_CATALOG_SURFACES.map(searchSourceFor);

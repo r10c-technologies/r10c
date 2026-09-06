@@ -6,69 +6,31 @@ import {
 } from '@r10c/business-ts-authz';
 import { AUTH_NAV } from '@r10c/shells-next-auth/server';
 import type { NavSection } from '@r10c/shells-next-common';
+import { MARKETPLACE_ADMIN_NAV } from '@r10c/shells-next-marketplace-admin/server';
 import { SYSTEM_MANAGEMENT_NAV } from '@r10c/shells-next-system-management';
 
 import type { NavPrincipal } from './nav-principal';
 
 export type { GuardedNavItem, GuardedNavSection };
 
-const CATALOG = 'product-configuration-management';
 /**
- * Brands and categories are not in the catalog domain any more — ADR 0022 moved
- * them to the platform-plane `catalog-reference` store, and a nav item naming a
- * permission its destination does not check is exactly the drift this file is
- * written to avoid.
- */
-const CATALOG_REFERENCE = 'catalog-reference';
-
-/**
- * **The** navigation definition for the back office, and now its only one. It
- * was written out twice — here and in a `/api/menu` route serving a second
- * projection — which is one place too many for two lists that must agree. That
- * route was deleted rather than kept in step: nothing had ever fetched it, in
- * any revision, because the workspace deliberately reuses this same sidebar.
+ * **The** navigation definition for the back office, and now only a
+ * concatenation.
  *
- * Each item names the permission its destination needs, in the same vocabulary
- * `requirePermission` enforces on the service, so an entry and the route behind
- * it cannot drift. Filtering is still presentation: marketplace-admin-service
- * is what refuses the request.
+ * It used to author the catalog's three items here, which made this app the one
+ * place three of the catalog's five hand-written per-entity lists could be
+ * reconciled — and the domain strings they named were written out by hand beside
+ * permissions the services derive from `@entity()`. Every contributing shell now
+ * owns its own fragment, so this file composes and nothing more; the order is
+ * the only decision left in it.
+ *
+ * Filtering is still presentation: the services are what refuse the request.
  */
 export const NAV: GuardedNavSection[] = [
-  {
-    title: 'app:admin.nav.catalog',
-    // Definiciones: the operator authors these, they have no lifecycle, and an
-    // offering references them (ADR 0033). "Publish" arriving on a product is
-    // an action on this screen, not grounds to promote it to Operaciones.
-    type: 'master',
-    items: [
-      {
-        label: 'app:admin.nav.products',
-        href: '/catalog/product',
-        icon: '▦',
-        workspace: 'catalog:product-specification',
-        permission: `${CATALOG}:product-specification:read`,
-        // The one item here an organization is actually provisioned for. Brands
-        // and categories below are `catalog-reference`, which ADR 0022 makes
-        // permanently non-grantable — a marketplace has to merge taxonomy, so
-        // no vendor buys it and none may be refused it.
-        entitled: true,
-      },
-      {
-        label: 'app:admin.nav.brands',
-        href: '/catalog/product-brand',
-        icon: '◈',
-        workspace: 'catalog:product-brand',
-        permission: `${CATALOG_REFERENCE}:product-brand:read`,
-      },
-      {
-        label: 'app:admin.nav.categories',
-        href: '/catalog/product-category',
-        icon: '⊞',
-        workspace: 'catalog:product-category',
-        permission: `${CATALOG_REFERENCE}:product-category:read`,
-      },
-    ],
-  },
+  // Contributed by the marketplace-admin shell, which owns the catalog's screens
+  // and their copy — and derives each item from the same `CatalogSurface` the
+  // pages, the tabs and the search sources come from.
+  ...MARKETPLACE_ADMIN_NAV,
   // Contributed by the `scope:shared` system-management shell, which owns both
   // the screens and their copy — so mounting it in a second host later moves
   // nothing. Its items carry `config:configuration:*`, which only `super-admin`
@@ -143,6 +105,13 @@ export const sidebarNav = (
 ): NavSection[] =>
   visibleNav(principal).map(section => ({
     title: section.title === undefined ? undefined : translate(section.title),
+    // `type` rides through here too, and this was the hop that dropped it: the
+    // field was declared on every shell's fragment and propagated by
+    // `visibleNav`, then thrown away one line before the sidebar could group by
+    // it. It is a `ScreenType`, not copy — the sidebar resolves its own label
+    // from `SCREEN_TYPE_LABEL_KEYS`, which is `shell:` namespaced and therefore
+    // not this app's to translate.
+    type: section.type,
     items: section.items.map(({ label, href, icon, workspace }) => ({
       label: translate(label),
       href,

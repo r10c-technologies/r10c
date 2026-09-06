@@ -130,10 +130,23 @@ Three things worth not re-deriving:
 
 `GuardedNavSection` carries the type, so **every contributing shell declares its
 own** — that interface is the only layer a `layer:shell` package and a `layer:app`
-both reach, and adding the tier is not an edit in the host. The nested rendering
-itself is not built yet (#113, #123), and `TabKind`'s `catalog:`/`entity:`/
-`system:` prefixes become type-derived when #141 makes the workspace registry
-derive from the nav rather than restating it.
+both reach, and adding the tier is not an edit in the host.
+
+`SidebarNav` renders it: sections are grouped by `screenTypeRank`, the type's own
+`shell:` label is resolved there rather than by the host, and an untyped section
+sorts last with no heading
+([ADR 0041](adr/0041-the-sidebar-renders-the-taxonomy.md)). Depth is capped in the
+type — a `NavItem` has no children — and **collapsed mode does not nest**: the
+icon column stays flat with a labelled rule per tier, because a flyout would
+charge a click for labels the tooltip already gives, in the mode chosen for
+speed. Group collapse is therefore an expanded-mode affordance.
+
+Below 768px the sidebar is a `Drawer` instead
+(`useViewportMode`; the primitive is Headless UI's `Dialog`, beside
+`ConfirmDialog`). ⚠️ **Effective collapse is `stored || rail-width`, and the
+forced value is never written back** — auto-collapse that wrote the preference
+would let one visit at a narrow width silently rewrite a choice made on a
+desktop.
 
 ## Action surfaces — where a declared verb appears
 
@@ -453,15 +466,19 @@ lives in IndexedDB. Any `?tab=` the registry cannot resolve — an unknown `<kin
 known kind whose payload names nothing — renders a "can't open this tab" fallback instead of
 crashing. Sharing a whole workspace (multiple tabs in one link) is deferred.
 
-**The payload after `<kind>:` is the entity key**, the same string `@entity({ key })`
-derives and the sidebar's `workspace:` address carries. It is currently written in two
-places that must agree — the nav and the host's tab registry — and a mismatch is invisible
-by construction: the address resolves to nothing, so the control does nothing at all. That
-is why an unresolvable address is answered rather than ignored: the fallback wins over the
-tab that happens to be open, and the write-back below is suspended so the bad address stays
-in the bar instead of being replaced by an unrelated tab. Recovery is any deliberate tab
-interaction. Until the registry derives from the nav (#141), `back-office-app`'s
-`specs/workspace-registry.spec.tsx` walks every nav address through the registry.
+**An address is `<screenType>:<key>[:<id>]`** — `master:product-brand` for the list,
+`master:product-brand:abc123` for one record
+([ADR 0042](adr/0042-the-workspace-address-is-the-taxonomy-serialized.md)). One grammar,
+built and parsed only by `screenAddress`/`parseScreenPayload` in `business-ts-authz`; the
+key is the same string `@entity({ key })` derives and the sidebar's `workspace:` address
+carries, and both now come from the same `CatalogSurface`. A mismatch used to be invisible
+by construction — the address resolved to nothing, so the control did nothing at all. That
+is why an unresolvable address is still answered rather than ignored: the fallback wins over
+the tab that happens to be open, and the write-back below is suspended so the bad address
+stays in the bar instead of being replaced by an unrelated tab. Recovery is any deliberate
+tab interaction. `back-office-app`'s `specs/workspace-registry.spec.tsx` still walks every
+nav address through the registry, because a host composes fragments from three shells and
+can gain one addressing a screen it does not offer.
 
 The two directions of that projection — URL → store and store → URL — run as separate
 effects, and **the write-back reads the committed store (`useTabsState.getState()`), never

@@ -9,10 +9,11 @@ import {
   readDraftString,
 } from '@r10c/entifix-ts-core';
 import { makeEntityMetadataSource } from '@r10c/entifix-ts-rest-client';
+import type { EntityCrudSingleViewProps } from '@r10c/shells-next-common';
 import { useLocaleHref } from '@r10c/shells-next-common';
 import { Effect } from 'effect';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useAsyncResource } from './use-async-resource';
 import { UserSessionsPanel } from './user-sessions-panel';
@@ -45,15 +46,31 @@ const readUser = async (id: string): Promise<UserIdentity> => {
  * `UserIdentity`'s metadata; only `role` and `status` are actually persisted,
  * because those are the two aspects auth-service's PATCH accepts — identifiers
  * and credentials are deliberately not editable from here.
+ *
+ * Dual-host, in the shape `makeEntityCrud`'s generated single view already has:
+ * as a route it reads its id from the URL and reloads in place; in a workspace
+ * tab it is handed the id, the post-save action and the draft store. This page
+ * is hand-written rather than generated — auth-service's PATCH takes two aspects
+ * and nothing else — so the seam is written out here instead of derived, but it
+ * is deliberately the same seam, because the workspace registry hands every
+ * record tab the same props.
+ *
+ * `useParams` is what makes the prop necessary rather than merely convenient:
+ * under `/workspace` there is no dynamic segment, so it resolves to nothing and
+ * a tab would render a form for a record with no id.
  */
-export function UserDetailPage() {
+export function UserDetailPage({
+  slug,
+  onSaved,
+  draft,
+}: EntityCrudSingleViewProps = {}) {
   const t = useT('shell');
   const errorT = useT('errors');
   // The back link is a plain `<a>` inside `EntityForm`, so an unprefixed href
   // costs a full document load *and* the middleware's redirect.
   const withLocale = useLocaleHref();
   const params = useParams<{ id: string }>();
-  const id = params.id;
+  const id = slug ?? params.id;
 
   const {
     data: user,
@@ -77,12 +94,33 @@ export function UserDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
 
+  // A persisted draft is layered over the loaded record, never substituted for
+  // it: the record decides which members exist, the draft only decides their
+  // values — `restoreEntityDraft`'s rule, applied by hand because this form is
+  // not `useEntityForm`'s.
+  const restored = draft?.draft as EntityDraft | undefined;
+  const pending = useMemo(
+    () => ({ ...restored, ...edits }),
+    [restored, edits],
+  );
+
   const values: EntityDraft = {
     displayName: user?.displayName ?? '',
     role: user?.role ?? '',
     status: user?.status ?? '',
-    ...edits,
+    ...pending,
   };
+
+  // Autosave, and the equality guard is load-bearing: `save` writes a fresh
+  // object into the store, so the restored value's identity changes on every
+  // write. Keyed on identity alone this effect would persist, observe its own
+  // write, and persist again forever.
+  const persist = draft?.save;
+  useEffect(() => {
+    if (Object.keys(edits).length === 0) return;
+    if (JSON.stringify(pending) === JSON.stringify(restored)) return;
+    persist?.(pending);
+  }, [pending, restored, edits, persist]);
 
   const save = async () => {
     setIsSaving(true);
@@ -105,6 +143,13 @@ export function UserDetailPage() {
       return;
     }
     setEdits({});
+    // A draft is spent when the write commits, which is the one thing only this
+    // page knows. A failed save deliberately keeps it.
+    draft?.clear();
+    if (onSaved !== undefined) {
+      onSaved();
+      return;
+    }
     reload();
   };
 

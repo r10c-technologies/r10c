@@ -27,9 +27,9 @@ import { expect, test } from './support/fixtures';
  * assertions are all client-side.
  */
 
-const PRODUCT_TAB = 'entity:product-specification:product-1';
+const PRODUCT_TAB = 'master:product-specification:product-1';
 const CLOSE_PRODUCT = 'Cerrar Producto #product-1';
-const BRAND_TAB = 'entity:product-brand:product-brand-1';
+const BRAND_TAB = 'master:product-brand:product-brand-1';
 const CLOSE_BRAND = 'Cerrar Marca #product-brand-1';
 
 /** Fails the test if anything reaches for the native dialog we just removed. */
@@ -130,7 +130,7 @@ test('autosaves and guards a brand tab, not only the product one', async ({
 
 test('closes a clean tab with no confirmation at all', async ({ page }) => {
   forbidNativeDialogs(page);
-  await page.goto('/workspace?tab=catalog:product-specification');
+  await page.goto('/workspace?tab=master:product-specification');
 
   const tab = page.getByRole('tab', { name: 'Productos' });
   await expect(tab).toBeVisible();
