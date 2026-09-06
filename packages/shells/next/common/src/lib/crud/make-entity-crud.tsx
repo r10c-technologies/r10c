@@ -7,6 +7,8 @@ import {
   useEntityMutation,
   useEntityRecord,
 } from '@r10c/entifix-react-integration';
+import type { TransactionSink } from '@r10c/entifix-transactions';
+import { TransactionSinkTag } from '@r10c/entifix-transactions';
 import {
   type ConfigurationRepositoryTag,
   deleteUCFactory,
@@ -20,6 +22,7 @@ import {
   EntifixBuildError,
   type Entity,
   type EntityConstructor,
+  envelopeEntityName,
   extractMetaEntity,
 } from '@r10c/entifix-ts-core';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,6 +30,11 @@ import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 
 import { useLocaleHref } from '../i18n';
+import {
+  pendingFor,
+  pendingRecordsFor,
+  usePendingTransactions,
+} from '../workspace/pending-transactions';
 import { EntityCrudForm } from './entity-crud-form';
 import type {
   EntityCrud,
@@ -34,6 +42,7 @@ import type {
   EntityCrudOptions,
   EntityCrudSingleViewProps,
 } from './make-entity-crud.types';
+import { PendingNotice } from './pending-notice';
 import { CATALOG_NEW_SLUG, slugToEntityId } from './slug';
 import { useEntityAffordances } from './use-entity-affordances';
 import { useEntityBulk } from './use-entity-bulk';
@@ -41,7 +50,10 @@ import { useEntityBulk } from './use-entity-bulk';
 /** What a picker defaults to reading off its target. */
 const TARGET_NAME_PROPERTY = 'name';
 
-type CrudContext = EntityRepositoryTag | ConfigurationRepositoryTag;
+type CrudContext =
+  | EntityRepositoryTag
+  | ConfigurationRepositoryTag
+  | TransactionSinkTag;
 
 /**
  * Merges the configuration adapter with one repository adapter into the context
@@ -57,10 +69,15 @@ function mergeContext<TAdapters>(
   adapters: TAdapters,
   configuration: keyof TAdapters,
   repository: keyof TAdapters,
+  sink: TransactionSink,
 ): Context.Context<CrudContext> {
-  return Context.merge(
-    adapters[configuration] as Context.Context<ConfigurationRepositoryTag>,
-    adapters[repository] as Context.Context<EntityRepositoryTag>,
+  return Context.add(
+    Context.merge(
+      adapters[configuration] as Context.Context<ConfigurationRepositoryTag>,
+      adapters[repository] as Context.Context<EntityRepositoryTag>,
+    ),
+    TransactionSinkTag,
+    sink,
   );
 }
 
@@ -125,6 +142,10 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
   // depends on the record being edited. `linkLabelProperty`/`linkSearchProperty`
   // are overridden here because a scalar foreign key's `@accessor()` cannot name
   // the target's members — it may not import the target at all.
+  // The wire name, which is also what a pending entry records and what
+  // `entityQueryScopeFor` keys on — one derivation, so a notice and an
+  // invalidation can never disagree about which entity they mean.
+  const entityName = envelopeEntityName(entityConstructor);
   const descriptors = describeEntityColumns(entityConstructor);
   const linkPlans = links.map(link => {
     const descriptor = descriptors.find(entry => entry.name === link.field);
@@ -145,6 +166,9 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
 
   function ListPage() {
     const adapters = useAdapters();
+    // Outside a `PendingTransactionsProvider` this watches nothing, so a host
+    // that has not mounted one behaves exactly as it did before.
+    const pending = usePendingTransactions();
     // Every internal href carries the locale. An unprefixed one still resolves —
     // the middleware redirects it — but the visitor pays a round trip per click.
     const withLocale = useLocaleHref();
@@ -153,9 +177,14 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     const scope = entityQueryScope(entityConstructor);
     const affordances = useEntityAffordances(entityConstructor, metadataSource);
 
+    // Records this browser has created but the service has not finished
+    // writing. Prepended below rather than patched into the cache, which a
+    // refetch would undo.
+    const optimistic = pendingRecordsFor<TEntity>(pending, entityName);
+
     const pager = useDataLoading<TEntity, CrudContext>({
       uc: loadUCFactory<TEntity>(),
-      ctx: mergeContext(adapters, configuration, repository),
+      ctx: mergeContext(adapters, configuration, repository, pending),
       // Scoped rather than left to the per-instance fallback, which is correct
       // but unshared: with the entity's own scope one invalidation refreshes
       // every page and filter of it, which is what a bulk run needs — and it is
@@ -192,16 +221,27 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     });
 
     return (
-      <EntityTable
-        entityConstructor={entityConstructor}
-        {...pager}
-        hrefFor={id => withLocale(`${basePath}/${String(id)}`)}
-        newHref={withLocale(`${basePath}/${CATALOG_NEW_SLUG}`)}
-        {...affordances}
-        {...bulk.tableProps}
-      >
-        {columns}
-      </EntityTable>
+      <div className="flex flex-col gap-s">
+        {/* Above the table, because this is where `afterSave()` leaves the
+            operator after a create — and a create is the only transactional
+            write there is, so this is the surface the pending state has. */}
+        <PendingNotice
+          entries={pendingFor(pending, entityName)}
+          onDismiss={pending.dismiss}
+        />
+        <EntityTable
+          entityConstructor={entityConstructor}
+          {...pager}
+          items={[...optimistic, ...pager.items]}
+          totalItems={pager.totalItems + optimistic.length}
+          hrefFor={id => withLocale(`${basePath}/${String(id)}`)}
+          newHref={withLocale(`${basePath}/${CATALOG_NEW_SLUG}`)}
+          {...affordances}
+          {...bulk.tableProps}
+        >
+          {columns}
+        </EntityTable>
+      </div>
     );
   }
 
@@ -217,12 +257,13 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     draft,
   }: EntityCrudSingleViewProps = {}) {
     const adapters = useAdapters();
+    const pending = usePendingTransactions();
     const router = useRouter();
     const withLocale = useLocaleHref();
     const params = useParams<{ slug: string }>();
     const id = slugToEntityId(slug ?? params.slug);
 
-    const ctx = mergeContext(adapters, configuration, repository);
+    const ctx = mergeContext(adapters, configuration, repository, pending);
 
     const {
       entity,
@@ -256,7 +297,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
         entityConstructor: plan.entityConstructor,
         loadUc: loadUCFactory(),
         getUc: getUCFactory(),
-        ctx: mergeContext(adapters, configuration, plan.repository),
+        ctx: mergeContext(adapters, configuration, plan.repository, pending),
       },
     }));
 
@@ -268,10 +309,31 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     // A failed mutation deliberately keeps the draft — the edit is still the
     // user's only copy of what they typed.
     const handleSave = async (next: TEntity) => {
-      if (await save(next)) {
-        draft?.clear();
+      const saved = await save(next);
+      if (saved === undefined) return;
+
+      // A transactional create resolves at the `202`, before the write is
+      // durable, so the save adapter announced it and the id is in the pending
+      // set. Handing the record over *is* the question — the returned entity is
+      // otherwise indistinguishable from a plain REST create, and asking
+      // `entries.some(...)` first would read a closure captured before this
+      // `await`, so the announcement made during it would be invisible.
+      //
+      // ⚠️ Deliberately *not* a `setQueriesData` patch. The list refetches on
+      // mount — precisely when the operator arrives, having just been navigated
+      // here — and the server legitimately does not hold the record yet, so the
+      // refetch would replace the patched page and the row would vanish a
+      // moment after appearing. The pending set outlives refetches.
+      if (pending.attach(String(saved.id), saved)) {
+        // The draft is deliberately *not* cleared: the write has not committed,
+        // and a failure minutes from now would otherwise have destroyed the
+        // operator's only copy of what they typed.
         afterSave();
+        return;
       }
+
+      draft?.clear();
+      afterSave();
     };
 
     const handleDelete = async () => {

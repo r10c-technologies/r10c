@@ -2,6 +2,7 @@ import {
   makeCommandEnvelope,
   readTransactionEventEnvelope,
   type TransactionCommand,
+  TransactionSinkTag,
 } from '@r10c/entifix-transactions';
 import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
 import {
@@ -12,7 +13,7 @@ import {
   readEntityEnvelope,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 
 import { performHttpRequestThroughFetch } from '../../../clients/fetch';
 import { buildEntityRestAdapterMixins as adapterMixins } from '../build-entity-rest-adapter-mixins';
@@ -87,6 +88,29 @@ export const buildEntityRestAdapterSave =
         // accepted a transaction rather than answering something else with a
         // 2xx, which is the failure the old code path could not distinguish.
         yield* readTransactionEventEnvelope(accepted.body);
+
+        // Tell whoever is watching that a write is in flight. This is the only
+        // point in the system that knows it — the entity returned below is
+        // indistinguishable from a plain REST create, so without this the
+        // browser navigates away at the `202` and a later failure leaves no row,
+        // no message and nothing to retry from (ADR 0043).
+        //
+        // `serviceOption`, deliberately: reading the tag this way keeps it out
+        // of this function's `R`, so the storefront, the plain REST adapters and
+        // every existing spec compile and run with no layer to provide. The cost
+        // is that nothing *forces* a composition root to provide it, which is
+        // why `mergeContext` has a spec pinning that it does.
+        const sink = yield* Effect.serviceOption(TransactionSinkTag);
+        if (Option.isSome(sink)) {
+          // After the assertion above, never before: a `2xx` that is not a
+          // transaction envelope must not register a pending id, because nothing
+          // would ever settle it and the entry becomes a permanent phantom.
+          sink.value.began({
+            transactionId,
+            entity: key,
+            at: new Date().toISOString(),
+          });
+        }
 
         return entity;
       }

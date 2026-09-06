@@ -73,3 +73,4 @@ describe('entityQueryKey', () => {
     expect(entityQueryScopeFor('widget')).toEqual(entityQueryScope(Widget));
   });
 });
+

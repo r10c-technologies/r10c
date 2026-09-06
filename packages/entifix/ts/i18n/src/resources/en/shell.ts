@@ -137,6 +137,12 @@ export const shell: EsShell = {
     discardTitle: 'Discard changes',
     discard: 'This tab has unsaved changes. Closing it will lose them.',
     discardConfirm: 'Discard',
+    // See the Spanish catalog for why a failure's reason is not a key here.
+    pendingLabel: 'Save status',
+    savePending_one: 'Saving 1 record…',
+    savePending_other: 'Saving {{count}} records…',
+    saveFailed: 'The record could not be saved.',
+    saveFailedDismiss: 'Dismiss',
   },
   storefront: {
     nav: {

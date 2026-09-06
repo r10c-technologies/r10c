@@ -591,9 +591,17 @@ client-only cache/orchestration jacket over `Effect.runPromise`.
   issue carries a message and a path and nothing else. An issue with no path becomes `formError`,
   which `EntityForm` renders above the actions. Schemas are synchronous; an async one throws, so
   asynchronous checks (a uniqueness lookup) go in `validate`.
-- **Mutations** (`save`/`delete` UCs) are optimistic: `onMutate` patches the cache from the
-  Zustand draft and snapshots for rollback, `onError` rolls back, `onSettled` invalidates the
-  entity's query key.
+- **Mutations** (`save`/`delete` UCs) do **not** go through TanStack at all. `useEntityMutation`
+  is `useReducer` + `Effect.runPromise`; it holds no `QueryClient`, so a save invalidates
+  nothing by itself. That is deliberate rather than missing: a transactional create settles
+  **out of band**, on a `transaction.completed` frame that may arrive seconds later or in
+  another tab, which `onMutate`/`onError` — scoped to one promise — cannot express. The
+  optimistic patch and its reconciliation are therefore ours, and live in the settlement
+  contract of [ADR 0043](adr/0043-the-optimistic-mutation-contract.md): the pending write is
+  registered from the save adapter, the row is patched onto the **default** list key only, and
+  settling is an `invalidateQueries` driven by the event or by a re-query on reconnect.
+  (This bullet previously described an `onMutate`/`onError`/`onSettled` rollback that was never
+  written.)
 
 ### Editing a relation
 
@@ -779,10 +787,21 @@ survives, but only as spec material — it is no longer what the workspace runs 
 The workspace mounts it at `/api/admin/transaction/events`. Events feed the query client:
 
 ```
-edit → optimistic patch cache (instant, no spinner)
-     → save UC → backend
-     → ReactiveChannel event → queryClient.invalidateQueries / setQueryData (reconcile to server truth)
+create → save UC → 202 (the client already minted the id)
+       → adapter announces the pending write through the TransactionSink port
+       → the record is held in the pending set; the list prepends it to its own rows
+         (NOT a cache patch — the list refetches on mount and the server has no record yet,
+          so a patched page is replaced and the row vanishes a moment after appearing)
+       → transaction.completed  → settle + invalidateQueries (server truth replaces the patch)
+         transaction.failed     → re-read GET /api/transaction/:id for the reason, then settle
+         stream was down        → onConnect re-queries every pending id
 ```
+
+The pending set is **session-scoped, not workspace-scoped** — a create happens on the plain
+route, outside any `WorkspaceShell` — so its store is provided at the `(authenticated)` layout
+and the sink is a `Noop` wherever no provider is mounted. ⚠️ A `404` from the by-id read means
+*not tracked yet*, never *failed*: with the broker down the write commits and no `accepted`
+event ever reaches the tracker. See [ADR 0043](adr/0043-the-optimistic-mutation-contract.md).
 
 ## 8. Design-system fit
 
@@ -899,7 +918,12 @@ aspect-ratio placeholders, PPR, a CI bundle-size budget.
 
 # Deferred (workspace)
 
-Optimistic mutation and reconnect reconciliation over the stream (#137); cross-browser-tab collision sync (BroadcastChannel vs last-write-wins);
+Making a create **addressable** — `master:<key>:new`, or re-addressing the tab to
+`master:<key>:<id>` once the `202` mints one — which is what would give a create an autosaved
+draft and let the tab strip finally write `TabState`'s `'saving'` and `'error'`
+([ADR 0043](adr/0043-the-optimistic-mutation-contract.md)); an error **code** on the failure
+event, so a failed transaction's reason is translatable rather than free text;
+cross-browser-tab collision sync (BroadcastChannel vs last-write-wins);
 stale-draft-vs-server conflict resolution on Save; whole-workspace share link; operations/wizards
 tab kinds; server-side TanStack dehydration/prefetch; the to-many link editor
 (`linkCollection`) and an ABAC `canLink` policy behind the picker's use-case seam.

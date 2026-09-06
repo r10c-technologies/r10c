@@ -12,3 +12,4 @@ export * from './query/query-provider';
 export * from './reactive/event-source-channel';
 export * from './reactive/reactive-channel';
 export * from './reactive/use-reactive-invalidation';
+export * from './reactive/use-transaction-settlement';

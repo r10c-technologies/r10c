@@ -1,5 +1,10 @@
-import type { EntifixConnError, EntityId } from '@r10c/entifix-ts-core';
-import { Context, type Effect } from 'effect';
+import {
+  type EntifixConnError,
+  type EntifixError,
+  type EntityId,
+  readEnvelope,
+} from '@r10c/entifix-ts-core';
+import { Context, Effect } from 'effect';
 
 import type { TransactionEvent, TransactionState } from './event';
 
@@ -73,3 +78,47 @@ export class TransactionStoreTag extends Context.Tag('TransactionStoreTag')<
   TransactionStoreTag,
   TransactionStore
 >() {}
+
+/**
+ * Parses the tracker's by-id response, which frames a {@link TransactionRecord}
+ * under the `transactionEvent` discriminant.
+ *
+ * ⚠️ **Do not reach for `readTransactionEventEnvelope` here**, even though it
+ * reads the very same discriminant. That function is typed
+ * `Effect<TransactionEvent, …>`, and `readEnvelope` validates the discriminant
+ * and then *casts* the payload — it checks no members. So the call would succeed
+ * and hand back a record typed as an event: no `step`, no `at`, and a `state`
+ * the caller is about to branch on. The discriminant collision is a known wart
+ * (see `event.ts`), and this is the reader's half of it fixed honestly; the
+ * `202` accept-shape assertion keeps using the event reader, because there the
+ * body really is an event.
+ */
+export function readTransactionRecordEnvelope(
+  body: unknown,
+): Effect.Effect<TransactionRecord, EntifixError> {
+  return Effect.map(
+    readEnvelope<TransactionRecord>(body, 'transactionEvent', 'transactionEvent'),
+    envelope => envelope.data,
+  );
+}
+
+/**
+ * Reads one transaction's record, for a browser reconciling a write it started.
+ *
+ * ⚠️ **`undefined` means _not tracked yet_, not _failed_.** `accepted` reaches
+ * the tracker over the bus, so with the broker down the entity write commits —
+ * the outbox is in the same Mongo transaction — while no event is ever
+ * published and this answers `404`. That is a write in perfect health, and a
+ * caller that rolls back on it un-renders a record that is about to appear, at
+ * exactly the moment nobody can tell a UI bug from an outage. Only `FAILED` and
+ * `STALE` are terminal (ADR 0043).
+ */
+export interface TransactionStatusReader {
+  read(
+    transactionId: string,
+  ): Effect.Effect<TransactionRecord | undefined, EntifixError>;
+}
+
+export class TransactionStatusReaderTag extends Context.Tag(
+  'TransactionStatusReaderTag',
+)<TransactionStatusReaderTag, TransactionStatusReader>() {}

@@ -51,6 +51,7 @@
     "@r10c/business-ts-authz": "workspace:*",
     "@r10c/entifix-react-controls": "workspace:*",
     "@r10c/entifix-react-integration": "workspace:*",
+    "@r10c/entifix-transactions": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-i18n": "workspace:*",

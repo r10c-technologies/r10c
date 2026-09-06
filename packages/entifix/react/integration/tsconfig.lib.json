@@ -40,10 +40,13 @@
       "path": "../../../utils/ts/object/tsconfig.lib.json"
     },
     {
+      "path": "../../ts/i18n/tsconfig.lib.json"
+    },
+    {
       "path": "../../ts/core/tsconfig.lib.json"
     },
     {
-      "path": "../../ts/i18n/tsconfig.lib.json"
+      "path": "../../ts/transactions/tsconfig.lib.json"
     },
     {
       "path": "../../ts/testing-unit"

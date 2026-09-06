@@ -1047,6 +1047,9 @@ importers:
 
   packages/entifix/react/integration:
     dependencies:
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../../ts/transactions
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../../ts/core
@@ -1472,6 +1475,9 @@ importers:
       '@r10c/entifix-react-integration':
         specifier: workspace:*
         version: link:../../../entifix/react/integration
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/transactions
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../../../entifix/ts/business
@@ -1540,6 +1546,12 @@ importers:
       '@r10c/entifix-react-controls':
         specifier: workspace:*
         version: link:../../../entifix/react/controls
+      '@r10c/entifix-react-integration':
+        specifier: workspace:*
+        version: link:../../../entifix/react/integration
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/transactions
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../../../entifix/ts/business
@@ -1552,6 +1564,9 @@ importers:
       '@r10c/shells-next-common':
         specifier: workspace:*
         version: link:../common
+      effect:
+        specifier: 3.22.1
+        version: 3.22.1
     devDependencies:
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*

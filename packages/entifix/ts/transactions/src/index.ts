@@ -10,5 +10,6 @@ export * from './ports/event-source';
 export * from './ports/lock-service';
 export * from './ports/sequence-service';
 export * from './ports/transaction-handler';
+export * from './ports/transaction-sink';
 export * from './stream/transaction-stream-hub';
 export * from './use-case/facade.uc';

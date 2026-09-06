@@ -41,7 +41,7 @@ const restOptionsFor = (domainKey: string): BuildEntityRestOptions => ({
 // `create: 'command'` because marketplace-admin-service writes a specification
 // through the saga: the POST carries a client-minted transaction id and answers
 // `202`, not a stored entity. The reference service below is a plain REST write.
-const CATALOG_SERVICE: BuildEntityRestOptions = {
+export const CATALOG_SERVICE: BuildEntityRestOptions = {
   ...restOptionsFor('marketplace-admin-service-domain'),
   create: 'command',
 };

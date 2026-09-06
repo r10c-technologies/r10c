@@ -168,6 +168,15 @@ export const shell = {
     discard:
       'Esta pestaña tiene cambios sin guardar. Si la cierras, se perderán.',
     discardConfirm: 'Descartar',
+    // What became of a write the server has not finished. `count` is the
+    // number in flight; a failure names no reason here, because the only one a
+    // transaction carries is a server exception string in whatever language it
+    // was written in — that is rendered beside this, unlocalized and marked so.
+    pendingLabel: 'Estado de los guardados',
+    savePending_one: 'Guardando 1 registro…',
+    savePending_other: 'Guardando {{count}} registros…',
+    saveFailed: 'No se pudo guardar el registro.',
+    saveFailedDismiss: 'Descartar',
   },
   /**
    * The storefront. Its pages live in `shells-next-marketplace`, so its copy

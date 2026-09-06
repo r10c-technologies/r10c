@@ -27,7 +27,13 @@ import type { EntityChangeListener, ReactiveChannel } from './reactive-channel';
  */
 export function makeEventSourceReactiveChannel(url: string): ReactiveChannel {
   const listeners = new Set<EntityChangeListener>();
+  const connectListeners = new Set<() => void>();
   let source: EventSource | undefined;
+  // Tracked here rather than read off `source.readyState`, because it must
+  // survive the close/reopen cycle the refcount drives: what a reconciling
+  // consumer needs to know is "has this channel been connected", not "is this
+  // particular `EventSource` object open right now".
+  let connected = false;
 
   const deliver = (raw: string): void => {
     // A frame this build cannot read is dropped rather than thrown: `onmessage`
@@ -60,11 +66,21 @@ export function makeEventSourceReactiveChannel(url: string): ReactiveChannel {
     source.onmessage = message => {
       deliver(message.data as string);
     };
+    // Fires on the first open *and* on every browser-driven reconnect, because
+    // `EventSource` reconnects the same object rather than handing back a new
+    // one — so nothing has to re-arm this.
+    source.onopen = () => {
+      connected = true;
+      for (const listener of connectListeners) {
+        listener();
+      }
+    };
   };
 
   const close = (): void => {
     source?.close();
     source = undefined;
+    connected = false;
   };
 
   return {
@@ -76,6 +92,18 @@ export function makeEventSourceReactiveChannel(url: string): ReactiveChannel {
         if (listeners.size === 0) {
           close();
         }
+      };
+    },
+    onConnect(listener) {
+      connectListeners.add(listener);
+      // ⚠️ The replay, and the reason this signal works at all. Registering does
+      // *not* open the connection — subscribing is what does that — so a
+      // consumer arriving after another one opened the stream would otherwise
+      // wait for a network drop that may never come, and a restored pending set
+      // would never be reconciled.
+      if (connected) listener();
+      return () => {
+        connectListeners.delete(listener);
       };
     },
   };

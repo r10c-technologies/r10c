@@ -11,9 +11,11 @@ import {
 } from '@r10c/entifix-react-controls';
 import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import type { Locale } from '@r10c/entifix-ts-i18n';
+import { PendingTransactionsProvider } from '@r10c/shells-next-common';
 import {
   createClientAdapters,
   MarketplaceAdminAdaptersProvider,
+  TransactionSettlement,
 } from '@r10c/shells-next-marketplace-admin';
 import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
@@ -46,7 +48,10 @@ const uiPreferencesStore = makeIndexedDbUiPreferencesState();
  * (imported in global.css); "ocean" is defined only here and injected at
  * runtime — demonstrating brands not shipped as CSS (multi-tenant / dynamic).
  */
-function ThemedProviders({ children }: PropsWithChildren) {
+function ThemedProviders({
+  children,
+  scope,
+}: PropsWithChildren<{ scope: string }>) {
   const t = useT('controls');
   const adapters = createClientAdapters();
   const themes = useMemo<ThemeOption[]>(
@@ -69,10 +74,19 @@ function ThemedProviders({ children }: PropsWithChildren) {
       >
         <UiPreferencesProvider store={uiPreferencesStore}>
           <MarketplaceAdminAdaptersProvider adapters={adapters}>
-            {/* The system-management shell builds its own adapters against
-                config-service, so it is provided beside the catalog's rather
-                than through it — the two reach different backends. */}
-            <SystemManagementProvider>{children}</SystemManagementProvider>
+            {/* Above every route, not inside the workspace: a transactional
+                create happens at `/<basePath>/new` on the plain route, so a
+                pending set mounted in `WorkspaceShell` would never see the only
+                kind of write that is asynchronous (ADR 0043). */}
+            <PendingTransactionsProvider scope={scope}>
+              {/* Renders nothing; it holds the SSE connection that settles
+                  those writes and invalidates on any reactive change. */}
+              <TransactionSettlement />
+              {/* The system-management shell builds its own adapters against
+                  config-service, so it is provided beside the catalog's rather
+                  than through it — the two reach different backends. */}
+              <SystemManagementProvider>{children}</SystemManagementProvider>
+            </PendingTransactionsProvider>
           </MarketplaceAdminAdaptersProvider>
         </UiPreferencesProvider>
       </ThemeProvider>
@@ -82,11 +96,12 @@ function ThemedProviders({ children }: PropsWithChildren) {
 
 export function Providers({
   locale,
+  scope,
   children,
-}: PropsWithChildren<{ locale: Locale }>) {
+}: PropsWithChildren<{ locale: Locale; scope: string }>) {
   return (
     <I18nProvider locale={locale}>
-      <ThemedProviders>{children}</ThemedProviders>
+      <ThemedProviders scope={scope}>{children}</ThemedProviders>
     </I18nProvider>
   );
 }

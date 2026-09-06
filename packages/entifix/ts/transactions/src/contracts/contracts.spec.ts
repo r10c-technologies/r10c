@@ -17,6 +17,7 @@ import {
   failedEvent,
   readTransactionEventEnvelope,
 } from './event.js';
+import { readTransactionRecordEnvelope } from './record.js';
 
 const AT = '2026-07-20T12:00:00.000Z';
 
@@ -283,6 +284,43 @@ describe('event envelopes', () => {
     const error = Effect.runSync(
       Effect.flip(
         readTransactionEventEnvelope(makeCommandEnvelope(aCommand())),
+      ),
+    );
+
+    expect(error.message).toContain('but got "command"');
+  });
+});
+
+describe('the record envelope reader', () => {
+  // The tracker's by-id route frames a `TransactionRecord` under the
+  // `transactionEvent` discriminant, so this reader exists to give that body its
+  // real type. `readEnvelope` casts rather than validating members, which is
+  // exactly why reusing the event reader would have been a silent mistype.
+  it('reads the tracker record off the by-id response', () => {
+    const body = {
+      meta: { type: 'transactionEvent', entity: 'product' },
+      data: {
+        transactionId: TX,
+        entity: 'product',
+        state: 'COMPLETED',
+        createdAt: AT,
+        updatedAt: AT,
+      },
+    };
+
+    expect(Effect.runSync(readTransactionRecordEnvelope(body))).toEqual({
+      transactionId: TX,
+      entity: 'product',
+      state: 'COMPLETED',
+      createdAt: AT,
+      updatedAt: AT,
+    });
+  });
+
+  it('rejects an envelope of the wrong type', () => {
+    const error = Effect.runSync(
+      Effect.flip(
+        readTransactionRecordEnvelope(makeCommandEnvelope(aCommand())),
       ),
     );
 

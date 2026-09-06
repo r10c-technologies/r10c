@@ -14,6 +14,7 @@ class FakeEventSource {
   static instances: FakeEventSource[] = [];
 
   onmessage: ((message: { data: string }) => void) | null = null;
+  onopen: (() => void) | null = null;
   closed = false;
 
   constructor(readonly url: string) {
@@ -26,6 +27,14 @@ class FakeEventSource {
 
   send(data: string) {
     this.onmessage?.({ data });
+  }
+
+  /**
+   * What the browser does on the first connection and again on every reconnect
+   * — the same object, re-opened, which is why nothing has to re-arm `onopen`.
+   */
+  open() {
+    this.onopen?.();
   }
 }
 
@@ -129,5 +138,85 @@ describe('makeEventSourceReactiveChannel', () => {
     const channel = makeEventSourceReactiveChannel(URL);
 
     expect(() => channel.subscribe(vi.fn())()).not.toThrow();
+  });
+});
+
+describe('makeEventSourceReactiveChannel, connection signal', () => {
+  // The stream does not replay, so a consumer that missed an outcome while
+  // disconnected has to go and ask. This is the signal that tells it when.
+  it('notifies on the first open and again on every reconnect', () => {
+    const source = useFakeEventSource();
+    const channel = makeEventSourceReactiveChannel(URL);
+    const reconciled = vi.fn();
+
+    channel.onConnect(reconciled);
+    channel.subscribe(() => undefined);
+
+    expect(reconciled).not.toHaveBeenCalled();
+
+    source.instances[0]?.open();
+    expect(reconciled).toHaveBeenCalledTimes(1);
+
+    // `EventSource` reconnects the same object, so the handler is still armed.
+    source.instances[0]?.open();
+    expect(reconciled).toHaveBeenCalledTimes(2);
+  });
+
+  // ⚠️ The case that makes the whole mechanism work. The channel is opened by
+  // its *first* subscriber, so a consumer mounting after that one would register
+  // for an open that already happened — and, with nothing to replay it, would
+  // reconcile a restored pending set never.
+  it('fires immediately for a listener that arrives after the connection is up', () => {
+    const source = useFakeEventSource();
+    const channel = makeEventSourceReactiveChannel(URL);
+
+    channel.subscribe(() => undefined);
+    source.instances[0]?.open();
+
+    const late = vi.fn();
+    channel.onConnect(late);
+
+    expect(late).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops notifying once the listener unsubscribes', () => {
+    const source = useFakeEventSource();
+    const channel = makeEventSourceReactiveChannel(URL);
+    const reconciled = vi.fn();
+
+    const stop = channel.onConnect(reconciled);
+    channel.subscribe(() => undefined);
+    stop();
+
+    source.instances[0]?.open();
+
+    expect(reconciled).not.toHaveBeenCalled();
+  });
+
+  // Registering a connect listener must not open a connection: a page that
+  // mounts no subscriber holds no stream, which is the refcount's whole point.
+  it('opens nothing on its own', () => {
+    const source = useFakeEventSource();
+    const channel = makeEventSourceReactiveChannel(URL);
+
+    channel.onConnect(() => undefined);
+
+    expect(source.instances).toHaveLength(0);
+  });
+
+  // Closing the last subscriber drops the connection, so the next listener is
+  // back to waiting for a real open rather than being told it missed one.
+  it('forgets it was connected once the last subscriber leaves', () => {
+    const source = useFakeEventSource();
+    const channel = makeEventSourceReactiveChannel(URL);
+
+    const stop = channel.subscribe(() => undefined);
+    source.instances[0]?.open();
+    stop();
+
+    const late = vi.fn();
+    channel.onConnect(late);
+
+    expect(late).not.toHaveBeenCalled();
   });
 });
