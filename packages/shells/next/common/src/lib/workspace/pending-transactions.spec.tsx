@@ -199,6 +199,7 @@ describe('pendingFor', () => {
         { ...aPending('b', 'product-brand'), state: 'pending' as const },
       ],
       began: () => undefined,
+      attach: () => false,
       settle: () => undefined,
       fail: () => undefined,
       dismiss: () => undefined,

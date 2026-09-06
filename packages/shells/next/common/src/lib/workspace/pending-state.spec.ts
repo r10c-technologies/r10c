@@ -7,7 +7,6 @@ import {
   MAX_PENDING,
   mergePending,
   migratePending,
-  type PendingState,
   persistedPending,
   usePendingState,
 } from './pending-state.js';
@@ -98,12 +97,15 @@ describe('usePendingState', () => {
 });
 
 describe('persistence', () => {
+  // Reads the real store rather than casting a literal to `PendingState`: the
+  // cast stopped type-checking the moment the port grew a member, which is a
+  // maintenance trap for an assertion that only ever needed the store's shape.
   it('persists only the entries, never the actions', () => {
-    const state = {
-      pending: { [TX]: { ...aPending(), state: 'pending' as const } },
-    } as PendingState;
+    usePendingState.getState().began(aPending());
 
-    expect(Object.keys(persistedPending(state))).toEqual(['pending']);
+    expect(Object.keys(persistedPending(usePendingState.getState()))).toEqual([
+      'pending',
+    ]);
   });
 
   // An entry is a claim that something is still in flight, and it stops being

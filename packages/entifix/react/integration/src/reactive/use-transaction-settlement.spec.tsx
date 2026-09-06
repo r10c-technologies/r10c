@@ -55,20 +55,24 @@ const outcome = (
   data: { entity: 'widget', change: 'created', id: 'w-1' },
 });
 
-/** A store with spies, standing in for the shell's zustand-backed one. */
-const makeStore = (entries: PendingEntry[]) => {
-  const store: PendingTransactionStore & {
-    settle: ReturnType<typeof vi.fn>;
-    fail: ReturnType<typeof vi.fn>;
-  } = {
+/**
+ * A store with spies, standing in for the shell's zustand-backed one.
+ *
+ * `satisfies` rather than a type annotation: an annotation widens each member to
+ * the port's plain signature, which loses the `Mock` type the assertions below
+ * need — and an intersection with `ReturnType<typeof vi.fn>` does not type-check,
+ * because an untyped `vi.fn()` is `Mock<Procedure | Constructable>`. Typing each
+ * mock with its own signature keeps both halves.
+ */
+const makeStore = (entries: PendingEntry[]) =>
+  ({
     entries,
-    began: vi.fn(),
-    settle: vi.fn(),
-    fail: vi.fn(),
-    dismiss: vi.fn(),
-  };
-  return store;
-};
+    began: vi.fn<(pending: PendingEntry) => void>(),
+    attach: vi.fn<(transactionId: string, record: unknown) => boolean>(),
+    settle: vi.fn<(transactionId: string) => void>(),
+    fail: vi.fn<(transactionId: string, reason?: string) => void>(),
+    dismiss: vi.fn<(transactionId: string) => void>(),
+  }) satisfies PendingTransactionStore;
 
 const setup = ({
   entries = [anEntry()],
