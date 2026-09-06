@@ -23,6 +23,8 @@ import { Context } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { usePendingState } from '../workspace/pending-state.js';
+import { PendingTransactionsProvider } from '../workspace/pending-transactions.js';
 import { makeEntityCrud } from './make-entity-crud';
 
 // The pages read the route through `next/navigation`, which only exists inside
@@ -743,5 +745,75 @@ describe('the generated form’s pickers', () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     expect((repositories.product.items[0] as Product).brandId).toBe('b-1');
+  });
+});
+
+/**
+ * The optimistic branch: a save whose id is being watched has not committed yet.
+ *
+ * The pending set is seeded directly rather than driven through the save
+ * adapter, because the in-memory repository these specs run on never reaches
+ * it — that the adapter registers exactly the transactional creates is its own
+ * spec's job (`build-entity-rest-adapter-save`). What is asserted here is the
+ * branch this file owns: given an id in the pending set, the draft survives and
+ * the row is rendered before the write lands.
+ */
+describe('the generated form, saving a write that is still in flight', () => {
+  const withPending = (page: ReactElement) =>
+    render(
+      <EntifixQueryProvider>
+        <PendingTransactionsProvider scope="user-1:org-1">
+          {page}
+        </PendingTransactionsProvider>
+      </EntifixQueryProvider>,
+    );
+
+  beforeEach(() => {
+    usePendingState.setState({ pending: {} });
+    vi.spyOn(usePendingState.persist, 'rehydrate').mockResolvedValue(undefined);
+  });
+
+  const watch = (transactionId: string) =>
+    usePendingState.getState().began({
+      transactionId,
+      entity: 'product-brand',
+      at: '2026-09-02T00:00:00.000Z',
+    });
+
+  // The fix for the silent input loss: a create resolves at the `202`, so
+  // clearing here would destroy the operator's only copy of what they typed
+  // minutes before the transaction actually failed.
+  it('keeps the draft, because the write has not committed', async () => {
+    slug = 'b-1';
+    watch('b-1');
+    const store = draftStore();
+    const user = userEvent.setup();
+
+    withPending(<brandCrud.SingleViewPage draft={store} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText(/nombre/i)).toHaveValue('Acme'),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(store.clear).not.toHaveBeenCalled();
+  });
+
+  // The unwatched path is unchanged: a plain REST save is durable when it
+  // answers, so the draft is spent and nothing is patched.
+  it('still clears the draft for a write that is already durable', async () => {
+    slug = 'b-1';
+    const store = draftStore();
+    const user = userEvent.setup();
+
+    withPending(<brandCrud.SingleViewPage draft={store} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText(/nombre/i)).toHaveValue('Acme'),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    await waitFor(() => expect(store.clear).toHaveBeenCalledTimes(1));
   });
 });
