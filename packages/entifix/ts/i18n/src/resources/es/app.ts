@@ -14,10 +14,6 @@ export const app = {
       // `//home`, where middleware lands an authenticated visitor. Not the
       // breadcrumb root — that is the shell's `shell:breadcrumbs.home`.
       dashboard: 'Panel',
-      catalog: 'Catálogo',
-      products: 'Productos',
-      brands: 'Marcas',
-      categories: 'Categorías',
       account: 'Cuenta',
     },
     menu: {

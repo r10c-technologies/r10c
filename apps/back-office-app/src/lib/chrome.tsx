@@ -48,12 +48,12 @@ export async function BackOfficeChrome({
   // resolves them.
   const breadcrumbLabels: Record<string, string> = {
     home: t('admin.nav.dashboard'),
-    catalog: t('admin.nav.catalog'),
-    product: t('admin.nav.products'),
-    'product-brand': t('admin.nav.brands'),
-    'product-category': t('admin.nav.categories'),
     // Owned by the shells that render these screens, so the keys carry their
     // namespace rather than living in this app's catalog.
+    catalog: translateKey('shell:marketplaceAdmin.nav.catalog'),
+    product: translateKey('shell:marketplaceAdmin.nav.products'),
+    'product-brand': translateKey('shell:marketplaceAdmin.nav.brands'),
+    'product-category': translateKey('shell:marketplaceAdmin.nav.categories'),
     system: translateKey('shell:systemManagement.nav.section'),
     configuration: translateKey('shell:systemManagement.nav.configuration'),
     users: translateKey('shell:auth.nav.users'),

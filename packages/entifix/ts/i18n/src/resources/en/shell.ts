@@ -68,6 +68,14 @@ export const shell: EsShell = {
       kicking: 'Ending…',
     },
   },
+  marketplaceAdmin: {
+    nav: {
+      catalog: 'Catalog',
+      products: 'Products',
+      brands: 'Brands',
+      categories: 'Categories',
+    },
+  },
   systemManagement: {
     nav: {
       section: 'System',
@@ -86,6 +94,8 @@ export const shell: EsShell = {
     primary: 'Primary',
     openInWorkspace: 'Open {{label}} in workspace',
     openInWorkspaceShort: 'Open in workspace',
+    openInNewTab: 'Open {{label}} in a new tab',
+    openInNewTabShort: 'Open in a new tab',
     /**
      * The screen taxonomy (ADR 0033). Translated like every other string rather
      * than kept in Spanish: what that decision fixed was which *Spanish* word
@@ -101,6 +111,11 @@ export const shell: EsShell = {
   sidebar: {
     expand: 'Expand sidebar',
     collapse: 'Collapse sidebar',
+    openMenu: 'Open the menu',
+    closeMenu: 'Close the menu',
+    menu: 'Navigation menu',
+    expandGroup: 'Expand {{group}}',
+    collapseGroup: 'Collapse {{group}}',
   },
   breadcrumbs: {
     home: 'Home',

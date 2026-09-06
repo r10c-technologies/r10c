@@ -2,6 +2,13 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Revised: 2026-09-06 by [ADR 0041](0041-the-sidebar-renders-the-taxonomy.md) —
+  the sidebar renders the tier now, and the nesting depth this record left open
+  is capped at three tiers.
+- Revised: 2026-09-06 by
+  [ADR 0042](0042-the-workspace-address-is-the-taxonomy-serialized.md) — the
+  `TabKind` consequence below predicted a rename of three prefixes; it is a
+  collapse into one, because `catalog:` and `entity:` were both `master`.
 
 ## Context
 
@@ -176,14 +183,18 @@ as well as intended.
 - `GuardedNavSection` carries `type?: ScreenType`, and the three contributed nav
   lists declare it. `visibleNav` propagates it — a filter that dropped it would
   make the tier unbuildable downstream.
-- The sidebar does not yet render the tier. This record fixes the IA; the nested
-  rendering is #113's design and #123's build, and #125 collapses the two nav
-  sources first. Declaring the type before anything groups by it is deliberate:
+- The sidebar does not yet render the tier. *(Built since, by
+  [ADR 0041](0041-the-sidebar-renders-the-taxonomy.md).)* This record fixes the
+  IA; the nested rendering is #113's design and #123's build, and #125 collapses
+  the two nav sources first. Declaring the type before anything groups by it is deliberate:
   the alternative is three shells retrofitting a field under time pressure from
   a fourth ticket.
-- **`TabKind` prefixes follow, but not here.** `catalog:` / `entity:` / `system:`
-  become type-derived (`master:`, `operation:`, …) when #141 makes the workspace
-  registry derive from the nav. Renaming them by hand now is work done twice, and
+- **`TabKind` prefixes follow, but not here.** *(Done by
+  [ADR 0042](0042-the-workspace-address-is-the-taxonomy-serialized.md) — and it
+  turned out to be a collapse into one kind, not a rename into three, because
+  `catalog:` and `entity:` were both `master`.)* `catalog:` / `entity:` /
+  `system:` become type-derived (`master:`, `operation:`, …) when #141 makes the
+  workspace registry derive from the nav. Renaming them by hand now is work done twice, and
   every rename abandons whatever persisted tabs a workspace was holding.
 - New copy: `shell:nav.screenType.{master,operation,wizard,report}` in both
   locales.

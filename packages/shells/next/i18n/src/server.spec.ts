@@ -74,7 +74,7 @@ describe('getServerTranslateKey', () => {
     requestHeaders.value.set(LOCALE_HEADER, 'en');
     const translate = await getServerTranslateKey('app');
 
-    expect(translate('admin.nav.products')).toBe('Products');
+    expect(translate('admin.nav.dashboard')).toBe('Dashboard');
   });
 
   it('interpolates parameters', async () => {

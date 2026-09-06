@@ -1463,6 +1463,9 @@ importers:
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../../business/ts/authn
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../../business/ts/authz
       '@r10c/entifix-react-controls':
         specifier: workspace:*
         version: link:../../../entifix/react/controls
@@ -1525,6 +1528,9 @@ importers:
 
   packages/shells/next/marketplace-admin:
     dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../../business/ts/authz
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../../business/ts/catalog-reference

@@ -553,10 +553,68 @@ instantiation is excessively deep`); every scalar read is now
   because `GuardedNavSection` is the only layer a `layer:shell` package and a
   `layer:app` both reach — this is never an edit in the host, and `visibleNav`
   must propagate `type` or the tier is unbuildable downstream while every test
-  still passes. Not built yet: the nested rendering (#113, #123), and `TabKind`'s
-  `catalog:`/`entity:`/`system:` prefixes becoming type-derived when #141 makes
-  the registry derive from the nav — renaming them by hand now is work done
-  twice, and a rename abandons whatever tabs a workspace was holding.
+  still passes. Both follow-ups are now built: the nested rendering is
+  [ADR 0041](docs/adr/0041-the-sidebar-renders-the-taxonomy.md), the prefixes
+  [ADR 0042](docs/adr/0042-the-workspace-address-is-the-taxonomy-serialized.md).
+- **The sidebar renders type › domain › destination, and collapsed mode
+  deliberately does not nest**
+  ([ADR 0041](docs/adr/0041-the-sidebar-renders-the-taxonomy.md)). ADR 0033's
+  `type` was declared by every shell, propagated by `visibleNav`, and then
+  **dropped by `sidebarNav`** sixteen lines below a comment saying that dropping
+  it "would leave the tier unbuildable downstream" — the field existed and
+  nothing consumed it, so every test passed. Depth is capped **in the type**:
+  `NavItem` has no children, so a fourth tier is unsayable, and sections group by
+  `screenTypeRank` rather than by position because a host concatenates fragments
+  from several shells and two non-adjacent `master` sections would otherwise
+  render Definiciones twice. Five things not to re-derive. **Collapsed mode keeps
+  a flat icon column and gets no flyout** — #113 posed that as the fork, and the
+  other branch is taken: a flyout buys back labels the tooltip already gives and
+  charges a click for them in the mode chosen for speed, so group collapse is an
+  **expanded-mode affordance only** (honouring it in the rail lets a group vanish
+  with no heading left to restore it). **The no-media-query rule is narrower than
+  it reads**: `docs/FRONTEND.md` governs `ui/layout/` primitives, which still lay
+  out intrinsically; a shell picking between a drawer and a rail is choosing a
+  navigation *mode*, and no intrinsic sizing produces a focus trap —
+  `back-office-shell.tsx` was already shipping `md:` utilities under that rule,
+  undeclared. ⚠️ **Auto-collapse must never write the preference**: effective
+  collapse is `stored || rail-width`, and writing the forced value back means one
+  visit at a narrow width silently rewrites a choice made on a desktop — invisible
+  to tests, permanent for the user. The drawer is a `Drawer` **primitive** on
+  Headless UI's `Dialog` beside `ConfirmDialog` (focus trap, `Escape`, backdrop,
+  focus restoration), with one `SidebarNav` in the tree either way, and its open
+  state is **derived from the route it was opened at** — closing it from an effect
+  keyed on the pathname sets state in a passive effect for something that is a
+  fact about the current render. And `useViewportMode` guards on
+  `typeof window.matchMedia !== 'function'`, never `'matchMedia' in window`:
+  jsdom declares the property and leaves it uncallable, so the `in` check passes
+  and the call throws inside an effect.
+- **A workspace tab address is the taxonomy serialized, and it is one grammar**
+  ([ADR 0042](docs/adr/0042-the-workspace-address-is-the-taxonomy-serialized.md)).
+  `master:<key>` is a list, `master:<key>:<id>` is one record;
+  `catalog:`/`entity:`/`system:` are gone. ADR 0033 predicted a *rename* — it is a
+  **collapse**, because `catalog:` meant list and `entity:` meant record and both
+  are Definiciones, so three `TabKind`s become one whose payload carries an
+  optional id. `screenAddress`/`parseScreenPayload` live in `business-ts-authz`
+  beside `ScreenType` — not for a boundary reason, but because every `nav.ts` is a
+  plain data module and putting the builder in a shell makes a nav file import
+  React to spell a string. Five things not to re-derive. **An untyped section
+  cannot be addressed at all**: `screenAddress` takes a `ScreenType` and the
+  account surface declares none, so "the account cannot be a tab" is a compile
+  error rather than a rule to remember. ⚠️ **Both `TABS_VERSION` and
+  `DRAFTS_VERSION` bump**, and skipping either fails *quietly* — a stale
+  `catalog:` tab resolves against the new registry as a **dead link**, so the
+  workspace comes up holding broken tabs instead of empty. The registry now
+  derives from `MARKETPLACE_ADMIN_CRUDS`, and the five hand-kept lists of the same
+  three entity keys become one **`CatalogSurface`** per entity, which also carries
+  `service` as a **symbolic tag, never a URL** — a resolved address there reaches
+  the browser through the client barrel or freezes the build-time value into it.
+  `EntityCrud` gained `entityLabelKey`/`entityPluralKey` read off
+  `@entity({ labelKey, pluralKey })` rather than rebuilt from the key, and
+  `EntityCatalogKey` now requires both in the catalog. And **user administration
+  is a tab now**, which needed more than an address: `UserDetailPage` read its id
+  from `useParams`, which resolves to nothing under `/workspace`, so it took
+  #131's `slug`/`onSaved`/`draft` seam — and with it autosave, the dirty marker
+  and the close confirmation.
 - **A catalog's pages are generated, and the implementation layer is empty
   because of it.** `makeEntityCrud(Ctor, opts)` in **`shells-next-common`** builds
   the list page and the single-record page for one entity and returns a named

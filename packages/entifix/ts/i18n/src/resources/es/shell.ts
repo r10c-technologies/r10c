@@ -80,6 +80,17 @@ export const shell = {
    * a dedicated management app can mount the same screens later, which is why the
    * copy is here rather than in an app catalog.
    */
+  marketplaceAdmin: {
+    nav: {
+      // Moved out of the `app:` catalog with the nav table itself: this copy
+      // belongs to the shell that owns the screens, so a second host mounting
+      // it does not re-translate them.
+      catalog: 'Catálogo',
+      products: 'Productos',
+      brands: 'Marcas',
+      categories: 'Categorías',
+    },
+  },
   systemManagement: {
     nav: {
       section: 'Sistema',
@@ -98,6 +109,8 @@ export const shell = {
     primary: 'Principal',
     openInWorkspace: 'Abrir {{label}} en el espacio de trabajo',
     openInWorkspaceShort: 'Abrir en el espacio de trabajo',
+    openInNewTab: 'Abrir {{label}} en una pestaña nueva',
+    openInNewTabShort: 'Abrir en una pestaña nueva',
     /**
      * The screen taxonomy (ADR 0033) — the sidebar's top tier, above the
      * domain. `Definiciones` rather than `Maestros` because the ERP term needs
@@ -115,6 +128,14 @@ export const shell = {
   sidebar: {
     expand: 'Expandir barra lateral',
     collapse: 'Contraer barra lateral',
+    openMenu: 'Abrir el menú',
+    closeMenu: 'Cerrar el menú',
+    // The drawer is a dialog, so it needs a name of its own — the landmark
+    // inside it is the nav, and a dialog with no accessible name is announced
+    // as just "dialog".
+    menu: 'Menú de navegación',
+    expandGroup: 'Desplegar {{group}}',
+    collapseGroup: 'Plegar {{group}}',
   },
   breadcrumbs: {
     home: 'Inicio',

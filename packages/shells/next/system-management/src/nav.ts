@@ -1,6 +1,7 @@
 import {
   type GuardedNavSection,
   permissionForEntity,
+  screenAddress,
 } from '@r10c/business-ts-authz';
 import { Configuration } from '@r10c/business-ts-configuration';
 
@@ -29,7 +30,10 @@ export const SYSTEM_MANAGEMENT_NAV: GuardedNavSection[] = [
         label: 'shell:systemManagement.nav.configuration',
         href: CONFIGURATION_LIST_HREF,
         icon: '⚙',
-        workspace: 'system:configuration',
+        // Definiciones like every other screen this shell serves, so the tab
+        // address carries the type rather than a `system:` prefix of its own —
+        // one grammar for every surface (ADR 0042).
+        workspace: screenAddress({ type: 'master', key: 'configuration' }),
         permission: permissionForEntity(Configuration, 'read'),
       },
     ],
