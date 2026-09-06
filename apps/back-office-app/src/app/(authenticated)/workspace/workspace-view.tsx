@@ -1,21 +1,9 @@
 'use client';
 
 import { Menu, useT } from '@r10c/entifix-react-controls';
-import {
-  makeEventSourceReactiveChannel,
-  useReactiveInvalidation,
-} from '@r10c/entifix-react-integration';
 import { WorkspaceShell } from '@r10c/shells-next-common';
 
 import { workspaceRegistry } from './workspace-registry';
-
-// The reactive stream, reached **same-origin** through the `/api/admin` proxy:
-// `r10c_at` is httpOnly, so the cookie is the only credential available and a
-// cross-origin connection would carry none (ADR 0036). Built at module scope so
-// every mount of this view shares one connection.
-const reactiveChannel = makeEventSourceReactiveChannel(
-  '/api/admin/transaction/events',
-);
 
 /**
  * The marketplace-admin tab workspace, wired to the catalog registry.
@@ -25,11 +13,15 @@ const reactiveChannel = makeEventSourceReactiveChannel(
  *
  * `scope` is resolved by the server page from the session; it keys the persisted
  * tabs and drafts so two accounts on one browser profile never share them.
+ *
+ * The reactive stream used to be mounted here. It is not any more: settlement
+ * needs it outside the workspace too, because a transactional create happens on
+ * the plain catalog route, so `TransactionSettlement` holds it above every
+ * authenticated page instead (ADR 0043).
  */
 export function WorkspaceView({ scope }: { scope: string }) {
   const t = useT('app');
   const shellT = useT('shell');
-  useReactiveInvalidation(reactiveChannel);
 
   return (
     <WorkspaceShell

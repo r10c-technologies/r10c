@@ -2,6 +2,7 @@ import './global.css';
 
 import { getRequestLocale, getServerT } from '@r10c/shells-next-i18n/server';
 
+import { workspaceScope } from '../lib/workspace-scope';
 import { fontVariables } from './fonts';
 import { Providers } from './providers';
 
@@ -22,6 +23,10 @@ export default async function RootLayout({
   // The locale the middleware negotiated. `lang` has to carry it: screen readers
   // pick their voice from it, and so does the browser's translate prompt.
   const locale = await getRequestLocale();
+  // Who the persisted client stores belong to. Resolved here rather than per
+  // page because the pending-write set spans the whole authenticated area — a
+  // create happens on a plain catalog route, not in the workspace.
+  const scope = await workspaceScope();
   return (
     // `data-scale` and `data-density` are read by `presets/fixed-scale.css`,
     // the same way `data-theme` is read by a palette. The back office is dense
@@ -37,7 +42,9 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <Providers locale={locale}>{children}</Providers>
+        <Providers locale={locale} scope={scope}>
+          {children}
+        </Providers>
       </body>
     </html>
   );

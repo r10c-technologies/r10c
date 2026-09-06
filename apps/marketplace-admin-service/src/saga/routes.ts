@@ -27,7 +27,12 @@ const serverError = (error: unknown) =>
  * `entityMetadataRoute` applies to an entity the caller may not see.
  */
 const notFound = HttpServerResponse.json(
-  { message: 'transaction not found' },
+  // `{ error, code }`, like every other route in the fleet. It answered a bare
+  // `message` — a shape no envelope reader and no `useErrorMessage` path
+  // understands, so a browser reconciling a pending write could not tell this
+  // apart from any other failure. `notFound` is already in both locale
+  // catalogs, so `@r10c/i18n-check` stays green.
+  { error: 'transaction not found', code: 'notFound' },
   { status: 404 },
 );
 
