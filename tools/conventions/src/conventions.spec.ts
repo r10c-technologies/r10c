@@ -198,16 +198,25 @@ describe('the attribution predicate', () => {
 });
 
 describe('the exemption list', () => {
-  it('stays short, and every entry still exists', () => {
+  const tracked = trackedTextFiles();
+
+  it('stays short, and every entry is a file the scan can reach', () => {
     // An exemption is a place the rule stops applying, so the count is pinned
     // in both directions: adding one has to be a deliberate edit here.
-    expect(ATTRIBUTION_EXEMPT.length).toBeLessThanOrEqual(4);
-    expect(ATTRIBUTION_EXEMPT.length).toBeGreaterThanOrEqual(3);
+    expect(ATTRIBUTION_EXEMPT.length).toBeLessThanOrEqual(3);
+    expect(ATTRIBUTION_EXEMPT.length).toBeGreaterThanOrEqual(2);
 
     for (const { path, reason } of ATTRIBUTION_EXEMPT) {
+      // ⚠️ Every exempt path must cover something the scan can actually
+      // **reach**. An entry is either a tracked file or a prefix of one — an
+      // untracked path cannot reach the `git ls-files` walk below, so exempting
+      // it does nothing, and asserting its existence fails wherever it is not
+      // checked out. That is exactly how `.claude/skills/create-pr/SKILL.md`
+      // failed this suite's first CI run while passing on the machine that
+      // wrote it: `.claude/` is gitignored.
       expect(
-        existsSync(join(REPO_ROOT, path)),
-        `${path} is exempt but does not exist — a stale exemption is a hole`,
+        tracked.some(file => file === path || file.startsWith(path)),
+        `${path} is exempt but matches no tracked file — an exemption only means something for a path the scan can reach`,
       ).toBe(true);
       expect(
         reason.length,

@@ -83,11 +83,17 @@ export const ATTRIBUTION_EXEMPT = [
     path: 'docs/adr/0046-conventions-are-checked-not-stated.md',
     reason: 'the record explaining what is forbidden, quoting it',
   },
-  {
-    path: '.claude/skills/create-pr/SKILL.md',
-    reason: 'instructs an agent using the literal strings it must not write',
-  },
 ];
+
+/*
+ * ⚠️ `.claude/` is **deliberately absent** from that list, although the
+ * `create-pr` skill under it does contain the literal strings. The directory is
+ * gitignored (`.gitignore`), the repository scan reads `git ls-files`, and an
+ * untracked file can never reach it — so the exemption did nothing except
+ * assert the existence of a file CI does not check out, which is exactly how it
+ * failed on its first run. An exemption is only meaningful for a **tracked**
+ * path.
+ */
 
 /** Whether a repository-relative path is allowed to carry attribution. */
 export function isAttributionExempt(path) {

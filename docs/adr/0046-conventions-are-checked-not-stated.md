@@ -113,12 +113,19 @@ in review.
 
 ### Exemptions are listed, with reasons, and pinned
 
-Three files must contain the forbidden strings to do their job: the predicate
-itself, this record, and the `create-pr` skill that instructs an agent using the
-literal text. They are named in `ATTRIBUTION_EXEMPT` with a reason each, and the
-spec pins the list's length in **both** directions — an exemption is a place the
-rule stops applying, so adding one has to be a visible edit rather than a quiet
-append.
+Two tracked paths must contain the forbidden strings to do their job: the
+predicate itself (with its fixtures) and this record. They are named in
+`ATTRIBUTION_EXEMPT` with a reason each, and the spec pins the list's length in
+**both** directions — an exemption is a place the rule stops applying, so adding
+one has to be a visible edit rather than a quiet append.
+
+⚠️ **An exemption only means something for a path the scan can reach**, and the
+first CI run proved it. The `create-pr` skill was exempted too — it instructs an
+agent using the literal text — but `.claude/` is gitignored, so `git ls-files`
+never lists it, the exemption did nothing, and the "every exemption still
+exists" assertion failed on a checkout that does not contain the file while
+passing on the machine that wrote it. The list now holds tracked paths only, and
+the spec asserts that rather than mere existence.
 
 ### The rule also moves into `CLAUDE.md`
 
