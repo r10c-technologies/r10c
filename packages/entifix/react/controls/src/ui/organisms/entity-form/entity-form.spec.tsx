@@ -186,7 +186,6 @@ function Harness({
   );
 }
 
-
 describe('an embedded form', () => {
   it('renders its fields and neither a heading nor an action row', () => {
     // A wizard step sits under the wizard's own heading and advances with the
@@ -859,6 +858,28 @@ describe('EntityForm actions from served metadata', () => {
     ).toBeInTheDocument();
   });
 
+  /**
+   * ⚠️ Measured on a new `ProductOffering`: Publish and Unpublish rendered on
+   * the **create** form and did nothing when clicked, because `makeEntityCrud`
+   * withholds the handler where there is no record to act on. A button with no
+   * handler reads as a broken feature rather than an inapplicable one, so the
+   * absence of `onUseCase` is what hides them.
+   */
+  it('renders no verb when there is no handler to run one', () => {
+    render(
+      <Harness
+        mode="edit"
+        metadata={{ actions: ['read', 'write'], useCases: [useCases[0]] }}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'gadget.useCases.updateAspects' }),
+    ).not.toBeInTheDocument();
+    // Save still renders: the caller may write, and that is a different gate.
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
+  });
+
   it('fires a verb with no confirm straight away', async () => {
     const onUseCase = vi.fn();
     render(
@@ -1003,6 +1024,7 @@ describe('EntityForm actions from served metadata', () => {
         <Harness
           mode="edit"
           metadata={{ actions: ['read', 'write'], useCases: many(4) }}
+          onUseCase={vi.fn()}
         />,
       );
 
@@ -1019,6 +1041,7 @@ describe('EntityForm actions from served metadata', () => {
         <Harness
           mode="edit"
           metadata={{ actions: ['read', 'write'], useCases: many(6) }}
+          onUseCase={vi.fn()}
         />,
       );
 

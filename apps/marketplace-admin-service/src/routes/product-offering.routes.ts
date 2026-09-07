@@ -12,6 +12,7 @@ import {
   guarded,
   guardedUseCase,
   listRoute,
+  preserveOfferingStatus,
   saveRoute,
   transitionOfferingRoute,
 } from './entity-crud';
@@ -58,13 +59,19 @@ export const productOfferingRoutes = HttpRouter.empty.pipe(
   HttpRouter.post(
     '/api/product-offering',
     guarded(ProductOffering, 'write', () =>
-      saveRoute(ProductOffering, { fromParams: false }),
+      saveRoute(ProductOffering, {
+        fromParams: false,
+        prepare: preserveOfferingStatus,
+      }),
     ),
   ),
   HttpRouter.put(
     '/api/product-offering/:id',
     guarded(ProductOffering, 'write', () =>
-      saveRoute(ProductOffering, { fromParams: true }),
+      saveRoute(ProductOffering, {
+        fromParams: true,
+        prepare: preserveOfferingStatus,
+      }),
     ),
   ),
   HttpRouter.del(

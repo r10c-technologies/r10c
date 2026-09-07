@@ -40,6 +40,7 @@ import {
 import {
   EntifixBuildError,
   EntifixEnvelopeLink,
+  EntifixError,
   EntifixLockError,
   Entity,
   EntityConstructor,
@@ -253,10 +254,31 @@ export const byIdRoute = <T extends Entity>(
  *
  * On update the URL is authoritative — the id from the path overrides whatever
  * the body claimed, so a record cannot be renamed by editing its payload.
+ *
+ * `prepare` is the same rule generalized to a member. A **server-owned but
+ * client-visible** member must not be `@accessor({ readonly })` — that flag
+ * drops it from deserialization too, so the browser would never see it either —
+ * so it stays writable and the route overwrites it, exactly as the id above is
+ * overwritten from the path. Without that, a member a use-case verb guards is
+ * settable through this route by anyone holding plain `write`, and the verb's
+ * own permission is decoration.
  */
 export const saveRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
-  { fromParams }: { fromParams: boolean },
+  {
+    fromParams,
+    prepare,
+  }: {
+    fromParams: boolean;
+    // The requirement is stated rather than erased: a `prepare` that reads the
+    // stored record goes through `makeMongoRepository`, whose adapter needs the
+    // configuration store — the same requirement every other route here already
+    // lets flow out to the composition root.
+    prepare?: (
+      entity: T,
+      db: Db,
+    ) => Effect.Effect<void, EntifixError, ConfigurationRepositoryTag>;
+  },
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -267,6 +289,10 @@ export const saveRoute = <T extends Entity>(
     if (fromParams) {
       const params = yield* HttpRouter.params;
       entity.id = params.id;
+    }
+
+    if (prepare) {
+      yield* prepare(entity, db);
     }
 
     const saved = yield* saveUCFactory<T>().pipe(
@@ -546,3 +572,39 @@ export const transitionOfferingRoute = (transition: OfferingTransition) =>
     ),
     Effect.catchAll(serverError),
   );
+
+/**
+ * Keeps an offering's `status` out of the hands of the generic write path.
+ *
+ * ⚠️ Without this the two declared verbs are **decoration**: `status` is an
+ * ordinary writable member, so anyone holding
+ * `product-configuration-management:product-offering:write` could `POST` an
+ * offering that is already `published`, or `PUT` one straight from `draft` to
+ * `published`, and never touch the route that checks `…:publish`. The lifecycle
+ * would be a text box with four suggestions, which is precisely what
+ * [ADR 0047](../../../../docs/adr/0047-authoring-an-offering-and-the-publish-verb.md)
+ * refused to build.
+ *
+ * A create always starts at `draft`. An update takes the **stored** value,
+ * because only `transitionOffering` may move it — an unreadable record falls
+ * through to the save, which then fails on its own terms rather than being
+ * reported here as a status problem.
+ */
+export const preserveOfferingStatus = (
+  offering: ProductOffering,
+  db: Db,
+): Effect.Effect<void, EntifixError, ConfigurationRepositoryTag> =>
+  Effect.gen(function* () {
+    if (offering.id == null) {
+      offering.status = 'draft';
+      return;
+    }
+
+    const stored = yield* makeMongoRepository(db, ProductOffering)
+      .get<ProductOffering>(offering.id)
+      .pipe(Effect.option);
+
+    if (stored._tag === 'Some') {
+      offering.status = stored.value.status;
+    }
+  });

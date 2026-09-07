@@ -386,7 +386,20 @@ them), and everything deep is a link — loaded only when a task needs it.
   projection wholesale, so refusing it as "already published" leaves a corrected
   price permanently invisible; `unpublish` from anything but `published` is the
   one genuinely illegal move, and it answers **`409`, not `400`** — the request
-  is fine, the record's state is not. ⚠️ **`ProductOfferingPrice.offeringId`
+  is fine, the record's state is not. ⚠️ **`status` is server-owned or the verb
+  is decoration**: it is an ordinary writable member, so plain `write` could
+  `POST` an offering already `published` — measured, it worked — hence
+  `saveRoute`'s `prepare` hook and `preserveOfferingStatus` (create forced to
+  `draft`, update takes the stored value), the field hidden, and ⚠️ `required`
+  **removed**, because `hiddenFields` hides the input and **not its validation
+  rule**, so a hidden required member failed validation with no field to show it
+  on and Save did nothing and said nothing. ⚠️ **`makeEntityCrud` gained
+  `runUseCase`**, because ADR 0035's entity+context-independent cell had a
+  renderer and no producer — the factory never passed the `onUseCase` that
+  `EntityCrudForm` had always accepted, so the button did nothing; its rejection
+  is now caught and rendered through the `errors` catalog rather than left to the
+  promise, and `EntityForm` renders **no** verb without a handler, which is what
+  keeps them off the create form. ⚠️ **`ProductOfferingPrice.offeringId`
   had to become `sortable`**: `defineRecordSearchSource` refuses a label member
   that is not sortable, filterable **and** a string, at **module load**, so the
   surface would have failed the app at boot — `amount` is a number and

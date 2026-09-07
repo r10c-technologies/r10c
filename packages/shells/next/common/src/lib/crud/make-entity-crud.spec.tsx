@@ -10,6 +10,7 @@ import {
   accessor,
   EntifixBuildError,
   EntifixConnError,
+  EntifixLogicError,
   type Entity,
   entity,
   type EntityDraft,
@@ -19,7 +20,13 @@ import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
 } from '@r10c/entifix-ts-testing-unit';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context, Effect, Option } from 'effect';
 import type { ReactElement } from 'react';
@@ -28,6 +35,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePendingState } from '../workspace/pending-state.js';
 import { PendingTransactionsProvider } from '../workspace/pending-transactions.js';
 import { makeEntityCrud } from './make-entity-crud';
+import { CATALOG_NEW_SLUG } from './slug';
 
 // The pages read the route through `next/navigation`, which only exists inside
 // a running Next app; the slug is the one input a test needs to vary.
@@ -248,6 +256,24 @@ const bulkBrandCrud = makeEntityCrud<Brand, TestAdapters>(Brand, {
   runBulkUseCase: (key, selection) => runBulk(key, selection),
 });
 
+/**
+ * The entity-bound half of the same opt-in. Separate again, because a crud
+ * carrying `runUseCase` must be shown to render *and run* the verb while
+ * `brandCrud`, which carries neither option, goes on rendering none.
+ */
+const runVerb = vi.fn();
+
+const verbBrandCrud = makeEntityCrud<Brand, TestAdapters>(Brand, {
+  useAdapters,
+  basePath: '/catalog/brand',
+  catalogKey: 'product-brand',
+  repository: 'brandRest',
+  configuration: 'configurationStore',
+  hiddenFields: ['id', 'code'],
+  metadataSource: { fetchMetadata: () => fetchMetadata() },
+  runUseCase: (key, id) => runVerb(key, id),
+});
+
 const makeBrand = (id: string, name: string, code?: string) => {
   const brand = new Brand(name);
   brand.id = id;
@@ -260,6 +286,7 @@ const renderPage = (page: ReactElement) =>
 
 beforeEach(() => {
   push.mockClear();
+  runVerb.mockReset();
   slug = 'new';
   repositories = {
     brand: makeInMemoryEntityRepository([
@@ -485,6 +512,161 @@ describe('the generated form', () => {
     renderPage(<brandCrud.SingleViewPage />);
 
     expect(screen.queryByText(/^Nueva/)).toBeNull();
+  });
+
+  /**
+   * ⚠️ The defect this option exists for, measured live on `ProductOffering`:
+   * `EntityForm` has rendered these buttons since ADR 0035 and `EntityCrudForm`
+   * has accepted an `onUseCase` for as long, but `makeEntityCrud` never passed
+   * one — so a declared, granted, `$metadata`-served verb appeared on the form
+   * and did nothing at all when clicked.
+   */
+  it('runs an entity-bound verb on the record it is showing', async () => {
+    slug = 'b-1';
+    runVerb.mockClear();
+    fetchMetadata.mockResolvedValue({
+      actions: ['read', 'write'],
+      useCases: [
+        {
+          key: 'publish',
+          binding: 'entity',
+          placement: 'context-independent',
+          labelKey: 'entity:product-brand.useCases.retire',
+        },
+      ],
+    });
+
+    // Resolving means the record changed, so the verb rewrites it in the store
+    // and the assertion is that the *form* caught up. Asserting only that the
+    // runner was called would pass against a page that never reloads and goes
+    // on showing the old state — which reads as "the button did nothing".
+    runVerb.mockImplementation(async () => {
+      await Effect.runPromise(
+        repositories.brand
+          .save(makeBrand('b-1', 'Acme Publicada', 'brand-001'))
+          .pipe(
+            // The in-memory adapter threads the configuration requirement it
+            // never uses on this path, the same as every other caller here.
+            Effect.provideService(
+              ConfigurationRepositoryTag,
+              makeStubConfigurationClient(),
+            ),
+          ),
+      );
+    });
+
+    renderPage(<verbBrandCrud.SingleViewPage />);
+
+    const button = await screen.findByRole('button', { name: /retirar/i });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(runVerb).toHaveBeenCalledWith('publish', 'b-1'));
+    await waitFor(() =>
+      expect(screen.getByLabelText(/nombre/i)).toHaveValue('Acme Publicada'),
+    );
+  });
+
+  /**
+   * ⚠️ Measured live: an offering refusing `unpublish` from `draft` answered
+   * `409` with a coded body, the record correctly did not move — and the
+   * operator saw nothing at all, because `onUseCase` returns `void` and the
+   * rejection went to the console. A verb that fails silently is
+   * indistinguishable from a button that is not wired.
+   */
+  it('shows a refused verb’s coded message instead of dropping it', async () => {
+    slug = 'b-1';
+    runVerb.mockClear();
+    runVerb.mockRejectedValueOnce(
+      new EntifixLogicError('refused', undefined, {
+        code: 'alreadyRetired',
+      }),
+    );
+    fetchMetadata.mockResolvedValue({
+      actions: ['read', 'write'],
+      useCases: [
+        {
+          key: 'publish',
+          binding: 'entity',
+          placement: 'context-independent',
+          labelKey: 'entity:product-brand.useCases.retire',
+        },
+      ],
+    });
+
+    renderPage(<verbBrandCrud.SingleViewPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /retirar/i }));
+
+    // The `errors` catalog's Spanish copy for that code, resolved through
+    // `useErrorMessage` — not the thrown message, which nobody wrote for a user.
+    await waitFor(() =>
+      expect(screen.getByText(/ya estaba retirado/i)).toBeVisible(),
+    );
+  });
+
+  /**
+   * A rejection that is not an `EntifixError` keeps its own message rather than
+   * being relabelled with a code it never had: `useErrorMessage` falls back to
+   * the message when `details.code` is absent, so inventing one here would
+   * render the wrong catalog sentence with full confidence.
+   */
+  it.each([
+    ['a plain Error', new Error('la red falló'), 'la red falló'],
+    ['a thrown string', 'la red falló', 'la red falló'],
+  ])('keeps the message of %s', async (_name, thrown, expected) => {
+    slug = 'b-1';
+    runVerb.mockRejectedValueOnce(thrown);
+    fetchMetadata.mockResolvedValue({
+      actions: ['read', 'write'],
+      useCases: [
+        {
+          key: 'publish',
+          binding: 'entity',
+          placement: 'context-independent',
+          labelKey: 'entity:product-brand.useCases.retire',
+        },
+      ],
+    });
+
+    renderPage(<verbBrandCrud.SingleViewPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /retirar/i }));
+
+    await waitFor(() => expect(screen.getByText(expected)).toBeVisible());
+  });
+
+  /**
+   * ⚠️ This assertion was **vacuous** when first written: it awaited the create
+   * title and then queried, while `fetchMetadata` was still in flight — so it
+   * passed against a form that did render the verbs, which is exactly what the
+   * live pass then found. Awaiting a metadata-dependent element first is what
+   * makes the negative claim mean anything.
+   */
+  it('offers no verb on a create, where there is no record to act on', async () => {
+    // `new` is the create slug; the page resolves it to a null id.
+    slug = CATALOG_NEW_SLUG;
+    runVerb.mockClear();
+    fetchMetadata.mockResolvedValue({
+      actions: ['read', 'write'],
+      useCases: [
+        {
+          key: 'publish',
+          binding: 'entity',
+          placement: 'context-independent',
+          labelKey: 'entity:product-brand.useCases.retire',
+        },
+      ],
+    });
+
+    renderPage(<verbBrandCrud.SingleViewPage />);
+
+    // Save is gated on the same metadata document the verbs come from, so its
+    // arrival proves the fetch resolved and the absence below is a decision
+    // rather than a race.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /guardar/i })).toBeVisible(),
+    );
+    expect(screen.queryByRole('button', { name: /retirar/i })).toBeNull();
   });
 
   it('hides every member it was told to hide, and shows the rest', async () => {

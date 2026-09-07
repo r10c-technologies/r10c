@@ -18,9 +18,10 @@ import {
 import type {
   BulkOutcome,
   Entity,
+  EntityId,
   EntitySelection,
 } from '@r10c/entifix-ts-core';
-import { toWireSelection } from '@r10c/entifix-ts-core';
+import { EntifixLogicError, toWireSelection } from '@r10c/entifix-ts-core';
 import { makeEntityMetadataSource } from '@r10c/entifix-ts-rest-client';
 import type { EntityCrud } from '@r10c/shells-next-common';
 import { makeEntityCrud, useLocaleHref } from '@r10c/shells-next-common';
@@ -218,18 +219,77 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   ],
 });
 
+/**
+ * The catalog service's own affordances and entity-bound verbs, through the
+ * host's `/api/admin` proxy.
+ *
+ * The tenant-plane sibling of {@link REFERENCE_METADATA}, and a separate
+ * constant because the two services sit behind two different proxies — the same
+ * split ADR 0022 forced on the adapters one file over.
+ */
+export const CATALOG_METADATA = makeEntityMetadataSource({
+  url: name => `/api/admin/${name}/$metadata`,
+});
+
+/**
+ * Runs an `entity`-bound verb on one record of the catalog service.
+ *
+ * `key` is also the route — `publish` posts to `…/<id>/publish` — which holds
+ * only while a verb's key and its path agree. That is the convention here and
+ * nothing asserts it; a verb whose route differed would need a map, and this
+ * function is the honest place for it.
+ *
+ * A failed request **throws**, so the form's error slot renders it: a `409`
+ * from an illegal transition carries a `code` the shared `errors` catalog
+ * resolves, and swallowing it would leave the operator looking at a button that
+ * did nothing.
+ */
+export const runCatalogUseCase =
+  (entityName: string) => async (key: string, id: EntityId) => {
+    // `String(id)`: `EntityId` admits a symbol, which interpolates to a
+    // runtime throw rather than a compile error in a template literal.
+    const response = await fetch(
+      `/api/admin/${entityName}/${String(id)}/${key}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+      },
+    );
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as {
+        code?: string;
+        error?: string;
+      };
+      // An `EntifixError` carrying the service's `code` in `details`, because
+      // that is exactly what `useErrorMessage` resolves through the shared
+      // `errors` catalog — a bare `Error` would render its own message, which is
+      // an English sentence nobody wrote for a user to read.
+      throw new EntifixLogicError(body.error ?? `${key} failed`, undefined, {
+        code: body.code ?? 'unexpected',
+      });
+    }
+  };
+
 export const productOfferingCrud = makeEntityCrud(ProductOffering, {
   useAdapters: useMarketplaceAdminAdapters,
   basePath: PRODUCT_OFFERING_SURFACE.basePath,
   catalogKey: PRODUCT_OFFERING_SURFACE.entityKey,
   repository: 'productOfferingRest',
   configuration: 'configurationStore',
-  // Only the id. Unlike a specification or a brand, nothing on an offering is
-  // assigned server-side — the vendor writes every member — so `status` stays
-  // visible: it is what `publish` and `unpublish` move, and hiding the field
-  // those verbs act on would leave their effect invisible on the very form
-  // that offers them.
-  hiddenFields: ['id'],
+  // Without these two the form renders `publish`/`unpublish` nowhere: absent
+  // metadata keeps the pre-ADR-0026 behaviour, and a metadata source with no
+  // handler renders buttons that do nothing.
+  metadataSource: CATALOG_METADATA,
+  runUseCase: runCatalogUseCase(PRODUCT_OFFERING_SURFACE.entityKey),
+  // ⚠️ `status` is hidden because it is **not the vendor's to write**. The two
+  // verbs own it, the write path overwrites whatever the form sends
+  // (`preserveOfferingStatus`), and asking the operator for it made a required
+  // field out of a value they do not control — measured: a create blocked on
+  // "Status is required" for a member that has a default and is server-owned.
+  // The state stays legible on the list column and through which verb the form
+  // offers; the field itself would be a lie about who decides it.
+  hiddenFields: ['id', 'status'],
   // `specificationId` is a plain `string` into the same store, and the picker
   // treats it exactly as it treats a cross-store id: `PICKABLE_TYPES` admits
   // `link` and `string`, and `applyEntityLinks` skips a non-`link` descriptor,

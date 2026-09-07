@@ -93,13 +93,22 @@ export class ProductOffering implements Entity {
     this.#specificationId = value;
   }
 
-  /** Filterable because "what is publishable?" is the publisher's own query. */
+  /**
+   * Filterable because "what is publishable?" is the publisher's own query.
+   *
+   * ⚠️ **Not `required`**, and that is the same call ADR 0045 made for
+   * `ProductSpecification.code`: this member is **server-owned**. It starts at
+   * `draft` and only `publish`/`unpublish` move it — the write path overwrites
+   * whatever a form sends — so requiring it demands of the operator a value
+   * they do not control. Measured: with `required` set and the field hidden,
+   * a create was blocked by a validation error that had no field to render on,
+   * so Save did nothing and said nothing. A hidden member keeps its rules.
+   */
   @accessor({
     type: 'enum',
     labelKey: 'entity:product-offering.fields.status',
     enumValues: OfferingStatuses,
     enumLabelKey: 'entity:product-offering.values.status',
-    required: true,
     filterable: true,
   })
   get status(): OfferingStatus {

@@ -63,6 +63,34 @@ it takes nothing from anybody else. That is the inverse of
 `catalog-reference:*:retire`, which is the operator's alone precisely because
 retiring a brand takes a classification away from every other vendor using it.
 
+### ⚠️ `status` is server-owned, and that is what makes the verb a permission
+
+The verbs would otherwise be **decoration**. `status` is an ordinary writable
+member, so a caller holding plain
+`product-configuration-management:product-offering:write` could `POST` an
+offering that is already `published`, or `PUT` one from `draft` straight to
+`published`, and never touch the route that checks `…:publish`. Measured against
+the running service before it was fixed: both worked.
+
+The remedy is the one this repository already prescribes for a **server-owned
+but client-visible** member — not `@accessor({ readonly })`, which drops the
+member from deserialization too so the browser would never see it either, but
+leaving it writable and having the route overwrite it, exactly as a save route
+already overwrites the id from the path. `saveRoute` gained a `prepare` hook and
+`preserveOfferingStatus` uses it: a create is forced to `draft`, an update takes
+the **stored** value.
+
+Two consequences follow, and both were found by driving the form rather than by
+reasoning:
+
+- **The field is hidden**, because the operator no longer owns it. The state
+  stays legible in the list column and in which verb the form offers.
+- ⚠️ **`status` had to stop being `required`.** `hiddenFields` hides the input
+  and **not its validation rule**, so a hidden required member failed validation
+  with no field to render the message on: Save did nothing and said nothing.
+  This is the same call ADR 0045 made for `ProductSpecification.code`, for the
+  same reason — requiring a value the operator does not control.
+
 ### `placement: 'context-independent'` — the form header
 
 By `ACTION_SURFACES` that is the form header. Not `context-dependent`, which is
@@ -144,9 +172,20 @@ catalog entry.
   commands, search sources and the workspace registry, none of them edited. The
   pinned-count assertions in four specs failed on the way through, which is the
   mechanism working: each names the number of surfaces it expects.
-- **`ProductOffering` keeps `status` visible on its form**, unlike `code` on a
-  specification. It is what the two verbs move, and hiding the field they act on
-  would make their effect invisible on the form that offers them.
+- **`makeEntityCrud` gained `runUseCase`, because ADR 0035's cell had a renderer
+  and no producer.** `EntityForm` has rendered form-header verbs since that
+  record and `EntityCrudForm` has accepted an `onUseCase` for as long — but the
+  factory never passed one, so the first generated screen to declare an
+  entity-bound verb showed a button that did nothing. Two further faults came
+  out of the same pass: the rejection was left to the promise, so a `409` from
+  an illegal transition reached the console and not the operator; and the verbs
+  rendered on the **create** form, where there is no record, so `EntityForm` now
+  renders none without an `onUseCase` to run them.
+- ⚠️ **A negative assertion about metadata-driven UI must await something that
+  metadata gates.** The spec asserting the verbs do not appear on a create was
+  written first and passed **vacuously** — it awaited the create title while the
+  metadata fetch was still in flight, so it would have passed against the very
+  form the live pass then found broken.
 
 ## Related
 
