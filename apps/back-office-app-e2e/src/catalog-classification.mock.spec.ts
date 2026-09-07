@@ -75,7 +75,9 @@ const captureCreate = (
 
 const openCreateForm = async (page: Page) => {
   await page.goto('/catalog/product/new');
-  await expect(page.getByLabel('Código')).toBeVisible();
+  // `Nombre` and not `Código`: the create transaction assigns the code from a
+  // sequence, so the form does not ask for one.
+  await expect(page.getByLabel('Nombre')).toBeVisible();
 };
 
 /** The held id, which the picker renders as a name once it resolves. */
@@ -99,7 +101,6 @@ test('sends both classifications as scalar ids', async ({ page, network }) => {
   const captured = captureCreate(network);
   await openCreateForm(page);
 
-  await page.getByLabel('Código').fill('P-100');
   await page.getByLabel('Nombre').fill('Widget 100');
   await pickByName(page, 'Marca', 'Acme 1');
   await pickByName(page, 'Categoría', 'Acme tools 1');
@@ -111,7 +112,7 @@ test('sends both classifications as scalar ids', async ({ page, network }) => {
   await expect
     .poll(() => captured.body)
     .toMatchObject({
-      code: 'P-100',
+      name: 'Widget 100',
       brandId: 'product-brand-1',
       categoryId: 'product-category-1',
     });
@@ -131,7 +132,6 @@ test('picks a brand through the browse dialog', async ({ page, network }) => {
   const captured = captureCreate(network);
   await openCreateForm(page);
 
-  await page.getByLabel('Código').fill('P-102');
   await page.getByLabel('Nombre').fill('Widget 102');
 
   await page.getByRole('button', { name: 'Examinar Marca' }).click();
@@ -169,7 +169,6 @@ test('omits a classification the user clears', async ({ page, network }) => {
   const captured = captureCreate(network);
   await openCreateForm(page);
 
-  await page.getByLabel('Código').fill('P-101');
   await page.getByLabel('Nombre').fill('Widget 101');
   await pickByName(page, 'Marca', 'Acme 1');
   await page.getByRole('button', { name: 'Quitar Marca' }).click();

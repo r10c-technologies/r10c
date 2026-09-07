@@ -149,7 +149,11 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   catalogKey: PRODUCT_SURFACE.entityKey,
   repository: 'productRest',
   configuration: 'configurationStore',
-  hiddenFields: ['id'],
+  // `code` is assigned by the create transaction, the same as `ProductBrand`'s.
+  // Hiding it keeps it out of the form without keeping it out of the draft, so
+  // an update carries it back — and the operator is not asked to type a value
+  // the service overwrites.
+  hiddenFields: ['id', 'code'],
   // `brandId` keeps an override, which is still the escape hatch for a column
   // whose presentation the metadata cannot express — it renders an em dash
   // rather than an empty cell when the classification is unset.

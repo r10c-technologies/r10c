@@ -1204,8 +1204,15 @@ instantiation is excessively deep`); every scalar read is now
   address, the follower owns the wizard, and the follower reacts to the address
   *changing* rather than to what it says: rewriting the address to match the
   wizard races the advance and rewinds a step the operator had passed, and acting
-  on the address at mount sends a resumed wizard back to step one. And **a
-  launcher is not a `@useCase()` verb** — all nine of ADR 0035's cells resolve to
+  on the address at mount sends a resumed wizard back to step one.
+  ⚠️ **`ProductSpecification.code` stopped being `required` and is hidden from
+  the form.** The create transaction draws it from a Redis sequence under
+  `lock:code:product` and assigns it unconditionally, so a create carrying
+  `W-LIVE-1` stored `product-013` — requiring it demanded of the operator a value
+  they do not own, and the wizard made that visible by putting it on a step of
+  its own. `ProductBrand.code` was already right; this is the same fix, and the
+  rule is the one stated above for a server-owned but client-visible member.
+  And **a launcher is not a `@useCase()` verb** — all nine of ADR 0035's cells resolve to
   an action on records, and the only handler a `collection:context-independent`
   verb reaches takes a per-row-outcome contract — so a wizard is reached the way
   a screen is: its nav item, the palette (free, via the nav source), and a

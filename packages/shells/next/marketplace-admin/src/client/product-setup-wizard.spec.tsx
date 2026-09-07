@@ -155,22 +155,23 @@ describe('the blank path', () => {
     await click(/Desde cero/);
     await click('Continuar');
 
-    // `code` and `name` are required, and this is the step that owns them.
-    expect(await screen.findByLabelText(/Código/)).toBeInTheDocument();
+    // `name` is required and this is the step that owns it. `code` is not asked
+    // for at all — the create transaction assigns it.
+    expect(await screen.findByLabelText(/Nombre/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Código/)).not.toBeInTheDocument();
     await click('Continuar');
 
     expect(screen.getAllByRole('alert').length).toBeGreaterThan(0);
-    expect(screen.getByLabelText(/Código/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Nombre/)).toBeInTheDocument();
   });
 
   it('validates only the members the step owns', async () => {
-    // The classification step must not be blocked by `code`, which belongs to
+    // The classification step must not be blocked by `name`, which belongs to
     // the step before it — without a scope, no step but the last could advance.
     renderWizard();
 
     await click(/Desde cero/);
     await click('Continuar');
-    await type(/Código/, 'P-9');
     await type(/Nombre/, 'Café');
     await click('Continuar');
 
@@ -191,21 +192,21 @@ describe('the blank path', () => {
 
     await click(/Desde cero/);
     await click('Continuar');
-    await type(/Código/, 'P-9');
     await type(/Nombre/, 'Café');
     await click('Continuar');
     await click('Continuar');
 
-    expect(await screen.findByText('P-9')).toBeInTheDocument();
-    expect(screen.getByText('Café')).toBeInTheDocument();
+    expect(await screen.findByText('Café')).toBeInTheDocument();
     expect(screen.getByText('Desde cero')).toBeInTheDocument();
+    // The service assigns the code, so the repaso never claims one.
+    expect(screen.queryByText(/^P-/)).not.toBeInTheDocument();
 
     await click('Finalizar');
 
     await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
     expect(
-      repositories.product.items.map(item => (item as ProductSpecification).code),
-    ).toContain('P-9');
+      repositories.product.items.map(item => (item as ProductSpecification).name),
+    ).toContain('Café');
   });
 });
 
@@ -215,7 +216,6 @@ describe('finishing without a host to return to', () => {
 
     await click(/Desde cero/);
     await click('Continuar');
-    await type(/Código/, 'P-9');
     await type(/Nombre/, 'Café');
     await click('Continuar');
     await click('Continuar');
@@ -233,13 +233,12 @@ describe('the stepper', () => {
 
     await click(/Desde cero/);
     await click('Continuar');
-    await type(/Código/, 'P-9');
     await type(/Nombre/, 'Café');
     await click('Continuar');
 
     await click('Volver a Identificación');
 
-    expect(await screen.findByLabelText(/Código/)).toHaveValue('P-9');
+    expect(await screen.findByLabelText(/Nombre/)).toHaveValue('Café');
   });
 });
 
@@ -261,9 +260,10 @@ describe('the duplicate path', () => {
 
     await click('Continuar');
 
-    // Seeded from the source, minus the two members a copy must not carry.
+    // Seeded from the source. The code is neither shown nor carried: it
+    // identifies the original, and the service assigns the copy its own.
     expect(await screen.findByLabelText(/Nombre/)).toHaveValue('Gadget');
-    expect(screen.getByLabelText(/Código/)).toHaveValue('');
+    expect(screen.queryByLabelText(/Código/)).not.toBeInTheDocument();
   });
 
   it('names the record it was duplicated from in the summary', async () => {
@@ -279,7 +279,7 @@ describe('the duplicate path', () => {
       }),
     );
     await click('Continuar');
-    await type(/Código/, 'P-9');
+    await type(/Nombre/, 'Café');
     await click('Continuar');
     await click('Continuar');
 
@@ -302,7 +302,7 @@ describe('the duplicate path', () => {
       }),
     );
     await click('Continuar');
-    await type(/Código/, 'P-9');
+    await type(/Nombre/, 'Café');
     await click('Continuar');
     await click('Continuar');
 
@@ -317,7 +317,6 @@ describe('a write the service refuses', () => {
 
     await click(/Desde cero/);
     await click('Continuar');
-    await type(/Código/, 'P-9');
     await type(/Nombre/, 'Café');
     await click('Continuar');
     await click('Continuar');
@@ -332,7 +331,7 @@ describe('a write the service refuses', () => {
       ).toBeInTheDocument(),
     );
     expect(push).not.toHaveBeenCalledWith('/es/catalog/product');
-    expect(screen.getByText('P-9')).toBeInTheDocument();
+    expect(screen.getByText('Café')).toBeInTheDocument();
   });
 });
 
@@ -342,12 +341,11 @@ describe('going back', () => {
 
     await click(/Desde cero/);
     await click('Continuar');
-    await type(/Código/, 'P-9');
     await type(/Nombre/, 'Café');
     await click('Continuar');
     await click('Atrás');
 
-    expect(await screen.findByLabelText(/Código/)).toHaveValue('P-9');
+    expect(await screen.findByLabelText(/Nombre/)).toHaveValue('Café');
   });
 });
 
@@ -384,7 +382,7 @@ describe('resuming', () => {
       history: ['start', 'identity'],
       steps: {
         start: { kind: 'choice', option: 'blank' },
-        identity: { kind: 'form', values: { code: 'P-7', name: 'Té' } },
+        identity: { kind: 'form', values: { name: 'Té' } },
       },
     });
 
@@ -394,7 +392,6 @@ describe('resuming', () => {
       await screen.findByRole('heading', { name: 'Clasificación' }),
     ).toBeInTheDocument();
     const recap = screen.getByTestId('wizard-recap');
-    expect(recap).toHaveTextContent('P-7');
     expect(recap).toHaveTextContent('Té');
   });
 
@@ -406,7 +403,7 @@ describe('resuming', () => {
       history: ['start', 'identity', 'classification'],
       steps: {
         start: { kind: 'choice', option: 'blank' },
-        identity: { kind: 'form', values: { code: 'P-7', name: 'Té' } },
+        identity: { kind: 'form', values: { name: 'Té' } },
         classification: { kind: 'form', values: { brandId: 'b-1' } },
       },
     });

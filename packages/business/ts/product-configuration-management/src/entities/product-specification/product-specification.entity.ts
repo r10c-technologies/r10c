@@ -60,18 +60,29 @@ export class ProductSpecification implements Entity {
   }
 
   /**
-   * `resetOnClone` because the code identifies **this** specification: a copy
-   * that carried it would be two records claiming one identifier, and the
-   * operator would have to notice and clear it by hand every time. Correct
-   * independently of who does the copying — the Clone button on the form
-   * (ADR 0035) and the wizard's "duplicate an existing product" branch
-   * (ADR 0045) both go through `cloneEntityDraft`.
+   * The catalogue number, and it is **the service's to assign, not the
+   * client's**.
+   *
+   * `makeCatalogTransactionHandler` draws it from a Redis sequence under
+   * `lock:code:product` and writes `entity.code` unconditionally, so whatever a
+   * form sends is overwritten — measured: a create carrying `W-LIVE-1` stored
+   * `product-013`. It is therefore **not `required`**, because requiring it
+   * demands of the operator something they do not own; the service's own
+   * `validate` asks for `name` and never for this.
+   *
+   * Not `@accessor({ readonly })` either, for the reason `CLAUDE.md` records:
+   * that flag drops the member from deserialization too, so the assigned code
+   * would never reach the screen that lists it. Left writable and hidden from
+   * the form with `hiddenFields`, exactly as `ProductBrand.code` already is.
+   *
+   * `resetOnClone` still earns its place: a copy must not carry the original's
+   * identifier through the draft, or the summary of a duplicated record shows a
+   * number belonging to something else.
    */
   @accessor({
     type: 'string',
     label: 'Code',
     labelKey: 'entity:product-specification.fields.code',
-    required: true,
     resetOnClone: true,
   })
   get code(): string {

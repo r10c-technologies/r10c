@@ -133,8 +133,14 @@ function pickersFor(
   }));
 }
 
-/** Which members each form step owns. Their union is what the submit rebuilds. */
-const IDENTITY_FIELDS = ['code', 'name', 'description'] as const;
+/**
+ * Which members each form step owns. Their union is what the submit rebuilds.
+ *
+ * `code` is **not** among them: the create transaction assigns it from a
+ * sequence, so asking for one would put a field on a step of its own, require
+ * it, show it in the summary, and then discard it.
+ */
+const IDENTITY_FIELDS = ['name', 'description'] as const;
 const CLASSIFICATION_FIELDS = ['brandId', 'categoryId'] as const;
 
 /**

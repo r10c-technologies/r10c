@@ -83,8 +83,12 @@ const back = (page: Page) => page.getByTestId('wizard-previous').click();
 /** The stepper's own list, which is `<ol>` and deliberately not a tablist. */
 const steps = (page: Page) => page.getByRole('list', { name: 'Pasos' });
 
-const fillIdentity = async (page: Page, code: string, name: string) => {
-  await page.getByLabel(/código/i).fill(code);
+/**
+ * The identity step asks for a name and a description, and **not for a code**:
+ * the create transaction assigns that from a sequence, so a field for it would
+ * be asking the operator to type a value the service overwrites.
+ */
+const fillIdentity = async (page: Page, name: string) => {
   await page.getByLabel(/nombre/i).fill(name);
 };
 
@@ -108,15 +112,18 @@ test('walks the blank path and hands one command off', async ({
   await page.getByRole('button', { name: /Desde cero/ }).click();
   await next(page);
 
-  // The step's own submit gates the advance: `código` and `nombre` are
-  // required, and this is the step that owns them.
+  // The step's own submit gates the advance: `nombre` is required and this is
+  // the step that owns it.
   await next(page);
-  await expect(page.getByRole('heading', { name: 'Identificación' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Identificación' }),
+  ).toBeVisible();
+  await expect(page.getByLabel(/código/i)).toHaveCount(0);
 
-  await fillIdentity(page, 'W-1', 'Café de altura');
+  await fillIdentity(page, 'Café de altura');
   await next(page);
 
-  // The classification step is *not* blocked by `código`, which belongs to the
+  // The classification step is *not* blocked by `nombre`, which belongs to the
   // step before it — without a per-step scope, no step but the last could pass.
   await expect(page.getByRole('heading', { name: 'Clasificación' })).toBeVisible();
   await next(page);
@@ -128,11 +135,10 @@ test('walks the blank path and hands one command off', async ({
   await page.getByTestId('wizard-next').click();
   await page.waitForURL(url => url.pathname.endsWith(PRODUCT_LIST));
 
-  // One command, carrying the two steps' drafts merged.
-  expect(captured.payload).toMatchObject({
-    code: 'W-1',
-    name: 'Café de altura',
-  });
+  // One command, carrying the two steps' drafts merged — and no `code`, which
+  // the service assigns.
+  expect(captured.payload).toMatchObject({ name: 'Café de altura' });
+  expect(captured.payload).not.toHaveProperty('code');
   expect(captured.transactionId).toMatch(/^[0-9a-f-]{36}$/);
 
   // And the operator is told the write is not finished, rather than being left
@@ -162,9 +168,10 @@ test('re-shapes the stepper and seeds the forms from the product it duplicates',
   await next(page);
 
   // Seeded through `cloneEntityDraft`, which drops the id and every member
-  // declared `resetOnClone` — the code identifies the original.
+  // declared `resetOnClone`. The code is neither shown nor carried: it
+  // identifies the original, and the service assigns the copy its own.
   await expect(page.getByLabel(/nombre/i)).toHaveValue('Gadget');
-  await expect(page.getByLabel(/código/i)).toHaveValue('');
+  await expect(page.getByLabel(/código/i)).toHaveCount(0);
 });
 
 test('keeps an earlier step’s answers when the operator goes back', async ({
@@ -174,13 +181,13 @@ test('keeps an earlier step’s answers when the operator goes back', async ({
 
   await page.getByRole('button', { name: /Desde cero/ }).click();
   await next(page);
-  await fillIdentity(page, 'W-2', 'Té de jazmín');
+  await fillIdentity(page, 'Té de jazmín');
   await next(page);
   await back(page);
 
   // The step component unmounted and came back. Nothing was lost, because the
   // draft never lived inside it.
-  await expect(page.getByLabel(/código/i)).toHaveValue('W-2');
+  await expect(page.getByLabel(/nombre/i)).toHaveValue('Té de jazmín');
 });
 
 test('moves a step on browser-Back rather than leaving the wizard', async ({
@@ -211,7 +218,7 @@ test('resumes a half-finished flow after a refresh, and recaps it', async ({
 
   await page.getByRole('button', { name: /Desde cero/ }).click();
   await next(page);
-  await fillIdentity(page, 'W-3', 'Cacao');
+  await fillIdentity(page, 'Cacao');
   await next(page);
   await expect(page.getByRole('heading', { name: 'Clasificación' })).toBeVisible();
 

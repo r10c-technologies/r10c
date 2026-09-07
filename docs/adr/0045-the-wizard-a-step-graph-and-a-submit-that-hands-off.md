@@ -250,8 +250,15 @@ implementation.
   `EntityTableToolbar` child into its own slot, and `makeEntityCrud` already
   passes `columns` through as children — so the affordance worked before this,
   filed under the wrong option name.
-- `ProductSpecification.code` gains `resetOnClone: true`. Correct independently
-  of the wizard: a copy must not carry a unique code.
+- `ProductSpecification.code` gains `resetOnClone: true` and **loses
+  `required: true`**, and is hidden from the generated form. The create
+  transaction draws it from a Redis sequence under `lock:code:product` and
+  assigns it unconditionally — measured on the live fleet, a create carrying
+  `W-LIVE-1` stored `product-013` — so requiring it demanded of the operator a
+  value they do not own, and the wizard made that visible by putting it on a
+  step of its own and then showing it in a summary it would not keep. This is
+  the rule `CLAUDE.md` already states for a server-owned, client-visible member,
+  and the one `ProductBrand.code` was already following.
 - New copy: `controls.wizard.*` for the control, `shell:marketplaceAdmin.wizard.*`
   for the first wizard's own names.
 - The step graph is in **core**, framework-free, for `command-matching.ts`'s
