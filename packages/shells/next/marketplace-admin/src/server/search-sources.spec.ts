@@ -9,9 +9,11 @@ import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from './search-sources';
  * quietly reports a group it could not reach.
  */
 describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
-  it('declares the catalog’s three searchable records, in order', () => {
+  it('declares the catalog’s five searchable records, in order', () => {
     expect(MARKETPLACE_ADMIN_SEARCH_SOURCES.map(source => source.key)).toEqual([
       'product-specification',
+      'product-offering',
+      'product-offering-price',
       'product-brand',
       'product-category',
     ]);
@@ -22,6 +24,8 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
       MARKETPLACE_ADMIN_SEARCH_SOURCES.map(source => source.labelKey),
     ).toEqual([
       'entity:product-specification.plural',
+      'entity:product-offering.plural',
+      'entity:product-offering-price.plural',
       'entity:product-brand.plural',
       'entity:product-category.plural',
     ]);
@@ -31,6 +35,8 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
     // `product`, not `product-specification` — the route segment and the entity
     // key differ, and they have drifted apart once already.
     ['product-specification', '/catalog/product/x-1'],
+    ['product-offering', '/catalog/product-offering/x-1'],
+    ['product-offering-price', '/catalog/product-offering-price/x-1'],
     ['product-brand', '/catalog/product-brand/x-1'],
     ['product-category', '/catalog/product-category/x-1'],
   ])('routes a %s result to a page this host serves', (key, expected) => {
@@ -50,11 +56,14 @@ describe('MARKETPLACE_ADMIN_SEARCH_SOURCES', () => {
   });
 
   it('asks the tenant service for specifications and the platform one for the vocabulary', () => {
-    const [specification, brand, category] = MARKETPLACE_ADMIN_SEARCH_SOURCES;
+    const [specification, offering, price, brand, category] =
+      MARKETPLACE_ADMIN_SEARCH_SOURCES;
 
-    // Two services since ADR 0022, which is also why one of these can answer
-    // `409` for a caller the other two serve happily.
+    // Two services since ADR 0022, which is also why the tenant-plane three can
+    // answer `409` for a caller the other two serve happily.
     expect(specification?.url('acme', 5)).toContain('localhost:3101');
+    expect(offering?.url('acme', 5)).toContain('localhost:3101');
+    expect(price?.url('acme', 5)).toContain('localhost:3101');
     expect(brand?.url('acme', 5)).toContain('localhost:3100');
     expect(category?.url('acme', 5)).toContain('localhost:3100');
   });

@@ -2,7 +2,11 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import {
+  ProductOffering,
+  ProductOfferingPrice,
+  ProductSpecification,
+} from '@r10c/business-ts-product-configuration-management';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
@@ -45,6 +49,17 @@ export const CATALOG_SERVICE: BuildEntityRestOptions = {
   ...restOptionsFor('marketplace-admin-service-domain'),
   create: 'command',
 };
+/**
+ * The same backend as {@link CATALOG_SERVICE}, on the plain REST create path.
+ *
+ * `ProductSpecification` needs the command protocol because a Redis sequence
+ * assigns its `code` server-side; an offering and its price have no
+ * server-owned member, so a `202` here would buy nothing and cost a tracker
+ * record per create. Same host, same proxy, different write contract — which is
+ * exactly what `BuildEntityRestOptions.create` exists to say.
+ */
+const CATALOG_SERVICE_REST = restOptionsFor('marketplace-admin-service-domain');
+
 const REFERENCE_SERVICE = restOptionsFor('marketplace-service-domain');
 
 /**
@@ -84,12 +99,22 @@ const productRest = createRestRepositoryContext(
   ProductSpecification,
   CATALOG_SERVICE,
 );
+const productOfferingRest = createRestRepositoryContext(
+  ProductOffering,
+  CATALOG_SERVICE_REST,
+);
+const productOfferingPriceRest = createRestRepositoryContext(
+  ProductOfferingPrice,
+  CATALOG_SERVICE_REST,
+);
 
 export function createClientAdapters(): MarketplaceAdminAdapters {
   return {
     productCategoryRest,
     productBrandRest,
     productRest,
+    productOfferingRest,
+    productOfferingPriceRest,
     configurationStore,
   };
 }

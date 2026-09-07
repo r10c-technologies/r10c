@@ -364,6 +364,40 @@ them), and everything deep is a link — loaded only when a task needs it.
   satisfying "every declared verb is granted somewhere" makes that check vacuous
   for precisely the verbs only the operator holds. The entityKey segment is
   wildcarded; the **action** segment is not, so ADR 0026's residual stands.
+- **A vendor authors an offering, and publishing it is a verb — but nothing is
+  announced yet** ([ADR 0047](docs/adr/0047-authoring-an-offering-and-the-publish-verb.md)).
+  `ProductOffering` and `ProductOfferingPrice` were `@entity()` classes and
+  **nothing else** — no route, no adapter, no surface, and the domain package
+  had no `use-cases/` folder at all — which is why `published-catalog` could
+  never fill. Both are `makeEntityCrud` surfaces now; what is written by hand is
+  the lifecycle. Five things not to re-derive. **Create is plain REST, not
+  `create: 'command'`**: a specification uses the saga because a Redis sequence
+  assigns its `code` server-side, and an offering has no server-owned member, so
+  the command path would cost a `202`, a tracker record and an outbox entry per
+  create for nothing — hence a second options constant against the _same_
+  backend, differing only in `create`. **`publish`/`unpublish` are two
+  `@useCase()` classes over one shared effect**, `entity`-bound and
+  `context-independent` so `ACTION_SURFACES` puts them in the **form header**;
+  they are granted to **`admin`**, the vendor's own role, which is the exact
+  inverse of `catalog-reference:*:retire` being `super-admin`'s — an offering
+  lives in one organization's own database, so publishing it takes nothing from
+  anyone else. ⚠️ **`published → published` is legal**: republication is how a
+  vendor's edit reaches the storefront and ADR 0009 makes it replace the
+  projection wholesale, so refusing it as "already published" leaves a corrected
+  price permanently invisible; `unpublish` from anything but `published` is the
+  one genuinely illegal move, and it answers **`409`, not `400`** — the request
+  is fine, the record's state is not. ⚠️ **`ProductOfferingPrice.offeringId`
+  had to become `sortable`**: `defineRecordSearchSource` refuses a label member
+  that is not sortable, filterable **and** a string, at **module load**, so the
+  surface would have failed the app at boot — `amount` is a number and
+  `currency` is not sortable, leaving it the only member that can name one of
+  its own records. And **emission is deliberately absent**: ADR 0028 requires the
+  event in the same Mongo transaction as the status write, which a framework-free
+  port cannot do, so the emitting path belongs with the commit that decides the
+  payload shape — whose own constraint is that `product-configuration-management`
+  authors it and `marketplace-catalog` consumes it, and neither may import the
+  other. Also absent, and recorded: no precondition that an offering have a
+  price, and no publish-from-the-list affordance.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never

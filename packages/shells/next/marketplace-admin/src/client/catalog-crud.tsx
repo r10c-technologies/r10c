@@ -4,7 +4,11 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import {
+  ProductOffering,
+  ProductOfferingPrice,
+  ProductSpecification,
+} from '@r10c/business-ts-product-configuration-management';
 import {
   ButtonLink,
   EntityColumn,
@@ -24,13 +28,15 @@ import { makeEntityCrud, useLocaleHref } from '@r10c/shells-next-common';
 import {
   PRODUCT_BRAND_SURFACE,
   PRODUCT_CATEGORY_SURFACE,
+  PRODUCT_OFFERING_PRICE_SURFACE,
+  PRODUCT_OFFERING_SURFACE,
   PRODUCT_SURFACE,
 } from '../catalog-surfaces';
 import { PRODUCT_SETUP_SURFACE } from '../wizard-surfaces';
 import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
 
 /**
- * The catalog's three CRUD surfaces, declared rather than written.
+ * The catalog's five CRUD surfaces, declared rather than written.
  *
  * Each of these used to be ~10 files and ~300 lines whose only variable was the
  * class name: a table organism and a form organism with a `.types.ts` each, a
@@ -212,6 +218,56 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   ],
 });
 
+export const productOfferingCrud = makeEntityCrud(ProductOffering, {
+  useAdapters: useMarketplaceAdminAdapters,
+  basePath: PRODUCT_OFFERING_SURFACE.basePath,
+  catalogKey: PRODUCT_OFFERING_SURFACE.entityKey,
+  repository: 'productOfferingRest',
+  configuration: 'configurationStore',
+  // Only the id. Unlike a specification or a brand, nothing on an offering is
+  // assigned server-side — the vendor writes every member — so `status` stays
+  // visible: it is what `publish` and `unpublish` move, and hiding the field
+  // those verbs act on would leave their effect invisible on the very form
+  // that offers them.
+  hiddenFields: ['id'],
+  // `specificationId` is a plain `string` into the same store, and the picker
+  // treats it exactly as it treats a cross-store id: `PICKABLE_TYPES` admits
+  // `link` and `string`, and `applyEntityLinks` skips a non-`link` descriptor,
+  // so the id stays the truth and the wrapper reconstructs from the draft.
+  //
+  // Both target properties are stated rather than defaulted, for the reason
+  // `ProductSpecification` states its own: a scalar id's accessor cannot name
+  // the target's members, and the default is `'name'` whether or not the target
+  // has one.
+  links: [
+    {
+      field: 'specificationId',
+      entityConstructor: ProductSpecification,
+      repository: 'productRest',
+      labelProperty: 'name',
+      searchProperty: 'name',
+    },
+  ],
+});
+
+export const productOfferingPriceCrud = makeEntityCrud(ProductOfferingPrice, {
+  useAdapters: useMarketplaceAdminAdapters,
+  basePath: PRODUCT_OFFERING_PRICE_SURFACE.basePath,
+  catalogKey: PRODUCT_OFFERING_PRICE_SURFACE.entityKey,
+  repository: 'productOfferingPriceRest',
+  configuration: 'configurationStore',
+  hiddenFields: ['id'],
+  links: [
+    {
+      field: 'offeringId',
+      entityConstructor: ProductOffering,
+      repository: 'productOfferingRest',
+      labelProperty: 'name',
+      searchProperty: 'name',
+    },
+  ],
+});
+
 export const ProductBrandListClientPage = productBrandCrud.ListPage;
 export const ProductBrandSingleViewClientPage = productBrandCrud.SingleViewPage;
 export const ProductCategoryListClientPage = productCategoryCrud.ListPage;
@@ -219,6 +275,13 @@ export const ProductCategorySingleViewClientPage =
   productCategoryCrud.SingleViewPage;
 export const ProductListClientPage = productCrud.ListPage;
 export const ProductSingleViewClientPage = productCrud.SingleViewPage;
+export const ProductOfferingListClientPage = productOfferingCrud.ListPage;
+export const ProductOfferingSingleViewClientPage =
+  productOfferingCrud.SingleViewPage;
+export const ProductOfferingPriceListClientPage =
+  productOfferingPriceCrud.ListPage;
+export const ProductOfferingPriceSingleViewClientPage =
+  productOfferingPriceCrud.SingleViewPage;
 
 /**
  * The catalog's generated screens, as a list the workspace registry walks.
@@ -236,6 +299,8 @@ export const ProductSingleViewClientPage = productCrud.SingleViewPage;
  */
 export const MARKETPLACE_ADMIN_CRUDS: readonly EntityCrud<Entity>[] = [
   productCrud,
+  productOfferingCrud,
+  productOfferingPriceCrud,
   productBrandCrud,
   productCategoryCrud,
 ] as readonly EntityCrud<Entity>[];

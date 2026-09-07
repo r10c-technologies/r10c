@@ -28,4 +28,5 @@ export * from './entities/entity-specification';
 export * from './entities/product-offering';
 export * from './entities/product-offering-price';
 export * from './entities/product-specification';
+export * from './use-cases';
 export * from './values';

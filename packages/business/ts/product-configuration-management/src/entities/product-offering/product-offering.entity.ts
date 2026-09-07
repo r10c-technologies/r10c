@@ -48,7 +48,11 @@ export class ProductOffering implements Entity {
   // #endregion
 
   // #region accessors
-  @accessor({ labelKey: 'entity:product-offering.fields.id' })
+  @accessor({
+    type: 'id',
+    label: 'ID',
+    labelKey: 'entity:product-offering.fields.id',
+  })
   get id(): EntityId {
     return this.#id;
   }

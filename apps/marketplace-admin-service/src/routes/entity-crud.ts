@@ -3,7 +3,17 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
-import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
+import {
+  type Action,
+  type Permission,
+  permissionForEntity,
+} from '@r10c/business-ts-authz';
+import {
+  type OfferingTransition,
+  ProductOffering,
+  transitionOffering,
+  TransitionOfferingInputTag,
+} from '@r10c/business-ts-product-configuration-management';
 import {
   acceptTransaction,
   CommandTag,
@@ -455,4 +465,84 @@ export const guarded = <T extends Entity, A, E, R>(
         // resolving the tenant handle.
         Effect.catchAll(serverError),
       ),
+  );
+
+/**
+ * Guard a declared verb with the permission that verb derives, and bind the
+ * request to the caller's organization database.
+ *
+ * The tenant half is what makes this a different helper from
+ * `marketplace-service`'s `guardedUseCase`, which is built on
+ * `requirePermission` alone: that service's stores are `partitioning: 'single'`,
+ * this one's `catalog` is one Mongo database per organization. Everything else
+ * is {@link guarded} — the permission is simply supplied rather than derived
+ * from an entity and an `Action`.
+ *
+ * `permissionForUseCase` rather than `permissionForEntity`, for ADR 0026's
+ * reason: `publish` is not a shape of `write`, so it carries its own third
+ * segment and its own grant, and a route that said `write` here would let
+ * anyone who can edit a draft put it in front of buyers.
+ */
+export const guardedUseCase = <A, E, R>(
+  permission: Permission,
+  route: (organizationId: string) => Effect.Effect<A, E, R>,
+) =>
+  requireOrganization(permission)(organizationId =>
+    Effect.gen(function* () {
+      const resolver = yield* TenantDatabaseResolverTag;
+      const db = (yield* resolver.forOrganization(organizationId)) as Db;
+      return yield* route(organizationId).pipe(
+        Effect.provideService(MongoDatabaseTag, db),
+      );
+    }).pipe(Effect.catchAll(serverError)),
+  );
+
+/**
+ * Move one offering along its lifecycle.
+ *
+ * The rule is the domain's (`offeringStatusAfter`); this route only supplies
+ * the id from the path and the repository, and turns the domain's refusal into
+ * a status code. **`409`, not `400`**: the request is well-formed and the
+ * caller is allowed to make it — what is wrong is the *state of the record*,
+ * which is exactly the distinction a conflict status carries. A `400` would
+ * tell a vendor to fix their request when there is nothing in it to fix.
+ *
+ * The response is an ordinary entity envelope holding the record as stored, so
+ * the browser re-renders the new status from the write's own answer rather than
+ * re-reading it.
+ */
+export const transitionOfferingRoute = (transition: OfferingTransition) =>
+  Effect.gen(function* () {
+    const db = yield* MongoDatabaseTag;
+    const params = yield* HttpRouter.params;
+    const id = params.id as EntityId;
+
+    const offering = yield* transitionOffering.pipe(
+      Effect.provideService(
+        EntityRepositoryTag,
+        makeMongoRepository(db, ProductOffering),
+      ),
+      Effect.provideService(TransitionOfferingInputTag, { id, transition }),
+    );
+
+    const key = envelopeEntityName(ProductOffering);
+    return yield* HttpServerResponse.json(
+      makeEntityEnvelope(
+        ProductOffering,
+        offering,
+        entityLinks(key, offering.id),
+      ),
+    );
+  }).pipe(
+    Effect.catchTag('IllegalOfferingTransition', failure =>
+      HttpServerResponse.json(
+        {
+          error: 'illegal offering transition',
+          code: failure.code,
+          detail: `An offering in '${failure.from}' cannot be ${failure.transition}ed.`,
+        },
+        { status: 409 },
+      ),
+    ),
+    Effect.catchAll(serverError),
   );

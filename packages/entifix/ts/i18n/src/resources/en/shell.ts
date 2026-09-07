@@ -74,6 +74,8 @@ export const shell: EsShell = {
       products: 'Products',
       brands: 'Brands',
       categories: 'Categories',
+      offerings: 'Product offerings',
+      offeringPrices: 'Offering prices',
       guided: 'Catalog',
     },
     wizard: {

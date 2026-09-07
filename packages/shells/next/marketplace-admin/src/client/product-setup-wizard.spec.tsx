@@ -87,6 +87,13 @@ const adapters = (): MarketplaceAdminAdapters => ({
   productRest: Context.make(EntityRepositoryTag, repositories.product),
   productBrandRest: Context.make(EntityRepositoryTag, repositories.brand),
   productCategoryRest: Context.make(EntityRepositoryTag, repositories.category),
+  // Neither page under test reads an offering; the keys exist because the
+  // adapter set is one object and a partial one would not type.
+  productOfferingRest: Context.make(EntityRepositoryTag, repositories.product),
+  productOfferingPriceRest: Context.make(
+    EntityRepositoryTag,
+    repositories.product,
+  ),
   configurationStore: Context.make(
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
@@ -205,7 +212,9 @@ describe('the blank path', () => {
 
     await waitFor(() => expect(onFinished).toHaveBeenCalledOnce());
     expect(
-      repositories.product.items.map(item => (item as ProductSpecification).name),
+      repositories.product.items.map(
+        item => (item as ProductSpecification).name,
+      ),
     ).toContain('Café');
   });
 });

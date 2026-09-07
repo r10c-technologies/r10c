@@ -17,6 +17,9 @@ export const errors: EsErrors = {
   invalidCommand: 'The command is not valid.',
   notFound: 'The record was not found.',
   alreadyRetired: 'It was already retired.',
+  // The one genuinely illegal move in an offering's lifecycle: taking down
+  // something that was never published. Refused in the domain, not the route.
+  illegalOfferingTransition: 'The offering cannot move to that state.',
   resourceBusy: 'The resource is busy, try again.',
   identifierRequired: 'An account needs at least one identifier.',
   emailRequired: 'An email identifier is required.',

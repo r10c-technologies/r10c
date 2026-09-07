@@ -2,6 +2,8 @@ import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { requirePrincipal } from '@r10c/shells-effect-service';
 
 import { configIntrospectionRoute } from './routes/config.routes';
+import { productOfferingRoutes } from './routes/product-offering.routes';
+import { productOfferingPriceRoutes } from './routes/product-offering-price.routes';
 import { productSpecificationRoutes } from './routes/product-specification.routes';
 import { sagaRoutes } from './saga/routes';
 
@@ -27,4 +29,6 @@ export const router = sagaRoutes(HttpRouter.empty).pipe(
   ),
 
   HttpRouter.concat(productSpecificationRoutes),
+  HttpRouter.concat(productOfferingRoutes),
+  HttpRouter.concat(productOfferingPriceRoutes),
 );

@@ -89,6 +89,8 @@ export const shell = {
       products: 'Productos',
       brands: 'Marcas',
       categories: 'Categorías',
+      offerings: 'Ofertas comerciales',
+      offeringPrices: 'Precios de oferta',
       // La sección Asistentes. El *nombre del nivel* ("Asistentes") sale de
       // `nav.screenType.wizard`; esto nombra el grupo dentro de él.
       guided: 'Catálogo',

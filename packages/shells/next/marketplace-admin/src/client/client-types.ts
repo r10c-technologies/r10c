@@ -8,5 +8,7 @@ export interface MarketplaceAdminAdapters {
   productCategoryRest: Context<EntityRepositoryTag>;
   productBrandRest: Context<EntityRepositoryTag>;
   productRest: Context<EntityRepositoryTag>;
+  productOfferingRest: Context<EntityRepositoryTag>;
+  productOfferingPriceRest: Context<EntityRepositoryTag>;
   configurationStore: Context<ConfigurationRepositoryTag>;
 }

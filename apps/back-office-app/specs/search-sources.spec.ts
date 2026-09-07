@@ -11,6 +11,8 @@ describe('SEARCH_SOURCES', () => {
   it('composes both shells, catalog before people', () => {
     expect(SEARCH_SOURCES.map(source => source.key)).toEqual([
       'product-specification',
+      'product-offering',
+      'product-offering-price',
       'product-brand',
       'product-category',
       'user-identity',

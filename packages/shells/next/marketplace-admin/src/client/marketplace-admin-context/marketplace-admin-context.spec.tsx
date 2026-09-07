@@ -25,6 +25,8 @@ const adapters: MarketplaceAdminAdapters = {
   productRest: repository(),
   productBrandRest: repository(),
   productCategoryRest: repository(),
+  productOfferingRest: repository(),
+  productOfferingPriceRest: repository(),
   configurationStore: Context.make(
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
