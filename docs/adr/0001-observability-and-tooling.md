@@ -11,6 +11,11 @@
 - Revised: 2026-09-05 — the first metric set is built (#186): bus, outbox and
   transaction instrumentation, with two limits and the dashboard gap recorded
   under "Metrics" below.
+- Revised: 2026-09-07 — the dashboard gap is closed (#206). A committed
+  dashboard JSON plus a fourth `type: file` provider, grafted by `subPath` into
+  the image's own provisioning directory so the dashboards and datasources it
+  ships are not shadowed. The paragraph under "Metrics" is corrected in place;
+  no decision in this record changes.
 - Revised: 2026-09-04 — "fleet-wide rollout", listed under Deferred below, is
   done and that entry is struck. It had stalled at the first pair: auth-service
   and config-service emitted **nothing** — no tracer, no meter, no structured
@@ -229,9 +234,41 @@ attributes. Measured during the live pass: the age gauge first arrived as
 `outbox_oldest_pending_age_seconds_ratio`, a duration announcing itself as a
 ratio.
 
-**Dashboards are not provisioned.** `infra/local/otel-lgtm` mounts nothing and
-has no PVC, so a dashboard has to be a committed file plus a ConfigMap. The
-metrics are queried directly against `:30000` until that lands.
+**Dashboards are provisioned from the repo, not drawn in the UI.**
+`infra/local/otel-lgtm` has no PVC, so anything built in Grafana dies with the
+pod — the dashboard has to be a committed file. It is
+`infra/local/otel-lgtm/dashboards/r10c-bus-outbox.json`, loaded by a fourth
+`type: file` provider that a `configMapGenerator` mounts **by `subPath`** into
+`/otel-lgtm/grafana/conf/provisioning/dashboards/`.
+
+The `subPath` is the whole trick. The image already provisions three dashboards
+from that directory and four datasources from the one beside it, and a ConfigMap
+volume mounted at a _directory_ replaces it — so the obvious mount would have
+deleted the RED and JVM dashboards in order to add ours, and the same mistake one
+directory over would have deleted the `prometheus` uid every panel names. Both
+are invisible in the manifest diff and surface as "Datasource prometheus was not
+found" on a dashboard that provisioned cleanly. The generator keeps its content
+hash, unlike zitadel's, because a `subPath` mount never updates in place and a
+stable name would leave a panel edit invisible until someone remembered to
+restart the pod.
+
+The headline panel puts outbox depth and oldest-entry age on one plot with two
+axes, because that pairing is the only reading in which a stopped relay looks
+different from a healthy one. `@r10c/docs-check` asserts the dashboard and the
+metric declarations agree, **in both directions** — a panel querying a metric
+nothing declares fails, and so does a metric nothing charts — applying the suffix
+rule above, since neither types nor the exporter can see that disagreement.
+
+`ensure.sh`'s fast path asks for the dashboard by uid, for the reason it already
+asks about the hosted login: L3 is the only rung that applies the manifests, and
+without the question a committed dashboard never reaches a lab that is already
+healthy. The check degrades open — a Grafana that is silent rather than answering
+is not that rung's business — so a slow start costs nothing.
+
+**Residual, recorded:** `database="tenant_demo-organization"` puts an
+organization identifier into a metric label. That is the shape
+[ADR 0031](0031-a-service-describes-its-own-wiring.md) bans for `/api/$service`,
+and the same reasoning applies to a scrape endpoint. Not fixed here.
 
 ## Deferred
 

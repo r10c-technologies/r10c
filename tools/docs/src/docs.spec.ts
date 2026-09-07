@@ -627,3 +627,219 @@ describe('The Zitadel core and its hosted login are one tag', () => {
     ).toBe(coreTags()[0]);
   });
 });
+
+describe('The dashboard charts the metrics the fleet declares', () => {
+  // Nothing connects a Grafana panel to the code that emits its series: the
+  // dashboard is a JSON blob of PromQL strings, and a metric rename leaves the
+  // panel rendering an empty graph forever — which reads as "idle", not
+  // "broken". This is the only thing that looks, and it looks both ways.
+  const DASHBOARD = 'infra/local/otel-lgtm/dashboards/r10c-bus-outbox.json';
+  const PROVIDER = 'infra/local/otel-lgtm/dashboards/r10c-dashboards.yaml';
+  const DEPLOYMENT = 'infra/local/otel-lgtm/deployment.yaml';
+  const SOURCES = [
+    'packages/entifix/ts/amqp-client/src/adapters/bus-metrics.ts',
+    'apps/marketplace-admin-service/src/observability/metrics.ts',
+  ];
+
+  /** The provisioning directory whose contents a mount must never replace. */
+  const PROVISIONING = '/otel-lgtm/grafana/conf/provisioning';
+
+  // ⚠️ Anchored on `export const`, not on `Metric.` alone: bus-metrics.ts's own
+  // doc comment writes `Metric.counter('bus_events_published_total')` out again,
+  // so a bare matcher finds five counters where the module declares four. The
+  // optional type group is for `outboxOldestPendingAge`, which carries a
+  // `: Metric.Metric.Gauge<number>` annotation between the name and the `=`.
+  const DECLARATION =
+    /export const \w+(?::[^=]+)?\s*=\s*Metric\.(counter|gauge)\(\s*'([a-z0-9_]+)'/g;
+  const UNIT_TAG = /Metric\.tagged\(\s*'unit',\s*'([a-z]+)'\s*\)/;
+
+  /** The suffix the OTLP→Prometheus exporter appends, by declared unit. */
+  const UNIT_SUFFIX: Record<string, string> = {
+    s: '_seconds',
+    ms: '_milliseconds',
+  };
+
+  /**
+   * The name a declared metric actually reaches Prometheus under.
+   *
+   * A dimensionless Effect gauge gains `_ratio` — OTel's convention for unit
+   * `1` — and a gauge tagged with a real unit gains that unit's suffix instead.
+   * Counters pass through untouched. Getting this wrong is silent at both ends.
+   */
+  const prometheusName = (
+    kind: string,
+    name: string,
+    block: string,
+  ): string => {
+    if (kind === 'counter') return name;
+    const unit = block.match(UNIT_TAG)?.[1];
+    if (unit === undefined) return `${name}_ratio`;
+    const suffix = UNIT_SUFFIX[unit];
+    if (suffix === undefined) {
+      throw new Error(
+        `${name} is tagged unit '${unit}', which this check has no suffix for. ` +
+          'Add it to UNIT_SUFFIX — guessing would assert the wrong series name.',
+      );
+    }
+    return `${name}${suffix}`;
+  };
+
+  /** Every metric the two declaring modules export, as Prometheus names. */
+  const declared = (): string[] =>
+    SOURCES.flatMap(source => {
+      const text = read(source);
+      // Unit is attributed per declaration, not per file: the block runs from
+      // the end of this declaration to the next `export const`, which keeps
+      // `Metric.tagged(metric, 'database', database)` in a helper further down
+      // from being read as the gauge's own unit. Slicing from `match.index`
+      // instead would start the block *at* `export const` and split it to
+      // nothing, silently making every gauge read as dimensionless.
+      return [...text.matchAll(DECLARATION)].map(match => {
+        const block = text
+          .slice(match.index + match[0].length)
+          .split('export const')[0];
+        return prometheusName(match[1], match[2], block);
+      });
+    });
+
+  interface Panel {
+    readonly panels?: readonly Panel[];
+    readonly targets?: readonly { readonly expr?: string }[];
+  }
+
+  const dashboard = () =>
+    JSON.parse(read(DASHBOARD)) as {
+      panels: readonly Panel[];
+      templating: { list: readonly { query?: { query?: string } }[] };
+    };
+
+  /** Every panel, rows flattened — a collapsed row still holds its queries. */
+  const flatten = (panels: readonly Panel[]): readonly Panel[] =>
+    panels.flatMap(panel => [panel, ...flatten(panel.panels ?? [])]);
+
+  // A metric selector is an identifier immediately followed by `{` or `[`.
+  // Every expr here carries `{service_name=~…}`, so none is missed; `vector(0)`
+  // is followed by `(`, and a label name inside braces by `=`, so neither
+  // matches. `by (database)` is a keyword followed by `(` — also not matched.
+  const SELECTOR = /([a-z_][a-z0-9_]*)\s*[{[]/g;
+
+  /** Every metric name the dashboard queries, panels and variables alike. */
+  const queried = (): string[] => {
+    const board = dashboard();
+    const exprs = [
+      ...flatten(board.panels).flatMap(panel =>
+        (panel.targets ?? []).map(target => target.expr ?? ''),
+      ),
+      ...board.templating.list.map(variable => variable.query?.query ?? ''),
+    ];
+    return exprs.flatMap(expr => [
+      ...[...expr.matchAll(SELECTOR)].map(match => match[1]),
+      // `label_values(<metric>, <label>)` names its metric without a selector.
+      ...[...expr.matchAll(/label_values\(\s*([a-z_][a-z0-9_]*)\s*,/g)].map(
+        match => match[1],
+      ),
+    ]);
+  };
+
+  it('finds the metrics it is meant to check', () => {
+    // Eight: four bus counters, three outbox gauges, one transaction gauge.
+    // Pinned as a count rather than a Set size, so the doc-comment over-match
+    // the DECLARATION regex is written to avoid cannot hide behind dedup.
+    expect(declared()).toHaveLength(8);
+    expect(new Set(queried()).size).toBeGreaterThanOrEqual(8);
+  });
+
+  it('queries only metrics the fleet declares', () => {
+    const known = new Set(declared());
+    const unknown = [...new Set(queried())].filter(name => !known.has(name));
+
+    expect(
+      unknown,
+      `${DASHBOARD} queries ${unknown.join(', ')}, which nothing declares. ` +
+        'The declared name is not the Prometheus name: a dimensionless gauge ' +
+        "gains `_ratio`, a gauge tagged `unit: 's'` gains `_seconds`, and " +
+        'counters pass through. A panel naming the declared form renders an ' +
+        'empty graph forever, which reads as "idle" rather than "broken".',
+    ).toEqual([]);
+  });
+
+  it('charts every metric the fleet declares', () => {
+    const charted = new Set(queried());
+    const uncharted = declared().filter(name => !charted.has(name));
+
+    expect(
+      uncharted,
+      `${uncharted.join(', ')} is emitted and appears on no panel. A metric ` +
+        'nothing charts is the gap #206 closed — add a panel to ' +
+        `${DASHBOARD}, or stop emitting it.`,
+    ).toEqual([]);
+  });
+
+  it('points every panel at the provisioned datasource uid', () => {
+    const text = read(DASHBOARD);
+    // Scoped to the uid *inside* a `datasource` object: the dashboard's own
+    // top-level `"uid": "r10c-bus-outbox"` is not a datasource reference.
+    const uids = [
+      ...text.matchAll(/"datasource":\s*\{[^}]*"uid":\s*"([^"]+)"/g),
+    ].map(match => match[1]);
+
+    expect(uids.length).toBeGreaterThan(10);
+    expect(
+      uids.filter(uid => uid !== 'prometheus' && uid !== '-- Grafana --'),
+      'every panel must name the `prometheus` uid the otel-lgtm image ' +
+        'provisions. Grafana\'s "Export for sharing externally" rewrites it to ' +
+        '${DS_PROMETHEUS} and adds `__inputs`, which the *file* provisioner ' +
+        'does not resolve — the dashboard then provisions cleanly and every ' +
+        'panel reports a missing datasource.',
+    ).toEqual([]);
+    expect(text).not.toContain('__inputs');
+    expect(text).not.toContain('${DS_');
+  });
+
+  it('aims the provider at the path the deployment mounts', () => {
+    const path = read(PROVIDER).match(/^\s*path:\s*(\S+)/m)?.[1];
+    const mounts = [...read(DEPLOYMENT).matchAll(/mountPath:\s*(\S+)/g)].map(
+      match => match[1],
+    );
+
+    expect(path).toBeDefined();
+    expect(mounts).toHaveLength(2);
+    expect(
+      mounts,
+      `${PROVIDER} provisions from ${path}, which ${DEPLOYMENT} does not ` +
+        'mount. A provider aimed at an empty path provisions zero dashboards ' +
+        'and says so only at debug level.',
+    ).toContain(path);
+  });
+
+  it('grafts the provider beside the image files rather than over them', () => {
+    const mounts = [...read(DEPLOYMENT).matchAll(/mountPath:\s*(\S+)/g)].map(
+      match => match[1],
+    );
+
+    // The image provisions its own dashboards from the first directory and the
+    // `prometheus`/`tempo`/`loki`/`pyroscope` uids from the second. A ConfigMap
+    // volume mounted at a directory REPLACES it, so either of these as a
+    // mountPath deletes what the image ships — invisibly, in a manifest diff
+    // that looks like it only adds.
+    for (const directory of [
+      `${PROVISIONING}/dashboards`,
+      `${PROVISIONING}/datasources`,
+    ]) {
+      expect(
+        mounts,
+        `mounting a ConfigMap at ${directory} replaces that directory and ` +
+          'deletes the files the grafana/otel-lgtm image ships there. Mount ' +
+          'the single file with `subPath` instead.',
+      ).not.toContain(directory);
+    }
+
+    const grafted = mounts.find(mount => mount.startsWith(PROVISIONING));
+    expect(grafted).toBeDefined();
+    expect(
+      read(DEPLOYMENT).match(/subPath:\s*(\S+)/g),
+      `${grafted} reaches into the image's provisioning tree, so it must be a ` +
+        '`subPath` mount of one file.',
+    ).toHaveLength(1);
+  });
+});

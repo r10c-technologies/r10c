@@ -1,0 +1,30 @@
+# A fourth dashboard provider, mounted BESIDE the three the grafana/otel-lgtm
+# image ships rather than over them.
+#
+# The image provisions its own tree at /otel-lgtm/grafana/conf/provisioning:
+# `dashboards/grafana-dashboards.yaml` declares the RED-classic, RED-native and
+# JVM dashboards, and `datasources/grafana-datasources.yaml` is where the
+# `prometheus` / `tempo` / `loki` / `pyroscope` uids come from. A ConfigMap
+# volume mounted at a *directory* replaces that directory, so this file is
+# grafted in with `subPath` — see the volumeMounts in ../deployment.yaml.
+#
+# `path` must equal that mount's mountPath. A provider aimed at a path nothing
+# mounted provisions zero dashboards and says so only at debug level, so
+# `@r10c/docs-check` asserts the two agree.
+apiVersion: 1
+
+providers:
+  - name: r10c
+    orgId: 1
+    folder: r10c
+    folderUid: r10c
+    type: file
+    # The dashboard is a committed file. There is no PVC behind this Grafana, so
+    # a UI edit is neither the way to change it nor something that survives the
+    # pod — better to refuse the edit than to lose it silently.
+    allowUiUpdates: false
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/r10c-dashboards
+      foldersFromFilesStructure: false

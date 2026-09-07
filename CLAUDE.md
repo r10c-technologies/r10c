@@ -1202,7 +1202,7 @@ instantiation is excessively deep`); every scalar read is now
   of Continuar skip a step's required members entirely — measured end to end.
   ⚠️ **The address is written in one direction only.** The writer owns the
   address, the follower owns the wizard, and the follower reacts to the address
-  *changing* rather than to what it says: rewriting the address to match the
+  _changing_ rather than to what it says: rewriting the address to match the
   wizard races the advance and rewinds a step the operator had passed, and acting
   on the address at mount sends a resumed wizard back to step one.
   ⚠️ **`ProductSpecification.code` stopped being `required` and is hidden from
@@ -1301,9 +1301,38 @@ instantiation is excessively deep`); every scalar read is now
   "no data", which is indistinguishable from a broken exporter at exactly the
   moment a healthy fleet looks idle. Both are sampled by daemons that already run
   on an interval — the outbox by the relay's sweep, the states by the recovery
-  sweep — so nothing new is scheduled. Dashboards are **not** provisioned:
-  `infra/local/otel-lgtm` mounts nothing and has no PVC, so one must be a
-  committed file plus a ConfigMap.
+  sweep — so nothing new is scheduled.
+- **The dashboard is a committed file, and `subPath` is what makes it one**
+  (#206, ADR 0001's Metrics section). `infra/local/otel-lgtm` has no PVC, so
+  anything drawn in the Grafana UI dies with the pod. ⚠️ **Mount the provider
+  yaml with `subPath`, never at the directory**: the image already provisions
+  three dashboards from
+  `/otel-lgtm/grafana/conf/provisioning/dashboards/` and the
+  `prometheus`/`tempo`/`loki`/`pyroscope` uids from the directory beside it, and
+  a ConfigMap volume mounted at a _directory_ replaces it — so the obvious mount
+  deletes what the image ships, invisibly in a diff that looks like it only
+  adds, surfacing as "Datasource prometheus was not found" on a dashboard that
+  provisioned cleanly. The generator keeps its content hash, the **opposite** of
+  `infra/local/zitadel`'s, because a `subPath` mount never updates in place: a
+  stable name leaves a panel edit invisible until someone remembers a
+  `rollout restart`. Three more things not to re-derive. **The declared name is
+  not the Prometheus name** — a dimensionless gauge gains `_ratio`, a gauge
+  tagged `unit: 's'` gains `_seconds`, counters pass through — so a panel naming
+  the declared form graphs nothing forever, which reads as _idle_ rather than
+  _broken_; `@r10c/docs-check` asserts the two agree **in both directions**, a
+  metric nothing charts failing as loudly as a panel naming a metric nothing
+  declares. **`ensure.sh`'s fast path asks for the dashboard by uid**, for the
+  same reason it asks about the hosted login: L3 is the only rung that applies
+  the manifests and the fast path exits before it, so without the question a
+  committed dashboard never reaches a lab that is already healthy — and the
+  check **degrades open**, since a Grafana that is silent rather than answering
+  is not that rung's business. It is deliberately **not** a `PORT_SPECS` entry
+  (that array regenerates the ports table) and **not** in `REQUIRED_HOST_PORTS`
+  (that list is L2's, whose only remedy is recreating the cluster, and a missing
+  dashboard is not a stopped fleet). And `or vector(0)` is honest **only after a
+  `sum()` with no `by`** — `bus_events_failed_total` has no series until the
+  first nack, and an absent series is not a zero, but the same fallback on a
+  grouped query invents a series carrying no `database` and no `slice`.
 - **A flow that spans slices is orchestrated; a single-step write stays
   choreography** ([ADR 0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md)).
   The engine runs **one** step in **one** service — `TransactionCommand.type` is

@@ -79,6 +79,10 @@ log()      { echo "${C_DIM}==>${C_OFF} $*"; }
 log_heal() { echo "${C_YELLOW}==> heal:${C_OFF} $*"; }
 log_ok()   { echo "${C_GREEN}==>${C_OFF} $*"; }
 log_err()  { echo "${C_RED}ERROR:${C_OFF} $*" >&2; }
+# Something is wrong but the fleet still boots. Distinct from log_err on purpose:
+# a rung that warns must not read like one that failed, or the difference stops
+# being noticed in either direction.
+log_warn() { echo "${C_YELLOW}WARN:${C_OFF} $*" >&2; }
 
 spec_label()  { echo "${1%%:*}"; }
 spec_port()   { local r="${1#*:}"; echo "${r%%:*}"; }
@@ -289,6 +293,55 @@ login_ready() {
   port_open "$LOGIN_NODEPORT" || return 1
   has curl || return 0
   curl -fsS --max-time 2 "http://127.0.0.1:$LOGIN_NODEPORT/ui/v2/login/healthy" >/dev/null 2>&1
+}
+
+# Grafana's NodePort and the uid the dashboard manifests provision. Deliberately
+# NOT a PORT_SPECS entry: that array is the ladder's datastore probe list, and
+# `tools/sync-docs.mjs` derives docs/_shared/ports.md from it — a line here would
+# flip 30000's "Probed by the ladder" cell and fail the pre-commit `--check`.
+# Deliberately not in REQUIRED_HOST_PORTS either: that list is L2's, whose only
+# remedy is recreating the cluster, and a missing dashboard is not a stopped
+# fleet. 30000 is already in MINIKUBE_PORTS, so the port is there regardless.
+GRAFANA_NODEPORT=30000
+GRAFANA_DASHBOARD_UID=r10c-bus-outbox
+
+# L3's only externally visible product, and the question `all_probes_green`
+# cannot ask: is the running Grafana serving the dashboard the repo describes,
+# or a pod that predates it? Without this the fast path exits before L3 and a
+# committed dashboard never reaches a lab that is already healthy.
+#
+# ⚠️ Degrades OPEN. A silent Grafana — port shut, connection refused, still
+# starting — is not this rung's business and must not drag every ensure onto the
+# slow path; only an *answering* Grafana that does not have the dashboard is.
+# That is why this reads the status code rather than using `curl -fsS`, which
+# collapses "no answer" and "404" into the same failure.
+dashboards_ready() {
+  port_open "$GRAFANA_NODEPORT" || return 0
+  has curl || return 0
+  local code
+  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 \
+    "http://127.0.0.1:$GRAFANA_NODEPORT/api/dashboards/uid/$GRAFANA_DASHBOARD_UID" \
+    2>/dev/null || true)"
+  [[ "$code" == "200" || "$code" == "000" || -z "$code" ]]
+}
+
+# Reports whether L3's apply reached Grafana. `apply.sh` is the fix, so this only
+# says whether it worked — it warns and returns, never fails the ladder: a
+# dashboard is an operator convenience and must not stop a fleet from booting.
+# It exists so a genuinely broken provisioning (bad JSON, a provider aimed at an
+# unmounted path) names itself, instead of silently sending every future ensure
+# down the slow path with nothing on screen to explain why.
+wait_for_dashboards() {
+  local attempts="${INFRA_DASHBOARD_ATTEMPTS:-20}" i
+  for ((i = 0; i < attempts; i++)); do
+    dashboards_ready && return 0
+    sleep 1
+  done
+  log_warn "grafana is up but does not serve dashboard '$GRAFANA_DASHBOARD_UID'."
+  echo "  The fleet is fine; the dashboard is not. Provisioning likely failed:" >&2
+  echo "  kubectl -n $NS logs deploy/otel-lgtm | grep -i provision" >&2
+  echo "  kubectl -n $NS exec deploy/otel-lgtm -- ls /etc/grafana/r10c-dashboards" >&2
+  return 0
 }
 
 # L6 proper. Deliberately ordered BEFORE the seed: the seed is what turns login
