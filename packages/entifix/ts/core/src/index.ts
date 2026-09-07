@@ -34,3 +34,4 @@ export * from './types/EntitySorting';
 export * from './types/Json';
 export * from './types/StandardSchema';
 export * from './types/UseCase';
+export * from './wizard';

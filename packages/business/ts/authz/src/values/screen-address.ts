@@ -11,7 +11,16 @@ export interface ScreenAddress {
   readonly type: ScreenType;
   /** The entity key (`@entity({ key })`) or, for a hand-built screen, its own. */
   readonly key: string;
-  /** Present for a single record, absent for the list of them. */
+  /**
+   * The position **within** the screen, and what that is depends on the type:
+   * a record for `master` (absent for the list of them), a step for `wizard`
+   * (absent for its first step).
+   *
+   * One segment for both, rather than a member per type, because the grammar is
+   * what a `TabKind.match` parses and a second optional segment would make every
+   * kind's parser handle a shape no kind produces
+   * ([ADR 0045](../../../../../../docs/adr/0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md)).
+   */
   readonly id?: string;
 }
 

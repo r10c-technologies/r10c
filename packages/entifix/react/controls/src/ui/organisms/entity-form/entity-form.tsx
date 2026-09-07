@@ -114,6 +114,7 @@ export function EntityForm<TEntity extends Entity>({
   formError,
   onSubmit,
   onDelete,
+  embedded = false,
   isLoading = false,
   skeleton = true,
   isSaving = false,
@@ -294,6 +295,11 @@ export function EntityForm<TEntity extends Entity>({
   return (
     <Card>
       <Stack gap="s">
+        {/* An embedded form brings only its fields: the heading and the action
+            row belong to whatever is hosting it — a wizard step sits under the
+            wizard's own heading and advances with the wizard's own footer, so
+            rendering a second of each is two controls for one job. */}
+        {!embedded && (
         <Stack direction="row" gap="xs" align="center">
           <Text as="h2" step={1} weight="semibold">
             {/* `entity` is undefined while the record is still in flight, so
@@ -321,6 +327,7 @@ export function EntityForm<TEntity extends Entity>({
             </>
           </LoadingBoundary>
         </Stack>
+        )}
 
         {/* One announcement for the form; the shimmer below is aria-hidden. */}
         <span role="status" aria-live="polite" className="sr-only">
@@ -390,7 +397,7 @@ export function EntityForm<TEntity extends Entity>({
           </span>
         )}
 
-        {editing && (
+        {editing && !embedded && (
           <Stack direction="row" gap="xs">
             {may('write') && (
               <Button

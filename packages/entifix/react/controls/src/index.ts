@@ -40,5 +40,6 @@ export * from './ui/organisms/entity-detail-grid';
 export * from './ui/organisms/entity-form';
 export * from './ui/organisms/entity-table';
 export * from './ui/organisms/top-bar';
+export * from './ui/organisms/wizard';
 export * from './ui/utils/cn';
 export * from './ui/utils/use-hotkey';

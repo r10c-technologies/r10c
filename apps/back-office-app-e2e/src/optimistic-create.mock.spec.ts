@@ -40,8 +40,8 @@ test('renders a record the server has not finished writing, and says so', async 
 }) => {
   await page.goto(NEW_PRODUCT);
 
-  // `code` is `required` on the entity, so the form will not submit without it.
-  await page.getByLabel(/código/i).fill('OPT-1');
+  // `name` is `required` on the entity, so the form will not submit without it.
+  // `code` is not asked for at all — the create transaction assigns it.
   await page.getByLabel(/nombre/i).fill('Optimistic Widget');
   await page.getByRole('button', { name: 'Guardar' }).click();
 
@@ -64,7 +64,6 @@ test('keeps the write pending while the tracker has no record of it', async ({
   page,
 }) => {
   await page.goto(NEW_PRODUCT);
-  await page.getByLabel(/código/i).fill('OPT-2');
   await page.getByLabel(/nombre/i).fill('Broker Is Down');
   await page.getByRole('button', { name: 'Guardar' }).click();
   await page.waitForURL(url => url.pathname.endsWith(PRODUCT_LIST));

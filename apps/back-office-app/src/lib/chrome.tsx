@@ -1,3 +1,4 @@
+import { SCREEN_TYPE_LABEL_KEYS } from '@r10c/business-ts-authz';
 import { AccountMenu, BackOfficeShell } from '@r10c/shells-next-common';
 // From the server entry: this module calls them directly, and the client entry
 // would hand back a client reference rather than the function.
@@ -56,6 +57,13 @@ export async function BackOfficeChrome({
     product: translateKey('shell:marketplaceAdmin.nav.products'),
     'product-brand': translateKey('shell:marketplaceAdmin.nav.brands'),
     'product-category': translateKey('shell:marketplaceAdmin.nav.categories'),
+    // The Asistentes tier's own word, so a wizard's trail reads the way the
+    // sidebar does. `SCREEN_TYPE_LABEL_KEYS` is the one place the four screen
+    // types are named, and this resolves through it rather than restating it.
+    wizards: translateKey(SCREEN_TYPE_LABEL_KEYS.wizard),
+    'product-setup': translateKey(
+      'shell:marketplaceAdmin.wizard.productSetup.title',
+    ),
     system: translateKey('shell:systemManagement.nav.section'),
     configuration: translateKey('shell:systemManagement.nav.configuration'),
     users: translateKey('shell:auth.nav.users'),

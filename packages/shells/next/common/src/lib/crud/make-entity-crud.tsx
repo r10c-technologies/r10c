@@ -36,6 +36,7 @@ import {
   usePendingTransactions,
 } from '../workspace/pending-transactions';
 import { EntityCrudForm } from './entity-crud-form';
+import { handOffWrite } from './hand-off-write';
 import type {
   EntityCrud,
   EntityCrudLinkSource,
@@ -50,7 +51,15 @@ import { useEntityBulk } from './use-entity-bulk';
 /** What a picker defaults to reading off its target. */
 const TARGET_NAME_PROPERTY = 'name';
 
-type CrudContext =
+/**
+ * What the generated pages' use-cases run against.
+ *
+ * Exported because a hand-built screen needs the same three: a wizard reads
+ * records, resolves pickers and writes through exactly these ports, and
+ * rebuilding the union at each such call site is how one of them ends up
+ * missing `TransactionSinkTag` and quietly losing its optimistic treatment.
+ */
+export type CrudContext =
   | EntityRepositoryTag
   | ConfigurationRepositoryTag
   | TransactionSinkTag;
@@ -65,7 +74,7 @@ type CrudContext =
  * passing two `Context` values per entity — the duplication this factory exists
  * to remove.
  */
-function mergeContext<TAdapters>(
+export function mergeCrudContext<TAdapters>(
   adapters: TAdapters,
   configuration: keyof TAdapters,
   repository: keyof TAdapters,
@@ -114,6 +123,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     configuration,
     hiddenFields = [],
     columns,
+    toolbar,
     links = [],
     metadataSource,
     runBulkUseCase,
@@ -184,7 +194,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
 
     const pager = useDataLoading<TEntity, CrudContext>({
       uc: loadUCFactory<TEntity>(),
-      ctx: mergeContext(adapters, configuration, repository, pending),
+      ctx: mergeCrudContext(adapters, configuration, repository, pending),
       // Scoped rather than left to the per-instance fallback, which is correct
       // but unshared: with the entity's own scope one invalidation refreshes
       // every page and filter of it, which is what a bulk run needs — and it is
@@ -240,6 +250,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
           {...bulk.tableProps}
         >
           {columns}
+          {toolbar}
         </EntityTable>
       </div>
     );
@@ -263,7 +274,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     const params = useParams<{ slug: string }>();
     const id = slugToEntityId(slug ?? params.slug);
 
-    const ctx = mergeContext(adapters, configuration, repository, pending);
+    const ctx = mergeCrudContext(adapters, configuration, repository, pending);
 
     const {
       entity,
@@ -297,7 +308,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
         entityConstructor: plan.entityConstructor,
         loadUc: loadUCFactory(),
         getUc: getUCFactory(),
-        ctx: mergeContext(adapters, configuration, plan.repository, pending),
+        ctx: mergeCrudContext(adapters, configuration, plan.repository, pending),
       },
     }));
 
@@ -312,27 +323,12 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
       const saved = await save(next);
       if (saved === undefined) return;
 
-      // A transactional create resolves at the `202`, before the write is
-      // durable, so the save adapter announced it and the id is in the pending
-      // set. Handing the record over *is* the question — the returned entity is
-      // otherwise indistinguishable from a plain REST create, and asking
-      // `entries.some(...)` first would read a closure captured before this
-      // `await`, so the announcement made during it would be invisible.
-      //
       // ⚠️ Deliberately *not* a `setQueriesData` patch. The list refetches on
       // mount — precisely when the operator arrives, having just been navigated
       // here — and the server legitimately does not hold the record yet, so the
       // refetch would replace the patched page and the row would vanish a
       // moment after appearing. The pending set outlives refetches.
-      if (pending.attach(String(saved.id), saved)) {
-        // The draft is deliberately *not* cleared: the write has not committed,
-        // and a failure minutes from now would otherwise have destroyed the
-        // operator's only copy of what they typed.
-        afterSave();
-        return;
-      }
-
-      draft?.clear();
+      handOffWrite({ id: String(saved.id), record: saved, pending, draft });
       afterSave();
     };
 

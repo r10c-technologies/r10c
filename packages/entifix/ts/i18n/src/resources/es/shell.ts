@@ -89,6 +89,47 @@ export const shell = {
       products: 'Productos',
       brands: 'Marcas',
       categories: 'Categorías',
+      // La sección Asistentes. El *nombre del nivel* ("Asistentes") sale de
+      // `nav.screenType.wizard`; esto nombra el grupo dentro de él.
+      guided: 'Catálogo',
+    },
+    /**
+     * El asistente de alta de producto. Los nombres de los pasos son de este
+     * dominio, no del control — por eso viven acá y no en `controls`.
+     */
+    wizard: {
+      productSetup: {
+        title: 'Nuevo producto',
+        launch: 'Nuevo producto guiado',
+        steps: {
+          start: 'Origen',
+          source: 'Producto base',
+          identity: 'Identificación',
+          classification: 'Clasificación',
+          summary: 'Resumen',
+        },
+        start: {
+          question: '¿Cómo querés empezar?',
+          blank: 'Desde cero',
+          blankHint: 'Cargar los datos a mano.',
+          duplicate: 'Duplicar uno existente',
+          duplicateHint:
+            'Partir de un producto ya cargado. El código no se copia: identifica al original.',
+        },
+        source: {
+          prompt: 'Elegí el producto del que querés partir.',
+          chosen: 'Producto base: {{name}}',
+          required: 'Elegí un producto para continuar.',
+        },
+        summary: {
+          prompt: 'Revisá lo cargado antes de crearlo.',
+          origin: 'Origen',
+          originBlank: 'Desde cero',
+          originDuplicate: 'Duplicado de {{name}}',
+          empty: 'Sin definir',
+        },
+        recap: 'Ya habías respondido:',
+      },
     },
   },
   systemManagement: {

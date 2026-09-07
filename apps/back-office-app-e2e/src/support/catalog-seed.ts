@@ -43,6 +43,11 @@ export const categorySeed = Array.from({ length: 14 }, (_, index) => {
   };
 });
 
+/**
+ * Three, not one. The wizard's "duplicate an existing product" step is a table
+ * the operator picks a row from, and a table with a single row proves nothing
+ * about picking — a spec against it passes whichever row the click lands on.
+ */
 export const productSeed = [
   {
     id: 'product-1',
@@ -54,6 +59,22 @@ export const productSeed = [
     // shapes a `link` could take — and nothing joins them now.
     brandId: 'product-brand-1',
     categoryId: 'product-category-1',
+  },
+  {
+    id: 'product-2',
+    code: 'P-2',
+    name: 'Gadget',
+    description: 'A gadget',
+    brandId: 'product-brand-2',
+    categoryId: 'product-category-2',
+  },
+  {
+    id: 'product-3',
+    code: 'P-3',
+    name: 'Doohickey',
+    description: 'A doohickey',
+    brandId: 'product-brand-3',
+    categoryId: 'product-category-3',
   },
 ];
 

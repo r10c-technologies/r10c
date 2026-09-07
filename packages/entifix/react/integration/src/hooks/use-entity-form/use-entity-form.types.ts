@@ -70,6 +70,24 @@ export interface UseEntityFormOptions<TEntity extends Entity> {
    */
   draft?: EntityDraftStore;
   /**
+   * Edit only these members, by accessor name. Omit and the form owns them all.
+   *
+   * It narrows the **descriptors**, so it narrows seeding, coercion *and*
+   * validation together — which is the whole point. A wizard splits one entity
+   * across several steps, and without this every step would validate the whole
+   * record: step one could not advance until members it does not show were
+   * filled, and the required-ness of a field would depend on which step you
+   * were standing on.
+   *
+   * The submit therefore receives a **partial** draft. Merging the steps and
+   * rebuilding the entity is the host's job, exactly as it already is for one
+   * form ([ADR 0045](../../../../../../../docs/adr/0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md)).
+   *
+   * A fresh array literal per render is fine: the memo behind it keys on the
+   * names rather than the array's identity.
+   */
+  fields?: readonly string[];
+  /**
    * A Standard Schema (Zod, Valibot, ArkType — anything exposing `~standard`)
    * for the rules metadata cannot express: regex, min/max, cross-field.
    *
@@ -139,11 +157,13 @@ export interface UseEntityFormResult {
   /**
    * Validate, then submit when clean. Feed into `EntityForm`'s `onSubmit`.
    *
-   * Fire-and-forget for the caller, but the validation pass it starts settles on
-   * a later tick — a test asserting on `errors` afterwards has to await, not
-   * just `act`.
+   * **Resolves `true` only when the submit actually ran**, so a caller that has
+   * to gate on the outcome — a wizard, whose "Siguiente" *is* the step's submit
+   * — can await it instead of awaiting a tick and re-reading `errors`. A caller
+   * with nothing to gate ignores the promise and is unaffected, which is every
+   * existing one.
    */
-  submit: () => void;
+  submit: () => Promise<boolean>;
   /** True once any field has been edited away from its seed. */
   isDirty: boolean;
 }

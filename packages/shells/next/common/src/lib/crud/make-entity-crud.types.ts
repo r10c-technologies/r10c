@@ -118,6 +118,16 @@ export interface EntityCrudOptions<TAdapters, TEntity extends Entity> {
   readonly hiddenFields?: readonly string[];
   /** `<EntityColumn>` overrides for the list, for presentation metadata cannot express. */
   readonly columns?: ReactNode;
+  /**
+   * Extra controls beside the table's own — an `<EntityTableToolbar>`.
+   *
+   * Its own option rather than more `columns`, though both end up as
+   * `EntityTable` children and the slots are sorted by component identity: a
+   * toolbar filed under a columns prop is a name that lies, and the first thing
+   * to go here is a link into a wizard, which is not a column by any reading
+   * ([ADR 0045](../../../../../../docs/adr/0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md)).
+   */
+  readonly toolbar?: ReactNode;
   /** Frozen at factory time — see `use-entity-link-sources.ts`. */
   readonly links?: readonly EntityCrudLink<TAdapters>[];
   /**

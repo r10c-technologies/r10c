@@ -6,6 +6,7 @@ export * from './hooks/use-entity-link-source';
 export * from './hooks/use-entity-mutation';
 export * from './hooks/use-entity-record';
 export * from './hooks/use-entity-use-cases';
+export * from './hooks/use-wizard';
 export * from './query/combine-filtering';
 export * from './query/entity-query-key';
 export * from './query/query-provider';

@@ -5,7 +5,12 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
-import { EntityColumn } from '@r10c/entifix-react-controls';
+import {
+  ButtonLink,
+  EntityColumn,
+  EntityTableToolbar,
+  useTranslateKey,
+} from '@r10c/entifix-react-controls';
 import type {
   BulkOutcome,
   Entity,
@@ -14,13 +19,14 @@ import type {
 import { toWireSelection } from '@r10c/entifix-ts-core';
 import { makeEntityMetadataSource } from '@r10c/entifix-ts-rest-client';
 import type { EntityCrud } from '@r10c/shells-next-common';
-import { makeEntityCrud } from '@r10c/shells-next-common';
+import { makeEntityCrud, useLocaleHref } from '@r10c/shells-next-common';
 
 import {
   PRODUCT_BRAND_SURFACE,
   PRODUCT_CATEGORY_SURFACE,
   PRODUCT_SURFACE,
 } from '../catalog-surfaces';
+import { PRODUCT_SETUP_SURFACE } from '../wizard-surfaces';
 import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
 
 /**
@@ -115,13 +121,39 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
   runBulkUseCase: runReferenceBulk(PRODUCT_CATEGORY_SURFACE.entityKey),
 });
 
+/**
+ * A `ButtonLink` and not a `Button`, because the click is a navigation: it keeps
+ * middle-click, open-in-new-tab and the status bar, and costs no client
+ * boundary of its own. `useLocaleHref` because every internal href carries the
+ * locale — an unprefixed one still resolves through the middleware, at the cost
+ * of a round trip per click.
+ */
+function ProductSetupLink() {
+  const translateKey = useTranslateKey();
+  const withLocale = useLocaleHref();
+
+  return (
+    <ButtonLink
+      variant="secondary"
+      size="sm"
+      href={withLocale(PRODUCT_SETUP_SURFACE.basePath)}
+    >
+      {translateKey('shell:marketplaceAdmin.wizard.productSetup.launch')}
+    </ButtonLink>
+  );
+}
+
 export const productCrud = makeEntityCrud(ProductSpecification, {
   useAdapters: useMarketplaceAdminAdapters,
   basePath: PRODUCT_SURFACE.basePath,
   catalogKey: PRODUCT_SURFACE.entityKey,
   repository: 'productRest',
   configuration: 'configurationStore',
-  hiddenFields: ['id'],
+  // `code` is assigned by the create transaction, the same as `ProductBrand`'s.
+  // Hiding it keeps it out of the form without keeping it out of the draft, so
+  // an update carries it back — and the operator is not asked to type a value
+  // the service overwrites.
+  hiddenFields: ['id', 'code'],
   // `brandId` keeps an override, which is still the escape hatch for a column
   // whose presentation the metadata cannot express — it renders an em dash
   // rather than an empty cell when the classification is unset.
@@ -132,6 +164,25 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
         <span className="font-medium">{product.brandId ?? '—'}</span>
       )}
     />
+  ),
+  /**
+   * The way into the guided alta, from the list it starts from.
+   *
+   * [ADR 0033](../../../../../../docs/adr/0033-the-screen-taxonomy.md) records
+   * the cost of a type-first sidebar — an asistente sits far from the
+   * definiciones it operates on — and names this as the mitigation: the wizard
+   * is reachable from the record list it begins at, rather than gaining a second
+   * nav placement.
+   *
+   * A link and **not** a `@useCase()` verb: every one of ADR 0035's nine cells
+   * resolves to an action on records, and the only handler a
+   * `collection:context-independent` verb reaches is `onBulkUseCase`, whose
+   * contract is per-row outcomes. A launcher acts on no rows at all.
+   */
+  toolbar: (
+    <EntityTableToolbar>
+      <ProductSetupLink />
+    </EntityTableToolbar>
   ),
   // `brandId`/`categoryId` are plain `string` members, not `link`s: a typed
   // relation into another slice's store is neither a legal import nor a join we

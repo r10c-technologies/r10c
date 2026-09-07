@@ -186,6 +186,46 @@ function Harness({
   );
 }
 
+
+describe('an embedded form', () => {
+  it('renders its fields and neither a heading nor an action row', () => {
+    // A wizard step sits under the wizard's own heading and advances with the
+    // wizard's own footer; a second of each is two controls for one job, and
+    // the Save would commit a partial record mid-flow.
+    render(
+      <EntityForm<Gadget>
+        entityConstructor={Gadget}
+        mode="edit"
+        embedded
+        onSubmit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Guardar' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Eliminar' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Code/)).toBeInTheDocument();
+  });
+
+  it('is opt-in, so an ordinary form still has both', () => {
+    render(
+      <EntityForm<Gadget>
+        entityConstructor={Gadget}
+        mode="edit"
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
+    expect(screen.getByRole('heading')).toBeInTheDocument();
+  });
+});
+
 describe('resolveEntityFormFields', () => {
   const field = (
     name: string,

@@ -48,7 +48,10 @@ export function useViewportMode(): ViewportMode {
     // leaves it uncallable, so the `in` check passes and the call then throws
     // inside a passive effect — which surfaces as a broken shell, not a missing
     // media query.
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function')
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    )
       return;
 
     const compact = window.matchMedia(`(max-width: ${RAIL_MIN - 1}px)`);

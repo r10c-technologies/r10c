@@ -51,4 +51,3 @@ export function entityQueryKey<TEntity extends Entity>(
     serializeLoadRequestParams(request).toString(),
   ];
 }
-
