@@ -63,6 +63,7 @@ rung; a healthy cluster costs ~0.1s (five TCP probes plus one `get deploy`).
 | L4 rollout      | each deployment has a Ready replica | delete the pod once, re-wait           |
 | L5 probes       | TCP + protocol handshake            | back to L4                             |
 | L6 hosted login | v2 login answering on `:30081`      | secret from the PAT + `apply -k`       |
+| L6b dashboards  | Grafana serves `r10c-bus-outbox`    | `apply.sh` (L3); warns if it did not   |
 | L7 zitadel seed | instance seeded at the current rev  | `tools/zitadel-seed.mjs`               |
 
 Two things it does **not** do, on purpose: it never deletes data, and it never
@@ -82,6 +83,23 @@ deploy/rabbitmq`, then `nc -z 127.0.0.1 30672` succeeds two seconds later
 > `readyReplicas` means "the container started", the ladder green-lights a fleet
 > whose datastores are still booting, and a service that dials RabbitMQ at boot
 > dies with exit code 1.
+
+> **A ConfigMap mounted at a directory replaces it.** `grafana/otel-lgtm` ships
+> its own provisioning tree: three dashboards declared in
+> `provisioning/dashboards/grafana-dashboards.yaml`, and the `prometheus`,
+> `tempo`, `loki` and `pyroscope` uids in the directory beside it. So the
+> obvious way to add our dashboard — mounting a ConfigMap at
+> `provisioning/dashboards` — deletes the image's three in order to add one, and
+> the same mistake one directory over deletes the datasource uid every panel in
+> the fleet names. Neither is visible in the manifest diff, and the second
+> surfaces as "Datasource prometheus was not found" on a dashboard that
+> provisioned perfectly. `otel-lgtm/deployment.yaml` therefore grafts the
+> provider in with **`subPath`**, which mounts a single file and leaves the
+> directory alone, and `@r10c/docs-check` fails the build on a mount that
+> reverts to the directory form. The generator keeps its content hash — the
+> opposite of `zitadel/`'s — because a `subPath` mount never updates in place,
+> so a stable name would leave a dashboard edit invisible until someone
+> remembered `kubectl rollout restart deploy/otel-lgtm`.
 
 > **kubeconfig drift is its own rung.** Docker Desktop republishes the apiserver
 > on a new host port every restart, so kubeconfig keeps pointing at the old one
@@ -224,16 +242,16 @@ kubectl get pods,pvc,svc -n marketplace-local-infra # raw
 No port-forward needed — the cluster is started with `--ports`, so each
 NodePort is reachable on `127.0.0.1`.
 
-| Platform      | URL / DSN                                                                               | Creds source      |
-| ------------- | --------------------------------------------------------------------------------------- | ----------------- |
-| MongoDB       | `mongodb://admin:password@127.0.0.1:30017`                                              | `mongodb/.env`    |
-| Redis         | `redis://:localdev@127.0.0.1:30379` (`redis-cli -p 30379 -a localdev ping`)             | `redis/.env`      |
-| RabbitMQ      | `amqp://admin:password@127.0.0.1:30672` · management UI `http://localhost:31672`        | `rabbitmq/.env`   |
-| PostgreSQL    | `postgres://postgres:postgres@127.0.0.1:30432/postgres`                                 | `postgres/.env`   |
-| Zitadel       | console `http://localhost:30080` (admin `zitadel-admin`, pw in `zitadel/.env`)          | `zitadel/.env`    |
-| Zitadel login | hosted login v2 `http://localhost:30081/ui/v2/login` (the core redirects here)          | — (dev, no creds) |
-| Mailpit       | web UI `http://localhost:30826` · SMTP `127.0.0.1:30825` (no auth)                      | — (dev, no creds) |
-| otel-lgtm     | Grafana `http://localhost:30000` (anonymous admin) · OTLP/HTTP `http://127.0.0.1:30318` | — (dev, no creds) |
+| Platform      | URL / DSN                                                                                                                   | Creds source      |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| MongoDB       | `mongodb://admin:password@127.0.0.1:30017`                                                                                  | `mongodb/.env`    |
+| Redis         | `redis://:localdev@127.0.0.1:30379` (`redis-cli -p 30379 -a localdev ping`)                                                 | `redis/.env`      |
+| RabbitMQ      | `amqp://admin:password@127.0.0.1:30672` · management UI `http://localhost:31672`                                            | `rabbitmq/.env`   |
+| PostgreSQL    | `postgres://postgres:postgres@127.0.0.1:30432/postgres`                                                                     | `postgres/.env`   |
+| Zitadel       | console `http://localhost:30080` (admin `zitadel-admin`, pw in `zitadel/.env`)                                              | `zitadel/.env`    |
+| Zitadel login | hosted login v2 `http://localhost:30081/ui/v2/login` (the core redirects here)                                              | — (dev, no creds) |
+| Mailpit       | web UI `http://localhost:30826` · SMTP `127.0.0.1:30825` (no auth)                                                          | — (dev, no creds) |
+| otel-lgtm     | Grafana `http://localhost:30000` (anonymous admin) · dashboard **r10c — Bus & Outbox** · OTLP/HTTP `http://127.0.0.1:30318` | — (dev, no creds) |
 
 ---
 
@@ -244,7 +262,8 @@ infra/local/
   00-namespace.yaml
   apply.sh  teardown.sh
   mongodb/  redis/  rabbitmq/  postgres/   # each: kustomization + manifests + .env.example
-  zitadel/  mailpit/  otel-lgtm/
+  zitadel/  mailpit/
+  otel-lgtm/                               # + dashboards/, provisioned into Grafana
   zitadel-login/                           # applied by the L6 rung, not by apply.sh
 ```
 

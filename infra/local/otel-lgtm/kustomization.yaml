@@ -4,3 +4,22 @@ namespace: marketplace-local-infra
 resources:
   - deployment.yaml
   - service.yaml
+# ⚠️ No `generatorOptions: disableNameSuffixHash` here, unlike ../zitadel — the
+# opposite call, on purpose. The provider yaml is grafted into Grafana's own
+# provisioning directory with `subPath`, and a subPath mount NEVER receives a
+# ConfigMap update in place. With a stable name a dashboard edit would sit
+# invisible until someone remembered `kubectl rollout restart deploy/otel-lgtm`
+# — the trap ../zitadel/deployment.yaml already documents as a live annoyance.
+# The content hash makes the edit itself the trigger: new content -> new name ->
+# new pod template -> re-provisioned at boot.
+#
+# Two costs, both accepted. Superseded ConfigMaps accumulate, since `apply -k`
+# does not prune, until `reset.sh` takes the namespace. And the roll restarts
+# this pod, which has no PVC — so editing a panel WIPES the Loki/Tempo/
+# Prometheus data behind it. That is the price of the dashboard being a file
+# rather than a UI edit, and it is paid at edit time rather than silently.
+configMapGenerator:
+  - name: otel-lgtm-dashboards
+    files:
+      - dashboards/r10c-dashboards.yaml
+      - dashboards/r10c-bus-outbox.json

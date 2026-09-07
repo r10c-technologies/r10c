@@ -202,7 +202,13 @@ Postgres `30432`, Zitadel console `30080`. **`otel-lgtm`** (the local
 OpenTelemetry backend — Collector + Loki + Grafana + Tempo + Prometheus) exposes
 Grafana at `30000` and OTLP at `30317`/`30318`. Host-run `dev` services export
 telemetry straight to `http://127.0.0.1:30318`; open Grafana at
-`http://localhost:30000` (anonymous admin) to see logs/traces.
+`http://localhost:30000` (anonymous admin) to see logs, traces, and the
+provisioned **r10c — Bus & Outbox** dashboard — bus publish/consume counters,
+outbox depth · age · quarantine per tenant database, and transactions by state.
+It is a committed file under `infra/local/otel-lgtm/dashboards/`, re-provisioned
+at every pod boot, so a UI edit is neither the way to change it nor something
+that survives; `pnpm nx test @r10c/docs-check` fails when its PromQL and the
+metric declarations disagree in either direction.
 
 ## Adding a project
 

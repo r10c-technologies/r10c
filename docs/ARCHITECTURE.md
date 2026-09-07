@@ -343,8 +343,12 @@ failed, outbox depth, oldest-entry age and quarantine count per tenant database,
 and transactions by state. Two limits ADR 0001 records — a consumer-side failure
 carries no event name (a poison message has none), and there is no in-process
 dead-letter count, because `x-delivery-limit` moves a message to the quarantine
-queue without telling the adapter. Dashboards are still not provisioned; the
-metrics are queried directly against the local Grafana.
+queue without telling the adapter. #206 provisioned the dashboard those metrics
+are for: `infra/local/otel-lgtm/dashboards/` is grafted into the image's own
+provisioning directory with `subPath` — a whole-directory mount there would
+shadow the dashboards and datasources the image ships — so **r10c — Bus &
+Outbox** is at `:30000`, re-read on every pod boot including the restarts that
+wipe the data behind it.
 
 Two Effect/OTel gotchas the reference wiring handles: `@effect/opentelemetry`
 does not register an OTel context manager (the service registers

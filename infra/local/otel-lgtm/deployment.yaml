@@ -38,6 +38,32 @@ spec:
               value: Admin
             - name: GF_AUTH_DISABLE_LOGIN_FORM
               value: 'true'
+          volumeMounts:
+            # The dashboard JSON, at a path the image does not use. Grafana's
+            # file provisioner reads only *.json here, so the provider yaml the
+            # same ConfigMap projects alongside it is ignored. Do NOT narrow
+            # this with `items:` to tidy that away — the subPath mount below
+            # resolves against this same projection, and an items-filtered
+            # volume turns it into an empty *directory* named
+            # r10c-dashboards.yaml inside Grafana's provisioning dir.
+            - name: dashboards
+              mountPath: /etc/grafana/r10c-dashboards
+              readOnly: true
+            # ⚠️ `subPath`, and that is the whole trick. The image already
+            # provisions three dashboards from this directory
+            # (grafana-dashboards.yaml: RED classic, RED native, JVM) and four
+            # datasources from the one beside it — which is where the
+            # `prometheus` uid every panel names comes from. A ConfigMap volume
+            # mounted at a DIRECTORY replaces that directory, so the obvious
+            # mount would delete the image's dashboards in order to add ours,
+            # and the same mistake on datasources/ would delete the uid. Both
+            # are invisible in the manifest diff and surface as "Datasource
+            # prometheus was not found" on a dashboard that provisioned fine.
+            # A subPath mount grafts one file in beside them.
+            - name: dashboards
+              mountPath: /otel-lgtm/grafana/conf/provisioning/dashboards/r10c-dashboards.yaml
+              subPath: r10c-dashboards.yaml
+              readOnly: true
           # The image starts five servers in sequence and the OTLP/HTTP receiver
           # is not first. Probing the port the fleet exports to keeps the whole
           # container out of `readyReplicas` until traces are actually accepted.
@@ -55,3 +81,10 @@ spec:
             limits:
               memory: '1536Mi'
               cpu: '1000m'
+      volumes:
+        # Generated with a content hash (see kustomization.yaml), so editing a
+        # panel rolls this pod and the new JSON is provisioned at boot. Nothing
+        # about the dashboard lives in the ephemeral store the restart wipes.
+        - name: dashboards
+          configMap:
+            name: otel-lgtm-dashboards

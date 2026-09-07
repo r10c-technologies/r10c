@@ -52,9 +52,13 @@ wait_for_probes() {
 # `zitadel_seeded` is a file test and `login_ready` one local HTTP call, so
 # adding L6 and L7 to this question costs almost nothing — and leaving the login
 # out would let the fast path green-light a fleet whose sign-in button 404s.
+# `dashboards_ready` is here for the narrower version of that: L3 is the only
+# rung that applies the manifests, this path exits before it, so without the
+# question a committed dashboard never reaches a lab that is already healthy.
+# It degrades open — see lib.sh — so a Grafana that is merely slow costs nothing.
 # `mongo_rs_ready` is here for the same reason: an uninitiated replica set
 # answers every other probe and fails every transactional write.
-if all_probes_green && mongo_rs_ready && login_ready && zitadel_seeded; then
+if all_probes_green && mongo_rs_ready && login_ready && dashboards_ready && zitadel_seeded; then
   log_ok "local infra healthy ($(probed_labels))"
   exit 0
 fi
@@ -63,7 +67,7 @@ require_tools || exit 1
 acquire_heal_lock || exit 1
 
 # Someone else may have healed while we queued on the lock.
-if all_probes_green && mongo_rs_ready && login_ready && zitadel_seeded; then
+if all_probes_green && mongo_rs_ready && login_ready && dashboards_ready && zitadel_seeded; then
   log_ok "local infra healthy (healed by a parallel task)"
   exit 0
 fi
@@ -129,6 +133,12 @@ fi
 # Only ever reached off the fast path, so the healthy boot pays nothing.
 log_heal "reconciling workloads with the manifests"
 bash "$DIR/apply.sh"
+
+# L3's product, checked rather than assumed. Warns and continues: a dashboard is
+# an operator convenience, so it must not stop a fleet from booting — but a
+# provisioning that is genuinely broken has to name itself here, or it sends
+# every future ensure down this slow path with nothing on screen to say why.
+wait_for_dashboards
 
 # ---------------------------------------------------------------- L4 rollout
 restarted=0
