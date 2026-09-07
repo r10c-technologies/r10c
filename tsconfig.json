@@ -167,6 +167,9 @@
     },
     {
       "path": "./packages/business/ts/sales-management"
+    },
+    {
+      "path": "./tools/conventions"
     }
   ]
 }

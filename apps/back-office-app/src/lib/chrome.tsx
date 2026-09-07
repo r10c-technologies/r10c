@@ -57,6 +57,10 @@ export async function BackOfficeChrome({
     product: translateKey('shell:marketplaceAdmin.nav.products'),
     'product-brand': translateKey('shell:marketplaceAdmin.nav.brands'),
     'product-category': translateKey('shell:marketplaceAdmin.nav.categories'),
+    'product-offering': translateKey('shell:marketplaceAdmin.nav.offerings'),
+    'product-offering-price': translateKey(
+      'shell:marketplaceAdmin.nav.offeringPrices',
+    ),
     // The Asistentes tier's own word, so a wizard's trail reads the way the
     // sidebar does. `SCREEN_TYPE_LABEL_KEYS` is the one place the four screen
     // types are named, and this resolves through it rather than restating it.

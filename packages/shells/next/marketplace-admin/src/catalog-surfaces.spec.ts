@@ -1,4 +1,4 @@
-import { accessor, type Entity,entity } from '@r10c/entifix-ts-core';
+import { accessor, type Entity, entity } from '@r10c/entifix-ts-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,15 +7,19 @@ import {
   permissionForSurface,
   PRODUCT_BRAND_SURFACE,
   PRODUCT_CATEGORY_SURFACE,
+  PRODUCT_OFFERING_PRICE_SURFACE,
+  PRODUCT_OFFERING_SURFACE,
   PRODUCT_SURFACE,
   surfaceListAddress,
   surfaceRecordAddress,
 } from './catalog-surfaces';
 
 describe('the catalog surfaces', () => {
-  it('declares the three the back office serves, in nav order', () => {
+  it('declares the five the back office serves, in nav order', () => {
     expect(MARKETPLACE_ADMIN_CATALOG_SURFACES.map(s => s.entityKey)).toEqual([
       'product-specification',
+      'product-offering',
+      'product-offering-price',
       'product-brand',
       'product-category',
     ]);
@@ -50,12 +54,25 @@ describe('the catalog surfaces', () => {
     expect(PRODUCT_CATEGORY_SURFACE.service).toBe('marketplace');
   });
 
-  it('gates only the tenant-plane surface on entitlement', () => {
+  it('gates the tenant-plane surfaces on entitlement, and only those', () => {
     // `catalog-reference` is never grantable (ADR 0022), so gating brands or
     // categories would hide the platform's own vocabulary from every vendor.
     expect(PRODUCT_SURFACE.entitled).toBe(true);
+    expect(PRODUCT_OFFERING_SURFACE.entitled).toBe(true);
+    expect(PRODUCT_OFFERING_PRICE_SURFACE.entitled).toBe(true);
     expect(PRODUCT_BRAND_SURFACE.entitled).toBeUndefined();
     expect(PRODUCT_CATEGORY_SURFACE.entitled).toBeUndefined();
+  });
+
+  /**
+   * ⚠️ A label member that is not sortable, filterable **and** a string makes
+   * `defineRecordSearchSource` throw at module load, which fails the app at
+   * boot rather than one render. The price entity has exactly one member that
+   * qualifies, so this is pinned where someone changing it will see why.
+   */
+  it('names a price by the one member of it that can be searched', () => {
+    expect(PRODUCT_OFFERING_PRICE_SURFACE.labelProperty).toBe('offeringId');
+    expect(PRODUCT_OFFERING_PRICE_SURFACE.searchProperty).toBe('offeringId');
   });
 
   it('carries shell-namespaced nav copy', () => {

@@ -56,10 +56,19 @@ export class ProductOfferingPrice implements Entity {
     this.#id = value;
   }
 
+  /**
+   * `sortable` as well as `filterable`, and the reason is a hard requirement
+   * rather than a convenience: `defineRecordSearchSource` refuses a label member
+   * that is not sortable, filterable **and** a string, and it refuses it at
+   * module load — so a price surface declaring anything else fails the app at
+   * boot. `amount` is a number and `currency` is not sortable, so this is the
+   * only member of this entity that can name one of its records at all.
+   */
   @accessor({
     type: 'string',
     labelKey: 'entity:product-offering-price.fields.offeringId',
     required: true,
+    sortable: true,
     filterable: true,
   })
   get offeringId(): string {

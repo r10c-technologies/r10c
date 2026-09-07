@@ -41,7 +41,9 @@ const aRecord: TransactionRecord = {
 // Stubbed so calling `read` exercises the real Effect composition — the
 // `runPromise`/`provide`/`flatMap` this component owns — without a network call.
 // Whether the adapter itself speaks HTTP correctly is its own spec's job.
-const read = vi.fn(() => Effect.succeed<TransactionRecord | undefined>(aRecord));
+const read = vi.fn(() =>
+  Effect.succeed<TransactionRecord | undefined>(aRecord),
+);
 
 vi.mock('@r10c/entifix-ts-rest-client', async () => {
   const actual = await vi.importActual<

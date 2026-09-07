@@ -7,7 +7,11 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import {
+  ProductOffering,
+  ProductOfferingPrice,
+  ProductSpecification,
+} from '@r10c/business-ts-product-configuration-management';
 import type { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
 import { EntifixBuildError, extractMetaEntity } from '@r10c/entifix-ts-core';
 import type { EntityCatalogKey } from '@r10c/shells-next-common';
@@ -134,6 +138,41 @@ export const PRODUCT_SURFACE = catalogSurface(ProductSpecification, {
   sublabelProperty: 'code',
 });
 
+export const PRODUCT_OFFERING_SURFACE = catalogSurface(ProductOffering, {
+  entityKey: 'product-offering',
+  basePath: '/catalog/product-offering',
+  icon: '◉',
+  navLabelKey: 'shell:marketplaceAdmin.nav.offerings',
+  // Tenant-plane and vendor-authored, exactly like the specification above, so
+  // it carries the same ceiling: an organization provisioned for
+  // `product-configuration-management` sees it and one provisioned for nothing
+  // does not.
+  entitled: true,
+  service: 'marketplace-admin',
+  searchProperty: 'name',
+  labelProperty: 'name',
+});
+
+export const PRODUCT_OFFERING_PRICE_SURFACE = catalogSurface(
+  ProductOfferingPrice,
+  {
+    entityKey: 'product-offering-price',
+    basePath: '/catalog/product-offering-price',
+    icon: '⊙',
+    navLabelKey: 'shell:marketplaceAdmin.nav.offeringPrices',
+    entitled: true,
+    service: 'marketplace-admin',
+    // ⚠️ `offeringId`, not `amount` or `currency`, and not by preference:
+    // `defineRecordSearchSource` refuses a label member that is not sortable,
+    // filterable **and** a string, at module load. `amount` is a number and
+    // `currency` is not sortable, so this is the only member of this entity
+    // that can name one of its own records.
+    searchProperty: 'offeringId',
+    labelProperty: 'offeringId',
+    sublabelProperty: 'currency',
+  },
+);
+
 export const PRODUCT_BRAND_SURFACE = catalogSurface(ProductBrand, {
   entityKey: 'product-brand',
   basePath: '/catalog/product-brand',
@@ -165,6 +204,8 @@ export const PRODUCT_CATEGORY_SURFACE = catalogSurface(ProductCategory, {
  */
 export const MARKETPLACE_ADMIN_CATALOG_SURFACES: readonly CatalogSurface[] = [
   PRODUCT_SURFACE,
+  PRODUCT_OFFERING_SURFACE,
+  PRODUCT_OFFERING_PRICE_SURFACE,
   PRODUCT_BRAND_SURFACE,
   PRODUCT_CATEGORY_SURFACE,
 ];

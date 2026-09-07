@@ -44,6 +44,23 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${CATALOG_DOMAIN}:*:read`,
     `${CATALOG_DOMAIN}:*:write`,
     `${CATALOG_DOMAIN}:*:delete`,
+    // Two use-case verbs on the vendor's own offering, not CRUD. Putting a
+    // record in front of buyers and taking it down again are acts that a
+    // generic `write` was standing in for; naming them is what lets the form
+    // header offer them and a route guard say what it is guarding (ADR 0026).
+    //
+    // They are the **vendor's own**, which is why they sit here and not beside
+    // `catalog-reference:*:retire` under `super-admin`: an offering belongs to
+    // one organization and lives in that organization's own tenant database,
+    // so publishing it takes nothing away from anybody else.
+    //
+    // Written as literals rather than imported from the use cases that declare
+    // them, for this package's standing reason: it is `business:policy` and may
+    // depend only on `layer:entifix`/`layer:utils`, so it cannot reach a domain
+    // package. The source scan in `@r10c/slices` is what keeps these two strings
+    // and the `@useCase()` declarations from drifting apart.
+    `${CATALOG_DOMAIN}:product-offering:publish`,
+    `${CATALOG_DOMAIN}:product-offering:unpublish`,
     // The platform vocabulary an offering is classified in: **read only**.
     // marketplace-service serves these reads to anonymous storefront traffic,
     // so granting them here is not a privilege — it only lets the nav name the

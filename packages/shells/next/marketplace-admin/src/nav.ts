@@ -42,12 +42,16 @@ import {
  * of a conditional that each only ever see one of its answers is how the two
  * stop agreeing about what an ungated surface looks like.
  */
-const navItem = (surface: {
-  navLabelKey: string;
-  basePath: string;
-  icon: string;
-  entitled?: boolean;
-}, workspace: string, permission: Permission): GuardedNavItem => ({
+const navItem = (
+  surface: {
+    navLabelKey: string;
+    basePath: string;
+    icon: string;
+    entitled?: boolean;
+  },
+  workspace: string,
+  permission: Permission,
+): GuardedNavItem => ({
   label: surface.navLabelKey,
   href: surface.basePath,
   icon: surface.icon,
@@ -64,7 +68,11 @@ export const MARKETPLACE_ADMIN_NAV: GuardedNavSection[] = [
     // an action on this screen, not grounds to promote it to Operaciones.
     type: 'master',
     items: MARKETPLACE_ADMIN_CATALOG_SURFACES.map(surface =>
-      navItem(surface, surfaceListAddress(surface), permissionForSurface(surface)),
+      navItem(
+        surface,
+        surfaceListAddress(surface),
+        permissionForSurface(surface),
+      ),
     ),
   },
   {

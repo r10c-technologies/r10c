@@ -179,6 +179,25 @@ them), and everything deep is a link — loaded only when a task needs it.
   that changed without its docs being touched, into the job summary, and never
   blocks, because "not edited" is not "wrong". See
   [DEVELOPING.md → Keeping the documentation true](docs/DEVELOPING.md#keeping-the-documentation-true).
+- **A working convention is a check, and attribution is the first one.** No
+  AI/tool co-author trailer, no session trailer and no "generated with" line —
+  on a commit, a pull-request body or a document. This is **enforced in three
+  places against one predicate** (`tools/conventions/attribution.mjs`):
+  `commitlint.config.mjs` refuses the commit, `@r10c/conventions` refuses the
+  committed file, and a CI step refuses the pull-request body, which is the one
+  surface no git hook can see. The rule is stated **here** rather than only in
+  `DEVELOPING.md` for the reason the record is about: a session-start reminder
+  supplies those trailers and claims to replace earlier guidance, it fires every
+  session in the most privileged position in the context, and against that a
+  rule one hop away lost on **5 of the last 40 merged pull requests** (#192,
+  #200, #203, #205, #211) and **6 of the last 60 commits** on `main`. ⚠️ The canonical casing is git's, not the
+  documentation's: every real violation reads lowercase `authored`, so a pattern
+  written from the title-cased form in the prose would have caught none of them
+  while looking correct in review. Exemptions are listed with a reason and
+  **pinned in both directions** — an exemption is a place the rule stops
+  applying. Adding a second convention is a predicate, a spec case, and a
+  surface only if it lives outside the working tree. See
+  [ADR 0046](docs/adr/0046-conventions-are-checked-not-stated.md).
 - **Four artifacts hold knowledge, one job each — do not merge them.**
   _How the business works_ lives in **Notion** (the `r10c` space, reached through
   the Notion MCP server); _what we decided and why_ is an
@@ -345,6 +364,53 @@ them), and everything deep is a link — loaded only when a task needs it.
   satisfying "every declared verb is granted somewhere" makes that check vacuous
   for precisely the verbs only the operator holds. The entityKey segment is
   wildcarded; the **action** segment is not, so ADR 0026's residual stands.
+- **A vendor authors an offering, and publishing it is a verb — but nothing is
+  announced yet** ([ADR 0047](docs/adr/0047-authoring-an-offering-and-the-publish-verb.md)).
+  `ProductOffering` and `ProductOfferingPrice` were `@entity()` classes and
+  **nothing else** — no route, no adapter, no surface, and the domain package
+  had no `use-cases/` folder at all — which is why `published-catalog` could
+  never fill. Both are `makeEntityCrud` surfaces now; what is written by hand is
+  the lifecycle. Five things not to re-derive. **Create is plain REST, not
+  `create: 'command'`**: a specification uses the saga because a Redis sequence
+  assigns its `code` server-side, and an offering has no server-owned member, so
+  the command path would cost a `202`, a tracker record and an outbox entry per
+  create for nothing — hence a second options constant against the _same_
+  backend, differing only in `create`. **`publish`/`unpublish` are two
+  `@useCase()` classes over one shared effect**, `entity`-bound and
+  `context-independent` so `ACTION_SURFACES` puts them in the **form header**;
+  they are granted to **`admin`**, the vendor's own role, which is the exact
+  inverse of `catalog-reference:*:retire` being `super-admin`'s — an offering
+  lives in one organization's own database, so publishing it takes nothing from
+  anyone else. ⚠️ **`published → published` is legal**: republication is how a
+  vendor's edit reaches the storefront and ADR 0009 makes it replace the
+  projection wholesale, so refusing it as "already published" leaves a corrected
+  price permanently invisible; `unpublish` from anything but `published` is the
+  one genuinely illegal move, and it answers **`409`, not `400`** — the request
+  is fine, the record's state is not. ⚠️ **`status` is server-owned or the verb
+  is decoration**: it is an ordinary writable member, so plain `write` could
+  `POST` an offering already `published` — measured, it worked — hence
+  `saveRoute`'s `prepare` hook and `preserveOfferingStatus` (create forced to
+  `draft`, update takes the stored value), the field hidden, and ⚠️ `required`
+  **removed**, because `hiddenFields` hides the input and **not its validation
+  rule**, so a hidden required member failed validation with no field to show it
+  on and Save did nothing and said nothing. ⚠️ **`makeEntityCrud` gained
+  `runUseCase`**, because ADR 0035's entity+context-independent cell had a
+  renderer and no producer — the factory never passed the `onUseCase` that
+  `EntityCrudForm` had always accepted, so the button did nothing; its rejection
+  is now caught and rendered through the `errors` catalog rather than left to the
+  promise, and `EntityForm` renders **no** verb without a handler, which is what
+  keeps them off the create form. ⚠️ **`ProductOfferingPrice.offeringId`
+  had to become `sortable`**: `defineRecordSearchSource` refuses a label member
+  that is not sortable, filterable **and** a string, at **module load**, so the
+  surface would have failed the app at boot — `amount` is a number and
+  `currency` is not sortable, leaving it the only member that can name one of
+  its own records. And **emission is deliberately absent**: ADR 0028 requires the
+  event in the same Mongo transaction as the status write, which a framework-free
+  port cannot do, so the emitting path belongs with the commit that decides the
+  payload shape — whose own constraint is that `product-configuration-management`
+  authors it and `marketplace-catalog` consumes it, and neither may import the
+  other. Also absent, and recorded: no precondition that an offering have a
+  price, and no publish-from-the-list affordance.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never

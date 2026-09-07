@@ -14,6 +14,9 @@ packages:
   - 'tools/docs'
   # `i18n` asserts that every error code a service emits has a catalog entry.
   - 'tools/i18n'
+  # `conventions` asserts the repository's own working conventions — the ones
+  # that were stated in prose and skipped anyway.
+  - 'tools/conventions'
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false

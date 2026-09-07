@@ -20,6 +20,8 @@ import {
 import {
   describeEntityColumns,
   EntifixBuildError,
+  type EntifixError,
+  EntifixLogicError,
   type Entity,
   type EntityConstructor,
   envelopeEntityName,
@@ -28,6 +30,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { useLocaleHref } from '../i18n';
 import {
@@ -60,9 +63,7 @@ const TARGET_NAME_PROPERTY = 'name';
  * missing `TransactionSinkTag` and quietly losing its optimistic treatment.
  */
 export type CrudContext =
-  | EntityRepositoryTag
-  | ConfigurationRepositoryTag
-  | TransactionSinkTag;
+  EntityRepositoryTag | ConfigurationRepositoryTag | TransactionSinkTag;
 
 /**
  * Merges the configuration adapter with one repository adapter into the context
@@ -111,6 +112,23 @@ export function mergeCrudContext<TAdapters>(
  * a vendor-authored `EntitySpecification` renders through a separate path
  * (ADR 0014).
  */
+/**
+ * A rejected verb, as something the form's error slot can render.
+ *
+ * `useErrorMessage` resolves `details.code` through the shared `errors`
+ * catalog, so a shell that throws an `EntifixError` carrying one gets its
+ * translated sentence; anything else — a network failure, a thrown string —
+ * keeps its message rather than being relabelled with a code it never had.
+ */
+function asEntifixError(failure: unknown): EntifixError {
+  return failure instanceof EntifixLogicError ||
+    failure instanceof EntifixBuildError
+    ? failure
+    : new EntifixLogicError(
+        failure instanceof Error ? failure.message : String(failure),
+      );
+}
+
 export function makeEntityCrud<TEntity extends Entity, TAdapters>(
   entityConstructor: EntityConstructor<TEntity>,
   options: EntityCrudOptions<TAdapters, TEntity>,
@@ -127,6 +145,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     links = [],
     metadataSource,
     runBulkUseCase,
+    runUseCase,
   } = options;
 
   const meta = extractMetaEntity(entityConstructor);
@@ -272,6 +291,11 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
     const router = useRouter();
     const withLocale = useLocaleHref();
     const params = useParams<{ slug: string }>();
+    // A verb's failure is this page's, not the record fetch's or the mutation's,
+    // so it needs a slot of its own to reach the form's error area.
+    const [useCaseError, setUseCaseError] = useState<EntifixError | undefined>(
+      undefined,
+    );
     const id = slugToEntityId(slug ?? params.slug);
 
     const ctx = mergeCrudContext(adapters, configuration, repository, pending);
@@ -280,6 +304,7 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
       entity,
       isLoading,
       error: loadError,
+      reload,
     } = useEntityRecord<TEntity, CrudContext>({
       uc: getUCFactory<TEntity>(),
       ctx,
@@ -308,7 +333,12 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
         entityConstructor: plan.entityConstructor,
         loadUc: loadUCFactory(),
         getUc: getUCFactory(),
-        ctx: mergeCrudContext(adapters, configuration, plan.repository, pending),
+        ctx: mergeCrudContext(
+          adapters,
+          configuration,
+          plan.repository,
+          pending,
+        ),
       },
     }));
 
@@ -339,6 +369,33 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
       }
     };
 
+    /**
+     * An `entity`-bound verb, on the record being shown.
+     *
+     * It **reloads** rather than patching what it has: the service decides the
+     * resulting state — a `publish` may land on `published` from four different
+     * places — and a client that assumed the new value would show the wrong one
+     * the first time the rule changed. `id == null` means the create form,
+     * where there is no record to act on and the form renders no verbs anyway.
+     *
+     * ⚠️ The rejection is **caught and shown**, never left to the promise.
+     * `EntityForm`'s `onUseCase` returns `void`, so an uncaught rejection here
+     * reaches the console and nothing else — measured on an offering refusing
+     * `unpublish` from `draft`: the service answered `409` with a coded body,
+     * the record correctly did not move, and the operator saw a button that
+     * appeared to do nothing at all.
+     */
+    const handleUseCase =
+      runUseCase === undefined || id == null
+        ? undefined
+        : (key: string) => {
+            setUseCaseError(undefined);
+            void runUseCase(key, id).then(
+              () => reload(),
+              (failure: unknown) => setUseCaseError(asEntifixError(failure)),
+            );
+          };
+
     return (
       <EntityCrudForm<TEntity>
         // Remounts (and reseeds the fields) once the record arrives.
@@ -352,9 +409,10 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
         isLoading={isLoading}
         isSaving={isSaving}
         isDeleting={isDeleting}
-        error={loadError ?? writeError}
+        error={loadError ?? writeError ?? useCaseError}
         onSave={handleSave}
         onDelete={id == null ? undefined : handleDelete}
+        onUseCase={handleUseCase}
         backHref={withLocale(basePath)}
         draft={draft}
       />

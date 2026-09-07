@@ -30,6 +30,9 @@ export const errors = {
   // estado pedido, así que no se escribió nada. No es un error de la ejecución
   // — se informa por fila para que un recuento de éxitos no mienta sobre ella.
   alreadyRetired: 'Ya estaba retirado.',
+  // El único movimiento realmente ilegal del ciclo de vida de una oferta:
+  // retirar algo que nunca se publicó. Se rechaza en el dominio, no en la ruta.
+  illegalOfferingTransition: 'La oferta no puede pasar a ese estado.',
   resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
   emailRequired: 'Se requiere un identificador de correo electrónico.',

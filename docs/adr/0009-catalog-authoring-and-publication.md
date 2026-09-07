@@ -7,6 +7,9 @@
   `published-catalog` (platform, `truth: projection-of:catalog`).
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   trigger fired, and the projector is now named.
+- Revised: 2026-09-07 by [ADR 0047](0047-authoring-an-offering-and-the-publish-verb.md) —
+  "the publisher itself is not built" is now half false: the lifecycle
+  transition exists, the emission does not.
 
 ## Trigger
 
@@ -16,8 +19,14 @@ the `ProductOffering` entity, so this record is Accepted.
 
 What that promotion does and does not mean: the _decisions_ below are in effect —
 `published-catalog` is a declared store, its `truth` is `projection-of:catalog`,
-and the two-shape split is built into the entity model. The **publisher itself
-is not built**; publication is the next iteration's work.
+and the two-shape split is built into the entity model.
+
+Publication is now built **in halves**. A vendor authors an offering and moves it
+through this lifecycle with the `publish`/`unpublish` verbs
+([ADR 0047](0047-authoring-an-offering-and-the-publish-verb.md)), including the
+republication-replaces-wholesale rule stated below. What is still missing is the
+**announcement**: reaching `published` emits no `catalog.published`, so nothing
+consumes it and `published-catalog` stays empty.
 
 ## Context
 

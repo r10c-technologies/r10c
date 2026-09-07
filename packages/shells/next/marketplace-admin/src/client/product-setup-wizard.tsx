@@ -43,7 +43,10 @@ import {
   reconstructEntity,
   type WizardDefinition,
 } from '@r10c/entifix-ts-core';
-import type { CrudContext, EntityCrudLinkSource } from '@r10c/shells-next-common';
+import type {
+  CrudContext,
+  EntityCrudLinkSource,
+} from '@r10c/shells-next-common';
 import {
   handOffWrite,
   mergeCrudContext,
@@ -110,8 +113,9 @@ function pickersFor(
   return PICKER_PLANS.map(plan => ({
     field: plan.field,
     descriptor: {
-      ...(descriptors.find(entry => entry.name === plan.field) as
-        EntityFieldDescriptor),
+      ...(descriptors.find(
+        entry => entry.name === plan.field,
+      ) as EntityFieldDescriptor),
       // Stated rather than defaulted: a plain foreign key's `@accessor()` cannot
       // name the target's members, because the domain may not import the one
       // that owns them (ADR 0022). `name` is `filterable` on both targets, which
@@ -331,8 +335,7 @@ export function ProductSetupWizard({
   const gate = useRef<RegisteredGate | undefined>(undefined);
   const registerGate = useCallback(
     (stepId: string, validate: (() => Promise<boolean>) | undefined) => {
-      gate.current =
-        validate === undefined ? undefined : { stepId, validate };
+      gate.current = validate === undefined ? undefined : { stepId, validate };
     },
     [],
   );
@@ -546,9 +549,9 @@ function SourceStep({
       seedEntityDraft(describeEntityColumns(ProductSpecification, item), item),
     );
     wizard.draftStoreFor('identity').save(only(copy, IDENTITY_FIELDS));
-    wizard.draftStoreFor('classification').save(
-      only(copy, CLASSIFICATION_FIELDS),
-    );
+    wizard
+      .draftStoreFor('classification')
+      .save(only(copy, CLASSIFICATION_FIELDS));
   };
 
   return (
@@ -576,14 +579,9 @@ function SourceStep({
 }
 
 /** The members of `draft` this step owns, and no others. */
-function only(
-  draft: EntityDraft,
-  fields: readonly string[],
-): EntityDraft {
+function only(draft: EntityDraft, fields: readonly string[]): EntityDraft {
   return Object.fromEntries(
-    fields
-      .filter(field => field in draft)
-      .map(field => [field, draft[field]]),
+    fields.filter(field => field in draft).map(field => [field, draft[field]]),
   );
 }
 
@@ -807,7 +805,5 @@ function RecapLine({ field, value }: { field: string; value: string }) {
     `entity:product-specification.fields.${labelLeafOf(field)}`,
   )}: ${value}`;
 
-  return (
-    <Text step={-1}>{line}</Text>
-  );
+  return <Text step={-1}>{line}</Text>;
 }

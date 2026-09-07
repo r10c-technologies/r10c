@@ -5,12 +5,14 @@ import { MARKETPLACE_ADMIN_CATALOG_SURFACES } from './catalog-surfaces';
 import { MARKETPLACE_ADMIN_COMMANDS } from './commands';
 
 describe('MARKETPLACE_ADMIN_COMMANDS', () => {
-  it('derives one create command per surface, so a fourth entity needs no line', () => {
+  it('derives one create command per surface, so a sixth entity needs no line', () => {
     expect(MARKETPLACE_ADMIN_COMMANDS).toHaveLength(
       MARKETPLACE_ADMIN_CATALOG_SURFACES.length,
     );
     expect(MARKETPLACE_ADMIN_COMMANDS.map(c => c.key)).toEqual([
       'new:product-specification',
+      'new:product-offering',
+      'new:product-offering-price',
       'new:product-brand',
       'new:product-category',
     ]);
@@ -22,6 +24,8 @@ describe('MARKETPLACE_ADMIN_COMMANDS', () => {
     // drift this derivation closes.
     expect(MARKETPLACE_ADMIN_COMMANDS.map(c => c.href)).toEqual([
       '/catalog/product/new',
+      '/catalog/product-offering/new',
+      '/catalog/product-offering-price/new',
       '/catalog/product-brand/new',
       '/catalog/product-category/new',
     ]);
@@ -30,6 +34,8 @@ describe('MARKETPLACE_ADMIN_COMMANDS', () => {
   it('names `write`, derived from each entity’s own decorator', () => {
     expect(MARKETPLACE_ADMIN_COMMANDS.map(c => c.permission)).toEqual([
       'product-configuration-management:product-specification:write',
+      'product-configuration-management:product-offering:write',
+      'product-configuration-management:product-offering-price:write',
       'catalog-reference:product-brand:write',
       'catalog-reference:product-category:write',
     ]);
@@ -41,6 +47,8 @@ describe('MARKETPLACE_ADMIN_COMMANDS', () => {
     // is wrong for half of them.
     expect(MARKETPLACE_ADMIN_COMMANDS.map(c => c.labelKey)).toEqual([
       'entity:product-specification.form.newTitle',
+      'entity:product-offering.form.newTitle',
+      'entity:product-offering-price.form.newTitle',
       'entity:product-brand.form.newTitle',
       'entity:product-category.form.newTitle',
     ]);

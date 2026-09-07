@@ -1,4 +1,8 @@
-import { type Permission, permissionForEntity, screenAddress } from '@r10c/business-ts-authz';
+import {
+  type Permission,
+  permissionForEntity,
+  screenAddress,
+} from '@r10c/business-ts-authz';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import type { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
 

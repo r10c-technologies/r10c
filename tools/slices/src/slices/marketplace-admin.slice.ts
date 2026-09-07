@@ -41,7 +41,17 @@ export const marketplaceAdminSlice: SliceDeclaration = {
   // Brand and category moved to the `marketplace` slice with ADR 0022: they are
   // platform reference data, not per-vendor rows, so this slice stopped serving
   // them rather than becoming a second writer.
-  exposedAPIs: ['GET|POST|PUT|DELETE /api/product-specification'],
+  exposedAPIs: [
+    'GET|POST|PUT|DELETE /api/product-specification',
+    'GET|POST|PUT|DELETE /api/product-offering',
+    // The two declared verbs. They are their own routes rather than a status
+    // field on the `PUT` above, because ADR 0026 gives each its own permission
+    // segment — a route guarded by `write` would let anyone who can edit a
+    // draft put it in front of buyers.
+    'POST /api/product-offering/:id/publish',
+    'POST /api/product-offering/:id/unpublish',
+    'GET|POST|PUT|DELETE /api/product-offering-price',
+  ],
   dependantAPIs: ['GET /api/config/:service'],
   // `catalog.published` is what the `marketplace` slice consumes to write the
   // `published-catalog` projection. The authoring slice emits and never writes

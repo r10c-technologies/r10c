@@ -206,8 +206,27 @@ export function EntityForm<TEntity extends Entity>({
   // `context-dependent` entity verb belongs to a row's overflow menu and a
   // `collection`-bound one to the bulk bar, and resolving that here as well is
   // how the two surfaces drifted apart in the first place.
-  const headerUseCases = useCasesForSurface('form-header', metadata?.useCases);
-  const footerUseCases = useCasesForSurface('form-footer', metadata?.useCases);
+  //
+  // ⚠️ **Only when there is somewhere for them to go.** Every cell these two
+  // surfaces render is `binding: 'entity'`, so without an `onUseCase` the
+  // button has no handler and clicking it does nothing at all. That is not a
+  // hypothetical: `makeEntityCrud` withholds the handler on a create, because
+  // there is no record for a verb to act on — and Publish and Unpublish
+  // rendered on a new `ProductOffering` and were inert, which reads as a broken
+  // feature rather than an inapplicable one.
+  //
+  // The hooks are called unconditionally and their *results* are gated: React's
+  // hook count must stay fixed across renders.
+  const declaredHeaderUseCases = useCasesForSurface(
+    'form-header',
+    metadata?.useCases,
+  );
+  const declaredFooterUseCases = useCasesForSurface(
+    'form-footer',
+    metadata?.useCases,
+  );
+  const headerUseCases = onUseCase ? declaredHeaderUseCases : [];
+  const footerUseCases = onUseCase ? declaredFooterUseCases : [];
 
   // A descriptor carrying `confirm` must be asked about before it fires;
   // `revoke-sessions` ends every session a user holds. The state holds the
@@ -300,33 +319,34 @@ export function EntityForm<TEntity extends Entity>({
             wizard's own heading and advances with the wizard's own footer, so
             rendering a second of each is two controls for one job. */}
         {!embedded && (
-        <Stack direction="row" gap="xs" align="center">
-          <Text as="h2" step={1} weight="semibold">
-            {/* `entity` is undefined while the record is still in flight, so
+          <Stack direction="row" gap="xs" align="center">
+            <Text as="h2" step={1} weight="semibold">
+              {/* `entity` is undefined while the record is still in flight, so
                 testing it alone made a loading edit form announce itself as
                 "New" for as long as the fetch took, then relabel when the
                 record landed. A form that is loading is never a create. */}
-            {title ?? (entity || isLoading ? t('form.details') : t('form.new'))}
-          </Text>
-          {/* The built-in toggle only appears when the form owns its mode and
+              {title ??
+                (entity || isLoading ? t('form.details') : t('form.new'))}
+            </Text>
+            {/* The built-in toggle only appears when the form owns its mode and
               there is a record to view — a create form has nothing to read. */}
-          {modeProp === undefined && entity && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={toggleMode}
-            >
-              {editing ? t('form.view') : t('form.edit')}
-            </Button>
-          )}
-          <LoadingBoundary isLoading={isMetadataLoading} lines={0}>
-            <>
-              {withOverflow(headerUseCases)}
-              {slots.headerActions}
-            </>
-          </LoadingBoundary>
-        </Stack>
+            {modeProp === undefined && entity && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={toggleMode}
+              >
+                {editing ? t('form.view') : t('form.edit')}
+              </Button>
+            )}
+            <LoadingBoundary isLoading={isMetadataLoading} lines={0}>
+              <>
+                {withOverflow(headerUseCases)}
+                {slots.headerActions}
+              </>
+            </LoadingBoundary>
+          </Stack>
         )}
 
         {/* One announcement for the form; the shimmer below is aria-hidden. */}

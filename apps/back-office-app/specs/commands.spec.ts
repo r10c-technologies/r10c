@@ -25,6 +25,8 @@ describe('the back office command list', () => {
   it('concatenates every mounted shell’s contribution', () => {
     expect(COMMANDS.map(command => command.key)).toEqual([
       'new:product-specification',
+      'new:product-offering',
+      'new:product-offering-price',
       'new:product-brand',
       'new:product-category',
       'new:user-identity',
@@ -40,6 +42,8 @@ describe('the back office command list', () => {
   it('names a write permission, never a read one — the command opens a form', () => {
     expect(COMMANDS.map(command => command.permission)).toEqual([
       'product-configuration-management:product-specification:write',
+      'product-configuration-management:product-offering:write',
+      'product-configuration-management:product-offering-price:write',
       'catalog-reference:product-brand:write',
       'catalog-reference:product-category:write',
       'authn:user-identity:write',

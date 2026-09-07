@@ -11,6 +11,7 @@ import type {
   Entity,
   EntityConstructor,
   EntityFieldDescriptor,
+  EntityId,
   EntityMetadataSource,
   EntitySelection,
 } from '@r10c/entifix-ts-core';
@@ -157,6 +158,23 @@ export interface EntityCrudOptions<TAdapters, TEntity extends Entity> {
     key: string,
     selection: EntitySelection<TEntity>,
   ) => Promise<readonly BulkOutcome[]>;
+  /**
+   * Runs an `entity`-bound verb on the record the single view is showing.
+   *
+   * The sibling of {@link runBulkUseCase}, and it had to exist for the same
+   * reason: `EntityForm` has rendered these buttons since ADR 0035, and
+   * `EntityCrudForm` has accepted an `onUseCase` for as long — but nothing ever
+   * passed one, so a generated screen showed a declared, granted, served verb
+   * that did nothing when clicked. Measured on `ProductOffering`'s `publish`,
+   * which passed every `@r10c/slices` invariant and appeared nowhere.
+   *
+   * Resolving means the record changed, and the page reloads it: a verb that
+   * moves a lifecycle leaves the form showing the old state otherwise, which
+   * reads as "the button did nothing". Rejecting surfaces through the form's
+   * own error slot, so a `409` from an illegal transition renders as the coded
+   * message the catalog holds rather than a thrown promise nobody catches.
+   */
+  readonly runUseCase?: (key: string, id: EntityId) => Promise<void>;
 }
 
 /**

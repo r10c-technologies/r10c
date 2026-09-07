@@ -2,6 +2,7 @@ import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 
+import { offeringPriceTempData, offeringTempData } from './offering-temp-data';
 import { productTempData } from './product-temp-data';
 
 /**
@@ -32,8 +33,9 @@ const asRecords = (
   data as ReadonlyArray<Record<string, unknown>>;
 
 /**
- * Seeds the catalog collection (`product-specification`) on first boot. The
- * collection name matches the entity's `key`.
+ * Seeds the catalog collections (`product-specification`, `product-offering`
+ * and `product-offering-price`) on first boot. Each collection name matches its
+ * entity's `key`.
  *
  * The catalog is **tenant plane**: it belongs to the vendor that authored it,
  * not to the service. So the seed writes into one organization's own database
@@ -59,5 +61,14 @@ export const seedCatalog = (tenantDbName: string) =>
       db,
       'product-specification',
       asRecords(productTempData),
+    );
+
+    // The offering and its price, in the same tenant database and by the same
+    // rule: the collection name is the entity's `key`.
+    yield* seedCollection(db, 'product-offering', asRecords(offeringTempData));
+    yield* seedCollection(
+      db,
+      'product-offering-price',
+      asRecords(offeringPriceTempData),
     );
   });

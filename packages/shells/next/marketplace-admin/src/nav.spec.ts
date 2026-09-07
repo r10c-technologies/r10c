@@ -10,6 +10,8 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
     // is the half that used to be forgotten and left a screen unreachable.
     expect(items.map(item => item.href)).toEqual([
       '/catalog/product',
+      '/catalog/product-offering',
+      '/catalog/product-offering-price',
       '/catalog/product-brand',
       '/catalog/product-category',
       '/wizards/product-setup',
@@ -21,6 +23,8 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
     // name something the route behind it does not check.
     expect(items.map(item => item.permission)).toEqual([
       'product-configuration-management:product-specification:read',
+      'product-configuration-management:product-offering:read',
+      'product-configuration-management:product-offering-price:read',
       'catalog-reference:product-brand:read',
       'catalog-reference:product-category:read',
       // `write`, because the flow's whole purpose is to create the record.
@@ -32,16 +36,20 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
   it('addresses every item’s workspace tab under its own screen type', () => {
     expect(items.map(item => item.workspace)).toEqual([
       'master:product-specification',
+      'master:product-offering',
+      'master:product-offering-price',
       'master:product-brand',
       'master:product-category',
       'wizard:product-setup',
     ]);
   });
 
-  it('entitlement-gates the tenant-plane surface and nothing else', () => {
+  it('entitlement-gates the tenant-plane surfaces and nothing else', () => {
     // Nobody is provisioned for `catalog-reference`, so gating brands or
     // categories would hide the platform's own vocabulary from every vendor.
     expect(items.map(item => item.entitled)).toEqual([
+      true,
+      true,
       true,
       undefined,
       undefined,

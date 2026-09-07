@@ -46,8 +46,9 @@ export function TransactionSettlement() {
     (transactionId: string) =>
       Effect.runPromise(
         Effect.provide(
-          Effect.flatMap(buildTransactionStatusReader(CATALOG_SERVICE), reader =>
-            reader.read(transactionId),
+          Effect.flatMap(
+            buildTransactionStatusReader(CATALOG_SERVICE),
+            reader => reader.read(transactionId),
           ),
           createClientAdapters().configurationStore,
         ),

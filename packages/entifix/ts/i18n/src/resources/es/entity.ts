@@ -394,6 +394,10 @@ export const entity = {
     },
   },
   'product-offering': {
+    form: {
+      editTitle: 'Editar oferta comercial',
+      newTitle: 'Nueva oferta comercial',
+    },
     label: 'Oferta comercial',
     plural: 'Ofertas comerciales',
     fields: {
@@ -410,8 +414,20 @@ export const entity = {
         unpublished: 'Retirada',
       },
     },
+    useCases: {
+      publish: 'Publicar',
+      publishConfirm:
+        'La oferta pasará a verse en la tienda con su precio actual. Volver a publicarla reemplaza por completo lo que ya se mostraba.',
+      unpublish: 'Retirar',
+      unpublishConfirm:
+        'La oferta dejará de verse en la tienda y se eliminará del catálogo publicado. Tu versión no se borra: puedes volver a publicarla.',
+    },
   },
   'product-offering-price': {
+    form: {
+      editTitle: 'Editar precio',
+      newTitle: 'Nuevo precio',
+    },
     label: 'Precio de oferta',
     plural: 'Precios de oferta',
     fields: {

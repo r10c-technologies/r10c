@@ -360,6 +360,10 @@ export const entity: EsEntity = {
     },
   },
   'product-offering': {
+    form: {
+      editTitle: 'Edit product offering',
+      newTitle: 'New product offering',
+    },
     label: 'Product offering',
     plural: 'Product offerings',
     fields: {
@@ -376,8 +380,20 @@ export const entity: EsEntity = {
         unpublished: 'Unpublished',
       },
     },
+    useCases: {
+      publish: 'Publish',
+      publishConfirm:
+        'The offering becomes visible in the storefront at its current price. Publishing again replaces what was shown before, in full.',
+      unpublish: 'Unpublish',
+      unpublishConfirm:
+        'The offering stops being visible in the storefront and is removed from the published catalog. Your own copy is kept: you can publish it again.',
+    },
   },
   'product-offering-price': {
+    form: {
+      editTitle: 'Edit price',
+      newTitle: 'New price',
+    },
     label: 'Offering price',
     plural: 'Offering prices',
     fields: {
