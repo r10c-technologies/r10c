@@ -9,6 +9,8 @@ import {
 } from '@r10c/shells-next-i18n/server';
 import type { ReactNode } from 'react';
 
+import { BackOfficeCommandPalette } from './command-palette';
+import { visibleCommands } from './commands';
 import { sidebarNav } from './nav';
 import { navPrincipal } from './nav-principal';
 
@@ -65,11 +67,19 @@ export async function BackOfficeChrome({
     sessions: translateKey('shell:auth.sessions.title'),
   };
 
+  const nav = sidebarNav(principal, translateKey);
+
   return (
     <BackOfficeShell
-      nav={sidebarNav(principal, translateKey)}
+      nav={nav}
       brand={t('admin.brand')}
       breadcrumbLabels={breadcrumbLabels}
+      commandPalette={
+        <BackOfficeCommandPalette
+          commands={visibleCommands(principal, translateKey)}
+          nav={nav}
+        />
+      }
       accountMenu={
         <AccountMenu
           label={label ?? translateKey('shell:auth.account.menu')}

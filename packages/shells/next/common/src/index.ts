@@ -1,6 +1,7 @@
 // Use this file to export React client components (e.g. those with 'use client' directive) or other non-server utilities
 
 export * from './lib/back-office';
+export * from './lib/command-palette';
 export * from './lib/crud';
 export * from './lib/i18n';
 // The browser half of record search: a typed `fetch` and the shapes it returns.

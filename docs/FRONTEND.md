@@ -165,7 +165,7 @@ that names the fix
 | `collection` | `context-dependent`   | bulk bar                       |
 | `collection` | `context-independent` | table toolbar                  |
 | `collection` | `determining`         | **invalid — throws at render** |
-| `unbound`    | any                   | command palette (#129)         |
+| `unbound`    | any                   | command palette                |
 
 The rules, each of them a defect that was live before it was one:
 
@@ -201,7 +201,46 @@ The rules, each of them a defect that was live before it was one:
 `EntityActions` is the slot for what metadata cannot describe, so a page never
 has to render its action outside the card. Everything metadata _can_ describe
 should be a `@useCase()` — that is what makes it permission-filtered,
-translatable, and reachable from the command palette when #129 lands.
+translatable, and reachable from the command palette.
+
+## The command palette — the one surface that reaches everything
+
+⌘K or ⌘⇧P, or the trigger in the top bar
+([ADR 0044](adr/0044-the-command-palette.md)). Five sources, in this order:
+Comandos (create routes), Acciones (`unbound` verbs served by `$metadata`),
+Navegación (`visibleNav`), Pestañas abiertas (`useTabsState`), Registros
+(`GET /api/search`).
+
+The parts, and where each lives:
+
+| Piece                                                  | Where                                                       |
+| ------------------------------------------------------ | ----------------------------------------------------------- |
+| `CommandSource` / `CommandPage`, matching, the grammar | `entifix-ts-core` — framework-free, like `EntityLinkSource` |
+| `CommandPalette`, `useHotkey`                          | `entifix-react-controls` — presentational, no router        |
+| the five source hooks, recency, `CommandPaletteHost`   | `shells-next-common`                                        |
+| `GuardedCommand` fragments                             | each domain shell; the host concatenates and filters        |
+
+Five rules that are easy to get wrong:
+
+- **No client-side index, ever.** Records come back per keystroke from a guarded
+  endpoint. A prefetched index is the shape that leaks another organization's
+  record the first time a session's scope moves; ADR 0040 forecloses it.
+- **The sources filter, the control renders.** A record group is already
+  filtered by the service that answered it, so filtering again in the component
+  would silently empty a group that answered a _different_ term instead of
+  showing it as stale.
+- **A degraded source is named, with two severities.** `scope` (forbidden, no
+  active organization) is the _normal_ state for an operator and renders muted;
+  `reachability` (timeout, network) renders as a warning. Conflating them
+  teaches people to ignore the one that matters.
+- **Matching is accent-folded**, because the default locale is Spanish and
+  `categoria` must find `Categoría`. It is subsequence and unscored: group order
+  is the ranking, and recency only reorders _within_ a group — never a record
+  group, whose ids are primary keys.
+- **Depth is a page stack, not a prefix.** `>` and `#` narrow at entry;
+  "Nuevo…" pushes a page. A declared verb with no registered handler **throws**
+  at first render, because a command that appears and does nothing reads as a
+  broken feature.
 
 ## Foundations: two scales, one contract
 
@@ -800,7 +839,7 @@ create → save UC → 202 (the client already minted the id)
 The pending set is **session-scoped, not workspace-scoped** — a create happens on the plain
 route, outside any `WorkspaceShell` — so its store is provided at the `(authenticated)` layout
 and the sink is a `Noop` wherever no provider is mounted. ⚠️ A `404` from the by-id read means
-*not tracked yet*, never *failed*: with the broker down the write commits and no `accepted`
+_not tracked yet_, never _failed_: with the broker down the write commits and no `accepted`
 event ever reaches the tracker. See [ADR 0043](adr/0043-the-optimistic-mutation-contract.md).
 
 ## 8. Design-system fit

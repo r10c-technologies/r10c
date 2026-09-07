@@ -90,6 +90,10 @@ export const entity: EsEntity = {
       revokeSessionsConfirm:
         'Every session this user holds will be ended on all their devices. They will be notified by email.',
       updateAspects: 'Change role and status',
+      signOutOthers: 'Sign out my other sessions',
+      signOutOthersKeywords: 'logout, revoke, devices, cerrar sesion',
+      signOutOthersConfirm:
+        'Every session you have on other devices and browsers will end. This one stays open.',
     },
     fields: {
       id: 'ID',

@@ -22,6 +22,11 @@ export * from './lib/config/service-proxy-route';
 export * from './lib/session/cookies';
 export * from './lib/session/refresh-route';
 
+// The `[slug]` value that means "create". A pure constant, exported from both
+// entries because both need it: the generated pages read it in the browser, and
+// a shell's palette commands compose the create route with it on the server.
+export * from './lib/crud/slug';
+
 // The cross-domain record search: the aggregating route, and the declarations a
 // host fans out over (ADR 0040).
 export * from './lib/search/record-search-route';

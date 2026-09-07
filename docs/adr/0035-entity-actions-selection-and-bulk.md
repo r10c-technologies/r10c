@@ -3,6 +3,9 @@
 - Status: Accepted
 - Date: 2026-09-02
 - Amends: [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md)
+- Amended by: [ADR 0044](0044-the-command-palette.md) — the `unbound` row of the
+  surface map gains a renderer and its first declared verb; the map itself is
+  unchanged.
 
 ## Context
 

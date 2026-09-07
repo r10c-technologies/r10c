@@ -29,6 +29,15 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // Seeing which counters exist, so a member of staff can be shown the one
     // they are standing at. Authoring them is an `admin` act.
     `${SALES_DOMAIN}:*:read`,
+    // Ending your **own** other sessions — the unbound sibling of
+    // `revoke-sessions` below, which ends somebody else's. Every role holds it,
+    // because signing yourself out everywhere is a security control the account
+    // owner must always have rather than an administrative capability.
+    //
+    // ⚠️ It is therefore granted three times, once per role. `@r10c/slices`
+    // only checks that a declared verb is granted *somewhere*, so a role added
+    // later that omits this line loses self-service silently.
+    `${AUTHN_DOMAIN}:user-identity:sign-out-others`,
   ],
   // Catalog authoring plus user management, bounded by the role-assignment rule.
   admin: [
@@ -66,6 +75,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // `@useCase()` declarations from drifting apart.
     `${AUTHN_DOMAIN}:user-identity:update-aspects`,
     `${AUTHN_DOMAIN}:user-identity:revoke-sessions`,
+    // The self-service half, held by every role — see the note on `user`.
+    `${AUTHN_DOMAIN}:user-identity:sign-out-others`,
     // Reading identifiers is how the user list shows who an account is; it is
     // granted explicitly rather than as `authn:*:read` so a future sensitive
     // entity in this domain is not swept in by accident.
@@ -101,5 +112,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // — no role but `super-admin` wildcards an action, so a new verb still
     // escalates to nobody.
     `${CATALOG_REFERENCE_DOMAIN}:*:retire`,
+    // The operator's own sessions, for the same reason: this is not a capability
+    // `*:*:*` should be the only thing granting, because the day somebody
+    // narrows that wildcard nobody should discover it by being unable to sign
+    // themselves out.
+    `${AUTHN_DOMAIN}:user-identity:sign-out-others`,
   ],
 };

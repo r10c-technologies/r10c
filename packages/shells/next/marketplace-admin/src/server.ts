@@ -16,3 +16,8 @@ export * from './server/search-sources';
 // main entry for `AUTH_NAV`'s reason: a server layout composes it, and anything
 // reachable from the main entry is stamped a client reference.
 export { MARKETPLACE_ADMIN_NAV } from './nav';
+
+// The palette's create commands, derived from the same surfaces. Beside the nav
+// for the same reason: a host composes both from a server layout, which is also
+// where the principal that filters them lives.
+export { MARKETPLACE_ADMIN_COMMANDS } from './commands';
