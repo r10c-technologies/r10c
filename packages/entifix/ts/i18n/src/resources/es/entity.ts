@@ -112,6 +112,22 @@ export const entity = {
       revokeSessionsConfirm:
         'Se cerrarán todas las sesiones de este usuario en todos sus dispositivos. Recibirá un aviso por correo.',
       updateAspects: 'Cambiar rol y estado',
+      /**
+       * El hermano *unbound* de `revokeSessions`: aquél cierra las sesiones de
+       * otra persona, éste las tuyas. La etiqueta dice «mis» precisamente
+       * porque en la paleta no hay ningún registro seleccionado que aclare de
+       * quién se habla.
+       */
+      signOutOthers: 'Cerrar mis otras sesiones',
+      /**
+       * Lista separada por comas — `parseKeywords` la parte. Están en inglés
+       * a propósito: son los términos que alguien teclea sin cambiar de idioma,
+       * y es justo para eso que `keywordsKey` es una clave de catálogo y no un
+       * `string[]` en el decorador.
+       */
+      signOutOthersKeywords: 'logout, sign out, cerrar sesion, dispositivos',
+      signOutOthersConfirm:
+        'Se cerrarán todas tus sesiones en otros dispositivos y navegadores. Ésta seguirá abierta.',
     },
     fields: {
       id: 'ID',

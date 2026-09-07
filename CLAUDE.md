@@ -574,7 +574,7 @@ instantiation is excessively deep`); every scalar read is now
   with no heading left to restore it). **The no-media-query rule is narrower than
   it reads**: `docs/FRONTEND.md` governs `ui/layout/` primitives, which still lay
   out intrinsically; a shell picking between a drawer and a rail is choosing a
-  navigation *mode*, and no intrinsic sizing produces a focus trap —
+  navigation _mode_, and no intrinsic sizing produces a focus trap —
   `back-office-shell.tsx` was already shipping `md:` utilities under that rule,
   undeclared. ⚠️ **Auto-collapse must never write the preference**: effective
   collapse is `stored || rail-width`, and writing the forced value back means one
@@ -591,7 +591,7 @@ instantiation is excessively deep`); every scalar read is now
 - **A workspace tab address is the taxonomy serialized, and it is one grammar**
   ([ADR 0042](docs/adr/0042-the-workspace-address-is-the-taxonomy-serialized.md)).
   `master:<key>` is a list, `master:<key>:<id>` is one record;
-  `catalog:`/`entity:`/`system:` are gone. ADR 0033 predicted a *rename* — it is a
+  `catalog:`/`entity:`/`system:` are gone. ADR 0033 predicted a _rename_ — it is a
   **collapse**, because `catalog:` meant list and `entity:` meant record and both
   are Definiciones, so three `TabKind`s become one whose payload carries an
   optional id. `screenAddress`/`parseScreenPayload` live in `business-ts-authz`
@@ -601,7 +601,7 @@ instantiation is excessively deep`); every scalar read is now
   cannot be addressed at all**: `screenAddress` takes a `ScreenType` and the
   account surface declares none, so "the account cannot be a tab" is a compile
   error rather than a rule to remember. ⚠️ **Both `TABS_VERSION` and
-  `DRAFTS_VERSION` bump**, and skipping either fails *quietly* — a stale
+  `DRAFTS_VERSION` bump**, and skipping either fails _quietly_ — a stale
   `catalog:` tab resolves against the new registry as a **dead link**, so the
   workspace comes up holding broken tabs instead of empty. The registry now
   derives from `MARKETPLACE_ADMIN_CRUDS`, and the five hand-kept lists of the same
@@ -1096,7 +1096,7 @@ instantiation is excessively deep`); every scalar read is now
   settlement hook mounting after `useReactiveInvalidation` would register for an
   `onopen` that already fired and reconcile a restored pending set **never**.
   **The optimistic patch touches one key, not the scope** — `entityQueryScope` is
-  a *prefix* and `setQueriesData` matches prefixes, so patching it prepends the row
+  a _prefix_ and `setQueriesData` matches prefixes, so patching it prepends the row
   to every cached filter, sort and page at once and leaves `total` wrong on each;
   it is restricted by predicate to page 1 / no filter / no sort, and settle is
   `invalidateQueries`. **The pending set persists but its payload does not**, so no
@@ -1106,6 +1106,59 @@ instantiation is excessively deep`); every scalar read is now
   badge keyed on a pending record id is unreachable by construction — wiring it
   would ship the very defect this record opens by naming. Amends ADR 0028 and
   ADR 0036; every decision in both stands.
+- **The command palette holds no index, and its depth is a page stack**
+  ([ADR 0044](docs/adr/0044-the-command-palette.md)). Three of its four sources
+  were already built and **called by nothing**: #130's `searchRecords`, #125's
+  `visibleNav`, and #118's `'command-palette'` entry in `ACTION_SURFACES` —
+  which had a mapped surface, no renderer and **no declared `unbound` verb at
+  all**, which is a live instance of the fault ADR 0035 was written about. The
+  port is `CommandSource` in **core**, mirroring `EntityLinkSource` for the same
+  boundary reason (`entifix-react-controls` ↮ `entifix-react-integration`); the
+  control is presentational; the five source hooks live in `shells-next-common`;
+  each domain shell contributes `GuardedCommand` fragments and the host
+  concatenates and filters them through **`isNavItemVisible` itself**, never a
+  second rule that could disagree about the same permission. Seven things not to
+  re-derive. **No client-side index, ever** — ADR 0040's ruling, unchanged, and
+  the reason this is a per-keystroke fan-out. **The sources filter and the
+  control renders**: a record group is already narrowed by the service that
+  answered it, so filtering again would need the component to know which groups
+  were pre-filtered and would silently empty a group that answered a _different_
+  term rather than showing it stale. **`unavailable` carries a `severity`**,
+  splitting ADR 0040's `reason` vocabulary in two — `scope`
+  (`forbidden`/`noActiveOrganization`) is the **normal** state for an operator
+  with no membership and renders muted, `reachability` renders as a warning;
+  conflating them teaches people to ignore the one that means something, and the
+  below-the-floor state uses the same slot because an empty group claims nothing
+  matched a search that never ran. ⚠️ **Matching is accent-folded**, which is
+  correctness rather than polish: the default locale is Spanish, and without it
+  `categoria` does not match `Categoría` — the palette finds nothing for the most
+  natural way to type most of its own copy. It is subsequence and **unscored**;
+  recency reorders only _within_ a group and **never a record group**, whose
+  option ids are primary keys. **Both ⌘K and ⌘⇧P are bound and neither is
+  load-bearing**: #112 argued for ⌘⇧P because ⌘K is address-bar search, but
+  ⌘⇧P/Ctrl+Shift+P is Firefox's private window, so both collide somewhere — hence
+  two chords plus a permanently visible trigger, and `useHotkey` (the repo's
+  first global shortcut) stays out of the way while focus is in an editable
+  element. **Depth is a page stack with a real consumer**: create commands
+  declare `page: NEW_COMMAND_PAGE` and the root **synthesizes** the opener,
+  because two shells each declaring it would render it twice. And ⚠️ **a declared
+  verb with no registered handler throws** at the first render, the
+  `assertSearchable` posture — a command that appears and does nothing reads as a
+  broken feature rather than a missing wire. The verb that finally exercises the
+  `unbound` cell is **`sign-out-others` on `UserIdentity`**, and it was not
+  invented for it: `POST /api/auth/sessions/revoke-others` had existed since
+  sessions were built with **no caller**. It is the legible opposite of its
+  sibling — `revoke-sessions` is `binding: 'entity'` (an administrator ends
+  someone else's), this is `unbound` (you end your own) — its route moves to
+  `requirePermission(SIGN_OUT_OTHERS)` so the grant is authorization rather than
+  decoration, and ⚠️ **every role holds it**, because ending your own sessions is
+  not an administrative capability; a role added later that omits it loses
+  self-service and `@r10c/slices` will not notice, since it only checks a verb is
+  granted _somewhere_. `BackOfficeShell` gains a `commandPalette` **slot** rather
+  than building one: the use-case sources carry entity constructors and handler
+  functions, neither of which survives the server→client boundary as a prop.
+  Amends ADR 0035 (its `unbound` row now has a renderer and a producer; the
+  nine-cell map stands).
 - **A service describes its own wiring, and the point is the diff**
   ([ADR 0031](docs/adr/0031-a-service-describes-its-own-wiring.md)).
   `GET /api/$service` — slices hosted, stores opened, events published,

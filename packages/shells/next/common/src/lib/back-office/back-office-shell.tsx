@@ -40,6 +40,17 @@ export interface BackOfficeShellProps {
    * caption where it has not.
    */
   accountMenu?: ReactNode;
+  /**
+   * The command palette, trigger and all.
+   *
+   * A slot for a reason the account menu does not share: the palette's use-case
+   * sources carry entity constructors and handler functions, neither of which
+   * survives the server→client boundary, so it cannot be built from serializable
+   * props here. The host composes it in a client module of its own and hands it
+   * over — which also keeps this `shell:base` package from naming any domain's
+   * entities.
+   */
+  commandPalette?: ReactNode;
 }
 
 /**
@@ -67,6 +78,7 @@ export function BackOfficeShell({
   children,
   breadcrumbLabels,
   accountMenu,
+  commandPalette,
 }: BackOfficeShellProps) {
   const t = useT('shell');
   const mode = useViewportMode();
@@ -145,9 +157,10 @@ export function BackOfficeShell({
             <span aria-hidden="true">☰</span>
           </Button>
           <BackOfficeBreadcrumbs labels={breadcrumbLabels} />
-          {accountMenu === undefined ? null : (
-            <div className="ml-auto">{accountMenu}</div>
-          )}
+          <div className="ml-auto flex items-center gap-2xs">
+            {commandPalette}
+            {accountMenu}
+          </div>
         </header>
         <div className="flex-1 p-m">{children}</div>
       </Sidebar.Main>

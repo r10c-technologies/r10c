@@ -63,10 +63,16 @@
       "path": "../../packages/shells/next/auth"
     },
     {
+      "path": "../../packages/entifix/ts/rest-client"
+    },
+    {
       "path": "../../packages/entifix/ts/jwt-client"
     },
     {
       "path": "../../packages/entifix/ts/i18n"
+    },
+    {
+      "path": "../../packages/entifix/ts/core"
     },
     {
       "path": "../../packages/entifix/react/integration"
@@ -76,6 +82,9 @@
     },
     {
       "path": "../../packages/business/ts/authz"
+    },
+    {
+      "path": "../../packages/business/ts/authn"
     },
     {
       "path": "../../packages/business/ts/access-management"

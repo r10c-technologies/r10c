@@ -25,7 +25,7 @@ Three further gaps, all measured rather than suspected:
   meant collapsing produced an undifferentiated icon column. Three sections
   today; ADR 0022 fixes 11 domains and 28 entities.
 - **There was no mobile behaviour.** The aside was `md:sticky md:top-0
-  md:h-screen md:overflow-y-auto` and nothing else, so below `md` it stacked
+md:h-screen md:overflow-y-auto` and nothing else, so below `md` it stacked
   above the content and scrolled away. No drawer, backdrop, focus trap or
   escape-to-close.
 - **The "open in workspace" control was invisible unless hovered.** `opacity-0`
@@ -74,7 +74,7 @@ about `ui/layout/`, and it stands: `Sidebar` still wraps when cramped and knows
 no breakpoint.
 
 A shell choosing between a drawer and a persistent rail is not laying out a box.
-It is picking a navigation *mode*, and no amount of intrinsic sizing produces a
+It is picking a navigation _mode_, and no amount of intrinsic sizing produces a
 focus trap. `useViewportMode` is the one place that asks, it lives beside the UI
 preferences rather than in `ui/`, and the rule's scope is now written down —
 `back-office-shell.tsx` was already shipping `md:` utilities under it, undeclared.
@@ -88,7 +88,7 @@ silently rewrite a choice made on a desktop, and the sidebar would come back
 collapsed there.
 
 A drawer ignores the preference entirely and shows labels — the preference is
-about how much room the sidebar takes *beside* the content, and in a drawer there
+about how much room the sidebar takes _beside_ the content, and in a drawer there
 is no beside.
 
 ### The drawer is a `Dialog`, and it is a primitive
@@ -99,7 +99,7 @@ backdrop click and focus restoration are the library's rather than four
 hand-written behaviours that each have to be right — and a drawer that traps
 focus badly is worse than no drawer, because a keyboard visitor cannot leave it.
 
-It carries no viewport logic. *When* a drawer is the right shape is the shell's
+It carries no viewport logic. _When_ a drawer is the right shape is the shell's
 decision; the primitive is only the shape. There is exactly one `SidebarNav` in
 the tree in either mode, because rendering a second copy for the drawer is how
 the two drift.
@@ -138,11 +138,11 @@ does not compete with the destination itself.
 - **Flyout submenus in collapsed mode.** What #113 assumed would be needed. It
   buys back the labels a tooltip already gives, and charges a click for them on
   every navigation in the mode chosen for speed. Rejected with the flat column
-  kept instead — and if collapsed mode ever *does* nest, this is the decision to
+  kept instead — and if collapsed mode ever _does_ nest, this is the decision to
   reopen, because then it would be strictly worse than today.
 - **A container query instead of a breakpoint.** Would have kept the letter of
   the no-media-query rule. Rejected because it would keep the letter and lose the
-  point: the drawer's trigger is how much room the *viewport* has, a container
+  point: the drawer's trigger is how much room the _viewport_ has, a container
   query answers about an element, and the shell's container is the viewport
   anyway. Stating the rule's real scope is more honest than routing around it.
 - **Auto-collapse writing the preference.** One fewer piece of state. Rejected:

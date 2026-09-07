@@ -53,7 +53,7 @@ back, `onSettled` invalidates". None of that exists: `useEntityMutation` is
 `QueryClient`. The claim was design intent that never became code, and it sits a
 few lines from the section a reader would check first.
 
-What *does* exist is everything underneath. ADR 0028 made the transaction id the
+What _does_ exist is everything underneath. ADR 0028 made the transaction id the
 client's, and it is also the entity's id. ADR 0036 shipped the stream, scoped per
 connection, and left one sentence for this record: "on reconnect the client
 re-queries its pending transaction ids and reconciles — #137's work".
@@ -98,7 +98,7 @@ Tabs and drafts are workspace state, so their stores are scoped and rehydrated b
 the plain route, outside any `WorkspaceShell`, and a generated list still uses
 plain `href`s (ADR 0042's own residual), so the operator leaves the workspace to
 make one. A pending store mounted inside the workspace would therefore be written
-to by nothing, or — worse — written to *before* `persist.setOptions` had ever
+to by nothing, or — worse — written to _before_ `persist.setOptions` had ever
 scoped it, which is the unscoped cross-account restore ADR 0032 exists to
 prevent.
 
@@ -120,13 +120,13 @@ record is the truth, and re-reading it is cheap" — applied one consumer later.
 Widening the payload would duplicate onto `data` what already lives on `meta`,
 which is exactly what that record declined to do for the correlation id.
 
-What the frame *does* carry is enough to route. Note the shape: a parsed
+What the frame _does_ carry is enough to route. Note the shape: a parsed
 `DomainEvent<T>` is **flat** — `EntifixEventMeta` is extended, not nested — so a
 listener reads `event.name` (`transaction.accepted|completed|failed`) and
 `event.correlationId` (the transaction id) directly. `meta.` is how it appears on
 the wire, not how it appears to a consumer.
 
-### ⚠️ A `404` means *not tracked yet*, not *failed*
+### ⚠️ A `404` means _not tracked yet_, not _failed_
 
 This is the rule most likely to be got wrong, and getting it wrong is invisible.
 
@@ -149,7 +149,7 @@ where a `404` is not an error.
 when the connection is already open.**
 
 The replay is not a nicety, it is the whole mechanism. The channel is refcounted
-and opened by its *first* subscriber, and `useReactiveInvalidation` already
+and opened by its _first_ subscriber, and `useReactiveInvalidation` already
 subscribes at the top of `WorkspaceView`. A settlement hook mounting after that —
 which depends only on component-tree ordering — would register for an `onopen`
 that had already fired and then reconcile nothing until the next real network
@@ -199,7 +199,7 @@ instance does not survive a JSON round trip (ADR 0032), so a refresh keeps the
 watch and loses the row, exactly as the persistence decision above describes. And
 **`attach` returns whether the write was being watched**, which is how a caller
 tells a transactional create from a plain one: asking `entries.some(...)` first
-reads a React closure captured *before* the caller's own `await`, so the
+reads a React closure captured _before_ the caller's own `await`, so the
 announcement the save adapter made during that await is invisible and every
 transactional write reads as a plain one. One call, answered from current state,
 has no such race.
@@ -314,7 +314,7 @@ makes a create addressable, not before.
   the `202` mints the id — ADR 0028 makes that id final immediately, so the second
   is available, but `useTabsState` has `open`/`close`/`activate` and no rename.
 - **A create still has no autosaved draft.** This record makes a failed create
-  *visible*; it does not make it *recoverable*, because the create path was never
+  _visible_; it does not make it _recoverable_, because the create path was never
   given the `draft` port. Giving it one is the same commit that makes a create a
   tab, since the draft key is the tab address.
 - **Only creates are transactional.** When an update command lands, `changeFor`

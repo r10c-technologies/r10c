@@ -41,3 +41,7 @@ export {
   setSessionCookies,
   SID_COOKIE,
 } from './server/session';
+
+// The palette's create command, contributed beside the nav and the search
+// sources so a host that mounts this shell gains all three together.
+export { AUTH_COMMANDS } from './commands';

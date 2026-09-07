@@ -246,9 +246,14 @@ describe('auth-service user management', () => {
       });
       // `admin` holds read and write on this entity, and not delete.
       expect(res.data.data.actions).toEqual(['read', 'write']);
+      // Exact, not a superset: the point of this assertion is that a verb the
+      // caller does not hold cannot appear. `sign-out-others` is here because
+      // every role holds it — ending your own sessions is not an administrative
+      // capability (ADR 0044) — and it is `unbound`, so it reaches the command
+      // palette rather than this entity's form.
       expect(
         res.data.data.useCases.map((d: { key: string }) => d.key).sort(),
-      ).toEqual(['revoke-sessions', 'update-aspects']);
+      ).toEqual(['revoke-sessions', 'sign-out-others', 'update-aspects']);
     });
 
     it('serves the whole triple on a wildcard grant', async () => {

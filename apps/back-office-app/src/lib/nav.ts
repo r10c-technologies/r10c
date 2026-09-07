@@ -44,6 +44,22 @@ export const NAV: GuardedNavSection[] = [
 ];
 
 /**
+ * The gated half of a nav item — or of a palette command, which is gated the
+ * same way and by the same two ceilings.
+ *
+ * Structural rather than a union, so a third kind of guarded affordance costs no
+ * edit here. What must not happen is a second filter beside this one: two rules
+ * that could disagree about the same permission is exactly the drift the shared
+ * `business:policy` vocabulary exists to prevent.
+ */
+export interface Guarded {
+  label?: string;
+  labelKey?: string;
+  permission?: GuardedNavItem['permission'];
+  entitled?: boolean;
+}
+
+/**
  * Is this item reachable by `principal` — under both ceilings?
  *
  * The first is what the person's roles grant; the second is what their
@@ -51,7 +67,7 @@ export const NAV: GuardedNavSection[] = [
  * item can be refused by either.
  */
 export const isNavItemVisible = (
-  item: GuardedNavItem,
+  item: Guarded,
   principal: NavPrincipal,
 ): boolean => {
   if (item.entitled === true && item.permission === undefined) {
@@ -59,7 +75,7 @@ export const isNavItemVisible = (
     // both look like a bug in something else — a missing grant, or a missing
     // entitlement — so this fails at the declaration instead.
     throw new Error(
-      `Nav item "${item.label}" is entitlement-gated but names no permission`,
+      `Nav item "${item.label ?? item.labelKey}" is entitlement-gated but names no permission`,
     );
   }
   if (item.permission === undefined) {

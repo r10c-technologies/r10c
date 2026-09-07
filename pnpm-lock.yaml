@@ -448,6 +448,9 @@ importers:
       '@r10c/business-ts-access-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/access-management
+      '@r10c/business-ts-authn':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/authn
       '@r10c/business-ts-authz':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz
@@ -460,12 +463,18 @@ importers:
       '@r10c/entifix-style':
         specifier: workspace:*
         version: link:../../packages/entifix/style
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/core
       '@r10c/entifix-ts-i18n':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/i18n
       '@r10c/entifix-ts-jwt-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/jwt-client
+      '@r10c/entifix-ts-rest-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/rest-client
       '@r10c/shells-next-auth':
         specifier: workspace:*
         version: link:../../packages/shells/next/auth

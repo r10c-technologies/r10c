@@ -11,7 +11,7 @@
   an entry that exhausts them is quarantined and skipped rather than retried
   forever. The outbox itself, and every other decision here, stands.
 - Amended by: [ADR 0043](0043-the-optimistic-mutation-contract.md) — the browser
-  now *keeps* the id it mints rather than only sending it, so a `202` becomes a
+  now _keeps_ the id it mints rather than only sending it, so a `202` becomes a
   tracked pending write that settles on the outcome event. Every decision here
   stands; what is added is a consumer.
 - Amended by:

@@ -125,6 +125,45 @@ export const shell = {
       report: 'Consultas',
     },
   },
+  /**
+   * La paleta de comandos (ADR 0044). Vive en `shell:` y no en `controls:`
+   * porque el control es agnóstico —recibe copia ya resuelta— y quien la
+   * arma es el back office.
+   */
+  commandPalette: {
+    /** El disparador visible, que existe justo porque un atajo puede fallar. */
+    open: 'Buscar o ejecutar',
+    /** El nombre accesible del diálogo y de su campo. */
+    title: 'Buscar o ejecutar',
+    placeholder: 'Busca un registro, una pantalla o un comando…',
+    newPlaceholder: '¿Qué quieres crear?',
+    newLabel: 'Nuevo…',
+    /** El nombre de la página apilada, y también el del control para volver. */
+    newTitle: 'Nuevo',
+    back: 'Volver',
+    empty: 'Sin resultados',
+    loading: 'Buscando…',
+    more_one: '{{count}} más',
+    more_other: '{{count}} más',
+    /** Escribe al menos dos caracteres — el suelo que impone `/api/search`. */
+    typeMore: 'Escribe al menos {{count}} caracteres para buscar registros.',
+    groups: {
+      actions: 'Acciones',
+      commands: 'Comandos',
+      navigation: 'Navegación',
+      tabs: 'Pestañas abiertas',
+      records: 'Registros',
+    },
+    /**
+     * Dos redacciones para dos cosas distintas: «no es tuyo» es el estado
+     * **normal** de un operador sin organización, y pintarlo como avería en
+     * cada tecleo enseña a ignorar el aviso que sí importa.
+     */
+    unavailableScope: 'No disponible aquí: {{reason}}',
+    unavailableReach: 'No pudimos consultar este origen: {{reason}}',
+    /** Sufijo del comando que abre un destino como pestaña del espacio. */
+    openInWorkspaceHint: 'Pestaña',
+  },
   sidebar: {
     expand: 'Expandir barra lateral',
     collapse: 'Contraer barra lateral',

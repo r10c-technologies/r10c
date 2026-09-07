@@ -20,7 +20,7 @@ What the old grammar cost was measured. The list address and the record address
 were each spelled out at several call sites that had to agree by hand — the
 registry's `match`/`toParam`, `useTabEntityNav`'s two builders, the draft key in
 the editor tab (whose own comment called itself "the third spelling"), and the
-`workspace:` literals in three nav fragments. Two of those spell the *same*
+`workspace:` literals in three nav fragments. Two of those spell the _same_
 string for two different purposes: the tab address and the key its autosaved
 draft is filed under. A drift between them detaches a tab from its own draft,
 silently.
@@ -65,7 +65,7 @@ workspace address, the list tab, the record tab and the search source. The five
 hand-maintained lists become one.
 
 Which screens a host offers as tabs stays the host's decision — a second host
-mounting the same shells may want a different set — but *how* one is addressed
+mounting the same shells may want a different set — but _how_ one is addressed
 and what renders it no longer is. Configuration remains a hand-written registry
 entry and earns it: its screen is not generated and it has no record tab at all.
 
@@ -109,7 +109,7 @@ rather than broken, and therefore easy to ship by accident.
   needs no version bump. Rejected because it leaves the two grammars and their
   several spellings in place, which is the half that fails silently — and the
   next screen type to arrive would have had to pick a prefix with no rule.
-- **One kind per type *and* per shape** (`master-list:`, `master-record:`).
+- **One kind per type _and_ per shape** (`master-list:`, `master-record:`).
   Explicit, and it removes the optional id. Rejected: it doubles the kinds for a
   distinction the payload already carries, and the id is what a record tab is.
 - **Derive the address from `basePath` instead of the entity key.** Tempting,

@@ -1,5 +1,6 @@
 export * from './base-entities/configuration-client';
 export * from './base-entities/entifix-error';
+export * from './command-palette';
 export * from './entity-definition/decorators/accessor';
 export * from './entity-definition/decorators/entity';
 export * from './entity-definition/decorators/method';

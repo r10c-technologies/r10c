@@ -1,3 +1,4 @@
+export * from './guarded-command';
 export * from './guarded-nav';
 export * from './permission';
 export * from './role';

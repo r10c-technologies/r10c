@@ -20,6 +20,9 @@ import {
   RevokeUserSessionsInputTag,
   RevokeUserSessionsUC,
   SessionIdTag,
+  SIGN_OUT_OTHERS,
+  SignOutOtherSessionsInputTag,
+  SignOutOtherSessionsUC,
   UnauthenticatedError,
   UPDATE_ASPECTS,
   UpdateUserAspectsInputTag,
@@ -978,13 +981,26 @@ const revokeMySessionRoute = requirePrincipal(principal =>
   ),
 );
 
-/** `POST /api/auth/sessions/revoke-others` — keep this one, end the rest. */
-const revokeOtherSessionsRoute = requirePrincipal(principal =>
+/**
+ * `POST /api/auth/sessions/revoke-others` — keep this one, end the rest.
+ *
+ * Guarded by the verb the use case declares rather than by the session alone,
+ * so the grant is real authorization instead of decoration: `$metadata` filters
+ * the palette's affordance through the same permission, and an affordance
+ * filtered by something the route does not check is the "hiding it protects
+ * nothing" fault in reverse.
+ *
+ * ⚠️ Every role holds `sign-out-others`, because ending your own sessions is a
+ * control the account owner must always have. A role added later that omits it
+ * loses self-service, and nothing fails the build over it.
+ */
+const revokeOtherSessionsRoute = requirePermission(SIGN_OUT_OTHERS)(principal =>
   Effect.gen(function* () {
-    const sessions = yield* SessionStoreTag;
-    yield* sessions.revokeAllForUserExcept(
-      principal.userId,
-      principal.sessionId,
+    yield* SignOutOtherSessionsUC.run().pipe(
+      Effect.provideService(SignOutOtherSessionsInputTag, {
+        userId: principal.userId,
+        keepSessionId: principal.sessionId,
+      }),
     );
     return yield* HttpServerResponse.json({ ok: true });
   }).pipe(Effect.catchAll(serverError)),

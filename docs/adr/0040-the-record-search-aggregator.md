@@ -127,8 +127,8 @@ something the server can say about a service it could not reach.
 
 The `reason` vocabulary splits two things that must not be conflated:
 
-| Not yours to see                                       | Could not be reached                                  |
-| ------------------------------------------------------ | ----------------------------------------------------- |
+| Not yours to see                                       | Could not be reached                                           |
+| ------------------------------------------------------ | -------------------------------------------------------------- |
 | `forbidden`, `noActiveOrganization`, `unauthenticated` | `timeout`, `network`, `invalidQuery`, `notFound`, `unexpected` |
 
 The left column is the **normal** state for some callers: an operator holds no
