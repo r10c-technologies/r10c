@@ -242,6 +242,64 @@ Five rules that are easy to get wrong:
   at first render, because a command that appears and does nothing reads as a
   broken feature.
 
+## The wizard — the one screen type that is not generated
+
+`makeEntityCrud` builds `master` and only `master`, so an **Asistente** is
+hand-built by design — Fiori reached the same split, every floorplan generated
+except the wizard and the initial page
+([ADR 0045](adr/0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md)).
+What is shared is the control and the state machine; what each wizard writes is
+its own definition.
+
+The parts, and where each lives:
+
+| Piece                                                     | Where                                                     |
+| ---------------------------------------------------------- | ---------------------------------------------------------- |
+| the step graph, `WizardState`, `assertWizardDefinition`   | `entifix-ts-core` — framework-free, like `CommandSource`   |
+| `Wizard` (stepper, step slot, recap, footer)              | `entifix-react-controls` — presentational, no router      |
+| `useWizard`, `WizardDraftStore`                           | `entifix-react-integration`                               |
+| `useWizardDraft`, the step-URL sync, `wizardTabKind`      | `shells-next-common`                                      |
+| a wizard's own definition and steps                       | the domain shell that owns the records it writes          |
+
+Seven rules that are easy to get wrong:
+
+- **Steps are a graph, and Back pops a history stack.** `next(state) => stepId`
+  is forward-computable; there is deliberately no `previous(state)`, because a
+  branch's inverse is ambiguous the moment an earlier answer changes, and a
+  computed one walks the user back through a path they were never on.
+- **The draft lives above the forms.** A form step is its own component calling
+  `useEntityForm` (React's hook count must stay fixed, so N steps cannot be N
+  hook calls), and it unmounts when inactive. `draftStoreFor(stepId)` hands it
+  an `EntityDraftStore` view onto the wizard's state, so Back never wipes an
+  earlier step. ⚠️ That `save` must be **referentially stable per step id**, or
+  every render becomes an IndexedDB write.
+- **Step values are a discriminated union, and `EntityDraft` is not widened** —
+  a form step drafts strings, a table step holds ids. Widening the entity draft
+  would put a recursive type back under TanStack Form's field-path derivation,
+  which is what ADR 0038 avoided. ⚠️ A selection step stores a `readonly
+string[]`, never a `Set`: a `Set` serializes to `{}` silently.
+- **"Siguiente" is the step's own submit.** `revalidateLogic` keeps a pristine
+  step quiet until then, which is exactly the behaviour a wizard wants —
+  `useEntityForm`'s `submit()` resolves `true` iff validation passed.
+- **A summary step is required, and the definition throws at load** — on a
+  terminal step that is not the summary, an unknown `next` target, or an
+  unreachable step. Load time, not step time: the failure of a long flow must
+  not arrive at the end of it.
+- **A stepper is not a tablist.** `<ol>`/`<li>` with `aria-current="step"`, and
+  focus to the step heading on advance. `TabStrip` is `role="tablist"` and is
+  the wrong precedent — a tablist says the panels are siblings you may choose
+  between, and a wizard's steps are ordered and gated.
+- **The submit hands off, and does not resolve.** `onFinish` returns before the
+  write is terminal; the pending set and the SSE settlement carry it
+  (ADR 0043). That is the shape that does not change when ADR 0039's
+  orchestrator lands and one command becomes a saga.
+
+A wizard is reached from its **Asistentes** nav item, from the palette (free —
+the nav source produces a command per visible nav item), and from a toolbar
+affordance on the list it starts from. It is **not** a `@useCase()` verb: every
+one of ADR 0035's nine cells resolves to an action on records, and a launcher
+acts on none.
+
 ## Foundations: two scales, one contract
 
 Spacing (`--spacing-3xs…3xl`) and type (`--text-step-xs…4`) keep **one set of

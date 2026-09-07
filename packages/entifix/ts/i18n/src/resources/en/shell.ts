@@ -74,6 +74,41 @@ export const shell: EsShell = {
       products: 'Products',
       brands: 'Brands',
       categories: 'Categories',
+      guided: 'Catalog',
+    },
+    wizard: {
+      productSetup: {
+        title: 'New product',
+        launch: 'Guided new product',
+        steps: {
+          start: 'Source',
+          source: 'Base product',
+          identity: 'Identification',
+          classification: 'Classification',
+          summary: 'Summary',
+        },
+        start: {
+          question: 'How do you want to start?',
+          blank: 'From scratch',
+          blankHint: 'Enter the details by hand.',
+          duplicate: 'Duplicate an existing one',
+          duplicateHint:
+            'Start from a product already on file. The code is not copied: it identifies the original.',
+        },
+        source: {
+          prompt: 'Pick the product to start from.',
+          chosen: 'Base product: {{name}}',
+          required: 'Pick a product to continue.',
+        },
+        summary: {
+          prompt: 'Check what you entered before creating it.',
+          origin: 'Source',
+          originBlank: 'From scratch',
+          originDuplicate: 'Duplicated from {{name}}',
+          empty: 'Not set',
+        },
+        recap: 'You had already answered:',
+      },
     },
   },
   systemManagement: {

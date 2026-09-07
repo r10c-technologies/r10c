@@ -192,4 +192,23 @@ export const controls: EsControls = {
   breadcrumbs: {
     label: 'Breadcrumb',
   },
+  wizard: {
+    steps: 'Steps',
+    previous: 'Back',
+    next: 'Continue',
+    finish: 'Finish',
+    submitting: 'Submitting…',
+    stepOf: 'Step {{current}} of {{total}}',
+    goToStep: 'Back to {{label}}',
+    status: {
+      pending: 'pending',
+      active: 'in progress',
+      complete: 'completed',
+      error: 'has errors',
+    },
+    resume: {
+      title: 'Picking up where you left off',
+      dismiss: 'Got it',
+    },
+  },
 };

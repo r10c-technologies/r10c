@@ -843,6 +843,99 @@ describe('useEntityForm', () => {
     expect(result.current.errors).toEqual({ code: 'Code is required' });
   });
 
+  // The wizard's "Siguiente" *is* the step's submit, so it has to learn whether
+  // the step passed — and before this the only way was to await a tick and
+  // re-read `errors`, which is the workaround the specs above still show.
+  it('resolves false when validation refused the submit', async () => {
+    const onSubmit = vi.fn();
+    const { result } = renderHook(() =>
+      useEntityForm({ entityConstructor: Gadget, onSubmit }),
+    );
+
+    let went: boolean | undefined;
+    await act(async () => {
+      went = await result.current.submit();
+    });
+
+    expect(went).toBe(false);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('resolves true once the submit actually ran', async () => {
+    const onSubmit = vi.fn();
+    const { result } = renderHook(() =>
+      useEntityForm({ entityConstructor: Gadget, onSubmit }),
+    );
+
+    act(() => result.current.setField('code', 'G-9'));
+
+    let went: boolean | undefined;
+    await act(async () => {
+      went = await result.current.submit();
+    });
+
+    expect(went).toBe(true);
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  it('answers afresh each time, so a fixed field reports true on the retry', async () => {
+    const onSubmit = vi.fn();
+    const { result } = renderHook(() =>
+      useEntityForm({ entityConstructor: Gadget, onSubmit }),
+    );
+
+    let first: boolean | undefined;
+    await act(async () => {
+      first = await result.current.submit();
+    });
+
+    act(() => result.current.setField('code', 'G-9'));
+
+    let second: boolean | undefined;
+    await act(async () => {
+      second = await result.current.submit();
+    });
+
+    expect([first, second]).toEqual([false, true]);
+  });
+
+  // A wizard splits one entity across several steps. Without a scope every step
+  // would validate the whole record, so step one could not advance until members
+  // it does not even show were filled.
+  it('seeds and validates only the members it was scoped to', async () => {
+    const onSubmit = vi.fn();
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        fields: ['stock'],
+        onSubmit,
+      }),
+    );
+
+    expect(Object.keys(result.current.values)).toEqual(['stock']);
+
+    await act(async () => result.current.submit());
+
+    // `code` is required and absent, and that is not this step's problem.
+    expect(result.current.errors).toEqual({});
+    expect(onSubmit).toHaveBeenCalledWith({ stock: '42' });
+  });
+
+  it('still reports a rule that belongs to a member it does own', async () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        fields: ['code', 'stock'],
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.errors).toEqual({ code: 'Code es obligatorio' });
+  });
+
   it('hides errors until the first submit attempt', async () => {
     const onSubmit = vi.fn();
     const { result } = renderHook(() =>

@@ -19,6 +19,7 @@ export type {
   AccountLink,
 } from './lib/session/account-links';
 export * from './lib/shells-next-common';
+export * from './lib/wizard';
 export * from './lib/workspace';
 
 /**

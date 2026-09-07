@@ -9,7 +9,14 @@ import {
 } from '@r10c/entifix-ts-core';
 import { sharedFallbackI18n } from '@r10c/entifix-ts-i18n';
 import { revalidateLogic, useForm, useStore } from '@tanstack/react-form';
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { I18nContext, initReactI18next, useTranslation } from 'react-i18next';
 
 import {
@@ -54,14 +61,21 @@ export function useEntityForm<TEntity extends Entity>({
   entityConstructor,
   entity,
   draft,
+  fields,
   schema,
   validate,
   onSubmit,
 }: UseEntityFormOptions<TEntity>): UseEntityFormResult {
-  const descriptors = useMemo(
-    () => describeEntityColumns(entityConstructor, entity),
-    [entityConstructor, entity],
-  );
+  // Keyed on the **names**, not the array, so a caller may write the list inline
+  // — which every wizard step does, since its field set is part of its own
+  // declaration rather than something worth hoisting.
+  const scope = fields?.join(',');
+  const descriptors = useMemo(() => {
+    const described = describeEntityColumns(entityConstructor, entity);
+    return scope === undefined
+      ? described
+      : described.filter(descriptor => scope.split(',').includes(descriptor.name));
+  }, [entityConstructor, entity, scope]);
   // A persisted draft is layered over the seed, never substituted for it: the
   // entity decides which members exist, the draft only decides their values.
   // See `restoreEntityDraft` for what a straight substitution costs.
@@ -125,6 +139,15 @@ export function useEntityForm<TEntity extends Entity>({
     [translateKey, descriptors],
   );
 
+  /**
+   * Whether the last {@link submit} reached the caller's `onSubmit`.
+   *
+   * A ref rather than state: nothing renders from it, and making it state would
+   * re-render the whole form on every submit attempt for a value only the
+   * caller awaiting `submit()` ever reads.
+   */
+  const submitted = useRef(false);
+
   const form = useForm({
     defaultValues: seed,
     // Quiet until the first submit, then revalidate on every change — the
@@ -148,7 +171,14 @@ export function useEntityForm<TEntity extends Entity>({
         return { form, fields };
       },
     },
-    onSubmit: ({ value }) => onSubmit(value),
+    onSubmit: ({ value }) => {
+      // The engine calls this only when validation passed, so recording that it
+      // ran *is* the answer {@link UseEntityFormResult.submit} returns. Reading
+      // `form.state.isValid` afterwards would ask the engine a second question
+      // whose answer depends on when it settled.
+      submitted.current = true;
+      return onSubmit(value);
+    },
   });
 
   const values = useStore(form.store, state => state.values);
@@ -161,8 +191,19 @@ export function useEntityForm<TEntity extends Entity>({
 
   const errors = useMemo(() => readFieldErrors(fieldMeta), [fieldMeta]);
 
-  const submit = useCallback(() => {
-    void form.handleSubmit();
+  /**
+   * Validate, then submit when clean — and **say whether it went**.
+   *
+   * The promise is what lets a caller gate on the result. A wizard's "Siguiente"
+   * is the step's own submit, and before this it had nothing to wait for:
+   * `handleSubmit()`'s promise was discarded, so the only way to learn the
+   * outcome was to await a tick and re-read `errors`, which is the trap this
+   * hook's own specs worked around.
+   */
+  const submit = useCallback(async () => {
+    submitted.current = false;
+    await form.handleSubmit();
+    return submitted.current;
   }, [form]);
 
   // Both halves of a pick, in one call: the id the draft persists and the

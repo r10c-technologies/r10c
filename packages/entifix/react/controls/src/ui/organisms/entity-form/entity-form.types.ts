@@ -140,6 +140,18 @@ export interface EntityFormProps<TEntity extends Entity> {
    */
   onClone?: (draft: EntityDraft) => void;
 
+  /**
+   * Render the **fields and nothing else** — no heading, no action row.
+   *
+   * For a form hosted inside something that already owns those controls: a
+   * wizard step sits under the wizard's own heading and advances with the
+   * wizard's own footer, so a second heading and a Save button beside Siguiente
+   * would be two controls for one job, and the Save would commit a partial
+   * record mid-flow.
+   *
+   * Opt-in and defaulted off, so every existing form is untouched.
+   */
+  embedded?: boolean;
   isLoading?: boolean;
   /**
    * What holds the form's shape while the record is in flight.

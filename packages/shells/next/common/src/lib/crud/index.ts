@@ -1,4 +1,5 @@
 export * from './entity-crud-form';
+export * from './hand-off-write';
 export * from './make-entity-crud';
 export * from './make-entity-crud.types';
 export * from './slug';

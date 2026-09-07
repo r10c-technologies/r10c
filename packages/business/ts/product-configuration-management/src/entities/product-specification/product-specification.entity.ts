@@ -59,11 +59,20 @@ export class ProductSpecification implements Entity {
     this.#id = value;
   }
 
+  /**
+   * `resetOnClone` because the code identifies **this** specification: a copy
+   * that carried it would be two records claiming one identifier, and the
+   * operator would have to notice and clear it by hand every time. Correct
+   * independently of who does the copying — the Clone button on the form
+   * (ADR 0035) and the wizard's "duplicate an existing product" branch
+   * (ADR 0045) both go through `cloneEntityDraft`.
+   */
   @accessor({
     type: 'string',
     label: 'Code',
     labelKey: 'entity:product-specification.fields.code',
     required: true,
+    resetOnClone: true,
   })
   get code(): string {
     return this.#code;

@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-09-06
+- Revised: 2026-09-07 by [ADR 0045](0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md)
+  — the third segment is the position within the screen: a record for `master`,
+  a step for `wizard`.
 - Amends: [ADR 0033](0033-the-screen-taxonomy.md) (its `TabKind` consequence
   predicted a rename; this is a collapse, and the difference matters).
 

@@ -227,4 +227,48 @@ export const controls = {
   breadcrumbs: {
     label: 'Ruta de navegación',
   },
+  /**
+   * El asistente. Las etiquetas de cada paso las traduce quien declara el
+   * asistente, no el control: un paso es del dominio que lo definió, y su copy
+   * vive en `shell:` junto al resto de sus nombres.
+   */
+  wizard: {
+    steps: 'Pasos',
+    previous: 'Atrás',
+    /**
+     * "Continuar" y no "Siguiente": una tabla dentro de un paso trae su propio
+     * paginador, cuyo botón **es** "Siguiente". Dos controles con el mismo
+     * nombre en la misma pantalla se anuncian igual y hacen cosas distintas.
+     */
+    next: 'Continuar',
+    finish: 'Finalizar',
+    /**
+     * Un envío que **no** resuelve. El asistente entrega el trabajo y vuelve
+     * antes de que la escritura termine (ADR 0043), así que dice "enviando" y
+     * nunca "guardado": lo segundo sería una afirmación que el control no puede
+     * comprobar.
+     */
+    submitting: 'Enviando…',
+    stepOf: 'Paso {{current}} de {{total}}',
+    goToStep: 'Volver a {{label}}',
+    /**
+     * El estado de cada paso, anunciado además de mostrarse. El color por sí
+     * solo no lo dice, y un lector de pantalla recorre la lista sin verlo.
+     */
+    status: {
+      pending: 'pendiente',
+      active: 'en curso',
+      complete: 'completado',
+      error: 'con errores',
+    },
+    /**
+     * El recordatorio al retomar. La persistencia da el "continuar" gratis; lo
+     * que no da es acordarse de lo ya decidido, que es la falla conocida de los
+     * asistentes largos.
+     */
+    resume: {
+      title: 'Retomando donde lo dejaste',
+      dismiss: 'Entendido',
+    },
+  },
 };

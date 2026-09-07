@@ -2,8 +2,16 @@
 
 import { parseScreenPayload } from '@r10c/business-ts-authz';
 import { UserDetailPage, UsersPage } from '@r10c/shells-next-auth';
-import { type TabKind, TabRegistry } from '@r10c/shells-next-common';
-import { MARKETPLACE_ADMIN_CRUDS } from '@r10c/shells-next-marketplace-admin';
+import {
+  type TabKind,
+  TabRegistry,
+  wizardTabKind,
+} from '@r10c/shells-next-common';
+import {
+  MARKETPLACE_ADMIN_CRUDS,
+  PRODUCT_SETUP_SURFACE,
+  ProductSetupWizard,
+} from '@r10c/shells-next-marketplace-admin';
 import { ConfigurationListClientPage } from '@r10c/shells-next-system-management';
 import type { ReactNode } from 'react';
 
@@ -107,10 +115,28 @@ const masterKind: TabKind<{ key: string; id?: string }> = {
 };
 
 /**
+ * Every guided screen a `wizard:` tab can open.
+ *
+ * The third address segment is the **step**, which is the one thing ADR 0045
+ * changed about the grammar — under `master:` it is a record. The flow itself
+ * decides whether to honour it: `goTo` moves only to a step already on the path,
+ * so an address naming a step nobody walked opens the wizard at its beginning
+ * rather than skipping the validation in between.
+ */
+const wizardKind = wizardTabKind({
+  [PRODUCT_SETUP_SURFACE.key]: {
+    titleKey: PRODUCT_SETUP_SURFACE.navLabelKey,
+    render: step => <ProductSetupWizard step={step} />,
+  },
+});
+
+/**
  * The workspace's tab registry.
  *
  * Which screens a host offers as tabs stays the host's decision — a second host
  * mounting the same shells may want a different set — but *how* one is addressed
  * and what renders it no longer is.
  */
-export const workspaceRegistry = new TabRegistry().register(masterKind);
+export const workspaceRegistry = new TabRegistry()
+  .register(masterKind)
+  .register(wizardKind);

@@ -77,14 +77,17 @@ describe('CommandPalette', () => {
     renderPalette({
       pages: [
         page({ id: 'root', placeholder: 'Escribe para buscar…', sources: [] }),
-        page({ id: 'new', title: 'Nuevo', placeholder: '¿Qué crear?', sources: [] }),
+        page({
+          id: 'new',
+          title: 'Nuevo',
+          placeholder: '¿Qué crear?',
+          sources: [],
+        }),
       ],
       stack: ['new'],
     });
 
-    await waitFor(() =>
-      expect(screen.getByRole('combobox')).toHaveFocus(),
-    );
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveFocus());
   });
 
   it('renders groups in the order the sources declared them', () => {
@@ -177,7 +180,9 @@ describe('CommandPalette', () => {
     renderPalette({
       pages: [
         page({
-          sources: [{ key: 'records', groups: [group({ options: [option()] })] }],
+          sources: [
+            { key: 'records', groups: [group({ options: [option()] })] },
+          ],
         }),
       ],
     });
@@ -229,7 +234,10 @@ describe('CommandPalette', () => {
               groups: [
                 group({
                   key: 'product',
-                  unavailable: { message: 'Sin respuesta', severity: 'reachability' },
+                  unavailable: {
+                    message: 'Sin respuesta',
+                    severity: 'reachability',
+                  },
                 }),
               ],
             },
@@ -245,13 +253,13 @@ describe('CommandPalette', () => {
 
   it('shows the empty state only when every group is genuinely empty', () => {
     renderPalette({
-      pages: [
-        page({ sources: [{ key: 'commands', groups: [group()] }] }),
-      ],
+      pages: [page({ sources: [{ key: 'commands', groups: [group()] }] })],
     });
 
     expect(screen.getByText(labels.empty)).toBeInTheDocument();
-    expect(screen.queryByTestId('command-group-commands')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('command-group-commands'),
+    ).not.toBeInTheDocument();
   });
 
   it('hands a chosen option to the caller rather than acting on it', async () => {
@@ -260,12 +268,16 @@ describe('CommandPalette', () => {
       onSelect,
       pages: [
         page({
-          sources: [{ key: 'commands', groups: [group({ options: [option()] })] }],
+          sources: [
+            { key: 'commands', groups: [group({ options: [option()] })] },
+          ],
         }),
       ],
     });
 
-    await userEvent.click(screen.getByRole('option', { name: /Nuevo producto/ }));
+    await userEvent.click(
+      screen.getByRole('option', { name: /Nuevo producto/ }),
+    );
 
     expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'new-product' }),
@@ -281,7 +293,12 @@ describe('CommandPalette', () => {
             groups: [
               group({
                 options: [
-                  option({ id: 'new', label: 'Nuevo…', href: undefined, push: 'new' }),
+                  option({
+                    id: 'new',
+                    label: 'Nuevo…',
+                    href: undefined,
+                    push: 'new',
+                  }),
                 ],
               }),
             ],
@@ -305,7 +322,13 @@ describe('CommandPalette', () => {
       const onStackChange = vi.fn();
       const onTermChange = vi.fn();
       const onSelect = vi.fn();
-      renderPalette({ pages, onStackChange, onTermChange, onSelect, term: 'nue' });
+      renderPalette({
+        pages,
+        onStackChange,
+        onTermChange,
+        onSelect,
+        term: 'nue',
+      });
 
       await userEvent.click(screen.getByRole('option', { name: /Nuevo…/ }));
 
@@ -320,7 +343,9 @@ describe('CommandPalette', () => {
       expect(
         screen.getByPlaceholderText('¿Qué quieres crear?'),
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: labels.back })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: labels.back }),
+      ).toBeInTheDocument();
     });
 
     it('pops on the back control', async () => {
@@ -404,9 +429,7 @@ describe('CommandPalette', () => {
             sources: [
               {
                 key: 'commands',
-                groups: [
-                  group({ options: [option({ href: undefined })] }),
-                ],
+                groups: [group({ options: [option({ href: undefined })] })],
               },
             ],
           }),

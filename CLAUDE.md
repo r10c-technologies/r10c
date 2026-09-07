@@ -1159,6 +1159,60 @@ instantiation is excessively deep`); every scalar read is now
   functions, neither of which survives the server→client boundary as a prop.
   Amends ADR 0035 (its `unbound` row now has a renderer and a producer; the
   nine-cell map stands).
+- **A wizard's steps are a graph, its draft lives above the forms, and its
+  submit hands off** ([ADR 0045](docs/adr/0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md)).
+  `wizard` was the last of ADR 0033's four screen types with nothing behind it —
+  five occurrences in the whole repo, every one a declaration waiting for a
+  consumer: the enum member, its two labels, a `TabKind` doc comment reserving
+  the kind by name, and a test fixture. So the sidebar already knew how to render
+  an **Asistentes** tier and the address grammar already parsed `wizard:`; what
+  was missing was a control and a screen. The flow #111 motivates it with is
+  **unbuildable** — offering + stock + channel spans slices ADR 0022 marks
+  `planned`, and ADR 0039's multi-step engine is not written — so the decision
+  that mattered was not how to orchestrate but what shape the ending takes so it
+  does not change when an orchestrator arrives: `onFinish` **returns before the
+  write is terminal**, and ADR 0043's pending set carries it, exactly as
+  `makeEntityCrud` already does (that hand-off is now one `handOffWrite`, not two
+  copies). Nine things not to re-derive. **The graph is data and `next` only
+  chooses along it** — a step declares `to`, so reachability, unknown targets,
+  cycles and terminality are decidable by reading the definition, and
+  `assertWizardDefinition` throws at **load** rather than on the render of the
+  step nobody reached; the alternative, probing `next` over enumerated states,
+  is a check that only appears to hold. **Back pops a history stack**, never a
+  computed inverse: a branch's inverse is ambiguous the moment an earlier answer
+  changes, so a computed one walks the operator back through a path they were
+  never on. **The stepper shows the projected path**, not the declared steps, so
+  it re-shapes as a branch point is answered — rendering `definition.steps`
+  promises a "duplicate" step to someone who chose to start blank. **The draft
+  lives above the forms**: a form step calls `useEntityForm` itself (React's hook
+  count must stay fixed, so N steps cannot be N hook calls) and unmounts when
+  inactive, so `draftStoreFor(stepId)` hands it an `EntityDraftStore` view —
+  ⚠️ whose `save` is **stable per step id**, and which **omits** `draft`
+  entirely for an unanswered step, because a fresh `{}` per render re-seeds the
+  form every render, the `Maximum update depth exceeded` hang ADR 0038 measured.
+  **`EntityDraft` is not widened**: a wizard's state is JSON in its own right,
+  and a selection step holds `readonly string[]` and never a `Set`, which
+  serializes to `{}` silently. **`useEntityForm` gained two things** — `submit`
+  now resolves `true` iff the submit ran (both halves of that answer existed and
+  were being discarded), and `fields` scopes the descriptors so a step validates
+  **its** members, without which no step but the last could ever advance.
+  ⚠️ **A gate belongs to a step**: a form step registers its validator from an
+  effect, so between leaving one step and the next one mounting there is a window
+  with no validator, and reading that as "nothing to check" let two quick presses
+  of Continuar skip a step's required members entirely — measured end to end.
+  ⚠️ **The address is written in one direction only.** The writer owns the
+  address, the follower owns the wizard, and the follower reacts to the address
+  *changing* rather than to what it says: rewriting the address to match the
+  wizard races the advance and rewinds a step the operator had passed, and acting
+  on the address at mount sends a resumed wizard back to step one. And **a
+  launcher is not a `@useCase()` verb** — all nine of ADR 0035's cells resolve to
+  an action on records, and the only handler a `collection:context-independent`
+  verb reaches takes a per-row-outcome contract — so a wizard is reached the way
+  a screen is: its nav item, the palette (free, via the nav source), and a
+  toolbar link on the list it starts from. Amends ADR 0042: the third address
+  segment is the position within the screen — a record for `master`, a step for
+  `wizard`. Neither `TABS_VERSION` nor `DRAFTS_VERSION` bumps, because this adds
+  a prefix rather than renaming one.
 - **A service describes its own wiring, and the point is the diff**
   ([ADR 0031](docs/adr/0031-a-service-describes-its-own-wiring.md)).
   `GET /api/$service` — slices hosted, stores opened, events published,

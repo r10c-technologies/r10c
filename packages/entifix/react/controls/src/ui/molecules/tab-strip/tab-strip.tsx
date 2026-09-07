@@ -99,7 +99,7 @@ export function Tab({
           aria-label={t('tabs.close', { label })}
           onClick={onClose}
           className={cn(
-            'focus-ring ml-2xs rounded p-3xs text-content-muted opacity-0 transition',
+            'ml-2xs rounded p-3xs text-content-muted opacity-0 focus-ring transition',
             'group-hover:opacity-100 hover:bg-surface hover:text-content focus:opacity-100',
             active && 'opacity-100',
           )}

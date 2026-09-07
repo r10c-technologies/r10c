@@ -123,9 +123,7 @@ describe('parseCommandTerm', () => {
 describe('commandEffectOf', () => {
   it('names the single declared effect', () => {
     expect(commandEffectOf(option())).toBe('href');
-    expect(commandEffectOf(option({ href: undefined, run: noop }))).toBe(
-      'run',
-    );
+    expect(commandEffectOf(option({ href: undefined, run: noop }))).toBe('run');
     expect(commandEffectOf(option({ href: undefined, push: 'new' }))).toBe(
       'push',
     );

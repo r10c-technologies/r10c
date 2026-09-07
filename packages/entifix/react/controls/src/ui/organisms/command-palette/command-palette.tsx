@@ -295,7 +295,7 @@ export function CommandPalette({
                 type="button"
                 aria-label={labels.back}
                 onClick={pop}
-                className="focus-ring shrink-0 rounded-md bg-surface px-2xs py-3xs text-step-xs text-content-muted"
+                className="shrink-0 rounded-md bg-surface px-2xs py-3xs text-step-xs text-content-muted focus-ring"
               >
                 {page.title}
               </button>

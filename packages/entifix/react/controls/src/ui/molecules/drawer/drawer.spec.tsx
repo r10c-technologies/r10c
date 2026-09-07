@@ -4,9 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { Drawer } from './drawer';
 
-const renderDrawer = (
-  props: Partial<Parameters<typeof Drawer>[0]> = {},
-) => {
+const renderDrawer = (props: Partial<Parameters<typeof Drawer>[0]> = {}) => {
   const onClose = vi.fn();
   render(
     <Drawer
