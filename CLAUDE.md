@@ -179,6 +179,25 @@ them), and everything deep is a link — loaded only when a task needs it.
   that changed without its docs being touched, into the job summary, and never
   blocks, because "not edited" is not "wrong". See
   [DEVELOPING.md → Keeping the documentation true](docs/DEVELOPING.md#keeping-the-documentation-true).
+- **A working convention is a check, and attribution is the first one.** No
+  AI/tool co-author trailer, no session trailer and no "generated with" line —
+  on a commit, a pull-request body or a document. This is **enforced in three
+  places against one predicate** (`tools/conventions/attribution.mjs`):
+  `commitlint.config.mjs` refuses the commit, `@r10c/conventions` refuses the
+  committed file, and a CI step refuses the pull-request body, which is the one
+  surface no git hook can see. The rule is stated **here** rather than only in
+  `DEVELOPING.md` for the reason the record is about: a session-start reminder
+  supplies those trailers and claims to replace earlier guidance, it fires every
+  session in the most privileged position in the context, and against that a
+  rule one hop away lost on **5 of the last 40 merged pull requests** (#192,
+  #200, #203, #205, #211) and **6 of the last 60 commits** on `main`. ⚠️ The canonical casing is git's, not the
+  documentation's: every real violation reads lowercase `authored`, so a pattern
+  written from the title-cased form in the prose would have caught none of them
+  while looking correct in review. Exemptions are listed with a reason and
+  **pinned in both directions** — an exemption is a place the rule stops
+  applying. Adding a second convention is a predicate, a spec case, and a
+  surface only if it lives outside the working tree. See
+  [ADR 0046](docs/adr/0046-conventions-are-checked-not-stated.md).
 - **Four artifacts hold knowledge, one job each — do not merge them.**
   _How the business works_ lives in **Notion** (the `r10c` space, reached through
   the Notion MCP server); _what we decided and why_ is an

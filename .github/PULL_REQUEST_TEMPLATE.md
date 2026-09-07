@@ -32,6 +32,7 @@
 - [ ] Conventional commit messages with Nx project scope (`type(scope): summary`)
 - [ ] `docs/` and root `CLAUDE.md` updated if this changes architecture, commands, or conventions
 - [ ] No `--no-verify` / skipped hooks used to get here
+- [ ] No AI attribution in the commits or in this description
 - [ ] No secrets or `.env`-style values committed
 
 ## Related issues

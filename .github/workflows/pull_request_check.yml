@@ -144,6 +144,35 @@ jobs:
         if: always()
         run: pnpm nx test @r10c/docs-check
 
+      # The store register's invariants: one store per domain, one writing slice
+      # per store, no app opening a datastore no slice declares, and every
+      # `@useCase()` verb granted and reachable from its barrel. Named here
+      # rather than left to the affected matrix for the same reason as the two
+      # checks above — a slice declaration is a claim about the whole fleet, and
+      # a PR that breaks it need not have touched `tools/slices` at all.
+      - name: Check the slice register
+        if: always()
+        run: pnpm nx test @r10c/slices
+
+      # The repository's own working conventions. Attribution is the first one,
+      # and it is here because prose could not hold it: it was written in three
+      # places and skipped anyway, in five pull requests and six commits.
+      - name: Check repository conventions
+        if: always()
+        run: pnpm nx test @r10c/conventions
+
+      # The half no git hook can see. A commit message is judged by
+      # `.husky/commit-msg` on the machine that writes it; a pull-request body
+      # is composed here, after every hook has run, and that is where the
+      # attribution line actually landed every time.
+      - name: Check the pull request body and its commits
+        if: always()
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BASE_SHA: ${{ needs.initialize.outputs.base }}
+          PR_HEAD_SHA: ${{ needs.initialize.outputs.head }}
+        run: node tools/conventions/check-pull-request.mjs
+
       # Advisory. Reports code that changed without its documentation being
       # touched, into the job summary. Never blocks: this can only see that a
       # doc was not edited, not that it is wrong, and failing on it would teach

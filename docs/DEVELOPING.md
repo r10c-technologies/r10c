@@ -834,4 +834,10 @@ the transport boundary, so a green check says nothing about `ioredis`, `mongodb`
   pass that re-reads documentation is LLM-backed and deliberately **not** here.
 - Branch off `main`; keep changes within the layer boundaries.
 - Do **not** add AI/tool co-author trailers or "generated with" lines to commits,
-  PRs, or docs.
+  PRs, or docs. This is **checked**, not merely stated: `commitlint.config.mjs`
+  refuses the commit, `@r10c/conventions` refuses the committed file, and a CI
+  step refuses the pull-request body — the one surface no git hook can see. All
+  three call the same predicate, `tools/conventions/attribution.mjs`. It became
+  a check because as prose it was skipped on 5 of the last 40 merged pull
+  requests and 6 of the last 60 commits
+  ([ADR 0046](adr/0046-conventions-are-checked-not-stated.md)).
