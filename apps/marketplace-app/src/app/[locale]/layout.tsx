@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { isLocale, type Locale, LOCALES } from '@r10c/entifix-ts-i18n/routing';
+import { isLocale, type Locale } from '@r10c/entifix-ts-i18n/routing';
 import { getServerTFor } from '@r10c/shells-next-i18n/server';
 import { notFound } from 'next/navigation';
 
@@ -18,12 +18,29 @@ interface LocaleParams {
 }
 
 /**
- * The two prerendered copies of every static route. This is what the `[locale]`
- * segment buys and the header-based scheme could not: the locale is known at
- * build time, so the page is too.
+ * ⚠️ **Deliberately empty, and the routes below are still cached.**
+ *
+ * This used to return both locales, which prerendered `/es` and `/en` at build
+ * time. That stopped being right the moment the storefront's content came from
+ * marketplace-service: a build machine has no fleet, so what it would bake into
+ * the home page is an empty catalog — and `revalidate` would then serve that
+ * empty page to the first visitor of each locale after every deploy. A page
+ * rendered from data the builder could not read is not a warm cache, it is a
+ * wrong answer with a long TTL.
+ *
+ * So every locale renders on its first request and is cached from there, which
+ * is the same arrangement `/[locale]/p/[offeringId]` uses and for the same
+ * reason. What the `[locale]` segment buys is unchanged and is not about the
+ * build: the locale is a route parameter rather than a header, so these pages
+ * are cacheable at all — the header-based scheme in the back offices forces
+ * every render to be dynamic.
+ *
+ * The function stays rather than being deleted: it is the one place the
+ * decision is legible, and removing it invites the next reader to add
+ * enumeration back.
  */
 export function generateStaticParams() {
-  return LOCALES.map(locale => ({ locale }));
+  return [];
 }
 
 /** A prefix the middleware never produces (`/de/...`, typed by hand) is a 404. */

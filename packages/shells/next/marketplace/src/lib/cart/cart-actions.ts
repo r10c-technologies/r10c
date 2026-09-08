@@ -53,20 +53,22 @@ async function writeCart(lines: readonly CartLine[]) {
  * behaviour a visitor with JavaScript disabled gets anyway.
  */
 export async function addToCart(formData: FormData) {
-  const code = String(formData.get('code') ?? '');
+  const offeringId = String(formData.get('offeringId') ?? '');
   const locale = String(formData.get('locale') ?? '');
-  if (!code) return;
+  if (!offeringId) return;
 
   const store = await cookies();
   const lines = parseCart(store.get(CART_COOKIE)?.value);
-  const existing = lines.find(line => line.code === code);
+  const existing = lines.find(line => line.offeringId === offeringId);
 
   await writeCart(
     existing
       ? lines.map(line =>
-          line.code === code ? { ...line, quantity: line.quantity + 1 } : line,
+          line.offeringId === offeringId
+            ? { ...line, quantity: line.quantity + 1 }
+            : line,
         )
-      : [...lines, { code, quantity: 1 }],
+      : [...lines, { offeringId, quantity: 1 }],
   );
 
   // `redirect` throws to unwind the action, so it must come after the write.
@@ -74,11 +76,11 @@ export async function addToCart(formData: FormData) {
 }
 
 export async function removeFromCart(formData: FormData) {
-  const code = String(formData.get('code') ?? '');
-  if (!code) return;
+  const offeringId = String(formData.get('offeringId') ?? '');
+  if (!offeringId) return;
 
   const store = await cookies();
   const lines = parseCart(store.get(CART_COOKIE)?.value);
 
-  await writeCart(lines.filter(line => line.code !== code));
+  await writeCart(lines.filter(line => line.offeringId !== offeringId));
 }

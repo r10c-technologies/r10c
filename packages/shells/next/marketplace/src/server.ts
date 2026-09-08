@@ -20,8 +20,9 @@ export * from './lib/pages/store-shell';
 export * from './lib/pages/storefront-skeleton';
 
 // Chrome and catalog pieces, for a host that wants to compose its own page.
-export * from './lib/catalog/product-card';
-export * from './lib/catalog/product-grid';
+export * from './lib/catalog/money';
+export * from './lib/catalog/offering-card';
+export * from './lib/catalog/offering-grid';
 export * from './lib/chrome/store-footer';
 export * from './lib/chrome/store-header';
 
@@ -30,8 +31,8 @@ export * from './lib/chrome/store-header';
 export * from './lib/routing/paths';
 export * from './lib/routing/store-link';
 
-// The read side: fixture-backed today, the same call sites once
-// marketplace-service exists.
+// The read side: REST against marketplace-service, run inside the server
+// components themselves.
 export * from './lib/catalog/queries';
 
 // Cart state and its mutations.

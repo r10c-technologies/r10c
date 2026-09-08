@@ -13,7 +13,7 @@ import { type Locale, localeHref } from '@r10c/entifix-ts-i18n/routing';
 import { removeFromCart } from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';
 import { cartCount } from '../cart/cart-state';
-import { getProduct } from '../catalog/queries';
+import { getOffering } from '../catalog/queries';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -35,10 +35,13 @@ export async function CartPage({ locale }: { readonly locale: Locale }) {
   const items = await Promise.all(
     lines.map(async line => ({
       line,
-      product: await getProduct(line.code),
+      offering: await getOffering(line.offeringId),
     })),
   );
-  const present = items.filter(entry => entry.product !== undefined);
+  // A line whose offering is gone — unpublished since it was added — is
+  // dropped from the view rather than rendered nameless. The cookie keeps it
+  // until the next write, which costs nothing and avoids a mutation on a read.
+  const present = items.filter(entry => entry.offering !== undefined);
 
   return (
     <StoreShell locale={locale}>
@@ -54,18 +57,22 @@ export async function CartPage({ locale }: { readonly locale: Locale }) {
           </Stack>
         ) : (
           <Stack gap="s">
-            {present.map(({ line, product }) => (
-              <Card key={line.code}>
+            {present.map(({ line, offering }) => (
+              <Card key={line.offeringId}>
                 <Cluster justify="between" gap="s">
                   <Stack gap="3xs">
-                    <Text weight="semibold">{product?.name}</Text>
+                    <Text weight="semibold">{offering?.name}</Text>
                     <Text muted>
                       {t('storefront.cart.units', { count: line.quantity })}
                     </Text>
                   </Stack>
 
                   <form action={removeFromCart}>
-                    <input type="hidden" name="code" value={line.code} />
+                    <input
+                      type="hidden"
+                      name="offeringId"
+                      value={line.offeringId}
+                    />
                     <Button type="submit" variant="ghost" size="sm">
                       {t('storefront.cart.remove')}
                     </Button>

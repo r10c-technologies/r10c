@@ -6,7 +6,7 @@ describe('storePaths', () => {
   it('builds locale-free paths — StoreLink adds the prefix', () => {
     expect(storePaths.home()).toBe('/');
     expect(storePaths.category('lighting')).toBe('/c/lighting');
-    expect(storePaths.product('AUR-LAMP-01')).toBe('/p/AUR-LAMP-01');
+    expect(storePaths.offering('offering-1')).toBe('/p/offering-1');
     expect(storePaths.cart()).toBe('/cart');
   });
 

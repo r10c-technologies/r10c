@@ -182,6 +182,18 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
 
   // Frontend → backend service URIs.
+  //
+  // The storefront's is the odd one: marketplace-app resolves it in a **server
+  // component** and calls the address directly, so unlike the back office's
+  // rows it is never rewritten to a same-origin proxy path. There is no browser
+  // in that path to hide an address from, and the reads it makes are
+  // unauthenticated by design.
+  {
+    service: 'marketplace-app',
+    group_name: 'uri',
+    key: 'marketplace-service-domain',
+    value: 'http://localhost:3100/api',
+  },
   {
     service: 'back-office-app',
     group_name: 'uri',

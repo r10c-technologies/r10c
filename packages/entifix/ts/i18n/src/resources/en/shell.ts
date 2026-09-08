@@ -233,6 +233,8 @@ export const shell: EsShell = {
       category: 'Category',
       reference: 'Reference',
       related: 'You might also like',
+      available: 'Available',
+      unavailable: 'Out of stock',
     },
     search: {
       heading: 'Search',

@@ -921,7 +921,7 @@ shells, per the design-system rule.
 | `PageView({addr})` pages, registrations, adapters                                                                                                                                                 | `@r10c/shells-next-marketplace-admin` |
 | `(back-office)` user management over `EntityTable`/`EntityForm`, account surface, sign-in                                                                                                         | `@r10c/shells-next-auth`              |
 | `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions and entitlements), the three route groups, proxy route handlers | `back-office-app`                     |
-| Storefront pages, chrome, `StoreLink`, fixture catalog + cookie cart — all server components                                                                                                      | `@r10c/shells-next-marketplace`       |
+| Storefront pages, chrome, `StoreLink`, the catalog read side + cookie cart — all server components                                                                                                      | `@r10c/shells-next-marketplace`       |
 | `app/[locale]` route tree, `loading.tsx`, cart route                                                                                                                                              | `marketplace-app`                     |
 
 **Navigation is filtered server-side, under two ceilings.** One definition per
@@ -961,12 +961,19 @@ justify itself.
 | CTA               | `Button`                           | `ButtonLink` where the click navigates     |
 | Mutations         | mutation hooks                     | `<form action={serverAction}>`             |
 
-Home and every product page are prerendered per locale with ISR. `/cart` reads
-`cookies()` and `/search` reads `searchParams`, so both are dynamic — correctly,
-since neither has an answer until the request arrives. `/c/[category]` is dynamic
-too: reading `searchParams` opts out the **route**, not the request, so the
-intended "static unfiltered, dynamic when sorted" split is not expressible
-without Partial Prerendering.
+Home and every product page are cached per locale with ISR, revalidated every
+60s. `/cart` reads `cookies()` and `/search` reads `searchParams`, so both are
+dynamic — correctly, since neither has an answer until the request arrives.
+`/c/[category]` is dynamic too: reading `searchParams` opts out the **route**,
+not the request, so the intended "static unfiltered, dynamic when sorted" split
+is not expressible without Partial Prerendering.
+
+⚠️ **Nothing is generated at build time**, and that is deliberate rather than an
+omission: every `generateStaticParams` in the app returns `[]`. The content comes
+from marketplace-service, a build machine has no fleet, and a page prerendered
+from data the builder could not read is an *empty catalog* with a TTL rather than
+a warm cache. Each page renders on its first request and is cached from there
+([ADR 0051](adr/0051-the-storefront-reads-the-projection.md)).
 
 ## Two rules that are easy to get wrong
 
@@ -1008,8 +1015,10 @@ instead of being a hydration mismatch. Two consequences worth knowing:
 
 ## Deferred
 
-Real data (ADR 0009's published catalog), checkout, product imagery beyond fixed
-aspect-ratio placeholders, PPR, a CI bundle-size budget.
+Checkout, product imagery beyond fixed aspect-ratio placeholders, PPR, a CI
+bundle-size budget. Real data landed with
+[ADR 0051](adr/0051-the-storefront-reads-the-projection.md); what is left of the
+fixture is `fixture-repository.ts`, which nothing but its own spec imports.
 
 ---
 

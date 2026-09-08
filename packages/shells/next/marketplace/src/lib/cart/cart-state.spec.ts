@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { cartCount, parseCart, serializeCart } from './cart-state';
 
 describe('parseCart', () => {
-  it('reads `code:qty` pairs', () => {
-    expect(parseCart('AUR-LAMP-01:2,TER-MUG-01:1')).toEqual([
-      { code: 'AUR-LAMP-01', quantity: 2 },
-      { code: 'TER-MUG-01', quantity: 1 },
+  it('reads `offeringId:qty` pairs', () => {
+    expect(parseCart('offering-1:2,offering-2:1')).toEqual([
+      { offeringId: 'offering-1', quantity: 2 },
+      { offeringId: 'offering-2', quantity: 1 },
     ]);
   });
 
@@ -21,20 +21,20 @@ describe('parseCart', () => {
    * is dropped rather than allowed to render `NaN` items or a negative total.
    */
   it('drops entries it cannot trust', () => {
-    expect(parseCart('AUR-LAMP-01:abc,:3,TER-MUG-01:0,NIM-THRW-01:-2')).toEqual(
+    expect(parseCart('offering-1:abc,:3,offering-2:0,offering-3:-2')).toEqual(
       [],
     );
   });
 
   it('keeps the good entries beside the bad ones', () => {
-    expect(parseCart('AUR-LAMP-01:oops,TER-MUG-01:2')).toEqual([
-      { code: 'TER-MUG-01', quantity: 2 },
+    expect(parseCart('offering-1:oops,offering-2:2')).toEqual([
+      { offeringId: 'offering-2', quantity: 2 },
     ]);
   });
 
   it('floors a fractional quantity', () => {
-    expect(parseCart('AUR-LAMP-01:2.9')).toEqual([
-      { code: 'AUR-LAMP-01', quantity: 2 },
+    expect(parseCart('offering-1:2.9')).toEqual([
+      { offeringId: 'offering-1', quantity: 2 },
     ]);
   });
 });
@@ -42,8 +42,8 @@ describe('parseCart', () => {
 describe('serializeCart', () => {
   it('round-trips through parseCart', () => {
     const lines = [
-      { code: 'AUR-LAMP-01', quantity: 2 },
-      { code: 'TER-MUG-01', quantity: 1 },
+      { offeringId: 'offering-1', quantity: 2 },
+      { offeringId: 'offering-2', quantity: 1 },
     ];
 
     expect(parseCart(serializeCart(lines))).toEqual(lines);
@@ -58,8 +58,8 @@ describe('cartCount', () => {
   it('totals the units, not the lines', () => {
     expect(
       cartCount([
-        { code: 'AUR-LAMP-01', quantity: 2 },
-        { code: 'TER-MUG-01', quantity: 3 },
+        { offeringId: 'offering-1', quantity: 2 },
+        { offeringId: 'offering-2', quantity: 3 },
       ]),
     ).toBe(5);
   });

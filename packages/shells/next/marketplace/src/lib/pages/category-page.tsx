@@ -10,8 +10,8 @@ import { type Locale } from '@r10c/entifix-ts-i18n/routing';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
-import { ProductGrid, ProductGridSkeleton } from '../catalog/product-grid';
-import { loadCategories, loadProducts } from '../catalog/queries';
+import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import { getCategoryByCode, loadOfferings } from '../catalog/queries';
 import { storePaths } from '../routing/paths';
 import { StoreLink } from '../routing/store-link';
 import { StoreShell } from './store-shell';
@@ -34,7 +34,7 @@ export interface CategoryPageProps {
   readonly page?: string;
 }
 
-async function CategoryProducts({
+async function CategoryOfferings({
   locale,
   code,
   sort,
@@ -42,7 +42,7 @@ async function CategoryProducts({
 }: CategoryPageProps) {
   const t = getServerTFor(locale, 'shell');
   const current = Math.max(1, Number(page) || 1);
-  const result = await loadProducts({
+  const result = await loadOfferings({
     category: code,
     sort: sort === 'code' ? 'code' : 'name',
     page: current,
@@ -59,9 +59,9 @@ async function CategoryProducts({
         {t('storefront.category.results', { count: result.total })}
       </Text>
 
-      <ProductGrid
+      <OfferingGrid
         locale={locale}
-        products={result.items}
+        offerings={result.items}
         emptyLabel={t('storefront.category.empty')}
       />
 
@@ -94,8 +94,10 @@ export async function CategoryPage(props: CategoryPageProps) {
   const { locale, code, sort } = props;
   const t = getServerTFor(locale, 'shell');
 
-  const categories = await loadCategories();
-  const category = categories.items.find(entry => entry.code === code);
+  // One filtered read rather than the whole vocabulary scanned in the page:
+  // `code` is a scalar and therefore `filterable`, which is also the
+  // server-side RSQL allowlist marketplace-service checks before it answers.
+  const category = await getCategoryByCode(code);
   if (!category) notFound();
 
   const sortHref = (target: 'name' | 'code') =>
@@ -132,8 +134,8 @@ export async function CategoryPage(props: CategoryPageProps) {
           </StoreLink>
         </Cluster>
 
-        <Suspense fallback={<ProductGridSkeleton count={PAGE_SIZE} />}>
-          <CategoryProducts {...props} />
+        <Suspense fallback={<OfferingGridSkeleton count={PAGE_SIZE} />}>
+          <CategoryOfferings {...props} />
         </Suspense>
       </Stack>
     </StoreShell>

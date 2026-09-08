@@ -11,6 +11,17 @@ import { Effect } from 'effect';
 export interface ConfigurationClientRestClientOptions {
   /** Endpoint returning this service's `ConfigurationPlain`. */
   url?: string;
+  /**
+   * Headers to send with the lookup.
+   *
+   * Empty for the browser, which reads its own app's same-origin `/api/config`
+   * and needs nothing. A **server** component reads config-service directly —
+   * there is no origin to proxy through and no browser to hide an address from
+   * — and that endpoint is gated on the shared fleet token, so the caller has
+   * to carry it. The header itself stays out of this package: the token is a
+   * Next server concern and lives in `shells-next-common`.
+   */
+  headers?: Readonly<Record<string, string>>;
 }
 
 const DEFAULT_CONFIG_URL = '/api/config';
@@ -93,11 +104,12 @@ export class ConfigurationClientRestClient implements ConfigurationClient {
 
   constructor(options?: ConfigurationClientRestClientOptions) {
     const url = options?.url ?? DEFAULT_CONFIG_URL;
+    const headers = options?.headers;
     let cache: Promise<ConfigurationPlain> | undefined;
 
     this.#loadPlain = Effect.tryPromise({
       try: () =>
-        (cache ??= fetch(url).then(response => {
+        (cache ??= fetch(url, { headers }).then(response => {
           if (!response.ok) {
             throw new Error(
               `Configuration request to ${url} failed with status ${response.status}`,

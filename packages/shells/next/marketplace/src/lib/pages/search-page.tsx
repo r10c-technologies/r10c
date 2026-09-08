@@ -9,8 +9,8 @@ import { getServerTFor } from '@r10c/entifix-ts-i18n';
 import type { Locale } from '@r10c/entifix-ts-i18n/routing';
 import { Suspense } from 'react';
 
-import { ProductGrid, ProductGridSkeleton } from '../catalog/product-grid';
-import { loadProducts } from '../catalog/queries';
+import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import { loadOfferings } from '../catalog/queries';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -30,14 +30,14 @@ async function SearchResults({
   readonly term: string;
 }) {
   const t = getServerTFor(locale, 'shell');
-  const page = await loadProducts({ search: term, pageSize: 12 });
+  const page = await loadOfferings({ search: term, pageSize: 12 });
 
   return (
     <Stack gap="s">
       <Text muted>{t('storefront.search.resultsFor', { term })}</Text>
-      <ProductGrid
+      <OfferingGrid
         locale={locale}
-        products={page.items}
+        offerings={page.items}
         emptyLabel={t('storefront.search.empty', { term })}
       />
     </Stack>
@@ -77,7 +77,7 @@ export function SearchPage({
         </form>
 
         {trimmed ? (
-          <Suspense fallback={<ProductGridSkeleton count={4} />}>
+          <Suspense fallback={<OfferingGridSkeleton count={4} />}>
             <SearchResults locale={locale} term={trimmed} />
           </Suspense>
         ) : (

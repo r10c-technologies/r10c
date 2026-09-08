@@ -19,6 +19,8 @@
     }
   },
   "devDependencies": {
+    "@r10c/business-ts-catalog-reference": "workspace:*",
+    "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "@r10c/entifix-ts-testing-e2e": "workspace:*"
   }
 }

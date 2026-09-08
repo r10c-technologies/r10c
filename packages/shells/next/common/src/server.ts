@@ -15,6 +15,12 @@ export * from './lib/health/health-routes';
 // The `GET /api/config` handler + the same-origin domain rewrite it applies.
 export * from './lib/config/config-route';
 
+// The shared fleet token, and the header config-service reads it from. Exported
+// because a server component that reads config-service directly — rather than
+// through its own app's `/api/config` route — has to carry it itself. It never
+// reaches the browser: this is the server entry.
+export * from './lib/config/service-token';
+
 // The same-origin proxy each host mounts per backend it talks to.
 export * from './lib/config/service-proxy-route';
 

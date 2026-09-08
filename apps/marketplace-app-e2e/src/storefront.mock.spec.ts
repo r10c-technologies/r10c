@@ -6,9 +6,16 @@ import {
 /**
  * The storefront's journeys, walked the way a visitor walks them.
  *
- * Deliberately click-driven rather than URL-driven: typing `/es/p/AUR-LAMP-01`
- * would prove the page renders, but not that anything links to it. A catalog
- * whose products are unreachable still passes every route test.
+ * Deliberately click-driven rather than URL-driven: typing
+ * `/es/p/offering-aurora-desk-lamp` would prove the page renders, but not that
+ * anything links to it. A catalog whose products are unreachable still passes
+ * every route test.
+ *
+ * ⚠️ The data behind these is served by msw **inside the Next process**
+ * (`support/server-mocks.mjs`), because every read here happens in a server
+ * component. Before the storefront read a real backend these names came from a
+ * fixture module the app imported; they now travel over the wire, through the
+ * real REST adapters and the real query pipeline.
  */
 
 test.describe('browsing the catalog', () => {
@@ -68,7 +75,7 @@ test.describe('the cart', () => {
    * because the server rendered it — not because a client store rehydrated.
    */
   test('survives a reload because the server renders it', async ({ page }) => {
-    await page.goto('/es/p/AUR-LAMP-01');
+    await page.goto('/es/p/offering-aurora-desk-lamp');
     await page.getByRole('button', { name: 'Añadir al carrito' }).click();
 
     // The action redirects here, which is the visitor's only feedback that it
@@ -84,7 +91,7 @@ test.describe('the cart', () => {
   });
 
   test('the header badge fills in from the cookie', async ({ page }) => {
-    await page.goto('/es/p/TER-MUG-01');
+    await page.goto('/es/p/offering-terra-ceramic-mug');
     await page.getByRole('button', { name: 'Añadir al carrito' }).click();
     await page.waitForURL(/\/es\/cart$/);
     await expect(page).toHaveURL(/\/es\/cart$/);
@@ -96,7 +103,7 @@ test.describe('the cart', () => {
   });
 
   test('an item can be removed', async ({ page }) => {
-    await page.goto('/es/p/AUR-LAMP-01');
+    await page.goto('/es/p/offering-aurora-desk-lamp');
     await page.getByRole('button', { name: 'Añadir al carrito' }).click();
     await page.waitForURL(/\/es\/cart$/);
     await expect(page).toHaveURL(/\/es\/cart$/);

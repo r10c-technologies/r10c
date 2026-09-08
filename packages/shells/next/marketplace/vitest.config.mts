@@ -11,14 +11,14 @@ export default defineEntifixTest({
   // which only exists inside a request. All of it is covered end to end by
   // `marketplace-app-e2e`, which drives the real production build in a browser.
   //
-  // Everything the gate can reach — the cart's wire format, the fixture
-  // repository, the queries, the paths, and the one client island — stays at
-  // 100%.
+  // Everything the gate can reach — the cart's wire format, the price
+  // formatting, the queries (over msw, through the real REST adapters), the
+  // paths, and the one client island — stays at 100%.
   coverageExclude: [
     '**/lib/pages/**',
     '**/lib/chrome/**',
-    '**/lib/catalog/product-card.tsx',
-    '**/lib/catalog/product-grid.tsx',
+    '**/lib/catalog/offering-card.tsx',
+    '**/lib/catalog/offering-grid.tsx',
     '**/lib/routing/store-link.tsx',
     '**/lib/cart/cart-cookie.ts',
     '**/lib/cart/cart-actions.ts',

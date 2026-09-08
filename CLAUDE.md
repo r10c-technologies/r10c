@@ -586,6 +586,61 @@ published` is legal, so it produces the identical message by the identical code
   in theory since another sweep follows in 15s, except the likeliest failure is
   the recurring `IndexOptionsConflict`, which would leave the tenants behind it
   undrained forever while every probe stayed green.
+- **The storefront reads the projection, and nothing is generated at build time**
+  ([ADR 0051](docs/adr/0051-the-storefront-reads-the-projection.md)). `queries.ts`
+  built three `createFixtureRepositoryContext` calls over records checked into
+  the shell, so `published-catalog` filled correctly on every publication and no
+  visitor could see it. It is **two swaps, not one**: brand and category swap
+  where they stand, but the storefront read `ProductSpecification` and had to
+  read `PublishedOffering` — a different entity, in a different store, with a
+  different address — which moved the card, the grid, the cart's key, every query
+  and the product URL with it. Seven things not to re-derive. ⚠️ **#147's own
+  "measured" bullet was wrong**: `ProductCategory.code` *is* filterable, because
+  `describe-entity-columns.ts` defaults both flags to `isScalar` and `code` is a
+  string — the one-line "fix" it asked for would have passed while proving
+  nothing. **The address is `offeringId`**, and ADR 0049's reason is load-bearing
+  now rather than anticipated: offering and specification are 1:N, so two vendors
+  publishing against one specification share a `code`, and a lookup by code
+  returns the *first* match rather than failing — the second vendor's listing
+  silently unreachable instead of visibly broken. The cart cookie is keyed the
+  same way for the same reason; `code` is still rendered, because it is what a
+  buyer quotes back. ⚠️ **`load` with a filter, never `get`** — `get` answers an
+  absent row with `EntifixConnError`, the class a driver failure also raises, so a
+  404 page and an outage would be one code path; the exception is `brandId`/
+  `categoryId`, which cannot be queried at all (`id` is the one member neither
+  `sortable` nor `filterable` by default) and resolve out of the loaded
+  vocabulary, bounded because a marketplace *merges* its browse tree.
+  ⚠️ **Configuration is read from config-service directly, with the fleet
+  token** — `ConfigurationClientRestClient` gained a `headers` option and nothing
+  else — because a relative `/api/config` has no origin under Node and an app
+  fetching its own route while prerendering itself cannot be served; there is
+  deliberately **no proxy**, since `rewriteServiceDomains` exists to keep an
+  address from a browser and to carry an `httpOnly` cookie, and a server
+  component's fetch has neither. ⚠️ **A failed read renders an empty catalog and
+  logs**, so one blinking backend cannot `500` the storefront and `next build`
+  cannot depend on a running fleet — with the cost stated rather than hidden:
+  **empty and broken render identically**, the log is the only separator, and
+  this must never spread to anything that writes. ⚠️ **Every
+  `generateStaticParams` returns `[]`, including the `[locale]` layout's**, and
+  that is correctness: a build machine has no fleet, so a build-time render of
+  home bakes in an *empty catalog* that `revalidate` then serves to the first
+  visitor of each locale after every deploy — measured, as four storefront e2e
+  journeys failing against a freshly built app while the never-enumerated offering
+  page rendered fine. `revalidate` is **60s**, not an hour, because that interval
+  is how long a vendor's publication stays invisible. And ⚠️ **the mock e2e
+  profile fakes inside the Next process**: `page.route()` observes the browser and
+  a server component's reads never leave the server, so `next start` runs under
+  `node --import …/server-mocks.mjs`, installing msw with the *same*
+  `entityBackendHandlers` the back office uses — order is the mechanism (`--import`
+  runs before Next's entry, so Next's cached-fetch wrapper wraps the patched
+  `fetch`), it must be `node --import` on Next's binary and **not** `NODE_OPTIONS`
+  with `pnpm exec` (which reaches pnpm itself and dies loading `.pnpmfile.mjs`),
+  and it needs a resolver hook because every module here writes extensionless
+  relative imports — with `.ts` in the list only because `entifix-ts-testing-e2e`
+  ships source, which works solely while nothing on that path carries a decorator.
+  One correction rides along: the card rendered **`brandId`** where a brand name
+  belongs, which read as a brand only because the fixtures were named to look like
+  one.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never

@@ -10,27 +10,28 @@ import { getServerTFor } from '@r10c/entifix-ts-i18n';
 import { type Locale, localeHref } from '@r10c/entifix-ts-i18n/routing';
 import { Suspense } from 'react';
 
-import { ProductGrid, ProductGridSkeleton } from '../catalog/product-grid';
-import { loadProducts } from '../catalog/queries';
+import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import { loadOfferings } from '../catalog/queries';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
 /**
- * The storefront's front page. Fully prerendered, one copy per locale.
+ * The storefront's front page. Prerendered, one copy per locale, revalidated on
+ * the interval the route declares.
  *
  * The hero is rendered directly and the grid sits behind a `Suspense`, so the
- * first flush already carries the heading — the LCP element — while the product
- * query is still resolving. With fixtures that race is over instantly; with a
- * real backend it is the difference between a blank screen and a page.
+ * first flush already carries the heading — the LCP element — while the catalog
+ * query is still resolving. That race is what the boundary is for: the query is
+ * now a real request to marketplace-service, not a fixture lookup.
  */
-async function FeaturedProducts({ locale }: { readonly locale: Locale }) {
+async function FeaturedOfferings({ locale }: { readonly locale: Locale }) {
   const t = getServerTFor(locale, 'shell');
-  const page = await loadProducts({ pageSize: 6, sort: 'name' });
+  const page = await loadOfferings({ pageSize: 6, sort: 'name' });
 
   return (
-    <ProductGrid
+    <OfferingGrid
       locale={locale}
-      products={page.items}
+      offerings={page.items}
       emptyLabel={t('storefront.category.empty')}
     />
   );
@@ -50,8 +51,8 @@ export function HomePage({ locale }: { readonly locale: Locale }) {
 
         <Stack gap="s">
           <HeadingTwo>{t('storefront.home.featured')}</HeadingTwo>
-          <Suspense fallback={<ProductGridSkeleton />}>
-            <FeaturedProducts locale={locale} />
+          <Suspense fallback={<OfferingGridSkeleton />}>
+            <FeaturedOfferings locale={locale} />
           </Suspense>
         </Stack>
 

@@ -913,11 +913,11 @@ account surface share one origin); backends `marketplace-service` (`:3100`),
 `auth-service` (`:3102`) and `config-service` (`:3190`); plus `*-e2e` projects.
 Six deployments in total. **marketplace-service** owns the `published-catalog`
 projection and the `catalog-reference` vocabulary and serves them read-only —
-a public read path that never opens a tenant connection. The storefront shell is
-still **fixture-backed** and has not been pointed at it yet
-(`shells-next-marketplace/src/server.ts`: "the same call sites once
-marketplace-service exists"); that wiring is the remaining step, not a missing
-service.
+a public read path that never opens a tenant connection. The storefront reads
+both of them over REST from its own server components — resolving the address
+from config-service directly, with no proxy, because there is no browser in that
+path to hide an address from
+([ADR 0051](adr/0051-the-storefront-reads-the-projection.md)).
 
 **Utils** — `utils-ts-{array,date,object,type}`.
 
