@@ -606,14 +606,19 @@ FilterBuilder ──emit on Apply──▶ useDataLoading (applied state, page �
 ```
 
 Both ends of the URL are the _same_ module, so what the client composes is by
-construction what the service parses. Adding an operator means adding it to
-`EntityFiltering.ts`, `rsql-operators.ts` and `filter-translator.ts` — and the
-core round-trip spec (`serialize → parse → coerce` deep-equals the original) is
-what catches a half-done addition.
+construction what the service parses.
+
+**Adding an operator touches four places, or it half-works**: the const arrays in
+`core/types/EntityFiltering.ts`, the token map in `core/src/rsql/rsql-operators.ts`,
+`mongo-client`'s `filter-translator.ts`, and `sql-client`'s
+`sql-filter-translator.ts`. Both translators keep an exhaustiveness guard
+(`const _never: never = node`), so a missed one is a compile error rather than a
+silent match-all; the core round-trip spec (`serialize → parse → coerce`
+deep-equals the original) is what catches the rest of a half-done addition.
 
 **Not supported yet**: filtering or sorting on a link (`EntityLink` descriptors
 default to `filterable: false`; Mongo would need a join or a denormalized field),
-free-text search across members, and a Postgres translator.
+and free-text search across members.
 
 ---
 

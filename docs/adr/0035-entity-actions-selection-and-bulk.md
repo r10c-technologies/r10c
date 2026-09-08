@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-02
+- Area: frontend
+- Read when: declaring where an action appears, or acting on a selection — nine cells, every one mapped or rejected, and two select-alls are two state shapes
 - Amends: [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md)
 - Amended by: [ADR 0044](0044-the-command-palette.md) — the `unbound` row of the
   surface map gains a renderer and its first declared verb; the map itself is

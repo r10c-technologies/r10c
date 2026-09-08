@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-08
+- Area: business
+- Read when: adding a member to the publication snapshot — optional is a safety property, and an absent member is written absent, never `undefined`
 - Amends: [ADR 0048](0048-announcing-a-publication.md) — the announced payload is
   eleven members, not seven, and a publication now has a second precondition.
 
@@ -22,12 +24,12 @@ It does not fill with enough to render a store, which is what
 mirrored them exactly. What the storefront reads off a specification today, in
 `packages/shells/next/marketplace/src/lib/catalog/`:
 
-| Rendered as | Member | On the snapshot |
-| --- | --- | --- |
-| the product path | `code` | ❌ |
-| the card's body and the detail page's blurb | `description` | ❌ |
-| the card's and the page's brand line | `brandId` | ❌ |
-| `/c/<category>` and the related-products strip | `categoryId` | ❌ |
+| Rendered as                                    | Member        | On the snapshot |
+| ---------------------------------------------- | ------------- | --------------- |
+| the product path                               | `code`        | ❌              |
+| the card's body and the detail page's blurb    | `description` | ❌              |
+| the card's and the page's brand line           | `brandId`     | ❌              |
+| `/c/<category>` and the related-products strip | `categoryId`  | ❌              |
 
 `ProductOffering` carries only `id`, `name`, `specificationId` and `status`;
 every merchandising field lives on the **pinned `ProductSpecification`**, which
@@ -115,7 +117,7 @@ marketplace — but uniqueness was never the problem. `ProductOffering` and
 `ProductSpecification` are **1:N by construction**, which is why the two classes
 exist, so two vendors offering the same product produce two offerings carrying
 one `code`. A path built from it collides, and it collides in the worst
-available way: a lookup by code returns the *first* match rather than failing, so
+available way: a lookup by code returns the _first_ match rather than failing, so
 the second vendor's listing is silently unreachable instead of visibly broken.
 
 `offeringId` is already the projection's natural key and already `filterable`.
@@ -139,7 +141,7 @@ screen entirely.
 
 ⚠️ **And it refuses a publication only, never a takedown.** The lookup runs on
 both transitions, because the announced payload must not change shape by event
-name — but refusing an *unpublish* because the record it describes is broken
+name — but refusing an _unpublish_ because the record it describes is broken
 leaves a vendor unable to remove a live listing, with repairing tenant data as
 the only remedy.
 
@@ -226,7 +228,7 @@ the three it gained are exactly the offering codes it had been missing.
   `preserveOfferingStatus`, so a `PUT` cannot blank a member the service owns;
   it is not folded in here because it belongs to the specification's write path
   rather than to the publication's read of it.
-- ⚠️ **Publishing a *deleted* offering answers `500`, not `404`.**
+- ⚠️ **Publishing a _deleted_ offering answers `500`, not `404`.**
   `transitionOffering` reads the offering itself with `repository.get`, which is
   the conflation this record avoided for the specification and did not fix for
   the offering. The clean answer is an `EntifixNotFoundError` in
@@ -236,7 +238,7 @@ the three it gained are exactly the offering codes it had been missing.
   use-case key spec covers `@useCase()` descriptors only, and `check-i18n.mjs`
   diffs the locales against each other — so a field key missing from both is
   symmetric and invisible. The four added here were written by hand into both.
-- **The register is untouched.** It declares event *names*, and both were already
+- **The register is untouched.** It declares event _names_, and both were already
   on file; the payload's shape is not something `tools/slices/` knows about.
 - **Several prices for one offering is still unresolved** — the transition takes
   the first, as ADR 0048 recorded.

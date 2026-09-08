@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-12
+- Area: data
+- Read when: a service needs tenant data for a party it did not pick — one named path, a service token _plus_ a route permission, no fallback and no operator branch
 
 ## Trigger
 

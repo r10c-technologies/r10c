@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-08
+- Area: platform
+- Read when: the sign-in page 404s behind green probes — the hosted login is a second container on `:30081`, applied at ladder rung L6 and pointed at by the seed at L7
 - Revised: 2026-08-14 — the hosted login is no longer the one screen in the
   fleet that ignores `@r10c/entifix-style`; the seed writes r10c's colours into
   the instance label policy. The decision is unchanged.

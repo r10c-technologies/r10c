@@ -2,6 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-08-02
+- Area: business
+- Read when: letting a vendor author a product model — a released spec version is immutable, and never synthesize an `EntityConstructor` at runtime. Unbuilt
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   the dictionary is owned by `catalog-reference`, not `marketplace-catalog`.
   Trigger checked and **not** fired: `EntitySpecification`,

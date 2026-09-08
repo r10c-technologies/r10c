@@ -2,6 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-08-01
+- Area: data
+- Read when: putting tenant data in Postgres — schema per organization, one shared pool. Unbuilt
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   an organization now has **two** tenant stores, so "schema per organization"
   means two schemas per organization. Trigger checked and **not** fired: both

@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-02
+- Area: frontend
+- Read when: editing the rows a record owns — the draft grew a second shape, and a random row key hangs React
 
 ## Context
 

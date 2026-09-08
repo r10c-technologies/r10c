@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Area: frontend
+- Read when: putting anything into an autosaved draft — JSON round-trippable only, ids in the draft with instances beside it, and the key is scoped per principal
 
 ## Context
 

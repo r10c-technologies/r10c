@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-07
+- Area: business
+- Read when: authoring or publishing an offering — `published → published` is legal, and `status` is server-owned or the verb is decoration
 - Revised: 2026-09-07 by [ADR 0048](0048-announcing-a-publication.md) — the two
   deferrals below are closed: emission exists, and publishing an offering with
   no price is now refused.

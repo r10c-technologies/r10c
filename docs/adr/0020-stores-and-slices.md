@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-11
+- Area: data
+- Read when: adding a store, a database handle or a deployment — a store has exactly one writing slice, and `engine` is not part of its identity
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   the register table below is superseded by the live one (12 stores, 9 slices);
   `SliceDeclaration` gains `status: 'active' | 'planned'`; the

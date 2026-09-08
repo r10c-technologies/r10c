@@ -221,6 +221,35 @@ throughout: the process is healthy, it is leaving. The drain that follows is
 `Layer` finalizer, so consumers are cancelled, in-flight handlers finish and the
 outbox relay sweeps once more before any connection closes.
 
+**The finalizer's position is the mechanism.** `ShutdownRegistryTag` sits in
+`entifix-ts-business` beside `HealthRegistryTag` and `WiringRegistryTag`, and for
+the same reason — a service that gains a bus gains its drain with nothing to
+remember. It collects `stop-intake` then `flush` hooks, and `makeServerLayer`
+releases them from a finalizer built **between** the composition root and
+`HttpServer.serve`: build order `appLayer → drain → serve` gives release order
+`serve → drain → appLayer`, so the drain runs with its connections still open. A
+signal handler cannot give that — `runMain` interrupts the fiber on SIGTERM, so a
+handler racing it drains against a closing client, which is why the SIGTERM
+listener in `makeService` does exactly one thing: flip the readiness latch.
+
+Three details the hooks depend on. `channel.consume` hands its tag to the caller
+and nowhere else, so `AmqpConsumerSetup` returns tags — without them cancelling
+is not expressible — and `cancelConsumers` also latches the connector, because a
+shutdown racing a broker reconnect would let `bindAll` re-arm the consumers the
+drain just stopped. Cancelling says nothing about the **delivery already
+running**: the adapter's settle was `void Effect.runPromise(…)`, tracked by
+nothing, so the bus counts in-flight handlers and the same hook waits for them —
+counted in the adapter and not on `EventBus`, since a framework-free port has no
+deliveries. And the relay's hook is a **`flush`**, not a stop: it interrupts the
+sweep daemon and runs one more pass, because an event committed a moment before
+SIGTERM would otherwise wait out the _next_ process's 15s interval while the
+browser watching the transaction reads `PENDING` for a rollout that succeeded.
+
+The `preStop` grace period ADR 0030 also names is deliberately **absent**:
+`infra/local/` holds datastores only, there is no app or service Deployment to
+carry the hook, and Kubernetes runs `preStop` _before_ SIGTERM, so nothing in the
+in-process sequence depends on it.
+
 Backends build the answer from a **probe registry** (`HealthRegistryTag` in
 `@r10c/entifix-ts-business`): `MongoHealthProbeLayer`, `RedisHealthProbeLayer`
 and `AmqpHealthProbeLayer` ship with the clients they describe, so a service
@@ -288,9 +317,16 @@ infra is still rolling out survives), and Redis carries an explicit
 re-establishes and commands fail fast meanwhile. Measured on a live stack:
 `ready` → Redis scaled to 0 → `503 failing:["redis"]` → Redis back → `200`
 within 7s, no restart. **amqplib has no recovery of its own**, so
-`AmqpChannelTag` carries an `AmqpConnector` rather than a channel: it reopens on
-demand and re-registers every consumer against the new channel, because a
-subscriber's queue died with the old connection and nothing else rebinds it. Its
+`AmqpChannelTag` carries an `AmqpConnector` (`withChannel` / `addConsumer`)
+rather than a channel: it reopens on demand, retries a call once on a dead
+channel, and re-registers every consumer against the new channel, because a
+subscriber's queue died with the old connection and nothing else rebinds it.
+Binding is tracked per channel (`Consumer.boundTo`), or a consumer registered
+while the first connection is still opening binds twice and folds every event
+twice. Connecting stays **eager** at boot, so an unreachable broker fails startup
+rather than leaving a service up with a silently dead bus; the reopen is lazy,
+which is why the outbox relay's 15s sweep is what heals a dead subscriber — a
+service that consumes but never publishes would not heal on its own. Its
 probe runs through the connector for the same reason — a failed passive
 `checkExchange` closes the channel, so probing a held one was itself a way to
 break the bus.
@@ -349,6 +385,40 @@ provisioning directory with `subPath` — a whole-directory mount there would
 shadow the dashboards and datasources the image ships — so **r10c — Bus &
 Outbox** is at `:30000`, re-read on every pod boot including the restarts that
 wipe the data behind it.
+
+**The Effect→tooling logger bridge had two silent faults, and both are the kind
+that pass every test.** Effect's `LogLevel.label` is **upper case** (`"ERROR"`,
+`"WARN"`, `"DEBUG"`) and the mapper switched on `'Error'`/`'Warning'`/`'Debug'`,
+so no case ever matched and every log in every service was emitted at `info` — an
+`Effect.logError` reached Loki as `severity_text: INFO`, invisible to any
+level-based alert while still present in the log, which reads as "the service has
+no errors". And `annotations` was destructured away and never forwarded, so every
+`Effect.annotateLogs` was discarded, the outbox relay's tenant and event id among
+them. Both were found by querying Loki on a live pass, not by a test: the e2e's
+assertion was `expect(['debug','info','warn','error']).toContain(record.level)`,
+which every record satisfied _because_ every record was `info`.
+`observability.spec.ts` now pins each level to its own `severityNumber` and
+asserts annotations arrive as attributes. Two related traps: the logger's `error`
+takes `(message, error?, attributes?)`, so passing attributes positionally as the
+second argument files them as the cause and loses them again; and Effect's own
+minimum level is `Info`, so an `Effect.logDebug` is dropped before any logger sees
+it regardless of the configured `level`.
+
+**A declared metric's name is not its Prometheus name.** A metric's registry key
+includes its **description**, so a reader that rebuilds one by name without it
+addresses a different series that is permanently zero — the metric objects are
+exported and every spec imports them rather than re-declaring. A dimensionless
+gauge arrives with a `_ratio` suffix (the OTel convention for unit `1`), so
+`outbox_pending_entries` is queried as `outbox_pending_entries_ratio`; counters
+are unaffected, and a real unit is set by **tagging**
+(`Metric.tagged(m, 'unit', 's')`), which is the only form `@effect/opentelemetry`
+accepts and which also adds a constant label. An **absent series is not a zero**:
+an empty outbox reports an age of `0` and `countByState` fills every state
+including the ones at none, because a series that stops being reported reads on
+most dashboards as "no data" — indistinguishable from a broken exporter at
+exactly the moment a healthy fleet looks idle. `or vector(0)` is honest only
+after a `sum()` with no `by`; on a grouped query it invents a series carrying no
+labels.
 
 Two Effect/OTel gotchas the reference wiring handles: `@effect/opentelemetry`
 does not register an OTel context manager (the service registers
@@ -904,6 +974,26 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   `shells-next-system-management` (`scope:shared`, so a second host can mount it
   with no moves), `shells-next-common` and `shells-next-i18n` — Next pages +
   client adapters. `shells-effect-service` — the backend base.
+
+**A host keeps composition, and that includes the proxy mounts.** A shell
+contributes its pages, its adapters, its nav fragment and its search sources; the
+host concatenates them, owns the route files and the workspace `TabRegistry`, and
+mounts the same-origin proxies that `rewriteServiceDomains` keeps a real backend
+address out of the browser through. Two of those mounts are worth naming.
+back-office-app's catalog is **two backends** — `ProductSpecification` from
+marketplace-admin-service through `/api/admin`, `ProductBrand` and
+`ProductCategory` from marketplace-service through `/api/marketplace`
+(`marketplace-service-domain` in config-service) — because ADR 0022 moved the
+platform vocabulary into `catalog-reference`; composing both from one domain key
+is what left those two pages requesting routes that no longer existed, invisibly,
+because the e2e fixture stubbed the same wrong address. And the system-management
+proxy is mounted at **`/api/system`, never `/api/config`**, which is already the
+config _fetch_ route. `shell:domain` may depend on `shell:base` and both domain
+shells do; the reverse is forbidden, so `shells-next-common` may import **no**
+other shell — which is why nav and search sources are contributed rather than
+imported, and why the permission-annotated vocabulary
+(`GuardedNavItem`/`GuardedNavSection`) lives in `business-ts-authz`, the only
+layer a shell and an app both reach.
 
 **Apps** — frontends `marketplace-app` (`:3000`, the public storefront) and
 `back-office-app` (`:3001`, which mounts `shells-next-marketplace-admin` **and**

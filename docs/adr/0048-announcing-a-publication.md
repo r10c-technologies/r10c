@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-07
+- Area: messaging
+- Read when: emitting or consuming a publication — the projector orders on `publishedAt`, and an unpublication leaves a tombstone because a delete has nothing to be ordered by
 - Amends: [ADR 0009](0009-catalog-authoring-and-publication.md) — the projection
   runs on the outbox and the routed bus, not on the saga engine; the
   announcement it called missing now exists.

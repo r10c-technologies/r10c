@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Area: business
+- Read when: naming a new domain or moving an entity between domains — a domain name is simultaneously the package identity, the `@entity({ domain })` value, the permission namespace and the entitlement key
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   the `Product` split is done rather than deferred, `catalog-reference` joins the
   capability map, and the Context paragraph describing a three-entity business is

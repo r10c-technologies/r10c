@@ -16,6 +16,7 @@ import { declaredEntityClasses, declaredEntityDomains } from '@r10c/slices';
 import { describe, expect, it } from 'vitest';
 
 import {
+  ADR_AREAS,
   adrs,
   allDocs,
   deepDocs,
@@ -268,6 +269,87 @@ describe('ADR records are reachable and consistent', () => {
         `one-way supersessions:\n  ${oneWay.join('\n  ')}`,
       ).toEqual([]);
     });
+  });
+});
+
+/**
+ * The router is a router again, and this is what stops it becoming a digest.
+ *
+ * `CLAUDE.md` is loaded into every session and every subagent, so a paragraph
+ * added here costs more than the same paragraph anywhere else in the repo. It
+ * once carried a hand-written summary of every ADR — 170KB, 88% of it a digest
+ * of records that already said the same thing — which is a cost nobody sees
+ * because nothing measures it. These checks measure it.
+ */
+describe("The router's decision index", () => {
+  const records = adrs();
+  const claude = () => read('CLAUDE.md');
+
+  it('files every record under a declared area, with a symptom to read it for', () => {
+    // `adrs()` throws on a missing or unknown header, so reaching this point
+    // already proves both exist. What is asserted here is that they are usable:
+    // an area the index renders, and a line long enough to name a symptom.
+    const thin = records.filter(record => record.readWhen.length < 40);
+
+    expect(records.length).toBeGreaterThanOrEqual(51);
+    expect(
+      thin.map(record => record.file),
+      'these records carry a "- Read when:" too short to name a symptom, which ' +
+        'is the only thing that makes a reader open them:\n  ' +
+        `${thin.map(r => r.file).join('\n  ')}`,
+    ).toEqual([]);
+    expect(
+      records.every(record =>
+        (ADR_AREAS as readonly string[]).includes(record.area),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not repeat the words the index already prints around it', () => {
+    // The generated line reads "… — read when <readWhen>.", so a record whose
+    // header opens with "read when" or "before" renders as "read when before
+    // putting tenant data in Postgres" and ends in a doubled full stop.
+    const awkward = records.filter(
+      record =>
+        /^(read when|when|before)\b/i.test(record.readWhen) ||
+        /[.!?]$/.test(record.readWhen),
+    );
+
+    expect(
+      awkward.map(record => record.file),
+      'a "- Read when:" is a clause the index completes, not a sentence:\n  ' +
+        `${awkward.map(r => r.file).join('\n  ')}`,
+    ).toEqual([]);
+  });
+
+  it('routes to every record from the generated index', () => {
+    const text = claude();
+    const unlisted = records.filter(
+      record => !text.includes(`docs/adr/${record.file}`),
+    );
+
+    expect(
+      unlisted.map(record => record.file),
+      'these records are not in the decision index, so nothing sends a reader ' +
+        `to them:\n  ${unlisted.map(r => r.file).join('\n  ')}`,
+    ).toEqual([]);
+  });
+
+  it('keeps the router small enough to be worth loading every session', () => {
+    // A ceiling, not a target. It was 170KB before the digest moved into the
+    // records it duplicated; ~26KB after, plus ~30KB of `@import`ed snippets.
+    // Raise this only with a reason — every byte here is paid on every turn of
+    // every session, by the main thread and each subagent alike.
+    const CEILING = 40_000;
+    const size = Buffer.byteLength(claude(), 'utf8');
+
+    expect(
+      size,
+      `CLAUDE.md is ${size} bytes, past the ${CEILING} ceiling. It is a ` +
+        'router: a decision belongs in an ADR with a "- Read when:" header, a ' +
+        'mechanism belongs in the doc that owns it, and only a rule that ' +
+        'overrides a default and lives nowhere else belongs here.',
+    ).toBeLessThanOrEqual(CEILING);
   });
 });
 

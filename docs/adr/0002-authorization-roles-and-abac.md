@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-07-24
+- Area: auth
+- Read when: guarding a route, adding a permission, or deciding what a token may carry — grants come from `ROLE_PERMISSIONS`, never from the token, and hiding a nav item protects nothing
 - Revised: 2026-08-13 by [ADR 0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md) —
   records here the "supersedes ADR 0002 on RS256 only" that ADR 0015 declared but
   never wrote back. `jwt.secret` is gone; verification takes a public key.

@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-17
+- Area: platform
+- Read when: deciding where a process, a decision, a contract or a plan belongs — four artifacts with one job each, and the repo's exposure is decided per commit, permanently
 - Revised: 2026-08-17 — the Notion space is `r10c`, split by process and
   market, rather than the single `Procesos GT` this record first named
 - Revised: 2026-08-19 — records M0, which is a milestone that promotes no

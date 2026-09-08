@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Area: auth
+- Read when: granting a role or provisioning an organization — two ceilings, what a role may assign and what the organization was provisioned for
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   the entitlement vocabulary is the set of **tenant-facing** domains;
   `catalog-reference` is operator-owned and never grantable.

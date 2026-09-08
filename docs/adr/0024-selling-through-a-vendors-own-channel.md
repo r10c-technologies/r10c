@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-17
+- Area: business
+- Read when: an in-store or non-marketplace sale — it is a channel on the same `ProductOrder`, never a second order, and commission resolves through `commissionFor`
 
 ## Context
 

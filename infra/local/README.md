@@ -113,6 +113,15 @@ pod still holds the data dir's lock (`DBPathInUse` for mongo). Since L3
 reconciles on every heal, a manifest edit would otherwise wedge the datastore it
 was meant to improve.
 
+Mongo runs as a **single-node replica set** (`--replSet rs0`), because
+multi-document transactions do not exist on a standalone server. Two consequences
+live in the manifests: `--replSet` with auth enabled makes mongod _require_ a
+cluster keyFile and refuse to start without one, and a Secret's default
+root-owned `0644` projection is rejected — so it is mounted `defaultMode: 0400`
+under `fsGroup: 999`. Initiation is ladder rung **L5b**, never a
+`readinessProbe`: `rs.initiate()` needs a live pod while L4 waits for Ready, so a
+probe demanding a primary would deadlock against its own init.
+
 Parallel `ensure-infra` tasks serialise on `infra/local/.heal.lock`
 (git-ignored): the first heals, the rest wait and re-probe. The lock records its
 owner's pid — Ctrl-C'ing an app leaves the directory behind, and a lock whose

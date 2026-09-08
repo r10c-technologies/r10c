@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-12
+- Area: data
+- Read when: merging or splitting a deployment — co-deploying two slices is reversible, merging two stores is binding
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   the fleet runs six, not five: `marketplace-service` returns with two stores to
   justify it. The title is kept deliberately.

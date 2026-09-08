@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-08
+- Area: messaging
+- Read when: the storefront is empty after a reset, or a publication was lost — the rebuild walk re-emits from tenant storage and must never stamp `now`
 - Amends: [ADR 0048](0048-announcing-a-publication.md) — the fleet-wide rebuild
   it deferred is built, and the reason it gave for deferring is answered.
 

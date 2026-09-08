@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-06
+- Area: frontend
+- Read when: a write answers `202` — the browser keeps watching, and a `404` from the tracker means not-tracked-yet, never failed
 - Amends: [ADR 0028](0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)
   (the client-minted id becomes something the browser keeps, not only something
   it sends; every decision there stands).

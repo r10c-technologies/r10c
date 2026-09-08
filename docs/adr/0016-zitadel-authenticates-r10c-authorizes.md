@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-05
+- Area: auth
+- Read when: anything touching sign-in, credentials, lockout or account recovery — there is no password here to reset or to guess, and each field has one writer
 - Accepted: 2026-08-06
 - Revised: 2026-08-13 by [ADR 0018](0018-the-hosted-login-is-a-second-container.md) —
   the `ensureLoginVersion` reasoning in the local-development consequence is

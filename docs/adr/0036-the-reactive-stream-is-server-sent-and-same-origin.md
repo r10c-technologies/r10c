@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-02
+- Area: messaging
+- Read when: pushing anything to a browser — SSE and not a socket, because the cookie is `httpOnly` and the `WebSocket` constructor accepts no headers
 - Amended by: [ADR 0043](0043-the-optimistic-mutation-contract.md) — "on reconnect
   the client re-queries its pending transaction ids and reconciles" is built, and
   `ReactiveChannel` gains an `onConnect` signal (which replays for a listener

@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Area: frontend
+- Read when: adding a screen — four types, and a verb on a record is not grounds for a fifth
 - Revised: 2026-09-06 by [ADR 0041](0041-the-sidebar-renders-the-taxonomy.md) —
   the sidebar renders the tier now, and the nesting depth this record left open
   is capped at three tiers.

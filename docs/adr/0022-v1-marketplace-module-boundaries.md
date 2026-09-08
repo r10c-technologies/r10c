@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-12
+- Area: data
+- Read when: adding an entity, a domain or a store — the v1 inventory is fixed, and a `planned` slice must declare no deployment
 - Revised: 2026-08-17 by [ADR 0024](0024-selling-through-a-vendors-own-channel.md) —
   a twelfth domain (`sales-management`), a thirteenth store (`sales`) and a tenth
   slice join the register, so the inventory in Decision reads 12 / 29 / 13 / 10;

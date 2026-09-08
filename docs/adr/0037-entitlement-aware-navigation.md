@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-02
+- Area: frontend
+- Read when: a nav item should disappear for an unprovisioned organization — `entitled: true` opts in, and the skip is keyed on `activeOrganizationId`, never on an empty list
 - Amends: [ADR 0002](0002-authorization-roles-and-abac.md) (its nav consequence
   named an endpoint this record deletes) and
   [ADR 0007](0007-access-model-planes-roles-entitlements.md) (its "nav filtering

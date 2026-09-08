@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-06
+- Area: frontend
+- Read when: adding anything to the command palette — the sources filter and the control renders, and matching is accent-folded because the default locale is Spanish
 - Amends: [ADR 0035](0035-entity-actions-selection-and-bulk.md) (its `unbound`
   cell now has a renderer **and** a producer; the nine-cell map itself stands
   unchanged).

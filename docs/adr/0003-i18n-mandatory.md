@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-07-26
+- Area: platform
+- Read when: writing user-visible copy, adding an error `code`, or adding a locale binder — three build gates make i18n mandatory, and a code missing from the catalog reaches the user raw
 - Revised: 2026-08-19 by [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md) —
   "No metadata endpoint had to be invented" is no longer true: `$metadata` serves
   descriptors per entity. The decision is untouched — the document carries keys,

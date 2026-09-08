@@ -128,6 +128,18 @@ Two rough edges worth knowing. A rebuild is swc emit **plus** a `tsc` declaratio
 pass — `@nx/js:swc` always runs it in a TS solution setup, `skipTypeCheck` only
 silences its diagnostics — which is most of those seconds. And a save landing while
 Turbopack is mid-read can serve a torn module; the next save clears it.
+
+⚠️ **That silenced pass can emit nothing and still report success.** The
+executor's guard is `skipTypeCheck && !isTsSolutionSetup`, and this repo _is_ a
+TS solution setup, so the declaration pass always runs, with
+`ignoreDiagnostics: true` — while `noEmitOnError` (from `tsconfig.base.json`)
+still blocks the emit. A library whose `tsconfig.lib.json` overrides `lib` and
+drops what the base provides (`decorators`/`esnext.decorators`, which
+`Symbol.metadata` in `entifix-ts-core` needs) or omits `dom` therefore produces a
+**green build with zero `.d.ts`**, and the poisoned `.tsbuildinfo` then makes the
+next `tsc --build` report a `TS6305` cascade that names none of it. When
+overriding `lib`, extend the base list rather than replacing it. To see what the
+pass is hiding: `pnpm nx build <lib> --skipTypeCheck=false`.
 `@r10c/entifix-style` needs no rebuild at all: it has no build target, its CSS
 subpaths are consumed straight from `src`.
 
@@ -650,7 +662,7 @@ works on a machine with a stale build and fails on a clean checkout.
 Documentation drifts because nothing fails when it does. Two mechanisms make
 parts of it fail, split by what a machine can actually know.
 
-**Generated — `tools/sync-docs.mjs`.** Three tables are written from source and
+**Generated — `tools/sync-docs.mjs`.** Four blocks are written from source and
 must not be edited by hand:
 
 | Block            | In                       | Source               |
@@ -658,6 +670,7 @@ must not be edited by hand:
 | `ports-infra`    | `docs/_shared/ports.md`  | `infra/local/lib.sh` |
 | `store-register` | `docs/_shared/planes.md` | `tools/slices/`      |
 | `adr-index`      | `docs/adr/README.md`     | the ADR files        |
+| `adr-triggers`   | `CLAUDE.md`              | the ADR files        |
 
 Each sits between `<!-- docs:begin <name> -->` and `<!-- docs:end <name> -->`.
 Change the source, run `node tools/sync-docs.mjs`, stage the result.
@@ -681,8 +694,10 @@ pnpm nx test @r10c/docs-check
 It holds relative links and heading anchors, the router tables in `CLAUDE.md`
 and `README.md`, every entity name the business docs use, every tag dimension in
 `nx.tags`, the fleet ports (`ALL_PORTS` ↔ the port table ↔ what each app binds),
-and **ADR supersession symmetry** — a record claiming to supersede another must
-leave the reciprocal `- Revised:` line on the record it overrode. Both jobs are
+**ADR supersession symmetry** — a record claiming to supersede another must
+leave the reciprocal `- Revised:` line on the record it overrode — and the
+`- Area:` / `- Read when:` headers every record needs to appear in the router's
+decision index. Both jobs are
 **unconditional** in CI for the same reason the i18n catalog check is: a
 documentation claim is everyone's problem, not the affected projects'.
 

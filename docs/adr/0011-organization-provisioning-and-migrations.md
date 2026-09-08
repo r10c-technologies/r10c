@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Area: data
+- Read when: provisioning an organization, migrating tenant storage, or seeding a new tenant
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   an organization has **two** tenant databases, so provisioning and migration fan
   out over stores × organizations.

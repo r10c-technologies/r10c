@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Area: messaging
+- Read when: publishing or subscribing to a bus message — `meta` describes the message and `data` the occurrence, and the dedup key is `event.id`
 - Amended by: [ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md) — a
   subscriber's queue is no longer unconditionally exclusive. A `work`
   subscription binds a named, durable queue with a dead-letter exchange and a
