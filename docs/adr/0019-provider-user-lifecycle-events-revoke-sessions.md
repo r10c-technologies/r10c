@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-11
+- Area: auth
+- Read when: a user deactivated at the provider keeps refreshing — the seam is an Actions v2 execution authenticated by HMAC, and the signing key is minted once and never served again
 
 ## Context
 

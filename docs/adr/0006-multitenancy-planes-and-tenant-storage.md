@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Area: data
+- Read when: deciding which plane an entity lives in, or how a tenant handle is resolved — partly superseded by ADR 0020, 0022 and 0023
 - Amended by: [ADR 0020](0020-stores-and-slices.md) — a plane is a property of
   the **Store**, so an entity's plane is derived from the store that hosts it
   rather than declared on the entity. Everything else here stands.

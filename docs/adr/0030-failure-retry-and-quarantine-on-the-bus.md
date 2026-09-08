@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Area: messaging
+- Read when: a handler fails or a payload cannot be parsed — three failure classes, `work` versus `broadcast`, and `x-delivery-limit` is immutable once the queue exists
 - Revised: 2026-09-05 — graceful shutdown built (#180); the `preStop` half is
   restated as pending a service Deployment, which this repo does not declare.
 - Revised: 2026-09-05 — the inbox is built (#178): the register carries `dedupe`,
@@ -233,7 +235,9 @@ and a `maxAttempts: 5` nothing enforces would be the same lie in a smaller font.
   subscription's ceiling is a literal beside its register declaration rather than
   a config-service value: a tunable nothing can adopt is worse than a constant.
   The outbox relay's ceiling _is_ configuration, because it is re-read on every
-  sweep and nothing in the broker pins it.
+  sweep and nothing in the broker pins it — and it is the repo's first
+  `getNumber` caller, deliberately: `'five'` cast to a number makes every
+  comparison false and quarantines nothing, silently.
 - #146 can be built. Until #177 lands, a projection consumer would be built on a
   queue that loses messages across its own restart.
 - #135 stops having to invent dead-lettering. What remained there was retry with

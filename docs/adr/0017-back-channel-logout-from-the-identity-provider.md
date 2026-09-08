@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-07
+- Area: auth
+- Read when: changing sign-out or session revocation — the reverse direction needs the `oidc:sid` index and its own verifier, whose missing-`nonce` check is what makes it safe
 - Revised: 2026-08-14 — the append-only `oidc:sid:` set is recorded as a
   deliberate invariant with the constraint that keeps it true, rather than as a
   question deferred to an issue. The decision is unchanged.

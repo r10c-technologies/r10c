@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-07
+- Area: platform
+- Read when: adding a working convention, or wondering why attribution trailers keep reappearing — a convention that is only stated is one that gets skipped
 
 ## Context
 

@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-07-26
+- Area: auth
+- Read when: changing a session duration, a cookie lifetime or a device record — sessions slide under a ceiling, and sizing `r10c_at` to the token signs everyone out every 15 minutes
 - Revised: 2026-08-13 by [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md) —
   records here the supersession ADR 0016 declared but never wrote back: the
   **recovery** and **lockout** sections below are superseded, and the Context

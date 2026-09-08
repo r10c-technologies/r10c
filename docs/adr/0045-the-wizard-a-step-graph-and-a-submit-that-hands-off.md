@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-07
+- Area: frontend
+- Read when: building a multi-step screen — the step graph is data, Back pops a history stack, and a validation gate belongs to a step
 - Amends: [ADR 0042](0042-the-workspace-address-is-the-taxonomy-serialized.md)
   (the third address segment gains a second meaning: a step, for `wizard:`).
 
@@ -19,12 +21,12 @@ reading "Wizards — do not exist (#128)".
 A repository-wide search finds the word in exactly five places, and every one of
 them is a declaration waiting for a consumer:
 
-| Where                                              | What is there                              |
-| -------------------------------------------------- | ------------------------------------------ |
-| `business-ts-authz/values/screen-type.ts`          | the `ScreenTypes` member and its label key |
-| `entifix-ts-i18n` `es`/`en` `shell.ts`             | `'Asistentes'` / `'Wizards'`               |
-| `shells-next-common/workspace/tab-kind.ts`         | a doc comment reserving the kind by name   |
-| `back-office/group-by-screen-type.spec.ts`         | a test fixture                             |
+| Where                                      | What is there                              |
+| ------------------------------------------ | ------------------------------------------ |
+| `business-ts-authz/values/screen-type.ts`  | the `ScreenTypes` member and its label key |
+| `entifix-ts-i18n` `es`/`en` `shell.ts`     | `'Asistentes'` / `'Wizards'`               |
+| `shells-next-common/workspace/tab-kind.ts` | a doc comment reserving the kind by name   |
+| `back-office/group-by-screen-type.spec.ts` | a test fixture                             |
 
 So the sidebar already knows how to render an **Asistentes** tier, the address
 grammar already parses `wizard:`, and the palette's nav source already turns a
@@ -46,7 +48,7 @@ What does exist is one entity opted into a tracked write:
 `TransactionCommand.type` is the literal `'create'`, and
 `create: 'command'` is declared for `ProductSpecification` and nothing else. So
 the honest first wizard is a single-slice one, and the decision this record has
-to get right is not *how to orchestrate* but **what shape the ending takes so
+to get right is not _how to orchestrate_ but **what shape the ending takes so
 that it does not change when the orchestrator lands**.
 
 ### Measured: `useEntityForm` cannot currently answer "did that pass?"
@@ -75,11 +77,7 @@ unsayable when the successor is `index + 1`.
 ### 2. Step values are a discriminated union, and `EntityDraft` is not widened
 
 ```ts
-type WizardStepValue =
-  | { readonly kind: 'form'; readonly values: EntityDraft }
-  | { readonly kind: 'selection'; readonly ids: readonly string[] }
-  | { readonly kind: 'choice'; readonly option: string }
-  | { readonly kind: 'none' };
+type WizardStepValue = { readonly kind: 'form'; readonly values: EntityDraft } | { readonly kind: 'selection'; readonly ids: readonly string[] } | { readonly kind: 'choice'; readonly option: string } | { readonly kind: 'none' };
 ```
 
 A wizard's state is heterogeneous by construction — a form step drafts strings, a
@@ -87,7 +85,7 @@ table step holds a set of ids — and the tempting move is to widen `EntityDraft
 to hold both. That is wrong for the reason `EntityDraft.ts` already records at
 length: the draft is handed to TanStack Form, whose field-path type derivation is
 **unbounded over a recursive type**, and `ADR 0038` widened it once already to
-exactly two shapes with that constraint in view. Wizard state sits *above* the
+exactly two shapes with that constraint in view. Wizard state sits _above_ the
 form rather than inside it, so it is JSON in its own right and the entity draft
 is left alone.
 
@@ -104,7 +102,7 @@ be hit far more often here than there.
 [ADR 0032](0032-what-may-live-in-an-autosaved-draft.md) already defined — viewing
 `state.steps[stepId].values`.
 
-This is what makes Back safe, and it is safe *whether or not a step unmounts* —
+This is what makes Back safe, and it is safe _whether or not a step unmounts_ —
 which matters because steps **do** unmount. A form step calls `useEntityForm`
 itself, and React's hook count must stay fixed, so N form steps cannot be N hook
 calls in one component. Holding the draft above the form removes the question
@@ -122,7 +120,7 @@ is memoised.
 `UseEntityFormResult.submit` widens:
 
 ```ts
-submit: () => Promise<boolean>;   // resolves true iff the submit actually ran
+submit: () => Promise<boolean>; // resolves true iff the submit actually ran
 ```
 
 `form.handleSubmit()` already returns a promise, and `onSubmit` already fires
@@ -150,7 +148,7 @@ unreachable step.
 
 **Load time, not step time**, which is [ADR 0035](0035-entity-actions-selection-and-bulk.md)'s
 reasoning applied unchanged: a wizard missing its last step must fail on the
-first render of *any* surface, not on the render of the step nobody reached —
+first render of _any_ surface, not on the render of the step nobody reached —
 otherwise the failure arrives at the end of the longest flow in the product.
 
 `next` is a function of state, so reachability is not decidable by analysis. It
@@ -175,7 +173,7 @@ catch a regression, so the roles are asserted in the control's own spec.
 
 `wizard:product-setup:identity` as a tab address, `?step=identity` on the plain
 route. `screenAddress` and `parseScreenPayload` already produce and accept this
-shape — what changes is what the third segment *means*. It is documented as "the
+shape — what changes is what the third segment _means_. It is documented as "the
 record being viewed"; it becomes **the position within the screen**: a record for
 `master`, a step for `wizard`.
 
@@ -187,7 +185,7 @@ prop, the same rule that made `hrefFor` a prop. URL synchronisation is the
 shell's job.
 
 **Neither `TABS_VERSION` nor `DRAFTS_VERSION` bumps.** ADR 0042 bumped both
-because it *renamed* prefixes, which left stored tabs resolving to nothing. This
+because it _renamed_ prefixes, which left stored tabs resolving to nothing. This
 adds a prefix: every stored `master:` tab and every existing draft resolves
 exactly as before, and discarding them would be a cost paid for no correction.
 

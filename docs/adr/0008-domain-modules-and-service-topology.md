@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Area: data
+- Read when: tagging a new project — its plane-host topology is superseded by ADR 0020, its tag model is live and fails the build
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   clarifies that the superseded block covers the topology section only; the tag
   dimensions and forbidden couplings are live.

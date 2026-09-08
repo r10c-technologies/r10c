@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Area: platform
+- Read when: adding a datastore, a queue binding or an upstream to a service — `/api/$service` diffs what a service does against what the register declares
 
 ## Context
 

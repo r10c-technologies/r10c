@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Area: messaging
+- Read when: a create goes through the transaction engine — the client mints the id, that id is the idempotency key, and the event is written to the outbox inside the same Mongo transaction
 - Amended by: [ADR 0029](0029-the-event-envelope-and-a-routed-bus.md) — the
   deduplication key is the message's own `event.id` (`<transactionId>:<step>`),
   not `transactionId`, and `OutboxEntry` carries a `DomainEvent`. Every decision

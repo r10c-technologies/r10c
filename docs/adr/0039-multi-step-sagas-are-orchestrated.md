@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-04
+- Area: messaging
+- Read when: a flow spans slices — orchestrated per flow, commands over HTTP and results over the bus, with a stated condition for adopting a workflow engine instead
 
 ## Context
 

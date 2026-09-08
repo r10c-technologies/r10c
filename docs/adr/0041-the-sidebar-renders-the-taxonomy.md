@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-06
+- Area: frontend
+- Read when: rendering navigation — type › domain › destination, and auto-collapse must never write the stored preference
 - Amends: [ADR 0033](0033-the-screen-taxonomy.md) (its "the sidebar does not yet
   render the tier" consequence is now discharged, and the nesting depth it left
   open is fixed here).

@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Area: business
+- Read when: touching stock quantities — a quantity is never read-modify-written, and a purchase reserves rather than decrements
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   trigger fired; the store is named, and the cross-plane call has a mechanism.
 

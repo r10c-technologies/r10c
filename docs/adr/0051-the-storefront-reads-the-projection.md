@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-08
+- Area: frontend
+- Read when: the storefront reads or renders catalog data — nothing is enumerated at build time, and a failed read renders an empty catalog and logs
 
 ## Context
 

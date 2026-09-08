@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-01
+- Area: business
+- Read when: publishing tenant-authored catalog data into the platform plane — publication replaces the projection wholesale
 - Amended by: [ADR 0020](0020-stores-and-slices.md) — "two catalogs, one
   projection" is two **Stores**: `catalog` (tenant, system-of-record) and
   `published-catalog` (platform, `truth: projection-of:catalog`).

@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Area: entities
+- Read when: an entity member holds an array — `composition`, `linkCollection` and `scalarCollection` are three different relations, and a collection declared sortable throws
 - Revised: 2026-09-02 by [ADR 0038](0038-master-detail-the-rows-a-record-owns.md) — four of its residuals are now built; the decisions are unchanged.
 
 ## Context

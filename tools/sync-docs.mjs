@@ -16,6 +16,7 @@
  *   ports-infra     docs/_shared/ports.md   ← infra/local/lib.sh
  *   store-register  docs/_shared/planes.md  ← tools/slices/
  *   adr-index       docs/adr/README.md      ← the ADR files themselves
+ *   adr-triggers    CLAUDE.md               ← the ADR files themselves
  *
  * Everything is run through Prettier before it is compared or written. Markdown
  * is formatted by `lint-staged` on commit and Prettier realigns pipe tables, so
@@ -207,6 +208,51 @@ const adrIndex = async () => {
   return table(['#', 'Title', 'Status', 'Date', 'Revised by'], rows);
 };
 
+/* ------------------------------------------------------------ adr-triggers */
+
+/** Section headings for `ADR_AREAS`, in the order that array declares. */
+const AREA_HEADINGS = {
+  data: 'Data, stores and tenancy',
+  business: 'Business, catalog and publication',
+  entities: 'Entities and the framework',
+  frontend: 'Frontend, screens and the workspace',
+  messaging: 'Messaging, transactions and sagas',
+  auth: 'Identity, sessions and authorization',
+  platform: 'Platform, observability, docs and conventions',
+};
+
+/**
+ * The router's decision index: one line per ADR, naming the **symptom** that
+ * should send a reader into the record.
+ *
+ * This block is the reason `CLAUDE.md` is a router again. It used to carry a
+ * hand-written prose digest of every ADR — 150KB, 88% of the file, loaded into
+ * every session and every subagent — and spot-checking found the detail already
+ * present in the records it summarised. What a digest bought that a title does
+ * not is the *trigger*: a reader has to know an area holds a decision before
+ * they will open it. So the trigger is what is kept, and it lives on the record
+ * itself (`- Read when:`) rather than in a second document that can drift.
+ */
+const adrTriggers = async () => {
+  const { adrs, ADR_AREAS } = await import(p('tools/docs/src/corpus.ts'));
+  const records = adrs();
+
+  return ADR_AREAS.map(area => {
+    const rows = records
+      .filter(record => record.area === area)
+      .map(record => {
+        const mark =
+          record.status === 'Accepted' ? '' : `_(${record.status})_ `;
+        return (
+          `- [${record.id}](docs/adr/${record.file}) ${mark}**${record.title}** — ` +
+          `read when ${record.readWhen}.`
+        );
+      });
+
+    return [`**${AREA_HEADINGS[area]}**`, '', ...rows].join('\n');
+  }).join('\n\n');
+};
+
 /* ------------------------------------------------------------------ driver */
 
 /**
@@ -226,6 +272,7 @@ export const BLOCKS = [
     render: storeRegister,
   },
   { name: 'adr-index', file: 'docs/adr/README.md', render: adrIndex },
+  { name: 'adr-triggers', file: 'CLAUDE.md', render: adrTriggers },
 ];
 
 const format = async (text, filepath) =>

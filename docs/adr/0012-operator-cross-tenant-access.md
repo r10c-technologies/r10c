@@ -2,6 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-08-01
+- Area: auth
+- Read when: designing any operator cross-tenant read — a _discretionary_ crossing needing a human's permission, a time box and a `Crossing` record, which is not ADR 0023's determined one. Unbuilt
 - Amended by: [ADR 0020](0020-stores-and-slices.md) — "cross-tenant reporting is
   a projection, not a crossing" becomes checkable: a reporting **Store**
   declaring `truth: projection-of:<store>` is by construction not a crossing.

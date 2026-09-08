@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-04
+- Area: frontend
+- Read when: searching records across services — no client-side index, ever, and a source's search member is validated at module load
 
 ## Context
 

@@ -43,6 +43,25 @@ export const allDocs = (): string[] => [
   ...adrFiles().map(name => join('docs', 'adr', name)),
 ];
 
+/**
+ * The areas an ADR can be filed under, in the order the router renders them.
+ *
+ * A fixed list rather than free text, because the value is a grouping key in a
+ * generated index: one record filed under `messaging` and another under
+ * `Messaging` would render two sections that look like two subjects.
+ */
+export const ADR_AREAS = [
+  'data',
+  'business',
+  'entities',
+  'frontend',
+  'messaging',
+  'auth',
+  'platform',
+] as const;
+
+export type AdrArea = (typeof ADR_AREAS)[number];
+
 export interface AdrRecord {
   readonly file: string;
   /** The four-digit number, as written: `0004`. */
@@ -50,6 +69,17 @@ export interface AdrRecord {
   readonly title: string;
   readonly status: string;
   readonly text: string;
+  /** The `- Area:` header line — the section this record is indexed under. */
+  readonly area: AdrArea;
+  /**
+   * The `- Read when:` header line: the symptom that should send a reader here,
+   * written on one logical line and reflowed by Prettier.
+   *
+   * This is the whole payload of the router's decision index. A line naming the
+   * record's *subject* gets skipped; one naming the **symptom** gets read, which
+   * is the difference between an index and 150KB of digest in `CLAUDE.md`.
+   */
+  readonly readWhen: string;
   /**
    * ADR ids this record records as having revised or amended it, read from the
    * `- Revised: … by [ADR NNNN]` / `- Amended by: [ADR NNNN]` header lines.
@@ -84,6 +114,24 @@ const revisionMarkers = (text: string): string[] => {
   return found;
 };
 
+/**
+ * A header list entry, rejoined across the lines Prettier reflowed it onto.
+ *
+ * `- Read when:` is one sentence and always wraps, so a single-line regex reads
+ * a third of it and the generated index silently loses the rest of the symptom.
+ */
+const headerEntry = (text: string, label: string): string | undefined => {
+  const lines = text.split('\n');
+  const i = lines.findIndex(line => line.startsWith(`- ${label}:`));
+  if (i === -1) return undefined;
+
+  let entry = lines[i].slice(label.length + 3).trim();
+  for (let j = i + 1; j < lines.length && /^\s+\S/.test(lines[j]); j++) {
+    entry += ` ${lines[j].trim()}`;
+  }
+  return entry;
+};
+
 export const adrs = (): AdrRecord[] =>
   adrFiles().map(file => {
     const text = readFileSync(join(ADR_ROOT, file), 'utf8');
@@ -92,12 +140,29 @@ export const adrs = (): AdrRecord[] =>
     if (!title || !status) {
       throw new Error(`${file}: expected an "# NN. Title" H1 and "- Status:"`);
     }
+
+    const area = headerEntry(text, 'Area');
+    const readWhen = headerEntry(text, 'Read when');
+    if (!area || !readWhen) {
+      throw new Error(
+        `${file}: expected "- Area:" and "- Read when:" header lines — ` +
+          'they are what the router indexes this record by',
+      );
+    }
+    if (!(ADR_AREAS as readonly string[]).includes(area)) {
+      throw new Error(
+        `${file}: "- Area: ${area}" is not one of ${ADR_AREAS.join(', ')}`,
+      );
+    }
+
     return {
       file,
       id: file.slice(0, 4),
       title: title[1].trim(),
       status: status[1],
       text,
+      area: area as AdrArea,
+      readWhen,
       revisedBy: [...new Set(revisionMarkers(text))],
     };
   });

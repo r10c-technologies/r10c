@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-01
+- Area: frontend
+- Read when: changing spacing, type scale, density or elevation — one token set with two scales, and a `@theme` shadow is baked at build time rather than referenced
 
 ## Context
 

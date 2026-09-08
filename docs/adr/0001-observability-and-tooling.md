@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-07-22
+- Area: platform
+- Read when: adding a service to the observability pipeline, changing a log level or sink, or adding a metric or a Grafana panel — the Effect→tooling bridge silently emitted every log at `info` and discarded every annotation, and a declared metric name is not its Prometheus name
 - Revised: 2026-09-01 — the metrics half of this record is still unbuilt, and the
   first metric set is named. See "Metrics" below. The pipeline decision is
   unchanged.

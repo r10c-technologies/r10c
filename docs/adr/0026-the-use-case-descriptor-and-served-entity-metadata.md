@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-08-19
+- Area: entities
+- Read when: adding a verb to an entity, or reading affordances in the browser — the descriptor is served from `$metadata` filtered by the verified principal, and an inline descriptor makes every invariant pass vacuously
 - Revised: 2026-08-20 — two facts found while building it (#118): the decorator
   writes two metadata bags rather than one, and `permissionForUseCase` gained a
   one-argument form; grants cannot import the constant it derives.

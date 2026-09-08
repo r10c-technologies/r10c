@@ -5,6 +5,8 @@
   `partyRole`'s source becomes a `PartyRole` entity rather than a column on
   `Individual`. The claim itself is unchanged.
 - Date: 2026-08-05
+- Area: auth
+- Read when: touching token minting or verification — RS256 with `algorithms` pinned is the security boundary, and `partyRole` is routing context, never a grant
 
 ## Context
 

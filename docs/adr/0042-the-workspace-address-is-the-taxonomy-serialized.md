@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Date: 2026-09-06
+- Area: frontend
+- Read when: addressing a workspace tab — `master:<key>[:<id>]` is one grammar, and both version constants bump when it changes
 - Revised: 2026-09-07 by [ADR 0045](0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md)
   — the third segment is the position within the screen: a record for `master`,
   a step for `wizard`.
