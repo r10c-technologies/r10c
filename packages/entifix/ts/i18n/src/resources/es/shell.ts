@@ -292,6 +292,14 @@ export const shell = {
       category: 'Categoría',
       reference: 'Referencia',
       related: 'También te puede interesar',
+      /**
+       * `availableHint` es una **pista**, y el nombre lo dice: el catálogo
+       * publicado es consistente en diferido a propósito y la verdad es la
+       * reserva del checkout (ADR 0009). Por eso la copia no promete
+       * existencias concretas.
+       */
+      available: 'Disponible',
+      unavailable: 'Sin existencias',
     },
     search: {
       heading: 'Buscar',

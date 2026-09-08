@@ -10,7 +10,16 @@
 export const storePaths = {
   home: () => '/',
   category: (code: string) => `/c/${code}`,
-  product: (code: string) => `/p/${code}`,
+  /**
+   * A published offering, addressed by its **offering id**.
+   *
+   * Not its `code`: offering and specification are 1:N by construction, so two
+   * vendors publishing against one specification produce the same code and
+   * `/p/<code>` collides — and a lookup by code returns the *first* match
+   * rather than failing, which makes the second vendor's listing silently
+   * unreachable instead of visibly broken (ADR 0049).
+   */
+  offering: (offeringId: string) => `/p/${offeringId}`,
   search: (term?: string) =>
     term ? `/search?q=${encodeURIComponent(term)}` : '/search',
   cart: () => '/cart',

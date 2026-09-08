@@ -4,7 +4,7 @@ import {
   Stack,
 } from '@r10c/entifix-react-controls/primitives';
 
-import { ProductGridSkeleton } from '../catalog/product-grid';
+import { OfferingGridSkeleton } from '../catalog/offering-grid';
 
 /**
  * The route-level fallback, shared by every segment's `loading.tsx`.
@@ -23,7 +23,7 @@ export function StorefrontSkeleton() {
           <Skeleton shape="block" className="h-[2em] w-2/3" />
           <SkeletonText lines={2} />
         </Stack>
-        <ProductGridSkeleton />
+        <OfferingGridSkeleton />
       </Stack>
     </div>
   );

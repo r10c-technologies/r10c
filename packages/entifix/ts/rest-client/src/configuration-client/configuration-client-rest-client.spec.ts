@@ -93,6 +93,44 @@ describe('ConfigurationClientRestClient', () => {
     expect(error.details).toEqual({ url: '/api/config' });
   });
 
+  /**
+   * The half a server component needs. config-service's fleet lookup is gated
+   * on a shared token — it serves real connection strings and cannot redact
+   * them — so a caller reading it directly, rather than through its own app's
+   * `/api/config` route, has to carry the header itself.
+   */
+  it('sends the headers it was given', async () => {
+    let seen: string | null = null;
+    server.use(
+      http.get(CONFIG_URL, ({ request }) => {
+        seen = request.headers.get('x-service-token');
+        return HttpResponse.json(plain);
+      }),
+    );
+
+    await Effect.runPromise(
+      store({ url: CONFIG_URL, headers: { 'x-service-token': 'a-token' } })
+        .in('mongo')
+        .getString('uri'),
+    );
+
+    expect(seen).toBe('a-token');
+  });
+
+  it('sends none when it was given none', async () => {
+    let seen: string | null = null;
+    server.use(
+      http.get(CONFIG_URL, ({ request }) => {
+        seen = request.headers.get('x-service-token');
+        return HttpResponse.json(plain);
+      }),
+    );
+
+    await Effect.runPromise(store().in('mongo').getString('uri'));
+
+    expect(seen).toBeNull();
+  });
+
   it('fails with an EntifixBuildError when the endpoint answers an error status', async () => {
     server.use(
       http.get(CONFIG_URL, () => new HttpResponse(null, { status: 503 })),

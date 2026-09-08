@@ -34,6 +34,12 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../common/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/rest-client/tsconfig.lib.json"
+    },
+    {
       "path": "../../../entifix/ts/i18n/tsconfig.lib.json"
     },
     {
@@ -46,10 +52,13 @@
       "path": "../../../entifix/react/controls/tsconfig.lib.json"
     },
     {
-      "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
+      "path": "../../../business/ts/marketplace-catalog/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/catalog-reference/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/testing-unit"
     }
   ]
 }

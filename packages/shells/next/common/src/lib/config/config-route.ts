@@ -37,6 +37,17 @@ export const rewriteServiceDomains = (
   ),
 });
 
+/**
+ * Where config-service answers, for the callers that reach it directly.
+ *
+ * One declaration rather than two: this route is no longer the only server-side
+ * caller — the storefront's server components read their own configuration from
+ * config-service without a route in between, because a Next app cannot fetch
+ * its own `/api/config` while prerendering itself.
+ */
+export const configApiUrl = (): string =>
+  process.env['CONFIG_API_URL'] ?? 'http://localhost:3190';
+
 export interface ConfigRouteOptions {
   /** This app's key in the `configuration` table, e.g. `back-office-app`. */
   readonly service: string;
@@ -57,11 +68,10 @@ export interface ConfigRouteOptions {
 export const createConfigRoute = ({
   service,
   proxies = {},
-  configApiUrl,
+  configApiUrl: configApiUrlOverride,
 }: ConfigRouteOptions) =>
   async function GET(): Promise<Response> {
-    const baseUrl =
-      configApiUrl ?? process.env.CONFIG_API_URL ?? 'http://localhost:3190';
+    const baseUrl = configApiUrlOverride ?? configApiUrl();
 
     const response = await fetch(`${baseUrl}/api/config/${service}`, {
       cache: 'no-store',

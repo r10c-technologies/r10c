@@ -33,6 +33,21 @@ export interface EntifixE2eConfigOptions {
    * base URL, which is right for an app with no gate.
    */
   readyPath?: string;
+  /**
+   * What Playwright runs to serve the app, when `next start` alone is not
+   * enough.
+   *
+   * The one caller so far is the storefront, whose reads happen in **server
+   * components**: `page.route()` cannot see a fetch the Next process makes, so
+   * its `mock` profile launches the server under a `--import` preload that
+   * installs msw inside that process instead. Expressed here rather than
+   * through `overrides` so the cwd, the readiness URL and the reuse rule stay
+   * in one place — an override would have to restate all three to change one.
+   *
+   * Ignored outside `mock`: a `live` run talks to real services and must not
+   * start a faked one.
+   */
+  mockServerCommand?: string;
   /** Anything else to merge in, for a project with a genuine special case. */
   overrides?: PlaywrightTestConfig;
 }
@@ -85,6 +100,7 @@ export const defineEntifixE2eConfig = ({
   port,
   testDir = './src',
   readyPath = '',
+  mockServerCommand,
   overrides = {},
 }: EntifixE2eConfigOptions): PlaywrightTestConfig => {
   const mock = isMockProfile();
@@ -113,7 +129,10 @@ export const defineEntifixE2eConfig = ({
     // task never starts. The build the server needs is expressed instead as a
     // plain `dependsOn` on the e2e target.
     webServer: {
-      command: `pnpm exec next start -p ${port}`,
+      command:
+        mock && mockServerCommand !== undefined
+          ? mockServerCommand
+          : `pnpm exec next start -p ${port}`,
       cwd: join(workspaceRoot, appDir),
       url: `${baseURL}${readyPath}`,
       reuseExistingServer: true,

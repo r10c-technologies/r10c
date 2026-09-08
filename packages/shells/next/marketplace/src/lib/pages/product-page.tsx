@@ -1,6 +1,7 @@
 import {
   Button,
   Card,
+  Cluster,
   HeadingOne,
   HeadingTwo,
   Overline,
@@ -13,46 +14,50 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { addToCart } from '../cart/cart-actions';
-import { ProductGrid, ProductGridSkeleton } from '../catalog/product-grid';
+import { formatMoney } from '../catalog/money';
+import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
 import {
   getBrand,
   getCategory,
-  getProduct,
-  loadProducts,
+  getOffering,
+  loadOfferings,
 } from '../catalog/queries';
 import { StoreShell } from './store-shell';
 
 /**
- * A product detail page — prerendered per product per locale.
+ * A product detail page — one published offering, revalidated on the interval
+ * the route declares.
  *
  * The buy box is a plain `<form>` posting to a Server Action. That is why
- * add-to-cart works on a **static** page: the page itself carries no client
+ * add-to-cart works on a **cached** page: the page itself carries no client
  * state, the action writes the cookie server-side, and the only JavaScript in
  * the buy box is `Button`'s own — which the form does not even need to submit.
  */
-async function RelatedProducts({
+async function RelatedOfferings({
   locale,
   categoryCode,
-  excludeCode,
+  excludeOfferingId,
 }: {
   readonly locale: Locale;
   readonly categoryCode: string | undefined;
-  readonly excludeCode: string;
+  readonly excludeOfferingId: string;
 }) {
   const t = getServerTFor(locale, 'shell');
   if (!categoryCode) return null;
 
-  const page = await loadProducts({ category: categoryCode, pageSize: 4 });
-  const related = page.items.filter(item => item.code !== excludeCode);
+  const page = await loadOfferings({ category: categoryCode, pageSize: 4 });
+  const related = page.items.filter(
+    item => item.offeringId !== excludeOfferingId,
+  );
 
   if (related.length === 0) return null;
 
   return (
     <Stack gap="s">
       <HeadingTwo>{t('storefront.product.related')}</HeadingTwo>
-      <ProductGrid
+      <OfferingGrid
         locale={locale}
-        products={related}
+        offerings={related}
         emptyLabel={t('storefront.category.empty')}
       />
     </Stack>
@@ -61,20 +66,20 @@ async function RelatedProducts({
 
 export async function ProductPage({
   locale,
-  code,
+  offeringId,
 }: {
   readonly locale: Locale;
-  readonly code: string;
+  readonly offeringId: string;
 }) {
   const t = getServerTFor(locale, 'shell');
-  const product = await getProduct(code);
-  if (!product) notFound();
+  const offering = await getOffering(offeringId);
+  if (!offering) notFound();
 
   // Resolved through the owning domain's read path, not a storage-layer join:
   // both ids point into `catalog-reference`, another slice's store (ADR 0022).
   const [brand, category] = await Promise.all([
-    getBrand(product.brandId),
-    getCategory(product.categoryId),
+    getBrand(offering.brandId),
+    getCategory(offering.categoryId),
   ]);
 
   return (
@@ -86,7 +91,7 @@ export async function ProductPage({
             aria-hidden="true"
           >
             <span className="text-step-4 font-semibold">
-              {product.name.charAt(0)}
+              {offering.name.charAt(0)}
             </span>
           </div>
 
@@ -95,17 +100,36 @@ export async function ProductPage({
               <Overline>
                 {brand?.name ?? t('storefront.product.brand')}
               </Overline>
-              <HeadingOne>{product.name}</HeadingOne>
-              <Text muted>{product.description}</Text>
+              <HeadingOne>{offering.name}</HeadingOne>
+              <Text muted>{offering.description}</Text>
             </Stack>
+
+            <Cluster gap="s" justify="between">
+              <Text weight="semibold" step={1}>
+                {formatMoney(locale, offering.amount, offering.currency)}
+              </Text>
+              <Text muted>
+                {offering.availableHint
+                  ? t('storefront.product.available')
+                  : t('storefront.product.unavailable')}
+              </Text>
+            </Cluster>
 
             <Card>
               <Stack gap="2xs">
-                <Text muted>
-                  {t('storefront.product.reference')}
-                  {': '}
-                  {product.code}
-                </Text>
+                {/*
+                  Still the vendor's own reference, and still worth showing —
+                  it is what a buyer quotes back. It is simply no longer the
+                  address: two vendors publishing against one specification
+                  share this string (ADR 0049).
+                */}
+                {offering.code ? (
+                  <Text muted>
+                    {t('storefront.product.reference')}
+                    {': '}
+                    {offering.code}
+                  </Text>
+                ) : null}
                 {category ? (
                   <Text muted>
                     {t('storefront.product.category')}
@@ -118,10 +142,14 @@ export async function ProductPage({
 
             {/*
               A real form, not an onClick. It submits without JavaScript, and on
-              a prerendered page there is no other way to reach the server.
+              a cached page there is no other way to reach the server.
             */}
             <form action={addToCart}>
-              <input type="hidden" name="code" value={product.code} />
+              <input
+                type="hidden"
+                name="offeringId"
+                value={offering.offeringId}
+              />
               <input type="hidden" name="locale" value={locale} />
               <Button type="submit" variant="primary" size="lg">
                 {t('storefront.product.addToCart')}
@@ -130,11 +158,11 @@ export async function ProductPage({
           </Stack>
         </div>
 
-        <Suspense fallback={<ProductGridSkeleton count={3} />}>
-          <RelatedProducts
+        <Suspense fallback={<OfferingGridSkeleton count={3} />}>
+          <RelatedOfferings
             locale={locale}
             categoryCode={category?.code}
-            excludeCode={product.code}
+            excludeOfferingId={offering.offeringId}
           />
         </Suspense>
       </Stack>

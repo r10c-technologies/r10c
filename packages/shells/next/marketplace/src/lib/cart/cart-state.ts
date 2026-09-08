@@ -8,14 +8,20 @@
  * a single file would drag a server-only API into the browser bundle and Next
  * refuses to build it.
  *
- * The format is `code:qty` pairs because this is a fixture cart. A real one
- * moves server-side keyed by session, with only an id in the cookie — and
- * nothing above this module would change.
+ * The format is `offeringId:qty` pairs. The key is the **offering id**, not a
+ * product code: offering and specification are 1:N, so two vendors publishing
+ * against one specification share a code and would share a cart line — one
+ * vendor's item silently added to the other's. It is also the address the
+ * storefront already uses (ADR 0049), so a cart line and a product URL name the
+ * same thing.
+ *
+ * A real cart moves server-side keyed by session, with only an id in the cookie
+ * — and nothing above this module would change.
  */
 export const CART_COOKIE = 'r10c_cart';
 
 export interface CartLine {
-  readonly code: string;
+  readonly offeringId: string;
   readonly quantity: number;
 }
 
@@ -23,15 +29,15 @@ export function parseCart(value: string | undefined): CartLine[] {
   if (!value) return [];
 
   return value.split(',').flatMap(entry => {
-    const [code, quantity] = entry.split(':');
+    const [offeringId, quantity] = entry.split(':');
     const parsed = Number(quantity);
-    if (!code || !Number.isFinite(parsed) || parsed < 1) return [];
-    return [{ code, quantity: Math.floor(parsed) }];
+    if (!offeringId || !Number.isFinite(parsed) || parsed < 1) return [];
+    return [{ offeringId, quantity: Math.floor(parsed) }];
   });
 }
 
 export function serializeCart(lines: readonly CartLine[]): string {
-  return lines.map(line => `${line.code}:${line.quantity}`).join(',');
+  return lines.map(line => `${line.offeringId}:${line.quantity}`).join(',');
 }
 
 export function cartCount(lines: readonly CartLine[]): number {
