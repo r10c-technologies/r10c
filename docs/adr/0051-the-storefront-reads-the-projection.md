@@ -49,7 +49,7 @@ would have the app fetch itself while prerendering itself.
 became build-time fetches of a service no build machine has.
 
 **The mock e2e profile could not see the traffic.** Every suite in the repo stubs
-through `page.route()`, which observes the *browser*. The storefront is React
+through `page.route()`, which observes the _browser_. The storefront is React
 server components: its reads never leave the Next process.
 
 ## Decision
@@ -77,7 +77,7 @@ there is **one** configuration key and one adapter set, not two.
 `/p/<offeringId>`, replacing `/p/<code>`. ADR 0049 anticipated this and the
 reason is now load-bearing rather than theoretical: an offering and a
 specification are 1:N by construction, so two vendors publishing against one
-specification carry the same `code` — and a lookup by code returns the *first*
+specification carry the same `code` — and a lookup by code returns the _first_
 match rather than failing, which makes the second vendor's listing silently
 unreachable instead of visibly broken. `code` is still rendered, because it is
 the reference a buyer quotes back; it is simply not an identity.
@@ -94,7 +94,7 @@ incident. `offeringId` is declared `filterable` for exactly this read.
 The one place a filtered lookup is not available is `brandId`/`categoryId`:
 `id` is the single member that is neither `sortable` nor `filterable` by default,
 so it cannot be queried at all. Those resolve out of the loaded vocabulary
-instead — bounded by construction, because a marketplace *merges* its browse
+instead — bounded by construction, because a marketplace _merges_ its browse
 tree and `catalog-reference` is operator-authored — and a miss stays `undefined`,
 since nothing enforces a reference across a store boundary.
 
@@ -119,15 +119,15 @@ The `[locale]` layout's copy, which used to prerender `/es` and `/en`, is
 **deleted**.
 
 ⚠️ **This is correctness, not a lost optimization.** A build machine has no
-fleet, so what a build-time render of the home page bakes in is an *empty
-catalog*, which `revalidate` then serves to the first visitor of each locale
+fleet, so what a build-time render of the home page bakes in is an _empty
+catalog_, which `revalidate` then serves to the first visitor of each locale
 after every deploy. A page rendered from data the builder could not read is not a
 warm cache; it is a wrong answer with a TTL. It was measured: the four storefront
 e2e journeys failed against a freshly built app for exactly this reason, while
 the offering page — never enumerated — rendered correctly.
 
 ⚠️ **Empty and absent are different, and the difference is which routes it
-reaches.** `[]` keeps a segment in Next's *generated* mode, which is what makes
+reaches.** `[]` keeps a segment in Next's _generated_ mode, which is what makes
 an on-demand render cached rather than merely dynamic — so home needs it, and
 without it every visit re-renders. But a `generateStaticParams` on the **layout**
 governs every descendant, and `/search` and `/cart` read `searchParams` and
@@ -152,7 +152,7 @@ feature.
 `next start` runs under `node --import ./src/support/server-mocks.mjs`, which
 installs msw with the **same** `entityBackendHandlers` and `configurationHandler`
 the back-office suite already uses. So the fake is still at the transport
-boundary and the *production* query pipeline still runs
+boundary and the _production_ query pipeline still runs
 (`parseLoadRequestParams → loadUCFactory → makeMongoRepository → fake driver`) —
 `mock` and `live` go on agreeing about filtering, sorting, paging and the `400`
 the metadata allowlist produces. Nothing in the application bundle knows it
@@ -210,7 +210,8 @@ hands each card a name; a dangling reference renders nothing.
 
 - **The storefront shows what a vendor published**, which is the last link of
   M1's chain and what [#148](https://github.com/r10c-technologies/r10c/issues/148)
-  needs before it can delete the fixture repository.
+  needed before it could delete the fixture repository. It has: the three fixture
+  modules are gone.
 - **`next build` is hermetic**, and stays that way: it reaches no service, which
   is what lets CI build the app and the e2e build its own artifact.
 - ⚠️ **A backend outage looks like an empty catalog.** Stated above. The remedy
@@ -230,12 +231,28 @@ hands each card a name; a dangling reference renders nothing.
   where a crawler will index a not-found page as a real one, and it is left
   alone here because the fix belongs to whatever explains that asymmetry rather
   than to the entity swap.
-- **`fixture-repository.ts` is now imported by nothing but its own spec.**
-  Deleting it, and moving the layering claim it proves into specs over the
-  `type:testing` in-memory repository, is
-  [#148](https://github.com/r10c-technologies/r10c/issues/148)'s whole remaining
-  substance. `fixtures.ts` went now because nothing referenced it and the
-  package is gated at 100%.
+- **`fixture-repository.ts` was left imported by nothing but its own spec**, and
+  [#148](https://github.com/r10c-technologies/r10c/issues/148) deleted both.
+  `fixtures.ts` went with this record, because nothing referenced it and the
+  package is gated at 100%. The layering claim the fixture was written to
+  prove — one use case, two transports, injected at the composition root — did
+  not need moving anywhere: `queries.spec.ts` runs the **real** use case over
+  the **real** REST adapters against msw, which proves it against the transport
+  the app actually ships rather than against a second in-memory one.
+
+  ⚠️ What #148 did have to add is a **live profile**, because deleting the
+  fixtures was otherwise unfalsifiable here. Every storefront read happens in a
+  server component, so the `mock` profile fakes marketplace-service inside the
+  Next process — a storefront wired to nothing passes all of it, before and
+  after. `storefront.live.spec.ts` walks the journeys against a seeded fleet and
+  asks marketplace-service directly whether `published-catalog` is filled before
+  it opens a page, because the read path above never rejects and an empty
+  projection is indistinguishable from a finished, quiet catalog. Its one
+  concession is to the `200` recorded three bullets up: an unpublished
+  offering's address is asserted for the **absence of the product**, never for a
+  status, since asserting `404` would fail a page behaving exactly as this
+  record says it does and asserting `200` would pin the defect in place.
+
 - **The register is untouched.** No new store, no new event, no new route, no
   slice promotion — marketplace-service already owned and served both stores;
   what changed is that something reads them.

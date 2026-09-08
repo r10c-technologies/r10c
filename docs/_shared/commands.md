@@ -27,7 +27,12 @@ pnpm run dev-ports:free      # kill leftover listeners on every fleet port (each
                              # dev target already frees its own port first)
 
 # Dev — unified convention for EVERY app/service (each starts its own deps)
-pnpm nx run marketplace-app:dev            # :3000
+pnpm nx run marketplace-app:dev            # :3000 (auto-starts marketplace-service
+                                           #        AND marketplace-admin-service:
+                                           #        the storefront reads only the
+                                           #        former, but what fills its
+                                           #        projection on a fresh lab is
+                                           #        the rebuild walk in the latter)
 pnpm nx run back-office-app:dev            # :3001 (catalog + system management +
                                            #        users + account, one origin;
                                            #        auto-starts admin-service,

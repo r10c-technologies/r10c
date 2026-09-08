@@ -50,6 +50,13 @@ marketplace-admin-service, and the back office composes catalog URLs from **two*
 domain keys: `ProductSpecification` from `:3101`, `ProductBrand` and
 `ProductCategory` from here.
 
+And the dependency runs the other way too: **`marketplace-app:dev` starts
+marketplace-admin-service** alongside marketplace-service. The storefront reads
+only this service — but nothing here writes `published-catalog`, it only
+projects into it, and what fills it on a fresh lab is ADR 0050's rebuild walk,
+which runs in marketplace-admin-service. A storefront fleet without that service
+comes up healthy, green on every probe, serving an empty catalog.
+
 The difference from the version that was deleted is exactly the thing ADR 0020
 made sayable: a deployment earns its existence by owning a store.
 

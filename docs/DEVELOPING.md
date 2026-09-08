@@ -521,11 +521,27 @@ E2E_PROFILE=live \
   MARKETPLACE_ADMIN_SERVICE_URL=http://localhost:3101 \
   MARKETPLACE_SERVICE_URL=http://localhost:3100 \
   pnpm nx e2e back-office-app-e2e
+
+pnpm run mp:dev:reset                                       # then, in another shell:
+E2E_PROFILE=live MARKETPLACE_SERVICE_URL=http://localhost:3100 \
+  pnpm nx e2e marketplace-app-e2e
 ```
 
 `mock` is the default because the default has to run anywhere. `live` never
 falls back: a missing target URL **throws**, because a suite that skips itself
 reports green for a run that tested nothing.
+
+⚠️ **A `mock` run can be blind to the whole question a suite exists to answer.**
+The storefront reads in server components, so its `mock` profile fakes
+marketplace-service _inside the Next process_ — which means an app reading no
+backend at all would pass every mock spec. `storefront.live.spec.ts` is the half
+that can tell, and it asks marketplace-service directly whether
+`published-catalog` holds the seed's publications **before** it opens a page:
+the storefront's read path never rejects, so an empty projection renders as a
+finished, quiet catalog rather than as a failure. It also wants a lab that has
+not drifted — `mp:dev:reset`, because a hand-published offering changes the
+counts it asserts. See
+[FRONTEND.md → Proving it](FRONTEND.md#proving-it-which-the-mock-profile-cannot).
 
 **A `mock` run refuses a development server.** Playwright's
 `reuseExistingServer` attaches to whatever already listens on the app's port, so

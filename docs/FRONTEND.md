@@ -253,13 +253,13 @@ its own definition.
 
 The parts, and where each lives:
 
-| Piece                                                     | Where                                                     |
-| ---------------------------------------------------------- | ---------------------------------------------------------- |
-| the step graph, `WizardState`, `assertWizardDefinition`   | `entifix-ts-core` — framework-free, like `CommandSource`   |
-| `Wizard` (stepper, step slot, recap, footer)              | `entifix-react-controls` — presentational, no router      |
-| `useWizard`, `WizardDraftStore`                           | `entifix-react-integration`                               |
-| `useWizardDraft`, the step-URL sync, `wizardTabKind`      | `shells-next-common`                                      |
-| a wizard's own definition and steps                       | the domain shell that owns the records it writes          |
+| Piece                                                   | Where                                                    |
+| ------------------------------------------------------- | -------------------------------------------------------- |
+| the step graph, `WizardState`, `assertWizardDefinition` | `entifix-ts-core` — framework-free, like `CommandSource` |
+| `Wizard` (stepper, step slot, recap, footer)            | `entifix-react-controls` — presentational, no router     |
+| `useWizard`, `WizardDraftStore`                         | `entifix-react-integration`                              |
+| `useWizardDraft`, the step-URL sync, `wizardTabKind`    | `shells-next-common`                                     |
+| a wizard's own definition and steps                     | the domain shell that owns the records it writes         |
 
 Seven rules that are easy to get wrong:
 
@@ -921,7 +921,7 @@ shells, per the design-system rule.
 | `PageView({addr})` pages, registrations, adapters                                                                                                                                                 | `@r10c/shells-next-marketplace-admin` |
 | `(back-office)` user management over `EntityTable`/`EntityForm`, account surface, sign-in                                                                                                         | `@r10c/shells-next-auth`              |
 | `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions and entitlements), the three route groups, proxy route handlers | `back-office-app`                     |
-| Storefront pages, chrome, `StoreLink`, the catalog read side + cookie cart — all server components                                                                                                      | `@r10c/shells-next-marketplace`       |
+| Storefront pages, chrome, `StoreLink`, the catalog read side + cookie cart — all server components                                                                                                | `@r10c/shells-next-marketplace`       |
 | `app/[locale]` route tree, `loading.tsx`, cart route                                                                                                                                              | `marketplace-app`                     |
 
 **Navigation is filtered server-side, under two ceilings.** One definition per
@@ -972,7 +972,7 @@ is not expressible without Partial Prerendering.
 omission: the home page and the offering page each declare an **empty**
 `generateStaticParams`, and the `[locale]` layout declares none. The content
 comes from marketplace-service, a build machine has no fleet, and a page
-prerendered from data the builder could not read is an *empty catalog* with a TTL
+prerendered from data the builder could not read is an _empty catalog_ with a TTL
 rather than a warm cache. The empty declaration is what keeps an on-demand render
 **cached** rather than merely dynamic; putting one on the layout instead reaches
 `/search` and `/cart`, which read `searchParams` and `cookies()` and answer
@@ -1017,12 +1017,56 @@ instead of being a hydration mismatch. Two consequences worth knowing:
   so add-to-cart **redirects** to the cart. The navigation is the feedback;
   without it the click looks like it did nothing.
 
+## Proving it, which the mock profile cannot
+
+The fixtures are gone — `fixture-repository.ts`, its spec and `fixtures.ts` all
+deleted — and that deletion is only safe because there is now a suite that would
+have noticed if the storefront had gone on reading nothing.
+
+⚠️ **The `mock` profile cannot see it.** Every storefront read happens in a
+server component, so `page.route()` never sees the traffic and the profile fakes
+marketplace-service **inside the Next process** instead
+(`apps/marketplace-app-e2e/src/support/server-mocks.mjs`). That is exactly right
+for a hermetic run and exactly blind to the question "does this app read a real
+backend at all" — a storefront wired to nothing would pass all seventeen mock
+specs, before and after the fixtures were removed.
+
+So `storefront.live.spec.ts` walks the same journeys against a seeded fleet, and
+begins by asking marketplace-service **directly** whether `published-catalog`
+holds the seed's publications. That question is the point: `loadPage` never
+rejects, so a fleet whose announcements never arrived renders the storefront's
+own "nothing here yet" copy and looks _finished and quiet_. Without the
+precondition every journey below it would pass against an empty store.
+
+Two things it needs, neither obvious:
+
+- **marketplace-admin-service must be running**, which is why
+  `marketplace-app:dev` now starts it alongside marketplace-service. The
+  storefront reads only marketplace-service — but what _fills_ the projection on
+  a fresh lab is ADR 0050's rebuild walk, and that runs in the admin service. A
+  storefront fleet without it serves an empty catalog forever.
+- **The expectations restate the fleet seed rather than importing it**
+  (`src/support/live-seed.ts`), the convention `back-office-app-e2e` already
+  follows: an e2e project reaching into an app's source couples two runtimes, and
+  a seed change nobody mirrored should fail here rather than be absorbed.
+
+```sh
+pnpm run mp:dev:reset          # a drifted lab fails the counts, and should
+E2E_PROFILE=live MARKETPLACE_SERVICE_URL=http://localhost:3100 \
+  pnpm nx e2e marketplace-app-e2e
+```
+
+⚠️ One assertion is deliberately weaker than it looks: an unpublished offering's
+address is checked for the **absence of the product**, not for a `404`.
+`notFound()` raised inside a `layer:shell` package renders the not-found UI
+without carrying its status (see ADR 0051's consequences) — asserting `200` would
+pin that defect in place, and asserting `404` would fail a page behaving exactly
+as recorded.
+
 ## Deferred
 
 Checkout, product imagery beyond fixed aspect-ratio placeholders, PPR, a CI
-bundle-size budget. Real data landed with
-[ADR 0051](adr/0051-the-storefront-reads-the-projection.md); what is left of the
-fixture is `fixture-repository.ts`, which nothing but its own spec imports.
+bundle-size budget.
 
 ---
 
