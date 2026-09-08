@@ -21,6 +21,13 @@
  * driver`), so `mock` and `live` agree about filtering, sorting, paging and the
  * `400` the metadata allowlist produces. Nothing here re-implements RSQL.
  *
+ * ⚠️ It must run with `--conditions=@r10c/source` **off**. `nx.json` sets that
+ * on every `e2e` target, and under it a business package resolves to its
+ * TypeScript source — where the first `@entity()` decorator is a
+ * `SyntaxError`, because Node strips types and does not transform them. The
+ * launch command clears `NODE_OPTIONS` for exactly this reason; the entity
+ * classes below must come from their `dist`.
+ *
  * Nothing in the application bundle knows this exists.
  */
 import { register } from 'node:module';

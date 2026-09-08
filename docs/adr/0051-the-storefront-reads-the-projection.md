@@ -112,10 +112,11 @@ must not spread to anything that writes, and why the live-profile storefront e2e
 [#148](https://github.com/r10c-technologies/r10c/issues/148) adds is the check
 that will actually assert real data.
 
-### Nothing is enumerated at build time, and the locales stopped being either
+### Nothing is enumerated at build time, and the home page stopped being either
 
-`generateStaticParams` returns `[]` on the offering route — and, less obviously,
-on the `[locale]` layout, which used to prerender `/es` and `/en`.
+`generateStaticParams` returns `[]` on the offering route and on the home page.
+The `[locale]` layout's copy, which used to prerender `/es` and `/en`, is
+**deleted**.
 
 ⚠️ **This is correctness, not a lost optimization.** A build machine has no
 fleet, so what a build-time render of the home page bakes in is an *empty
@@ -124,6 +125,16 @@ after every deploy. A page rendered from data the builder could not read is not 
 warm cache; it is a wrong answer with a TTL. It was measured: the four storefront
 e2e journeys failed against a freshly built app for exactly this reason, while
 the offering page — never enumerated — rendered correctly.
+
+⚠️ **Empty and absent are different, and the difference is which routes it
+reaches.** `[]` keeps a segment in Next's *generated* mode, which is what makes
+an on-demand render cached rather than merely dynamic — so home needs it, and
+without it every visit re-renders. But a `generateStaticParams` on the **layout**
+governs every descendant, and `/search` and `/cart` read `searchParams` and
+`cookies()`: as static candidates they answered `500 DYNAMIC_SERVER_USAGE`.
+Hence one empty copy scoped to the home page and none on the layout. The build
+output is the check — `● /[locale]`, `● /[locale]/p/[offeringId]`, and `ƒ` for
+`/search`, `/cart` and `/c/[category]`.
 
 Every page is therefore rendered on its first request and cached from there. What
 the `[locale]` segment buys is unchanged and was never about the build: the
@@ -153,20 +164,31 @@ Three mechanics worth not rediscovering.
 cached-fetch wrapper wraps the patched `fetch`. Register after Next boots and the
 interception is invisible.
 
-⚠️ **`node --import` on Next's own binary, not `NODE_OPTIONS` with `pnpm exec`.**
-`NODE_OPTIONS` reaches every node process in the chain, pnpm included, and the
-preload's resolver hook then runs while pnpm is still loading `.pnpmfile.mjs` —
-which fails the launch before Next is reached. Measured, not reasoned out.
+⚠️ **`NODE_OPTIONS` on a bare `node`, and it must be all three of those
+words.** `NODE_OPTIONS` rather than a command-line `--import`, because Next
+forks render workers and a parent's flag does not reach them — some requests are
+intercepted and some are not, which surfaces as two or three flaky specs rather
+than as a broken suite. `node` rather than `pnpm exec`, because `NODE_OPTIONS`
+reaches pnpm too and the preload's resolver hook runs while pnpm is still
+loading `.pnpmfile.mjs`, failing the launch before Next is reached. And
+assigning it at all is what **clears** `nx.json`'s
+`--conditions=@r10c/source`, which every `e2e` target sets so a spec resolves
+workspace packages to source: inherited by the preload it makes a business
+package resolve to `src`, where the first `@entity()` decorator is a
+`SyntaxError: Invalid or unexpected token` — Node strips types, it does not
+transform them — and the server never starts. `next start` serves a build that
+already inlined everything, so it needs that condition for nothing. All three
+were measured; the last one only in CI, after the suite had gone green
+locally.
 
 ⚠️ **The preload needs a resolver hook at all**, because every module in this
 workspace writes extensionless relative imports and Node's ESM resolver requires
 an extension — every other consumer (webpack, swc, Turbopack, vite) supplies one.
 `.ts` is in its list because `@r10c/entifix-ts-testing-e2e` publishes TypeScript
 source: it is `type:testing` and has no build target. Node 26 strips the types
-itself, which works only because nothing on that path uses a decorator; a
-`@entity()` class reached this way fails with `SyntaxError: Invalid or unexpected
-token`, which is why the business entities are imported from their `dist` and
-must stay that way.
+itself, which works only because nothing on that path uses a decorator — and the
+entity classes therefore have to come from their `dist`, which is the second
+reason the source condition must be off.
 
 ### The card renders the whole snapshot
 

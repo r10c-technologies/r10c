@@ -18,9 +18,9 @@ interface LocaleParams {
 }
 
 /**
- * ⚠️ **Deliberately empty, and the routes below are still cached.**
+ * ⚠️ **There is deliberately no `generateStaticParams` here.**
  *
- * This used to return both locales, which prerendered `/es` and `/en` at build
+ * It used to return both locales, which prerendered `/es` and `/en` at build
  * time. That stopped being right the moment the storefront's content came from
  * marketplace-service: a build machine has no fleet, so what it would bake into
  * the home page is an empty catalog — and `revalidate` would then serve that
@@ -28,20 +28,19 @@ interface LocaleParams {
  * rendered from data the builder could not read is not a warm cache, it is a
  * wrong answer with a long TTL.
  *
- * So every locale renders on its first request and is cached from there, which
- * is the same arrangement `/[locale]/p/[offeringId]` uses and for the same
- * reason. What the `[locale]` segment buys is unchanged and is not about the
- * build: the locale is a route parameter rather than a header, so these pages
- * are cacheable at all — the header-based scheme in the back offices forces
- * every render to be dynamic.
+ * ⚠️ It is **removed**, not emptied. Returning `[]` from a *layout* keeps
+ * `[locale]` a generated segment with nothing in it, and Next then treats every
+ * descendant as a static candidate — including `/search` and `/cart`, which
+ * read `searchParams` and `cookies()`. Both answered `500 DYNAMIC_SERVER_USAGE`
+ * until this function was deleted rather than stubbed. The build output is the
+ * tell: they must stay `ƒ`.
  *
- * The function stays rather than being deleted: it is the one place the
- * decision is legible, and removing it invites the next reader to add
- * enumeration back.
+ * Every locale now renders on its first request and is cached from there, the
+ * same arrangement `/[locale]/p/[offeringId]` uses. What the `[locale]` segment
+ * buys is unchanged and is not about the build: the locale is a route parameter
+ * rather than a header, so these pages are cacheable at all — the header-based
+ * scheme in the back offices forces every render to be dynamic.
  */
-export function generateStaticParams() {
-  return [];
-}
 
 /** A prefix the middleware never produces (`/de/...`, typed by hand) is a 404. */
 function requireLocale(locale: string): Locale {

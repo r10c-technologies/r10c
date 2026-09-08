@@ -969,10 +969,14 @@ not the request, so the intended "static unfiltered, dynamic when sorted" split
 is not expressible without Partial Prerendering.
 
 ⚠️ **Nothing is generated at build time**, and that is deliberate rather than an
-omission: every `generateStaticParams` in the app returns `[]`. The content comes
-from marketplace-service, a build machine has no fleet, and a page prerendered
-from data the builder could not read is an *empty catalog* with a TTL rather than
-a warm cache. Each page renders on its first request and is cached from there
+omission: the home page and the offering page each declare an **empty**
+`generateStaticParams`, and the `[locale]` layout declares none. The content
+comes from marketplace-service, a build machine has no fleet, and a page
+prerendered from data the builder could not read is an *empty catalog* with a TTL
+rather than a warm cache. The empty declaration is what keeps an on-demand render
+**cached** rather than merely dynamic; putting one on the layout instead reaches
+`/search` and `/cart`, which read `searchParams` and `cookies()` and answer
+`500 DYNAMIC_SERVER_USAGE` as static candidates
 ([ADR 0051](adr/0051-the-storefront-reads-the-projection.md)).
 
 ## Two rules that are easy to get wrong

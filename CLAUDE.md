@@ -620,24 +620,37 @@ published` is legal, so it produces the identical message by the identical code
   logs**, so one blinking backend cannot `500` the storefront and `next build`
   cannot depend on a running fleet — with the cost stated rather than hidden:
   **empty and broken render identically**, the log is the only separator, and
-  this must never spread to anything that writes. ⚠️ **Every
-  `generateStaticParams` returns `[]`, including the `[locale]` layout's**, and
-  that is correctness: a build machine has no fleet, so a build-time render of
-  home bakes in an *empty catalog* that `revalidate` then serves to the first
-  visitor of each locale after every deploy — measured, as four storefront e2e
-  journeys failing against a freshly built app while the never-enumerated offering
-  page rendered fine. `revalidate` is **60s**, not an hour, because that interval
-  is how long a vendor's publication stays invisible. And ⚠️ **the mock e2e
+  this must never spread to anything that writes. ⚠️ **Nothing is
+  enumerated at build time**, and that is correctness: a build machine has no
+  fleet, so a build-time render of home bakes in an *empty catalog* that
+  `revalidate` then serves to the first visitor of each locale after every deploy
+  — measured, as four storefront e2e journeys failing against a freshly built app
+  while the never-enumerated offering page rendered fine. ⚠️ **Empty and absent
+  differ, and the difference is reach**: `[]` keeps a segment in Next's generated
+  mode, which is what makes an on-demand render *cached* rather than merely
+  dynamic — so the home page needs one — but a `generateStaticParams` on the
+  **layout** governs every descendant, and `/search` and `/cart` read
+  `searchParams`/`cookies()`, so as static candidates they answered
+  `500 DYNAMIC_SERVER_USAGE`. One empty copy on the page, none on the layout; the
+  build output is the check (`● /[locale]`, `ƒ /[locale]/search`).
+  `revalidate` is **60s**, not an hour, because that interval is how long a
+  vendor's publication stays invisible. And ⚠️ **the mock e2e
   profile fakes inside the Next process**: `page.route()` observes the browser and
   a server component's reads never leave the server, so `next start` runs under
   `node --import …/server-mocks.mjs`, installing msw with the *same*
   `entityBackendHandlers` the back office uses — order is the mechanism (`--import`
   runs before Next's entry, so Next's cached-fetch wrapper wraps the patched
-  `fetch`), it must be `node --import` on Next's binary and **not** `NODE_OPTIONS`
-  with `pnpm exec` (which reaches pnpm itself and dies loading `.pnpmfile.mjs`),
-  and it needs a resolver hook because every module here writes extensionless
-  relative imports — with `.ts` in the list only because `entifix-ts-testing-e2e`
-  ships source, which works solely while nothing on that path carries a decorator.
+  `fetch`), and the launch line has to be **`NODE_OPTIONS=… node …/next/bin`** in
+  all three of those words — `NODE_OPTIONS` because Next forks render workers and
+  a parent's command-line flag does not reach them (two or three flaky specs, not
+  a broken suite); `node` and not `pnpm exec`, because it reaches pnpm too and the
+  resolver hook fires while pnpm is still loading `.pnpmfile.mjs`; and assigning
+  it is what **clears `nx.json`'s `--conditions=@r10c/source`**, under which a
+  business package resolves to `src` and its first `@entity()` decorator is a
+  `SyntaxError` Node's type stripping cannot transform — the server then never
+  starts and no spec runs, which only CI caught. It needs a resolver hook at all
+  because every module here writes extensionless relative imports, with `.ts` in
+  the list only because `entifix-ts-testing-e2e` ships source.
   One correction rides along: the card rendered **`brandId`** where a brand name
   belongs, which read as a brand only because the fixtures were named to look like
   one.
