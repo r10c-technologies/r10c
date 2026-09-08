@@ -10,9 +10,11 @@ import {
 } from '@r10c/business-ts-authz';
 import {
   OfferingPriceRepositoryTag,
+  OfferingSpecificationRepositoryTag,
   type OfferingTransition,
   ProductOffering,
   ProductOfferingPrice,
+  ProductSpecification,
   transitionOffering,
   TransitionOfferingInputTag,
 } from '@r10c/business-ts-product-configuration-management';
@@ -582,6 +584,15 @@ export const transitionOfferingRoute = (
         OfferingPriceRepositoryTag,
         makeMongoRepository(db, ProductOfferingPrice),
       ),
+      // The same tenant handle again, a third time. Three tags rather than three
+      // uses of one, because one tag resolves to one value: the last provision
+      // would answer every read, and a repository built for `ProductOffering`
+      // deserializes a specification document into the wrong class instead of
+      // failing.
+      Effect.provideService(
+        OfferingSpecificationRepositoryTag,
+        makeMongoRepository(db, ProductSpecification),
+      ),
       Effect.provideService(TransitionOfferingInputTag, {
         id,
         transition,
@@ -682,6 +693,21 @@ export const transitionOfferingRoute = (
           detail:
             'An offering needs a price before it can reach the storefront: ' +
             'the published record carries an amount and a currency.',
+        },
+        { status: 409 },
+      ),
+    ),
+    Effect.catchTag('OfferingHasNoSpecification', failure =>
+      HttpServerResponse.json(
+        {
+          error: 'offering has no specification',
+          code: failure.code,
+          // The dangling id, because nothing enforces the reference and the
+          // vendor cannot find it from the offering's own screen.
+          detail:
+            `This offering names specification '${failure.specificationId}', ` +
+            'which no longer exists. The published record copies its name, ' +
+            'description, brand and category.',
         },
         { status: 409 },
       ),

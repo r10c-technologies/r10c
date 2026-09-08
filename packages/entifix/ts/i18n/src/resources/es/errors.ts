@@ -36,6 +36,12 @@ export const errors = {
   // El registro publicado lleva un monto y una moneda, así que sin precio no
   // hay nada que proyectar. Se rechaza en el verbo, donde el vendedor lo corrige.
   offeringHasNoPrice: 'Agrega un precio antes de publicar esta oferta.',
+  // La oferta apunta a una especificación borrada. El registro publicado copia
+  // su descripción, marca y categoría, así que publicar igual dejaría una ficha
+  // con nombre y precio y nada más — que se lee como un fallo de la tienda y no
+  // como datos que el vendedor tiene que arreglar. La baja sí se permite.
+  offeringHasNoSpecification:
+    'Esta oferta apunta a una especificación que ya no existe.',
   resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
   emailRequired: 'Se requiere un identificador de correo electrónico.',

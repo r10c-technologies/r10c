@@ -66,6 +66,36 @@ describe('The scanner', () => {
     ).toEqual(['signInFailed']);
   });
 
+  it('resolves a tagged error’s code back to the constant beside it', () => {
+    // ⚠️ The shape neither matcher above can see. A route catches such a failure
+    // and answers `code: failure.code` — a member expression, not a literal —
+    // so before this arm `illegalOfferingTransition` and `offeringHasNoPrice`
+    // were emitted by a live route and invisible to this scan.
+    expect(
+      emittedCodes(`
+        export const OFFERING_HAS_NO_PRICE = 'offeringHasNoPrice';
+
+        export class OfferingHasNoPrice extends Data.TaggedError(
+          'OfferingHasNoPrice',
+        )<{ readonly id: EntityId }> {
+          readonly code = OFFERING_HAS_NO_PRICE;
+        }
+      `),
+    ).toEqual(['offeringHasNoPrice']);
+  });
+
+  it('ignores a tagged code whose constant the file does not export', () => {
+    // A code a route can render is one the domain published. A file-private
+    // constant is unreachable from the guard that would render it, so counting
+    // it would demand a catalog entry for something no user can ever see.
+    expect(
+      emittedCodes(`
+        const PRIVATE = 'neverExported';
+        class Local { readonly code = PRIVATE; }
+      `),
+    ).toEqual([]);
+  });
+
   it('ignores a `code` member that is not part of an error body', () => {
     // The false-positive guard, and the reason the *pair* is matched rather than
     // a bare `code:`. ADR 0014's dictionary terms carry a `code`, as do several
@@ -81,13 +111,14 @@ describe('Every emitted error code is cataloged', () => {
   it('still finds the emission sites it is meant to check', () => {
     const found = emissions();
 
-    // 48 sites across 12 files when this gate was written. Pinned as a floor:
+    // 51 sites across 13 files once the tagged-error matcher landed — 48 and 12
+    // before it, which is how much the scan had been missing. Pinned as a floor:
     // the number climbs as the fleet grows, and a drop means a matcher stopped
     // matching rather than that the fleet stopped failing.
-    expect(found.length).toBeGreaterThanOrEqual(48);
+    expect(found.length).toBeGreaterThanOrEqual(51);
     expect(
       new Set(found.map(emission => emission.file)).size,
-    ).toBeGreaterThanOrEqual(12);
+    ).toBeGreaterThanOrEqual(13);
   });
 
   it('has a sentence for every code a service answers with', () => {

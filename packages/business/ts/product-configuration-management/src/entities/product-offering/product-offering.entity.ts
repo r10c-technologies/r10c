@@ -75,10 +75,21 @@ export class ProductOffering implements Entity {
   }
 
   /**
-   * The `EntitySpecification` version this offering was written under. Pinned,
-   * not followed: a released version is immutable, which is what lets a
-   * compiled-spec cache never invalidate and a publication dedupe a spec by
-   * content hash.
+   * The `ProductSpecification` this offering sells — the product model, in the
+   * same store and the same slice.
+   *
+   * ⚠️ It is **not** an `EntitySpecification` id. This comment used to say so,
+   * and every producer and consumer disagreed with it: the seed derives it from
+   * `productTempData`, the authoring form's picker names `ProductSpecification`,
+   * and the publication reads it to copy a description, a brand and a category.
+   * ADR 0014's versioned, content-hashed specification is a different member
+   * this entity does not carry yet, and reading the two as one wires a publish
+   * against a store that holds nothing — a `409` for every offering, with every
+   * test green.
+   *
+   * A plain id rather than a link, like `ProductSpecification`'s own brand and
+   * category: nothing enforces it, so a deleted specification leaves this
+   * dangling, which is why publishing checks it rather than assuming it.
    */
   @accessor({
     type: 'string',

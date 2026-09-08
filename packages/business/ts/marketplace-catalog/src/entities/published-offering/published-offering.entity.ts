@@ -53,6 +53,15 @@ export class PublishedOffering implements Entity {
   // The epoch, so a record written before this member existed compares as
   // older than every real publication rather than as newer than all of them.
   #publishedAt = new Date(0);
+  // The merchandising members, and every one of them is optional because its
+  // source is: three are `string | undefined` on `ProductSpecification`, and
+  // `code` is blanked by a `PUT` that omits it. They are deliberately not
+  // constructor parameters — the projector assigns through setters, and a
+  // seven-argument constructor would destroy the readable trio below.
+  #code?: string;
+  #description?: string;
+  #brandId?: string;
+  #categoryId?: string;
   // #endregion
 
   // #region constructors
@@ -187,6 +196,89 @@ export class PublishedOffering implements Entity {
   }
   set publishedAt(value: Date) {
     this.#publishedAt = value;
+  }
+
+  /**
+   * The pinned specification's catalogue number — **a reference, not the
+   * address**.
+   *
+   * A storefront path is built from `offeringId`, never from this. One
+   * `ProductSpecification` may be offered by several vendors, so `/p/<code>`
+   * collides — and a lookup by code returns the *first* match rather than
+   * failing, which makes the second vendor's listing silently unreachable
+   * instead of visibly broken. What this member is for is the reference a buyer
+   * quotes back, which is why the storefront already labels it "Referencia".
+   *
+   * `sortable` and `filterable` are stated rather than inherited. They would
+   * both default to `true` here (a scalar's default; only `id` and links default
+   * to `false`), but every member of this class declares its own — and the flags
+   * are simultaneously the server-side RSQL allowlist, so the value of writing
+   * them down is that removing one has to be deliberate.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.code',
+    sortable: true,
+    filterable: true,
+  })
+  get code(): string | undefined {
+    return this.#code;
+  }
+  set code(value: string | undefined) {
+    this.#code = value;
+  }
+
+  /**
+   * The specification's description, as the storefront card's body text.
+   *
+   * Not `filterable`: an unanchored `like` over prose is a collection scan no
+   * index serves, and nothing asks for one — the storefront's search matches
+   * `name`.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.description',
+    sortable: false,
+    filterable: false,
+  })
+  get description(): string | undefined {
+    return this.#description;
+  }
+  set description(value: string | undefined) {
+    this.#description = value;
+  }
+
+  /**
+   * The brand and category the specification is classified under, as **plain
+   * ids into `catalog-reference`** — a platform-plane store this slice also
+   * owns, so the storefront resolves the names through that domain's own read
+   * path rather than reading a name frozen at publication.
+   *
+   * `filterable` because `/c/<category>` is a filter on `categoryId`, and that
+   * flag is the allowlist the query is checked against.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.brandId',
+    filterable: true,
+  })
+  get brandId(): string | undefined {
+    return this.#brandId;
+  }
+  set brandId(value: string | undefined) {
+    this.#brandId = value;
+  }
+
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:published-offering.fields.categoryId',
+    filterable: true,
+  })
+  get categoryId(): string | undefined {
+    return this.#categoryId;
+  }
+  set categoryId(value: string | undefined) {
+    this.#categoryId = value;
   }
   // #endregion
 }

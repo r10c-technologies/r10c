@@ -10,14 +10,14 @@ import { ProductOffering } from './product-offering.entity.js';
 
 describe('ProductOffering', () => {
   it('serializes the offering with the specification version it pins', () => {
-    const offering = new ProductOffering('Blue widget, 3-pack', 'spec-1-v2');
+    const offering = new ProductOffering('Blue widget, 3-pack', 'product-specification-1');
     offering.id = 'off-1';
     offering.status = 'published';
 
     expect(serializeEntity(ProductOffering, offering)).toEqual({
       id: 'off-1',
       name: 'Blue widget, 3-pack',
-      specificationId: 'spec-1-v2',
+      specificationId: 'product-specification-1',
       status: 'published',
     });
   });
@@ -27,13 +27,13 @@ describe('ProductOffering', () => {
       deserializeSingleEntity(ProductOffering, {
         id: 'off-2',
         name: 'Red widget',
-        specificationId: 'spec-2-v1',
+        specificationId: 'product-specification-2',
         status: 'pending-review',
       }),
     );
 
     expect(offering?.name).toBe('Red widget');
-    expect(offering?.specificationId).toBe('spec-2-v1');
+    expect(offering?.specificationId).toBe('product-specification-2');
     expect(offering?.status).toBe('pending-review');
   });
 
@@ -48,11 +48,11 @@ describe('ProductOffering', () => {
   it('accepts the setters a repository writes back through', () => {
     const offering = new ProductOffering();
     offering.name = 'Green widget';
-    offering.specificationId = 'spec-3-v1';
+    offering.specificationId = 'product-specification-3';
     offering.status = 'unpublished';
 
     expect(offering.name).toBe('Green widget');
-    expect(offering.specificationId).toBe('spec-3-v1');
+    expect(offering.specificationId).toBe('product-specification-3');
     expect(offering.status).toBe('unpublished');
   });
 

@@ -9,6 +9,7 @@ import {
   EntifixConnError,
   type EntifixError,
   envelopeEntityName,
+  serializeEntity,
 } from '@r10c/entifix-ts-core';
 import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
@@ -167,22 +168,33 @@ export const applyPublication = (
       projected.currency = publication.currency;
       projected.availableHint = publication.availableHint;
       projected.publishedAt = at;
+      // The merchandising half, copied off the pinned specification at
+      // publication. Absent members stay absent: `serializeEntity` omits
+      // `undefined`, so a specification with no description projects a document
+      // without the key rather than one carrying `null`.
+      projected.code = publication.code;
+      projected.description = publication.description;
+      projected.brandId = publication.brandId;
+      projected.categoryId = publication.categoryId;
       // The offering's own id, so republishing an offering replaces its record
       // rather than accumulating one per publication.
       projected.id = publication.offeringId;
 
+      // ⚠️ `serializeEntity`, not a hand-written literal. The literal this
+      // replaced listed all eight members, which made it a second declaration
+      // site the payload/entity parity pin could not see: a member added to the
+      // snapshot and forgotten here is not an error, it is a field that silently
+      // never reaches the storefront. Walking the accessors keys the document by
+      // `alias ?? name` — the same keys `makeMongoRepository` reads back — and
+      // omits `undefined` rather than storing `null`.
+      //
+      // The one thing it can still hide: it skips accessors marked `hidden` or
+      // `readonly`, so either flag on a snapshot member would stop projecting it
+      // with every test green. `publish-catalog.spec.ts` asserts the written
+      // document against the payload's own members for that reason.
       await records.replaceOne(
         key,
-        {
-          id: projected.id,
-          offeringId: projected.offeringId,
-          vendorId: projected.vendorId,
-          name: projected.name,
-          amount: projected.amount,
-          currency: projected.currency,
-          availableHint: projected.availableHint,
-          publishedAt: projected.publishedAt,
-        },
+        serializeEntity(PublishedOffering, projected),
         { upsert: true },
       );
       // The record now carries this moment, so the tombstone has nothing left to

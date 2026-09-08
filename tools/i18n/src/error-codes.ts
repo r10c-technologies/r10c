@@ -57,11 +57,63 @@ const CODED_ERROR = new RegExp(
   'g',
 );
 
+/**
+ * `readonly code = OFFERING_HAS_NO_PRICE;` — the domain half for a
+ * `Data.TaggedError`, which carries its code as a class member.
+ *
+ * ⚠️ **This is the shape the two matchers above cannot see, and missing it was
+ * not theoretical.** A route catches such a failure and answers
+ * `{ error: '…', code: failure.code }` — a *member expression*, so
+ * `BODY_LITERAL` does not match it, and the class is not one of the three
+ * `CodedAuthnError` subclasses `CODED_ERROR` names. Measured while writing
+ * ADR 0049: `illegalOfferingTransition` and `offeringHasNoPrice` were emitted by
+ * a live route, cataloged by hand, and invisible to this scan — so the gate that
+ * exists to stop a raw code reaching a user was not watching them.
+ *
+ * The identifier is resolved against the file's own `export const` declarations
+ * ({@link declaredCodes}) rather than followed across modules: every such class
+ * in this repository declares its code beside itself, and a cross-file resolver
+ * would be a module graph this scan deliberately does not build.
+ */
+const TAGGED_ERROR_CODE = new RegExp(
+  String.raw`\breadonly\s+code\s*=\s*([A-Za-z_$][\w$]*)\s*;`,
+  'g',
+);
+
+/**
+ * `export const OFFERING_HAS_NO_PRICE = 'offeringHasNoPrice';` — the literals a
+ * {@link TAGGED_ERROR_CODE} identifier can name.
+ *
+ * `export`ed only, on purpose. A code a route can spell is one the domain
+ * published; a file-private constant assigned to `readonly code` would be
+ * unreachable from the guard that renders it.
+ */
+const EXPORTED_CODE = new RegExp(
+  String.raw`\bexport\s+const\s+([A-Za-z_$][\w$]*)\s*(?::\s*string\s*)?=\s*'([A-Za-z][\w-]*)'`,
+  'g',
+);
+
+/** The `export const NAME = 'literal'` pairs one file declares. */
+const declaredCodes = (source: string): Map<string, string> =>
+  new Map(
+    [...source.matchAll(EXPORTED_CODE)].map(match => [
+      match[1] as string,
+      match[2] as string,
+    ]),
+  );
+
 /** Every error code a single source file emits, in order of appearance. */
-export const emittedCodes = (source: string): string[] => [
-  ...[...source.matchAll(BODY_LITERAL)].map(match => match[1] as string),
-  ...[...source.matchAll(CODED_ERROR)].map(match => match[1] as string),
-];
+export const emittedCodes = (source: string): string[] => {
+  const declared = declaredCodes(source);
+
+  return [
+    ...[...source.matchAll(BODY_LITERAL)].map(match => match[1] as string),
+    ...[...source.matchAll(CODED_ERROR)].map(match => match[1] as string),
+    ...[...source.matchAll(TAGGED_ERROR_CODE)]
+      .map(match => declared.get(match[1] as string))
+      .filter((code): code is string => code !== undefined),
+  ];
+};
 
 const IGNORED_DIRECTORIES = new Set([
   'node_modules',

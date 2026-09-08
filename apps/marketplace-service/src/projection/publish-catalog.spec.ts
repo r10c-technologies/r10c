@@ -34,6 +34,10 @@ const PUBLICATION: CatalogPublication = {
   currency: 'GTQ',
   availableHint: true,
   publishedAt: '2026-09-07T10:00:00.000Z',
+  code: 'product-013',
+  description: 'Stoneware, glazed by hand.',
+  brandId: 'product-brand-3',
+  categoryId: 'product-category-7',
 };
 
 type Call = { readonly op: 'replace' | 'delete'; readonly document?: unknown };
@@ -149,6 +153,10 @@ describe('applying a publication', () => {
           currency: 'GTQ',
           availableHint: true,
           publishedAt: new Date('2026-09-07T10:00:00.000Z'),
+          code: 'product-013',
+          description: 'Stoneware, glazed by hand.',
+          brandId: 'product-brand-3',
+          categoryId: 'product-category-7',
         },
       },
     ]);
@@ -479,6 +487,10 @@ describe('the payload and the record it is written into', () => {
       currency: true,
       availableHint: true,
       publishedAt: true,
+      code: true,
+      description: true,
+      brandId: true,
+      categoryId: true,
     };
 
     for (const member of Object.keys(publication)) {
@@ -488,5 +500,69 @@ describe('the payload and the record it is written into', () => {
           'nowhere to put it, so the projector would drop it silently.',
       ).toContain(member);
     }
+  });
+
+  it('writes a key for every member the publication carried', async () => {
+    // ⚠️ The half the pin above cannot see. A home on the entity is not a write:
+    // the document goes out through `serializeEntity`, which skips any accessor
+    // marked `hidden` or `readonly`, so either flag on a snapshot member would
+    // stop projecting it while the mapping assertion above still passed and the
+    // storefront quietly lost a field.
+    const { db, calls } = dbHolding();
+
+    await apply(db, CATALOG_PUBLISHED);
+
+    const document = calls[0]?.document as Record<string, unknown>;
+
+    for (const member of Object.keys(PUBLICATION)) {
+      expect(
+        document,
+        `the publication carried '${member}' and the projected document does ` +
+          'not, so the storefront never receives it.',
+      ).toHaveProperty(member);
+    }
+  });
+
+  it('omits an absent optional rather than storing null', async () => {
+    // A specification legitimately carries no description, no brand and no
+    // category. `null` in the projection is not the same as absent: it renders
+    // as an empty label rather than as nothing, and it is what BSON writes for
+    // an assigned `undefined`.
+    const { db, calls } = dbHolding();
+
+    await apply(db, CATALOG_PUBLISHED, {
+      ...PUBLICATION,
+      code: undefined,
+      description: undefined,
+      brandId: undefined,
+      categoryId: undefined,
+    });
+
+    const document = calls[0]?.document as Record<string, unknown>;
+
+    expect(Object.keys(document)).not.toContain('description');
+    expect(Object.keys(document)).not.toContain('brandId');
+    expect(Object.keys(document)).not.toContain('categoryId');
+    expect(Object.keys(document)).not.toContain('code');
+  });
+
+  it('drops a description the vendor cleared, because the record is replaced', async () => {
+    // Wholesale replacement, never a merge (ADR 0009). A partial update path
+    // would leave the old description behind and the projection would disagree
+    // with its source in a way nothing detects.
+    const { db, calls } = dbHolding({
+      offeringId: 'offering-1',
+      publishedAt: new Date('2026-09-07T09:00:00.000Z'),
+      description: 'The description that was published first.',
+    });
+
+    await apply(db, CATALOG_PUBLISHED, {
+      ...PUBLICATION,
+      description: undefined,
+    });
+
+    const document = calls.at(-1)?.document as Record<string, unknown>;
+
+    expect(Object.keys(document)).not.toContain('description');
   });
 });

@@ -245,6 +245,10 @@ export const entity: EsEntity = {
       currency: 'Currency',
       availableHint: 'Availability hint',
       publishedAt: 'Published at',
+      code: 'Reference',
+      description: 'Description',
+      brandId: 'Brand ID',
+      categoryId: 'Category ID',
     },
   },
   'product-order': {

@@ -279,6 +279,13 @@ export const entity = {
       currency: 'Moneda',
       availableHint: 'Disponibilidad estimada',
       publishedAt: 'Publicada el',
+      // La referencia de la especificación fijada, no la dirección: la URL de la
+      // tienda se arma con `offeringId`, porque varias ofertas pueden fijar una
+      // misma especificación.
+      code: 'Referencia',
+      description: 'Descripción',
+      brandId: 'ID de marca',
+      categoryId: 'ID de categoría',
     },
   },
   'product-order': {

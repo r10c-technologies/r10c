@@ -37,10 +37,19 @@ export type CatalogEventName = (typeof CATALOG_EVENTS)[number];
  * edited mid-session. `vendorId` is what makes the projected record readable
  * without anything ever naming a tenant database.
  *
- * Every member is present on `catalog.unpublished` too. An unpublication could
- * carry `offeringId` alone, and deliberately does not: the consumer's guard
- * compares `publishedAt`, and a payload that changes shape by event name means
- * two decoders and two ways for the guard to be skipped.
+ * The shape does not change by event name. An unpublication could carry
+ * `offeringId` alone, and deliberately does not: the consumer's guard compares
+ * `publishedAt`, and a payload that varies with the event means two decoders and
+ * two ways for the guard to be skipped. What varies is the *data* — an optional
+ * member the specification does not carry is absent from a publication and an
+ * unpublication alike.
+ *
+ * ⚠️ **The four optional members are optional as a safety property, not as
+ * laxity.** {@link readCatalogPublication} rejecting a payload classifies the
+ * message **poison**, which `AmqpEventBusLayer` quarantines with zero retries
+ * (ADR 0030) — so requiring a member the source may legitimately lack makes that
+ * offering permanently unannounceable, and would turn every message already
+ * sitting in the queue into poison the moment this shape widened.
  */
 export interface CatalogPublication {
   /** The tenant-side `ProductOffering.id`. The projection's natural key. */
@@ -77,6 +86,33 @@ export interface CatalogPublication {
    * written down.
    */
   readonly publishedAt: string;
+  /**
+   * The pinned specification's catalogue number — **a reference, not the
+   * address**.
+   *
+   * A storefront URL cannot be built from it: one `ProductSpecification` may be
+   * offered by several vendors, so `/p/<code>` collides, and a lookup by code
+   * returns the *first* match rather than erroring — which makes the second
+   * vendor's listing unreachable instead of broken. {@link
+   * CatalogPublication.offeringId} is the address; this is what a buyer quotes
+   * back in a support message.
+   */
+  readonly code?: string;
+  /** The pinned specification's description — the storefront card's body. */
+  readonly description?: string;
+  /**
+   * The brand and category the pinned specification is classified under, as
+   * **plain ids into `catalog-reference`**.
+   *
+   * Ids and not names, deliberately. `catalog-reference` is platform plane
+   * precisely because a marketplace has to *merge* a browse tree, so the
+   * storefront resolves these through that domain's own read path — the same
+   * host, one more read on a page it prerenders. Copying the names would freeze
+   * a renamed brand into every projected record until each offering was
+   * republished, and nothing walks them.
+   */
+  readonly brandId?: string;
+  readonly categoryId?: string;
 }
 
 /**
@@ -126,6 +162,25 @@ export const catalogUnpublishedEvent = (
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value !== '';
+
+/**
+ * Reads an optional member, normalizing every way it can be missing to
+ * `undefined`. It **never rejects**, which is the whole point — see the warning
+ * on {@link CatalogPublication}.
+ *
+ * ⚠️ The `null` arm is load-bearing rather than defensive. `MongoClientLayer`
+ * does not set `ignoreUndefined`, so the driver's default writes `undefined` as
+ * BSON `null`; the outbox stores the whole event document, so a member built as
+ * `undefined` on the emitting side arrives here as `null` after the round trip.
+ * A reader that accepted only `string | undefined` would quarantine a message it
+ * had itself produced.
+ *
+ * `''` folds to `undefined` too: an empty description is not a description, and
+ * a blank `code` is what a `PUT` that omits it leaves behind — a form's absent
+ * value should not become a storefront's empty label.
+ */
+const optionalString = (value: unknown): string | undefined =>
+  isNonEmptyString(value) ? value : undefined;
 
 /**
  * Reads a bus payload back into a {@link CatalogPublication}.
@@ -192,5 +247,13 @@ export const readCatalogPublication = (
       currency: raw['currency'] as string,
       availableHint: raw['availableHint'] as boolean,
       publishedAt: raw['publishedAt'] as string,
+      // Read through `optionalString`, and deliberately never pushed onto
+      // `missing`: a specification legitimately carries no description, no
+      // brand and no category, and a `PUT` that omits `code` blanks it. See the
+      // warning on `CatalogPublication` for what rejecting one would cost.
+      code: optionalString(raw['code']),
+      description: optionalString(raw['description']),
+      brandId: optionalString(raw['brandId']),
+      categoryId: optionalString(raw['categoryId']),
     };
   });
