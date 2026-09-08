@@ -8,7 +8,11 @@ import {
   type PlaywrightTestConfig,
 } from '@playwright/test';
 
-import { isMockProfile, resolveE2eProfile } from '../profile/profile';
+import {
+  isMockProfile,
+  requireLiveUrl,
+  resolveE2eProfile,
+} from '../profile/profile';
 
 export interface EntifixE2eConfigOptions {
   /** The playwright config file — pass `__filename`, as the Nx preset wants. */
@@ -143,4 +147,15 @@ export const defineEntifixE2eConfig = ({
   });
 };
 
-export { resolveE2eProfile };
+/**
+ * Re-exported so a Playwright suite reaches both from this entry point.
+ *
+ * ⚠️ Not only for convenience. `@nx/enforce-module-boundaries` treats a package
+ * that any file in the consuming project loads with a dynamic `import()` as
+ * lazy-loaded, and then refuses every *static* import of it — and
+ * `marketplace-app-e2e` has one: its msw preload must call `register()` for the
+ * resolver hook before it resolves anything, so its imports cannot be hoisted.
+ * The rule keys on the specifier, so a `live` spec there can reach
+ * `requireLiveUrl` through `/playwright` and not through the root entry.
+ */
+export { requireLiveUrl, resolveE2eProfile };

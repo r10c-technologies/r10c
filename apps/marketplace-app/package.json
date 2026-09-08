@@ -32,7 +32,8 @@
           "build-deps",
           {
             "projects": [
-              "@r10c/marketplace-service"
+              "@r10c/marketplace-service",
+              "@r10c/marketplace-admin-service"
             ],
             "target": "dev"
           },

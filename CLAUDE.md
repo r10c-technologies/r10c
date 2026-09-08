@@ -595,13 +595,13 @@ published` is legal, so it produces the identical message by the identical code
   read `PublishedOffering` — a different entity, in a different store, with a
   different address — which moved the card, the grid, the cart's key, every query
   and the product URL with it. Seven things not to re-derive. ⚠️ **#147's own
-  "measured" bullet was wrong**: `ProductCategory.code` *is* filterable, because
+  "measured" bullet was wrong**: `ProductCategory.code` _is_ filterable, because
   `describe-entity-columns.ts` defaults both flags to `isScalar` and `code` is a
   string — the one-line "fix" it asked for would have passed while proving
   nothing. **The address is `offeringId`**, and ADR 0049's reason is load-bearing
   now rather than anticipated: offering and specification are 1:N, so two vendors
   publishing against one specification share a `code`, and a lookup by code
-  returns the *first* match rather than failing — the second vendor's listing
+  returns the _first_ match rather than failing — the second vendor's listing
   silently unreachable instead of visibly broken. The cart cookie is keyed the
   same way for the same reason; `code` is still rendered, because it is what a
   buyer quotes back. ⚠️ **`load` with a filter, never `get`** — `get` answers an
@@ -609,7 +609,7 @@ published` is legal, so it produces the identical message by the identical code
   404 page and an outage would be one code path; the exception is `brandId`/
   `categoryId`, which cannot be queried at all (`id` is the one member neither
   `sortable` nor `filterable` by default) and resolve out of the loaded
-  vocabulary, bounded because a marketplace *merges* its browse tree.
+  vocabulary, bounded because a marketplace _merges_ its browse tree.
   ⚠️ **Configuration is read from config-service directly, with the fleet
   token** — `ConfigurationClientRestClient` gained a `headers` option and nothing
   else — because a relative `/api/config` has no origin under Node and an app
@@ -622,12 +622,12 @@ published` is legal, so it produces the identical message by the identical code
   **empty and broken render identically**, the log is the only separator, and
   this must never spread to anything that writes. ⚠️ **Nothing is
   enumerated at build time**, and that is correctness: a build machine has no
-  fleet, so a build-time render of home bakes in an *empty catalog* that
+  fleet, so a build-time render of home bakes in an _empty catalog_ that
   `revalidate` then serves to the first visitor of each locale after every deploy
   — measured, as four storefront e2e journeys failing against a freshly built app
   while the never-enumerated offering page rendered fine. ⚠️ **Empty and absent
   differ, and the difference is reach**: `[]` keeps a segment in Next's generated
-  mode, which is what makes an on-demand render *cached* rather than merely
+  mode, which is what makes an on-demand render _cached_ rather than merely
   dynamic — so the home page needs one — but a `generateStaticParams` on the
   **layout** governs every descendant, and `/search` and `/cart` read
   `searchParams`/`cookies()`, so as static candidates they answered
@@ -637,7 +637,7 @@ published` is legal, so it produces the identical message by the identical code
   vendor's publication stays invisible. And ⚠️ **the mock e2e
   profile fakes inside the Next process**: `page.route()` observes the browser and
   a server component's reads never leave the server, so `next start` runs under
-  `node --import …/server-mocks.mjs`, installing msw with the *same*
+  `node --import …/server-mocks.mjs`, installing msw with the _same_
   `entityBackendHandlers` the back office uses — order is the mechanism (`--import`
   runs before Next's entry, so Next's cached-fetch wrapper wraps the patched
   `fetch`), and the launch line has to be **`NODE_OPTIONS=… node …/next/bin`** in
@@ -654,6 +654,39 @@ published` is legal, so it produces the identical message by the identical code
   One correction rides along: the card rendered **`brandId`** where a brand name
   belongs, which read as a brand only because the fixtures were named to look like
   one.
+- **The storefront fixtures are deleted, and a live profile is what made that
+  safe** (#148, M1's stated definition of done). `fixture-repository.ts`, its
+  spec and `fixtures.ts` are gone; nothing had to move, because `queries.spec.ts`
+  already proves the layering claim the fixture was written for — one use case,
+  two transports — over the **real** REST adapters against msw rather than over a
+  second in-memory repository. Four things not to re-derive. ⚠️ **The `mock`
+  profile is structurally blind to this**: every storefront read is in a server
+  component, so that profile fakes marketplace-service _inside the Next process_,
+  and a storefront wired to nothing passes all seventeen of its specs before and
+  after the deletion — the deletion would have been cosmetic and the suite would
+  have agreed with it. Hence `storefront.live.spec.ts`, which ⚠️ **asks
+  marketplace-service directly whether `published-catalog` is filled before it
+  opens a page**: `loadPage` deliberately never rejects, so an empty projection
+  renders the storefront's own "nothing here yet" copy and a broken fleet looks
+  _finished and quiet_ — without that precondition every journey passes for the
+  wrong reason. ⚠️ **`marketplace-app:dev` now starts marketplace-admin-service**
+  too: the storefront reads only marketplace-service, but nothing there _writes_
+  the projection — what fills it on a fresh lab is ADR 0050's rebuild walk, in
+  the admin service — so a storefront fleet without it is green on every probe
+  and serves an empty catalog forever. Expectations **restate** the fleet seed
+  (`src/support/live-seed.ts`) rather than importing it, `back-office-app-e2e`'s
+  convention, so a seed change nobody mirrored fails rather than being absorbed —
+  and a hand-published offering in a drifted lab changes the counts, which is
+  why the live run wants a `mp:dev:reset` first. ⚠️ One assertion is weaker than
+  it looks on purpose: an unpublished offering's address is checked for the
+  **absence of the product**, never for a `404`, because ADR 0051 recorded that
+  `notFound()` raised inside a `layer:shell` package renders the not-found UI
+  without carrying its status. And `requireLiveUrl` is now re-exported from
+  `entifix-ts-testing-e2e/playwright`: `@nx/enforce-module-boundaries` treats a
+  package any file in the consuming project loads with a dynamic `import()` as
+  lazy-loaded and then refuses every static import of it — and that project's msw
+  preload must `register()` its resolver hook before resolving anything, so its
+  imports cannot be hoisted.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never
