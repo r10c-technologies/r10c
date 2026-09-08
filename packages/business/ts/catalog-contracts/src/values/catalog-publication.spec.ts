@@ -20,6 +20,21 @@ const PUBLICATION: CatalogPublication = {
   currency: 'GTQ',
   availableHint: true,
   publishedAt: '2026-09-07T10:00:00.000Z',
+  code: 'product-013',
+  description: 'Stoneware, glazed by hand.',
+  brandId: 'product-brand-3',
+  categoryId: 'product-category-7',
+};
+
+/** The seven members every publication must carry to be readable at all. */
+const REQUIRED = {
+  offeringId: PUBLICATION.offeringId,
+  vendorId: PUBLICATION.vendorId,
+  name: PUBLICATION.name,
+  amount: PUBLICATION.amount,
+  currency: PUBLICATION.currency,
+  availableHint: PUBLICATION.availableHint,
+  publishedAt: PUBLICATION.publishedAt,
 };
 
 const read = (data: unknown) =>
@@ -214,6 +229,70 @@ describe('readCatalogPublication', () => {
     ]) {
       expect(message).toContain(member);
     }
+  });
+
+  it.each(['code', 'description', 'brandId', 'categoryId'])(
+    'reads %s when the specification carried one',
+    member => {
+      expect(Effect.runSync(readCatalogPublication(PUBLICATION))).toHaveProperty(
+        member,
+        PUBLICATION[member as keyof CatalogPublication],
+      );
+    },
+  );
+
+  it('decodes a payload carrying none of the merchandising members', () => {
+    // ⚠️ The anti-poison assertion, and the reason all four are optional.
+    //
+    // A rejected payload is classified poison and quarantined with **zero**
+    // retries (ADR 0030) — it never becomes readable, and nothing retries it
+    // into existence. A specification legitimately has no description, no brand
+    // and no category, and a `PUT` that omits `code` blanks it, so requiring any
+    // of them would make that vendor's offering permanently unannounceable with
+    // the only evidence in another service's log. It also means every message
+    // already sitting in the queue survives this shape widening.
+    expect(Effect.runSync(readCatalogPublication(REQUIRED))).toEqual(REQUIRED);
+  });
+
+  it.each([
+    ['absent', undefined],
+    ['null, which is what BSON stores for an assigned undefined', null],
+    ['empty, which is a label that renders as nothing', ''],
+    ['a number', 7],
+  ])('reads a %s description as undefined rather than failing', (_l, value) => {
+    const publication = Effect.runSync(
+      readCatalogPublication({ ...REQUIRED, description: value }),
+    );
+
+    expect(publication.description).toBeUndefined();
+  });
+
+  it('reads null merchandising members as undefined, not as a failure', () => {
+    // ⚠️ `null` is not hypothetical. The event is written to the outbox before
+    // it is published, `MongoClientLayer` does not set `ignoreUndefined`, and
+    // BSON writes `undefined` as `null` — so a reader that accepted only
+    // `string | undefined` would quarantine a message this fleet produced
+    // itself.
+    const publication = Effect.runSync(
+      readCatalogPublication({
+        ...REQUIRED,
+        code: null,
+        description: null,
+        brandId: null,
+        categoryId: null,
+      }),
+    );
+
+    expect(publication).toEqual(REQUIRED);
+  });
+
+  it('keeps the message id out of the widening', () => {
+    // The dedup key is `<offeringId>:<publishedAt>` and nothing else. A key that
+    // moved with the payload would make every offering already projected look
+    // like a first publication.
+    expect(catalogEventId(PUBLICATION)).toBe(
+      catalogEventId({ ...PUBLICATION, description: 'edited', code: undefined }),
+    );
   });
 
   it('drops members the contract does not declare', () => {

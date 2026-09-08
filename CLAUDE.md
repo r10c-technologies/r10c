@@ -487,6 +487,52 @@ them), and everything deep is a link — loaded only when a task needs it.
   consumer's own decoder can tell a malformed payload from a bad afternoon at
   the database, and before this such a payload spent five deliveries reaching
   the quarantine it belonged in at the first.
+- **The snapshot carries what the storefront renders, and every one of the four
+  new members is optional on purpose**
+  ([ADR 0049](docs/adr/0049-the-publication-snapshot-carries-what-the-storefront-renders.md)).
+  ADR 0048's payload was seven members and none of them was a slug, a
+  description, a brand or a category — all of which live on the pinned
+  `ProductSpecification`, which is tenant-plane and which the storefront may
+  never read, so `published-catalog` filled with records nothing could render a
+  card from. Six things not to re-derive. **Ids, never the brand's or category's
+  name**: `catalog-reference` is platform plane _because_ a marketplace has to
+  merge a browse tree, marketplace-service already serves it, and a denormalized
+  copy would freeze a renamed brand into every projected record until each
+  offering was republished — with nothing walking them until #215.
+  ⚠️ **Optional is a safety property, not laxity**: a rejected payload is
+  **poison**, quarantined with zero retries, so a required member the source may
+  lack makes that offering permanently unannounceable — and `code` looks like an
+  invariant and is not, because `product-specification.routes.ts` registers
+  `PUT` as a plain `saveRoute` with no `prepare` hook, so a body omitting it
+  blanks it to `''` (there is no `preserveSpecificationCode`). It also keeps
+  every message already in a durable queue from becoming poison on redeploy.
+  ⚠️ **An absent member is written absent, never `undefined`**: the event goes
+  to the outbox first, `MongoClientLayer` does not set `ignoreUndefined`, and
+  BSON stores `undefined` as `null` — so an assigned `undefined` returns to the
+  consumer's decoder as `null`, and a reader accepting only `string | undefined`
+  would quarantine a message this fleet produced itself. Both halves are needed;
+  neither is redundant. ⚠️ **The storefront address is `offeringId`, and `code`
+  is a reference**: offering and specification are 1:N by construction, so
+  `/p/<code>` collides — and a lookup by code returns the _first_ match rather
+  than failing, making the second vendor's listing silently unreachable instead
+  of visibly broken. ⚠️ **Publishing requires a specification, taking down does
+  not** — ordered _before_ the price check (an offering naming nothing describes
+  no product, so "add a price" is the wrong screen), and refusing an unpublish
+  because the record it describes is broken would leave a vendor unable to
+  remove a live listing, which is the residual ADR 0048 accepted once and this
+  does not repeat. And **`load` with a filter, never `get`**: `get` fails an
+  absent row with `EntifixConnError`, the same class a driver failure raises, so
+  mapping it to a `409` tells every vendor in the fleet their data is broken
+  during a Mongo outage; the projector likewise writes through `serializeEntity`
+  rather than a hand-written literal, which was a second declaration site the
+  parity spec could not see. ⚠️ One correction rides along and it is ADR 0046's
+  fault pattern exactly: `@r10c/i18n-check` matches `code: '<literal>'` and a
+  `CodedAuthnError`'s second argument, and a route answering `code: failure.code`
+  from a `Data.TaggedError` matches **neither** — so `illegalOfferingTransition`
+  and `offeringHasNoPrice` were emitted live, cataloged by hand, and invisible
+  to the gate. The scan now resolves `readonly code = IDENT` against the file's
+  own `export const IDENT = '<literal>'`, and went from 48 emissions across 12
+  files to 51 across 13.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never

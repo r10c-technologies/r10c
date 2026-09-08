@@ -10,14 +10,18 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ProductOffering } from '../../entities/product-offering/product-offering.entity.js';
 import { ProductOfferingPrice } from '../../entities/product-offering-price/product-offering-price.entity.js';
+import { ProductSpecification } from '../../entities/product-specification/product-specification.entity.js';
 import type { OfferingStatus } from '../../values/offering-status.js';
 import type { OfferingTransition } from '../../values/offering-transition.js';
 import {
   ILLEGAL_OFFERING_TRANSITION,
   IllegalOfferingTransition,
   OFFERING_HAS_NO_PRICE,
+  OFFERING_HAS_NO_SPECIFICATION,
   OfferingHasNoPrice,
+  OfferingHasNoSpecification,
   OfferingPriceRepositoryTag,
+  OfferingSpecificationRepositoryTag,
   type OfferingTransitionDecision,
   transitionOffering,
   TransitionOfferingInputTag,
@@ -40,6 +44,33 @@ const offering = (id: string, status: OfferingStatus): ProductOffering => {
 const price = (offeringId: string, amount = 24_900, currency = 'GTQ') => {
   const one = new ProductOfferingPrice(offeringId, amount, currency);
   one.id = `price-${offeringId}`;
+  return one;
+};
+
+/**
+ * The specification an offering pins. `code`, `description`, `brandId` and
+ * `categoryId` are what the storefront renders and what the snapshot has to
+ * copy, because the storefront may never read this store.
+ */
+const specification = (
+  id: string,
+  overrides: Partial<{
+    code: string;
+    description: string | undefined;
+    brandId: string | undefined;
+    categoryId: string | undefined;
+  }> = {},
+) => {
+  const one = new ProductSpecification(
+    overrides.code ?? 'product-013',
+    `Specification ${id}`,
+  );
+  one.id = id;
+  one.description =
+    'description' in overrides ? overrides.description : 'Glazed by hand.';
+  one.brandId = 'brandId' in overrides ? overrides.brandId : 'product-brand-3';
+  one.categoryId =
+    'categoryId' in overrides ? overrides.categoryId : 'product-category-7';
   return one;
 };
 
@@ -85,14 +116,38 @@ const pricesOf = (...rows: ProductOfferingPrice[]) => {
   return { repository, queries };
 };
 
+/**
+ * A specification repository answering `load` from a fixed list, recording the
+ * query — the same double shape as the prices, because both are read the same
+ * way and for the same reason.
+ */
+const specificationsOf = (...rows: ProductSpecification[]) => {
+  const queries: unknown[] = [];
+  const repository = {
+    get: vi.fn(),
+    load: (request: unknown) => {
+      queries.push(request);
+      return Effect.succeed({ items: rows, total: rows.length });
+    },
+    save: vi.fn(),
+    delete: vi.fn(),
+  };
+  return { repository, queries };
+};
+
 const run = (
   rows: ProductOffering[],
   id: EntityId,
   transition: OfferingTransition,
   prices: ProductOfferingPrice[] = [price(String(id))],
+  specifications: ProductSpecification[] = [specification(`spec-${String(id)}`)],
 ) => {
   const { repository, saved } = repositoryOf(...rows);
   const { repository: priceRepository, queries } = pricesOf(...prices);
+  const {
+    repository: specificationRepository,
+    queries: specificationQueries,
+  } = specificationsOf(...specifications);
 
   const exit = Effect.runSyncExit(
     transitionOffering.pipe(
@@ -114,14 +169,18 @@ const run = (
         OfferingPriceRepositoryTag,
         priceRepository as unknown as typeof EntityRepositoryTag.Service,
       ),
+      Effect.provideService(
+        OfferingSpecificationRepositoryTag,
+        specificationRepository as unknown as typeof EntityRepositoryTag.Service,
+      ),
     ) as Effect.Effect<
       OfferingTransitionDecision,
-      IllegalOfferingTransition | OfferingHasNoPrice,
+      IllegalOfferingTransition | OfferingHasNoPrice | OfferingHasNoSpecification,
       never
     >,
   );
 
-  return { exit, saved, queries };
+  return { exit, saved, queries, specificationQueries };
 };
 
 const decisionOf = (
@@ -278,6 +337,10 @@ describe('what a transition announces', () => {
       currency: 'GTQ',
       availableHint: true,
       publishedAt: AT.toISOString(),
+      code: 'product-013',
+      description: 'Glazed by hand.',
+      brandId: 'product-brand-3',
+      categoryId: 'product-category-7',
     });
   });
 
@@ -314,19 +377,21 @@ describe('what a transition announces', () => {
     // The consumer's ordering guard reads `publishedAt` off both. A payload
     // that changed shape by event name would be two decoders and two ways to
     // skip that guard.
-    const event = publicationOf(
+    //
+    // Asserted as the two key sets *agreeing*, not against a written-out list:
+    // an optional member is present or absent according to the data, so a fixed
+    // list would pin the fixture rather than the property, and would go stale
+    // the first time a member joined the snapshot.
+    const published = publicationOf(
+      run([offering('1', 'draft')], '1', 'publish').exit,
+    );
+    const unpublished = publicationOf(
       run([offering('1', 'published')], '1', 'unpublish').exit,
     );
 
-    expect(Object.keys(event.data).sort()).toEqual([
-      'amount',
-      'availableHint',
-      'currency',
-      'name',
-      'offeringId',
-      'publishedAt',
-      'vendorId',
-    ]);
+    expect(Object.keys(unpublished.data).sort()).toEqual(
+      Object.keys(published.data).sort(),
+    );
   });
 
   it('hints availability until something can compute it', () => {
@@ -347,5 +412,142 @@ describe('what a transition announces', () => {
 
     expect(decision.event.at).toBe(AT.toISOString());
     expect(decision.event.data.publishedAt).toBe(AT.toISOString());
+  });
+});
+
+describe('the specification the snapshot copies from', () => {
+  it('reads it by id, one row, the shape the price is read with', () => {
+    // ⚠️ `load` with a filter and never `get`. `makeMongoRepository`'s `get`
+    // fails an absent row with `EntifixConnError` — the same class a driver
+    // failure raises — so mapping that failure to a `409` would tell every
+    // vendor in the fleet their data is broken during a Mongo outage.
+    const { specificationQueries } = run(
+      [offering('1', 'draft')],
+      '1',
+      'publish',
+    );
+
+    expect(specificationQueries).toEqual([
+      {
+        filtering: [{ property: 'id', operator: 'eq', value: 'spec-1' }],
+        pageSize: 1,
+      },
+    ]);
+  });
+
+  it('refuses a publication whose specification is gone', () => {
+    // Nothing enforces `specificationId`. Publishing anyway projects a card
+    // with a name and a price and no description, brand or category, which
+    // reads to the vendor as a rendering bug rather than as data they own.
+    const failure = failureOf(
+      run([offering('1', 'draft')], '1', 'publish', [price('1')], []).exit,
+    );
+
+    expect(failure).toBeInstanceOf(OfferingHasNoSpecification);
+    expect(failure.code).toBe(OFFERING_HAS_NO_SPECIFICATION);
+  });
+
+  it('names the id that dangles, because the offering screen cannot', () => {
+    const failure = failureOf(
+      run([offering('1', 'draft')], '1', 'publish', [price('1')], []).exit,
+    ) as OfferingHasNoSpecification;
+
+    expect(failure.specificationId).toBe('spec-1');
+  });
+
+  it('lets an unpublication through when the specification is gone', () => {
+    // ⚠️ The divergence from the price precondition, and it is deliberate.
+    // Refusing a *takedown* because the record it describes is broken leaves a
+    // vendor unable to remove a live listing, with repairing tenant data as the
+    // only remedy. ADR 0048 accepted that residual once; this does not repeat
+    // it.
+    const event = publicationOf(
+      run([offering('1', 'published')], '1', 'unpublish', [price('1')], []).exit,
+    );
+
+    expect(event.name).toBe(CATALOG_UNPUBLISHED);
+    expect(event.data.offeringId).toBe('1');
+  });
+
+  it('is read before the price, so the first refusal is the deeper one', () => {
+    // An offering naming nothing describes no product at all. Telling its
+    // vendor to add a price points them at the wrong screen.
+    const failure = failureOf(
+      run([offering('1', 'draft')], '1', 'publish', [], []).exit,
+    );
+
+    expect(failure).toBeInstanceOf(OfferingHasNoSpecification);
+  });
+
+  it('is not read at all when the move itself is illegal', () => {
+    const { specificationQueries } = run(
+      [offering('1', 'draft')],
+      '1',
+      'unpublish',
+    );
+
+    expect(specificationQueries).toEqual([]);
+  });
+
+  it('publishes a specification carrying none of the optional members', () => {
+    // ⚠️ The anti-poison case. A rejected payload is quarantined with zero
+    // retries, so a description nobody wrote must not be able to stop a
+    // publication.
+    const event = publicationOf(
+      run(
+        [offering('1', 'draft')],
+        '1',
+        'publish',
+        [price('1')],
+        [
+          specification('spec-1', {
+            description: undefined,
+            brandId: undefined,
+            categoryId: undefined,
+          }),
+        ],
+      ).exit,
+    );
+
+    expect(event.data.description).toBeUndefined();
+    expect(event.data.brandId).toBeUndefined();
+    expect(event.data.categoryId).toBeUndefined();
+    expect(event.data.code).toBe('product-013');
+  });
+
+  it('omits an absent member rather than announcing it as undefined', () => {
+    // ⚠️ The distinction survives further than it looks: the event is written
+    // to the outbox before it is published, and BSON stores an assigned
+    // `undefined` as `null`. Not writing it is the half that does not depend on
+    // the consumer's decoder being careful.
+    const event = publicationOf(
+      run(
+        [offering('1', 'draft')],
+        '1',
+        'publish',
+        [price('1')],
+        [specification('spec-1', { description: undefined })],
+      ).exit,
+    );
+
+    expect(Object.keys(event.data)).not.toContain('description');
+  });
+
+  it('drops a blank code, which is what a PUT that omits it leaves behind', () => {
+    // `product-specification.routes.ts` registers `PUT` as a plain save with no
+    // `prepare` hook, so a body without `code` deserializes to the constructor
+    // default. An empty reference on the storefront renders as nothing while
+    // claiming to be one.
+    const event = publicationOf(
+      run(
+        [offering('1', 'draft')],
+        '1',
+        'publish',
+        [price('1')],
+        [specification('spec-1', { code: '' })],
+      ).exit,
+    );
+
+    expect(Object.keys(event.data)).not.toContain('code');
   });
 });

@@ -9,6 +9,9 @@
   emission is no longer absent, and publishing now has a price precondition.
 - Amends: [ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md) — a
   handler failing with `EntifixBuildError` is **poison**, not transient.
+- Revised: 2026-09-08 by [ADR 0049](0049-the-publication-snapshot-carries-what-the-storefront-renders.md)
+  — the announced payload widened from seven members to eleven, and publishing
+  gained a second precondition.
 
 ## Context
 

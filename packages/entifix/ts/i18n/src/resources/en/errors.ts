@@ -23,6 +23,8 @@ export const errors: EsErrors = {
   // The published record carries an amount and a currency, so there is nothing
   // to project without one. Refused at the verb, where the vendor can fix it.
   offeringHasNoPrice: 'Add a price before publishing this offering.',
+  offeringHasNoSpecification:
+    'This offering points at a specification that no longer exists.',
   resourceBusy: 'The resource is busy, try again.',
   identifierRequired: 'An account needs at least one identifier.',
   emailRequired: 'An email identifier is required.',
