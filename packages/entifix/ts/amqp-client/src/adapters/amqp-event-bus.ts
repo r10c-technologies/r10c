@@ -10,6 +10,7 @@ import {
   WiringRegistryTag,
 } from '@r10c/entifix-ts-business';
 import {
+  EntifixBuildError,
   EntifixConnError,
   makeEventEnvelope,
   readEventEnvelope,
@@ -275,9 +276,29 @@ export const makeAmqpEventBus = (
                   ),
                   // The handler carries no requirements (the subscriber closes over
                   // its store), so it runs standalone.
+                  //
+                  // ⚠️ A handler failure is transient **except** an
+                  // `EntifixBuildError`, which means malformed input — the
+                  // client's fault, by that class's own definition. The
+                  // transport validates `meta` and deliberately not `data`
+                  // (`readEventEnvelope` says so: inventing an opinion about a
+                  // payload is how the bus would start knowing about domains),
+                  // so a consumer that decodes its own payload is the *only*
+                  // thing that can tell a malformed one from a bad afternoon at
+                  // the database. Without this arm such a message is requeued
+                  // and retried to `x-delivery-limit` before it reaches the
+                  // quarantine it belonged in immediately — spending the budget
+                  // of every message behind it, which is exactly what ADR 0030
+                  // gives poison zero retries to avoid. Measured on
+                  // `catalog.published`: a payload the contract rejects took
+                  // five deliveries to quarantine.
                   Effect.flatMap(event =>
                     handler(event).pipe(
-                      Effect.mapError((): DeliveryFailure => 'transient'),
+                      Effect.mapError((error): DeliveryFailure =>
+                        error instanceof EntifixBuildError
+                          ? 'poison'
+                          : 'transient',
+                      ),
                     ),
                   ),
                 );
