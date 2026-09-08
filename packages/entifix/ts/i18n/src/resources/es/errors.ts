@@ -46,6 +46,10 @@ export const errors = {
   // formado todavía puede contradecir su motivo: una entrada de -50 dice que
   // llegó mercadería y que se restó existencia. Se rechaza en el dominio.
   inconsistentMovement: 'La cantidad no corresponde al motivo del movimiento.',
+  // Lo que queda por prometer es `onHand - reserved`, y la reserva se toma con
+  // una escritura atómica condicionada a eso. Cero documentos alcanzados *es* la
+  // respuesta de falta de existencia, no un error del sistema.
+  insufficientStock: 'No hay existencia suficiente para reservar.',
   resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
   emailRequired: 'Se requiere un identificador de correo electrónico.',

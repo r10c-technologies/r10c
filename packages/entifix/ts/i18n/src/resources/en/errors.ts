@@ -29,6 +29,10 @@ export const errors: EsErrors = {
   // contradict its reason: a receipt of -50 says goods arrived and took stock
   // away. Refused in the domain.
   inconsistentMovement: 'The quantity does not match the movement reason.',
+  // What is left to promise is `onHand - reserved`, and a hold is taken by an
+  // atomic write conditioned on it. Zero documents matched *is* the out-of-stock
+  // answer, not a system error.
+  insufficientStock: 'There is not enough stock to reserve.',
   resourceBusy: 'The resource is busy, try again.',
   identifierRequired: 'An account needs at least one identifier.',
   emailRequired: 'An email identifier is required.',

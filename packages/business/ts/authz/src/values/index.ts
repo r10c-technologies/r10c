@@ -5,3 +5,4 @@ export * from './role';
 export * from './role-permissions';
 export * from './screen-address';
 export * from './screen-type';
+export * from './service-crossing-permissions';

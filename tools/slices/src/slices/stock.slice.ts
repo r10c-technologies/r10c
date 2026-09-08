@@ -21,12 +21,13 @@ import type { SliceDeclaration } from '../types.js';
  * on `:3108` records movements into the append-only ledger and folds them onto
  * `StockItem` with `$inc`, in one transaction.
  *
- * Its reservation endpoint is **not built yet**, and is deliberately not
- * declared here until it is. It is the one place a platform-plane caller
- * reaches a tenant store, and it cannot resolve the organization from the
- * session — a buyer holds none, and the vendor comes from the item. That
- * crossing is ADR 0023's, and it is authorized by a service token plus a narrow
- * permission, never by the absence of a check.
+ * `POST /api/reservation` is the fleet's **one** platform→tenant crossing (#73).
+ * It cannot resolve the organization from the session — a buyer holds none, and
+ * the vendor comes from the item — so it takes an explicit `x-organization-id`
+ * honoured only behind a service token *and* `stock-management:reservation:write`,
+ * and it accepts no session at all ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+ * The reservation reads beside it are ordinary session-guarded tenant reads;
+ * one route, one credential, each way.
  */
 export const stockSlice: SliceDeclaration = {
   name: 'stock',
@@ -47,6 +48,8 @@ export const stockSlice: SliceDeclaration = {
     'GET /api/stock-item',
     'GET /api/stock-movement',
     'POST /api/stock-movement',
+    'GET|POST /api/reservation',
+    'GET /api/reservation/:id',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],

@@ -39,7 +39,10 @@ latent, and each would have hardened the moment that happened:
   to reclaim.
 - **A platform-plane order must reserve tenant-plane stock, and no legal
   mechanism existed.** `TenantContextTag` documented itself as resolving _only_
-  from the session's `activeOrganizationId`. A buyer's session carries none — the
+  from the session's `activeOrganizationId` (that tag was deleted on 2026-09-08
+  as never provided; the rule was always `requireOrganization`'s, and the second
+  path is now `requireServiceCrossing` —
+  [ADR 0023](0023-service-to-service-tenant-crossing.md)). A buyer's session carries none — the
   organization comes from the item. Every checkout in v1 walks into this.
 
 This record fixes the map: which domains exist, which entities each owns, which

@@ -668,6 +668,34 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'keyId',
     value: DEV_KEY_ID,
   },
+  // ⚠️ **The crossing secret, and deliberately not `CONFIG_SERVICE_TOKEN`.**
+  // The fleet's config token gates a configuration *read*; this one gates a
+  // tenant-data *write* for any organization the caller names. Reusing the first
+  // would have been one line and would have made a single leaked secret a
+  // cross-organization write capability, so they are separate keys with
+  // separate rotations
+  // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+  //
+  // `is_secret` is the boundary rather than a label: an unflagged row is served
+  // in full from the unauthenticated `GET /api/config` every service mounts.
+  {
+    service: 'stock-service',
+    group_name: 'service',
+    key: 'token',
+    value: 'dev-stock-crossing-token-change-me',
+    is_secret: true,
+  },
+  // How long a hold survives without being converted or released. A business
+  // trade rather than a constant — too short and a buyer loses their basket
+  // mid-payment, too long and stock sits promised to a checkout nobody
+  // finished — so it lives where an operator can tune it against a real payment
+  // provider's latency.
+  {
+    service: 'stock-service',
+    group_name: 'reservation',
+    key: 'ttlSeconds',
+    value: '900',
+  },
   {
     service: 'stock-service',
     group_name: 'logging',

@@ -23,8 +23,11 @@ import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
   observabilityFromConfiguration,
+  ServiceCrossingTokenTag,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
+
+import { ReservationTtlSecondsTag } from './reservation-ttl';
 
 const SERVICE_NAME = 'stock-service';
 const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
@@ -67,6 +70,26 @@ export const AppLayer = Layer.unwrapEffect(
     const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
     const jwtKeyId = yield* store.in('jwt').getString('keyId');
 
+    // ⚠️ **This service's own crossing secret — not `CONFIG_SERVICE_TOKEN`.**
+    // The fleet already has a shared token gating config-service's lookup, and
+    // reusing it here would be one line of work and would turn a single leaked
+    // secret into a tenant-data *write* capability across every organization.
+    // The two grants are not comparable: one reads configuration, the other
+    // moves a vendor's stock. Separate secrets bound the blast radius of a
+    // rotation or a compromise
+    // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+    //
+    // It is an `is_secret` row, which is the security boundary rather than a
+    // label: an unflagged row is served in full from the *unauthenticated*
+    // `GET /api/config` this service also mounts.
+    const crossingToken = yield* store.in('service').getString('token');
+
+    // How long a hold survives. Configuration rather than a constant for the
+    // reason `tenant.dbPrefix` is — see `reservation-ttl.ts`.
+    const reservationTtlSeconds = yield* store
+      .in('reservation')
+      .getNumber('ttlSeconds');
+
     // Log level + sink and the OTLP endpoint, read from this service's own
     // configuration. Which keys and which are optional is the shell's, so every
     // service reads them the same way.
@@ -91,6 +114,8 @@ export const AppLayer = Layer.unwrapEffect(
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(ServiceCrossingTokenTag, crossingToken),
+      Layer.succeed(ReservationTtlSecondsTag, reservationTtlSeconds),
     );
 
     // The connection contributes its own readiness probe, named by the logical

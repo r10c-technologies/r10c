@@ -95,12 +95,21 @@ because a vendor's stock position is exactly what a competitor would want, and
 what the storefront shows about availability is a projection and a hint
 ([ADR 0010](../adr/0010-stock-ledger-reservations-and-concurrency.md)).
 
-`POST /api/reservation` is **not** served yet. It is the one platform→tenant
-crossing in the system, authorized by a service token plus
-`stock-management:reservation:write` and never by a session — the organization
-comes from the item, not from the principal
-([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). It lands with
-that mechanism, not before it.
+`POST /api/reservation` is the one platform→tenant crossing in the system, and
+the single exception to "authenticated and organization-scoped" above — it is
+authenticated by a **crossing token** (`x-crossing-token`, its own `is_secret`
+configuration row, deliberately not the fleet's `CONFIG_SERVICE_TOKEN`) plus
+`stock-management:reservation:write`, and scoped by an explicit
+`x-organization-id`, because the organization comes from the item rather than
+from the principal: checkout's buyer holds no membership in the vendor they are
+buying from. It accepts **no session**, not even `super-admin`'s, since two
+accepted credentials on one route means the weaker one is the security level
+([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). The reservation
+_reads_ beside it are ordinary session-guarded tenant reads — one route, one
+credential, each way.
+
+Releasing and converting a hold, and the sweep that expires one, are not served
+yet.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime
