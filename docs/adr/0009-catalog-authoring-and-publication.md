@@ -10,6 +10,9 @@
 - Revised: 2026-09-07 by [ADR 0047](0047-authoring-an-offering-and-the-publish-verb.md) —
   "the publisher itself is not built" is now half false: the lifecycle
   transition exists, the emission does not.
+- Revised: 2026-09-07 by [ADR 0048](0048-announcing-a-publication.md) — the
+  other half is built. The projection runs on ADR 0028's outbox and ADR 0029's
+  routed bus, **not** on the saga engine as stated below.
 
 ## Trigger
 
@@ -21,12 +24,12 @@ What that promotion does and does not mean: the _decisions_ below are in effect 
 `published-catalog` is a declared store, its `truth` is `projection-of:catalog`,
 and the two-shape split is built into the entity model.
 
-Publication is now built **in halves**. A vendor authors an offering and moves it
-through this lifecycle with the `publish`/`unpublish` verbs
+Publication is built. A vendor authors an offering and moves it through this
+lifecycle with the `publish`/`unpublish` verbs
 ([ADR 0047](0047-authoring-an-offering-and-the-publish-verb.md)), including the
-republication-replaces-wholesale rule stated below. What is still missing is the
-**announcement**: reaching `published` emits no `catalog.published`, so nothing
-consumes it and `published-catalog` stays empty.
+republication-replaces-wholesale rule stated below; reaching `published` emits
+`catalog.published` and the `marketplace` slice consumes it into the projection
+([ADR 0048](0048-announcing-a-publication.md)).
 
 ## Context
 
@@ -52,9 +55,17 @@ So "the catalog" cannot be one thing.
 2. **Publishing** projects the approved subset into the platform-scope
    `marketplace-catalog`, which is what the storefront queries.
 
-The projection runs on the existing saga engine (`entifix-transactions` + the
-`transaction` slice's tracker), which already has the accept/execute split, the
-distributed lock, and compensation on failure.
+⚠️ The projection runs on the **outbox and the routed bus**, not on the saga
+engine. This record said otherwise, and it was written before either existed:
+publication is a single-domain write that announces itself, so it needs
+persist-before-publish
+([ADR 0028](0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md))
+and a topic exchange
+([ADR 0029](0029-the-event-envelope-and-a-routed-bus.md)) — not an
+accept/execute split, a distributed lock, or compensation. The status write and
+the outbox entry commit in one Mongo transaction; a relay carries the entry to
+the broker; the consumer writes the projection
+([ADR 0048](0048-announcing-a-publication.md)).
 
 **The writer is the consumer, not the author.** `marketplace-admin` emits
 `catalog.published`; the `marketplace` slice consumes it and writes

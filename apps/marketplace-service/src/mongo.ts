@@ -6,6 +6,12 @@ import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
+import { EventSourceTag } from '@r10c/entifix-transactions';
+import {
+  AmqpEventBusLayer,
+  AmqpHealthProbeLayer,
+  AmqpLayer,
+} from '@r10c/entifix-ts-amqp-client';
 import {
   ConfigurationRepositoryTag,
   TokenServiceTag,
@@ -23,9 +29,17 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import { startProjecting } from './projection/publish-catalog';
 import { seedCatalogReference } from './seed';
 
 const SERVICE_NAME = 'marketplace-service';
+/**
+ * The **slice**, not the deployment. Stamped onto anything this process
+ * publishes; it consumes today and publishes nothing, but `AmqpEventBusLayer`
+ * is one port with both halves, and a source resolved at the composition root
+ * is what keeps a future publish from being signed by nobody (ADR 0029).
+ */
+const SLICE_NAME = 'marketplace';
 const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 
 /**
@@ -40,12 +54,18 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  * here; the catalog's handles are all per-organization, so naming one there
  * would have created a database nothing ever writes.
  *
- * No Redis and no AMQP yet. The publisher that consumes `catalog.published` and
- * writes `published-catalog` is the next iteration's work
- * ([ADR 0009](../../../docs/adr/0009-catalog-authoring-and-publication.md));
- * until it exists this service serves reads and the operator's vocabulary CRUD,
- * and adding a connection for a subscriber that does not run would be a
- * dependency to probe for no return.
+ * **AMQP, and no Redis.** This service now consumes `catalog.*` off the bus and
+ * writes the `published-catalog` projection — which is what makes it the
+ * projection's single writer and keeps the public read host out of tenant
+ * storage entirely
+ * ([ADR 0009](../../../docs/adr/0009-catalog-authoring-and-publication.md)).
+ * There is still no Redis: this slice takes no distributed lock and draws from
+ * no sequence.
+ *
+ * ⚠️ The broker connection brings `AmqpHealthProbeLayer` with it, and that is
+ * not optional. A service that dials RabbitMQ at boot and probes nothing exits
+ * `1` against a broker that is merely slow, while the health ladder green-lights
+ * a fleet that is still coming up.
  */
 export const AppLayer = Layer.unwrapEffect(
   Effect.gen(function* () {
@@ -54,6 +74,7 @@ export const AppLayer = Layer.unwrapEffect(
 
     const uri = yield* store.in('mongo').getString('uri');
     const dbName = yield* store.in('mongo').getString('db');
+    const amqpUri = yield* store.in('rabbitmq').getString('uri');
 
     // The public half only. This service verifies access tokens and never mints
     // one, so it is configured with material that cannot sign.
@@ -70,6 +91,7 @@ export const AppLayer = Layer.unwrapEffect(
 
     const connections = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
+      AmqpLayer({ uri: amqpUri }),
       Layer.succeed(
         TokenServiceTag,
         makeJoseTokenService({
@@ -82,18 +104,37 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(EventSourceTag, SLICE_NAME),
     );
 
-    // One Mongo database backing two platform-plane Stores: the operator's
-    // `catalog-reference` vocabulary and the `published-catalog` projection.
+    // The bus, built from the connection above and merged back so the projector
+    // can reach it. `AmqpEventBusLayer` registers its own `stop-intake` drain,
+    // which is why the projector registers no shutdown hook of its own.
+    const infra = Layer.provideMerge(AmqpEventBusLayer, connections);
+
+    // Every connection contributes its own readiness probe. One Mongo database
+    // backs two platform-plane Stores — the operator's `catalog-reference`
+    // vocabulary and the `published-catalog` projection — and the broker is
+    // named by the exchange it checks rather than by a Store, because a
+    // transport is not a Store.
     const withProbes = Layer.provideMerge(
-      MongoHealthProbeLayer(['catalog-reference', 'published-catalog']),
-      connections,
+      Layer.mergeAll(
+        MongoHealthProbeLayer(['catalog-reference', 'published-catalog']),
+        AmqpHealthProbeLayer,
+      ),
+      infra,
     );
 
     return Layer.merge(
       observability,
-      Layer.provideMerge(Layer.effectDiscard(seedCatalogReference), withProbes),
+      Layer.provideMerge(
+        Layer.mergeAll(
+          Layer.effectDiscard(seedCatalogReference),
+          // Binds `catalog.*` and starts writing the projection.
+          Layer.effectDiscard(startProjecting),
+        ),
+        withProbes,
+      ),
     );
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

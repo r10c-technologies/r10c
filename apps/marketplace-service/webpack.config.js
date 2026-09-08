@@ -37,6 +37,7 @@ module.exports = {
         '@opentelemetry/sdk-trace-base',
         '@opentelemetry/sdk-trace-node',
         '@opentelemetry/semantic-conventions',
+        'amqplib',
         'mongodb',
         'tslib',
       ],

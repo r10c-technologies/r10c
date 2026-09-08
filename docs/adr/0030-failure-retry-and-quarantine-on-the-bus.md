@@ -7,6 +7,13 @@
 - Revised: 2026-09-05 — the inbox is built (#178): the register carries `dedupe`,
   the claim key gains its consumer half, and two claims in this record are
   corrected. See Trigger below.
+- Revised: 2026-09-07 by [ADR 0048](0048-announcing-a-publication.md) — the
+  three failure classes stand; what changes is where the line falls. A handler
+  failing with `EntifixBuildError` is now **poison**, not transient, because the
+  transport validates `meta` and not `data`, so only a consumer's own decoder
+  can tell a malformed payload from a bad afternoon at the database. Measured:
+  such a payload took five deliveries to reach the quarantine it belonged in at
+  the first.
 - Revised: 2026-09-05 — the consequence this record stated for #135 is corrected:
   [ADR 0039](0039-multi-step-sagas-are-orchestrated.md) took retry and
   compensation, so only the sweep's constants remained here. See Consequences
