@@ -25,6 +25,10 @@ export const errors: EsErrors = {
   offeringHasNoPrice: 'Add a price before publishing this offering.',
   offeringHasNoSpecification:
     'This offering points at a specification that no longer exists.',
+  // A movement's quantity is signed, so a well-formed document can still
+  // contradict its reason: a receipt of -50 says goods arrived and took stock
+  // away. Refused in the domain.
+  inconsistentMovement: 'The quantity does not match the movement reason.',
   resourceBusy: 'The resource is busy, try again.',
   identifierRequired: 'An account needs at least one identifier.',
   emailRequired: 'An email identifier is required.',

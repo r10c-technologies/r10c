@@ -14,7 +14,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | order (5)               | —      | 3105⁵               |
 | payment (6)             | —      | 3106⁵               |
 | settlement (7)          | —      | 3107⁵               |
-| stock (8)               | —      | 3108⁵               |
+| stock (8)               | —      | 3108⁶               |
 | sales (9)               | —      | 3109⁵               |
 | — platform —            |        | config-service 3190 |
 
@@ -71,8 +71,8 @@ database. It serves `/api/transaction/:id` and `/api/transaction/events` on
 and the catalog's
 `202` link is relative so callers never encoded either arrangement.
 
-⁵ **Reserved, not bound.** The `order`, `payment`, `settlement`, `stock` and
-`sales` slices exist in the register and own their stores, but are `planned` — no
+⁵ **Reserved, not bound.** The `order`, `payment`, `settlement` and `sales`
+slices exist in the register and own their stores, but are `planned` — no
 process runs them, so nothing listens on these ports yet
 ([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md),
 [ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)). The index is
@@ -84,6 +84,23 @@ port negotiation. They are deliberately **not** in `ALL_PORTS`
 `transaction` slice splitting back out of marketplace-admin-service. Reclaiming
 an index that already means something else is how a port table stops being
 readable.
+
+⁶ **stock-service, bound.** The first of the five reserved indices to be
+claimed. It owns the `stock` store — tenant plane, one Mongo database per
+organization (`stock_<organizationId>`), beside the catalog's
+`tenant_<organizationId>` rather than inside it — and serves the `StockItem`
+reads and the append-only `StockMovement` ledger that moves them. Every route is
+authenticated and organization-scoped; nothing here is readable anonymously,
+because a vendor's stock position is exactly what a competitor would want, and
+what the storefront shows about availability is a projection and a hint
+([ADR 0010](../adr/0010-stock-ledger-reservations-and-concurrency.md)).
+
+`POST /api/reservation` is **not** served yet. It is the one platform→tenant
+crossing in the system, authorized by a service token plus
+`stock-management:reservation:write` and never by a session — the organization
+comes from the item, not from the principal
+([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). It lands with
+that mechanism, not before it.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

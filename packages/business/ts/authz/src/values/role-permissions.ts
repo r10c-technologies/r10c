@@ -9,6 +9,7 @@ import { type Role } from './role';
 export const CATALOG_DOMAIN = 'product-configuration-management';
 export const CATALOG_REFERENCE_DOMAIN = 'catalog-reference';
 export const SALES_DOMAIN = 'sales-management';
+export const STOCK_DOMAIN = 'stock-management';
 export const AUTHN_DOMAIN = 'authn';
 
 /**
@@ -29,6 +30,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // Seeing which counters exist, so a member of staff can be shown the one
     // they are standing at. Authoring them is an `admin` act.
     `${SALES_DOMAIN}:*:read`,
+    // Seeing what is in stock. Recording a movement is an `admin` act — see the
+    // note there for why these are named per entity rather than wildcarded.
+    `${STOCK_DOMAIN}:stock-item:read`,
+    `${STOCK_DOMAIN}:stock-movement:read`,
     // Ending your **own** other sessions — the unbound sibling of
     // `revoke-sessions` below, which ends somebody else's. Every role holds it,
     // because signing yourself out everywhere is a security control the account
@@ -78,6 +83,29 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${SALES_DOMAIN}:*:read`,
     `${SALES_DOMAIN}:*:write`,
     `${SALES_DOMAIN}:*:delete`,
+    // A vendor's own stock. ⚠️ **Named per entity, deliberately not
+    // `stock-management:*:write`.** A wildcard here would also grant
+    // `stock-management:reservation:write`, which is the one permission in this
+    // table that a session must never carry: the reservation route is
+    // authorized by a service token because the organization comes from the
+    // *item* and a buyer's session names none
+    // ([ADR 0023](../../../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+    // Granting it to a role would not by itself open the route — the route
+    // decides which credentials it accepts — but it would leave the weaker
+    // credential one guard-swap away from being the security level, which is
+    // exactly what that record forbids.
+    //
+    // There is also **no `stock-item:write`**, for a different reason: nothing
+    // writes a `StockItem` directly. Its counters move by `$inc` over the
+    // append-only ledger, so a route that saved one would be the
+    // read-modify-write ADR 0010 prohibits, and a grant for it would suggest
+    // such a route ought to exist.
+    `${STOCK_DOMAIN}:stock-item:read`,
+    `${STOCK_DOMAIN}:stock-movement:read`,
+    `${STOCK_DOMAIN}:stock-movement:write`,
+    // Reading the holds against one's own stock — support answering "why did
+    // this buyer lose their basket?". Writing one is not a person's act.
+    `${STOCK_DOMAIN}:reservation:read`,
     `${AUTHN_DOMAIN}:user-identity:read`,
     `${AUTHN_DOMAIN}:user-identity:write`,
     // Two use-case verbs, not CRUD. Changing somebody's role or status and

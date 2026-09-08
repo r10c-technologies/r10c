@@ -631,6 +631,67 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'metricIntervalMs',
     value: '60000',
   },
+  // stock-service — physical availability, per vendor. Tenant plane and
+  // per-organization, so like marketplace-admin-service it resolves a database
+  // handle inside the request and names none at boot: `mongo.db` is absent on
+  // purpose, because a database named here is one nothing would ever write.
+  {
+    service: 'stock-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  // ⚠️ **`stock_`, not `tenant_`.** The `stock` and `catalog` stores share a
+  // plane, a partitioning and an engine; the only thing that keeps them apart
+  // is the prefix each service's tenant resolver is built with. Copying the
+  // catalog's value here would merge two stores into one database silently —
+  // every read would work and every write would land, and two domains would own
+  // one database, which is the coupling the decomposition exists to prevent.
+  {
+    service: 'stock-service',
+    group_name: 'tenant',
+    key: 'dbPrefix',
+    value: 'stock_',
+  },
+  // The public half only. This service verifies access tokens and never mints
+  // one, so it cannot sign.
+  {
+    service: 'stock-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'stock-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  {
+    service: 'stock-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'stock-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'stock-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'stock-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
 ];
 
 const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
