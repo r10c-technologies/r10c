@@ -811,12 +811,21 @@ importers:
       '@r10c/business-ts-authz':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz
+      '@r10c/business-ts-catalog-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/catalog-contracts
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../packages/business/ts/catalog-reference
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../packages/business/ts/marketplace-catalog
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/transactions
+      '@r10c/entifix-ts-amqp-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/amqp-client
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/business
@@ -835,6 +844,9 @@ importers:
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
+      amqplib:
+        specifier: 2.0.1
+        version: 2.0.1
       effect:
         specifier: 3.22.1
         version: 3.22.1
@@ -883,6 +895,18 @@ importers:
         version: 3.22.1
 
   packages/business/ts/authz:
+    dependencies:
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 3.22.1
+        version: 3.22.1
+
+  packages/business/ts/catalog-contracts:
     dependencies:
       '@r10c/entifix-ts-core':
         specifier: workspace:*
@@ -979,6 +1003,9 @@ importers:
       '@r10c/business-ts-authz':
         specifier: workspace:*
         version: link:../authz
+      '@r10c/business-ts-catalog-contracts':
+        specifier: workspace:*
+        version: link:../catalog-contracts
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../../../entifix/ts/business

@@ -244,6 +244,7 @@ export const entity: EsEntity = {
       amount: 'Amount',
       currency: 'Currency',
       availableHint: 'Availability hint',
+      publishedAt: 'Published at',
     },
   },
   'product-order': {

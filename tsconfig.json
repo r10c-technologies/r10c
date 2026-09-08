@@ -170,6 +170,9 @@
     },
     {
       "path": "./tools/conventions"
+    },
+    {
+      "path": "./packages/business/ts/catalog-contracts"
     }
   ]
 }

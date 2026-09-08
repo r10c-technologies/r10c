@@ -50,6 +50,9 @@ export class PublishedOffering implements Entity {
   #amount = 0;
   #currency = '';
   #availableHint = false;
+  // The epoch, so a record written before this member existed compares as
+  // older than every real publication rather than as newer than all of them.
+  #publishedAt = new Date(0);
   // #endregion
 
   // #region constructors
@@ -154,6 +157,36 @@ export class PublishedOffering implements Entity {
   }
   set availableHint(value: boolean) {
     this.#availableHint = value;
+  }
+
+  /**
+   * When the publication this record came from was decided.
+   *
+   * ⚠️ **This is the projection's write guard, not a display field.** Delivery
+   * is at-least-once, so a redelivered `catalog.unpublished` can arrive after a
+   * newer `catalog.published` and delete a listing that is legitimately live —
+   * permanently, silently, and with every probe green. The projector compares
+   * this member and ignores an event older than the record it holds, which is
+   * what makes the register's `dedupe: 'natural'` claim true rather than merely
+   * written down: a full-document upsert really is idempotent, but a *delete*
+   * is not, and ordering is what separates them.
+   *
+   * Written from the event's own `publishedAt`, never from the projector's
+   * clock — the receiving time would order messages by when the broker happened
+   * to deliver them, which is the thing being defended against.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:published-offering.fields.publishedAt',
+    required: true,
+    sortable: true,
+    filterable: true,
+  })
+  get publishedAt(): Date {
+    return this.#publishedAt;
+  }
+  set publishedAt(value: Date) {
+    this.#publishedAt = value;
   }
   // #endregion
 }

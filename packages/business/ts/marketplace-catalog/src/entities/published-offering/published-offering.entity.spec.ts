@@ -19,6 +19,7 @@ describe('PublishedOffering', () => {
     published.amount = 1050;
     published.currency = 'EUR';
     published.availableHint = true;
+    published.publishedAt = new Date('2026-09-07T10:00:00.000Z');
 
     expect(serializeEntity(PublishedOffering, published)).toEqual({
       id: 'pub-1',
@@ -28,6 +29,7 @@ describe('PublishedOffering', () => {
       amount: 1050,
       currency: 'EUR',
       availableHint: true,
+      publishedAt: new Date('2026-09-07T10:00:00.000Z'),
     });
   });
 
@@ -41,6 +43,7 @@ describe('PublishedOffering', () => {
         amount: 500,
         currency: 'USD',
         availableHint: false,
+        publishedAt: new Date('2026-09-07T10:00:00.000Z'),
       }),
     );
 
@@ -57,6 +60,9 @@ describe('PublishedOffering', () => {
     expect(published.amount).toBe(0);
     expect(published.currency).toBe('');
     expect(published.availableHint).toBe(false);
+    // The epoch, so a record that predates this member compares as older than
+    // every real publication rather than as newer than all of them.
+    expect(published.publishedAt.getTime()).toBe(0);
   });
 
   it('accepts the setters the projector writes through', () => {
@@ -67,6 +73,7 @@ describe('PublishedOffering', () => {
     published.amount = 250;
     published.currency = 'GBP';
     published.availableHint = true;
+    published.publishedAt = new Date('2026-09-07T12:00:00.000Z');
 
     expect(published.offeringId).toBe('off-3');
     expect(published.vendorId).toBe('vendor-3');
@@ -74,6 +81,9 @@ describe('PublishedOffering', () => {
     expect(published.amount).toBe(250);
     expect(published.currency).toBe('GBP');
     expect(published.availableHint).toBe(true);
+    expect(published.publishedAt.toISOString()).toBe(
+      '2026-09-07T12:00:00.000Z',
+    );
   });
 
   it('copies the price rather than pointing at the tenant-side offering', () => {
@@ -110,5 +120,18 @@ describe('PublishedOffering', () => {
     expect(names).toContain('availableHint');
     expect(names).not.toContain('available');
     expect(names).not.toContain('stock');
+  });
+
+  it('orders publications by the moment the publisher decided, not by delivery', () => {
+    // The projector's write guard reads this member. Sortable and filterable
+    // because they are also the server-side RSQL allowlist: a member without
+    // them cannot be queried, and losing the flag is silent at both ends.
+    const publishedAt = describeEntityColumns(PublishedOffering).find(
+      column => column.name === 'publishedAt',
+    );
+
+    expect(publishedAt?.type).toBe('date');
+    expect(publishedAt?.sortable).toBe(true);
+    expect(publishedAt?.filterable).toBe(true);
   });
 });

@@ -278,6 +278,7 @@ export const entity = {
       amount: 'Importe',
       currency: 'Moneda',
       availableHint: 'Disponibilidad estimada',
+      publishedAt: 'Publicada el',
     },
   },
   'product-order': {
