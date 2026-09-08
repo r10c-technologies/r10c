@@ -17,7 +17,9 @@
           "@r10c/business-ts-catalog-reference:build",
           "@r10c/business-ts-marketplace-catalog:build",
           "@r10c/entifix-ts-business:build",
-          "@r10c/entifix-ts-mongo-client:build"
+          "@r10c/entifix-ts-mongo-client:build",
+          "@r10c/entifix-ts-redis-client:build",
+          "@r10c/entifix-ts-amqp-client:build"
         ]
       }
     }

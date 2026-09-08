@@ -21,11 +21,17 @@
  * driver`), so `mock` and `live` agree about filtering, sorting, paging and the
  * `400` the metadata allowlist produces. Nothing here re-implements RSQL.
  *
- * ⚠️ The entity classes come from their **`dist`**, which is why
- * `package.json` makes this project's `e2e` target depend on those builds by
- * name. Nothing else here needs them — Next transpiles workspace source itself,
- * so the app's own build leaves no `dist` behind — and a CI runner that skips
+ * ⚠️ Everything below the `type:testing` layer has to come from a **`dist`**,
+ * which is why `package.json` makes this project's `e2e` target depend on those
+ * builds by name. Nothing else produces them: Next transpiles workspace source
+ * itself, so the app's own build leaves no library `dist` behind, and
+ * `@r10c/entifix-ts-testing-e2e` has no build target of its own — so `^build`
+ * stops there and never reaches what its fixtures import. A runner that skips
  * them fails with `ERR_MODULE_NOT_FOUND` before the server starts.
+ *
+ * The list is the fixtures barrel's own imports, not a guess: it re-exports
+ * `fake-infrastructure`, so importing anything from it loads the Mongo, Redis
+ * **and** AMQP client layers, whether or not this preload uses them.
  *
  * ⚠️ It must also run with `--conditions=@r10c/source` **off**. `nx.json` sets that
  * on every `e2e` target, and under it a business package resolves to its
