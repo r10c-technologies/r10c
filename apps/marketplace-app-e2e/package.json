@@ -13,7 +13,11 @@
     "targets": {
       "e2e": {
         "dependsOn": [
-          "@r10c/marketplace-app:build"
+          "@r10c/marketplace-app:build",
+          "@r10c/business-ts-catalog-reference:build",
+          "@r10c/business-ts-marketplace-catalog:build",
+          "@r10c/entifix-ts-business:build",
+          "@r10c/entifix-ts-mongo-client:build"
         ]
       }
     }

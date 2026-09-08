@@ -21,7 +21,13 @@
  * driver`), so `mock` and `live` agree about filtering, sorting, paging and the
  * `400` the metadata allowlist produces. Nothing here re-implements RSQL.
  *
- * ⚠️ It must run with `--conditions=@r10c/source` **off**. `nx.json` sets that
+ * ⚠️ The entity classes come from their **`dist`**, which is why
+ * `package.json` makes this project's `e2e` target depend on those builds by
+ * name. Nothing else here needs them — Next transpiles workspace source itself,
+ * so the app's own build leaves no `dist` behind — and a CI runner that skips
+ * them fails with `ERR_MODULE_NOT_FOUND` before the server starts.
+ *
+ * ⚠️ It must also run with `--conditions=@r10c/source` **off**. `nx.json` sets that
  * on every `e2e` target, and under it a business package resolves to its
  * TypeScript source — where the first `@entity()` decorator is a
  * `SyntaxError`, because Node strips types and does not transform them. The

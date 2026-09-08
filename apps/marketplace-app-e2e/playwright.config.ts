@@ -1,4 +1,14 @@
+import { join } from 'node:path';
+
 import { defineEntifixE2eConfig } from '@r10c/entifix-ts-testing-e2e/playwright';
+
+/**
+ * ⚠️ Absolute, because `NODE_OPTIONS` is inherited by **every** node process
+ * the run spawns, and they do not share a working directory: a relative
+ * `--import` resolves against whichever cwd each one happens to have, and the
+ * ones nx starts from the workspace root then die with `ERR_MODULE_NOT_FOUND`.
+ */
+const PRELOAD = join(__dirname, 'src/support/server-mocks.mjs');
 
 /**
  * marketplace-app e2e.
@@ -33,13 +43,12 @@ import { defineEntifixE2eConfig } from '@r10c/entifix-ts-testing-e2e/playwright'
  * ⚠️ **`node` on Next's binary, never `pnpm exec`.** `NODE_OPTIONS` reaches
  * pnpm too, and the resolver hook the preload installs runs while pnpm is
  * still loading `.pnpmfile.mjs`, which fails the launch before Next is
- * reached. Both paths are relative to `cwd`, which the preset sets to the
- * app's directory.
+ * reached. The Next binary is still relative to `cwd`, which the preset sets
+ * to the app's directory; the preload is not — see `PRELOAD` above.
  */
 export default defineEntifixE2eConfig({
   configFile: __filename,
   appDir: 'apps/marketplace-app',
   port: 3000,
-  mockServerCommand:
-    "NODE_OPTIONS='--import ../marketplace-app-e2e/src/support/server-mocks.mjs' node ./node_modules/next/dist/bin/next start -p 3000",
+  mockServerCommand: `NODE_OPTIONS='--import ${PRELOAD}' node ./node_modules/next/dist/bin/next start -p 3000`,
 });
