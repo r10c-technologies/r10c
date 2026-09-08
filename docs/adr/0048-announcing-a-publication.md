@@ -12,6 +12,9 @@
 - Revised: 2026-09-08 by [ADR 0049](0049-the-publication-snapshot-carries-what-the-storefront-renders.md)
   — the announced payload widened from seven members to eleven, and publishing
   gained a second precondition.
+- Revised: 2026-09-08 by [ADR 0050](0050-rebuilding-the-published-catalog-from-tenant-storage.md)
+  — the fleet-wide rebuild is built, and the cross-tenant surface this record
+  said it needed turned out not to be one.
 
 ## Context
 

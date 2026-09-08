@@ -115,7 +115,7 @@ export const drainOutbox = (
  * writing slice of every `tenant_<organizationId>` store, so the relay is
  * reading its own. A slice that does not own a store may not do this.
  */
-const tenantDatabases = (client: MongoClient, prefix: string) =>
+export const tenantDatabases = (client: MongoClient, prefix: string) =>
   Effect.tryPromise({
     try: async () => {
       const { databases } = await client.db('admin').admin().listDatabases();
@@ -141,25 +141,39 @@ const tenantDatabases = (client: MongoClient, prefix: string) =>
  * but pure waste, and it would make the duplicate rate a function of
  * replication lag.
  */
-export const startOutboxRelay = Effect.gen(function* () {
-  const client = yield* MongoClientTag;
-  const bus = yield* EventBusTag;
-  const prefix = yield* TenantDatabasePrefix;
-  const maxAttempts = yield* OutboxMaxAttempts;
-  const shutdown = yield* ShutdownRegistryTag;
+export const sweepTenantOutboxes = (
+  client: MongoClient,
+  bus: EventBus,
+  options: { readonly prefix: string; readonly maxAttempts: number },
+) => {
+  const { prefix, maxAttempts } = options;
 
-  const sweepOnce = Effect.gen(function* () {
+  return Effect.gen(function* () {
     const names = yield* tenantDatabases(client, prefix);
     for (const name of names) {
-      const db = client.db(name);
-      yield* ensureOutboxIndexes(db);
-      const outbox = makeMongoOutbox(db);
-      yield* drainOutbox(outbox, bus, { maxAttempts, database: name });
-      // Sampled **after** the drain, so the gauge reports what is still waiting
-      // rather than what was waiting a moment before this pass cleared it.
-      // Here rather than on its own timer because this loop already enumerates
-      // every tenant database once per sweep.
-      yield* recordOutboxStats(name, yield* outbox.stats());
+      // ⚠️ **Per tenant, not per pass.** The `catchAll` below covers the
+      // enumeration; without this one, a single tenant's failure abandons every
+      // tenant after it — and the failure this is likeliest to be is the
+      // `IndexOptionsConflict` `ensureOutboxIndexes` documents, which recurs on
+      // every sweep, so the tenants behind it would never drain again while the
+      // relay went on looking healthy.
+      yield* Effect.gen(function* () {
+        const db = client.db(name);
+        yield* ensureOutboxIndexes(db);
+        const outbox = makeMongoOutbox(db);
+        yield* drainOutbox(outbox, bus, { maxAttempts, database: name });
+        // Sampled **after** the drain, so the gauge reports what is still
+        // waiting rather than what was waiting a moment before this pass
+        // cleared it. Here rather than on its own timer because this loop
+        // already enumerates every tenant database once per sweep.
+        yield* recordOutboxStats(name, yield* outbox.stats());
+      }).pipe(
+        Effect.catchAll(error =>
+          Effect.logError('draining a tenant outbox failed').pipe(
+            Effect.annotateLogs({ database: name, error: String(error) }),
+          ),
+        ),
+      );
     }
   }).pipe(
     // A sweep failure must not kill the loop — the next pass retries whatever
@@ -173,6 +187,25 @@ export const startOutboxRelay = Effect.gen(function* () {
       ),
     ),
   );
+};
+
+/**
+ * Runs {@link sweepTenantOutboxes} on a timer and drains once more on the way
+ * out.
+ *
+ * The pass is a separate function so it can be asserted without a broker, a
+ * driver or a fiber — the same split {@link drainOutbox} already has, and the
+ * only way to state "one tenant's failure does not take the next tenant's" as a
+ * test rather than as a comment.
+ */
+export const startOutboxRelay = Effect.gen(function* () {
+  const client = yield* MongoClientTag;
+  const bus = yield* EventBusTag;
+  const prefix = yield* TenantDatabasePrefix;
+  const maxAttempts = yield* OutboxMaxAttempts;
+  const shutdown = yield* ShutdownRegistryTag;
+
+  const sweepOnce = sweepTenantOutboxes(client, bus, { prefix, maxAttempts });
 
   const daemon = yield* Effect.forkDaemon(
     sweepOnce.pipe(Effect.delay(SWEEP_INTERVAL), Effect.forever),

@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
-import { makeMongoOutbox } from './store';
+import { makeMongoOutbox, reviveQuarantined } from './store';
 
 describe('makeMongoOutbox.stats', () => {
   const withCollection = (collection: Record<string, unknown>) =>
@@ -51,6 +51,81 @@ describe('makeMongoOutbox.stats', () => {
 
     // A zero here would read as "the outbox is empty", which is the opposite of
     // what a store that cannot be queried means.
+    expect(outcome._tag).toBe('Left');
+  });
+});
+
+describe('reviveQuarantined', () => {
+  /** Records the filter and update the one `updateOne` call is given. */
+  const spyingDb = (modifiedCount: number) => {
+    const calls: { filter: unknown; update: unknown }[] = [];
+    const db = {
+      databaseName: 'tenant_acme',
+      collection: () => ({
+        updateOne: async (filter: unknown, update: unknown) => {
+          calls.push({ filter, update });
+          return { modifiedCount };
+        },
+      }),
+    } as unknown as Db;
+    return { db, calls };
+  };
+
+  it('puts a quarantined entry back in the queue', async () => {
+    const { db, calls } = spyingDb(1);
+
+    const revived = await Effect.runPromise(reviveQuarantined(db, 'off-1:t'));
+
+    expect(revived).toBe(true);
+    expect(calls[0]?.update).toEqual({
+      $set: { sent: false, quarantined: false, attempts: 0 },
+      $unset: { lastError: '' },
+    });
+  });
+
+  /**
+   * ⚠️ The assertion that keeps this from becoming "re-announce everything".
+   *
+   * With `quarantined` in the **update** rather than the filter, a walk running
+   * at every boot would re-send every already-delivered announcement in the
+   * fleet and un-quarantine genuine poison each time — the re-drive loop
+   * ADR 0030 closed deliberately.
+   */
+  it('only ever matches a quarantined entry', async () => {
+    const { db, calls } = spyingDb(1);
+
+    await Effect.runPromise(reviveQuarantined(db, 'off-1:t'));
+
+    expect(calls[0]?.filter).toEqual({
+      eventId: 'off-1:t',
+      quarantined: true,
+    });
+  });
+
+  it('answers false when the entry was pending, sent, or absent', async () => {
+    // All three are one case at the driver: the filter matched nothing, so
+    // nothing was modified. The walk reads that as "already announced".
+    const { db } = spyingDb(0);
+
+    expect(await Effect.runPromise(reviveQuarantined(db, 'off-2:t'))).toBe(
+      false,
+    );
+  });
+
+  it('fails rather than reporting a revival it did not make', async () => {
+    const db = {
+      databaseName: 'tenant_acme',
+      collection: () => ({
+        updateOne: async () => {
+          throw new Error('connection reset');
+        },
+      }),
+    } as unknown as Db;
+
+    const outcome = await Effect.runPromise(
+      Effect.either(reviveQuarantined(db, 'off-3:t')),
+    );
+
     expect(outcome._tag).toBe('Left');
   });
 });

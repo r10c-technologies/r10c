@@ -266,6 +266,12 @@ export const transitionOffering = Effect.gen(function* () {
   }
 
   offering.status = next;
+  // ⚠️ Stamped on **both** transitions, and stored rather than only announced.
+  // It is the same value the payload carries as `publishedAt` and therefore the
+  // second half of `catalogEventId`, so a rebuild re-emitting it reproduces this
+  // announcement exactly instead of minting a new one — see the member's own
+  // comment for what a re-stamped `now` would do to the projection's ordering.
+  offering.statusChangedAt = at;
 
   const publication: CatalogPublication = {
     offeringId: String(id),

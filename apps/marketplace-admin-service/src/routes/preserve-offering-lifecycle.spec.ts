@@ -5,7 +5,7 @@ import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
-import { preserveOfferingStatus } from './entity-crud';
+import { preserveOfferingLifecycle } from './entity-crud';
 
 /**
  * ⚠️ This is an **authorization** test, not a tidiness one.
@@ -17,11 +17,16 @@ import { preserveOfferingStatus } from './entity-crud';
  * own permission would be decoration and the lifecycle a text box with four
  * suggestions.
  *
+ * `statusChangedAt` rides along under the same rule and for a sharper reason:
+ * it is the moment the rebuild walk re-announces from, so a `PUT` that blanks it
+ * removes that offering from every future rebuild — silently, with the record
+ * still reading `published` on the vendor's own screen.
+ *
  * Both halves were confirmed against the running service before this was
  * written: the create and the update each came back `draft`.
  */
 
-/** The one collection method `preserveOfferingStatus` reaches for. */
+/** The one collection method `preserveOfferingLifecycle` reaches for. */
 const dbHolding = (stored?: Record<string, unknown>) =>
   ({
     collection: () => ({
@@ -31,7 +36,7 @@ const dbHolding = (stored?: Record<string, unknown>) =>
 
 const run = (offering: ProductOffering, db: Db) =>
   Effect.runPromise(
-    preserveOfferingStatus(offering, db).pipe(
+    preserveOfferingLifecycle(offering, db).pipe(
       Effect.provideService(
         ConfigurationRepositoryTag,
         new ConfigurationClientInMemory({}),
@@ -46,7 +51,9 @@ const offering = (status: string, id?: string) => {
   return one;
 };
 
-describe('preserveOfferingStatus', () => {
+const STORED_AT = new Date('2026-01-01T00:00:00.000Z');
+
+describe('preserveOfferingLifecycle', () => {
   it('starts a create at draft, whatever the caller claimed', async () => {
     const created = offering('published');
 
@@ -88,5 +95,62 @@ describe('preserveOfferingStatus', () => {
     );
 
     expect(submitted.status).toBe('unpublished');
+  });
+
+  it('carries the status moment across an update that never sent one', async () => {
+    // ⚠️ The half a form cannot supply: `statusChangedAt` is hidden, so an
+    // ordinary edit arrives with it undefined. Without this the value is blanked
+    // and the offering drops out of every future rebuild.
+    const submitted = offering('published', 'o-1');
+
+    await run(
+      submitted,
+      dbHolding({
+        _id: 'o-1',
+        name: 'An offering',
+        status: 'published',
+        statusChangedAt: STORED_AT,
+      }),
+    );
+
+    expect(submitted.statusChangedAt).toEqual(STORED_AT);
+  });
+
+  it('refuses a moment a caller invented for an update', async () => {
+    const submitted = offering('draft', 'o-1');
+    submitted.statusChangedAt = new Date('2030-01-01T00:00:00.000Z');
+
+    await run(
+      submitted,
+      dbHolding({
+        _id: 'o-1',
+        name: 'An offering',
+        status: 'published',
+        statusChangedAt: STORED_AT,
+      }),
+    );
+
+    expect(submitted.statusChangedAt).toEqual(STORED_AT);
+  });
+
+  it('gives a create no moment at all', async () => {
+    // A draft has announced nothing; the first transition stamps one. Accepting
+    // a client's value here would let a create name its own place in the
+    // projection's ordering.
+    const created = offering('published');
+    created.statusChangedAt = new Date('2030-01-01T00:00:00.000Z');
+
+    await run(created, dbHolding());
+
+    expect(created.statusChangedAt).toBeUndefined();
+  });
+
+  it('leaves the moment alone when the store cannot be read', async () => {
+    const submitted = offering('published', 'missing');
+    submitted.statusChangedAt = STORED_AT;
+
+    await run(submitted, dbHolding());
+
+    expect(submitted.statusChangedAt).toEqual(STORED_AT);
   });
 });

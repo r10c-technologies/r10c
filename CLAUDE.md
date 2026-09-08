@@ -533,6 +533,59 @@ them), and everything deep is a link — loaded only when a task needs it.
   to the gate. The scan now resolves `readonly code = IDENT` against the file's
   own `export const IDENT = '<literal>'`, and went from 48 emissions across 12
   files to 51 across 13.
+- **The projection is rebuildable, and the offering had to start storing when
+  its status was decided**
+  ([ADR 0050](docs/adr/0050-rebuilding-the-published-catalog-from-tenant-storage.md)).
+  The seed writes offerings straight into tenant Mongo, so one in four is stored
+  `published` having run **no transition** — nothing emitted, nothing projected,
+  and `published-catalog` empty after every `dev:reset`. Delivery is not atomic
+  either, although the write is: ADR 0048 measured a broker outage long enough
+  for the relay to quarantine an announcement, after which the tenant store read
+  `unpublished` and the storefront went on showing the offering. Six things not
+  to re-derive. ⚠️ **`ProductOffering.statusChangedAt` exists because a rebuild
+  that stamps `now` is unsafe, not merely lossy**: the event id is
+  `<offeringId>:<publishedAt>` and the projection orders on the same value, so a
+  fresh moment mints a _new_ publication rather than redelivering one **and**
+  overwrites the ordering key, letting an older publication overtake a genuine
+  takedown — the failure ADR 0048's tombstone exists to stop, reintroduced by the
+  tool meant to repair it. It is stamped on **both** transitions (hence the name,
+  not `publishedAt`), and it is server-owned, so it is neither `readonly` (which
+  drops a member from deserialization too, leaving the walk reading `undefined`)
+  nor `required`; `preserveOfferingStatus` became **`preserveOfferingLifecycle`**
+  to carry it across a `PUT`, which is ADR 0049's `preserveSpecificationCode`
+  residual arriving early for the member that needs it most — a blanked moment
+  removes an offering from every future rebuild while its record still reads
+  `published`. ⚠️ **The walk needs no cross-tenant surface**, which is what
+  ADR 0048 thought was blocking it: `tenantDatabases` already enumerates
+  `tenant_*` in the outbox relay, legal there and here for the one stated reason
+  — `marketplace-admin` is the single writing slice of every one of those stores,
+  so it is reading its own. Neither ADR 0012's discretionary human crossing nor
+  ADR 0023's determined one applies, because nobody outside the slice is asking
+  for anything; **both are also still unbuilt**, and #215's body assumed
+  otherwise (there is no `Organization` route in the fleet, and `TenantContextTag`
+  has exactly one reference: its own definition). **Already announced is skipped;
+  quarantined is revived** — the outbox retains sent entries, so a re-emit
+  answers `duplicate`, which is right for something delivered and wrong for an
+  entry the relay gave up on; `reviveQuarantined` puts `quarantined: true` in the
+  **filter**, never the update, because re-announcing everything would re-publish
+  the fleet on every boot and un-quarantine poison each time, the re-drive loop
+  ADR 0030 closed. The recorded cost: **a projection lost while tenant storage
+  survives is not repaired**, since every entry reads `sent: true`. **The walk
+  reuses `transitionOffering`** rather than building a payload — `published →
+published` is legal, so it produces the identical message by the identical code
+  including both preconditions, and a refusal is a _report_ (`unannounceable`,
+  named with its id) rather than a failure. ⚠️ **It is chained to the seed, not
+  merged beside it**: `Layer.mergeAll` builds concurrently, and Mongo creates a
+  tenant database on its first write, so a sibling rebuild races the seed on a
+  fresh `dev:reset`, enumerates nothing and leaves the storefront empty —
+  intermittently. The seed's own `statusChangedAt` is a **fixed constant**, never
+  `new Date()` at module load, so a reset is reproducible; it reaches a lab only
+  through a reset, because `seedCollection` inserts on `count === 0`. And one
+  correction rides along: the relay's sweep wrapped **all** tenants in one
+  `catchAll`, so one tenant's failure abandoned every tenant after it — harmless
+  in theory since another sweep follows in 15s, except the likeliest failure is
+  the recurring `IndexOptionsConflict`, which would leave the tenants behind it
+  undrained forever while every probe stayed green.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never

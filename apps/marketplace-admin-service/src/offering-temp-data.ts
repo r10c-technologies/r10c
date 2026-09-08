@@ -19,6 +19,7 @@ export interface ProductOfferingRecord {
   name: string;
   specificationId: string;
   status: string;
+  statusChangedAt: Date;
 }
 
 export interface ProductOfferingPriceRecord {
@@ -38,12 +39,31 @@ export interface ProductOfferingPriceRecord {
  */
 const STATUSES = ['draft', 'published', 'unpublished', 'pending-review'];
 
+/**
+ * When the seed decided every offering's status.
+ *
+ * ⚠️ **A fixed constant, never `new Date()`.** The rebuild walk re-announces a
+ * published offering with the moment stored on it, and the announcement's id is
+ * `<offeringId>:<publishedAt>` — so a moment that moved with each boot would
+ * make every reset produce different event ids and every restart look like a
+ * fresh publication. A constant makes a seeded lab reproducible, which is what
+ * lets a test name one.
+ *
+ * It is in the past on purpose: any real transition a vendor makes later carries
+ * a newer moment and therefore wins against it.
+ */
+const SEEDED_AT = new Date('2026-01-01T00:00:00.000Z');
+
 export const offeringTempData: ProductOfferingRecord[] = productTempData.map(
   (specification, index) => ({
     id: `product-offering-${index + 1}`,
     name: `${specification.name} — oferta`,
     specificationId: specification.id,
     status: STATUSES[index % STATUSES.length],
+    // Without this the seeded `published` offerings carry no moment, the walk
+    // reports them `unstamped`, and a fresh lab still serves an empty
+    // storefront — which is the whole defect this seed change exists to close.
+    statusChangedAt: SEEDED_AT,
   }),
 );
 

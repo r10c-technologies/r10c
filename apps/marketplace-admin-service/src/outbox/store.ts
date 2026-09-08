@@ -53,6 +53,55 @@ export const outboxDocument = (event: DomainEvent): OutboxEntry => ({
 });
 
 /**
+ * Puts a **quarantined** entry back in the queue, and touches nothing else.
+ *
+ * The rebuild walk's repair for the one failure ADR 0048 measured: with the
+ * broker down long enough, the relay spends `outbox.maxAttempts` on an
+ * announcement and quarantines it (ADR 0030's deliberate skip-so-the-head-moves),
+ * after which the tenant store reads one thing and the storefront shows another
+ * with nothing reporting it. Re-emitting cannot help on its own — the event id is
+ * `<offeringId>:<publishedAt>` and the unique index answers `duplicate`.
+ *
+ * ⚠️ **`quarantined: true` is in the filter, not the update.** An entry that is
+ * merely pending keeps its `attempts`, and one already `sent` is never re-sent —
+ * which is what keeps this from quietly becoming "re-announce everything", a
+ * walk that would re-publish the whole fleet on every boot and un-quarantine
+ * genuine poison each time.
+ *
+ * Not a `TransactionOutbox` method: the port is framework-free and shared by
+ * every publisher, and this is a repair specific to the rebuild. `outboxDocument`
+ * is exported beside it for the same class of reason.
+ *
+ * Answers whether an entry was actually revived.
+ */
+export const reviveQuarantined = (db: Db, eventId: string) =>
+  Effect.tryPromise({
+    try: async () => {
+      const result = await db
+        .collection<OutboxEntry>(OUTBOX_COLLECTION)
+        .updateOne(
+          { eventId, quarantined: true },
+          {
+            $set: { sent: false, quarantined: false, attempts: 0 },
+            // The failure that put it here is spent; leaving it would make the
+            // next quarantine's log name an error from a different outage.
+            $unset: { lastError: '' },
+          },
+        );
+      return result.modifiedCount === 1;
+    },
+    catch: error =>
+      new EntifixConnError(
+        'Failed to revive a quarantined outbox entry',
+        error,
+        {
+          eventId,
+          db: db.databaseName,
+        },
+      ),
+  });
+
+/**
  * Ensures the two indexes the outbox depends on.
  *
  * The unique one is load-bearing rather than defensive: it *is* the idempotency
