@@ -100,7 +100,7 @@ different things by "product".
 | **Product**               | An **instance** of an offering, owned or subscribed to by a party — what a buyer holds after checkout. **Not a catalog record.** The catalog record is `ProductSpecification`; the entity that used to be called `Product` was renamed for exactly this reason ([ADR 0022](adr/0022-v1-marketplace-module-boundaries.md)). Lives in `order-management`. | SID           |
 | **ProductOrder**          | A party's request for one or more offerings.                                                                                                                                                                                                                                                                                                            | SID           |
 | **StockItem**             | Physical availability of an offering for a vendor. A **materialized total**, not the truth — `StockMovement` is.                                                                                                                                                                                                                                        | ours          |
-| **PublishedOffering**     | The storefront's **snapshot** of a vendor's offering, taken at publication. Copies price, vendor and the merchandising fields a card renders — reference, description, brand and category — rather than linking, because a platform-plane reader cannot dereference a tenant pointer.                                                                                                                                                           | ours          |
+| **PublishedOffering**     | The storefront's **snapshot** of a vendor's offering, taken at publication. Copies price, vendor and the merchandising fields a card renders — reference, description, brand and category — rather than linking, because a platform-plane reader cannot dereference a tenant pointer.                                                                   | ours          |
 | **SalesChannel**          | A route a vendor sells through — the storefront, a counter in their own shop, a phone line. Per-vendor, so it never merges the way a brand or a category has to.                                                                                                                                                                                        | SID           |
 | **RelatedChannel**        | The channel copied onto a `ProductOrder`. TM Forum models an in-store sale as a channel on the same order rather than as a second kind of order, which is why a counter sale is a `ProductOrder` and no in-store equivalent exists.                                                                                                                     | SID           |
 | **OrderItem**             | One line of a `ProductOrder`, tagged with the vendor that owes it. A **value**, not an entity — no identity apart from its order.                                                                                                                                                                                                                       | SID           |
@@ -424,6 +424,15 @@ write load.
 because the public read host then never opens a connection to tenant storage at
 all — the isolation property becomes structural rather than a rule about which
 query a route makes.
+
+**And the projection is rebuildable from tenant storage**, which is what keeps it
+a projection rather than a second system of record. marketplace-admin walks every
+tenant database it owns at boot and re-announces each stored-`published`
+offering, using the moment stored on the offering itself so a rebuild redelivers
+an announcement instead of minting a new one. That is what fills the storefront
+on a freshly reset lab — nothing calls the publish verb during a seed — and what
+repairs an announcement the relay quarantined during a broker outage
+([ADR 0050](adr/0050-rebuilding-the-published-catalog-from-tenant-storage.md)).
 
 The vocabulary the catalog is classified _in_ — brands, categories, dictionary
 terms — is a **third** thing, and it is neither tenant-authored nor derived. It is

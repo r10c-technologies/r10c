@@ -48,6 +48,7 @@ import {
   startOutboxRelay,
   TenantDatabasePrefix,
 } from './outbox/relay';
+import { startPublicationRebuild } from './publication/rebuild';
 import { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
 import {
   SagaRecoveryIntervalMs,
@@ -224,8 +225,17 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.provideMerge(
         Layer.mergeAll(
           tenancy,
+          // ⚠️ **The rebuild is chained to the seed, not merged beside it.**
+          // `Layer.mergeAll` builds its members concurrently, so a sibling
+          // rebuild races the seed on a fresh `dev:reset`: Mongo creates a
+          // tenant database on its first write, `tenantDatabases` would list
+          // none, and the walk would announce nothing — leaving the storefront
+          // empty, intermittently, which is the failure this walk exists to
+          // remove.
           Layer.effectDiscard(
-            seedCatalog(`${tenantPrefix}${demoOrganizationId}`),
+            seedCatalog(`${tenantPrefix}${demoOrganizationId}`).pipe(
+              Effect.andThen(startPublicationRebuild),
+            ),
           ),
           Layer.effectDiscard(startTracking),
           // The slow half of the outbox relay. The fast half runs inline in the

@@ -413,6 +413,7 @@ export const entity = {
       name: 'Nombre',
       specificationId: 'ID de especificación',
       status: 'Estado',
+      statusChangedAt: 'Último cambio de estado',
     },
     values: {
       status: {

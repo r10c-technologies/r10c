@@ -38,6 +38,7 @@ export class ProductOffering implements Entity {
   #name: string;
   #specificationId: string;
   #status: OfferingStatus = 'draft';
+  #statusChangedAt?: Date;
   // #endregion
 
   // #region constructors
@@ -127,6 +128,42 @@ export class ProductOffering implements Entity {
   }
   set status(value: OfferingStatus) {
     this.#status = value;
+  }
+
+  /**
+   * When this offering's current `status` was decided — the moment
+   * `transitionOffering` stamped, on a publication and a takedown alike.
+   *
+   * ⚠️ **It exists so a rebuild has something stable to re-emit.** The
+   * announcement's id is `<offeringId>:<publishedAt>` and the projection orders
+   * on that same moment, so a fleet-wide walk that stamped `now` would not
+   * redeliver an announcement — it would mint a *new* publication, overwrite the
+   * projection's ordering key, and leave a `catalog.unpublished` emitted a
+   * second earlier reading as stale. The offering would then stay on the
+   * storefront while the vendor's own screen said it was gone.
+   *
+   * `statusChangedAt` rather than `publishedAt`, because an unpublish stamps it
+   * too: on a withdrawn record the second name would describe the takedown.
+   *
+   * ⚠️ **Server-owned, and therefore neither `readonly` nor `required`.**
+   * `readonly` drops a member from serialization *and* deserialization, so the
+   * rebuild would read `undefined` off every stored document; `required` demands
+   * of an operator a value they do not control, which is the failure ADR 0047
+   * measured on `status` — a hidden field's validation rule still runs, with no
+   * input to render the error on. It is hidden from the form instead, and
+   * `preserveOfferingLifecycle` keeps a `PUT` from blanking it.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-offering.fields.statusChangedAt',
+    sortable: true,
+    filterable: true,
+  })
+  get statusChangedAt(): Date | undefined {
+    return this.#statusChangedAt;
+  }
+  set statusChangedAt(value: Date | undefined) {
+    this.#statusChangedAt = value;
   }
   // #endregion
 }

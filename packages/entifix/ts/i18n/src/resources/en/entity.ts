@@ -376,6 +376,7 @@ export const entity: EsEntity = {
       name: 'Name',
       specificationId: 'Specification ID',
       status: 'Status',
+      statusChangedAt: 'Last status change',
     },
     values: {
       status: {

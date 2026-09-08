@@ -284,12 +284,15 @@ export const productOfferingCrud = makeEntityCrud(ProductOffering, {
   runUseCase: runCatalogUseCase(PRODUCT_OFFERING_SURFACE.entityKey),
   // ⚠️ `status` is hidden because it is **not the vendor's to write**. The two
   // verbs own it, the write path overwrites whatever the form sends
-  // (`preserveOfferingStatus`), and asking the operator for it made a required
+  // (`preserveOfferingLifecycle`), and asking the operator for it made a required
   // field out of a value they do not control — measured: a create blocked on
   // "Status is required" for a member that has a default and is server-owned.
   // The state stays legible on the list column and through which verb the form
   // offers; the field itself would be a lie about who decides it.
-  hiddenFields: ['id', 'status'],
+  // `statusChangedAt` joins them for the same reason and one more: it is the
+  // moment the rebuild walk re-announces from, so an operator editing it would
+  // silently move an offering's place in the projection's ordering.
+  hiddenFields: ['id', 'status', 'statusChangedAt'],
   // `specificationId` is a plain `string` into the same store, and the picker
   // treats it exactly as it treats a cross-store id: `PICKABLE_TYPES` admits
   // `link` and `string`, and `applyEntityLinks` skips a non-`link` descriptor,

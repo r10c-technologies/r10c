@@ -140,14 +140,14 @@ const run = (
   id: EntityId,
   transition: OfferingTransition,
   prices: ProductOfferingPrice[] = [price(String(id))],
-  specifications: ProductSpecification[] = [specification(`spec-${String(id)}`)],
+  specifications: ProductSpecification[] = [
+    specification(`spec-${String(id)}`),
+  ],
 ) => {
   const { repository, saved } = repositoryOf(...rows);
   const { repository: priceRepository, queries } = pricesOf(...prices);
-  const {
-    repository: specificationRepository,
-    queries: specificationQueries,
-  } = specificationsOf(...specifications);
+  const { repository: specificationRepository, queries: specificationQueries } =
+    specificationsOf(...specifications);
 
   const exit = Effect.runSyncExit(
     transitionOffering.pipe(
@@ -175,7 +175,9 @@ const run = (
       ),
     ) as Effect.Effect<
       OfferingTransitionDecision,
-      IllegalOfferingTransition | OfferingHasNoPrice | OfferingHasNoSpecification,
+      | IllegalOfferingTransition
+      | OfferingHasNoPrice
+      | OfferingHasNoSpecification,
       never
     >,
   );
@@ -413,6 +415,38 @@ describe('what a transition announces', () => {
     expect(decision.event.at).toBe(AT.toISOString());
     expect(decision.event.data.publishedAt).toBe(AT.toISOString());
   });
+
+  /**
+   * ⚠️ The moment is **stored**, not only announced, and that is what makes a
+   * fleet-wide rebuild possible at all.
+   *
+   * The announcement's id is `<offeringId>:<publishedAt>`, and the projection
+   * orders on the same value. A walk that re-emitted with `now` would therefore
+   * mint a new publication rather than redeliver one, overwrite the ordering key,
+   * and let an older publication overtake a genuine takedown.
+   */
+  it('stamps the offering with the moment it announces', () => {
+    const decision = decisionOf(
+      run([offering('1', 'draft')], '1', 'publish').exit,
+    );
+
+    expect(decision.offering.statusChangedAt).toBe(AT);
+    expect(decision.offering.statusChangedAt?.toISOString()).toBe(
+      decision.event.data.publishedAt,
+    );
+  });
+
+  it('stamps a takedown too, so the pair never disagrees', () => {
+    // The payload's `publishedAt` already carries a takedown's moment; storing
+    // it under the honest name is what keeps `statusChangedAt` readable on an
+    // `unpublished` record.
+    const decision = decisionOf(
+      run([offering('1', 'published')], '1', 'unpublish').exit,
+    );
+
+    expect(decision.offering.status).toBe('unpublished');
+    expect(decision.offering.statusChangedAt).toBe(AT);
+  });
 });
 
 describe('the specification the snapshot copies from', () => {
@@ -462,7 +496,8 @@ describe('the specification the snapshot copies from', () => {
     // only remedy. ADR 0048 accepted that residual once; this does not repeat
     // it.
     const event = publicationOf(
-      run([offering('1', 'published')], '1', 'unpublish', [price('1')], []).exit,
+      run([offering('1', 'published')], '1', 'unpublish', [price('1')], [])
+        .exit,
     );
 
     expect(event.name).toBe(CATALOG_UNPUBLISHED);

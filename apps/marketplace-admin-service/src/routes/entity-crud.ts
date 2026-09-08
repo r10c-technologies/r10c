@@ -716,7 +716,8 @@ export const transitionOfferingRoute = (
   );
 
 /**
- * Keeps an offering's `status` out of the hands of the generic write path.
+ * Keeps an offering's **lifecycle pair** — `status` and `statusChangedAt` — out
+ * of the hands of the generic write path.
  *
  * ⚠️ Without this the two declared verbs are **decoration**: `status` is an
  * ordinary writable member, so anyone holding
@@ -727,18 +728,29 @@ export const transitionOfferingRoute = (
  * [ADR 0047](../../../../docs/adr/0047-authoring-an-offering-and-the-publish-verb.md)
  * refused to build.
  *
- * A create always starts at `draft`. An update takes the **stored** value,
- * because only `transitionOffering` may move it — an unreadable record falls
- * through to the save, which then fails on its own terms rather than being
- * reported here as a status problem.
+ * ⚠️ **`statusChangedAt` is the second half and it is not decoration either.**
+ * It is written by `transitionOffering` and read by the rebuild walk, so a `PUT`
+ * that omits it blanks it and removes that offering from every future rebuild —
+ * silently, with the record still reading `published` on the vendor's screen.
+ * This is the fault [ADR 0049](../../../../docs/adr/0049-the-publication-snapshot-carries-what-the-storefront-renders.md)
+ * recorded for `ProductSpecification.code`, which has no such hook; the answer
+ * is the same one, and the name says `Lifecycle` rather than `Status` so the
+ * next server-owned member is not left out of it.
+ *
+ * A create always starts at `draft` and carries **no** moment — nothing has been
+ * decided about it yet, and the first transition stamps one. An update takes the
+ * **stored** values, because only `transitionOffering` may move them; an
+ * unreadable record falls through to the save, which then fails on its own terms
+ * rather than being reported here as a status problem.
  */
-export const preserveOfferingStatus = (
+export const preserveOfferingLifecycle = (
   offering: ProductOffering,
   db: Db,
 ): Effect.Effect<void, EntifixError, ConfigurationRepositoryTag> =>
   Effect.gen(function* () {
     if (offering.id == null) {
       offering.status = 'draft';
+      offering.statusChangedAt = undefined;
       return;
     }
 
@@ -748,5 +760,6 @@ export const preserveOfferingStatus = (
 
     if (stored._tag === 'Some') {
       offering.status = stored.value.status;
+      offering.statusChangedAt = stored.value.statusChangedAt;
     }
   });
