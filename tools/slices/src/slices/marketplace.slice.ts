@@ -67,13 +67,22 @@ export const marketplaceSlice: SliceDeclaration = {
     // catalog, so a message lost while it restarts is an offering the
     // storefront never shows and nothing can notice.
     {
-      event: 'catalog.published',
+      // One pattern, both names — so publications and unpublications share a
+      // queue and therefore an order. `x-delivery-limit` and the queue name are
+      // immutable once the queue exists, so this is settled here or by a
+      // `dev:reset`.
+      event: 'catalog.*',
       mode: 'work',
       maxAttempts: 5,
       dedupe: 'natural',
       dedupeReason:
-        'The projection is a full-document upsert keyed on the offering id, ' +
-        'so re-applying one publication writes the same document.',
+        'A publication is a full-document upsert keyed on the offering id, so ' +
+        're-applying one writes the same document. An unpublication is a ' +
+        'delete, which is idempotent but NOT order-free — so the projector ' +
+        'compares the event`s publishedAt against the stored record and ' +
+        'ignores anything older. Without that guard a redelivered ' +
+        'unpublication could remove a listing a newer publication had just ' +
+        'restored, permanently and with every probe green.',
     },
   ],
 };

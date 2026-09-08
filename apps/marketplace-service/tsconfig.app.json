@@ -13,6 +13,7 @@
   "exclude": [
     "out-tsc",
     "dist",
+    "vitest.config.mts",
     "src/**/*.spec.ts",
     "src/**/*.test.ts",
     "eslint.config.js",
@@ -20,9 +21,6 @@
     "eslint.config.mjs"
   ],
   "references": [
-    {
-      "path": "../../packages/business/ts/authz/tsconfig.lib.json"
-    },
     {
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
@@ -42,10 +40,22 @@
       "path": "../../packages/entifix/ts/business/tsconfig.lib.json"
     },
     {
-      "path": "../../packages/business/ts/catalog-reference/tsconfig.lib.json"
+      "path": "../../packages/entifix/ts/amqp-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/transactions/tsconfig.lib.json"
     },
     {
       "path": "../../packages/business/ts/marketplace-catalog/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/business/ts/catalog-reference/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/business/ts/catalog-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/business/ts/authz/tsconfig.lib.json"
     },
     {
       "path": "../../packages/business/ts/authn/tsconfig.lib.json"

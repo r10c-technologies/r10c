@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-09-07
+- Revised: 2026-09-07 by [ADR 0048](0048-announcing-a-publication.md) — the two
+  deferrals below are closed: emission exists, and publishing an offering with
+  no price is now refused.
 
 ## Context
 
@@ -133,6 +136,11 @@ constraint of its own worth stating here: `product-configuration-management`
 authors it and `marketplace-catalog` consumes it, and a `business:domain`
 package may not import another, so the payload type cannot simply be shared.
 
+> **Closed** by [ADR 0048](0048-announcing-a-publication.md). The payload lives
+> in a `business:policy` package, which is the tag a domain package _is_ allowed
+> to depend on; `transitionOffering` now returns the event instead of saving,
+> and the route commits both documents in one session.
+
 ### `ProductOfferingPrice.offeringId` became `sortable`
 
 ⚠️ Not a convenience. `defineRecordSearchSource` refuses a label member that is
@@ -162,12 +170,15 @@ catalog entry.
 
 - **`published-catalog` still cannot fill.** This record ends with an offering
   that reaches `published` and announces nothing. That is the intended halfway
-  point, and it is what Batch B stands on.
+  point, and it is what Batch B stands on. — **Closed** by
+  [ADR 0048](0048-announcing-a-publication.md).
 - **No precondition on price.** Publishing an offering with no
   `ProductOfferingPrice` succeeds, and the projection will need an amount and a
   currency. It is a real invariant and it needs a second repository in the use
   case; the honest place to add it is the commit that makes the projection
-  depend on it.
+  depend on it. — **Closed** by
+  [ADR 0048](0048-announcing-a-publication.md): that commit landed, and the verb
+  now answers `409 offeringHasNoPrice`.
 - **Five catalog surfaces, and every derived list grew with them** — nav,
   commands, search sources and the workspace registry, none of them edited. The
   pinned-count assertions in four specs failed on the way through, which is the

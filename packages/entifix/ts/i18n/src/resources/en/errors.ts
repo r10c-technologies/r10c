@@ -20,6 +20,9 @@ export const errors: EsErrors = {
   // The one genuinely illegal move in an offering's lifecycle: taking down
   // something that was never published. Refused in the domain, not the route.
   illegalOfferingTransition: 'The offering cannot move to that state.',
+  // The published record carries an amount and a currency, so there is nothing
+  // to project without one. Refused at the verb, where the vendor can fix it.
+  offeringHasNoPrice: 'Add a price before publishing this offering.',
   resourceBusy: 'The resource is busy, try again.',
   identifierRequired: 'An account needs at least one identifier.',
   emailRequired: 'An email identifier is required.',

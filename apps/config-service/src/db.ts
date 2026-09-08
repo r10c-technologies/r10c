@@ -567,6 +567,16 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'db',
     value: 'marketplace',
   },
+  // The bus this service **consumes** from: it subscribes `catalog.*` and
+  // writes the `published-catalog` projection. Same broker as the admin
+  // service's, which is what makes them one exchange rather than two fleets.
+  {
+    service: 'marketplace-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
   // The public half only. This service verifies access tokens and never mints
   // one, so it cannot sign.
   {

@@ -9,8 +9,10 @@ import {
   permissionForEntity,
 } from '@r10c/business-ts-authz';
 import {
+  OfferingPriceRepositoryTag,
   type OfferingTransition,
   ProductOffering,
+  ProductOfferingPrice,
   transitionOffering,
   TransitionOfferingInputTag,
 } from '@r10c/business-ts-product-configuration-management';
@@ -39,6 +41,7 @@ import {
 } from '@r10c/entifix-ts-business';
 import {
   EntifixBuildError,
+  EntifixConnError,
   EntifixEnvelopeLink,
   EntifixError,
   EntifixLockError,
@@ -52,6 +55,7 @@ import {
   makeEntityPageEnvelope,
   parseLoadRequestParams,
   readEntityEnvelope,
+  serializeEntity,
 } from '@r10c/entifix-ts-core';
 import {
   makeMongoRepository,
@@ -67,7 +71,12 @@ import {
   makeCatalogTransactionHandler,
 } from '../catalog-transaction-handler';
 import { drainOutbox, OutboxMaxAttempts } from '../outbox/relay';
-import { ensureOutboxIndexes, makeMongoOutbox } from '../outbox/store';
+import {
+  ensureOutboxIndexes,
+  makeMongoOutbox,
+  OUTBOX_COLLECTION,
+  outboxDocument,
+} from '../outbox/store';
 
 /**
  * The generic entity CRUD and the tenant guard every catalog route module in
@@ -524,11 +533,24 @@ export const guardedUseCase = <A, E, R>(
   );
 
 /**
- * Move one offering along its lifecycle.
+ * Move one offering along its lifecycle, and announce where it landed — in one
+ * Mongo transaction.
  *
- * The rule is the domain's (`offeringStatusAfter`); this route only supplies
- * the id from the path and the repository, and turns the domain's refusal into
- * a status code. **`409`, not `400`**: the request is well-formed and the
+ * The rule is the domain's (`offeringStatusAfter`) and so is the decision
+ * (`transitionOffering`); what lives here is the **commit**, because a driver
+ * session may not enter the framework-free `EntityRepository` or
+ * `TransactionOutbox` ports and ADR 0028 rejected threading one through by
+ * name. This is the same shape `makeCatalogTransactionHandler.execute` uses for
+ * its `completed` entry: whoever holds the session writes both documents.
+ *
+ * ⚠️ **The status write and the event are one transaction or they are a lie.**
+ * Written separately, a broker outage between them leaves the offering
+ * `published` on the vendor's own screen and absent from the storefront
+ * forever, with nothing to replay from — the exact failure the outbox exists to
+ * remove. The relay's fast half then runs inline, so a publish normally reaches
+ * the bus immediately rather than waiting out a 15s sweep.
+ *
+ * Two refusals, both **`409`, not `400`**: the request is well-formed and the
  * caller is allowed to make it — what is wrong is the *state of the record*,
  * which is exactly the distinction a conflict status carries. A `400` would
  * tell a vendor to fix their request when there is nothing in it to fix.
@@ -537,18 +559,100 @@ export const guardedUseCase = <A, E, R>(
  * the browser re-renders the new status from the write's own answer rather than
  * re-reading it.
  */
-export const transitionOfferingRoute = (transition: OfferingTransition) =>
+export const transitionOfferingRoute = (
+  transition: OfferingTransition,
+  organizationId: string,
+) =>
   Effect.gen(function* () {
+    const client = yield* MongoClientTag;
     const db = yield* MongoDatabaseTag;
+    const bus = yield* EventBusTag;
+    const maxAttempts = yield* OutboxMaxAttempts;
+    const source = yield* EventSourceTag;
+
     const params = yield* HttpRouter.params;
     const id = params.id as EntityId;
 
-    const offering = yield* transitionOffering.pipe(
+    const { offering, event } = yield* transitionOffering.pipe(
       Effect.provideService(
         EntityRepositoryTag,
         makeMongoRepository(db, ProductOffering),
       ),
-      Effect.provideService(TransitionOfferingInputTag, { id, transition }),
+      Effect.provideService(
+        OfferingPriceRepositoryTag,
+        makeMongoRepository(db, ProductOfferingPrice),
+      ),
+      Effect.provideService(TransitionOfferingInputTag, {
+        id,
+        transition,
+        // From the verified principal, never a body member: this decides which
+        // vendor a storefront row is attributed to, and once orders exist, who
+        // is paid for it.
+        vendorId: organizationId,
+        source,
+        at: new Date(),
+      }),
+    );
+
+    // Tenant databases appear on first write, so the indexes are ensured per
+    // handle rather than at boot. The unique one on `eventId` is what makes a
+    // redelivered publication a duplicate rather than a second message, so it
+    // must exist before the first insert and not eventually.
+    yield* ensureOutboxIndexes(db);
+    const outbox = makeMongoOutbox(db);
+
+    const document = serializeEntity(ProductOffering, offering);
+
+    yield* Effect.tryPromise({
+      try: async () => {
+        const session = client.startSession();
+        try {
+          // `withTransaction`, never a hand-rolled start/commit: an election
+          // aborts an in-flight transaction with a `TransientTransactionError`
+          // the *application* is expected to retry, and a single-node dev
+          // replica set never raises one. Nothing non-transactional runs
+          // inside — the event was built before this opened, so a retry
+          // re-sends the same payload rather than stamping a new moment.
+          await session.withTransaction(async () => {
+            // `envelopeEntityName` is byte-identical to `makeMongoRepository`'s
+            // own `collectionName` (`metaEntity.key ?? metaEntity.name`), so
+            // this writes the collection the repository reads. Spelled through
+            // the entity for that reason rather than as a literal.
+            await db
+              .collection(envelopeEntityName(ProductOffering))
+              .replaceOne(
+                { id: offering.id },
+                { ...document, id: offering.id },
+                { upsert: true, session },
+              );
+            await db
+              .collection(OUTBOX_COLLECTION)
+              .insertOne(outboxDocument(event), { session });
+          });
+        } finally {
+          await session.endSession();
+        }
+      },
+      catch: error =>
+        new EntifixConnError(
+          'Failed to commit the offering and its publication',
+          error,
+          { id: String(id), transition },
+        ),
+    });
+
+    // Forked past the response, exactly as `createTransactionRoute` does: the
+    // request already holds this tenant's handle, so the normal case reaches
+    // the bus with the latency it had before the outbox existed, and the sweep
+    // only covers what this misses. Ignored, because the entry is already
+    // durable — a failure here delays delivery, it does not lose it.
+    yield* Effect.forkDaemon(
+      Effect.ignore(
+        drainOutbox(outbox, bus, {
+          maxAttempts,
+          database: db.databaseName,
+        }),
+      ),
     );
 
     const key = envelopeEntityName(ProductOffering);
@@ -566,6 +670,18 @@ export const transitionOfferingRoute = (transition: OfferingTransition) =>
           error: 'illegal offering transition',
           code: failure.code,
           detail: `An offering in '${failure.from}' cannot be ${failure.transition}ed.`,
+        },
+        { status: 409 },
+      ),
+    ),
+    Effect.catchTag('OfferingHasNoPrice', failure =>
+      HttpServerResponse.json(
+        {
+          error: 'offering has no price',
+          code: failure.code,
+          detail:
+            'An offering needs a price before it can reach the storefront: ' +
+            'the published record carries an amount and a currency.',
         },
         { status: 409 },
       ),

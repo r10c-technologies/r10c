@@ -53,9 +53,19 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     'GET|POST|PUT|DELETE /api/product-offering-price',
   ],
   dependantAPIs: ['GET /api/config/:service'],
-  // `catalog.published` is what the `marketplace` slice consumes to write the
-  // `published-catalog` projection. The authoring slice emits and never writes
-  // that store — which is how a projection keeps exactly one writer.
-  publishedEvents: ['transaction.*', 'catalog.published'],
+  // The `marketplace` slice consumes both to write the `published-catalog`
+  // projection. The authoring slice emits and never writes that store — which
+  // is how a projection keeps exactly one writer.
+  //
+  // Two names rather than one carrying a state member, and the consumer binds
+  // them with a single `catalog.*` pattern so they share **one** queue and
+  // therefore one delivery order. Two subscriptions would be two queues, two
+  // independent orders, and a redelivered unpublication free to overtake a
+  // newer publication.
+  publishedEvents: [
+    'transaction.*',
+    'catalog.published',
+    'catalog.unpublished',
+  ],
   subscriptions: [],
 };

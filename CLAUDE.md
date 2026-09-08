@@ -364,8 +364,8 @@ them), and everything deep is a link — loaded only when a task needs it.
   satisfying "every declared verb is granted somewhere" makes that check vacuous
   for precisely the verbs only the operator holds. The entityKey segment is
   wildcarded; the **action** segment is not, so ADR 0026's residual stands.
-- **A vendor authors an offering, and publishing it is a verb — but nothing is
-  announced yet** ([ADR 0047](docs/adr/0047-authoring-an-offering-and-the-publish-verb.md)).
+- **A vendor authors an offering, and publishing it is a verb**
+  ([ADR 0047](docs/adr/0047-authoring-an-offering-and-the-publish-verb.md)).
   `ProductOffering` and `ProductOfferingPrice` were `@entity()` classes and
   **nothing else** — no route, no adapter, no surface, and the domain package
   had no `use-cases/` folder at all — which is why `published-catalog` could
@@ -404,13 +404,89 @@ them), and everything deep is a link — loaded only when a task needs it.
   that is not sortable, filterable **and** a string, at **module load**, so the
   surface would have failed the app at boot — `amount` is a number and
   `currency` is not sortable, leaving it the only member that can name one of
-  its own records. And **emission is deliberately absent**: ADR 0028 requires the
-  event in the same Mongo transaction as the status write, which a framework-free
-  port cannot do, so the emitting path belongs with the commit that decides the
-  payload shape — whose own constraint is that `product-configuration-management`
-  authors it and `marketplace-catalog` consumes it, and neither may import the
-  other. Also absent, and recorded: no precondition that an offering have a
-  price, and no publish-from-the-list affordance.
+  its own records. Emission and the price precondition were deferred to the next
+  bullet, which closed both; still absent and recorded is the
+  publish-from-the-list affordance.
+- **Publishing announces itself, and the projection is guarded on when the
+  publication happened**
+  ([ADR 0048](docs/adr/0048-announcing-a-publication.md)). The register declared
+  `catalog.published` on **both** sides while nothing emitted it and nothing
+  bound the queue — ADR 0031's `/api/$service` diff was reporting exactly that
+  as three advisories, and this is what clears them. Six things not to
+  re-derive. **The payload lives in a `business:policy` package**
+  (`@r10c/business-ts-catalog-contracts`), because
+  `product-configuration-management` authors it, `marketplace-catalog` projects
+  it, and a `business:domain` package may never depend on another — the remedy
+  `settlement-management`'s duplicated channel literals already named in a
+  comment ("the real fix — if this ever bites — is a shared `business:policy`
+  vocabulary package, not a dependency edge"). Four copied strings did not bite;
+  a seven-member payload with a decoder does, since **nothing can compare two
+  hand-written copies of a structure** and a member added on one side only is a
+  field the projection silently never writes. That widens `business:policy` from
+  "authorization vocabulary" to "shared vocabulary", stated deliberately; the
+  dependency ceiling (`layer:entifix`/`layer:utils` only) is unchanged and still
+  enforced. **Two names, one queue**: `catalog.published` and
+  `catalog.unpublished`, bound by a single `catalog.*` pattern, because
+  `queueNameFor` derives the durable queue from the pattern and two
+  subscriptions would be two queues delivering **independently** — which is
+  exactly how a redelivered unpublication overtakes the publication that
+  superseded it. Settle it now or never: a queue's name and its
+  `x-delivery-limit` are immutable once it exists. ⚠️ **The projector compares
+  `publishedAt` and ignores an older event**, and that is correctness, not
+  polish: the register's `dedupe: 'natural'` rests on "a full-document upsert
+  keyed on the offering id", which is true for a publication and **false for an
+  unpublication**, which deletes — so a redelivered unpublication can remove a
+  live listing permanently, silently, with every probe green. Equality
+  **applies** (treating equal as stale drops the first delivery whenever a
+  record already carries that moment), a stored non-`Date` compares as the
+  **epoch** (comparing against a string yields `NaN`, making every comparison
+  false and freezing the record forever), and the moment is the publisher's,
+  never the receiver's. ⚠️ **An unpublication leaves a tombstone**, because a
+  delete has nothing to be ordered by — found live, not reasoned out: publish
+  and unpublish 19ms apart raced two inline outbox drains, the unpublication was
+  delivered first, its delete found and left nothing, and the older publication
+  behind it looked like a first publication and put the offering back on the
+  storefront while the tenant record said `unpublished`. The tombstone is
+  written **before** the delete (between the two writes the offering must never
+  look publishable), lives in its own collection rather than as a `deleted` flag
+  (the read path goes through the entity's collection and a soft-deleted row
+  needs every reader to remember to filter it), and is cleared by any
+  publication that supersedes it — the guard orders, it does not freeze. ⚠️ **The event id is `<offeringId>:<publishedAt>`**, not
+  the offering id — ADR 0047 makes republication legal, so an id keyed on the
+  subject makes every correction look like a redelivery and the outbox's unique
+  index drops it. **The transition decides and the route commits**:
+  `transitionOffering` returns `{ offering, event }` and **saves nothing**,
+  because a save plus a separate outbox write is the dual write ADR 0028 forbids
+  and a driver session may not enter a framework-free port — so the route writes
+  both documents in one `session.withTransaction`, exactly as
+  `makeCatalogTransactionHandler` does, with the event built **before** the
+  transaction opens so a retry re-sends the same payload. `vendorId` is
+  `guardedUseCase`'s `organizationId`, which the two route registrations were
+  already handed and were discarding. ⚠️ **Publishing with no price is
+  `409 offeringHasNoPrice`** — projecting `0` is indistinguishable from _free_,
+  and emitting anyway gives the vendor a `200` and a listing that never appears;
+  it uses a second tag (`OfferingPriceRepositoryTag`), since one tag resolves to
+  one value and a repository built for `ProductOffering` answering a price query
+  deserializes into the wrong class rather than failing. Ordered **after** the
+  legality check, so an unpublishable draft is told it is unpublishable rather
+  than sent to fix a price that is not the problem. And **marketplace-service
+  grows a bus and therefore `AmqpHealthProbeLayer`**: a service that dials
+  RabbitMQ at boot and probes nothing exits `1` against a merely slow broker
+  while the ladder green-lights a booting fleet. `availableHint` is `true` with
+  a stated residual (M2's `stock` slice gives it a source); several prices for
+  one offering takes the first, deliberately undecided; and the fleet-wide
+  rebuild is **deferred**, ⚠️ but not because nothing can be lost: the write is
+  atomic and _delivery_ is not, so with the broker stopped the relay retried the
+  pending entry to `outbox.maxAttempts` and **quarantined** it (ADR 0030's
+  deliberate skip-so-the-head-moves), leaving the offering `unpublished` in the
+  tenant store and live on the storefront with nothing reporting it. Republishing
+  one offering converges it; the fleet-wide walk is a real gap, not a
+  convenience. ⚠️ One entifix change rides along: a handler failing with
+  `EntifixBuildError` is now **poison** rather than transient, since
+  `readEventEnvelope` validates `meta` and deliberately not `data` — so only a
+  consumer's own decoder can tell a malformed payload from a bad afternoon at
+  the database, and before this such a payload spent five deliveries reaching
+  the quarantine it belonged in at the first.
 - **A vendor's product model is data, not a commit.** A vendor authors a versioned
   `EntitySpecification`; an offering pins the version it was written under, and a
   released version is immutable — which is what lets a compiled-spec cache never

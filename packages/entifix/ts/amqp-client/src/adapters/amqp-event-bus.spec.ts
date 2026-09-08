@@ -9,6 +9,7 @@ import {
   WiringRegistryTag,
 } from '@r10c/entifix-ts-business';
 import type { DomainEvent } from '@r10c/entifix-ts-core';
+import { EntifixBuildError, EntifixConnError } from '@r10c/entifix-ts-core';
 import { describeEventBusContract } from '@r10c/entifix-ts-testing-unit/contracts';
 import { makeFakeAmqpChannel } from '@r10c/entifix-ts-testing-unit/drivers';
 import type { Channel } from 'amqplib';
@@ -261,6 +262,51 @@ describe('makeAmqpEventBus', () => {
       { message: expect.anything(), allUpTo: false, requeue: true },
     ]);
     expect(fake.acked).toHaveLength(0);
+  });
+
+  it('quarantines a payload its own consumer rejects, with no retry either', async () => {
+    // ⚠️ Measured on `catalog.published`, not imagined: a payload the domain
+    // contract rejected took five deliveries to reach the quarantine it
+    // belonged in immediately.
+    //
+    // The transport validates `meta` and deliberately **not** `data` — inventing
+    // an opinion about a payload is how the bus would start knowing about
+    // domains — so the consumer's own decoder is the only thing that can tell a
+    // malformed payload from a bad afternoon at the database. It says so by
+    // failing with `EntifixBuildError`, which by that class's definition means
+    // the client's fault, and a client's fault never fixes itself on a retry.
+    const { fake, bus } = withFakeChannel();
+    await Effect.runPromise(
+      bus.subscribe(WORK, () =>
+        Effect.fail(
+          new EntifixBuildError('payload is missing currency') as never,
+        ),
+      ),
+    );
+
+    await fake.deliver(anEnvelope(anEvent()));
+
+    expect(fake.nacked).toEqual([
+      { message: expect.anything(), allUpTo: false, requeue: false },
+    ]);
+    expect(fake.acked).toHaveLength(0);
+  });
+
+  it('still requeues a connection failure, which is exactly what a retry is for', async () => {
+    // The other half of the same rule: a Mongo blip must not send a perfectly
+    // good message to the quarantine.
+    const { fake, bus } = withFakeChannel();
+    await Effect.runPromise(
+      bus.subscribe(WORK, () =>
+        Effect.fail(new EntifixConnError('replica set unreachable') as never),
+      ),
+    );
+
+    await fake.deliver(anEnvelope(anEvent()));
+
+    expect(fake.nacked).toEqual([
+      { message: expect.anything(), allUpTo: false, requeue: true },
+    ]);
   });
 
   it('quarantines a poison payload without spending a single retry', async () => {
