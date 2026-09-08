@@ -116,6 +116,14 @@ const scopeConstraints = [
     sourceTag: 'scope:config',
     onlyDependOnLibsWithTags: ['scope:config', 'scope:shared'],
   },
+  // The `stock` slice's own app. Registered here the moment the scope exists:
+  // a tag with no entry in this list is *unconstrained* rather than isolated,
+  // so omitting it would silently switch the boundary rule off for the new
+  // service instead of failing a build.
+  {
+    sourceTag: 'scope:stock',
+    onlyDependOnLibsWithTags: ['scope:stock', 'scope:shared'],
+  },
 ];
 
 const entifixConstraints = [

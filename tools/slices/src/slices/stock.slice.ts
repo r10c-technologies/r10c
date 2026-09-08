@@ -11,22 +11,26 @@ import type { SliceDeclaration } from '../types.js';
  * `tenant_<organizationId>`: two database handles, which makes one-writer a
  * property of the connection rather than of review.
  *
- * Declared as its own slice from the start, ahead of any process, because the
- * reservation path is the one part of this system with a genuinely different
- * scale profile — every checkout writes it, while catalog authoring is
- * occasional. Recording the ownership now is what makes lifting it out later a
- * matter of pointing `deployments` at a new app instead of untangling a
- * database.
+ * Declared as its own slice ahead of any process, because the reservation path
+ * is the one part of this system with a genuinely different scale profile —
+ * every checkout writes it, while catalog authoring is occasional. Recording
+ * the ownership early is what made promoting it a `deployments` edit rather
+ * than a boundary negotiation.
  *
- * Its reservation endpoint is the one place a platform-plane caller reaches a
- * tenant store, and it cannot resolve the organization from the session — a
- * buyer holds none, and the vendor comes from the item. That crossing is
- * ADR 0023's, and it is authorized by a service token plus a narrow permission,
- * never by the absence of a check.
+ * **Promoted to `active` by the commit that wrote the store** (#150): stock-service
+ * on `:3108` records movements into the append-only ledger and folds them onto
+ * `StockItem` with `$inc`, in one transaction.
+ *
+ * Its reservation endpoint is **not built yet**, and is deliberately not
+ * declared here until it is. It is the one place a platform-plane caller
+ * reaches a tenant store, and it cannot resolve the organization from the
+ * session — a buyer holds none, and the vendor comes from the item. That
+ * crossing is ADR 0023's, and it is authorized by a service token plus a narrow
+ * permission, never by the absence of a check.
  */
 export const stockSlice: SliceDeclaration = {
   name: 'stock',
-  status: 'planned',
+  status: 'active',
   domains: ['stock-management'],
   stores: [
     {
@@ -37,13 +41,12 @@ export const stockSlice: SliceDeclaration = {
       truth: 'system-of-record',
     },
   ],
-  deployments: [],
+  deployments: ['stock-service'],
   coDeployedWith: [],
   exposedAPIs: [
     'GET /api/stock-item',
+    'GET /api/stock-movement',
     'POST /api/stock-movement',
-    'POST /api/reservation',
-    'DELETE /api/reservation/:id',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],

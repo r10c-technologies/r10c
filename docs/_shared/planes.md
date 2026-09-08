@@ -57,7 +57,7 @@ declaration as `bindingReason`.
 | `sales`             | tenant   | `sales`             | **planned**  | —                   | `sales-management`                                            | per-organization | system-of-record        |
 | `session`           | control  | `auth`              | active       | —                   | —                                                             | single           | system-of-record        |
 | `settlement`        | control  | `settlement`        | **planned**  | —                   | `settlement-management`                                       | single           | system-of-record        |
-| `stock`             | tenant   | `stock`             | **planned**  | —                   | `stock-management`                                            | per-organization | system-of-record        |
+| `stock`             | tenant   | `stock`             | active       | —                   | `stock-management`                                            | per-organization | system-of-record        |
 
 <!-- docs:end store-register -->
 

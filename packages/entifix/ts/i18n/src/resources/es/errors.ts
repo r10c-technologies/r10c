@@ -42,6 +42,10 @@ export const errors = {
   // como datos que el vendedor tiene que arreglar. La baja sí se permite.
   offeringHasNoSpecification:
     'Esta oferta apunta a una especificación que ya no existe.',
+  // La cantidad de un movimiento es con signo, así que un documento bien
+  // formado todavía puede contradecir su motivo: una entrada de -50 dice que
+  // llegó mercadería y que se restó existencia. Se rechaza en el dominio.
+  inconsistentMovement: 'La cantidad no corresponde al motivo del movimiento.',
   resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
   emailRequired: 'Se requiere un identificador de correo electrónico.',

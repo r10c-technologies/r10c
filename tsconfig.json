@@ -173,6 +173,9 @@
     },
     {
       "path": "./packages/business/ts/catalog-contracts"
+    },
+    {
+      "path": "./apps/stock-service"
     }
   ]
 }

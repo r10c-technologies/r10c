@@ -6,6 +6,10 @@
 - Read when: touching stock quantities — a quantity is never read-modify-written, and a purchase reserves rather than decrements
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   trigger fired; the store is named, and the cross-plane call has a mechanism.
+- Revised: 2026-09-08 — the ledger half is built (#150): stock-service on
+  `:3108` records movements and folds them with `$inc`, so the slice is `active`;
+  the member is `offeringId` rather than the `productId` this record wrote, and
+  the reservation half is still unbuilt.
 
 ## Trigger
 
@@ -14,7 +18,35 @@
 this record is Accepted.
 
 The _decisions_ are in effect — the ledger shape, the two separate counters, the
-conditional atomic write. The checkout that exercises them is not built.
+conditional atomic write.
+
+**Built on 2026-09-08 (#150):** stock-service owns the store and serves the
+ledger. A movement is a signed quantity plus a reason, the two are checked
+against each other (`isConsistentMovement`), and the row and the `$inc` commit in
+one Mongo transaction — separately written, a crash between them leaves a total
+no movement explains, which is exactly what makes a fold unreconcilable. There is
+deliberately **no route that writes a `StockItem`**, and no `PUT` or `DELETE` on a
+movement.
+
+⚠️ **The fold needs a unique index, which this record did not say.** `$inc`
+removes the lost update; it does not make the total _singular_. `updateOne` with
+`upsert: true` is atomic per document, so concurrent movements for one offering
+each fail to see the other's uncommitted insert and each create a row: measured
+on the live lab, 20 simultaneous receipts produced **nine** `StockItem`
+documents while the ledger stayed perfectly correct at 20 rows summing to 20.
+Nothing was lost and nothing was read-modify-written — what broke was the
+_identity_ of the fold, and `availability()` then reads one row of nine.
+
+So `stock-item` carries a unique index on `offeringId`, ensured per tenant
+handle because a tenant database appears on first write, **and** the upsert is
+retried once on a duplicate key: the loser of the race then finds the winner's
+document and takes the update branch. The index alone would turn a silently
+split total into a `500` on a request the vendor did nothing wrong in, which is
+a different bug rather than a fix.
+
+**Still unbuilt:** the reservation, its reaper, and the checkout that exercises
+them. The conditional atomic write below is therefore a decision in force and not
+yet a line of code.
 
 Two things this record could not name when it was written, now settled:
 
@@ -50,8 +82,14 @@ fact owned by `stock-management`. A quantity on the product record would make tw
 domains write one document — the coupling the decomposition exists to prevent
 ([ADR 0008](0008-domain-modules-and-service-topology.md)).
 
-`StockItem { productId, onHand, reserved }`, and nothing outside stock-management
-writes it.
+`StockItem { offeringId, onHand, reserved }`, and nothing outside
+stock-management writes it.
+
+> The member is `offeringId`. This record wrote `productId`, which named nothing
+> in the model that landed: stock is held against the vendor's own
+> `ProductOffering`, and it is a plain id rather than a `link` because the target
+> lives in another store and a link would invite the storage-layer join the
+> one-writer rule forbids.
 
 ### A quantity is never read-modify-written
 
@@ -77,7 +115,7 @@ type rather than a new module.
 Checkout takes one conditional atomic write:
 
 ```js
-findOneAndUpdate({ productId, $expr: { $gte: [{ $subtract: ['$onHand', '$reserved'] }, qty] } }, { $inc: { reserved: qty } });
+findOneAndUpdate({ offeringId, $expr: { $gte: [{ $subtract: ['$onHand', '$reserved'] }, qty] } }, { $inc: { reserved: qty } });
 ```
 
 Zero documents matched means out of stock, and the buyer is told immediately.
