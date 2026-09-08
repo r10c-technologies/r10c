@@ -19,6 +19,9 @@
       "path": "../../../entifix/ts/business/tsconfig.lib.json"
     },
     {
+      "path": "../catalog-contracts/tsconfig.lib.json"
+    },
+    {
       "path": "../authz/tsconfig.lib.json"
     },
     {

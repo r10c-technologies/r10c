@@ -80,14 +80,14 @@ export const productOfferingRoutes = HttpRouter.empty.pipe(
   ),
   HttpRouter.post(
     '/api/product-offering/:id/publish',
-    guardedUseCase(PUBLISH_PRODUCT_OFFERING, () =>
-      transitionOfferingRoute('publish'),
+    guardedUseCase(PUBLISH_PRODUCT_OFFERING, organizationId =>
+      transitionOfferingRoute('publish', organizationId),
     ),
   ),
   HttpRouter.post(
     '/api/product-offering/:id/unpublish',
-    guardedUseCase(UNPUBLISH_PRODUCT_OFFERING, () =>
-      transitionOfferingRoute('unpublish'),
+    guardedUseCase(UNPUBLISH_PRODUCT_OFFERING, organizationId =>
+      transitionOfferingRoute('unpublish', organizationId),
     ),
   ),
 );

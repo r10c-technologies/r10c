@@ -1,22 +1,65 @@
+import {
+  type CatalogPublication,
+  catalogPublishedEvent,
+  catalogUnpublishedEvent,
+} from '@r10c/business-ts-catalog-contracts';
 import { EntityRepositoryTag } from '@r10c/entifix-ts-business';
-import type { EntityId } from '@r10c/entifix-ts-core';
+import type { DomainEvent, EntityId } from '@r10c/entifix-ts-core';
 import { Context, Data, Effect } from 'effect';
 
 import type { ProductOffering } from '../../entities/product-offering';
+import type { ProductOfferingPrice } from '../../entities/product-offering-price';
 import {
   offeringStatusAfter,
   type OfferingTransition,
 } from '../../values/offering-transition';
 
-/** Which offering to move, and which way. */
+/** Which offering to move, which way, and on whose behalf. */
 export interface TransitionOfferingInput {
   readonly id: EntityId;
   readonly transition: OfferingTransition;
+  /**
+   * The organization whose catalog this is — the published record's `vendorId`.
+   *
+   * It comes from the **verified principal** at the route, never from a request
+   * body. The same rule as `entity.id = params.id`: this member decides which
+   * vendor a storefront row is attributed to, and once orders exist, who is
+   * paid for it.
+   */
+  readonly vendorId: string;
+  /**
+   * The emitting slice, for the message's `source`.
+   *
+   * Passed in rather than read from `EventSourceTag`, which lives in
+   * `entifix-ts-transactions`: this package would gain a dependency on the
+   * transaction machinery to spell one string, and a domain use case has no
+   * business knowing a bus exists. The route holds the tag and hands the value
+   * down — the same shape as the repositories above it.
+   */
+  readonly source: string;
+  /**
+   * When the move was decided. Injected so the announced moment and the stored
+   * one are the same value, and so a test can pin it.
+   */
+  readonly at: Date;
 }
 
 export class TransitionOfferingInputTag extends Context.Tag(
   'TransitionOfferingInputTag',
 )<TransitionOfferingInputTag, TransitionOfferingInput>() {}
+
+/**
+ * The offering's prices, as a second repository.
+ *
+ * A separate tag rather than a second use of `EntityRepositoryTag`, because one
+ * tag resolves to one value: providing `EntityRepositoryTag` twice in the same
+ * effect gives both reads whichever was provided last, and a repository built
+ * for `ProductOffering` answering a price query returns documents that
+ * deserialize into the wrong class rather than failing.
+ */
+export class OfferingPriceRepositoryTag extends Context.Tag(
+  'OfferingPriceRepositoryTag',
+)<OfferingPriceRepositoryTag, EntityRepositoryTag['Type']>() {}
 
 /**
  * The code a route renders when the move is not allowed.
@@ -28,6 +71,9 @@ export class TransitionOfferingInputTag extends Context.Tag(
  * symmetric — so that check is the only thing looking.
  */
 export const ILLEGAL_OFFERING_TRANSITION = 'illegalOfferingTransition';
+
+/** The code a route renders when there is nothing to charge for the offering. */
+export const OFFERING_HAS_NO_PRICE = 'offeringHasNoPrice';
 
 /** An offering that cannot make the move that was asked of it. */
 export class IllegalOfferingTransition extends Data.TaggedError(
@@ -41,7 +87,30 @@ export class IllegalOfferingTransition extends Data.TaggedError(
 }
 
 /**
- * Move one offering along its lifecycle.
+ * An offering asked to reach the storefront with no `ProductOfferingPrice`.
+ *
+ * ADR 0047 recorded this precondition as deliberately absent and said the
+ * honest place for it is "the commit that makes the projection depend on it".
+ * That commit is this one. `CatalogPublication` carries `amount` and `currency`,
+ * so publishing without a price would either project a `0` the vendor never
+ * authored — indistinguishable from free at checkout — or emit a payload the
+ * consumer must silently drop, which is a `200` for the vendor and a listing
+ * that never appears, with the only evidence in another service's log.
+ */
+export class OfferingHasNoPrice extends Data.TaggedError('OfferingHasNoPrice')<{
+  readonly id: EntityId;
+}> {
+  readonly code = OFFERING_HAS_NO_PRICE;
+}
+
+/** What one transition decided: the moved record, and what to announce. */
+export interface OfferingTransitionDecision {
+  readonly offering: ProductOffering;
+  readonly event: DomainEvent<CatalogPublication>;
+}
+
+/**
+ * Decide one move along an offering's lifecycle, and build what it announces.
  *
  * The rule lives in `offeringStatusAfter` and the enforcement lives **here**,
  * in the domain — not in the route that calls it. That is the whole reason this
@@ -49,27 +118,30 @@ export class IllegalOfferingTransition extends Data.TaggedError(
  * a user can write to anything is not a lifecycle, it is a text box with four
  * suggestions.
  *
- * Framework-free, like every use case in this repository: the repository
- * arrives as a tag and the caller has already been authorized by the route. It
- * reads and writes a single record in a single store, so it needs no
- * transaction and no saga.
+ * ⚠️ **It mutates the offering and deliberately does not save it.** The status
+ * write and the outbox entry announcing it must land in one Mongo transaction
+ * or a broker outage between them leaves the storefront disagreeing with the
+ * vendor's own screen, permanently, with nothing to replay from. A driver
+ * session may not enter the framework-free `EntityRepository` or
+ * `TransactionOutbox` ports — ADR 0028 rejected threading one through by name —
+ * so the **caller** commits both, exactly as a `TransactionHandler` writes its
+ * own `completed` entry. This use case is the decision;
+ * `transitionOfferingRoute` is the commit.
  *
- * ⚠️ **This does not announce anything yet.** Reaching `published` is what
- * `catalog.published` will be hung on, and that event must be written to the
- * outbox inside the same Mongo transaction as the status write
- * ([ADR 0028](../../../../../../docs/adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)) —
- * which a framework-free port cannot do, because a driver session may not enter
- * one. So the emitting path is designed where the event's payload shape is
- * decided, and this use case is deliberately the half that only moves the
- * state.
+ * ⚠️ **The price is loaded for an unpublish too**, and that is not waste. The
+ * announced payload is the same shape either way, because the consumer's write
+ * guard reads `publishedAt` off both and a payload that changes shape by event
+ * name means two decoders and two ways for that guard to be skipped. It does
+ * mean an offering whose only price is deleted cannot be taken down through
+ * this path — recorded, and the reason the precondition is stated once here
+ * rather than per transition.
  *
- * Also deliberately absent: refusing to publish an offering that has no
- * `ProductOfferingPrice`. It is a real precondition — the projection needs an
- * amount and a currency — but it needs a second repository, and the honest
- * place to add it is the commit that makes the projection depend on it.
+ * Framework-free, like every use case in this repository: both repositories
+ * arrive as tags and the caller has already been authorized by the route.
  */
 export const transitionOffering = Effect.gen(function* () {
-  const { id, transition } = yield* TransitionOfferingInputTag;
+  const { id, transition, vendorId, source, at } =
+    yield* TransitionOfferingInputTag;
   const repository = yield* EntityRepositoryTag;
 
   const offering = yield* repository.get<ProductOffering>(id);
@@ -83,8 +155,42 @@ export const transitionOffering = Effect.gen(function* () {
     });
   }
 
-  offering.status = next;
-  yield* repository.save(offering);
+  const prices = yield* OfferingPriceRepositoryTag;
+  const page = yield* prices.load<ProductOfferingPrice>({
+    filtering: [{ property: 'offeringId', operator: 'eq', value: String(id) }],
+    // One is all the snapshot can carry. Several prices for one offering is a
+    // real shape (per market, per term) and choosing between them is a decision
+    // rather than a default — it is not this commit's.
+    pageSize: 1,
+  });
+  const price = page.items[0];
 
-  return offering;
+  if (price === undefined) {
+    return yield* new OfferingHasNoPrice({ id });
+  }
+
+  offering.status = next;
+
+  const publication: CatalogPublication = {
+    offeringId: String(id),
+    vendorId,
+    name: offering.name,
+    amount: price.amount,
+    currency: price.currency,
+    // Nothing computes availability yet: the `stock` slice is `planned`, and M2
+    // is what gives this member a source. `true` rather than `false` because
+    // the storefront's badge is a hint and the checkout reservation is the
+    // truth — publishing everything as unavailable would make the hint say
+    // nothing while looking like it says something.
+    availableHint: true,
+    publishedAt: at.toISOString(),
+  };
+
+  return {
+    offering,
+    event:
+      next === 'published'
+        ? catalogPublishedEvent(publication, source)
+        : catalogUnpublishedEvent(publication, source),
+  } satisfies OfferingTransitionDecision;
 });

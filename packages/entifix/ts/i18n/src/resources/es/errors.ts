@@ -33,6 +33,9 @@ export const errors = {
   // El único movimiento realmente ilegal del ciclo de vida de una oferta:
   // retirar algo que nunca se publicó. Se rechaza en el dominio, no en la ruta.
   illegalOfferingTransition: 'La oferta no puede pasar a ese estado.',
+  // El registro publicado lleva un monto y una moneda, así que sin precio no
+  // hay nada que proyectar. Se rechaza en el verbo, donde el vendedor lo corrige.
+  offeringHasNoPrice: 'Agrega un precio antes de publicar esta oferta.',
   resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
   emailRequired: 'Se requiere un identificador de correo electrónico.',
