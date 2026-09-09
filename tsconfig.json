@@ -175,6 +175,9 @@
       "path": "./packages/business/ts/catalog-contracts"
     },
     {
+      "path": "./packages/business/ts/payment-contracts"
+    },
+    {
       "path": "./apps/stock-service"
     },
     {

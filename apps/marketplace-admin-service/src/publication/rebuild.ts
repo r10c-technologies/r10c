@@ -14,18 +14,16 @@ import {
 } from '@r10c/entifix-ts-business';
 import type { EntifixError } from '@r10c/entifix-ts-core';
 import {
+  ensureOutboxIndexes,
+  makeMongoOutbox,
   makeMongoRepository,
   MongoClientTag,
+  reviveQuarantined,
 } from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 
 import { TenantDatabasePrefix, tenantDatabases } from '../outbox/relay';
-import {
-  ensureOutboxIndexes,
-  makeMongoOutbox,
-  reviveQuarantined,
-} from '../outbox/store';
 
 /** Offerings read from one tenant per page. Nothing holds a whole store. */
 const PAGE_SIZE = 100;

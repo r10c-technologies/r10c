@@ -194,12 +194,78 @@ const compensateStep = (
   });
 
 /**
+ * How many extra times a step is dispatched once the pivot has committed.
+ *
+ * Small and immediate on purpose. This is the in-process half of "roll forward",
+ * and it exists to ride out the blip — a participant restarting, a connection
+ * reset — not to be a retry policy. A step that is still refusing after these
+ * strands the saga, loudly, because the alternative is a coordinator spinning on
+ * a permanent failure while a customer's money sits captured.
+ *
+ * Durable retry across a coordinator restart is a different mechanism and is not
+ * built: see #233, which makes a step dispatch an outbox entry whose relay
+ * performs the POST.
+ */
+const POST_PIVOT_RETRIES = 3;
+
+/**
+ * Dispatch a step, retrying it `retries` more times while it refuses.
+ *
+ * ⚠️ **A retry re-dispatches the calls that already succeeded**, and that is
+ * safe for exactly one reason: `sagaCommandId(sagaId, step.id, index)` is stable
+ * across attempts, so a participant that is idempotent on the command id
+ * recognises the replay. ADR 0052 states that requirement on the participant;
+ * this is the code that depends on it.
+ */
+const runStepWithRetries = (
+  step: SagaStep,
+  sagaId: string,
+  inputs: SagaInputs,
+  retries: number,
+): Effect.Effect<
+  { readonly calls: readonly SagaCallOutcome[]; readonly error?: string },
+  EntifixConnError,
+  SagaDispatcherTag
+> =>
+  Effect.gen(function* () {
+    let result = yield* runStep(step, sagaId, inputs);
+
+    for (
+      let attempt = 1;
+      attempt <= retries && result.error !== undefined;
+      attempt += 1
+    ) {
+      yield* Effect.logWarning('retrying a saga step after the pivot').pipe(
+        Effect.annotateLogs({
+          sagaId,
+          stepId: step.id,
+          attempt,
+          error: result.error,
+        }),
+      );
+      result = yield* runStep(step, sagaId, inputs);
+    }
+
+    return result;
+  });
+
+/**
  * Walk a definition: dispatch each step, and on a refusal unwind every
  * compensatable step already taken.
  *
  * The state transition is persisted **before** each dispatch, so a crash leaves
  * a record that says what was actually attempted (ADR 0028, extended to
  * commands by ADR 0039).
+ *
+ * ⚠️ **Once the pivot has committed, nothing is unwound.** That is what a pivot
+ * means, and the walk has to know it rather than the definition merely declaring
+ * it: `compensateStep` no-ops on a step that declares no compensation, so an
+ * unconditional unwind after a successful capture would skip the pivot in
+ * silence and then delete the order behind it and release the holds behind that
+ * — money taken, goods back on sale, every probe green. The step is retried
+ * instead, and a saga that still cannot go forward is settled `STRANDED` and
+ * logged, because ADR 0039 is explicit that a stranded saga nobody is told about
+ * is the same as a lost one.
  */
 export const runSaga = (
   options: RunSagaOptions,
@@ -228,16 +294,45 @@ export const runSaga = (
     const taken: Array<{ step: SagaStep; outcome: SagaStepOutcome }> = [];
     const outcomes = () => taken.map(entry => entry.outcome);
 
+    // The point of no return, once it is behind us. Tracked here rather than
+    // read off the definition because what matters is not that a pivot exists
+    // but that it *committed* — a pivot that refuses is still fully reversible,
+    // and is the ordinary compensation case below.
+    let pivotCommitted = false;
+
     for (const [index, step] of definition.steps.entries()) {
       yield* store.beginStep(sagaId, index);
-      const { calls, error } = yield* runStep(step, sagaId, inputs);
+      const { calls, error } = yield* runStepWithRetries(
+        step,
+        sagaId,
+        inputs,
+        pivotCommitted ? POST_PIVOT_RETRIES : 0,
+      );
 
       const outcome: SagaStepOutcome = { stepId: step.id, calls };
       taken.push({ step, outcome });
       yield* store.recordOutcome(sagaId, outcome);
 
       if (error === undefined) {
+        if (step.kind === 'pivot') {
+          pivotCommitted = true;
+        }
         continue;
+      }
+
+      if (pivotCommitted) {
+        // ⚠️ Forward or nowhere. Compensating from here would undo steps whose
+        // effects the pivot has already been paid for.
+        yield* Effect.logError('saga stranded after the pivot').pipe(
+          Effect.annotateLogs({
+            sagaId,
+            definition: definition.name,
+            stepId: step.id,
+            error,
+          }),
+        );
+        yield* store.settle(sagaId, 'STRANDED', error);
+        return { state: 'STRANDED', outcomes: outcomes(), error };
       }
 
       // Unwind. The failing step's own successful calls are compensated too —

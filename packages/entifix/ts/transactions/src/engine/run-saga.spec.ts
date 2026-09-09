@@ -417,48 +417,165 @@ describe('runSaga — a stranded saga is surfaced, never swallowed', () => {
   });
 });
 
-describe('runSaga — a step with no compensation', () => {
-  /**
-   * A `retriable` step declares none by construction (`defineSaga` refuses one),
-   * so unwinding past it must be a no-op rather than a crash.
-   */
-  it('skips a step that declares no compensation', async () => {
-    const definition = defineSaga({
-      name: 'with-pivot',
-      permission: 'payment-management:payment:write',
-      steps: [
-        {
-          id: 'capture',
-          participant: 'payment-service',
-          command: { method: 'POST', path: '/api/payment' },
-          kind: 'pivot',
-        },
-        {
-          id: 'notify',
-          participant: 'notification-service',
-          command: { method: 'POST', path: '/api/notification' },
-          kind: 'retriable',
-        },
-      ],
-    });
+/** Checkout as of M4: reserve, write the order, capture, convert the hold. */
+const checkoutWithCapture = defineSaga({
+  name: 'checkout',
+  permission: 'order-management:product-order:write',
+  steps: [
+    {
+      id: 'reserve',
+      participant: 'stock-service',
+      command: { method: 'POST', path: '/api/reservation' },
+      compensation: {
+        method: 'DELETE',
+        path: '/api/reservation/{outcome.data.id}',
+      },
+      kind: 'compensatable',
+      fanOut: true,
+    },
+    {
+      id: 'write-order',
+      participant: 'order-service',
+      command: { method: 'POST', path: '/api/product-order' },
+      compensation: {
+        method: 'DELETE',
+        path: '/api/product-order/{outcome.data.id}',
+      },
+      kind: 'compensatable',
+    },
+    {
+      id: 'capture-payment',
+      participant: 'payment-service',
+      command: { method: 'POST', path: '/api/payment' },
+      kind: 'pivot',
+    },
+    {
+      id: 'convert-reservation',
+      participant: 'stock-service',
+      command: {
+        method: 'POST',
+        path: '/api/reservation/{input.reservationId}/conversion',
+      },
+      kind: 'retriable',
+      fanOut: true,
+    },
+  ],
+});
 
+describe('runSaga — once the pivot has committed', () => {
+  /**
+   * The defect this rule exists to stop. `compensateStep` no-ops on a step that
+   * declares no compensation, so an unconditional unwind walks straight past the
+   * capture and then deletes the order and releases the holds — money taken,
+   * goods back on sale.
+   */
+  it('never compensates a step behind a committed pivot', async () => {
     const world = makeWorld(d =>
-      d.participant === 'notification-service' ? refused : ok(),
+      d.call.path.includes('/conversion')
+        ? refused
+        : ok({ data: { id: 'r-1' } }),
     );
 
     const result = await Effect.runPromise(
-      runSaga({ sagaId: 'saga-2', definition, inputs: {} }).pipe(
+      runSaga({
+        sagaId: 'saga-2',
+        definition: checkoutWithCapture,
+        inputs: {
+          reserve: [{ body: {} }],
+          'convert-reservation': [{ body: { reservationId: 'r-1' } }],
+        },
+      }).pipe(
         Effect.provide(world.layer),
         Effect.provide(Logger.remove(Logger.defaultLogger)),
       ),
     );
 
-    // Nothing was reversible, so nothing was reversed — and the saga is
-    // COMPENSATED rather than STRANDED, because no compensation failed.
-    expect(result.state).toBe('COMPENSATED');
+    expect(result.state).toBe('STRANDED');
+    // The assertion that matters is on the dispatcher, not the state: no
+    // compensation was attempted at all.
     expect(world.dispatched.filter(d => d.call.method === 'DELETE')).toEqual(
       [],
     );
+    expect(world.transitions.map(t => t.state)).toEqual(['STRANDED']);
+  });
+
+  it('retries the failing step before stranding, on a stable command id', async () => {
+    const world = makeWorld(d =>
+      d.call.path.includes('/conversion')
+        ? refused
+        : ok({ data: { id: 'r-1' } }),
+    );
+
+    await Effect.runPromise(
+      runSaga({
+        sagaId: 'saga-3',
+        definition: checkoutWithCapture,
+        inputs: {
+          reserve: [{ body: {} }],
+          'convert-reservation': [{ body: { reservationId: 'r-1' } }],
+        },
+      }).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(Logger.remove(Logger.defaultLogger)),
+      ),
+    );
+
+    const conversions = world.dispatched.filter(d =>
+      d.call.path.includes('/conversion'),
+    );
+    // One dispatch plus POST_PIVOT_RETRIES.
+    expect(conversions).toHaveLength(4);
+    // Every attempt carries the same command id, which is the only thing that
+    // makes re-dispatching a call that may have succeeded safe.
+    expect(new Set(conversions.map(d => d.commandId)).size).toBe(1);
+  });
+
+  it('still unwinds when the pivot itself refuses', async () => {
+    const world = makeWorld(d =>
+      d.participant === 'payment-service'
+        ? refused
+        : ok({ data: { id: 'r-1' } }),
+    );
+
+    const result = await Effect.runPromise(
+      runSaga({
+        sagaId: 'saga-4',
+        definition: checkoutWithCapture,
+        inputs: { reserve: [{ body: {} }] },
+      }).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(Logger.remove(Logger.defaultLogger)),
+      ),
+    );
+
+    // A pivot that refuses committed nothing, so the saga is fully reversible.
+    expect(result.state).toBe('COMPENSATED');
+    expect(
+      world.dispatched
+        .filter(d => d.call.method === 'DELETE')
+        .map(d => d.call.path),
+    ).toEqual(['/api/product-order/r-1', '/api/reservation/r-1']);
+  });
+
+  it('does not retry a step before the pivot', async () => {
+    const world = makeWorld(d =>
+      d.participant === 'order-service' ? refused : ok({ data: { id: 'r-1' } }),
+    );
+
+    await Effect.runPromise(
+      runSaga({
+        sagaId: 'saga-5',
+        definition: checkoutWithCapture,
+        inputs: { reserve: [{ body: {} }] },
+      }).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(Logger.remove(Logger.defaultLogger)),
+      ),
+    );
+
+    expect(
+      world.dispatched.filter(d => d.participant === 'order-service'),
+    ).toHaveLength(1);
   });
 });
 

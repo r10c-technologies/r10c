@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
-import { makeMongoOutbox, reviveQuarantined } from './store';
+import { makeMongoOutbox, reviveQuarantined } from './store.js';
 
 describe('makeMongoOutbox.stats', () => {
   const withCollection = (collection: Record<string, unknown>) =>

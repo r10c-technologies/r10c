@@ -7,16 +7,21 @@ import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 
 /**
- * The outbox collection, and it lives in the **tenant** database beside the
- * entity it describes — not in a shared control-plane store.
+ * The outbox collection, and it lives in the **same database as the entity it
+ * describes** — never in a shared control-plane store.
  *
  * Two reasons, and the second only shows up later. Same database means the
  * entity write and its event are one single-database transaction, which stays a
  * single-*shard* transaction if this ever shards; a control-plane outbox would
  * be cross-database from the first commit. And an outbox holds event payloads:
- * a `TransactionEvent` carries no tenant data today, but `catalog.published`
- * will carry a whole offering, and that must not land in the control plane on
- * its way to the bus.
+ * a `TransactionEvent` carries no tenant data, but `catalog.published` carries a
+ * whole offering and `order.placed` a whole receipt, and neither may land in the
+ * control plane on its way to the bus.
+ *
+ * That rule is why this lives here rather than in one service. It applies
+ * identically to a per-organization `tenant_<id>` and to a single platform-plane
+ * database, and the second publisher is what turned a copy into a seam
+ * ([ADR 0028](../../../../../../docs/adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).
  */
 export const OUTBOX_COLLECTION = 'transaction_outbox';
 
@@ -137,7 +142,7 @@ export const ensureOutboxIndexes = (db: Db) =>
   });
 
 /**
- * Mongo-backed {@link TransactionOutbox} over one tenant database.
+ * Mongo-backed {@link TransactionOutbox} over one database.
  *
  * `db` is closed over, so every method's Effect has `R = never` — the same
  * technique `makeMongoRepository` uses. There is no publishing here: the relay

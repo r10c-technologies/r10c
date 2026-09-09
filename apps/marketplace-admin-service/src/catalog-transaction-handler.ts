@@ -15,11 +15,13 @@ import {
   type EntityConstructor,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
-import { makeMongoRepository } from '@r10c/entifix-ts-mongo-client';
+import {
+  makeMongoRepository,
+  OUTBOX_COLLECTION,
+  outboxDocument,
+} from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
-
-import { OUTBOX_COLLECTION, outboxDocument } from './outbox/store';
 
 /** The catalog entities all expose a `code` (assigned here) and a `name`. */
 interface Codeable extends Entity {
