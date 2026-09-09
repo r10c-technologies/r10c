@@ -13,6 +13,12 @@ export { router } from './routes';
  * exists — which is the assertion that passes against an empty store.
  */
 export { seedStock } from './seed';
+/**
+ * The hold's lifetime, as a tag. Exported for the same reason the seed is: the
+ * mock profile has to provide every value the shipped composition root reads
+ * from config-service, and a tag it cannot name is a layer it cannot build.
+ */
+export { ReservationTtlSecondsTag } from './reservation-ttl';
 export { STOCK_ITEM_COLLECTION } from './stock-item-index';
 export {
   stockItemTempData,
