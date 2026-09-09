@@ -290,10 +290,22 @@ jobs:
       # never asked for and cannot fix, and removing it is narrower than
       # tolerating apt failures with `|| true` — which would also swallow a
       # genuinely missing library and fail later, somewhere less obvious.
+      #
+      # Matched by **content, not by filename**: the first attempt removed
+      # `google-chrome*.list` and the repository was still configured, because
+      # the image also ships it in deb822 form (`*.sources`) and the exact names
+      # are the image's to change.
       - name: Drop apt sources this job does not need
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
-                     /etc/apt/sources.list.d/google-chrome-*.list
+          sudo bash -euo pipefail -c '
+            for file in $(grep -rl "dl\.google\.com" /etc/apt/sources.list.d 2>/dev/null || true); do
+              echo "removing $file"
+              rm -f "$file"
+            done
+            sed -i "/dl\.google\.com/d" /etc/apt/sources.list 2>/dev/null || true
+          '
+          echo "--- remaining apt sources ---"
+          grep -rh "^deb\|^URIs:" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true
       - name: Install Chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
