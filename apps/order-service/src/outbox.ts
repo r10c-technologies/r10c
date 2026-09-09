@@ -5,34 +5,14 @@ import {
   envelopeEntityName,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
-import { Effect } from 'effect';
+import { OUTBOX_COLLECTION } from '@r10c/entifix-ts-mongo-client';
 import type { ClientSession, Db } from 'mongodb';
 
 /** Where an order lives. The entity's own key, as every collection name is. */
 export const ORDER_COLLECTION = envelopeEntityName(ProductOrder);
 
-/** Unpublished events, beside the orders that produced them. */
-export const OUTBOX_COLLECTION = 'transaction_outbox';
-
 /** The slice this process publishes as (ADR 0020's ownership noun). */
 export const ORDER_SLICE = 'order';
-
-export const ensureOutboxIndexes = (db: Db) =>
-  Effect.promise(async () => {
-    const collection = db.collection(OUTBOX_COLLECTION);
-    // Unique on the event id, which is also the consumer's dedup key: the two
-    // ends of at-least-once delivery keying on the same value is what keeps the
-    // idempotency claim and the dedup key one fact rather than two that drift.
-    await collection.createIndex(
-      { eventId: 1 },
-      { unique: true, name: 'eventId_1' },
-    );
-    // What the relay sweeps: unsent, un-quarantined, oldest first.
-    await collection.createIndex(
-      { sent: 1, quarantined: 1, createdAt: 1 },
-      { name: 'pending_1' },
-    );
-  });
 
 /**
  * Announce a placed order, **in the caller's transaction**.
@@ -47,9 +27,12 @@ export const ensureOutboxIndexes = (db: Db) =>
  * single-database and therefore single-shard, and an outbox holds event
  * payloads — which here is a whole receipt, including what the buyer paid.
  *
- * Nothing consumes `order.placed` until M4's payment slice, and the register
- * says so. The entry is still written: adding it later would be a second write
- * beside the order, which is exactly the dual write above.
+ * ⚠️ **`order.placed` still has no consumer, and it is drained anyway.** The
+ * payment slice was going to subscribe to it; ADR 0054 settled capture as a saga
+ * step instead, so the queue that would have bound this is gone. The entry is
+ * written because ADR 0028 requires it, and the relay publishes it because an
+ * outbox nothing drains is a backlog with no ceiling and no gauge — which is the
+ * defect #232 recorded. Its consumer arrives later.
  */
 export const orderPlacedEntry = async (
   db: Db,

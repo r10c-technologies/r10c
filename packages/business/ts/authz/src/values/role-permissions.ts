@@ -11,6 +11,7 @@ export const CATALOG_REFERENCE_DOMAIN = 'catalog-reference';
 export const SALES_DOMAIN = 'sales-management';
 export const STOCK_DOMAIN = 'stock-management';
 export const ORDER_DOMAIN = 'order-management';
+export const PAYMENT_DOMAIN = 'payment-management';
 export const AUTHN_DOMAIN = 'authn';
 
 /**
@@ -39,6 +40,13 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // role: an order is written by the checkout saga behind a crossing token,
     // never by a person — see the note on `admin` below.
     `${ORDER_DOMAIN}:product-order:read`,
+    // ⚠️ **No `payment:read` here, and the omission is the point.**
+    // `product-order:read` above is safe for this role because order-service
+    // narrows the result to the caller's own records; payment-service cannot,
+    // because a `Payment` carries no buyer and no vendor to key a scope on. An
+    // unscoped grant would let any signed-in user read every payment on the
+    // platform, so the grant waits for the scope
+    // ([ADR 0054](../../../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
     // Ending your **own** other sessions — the unbound sibling of
     // `revoke-sessions` below, which ends somebody else's. Every role holds it,
     // because signing yourself out everywhere is a security control the account
@@ -122,6 +130,17 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // to, which is how a receipt becomes editable
     // ([ADR 0052](../../../../../docs/adr/0052-the-checkout-saga.md)).
     `${ORDER_DOMAIN}:product-order:read`,
+    // Reading payments — reconciliation, and answering "did this actually go
+    // through?". Granted here and **not** to `user`: the read is unscoped, so
+    // this is a platform-wide view of every payment taken, which is an
+    // administrative capability rather than a buyer's own history. The scope
+    // that would let it drop a tier is ADR 0054's recorded residual.
+    //
+    // ⚠️ **No `payment:write` for any role, and none is coming.** A capture is
+    // the checkout saga's pivot, dispatched behind a crossing token; a grant
+    // here would be inert against the route that exists and would suggest a
+    // save route ought to, which is how a ledger becomes editable.
+    `${PAYMENT_DOMAIN}:payment:read`,
     `${AUTHN_DOMAIN}:user-identity:read`,
     `${AUTHN_DOMAIN}:user-identity:write`,
     // Two use-case verbs, not CRUD. Changing somebody's role or status and

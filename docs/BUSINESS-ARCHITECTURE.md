@@ -281,11 +281,11 @@ Four rows worth their reasoning:
 | `config`            | active  | configuration                        | config-service `:3190`            |
 | `auth`              | active  | auth, session                        | auth-service `:3102`              |
 | `marketplace-admin` | active  | catalog, saga-coordination           | marketplace-admin-service `:3101` |
-| `transaction`       | active  | saga                                 | ↳ co-deployed there               |
+| `transaction`       | active  | saga                                 | transaction-service `:3103`       |
 | `marketplace`       | active  | catalog-reference, published-catalog | marketplace-service `:3100`       |
-| `stock`             | planned | stock                                | — (target `:3108`)                |
-| `order`             | planned | order                                | — (target `:3105`)                |
-| `payment`           | planned | payment                              | — (target `:3106`)                |
+| `stock`             | active  | stock                                | stock-service `:3108`             |
+| `order`             | active  | order                                | order-service `:3105`             |
+| `payment`           | active  | payment                              | payment-service `:3106`           |
 | `settlement`        | planned | settlement                           | — (target `:3107`)                |
 | `sales`             | planned | sales                                | — (target `:3109`)                |
 

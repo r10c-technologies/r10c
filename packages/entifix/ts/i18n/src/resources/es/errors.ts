@@ -23,6 +23,7 @@ export const errors = {
   noActiveOrganization: 'Selecciona una organización para continuar.',
   invalidRequest: 'La solicitud no es válida.',
   invalidBody: 'El cuerpo de la solicitud no es válido.',
+  paymentDeclined: 'No se pudo procesar el pago. Intenta con otro método.',
   invalidQuery: 'La consulta no es válida.',
   invalidCommand: 'El comando no es válido.',
   notFound: 'No se encontró el registro.',

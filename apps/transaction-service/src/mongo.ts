@@ -45,7 +45,11 @@ import {
   SagaStaleTimeoutMs,
   startTracking,
 } from './saga/tracking';
-import { ORDER_PARTICIPANT, STOCK_PARTICIPANT } from './sagas/checkout.saga';
+import {
+  ORDER_PARTICIPANT,
+  PAYMENT_PARTICIPANT,
+  STOCK_PARTICIPANT,
+} from './sagas/checkout.saga';
 
 const SERVICE_NAME = 'transaction-service';
 const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
@@ -112,6 +116,10 @@ export const AppLayer = Layer.unwrapEffect(
       [ORDER_PARTICIPANT]: {
         baseUrl: yield* store.in('participant').getString('orderUrl'),
         crossingToken: yield* store.in('participant').getString('orderToken'),
+      },
+      [PAYMENT_PARTICIPANT]: {
+        baseUrl: yield* store.in('participant').getString('paymentUrl'),
+        crossingToken: yield* store.in('participant').getString('paymentToken'),
       },
     };
 

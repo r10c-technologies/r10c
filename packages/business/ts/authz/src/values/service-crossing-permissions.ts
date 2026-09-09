@@ -1,5 +1,5 @@
 import { type Permission, permissionMatches } from './permission';
-import { ORDER_DOMAIN, STOCK_DOMAIN } from './role-permissions';
+import { ORDER_DOMAIN, PAYMENT_DOMAIN, STOCK_DOMAIN } from './role-permissions';
 
 /**
  * What a **service** may do when it crosses into another party's tenant storage
@@ -49,6 +49,17 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // consequences; this undoes a step that should not have happened.
   `${ORDER_DOMAIN}:product-order:write`,
   `${ORDER_DOMAIN}:product-order:delete`,
+  // Taking the money the order above was placed for — the checkout saga's
+  // **pivot**, and the one crossing on this list that cannot be undone.
+  //
+  // ⚠️ **There is deliberately no `payment:delete` beside it.** Every other
+  // write here is paired with its reversal because every other step is
+  // compensatable; a capture is not. A refund is a new record with its own money
+  // movement, not the absence of this one — ADR 0039's "a refund is not an
+  // uncharge" — so a delete permission would authorize erasing the evidence that
+  // a customer was charged
+  // ([ADR 0054](../../../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
+  `${PAYMENT_DOMAIN}:payment:write`,
 ];
 
 /**

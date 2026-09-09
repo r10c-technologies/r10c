@@ -6,12 +6,11 @@ import {
   makeMongoOutbox,
   MongoClientTag,
   OutboxMaxAttempts,
+  recordOutboxStats,
   SWEEP_INTERVAL,
 } from '@r10c/entifix-ts-mongo-client';
 import { Context, Effect, Fiber } from 'effect';
 import type { MongoClient } from 'mongodb';
-
-import { recordOutboxStats } from '../observability/metrics';
 
 /** The `tenant_` prefix tenant databases are named with, from config-service. */
 export class TenantDatabasePrefix extends Context.Tag('TenantDatabasePrefix')<

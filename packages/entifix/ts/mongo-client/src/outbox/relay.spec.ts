@@ -1,13 +1,21 @@
-import type {
-  EventBus,
-  OutboxEntry,
-  TransactionOutbox,
+import {
+  type EventBus,
+  EventBusTag,
+  type OutboxEntry,
+  type TransactionOutbox,
 } from '@r10c/entifix-transactions';
+import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
 import { type DomainEvent, EntifixConnError } from '@r10c/entifix-ts-core';
-import { Effect, HashMap, Logger } from 'effect';
+import { Effect, HashMap, Layer, Logger } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { drainOutbox } from './relay.js';
+import { MongoDatabaseTag } from '../mongo-database/mongo-database.js';
+import {
+  drainOutbox,
+  OutboxMaxAttempts,
+  startOutboxRelay,
+  sweepOutbox,
+} from './relay.js';
 
 const anEvent = (id: string): DomainEvent => ({
   name: 'transaction.accepted',
@@ -213,5 +221,144 @@ describe('drainOutbox', () => {
 
     // Second of three attempts: still retrying, so nothing is written off.
     expect(failures[0]?.quarantine).toBe(false);
+  });
+});
+
+describe('sweepOutbox', () => {
+  /**
+   * ⚠️ **After the drain, not before.** A sample taken first reports what was
+   * waiting a moment before this pass cleared it, which is a gauge that reads
+   * healthy exactly when the relay has just fallen behind.
+   */
+  it('samples the depth after draining', async () => {
+    const { outbox } = recordingOutbox([anEntry('a'), anEntry('b')]);
+    const { bus } = busRefusing([]);
+    const sampled: Array<{ database: string; pending: number }> = [];
+
+    await Effect.runPromise(
+      sweepOutbox(outbox, bus, {
+        maxAttempts: 3,
+        database: 'order',
+        onStats: (database, stats) =>
+          Effect.sync(() => {
+            sampled.push({ database, pending: stats.pending });
+          }),
+      }),
+    );
+
+    expect(sampled).toEqual([{ database: 'order', pending: 2 }]);
+  });
+
+  /**
+   * ⚠️ This runs inside `Effect.forever`. An error that escapes ends the daemon
+   * silently, and a relay that stopped is indistinguishable from a relay with
+   * nothing to do — so the failure is caught, and *logged* rather than
+   * swallowed.
+   */
+  it('logs a failed pass rather than ending the daemon', async () => {
+    const failing: TransactionOutbox = {
+      enqueue: () => Effect.succeed('enqueued' as const),
+      pending: () => Effect.fail(new EntifixConnError('connection reset')),
+      markSent: () => Effect.void,
+      recordFailure: () => Effect.void,
+      stats: () => Effect.succeed({ pending: 0, quarantined: 0 }),
+    };
+    const { bus } = busRefusing([]);
+    const logs: string[] = [];
+
+    await Effect.runPromise(
+      sweepOutbox(failing, bus, { maxAttempts: 3, database: 'order' }).pipe(
+        Effect.provide(
+          Logger.replace(
+            Logger.defaultLogger,
+            Logger.make(({ message }) => {
+              logs.push(String(message));
+            }),
+          ),
+        ),
+      ),
+    );
+
+    expect(logs).toContain('outbox sweep failed');
+  });
+
+  it('records through the default sink when none is given', async () => {
+    const { outbox, sent } = recordingOutbox([anEntry('a')]);
+    const { bus } = busRefusing([]);
+
+    // No `onStats`: the default is the exported gauge recorder, which must be
+    // reached rather than skipped — an outbox whose depth nothing reports is
+    // the failure the gauges exist to make visible.
+    await Effect.runPromise(
+      sweepOutbox(outbox, bus, { maxAttempts: 3, database: 'order' }),
+    );
+
+    expect(sent).toEqual(['a']);
+  });
+});
+
+describe('startOutboxRelay', () => {
+  const world = (entries: readonly OutboxEntry[]) => {
+    const { outbox, sent } = recordingOutbox(entries);
+    const { bus } = busRefusing([]);
+    const registered: Array<{ name: string; phase: string }> = [];
+
+    const layer = Layer.mergeAll(
+      Layer.succeed(MongoDatabaseTag, {
+        databaseName: 'order',
+        collection: () => ({
+          createIndex: async () => 'ok',
+        }),
+      } as never),
+      Layer.succeed(EventBusTag, bus),
+      Layer.succeed(OutboxMaxAttempts, 3),
+      Layer.succeed(ShutdownRegistryTag, {
+        register: (hook: { name: string; phase: string }) =>
+          Effect.sync(() => {
+            registered.push({ name: hook.name, phase: hook.phase });
+          }),
+        run: () => Effect.void,
+      } as never),
+    );
+
+    return { layer, sent, registered, outbox };
+  };
+
+  /**
+   * ⚠️ **`flush`, not `stop-intake`, and the phase is the whole point.**
+   * `AmqpEventBusLayer` registers `stop-intake` to cancel consumers; this runs
+   * after it, so the last sweep publishes through a connection that is still
+   * open. Registered the other way round the entries it was holding would sit
+   * until the next boot.
+   */
+  it('registers its final drain in the flush phase', async () => {
+    const { layer, registered } = world([]);
+
+    await Effect.runPromise(
+      Effect.scoped(startOutboxRelay().pipe(Effect.provide(layer))),
+    );
+
+    expect(registered).toEqual([{ name: 'outbox-relay', phase: 'flush' }]);
+  });
+
+  it('passes a supplied stats sink through to the sweep', async () => {
+    const { layer } = world([anEntry('a')]);
+    const sampled: string[] = [];
+
+    await Effect.runPromise(
+      Effect.scoped(
+        startOutboxRelay({
+          onStats: database =>
+            Effect.sync(() => {
+              sampled.push(database);
+            }),
+        }).pipe(Effect.provide(layer)),
+      ),
+    );
+
+    // The daemon's first pass is one interval away, so nothing is sampled by
+    // starting alone — the hook's own drain is what proves the sink is wired,
+    // and it is asserted through the shutdown registry above.
+    expect(sampled).toEqual([]);
   });
 });

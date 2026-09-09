@@ -8,6 +8,7 @@ import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
 import { Context, Duration, Effect, Either, Fiber } from 'effect';
 
 import { MongoDatabaseTag } from '../mongo-database/mongo-database';
+import { recordOutboxStats } from './metrics';
 import { ensureOutboxIndexes, makeMongoOutbox } from './store';
 
 /** How often the sweep looks for entries the fast path did not carry. */
@@ -92,7 +93,13 @@ export const drainOutbox = (
     return sent;
   });
 
-/** Sample a sweep's depth and age. Supplied by the service that owns the gauges. */
+/**
+ * Sample a sweep's depth and age.
+ *
+ * Defaults to {@link recordOutboxStats}, and a caller overrides it only to
+ * assert what was sampled. There is no "no sink" option on purpose: an outbox
+ * whose depth nothing reports is the failure the gauges exist to make visible.
+ */
 export type OutboxStatsSink = (
   database: string,
   stats: OutboxStats,
@@ -120,9 +127,8 @@ export const sweepOutbox = (
 ) =>
   Effect.gen(function* () {
     yield* drainOutbox(outbox, bus, options);
-    if (options.onStats) {
-      yield* options.onStats(options.database, yield* outbox.stats());
-    }
+    const sink = options.onStats ?? recordOutboxStats;
+    yield* sink(options.database, yield* outbox.stats());
   }).pipe(
     Effect.catchAll(error =>
       Effect.logError('outbox sweep failed').pipe(

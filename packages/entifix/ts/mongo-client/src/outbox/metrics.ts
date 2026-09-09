@@ -4,11 +4,12 @@ import { Effect, Metric } from 'effect';
 /**
  * The outbox half of ADR 0001's first metric set.
  *
- * The transaction half moved to transaction-service with the `saga` store's
- * owner (#229). These stayed: an outbox entry is a `catalog` collection — one
- * per `tenant_<id>` database, written in the same Mongo transaction as the
- * entity it announces — and `catalog` is this slice's store
- * (`docs/_shared/planes.md`, ADR 0028).
+ * It lives beside the relay that samples it rather than in any one service,
+ * because three slices now own an outbox — `catalog`, `order` and `payment` —
+ * and the warning below is exactly why a copy per service is not an option: an
+ * Effect metric is keyed on its **description**, so three hand-maintained
+ * definitions of `outbox_pending_entries` are three series the moment one
+ * wording drifts, and a dashboard would go quiet without failing anything.
  *
  * ⚠️ The metric objects are **exported so a reader uses the same instance**. An
  * Effect metric's registry key includes its description, so rebuilding one by
@@ -27,13 +28,13 @@ import { Effect, Metric } from 'effect';
  * {@link outboxOldestPendingAge}.
  */
 
-/** Unsent, un-quarantined entries, per tenant database. */
+/** Unsent, un-quarantined entries, per database. */
 export const outboxPending = Metric.gauge('outbox_pending_entries', {
-  description: 'Unsent, un-quarantined outbox entries, by tenant database.',
+  description: 'Unsent, un-quarantined outbox entries, by database.',
 });
 
 /**
- * Age in seconds of the oldest unsent entry, per tenant database.
+ * Age in seconds of the oldest unsent entry, per database.
  *
  * **The metric that makes a stuck relay visible.** #179 gave the relay a
  * ceiling, so an entry that can never publish is quarantined and skipped rather
@@ -46,7 +47,7 @@ export const outboxOldestPendingAge: Metric.Metric.Gauge<number> = Metric.gauge(
   'outbox_oldest_pending_age',
   {
     description:
-      'Age of the oldest unsent outbox entry, by tenant database. Zero when ' +
+      'Age of the oldest unsent outbox entry, by database. Zero when ' +
       'the outbox is empty.',
   },
 ).pipe(
@@ -64,10 +65,10 @@ export const outboxOldestPendingAge: Metric.Metric.Gauge<number> = Metric.gauge(
 
 /** Entries past the ceiling, which nothing retries and nothing deletes. */
 export const outboxQuarantined = Metric.gauge('outbox_quarantined_entries', {
-  description: 'Quarantined outbox entries, by tenant database.',
+  description: 'Quarantined outbox entries, by database.',
 });
 
-/** Record one tenant outbox's depth and age. */
+/** Record one outbox's depth and age. */
 export const recordOutboxStats = (database: string, stats: OutboxStats) => {
   const tagged = (metric: Metric.Metric.Gauge<number>) =>
     Metric.tagged(metric, 'database', database);

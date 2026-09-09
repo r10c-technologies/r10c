@@ -12,7 +12,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | transaction-manager (3) | —      | 3103³               |
 | system-management (4)   | 3004¹  | —                   |
 | order (5)               | —      | 3105⁷               |
-| payment (6)             | —      | 3106⁵               |
+| payment (6)             | —      | 3106⁸               |
 | settlement (7)          | —      | 3107⁵               |
 | stock (8)               | —      | 3108⁶               |
 | sales (9)               | —      | 3109⁵               |
@@ -95,20 +95,56 @@ ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
 name any organization. Separate `is_secret` rows, separate rotations, and the
 named upgrade path is unchanged.
 
-⁵ **Reserved, not bound.** The `payment`, `settlement` and `sales` slices exist
-in the register and own their stores, but are `planned` — no process runs them,
-so nothing listens on these ports yet
+⁵ **Reserved, not bound.** The `settlement` and `sales` slices exist in the
+register and own their stores, but are `planned` — no process runs them, so
+nothing listens on these ports yet
 ([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md),
 [ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)). The index is
 allocated now so that promoting a slice is a `deployments` edit rather than a
 port negotiation. They are deliberately **not** in `ALL_PORTS`
 (`tools/free-ports.sh`) until something binds them.
 
+`payment` was on this list until #152 and is now footnote 8, which is the
+mechanism working: promoting it was a `deployments` edit and a `FLEET` entry,
+exactly as the reservation promised.
+
 `sales` took index 9 rather than the then-free `3103`, which was reserved for
 the `transaction` slice splitting back out of marketplace-admin-service — and
 now holds it. Reclaiming an index that already means something else is how a
 port table stops being readable, and the reservation is what made the split a
 `deployments` edit rather than a port negotiation.
+
+⁸ **payment-service, bound.** The second of the five reserved indices to be
+claimed. It owns the `payment` store — **platform** plane and single, one named
+database beside the order's rather than inside it, so "which slice writes a
+payment?" has one answer and a future PSP-facing process (webhooks, retries,
+reconciliation, all arriving on someone else's schedule) can be lifted out
+without touching orders.
+
+`Payment` sits behind a `PaymentProviderTag` port with a **simulated** adapter.
+Real provider integration is out of v1 scope; what matters now is that the port
+keeps `authorize` and `capture` separate, because roughly a fifth of Guatemalan
+e-commerce is _contra entrega_ — the money reaches a courier's hand days after
+the order, which is only sayable if the two are separate calls.
+
+⚠️ **`POST /api/payment` is the checkout saga's pivot**, and the only write in
+the fleet that cannot be compensated. It takes a **crossing token and no
+session** — the buyer behind a checkout holds no grant over the capture made on
+their behalf — while its reads take a session and no token. One route, one
+credential, each way. Its crossing permission is therefore the only unpaired
+entry in `SERVICE_CROSSING_PERMISSIONS`: a refund is a new record with its own
+money movement, not the absence of this one
+([ADR 0054](../adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
+
+It publishes `payment.captured` and `payment.failed` from an outbox in its own
+store. The capture _decision_ never arrives as a message — the saga dispatches
+it — so what the bus carries is the consequence: order-service advances an order
+to `paid`, and settlement will fold a commission entry in M6.
+
+⚠️ **No dev target starts it.** Like order-service and transaction-service it is
+not a dependency of either frontend's `dev`, so a live checkout needs it started
+by hand — `node apps/payment-service/dist/main.js` — or the saga's pivot fails
+against an address nothing is listening on.
 
 ⁷ **order-service, bound.** It owns the `order` store — **platform** plane and
 single, one named database, which is the opposite of stock's per-request tenant

@@ -181,6 +181,12 @@
       "path": "./apps/stock-service"
     },
     {
+      "path": "./apps/payment-service"
+    },
+    {
+      "path": "./apps/payment-service-e2e"
+    },
+    {
       "path": "./apps/stock-service-e2e"
     },
     {
