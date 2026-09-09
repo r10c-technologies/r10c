@@ -188,14 +188,47 @@ const orderFromSagaResult = (payload: unknown): Receipt | undefined => {
 };
 
 /**
+ * The currency a basket is priced in. One today, and named rather than inlined
+ * so the day it is not, the places that assume it are greppable.
+ */
+const STOREFRONT_CURRENCY = 'GTQ';
+
+/**
  * Run the checkout saga.
  *
  * The inputs are keyed by step id, which is the shape the generic engine walks:
- * `reserve` fans out over the lines, `write-order` takes one body.
+ * `reserve` fans out over the lines, `write-order` takes one body, and
+ * `capture-payment` takes one whose `orderId` is a **template**.
+ *
+ * ⚠️ **`{steps.write-order.data.id}` is not a placeholder this code fills in.**
+ * order-service mints the order id, so it does not exist when this request is
+ * built; the engine resolves it from the step's recorded outcome before
+ * dispatching the capture. Sending a literal instead is the defect measured on
+ * the live lab — a payment attached to nothing, and an order that never leaves
+ * `pending` because the event announcing its capture names an order that is not
+ * there ([ADR 0054](../../../../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
+ *
+ * ⚠️ **`convert-reservation` takes no input at all.** Its cardinality and its
+ * addresses both come from the holds `reserve` actually took, which is what
+ * `fanOutFrom` means — a caller supplying them could convert a hold it never
+ * took, or, far more likely, convert none.
  */
 const placeOrder = async (
   lines: readonly CheckoutLine[],
 ): Promise<CheckoutResult> => {
+  // ⚠️ **One pass, and the seed currency is not a fallback that can be hit.**
+  // Every line overwrites it, and `checkout` redirects an empty basket before
+  // reaching here — so the seed exists to give the fold a type rather than to
+  // stand in for a missing value. Written as `lines[0]?.currency ?? …` instead,
+  // it would be an unreachable branch that reads like a guarded default.
+  const totals = lines.reduce(
+    (accumulated, line) => ({
+      amount: accumulated.amount + line.amount * line.quantity,
+      currency: line.currency,
+    }),
+    { amount: 0, currency: STOREFRONT_CURRENCY },
+  );
+
   const response = await fetch(`${checkoutServiceUrl()}/saga/checkout`, {
     method: 'POST',
     headers: {
@@ -216,6 +249,19 @@ const placeOrder = async (
             body: {
               meta: { type: 'entity', entity: 'product-order' },
               data: { items: lines },
+            },
+          },
+        ],
+        'capture-payment': [
+          {
+            body: {
+              meta: { type: 'entity', entity: 'payment' },
+              data: {
+                orderId: '{steps.write-order.data.id}',
+                amount: totals.amount,
+                currency: totals.currency,
+                paymentMethod: 'card',
+              },
             },
           },
         ],

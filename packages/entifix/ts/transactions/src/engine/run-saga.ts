@@ -11,7 +11,7 @@ import {
 } from '../contracts/saga-definition';
 import { SagaDispatcherTag } from '../ports/saga-dispatcher';
 import { SagaStoreTag } from '../ports/saga-store';
-import { resolveTemplate } from './resolve-template';
+import { resolveBodyTemplate, resolveTemplate } from './resolve-template';
 
 /**
  * What one step is given to work with — one element per call on a `fanOut` step,
@@ -40,6 +40,18 @@ export interface SagaResult {
   readonly error?: string;
 }
 
+/**
+ * What one element of a `fanOutFrom` step is dispatched with.
+ *
+ * The earlier call's body travels as `outcome` rather than `input`, which is the
+ * same scope a compensation resolves against and for the same reason: the id
+ * being addressed was minted by the participant and is in its response.
+ */
+interface DerivedElement {
+  readonly input: SagaStepInput;
+  readonly scope: Record<string, unknown>;
+}
+
 const inputsFor = (
   step: SagaStep,
   inputs: SagaInputs,
@@ -48,6 +60,62 @@ const inputsFor = (
   // A non-fan-out step makes exactly one call whether or not it was given an
   // input, so an absent entry is an empty body rather than a skipped step.
   return step.fanOut ? declared : [declared[0] ?? {}];
+};
+
+/**
+ * The elements a step actually dispatches: derived from an earlier step's
+ * successful calls when it declares `fanOutFrom`, and from the caller's input
+ * otherwise.
+ *
+ * ⚠️ **A `fanOutFrom` step ignores whatever the caller supplied for it.** The
+ * cardinality is the earlier step's, and taking the caller's would let a
+ * checkout convert a hold it never took — or, more likely, silently convert
+ * none, which is how a saga reports COMPLETED with the goods still held.
+ */
+/**
+ * What every step can point at: the **first successful call** of each step that
+ * has already run, by step id.
+ *
+ * First rather than all, because a template naming a fan-out step is ambiguous
+ * by construction — "the order id" is one value and "the reservation ids" are
+ * many, and the many case is what `fanOutFrom` exists for. Keeping this to the
+ * unambiguous case is what stops `{steps.reserve.data.id}` quietly meaning
+ * "whichever hold happened to be first".
+ */
+const stepsScope = (
+  taken: ReadonlyArray<{ step: SagaStep; outcome: SagaStepOutcome }>,
+): Record<string, unknown> =>
+  Object.fromEntries(
+    taken
+      .filter(entry => entry.outcome.calls.length > 0)
+      .map(entry => [entry.step.id, entry.outcome.calls[0]?.body]),
+  );
+
+const elementsFor = (
+  step: SagaStep,
+  inputs: SagaInputs,
+  taken: ReadonlyArray<{ step: SagaStep; outcome: SagaStepOutcome }>,
+): readonly DerivedElement[] => {
+  const steps = stepsScope(taken);
+
+  if (step.fanOutFrom === undefined) {
+    return inputsFor(step, inputs).map(input => ({
+      input,
+      scope: { input: input.body, steps },
+    }));
+  }
+
+  const source = taken.find(entry => entry.step.id === step.fanOutFrom);
+  const body = inputs[step.id]?.[0]?.body;
+
+  return (source?.outcome.calls ?? []).map(call => ({
+    // ⚠️ The organization the *earlier call* acted for, never the caller's.
+    // A tenant-plane participant resolves its handle from the header, so a
+    // conversion dispatched without it is refused `400` and the hold expires
+    // under a buyer who has already been charged.
+    input: { body, organizationId: call.organizationId },
+    scope: { outcome: call.body, input: body, steps },
+  }));
 };
 
 const dispatchCall = (
@@ -72,7 +140,7 @@ const dispatchCall = (
       body:
         call.method === 'GET' || call.method === 'DELETE'
           ? undefined
-          : input.body,
+          : resolveBodyTemplate(input.body, scope),
     });
   });
 
@@ -85,24 +153,24 @@ const dispatchCall = (
 const runStep = (
   step: SagaStep,
   sagaId: string,
-  inputs: SagaInputs,
+  elements: readonly DerivedElement[],
 ): Effect.Effect<
   { readonly calls: readonly SagaCallOutcome[]; readonly error?: string },
   EntifixConnError,
   SagaDispatcherTag
 > =>
   Effect.gen(function* () {
-    const elements = inputsFor(step, inputs);
     const calls: SagaCallOutcome[] = [];
 
-    for (const [index, input] of elements.entries()) {
+    for (const [index, element] of elements.entries()) {
+      const { input } = element;
       const response = yield* dispatchCall(
         step,
         step.command,
         sagaId,
         index,
         input,
-        { input: input.body },
+        element.scope,
       );
 
       if (!response.ok) {
@@ -220,7 +288,7 @@ const POST_PIVOT_RETRIES = 3;
 const runStepWithRetries = (
   step: SagaStep,
   sagaId: string,
-  inputs: SagaInputs,
+  elements: readonly DerivedElement[],
   retries: number,
 ): Effect.Effect<
   { readonly calls: readonly SagaCallOutcome[]; readonly error?: string },
@@ -228,7 +296,7 @@ const runStepWithRetries = (
   SagaDispatcherTag
 > =>
   Effect.gen(function* () {
-    let result = yield* runStep(step, sagaId, inputs);
+    let result = yield* runStep(step, sagaId, elements);
 
     for (
       let attempt = 1;
@@ -243,7 +311,7 @@ const runStepWithRetries = (
           error: result.error,
         }),
       );
-      result = yield* runStep(step, sagaId, inputs);
+      result = yield* runStep(step, sagaId, elements);
     }
 
     return result;
@@ -305,7 +373,7 @@ export const runSaga = (
       const { calls, error } = yield* runStepWithRetries(
         step,
         sagaId,
-        inputs,
+        elementsFor(step, inputs, taken),
         pivotCommitted ? POST_PIVOT_RETRIES : 0,
       );
 

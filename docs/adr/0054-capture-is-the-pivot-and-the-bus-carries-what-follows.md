@@ -24,8 +24,8 @@ checkout deliberately pivot-less and said so in the definition's own source:
 > it lands in M4; until then every step here reverses, which is a stronger
 > property than a pivot rather than a missing one.
 
-and in its consequences: *"M4 adds the payment step and is where `retriable`
-first has a member."*
+and in its consequences: _"M4 adds the payment step and is where `retriable`
+first has a member."_
 
 Neither document knew about the other's answer. Left alone, whoever wrote the
 first payment route would have decided it, and the register would have gone on
@@ -96,11 +96,45 @@ that requirement on participants; this is the code that now depends on it.
 Durable retry across a **coordinator** restart is a different mechanism and is
 still not built. #233 holds it.
 
+### 3b. A later step can name what an earlier one created
+
+Two gaps surfaced only against the running fleet, and both are the same shape: a
+step needed a value that did not exist when the flow started.
+
+**`fanOutFrom` — the conversion had nothing to address.**
+`convert-reservation` needs one call per hold, addressed by the reservation id,
+and stock-service mints that id. A caller cannot supply it. The first live
+checkout ran all four steps, reported `COMPLETED`, and made **zero** conversion
+calls — the holds sat until they expired, and nothing said so. A step may now
+declare `fanOutFrom: '<earlier step>'`: its cardinality, its addresses and its
+`organizationId` all come from the calls that step actually made. `defineSaga`
+refuses a forward or self reference at load, because the silent failure mode is
+a step that looks like it ran.
+
+**Body templates — the capture had nothing to attach to.** The same shape one
+level down: the payment's `orderId` is the order order-service just minted. The
+second live run captured successfully against the literal string it was sent, so
+`payment.captured` announced a payment for an order that did not exist and the
+real order stayed `pending` forever. A caller's input body may now carry
+`{steps.<stepId>.…}` placeholders, resolved against earlier outcomes before
+dispatch.
+
+⚠️ **The template lives in the caller's `inputs`, never in the definition**, and
+that is ADR 0039's constraint rather than a preference. A definition carrying
+domain payloads would be importing another domain's entity shape, which is the
+class of thing with no legal home. The definition stays a list of verbs and
+addresses; what to send is the caller's, and this only lets the caller point at a
+value it could not have known yet.
+
+A whole placeholder resolves to the **raw value**, so a number stays a number,
+and a body placeholder is **not** URI-encoded — a body is JSON, not a path
+segment.
+
 ### 4. The bus carries what follows, and only that
 
 `payment.captured` and `payment.failed` are still published, from an outbox in
 the `payment` store written in the same Mongo transaction as the `Payment`.
-What changes is who they are for: consumers of the *consequence*, never
+What changes is who they are for: consumers of the _consequence_, never
 participants in the decision.
 
 - **order-service consumes `payment.captured`** and advances the order from
@@ -113,7 +147,7 @@ Two declarations are corrected to match:
 - **`paymentSlice.subscriptions` becomes `[]`.** It no longer subscribes to
   `order.placed`. The idempotency that declaration asked for did not disappear
   with it; it moved to where the dispatch actually arrives, as a command-id claim
-  in the same transaction as the write. `dedupe: 'inbox'` guards a *message*, and
+  in the same transaction as the write. `dedupe: 'inbox'` guards a _message_, and
   this route is not reached by one.
 - **`orderSlice` drops `payment.failed`.** A refused capture is the pivot
   refusing, which compensates the flow and **deletes** the order. A consumer
@@ -157,9 +191,34 @@ the relay costs one layer beside it.
   permission.** Every other entry in `SERVICE_CROSSING_PERMISSIONS` has its
   reversal beside it, because every other step is compensatable. This one has
   none: a refund is a new record with its own money movement, not the absence of
-  this one — ADR 0039's *"a refund is not an uncharge"* — so a delete permission
+  this one — ADR 0039's _"a refund is not an uncharge"_ — so a delete permission
   would authorize erasing the evidence that a customer was charged.
 - **The fleet gains a process**, `:3106`. The health ladder walks it.
+- **`order-contracts` was not built.** The plan called for it beside
+  `payment-contracts`, and `order.placed` turned out to have no consumer once
+  capture stopped being event-driven. A decoder nothing decodes with is
+  speculative code, and it lands with the consumer that needs it.
+
+## What a live pass could not prove
+
+**The post-pivot refusal has no live path.** The rule — never compensate behind a
+committed pivot — is asserted in `run-saga.spec.ts` on the dispatcher's own call
+list, and a live fleet cannot reproduce it: the only post-pivot step is
+`convert-reservation`, and `POST /api/reservation/:id/conversion` is deliberately
+**total**. It answers `200` whether the hold was converted, released, swept or
+never there, because it is also a saga compensation and an at-least-once
+compensation that errors on its second delivery strands a flow that was in fact
+reversed (ADR 0052).
+
+So the participant that could refuse is the one built never to. That is the right
+trade and it is worth writing down rather than leaving as a gap in a test matrix:
+the engine rule is proven by construction, and the fleet has no way to exercise
+it until a post-pivot participant exists that can say no.
+
+What the live pass did prove: the happy path end to end, a declined capture
+compensating (order deleted, hold released, `payment.failed` published), replayed
+command ids answering the first decision, and eight parallel checkouts against
+five units settling as five sales and three compensations with no oversell.
 
 ## Residual
 

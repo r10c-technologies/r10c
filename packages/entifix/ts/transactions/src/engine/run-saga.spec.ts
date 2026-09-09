@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   defineSaga,
+  type SagaDefinition,
   type SagaStepOutcome,
 } from '../contracts/saga-definition.js';
 import {
@@ -454,10 +455,11 @@ const checkoutWithCapture = defineSaga({
       participant: 'stock-service',
       command: {
         method: 'POST',
-        path: '/api/reservation/{input.reservationId}/conversion',
+        path: '/api/reservation/{outcome.data.id}/conversion',
       },
       kind: 'retriable',
       fanOut: true,
+      fanOutFrom: 'reserve',
     },
   ],
 });
@@ -480,10 +482,7 @@ describe('runSaga — once the pivot has committed', () => {
       runSaga({
         sagaId: 'saga-2',
         definition: checkoutWithCapture,
-        inputs: {
-          reserve: [{ body: {} }],
-          'convert-reservation': [{ body: { reservationId: 'r-1' } }],
-        },
+        inputs: { reserve: [{ body: {} }] },
       }).pipe(
         Effect.provide(world.layer),
         Effect.provide(Logger.remove(Logger.defaultLogger)),
@@ -510,10 +509,7 @@ describe('runSaga — once the pivot has committed', () => {
       runSaga({
         sagaId: 'saga-3',
         definition: checkoutWithCapture,
-        inputs: {
-          reserve: [{ body: {} }],
-          'convert-reservation': [{ body: { reservationId: 'r-1' } }],
-        },
+        inputs: { reserve: [{ body: {} }] },
       }).pipe(
         Effect.provide(world.layer),
         Effect.provide(Logger.remove(Logger.defaultLogger)),
@@ -591,5 +587,198 @@ describe('runSaga — a participant that is down', () => {
 
     await expect(run(world)).rejects.toThrow(/participant unreachable/);
     expect(world.transitions).toEqual([]);
+  });
+});
+
+describe('runSaga — a step that fans out from an earlier one', () => {
+  /**
+   * ⚠️ The gap this exists to close, found on the live lab. `convert-reservation`
+   * is addressed by an id stock-service mints, so a caller cannot supply it —
+   * and without `fanOutFrom` the step made **zero calls** while the saga
+   * reported COMPLETED and the holds sat until they expired.
+   */
+  it('makes one call per successful call of the step it names', async () => {
+    const world = makeWorld((_d, call) => ok({ data: { id: `r-${call}` } }));
+
+    const result = await Effect.runPromise(
+      runSaga({
+        sagaId: 'saga-6',
+        definition: checkoutWithCapture,
+        inputs: {
+          reserve: [
+            { body: { offeringId: 'o-1' }, organizationId: 'vendor-a' },
+            { body: { offeringId: 'o-2' }, organizationId: 'vendor-b' },
+          ],
+        },
+      }).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(Logger.remove(Logger.defaultLogger)),
+      ),
+    );
+
+    expect(result.state).toBe('COMPLETED');
+    const conversions = world.dispatched.filter(d =>
+      d.call.path.includes('/conversion'),
+    );
+    expect(conversions.map(d => d.call.path)).toEqual([
+      '/api/reservation/r-0/conversion',
+      '/api/reservation/r-1/conversion',
+    ]);
+  });
+
+  /**
+   * ⚠️ **The organization comes from the earlier call, never the caller.** A
+   * tenant-plane participant resolves its handle from the header, so a
+   * conversion dispatched without it is refused `400` — and the hold expires
+   * under a buyer who has already been charged.
+   */
+  it('carries each earlier calls organization onto its conversion', async () => {
+    const world = makeWorld((_d, call) => ok({ data: { id: `r-${call}` } }));
+
+    await Effect.runPromise(
+      runSaga({
+        sagaId: 'saga-7',
+        definition: checkoutWithCapture,
+        inputs: {
+          reserve: [
+            { body: { offeringId: 'o-1' }, organizationId: 'vendor-a' },
+            { body: { offeringId: 'o-2' }, organizationId: 'vendor-b' },
+          ],
+        },
+      }).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(Logger.remove(Logger.defaultLogger)),
+      ),
+    );
+
+    expect(
+      world.dispatched
+        .filter(d => d.call.path.includes('/conversion'))
+        .map(d => d.organizationId),
+    ).toEqual(['vendor-a', 'vendor-b']);
+  });
+
+  it('makes no call when the step it names took none', async () => {
+    const world = makeWorld((_d, call) => ok({ data: { id: `r-${call}` } }));
+
+    await Effect.runPromise(
+      runSaga({
+        sagaId: 'saga-8',
+        definition: checkoutWithCapture,
+        inputs: { reserve: [] },
+      }).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(Logger.remove(Logger.defaultLogger)),
+      ),
+    );
+
+    expect(
+      world.dispatched.filter(d => d.call.path.includes('/conversion')),
+    ).toEqual([]);
+  });
+});
+
+describe('defineSaga — fanOutFrom', () => {
+  const withFanOutFrom = (fanOutFrom: string) => () =>
+    defineSaga({
+      name: 'bad',
+      permission: 'order-management:product-order:write',
+      steps: [
+        {
+          id: 'first',
+          participant: 'a',
+          command: { method: 'POST', path: '/api/a' },
+          kind: 'pivot',
+        },
+        {
+          id: 'second',
+          participant: 'b',
+          command: { method: 'POST', path: '/api/b' },
+          kind: 'retriable',
+          fanOut: true,
+          fanOutFrom,
+        },
+      ],
+    });
+
+  /**
+   * ⚠️ A forward reference would produce zero calls rather than an error — a
+   * step that looks like it ran and did nothing, which is exactly how a
+   * conversion gets skipped while the saga reports COMPLETED.
+   */
+  it('refuses a step that names one after it', () => {
+    expect(withFanOutFrom('third')).toThrow(/is not a step before it/);
+  });
+
+  it('refuses a step that names itself', () => {
+    expect(withFanOutFrom('second')).toThrow(/is not a step before it/);
+  });
+
+  it('accepts a step that names one before it', () => {
+    expect(withFanOutFrom('first')).not.toThrow();
+  });
+});
+
+describe('runSaga — a derived fan-out still carries a body', () => {
+  it('sends the body declared for the step to every derived call', async () => {
+    const world = makeWorld((_d, call) => ok({ data: { id: `r-${call}` } }));
+
+    await Effect.runPromise(
+      runSaga({
+        sagaId: 'saga-9',
+        definition: checkoutWithCapture,
+        inputs: {
+          reserve: [{ body: {}, organizationId: 'vendor-a' }],
+          // The cardinality comes from `reserve`; what the caller may still say
+          // is *what to send*, which a conversion carrying a movement reason
+          // would need.
+          'convert-reservation': [{ body: { reason: 'sale' } }],
+        },
+      }).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(Logger.remove(Logger.defaultLogger)),
+      ),
+    );
+
+    expect(
+      world.dispatched
+        .filter(d => d.call.path.includes('/conversion'))
+        .map(d => d.body),
+    ).toEqual([{ reason: 'sale' }]);
+  });
+
+  /**
+   * ⚠️ Defensive, and reachable only past `defineSaga`. `SagaDefinition` is a
+   * plain interface, so a definition built by hand can name a step that is not
+   * there — and answering zero calls beats throwing inside a flow that has
+   * already taken money.
+   */
+  it('makes no call when the named step is not in the definition', async () => {
+    const handBuilt: SagaDefinition = {
+      name: 'hand-built',
+      permission: 'order-management:product-order:write',
+      steps: [
+        {
+          id: 'convert',
+          participant: 'stock-service',
+          command: { method: 'POST', path: '/api/reservation/x/conversion' },
+          kind: 'compensatable',
+          compensation: { method: 'DELETE', path: '/api/reservation/x' },
+          fanOut: true,
+          fanOutFrom: 'a-step-that-is-not-here',
+        },
+      ],
+    };
+    const world = makeWorld(() => ok({ data: { id: 'r' } }));
+
+    const result = await Effect.runPromise(
+      runSaga({ sagaId: 'saga-10', definition: handBuilt, inputs: {} }).pipe(
+        Effect.provide(world.layer),
+        Effect.provide(Logger.remove(Logger.defaultLogger)),
+      ),
+    );
+
+    expect(result.state).toBe('COMPLETED');
+    expect(world.dispatched).toEqual([]);
   });
 });

@@ -90,12 +90,17 @@ export const checkoutSaga: SagaDefinition = defineSaga({
       // The hold becomes a sale movement. Fans out for the same reason
       // `reserve` does: a cart's vendor count is known only at runtime, so one
       // conversion per hold taken.
+      // ⚠️ `{outcome…}`, and `fanOutFrom: 'reserve'` is what makes it resolvable.
+      // stock-service mints the reservation id, so the caller cannot supply it
+      // when it starts the flow — this step's cardinality and its addresses both
+      // come from the holds that were actually taken.
       command: {
         method: 'POST',
-        path: '/api/reservation/{input.reservationId}/conversion',
+        path: '/api/reservation/{outcome.data.id}/conversion',
       },
       kind: 'retriable',
       fanOut: true,
+      fanOutFrom: 'reserve',
     },
   ],
 });

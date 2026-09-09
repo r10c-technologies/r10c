@@ -65,6 +65,26 @@ export interface SagaStep {
    * and the fourth refused must release exactly three.
    */
   readonly fanOut?: boolean;
+  /**
+   * Fan out over an **earlier step's successful calls** instead of over an
+   * input the caller supplied.
+   *
+   * ⚠️ **Without this a later step cannot address what an earlier one created**,
+   * and checkout is the case that proves it. `convert-reservation` needs one
+   * call per hold, addressed by the reservation id — which stock-service mints,
+   * so the caller cannot know it when it starts the flow. Supplying the ids as
+   * input is impossible, and generating a definition per request is the thing
+   * ADR 0039 exists to avoid.
+   *
+   * Each element inherits that call's `organizationId`, so a tenant-plane
+   * participant reaches the same tenant it did the first time, and the `path`
+   * template resolves against `{outcome.…}` — the same scope a compensation
+   * gets, for the same reason: the id being addressed is in the response body.
+   *
+   * Implies {@link fanOut}. It names a step that must appear **before** this one,
+   * and `defineSaga` refuses a forward or self reference at module load.
+   */
+  readonly fanOutFrom?: string;
 }
 
 /** A flow, as the data a generic engine walks. */
@@ -148,6 +168,22 @@ export function defineSaga(definition: SagaDefinition): SagaDefinition {
       fail(name, `two steps share the id '${step.id}'`);
     }
     seen.add(step.id);
+  }
+
+  // `fanOutFrom` must name a step that has already run, or the outcomes it fans
+  // out over do not exist yet. A forward reference would silently produce zero
+  // calls — a step that looks like it ran and did nothing, which is exactly how
+  // a conversion gets skipped while a saga reports COMPLETED.
+  const before = new Set<string>();
+  for (const step of steps) {
+    if (step.fanOutFrom !== undefined && !before.has(step.fanOutFrom)) {
+      fail(
+        name,
+        `step '${step.id}' fans out from '${step.fanOutFrom}', which is not a ` +
+          'step before it',
+      );
+    }
+    before.add(step.id);
   }
 
   const pivots = steps.filter(step => step.kind === 'pivot');
