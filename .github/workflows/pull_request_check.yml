@@ -276,6 +276,24 @@ jobs:
       # behaves identically across engines, so the other two would triple the
       # runtime to re-assert the same traffic. Cross-browser rendering is a
       # `live` concern.
+      # ⚠️ **Drop Google's Chrome apt repository before installing anything.**
+      # Both steps below shell out to `apt-get update`, which fails the whole job
+      # if *any* configured repository is inconsistent — and the runner image
+      # ships `dl.google.com/linux/chrome-stable` preconfigured. On 2026-09-09
+      # that index served a `Packages.gz` whose hash did not match its Release
+      # file for over an hour, and every E2E run failed at "Install Chromium"
+      # with `Hash Sum mismatch` before a single spec ran.
+      #
+      # We do not need it: Playwright downloads its own pinned Chromium build,
+      # and the apt work here is only the shared system libraries that build
+      # links against. So the repository is a third-party dependency this job
+      # never asked for and cannot fix, and removing it is narrower than
+      # tolerating apt failures with `|| true` — which would also swallow a
+      # genuinely missing library and fail later, somewhere less obvious.
+      - name: Drop apt sources this job does not need
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
+                     /etc/apt/sources.list.d/google-chrome-*.list
       - name: Install Chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
