@@ -51,15 +51,20 @@ export const orderSlice: SliceDeclaration = {
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: ['order.placed', 'order.cancelled'],
   subscriptions: [
-    // `inbox` on both: advancing an order's state on a capture is not a
-    // rewrite of the same value, so a redelivery must be recognised rather
-    // than survived.
+    // `inbox`: advancing an order's state on a capture is not a rewrite of the
+    // same value, so a redelivery must be recognised rather than survived.
+    //
+    // ⚠️ **`payment.failed` is deliberately not here any more.** A capture that
+    // refuses is the checkout saga's pivot refusing, which compensates the flow
+    // synchronously — and the compensation *deletes* the order. A consumer
+    // setting `status = 'cancelled'` on that same order would be racing its own
+    // deletion, and whichever won would be arbitrary
+    // ([ADR 0054](../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
     {
       event: 'payment.captured',
       mode: 'work',
       maxAttempts: 5,
       dedupe: 'inbox',
     },
-    { event: 'payment.failed', mode: 'work', maxAttempts: 5, dedupe: 'inbox' },
   ],
 };

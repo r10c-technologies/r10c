@@ -4,7 +4,7 @@
  * launch the real router in-process against driver fakes.
  */
 export { AppLayer } from './mongo';
-export { ORDER_COLLECTION, OUTBOX_COLLECTION } from './outbox';
+export { ORDER_COLLECTION, ORDER_SLICE } from './outbox';
 export { router } from './routes';
 
 export const SERVICE_NAME = '@r10c/order-service';

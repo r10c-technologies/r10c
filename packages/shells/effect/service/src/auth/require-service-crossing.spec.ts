@@ -43,6 +43,18 @@ const router = HttpRouter.empty.pipe(
       HttpServerResponse.json({ written: true }),
     ),
   ),
+  // The platform-plane "no crossing grants this" case. `payment:delete` is the
+  // right example rather than an invented permission: every other crossing
+  // write is paired with its reversal, and this one deliberately has none — a
+  // refund is a new record with its own money movement, not the absence of a
+  // capture (ADR 0054). A grant appearing here would authorize erasing the
+  // evidence that a customer was charged.
+  HttpRouter.post(
+    '/api/payment-reversal',
+    requireCrossing('payment-management:payment:delete')(
+      HttpServerResponse.json({ written: true }),
+    ),
+  ),
 );
 
 const withService = async (
@@ -241,11 +253,21 @@ describe('requireCrossing — the platform-plane guard', () => {
    */
   it('refuses a permission no crossing grants, token or not', async () => {
     await withService(async baseUrl => {
-      const response = await post(baseUrl, '/api/payment', {
+      const response = await post(baseUrl, '/api/payment-reversal', {
         [CROSSING_TOKEN_HEADER]: EXPECTED,
       });
 
       expect(response.status).toBe(403);
+    });
+  });
+
+  it('accepts the capture the checkout saga actually dispatches', async () => {
+    await withService(async baseUrl => {
+      const response = await post(baseUrl, '/api/payment', {
+        [CROSSING_TOKEN_HEADER]: EXPECTED,
+      });
+
+      expect(response.status).toBe(200);
     });
   });
 

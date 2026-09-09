@@ -43,11 +43,12 @@
     }
   },
   "dependencies": {
+    "@r10c/entifix-transactions": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "3.22.1",
-    "mongodb": "7.5.0",
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*"
+    "mongodb": "7.5.0"
   },
   "devDependencies": {
     "@r10c/entifix-ts-testing-unit": "workspace:*"

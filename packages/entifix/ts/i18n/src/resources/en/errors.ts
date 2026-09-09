@@ -12,6 +12,7 @@ export const errors: EsErrors = {
   signInFailed: 'Sign-in could not be completed.',
   noActiveOrganization: 'Select an organization to continue.',
   invalidRequest: 'The request is not valid.',
+  paymentDeclined: 'The payment could not be processed. Try another method.',
   invalidBody: 'The request body is not valid.',
   invalidQuery: 'The query is not valid.',
   invalidCommand: 'The command is not valid.',

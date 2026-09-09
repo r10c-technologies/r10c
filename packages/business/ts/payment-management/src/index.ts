@@ -25,4 +25,5 @@
  */
 export { PAYMENT_DOMAIN } from './domain';
 export * from './entities/payment';
+export * from './ports';
 export * from './values';

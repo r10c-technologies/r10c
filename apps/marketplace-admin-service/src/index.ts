@@ -12,7 +12,6 @@ export { AppLayer } from './mongo';
 export { EventSourceTag } from '@r10c/entifix-transactions';
 // The relay's ceiling, exported for the same reason `SagaDatabaseName` is: the
 // mock profile composes the real router, and the create route now resolves it.
-export { OutboxMaxAttempts } from './outbox/relay';
 export { router } from './routes';
 export { seedCatalog } from './seed';
 

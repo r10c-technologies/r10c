@@ -6,6 +6,12 @@ import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
+import { EventSourceTag } from '@r10c/entifix-transactions';
+import {
+  AmqpEventBusLayer,
+  AmqpHealthProbeLayer,
+  AmqpLayer,
+} from '@r10c/entifix-ts-amqp-client';
 import {
   ConfigurationRepositoryTag,
   TokenServiceTag,
@@ -13,9 +19,12 @@ import {
 import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
+  ensureOutboxIndexes,
   MongoDatabaseLayer,
   MongoDatabaseTag,
   MongoHealthProbeLayer,
+  OutboxMaxAttempts,
+  startOutboxRelay,
 } from '@r10c/entifix-ts-mongo-client';
 import {
   LoadedConfigurationTag,
@@ -25,8 +34,9 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { ensureOutboxIndexes } from './outbox';
+import { ORDER_SLICE } from './outbox';
 import { ensureProductOrderIndexes } from './product-order-index';
+import { startPaymentStatusProjection } from './projection/payment-status';
 
 const SERVICE_NAME = 'order-service';
 const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
@@ -51,11 +61,19 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  * once, so it is a separate `is_secret` row with its own rotation
  * ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
  *
- * No Redis and no AMQP **yet**. This slice takes no lock and draws from no
- * sequence; it declares `order.placed`, whose entry is written into the outbox
- * with the order, and the relay that drains it lands with the consumer that
- * gives it somewhere to go (M4's payment slice). An entry written and not yet
- * published is exactly what an outbox is for.
+ * ⚠️ **AMQP is dialled at boot and probed.** A service that opens a broker
+ * connection eagerly and registers no probe exits `1` against a merely slow
+ * broker while the health ladder green-lights a booting fleet — the trap
+ * marketplace-service hit. `AmqpHealthProbeLayer` sits in the probe tier above
+ * the bus for exactly that reason.
+ *
+ * The broker earns its place twice over: the relay publishes `order.placed`
+ * (#232), and the projection consumes `payment.captured` to advance an order
+ * from `pending` to `paid`. The capture itself is a saga step and does not
+ * arrive here as a message — only its consequence does
+ * ([ADR 0054](../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
+ *
+ * No Redis: this slice takes no lock and draws from no sequence.
  */
 export const AppLayer = Layer.unwrapEffect(
   Effect.gen(function* () {
@@ -64,6 +82,7 @@ export const AppLayer = Layer.unwrapEffect(
 
     const uri = yield* store.in('mongo').getString('uri');
     const db = yield* store.in('mongo').getString('db');
+    const amqpUri = yield* store.in('rabbitmq').getString('uri');
 
     // The public half only. This service verifies access tokens and never mints
     // one, so it is configured with material that cannot sign.
@@ -72,6 +91,13 @@ export const AppLayer = Layer.unwrapEffect(
 
     const crossingToken = yield* store.in('service').getString('token');
 
+    // ⚠️ `getNumber`, never a cast. A value of `'five'` casts to `NaN`, every
+    // comparison against it goes false, and nothing is ever quarantined — a
+    // relay that looks healthy while its head never moves.
+    const outboxMaxAttempts = yield* store
+      .in('outbox')
+      .getNumber('maxAttempts');
+
     const observability = yield* observabilityFromConfiguration(
       store,
       SERVICE_NAME,
@@ -79,6 +105,7 @@ export const AppLayer = Layer.unwrapEffect(
 
     const connections = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName: db }),
+      AmqpLayer({ uri: amqpUri }),
       Layer.succeed(
         TokenServiceTag,
         makeJoseTokenService({
@@ -92,14 +119,19 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(LoadedConfigurationTag, plain),
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
       Layer.succeed(ServiceCrossingTokenTag, crossingToken),
+      // The **slice**, never the deployment and never the domain (ADR 0029).
+      Layer.succeed(EventSourceTag, ORDER_SLICE),
+      Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
     );
+
+    const infra = Layer.provideMerge(AmqpEventBusLayer, connections);
 
     // Named by the logical Store it backs rather than by the driver, so
     // `/api/health/ready` describes this service in the register's vocabulary
     // (ADR 0031).
     const withProbes = Layer.provideMerge(
-      MongoHealthProbeLayer(['order']),
-      connections,
+      Layer.mergeAll(MongoHealthProbeLayer(['order']), AmqpHealthProbeLayer),
+      infra,
     );
 
     // Before the first write, and here rather than per request: unlike a tenant
@@ -121,6 +153,16 @@ export const AppLayer = Layer.unwrapEffect(
       withProbes,
     );
 
-    return Layer.merge(observability, Layer.provideMerge(indexed, withProbes));
+    return Layer.merge(
+      observability,
+      Layer.provideMerge(
+        Layer.mergeAll(
+          indexed,
+          Layer.effectDiscard(startOutboxRelay()),
+          Layer.effectDiscard(startPaymentStatusProjection),
+        ),
+        withProbes,
+      ),
+    );
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

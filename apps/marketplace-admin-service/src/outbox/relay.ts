@@ -1,112 +1,22 @@
-import {
-  type EventBus,
-  EventBusTag,
-  type TransactionOutbox,
-} from '@r10c/entifix-transactions';
+import { type EventBus, EventBusTag } from '@r10c/entifix-transactions';
 import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
-import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
-import { Context, Duration, Effect, Either, Fiber } from 'effect';
+import {
+  drainOutbox,
+  ensureOutboxIndexes,
+  makeMongoOutbox,
+  MongoClientTag,
+  OutboxMaxAttempts,
+  recordOutboxStats,
+  SWEEP_INTERVAL,
+} from '@r10c/entifix-ts-mongo-client';
+import { Context, Effect, Fiber } from 'effect';
 import type { MongoClient } from 'mongodb';
-
-import { recordOutboxStats } from '../observability/metrics';
-import { ensureOutboxIndexes, makeMongoOutbox } from './store';
-
-/** How often the sweep looks for entries the fast path did not carry. */
-const SWEEP_INTERVAL = Duration.seconds(15);
-/** Entries drained per pass, per database. */
-const BATCH = 100;
 
 /** The `tenant_` prefix tenant databases are named with, from config-service. */
 export class TenantDatabasePrefix extends Context.Tag('TenantDatabasePrefix')<
   TenantDatabasePrefix,
   string
 >() {}
-
-/**
- * Publish attempts an outbox entry gets before it is quarantined, from
- * config-service.
- *
- * Configuration rather than a constant because it is a genuine operational
- * tunable: raising it while a flaky broker settles is a config edit, and the
- * next sweep reads the new value. That is the opposite of a subscription's
- * `maxAttempts`, which becomes an immutable queue argument and therefore stays
- * a literal beside its declaration.
- */
-export class OutboxMaxAttempts extends Context.Tag('OutboxMaxAttempts')<
-  OutboxMaxAttempts,
-  number
->() {}
-
-/** What {@link drainOutbox} needs beyond the ports it publishes through. */
-export interface DrainOptions {
-  readonly maxAttempts: number;
-  /** The tenant database being drained; carried so a quarantine log names it. */
-  readonly database: string;
-}
-
-/**
- * Publishes every pending entry, marking each sent as it goes.
- *
- * Delivery is **at-least-once**: a crash between `publish` and `markSent`
- * re-sends the event on the next pass. That is acceptable — and only because
- * the saga tracker's `upsertFromEvent` is an idempotent upsert keyed on
- * `transactionId`, so a redelivered event folds to the same record. A consumer
- * that is not idempotent may not subscribe to this bus.
- *
- * Stops at the first failure rather than skipping ahead, so a broker outage
- * cannot reorder a transaction's `accepted` after its terminal event — **until**
- * an entry has spent `maxAttempts`. Past the ceiling it is quarantined and
- * skipped, because the ordering guarantee is only worth having between entries
- * that can still be delivered: one that never can was holding the whole tenant's
- * outbox behind it, forever and invisibly (ADR 0030).
- *
- * Quarantining logs rather than counting. The count is #186's, and it needs a
- * meter provider that does not exist yet; a log reaches Loki today, and a
- * quarantined entry nobody can see is indistinguishable from a dropped one.
- */
-export const drainOutbox = (
-  outbox: TransactionOutbox,
-  bus: EventBus,
-  options: DrainOptions,
-) =>
-  Effect.gen(function* () {
-    const entries = yield* outbox.pending(BATCH);
-    let sent = 0;
-    for (const entry of entries) {
-      const outcome = yield* Effect.either(bus.publish(entry.event));
-
-      if (Either.isLeft(outcome)) {
-        const attempts = entry.attempts + 1;
-        const quarantine = attempts >= options.maxAttempts;
-
-        yield* outbox.recordFailure(entry, outcome.left.message, quarantine);
-
-        if (!quarantine) {
-          // Still deliverable. Stop here so the entries behind this one keep
-          // their order relative to it.
-          return sent;
-        }
-
-        yield* Effect.logError('outbox entry quarantined').pipe(
-          // Annotations, not extra message arguments: the tooling logger emits
-          // these as structured fields, so the tenant and the event id are
-          // queryable in Loki rather than buried in a rendered string.
-          Effect.annotateLogs({
-            database: options.database,
-            eventId: entry.eventId,
-            eventName: entry.event.name,
-            attempts,
-            lastError: outcome.left.message,
-          }),
-        );
-        continue;
-      }
-
-      yield* outbox.markSent(entry);
-      sent += 1;
-    }
-    return sent;
-  });
 
 /**
  * Every tenant database this slice owns.

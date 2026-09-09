@@ -3,6 +3,7 @@ import { defineSaga, type SagaDefinition } from '@r10c/entifix-transactions';
 /** The participant keys this coordinator resolves addresses and tokens for. */
 export const STOCK_PARTICIPANT = 'stock-service';
 export const ORDER_PARTICIPANT = 'order-service';
+export const PAYMENT_PARTICIPANT = 'payment-service';
 
 /**
  * Checkout: hold the stock, then write the order.
@@ -22,11 +23,22 @@ export const ORDER_PARTICIPANT = 'order-service';
  * succeeded**: five lines with three holds taken and the fourth refused release
  * exactly three ([ADR 0052](../../../../docs/adr/0052-the-checkout-saga.md)).
  *
- * ⚠️ **No pivot, deliberately.** Payment capture is the point of no return and
- * it lands in M4; until then every step here reverses, which is a stronger
- * property than a pivot rather than a missing one. Naming the order write as
- * the pivot would satisfy a validator and be wrong in a way that only surfaces
- * later — the real pivot sits *after* it, so it would have to be un-pivoted.
+ * ⚠️ **`capture-payment` is the pivot, and it sits after the order write** —
+ * exactly where ADR 0052 said it would when it refused to let the order write be
+ * called one. Everything before it reverses; nothing after it does. `runSaga`
+ * enforces that rather than merely reading it off the declaration: an
+ * unconditional unwind would walk past the capture (which declares no
+ * compensation, so compensating it is a no-op) and then delete the order and
+ * release the holds behind it, leaving a charged customer with no order and the
+ * goods back on sale
+ * ([ADR 0054](../../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
+ *
+ * ⚠️ **`convert-reservation` is dispatched here rather than driven by
+ * `payment.captured` on the bus.** The hold has a TTL measured in minutes and
+ * the buyer is waiting, so the conversion belongs on the synchronous path; and
+ * it is a crossing into a vendor's tenant store, which only this process holds a
+ * token for. order-service consumes `payment.captured` to advance the order's
+ * status, which is the part that can safely be late.
  *
  * `defineSaga` runs at module load, so an invalid shape fails the process at
  * boot rather than on the first checkout.
@@ -62,6 +74,33 @@ export const checkoutSaga: SagaDefinition = defineSaga({
         path: '/api/product-order/{outcome.data.id}',
       },
       kind: 'compensatable',
+    },
+    {
+      id: 'capture-payment',
+      participant: PAYMENT_PARTICIPANT,
+      command: { method: 'POST', path: '/api/payment' },
+      // No compensation, and `defineSaga` refuses one on a pivot. A refund is a
+      // new record with its own money movement — ADR 0039's "a refund is not an
+      // uncharge" — so there is nothing here to undo the charge with.
+      kind: 'pivot',
+    },
+    {
+      id: 'convert-reservation',
+      participant: STOCK_PARTICIPANT,
+      // The hold becomes a sale movement. Fans out for the same reason
+      // `reserve` does: a cart's vendor count is known only at runtime, so one
+      // conversion per hold taken.
+      // ⚠️ `{outcome…}`, and `fanOutFrom: 'reserve'` is what makes it resolvable.
+      // stock-service mints the reservation id, so the caller cannot supply it
+      // when it starts the flow — this step's cardinality and its addresses both
+      // come from the holds that were actually taken.
+      command: {
+        method: 'POST',
+        path: '/api/reservation/{outcome.data.id}/conversion',
+      },
+      kind: 'retriable',
+      fanOut: true,
+      fanOutFrom: 'reserve',
     },
   ],
 });

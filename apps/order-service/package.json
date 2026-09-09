@@ -131,6 +131,7 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz": "workspace:*",
     "@r10c/business-ts-order-management": "workspace:*",
+    "@r10c/business-ts-payment-contracts": "workspace:*",
     "@r10c/entifix-transactions": "workspace:*",
     "@r10c/entifix-ts-amqp-client": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",

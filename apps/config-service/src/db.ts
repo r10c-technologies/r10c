@@ -704,6 +704,19 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
   {
     service: 'transaction-service',
+    group_name: 'participant',
+    key: 'paymentUrl',
+    value: 'http://localhost:3106',
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'participant',
+    key: 'paymentToken',
+    value: 'dev-payment-crossing-token-change-me',
+    is_secret: true,
+  },
+  {
+    service: 'transaction-service',
     group_name: 'logging',
     key: 'level',
     value: 'debug',
@@ -788,6 +801,125 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
   {
     service: 'order-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
+  // ⚠️ **The same URI every other service reads**, which is what makes them one
+  // exchange rather than two fleets that cannot hear each other.
+  {
+    service: 'order-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
+  // How many times the relay tries to publish an entry before quarantining it
+  // and moving to the next one. Configuration rather than a constant because
+  // raising it while a flaky broker settles should not need a deploy; the next
+  // sweep reads the new value. Deliberately *not* the source of a
+  // subscription's `maxAttempts`, which becomes an immutable `x-delivery-limit`
+  // on a declared queue and so cannot be re-tuned in place.
+  {
+    service: 'order-service',
+    group_name: 'outbox',
+    key: 'maxAttempts',
+    value: '5',
+  },
+  // payment-service — taking the money. It owns the `payment` store: **platform**
+  // plane and single, so like order-service it names a database at boot. Its own
+  // store rather than a corner of `order`, so "which slice writes a payment?"
+  // has one answer and a future PSP-facing process can be lifted out without
+  // touching orders (ADR 0022).
+  {
+    service: 'payment-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  {
+    service: 'payment-service',
+    group_name: 'mongo',
+    key: 'db',
+    value: 'payment',
+  },
+  {
+    service: 'payment-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
+  {
+    service: 'payment-service',
+    group_name: 'outbox',
+    key: 'maxAttempts',
+    value: '5',
+  },
+  {
+    service: 'payment-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'payment-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  // ⚠️ **This service's own crossing secret**, and it must match
+  // `transaction-service`'s `participant.paymentToken`. Not order-service's, and
+  // not the fleet's `CONFIG_SERVICE_TOKEN`: one shared value would make a single
+  // leak reach two stores at once, and these two grants are the least comparable
+  // pair in the fleet — one writes a receipt, the other takes money
+  // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+  {
+    service: 'payment-service',
+    group_name: 'service',
+    key: 'token',
+    value: 'dev-payment-crossing-token-change-me',
+    is_secret: true,
+  },
+  // How the simulated provider answers: `capture`, `authorize` (stop at the
+  // hold, the *contra entrega* shape) or `decline`.
+  //
+  // ⚠️ Configuration rather than a build flag **so a live pass can exercise the
+  // saga's compensation path** — forcing a refusal is the only way to prove the
+  // flow unwinds, and it must not need a rebuild to do it.
+  {
+    service: 'payment-service',
+    group_name: 'provider',
+    key: 'outcome',
+    value: 'capture',
+  },
+  {
+    service: 'payment-service',
+    group_name: 'provider',
+    key: 'declineReason',
+    value: 'simulated decline',
+  },
+  {
+    service: 'payment-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'payment-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'payment-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'payment-service',
     group_name: 'otel',
     key: 'metricIntervalMs',
     value: '60000',

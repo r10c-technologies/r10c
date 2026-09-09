@@ -144,6 +144,14 @@ const scopeConstraints = [
     sourceTag: 'scope:order',
     onlyDependOnLibsWithTags: ['scope:order', 'scope:shared'],
   },
+  // The `payment` slice's own app, for the same reason as the three above. It
+  // has no shell and no back-office surface yet, so the host scope is
+  // deliberately *not* widened to reach it — a payment is read through the order
+  // it belongs to until something needs otherwise.
+  {
+    sourceTag: 'scope:payment',
+    onlyDependOnLibsWithTags: ['scope:payment', 'scope:shared'],
+  },
 ];
 
 const entifixConstraints = [

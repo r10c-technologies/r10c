@@ -60,9 +60,15 @@ import {
   serializeEntity,
 } from '@r10c/entifix-ts-core';
 import {
+  drainOutbox,
+  ensureOutboxIndexes,
+  makeMongoOutbox,
   makeMongoRepository,
   MongoClientTag,
   MongoDatabaseTag,
+  OUTBOX_COLLECTION,
+  outboxDocument,
+  OutboxMaxAttempts,
 } from '@r10c/entifix-ts-mongo-client';
 import { requireOrganization } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
@@ -72,13 +78,6 @@ import {
   type CatalogHandlerOptions,
   makeCatalogTransactionHandler,
 } from '../catalog-transaction-handler';
-import { drainOutbox, OutboxMaxAttempts } from '../outbox/relay';
-import {
-  ensureOutboxIndexes,
-  makeMongoOutbox,
-  OUTBOX_COLLECTION,
-  outboxDocument,
-} from '../outbox/store';
 
 /**
  * The generic entity CRUD and the tenant guard every catalog route module in

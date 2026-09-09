@@ -720,7 +720,11 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   const DEPLOYMENT = 'infra/local/otel-lgtm/deployment.yaml';
   const SOURCES = [
     'packages/entifix/ts/amqp-client/src/adapters/bus-metrics.ts',
-    'apps/marketplace-admin-service/src/observability/metrics.ts',
+    // The outbox gauges left marketplace-admin-service when a second and third
+    // slice grew an outbox (#152): they now sit beside the relay that samples
+    // them, because an Effect metric is keyed on its *description* and three
+    // hand-maintained copies are three series the moment one wording drifts.
+    'packages/entifix/ts/mongo-client/src/outbox/metrics.ts',
     // `transactions_by_state` left with the `saga` store's owner when the
     // `transaction` slice took `:3103` (#229). A module missing from this list
     // is not a loud failure — the dashboard check would simply stop knowing the

@@ -24,6 +24,7 @@ import {
   MongoClientLayer,
   MongoClientTag,
   MongoHealthProbeLayer,
+  OutboxMaxAttempts,
 } from '@r10c/entifix-ts-mongo-client';
 import {
   RedisHealthProbeLayer,
@@ -39,11 +40,7 @@ import {
 import { Layer } from 'effect';
 import { Effect } from 'effect';
 
-import {
-  OutboxMaxAttempts,
-  startOutboxRelay,
-  TenantDatabasePrefix,
-} from './outbox/relay';
+import { startOutboxRelay, TenantDatabasePrefix } from './outbox/relay';
 import { startPublicationRebuild } from './publication/rebuild';
 import { seedCatalog } from './seed';
 

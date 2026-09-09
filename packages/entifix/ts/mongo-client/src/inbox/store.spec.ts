@@ -9,7 +9,7 @@ import {
   inboxDocument,
   isDuplicateKey,
   makeMongoInbox,
-} from './store';
+} from './store.js';
 
 /** Mongo's duplicate-key error, as the driver actually raises it. */
 const duplicateKeyError = () =>

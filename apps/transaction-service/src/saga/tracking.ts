@@ -10,16 +10,16 @@ import {
 import { queueNameFor } from '@r10c/entifix-ts-amqp-client';
 import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
 import { type DomainEvent, EntifixConnError } from '@r10c/entifix-ts-core';
-import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
-import { Context, Duration, Effect, Fiber } from 'effect';
-import type { Db, MongoClient } from 'mongodb';
-
 import {
   ensureInboxIndexes,
   INBOX_COLLECTION,
   inboxDocument,
   isDuplicateKey,
-} from '../inbox/store';
+  MongoClientTag,
+} from '@r10c/entifix-ts-mongo-client';
+import { Context, Duration, Effect, Fiber } from 'effect';
+import type { Db, MongoClient } from 'mongodb';
+
 import { recordTransactionStates } from '../observability/metrics';
 import {
   SagaDatabaseName,

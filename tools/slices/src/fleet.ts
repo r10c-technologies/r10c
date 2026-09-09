@@ -24,6 +24,7 @@ export const FLEET: readonly FleetEntry[] = [
   { project: 'auth-service', port: 3102 },
   { project: 'transaction-service', port: 3103 },
   { project: 'order-service', port: 3105 },
+  { project: 'payment-service', port: 3106 },
   { project: 'stock-service', port: 3108 },
   { project: 'config-service', port: 3190 },
 ];

@@ -175,7 +175,16 @@
       "path": "./packages/business/ts/catalog-contracts"
     },
     {
+      "path": "./packages/business/ts/payment-contracts"
+    },
+    {
       "path": "./apps/stock-service"
+    },
+    {
+      "path": "./apps/payment-service"
+    },
+    {
+      "path": "./apps/payment-service-e2e"
     },
     {
       "path": "./apps/stock-service-e2e"

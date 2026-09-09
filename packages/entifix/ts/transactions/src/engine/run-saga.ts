@@ -11,7 +11,7 @@ import {
 } from '../contracts/saga-definition';
 import { SagaDispatcherTag } from '../ports/saga-dispatcher';
 import { SagaStoreTag } from '../ports/saga-store';
-import { resolveTemplate } from './resolve-template';
+import { resolveBodyTemplate, resolveTemplate } from './resolve-template';
 
 /**
  * What one step is given to work with — one element per call on a `fanOut` step,
@@ -40,6 +40,18 @@ export interface SagaResult {
   readonly error?: string;
 }
 
+/**
+ * What one element of a `fanOutFrom` step is dispatched with.
+ *
+ * The earlier call's body travels as `outcome` rather than `input`, which is the
+ * same scope a compensation resolves against and for the same reason: the id
+ * being addressed was minted by the participant and is in its response.
+ */
+interface DerivedElement {
+  readonly input: SagaStepInput;
+  readonly scope: Record<string, unknown>;
+}
+
 const inputsFor = (
   step: SagaStep,
   inputs: SagaInputs,
@@ -48,6 +60,62 @@ const inputsFor = (
   // A non-fan-out step makes exactly one call whether or not it was given an
   // input, so an absent entry is an empty body rather than a skipped step.
   return step.fanOut ? declared : [declared[0] ?? {}];
+};
+
+/**
+ * The elements a step actually dispatches: derived from an earlier step's
+ * successful calls when it declares `fanOutFrom`, and from the caller's input
+ * otherwise.
+ *
+ * ⚠️ **A `fanOutFrom` step ignores whatever the caller supplied for it.** The
+ * cardinality is the earlier step's, and taking the caller's would let a
+ * checkout convert a hold it never took — or, more likely, silently convert
+ * none, which is how a saga reports COMPLETED with the goods still held.
+ */
+/**
+ * What every step can point at: the **first successful call** of each step that
+ * has already run, by step id.
+ *
+ * First rather than all, because a template naming a fan-out step is ambiguous
+ * by construction — "the order id" is one value and "the reservation ids" are
+ * many, and the many case is what `fanOutFrom` exists for. Keeping this to the
+ * unambiguous case is what stops `{steps.reserve.data.id}` quietly meaning
+ * "whichever hold happened to be first".
+ */
+const stepsScope = (
+  taken: ReadonlyArray<{ step: SagaStep; outcome: SagaStepOutcome }>,
+): Record<string, unknown> =>
+  Object.fromEntries(
+    taken
+      .filter(entry => entry.outcome.calls.length > 0)
+      .map(entry => [entry.step.id, entry.outcome.calls[0]?.body]),
+  );
+
+const elementsFor = (
+  step: SagaStep,
+  inputs: SagaInputs,
+  taken: ReadonlyArray<{ step: SagaStep; outcome: SagaStepOutcome }>,
+): readonly DerivedElement[] => {
+  const steps = stepsScope(taken);
+
+  if (step.fanOutFrom === undefined) {
+    return inputsFor(step, inputs).map(input => ({
+      input,
+      scope: { input: input.body, steps },
+    }));
+  }
+
+  const source = taken.find(entry => entry.step.id === step.fanOutFrom);
+  const body = inputs[step.id]?.[0]?.body;
+
+  return (source?.outcome.calls ?? []).map(call => ({
+    // ⚠️ The organization the *earlier call* acted for, never the caller's.
+    // A tenant-plane participant resolves its handle from the header, so a
+    // conversion dispatched without it is refused `400` and the hold expires
+    // under a buyer who has already been charged.
+    input: { body, organizationId: call.organizationId },
+    scope: { outcome: call.body, input: body, steps },
+  }));
 };
 
 const dispatchCall = (
@@ -72,7 +140,7 @@ const dispatchCall = (
       body:
         call.method === 'GET' || call.method === 'DELETE'
           ? undefined
-          : input.body,
+          : resolveBodyTemplate(input.body, scope),
     });
   });
 
@@ -85,24 +153,24 @@ const dispatchCall = (
 const runStep = (
   step: SagaStep,
   sagaId: string,
-  inputs: SagaInputs,
+  elements: readonly DerivedElement[],
 ): Effect.Effect<
   { readonly calls: readonly SagaCallOutcome[]; readonly error?: string },
   EntifixConnError,
   SagaDispatcherTag
 > =>
   Effect.gen(function* () {
-    const elements = inputsFor(step, inputs);
     const calls: SagaCallOutcome[] = [];
 
-    for (const [index, input] of elements.entries()) {
+    for (const [index, element] of elements.entries()) {
+      const { input } = element;
       const response = yield* dispatchCall(
         step,
         step.command,
         sagaId,
         index,
         input,
-        { input: input.body },
+        element.scope,
       );
 
       if (!response.ok) {
@@ -194,12 +262,78 @@ const compensateStep = (
   });
 
 /**
+ * How many extra times a step is dispatched once the pivot has committed.
+ *
+ * Small and immediate on purpose. This is the in-process half of "roll forward",
+ * and it exists to ride out the blip — a participant restarting, a connection
+ * reset — not to be a retry policy. A step that is still refusing after these
+ * strands the saga, loudly, because the alternative is a coordinator spinning on
+ * a permanent failure while a customer's money sits captured.
+ *
+ * Durable retry across a coordinator restart is a different mechanism and is not
+ * built: see #233, which makes a step dispatch an outbox entry whose relay
+ * performs the POST.
+ */
+const POST_PIVOT_RETRIES = 3;
+
+/**
+ * Dispatch a step, retrying it `retries` more times while it refuses.
+ *
+ * ⚠️ **A retry re-dispatches the calls that already succeeded**, and that is
+ * safe for exactly one reason: `sagaCommandId(sagaId, step.id, index)` is stable
+ * across attempts, so a participant that is idempotent on the command id
+ * recognises the replay. ADR 0052 states that requirement on the participant;
+ * this is the code that depends on it.
+ */
+const runStepWithRetries = (
+  step: SagaStep,
+  sagaId: string,
+  elements: readonly DerivedElement[],
+  retries: number,
+): Effect.Effect<
+  { readonly calls: readonly SagaCallOutcome[]; readonly error?: string },
+  EntifixConnError,
+  SagaDispatcherTag
+> =>
+  Effect.gen(function* () {
+    let result = yield* runStep(step, sagaId, elements);
+
+    for (
+      let attempt = 1;
+      attempt <= retries && result.error !== undefined;
+      attempt += 1
+    ) {
+      yield* Effect.logWarning('retrying a saga step after the pivot').pipe(
+        Effect.annotateLogs({
+          sagaId,
+          stepId: step.id,
+          attempt,
+          error: result.error,
+        }),
+      );
+      result = yield* runStep(step, sagaId, elements);
+    }
+
+    return result;
+  });
+
+/**
  * Walk a definition: dispatch each step, and on a refusal unwind every
  * compensatable step already taken.
  *
  * The state transition is persisted **before** each dispatch, so a crash leaves
  * a record that says what was actually attempted (ADR 0028, extended to
  * commands by ADR 0039).
+ *
+ * ⚠️ **Once the pivot has committed, nothing is unwound.** That is what a pivot
+ * means, and the walk has to know it rather than the definition merely declaring
+ * it: `compensateStep` no-ops on a step that declares no compensation, so an
+ * unconditional unwind after a successful capture would skip the pivot in
+ * silence and then delete the order behind it and release the holds behind that
+ * — money taken, goods back on sale, every probe green. The step is retried
+ * instead, and a saga that still cannot go forward is settled `STRANDED` and
+ * logged, because ADR 0039 is explicit that a stranded saga nobody is told about
+ * is the same as a lost one.
  */
 export const runSaga = (
   options: RunSagaOptions,
@@ -228,16 +362,45 @@ export const runSaga = (
     const taken: Array<{ step: SagaStep; outcome: SagaStepOutcome }> = [];
     const outcomes = () => taken.map(entry => entry.outcome);
 
+    // The point of no return, once it is behind us. Tracked here rather than
+    // read off the definition because what matters is not that a pivot exists
+    // but that it *committed* — a pivot that refuses is still fully reversible,
+    // and is the ordinary compensation case below.
+    let pivotCommitted = false;
+
     for (const [index, step] of definition.steps.entries()) {
       yield* store.beginStep(sagaId, index);
-      const { calls, error } = yield* runStep(step, sagaId, inputs);
+      const { calls, error } = yield* runStepWithRetries(
+        step,
+        sagaId,
+        elementsFor(step, inputs, taken),
+        pivotCommitted ? POST_PIVOT_RETRIES : 0,
+      );
 
       const outcome: SagaStepOutcome = { stepId: step.id, calls };
       taken.push({ step, outcome });
       yield* store.recordOutcome(sagaId, outcome);
 
       if (error === undefined) {
+        if (step.kind === 'pivot') {
+          pivotCommitted = true;
+        }
         continue;
+      }
+
+      if (pivotCommitted) {
+        // ⚠️ Forward or nowhere. Compensating from here would undo steps whose
+        // effects the pivot has already been paid for.
+        yield* Effect.logError('saga stranded after the pivot').pipe(
+          Effect.annotateLogs({
+            sagaId,
+            definition: definition.name,
+            stepId: step.id,
+            error,
+          }),
+        );
+        yield* store.settle(sagaId, 'STRANDED', error);
+        return { state: 'STRANDED', outcomes: outcomes(), error };
       }
 
       // Unwind. The failing step's own successful calls are compensated too —
