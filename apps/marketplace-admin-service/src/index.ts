@@ -14,10 +14,6 @@ export { EventSourceTag } from '@r10c/entifix-transactions';
 // mock profile composes the real router, and the create route now resolves it.
 export { OutboxMaxAttempts } from './outbox/relay';
 export { router } from './routes';
-// The co-deployed `transaction` slice's store, exported so the e2e `mock`
-// profile can compose the same layer over a fake pool rather than stubbing the
-// routes the catalog's own `202` points at.
-export { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
 export { seedCatalog } from './seed';
 
 export const SERVICE_NAME = '@r10c/marketplace-admin-service';

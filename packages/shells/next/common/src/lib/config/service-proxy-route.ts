@@ -7,6 +7,22 @@ type Params = { params: Promise<{ path: string[] }> };
 export interface ServiceProxyRouteOptions {
   /** Where the service listens, without the `/api` suffix. */
   readonly baseUrl: string;
+  /**
+   * A segment to put back in front of the forwarded path.
+   *
+   * ⚠️ **Needed when the proxy's namespace *is* the upstream's route name.**
+   * `/api/stock/stock-item` forwards to `/api/stock-item` because `stock` names
+   * the service and `stock-item` names the entity — two different words. But
+   * `/api/transaction/events` forwards to `/api/events`, which exists nowhere:
+   * there the namespace and the route are the same word, and stripping it
+   * strips half the address.
+   *
+   * Caught on the live lab rather than by any check, and the symptom is exactly
+   * the one this proxy exists to prevent — the SSE stream 404s, a pending write
+   * never settles, and every probe stays green
+   * ([ADR 0036](../../../../../../docs/adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)).
+   */
+  readonly pathPrefix?: string;
 }
 
 /**
@@ -73,6 +89,7 @@ const passThrough = (upstream: Response): Record<string, string> => {
 
 export const createServiceProxyRoute = ({
   baseUrl,
+  pathPrefix,
 }: ServiceProxyRouteOptions) => {
   const forward = async (
     request: Request,
@@ -94,12 +111,15 @@ export const createServiceProxyRoute = ({
     }
 
     const hasBody = request.method !== 'GET' && request.method !== 'DELETE';
-    const upstream = await fetch(`${baseUrl}/api/${path.join('/')}${search}`, {
-      method: request.method,
-      headers,
-      body: hasBody ? await request.text() : undefined,
-      cache: 'no-store',
-    });
+    const upstream = await fetch(
+      `${baseUrl}/api/${[pathPrefix, ...path].filter(Boolean).join('/')}${search}`,
+      {
+        method: request.method,
+        headers,
+        body: hasBody ? await request.text() : undefined,
+        cache: 'no-store',
+      },
+    );
 
     const passed = passThrough(upstream);
 

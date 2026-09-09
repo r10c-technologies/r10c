@@ -27,6 +27,10 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import {
+  startReservationSweep,
+  StockDatabasePrefix,
+} from './reservation-sweep';
 import { ReservationTtlSecondsTag } from './reservation-ttl';
 import { seedStock } from './seed';
 
@@ -125,6 +129,9 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
       Layer.succeed(ServiceCrossingTokenTag, crossingToken),
       Layer.succeed(ReservationTtlSecondsTag, reservationTtlSeconds),
+      // The reaper's prefix — the same `stock_` the tenant resolver is built
+      // with, because it enumerates the databases that resolver hands out.
+      Layer.succeed(StockDatabasePrefix, tenantPrefix),
     );
 
     // The connection contributes its own readiness probe, named by the logical
@@ -163,6 +170,20 @@ export const AppLayer = Layer.unwrapEffect(
       tenancy,
     );
 
-    return Layer.merge(observability, Layer.provideMerge(seeded, withProbes));
+    // ⚠️ **The reaper is chained after the seed, not merged beside it**, for the
+    // reason the seed itself is chained: `Layer.mergeAll` builds concurrently,
+    // and a sweep racing the seed on a fresh `dev:reset` would enumerate a
+    // tenant database that does not exist yet.
+    //
+    // Without this daemon `expiresAt` is a timestamp nothing reads: every
+    // abandoned basket promises a vendor's stock permanently, and the symptom is
+    // an offering that is quietly unbuyable while its ledger is perfectly
+    // correct (ADR 0010's reaper, #227).
+    const swept = Layer.provideMerge(
+      Layer.effectDiscard(startReservationSweep),
+      seeded,
+    );
+
+    return Layer.merge(observability, Layer.provideMerge(swept, withProbes));
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

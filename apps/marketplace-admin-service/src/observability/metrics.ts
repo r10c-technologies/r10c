@@ -1,8 +1,14 @@
-import type { OutboxStats, TransactionState } from '@r10c/entifix-transactions';
+import type { OutboxStats } from '@r10c/entifix-transactions';
 import { Effect, Metric } from 'effect';
 
 /**
- * The outbox and transaction halves of ADR 0001's first metric set.
+ * The outbox half of ADR 0001's first metric set.
+ *
+ * The transaction half moved to transaction-service with the `saga` store's
+ * owner (#229). These stayed: an outbox entry is a `catalog` collection — one
+ * per `tenant_<id>` database, written in the same Mongo transaction as the
+ * entity it announces — and `catalog` is this slice's store
+ * (`docs/_shared/planes.md`, ADR 0028).
  *
  * ⚠️ The metric objects are **exported so a reader uses the same instance**. An
  * Effect metric's registry key includes its description, so rebuilding one by
@@ -16,9 +22,8 @@ import { Effect, Metric } from 'effect';
  *
  * ⚠️ **A dimensionless gauge reaches Prometheus with a `_ratio` suffix.** That
  * is the OTel exporter's convention for unit `1`, not a mistake here, so
- * `outbox_pending_entries` is queried as `outbox_pending_entries_ratio` and
- * `transactions_by_state` as `transactions_by_state_ratio`. Counters are
- * unaffected. Where a metric has a real unit, tag it — see
+ * `outbox_pending_entries` is queried as `outbox_pending_entries_ratio`.
+ * Counters are unaffected. Where a metric has a real unit, tag it — see
  * {@link outboxOldestPendingAge}.
  */
 
@@ -62,17 +67,6 @@ export const outboxQuarantined = Metric.gauge('outbox_quarantined_entries', {
   description: 'Quarantined outbox entries, by tenant database.',
 });
 
-/**
- * Transaction records in each state.
- *
- * This is the reason `STALE` stops being something only a poll discovers: the
- * recovery sweep's entire action is to apply that label, and until it was
- * counted the label reached no event, no stream and no operator.
- */
-export const transactionsByState = Metric.gauge('transactions_by_state', {
-  description: 'Transaction records in each lifecycle state.',
-});
-
 /** Record one tenant outbox's depth and age. */
 export const recordOutboxStats = (database: string, stats: OutboxStats) => {
   const tagged = (metric: Metric.Metric.Gauge<number>) =>
@@ -91,14 +85,3 @@ export const recordOutboxStats = (database: string, stats: OutboxStats) => {
     Effect.andThen(Metric.set(tagged(outboxQuarantined), stats.quarantined)),
   );
 };
-
-/** Record the transaction store's per-state totals. */
-export const recordTransactionStates = (
-  counts: Record<TransactionState, number>,
-) =>
-  Effect.forEach(
-    Object.entries(counts),
-    ([state, count]) =>
-      Metric.set(Metric.tagged(transactionsByState, 'state', state), count),
-    { discard: true },
-  );

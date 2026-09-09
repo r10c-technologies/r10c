@@ -51,14 +51,18 @@ export interface TransactionHandler {
    * Undo a failed execution. Must be idempotent (e.g. delete-if-exists), since
    * the recovery sweep may reach a transaction whose rollback already ran.
    *
-   * **`outcome` is always `undefined` in this engine, and cannot be anything
-   * else.** `rollback` runs on exactly one path — the arm where `execute`
-   * failed — so there is no outcome to hand it. The parameter is not unused but
-   * *unreachable*, and what makes it reachable is the multi-step engine
-   * ADR 0039 decides: there, each compensation receives the outcome its own
-   * step produced, because reversing a payment capture needs the capture's id
-   * and a delete-if-exists does not. The signature changes with that engine and
-   * not before.
+   * **`outcome` is always `undefined` on the single-step path, and cannot be
+   * anything else there.** `rollback` runs on exactly one arm — the one where
+   * `execute` failed — so there is no outcome to hand it.
+   *
+   * That is a property of this path rather than an unfinished signature, and it
+   * stays true now that the multi-step engine exists beside it. A saga's
+   * compensation is dispatched by `runSaga` with **its own call's** recorded
+   * outcome (`SagaStepOutcome`), because reversing a reservation needs the
+   * reservation's id and a delete-if-exists does not — see
+   * [ADR 0052](../../../../../../docs/adr/0052-the-checkout-saga.md). A
+   * single-step handler is untouched by that, which is what ADR 0039 meant by
+   * "grows a second shape and keeps the first".
    */
   rollback(
     command: TransactionCommand,

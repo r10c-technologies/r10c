@@ -280,3 +280,42 @@ describe('createServiceProxyRoute', () => {
     expect(await response.text()).toBe('');
   });
 });
+
+describe('pathPrefix', () => {
+  /**
+   * ⚠️ The regression a live pass caught. `/api/transaction/events` forwarded to
+   * `/api/events` — a path that exists nowhere — because the proxy's namespace
+   * and the upstream's route name are the same word. The symptom was the one
+   * this proxy exists to prevent: the SSE stream 404s, a pending write never
+   * settles, and every probe stays green (ADR 0036).
+   */
+  it('puts the segment back in front of the forwarded path', async () => {
+    const fetchMock = answering('{}', 200);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const prefixed = createServiceProxyRoute({
+      baseUrl: SERVICE_URL,
+      pathPrefix: 'transaction',
+    });
+    await prefixed(
+      new Request('http://app/api/transaction/events'),
+      params(['events']),
+    );
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      `${SERVICE_URL}/api/transaction/events`,
+    );
+  });
+
+  it('forwards without one when none is given', async () => {
+    const fetchMock = answering('{}', 200);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await forward(
+      new Request('http://app/api/stock/stock-item'),
+      params(['stock-item']),
+    );
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${SERVICE_URL}/api/stock-item`);
+  });
+});

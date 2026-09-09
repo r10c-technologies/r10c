@@ -1,0 +1,40 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/@r10c/transaction-service-e2e",
+    "esModuleInterop": true,
+    "noUnusedLocals": false,
+    "noImplicitAny": false,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../packages/business/ts/authz"
+    },
+    {
+      "path": "../transaction-service"
+    },
+    {
+      "path": "../../packages/shells/effect/service"
+    },
+    {
+      "path": "../../packages/entifix/ts/testing-e2e"
+    },
+    {
+      "path": "../../packages/entifix/ts/jwt-client"
+    },
+    {
+      "path": "../../packages/entifix/ts/business"
+    },
+    {
+      "path": "../../packages/entifix/ts/transactions"
+    },
+    {
+      "path": "../../packages/business/ts/party-management"
+    },
+    {
+      "path": "../../packages/business/ts/authn"
+    }
+  ]
+}

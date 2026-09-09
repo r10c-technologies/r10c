@@ -10,6 +10,7 @@ export const CATALOG_DOMAIN = 'product-configuration-management';
 export const CATALOG_REFERENCE_DOMAIN = 'catalog-reference';
 export const SALES_DOMAIN = 'sales-management';
 export const STOCK_DOMAIN = 'stock-management';
+export const ORDER_DOMAIN = 'order-management';
 export const AUTHN_DOMAIN = 'authn';
 
 /**
@@ -34,6 +35,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // note there for why these are named per entity rather than wildcarded.
     `${STOCK_DOMAIN}:stock-item:read`,
     `${STOCK_DOMAIN}:stock-movement:read`,
+    // Reading orders. `read` only, and there is deliberately no `write` for any
+    // role: an order is written by the checkout saga behind a crossing token,
+    // never by a person — see the note on `admin` below.
+    `${ORDER_DOMAIN}:product-order:read`,
     // Ending your **own** other sessions — the unbound sibling of
     // `revoke-sessions` below, which ends somebody else's. Every role holds it,
     // because signing yourself out everywhere is a security control the account
@@ -106,6 +111,17 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // Reading the holds against one's own stock — support answering "why did
     // this buyer lose their basket?". Writing one is not a person's act.
     `${STOCK_DOMAIN}:reservation:read`,
+    // Reading orders: a vendor answering "where is my customer's parcel?", an
+    // operator reading a report.
+    //
+    // ⚠️ **No `product-order:write` for any role, and none is coming.** An order
+    // is written by the checkout saga, which holds stock in a vendor's tenant
+    // store before it writes anything — that is a crossing authorized by a
+    // service token, not an act a session can perform. A grant here would be
+    // inert against the route that exists and would suggest a save route ought
+    // to, which is how a receipt becomes editable
+    // ([ADR 0052](../../../../../docs/adr/0052-the-checkout-saga.md)).
+    `${ORDER_DOMAIN}:product-order:read`,
     `${AUTHN_DOMAIN}:user-identity:read`,
     `${AUTHN_DOMAIN}:user-identity:write`,
     // Two use-case verbs, not CRUD. Changing somebody's role or status and

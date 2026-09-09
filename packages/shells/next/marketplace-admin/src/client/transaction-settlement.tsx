@@ -11,8 +11,8 @@ import { Effect } from 'effect';
 import { useCallback } from 'react';
 
 import {
-  CATALOG_SERVICE,
   createClientAdapters,
+  TRANSACTION_SERVICE,
 } from './adapters/create-client-adapters';
 
 /**
@@ -22,8 +22,13 @@ import {
  *
  * Module scope, so every mount shares one connection.
  */
+// ⚠️ `/api/transaction`, not `/api/admin/transaction`. The tracker moved to
+// transaction-service on `:3103` (#229), and this path is the same-origin proxy
+// in front of it — same-origin by necessity, because the session cookie is
+// `httpOnly` and an `EventSource` pointed at the service directly would carry no
+// credential (ADR 0036).
 const reactiveChannel = makeEventSourceReactiveChannel(
-  '/api/admin/transaction/events',
+  '/api/transaction/events',
 );
 
 /**
@@ -47,7 +52,7 @@ export function TransactionSettlement() {
       Effect.runPromise(
         Effect.provide(
           Effect.flatMap(
-            buildTransactionStatusReader(CATALOG_SERVICE),
+            buildTransactionStatusReader(TRANSACTION_SERVICE),
             reader => reader.read(transactionId),
           ),
           createClientAdapters().configurationStore,

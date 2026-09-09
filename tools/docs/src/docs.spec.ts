@@ -721,6 +721,11 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   const SOURCES = [
     'packages/entifix/ts/amqp-client/src/adapters/bus-metrics.ts',
     'apps/marketplace-admin-service/src/observability/metrics.ts',
+    // `transactions_by_state` left with the `saga` store's owner when the
+    // `transaction` slice took `:3103` (#229). A module missing from this list
+    // is not a loud failure — the dashboard check would simply stop knowing the
+    // metric is declared and call every panel querying it undeclared.
+    'apps/transaction-service/src/observability/metrics.ts',
   ];
 
   /** The provisioning directory whose contents a mount must never replace. */

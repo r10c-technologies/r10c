@@ -6,11 +6,7 @@ import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
-import {
-  EventSourceTag,
-  makeTransactionStreamHubEffect,
-  TransactionStreamHubTag,
-} from '@r10c/entifix-transactions';
+import { EventSourceTag } from '@r10c/entifix-transactions';
 import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client';
 import { TokenServiceTag } from '@r10c/entifix-ts-business';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
@@ -27,10 +23,8 @@ import {
   fakeRedisLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import {
-  MongoTransactionStoreLayer,
   OutboxMaxAttempts,
   router,
-  SagaDatabaseName,
   seedCatalog,
   SERVICE_NAME,
 } from '@r10c/marketplace-admin-service';
@@ -99,10 +93,9 @@ const MockAppLayer = (() => {
     Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
-    Layer.succeed(SagaDatabaseName, 'transaction_manager'),
     // The shipped layer reads this from config-service; here it is a literal
-    // beside the other resolved values, mirroring `SagaDatabaseName`. The
-    // matching entry in `CONFIGURATION` is what `GET /api/config` reports.
+    // beside the other resolved values. The matching entry in `CONFIGURATION`
+    // is what `GET /api/config` reports.
     Layer.succeed(OutboxMaxAttempts, 5),
     // The slice every event this process publishes is stamped with, matching
     // the shipped layer. The *publishing* slice, so `marketplace-admin` — the
@@ -115,15 +108,10 @@ const MockAppLayer = (() => {
       RedisLockServiceLayer,
       RedisSequenceServiceLayer,
       AmqpEventBusLayer,
-      // The reactive stream's in-process fan-out. Real, not a stub: the SSE
-      // route resolves it per connection, so a missing layer would fail the
-      // whole router rather than just that route.
-      Layer.scoped(TransactionStreamHubTag, makeTransactionStreamHubEffect),
-      // The co-deployed `transaction` slice's store, over the same fake pool.
-      // It is here rather than stubbed because the router now serves
-      // `/api/transaction` — the tracker is passive, so a broken subscription
-      // looks exactly like nothing happening, and a fake would hide that.
-      MongoTransactionStoreLayer,
+      // The saga store and the reactive stream's fan-out used to be composed
+      // here too. Both left with the `transaction` slice for `:3103` (#229):
+      // this router no longer serves `/api/transaction`, so providing them
+      // would build layers nothing resolves.
     ),
     connections,
   );

@@ -15,12 +15,22 @@ import type { SliceDeclaration } from '../types.js';
  *
  * This slice is the reason ADR 0023 exists: it is platform plane, it must
  * reserve stock in a tenant store, and the buyer's session carries no
- * organization. `dependantAPIs` names that call explicitly, which is what a
- * split needs to know.
+ * organization.
+ *
+ * **Promoted to `active` by the commit that wrote the store** (#151):
+ * order-service on `:3105`.
+ *
+ * ⚠️ **It reserves nothing itself, and `dependantAPIs` is now empty of stock.**
+ * The reserve-then-write flow is a saga, and the coordinator dispatches both
+ * halves — so this slice is a *participant* rather than a caller
+ * ([ADR 0052](../../../docs/adr/0052-the-checkout-saga.md)). Its writes accept a
+ * crossing token and no session, because the buyer behind a checkout holds no
+ * grant over the receipt written on their behalf; its reads accept a session and
+ * no token. One route, one credential, each way.
  */
 export const orderSlice: SliceDeclaration = {
   name: 'order',
-  status: 'planned',
+  status: 'active',
   domains: ['order-management'],
   stores: [
     {
@@ -31,15 +41,14 @@ export const orderSlice: SliceDeclaration = {
       truth: 'system-of-record',
     },
   ],
-  deployments: [],
+  deployments: ['order-service'],
   coDeployedWith: [],
-  exposedAPIs: ['GET|POST /api/product-order', 'GET /api/product-order/:id'],
-  dependantAPIs: [
-    'GET /api/config/:service',
-    // The ADR 0023 crossing: explicit organizationId + service token.
-    'POST /api/reservation',
-    'DELETE /api/reservation/:id',
+  exposedAPIs: [
+    'GET|POST /api/product-order',
+    'GET|DELETE /api/product-order/:id',
+    'GET /api/product-order/$metadata',
   ],
+  dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: ['order.placed', 'order.cancelled'],
   subscriptions: [
     // `inbox` on both: advancing an order's state on a capture is not a

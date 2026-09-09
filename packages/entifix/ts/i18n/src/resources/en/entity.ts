@@ -252,6 +252,15 @@ export const entity: EsEntity = {
     },
   },
   'product-order': {
+    // ⚠️ A form title for a record nobody creates by hand, exactly as
+    // `stock-item` carries one. `newTitle` is the catalog gate
+    // `EntityCatalogKey` reads, not a promise that a New button exists: no role
+    // holds `product-order:write`, the write takes a crossing token and no
+    // session, and the served descriptor withholds Save.
+    form: {
+      editTitle: 'Order',
+      newTitle: 'Order',
+    },
     label: 'Order',
     plural: 'Orders',
     fields: {

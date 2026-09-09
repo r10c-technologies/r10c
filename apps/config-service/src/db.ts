@@ -194,11 +194,49 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'marketplace-service-domain',
     value: 'http://localhost:3100/api',
   },
+  // Where checkout starts. The storefront's server action calls
+  // transaction-service directly, so this address stays server-side for the
+  // reason the row above does — and here it *must*, because the call carries a
+  // crossing token no browser may ever hold.
+  {
+    service: 'marketplace-app',
+    group_name: 'uri',
+    key: 'transaction-service-domain',
+    value: 'http://localhost:3103/api',
+  },
+  // ⚠️ **The token the storefront presents to start a checkout**, matching
+  // transaction-service's inbound `service.token`. It is read in a server action
+  // and never reaches the browser: a storefront with no auth gate cannot prove
+  // who the buyer is, so what it proves instead is that the *fleet* is asking —
+  // which is exactly what a crossing token is for
+  // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+  //
+  // It is deliberately **not** a participant token: it starts a flow, it does
+  // not write a vendor's stock.
+  {
+    service: 'marketplace-app',
+    group_name: 'service',
+    key: 'sagaToken',
+    value: 'dev-saga-crossing-token-change-me',
+    is_secret: true,
+  },
   {
     service: 'back-office-app',
     group_name: 'uri',
     key: 'marketplace-admin-service-domain',
     value: 'http://localhost:3101/api',
+  },
+  // transaction-service, which a catalog `202` hands the browser off to. It was
+  // reachable through the admin domain above while the `transaction` slice was
+  // co-deployed there; it took `:3103` when ADR 0039's trigger fired (#229), so
+  // it needs a domain key — and therefore a proxy path — of its own. The app
+  // rewrites this to `/api/transaction` before the browser sees it, which is
+  // what keeps the reactive stream same-origin (ADR 0036).
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'transaction-service-domain',
+    value: 'http://localhost:3103/api',
   },
   // The second catalog backend. ADR 0022 moved brand, category and the
   // characteristic dictionary to the platform-plane `catalog-reference` store,
@@ -220,6 +258,22 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'uri',
     key: 'stock-service-domain',
     value: 'http://localhost:3108/api',
+  },
+  // order-service, the back office's fourth backend. Platform plane rather than
+  // tenant, so the rows are not scoped to the viewer's organization — but the
+  // proxy still exists for the reads, because nothing here is anonymous either.
+  // The app rewrites it to `/api/order` before the browser sees it.
+  //
+  // ⚠️ **A rewrite with no row rewrites nothing.** `createConfigRoute` maps the
+  // rows it is given; a proxy entry naming a key config-service never serves
+  // leaves the browser composing URLs from an address it does not have — the
+  // nav appears, the screen loads, and every query fails. Caught on the live lab
+  // rather than by any check, because both halves look correct in isolation.
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'order-service-domain',
+    value: 'http://localhost:3105/api',
   },
   // config-service's own address, so the admin app's system-management pages can
   // reach the configuration CRUD. The app rewrites it to a same-origin proxy path
@@ -539,25 +593,40 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'metricIntervalMs',
     value: '60000',
   },
-  // The `saga` store. The `transaction` slice is co-deployed into
-  // marketplace-admin-service, so it needs no `uri` of its own — the pool and
-  // the bus are already this service's, and only the database name is the
-  // slice's own. That one row is what a split back out would carry with it.
+  // transaction-service — the saga coordinator. It owns the `saga` store:
+  // control plane, single, one named Mongo database.
+  //
+  // ⚠️ **These rows moved off marketplace-admin-service on 2026-09-08 (#229).**
+  // The `transaction` slice used to be co-deployed there, so it needed no `uri`
+  // of its own — the pool and the bus were already that service's, and only the
+  // database name was the slice's own. This block is what the split carried
+  // with it, exactly as that row's note predicted.
   {
-    service: 'marketplace-admin-service',
+    service: 'transaction-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'amqp',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
+  {
+    service: 'transaction-service',
     group_name: 'saga',
     key: 'db',
     value: 'transaction_manager',
   },
   // How long a transaction may sit in a non-terminal state before the recovery
-  // sweep presumes it stuck and marks it `STALE`. Configuration rather than a
-  // constant for the same reason `outbox.maxAttempts` is: it is a genuine
-  // operational dial, and the value that is right for a laptop is not the one
-  // that is right for a fleet under load. Kept well above the worst case a
-  // command spends queued behind the per-type resource lock, so a merely slow
-  // transaction is not mistaken for a stalled one.
+  // sweep presumes it stuck and marks it `STALE`. A genuine operational dial:
+  // raise it while a slow participant settles, and the next sweep reads the new
+  // value.
   {
-    service: 'marketplace-admin-service',
+    service: 'transaction-service',
     group_name: 'saga',
     key: 'staleTimeoutMs',
     value: '60000',
@@ -567,10 +636,161 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // shortening the timeout changes what counts as stuck. Tuning one by moving
   // the other is how a fleet ends up flagging healthy work.
   {
-    service: 'marketplace-admin-service',
+    service: 'transaction-service',
     group_name: 'saga',
     key: 'recoveryIntervalMs',
     value: '10000',
+  },
+  // The public half only. This service verifies access tokens and never mints
+  // one.
+  {
+    service: 'transaction-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  // ⚠️ **This service's own *inbound* crossing token** — what marketplace-app
+  // presents to start a checkout. Deliberately a different secret from the
+  // outbound `participant.*Token` rows below: the coordinator is both a callee
+  // and a caller, and one shared value would mean anyone allowed to *start* a
+  // checkout held the key that *writes* a vendor's stock.
+  {
+    service: 'transaction-service',
+    group_name: 'service',
+    key: 'token',
+    value: 'dev-saga-crossing-token-change-me',
+    is_secret: true,
+  },
+  // The participants checkout dispatches to, and **one crossing token each**.
+  //
+  // ⚠️ **A token per participant, never one shared across them.** This process
+  // is the one ADR 0039 named as concentrating the secret: any holder of a
+  // crossing token can name any organization, so a single shared value would
+  // make one leak a tenant-data write capability across every service at once.
+  // Each is that participant's own `is_secret` row with its own rotation, and
+  // each must match the value the participant itself reads
+  // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+  {
+    service: 'transaction-service',
+    group_name: 'participant',
+    key: 'stockUrl',
+    value: 'http://localhost:3108',
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'participant',
+    key: 'stockToken',
+    value: 'dev-stock-crossing-token-change-me',
+    is_secret: true,
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'participant',
+    key: 'orderUrl',
+    value: 'http://localhost:3105',
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'participant',
+    key: 'orderToken',
+    value: 'dev-order-crossing-token-change-me',
+    is_secret: true,
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'transaction-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
+  // order-service — one checkout, one receipt. It owns the `order` store:
+  // **platform** plane and single, so unlike stock-service it names a database
+  // at boot rather than resolving one per request. That is forced rather than
+  // chosen: a basket can span several vendors, so one order cannot live in any
+  // one of their tenant databases.
+  {
+    service: 'order-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  {
+    service: 'order-service',
+    group_name: 'mongo',
+    key: 'db',
+    value: 'order',
+  },
+  {
+    service: 'order-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'order-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  // ⚠️ **This service's own crossing secret**, and it must match
+  // `transaction-service`'s `participant.orderToken`. Not stock-service's, and
+  // not the fleet's `CONFIG_SERVICE_TOKEN`: one shared value would make a single
+  // leak reach two stores at once, and the two grants are not comparable
+  // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+  {
+    service: 'order-service',
+    group_name: 'service',
+    key: 'token',
+    value: 'dev-order-crossing-token-change-me',
+    is_secret: true,
+  },
+  {
+    service: 'order-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'order-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'order-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'order-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
   },
   // marketplace-service — the storefront's platform-plane read host. It owns the
   // `catalog-reference` and `published-catalog` stores, both `single`, so unlike

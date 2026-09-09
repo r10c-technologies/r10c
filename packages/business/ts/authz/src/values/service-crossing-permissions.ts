@@ -1,5 +1,5 @@
 import { type Permission, permissionMatches } from './permission';
-import { STOCK_DOMAIN } from './role-permissions';
+import { ORDER_DOMAIN, STOCK_DOMAIN } from './role-permissions';
 
 /**
  * What a **service** may do when it crosses into another party's tenant storage
@@ -25,10 +25,30 @@ import { STOCK_DOMAIN } from './role-permissions';
  * may do. Adding a crossing is therefore an explicit line, reviewed as one.
  */
 export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
-  // The one crossing in the system today. Taking a hold on stock is not a
-  // person's act — no role grants it, and the route that serves it accepts no
-  // session (ADR 0023).
+  // A hold's whole life, and each end of it is its own line. None is a person's
+  // act — no role grants them, and the routes that serve them accept no session
+  // (ADR 0023).
+  //
+  // ⚠️ **Three permissions rather than one `reservation:*`.** The wildcard would
+  // be shorter and would say something false: a caller that may *release* a hold
+  // is giving a claim back and can at worst free stock early, while a caller
+  // that may *convert* one consumes the goods and moves `onHand`. Collapsing
+  // them makes the weaker act carry the stronger one's authority, which is the
+  // same mistake as accepting two credentials on one route.
   `${STOCK_DOMAIN}:reservation:write`,
+  `${STOCK_DOMAIN}:reservation:release`,
+  `${STOCK_DOMAIN}:reservation:convert`,
+  // Writing the order the holds above were taken for, and deleting it when a
+  // later step fails. Also not a person's act: the buyer behind a checkout holds
+  // no grant over the receipt the coordinator writes on their behalf, and
+  // `ROLE_PERMISSIONS` grants `product-order:read` and nothing more
+  // ([ADR 0052](../../../../../docs/adr/0052-the-checkout-saga.md)).
+  //
+  // ⚠️ `delete` here is a **compensation**, not a customer-facing cancel. A
+  // cancellation is a business event with its own record and its own money
+  // consequences; this undoes a step that should not have happened.
+  `${ORDER_DOMAIN}:product-order:write`,
+  `${ORDER_DOMAIN}:product-order:delete`,
 ];
 
 /**

@@ -7,9 +7,7 @@ import {
   outboxPending,
   outboxQuarantined,
   recordOutboxStats,
-  recordTransactionStates,
-  transactionsByState,
-} from './metrics';
+} from './metrics.js';
 
 /**
  * Reads a gauge out of Effect's registry.
@@ -113,50 +111,5 @@ describe('recordOutboxStats', () => {
     // Untagged, one busy tenant would mask every other tenant's stuck relay.
     expect(await readGauge(outboxPending, { database: 'tenant_a' })).toBe(3);
     expect(await readGauge(outboxPending, { database: 'tenant_b' })).toBe(9);
-  });
-});
-
-describe('recordTransactionStates', () => {
-  it('reports every state, including the ones at zero', async () => {
-    await Effect.runPromise(
-      recordTransactionStates({
-        PENDING: 2,
-        COMPLETED: 40,
-        FAILED: 1,
-        STALE: 0,
-      }),
-    );
-
-    expect(await readGauge(transactionsByState, { state: 'PENDING' })).toBe(2);
-    expect(await readGauge(transactionsByState, { state: 'COMPLETED' })).toBe(
-      40,
-    );
-    expect(await readGauge(transactionsByState, { state: 'FAILED' })).toBe(1);
-    // Zero rather than an absent series: `STALE` dropping to none must not look
-    // the same as the metric having broken.
-    expect(await readGauge(transactionsByState, { state: 'STALE' })).toBe(0);
-  });
-
-  it('overwrites rather than accumulating, because it is a gauge', async () => {
-    await Effect.runPromise(
-      recordTransactionStates({
-        PENDING: 5,
-        COMPLETED: 0,
-        FAILED: 0,
-        STALE: 0,
-      }),
-    );
-    await Effect.runPromise(
-      recordTransactionStates({
-        PENDING: 1,
-        COMPLETED: 0,
-        FAILED: 0,
-        STALE: 0,
-      }),
-    );
-
-    // A counter here would make a backlog that had cleared read as a backlog
-    // that had doubled.
-    expect(await readGauge(transactionsByState, { state: 'PENDING' })).toBe(1);
   });
 });

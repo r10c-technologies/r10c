@@ -28,6 +28,13 @@ import type { SliceDeclaration } from '../types.js';
  * and it accepts no session at all ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
  * The reservation reads beside it are ordinary session-guarded tenant reads;
  * one route, one credential, each way.
+ *
+ * A hold's two ends followed on the same crossing (#227): `DELETE` releases and
+ * `POST …/conversion` converts, each with its **own** permission rather than a
+ * `reservation:*` wildcard — releasing gives a claim back, converting consumes
+ * the goods, and collapsing them would let the weaker act carry the stronger
+ * one's authority. A boot fiber expires what nobody finished, which is what
+ * makes `expiresAt` mean anything at all.
  */
 export const stockSlice: SliceDeclaration = {
   name: 'stock',
@@ -50,7 +57,8 @@ export const stockSlice: SliceDeclaration = {
     'GET /api/stock-movement',
     'POST /api/stock-movement',
     'GET|POST /api/reservation',
-    'GET /api/reservation/:id',
+    'GET|DELETE /api/reservation/:id',
+    'POST /api/reservation/:id/conversion',
     // The served affordance documents (ADR 0026), which the back office's
     // generated screens read to decide whether a Save exists at all. Listed
     // because they are how a client learns this service has no write for two of

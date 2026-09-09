@@ -132,6 +132,12 @@ export const entitlementSeedData = (
   {
     id: `entitlement-${organizationId}`,
     organizationId,
-    domains: ['product-configuration-management', 'stock-management'],
+    domains: [
+      'product-configuration-management',
+      'stock-management',
+      // `order-management` joined for exactly the reason `stock-management` did,
+      // and the note above is the reason it was not forgotten this time.
+      'order-management',
+    ],
   },
 ];

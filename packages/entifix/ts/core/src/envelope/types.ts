@@ -18,6 +18,14 @@ import type { EntityLoadRequest } from '../types/EntityLoadRequest';
  * transaction *record* — the `202` body and the tracker's read routes — which
  * is a separate wart, not a synonym for this one.
  *
+ * `sagaResult` is what a settled multi-step flow answers with. It is
+ * deliberately **not** `transactionEvent`: that discriminant frames a
+ * transaction *record*, and a saga result is neither a record nor an event but
+ * the outcome of a walk — which steps ran, and what each one returned
+ * ([ADR 0052](../../../../../../docs/adr/0052-the-checkout-saga.md)). Reusing
+ * the existing name would have made one discriminant mean three payload shapes,
+ * which is the wart #176 already tracks for the two it means today.
+ *
  * `entityMetadata` is the same extension made once more, for the action model:
  * its `data` is an {@link EntityMetadataDocument}, which core does own because
  * both the service that computes it and the controls that render it are already
@@ -30,6 +38,7 @@ export type EntifixEnvelopeType =
   | 'command'
   | 'event'
   | 'transactionEvent'
+  | 'sagaResult'
   | 'entityMetadata';
 
 export type EntifixEnvelopeMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';

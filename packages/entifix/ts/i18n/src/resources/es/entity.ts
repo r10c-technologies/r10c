@@ -289,6 +289,13 @@ export const entity = {
     },
   },
   'product-order': {
+    // Un título de formulario para un registro que nadie crea a mano, igual que
+    // `stock-item`. `newTitle` es la puerta que lee `EntityCatalogKey`, no la
+    // promesa de un botón Nuevo: ningún rol tiene `product-order:write`.
+    form: {
+      editTitle: 'Pedido',
+      newTitle: 'Pedido',
+    },
     label: 'Pedido',
     plural: 'Pedidos',
     fields: {

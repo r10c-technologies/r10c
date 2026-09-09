@@ -179,15 +179,20 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
 /**
  * The database name backing the `saga` store, resolved from config-service.
  *
- * It is a tag rather than a `MongoDatabaseTag` because this process holds more
- * than one Mongo store: the catalog resolves a `tenant_<organizationId>` handle
- * per request, and the saga wants its own single named one. `MongoDatabaseTag`
- * is a single Tag, so both stores reaching for it would mean whichever layer
- * won the merge silently decided where the other one wrote.
+ * It is a tag rather than a `MongoDatabaseTag` because it was written while
+ * this store was co-deployed inside marketplace-admin-service, which holds
+ * more than one Mongo store: the catalog resolves a `tenant_<organizationId>`
+ * handle per request, and the saga wanted its own single named one.
+ * `MongoDatabaseTag` is a single Tag, so both stores reaching for it would have
+ * meant whichever layer won the merge silently decided where the other wrote.
  *
- * Naming the handle here is also what keeps the co-deployment reversible: the
- * saga store stops being "whatever the ambient database tag holds" and becomes
- * an explicit `client.db(name)` that moves to another process unchanged.
+ * ⚠️ **That naming is what made the split cheap, and this is the commit that
+ * collected on it.** The prediction written here — "the saga store stops being
+ * *whatever the ambient database tag holds* and becomes an explicit
+ * `client.db(name)` that moves to another process unchanged" — is what
+ * happened: ADR 0039's `:3103` trigger fired when checkout's participants
+ * turned out to be stock-service and order-service, and this file moved without
+ * a line of its logic changing (#229).
  */
 export class SagaDatabaseName extends Context.Tag('SagaDatabaseName')<
   SagaDatabaseName,
