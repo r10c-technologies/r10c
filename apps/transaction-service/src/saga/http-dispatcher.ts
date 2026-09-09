@@ -54,7 +54,9 @@ export class ParticipantsTag extends Context.Tag('ParticipantsTag')<
 export const makeHttpSagaDispatcher = (
   participants: Readonly<Record<string, Participant>>,
 ) => ({
-  dispatch: (dispatch: SagaDispatch): Effect.Effect<SagaResponse, EntifixConnError> =>
+  dispatch: (
+    dispatch: SagaDispatch,
+  ): Effect.Effect<SagaResponse, EntifixConnError> =>
     Effect.gen(function* () {
       const participant = participants[dispatch.participant];
       if (!participant) {

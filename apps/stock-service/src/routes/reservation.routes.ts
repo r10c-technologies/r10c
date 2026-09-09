@@ -2,6 +2,10 @@ import { HttpRouter } from '@effect/platform';
 import { Reservation } from '@r10c/business-ts-stock-management';
 import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
+import {
+  convertReservationRoute,
+  releaseReservationRoute,
+} from './end-reservation';
 import { byIdRoute, crossed, guarded, listRoute } from './entity-crud';
 import { takeReservationRoute } from './take-reservation';
 
@@ -27,10 +31,17 @@ import { takeReservationRoute } from './take-reservation';
  * fallback on the `POST` — or the crossing token as a fallback on the `GET`s —
  * is the thing that would be wrong.
  *
- * There is no `PUT` and no `DELETE`. Releasing and converting a hold are verbs
- * with their own transitions and their own crossing, and they land with the
- * expiry sweep (#150) rather than as a generic save that could rewrite a
- * quantity or an expiry after the fact.
+ * There is still no `PUT`, and there never will be: a generic save could rewrite
+ * a quantity or an expiry after the fact, which is a hold that never expires
+ * granted by its holder. Ending a hold is a **verb** — `DELETE` releases it and
+ * `POST …/conversion` converts it to a sale — each with its own transition and
+ * its own crossing permission (#227).
+ *
+ * ⚠️ **Both ending verbs answer `200` when the hold was already gone.** They are
+ * the compensations `runSaga` dispatches, delivery is at-least-once, and a
+ * compensation that errors on its second delivery strands a saga that had in
+ * fact been fully reversed. The body says which happened
+ * ([ADR 0052](../../../../docs/adr/0052-the-checkout-saga.md)).
  */
 export const reservationRoutes = HttpRouter.empty.pipe(
   HttpRouter.post(
@@ -51,5 +62,24 @@ export const reservationRoutes = HttpRouter.empty.pipe(
   HttpRouter.get(
     '/api/reservation/:id',
     guarded(Reservation, 'read', () => byIdRoute(Reservation)),
+  ),
+  // The two ending verbs, on the same crossing as the `POST`: they act on
+  // another party's stock for a buyer whose session names no organization, so
+  // the organization comes from the header and the caller is proved by a
+  // service token. Each is its own permission — a caller that may release a
+  // hold is not thereby a caller that may consume the goods.
+  HttpRouter.del(
+    '/api/reservation/:id',
+    crossed(
+      'stock-management:reservation:release',
+      () => releaseReservationRoute,
+    ),
+  ),
+  HttpRouter.post(
+    '/api/reservation/:id/conversion',
+    crossed(
+      'stock-management:reservation:convert',
+      () => convertReservationRoute,
+    ),
   ),
 );

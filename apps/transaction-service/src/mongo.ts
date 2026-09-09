@@ -15,7 +15,10 @@ import {
   AmqpHealthProbeLayer,
   AmqpLayer,
 } from '@r10c/entifix-ts-amqp-client';
-import { ConfigurationRepositoryTag, TokenServiceTag } from '@r10c/entifix-ts-business';
+import {
+  ConfigurationRepositoryTag,
+  TokenServiceTag,
+} from '@r10c/entifix-ts-business';
 import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {

@@ -25,10 +25,19 @@ import { STOCK_DOMAIN } from './role-permissions';
  * may do. Adding a crossing is therefore an explicit line, reviewed as one.
  */
 export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
-  // The one crossing in the system today. Taking a hold on stock is not a
-  // person's act — no role grants it, and the route that serves it accepts no
-  // session (ADR 0023).
+  // A hold's whole life, and each end of it is its own line. None is a person's
+  // act — no role grants them, and the routes that serve them accept no session
+  // (ADR 0023).
+  //
+  // ⚠️ **Three permissions rather than one `reservation:*`.** The wildcard would
+  // be shorter and would say something false: a caller that may *release* a hold
+  // is giving a claim back and can at worst free stock early, while a caller
+  // that may *convert* one consumes the goods and moves `onHand`. Collapsing
+  // them makes the weaker act carry the stronger one's authority, which is the
+  // same mistake as accepting two credentials on one route.
   `${STOCK_DOMAIN}:reservation:write`,
+  `${STOCK_DOMAIN}:reservation:release`,
+  `${STOCK_DOMAIN}:reservation:convert`,
 ];
 
 /**

@@ -19,6 +19,11 @@ import {
 } from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 
+import {
+  claimCommand,
+  COMMAND_ID_HEADER,
+  ensureCommandInboxIndexes,
+} from '../command-inbox';
 import { ReservationTtlSecondsTag } from '../reservation-ttl';
 import { STOCK_ITEM_COLLECTION } from '../stock-item-index';
 import { serverError } from './entity-crud';
@@ -36,6 +41,15 @@ const MILLISECONDS = 1_000;
  * an out-of-stock answer.
  */
 class InsufficientStock extends Error {}
+
+/**
+ * Thrown when this command id has already been claimed — a redelivery.
+ *
+ * A sentinel for the same reason {@link InsufficientStock} is: the only way to
+ * abort `session.withTransaction` is to throw, and discriminating on the way out
+ * keeps a duplicate from being mistaken for a driver failure.
+ */
+class AlreadyTaken extends Error {}
 
 /**
  * Take a time-limited hold on a vendor's stock.
@@ -67,6 +81,21 @@ class InsufficientStock extends Error {}
  * ⚠️ **No upsert, deliberately.** An offering with no `StockItem` row has never
  * received stock, so it matches nothing and answers `409` — which is correct.
  * Upserting here would mint a row promising stock that was never received.
+ *
+ * ⚠️ **`x-command-id` is claimed in the same transaction as the hold.** The saga
+ * dispatches this step at-least-once, and the id here is server-minted — so
+ * without a claim a redelivered command takes a *second* hold against the same
+ * line, and the vendor's availability is quietly wrong while the ledger stays
+ * perfectly correct. The claim commits with the hold or not at all: claimed
+ * outside, a crash between the two records a hold that was never taken and
+ * refuses every retry as a duplicate
+ * ([ADR 0052](../../../../docs/adr/0052-the-checkout-saga.md), reusing #178's
+ * inbox shape).
+ *
+ * The header is **optional**, and its absence is not a hole. A caller with no
+ * command id gets today's behaviour, because there is nothing to be idempotent
+ * *about*: only a retried dispatch can duplicate, and only a dispatcher has an
+ * id to retry under.
  */
 export const takeReservationRoute = Effect.gen(function* () {
   const client = yield* MongoClientTag;
@@ -103,6 +132,14 @@ export const takeReservationRoute = Effect.gen(function* () {
 
   const document = serializeEntity(Reservation, reservation);
   const reservationCollection = envelopeEntityName(Reservation);
+  const commandId = request.headers[COMMAND_ID_HEADER]?.trim();
+
+  if (commandId) {
+    // Per handle, for the reason the stock-item index is: a tenant database
+    // appears on its first write, so there is no boot moment at which this
+    // index could have been created.
+    yield* ensureCommandInboxIndexes(db);
+  }
 
   const held = yield* Effect.tryPromise({
     try: async () => {
@@ -114,6 +151,9 @@ export const takeReservationRoute = Effect.gen(function* () {
         // expected to retry. Nothing non-transactional runs inside, so a retry
         // replays the same two writes rather than minting a second id.
         await session.withTransaction(async () => {
+          if (commandId && !(await claimCommand(db, session, commandId))) {
+            throw new AlreadyTaken();
+          }
           const outcome = await db.collection(STOCK_ITEM_COLLECTION).updateOne(
             {
               offeringId: reservation.offeringId,
@@ -135,7 +175,14 @@ export const takeReservationRoute = Effect.gen(function* () {
           }
           await db
             .collection(reservationCollection)
-            .insertOne({ ...document, id: reservation.id }, { session });
+            .insertOne(
+              // `commandId` rides on the document rather than living only in
+              // the inbox: a redelivery has to answer with *this* hold, and
+              // joining two collections to find it would be a second read on
+              // the hot path for a case that is rare by design.
+              { ...document, id: reservation.id, commandId },
+              { session },
+            );
         });
         return true;
       } finally {
@@ -143,17 +190,42 @@ export const takeReservationRoute = Effect.gen(function* () {
       }
     },
     catch: error =>
-      error instanceof InsufficientStock
+      error instanceof InsufficientStock || error instanceof AlreadyTaken
         ? error
         : new EntifixConnError('Failed to take the reservation', error, {
             offeringId: reservation.offeringId,
           }),
   }).pipe(
     Effect.catchIf(
-      error => error instanceof InsufficientStock,
-      () => Effect.succeed(false),
+      (error): error is InsufficientStock | AlreadyTaken =>
+        error instanceof InsufficientStock || error instanceof AlreadyTaken,
+      error =>
+        Effect.succeed(
+          error instanceof AlreadyTaken ? ('duplicate' as const) : false,
+        ),
     ),
   );
+
+  if (held === 'duplicate') {
+    // The hold this command already took. `409` would read as "out of stock" to
+    // a dispatcher that cannot tell the two apart, and a compensation would then
+    // release a hold it believes was never taken; `200` says plainly that the
+    // command has been applied and the saga may proceed.
+    const existing = yield* Effect.tryPromise({
+      try: () =>
+        db
+          .collection(reservationCollection)
+          .findOne({ commandId }, { projection: { _id: 0 } }),
+      catch: error =>
+        new EntifixConnError('Failed to read the claimed reservation', error, {
+          commandId,
+        }),
+    });
+    return yield* HttpServerResponse.json(
+      makeEntityEnvelope(Reservation, existing as never, []),
+      { status: 200 },
+    );
+  }
 
   if (!held) {
     // Not a system error and not the caller's mistake: the vendor does not have
