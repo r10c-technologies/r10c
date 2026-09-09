@@ -1,5 +1,5 @@
 import { type Permission, permissionMatches } from './permission';
-import { STOCK_DOMAIN } from './role-permissions';
+import { ORDER_DOMAIN, STOCK_DOMAIN } from './role-permissions';
 
 /**
  * What a **service** may do when it crosses into another party's tenant storage
@@ -38,6 +38,17 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   `${STOCK_DOMAIN}:reservation:write`,
   `${STOCK_DOMAIN}:reservation:release`,
   `${STOCK_DOMAIN}:reservation:convert`,
+  // Writing the order the holds above were taken for, and deleting it when a
+  // later step fails. Also not a person's act: the buyer behind a checkout holds
+  // no grant over the receipt the coordinator writes on their behalf, and
+  // `ROLE_PERMISSIONS` grants `product-order:read` and nothing more
+  // ([ADR 0052](../../../../../docs/adr/0052-the-checkout-saga.md)).
+  //
+  // ⚠️ `delete` here is a **compensation**, not a customer-facing cancel. A
+  // cancellation is a business event with its own record and its own money
+  // consequences; this undoes a step that should not have happened.
+  `${ORDER_DOMAIN}:product-order:write`,
+  `${ORDER_DOMAIN}:product-order:delete`,
 ];
 
 /**

@@ -114,12 +114,13 @@ export const transitionReservation = (
               movementReason,
             );
             movement.id = randomUUID();
-            await db
-              .collection(MOVEMENT_COLLECTION)
-              .insertOne(
-                { ...serializeEntity(StockMovement, movement), id: movement.id },
-                { session },
-              );
+            await db.collection(MOVEMENT_COLLECTION).insertOne(
+              {
+                ...serializeEntity(StockMovement, movement),
+                id: movement.id,
+              },
+              { session },
+            );
             await db
               .collection(STOCK_ITEM_COLLECTION)
               .updateOne(

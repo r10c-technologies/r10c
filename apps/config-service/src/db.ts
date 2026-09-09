@@ -672,6 +672,72 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'metricIntervalMs',
     value: '60000',
   },
+  // order-service — one checkout, one receipt. It owns the `order` store:
+  // **platform** plane and single, so unlike stock-service it names a database
+  // at boot rather than resolving one per request. That is forced rather than
+  // chosen: a basket can span several vendors, so one order cannot live in any
+  // one of their tenant databases.
+  {
+    service: 'order-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  {
+    service: 'order-service',
+    group_name: 'mongo',
+    key: 'db',
+    value: 'order',
+  },
+  {
+    service: 'order-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'order-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  // ⚠️ **This service's own crossing secret**, and it must match
+  // `transaction-service`'s `participant.orderToken`. Not stock-service's, and
+  // not the fleet's `CONFIG_SERVICE_TOKEN`: one shared value would make a single
+  // leak reach two stores at once, and the two grants are not comparable
+  // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+  {
+    service: 'order-service',
+    group_name: 'service',
+    key: 'token',
+    value: 'dev-order-crossing-token-change-me',
+    is_secret: true,
+  },
+  {
+    service: 'order-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'order-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'order-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'order-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
   // marketplace-service — the storefront's platform-plane read host. It owns the
   // `catalog-reference` and `published-catalog` stores, both `single`, so unlike
   // the admin service it names a database at boot rather than resolving one per

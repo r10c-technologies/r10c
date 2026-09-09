@@ -145,3 +145,42 @@ export const requireServiceCrossing =
 
       return yield* use(organizationId);
     });
+
+/**
+ * The same fleet check, for a participant that has **no organization to name**.
+ *
+ * ⚠️ **A platform-plane store is the whole difference.** `requireServiceCrossing`
+ * above ends with an organization header because it is about to resolve a tenant
+ * database handle from it, and a blank one there would read some other vendor's
+ * storage. order-service names one database at boot, so there is no handle to
+ * choose — and demanding a header nothing consumes would be theatre that a
+ * caller learns to satisfy with any value.
+ *
+ * What is unchanged, and is the part that matters: the token proves the caller
+ * is the fleet, {@link SERVICE_CROSSING_PERMISSIONS} says what the fleet may do,
+ * and **no session is accepted**. A saga step is not a person's act — the buyer
+ * behind a checkout holds no grant over the order the coordinator is writing on
+ * their behalf, and accepting their session here would make the weaker
+ * credential the security level ([ADR 0052](../../../../../../docs/adr/0052-the-checkout-saga.md)).
+ *
+ * The recorded residual carries over verbatim: a shared secret means any process
+ * holding it can act, bounded by the permission and by which slices are
+ * configured with the key.
+ */
+export const requireCrossing =
+  (permission: Permission) =>
+  <A, E, R>(route: Effect.Effect<A, E, R>) =>
+    Effect.gen(function* () {
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      const expected = yield* ServiceCrossingTokenTag;
+
+      if (!matches(request.headers[CROSSING_TOKEN_HEADER], expected)) {
+        return yield* unauthenticated;
+      }
+
+      if (!serviceCrossingAllows(permission)) {
+        return yield* forbidden(permission);
+      }
+
+      return yield* route;
+    });

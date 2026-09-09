@@ -114,10 +114,14 @@ const scopeConstraints = [
       'scope:shared',
     ],
   },
-  // No `scope:transaction`: the `transaction` slice owns the `saga` store but
-  // carries no project of its own — it is co-deployed inside
-  // marketplace-admin-service, whose own scope already governs it. Re-add the
-  // entry when the slice is split back into its own app.
+  // The coordinator's own app, registered when the slice was split out to
+  // `:3103` (#229). It hosts **no domain**, so it reaches nothing but the
+  // shared core — a saga definition is data, and the whole reason it is data is
+  // that an orchestrator may not import the domains it coordinates.
+  {
+    sourceTag: 'scope:transaction',
+    onlyDependOnLibsWithTags: ['scope:transaction', 'scope:shared'],
+  },
   {
     sourceTag: 'scope:config',
     onlyDependOnLibsWithTags: ['scope:config', 'scope:shared'],
@@ -129,6 +133,11 @@ const scopeConstraints = [
   {
     sourceTag: 'scope:stock',
     onlyDependOnLibsWithTags: ['scope:stock', 'scope:shared'],
+  },
+  // The `order` slice's own app, for the same reason as the two above.
+  {
+    sourceTag: 'scope:order',
+    onlyDependOnLibsWithTags: ['scope:order', 'scope:shared'],
   },
 ];
 

@@ -173,16 +173,14 @@ export const takeReservationRoute = Effect.gen(function* () {
           if (outcome.matchedCount === 0) {
             throw new InsufficientStock();
           }
-          await db
-            .collection(reservationCollection)
-            .insertOne(
-              // `commandId` rides on the document rather than living only in
-              // the inbox: a redelivery has to answer with *this* hold, and
-              // joining two collections to find it would be a second read on
-              // the hot path for a case that is rare by design.
-              { ...document, id: reservation.id, commandId },
-              { session },
-            );
+          await db.collection(reservationCollection).insertOne(
+            // `commandId` rides on the document rather than living only in
+            // the inbox: a redelivery has to answer with *this* hold, and
+            // joining two collections to find it would be a second read on
+            // the hot path for a case that is rare by design.
+            { ...document, id: reservation.id, commandId },
+            { session },
+          );
         });
         return true;
       } finally {

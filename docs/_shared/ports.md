@@ -11,7 +11,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | auth (2)                | —⁴     | 3102                |
 | transaction-manager (3) | —      | 3103³               |
 | system-management (4)   | 3004¹  | —                   |
-| order (5)               | —      | 3105⁵               |
+| order (5)               | —      | 3105⁷               |
 | payment (6)             | —      | 3106⁵               |
 | settlement (7)          | —      | 3107⁵               |
 | stock (8)               | —      | 3108⁶               |
@@ -95,9 +95,9 @@ ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
 name any organization. Separate `is_secret` rows, separate rotations, and the
 named upgrade path is unchanged.
 
-⁵ **Reserved, not bound.** The `order`, `payment`, `settlement` and `sales`
-slices exist in the register and own their stores, but are `planned` — no
-process runs them, so nothing listens on these ports yet
+⁵ **Reserved, not bound.** The `payment`, `settlement` and `sales` slices exist
+in the register and own their stores, but are `planned` — no process runs them,
+so nothing listens on these ports yet
 ([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md),
 [ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)). The index is
 allocated now so that promoting a slice is a `deployments` edit rather than a
@@ -109,6 +109,29 @@ the `transaction` slice splitting back out of marketplace-admin-service — and
 now holds it. Reclaiming an index that already means something else is how a
 port table stops being readable, and the reservation is what made the split a
 `deployments` edit rather than a port negotiation.
+
+⁷ **order-service, bound.** It owns the `order` store — **platform** plane and
+single, one named database, which is the opposite of stock's per-request tenant
+handle beside it. That is forced rather than chosen: a basket can span several
+vendors, so one order cannot live in any one of their tenant databases. The
+multi-vendor case rides on vendor-tagged embedded lines instead, so the buyer
+gets one receipt and settlement still aggregates per vendor
+([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md)).
+
+⚠️ **It reserves nothing itself.** ADR 0023's crossing into stock is dispatched
+by transaction-service, which holds both halves of the checkout flow; this
+service is a _participant_. Its two writes accept a **crossing token and no
+session** — the buyer behind a checkout holds no grant over the receipt written
+on their behalf — while its reads accept a session and no token. One route, one
+credential, each way ([ADR 0052](../adr/0052-the-checkout-saga.md)).
+
+`DELETE /api/product-order/:id` is a **compensation**, not a customer-facing
+cancel: it undoes a step that should not have happened. A cancellation is a
+business event with its own record and its own money consequences, and it is not
+served yet.
+
+The cart is **not** here. It is a cookie, so the storefront's first response is
+correct without a round trip, and the fleet keeps zero anonymous write surfaces.
 
 ⁶ **stock-service, bound.** The first of the five reserved indices to be
 claimed. It owns the `stock` store — tenant plane, one Mongo database per

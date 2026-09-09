@@ -23,10 +23,7 @@ import { serverError } from './entity-crud';
  * ([ADR 0052](../../../../docs/adr/0052-the-checkout-saga.md)). The body still
  * says which happened, so a caller that cares can tell.
  */
-const endReservation = (
-  to: 'released' | 'converted',
-  reason?: 'sale',
-) =>
+const endReservation = (to: 'released' | 'converted', reason?: 'sale') =>
   Effect.gen(function* () {
     const client = yield* MongoClientTag;
     const db = yield* MongoDatabaseTag;
