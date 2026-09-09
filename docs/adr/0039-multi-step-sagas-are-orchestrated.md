@@ -4,6 +4,10 @@
 - Date: 2026-09-04
 - Area: messaging
 - Read when: a flow spans slices — orchestrated per flow, commands over HTTP and results over the bus, with a stated condition for adopting a workflow engine instead
+- Revised: 2026-09-08 by [ADR 0052](0052-the-checkout-saga.md) — the deferred
+  pieces below are designed there, and this record's own `:3103` trigger has
+  fired: checkout's participants are stock-service and order-service, neither of
+  them marketplace-admin-service.
 
 ## Context
 
@@ -280,6 +284,18 @@ workflow engine and should adopt one instead of finishing it.
   that has not been designed yet, which the engine will say out loud.
 
 ## What this does not build
+
+> **Discharged 2026-09-08 by [ADR 0052](0052-the-checkout-saga.md).** The trigger
+> named throughout this section — M3's checkout — arrived, and every piece below
+> is designed there: the definition grammar (with `fanOut`, because a cart's
+> vendor count is known only at runtime), a compensation dispatched with its own
+> call's recorded outcome, the HTTP-dispatching relay, and the split to `:3103`.
+> Two things this record did not anticipate and that record had to settle: a
+> definition may carry **no** pivot rather than exactly one, and a participant an
+> at-least-once dispatch may retry has to be idempotent on the command id — which
+> `POST /api/reservation` was not, and would have oversold under a redelivery.
+> The list is kept as written, because what a record expected to defer is part of
+> the reasoning.
 
 The decision is in effect; the multi-step engine is not written. What lands with
 this record is the vocabulary, the constraints, and the three corrections above.

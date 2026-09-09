@@ -209,6 +209,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0039](docs/adr/0039-multi-step-sagas-are-orchestrated.md) **Multi-step sagas are orchestrated, per flow, from a declarative definition** — read when a flow spans slices — orchestrated per flow, commands over HTTP and results over the bus, with a stated condition for adopting a workflow engine instead.
 - [0048](docs/adr/0048-announcing-a-publication.md) **Announcing a publication, and a shared contract to announce it with** — read when emitting or consuming a publication — the projector orders on `publishedAt`, and an unpublication leaves a tombstone because a delete has nothing to be ordered by.
 - [0050](docs/adr/0050-rebuilding-the-published-catalog-from-tenant-storage.md) **Rebuilding the published catalog from tenant storage** — read when the storefront is empty after a reset, or a publication was lost — the rebuild walk re-emits from tenant storage and must never stamp `now`.
+- [0052](docs/adr/0052-the-checkout-saga.md) **The checkout saga: a definition that is data, and a compensation that is told what it undid** — read when a flow spans two services and one of them may have to be undone — the definition is data, a fan-out step compensates only the calls that succeeded, and a participant the saga may retry must be idempotent on the command id.
 
 **Identity, sessions and authorization**
 
