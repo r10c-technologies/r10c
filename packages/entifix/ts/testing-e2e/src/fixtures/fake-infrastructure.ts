@@ -85,7 +85,17 @@ export const fakeMongoLayer = (
     layer: Layer.mergeAll(
       Layer.succeed(MongoDatabaseTag, db.db as never),
       // `client.db(name)` ignores the name for the same reason.
-      Layer.succeed(MongoClientTag, { db: () => db.db } as never),
+      //
+      // `startSession` is forwarded rather than stubbed: a service that writes
+      // a row and folds it into a counter does both inside one transaction, so
+      // a client without it fails at the first write with a `TypeError` — and
+      // a stub that returned a no-op session would commit the two halves
+      // independently, which is precisely the crash-between-them state the
+      // transaction exists to rule out.
+      Layer.succeed(MongoClientTag, {
+        db: () => db.db,
+        startSession: () => db.startSession(),
+      } as never),
       Layer.succeed(TenantDatabaseResolverTag, {
         forOrganization: () => Effect.succeed(db.db),
       }),

@@ -36,6 +36,32 @@ describe('the fake infrastructure layers', () => {
     expect(driver.read('widget')).toHaveLength(1);
   });
 
+  it('provides a session on the client, over the same fake store', async () => {
+    // A service that writes a row and folds it into a counter does both inside
+    // one transaction, so the client fake has to carry `startSession` — a
+    // composition root without it fails at the first write with a `TypeError`,
+    // which reads as a broken fixture rather than a missing capability.
+    const { driver, layer } = fakeMongoLayer();
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const client = yield* MongoClientTag;
+        const session = client.startSession();
+        yield* Effect.promise(() =>
+          session.withTransaction(async () => {
+            await client
+              .db('ignored')
+              .collection('widget')
+              .insertOne({ id: 'w1' });
+          }),
+        );
+        yield* Effect.promise(() => session.endSession());
+      }).pipe(Effect.provide(layer)),
+    );
+
+    expect(driver.read('widget')).toEqual([{ id: 'w1' }]);
+  });
+
   it('provides the client and the tenant resolver from the same fake store', async () => {
     // A service composition root asks for three tags, not one: the shared `Db`,
     // the client (the pool, used to seed a tenant database), and the resolver a
