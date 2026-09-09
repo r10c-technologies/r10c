@@ -97,10 +97,19 @@ Four types, and they are the sidebar's **top tier**, above the domain
 | **Asistentes**   | `wizard`    | guided, multi-step   | ends      | next/finish  | vendor onboarding, publish an offering         |
 | **Consultas**    | `report`    | nothing — aggregate  | n/a       | read only    | commission reports, settlement summaries       |
 
-`makeEntityCrud` is the generator for **`master`, and only `master`**. A screen
-that is not Definiciones is not a gap in the generator — SAP Fiori reached the
-same split independently: every one of its floorplans is metadata-generated
-except the wizard and the initial page.
+`makeEntityCrud` generates **a list plus a single-record page**, and that
+floorplan is what bounds it — not the type. `master` and `operation` both come
+out of it; a wizard and a report do not, and that is not a gap — SAP Fiori
+reached the same split independently: every one of its floorplans is
+metadata-generated except the wizard and the initial page.
+
+What separates the two generated types is what the factory is handed. An
+Operaciones screen passes a `metadataSource`, and the served descriptor is what
+withholds Save: the stock surface has no `stock-management:stock-item:write` in
+any grant and no route that writes an item, so the record renders read-only
+because the **server says so**. Suppressing the inputs client-side instead would
+hide the field and keep its validation rule, which is a form that refuses to
+save and says nothing about why.
 
 The rule that keeps the four from dissolving: **"publish" is an action on a
 `master` screen, not a fifth type.** ADR 0026 gave every entity a way to declare
@@ -568,7 +577,11 @@ crashing. Sharing a whole workspace (multiple tabs in one link) is deferred.
 ([ADR 0042](adr/0042-the-workspace-address-is-the-taxonomy-serialized.md)). One grammar,
 built and parsed only by `screenAddress`/`parseScreenPayload` in `business-ts-authz`; the
 key is the same string `@entity({ key })` derives and the sidebar's `workspace:` address
-carries, and both now come from the same `CatalogSurface`. A mismatch used to be invisible
+carries, and both now come from the same surface declaration — `CatalogSurface` in the
+catalog shell, `StockSurface` in the stock one, one per contributing shell. The registry
+parses them with `entityTabKind(type, …)`, instantiated once per screen type: `master:` and
+`operation:` are the same parser over different descriptor lists, because the list and the
+record are the same screen with and without an id whatever produced the record. A mismatch used to be invisible
 by construction — the address resolved to nothing, so the control did nothing at all. That
 is why an unresolvable address is still answered rather than ignored: the fallback wins over
 the tab that happens to be open, and the write-back below is suspended so the bad address
@@ -920,6 +933,7 @@ shells, per the design-system rule.
 | `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                                                                            | `@r10c/shells-next-common`            |
 | `PageView({addr})` pages, registrations, adapters                                                                                                                                                 | `@r10c/shells-next-marketplace-admin` |
 | `(back-office)` user management over `EntityTable`/`EntityForm`, account surface, sign-in                                                                                                         | `@r10c/shells-next-auth`              |
+| The stock surface: items, the movement form and the read-only ledger — the first **Operaciones** screens                                                                                          | `@r10c/shells-next-stock`             |
 | `/workspace` route, `QueryClientProvider`, "Open in workspace" nav, `lib/nav` (the one nav definition, annotated with permissions and entitlements), the three route groups, proxy route handlers | `back-office-app`                     |
 | Storefront pages, chrome, `StoreLink`, the catalog read side + cookie cart — all server components                                                                                                | `@r10c/shells-next-marketplace`       |
 | `app/[locale]` route tree, `loading.tsx`, cart route                                                                                                                                              | `marketplace-app`                     |

@@ -11,6 +11,18 @@
   [ADR 0042](0042-the-workspace-address-is-the-taxonomy-serialized.md) — the
   `TabKind` consequence below predicted a rename of three prefixes; it is a
   collapse into one, because `catalog:` and `entity:` were both `master`.
+- Revised: 2026-09-08 — the first `operation` screen is built (#222): the stock
+  surface. Until it landed the taxonomy had four values and one kind, so the
+  registry's `masterKind` was the only parser and `operation:` addressed
+  nothing. It is now `entityTabKind(type, …)`, instantiated per type from the
+  same `EntityCrud` descriptors.
+
+  ⚠️ **The test that put stock under Operaciones is provenance, not verbs.** A
+  `StockItem` is created by a movement's `$setOnInsert` and there is
+  deliberately no route a human can write one with — "a _process_ made it", the
+  first column of the table below. Reading it off the verbs instead would have
+  been the mistake this record already names: since ADR 0026 every entity
+  declares them, so a verb is grounds for a button, never for a type.
 
 ## Context
 
@@ -202,6 +214,15 @@ as well as intended.
   locales.
 - `makeEntityCrud` is now the generator for **one named type**. A screen that is
   not Definiciones is not a bug in the generator.
+
+  ⚠️ Corrected 2026-09-08 by the stock surface (#222): the boundary is the
+  **floorplan**, not the type. A list plus a single-record page is generable
+  whether the record was authored or produced, so `operation` screens come out
+  of the same factory; what it cannot generate is a wizard or a report. Where
+  the two types differ is what the factory is _given_ — Operaciones passes a
+  `metadataSource` and the served descriptor withholds Save, because
+  `stock-management:stock-item:write` is in no grant and no route writes one.
+  Read-only is a fact the server states, never a flag the screen sets.
 
 ## Alternatives considered
 

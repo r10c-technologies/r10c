@@ -13,6 +13,16 @@
 - Revised: 2026-09-08 — the conditional atomic write is built (#73):
   `POST /api/reservation` takes a hold behind ADR 0023's crossing. The reaper and
   the checkout that exercises it remain unbuilt.
+- Revised: 2026-09-08 — the store is seeded and the concurrency claim is a test
+  rather than a measurement (#223). Two things this record could not say while
+  the store was empty: **the seed writes the ledger, not the fold**, because a
+  total seeded with no movements behind it is the one state the reconciliation
+  below can never reproduce; and the seed belongs to **stock-service**, since a
+  second slice writing the `stock` store is the one-writer violation
+  `@r10c/slices` exists to catch. The race that produced the numbers above is
+  now `concurrency.live.spec.ts` — and **live-only on purpose**: the `mock`
+  profile's Mongo is single-threaded, so a green race there proves nothing at
+  all.
 
 ## Trigger
 

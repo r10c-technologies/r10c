@@ -203,6 +203,23 @@ entities moved to the `marketplace` database entirely. A corrected seed _value_
 behaves the same way — the row is already there, so the fix never lands. Neither
 is a code change; both are `dev:reset`, and a fresh machine needs nothing.
 
+**Each slice seeds its own stores, and only its own.** config-service writes the
+`configuration` rows, auth-service the identities and tenancy,
+marketplace-service the platform-plane vocabulary, marketplace-admin-service the
+demo vendor's catalog into `tenant_<id>`, and stock-service the stock positions
+into `stock_<id>`. The last pair is the one worth stating: `catalog` and `stock`
+are the same plane and the same partitioning but different stores with different
+writing slices, so seeding stock from marketplace-admin-service — where the
+offering ids it hangs off already are — is the one-writer violation
+`@r10c/slices` exists to catch. The ids cross the boundary as **plain ids**,
+which is the normal shape here, and a dangling one is a display gap rather than
+a corrupt record.
+
+⚠️ **A stock seed writes the ledger, not just the fold.** `StockItem.onHand` is
+a fold of `StockMovement` rows, so seeding a total with no movements behind it
+produces the one state the reconciliation ADR 0010 requires can never reproduce
+— and reconciliation is how a bad `$inc` is ever found.
+
 One trap worth knowing: with the docker driver a published NodePort keeps
 accepting TCP after the pod behind it is gone, so "the port answers" is not a
 health check. The ladder pairs every probe with deployment readiness.
@@ -527,6 +544,7 @@ E2E suites run in one of two profiles, selected by `E2E_PROFILE` and provided by
 ```sh
 pnpm nx e2e back-office-app-e2e                       # mock
 pnpm nx e2e marketplace-admin-service-e2e                   # mock
+pnpm nx e2e stock-service-e2e                               # mock
 
 pnpm run back-office:dev                                    # then, in another shell:
 E2E_PROFILE=live \
@@ -537,6 +555,13 @@ E2E_PROFILE=live \
 pnpm run mp:dev:reset                                       # then, in another shell:
 E2E_PROFILE=live MARKETPLACE_SERVICE_URL=http://localhost:3100 \
   pnpm nx e2e marketplace-app-e2e
+
+# A live service run signs its own tokens, so it needs the deployment's key
+# pair — there is deliberately no fallback to the fixture key, which would fail
+# as "unauthorized" rather than "you did not configure this".
+E2E_PROFILE=live STOCK_SERVICE_URL=http://localhost:3108 \
+  JWT_PRIVATE_KEY="$(…)" JWT_PUBLIC_KEY="$(…)" \
+  pnpm nx e2e stock-service-e2e
 ```
 
 `mock` is the default because the default has to run anywhere. `live` never
@@ -593,6 +618,15 @@ serve both.
 ```
 
 Put a journey in `*.spec.ts` unless it _cannot_ run in both.
+
+⚠️ **A concurrency property is one of the things that cannot.** The `mock`
+profile's Mongo is an in-memory object graph driven by one thread, so its
+`withTransaction` is bookkeeping rather than isolation and every "race" resolves
+in the order it was written. `stock-service-e2e/src/…/concurrency.live.spec.ts`
+is live-only for that reason: it fires a parallel burst of reservations at one
+unit of availability and asserts exactly one `201`, which is the whole of what
+ADR 0010's conditional write claims. A green mock race would assert nothing and
+read as coverage.
 
 **Asserting emitted telemetry.** Because `serveTestService` runs the real
 `AppLayer`, a service can merge an observability layer built with **in-memory
