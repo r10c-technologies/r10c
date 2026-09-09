@@ -4,14 +4,18 @@
 - Date: 2026-08-12
 - Area: data
 - Read when: a service needs tenant data for a party it did not pick — one named path, a service token _plus_ a route permission, no fallback and no operator branch
+- Revised: 2026-09-08 — built (#73). The mechanism is two guards rather than a
+  `Context.Tag`, and the crossing carries `x-crossing-token` +
+  `x-organization-id`; the decision is unchanged.
 
 ## Trigger
 
-Already fired in design, not yet in code. The first checkout route, or the first
-`POST /api/reservation`, is what makes this a running mechanism rather than a
-recorded decision. It is written now because it modifies a rule the rest of the
-system depends on, and discovering that mid-checkout is how the wrong fix gets
-made under time pressure.
+~~Already fired in design, not yet in code.~~ **Fired** on 2026-09-08 (#73):
+`POST /api/reservation` on stock-service is the first — and still the only —
+crossing, so this is a running mechanism rather than a recorded decision. It was
+written ahead of the code because it modifies a rule the rest of the system
+depends on, and discovering that mid-checkout is how the wrong fix gets made
+under time pressure.
 
 ## Context
 
@@ -24,7 +28,8 @@ The rule that governs tenant access has no answer for it.
 [ADR 0006](0006-multitenancy-planes-and-tenant-storage.md) makes tenancy
 _ambient_: the handle resolves from the session's `activeOrganizationId`, and
 `packages/entifix/ts/business/src/tenancy/tenant-context.ts` says so in its own
-doc comment —
+doc comment — (that file was deleted on 2026-09-08; the rule now lives on
+`requireOrganization`, for the reason in the revision note below) —
 
 > Provided **per request**, from the session's `activeOrganizationId` — never
 > from a route parameter or a request body, both of which the caller controls.
@@ -48,23 +53,38 @@ workarounds are cheap:
 
 ## Decision
 
-### The tag gains a second provider, and exactly one
+### There is a second way to resolve the organization, and exactly one
 
-`TenantContextTag` may be provided from **either**:
+A request resolves the organization it acts for from **either**:
 
 1. the session's `activeOrganizationId`, as today; or
 2. an **explicit `organizationId`** in the request, accompanied by a valid
    service token **and** a narrow permission on the route.
 
 There is no third path, no fallback, and no branch on "is this an operator". A
-request that satisfies neither provider simply does not get the tag, and a
-tenant-plane handler asking for it fails — which is the existing behaviour and
-stays the behaviour.
+request that satisfies neither simply never reaches a tenant handle, and a
+tenant-plane handler is never entered — which is the existing behaviour and stays
+the behaviour.
 
 The doc comment quoted above becomes false and is **rewritten**, not left to rot.
 Its replacement states both paths and why the second is not a hole: an explicit
 organization is only honoured when the caller has already proved it is the fleet,
 so the input the caller controls is not the input that grants anything.
+
+> **Revised 2026-09-08 (#73) — what was built, and where the wording was wrong.**
+> This section said "`TenantContextTag` gains a second provider". That tag was
+> exported by `entifix-ts-business` and **provided by nothing**: every tenant
+> route in the fleet resolves its handle through `requireOrganization`, which
+> hands the organization to the handler directly. So the second path was built as
+> its sibling — `requireServiceCrossing` in `@r10c/shells-effect-service` — and
+> the two guards are the two providers this section decides on. The never-used
+> tag was deleted rather than left as a documented seam nothing implements, which
+> is the failure the paragraph above names. The decision is untouched: two ways
+> in, no third, and a handler that satisfies neither is never entered.
+>
+> Concretely: `x-crossing-token` carries the secret, `x-organization-id` names
+> the organization, and the checks run token → permission → organization, so
+> nothing is revealed to a caller that has not first proved it is the fleet.
 
 Rejected: having `stock` take only an `offeringId` and resolve the vendor
 internally. It reads as safer because no caller names an organization, but it is
@@ -80,7 +100,9 @@ atomic write, and spanning two stores it is neither atomic nor a single write.
 
 ### The token is not `CONFIG_SERVICE_TOKEN`
 
-A distinct `stock.serviceToken` configuration row, `is_secret: true`.
+A distinct `stock.serviceToken` configuration row, `is_secret: true`. Built as
+`service.token` on `stock-service`, read at boot like every other parameter and
+provided as `ServiceCrossingTokenTag`.
 
 The fleet already has a shared secret — `X-Service-Token`, gating
 config-service's fleet lookup, read through
@@ -107,6 +129,15 @@ gated behind `config:configuration:*`.
 So the reservation route also requires `stock-management:reservation:write`, and
 the crossing is only as wide as that permission. Fleet membership is not a
 capability.
+
+⚠️ **Built as a table of its own** — `SERVICE_CROSSING_PERMISSIONS`, consulted by
+`serviceCrossingAllows` and by nothing else. It is deliberately not part of
+`ROLE_PERMISSIONS`: `permissionsOf` expands grants by looking a _role string_ up
+in that table, so a crossing permission living there would be inherited by any
+access token carrying the matching string, turning a session claim into a
+cross-organization write. Two tables, two lookups, and `can()` untouched. The
+table also carries no wildcard segment, since a `*` there would make holding the
+token the capability.
 
 ### The residual risk, recorded rather than argued away
 
@@ -148,17 +179,24 @@ one the second one's would delete the accountability that record exists for.
   it decides stands — organization-agnostic entities, the request-level handle,
   no tenant filter to write. What changes is that the session is now the only
   _user-facing_ resolution rather than the only resolution.
-- **`tenant-context.ts`'s doc comment is rewritten.** It is the most-read
-  statement of the rule, and a comment that contradicts the code is worse than no
-  comment.
+- **The most-read statement of the rule is rewritten**, because a comment that
+  contradicts the code is worse than no comment. ⚠️ Revised 2026-09-08: it turned
+  out the most-read statement was not `tenant-context.ts` — that file was
+  imported nowhere — but the guards themselves, so the doc moved onto
+  `requireOrganization` and `requireServiceCrossing` and the unused file was
+  deleted.
 - **A new configuration row per consuming service**, `is_secret: true`. A row
   that omits the flag is served in full from the unauthenticated
   `GET /api/config`, so the flag is the security boundary here exactly as it is
   for `jwt.privateKey`.
-- **The `stock` slice's reservation routes are unauthenticated by session and
-  authenticated by token.** They must never accept a session as an alternative:
+- **The `stock` slice's reservation _write_ is unauthenticated by session and
+  authenticated by token.** It must never accept a session as an alternative:
   two accepted credentials on one route means the weaker one is the security
-  level.
+  level. ⚠️ Not hypothetical — `super-admin` holds `*:*:*`, which matches
+  `stock-management:reservation:write`, so a route that also took a session would
+  be reachable from an operator's browser tab. The reservation _reads_ beside it
+  are ordinary session-guarded tenant reads, which is the opposite arrangement:
+  one route, one credential, each way.
 - **An audit of who called with which organization is an ordinary request log**,
   which is enough for a determined crossing and would not be enough for a
   discretionary one.

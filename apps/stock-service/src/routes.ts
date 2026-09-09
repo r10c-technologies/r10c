@@ -2,6 +2,7 @@ import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { requirePrincipal } from '@r10c/shells-effect-service';
 
 import { configIntrospectionRoute } from './routes/config.routes';
+import { reservationRoutes } from './routes/reservation.routes';
 import { stockItemRoutes } from './routes/stock-item.routes';
 import { stockMovementRoutes } from './routes/stock-movement.routes';
 
@@ -22,15 +23,16 @@ import { stockMovementRoutes } from './routes/stock-movement.routes';
  * duplicate `method + path`, so a module can decline to register a route but can
  * never silently replace another's.
  *
- * `/api/reservation` is absent, and its absence is deliberate rather than
- * pending. A reservation is taken by a platform-plane caller acting for an
- * organization it was *handed* rather than one it picked, so it is authorized by
- * a service token plus a narrow route permission and must never accept a
- * session as an alternative credential — two accepted credentials on one route
- * means the weaker one is the security level
- * ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md),
- * issue #73). Adding it here behind `guarded` and re-guarding it later is that
- * mistake, committed on purpose.
+ * ⚠️ **`POST /api/reservation` is the exception to the first paragraph**, and
+ * the only one. It is a platform-plane caller acting for an organization it was
+ * *handed* rather than one it picked — checkout, whose buyer holds no session
+ * organization — so it is authorized by a service token plus
+ * `stock-management:reservation:write` and an explicit `x-organization-id`, and
+ * it accepts no session at all
+ * ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+ * The reservation *reads* beside it stay session-guarded and organization-scoped
+ * like everything else here; see `reservation.routes.ts` for why that is not the
+ * two-credentials mistake.
  */
 export const router = HttpRouter.empty.pipe(
   HttpRouter.get('/api/config', configIntrospectionRoute),
@@ -43,5 +45,6 @@ export const router = HttpRouter.empty.pipe(
   ),
 
   HttpRouter.concat(stockItemRoutes),
+  HttpRouter.concat(reservationRoutes),
   HttpRouter.concat(stockMovementRoutes),
 );

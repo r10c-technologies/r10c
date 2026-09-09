@@ -45,9 +45,13 @@ checked and both are absent.
 `Organization` lives in `party-management` and is seeded into auth-service's
 control-plane Mongo, but **no route serves it** — `auth-service/src/routes.ts`
 never imports the class, and nothing in the fleet requests `/api/organization`.
-ADR 0023's second `TenantContextTag` provider is likewise design only: that
-record's own Trigger says "already fired in design, not yet in code", and the tag
-has exactly one reference in the repository, its own definition.
+ADR 0023's second path was likewise design only when this was written: that
+record's own Trigger said "already fired in design, not yet in code", and
+`TenantContextTag` had exactly one reference in the repository — its own
+definition. ⚠️ Both facts changed on 2026-09-08 (#73): the crossing is built as
+`requireServiceCrossing`, the never-provided tag was deleted, and
+`POST /api/reservation` uses it. Nothing here depends on that — the rebuild walk
+still reads its own stores from a boot-time sweep, not through a crossing.
 
 ## Decision
 

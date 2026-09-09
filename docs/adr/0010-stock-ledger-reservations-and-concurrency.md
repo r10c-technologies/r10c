@@ -10,6 +10,9 @@
   `:3108` records movements and folds them with `$inc`, so the slice is `active`;
   the member is `offeringId` rather than the `productId` this record wrote, and
   the reservation half is still unbuilt.
+- Revised: 2026-09-08 — the conditional atomic write is built (#73):
+  `POST /api/reservation` takes a hold behind ADR 0023's crossing. The reaper and
+  the checkout that exercises it remain unbuilt.
 
 ## Trigger
 
@@ -44,9 +47,17 @@ document and takes the update branch. The index alone would turn a silently
 split total into a `500` on a request the vendor did nothing wrong in, which is
 a different bug rather than a fix.
 
-**Still unbuilt:** the reservation, its reaper, and the checkout that exercises
-them. The conditional atomic write below is therefore a decision in force and not
-yet a line of code.
+**Built on 2026-09-08 (#73):** the conditional atomic write below is now the
+reservation route. `POST /api/reservation` increments `reserved` only where
+`onHand - reserved >= quantity`, in the same Mongo transaction that inserts the
+hold; `matchedCount === 0` **is** the out-of-stock answer, so there is no lock
+and no read-then-write. Measured on the live lab: 20 simultaneous holds of one
+unit against an availability of 10 yielded exactly ten `201`s, ten `409`s, and
+`reserved: 10` — no oversell, and no hold row written for a refused request. The
+crossing that carries it is ADR 0023's, and the route accepts no session.
+
+**Still unbuilt:** releasing and converting a hold, the reaper that expires one,
+and the checkout that exercises them.
 
 Two things this record could not name when it was written, now settled:
 

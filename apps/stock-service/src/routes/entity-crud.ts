@@ -3,7 +3,11 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
-import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
+import {
+  type Action,
+  type Permission,
+  permissionForEntity,
+} from '@r10c/business-ts-authz';
 import {
   EntityIdTag,
   EntityLoadRequestTag,
@@ -29,7 +33,10 @@ import {
   makeMongoRepository,
   MongoDatabaseTag,
 } from '@r10c/entifix-ts-mongo-client';
-import { requireOrganization } from '@r10c/shells-effect-service';
+import {
+  requireOrganization,
+  requireServiceCrossing,
+} from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 
@@ -176,14 +183,37 @@ export const byIdRoute = <T extends Entity>(
   );
 
 /**
+ * Resolve the organization's database and run the route against it.
+ *
+ * Shared by both guards below, because the handle resolution is the same
+ * whichever way the organization was established — what differs is only how it
+ * was proved. The handle is resolved **inside** the request: the pool is the
+ * boot-time `MongoClientLayer`, and a per-request `Layer` would rebuild the pool
+ * per request.
+ */
+const withTenantDatabase = <A, E, R>(
+  organizationId: string,
+  route: Effect.Effect<A, E, R>,
+) =>
+  Effect.gen(function* () {
+    const resolver = yield* TenantDatabaseResolverTag;
+    // The tag is datastore-agnostic (`TenantDatabaseResolver<unknown>`) so that
+    // a Postgres adapter can satisfy it later; this service knows it provided
+    // the Mongo one, which is what the cast records.
+    const db = (yield* resolver.forOrganization(organizationId)) as Db;
+    return yield* route.pipe(Effect.provideService(MongoDatabaseTag, db));
+  }).pipe(
+    // Each route already maps its own failures; what can still fail here is
+    // resolving the tenant handle.
+    Effect.catchAll(serverError),
+  );
+
+/**
  * Guard a tenant-plane route: check the permission the entity derives, then
  * bind the request to the caller's organization database.
  *
  * The organization comes from the verified token and nowhere else, so no
  * handler here can be made to read another vendor's stock by a query parameter.
- * The handle is resolved **inside** the request — the pool is the boot-time
- * `MongoClientLayer`, and a per-request `Layer` would rebuild the pool per
- * request.
  */
 export const guarded = <T extends Entity, A, E, R>(
   entityConstructor: EntityConstructor<T>,
@@ -191,19 +221,30 @@ export const guarded = <T extends Entity, A, E, R>(
   route: (organizationId: string) => Effect.Effect<A, E, R>,
 ) =>
   requireOrganization(permissionForEntity(entityConstructor, action))(
-    organizationId =>
-      Effect.gen(function* () {
-        const resolver = yield* TenantDatabaseResolverTag;
-        // The tag is datastore-agnostic (`TenantDatabaseResolver<unknown>`) so
-        // that a Postgres adapter can satisfy it later; this service knows it
-        // provided the Mongo one, which is what the cast records.
-        const db = (yield* resolver.forOrganization(organizationId)) as Db;
-        return yield* route(organizationId).pipe(
-          Effect.provideService(MongoDatabaseTag, db),
-        );
-      }).pipe(
-        // Each route already maps its own failures; what can still fail here is
-        // resolving the tenant handle.
-        Effect.catchAll(serverError),
-      ),
+    organizationId => withTenantDatabase(organizationId, route(organizationId)),
+  );
+
+/**
+ * Guard a **service-to-service crossing** into a named organization's database:
+ * a crossing token, a permission from `SERVICE_CROSSING_PERMISSIONS`, and an
+ * explicit `x-organization-id`.
+ *
+ * ⚠️ **The organization here is caller-supplied, and that is safe only because
+ * of the order.** It is read after the token has proved the caller is the fleet,
+ * so the input the caller controls is never the input that authorizes. A route
+ * mounted on this guard accepts **no session** — not even `super-admin`'s, whose
+ * `*:*:*` matches every crossing permission — because two accepted credentials
+ * on one route means the weaker one is the security level
+ * ([ADR 0023](../../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+ *
+ * The permission is passed rather than derived from an entity: a crossing is a
+ * named act on a named resource, and deriving it would make adding one a matter
+ * of mounting a route rather than of adding a line somebody reviews.
+ */
+export const crossed = <A, E, R>(
+  permission: Permission,
+  route: (organizationId: string) => Effect.Effect<A, E, R>,
+) =>
+  requireServiceCrossing(permission)(organizationId =>
+    withTenantDatabase(organizationId, route(organizationId)),
   );
