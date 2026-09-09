@@ -42,5 +42,15 @@ export interface Principal {
    * narrows it with `isPartyRoleName`.
    */
   readonly partyRole?: string;
+  /**
+   * The party behind the account — the `Individual` id, absent for an account
+   * with no party record.
+   *
+   * It travels beside {@link Principal.partyRole} because a session resolved
+   * through the store must not be narrower than the same session rebuilt from
+   * an access token. Like the two fields above it is context: it answers *whose
+   * records these are*, never what may be done with them.
+   */
+  readonly partyId?: string;
   readonly attributes: Readonly<Record<string, unknown>>;
 }

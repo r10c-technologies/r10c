@@ -26,6 +26,7 @@ import {
 import { Effect, Layer } from 'effect';
 
 import { ensureOutboxIndexes } from './outbox';
+import { ensureProductOrderIndexes } from './product-order-index';
 
 const SERVICE_NAME = 'order-service';
 const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
@@ -105,10 +106,16 @@ export const AppLayer = Layer.unwrapEffect(
     // database this one is named at boot, so there *is* a boot moment at which
     // the index can be created — and an outbox whose `eventId` is not unique
     // would let a redelivery enqueue a second copy of the same announcement.
+    // The order indexes ride along for a different reason: every read of this
+    // store is scoped by a predicate rather than by a handle, so without them
+    // the scope is a collection scan.
     const indexed = Layer.provideMerge(
       Layer.effectDiscard(
         Effect.flatMap(MongoDatabaseTag, database =>
-          ensureOutboxIndexes(database),
+          Effect.zipRight(
+            ensureOutboxIndexes(database),
+            ensureProductOrderIndexes(database),
+          ),
         ),
       ),
       withProbes,

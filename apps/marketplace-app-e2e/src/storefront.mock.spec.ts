@@ -102,6 +102,58 @@ test.describe('the cart', () => {
     await expect(page.getByTestId('cart-count')).toHaveText('1');
   });
 
+  /**
+   * The whole point of #235: a placed order is a receipt the buyer can read,
+   * not a banner over an emptied cart.
+   *
+   * ⚠️ The coordinator is stubbed **inside the Next process**: the checkout is a
+   * server action, so a `page.route()` interceptor would never see the call.
+   */
+  test('a checkout lands on a receipt that names the order', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-aurora-desk-lamp');
+    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page.waitForURL(/\/es\/cart$/);
+
+    await page.getByTestId('checkout').click();
+    await page.waitForURL(/\/es\/order\/confirmation$/);
+
+    // The address carries no order id: it is the same URL for everybody, and
+    // the receipt travels in an httpOnly cookie.
+    await expect(page).toHaveURL(/\/es\/order\/confirmation$/);
+    await expect(page.getByTestId('order-id')).toContainText('e2e-order-1');
+    await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
+    await expect(page.getByTestId('order-total')).toBeVisible();
+  });
+
+  test('the receipt survives a reload, and the cart is empty behind it', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-aurora-desk-lamp');
+    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page.waitForURL(/\/es\/cart$/);
+    await page.getByTestId('checkout').click();
+    await page.waitForURL(/\/es\/order\/confirmation$/);
+
+    await page.reload();
+    await expect(page.getByTestId('order-id')).toContainText('e2e-order-1');
+
+    // ⚠️ The cart was cleared on the path it was written with. Expiring it on
+    // another path leaves the original cookie in place, and the basket comes
+    // back on the next request.
+    await page.goto('/es/cart');
+    await expect(page.getByText('Tu carrito está vacío')).toBeVisible();
+  });
+
+  test('a visitor with no receipt is told so rather than shown an error', async ({
+    page,
+  }) => {
+    await page.goto('/es/order/confirmation');
+
+    await expect(page.getByTestId('receipt-expired')).toBeVisible();
+  });
+
   test('an item can be removed', async ({ page }) => {
     await page.goto('/es/p/offering-aurora-desk-lamp');
     await page.getByRole('button', { name: 'Añadir al carrito' }).click();

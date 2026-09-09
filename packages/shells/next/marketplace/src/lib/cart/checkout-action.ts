@@ -4,9 +4,18 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { getOffering } from '../catalog/queries';
+import { storePaths } from '../routing/paths';
 import { readCart } from './cart-cookie';
 import { CART_COOKIE, type CartLine } from './cart-state';
 import { checkoutServiceUrl, sagaCrossingToken } from './checkout-config';
+import {
+  type Receipt,
+  RECEIPT_COOKIE,
+  RECEIPT_TTL_SECONDS,
+  receiptFromOrder,
+  type ReceiptLine,
+  serializeReceipt,
+} from './receipt-state';
 
 /** One line as the checkout saga needs it, priced from what the buyer was shown. */
 interface CheckoutLine {
@@ -73,18 +82,110 @@ export async function checkout(formData: FormData) {
     redirect(`/${locale}/cart?checkout=empty`);
   }
 
-  const outcome = await placeOrder(priced);
+  const { outcome, receipt } = await placeOrder(priced);
 
   if (outcome === 'placed') {
+    const jar = await cookies();
     // Only on success, and only after the order is written: a cart cleared
     // before the saga settles loses a basket the buyer may still need if
     // nothing was reserved.
-    (await cookies()).set(CART_COOKIE, '', { path: '', maxAge: 0 });
+    //
+    // ⚠️ The same `path` it was written with. A clear on a different path sets
+    // a *second* cookie rather than expiring the first, and the browser keeps
+    // sending the original — a cart that empties on screen and comes back on
+    // the next request.
+    jar.set(CART_COOKIE, '', { path: '/', maxAge: 0 });
+    if (receipt) {
+      // What the confirmation page renders. `httpOnly`, because nothing in the
+      // browser reads it and a receipt is the buyer's, not the page's.
+      jar.set(RECEIPT_COOKIE, serializeReceipt(receipt), {
+        path: '/',
+        sameSite: 'lax',
+        httpOnly: true,
+        maxAge: RECEIPT_TTL_SECONDS,
+      });
+    }
   }
 
   // `redirect` throws to unwind the action, so it comes last.
-  redirect(`/${locale}/cart?checkout=${outcome}`);
+  //
+  // A placed order goes to its own page rather than back to the cart: the cart
+  // is now empty, and a success banner over an empty-cart state reads like a
+  // cancellation. Every other outcome belongs on the cart, which still holds
+  // the basket the buyer would retry with.
+  redirect(
+    outcome === 'placed' && receipt
+      ? `/${locale}${storePaths.orderConfirmation()}`
+      : `/${locale}/cart?checkout=${outcome}`,
+  );
 }
+
+/**
+ * What a checkout produced: the outcome the buyer is told, and — on success —
+ * the receipt the confirmation page renders.
+ */
+interface CheckoutResult {
+  readonly outcome: CheckoutOutcome;
+  readonly receipt?: Receipt;
+}
+
+/**
+ * The order inside a saga result.
+ *
+ * The coordinator answers with one outcome per step, each carrying the
+ * participant's own response body verbatim — so the written order, id and all,
+ * is already in hand and nothing needs re-reading. `write-order` is named
+ * rather than positional: the step a definition runs last is a property of the
+ * definition, and reading the array's end would break the day it grows one.
+ */
+const orderFromSagaResult = (payload: unknown): Receipt | undefined => {
+  if (typeof payload !== 'object' || payload === null) return undefined;
+  const data = (payload as { data?: unknown }).data;
+  if (typeof data !== 'object' || data === null) return undefined;
+  const outcomes = (data as { outcomes?: unknown }).outcomes;
+  if (!Array.isArray(outcomes)) return undefined;
+
+  const step = outcomes.find(
+    (outcome: unknown) =>
+      typeof outcome === 'object' &&
+      outcome !== null &&
+      (outcome as { stepId?: unknown }).stepId === 'write-order',
+  ) as { calls?: unknown } | undefined;
+  const calls = step?.calls;
+  if (!Array.isArray(calls) || calls.length === 0) return undefined;
+
+  const body = (calls[0] as { body?: unknown }).body;
+  if (typeof body !== 'object' || body === null) return undefined;
+  const order = (body as { data?: unknown }).data;
+  if (typeof order !== 'object' || order === null) return undefined;
+
+  const { id, placedAt, items } = order as {
+    id?: unknown;
+    placedAt?: unknown;
+    items?: unknown;
+  };
+  if (typeof id !== 'string' || !Array.isArray(items)) return undefined;
+
+  const lines = items.flatMap((item: unknown): ReceiptLine[] => {
+    if (typeof item !== 'object' || item === null) return [];
+    const { offeringId, quantity, amount, currency } = item as Record<
+      string,
+      unknown
+    >;
+    return typeof offeringId === 'string' &&
+      typeof quantity === 'number' &&
+      typeof amount === 'number' &&
+      typeof currency === 'string'
+      ? [{ offeringId, quantity, amount, currency }]
+      : [];
+  });
+
+  return receiptFromOrder(
+    id,
+    typeof placedAt === 'string' ? placedAt : undefined,
+    lines,
+  );
+};
 
 /**
  * Run the checkout saga.
@@ -94,7 +195,7 @@ export async function checkout(formData: FormData) {
  */
 const placeOrder = async (
   lines: readonly CheckoutLine[],
-): Promise<CheckoutOutcome> => {
+): Promise<CheckoutResult> => {
   const response = await fetch(`${checkoutServiceUrl()}/saga/checkout`, {
     method: 'POST',
     headers: {
@@ -125,11 +226,20 @@ const placeOrder = async (
     cache: 'no-store',
   }).catch(() => undefined);
 
-  if (!response) return 'failed';
-  if (response.status === 201) return 'placed';
+  if (!response) return { outcome: 'failed' };
+  if (response.status === 201) {
+    // ⚠️ A body that will not parse does **not** fail the checkout. The order
+    // is written by this point, and telling a buyer their purchase failed
+    // because a response could not be read would be a lie with a receipt behind
+    // it. They land on the cart's success banner instead, which is where this
+    // page stood before there was a confirmation page at all.
+    const payload = await response.json().catch(() => undefined);
+    const receipt = orderFromSagaResult(payload);
+    return receipt ? { outcome: 'placed', receipt } : { outcome: 'placed' };
+  }
   // `409` is the saga's own answer for "compensated" — a line was refused and
   // every hold taken has been given back. That is a stock outcome the buyer can
   // act on, not an error to apologise for.
-  if (response.status === 409) return 'unavailable';
-  return 'failed';
+  if (response.status === 409) return { outcome: 'unavailable' };
+  return { outcome: 'failed' };
 };

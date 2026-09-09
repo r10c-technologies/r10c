@@ -23,4 +23,14 @@ export const storePaths = {
   search: (term?: string) =>
     term ? `/search?q=${encodeURIComponent(term)}` : '/search',
   cart: () => '/cart',
+  /**
+   * What a buyer sees after a successful checkout.
+   *
+   * ⚠️ **It carries no order id, and that is the design rather than an
+   * omission.** An order id in a URL is a capability, and the storefront has no
+   * session to check one against — so the receipt travels in an `httpOnly`
+   * cookie and the address stays the same for everybody. Nothing here is
+   * guessable because nothing here identifies an order.
+   */
+  orderConfirmation: () => '/order/confirmation',
 } as const;

@@ -14,6 +14,7 @@
 export * from './lib/pages/cart-page';
 export * from './lib/pages/category-page';
 export * from './lib/pages/home-page';
+export * from './lib/pages/order-confirmation-page';
 export * from './lib/pages/product-page';
 export * from './lib/pages/search-page';
 export * from './lib/pages/store-shell';

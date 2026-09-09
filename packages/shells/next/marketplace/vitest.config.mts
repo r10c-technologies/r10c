@@ -22,5 +22,9 @@ export default defineEntifixTest({
     '**/lib/routing/store-link.tsx',
     '**/lib/cart/cart-cookie.ts',
     '**/lib/cart/cart-actions.ts',
+    // Same reason as `cart-cookie`: one `cookies()` read and nothing else. Its
+    // parsing — which is the part with decisions in it — lives in
+    // `receipt-state.ts` and is covered directly.
+    '**/lib/cart/receipt-cookie.ts',
   ],
 });

@@ -4,6 +4,10 @@
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   `partyRole`'s source becomes a `PartyRole` entity rather than a column on
   `Individual`. The claim itself is unchanged.
+- Revised: 2026-09-09 by
+  [ADR 0053](0053-scoping-a-platform-plane-read-to-its-caller.md) — `partyRole`
+  has its first consumer, and the token carries a second party claim beside it.
+  The rules this record sets are unchanged and now apply to both.
 - Date: 2026-08-05
 - Area: auth
 - Read when: touching token minting or verification — RS256 with `algorithms` pinned is the security boundary, and `partyRole` is routing context, never a grant
@@ -119,13 +123,19 @@ key's name, because a naming heuristic that misses once publishes a signing key.
 - **Only auth-service can mint.** A verify-only token service fails `sign` with a
   build error rather than producing an unsigned token. `marketplace-admin-service`
   and `config-service` are now structurally incapable of forging a principal.
-- **`partyRole` is carried, not yet consumed.** Nothing branches on it in this
-  change — no guard, no resolver, no nav filter. It is the prerequisite the
+- **`partyRole` was carried inert, and now has a consumer.** Nothing branched on
+  it in *this* change — no guard, no resolver, no nav filter — which is what kept
+  it reviewable. Since
+  [ADR 0053](0053-scoping-a-platform-plane-read-to-its-caller.md) it selects
+  which predicate an order read is narrowed by, and the token carries `partyId`
+  beside it, resolved by the same lookup and bound by the same rules: once at
+  sign-in, re-signed unchanged on refresh, context and never a grant. The
   operator `act-as` crossing ([ADR 0012](0012-operator-cross-tenant-access.md))
-  and buyer accounts both need, and shipping it inert keeps the change reviewable.
-- **A session predating this claim has no `partyRole`.** It reads as `undefined`,
-  never as a default, so a future consumer must decide explicitly rather than
-  inheriting a silent `customer`.
+  and buyer accounts remain unbuilt.
+- **A session predating either claim has neither.** It reads as `undefined`,
+  never as a default, so a consumer must decide explicitly rather than inheriting
+  a silent `customer` — and ADR 0053's consumer decides the narrow way: no party
+  claim scopes a read to nothing, never to everything.
 - **Supersedes ADR 0002 on RS256 only.** Its role/permission model, its
   `PolicyDecision` port and its "grants are derived at the consumer, never in the
   token" invariant all stand — `partyRole` is routing context, not a grant.

@@ -5,6 +5,8 @@ import {
   bearerFor,
   E2E_CROSSING_TOKEN,
   E2E_ORGANIZATION_ID,
+  E2E_PARTY_ID,
+  signTokenFor,
 } from '../support/tokens';
 
 /**
@@ -168,6 +170,165 @@ describe('reading orders takes a session and no token', () => {
     // metadata" (ADR 0026).
     expect(res.status).toBe(200);
     expect(res.data.meta.entity).toBe('product-order');
+  });
+});
+
+/**
+ * Who sees which orders.
+ *
+ * ⚠️ **This store is platform plane**, so there is no tenant handle doing the
+ * isolation the way stock-service's is: one database holds every buyer's
+ * receipts, and the predicate the route builds from the verified principal is
+ * the whole boundary.
+ *
+ * The three shapes are minted here rather than taken from `bearerFor`, which
+ * hardcodes the vendor defaults — a scoping assertion that cannot vary the
+ * principal is asserting nothing.
+ */
+describe('a read is scoped to the caller, from the principal', () => {
+  const asPrincipal = async (
+    organizationId: string | null,
+    partyRole: 'customer' | 'vendor' | 'operator',
+    partyId: string | null,
+  ) => ({
+    Authorization: `Bearer ${await signTokenFor(
+      ['admin'],
+      'user-1',
+      organizationId,
+      partyRole,
+      partyId,
+    )}`,
+  });
+
+  const list = async (headers: Record<string, string>): Promise<Page> =>
+    service.client.get('/api/product-order', { headers });
+
+  const ids = (page: Page) => page.data.data.items.map(item => item['id']);
+
+  it('shows a vendor the orders that owe them a line, and no others', async () => {
+    const mine = await place([
+      { ...line('offering-scope-a'), vendorId: 'vendor-scoped' },
+    ]);
+    const theirs = await place([
+      { ...line('offering-scope-b'), vendorId: 'vendor-other' },
+    ]);
+
+    const page = await list(
+      await asPrincipal('vendor-scoped', 'vendor', E2E_PARTY_ID),
+    );
+
+    expect(ids(page)).toContain(mine.data.data.id);
+    expect(ids(page)).not.toContain(theirs.data.data.id);
+  });
+
+  it('shows a buyer only what they placed', async () => {
+    const mine = await place([line('offering-scope-c')]);
+    const theirs = await service.client.post(
+      '/api/product-order',
+      {
+        meta: { type: 'entity', entity: 'product-order' },
+        data: { buyerId: 'party-somebody-else', items: [line('offering-scope-d')] },
+      },
+      { headers: crossing() },
+    );
+
+    const page = await list(await asPrincipal(null, 'customer', E2E_PARTY_ID));
+
+    expect(ids(page)).toContain(mine.data.data.id);
+    expect(ids(page)).not.toContain(theirs.data.data.id);
+  });
+
+  /**
+   * ⚠️ The assertion the whole design exists for. `buyerId` is `filterable`, so
+   * this query is well-formed and reaches the repository — it is the conjoined
+   * scope, not a rejected query, that keeps it from answering somebody else's
+   * receipt.
+   */
+  it('cannot be widened by a query string naming another buyer', async () => {
+    const theirs = await service.client.post(
+      '/api/product-order',
+      {
+        meta: { type: 'entity', entity: 'product-order' },
+        data: { buyerId: 'party-somebody-else', items: [line('offering-scope-e')] },
+      },
+      { headers: crossing() },
+    );
+
+    const page: Page = await service.client.get(
+      '/api/product-order?rsql=buyerId==party-somebody-else',
+      { headers: await asPrincipal(null, 'customer', E2E_PARTY_ID) },
+    );
+
+    expect(page.data.data.total).toBe(0);
+    expect(ids(page)).not.toContain(theirs.data.data.id);
+  });
+
+  it('shows an operator every order', async () => {
+    const mine = await place([line('offering-scope-f')]);
+    const theirs = await service.client.post(
+      '/api/product-order',
+      {
+        meta: { type: 'entity', entity: 'product-order' },
+        data: { buyerId: 'party-somebody-else', items: [line('offering-scope-g')] },
+      },
+      { headers: crossing() },
+    );
+
+    // Every order this suite has placed is in one page here, so the read is
+    // widened past the default page size rather than asserting on whichever
+    // records happen to land first.
+    const page: Page = await service.client.get(
+      '/api/product-order?pageSize=200',
+      { headers: await asPrincipal(null, 'operator', null) },
+    );
+
+    expect(ids(page)).toEqual(
+      expect.arrayContaining([mine.data.data.id, theirs.data.data.id]),
+    );
+  });
+
+  it('shows nothing to a session that can identify no records of its own', async () => {
+    await place([line('offering-scope-h')]);
+
+    // A vendor session with no organization: it holds the grant and owns
+    // nothing, which is an empty page rather than a 403.
+    const page = await list(await asPrincipal(null, 'vendor', null));
+
+    expect(page.status).toBe(200);
+    expect(page.data.data.total).toBe(0);
+  });
+
+  it('answers 404 for one order the caller may not read', async () => {
+    const theirs = await service.client.post(
+      '/api/product-order',
+      {
+        meta: { type: 'entity', entity: 'product-order' },
+        data: { buyerId: 'party-somebody-else', items: [line('offering-scope-i')] },
+      },
+      { headers: crossing() },
+    );
+
+    const res = await service.client.get(
+      `/api/product-order/${theirs.data.data.id}`,
+      { headers: await asPrincipal(null, 'customer', E2E_PARTY_ID) },
+    );
+
+    // Not a 403: that would confirm the order exists to somebody who may not
+    // see it.
+    expect(res.status).toBe(404);
+    expect(res.data.code).toBe('notFound');
+  });
+
+  it('serves the caller their own order by id', async () => {
+    const mine = await place([line('offering-scope-j')]);
+
+    const res = await service.client.get(
+      `/api/product-order/${mine.data.data.id}`,
+      { headers: await asPrincipal(null, 'customer', E2E_PARTY_ID) },
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.data.data.id).toBe(mine.data.data.id);
   });
 });
 

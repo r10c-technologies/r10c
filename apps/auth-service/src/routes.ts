@@ -405,11 +405,19 @@ const establishSession = (
     const {
       organizationId: activeOrganizationId,
       partyRole,
+      partyId,
       entitlements,
     } = yield* scopes.forUser(String(subject.userId));
 
     const sessionId = yield* sessions.create(
-      { ...subject, activeOrganizationId, partyRole, entitlements, device },
+      {
+        ...subject,
+        activeOrganizationId,
+        partyRole,
+        partyId,
+        entitlements,
+        device,
+      },
       DEFAULT_SESSION_LIFETIME,
     );
     const accessToken = yield* tokens.sign(
@@ -420,6 +428,7 @@ const establishSession = (
         roles: subject.roles,
         activeOrganizationId,
         partyRole,
+        partyId,
         entitlements,
       },
       ACCESS_TOKEN_TTL_SECONDS,
@@ -434,6 +443,7 @@ const establishSession = (
         ...subject,
         organizationId: activeOrganizationId,
         partyRole,
+        partyId,
         sessionId,
       },
     };
@@ -836,6 +846,9 @@ const refreshRoute = Effect.gen(function* () {
       // membership change silently move a live session to another plane.
       activeOrganizationId: record.activeOrganizationId,
       partyRole: record.partyRole,
+      // The party is the account's, not the session's, but it is re-signed from
+      // the record for the same reason: this path may not read the party store.
+      partyId: record.partyId,
       // And the same for what the organization is provisioned for: re-reading
       // it here would put a Mongo query on a path that is deliberately
       // store-only, to refresh a value that only shapes a menu.
@@ -859,6 +872,7 @@ const refreshRoute = Effect.gen(function* () {
       roles: record.roles,
       organizationId: record.activeOrganizationId,
       partyRole: record.partyRole,
+      partyId: record.partyId,
       attributes: record.attributes,
     } satisfies Principal,
   });

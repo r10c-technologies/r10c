@@ -39,6 +39,15 @@ export interface SeedSessionOptions {
    */
   partyRole?: string;
   /**
+   * The party the seeded principal is — the `Individual` id a route scoping a
+   * read to its caller matches against. Defaults to the seeded vendor party, so
+   * the fixture keeps mirroring what a real sign-in produces.
+   *
+   * Pass `null` to seed an account with no party record, which is the case a
+   * scoped read must answer nothing for rather than everything.
+   */
+  partyId?: string | null;
+  /**
    * The domains the seeded organization is provisioned for — ADR 0007's second
    * ceiling, which the back-office nav reads.
    *
@@ -86,6 +95,7 @@ const fabricateToken = (
   roles: readonly string[],
   activeOrganizationId: string | null,
   partyRole: string,
+  partyId: string | null,
   entitlements: readonly string[],
 ): string => {
   const header = base64url(
@@ -98,6 +108,7 @@ const fabricateToken = (
       sessionId: 'e2e-session',
       roles,
       partyRole,
+      ...(partyId === null ? {} : { partyId }),
       ...(activeOrganizationId === null
         ? {}
         : { activeOrganizationId, entitlements }),
@@ -291,6 +302,7 @@ export const seedSession = async (
     roles = ['user'],
     activeOrganizationId = 'e2e-organization',
     partyRole = 'vendor',
+    partyId = 'party-user-2',
     entitlements = ['product-configuration-management'],
     locale = 'es',
     identifier = 'ada@example.com',
@@ -318,6 +330,7 @@ export const seedSession = async (
         roles,
         activeOrganizationId,
         partyRole,
+        partyId,
         entitlements,
       ),
       domain: 'localhost',

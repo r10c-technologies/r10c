@@ -53,6 +53,18 @@ export interface SessionData {
    */
   readonly partyRole?: string;
   /**
+   * The party behind the account — the `Individual` id, not the account id.
+   *
+   * Resolved once when the session opens, from the only store that holds the
+   * user → party mapping, and carried from here into every access token: a
+   * service scoping a read to *whose records these are* asks about a party, and
+   * has no way to make that hop itself.
+   *
+   * Absent for an account with no party record, and a consumer must read that
+   * as "no party" rather than as "any party".
+   */
+  readonly partyId?: string;
+  /**
    * The business domains {@link SessionData.activeOrganizationId} is
    * provisioned for. Resolved once when the session opens and carried from here
    * into every access token minted from it, so no service re-reads an

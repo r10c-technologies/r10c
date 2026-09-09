@@ -63,6 +63,18 @@ export const E2E_ORGANIZATION_ID =
   (isMockProfile() ? 'e2e-organization' : 'demo-organization');
 
 /**
+ * The party a spec token *is* — what a scoped read matches an order's `buyerId`
+ * against.
+ *
+ * It is a party id, not a user id: an order records the `Individual` who placed
+ * it, and the hop from an account to a party exists only in auth-service's
+ * store, which is why the claim is minted there and carried rather than looked
+ * up here.
+ */
+export const E2E_PARTY_ID =
+  process.env['ORDER_PARTY_ID'] ?? 'party-user-2';
+
+/**
  * The crossing secret `POST /api/product-order` expects.
  *
  * A literal under `mock`, matching what the mock composition root provides; a
@@ -85,12 +97,17 @@ export const E2E_CROSSING_TOKEN =
  * `partyRole` defaults to `vendor` because that is what a token carrying an
  * organization means — and stock is a vendor's own position, which no other
  * party role has a reason to hold.
+ *
+ * `partyId` takes `null` for the same reason `activeOrganizationId` does. It is
+ * what a read scoped to the caller matches an order's `buyerId` against, so a
+ * spec asserting the no-party path has to be able to mint a token without one.
  */
 export const signTokenFor = (
   roles: readonly Role[],
   userId = 'user-1',
   activeOrganizationId: string | null = E2E_ORGANIZATION_ID,
   partyRole: PartyRoleName = 'vendor',
+  partyId: string | null = E2E_PARTY_ID,
 ): Promise<string> =>
   signAccessToken(
     {
@@ -99,6 +116,7 @@ export const signTokenFor = (
       sessionId: 'sess-1',
       roles,
       partyRole,
+      ...(partyId === null ? {} : { partyId }),
       ...(activeOrganizationId === null ? {} : { activeOrganizationId }),
     },
     {
