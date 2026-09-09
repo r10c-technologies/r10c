@@ -109,13 +109,29 @@ export const membershipSeedData = (
   },
 ];
 
-/** What the demo organization is provisioned for. */
+/**
+ * What the demo organization is provisioned for.
+ *
+ * ⚠️ **A domain whose screens are entitlement-gated must be listed here, or the
+ * vendor cannot see them at all.** `stock-management` joined the list when the
+ * stock surface landed, and the omission is the failure worth remembering: the
+ * slice was promoted, the service seeded, every route answered, and the sidebar
+ * showed no Operaciones section — because ADR 0007's *second* ceiling is the
+ * organization's provisioning, and it is independent of what the roles grant.
+ * Alan holds `stock-management:stock-item:read`; his organization was not
+ * provisioned for the domain, so the nav filter dropped the section and there
+ * was nothing to click and no error anywhere.
+ *
+ * `catalog-reference` is deliberately still absent: nobody is provisioned for
+ * the operator-owned platform vocabulary, and gating it would hide the
+ * marketplace's own taxonomy from every vendor (ADR 0022).
+ */
 export const entitlementSeedData = (
   organizationId: string,
 ): ReadonlyArray<Record<string, unknown>> => [
   {
     id: `entitlement-${organizationId}`,
     organizationId,
-    domains: ['product-configuration-management'],
+    domains: ['product-configuration-management', 'stock-management'],
   },
 ];

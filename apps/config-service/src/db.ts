@@ -211,6 +211,16 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'marketplace-service-domain',
     value: 'http://localhost:3100/api',
   },
+  // stock-service, the back office's third catalog-adjacent backend. Tenant
+  // plane and session-guarded end to end, so unlike the marketplace row above
+  // this proxy exists for the *reads* too — nothing here is anonymous. The app
+  // rewrites it to `/api/stock` before the browser sees it.
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'stock-service-domain',
+    value: 'http://localhost:3108/api',
+  },
   // config-service's own address, so the admin app's system-management pages can
   // reach the configuration CRUD. The app rewrites it to a same-origin proxy path
   // before the browser sees it, exactly like the admin-service domain above.
@@ -653,6 +663,20 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'tenant',
     key: 'dbPrefix',
     value: 'stock_',
+  },
+  // The same demo vendor the catalog is seeded under, for the same reason it is
+  // configuration in the two rows above rather than a constant: three services
+  // now have to agree on the id, and this one seeds its stock positions against
+  // offerings marketplace-admin-service wrote.
+  //
+  // ⚠️ **A different database, though.** `tenant.dbPrefix` above is what keeps
+  // `stock_<id>` and `tenant_<id>` apart; this row only names the organization,
+  // so the two stores stay separate stores with separate writers.
+  {
+    service: 'stock-service',
+    group_name: 'tenant',
+    key: 'demoOrganizationId',
+    value: 'demo-organization',
   },
   // The public half only. This service verifies access tokens and never mints
   // one, so it cannot sign.

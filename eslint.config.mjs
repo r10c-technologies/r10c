@@ -105,6 +105,12 @@ const scopeConstraints = [
       'scope:back-office',
       'scope:marketplace-admin',
       'scope:auth',
+      // The stock shell, mounted for the same reason the two above are: this
+      // host composes several domains into one origin. Widening the **host**
+      // scope is how a domain reaches the back office; `scope:stock` gains
+      // nothing by it, and still cannot reach `scope:auth` or
+      // `scope:marketplace-admin` — only the host that mounts all of them can.
+      'scope:stock',
       'scope:shared',
     ],
   },

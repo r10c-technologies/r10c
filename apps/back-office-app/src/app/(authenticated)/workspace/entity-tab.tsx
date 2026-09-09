@@ -1,6 +1,6 @@
 'use client';
 
-import { screenAddress } from '@r10c/business-ts-authz';
+import { screenAddress,type ScreenType } from '@r10c/business-ts-authz';
 import type { EntityCrudSingleViewProps } from '@r10c/shells-next-common';
 import { useEntityDraft, useTabEntityNav } from '@r10c/shells-next-common';
 import type { ReactElement } from 'react';
@@ -28,20 +28,27 @@ import type { ReactElement } from 'react';
  * nav use. It used to be spelled out here as a template literal — the third
  * spelling of a grammar that had to agree with itself at five call sites, and
  * the one whose drift silently detached a tab from its own autosaved draft.
+ *
+ * ⚠️ `type` is a prop for that same reason. It was hard-coded `master`, which
+ * was true while `master:` was the only entity kind the registry could resolve;
+ * the first Operaciones screen made it false, and the failure would have been
+ * the quiet one this comment is about — a record tab addressed
+ * `operation:stock-item:<id>` autosaving to a `master:` draft nothing ever
+ * reads back.
  */
 export function EntityEditorTab({
+  type,
   entityKey,
   id,
   Page,
 }: {
+  type: ScreenType;
   entityKey: string;
   id: string;
   Page: (props?: EntityCrudSingleViewProps) => ReactElement;
 }) {
   const nav = useTabEntityNav();
-  const draft = useEntityDraft(
-    screenAddress({ type: 'master', key: entityKey, id }),
-  );
+  const draft = useEntityDraft(screenAddress({ type, key: entityKey, id }));
 
   const done = () => nav.toList(entityKey);
 

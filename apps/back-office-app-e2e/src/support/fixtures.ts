@@ -4,6 +4,11 @@ import {
 } from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import {
+  Reservation,
+  StockItem,
+  StockMovement,
+} from '@r10c/business-ts-stock-management';
+import {
   configurationHandler,
   entityBackendHandlers,
   http,
@@ -15,6 +20,11 @@ import {
 } from '@r10c/entifix-ts-testing-e2e/playwright';
 
 import { brandSeed, categorySeed, productSeed } from './catalog-seed';
+import {
+  reservationSeed,
+  stockItemSeed,
+  stockMovementSeed,
+} from './stock-seed';
 
 /** Where the admin app is served, and where its adapters look for the services. */
 export const APP_URL = process.env['BASE_URL'] ?? 'http://localhost:3001';
@@ -28,6 +38,13 @@ export const SERVICE_URL = 'http://localhost:3101/api';
  */
 export const REFERENCE_SERVICE_URL = 'http://localhost:3100/api';
 
+/**
+ * The third backend. Stock is tenant-plane and its own slice, so the app
+ * composes its URLs from a third configuration key — stubbing it on `:3101`
+ * would repeat the mistake the comment above records.
+ */
+export const STOCK_SERVICE_URL = 'http://localhost:3108/api';
+
 export const BRAND_URL = `${REFERENCE_SERVICE_URL}/product-brand`;
 export const CATEGORY_URL = `${REFERENCE_SERVICE_URL}/product-category`;
 export const PRODUCT_URL = `${SERVICE_URL}/product-specification`;
@@ -40,6 +57,7 @@ const CONFIGURATION = {
   uri: [
     { key: 'marketplace-admin-service-domain', value: SERVICE_URL },
     { key: 'marketplace-service-domain', value: REFERENCE_SERVICE_URL },
+    { key: 'stock-service-domain', value: STOCK_SERVICE_URL },
   ],
 };
 
@@ -61,6 +79,55 @@ const products = entityBackendHandlers(ProductSpecification, {
   baseUrl: PRODUCT_URL,
   seed: productSeed,
 });
+
+const stockItems = entityBackendHandlers(StockItem, {
+  baseUrl: `${STOCK_SERVICE_URL}/stock-item`,
+  seed: stockItemSeed,
+});
+const stockMovements = entityBackendHandlers(StockMovement, {
+  baseUrl: `${STOCK_SERVICE_URL}/stock-movement`,
+  seed: stockMovementSeed,
+});
+const reservations = entityBackendHandlers(Reservation, {
+  baseUrl: `${STOCK_SERVICE_URL}/reservation`,
+  seed: reservationSeed,
+});
+
+/**
+ * The affordance documents the stock screens read, **captured verbatim from the
+ * running service** rather than invented.
+ *
+ * They are the whole mechanism the stock surface depends on: `stock-item` and
+ * `reservation` answer `["read"]` because no role holds a write for them and no
+ * save route exists, so the generated form withholds Save and the screen is
+ * read-only without a single client-side flag. `stock-movement` answers
+ * `["read","write"]`, which is what makes recording a movement the one write in
+ * the domain.
+ *
+ * ⚠️ They are served from the **app's own** `/api/stock/...` proxy path, not
+ * from `STOCK_SERVICE_URL`: `stock-crud.tsx` builds its metadata source as an
+ * app-relative URL so the browser never holds a backend address, and stubbing
+ * the backend path instead would leave these unstubbed and every screen
+ * pre-ADR-0026.
+ */
+const stockMetadataHandlers = (
+  [
+    ['stock-item', ['read']],
+    ['stock-movement', ['read', 'write']],
+    ['reservation', ['read']],
+  ] as const
+).map(([entity, actions]) =>
+  http.get(`${APP_URL}/api/stock/${entity}/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity },
+      data: { actions, useCases: [] },
+    }),
+  ),
+);
+
+/** The mock stock store, for reseeding or for breaking on purpose. */
+export const stockItemBackend = stockItems.backend;
+export const stockMovementBackend = stockMovements.backend;
 
 /** The mock catalog, for reseeding or for breaking on purpose. */
 export const catalogBackend = backend;
@@ -145,6 +212,10 @@ const base = defineEntifixE2eTest({
     ...handlers,
     ...categories.handlers,
     ...products.handlers,
+    ...stockItems.handlers,
+    ...stockMovements.handlers,
+    ...reservations.handlers,
+    ...stockMetadataHandlers,
     ...transactionHandlers,
   ],
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;
@@ -164,7 +235,15 @@ const base = defineEntifixE2eTest({
 export const test = base.extend<{ session: void }>({
   session: [
     async ({ context }, use) => {
-      await seedSession(context, { roles: ['admin'] });
+      // ⚠️ The entitlements matter as much as the roles, and only for the
+      // stock section so far: its nav items are `entitled: true`, so ADR 0007's
+      // second ceiling hides them from an organization not provisioned for the
+      // domain — no error, no empty state, just no section. Mirrors what
+      // auth-service seeds for the demo organization.
+      await seedSession(context, {
+        roles: ['admin'],
+        entitlements: ['product-configuration-management', 'stock-management'],
+      });
       await use();
     },
     { auto: true },

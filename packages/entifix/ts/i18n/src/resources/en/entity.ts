@@ -461,6 +461,14 @@ export const entity: EsEntity = {
     },
   },
   'stock-item': {
+    // ⚠️ A form title for a record nobody creates by hand. `newTitle` is the
+    // catalog gate `EntityCatalogKey` reads, not a promise that a New button
+    // exists: there is no `stock-item:write` grant and no save route, so the
+    // served descriptor withholds Save and the screen is read-only.
+    form: {
+      editTitle: 'Stock item',
+      newTitle: 'Stock item',
+    },
     label: 'Stock item',
     plural: 'Stock items',
     fields: {
@@ -471,6 +479,12 @@ export const entity: EsEntity = {
     },
   },
   'stock-movement': {
+    // The one write surface in this domain: a movement, with a signed quantity
+    // and a reason. Recording one is how a total moves.
+    form: {
+      editTitle: 'Stock movement',
+      newTitle: 'Record movement',
+    },
     label: 'Stock movement',
     plural: 'Stock movements',
     fields: {
@@ -489,6 +503,12 @@ export const entity: EsEntity = {
     },
   },
   reservation: {
+    // Written by the checkout crossing, never by a person — so this titles a
+    // record being read, and the "new" case never arises.
+    form: {
+      editTitle: 'Reservation',
+      newTitle: 'Reservation',
+    },
     label: 'Reservation',
     plural: 'Reservations',
     fields: {

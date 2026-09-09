@@ -123,12 +123,38 @@ export function EntityCrudForm<TEntity extends Entity>({
 
   const affordances = useEntityAffordances(entityConstructor, metadataSource);
 
+  /**
+   * May this caller write the record in front of them?
+   *
+   * The **same authority that withholds Save**, applied one step earlier.
+   * Absent metadata keeps the pre-ADR-0026 behaviour, so an un-migrated call
+   * site is untouched; present metadata is authoritative, because it is what
+   * the service already decided.
+   *
+   * ⚠️ Without this the form rendered inputs nobody could submit. Measured on
+   * the stock surface: `stock-item` answers `["read"]` — no role holds
+   * `stock-item:write` and there is no save route — so Save was correctly
+   * absent while `onHand` and `reserved` still rendered as **enabled number
+   * inputs**. A vendor could type a new quantity into the very field ADR 0010
+   * forbids writing, and nothing would happen and nothing would say why.
+   *
+   * A create is exempt: there is no record yet, so there is nothing to read and
+   * a `read` mode would render an empty form with no way to fill it.
+   */
+  const mayWrite =
+    entity === undefined ||
+    affordances.metadata === undefined ||
+    affordances.metadata.actions.includes('write');
+
   return (
     <EntityForm<TEntity>
       entityConstructor={entityConstructor}
       entity={entity}
-      // Edit-only; the read/edit toggle is for callers that opt into it.
-      mode="edit"
+      // Driven by the served descriptor rather than fixed: `edit` for a caller
+      // who may write, `read` for one who may not. Passing it at all is what
+      // suppresses the built-in Ver/Editar toggle, which would otherwise offer
+      // a way back into inputs the service will refuse.
+      mode={mayWrite ? 'edit' : 'read'}
       values={form.values}
       onFieldChange={form.setField}
       linkSources={linkSources}

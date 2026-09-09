@@ -34,6 +34,9 @@ interface FakeCollection {
   insertMany(
     documents: Array<Record<string, unknown>>,
   ): Promise<{ insertedCount: number }>;
+  insertOne(
+    document: Record<string, unknown>,
+  ): Promise<{ acknowledged: boolean; insertedId: unknown }>;
   replaceOne(
     query: Record<string, unknown>,
     replacement: Record<string, unknown>,
@@ -44,8 +47,15 @@ interface FakeCollection {
     update: {
       $set?: Record<string, unknown>;
       $addToSet?: Record<string, unknown>;
+      $inc?: Record<string, unknown>;
+      $setOnInsert?: Record<string, unknown>;
     },
-  ): Promise<{ matchedCount: number; modifiedCount: number }>;
+    options?: { upsert?: boolean },
+  ): Promise<{
+    matchedCount: number;
+    modifiedCount: number;
+    upsertedCount?: number;
+  }>;
   deleteOne(query: Record<string, unknown>): Promise<{ deletedCount: number }>;
   createIndex(
     spec: Record<string, unknown>,
@@ -210,7 +220,11 @@ describe('makeFakeMongoDb', () => {
         },
       );
 
-      expect(result).toEqual({ matchedCount: 1, modifiedCount: 1 });
+      expect(result).toEqual({
+        matchedCount: 1,
+        modifiedCount: 1,
+        upsertedCount: 0,
+      });
       // The untouched members survive, and the neighbours are unchanged.
       expect(await collection.findOne({ id: 'w-2' })).toMatchObject({
         name: 'Renamed',
@@ -226,7 +240,11 @@ describe('makeFakeMongoDb', () => {
 
       const result = await collection.updateOne({ id: 'w-1' }, {});
 
-      expect(result).toEqual({ matchedCount: 1, modifiedCount: 1 });
+      expect(result).toEqual({
+        matchedCount: 1,
+        modifiedCount: 1,
+        upsertedCount: 0,
+      });
       expect(await collection.findOne({ id: 'w-1' })).toMatchObject({
         name: 'Alpha',
       });
@@ -259,14 +277,16 @@ describe('makeFakeMongoDb', () => {
 
     // A fake that accepted an operator it does not apply would let a spec pass
     // on an update that never happened — worse than not supporting it at all.
+    // `$inc` was this example until the stock ledger needed it. The rule is the
+    // one that matters, not the operator: `$unset` stands in now.
     it('updateOne throws on an operator it does not implement', async () => {
       const collection = collectionOf(seeded(), 'widget');
 
       await expect(
         collection.updateOne({ id: 'w-1' }, {
-          $inc: { size: 1 },
+          $unset: { size: '' },
         } as unknown as { $set?: Record<string, unknown> }),
-      ).rejects.toThrow('$inc');
+      ).rejects.toThrow('$unset');
     });
 
     it('updateOne reports a miss for a document that is not there', async () => {
@@ -275,7 +295,11 @@ describe('makeFakeMongoDb', () => {
         { $set: { name: 'x' } },
       );
 
-      expect(result).toEqual({ matchedCount: 0, modifiedCount: 0 });
+      expect(result).toEqual({
+        matchedCount: 0,
+        modifiedCount: 0,
+        upsertedCount: 0,
+      });
     });
 
     it('deleteOne removes a match and reports a miss', async () => {
@@ -1071,5 +1095,366 @@ describe('makeFakeSqlClient', () => {
     expect(() => sql`SELECT ${custom}`.compile()).toThrow(
       /custom segments is not implemented/,
     );
+  });
+});
+
+/**
+ * The ledger half of the driver: the operators a fold and a conditional write
+ * need, the unique index that keeps the fold singular, and the session that
+ * makes the two halves of a write one thing.
+ *
+ * These are exercised through `apps/stock-service`, whose e2e `mock` profile
+ * runs the real routes over this fake — so an operator that silently did
+ * nothing here would report a green suite for a ledger that never moved
+ * ([ADR 0010](../../../../../../docs/adr/0010-stock-ledger-reservations-and-concurrency.md)).
+ */
+describe('makeFakeMongoDb ledger operations', () => {
+  const stocked = () =>
+    makeFakeMongoDb({
+      'stock-item': [{ id: 'i-1', offeringId: 'o-1', onHand: 10, reserved: 4 }],
+    });
+
+  describe('insertOne', () => {
+    it('appends a copy and reports the id', async () => {
+      const fake = makeFakeMongoDb();
+      const incoming = { id: 'm-1', quantity: 5 };
+
+      const result = await collectionOf(fake, 'stock-movement').insertOne(
+        incoming,
+      );
+      incoming.quantity = 999;
+
+      expect(result).toEqual({ acknowledged: true, insertedId: 'm-1' });
+      expect(fake.read('stock-movement')).toEqual([{ id: 'm-1', quantity: 5 }]);
+    });
+
+    it('reports a null id for a document that carries none', async () => {
+      const result = await collectionOf(makeFakeMongoDb(), 'thing').insertOne({
+        name: 'anonymous',
+      });
+
+      expect(result.insertedId).toBeNull();
+    });
+  });
+
+  describe('$inc', () => {
+    it('increments an existing field', async () => {
+      const fake = stocked();
+
+      const result = await collectionOf(fake, 'stock-item').updateOne(
+        { offeringId: 'o-1' },
+        { $inc: { onHand: 7 } },
+      );
+
+      expect(result.matchedCount).toBe(1);
+      expect(fake.read('stock-item')[0]['onHand']).toBe(17);
+    });
+
+    it('decrements, because a movement is signed', async () => {
+      const fake = stocked();
+
+      await collectionOf(fake, 'stock-item').updateOne(
+        { offeringId: 'o-1' },
+        { $inc: { onHand: -3 } },
+      );
+
+      expect(fake.read('stock-item')[0]['onHand']).toBe(7);
+    });
+
+    it('creates an absent field at the increment value', async () => {
+      const fake = makeFakeMongoDb({ 'stock-item': [{ offeringId: 'o-1' }] });
+
+      await collectionOf(fake, 'stock-item').updateOne(
+        { offeringId: 'o-1' },
+        { $inc: { onHand: 4 } },
+      );
+
+      expect(fake.read('stock-item')[0]['onHand']).toBe(4);
+    });
+  });
+
+  describe('upsert with $setOnInsert', () => {
+    it('inserts from the query equality fields plus $setOnInsert, with $inc applied', async () => {
+      const fake = makeFakeMongoDb();
+
+      const result = await collectionOf(fake, 'stock-item').updateOne(
+        { offeringId: 'o-9' },
+        { $inc: { onHand: 6 }, $setOnInsert: { id: 'i-9', reserved: 0 } },
+        { upsert: true },
+      );
+
+      expect(result).toEqual({
+        matchedCount: 0,
+        modifiedCount: 0,
+        upsertedCount: 1,
+      });
+      expect(fake.read('stock-item')).toEqual([
+        { offeringId: 'o-9', id: 'i-9', reserved: 0, onHand: 6 },
+      ]);
+    });
+
+    it('upserts with no $setOnInsert at all, creating the field at the increment', async () => {
+      const fake = makeFakeMongoDb();
+
+      await collectionOf(fake, 'stock-item').updateOne(
+        { offeringId: 'o-9' },
+        { $inc: { onHand: 3 } },
+        { upsert: true },
+      );
+
+      expect(fake.read('stock-item')).toEqual([
+        { offeringId: 'o-9', onHand: 3 },
+      ]);
+    });
+
+    it('takes the update branch when the document exists, ignoring $setOnInsert', async () => {
+      const fake = stocked();
+
+      const result = await collectionOf(fake, 'stock-item').updateOne(
+        { offeringId: 'o-1' },
+        { $inc: { onHand: 1 }, $setOnInsert: { id: 'other', reserved: 0 } },
+        { upsert: true },
+      );
+
+      expect(result.matchedCount).toBe(1);
+      expect(fake.read('stock-item')[0]).toEqual({
+        id: 'i-1',
+        offeringId: 'o-1',
+        onHand: 11,
+        reserved: 4,
+      });
+    });
+
+    it('matches nothing and inserts nothing without upsert', async () => {
+      const fake = makeFakeMongoDb();
+
+      const result = await collectionOf(fake, 'stock-item').updateOne(
+        { offeringId: 'o-9' },
+        { $inc: { onHand: 6 } },
+      );
+
+      expect(result).toEqual({
+        matchedCount: 0,
+        modifiedCount: 0,
+        upsertedCount: 0,
+      });
+      expect(fake.read('stock-item')).toEqual([]);
+    });
+
+    it('does not seed an operator condition into the upserted document', async () => {
+      const fake = makeFakeMongoDb();
+
+      await collectionOf(fake, 'stock-item').updateOne(
+        { offeringId: 'o-9', onHand: { $gte: 1 } },
+        { $setOnInsert: { id: 'i-9' } },
+        { upsert: true },
+      );
+
+      expect(fake.read('stock-item')[0]).toEqual({
+        offeringId: 'o-9',
+        id: 'i-9',
+      });
+    });
+
+    it('refuses an update whose $setOnInsert and $inc name one field', async () => {
+      await expect(
+        collectionOf(makeFakeMongoDb(), 'stock-item').updateOne(
+          { offeringId: 'o-9' },
+          { $inc: { onHand: 1 }, $setOnInsert: { onHand: 0 } },
+          { upsert: true },
+        ),
+      ).rejects.toThrow(/conflicting paths/);
+    });
+  });
+
+  describe('$expr', () => {
+    const availability = (quantity: number) => ({
+      $expr: { $gte: [{ $subtract: ['$onHand', '$reserved'] }, quantity] },
+    });
+
+    it('matches when the two fields leave enough', async () => {
+      const found = await collectionOf(stocked(), 'stock-item')
+        .find(availability(6))
+        .toArray();
+
+      expect(found).toHaveLength(1);
+    });
+
+    it('does not match when they do not — which is the out-of-stock answer', async () => {
+      const found = await collectionOf(stocked(), 'stock-item')
+        .find(availability(7))
+        .toArray();
+
+      expect(found).toEqual([]);
+    });
+
+    it.each([
+      ['$add', { $expr: { $gte: [{ $add: ['$onHand', '$reserved'] }, 14] } }],
+      ['$gt', { $expr: { $gt: ['$onHand', 9] } }],
+      ['$lte', { $expr: { $lte: ['$reserved', 4] } }],
+      ['$lt', { $expr: { $lt: ['$reserved', 5] } }],
+      ['$eq', { $expr: { $eq: ['$offeringId', 'o-1'] } }],
+    ])('evaluates %s', async (_name, query) => {
+      const found = await collectionOf(stocked(), 'stock-item')
+        .find(query)
+        .toArray();
+
+      expect(found).toHaveLength(1);
+    });
+
+    it('rejects an operator it cannot evaluate rather than guessing', async () => {
+      await expect(
+        collectionOf(stocked(), 'stock-item')
+          .find({ $expr: { $multiply: ['$onHand', 2] } })
+          .toArray(),
+      ).rejects.toThrow(/unsupported \$expr operator "\$multiply"/);
+    });
+
+    it('rejects a node carrying more than one operator', async () => {
+      await expect(
+        collectionOf(stocked(), 'stock-item')
+          .find({ $expr: { $gte: ['$onHand', 1], $lte: ['$onHand', 5] } })
+          .toArray(),
+      ).rejects.toThrow(/exactly one operator/);
+    });
+  });
+
+  describe('a unique index', () => {
+    const indexed = async () => {
+      const fake = stocked();
+      await collectionOf(fake, 'stock-item').createIndex(
+        { offeringId: 1 },
+        { unique: true, name: 'offeringId_1' },
+      );
+      return fake;
+    };
+
+    it('refuses a second document for the same key, with code 11000', async () => {
+      const fake = await indexed();
+
+      await expect(
+        collectionOf(fake, 'stock-item').insertOne({
+          id: 'i-2',
+          offeringId: 'o-1',
+        }),
+      ).rejects.toMatchObject({ code: 11000 });
+      expect(fake.read('stock-item')).toHaveLength(1);
+    });
+
+    it('refuses the insert branch of an upsert for the same key', async () => {
+      const fake = await indexed();
+      // A filter that finds nothing, so the upsert takes its insert branch —
+      // which is the shape two concurrent upserts produce against a real
+      // server, and the reason the index exists at all.
+      await expect(
+        collectionOf(fake, 'stock-item').updateOne(
+          { offeringId: 'o-1', onHand: { $gte: 1000 } },
+          { $inc: { onHand: 1 }, $setOnInsert: { offeringId: 'o-1' } },
+          { upsert: true },
+        ),
+      ).rejects.toMatchObject({ code: 11000 });
+    });
+
+    it('lets a document keep its own key on update', async () => {
+      const fake = await indexed();
+
+      await collectionOf(fake, 'stock-item').updateOne(
+        { offeringId: 'o-1' },
+        { $inc: { onHand: 1 } },
+      );
+
+      expect(fake.read('stock-item')[0]['onHand']).toBe(11);
+    });
+
+    it('is idempotent, because a tenant handle ensures it per request', async () => {
+      const fake = await indexed();
+      await collectionOf(fake, 'stock-item').createIndex(
+        { offeringId: 1 },
+        { unique: true },
+      );
+
+      await expect(
+        collectionOf(fake, 'stock-item').insertOne({ offeringId: 'o-1' }),
+      ).rejects.toMatchObject({ code: 11000 });
+    });
+
+    it('ignores a document missing the indexed field', async () => {
+      const fake = await indexed();
+
+      await collectionOf(fake, 'stock-item').insertOne({ id: 'i-2' });
+
+      expect(fake.read('stock-item')).toHaveLength(2);
+    });
+
+    it('enforces itself on insertMany', async () => {
+      const fake = await indexed();
+
+      await expect(
+        collectionOf(fake, 'stock-item').insertMany([{ offeringId: 'o-1' }]),
+      ).rejects.toMatchObject({ code: 11000 });
+    });
+
+    it('does not enforce a non-unique index', async () => {
+      const fake = stocked();
+      await collectionOf(fake, 'stock-item').createIndex({ offeringId: 1 });
+
+      await collectionOf(fake, 'stock-item').insertOne({ offeringId: 'o-1' });
+
+      expect(fake.read('stock-item')).toHaveLength(2);
+    });
+  });
+
+  describe('a session', () => {
+    it('commits every write a body makes', async () => {
+      const fake = stocked();
+      const session = fake.startSession();
+
+      await session.withTransaction(async () => {
+        await collectionOf(fake, 'stock-item').updateOne(
+          { offeringId: 'o-1' },
+          { $inc: { reserved: 2 } },
+        );
+        await collectionOf(fake, 'reservation').insertOne({ id: 'r-1' });
+      });
+
+      expect(fake.read('stock-item')[0]['reserved']).toBe(6);
+      expect(fake.read('reservation')).toHaveLength(1);
+    });
+
+    it('rolls the whole store back when the body throws', async () => {
+      const fake = stocked();
+      const session = fake.startSession();
+
+      await expect(
+        session.withTransaction(async () => {
+          await collectionOf(fake, 'stock-item').updateOne(
+            { offeringId: 'o-1' },
+            { $inc: { reserved: 2 } },
+          );
+          throw new Error('insufficient stock');
+        }),
+      ).rejects.toThrow('insufficient stock');
+
+      // The counter moved and was put back: a half-applied hold is exactly what
+      // the transaction exists to rule out.
+      expect(fake.read('stock-item')[0]['reserved']).toBe(4);
+      expect(fake.read('reservation')).toEqual([]);
+    });
+
+    it('returns what the body returned', async () => {
+      const session = makeFakeMongoDb().startSession();
+
+      expect(await session.withTransaction(async () => 'committed')).toBe(
+        'committed',
+      );
+    });
+
+    it('ends', async () => {
+      const session = makeFakeMongoDb().startSession();
+
+      expect(session.hasEnded).toBe(false);
+      await session.endSession();
+      expect(session.hasEnded).toBe(true);
+    });
   });
 });

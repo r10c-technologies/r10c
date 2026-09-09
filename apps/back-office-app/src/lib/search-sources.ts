@@ -1,6 +1,7 @@
 import { AUTH_SEARCH_SOURCES } from '@r10c/shells-next-auth/server';
 import type { RecordSearchSource } from '@r10c/shells-next-common/server';
 import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from '@r10c/shells-next-marketplace-admin/server';
+import { STOCK_SEARCH_SOURCES } from '@r10c/shells-next-stock/server';
 
 /**
  * **The** record search sources for the back office (ADR 0040).
@@ -22,5 +23,9 @@ import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from '@r10c/shells-next-marketplace-
  */
 export const SEARCH_SOURCES: readonly RecordSearchSource[] = [
   ...MARKETPLACE_ADMIN_SEARCH_SOURCES,
+  // Stock, searched by the offering a position belongs to — the only member of
+  // those entities that can name one of their records, and how a vendor thinks
+  // about them anyway.
+  ...STOCK_SEARCH_SOURCES,
   ...AUTH_SEARCH_SOURCES,
 ];

@@ -7,6 +7,7 @@ import {
 import { AUTH_NAV } from '@r10c/shells-next-auth/server';
 import type { NavSection } from '@r10c/shells-next-common';
 import { MARKETPLACE_ADMIN_NAV } from '@r10c/shells-next-marketplace-admin/server';
+import { STOCK_NAV } from '@r10c/shells-next-stock/server';
 import { SYSTEM_MANAGEMENT_NAV } from '@r10c/shells-next-system-management';
 
 import type { NavPrincipal } from './nav-principal';
@@ -31,6 +32,10 @@ export const NAV: GuardedNavSection[] = [
   // and their copy — and derives each item from the same `CatalogSurface` the
   // pages, the tabs and the search sources come from.
   ...MARKETPLACE_ADMIN_NAV,
+  // Contributed by the stock shell — the first Operaciones section, and the
+  // sidebar needed no change to render it: the tier comes from the section's
+  // own `type`, and its heading from `SCREEN_TYPE_LABEL_KEYS` (ADR 0033).
+  ...STOCK_NAV,
   // Contributed by the `scope:shared` system-management shell, which owns both
   // the screens and their copy — so mounting it in a second host later moves
   // nothing. Its items carry `config:configuration:*`, which only `super-admin`

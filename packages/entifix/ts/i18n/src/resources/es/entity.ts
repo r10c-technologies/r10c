@@ -498,6 +498,14 @@ export const entity = {
     },
   },
   'stock-item': {
+    // ⚠️ Un título de formulario para un registro que nadie crea a mano.
+    // `newTitle` es la condición del catálogo que `EntityCatalogKey` lee, no la
+    // promesa de un botón Nuevo: no hay permiso `stock-item:write` ni ruta de
+    // guardado, así que el descriptor servido no ofrece Guardar.
+    form: {
+      editTitle: 'Existencia',
+      newTitle: 'Existencia',
+    },
     label: 'Existencia',
     plural: 'Existencias',
     fields: {
@@ -508,6 +516,12 @@ export const entity = {
     },
   },
   'stock-movement': {
+    // La única superficie de escritura del dominio: un movimiento, con
+    // cantidad con signo y motivo. Registrar uno es como se mueve un total.
+    form: {
+      editTitle: 'Movimiento de existencias',
+      newTitle: 'Registrar movimiento',
+    },
     label: 'Movimiento de existencias',
     plural: 'Movimientos de existencias',
     fields: {
@@ -526,6 +540,12 @@ export const entity = {
     },
   },
   reservation: {
+    // La escribe el cruce del checkout, nunca una persona — así que esto
+    // titula un registro que se lee, y el caso "nueva" no llega a existir.
+    form: {
+      editTitle: 'Reserva',
+      newTitle: 'Reserva',
+    },
     label: 'Reserva',
     plural: 'Reservas',
     fields: {
