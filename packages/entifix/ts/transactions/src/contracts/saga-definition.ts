@@ -94,6 +94,19 @@ export interface SagaCallOutcome {
   readonly index: number;
   readonly status: number;
   readonly body: unknown;
+  /**
+   * The organization this call acted for, carried so its compensation acts on
+   * the same one.
+   *
+   * ⚠️ **Not derivable from the outcome, and its absence is silent.** A
+   * tenant-plane participant resolves its storage handle from
+   * `x-organization-id`, so a compensation dispatched without it is refused
+   * `400` — and the saga strands with every hold still in place while the
+   * engine reports it tried. Measured on the live lab: two holds taken, a third
+   * line refused, and both releases rejected for a missing header
+   * ([ADR 0023](../../../../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+   */
+  readonly organizationId?: string;
 }
 
 /** Every call one step made, in dispatch order. */

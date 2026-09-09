@@ -43,7 +43,9 @@ describe('ORDER_SEARCH_SOURCES', () => {
     // brand pages once requested routes that no longer existed while the e2e
     // fixture, stubbing the same wrong address, could not see it.
     for (const source of ORDER_SEARCH_SOURCES) {
-      expect(source.url('anything', 1).startsWith(ORDER_SERVICE_URL)).toBe(true);
+      expect(source.url('anything', 1).startsWith(ORDER_SERVICE_URL)).toBe(
+        true,
+      );
     }
   });
 });

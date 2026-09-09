@@ -78,10 +78,7 @@ export const permissionForOrderSurface = (surface: OrderSurface): Permission =>
 export const orderListAddress = (surface: OrderSurface): string =>
   screenAddress({ type: 'operation', key: surface.entityKey });
 
-export const orderRecordAddress = (
-  surface: OrderSurface,
-  id: string,
-): string =>
+export const orderRecordAddress = (surface: OrderSurface, id: string): string =>
   screenAddress({ type: 'operation', key: surface.entityKey, id });
 
 type OrderSurfaceDeclaration<TEntity extends Entity> = Omit<

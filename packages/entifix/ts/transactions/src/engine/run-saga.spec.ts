@@ -260,6 +260,38 @@ describe('runSaga — compensation', () => {
     expect(compensations[0]?.call.path).toBe('/api/reservation/r-0');
   });
 
+  /**
+   * ⚠️ **The bug a live pass caught and every mock suite missed.** A
+   * tenant-plane participant resolves its storage handle from
+   * `x-organization-id`; a compensation dispatched without it is refused `400`
+   * *before* it reaches the hold, and the saga strands with the stock still
+   * held while the engine reports it tried to release. Measured on the live lab
+   * on 2026-09-09: two holds taken, a third line refused, both releases
+   * rejected for a missing header.
+   *
+   * A mock harness could not see it because nothing there resolves a tenant
+   * handle — the organization was carried, unused, and its absence cost
+   * nothing.
+   */
+  it('compensates against the organization the call acted for', async () => {
+    const world = makeWorld((d, call) =>
+      d.participant === 'order-service'
+        ? refused
+        : ok({ data: { id: `r-${call}` } }),
+    );
+
+    await run(world);
+
+    const compensations = world.dispatched.filter(
+      d => d.call.method === 'DELETE',
+    );
+    // Reverse order, so vendor-b's hold is released first.
+    expect(compensations.map(d => d.organizationId)).toEqual([
+      'vendor-b',
+      'vendor-a',
+    ]);
+  });
+
   it('never dispatches a step after the one that was refused', async () => {
     const world = makeWorld(d => (d.call.method === 'POST' ? refused : ok()));
     await run(world);

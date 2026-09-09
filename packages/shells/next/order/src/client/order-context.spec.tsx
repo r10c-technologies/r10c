@@ -50,9 +50,14 @@ describe('the order adapters context', () => {
       wrapper: wrapperWith(),
     });
 
-    expect(Context.get(result.current.productOrderRest, EntityRepositoryTag)).toBeDefined();
     expect(
-      Context.get(result.current.configurationStore, ConfigurationRepositoryTag),
+      Context.get(result.current.productOrderRest, EntityRepositoryTag),
+    ).toBeDefined();
+    expect(
+      Context.get(
+        result.current.configurationStore,
+        ConfigurationRepositoryTag,
+      ),
     ).toBeDefined();
   });
 

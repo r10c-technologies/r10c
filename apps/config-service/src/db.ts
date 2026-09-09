@@ -259,6 +259,22 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'stock-service-domain',
     value: 'http://localhost:3108/api',
   },
+  // order-service, the back office's fourth backend. Platform plane rather than
+  // tenant, so the rows are not scoped to the viewer's organization — but the
+  // proxy still exists for the reads, because nothing here is anonymous either.
+  // The app rewrites it to `/api/order` before the browser sees it.
+  //
+  // ⚠️ **A rewrite with no row rewrites nothing.** `createConfigRoute` maps the
+  // rows it is given; a proxy entry naming a key config-service never serves
+  // leaves the browser composing URLs from an address it does not have — the
+  // nav appears, the screen loads, and every query fails. Caught on the live lab
+  // rather than by any check, because both halves look correct in isolation.
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'order-service-domain',
+    value: 'http://localhost:3105/api',
+  },
   // config-service's own address, so the admin app's system-management pages can
   // reach the configuration CRUD. The app rewrites it to a same-origin proxy path
   // before the browser sees it, exactly like the admin-service domain above.

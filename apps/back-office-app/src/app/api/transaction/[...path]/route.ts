@@ -26,6 +26,13 @@ export const dynamic = 'force-dynamic';
 
 const forward = createServiceProxyRoute({
   baseUrl: TRANSACTION_SERVICE_URL,
+  // ⚠️ **Put the segment back.** The other proxies strip their namespace because
+  // it names the *service* and the next segment names the entity —
+  // `/api/stock/stock-item` is `stock` then `stock-item`. Here they are the same
+  // word, so stripping it forwards `/api/transaction/events` to `/api/events`,
+  // which exists nowhere. The symptom is the one this proxy exists to prevent:
+  // the stream 404s, a pending write never settles, and every probe stays green.
+  pathPrefix: 'transaction',
 });
 
 export const GET = forward;

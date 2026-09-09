@@ -145,9 +145,9 @@ export const workspaceRegistry = new TabRegistry()
   // calls for one `operation:` grammar would be two registrations racing for
   // the same prefix.
   .register(
-    entityTabKind('operation', screensFor('operation', [
-      ...STOCK_CRUDS,
-      ...ORDER_CRUDS,
-    ])),
+    entityTabKind(
+      'operation',
+      screensFor('operation', [...STOCK_CRUDS, ...ORDER_CRUDS]),
+    ),
   )
   .register(wizardKind);

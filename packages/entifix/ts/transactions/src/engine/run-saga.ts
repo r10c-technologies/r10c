@@ -116,7 +116,14 @@ const runStep = (
         };
       }
 
-      calls.push({ index, status: response.status, body: response.body });
+      calls.push({
+        index,
+        status: response.status,
+        body: response.body,
+        // Carried so the compensation reaches the same tenant. Without it a
+        // release is refused `400` and the saga strands holding stock.
+        organizationId: input.organizationId,
+      });
     }
 
     return { calls };
@@ -156,7 +163,10 @@ const compensateStep = (
         compensation,
         sagaId,
         call.index,
-        {},
+        // ⚠️ The organization the *call* acted for, not an empty input. A
+        // tenant-plane participant resolves its handle from the header, so a
+        // compensation without it is refused before it reaches the hold.
+        { organizationId: call.organizationId },
         { outcome: call.body },
       ).pipe(
         Effect.catchAll(error =>

@@ -18,7 +18,9 @@ export default async function CartRoute({
   params,
   searchParams,
 }: LocaleRouteProps & {
-  readonly searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  readonly searchParams?: Promise<
+    Record<string, string | string[] | undefined>
+  >;
 }) {
   const query = await searchParams;
   const raw = query?.['checkout'];

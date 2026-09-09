@@ -128,15 +128,22 @@ describe('checkout', () => {
 
     const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
     expect(
-      body.inputs.reserve.map((r: { organizationId: string }) => r.organizationId),
+      body.inputs.reserve.map(
+        (r: { organizationId: string }) => r.organizationId,
+      ),
     ).toEqual(['v-a', 'v-b']);
   });
 
   it('sends the crossing token and never a session', async () => {
     await run();
 
-    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>;
-    expect(headers['x-crossing-token']).toBe('dev-saga-crossing-token-change-me');
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<
+      string,
+      string
+    >;
+    expect(headers['x-crossing-token']).toBe(
+      'dev-saga-crossing-token-change-me',
+    );
     expect(headers['Authorization']).toBeUndefined();
   });
 
