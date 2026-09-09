@@ -6,11 +6,7 @@ import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
-import {
-  EventSourceTag,
-  makeTransactionStreamHubEffect,
-  TransactionStreamHubTag,
-} from '@r10c/entifix-transactions';
+import { EventSourceTag } from '@r10c/entifix-transactions';
 import {
   AmqpEventBusLayer,
   AmqpHealthProbeLayer,
@@ -49,12 +45,6 @@ import {
   TenantDatabasePrefix,
 } from './outbox/relay';
 import { startPublicationRebuild } from './publication/rebuild';
-import { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
-import {
-  SagaRecoveryIntervalMs,
-  SagaStaleTimeoutMs,
-  startTracking,
-} from './saga/tracking';
 import { seedCatalog } from './seed';
 
 const SERVICE_NAME = 'marketplace-admin-service';
@@ -94,20 +84,6 @@ export const AppLayer = Layer.unwrapEffect(
     const outboxMaxAttempts = yield* store
       .in('outbox')
       .getNumber('maxAttempts');
-    // The `saga` store's database. A *named* handle over the same pool, beside
-    // the catalog's per-request tenant handles — see `saga/store.ts` for why it
-    // is a name rather than a second `MongoDatabaseLayer`.
-    const sagaDbName = yield* store.in('saga').getString('db');
-    // The recovery sweep's two dials. `getNumber` for the reason stated above:
-    // both are arithmetic — one becomes a `Duration`, the other a cutoff
-    // subtracted from `Date.now()` — and a non-numeric value would sweep either
-    // continuously or never, with nothing said about it.
-    const sagaStaleTimeoutMs = yield* store
-      .in('saga')
-      .getNumber('staleTimeoutMs');
-    const sagaRecoveryIntervalMs = yield* store
-      .in('saga')
-      .getNumber('recoveryIntervalMs');
     // The public half only. This service verifies access tokens and never mints
     // one, so it is configured with material that cannot sign.
     const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
@@ -145,7 +121,6 @@ export const AppLayer = Layer.unwrapEffect(
       ),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
-      Layer.succeed(SagaDatabaseName, sagaDbName),
       // Stamped onto every event this process publishes. The **slice**, not the
       // deployment: the `transaction` slice is co-deployed here, and a source
       // that named the process would relabel marketplace-admin's events the day
@@ -155,8 +130,6 @@ export const AppLayer = Layer.unwrapEffect(
       // slice owns, so it needs the prefix those handles are named with.
       Layer.succeed(TenantDatabasePrefix, tenantPrefix),
       Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
-      Layer.succeed(SagaStaleTimeoutMs, sagaStaleTimeoutMs),
-      Layer.succeed(SagaRecoveryIntervalMs, sagaRecoveryIntervalMs),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
@@ -172,13 +145,6 @@ export const AppLayer = Layer.unwrapEffect(
         RedisLockServiceLayer,
         RedisSequenceServiceLayer,
         AmqpEventBusLayer,
-        MongoTransactionStoreLayer,
-        // The in-process fan-out behind `GET /api/transaction/events`. Scoped,
-        // so the connections it holds are released with the server, and shared
-        // by the whole process: one bus subscription feeds every browser rather
-        // than a broker queue per open tab, which would be a broker resource a
-        // client controls.
-        Layer.scoped(TransactionStreamHubTag, makeTransactionStreamHubEffect),
       ),
       connections,
     );
@@ -189,9 +155,11 @@ export const AppLayer = Layer.unwrapEffect(
     const withProbes = Layer.provideMerge(
       Layer.mergeAll(
         // The logical Stores each connection backs, by their register name in
-        // `tools/slices/`. Mongo carries two: this slice's `catalog` and the
-        // co-deployed `transaction` slice's `saga` (ADR 0031).
-        MongoHealthProbeLayer(['catalog', 'saga']),
+        // `tools/slices/`. Mongo carries one again: the `saga` store left with
+        // its slice when ADR 0039's `:3103` trigger fired (#229), so probing it
+        // here would claim a readiness this process no longer answers for
+        // (ADR 0031).
+        MongoHealthProbeLayer(['catalog']),
         RedisHealthProbeLayer(['saga-coordination']),
         AmqpHealthProbeLayer,
       ),
@@ -215,11 +183,11 @@ export const AppLayer = Layer.unwrapEffect(
     // Seed depends on MongoClientTag from `infra`; provideMerge keeps the
     // infra services in the output so the routes can use them. Observability
     // (logger replacement + tracer) is merged so it is active for the server.
-    // `startTracking` is the co-deployed slice's boot step: it subscribes to the
-    // bus and forks the recovery sweep. Passive today — it observes and
-    // recovers, and dispatches nothing, because every transaction here is a
-    // single-step write and those stay choreography. ADR 0039 makes this slice
-    // the host of the orchestrator that multi-step, cross-slice flows need.
+    // The saga tracker's boot step used to run here. It left with the
+    // `transaction` slice for `:3103` (#229) — this process still *publishes*
+    // `transaction.*` through the outbox, and transaction-service consumes and
+    // folds it. Single-step writes are unchanged and stay choreography; what
+    // moved is the process, not the ownership (ADR 0021).
     return Layer.merge(
       observability,
       Layer.provideMerge(
@@ -237,7 +205,6 @@ export const AppLayer = Layer.unwrapEffect(
               Effect.andThen(startPublicationRebuild),
             ),
           ),
-          Layer.effectDiscard(startTracking),
           // The slow half of the outbox relay. The fast half runs inline in the
           // create route, which already holds the tenant handle; this sweep is
           // what carries an entry the process died before publishing, or one

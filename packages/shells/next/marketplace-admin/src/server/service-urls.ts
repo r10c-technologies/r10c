@@ -19,3 +19,19 @@ export const MARKETPLACE_ADMIN_SERVICE_URL =
 
 export const MARKETPLACE_SERVICE_URL =
   process.env.MARKETPLACE_SERVICE_URL ?? 'http://localhost:3100';
+
+/**
+ * Where transaction-service listens, server-side.
+ *
+ * It sits in this shell rather than one of its own because the surface that
+ * needs it is the catalog's: a `202` from a catalog write is what the browser
+ * then watches, through the same-origin `/api/transaction` proxy. The
+ * `transaction` slice owns no domain and mounts no screens, so a
+ * `shells-next-transaction` package would hold this constant and nothing else.
+ *
+ * ⚠️ `:3103`, not `:3101`. The slice moved to its own process when ADR 0039's
+ * stated trigger fired (#229) — a wrong value here shows up as a write that
+ * stays `PENDING` forever while every probe stays green.
+ */
+export const TRANSACTION_SERVICE_URL =
+  process.env.TRANSACTION_SERVICE_URL ?? 'http://localhost:3103';

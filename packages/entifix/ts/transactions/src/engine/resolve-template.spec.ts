@@ -17,9 +17,9 @@ describe('resolveTemplate', () => {
   });
 
   it('resolves several placeholders in one template', () => {
-    expect(
-      resolveTemplate('/api/{a}/{b}', { a: 'one', b: 'two' }),
-    ).toBe('/api/one/two');
+    expect(resolveTemplate('/api/{a}/{b}', { a: 'one', b: 'two' })).toBe(
+      '/api/one/two',
+    );
   });
 
   /** An id is data, and a path segment is not the place to discover a slash. */
@@ -49,7 +49,9 @@ describe('resolveTemplate', () => {
 
   it('throws when a path runs through a non-object', () => {
     expect(() =>
-      resolveTemplate('/api/x/{outcome.data.id}', { outcome: { data: 'flat' } }),
+      resolveTemplate('/api/x/{outcome.data.id}', {
+        outcome: { data: 'flat' },
+      }),
     ).toThrow(EntifixLogicError);
   });
 

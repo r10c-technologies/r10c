@@ -16,6 +16,7 @@ import {
   type SagaState,
   SagaStoreTag,
 } from '../ports/saga-store.js';
+import type { SagaInputs } from './run-saga.js';
 import { runSaga } from './run-saga.js';
 
 /**
@@ -115,7 +116,7 @@ const checkout = defineSaga({
   ],
 });
 
-const twoLines = {
+const twoLines: SagaInputs = {
   reserve: [
     { body: { offeringId: 'o-1' }, organizationId: 'vendor-a' },
     { body: { offeringId: 'o-2' }, organizationId: 'vendor-b' },
@@ -123,7 +124,10 @@ const twoLines = {
   'write-order': [{ body: { total: 2 } }],
 };
 
-const run = (world: ReturnType<typeof makeWorld>, inputs = twoLines) =>
+const run = (
+  world: ReturnType<typeof makeWorld>,
+  inputs: SagaInputs = twoLines,
+) =>
   Effect.runPromise(
     runSaga({ sagaId: 'saga-1', definition: checkout, inputs }).pipe(
       Effect.provide(world.layer),
@@ -142,7 +146,9 @@ describe('runSaga — the happy path', () => {
       '/api/reservation',
       '/api/product-order',
     ]);
-    expect(world.transitions).toEqual([{ state: 'COMPLETED', error: undefined }]);
+    expect(world.transitions).toEqual([
+      { state: 'COMPLETED', error: undefined },
+    ]);
   });
 
   it('records the instance as RUNNING before anything is dispatched', async () => {
@@ -222,7 +228,9 @@ describe('runSaga — compensation', () => {
     const result = await run(world);
 
     expect(result.state).toBe('COMPENSATED');
-    const compensations = world.dispatched.filter(d => d.call.method === 'DELETE');
+    const compensations = world.dispatched.filter(
+      d => d.call.method === 'DELETE',
+    );
     expect(compensations.map(d => d.call.path)).toEqual([
       '/api/reservation/r-1',
       '/api/reservation/r-0',
@@ -244,7 +252,9 @@ describe('runSaga — compensation', () => {
     const result = await run(world);
 
     expect(result.state).toBe('COMPENSATED');
-    const compensations = world.dispatched.filter(d => d.call.method === 'DELETE');
+    const compensations = world.dispatched.filter(
+      d => d.call.method === 'DELETE',
+    );
     expect(compensations).toHaveLength(1);
     expect(compensations[0]?.call.path).toBe('/api/reservation/r-0');
   });
@@ -260,7 +270,9 @@ describe('runSaga — compensation', () => {
 
   it('moves through COMPENSATING before settling', async () => {
     const world = makeWorld((d, call) =>
-      d.participant === 'order-service' ? refused : ok({ data: { id: `r-${call}` } }),
+      d.participant === 'order-service'
+        ? refused
+        : ok({ data: { id: `r-${call}` } }),
     );
     await run(world);
 
@@ -273,11 +285,16 @@ describe('runSaga — compensation', () => {
 
   it('records an outcome for the refused step as well as the successful ones', async () => {
     const world = makeWorld((d, call) =>
-      d.participant === 'order-service' ? refused : ok({ data: { id: `r-${call}` } }),
+      d.participant === 'order-service'
+        ? refused
+        : ok({ data: { id: `r-${call}` } }),
     );
     await run(world);
 
-    expect(world.outcomes.map(o => o.stepId)).toEqual(['reserve', 'write-order']);
+    expect(world.outcomes.map(o => o.stepId)).toEqual([
+      'reserve',
+      'write-order',
+    ]);
     expect(world.outcomes[1]?.calls).toEqual([]);
   });
 });
@@ -405,7 +422,9 @@ describe('runSaga — a step with no compensation', () => {
     // Nothing was reversible, so nothing was reversed — and the saga is
     // COMPENSATED rather than STRANDED, because no compensation failed.
     expect(result.state).toBe('COMPENSATED');
-    expect(world.dispatched.filter(d => d.call.method === 'DELETE')).toEqual([]);
+    expect(world.dispatched.filter(d => d.call.method === 'DELETE')).toEqual(
+      [],
+    );
   });
 });
 

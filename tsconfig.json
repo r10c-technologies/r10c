@@ -182,6 +182,9 @@
     },
     {
       "path": "./packages/shells/next/stock"
+    },
+    {
+      "path": "./apps/transaction-service"
     }
   ]
 }

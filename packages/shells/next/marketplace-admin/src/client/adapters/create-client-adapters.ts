@@ -63,6 +63,18 @@ const CATALOG_SERVICE_REST = restOptionsFor('marketplace-admin-service-domain');
 const REFERENCE_SERVICE = restOptionsFor('marketplace-service-domain');
 
 /**
+ * transaction-service, which a catalog `202` hands the browser off to.
+ *
+ * ⚠️ **Its own domain key, not the catalog's.** The tracker used to answer on
+ * marketplace-admin-service because the `transaction` slice was co-deployed
+ * there; it took `:3103` when ADR 0039's stated trigger fired (#229). Composing
+ * its URL from {@link CATALOG_SERVICE} would keep pointing the status read at
+ * `/api/admin`, where nothing serves it any more — and the symptom is a write
+ * that stays `PENDING` forever rather than an error anyone sees.
+ */
+export const TRANSACTION_SERVICE = restOptionsFor('transaction-service-domain');
+
+/**
  * Builds the full CRUD adapter set for one entity, backed by REST, under the
  * shared {@link EntityRepositoryTag}. Each page merges only the entity context
  * it needs, so the single tag never collides at the point of use. Link

@@ -1,13 +1,26 @@
 import type { SliceDeclaration } from '../types.js';
 
 /**
- * The saga tracker: a passive consumer that folds transaction events into a
- * durable record clients poll after their `202`.
+ * The saga tracker and the multi-step coordinator: it folds transaction events
+ * into the durable record clients poll after their `202`, and it walks
+ * declarative flow definitions.
  *
  * It owns a store, so it is a slice. Whether it runs as its own process or is
  * co-deployed into another is a deployment fact, not an ownership one — the
  * `saga` store has exactly one writing slice either way, and moving it is a
  * matter of pointing `deployments` at a different app.
+ *
+ * **That claim was cashed on 2026-09-08 (#229).** ADR 0039 deferred the split to
+ * `:3103` with a stated condition — *"the first flow with a participant outside
+ * marketplace-admin-service"* — and checkout's participants are stock-service
+ * and order-service. The trigger fired, and the split was what ADR 0021 said it
+ * would be: this declaration's `deployments` moved, `saga/store.ts` moved with
+ * its explicit `client.db(name)` handle, and no data moved at all.
+ *
+ * It still hosts **no domain**. Orchestration is a mechanism, and a domain name
+ * is simultaneously a package identity, the `@entity({ domain })` value, a
+ * permission namespace and an entitlement key — none of which anything would
+ * ever be provisioned for here.
  */
 export const transactionSlice: SliceDeclaration = {
   name: 'transaction',
@@ -22,10 +35,25 @@ export const transactionSlice: SliceDeclaration = {
       truth: 'system-of-record',
     },
   ],
-  deployments: ['marketplace-admin-service'],
-  coDeployedWith: ['marketplace-admin'],
-  exposedAPIs: ['GET /api/transaction/:id', 'GET /api/transaction/events'],
-  dependantAPIs: ['GET /api/config/:service'],
+  deployments: ['transaction-service'],
+  coDeployedWith: [],
+  exposedAPIs: [
+    'GET /api/transaction/:id',
+    'GET /api/transaction/events',
+    // The coordinator. Generic rather than `/api/checkout`, because this slice
+    // declares no domain and a business verb here would put a domain name in a
+    // permission namespace (ADR 0039, ADR 0052).
+    'POST /api/saga/:definition',
+  ],
+  dependantAPIs: [
+    'GET /api/config/:service',
+    // The steps checkout dispatches, each behind ADR 0023's crossing with that
+    // participant's own token. Named here because a split needs to know them.
+    'POST /api/reservation',
+    'DELETE /api/reservation/:id',
+    'POST /api/product-order',
+    'DELETE /api/product-order/:id',
+  ],
   publishedEvents: [],
   subscriptions: [
     // Work: the fold is an idempotent upsert that wants exactly one replica,

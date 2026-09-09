@@ -37,7 +37,7 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     },
   ],
   deployments: ['marketplace-admin-service'],
-  coDeployedWith: ['transaction'],
+  coDeployedWith: [],
   // Brand and category moved to the `marketplace` slice with ADR 0022: they are
   // platform reference data, not per-vendor rows, so this slice stopped serving
   // them rather than becoming a second writer.

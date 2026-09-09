@@ -9,7 +9,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | marketplace (0)         | 3000   | 3100²               |
 | marketplace-admin (1)   | 3001⁴  | 3101                |
 | auth (2)                | —⁴     | 3102                |
-| transaction-manager (3) | —³     | —³                  |
+| transaction-manager (3) | —      | 3103³               |
 | system-management (4)   | 3004¹  | —                   |
 | order (5)               | —      | 3105⁵               |
 | payment (6)             | —      | 3106⁵               |
@@ -60,16 +60,40 @@ comes up healthy, green on every probe, serving an empty catalog.
 The difference from the version that was deleted is exactly the thing ADR 0020
 made sayable: a deployment earns its existence by owning a store.
 
-³ `3103` is free. The `transaction` slice still exists and still owns the `saga`
-store; it is **co-deployed** into marketplace-admin-service rather than running
-as its own process. That distinction is the point: ownership did not move, only
-the process did, so splitting it back out means pointing its declaration in
-`tools/slices/` at a new app and reclaiming this index — not untangling a
-database. It serves `/api/transaction/:id` and `/api/transaction/events` on
-`:3101` — both authenticated and organization-scoped since
+³ **transaction-service, bound — and this index is the one that proves the
+claim it was reserved on.** The `transaction` slice was **co-deployed** into
+marketplace-admin-service, and the note here said that ownership had not moved,
+only the process, so splitting it back out would mean pointing its declaration
+in `tools/slices/` at a new app rather than untangling a database.
+
+That is exactly what happened on 2026-09-08 (#229). ADR 0039 deferred the split
+with a stated condition — _"the first flow with a participant outside
+marketplace-admin-service"_ — and checkout's participants turned out to be
+stock-service (`:3108`) and order-service (`:3105`). The trigger fired; the
+`saga` store's handle was already an explicit `client.db(name)`, so the module
+moved unchanged and no data moved at all.
+
+It serves `/api/transaction/:id` and `/api/transaction/events` — both
+authenticated and organization-scoped since
 [ADR 0036](../adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md) —
-and the catalog's
-`202` link is relative so callers never encoded either arrangement.
+plus `POST /api/saga/:definition`, the coordinator that walks a declarative flow
+([ADR 0052](../adr/0052-the-checkout-saga.md)). The route is generic rather than
+`/api/checkout` because this slice declares **no domain**, and a business verb
+here would put a domain name in a permission namespace nothing is provisioned
+for.
+
+⚠️ **The browser's path did not change, and could not.** Those two reads move
+from `:3101` to `:3103` behind the back office's own same-origin proxy, which
+gains a `transaction-service-domain` config row and an `/api/transaction`
+rewrite. The stream is same-origin by _necessity_ — the session cookie is
+`httpOnly` and an `EventSource` aimed at the service directly carries no
+credential — and the catalog's `202` link is relative, so no caller ever encoded
+either arrangement.
+
+It holds a **crossing token per participant**, which is the concentration
+ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
+name any organization. Separate `is_secret` rows, separate rotations, and the
+named upgrade path is unchanged.
 
 ⁵ **Reserved, not bound.** The `order`, `payment`, `settlement` and `sales`
 slices exist in the register and own their stores, but are `planned` — no
@@ -80,10 +104,11 @@ allocated now so that promoting a slice is a `deployments` edit rather than a
 port negotiation. They are deliberately **not** in `ALL_PORTS`
 (`tools/free-ports.sh`) until something binds them.
 
-`sales` takes index 9 rather than the free `3103`, which stays reserved for the
-`transaction` slice splitting back out of marketplace-admin-service. Reclaiming
-an index that already means something else is how a port table stops being
-readable.
+`sales` took index 9 rather than the then-free `3103`, which was reserved for
+the `transaction` slice splitting back out of marketplace-admin-service — and
+now holds it. Reclaiming an index that already means something else is how a
+port table stops being readable, and the reservation is what made the split a
+`deployments` edit rather than a port negotiation.
 
 ⁶ **stock-service, bound.** The first of the five reserved indices to be
 claimed. It owns the `stock` store — tenant plane, one Mongo database per

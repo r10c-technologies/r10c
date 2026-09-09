@@ -43,21 +43,21 @@ declaration as `bindingReason`.
 
 <!-- docs:begin store-register -->
 
-| Store               | Plane    | Owner slice         | Slice status | Co-deployed with    | Hosts                                                         | Partitioning     | Truth                   |
-| ------------------- | -------- | ------------------- | ------------ | ------------------- | ------------------------------------------------------------- | ---------------- | ----------------------- |
-| `auth`              | control  | `auth`              | active       | —                   | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record        |
-| `catalog-reference` | platform | `marketplace`       | active       | —                   | `catalog-reference`                                           | single           | system-of-record        |
-| `catalog`           | tenant   | `marketplace-admin` | active       | `transaction`       | `product-configuration-management`                            | per-organization | system-of-record        |
-| `configuration`     | control  | `config`            | active       | —                   | `config`                                                      | single           | system-of-record        |
-| `order`             | platform | `order`             | **planned**  | —                   | `order-management`                                            | single           | system-of-record        |
-| `payment`           | platform | `payment`           | **planned**  | —                   | `payment-management`                                          | single           | system-of-record        |
-| `published-catalog` | platform | `marketplace`       | active       | —                   | `marketplace-catalog`                                         | single           | `projection-of:catalog` |
-| `saga-coordination` | control  | `marketplace-admin` | active       | `transaction`       | —                                                             | single           | system-of-record        |
-| `saga`              | control  | `transaction`       | active       | `marketplace-admin` | —                                                             | single           | system-of-record        |
-| `sales`             | tenant   | `sales`             | **planned**  | —                   | `sales-management`                                            | per-organization | system-of-record        |
-| `session`           | control  | `auth`              | active       | —                   | —                                                             | single           | system-of-record        |
-| `settlement`        | control  | `settlement`        | **planned**  | —                   | `settlement-management`                                       | single           | system-of-record        |
-| `stock`             | tenant   | `stock`             | active       | —                   | `stock-management`                                            | per-organization | system-of-record        |
+| Store               | Plane    | Owner slice         | Slice status | Co-deployed with | Hosts                                                         | Partitioning     | Truth                   |
+| ------------------- | -------- | ------------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------------- | ----------------------- |
+| `auth`              | control  | `auth`              | active       | —                | `authn` **+** `party-management` **+** `access-management` ⚠️ | single           | system-of-record        |
+| `catalog-reference` | platform | `marketplace`       | active       | —                | `catalog-reference`                                           | single           | system-of-record        |
+| `catalog`           | tenant   | `marketplace-admin` | active       | —                | `product-configuration-management`                            | per-organization | system-of-record        |
+| `configuration`     | control  | `config`            | active       | —                | `config`                                                      | single           | system-of-record        |
+| `order`             | platform | `order`             | **planned**  | —                | `order-management`                                            | single           | system-of-record        |
+| `payment`           | platform | `payment`           | **planned**  | —                | `payment-management`                                          | single           | system-of-record        |
+| `published-catalog` | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog` |
+| `saga-coordination` | control  | `marketplace-admin` | active       | —                | —                                                             | single           | system-of-record        |
+| `saga`              | control  | `transaction`       | active       | —                | —                                                             | single           | system-of-record        |
+| `sales`             | tenant   | `sales`             | **planned**  | —                | `sales-management`                                            | per-organization | system-of-record        |
+| `session`           | control  | `auth`              | active       | —                | —                                                             | single           | system-of-record        |
+| `settlement`        | control  | `settlement`        | **planned**  | —                | `settlement-management`                                       | single           | system-of-record        |
+| `stock`             | tenant   | `stock`             | active       | —                | `stock-management`                                            | per-organization | system-of-record        |
 
 <!-- docs:end store-register -->
 

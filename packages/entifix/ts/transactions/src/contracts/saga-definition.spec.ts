@@ -14,7 +14,9 @@ const del: SagaCall = {
   path: '/api/reservation/{outcome.data.id}',
 };
 
-const step = (overrides: Partial<SagaStep> & Pick<SagaStep, 'id'>): SagaStep => ({
+const step = (
+  overrides: Partial<SagaStep> & Pick<SagaStep, 'id'>,
+): SagaStep => ({
   participant: 'stock-service',
   command: post,
   kind: 'compensatable',
@@ -26,7 +28,10 @@ describe('defineSaga validates at load', () => {
   it('returns a well-formed definition unchanged', () => {
     const definition = {
       name: 'checkout',
-      steps: [step({ id: 'reserve', fanOut: true }), step({ id: 'write-order' })],
+      steps: [
+        step({ id: 'reserve', fanOut: true }),
+        step({ id: 'write-order' }),
+      ],
     };
 
     expect(defineSaga(definition)).toBe(definition);
@@ -154,7 +159,9 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'no-pivot-retry',
-        steps: [step({ id: 'notify', kind: 'retriable', compensation: undefined })],
+        steps: [
+          step({ id: 'notify', kind: 'retriable', compensation: undefined }),
+        ],
       }),
     ).toThrow(/'notify' is retriable but sits before the pivot/);
   });

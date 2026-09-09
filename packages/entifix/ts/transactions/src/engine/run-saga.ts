@@ -40,7 +40,10 @@ export interface SagaResult {
   readonly error?: string;
 }
 
-const inputsFor = (step: SagaStep, inputs: SagaInputs): readonly SagaStepInput[] => {
+const inputsFor = (
+  step: SagaStep,
+  inputs: SagaInputs,
+): readonly SagaStepInput[] => {
   const declared = inputs[step.id] ?? [];
   // A non-fan-out step makes exactly one call whether or not it was given an
   // input, so an absent entry is an empty body rather than a skipped step.
@@ -60,9 +63,16 @@ const dispatchCall = (
     return yield* dispatcher.dispatch({
       participant: step.participant,
       call: { method: call.method, path: resolveTemplate(call.path, scope) },
-      commandId: sagaCommandId(sagaId, step.id, step.fanOut ? index : undefined),
+      commandId: sagaCommandId(
+        sagaId,
+        step.id,
+        step.fanOut ? index : undefined,
+      ),
       organizationId: input.organizationId,
-      body: call.method === 'GET' || call.method === 'DELETE' ? undefined : input.body,
+      body:
+        call.method === 'GET' || call.method === 'DELETE'
+          ? undefined
+          : input.body,
     });
   });
 
@@ -149,7 +159,9 @@ const compensateStep = (
         {},
         { outcome: call.body },
       ).pipe(
-        Effect.catchAll(error => Effect.succeed({ ok: false, status: 0, body: error })),
+        Effect.catchAll(error =>
+          Effect.succeed({ ok: false, status: 0, body: error }),
+        ),
         // A template that no longer matches the participant's response shape
         // throws rather than interpolating `undefined`; that is a defect, and
         // it is reported as a stranded compensation rather than crashing the
