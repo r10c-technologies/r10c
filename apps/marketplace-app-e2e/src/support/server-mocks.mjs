@@ -49,7 +49,7 @@ register('./ts-loader.mjs', import.meta.url);
 const [
   { ProductBrand, ProductCategory },
   { PublishedOffering },
-  { configurationHandler, entityBackendHandlers },
+  { configurationHandler, entityBackendHandlers, http, HttpResponse },
   { setupServer },
   { BRAND_SEED, CATEGORY_SEED, OFFERING_SEED },
 ] = await Promise.all([
@@ -88,8 +88,67 @@ const collections = [
   }),
 ];
 
+/**
+ * The checkout coordinator.
+ *
+ * ⚠️ **Not an entity backend**, and not a bare `201` either: the storefront's
+ * confirmation page renders the order out of the saga's *own* answer, so a stub
+ * that omitted the outcomes would exercise the degraded path while the spec
+ * claimed to test a receipt. The shape here is transaction-service's, one
+ * outcome per step, each carrying the participant's response body verbatim.
+ *
+ * It echoes the lines it was sent, so the receipt shows what the browser
+ * actually put in the cart rather than a fixture that cannot disagree with it.
+ */
+const CHECKOUT_URL = 'http://localhost:3103/api/saga/checkout';
+
+const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
+  const body = await request.json();
+  const items = body?.inputs?.['write-order']?.[0]?.body?.data?.items ?? [];
+
+  return HttpResponse.json(
+    {
+      meta: { type: 'sagaResult', entity: 'checkout' },
+      data: {
+        sagaId: 'e2e-saga',
+        state: 'COMPLETED',
+        outcomes: [
+          {
+            stepId: 'reserve',
+            calls: items.map((_line, index) => ({
+              index,
+              status: 201,
+              body: {},
+            })),
+          },
+          {
+            stepId: 'write-order',
+            calls: [
+              {
+                index: 0,
+                status: 201,
+                body: {
+                  meta: { type: 'entity', entity: 'product-order' },
+                  data: {
+                    id: 'e2e-order-1',
+                    status: 'pending',
+                    placedAt: '2026-09-09T00:00:00.000Z',
+                    items,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    },
+    { status: 201 },
+  );
+});
+
 setupServer(
   configurationHandler(CONFIG_URL, CONFIGURATION),
+  checkoutHandler,
   ...collections.flatMap(({ handlers }) => handlers),
 ).listen({
   // Next serves its own documents, RSC payloads and static assets over this

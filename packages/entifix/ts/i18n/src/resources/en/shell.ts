@@ -280,6 +280,19 @@ export const shell: EsShell = {
       empty: 'Nothing here is still on sale.',
       failed: 'Checkout could not be completed. Please try again.',
     },
+    order: {
+      heading: 'Thank you for your purchase',
+      placed: 'Your order is placed, and the vendor has been notified.',
+      reference: 'Order number',
+      units: 'Qty {{count}}',
+      total: 'Total',
+      tooManyLines:
+        'This order has {{count}} items, too many to list here. The order number above identifies all of them.',
+      keepShopping: 'Keep shopping',
+      expiredHeading: 'There is no order to show',
+      expired:
+        'The receipt for your last purchase is no longer available in this browser. If you have just bought something, check your confirmation email.',
+    },
     footer: {
       note: 'Demo catalog. No order is real.',
     },

@@ -46,6 +46,22 @@ export interface TokenClaims {
    */
   readonly partyRole?: string;
   /**
+   * The party behind the account — the `Individual` id that domains recording a
+   * party key against, and the value a `ProductOrder.buyerId` holds.
+   *
+   * It is carried because the hop from an account to a party exists in exactly
+   * one store, the one that mints this token. A service scoping a read to the
+   * caller's own records needs the party and cannot derive it from
+   * {@link TokenClaims.userId} without reading another slice's collections.
+   *
+   * Absent for an account with no party record. A consumer must read the
+   * absence as *no party* — scoping to nothing — never as *any party*.
+   *
+   * Like `activeOrganizationId` and `partyRole` this is context, not a grant:
+   * it says whose records these are, never what may be done with them.
+   */
+  readonly partyId?: string;
+  /**
    * The business domains the acting organization is provisioned for — the
    * second assignment ceiling (ADR 0007), carried so a server-rendered menu can
    * shape itself without a lookup on every render.

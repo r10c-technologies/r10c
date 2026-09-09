@@ -10,9 +10,10 @@ import { Effect } from 'effect';
 /**
  * A stored session record becomes the {@link Principal} carried per request.
  *
- * The scope the session was opened in — its organization and its party role —
- * travels with it. Dropping either would make a principal resolved through this
- * path quietly narrower than the same principal rebuilt from an access token.
+ * The scope the session was opened in — its organization, its party role and
+ * the party itself — travels with it. Dropping any of them would make a
+ * principal resolved through this path quietly narrower than the same principal
+ * rebuilt from an access token.
  */
 const toPrincipal = (record: SessionRecord): Principal => ({
   userId: record.userId,
@@ -21,6 +22,7 @@ const toPrincipal = (record: SessionRecord): Principal => ({
   roles: record.roles,
   organizationId: record.activeOrganizationId,
   partyRole: record.partyRole,
+  partyId: record.partyId,
   attributes: record.attributes,
 });
 

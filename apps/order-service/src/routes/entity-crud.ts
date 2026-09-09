@@ -20,6 +20,7 @@ import {
   type EntityLoadRequest,
   envelopeEntityName,
   extractMetaEntity,
+  type FilterGroup,
   makeEntityEnvelope,
   makeEntityPageEnvelope,
   parseLoadRequestParams,
@@ -28,7 +29,10 @@ import {
   makeMongoRepository,
   MongoDatabaseTag,
 } from '@r10c/entifix-ts-mongo-client';
-import { requirePermission } from '@r10c/shells-effect-service';
+import {
+  type RequestPrincipal,
+  requirePermission,
+} from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
 /**
@@ -116,13 +120,37 @@ const collectionLinks = (key: string): EntifixEnvelopeLink[] => [
   { rel: 'self', href: `/api/${key}`, method: 'GET' },
 ];
 
-/** Generic list route for an entity, backed by Mongo + the entifix load UC. */
+/**
+ * Generic list route for an entity, backed by Mongo + the entifix load UC.
+ *
+ * `scopeFilter` is the route's own predicate, and it is **conjoined** rather
+ * than substituted: `parseLoadRequestParams` collapses the caller's whole
+ * expression into one element of `filtering`, and the Mongo translator `$and`s
+ * every top-level element — so an added element can only narrow, and no `or` in
+ * a query string can escape it. Building the same thing by concatenating rsql
+ * would not have that property.
+ *
+ * ⚠️ The envelope echoes the request back, so the predicate is visible in the
+ * response body. That discloses the caller's own scope to the caller, which is
+ * what they already know.
+ */
 export const listRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
+  scopeFilter?: FilterGroup<T>,
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
-    const request = yield* readLoadRequest(entityConstructor);
+    const parsed = yield* readLoadRequest(entityConstructor);
+    const request =
+      scopeFilter === undefined
+        ? parsed
+        : ({
+            ...parsed,
+            filtering: [
+              ...(parsed.filtering ?? []),
+              scopeFilter,
+            ],
+          } as EntityLoadRequest);
     const page = yield* loadUCFactory<T>().pipe(
       Effect.provideService(
         EntityRepositoryTag,
@@ -139,9 +167,44 @@ export const listRoute = <T extends Entity>(
     );
   }).pipe(Effect.catchAll(readError));
 
-/** Generic single-record route by `:id`. */
+/**
+ * An empty page, answered without reading anything.
+ *
+ * The response for a caller whose own records cannot be identified — a vendor
+ * session with no organization, or an account with no party. It is a page and
+ * not a `403`, because holding the read grant and owning no records are
+ * different facts, and the second one is not an error.
+ *
+ * The request is still parsed, so a malformed `rsql` is still the `400` it would
+ * be for anybody else: whether a query is well-formed must not depend on who
+ * asked.
+ */
+export const emptyPageRoute = <T extends Entity>(
+  entityConstructor: EntityConstructor<T>,
+) =>
+  Effect.gen(function* () {
+    const request = yield* readLoadRequest(entityConstructor);
+    return yield* HttpServerResponse.json(
+      makeEntityPageEnvelope(
+        entityConstructor,
+        { items: [], total: 0, request },
+        collectionLinks(envelopeEntityName(entityConstructor)),
+      ),
+    );
+  }).pipe(Effect.catchAll(readError));
+
+/**
+ * Generic single-record route by `:id`.
+ *
+ * `inScope` is checked **after** the load rather than folded into it, because
+ * `id` is the one member that is neither sortable nor filterable and so cannot
+ * be queried at all. A record outside the caller's scope answers the same `404`
+ * an absent one does: a `403` here would confirm the order exists to somebody
+ * who may not read it.
+ */
 export const byIdRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
+  inScope: (entity: T) => boolean = () => true,
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -153,6 +216,9 @@ export const byIdRoute = <T extends Entity>(
       ),
       Effect.provideService(EntityIdTag, params.id),
     );
+    if (!inScope(entity)) {
+      return yield* Effect.fail(new EntifixBuildError('out of scope'));
+    }
     const key = envelopeEntityName(entityConstructor);
     return yield* HttpServerResponse.json(
       makeEntityEnvelope(
@@ -190,8 +256,5 @@ export const byIdRoute = <T extends Entity>(
 export const guarded = <T extends Entity, A, E, R>(
   entityConstructor: EntityConstructor<T>,
   action: Action,
-  route: Effect.Effect<A, E, R>,
-) =>
-  requirePermission(permissionForEntity(entityConstructor, action))(
-    () => route,
-  );
+  route: (principal: RequestPrincipal) => Effect.Effect<A, E, R>,
+) => requirePermission(permissionForEntity(entityConstructor, action))(route);

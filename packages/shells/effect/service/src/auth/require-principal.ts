@@ -37,6 +37,16 @@ export interface RequestPrincipal {
    */
   readonly partyRole?: string;
   /**
+   * The party behind the account — the `Individual` id, absent for an account
+   * with no party record.
+   *
+   * Same rule as the two fields above: it comes from the verified token and
+   * never from anything the caller sets on the request. It says *whose* records
+   * these are, which is what a route scoping a read to its caller needs; it
+   * says nothing about what may be done with them.
+   */
+  readonly partyId?: string;
+  /**
    * When the verified token stops being valid, as a Unix timestamp in seconds.
    *
    * Every REST route is already bounded by it implicitly — verification is
@@ -73,6 +83,7 @@ const claimsToPrincipal = (claims: TokenClaims): RequestPrincipal => ({
   // Same rule, same reason: it comes from the verified token, never from
   // anything the caller can set on the request.
   partyRole: claims.partyRole,
+  partyId: claims.partyId,
   // `TokenClaims` carries an index signature, so `exp` arrives as `unknown`
   // even though jose always sets it — hence the guard rather than a cast.
   expiresAt: typeof claims.exp === 'number' ? claims.exp : undefined,

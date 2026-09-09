@@ -51,11 +51,13 @@ export const ORDER_NAV: GuardedNavSection[] = [
       // provisioned for nothing does not.
       //
       // ⚠️ The store is **platform** plane rather than tenant, which does not
-      // change the gate but does change what it means: the rows are not scoped
-      // to the viewer's organization, so a vendor holding the read grant
-      // currently sees every order. That residual is recorded on
-      // `product-order.routes.ts` and is a filter derived from the principal,
-      // not a nav change.
+      // change the gate but does change how the rows behind it are narrowed:
+      // there is no tenant handle, so the service scopes the read with a
+      // predicate built from the verified principal — a vendor sees the orders
+      // that owe them a line
+      // ([ADR 0053](../../../../../docs/adr/0053-scoping-a-platform-plane-read-to-its-caller.md)).
+      // Hiding the item would protect nothing either way; the route is the
+      // boundary.
       entitled: true,
     })),
   },

@@ -221,6 +221,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0016](docs/adr/0016-zitadel-authenticates-r10c-authorizes.md) **Zitadel authenticates; r10c authorizes and mints its own tokens** — read when anything touching sign-in, credentials, lockout or account recovery — there is no password here to reset or to guess, and each field has one writer.
 - [0017](docs/adr/0017-back-channel-logout-from-the-identity-provider.md) **Back-channel logout: the provider can end an r10c session** — read when changing sign-out or session revocation — the reverse direction needs the `oidc:sid` index and its own verifier, whose missing-`nonce` check is what makes it safe.
 - [0019](docs/adr/0019-provider-user-lifecycle-events-revoke-sessions.md) **A user deactivated at the provider loses their r10c sessions** — read when a user deactivated at the provider keeps refreshing — the seam is an Actions v2 execution authenticated by HMAC, and the signing key is minted once and never served again.
+- [0053](docs/adr/0053-scoping-a-platform-plane-read-to-its-caller.md) **Scoping a platform-plane read to its caller, and a receipt that needs no session** — read when a read has to be narrowed to whoever is asking, or an anonymous buyer has to be shown something that is theirs — the scope is conjoined onto the load request and never expressed as a query, and a receipt is carried rather than read back.
 
 **Platform, observability, docs and conventions**
 

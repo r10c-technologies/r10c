@@ -26,6 +26,20 @@ export interface SessionScope {
    */
   readonly partyRole: PartyRoleName;
   /**
+   * The `Individual` behind the account — the id every domain that records a
+   * *party* keys against, and the one a `ProductOrder.buyerId` holds.
+   *
+   * Resolved here rather than by the service that needs it, because this is the
+   * only place the user → party hop exists: the mapping lives in the `auth`
+   * store, and a service that had to ask for it would be reading another
+   * slice's collections.
+   *
+   * `undefined` for an account with no party record — the same self-registered
+   * sign-up {@link DEFAULT_PARTY_ROLE} exists for. Absent means *no party*, and
+   * a consumer scoping a read by it must answer nothing rather than everything.
+   */
+  readonly partyId?: string;
+  /**
    * The business domains {@link SessionScope.organizationId} is provisioned for
    * — ADR 0007's second assignment ceiling, resolved here because this is
    * already the one place a session's organization is decided.
@@ -88,6 +102,12 @@ export const makeMongoSessionScopeResolver = (
         return { partyRole: DEFAULT_PARTY_ROLE, entitlements: [] };
       }
 
+      // Narrowed rather than cast, for the reason every other field here is: a
+      // document whose `id` is missing or of another type must not become an
+      // identity a downstream read is scoped by.
+      const partyId =
+        typeof party['id'] === 'string' ? party['id'] : undefined;
+
       // The role is a `PartyRole` **record**, not a column on the party: a party
       // plays many roles over time and several at once, which a single column
       // could not express (ADR 0022).
@@ -127,7 +147,7 @@ export const makeMongoSessionScopeResolver = (
         // No membership, so no organization and nothing to be provisioned for.
         // The empty list is never consulted: `organizationId` being absent is
         // what tells every consumer the ceiling does not apply.
-        return { partyRole, entitlements: [] };
+        return { partyId, partyRole, entitlements: [] };
       }
 
       // What the organization actually bought (ADR 0007). Read here rather than
@@ -141,6 +161,7 @@ export const makeMongoSessionScopeResolver = (
 
       return {
         organizationId,
+        partyId,
         partyRole,
         // A row whose `domains` is missing or malformed reads as provisioned for
         // nothing rather than for everything: this is a ceiling, so the

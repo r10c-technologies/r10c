@@ -122,6 +122,46 @@ const evaluateExpression = (doc: Document, node: unknown): unknown => {
   }
 };
 
+/**
+ * Every value a field path names, the way the server reads one.
+ *
+ * A dotted path descends, and **an array on the way down is walked
+ * element-wise** — which is what makes `{'items.vendorId': x}` match an order
+ * with a line for that vendor rather than nothing at all. Without it a query
+ * into an embedded collection silently answers empty here while working against
+ * a real server, which is worse than an unsupported-operator throw: the spec
+ * passes and asserts the opposite of what it claims.
+ *
+ * The array itself is kept as a candidate beside its elements, because the
+ * server matches both — `{ tags: 'a' }` matches `{ tags: ['a'] }` and
+ * `{ tags: 'a' }` alike.
+ */
+const valuesAt = (doc: Document, field: string): unknown[] => {
+  let current: unknown[] = [doc];
+  for (const segment of field.split('.')) {
+    const next: unknown[] = [];
+    for (const value of current) {
+      const container = Array.isArray(value) ? value : [value];
+      for (const element of container) {
+        if (isPlainObject(element)) {
+          next.push(element[segment]);
+        }
+      }
+    }
+    current = next;
+  }
+  return current.flatMap(value =>
+    Array.isArray(value) ? [value, ...value] : [value],
+  );
+};
+
+/** Operators that exclude a document when a single value matches them. */
+const NEGATIVE_OPERATORS = new Set(['$ne', '$nin', '$not']);
+
+const isNegativeCondition = (condition: unknown): boolean =>
+  isPlainObject(condition) &&
+  Object.keys(condition).some(operator => NEGATIVE_OPERATORS.has(operator));
+
 const matches = (doc: Document, query: QueryDocument): boolean =>
   Object.entries(query).every(([field, condition]) => {
     if (field === '$and') {
@@ -133,7 +173,17 @@ const matches = (doc: Document, query: QueryDocument): boolean =>
     if (field === '$expr') {
       return evaluateExpression(doc, condition) === true;
     }
-    return matchesCondition(doc[field], condition);
+    const candidates = valuesAt(doc, field);
+    if (candidates.length === 0) {
+      return matchesCondition(undefined, condition);
+    }
+    // A positive condition matches when **any** value at the path satisfies it;
+    // a negative one only when **every** value does. That asymmetry is the
+    // server's: `{ 'items.vendorId': { $ne: 'a' } }` must exclude an order that
+    // has a line for `a`, not include it because some other line differs.
+    return isNegativeCondition(condition)
+      ? candidates.every(value => matchesCondition(value, condition))
+      : candidates.some(value => matchesCondition(value, condition));
   });
 
 /**

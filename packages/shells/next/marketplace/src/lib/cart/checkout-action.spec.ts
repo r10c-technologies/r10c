@@ -62,17 +62,74 @@ const run = async (locale: string | null = 'es'): Promise<string> => {
 
 const fetchMock = vi.fn();
 
+/** One line as order-service writes it back. */
+const orderLine = (offeringId = 'o-1', quantity = 2) => ({
+  offeringId,
+  vendorId: 'vendor-a',
+  quantity,
+  amount: 1999,
+  currency: 'GTQ',
+});
+
+/**
+ * The coordinator's `201`, shaped as it really is: one outcome per step, each
+ * carrying the participant's own response body verbatim. The order the
+ * confirmation page renders comes out of `write-order`'s, so a spec that
+ * answered a bare `{ status: 201 }` would exercise the failure path instead.
+ */
+const sagaResponse = (
+  items: ReadonlyArray<ReturnType<typeof orderLine>> = [orderLine()],
+  order: Record<string, unknown> = {},
+) => ({
+  status: 201,
+  json: () =>
+    Promise.resolve({
+      meta: { type: 'sagaResult', entity: 'checkout' },
+      data: {
+        sagaId: 'saga-1',
+        state: 'COMPLETED',
+        outcomes: [
+          { stepId: 'reserve', calls: [{ index: 0, status: 201, body: {} }] },
+          {
+            stepId: 'write-order',
+            calls: [
+              {
+                index: 0,
+                status: 201,
+                body: {
+                  meta: { type: 'entity', entity: 'product-order' },
+                  data: {
+                    id: 'order-1',
+                    status: 'pending',
+                    placedAt: '2026-09-09T00:00:00.000Z',
+                    items,
+                    ...order,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    }),
+});
+
+const receiptCookie = () => {
+  const call = setCookie.mock.calls.find(args => args[0] === 'r10c_receipt');
+  return call ? JSON.parse(String(call[1])) : undefined;
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockResolvedValue({ status: 201 });
+  fetchMock.mockResolvedValue(sagaResponse());
   getOffering.mockImplementation(() => Promise.resolve(offering()));
   readCart.mockResolvedValue([{ offeringId: 'o-1', quantity: 2 }]);
 });
 
 describe('checkout', () => {
-  it('places the order and reports it', async () => {
-    expect(await run()).toBe('/es/cart?checkout=placed');
+  it('places the order and sends the buyer to their receipt', async () => {
+    expect(await run()).toBe('/es/order/confirmation');
   });
 
   /**
@@ -158,10 +215,13 @@ describe('checkout', () => {
   it('clears the cart only after the order is written', async () => {
     await run();
 
+    // ⚠️ The same `path` the cart was written with. Expiring it on another path
+    // sets a second cookie instead, and the browser keeps sending the first —
+    // a cart that empties on screen and returns on the next request.
     expect(setCookie).toHaveBeenCalledWith(
       'r10c_cart',
       '',
-      expect.objectContaining({ maxAge: 0 }),
+      expect.objectContaining({ maxAge: 0, path: '/' }),
     );
   });
 
@@ -224,7 +284,184 @@ describe('checkout', () => {
    * would reach the buyer as an unhandled error rather than as a cart page.
    */
   it('still redirects when the form carries no locale', async () => {
-    expect(await run(null)).toBe('//cart?checkout=placed');
+    expect(await run(null)).toBe('//order/confirmation');
+  });
+
+  it('carries the written order into the receipt cookie', async () => {
+    await run();
+
+    // Nothing is re-fetched to build this: the saga's own answer contains the
+    // order, which is what lets a page with no session render a receipt.
+    expect(receiptCookie()).toEqual({
+      orderId: 'order-1',
+      placedAt: '2026-09-09T00:00:00.000Z',
+      lines: [
+        { offeringId: 'o-1', quantity: 2, amount: 1999, currency: 'GTQ' },
+      ],
+      lineCount: 1,
+      totals: [{ currency: 'GTQ', amount: 3998 }],
+    });
+  });
+
+  it('keeps the receipt out of the browser and short-lived', async () => {
+    await run();
+
+    const options = setCookie.mock.calls.find(
+      args => args[0] === 'r10c_receipt',
+    )?.[2];
+    expect(options).toEqual(
+      expect.objectContaining({
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 1800,
+      }),
+    );
+  });
+
+  /**
+   * ⚠️ A cookie is 4KB and a basket has no upper bound, so past the cap the
+   * receipt keeps the identity and the totals and drops the lines. A truncated
+   * list rendered as the whole order would be a receipt that lies.
+   */
+  it('drops the lines rather than truncating them past the cap', async () => {
+    const many = Array.from({ length: 13 }, (_, index) =>
+      orderLine(`o-${index}`, 1),
+    );
+    fetchMock.mockResolvedValue(sagaResponse(many));
+
+    await run();
+
+    const receipt = receiptCookie();
+    expect(receipt.lines).toBeUndefined();
+    expect(receipt.lineCount).toBe(13);
+    expect(receipt.totals).toEqual([{ currency: 'GTQ', amount: 13 * 1999 }]);
+  });
+
+  /**
+   * ⚠️ Found on the live fleet, where the seed prices in two currencies: a
+   * basket spanning vendors summed into one figure and labelled with whichever
+   * currency came first, which states a price nobody was charged.
+   */
+  it('totals a mixed-currency basket per currency', async () => {
+    fetchMock.mockResolvedValue(
+      sagaResponse([
+        orderLine('o-1', 1),
+        { ...orderLine('o-2', 2), currency: 'USD', amount: 500 },
+      ]),
+    );
+
+    await run();
+
+    expect(receiptCookie().totals).toEqual([
+      { currency: 'GTQ', amount: 1999 },
+      { currency: 'USD', amount: 1000 },
+    ]);
+  });
+
+  /**
+   * ⚠️ The order is written by this point. Telling the buyer it failed because
+   * the response could not be read would be a lie with a receipt behind it.
+   */
+  it('still reports a placed order when the body cannot be read', async () => {
+    fetchMock.mockResolvedValue({
+      status: 201,
+      json: () => Promise.reject(new Error('not json')),
+    });
+
+    expect(await run()).toBe('/es/cart?checkout=placed');
+    expect(receiptCookie()).toBeUndefined();
+  });
+
+  /**
+   * Every shape between a `201` and a renderable order. None of them may fail
+   * the checkout, and none may produce a half-built receipt: the read either
+   * yields the whole order or nothing, and "nothing" lands the buyer on the
+   * cart's success banner.
+   */
+  it.each([
+    ['a payload that is not an object', 'not an object'],
+    ['no data', {}],
+    ['outcomes that are not a list', { data: { outcomes: 'none' } }],
+    ['no write-order step', { data: { outcomes: [{ stepId: 'reserve' }] } }],
+    [
+      'a write-order step with no calls',
+      { data: { outcomes: [{ stepId: 'write-order', calls: [] }] } },
+    ],
+    [
+      'a call with no body',
+      { data: { outcomes: [{ stepId: 'write-order', calls: [{}] }] } },
+    ],
+    [
+      'a body carrying no entity',
+      {
+        data: {
+          outcomes: [
+            { stepId: 'write-order', calls: [{ body: { meta: {} } }] },
+          ],
+        },
+      },
+    ],
+    [
+      'an order with no id',
+      {
+        data: {
+          outcomes: [
+            {
+              stepId: 'write-order',
+              calls: [{ body: { data: { items: [] } } }],
+            },
+          ],
+        },
+      },
+    ],
+    [
+      'an order whose items are not a list',
+      {
+        data: {
+          outcomes: [
+            {
+              stepId: 'write-order',
+              calls: [{ body: { data: { id: 'order-1', items: 3 } } }],
+            },
+          ],
+        },
+      },
+    ],
+  ])('still reports a placed order given %s', async (_name, payload) => {
+    fetchMock.mockResolvedValue({
+      status: 201,
+      json: () => Promise.resolve(payload),
+    });
+
+    expect(await run()).toBe('/es/cart?checkout=placed');
+    expect(receiptCookie()).toBeUndefined();
+  });
+
+  it('drops a line the order did not describe fully', async () => {
+    fetchMock.mockResolvedValue(
+      sagaResponse([
+        orderLine('o-1', 1),
+        { offeringId: 'o-2' } as unknown as ReturnType<typeof orderLine>,
+        'not a line' as unknown as ReturnType<typeof orderLine>,
+      ]),
+    );
+
+    await run();
+
+    // The receipt is still written: an order that arrived with one unreadable
+    // line is not a reason to tell the buyer nothing about the rest.
+    expect(receiptCookie().lines).toEqual([
+      { offeringId: 'o-1', quantity: 1, amount: 1999, currency: 'GTQ' },
+    ]);
+  });
+
+  it('omits placedAt when the order carries none', async () => {
+    fetchMock.mockResolvedValue(sagaResponse([orderLine()], { placedAt: 7 }));
+
+    await run();
+
+    expect(receiptCookie().placedAt).toBeUndefined();
   });
 
   it('does not call the coordinator for an empty cart', async () => {

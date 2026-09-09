@@ -5,7 +5,12 @@ import {
   requireCrossing,
 } from '@r10c/shells-effect-service';
 
-import { byIdRoute, guarded, listRoute } from './entity-crud';
+import { byIdRoute, emptyPageRoute, guarded, listRoute } from './entity-crud';
+import {
+  orderInScope,
+  orderScopeFilter,
+  orderScopeFor,
+} from './order-scope';
 import { deleteOrderRoute, placeOrderRoute } from './place-order';
 
 /**
@@ -27,14 +32,13 @@ import { deleteOrderRoute, placeOrderRoute } from './place-order';
  * A buyer cancelling their own order is a status transition with its own money
  * consequences, and it is not this.
  *
- * ⚠️ **Recorded residual: the list is not scoped to the caller.** `guarded`
- * checks the permission and stops there, so any principal holding
- * `order-management:product-order:read` sees every order. That is correct for
- * the operator and the vendor screens this milestone builds, and wrong for a
- * buyer's "my orders" — which needs a filter derived from the principal rather
- * than from the query string, and lands with the buyer surface in M3's storefront
- * work rather than being faked here with a filterable member a client could
- * simply change.
+ * ⚠️ **Both reads are scoped to the caller, and the scope comes from the
+ * verified principal.** This store is platform plane, so there is no tenant
+ * handle doing the isolation and the predicate is the whole boundary: an
+ * operator reads every order, a vendor the orders that owe them a line, and
+ * anybody else only what they placed (`order-scope.ts`). It is deliberately not
+ * expressed as a query — `buyerId` is `filterable`, so a client that could scope
+ * itself could scope itself to somebody else.
  *
  * `$metadata` stays a **literal** registered before `/:id`: as
  * `/api/:entity/$metadata` it is shadowed by the by-id route and silently never
@@ -47,7 +51,15 @@ export const productOrderRoutes = HttpRouter.empty.pipe(
   ),
   HttpRouter.get(
     '/api/product-order',
-    guarded(ProductOrder, 'read', listRoute(ProductOrder)),
+    guarded(ProductOrder, 'read', principal => {
+      const scope = orderScopeFor(principal);
+      // A caller whose own records cannot be identified reads an empty page
+      // without touching Mongo, rather than a predicate spelled to match
+      // nothing.
+      return scope.kind === 'nothing'
+        ? emptyPageRoute(ProductOrder)
+        : listRoute(ProductOrder, orderScopeFilter(scope));
+    }),
   ),
   HttpRouter.get(
     '/api/product-order/$metadata',
@@ -55,7 +67,10 @@ export const productOrderRoutes = HttpRouter.empty.pipe(
   ),
   HttpRouter.get(
     '/api/product-order/:id',
-    guarded(ProductOrder, 'read', byIdRoute(ProductOrder)),
+    guarded(ProductOrder, 'read', principal => {
+      const scope = orderScopeFor(principal);
+      return byIdRoute(ProductOrder, order => orderInScope(scope, order));
+    }),
   ),
   HttpRouter.del(
     '/api/product-order/:id',

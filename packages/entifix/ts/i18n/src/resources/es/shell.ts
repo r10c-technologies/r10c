@@ -346,6 +346,19 @@ export const shell = {
       empty: 'Ninguno de estos productos sigue a la venta.',
       failed: 'No se pudo completar la compra. Inténtalo de nuevo.',
     },
+    order: {
+      heading: '¡Gracias por tu compra!',
+      placed: 'Tu pedido quedó registrado y el vendedor ya fue notificado.',
+      reference: 'Número de pedido',
+      units: 'Cant. {{count}}',
+      total: 'Total',
+      tooManyLines:
+        'Este pedido tiene {{count}} artículos, demasiados para mostrarlos aquí. El número de pedido de arriba los identifica a todos.',
+      keepShopping: 'Seguir comprando',
+      expiredHeading: 'No hay ningún pedido que mostrar',
+      expired:
+        'El comprobante de tu última compra ya no está disponible en este navegador. Si acabas de comprar, revisa el correo de confirmación.',
+    },
     footer: {
       note: 'Catálogo de demostración. Ningún pedido es real.',
     },

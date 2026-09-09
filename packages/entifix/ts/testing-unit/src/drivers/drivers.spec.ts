@@ -106,6 +106,83 @@ describe('makeFakeMongoDb', () => {
       expect(found.map(doc => doc['name'])).toEqual(['Beta']);
     });
 
+    /**
+     * The query a scoped order read sends: a path into an embedded collection.
+     * Matching only the top-level field would answer empty here while the real
+     * server answers the order, which is a spec that passes and asserts the
+     * opposite of what it claims.
+     */
+    it('matches a dotted path through an array, element-wise', async () => {
+      const db = makeFakeMongoDb({
+        order: [
+          { id: 'o-1', items: [{ vendorId: 'v-1' }, { vendorId: 'v-2' }] },
+          { id: 'o-2', items: [{ vendorId: 'v-3' }] },
+        ],
+      });
+
+      const found = await collectionOf(db, 'order')
+        .find({ 'items.vendorId': 'v-2' })
+        .toArray();
+
+      expect(found.map(doc => doc['id'])).toEqual(['o-1']);
+    });
+
+    it('matches a dotted path through a nested object', async () => {
+      const db = makeFakeMongoDb({
+        order: [{ id: 'o-1', channel: { type: 'storefront' } }],
+      });
+
+      const found = await collectionOf(db, 'order')
+        .find({ 'channel.type': 'storefront' })
+        .toArray();
+
+      expect(found).toHaveLength(1);
+    });
+
+    /**
+     * The asymmetry the server has and a naive `some()` does not: an order with
+     * a line for `v-1` is excluded by `$ne: 'v-1'`, even though its other line
+     * differs.
+     */
+    it('excludes a document when any value at the path matches a negation', async () => {
+      const db = makeFakeMongoDb({
+        order: [
+          { id: 'o-1', items: [{ vendorId: 'v-1' }, { vendorId: 'v-2' }] },
+          { id: 'o-2', items: [{ vendorId: 'v-3' }] },
+        ],
+      });
+
+      const found = await collectionOf(db, 'order')
+        .find({ 'items.vendorId': { $ne: 'v-1' } })
+        .toArray();
+
+      expect(found.map(doc => doc['id'])).toEqual(['o-2']);
+    });
+
+    it('treats a path that descends through a scalar as absent', async () => {
+      const db = makeFakeMongoDb({ order: [{ id: 'o-1', items: 7 }] });
+      const collection = collectionOf(db, 'order');
+
+      expect(
+        await collection.find({ 'items.vendorId': 'v-1' }).toArray(),
+      ).toHaveLength(0);
+      // Absent, not merely unmatched: the document *is* one whose path holds
+      // nothing, which is what `$eq: undefined` asks about.
+      expect(
+        await collection.find({ 'items.vendorId': undefined }).toArray(),
+      ).toHaveLength(1);
+    });
+
+    it('matches a scalar against the array that contains it', async () => {
+      const db = makeFakeMongoDb({ order: [{ id: 'o-1', tags: ['a', 'b'] }] });
+
+      const found = await collectionOf(db, 'order')
+        .find({ tags: 'a' })
+        .toArray();
+
+      expect(found).toHaveLength(1);
+    });
+
     it('sorts ascending and descending', async () => {
       const collection = collectionOf(seeded(), 'widget');
 
