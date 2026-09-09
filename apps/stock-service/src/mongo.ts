@@ -28,6 +28,7 @@ import {
 import { Effect, Layer } from 'effect';
 
 import { ReservationTtlSecondsTag } from './reservation-ttl';
+import { seedStock } from './seed';
 
 const SERVICE_NAME = 'stock-service';
 const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
@@ -64,6 +65,14 @@ export const AppLayer = Layer.unwrapEffect(
     // catalog's is — the convention is stated once, in config-service, instead
     // of being duplicated across the services that follow it.
     const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
+
+    // The local demo vendor, whose stock positions this service seeds. The same
+    // id auth-service provisions and marketplace-admin-service seeds a catalog
+    // under — three services now agree on it, which is why it is a
+    // configuration row rather than a constant in three codebases.
+    const demoOrganizationId = yield* store
+      .in('tenant')
+      .getString('demoOrganizationId');
 
     // The public half only. This service verifies access tokens and never mints
     // one, so it is configured with material that cannot sign.
@@ -140,6 +149,20 @@ export const AppLayer = Layer.unwrapEffect(
       withProbes,
     );
 
-    return Layer.merge(observability, Layer.provideMerge(tenancy, withProbes));
+    // The demo vendor's stock, written on first boot into `stock_<id>`.
+    //
+    // ⚠️ **`Layer.provideMerge` over the tenancy layer, never a sibling in a
+    // `Layer.mergeAll`.** `mergeAll` builds its members concurrently, and Mongo
+    // creates a tenant database on first write — so a sibling that also touched
+    // `stock_<id>` would race the seed on a fresh `dev:reset` and see a store
+    // that is empty, half-seeded or seeded depending on scheduling.
+    // marketplace-admin-service chains its own follow-up work for exactly this
+    // reason.
+    const seeded = Layer.provideMerge(
+      Layer.effectDiscard(seedStock(`${tenantPrefix}${demoOrganizationId}`)),
+      tenancy,
+    );
+
+    return Layer.merge(observability, Layer.provideMerge(seeded, withProbes));
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

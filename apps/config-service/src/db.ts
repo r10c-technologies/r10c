@@ -654,6 +654,20 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'dbPrefix',
     value: 'stock_',
   },
+  // The same demo vendor the catalog is seeded under, for the same reason it is
+  // configuration in the two rows above rather than a constant: three services
+  // now have to agree on the id, and this one seeds its stock positions against
+  // offerings marketplace-admin-service wrote.
+  //
+  // ⚠️ **A different database, though.** `tenant.dbPrefix` above is what keeps
+  // `stock_<id>` and `tenant_<id>` apart; this row only names the organization,
+  // so the two stores stay separate stores with separate writers.
+  {
+    service: 'stock-service',
+    group_name: 'tenant',
+    key: 'demoOrganizationId',
+    value: 'demo-organization',
+  },
   // The public half only. This service verifies access tokens and never mints
   // one, so it cannot sign.
   {

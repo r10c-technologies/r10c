@@ -6,6 +6,18 @@
  */
 export { AppLayer } from './mongo';
 export { router } from './routes';
+/**
+ * Exported so the e2e `mock` profile boots the **real** seed rather than a
+ * fixture of its own: both profiles then read the same stock positions, and a
+ * shared journey can name a seeded row instead of asserting that some row
+ * exists — which is the assertion that passes against an empty store.
+ */
+export { seedStock } from './seed';
+export { STOCK_ITEM_COLLECTION } from './stock-item-index';
+export {
+  stockItemTempData,
+  stockMovementTempData,
+} from './stock-temp-data';
 
 export const SERVICE_NAME = '@r10c/stock-service';
 
