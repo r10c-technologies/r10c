@@ -1,12 +1,18 @@
 {
   "name": "@r10c/shells-next-stock",
   "nx": {
-    "tags": ["layer:shell", "scope:stock", "shell:domain"],
+    "tags": [
+      "layer:shell",
+      "scope:stock",
+      "shell:domain"
+    ],
     "sourceRoot": "packages/shells/next/stock/src",
     "targets": {
       "build": {
         "executor": "@nx/js:swc",
-        "outputs": ["{options.outputPath}"],
+        "outputs": [
+          "{options.outputPath}"
+        ],
         "options": {
           "outputPath": "packages/shells/next/stock/dist",
           "main": "packages/shells/next/stock/src/index.ts",
@@ -46,5 +52,8 @@
     "@r10c/entifix-ts-rest-client": "workspace:*",
     "@r10c/shells-next-common": "workspace:*",
     "effect": "3.22.1"
+  },
+  "devDependencies": {
+    "@r10c/entifix-ts-testing-unit": "workspace:*"
   }
 }

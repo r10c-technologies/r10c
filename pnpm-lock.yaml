@@ -1774,6 +1774,10 @@ importers:
       effect:
         specifier: 3.22.1
         version: 3.22.1
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/testing-unit
 
   packages/shells/next/system-management:
     dependencies:
