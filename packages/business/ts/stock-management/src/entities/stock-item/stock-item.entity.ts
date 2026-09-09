@@ -60,11 +60,16 @@ export class StockItem implements Entity {
    * lives in another store, and a link would invite the storage-layer join that
    * the one-writer rule forbids.
    */
+    // `sortable` as well as `filterable`, and not for the table's sake: this
+    // metadata is simultaneously the server-side allowlist, and it is the only
+    // member of these entities that can name one of their records — a search
+    // source refuses a label member that is not sortable, at module load.
   @accessor({
     type: 'string',
     labelKey: 'entity:stock-item.fields.offeringId',
     required: true,
     filterable: true,
+    sortable: true,
   })
   get offeringId(): string {
     return this.#offeringId;

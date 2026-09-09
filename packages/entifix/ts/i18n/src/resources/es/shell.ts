@@ -80,6 +80,21 @@ export const shell = {
    * a dedicated management app can mount the same screens later, which is why the
    * copy is here rather than in an app catalog.
    */
+  /**
+   * La superficie de existencias — las primeras pantallas de Operaciones del
+   * back office.
+   *
+   * El *nombre del nivel* ("Operaciones") sale de `nav.screenType.operation`;
+   * esto nombra el grupo dentro de él.
+   */
+  stock: {
+    nav: {
+      stock: 'Existencias',
+      items: 'Existencias en almacén',
+      movements: 'Libro de movimientos',
+      reservations: 'Reservas',
+    },
+  },
   marketplaceAdmin: {
     nav: {
       // Moved out of the `app:` catalog with the nav table itself: this copy

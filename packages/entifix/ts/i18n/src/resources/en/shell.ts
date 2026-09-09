@@ -68,6 +68,20 @@ export const shell: EsShell = {
       kicking: 'Ending…',
     },
   },
+  /**
+   * The stock surface — the first Operaciones screens in the back office.
+   *
+   * The *tier* name ("Operaciones") comes from `nav.screenType.operation`; this
+   * names the group inside it.
+   */
+  stock: {
+    nav: {
+      stock: 'Stock',
+      items: 'Stock on hand',
+      movements: 'Movement ledger',
+      reservations: 'Reservations',
+    },
+  },
   marketplaceAdmin: {
     nav: {
       catalog: 'Catalog',
