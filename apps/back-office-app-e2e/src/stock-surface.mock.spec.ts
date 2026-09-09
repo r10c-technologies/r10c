@@ -57,14 +57,27 @@ test('lists the seeded positions with the totals the ledger implies', async ({
 }) => {
   await page.goto('/stock/stock-item');
 
-  const row = page.getByRole('row').filter({ hasText: 'product-offering-1' });
+  // Named by its **cell**, not by substring: `hasText: 'product-offering-1'`
+  // also matches `product-offering-10` and every id it prefixes, which is a
+  // strict-mode violation against the real seed's forty rows and silently the
+  // wrong row against this fixture's four.
+  const row = page.getByRole('row').filter({
+    has: page.getByRole('cell', {
+      name: 'product-offering-1',
+      exact: true,
+    }),
+  });
 
   await expect(row).toBeVisible();
   await expect(row).toContainText('10');
   // The columns are derived from the entity's own accessor metadata, so their
   // presence is what says the descriptor reached the table.
-  await expect(page.getByRole('columnheader', { name: 'En almacén' })).toBeVisible();
-  await expect(page.getByRole('columnheader', { name: 'Reservado' })).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'En almacén' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('columnheader', { name: 'Reservado' }),
+  ).toBeVisible();
 });
 
 test('offers no way to edit a quantity, because the service says so', async ({
@@ -113,7 +126,9 @@ test('records a movement, which is the only write in the domain', async ({
   await expect(page.getByLabel('ID', { exact: true })).toHaveCount(0);
 });
 
-test('addresses a stock tab as an operation, not a master', async ({ page }) => {
+test('addresses a stock tab as an operation, not a master', async ({
+  page,
+}) => {
   await page.goto('/workspace?tab=operation%3Astock-item');
 
   // The address is the taxonomy serialized (ADR 0042), so this is the assertion
