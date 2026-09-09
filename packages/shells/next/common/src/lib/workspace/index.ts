@@ -1,5 +1,6 @@
 export * from './drafts-state';
 export * from './entity-nav';
+export * from './entity-tab-kind';
 export * from './idb-state-storage';
 export * from './pending-state';
 export * from './pending-transactions';

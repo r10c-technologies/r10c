@@ -8,7 +8,8 @@ import { createConfigRoute } from '@r10c/shells-next-common/server';
  * browser sees it — see `rewriteServiceDomains` for why a browser can never hold
  * the real address. The vendor-authored catalog goes through `/api/admin`, the
  * platform vocabulary it is classified in through `/api/marketplace`, the
- * configuration CRUD through `/api/system`.
+ * configuration CRUD through `/api/system`, and a vendor's stock through
+ * `/api/stock`.
  *
  * Two catalog backends and not one since ADR 0022: `ProductSpecification` is
  * tenant-plane and marketplace-admin-service owns it, while `ProductBrand` and
@@ -24,5 +25,6 @@ export const GET = createConfigRoute({
     'marketplace-admin-service-domain': '/api/admin',
     'marketplace-service-domain': '/api/marketplace',
     'config-service-domain': '/api/system',
+    'stock-service-domain': '/api/stock',
   },
 });

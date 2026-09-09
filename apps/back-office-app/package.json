@@ -17,6 +17,7 @@
     "@r10c/shells-next-common": "workspace:*",
     "@r10c/shells-next-i18n": "workspace:*",
     "@r10c/shells-next-marketplace-admin": "workspace:*",
+    "@r10c/shells-next-stock": "workspace:*",
     "@r10c/shells-next-system-management": "workspace:*",
     "next": "16.2.10",
     "react": "19.2.8",
@@ -50,7 +51,8 @@
               "@r10c/marketplace-admin-service",
               "@r10c/marketplace-service",
               "@r10c/auth-service",
-              "@r10c/config-service"
+              "@r10c/config-service",
+              "@r10c/stock-service"
             ],
             "target": "dev"
           }

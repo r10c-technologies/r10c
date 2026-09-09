@@ -17,6 +17,7 @@ import {
   MarketplaceAdminAdaptersProvider,
   TransactionSettlement,
 } from '@r10c/shells-next-marketplace-admin';
+import { StockProvider } from '@r10c/shells-next-stock';
 import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
 
@@ -82,10 +83,14 @@ function ThemedProviders({
               {/* Renders nothing; it holds the SSE connection that settles
                   those writes and invalidates on any reactive change. */}
               <TransactionSettlement />
-              {/* The system-management shell builds its own adapters against
-                  config-service, so it is provided beside the catalog's rather
-                  than through it — the two reach different backends. */}
-              <SystemManagementProvider>{children}</SystemManagementProvider>
+              {/* Each shell builds its own adapters against its own backend —
+                  config-service here, stock-service below — so they are
+                  provided beside the catalog's rather than through it. Three
+                  backends, three composition roots, and nesting them is only
+                  how React contexts stack. */}
+              <SystemManagementProvider>
+                <StockProvider>{children}</StockProvider>
+              </SystemManagementProvider>
             </PendingTransactionsProvider>
           </MarketplaceAdminAdaptersProvider>
         </UiPreferencesProvider>

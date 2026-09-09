@@ -176,6 +176,12 @@
     },
     {
       "path": "./apps/stock-service"
+    },
+    {
+      "path": "./apps/stock-service-e2e"
+    },
+    {
+      "path": "./packages/shells/next/stock"
     }
   ]
 }

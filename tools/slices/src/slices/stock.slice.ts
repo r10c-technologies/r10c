@@ -46,10 +46,18 @@ export const stockSlice: SliceDeclaration = {
   coDeployedWith: [],
   exposedAPIs: [
     'GET /api/stock-item',
+    'GET /api/stock-item/:id',
     'GET /api/stock-movement',
     'POST /api/stock-movement',
     'GET|POST /api/reservation',
     'GET /api/reservation/:id',
+    // The served affordance documents (ADR 0026), which the back office's
+    // generated screens read to decide whether a Save exists at all. Listed
+    // because they are how a client learns this service has no write for two of
+    // its three entities — the absence is the contract, not an omission.
+    'GET /api/stock-item/$metadata',
+    'GET /api/stock-movement/$metadata',
+    'GET /api/reservation/$metadata',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],

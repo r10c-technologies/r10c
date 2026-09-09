@@ -211,6 +211,16 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'marketplace-service-domain',
     value: 'http://localhost:3100/api',
   },
+  // stock-service, the back office's third catalog-adjacent backend. Tenant
+  // plane and session-guarded end to end, so unlike the marketplace row above
+  // this proxy exists for the *reads* too — nothing here is anonymous. The app
+  // rewrites it to `/api/stock` before the browser sees it.
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'stock-service-domain',
+    value: 'http://localhost:3108/api',
+  },
   // config-service's own address, so the admin app's system-management pages can
   // reach the configuration CRUD. The app rewrites it to a same-origin proxy path
   // before the browser sees it, exactly like the admin-service domain above.

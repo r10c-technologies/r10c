@@ -8,13 +8,19 @@ import { SEARCH_SOURCES } from '../src/lib/search-sources';
  * screens this app actually serves.
  */
 describe('SEARCH_SOURCES', () => {
-  it('composes both shells, catalog before people', () => {
+  it('composes all three shells, catalog then stock then people', () => {
+    // Order is the ranking, so this asserts the order rather than the set: an
+    // operator learns where a kind of record lands, and a reshuffle is a
+    // behaviour change even though every source still resolves.
     expect(SEARCH_SOURCES.map(source => source.key)).toEqual([
       'product-specification',
       'product-offering',
       'product-offering-price',
       'product-brand',
       'product-category',
+      'stock-item',
+      'stock-movement',
+      'reservation',
       'user-identity',
     ]);
   });

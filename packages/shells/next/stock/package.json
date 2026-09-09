@@ -1,0 +1,50 @@
+{
+  "name": "@r10c/shells-next-stock",
+  "nx": {
+    "tags": ["layer:shell", "scope:stock", "shell:domain"],
+    "sourceRoot": "packages/shells/next/stock/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": ["{options.outputPath}"],
+        "options": {
+          "outputPath": "packages/shells/next/stock/dist",
+          "main": "packages/shells/next/stock/src/index.ts",
+          "tsConfig": "packages/shells/next/stock/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "@r10c/source": "./src/server.ts",
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    }
+  },
+  "dependencies": {
+    "@r10c/business-ts-authz": "workspace:*",
+    "@r10c/business-ts-stock-management": "workspace:*",
+    "@r10c/entifix-react-integration": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-rest-client": "workspace:*",
+    "@r10c/shells-next-common": "workspace:*",
+    "effect": "3.22.1"
+  }
+}

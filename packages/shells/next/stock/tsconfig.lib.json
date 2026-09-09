@@ -1,0 +1,36 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "lib": ["es2022", "decorators", "esnext.decorators", "dom", "dom.iterable"],
+    "types": [
+      "node",
+      "@nx/react/typings/cssmodule.d.ts",
+      "@nx/react/typings/image.d.ts",
+      "next",
+      "@nx/next/typings/image.d.ts"
+    ],
+    "rootDir": "src",
+    "jsx": "react-jsx",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo"
+  },
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.tsx",
+    "eslint.config.mjs"
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    { "path": "../common/tsconfig.lib.json" },
+    { "path": "../../../entifix/ts/rest-client/tsconfig.lib.json" },
+    { "path": "../../../entifix/ts/core/tsconfig.lib.json" },
+    { "path": "../../../entifix/ts/business/tsconfig.lib.json" },
+    { "path": "../../../entifix/react/integration/tsconfig.lib.json" },
+    { "path": "../../../business/ts/stock-management/tsconfig.lib.json" },
+    { "path": "../../../business/ts/authz/tsconfig.lib.json" }
+  ]
+}
