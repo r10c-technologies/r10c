@@ -5,20 +5,21 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
+import type { Permission } from '@r10c/business-ts-authz';
 import {
   runSaga,
   type SagaInputs,
   type SagaStepInput,
 } from '@r10c/entifix-transactions';
 import { makeEnvelope } from '@r10c/entifix-ts-core';
-import { requirePrincipal } from '@r10c/shells-effect-service';
+import { requireCrossing } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
 import { SAGAS } from '../sagas/checkout.saga';
 
 const serverError = (error: unknown) =>
   HttpServerResponse.json(
-    { error: 'request failed', code: 'serverError', detail: String(error) },
+    { error: 'request failed', code: 'unexpected', detail: String(error) },
     { status: 500 },
   );
 
@@ -67,17 +68,8 @@ const readInputs = (body: unknown): SagaInputs | undefined => {
  * The pending-write protocol stays where it belongs: on the single-step catalog
  * writes that genuinely take a moment.
  */
-const runRoute = requirePrincipal(() =>
+const runDefinition = (definition: (typeof SAGAS)[string]) =>
   Effect.gen(function* () {
-    const params = yield* HttpRouter.params;
-    const definition = SAGAS[params.definition ?? ''];
-    if (!definition) {
-      return yield* HttpServerResponse.json(
-        { error: 'no such saga', code: 'notFound' },
-        { status: 404 },
-      );
-    }
-
     const request = yield* HttpServerRequest.HttpServerRequest;
     const inputs = readInputs(yield* request.json);
     if (!inputs) {
@@ -117,8 +109,29 @@ const runRoute = requirePrincipal(() =>
               : 500,
       },
     );
-  }),
-).pipe(Effect.catchAll(serverError));
+  });
+
+const runRoute = Effect.gen(function* () {
+  const params = yield* HttpRouter.params;
+  const definition = SAGAS[params.definition ?? ''];
+  if (!definition) {
+    return yield* HttpServerResponse.json(
+      { error: 'no such saga', code: 'notFound' },
+      { status: 404 },
+    );
+  }
+
+  // The permission comes off the **definition**, so this route stays generic.
+  // One permission for every saga would make "may run a flow" a single
+  // capability regardless of what the flow does, and checkout writes an order.
+  // The definition carries it as a plain string — `entifix-transactions` sits
+  // below `business-ts-authz` and may not name its type. This service is where
+  // the two meet, so the narrowing happens here and `requireCrossing` still
+  // resolves it against the closed list.
+  return yield* requireCrossing(definition.permission as Permission)(
+    runDefinition(definition),
+  );
+}).pipe(Effect.catchAll(serverError));
 
 export const sagaRunRoutes = <E, R>(router: HttpRouter.HttpRouter<E, R>) =>
   router.pipe(HttpRouter.post('/api/saga/:definition', runRoute));

@@ -28,5 +28,6 @@ export const GET = createConfigRoute({
     'config-service-domain': '/api/system',
     'stock-service-domain': '/api/stock',
     'transaction-service-domain': '/api/transaction',
+    'order-service-domain': '/api/order',
   },
 });

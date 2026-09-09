@@ -192,4 +192,6 @@ export const guarded = <T extends Entity, A, E, R>(
   action: Action,
   route: Effect.Effect<A, E, R>,
 ) =>
-  requirePermission(permissionForEntity(entityConstructor, action))(() => route);
+  requirePermission(permissionForEntity(entityConstructor, action))(
+    () => route,
+  );

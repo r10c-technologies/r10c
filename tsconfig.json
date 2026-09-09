@@ -191,6 +191,12 @@
     },
     {
       "path": "./apps/order-service-e2e"
+    },
+    {
+      "path": "./packages/shells/next/order"
+    },
+    {
+      "path": "./apps/transaction-service-e2e"
     }
   ]
 }

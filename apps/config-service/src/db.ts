@@ -194,6 +194,32 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'marketplace-service-domain',
     value: 'http://localhost:3100/api',
   },
+  // Where checkout starts. The storefront's server action calls
+  // transaction-service directly, so this address stays server-side for the
+  // reason the row above does — and here it *must*, because the call carries a
+  // crossing token no browser may ever hold.
+  {
+    service: 'marketplace-app',
+    group_name: 'uri',
+    key: 'transaction-service-domain',
+    value: 'http://localhost:3103/api',
+  },
+  // ⚠️ **The token the storefront presents to start a checkout**, matching
+  // transaction-service's inbound `service.token`. It is read in a server action
+  // and never reaches the browser: a storefront with no auth gate cannot prove
+  // who the buyer is, so what it proves instead is that the *fleet* is asking —
+  // which is exactly what a crossing token is for
+  // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+  //
+  // It is deliberately **not** a participant token: it starts a flow, it does
+  // not write a vendor's stock.
+  {
+    service: 'marketplace-app',
+    group_name: 'service',
+    key: 'sagaToken',
+    value: 'dev-saga-crossing-token-change-me',
+    is_secret: true,
+  },
   {
     service: 'back-office-app',
     group_name: 'uri',
@@ -612,6 +638,18 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'jwt',
     key: 'keyId',
     value: DEV_KEY_ID,
+  },
+  // ⚠️ **This service's own *inbound* crossing token** — what marketplace-app
+  // presents to start a checkout. Deliberately a different secret from the
+  // outbound `participant.*Token` rows below: the coordinator is both a callee
+  // and a caller, and one shared value would mean anyone allowed to *start* a
+  // checkout held the key that *writes* a vendor's stock.
+  {
+    service: 'transaction-service',
+    group_name: 'service',
+    key: 'token',
+    value: 'dev-saga-crossing-token-change-me',
+    is_secret: true,
   },
   // The participants checkout dispatches to, and **one crossing token each**.
   //

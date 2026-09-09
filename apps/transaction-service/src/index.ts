@@ -4,7 +4,15 @@
  * launch the real router in-process against driver fakes.
  */
 export { AppLayer } from './mongo';
+// Exported so the e2e `mock` profile composes the same layers over a fake pool
+// rather than stubbing the routes the catalog's own `202` points at.
 export { router } from './routes';
+export {
+  HttpSagaDispatcherLayer,
+  ParticipantsTag,
+} from './saga/http-dispatcher';
+export { MongoSagaStoreLayer } from './saga/instance-store';
+export { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
 export { checkoutSaga, SAGAS } from './sagas/checkout.saga';
 
 export const SERVICE_NAME = '@r10c/transaction-service';

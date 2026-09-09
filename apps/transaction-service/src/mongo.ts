@@ -29,6 +29,7 @@ import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
   observabilityFromConfiguration,
+  ServiceCrossingTokenTag,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
@@ -90,6 +91,13 @@ export const AppLayer = Layer.unwrapEffect(
     const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
     const jwtKeyId = yield* store.in('jwt').getString('keyId');
 
+    // ⚠️ **This service's own *inbound* token — what a caller presents to run a
+    // saga — and it is a different secret from the outbound ones below. The
+    // coordinator is both a callee and a caller, and collapsing the two
+    // directions onto one value would mean anyone allowed to *start* a checkout
+    // held the key that *writes* a vendor's stock.
+    const inboundToken = yield* store.in('service').getString('token');
+
     // ⚠️ **A crossing token per participant, and each is that participant's
     // own.** Reusing one across services — or reusing the fleet's
     // `CONFIG_SERVICE_TOKEN` — would make a single leaked secret a tenant-data
@@ -130,6 +138,7 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(SagaDatabaseName, sagaDbName),
       Layer.succeed(SagaStaleTimeoutMs, sagaStaleTimeoutMs),
       Layer.succeed(SagaRecoveryIntervalMs, sagaRecoveryIntervalMs),
+      Layer.succeed(ServiceCrossingTokenTag, inboundToken),
       Layer.succeed(ParticipantsTag, participants),
     );
 

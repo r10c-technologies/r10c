@@ -7,6 +7,7 @@ import { ACCESS_COOKIE } from './require-principal.js';
 import {
   CROSSING_TOKEN_HEADER,
   ORGANIZATION_HEADER,
+  requireCrossing,
   requireServiceCrossing,
   ServiceCrossingTokenTag,
 } from './require-service-crossing.js';
@@ -26,6 +27,20 @@ const router = HttpRouter.empty.pipe(
     '/api/stock-item',
     requireServiceCrossing('stock-management:stock-item:write')(
       organizationId => HttpServerResponse.json({ organizationId }),
+    ),
+  ),
+  // The platform-plane sibling: same token, same permission table, and no
+  // organization header — there is no tenant handle for one to choose.
+  HttpRouter.post(
+    '/api/product-order',
+    requireCrossing('order-management:product-order:write')(
+      HttpServerResponse.json({ written: true }),
+    ),
+  ),
+  HttpRouter.post(
+    '/api/payment',
+    requireCrossing('payment-management:payment:write')(
+      HttpServerResponse.json({ written: true }),
     ),
   ),
 );
@@ -183,6 +198,71 @@ describe('requireServiceCrossing', () => {
       const res = await post(baseUrl, '/api/reservation', {});
 
       expect(res.status).toBe(401);
+    });
+  });
+});
+
+describe('requireCrossing — the platform-plane guard', () => {
+  it('accepts the token with no organization header at all', async () => {
+    await withService(async baseUrl => {
+      const response = await post(baseUrl, '/api/product-order', {
+        [CROSSING_TOKEN_HEADER]: EXPECTED,
+      });
+
+      // ⚠️ The whole difference from `requireServiceCrossing`. The `order` store
+      // is platform plane and single, so there is no handle to choose — and
+      // demanding a header nothing consumes is theatre a caller learns to
+      // satisfy with any value.
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ written: true });
+    });
+  });
+
+  it('refuses a wrong token', async () => {
+    await withService(async baseUrl => {
+      const response = await post(baseUrl, '/api/product-order', {
+        [CROSSING_TOKEN_HEADER]: 'not-the-token',
+      });
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  it('refuses a missing token', async () => {
+    await withService(async baseUrl => {
+      expect((await post(baseUrl, '/api/product-order', {})).status).toBe(401);
+    });
+  });
+
+  /**
+   * ⚠️ Fleet membership is not a capability. The token proves the caller is the
+   * fleet; `SERVICE_CROSSING_PERMISSIONS` says what the fleet may do, and a
+   * permission absent from that list is refused even with a valid token.
+   */
+  it('refuses a permission no crossing grants, token or not', async () => {
+    await withService(async baseUrl => {
+      const response = await post(baseUrl, '/api/payment', {
+        [CROSSING_TOKEN_HEADER]: EXPECTED,
+      });
+
+      expect(response.status).toBe(403);
+    });
+  });
+
+  /**
+   * ⚠️ The assertion that matters most: `super-admin` holds `*:*:*`, which
+   * matches every crossing permission. A route that also took a session would be
+   * reachable from an operator's browser tab, and the weaker credential would be
+   * the security level.
+   */
+  it('accepts no session, only the token', async () => {
+    await withService(async baseUrl => {
+      const response = await post(baseUrl, '/api/product-order', {
+        Authorization: 'Bearer whatever',
+        Cookie: `${ACCESS_COOKIE}=whatever`,
+      });
+
+      expect(response.status).toBe(401);
     });
   });
 });

@@ -70,6 +70,21 @@ export interface SagaStep {
 /** A flow, as the data a generic engine walks. */
 export interface SagaDefinition {
   readonly name: string;
+  /**
+   * What a caller must hold to run this flow, as a `<domain>:<entity>:<action>`
+   * string.
+   *
+   * ⚠️ **On the definition rather than on the route**, so the route that runs a
+   * flow stays generic. The alternative was one permission for every saga, which
+   * would make "may run a flow" a single capability regardless of what the flow
+   * does — and checkout writes an order.
+   *
+   * It is a plain string here rather than authz's `Permission`: this package is
+   * `layer:entifix`, and `business-ts-authz` sits above it. The service that
+   * mounts the route resolves the string against
+   * `SERVICE_CROSSING_PERMISSIONS`, which is where the closed list belongs.
+   */
+  readonly permission: string;
   readonly steps: readonly SagaStep[];
 }
 

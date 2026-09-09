@@ -17,6 +17,7 @@ import {
   MarketplaceAdminAdaptersProvider,
   TransactionSettlement,
 } from '@r10c/shells-next-marketplace-admin';
+import { OrderProvider } from '@r10c/shells-next-order';
 import { StockProvider } from '@r10c/shells-next-stock';
 import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
@@ -89,7 +90,9 @@ function ThemedProviders({
                   backends, three composition roots, and nesting them is only
                   how React contexts stack. */}
               <SystemManagementProvider>
-                <StockProvider>{children}</StockProvider>
+                <StockProvider>
+                  <OrderProvider>{children}</OrderProvider>
+                </StockProvider>
               </SystemManagementProvider>
             </PendingTransactionsProvider>
           </MarketplaceAdminAdaptersProvider>

@@ -28,6 +28,7 @@ describe('defineSaga validates at load', () => {
   it('returns a well-formed definition unchanged', () => {
     const definition = {
       name: 'checkout',
+      permission: 'order-management:product-order:write',
       steps: [
         step({ id: 'reserve', fanOut: true }),
         step({ id: 'write-order' }),
@@ -45,7 +46,11 @@ describe('defineSaga validates at load', () => {
    */
   it('accepts a definition with no pivot at all', () => {
     expect(() =>
-      defineSaga({ name: 'checkout', steps: [step({ id: 'reserve' })] }),
+      defineSaga({
+        name: 'checkout',
+        permission: 'order-management:product-order:write',
+        steps: [step({ id: 'reserve' })],
+      }),
     ).not.toThrow();
   });
 
@@ -53,6 +58,7 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'full',
+        permission: 'order-management:product-order:write',
         steps: [
           step({ id: 'reserve' }),
           step({ id: 'capture', kind: 'pivot', compensation: undefined }),
@@ -63,12 +69,20 @@ describe('defineSaga validates at load', () => {
   });
 
   it('refuses a definition with no steps', () => {
-    expect(() => defineSaga({ name: 'empty', steps: [] })).toThrow(
-      EntifixLogicError,
-    );
-    expect(() => defineSaga({ name: 'empty', steps: [] })).toThrow(
-      /declares no steps/,
-    );
+    expect(() =>
+      defineSaga({
+        name: 'empty',
+        permission: 'order-management:product-order:write',
+        steps: [],
+      }),
+    ).toThrow(EntifixLogicError);
+    expect(() =>
+      defineSaga({
+        name: 'empty',
+        permission: 'order-management:product-order:write',
+        steps: [],
+      }),
+    ).toThrow(/declares no steps/);
   });
 
   /**
@@ -80,6 +94,7 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'dup',
+        permission: 'order-management:product-order:write',
         steps: [step({ id: 'reserve' }), step({ id: 'reserve' })],
       }),
     ).toThrow(/two steps share the id 'reserve'/);
@@ -89,6 +104,7 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'two-pivots',
+        permission: 'order-management:product-order:write',
         steps: [
           step({ id: 'a', kind: 'pivot', compensation: undefined }),
           step({ id: 'b', kind: 'pivot', compensation: undefined }),
@@ -101,6 +117,7 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'late',
+        permission: 'order-management:product-order:write',
         steps: [
           step({ id: 'capture', kind: 'pivot', compensation: undefined }),
           step({ id: 'reserve' }),
@@ -113,6 +130,7 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'no-undo',
+        permission: 'order-management:product-order:write',
         steps: [step({ id: 'reserve', compensation: undefined })],
       }),
     ).toThrow(/'reserve' is compensatable but declares no compensation/);
@@ -126,6 +144,7 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'undoable-pivot',
+        permission: 'order-management:product-order:write',
         steps: [step({ id: 'capture', kind: 'pivot' })],
       }),
     ).toThrow(/'capture' is pivot and declares a compensation/);
@@ -135,6 +154,7 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'undoable-retry',
+        permission: 'order-management:product-order:write',
         steps: [
           step({ id: 'capture', kind: 'pivot', compensation: undefined }),
           step({ id: 'notify', kind: 'retriable' }),
@@ -147,6 +167,7 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'early-retry',
+        permission: 'order-management:product-order:write',
         steps: [
           step({ id: 'notify', kind: 'retriable', compensation: undefined }),
           step({ id: 'capture', kind: 'pivot', compensation: undefined }),
@@ -159,6 +180,7 @@ describe('defineSaga validates at load', () => {
     expect(() =>
       defineSaga({
         name: 'no-pivot-retry',
+        permission: 'order-management:product-order:write',
         steps: [
           step({ id: 'notify', kind: 'retriable', compensation: undefined }),
         ],
@@ -168,7 +190,11 @@ describe('defineSaga validates at load', () => {
 
   it('names the definition in the thrown error details', () => {
     try {
-      defineSaga({ name: 'checkout', steps: [] });
+      defineSaga({
+        name: 'checkout',
+        permission: 'order-management:product-order:write',
+        steps: [],
+      });
       expect.unreachable('defineSaga should have thrown');
     } catch (error) {
       expect(error).toBeInstanceOf(EntifixLogicError);

@@ -82,6 +82,11 @@ export const shell: EsShell = {
       reservations: 'Reservations',
     },
   },
+  order: {
+    nav: {
+      orders: 'Orders',
+    },
+  },
   marketplaceAdmin: {
     nav: {
       catalog: 'Catalog',
@@ -266,6 +271,14 @@ export const shell: EsShell = {
       units: 'Qty {{count}}',
       total: 'Items in total',
       keepShopping: 'Keep shopping',
+      checkout: 'Check out',
+    },
+    checkout: {
+      placed: 'Your order is placed. The vendor has been notified.',
+      unavailable:
+        'One of these is no longer available in the quantity you asked for. Nothing was charged, and every hold has been released.',
+      empty: 'Nothing here is still on sale.',
+      failed: 'Checkout could not be completed. Please try again.',
     },
     footer: {
       note: 'Demo catalog. No order is real.',

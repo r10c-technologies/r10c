@@ -33,6 +33,11 @@ export const ORDER_PARTICIPANT = 'order-service';
  */
 export const checkoutSaga: SagaDefinition = defineSaga({
   name: 'checkout',
+  // What a caller must hold to run it. The flow's terminal act is writing an
+  // order, so this is the authority actually being exercised — and it is
+  // already in `SERVICE_CROSSING_PERMISSIONS`, which is the closed list that
+  // keeps fleet membership from being a capability on its own.
+  permission: 'order-management:product-order:write',
   steps: [
     {
       id: 'reserve',

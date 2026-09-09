@@ -91,6 +91,7 @@ const refused: SagaResponse = { ok: false, status: 409, body: {} };
 /** Checkout's real shape: a fan-out reserve, then the order write. */
 const checkout = defineSaga({
   name: 'checkout',
+  permission: 'order-management:product-order:write',
   steps: [
     {
       id: 'reserve',
@@ -392,6 +393,7 @@ describe('runSaga — a step with no compensation', () => {
   it('skips a step that declares no compensation', async () => {
     const definition = defineSaga({
       name: 'with-pivot',
+      permission: 'payment-management:payment:write',
       steps: [
         {
           id: 'capture',

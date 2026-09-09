@@ -13,6 +13,7 @@ import {
   PRODUCT_SETUP_SURFACE,
   ProductSetupWizard,
 } from '@r10c/shells-next-marketplace-admin';
+import { ORDER_CRUDS } from '@r10c/shells-next-order';
 import { STOCK_CRUDS } from '@r10c/shells-next-stock';
 import { ConfigurationListClientPage } from '@r10c/shells-next-system-management';
 
@@ -137,7 +138,16 @@ const wizardKind = wizardTabKind({
  */
 export const workspaceRegistry = new TabRegistry()
   .register(entityTabKind('master', masterScreens()))
-  // Operaciones: stock, whose records a *process* made — a movement upserts the
-  // item, the checkout crossing writes the hold (ADR 0033).
-  .register(entityTabKind('operation', screensFor('operation', STOCK_CRUDS)))
+  // Operaciones: stock and orders, whose records a *process* made — a movement
+  // upserts the item, the checkout saga writes the hold and the receipt
+  // (ADR 0033). One registration over both lists, because a tab kind is the
+  // *tier* rather than the shell that contributed to it: two `entityTabKind`
+  // calls for one `operation:` grammar would be two registrations racing for
+  // the same prefix.
+  .register(
+    entityTabKind('operation', screensFor('operation', [
+      ...STOCK_CRUDS,
+      ...ORDER_CRUDS,
+    ])),
+  )
   .register(wizardKind);

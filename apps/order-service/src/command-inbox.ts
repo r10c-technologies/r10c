@@ -51,10 +51,7 @@ export const claimCommand = (
 ): Promise<boolean> =>
   db
     .collection(COMMAND_INBOX_COLLECTION)
-    .insertOne(
-      { commandId, claimedAt: new Date().toISOString() },
-      { session },
-    )
+    .insertOne({ commandId, claimedAt: new Date().toISOString() }, { session })
     .then(() => true)
     .catch((error: unknown) => {
       if (isDuplicateKey(error)) {

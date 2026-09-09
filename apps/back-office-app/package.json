@@ -17,6 +17,7 @@
     "@r10c/shells-next-common": "workspace:*",
     "@r10c/shells-next-i18n": "workspace:*",
     "@r10c/shells-next-marketplace-admin": "workspace:*",
+    "@r10c/shells-next-order": "workspace:*",
     "@r10c/shells-next-stock": "workspace:*",
     "@r10c/shells-next-system-management": "workspace:*",
     "next": "16.2.10",

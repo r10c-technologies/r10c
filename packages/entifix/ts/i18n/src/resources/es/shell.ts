@@ -95,6 +95,11 @@ export const shell = {
       reservations: 'Reservas',
     },
   },
+  order: {
+    nav: {
+      orders: 'Pedidos',
+    },
+  },
   marketplaceAdmin: {
     nav: {
       // Moved out of the `app:` catalog with the nav table itself: this copy
@@ -332,6 +337,14 @@ export const shell = {
       units: 'Cant. {{count}}',
       total: 'Artículos en total',
       keepShopping: 'Seguir comprando',
+      checkout: 'Finalizar compra',
+    },
+    checkout: {
+      placed: 'Tu pedido quedó registrado. Ya se notificó al vendedor.',
+      unavailable:
+        'Uno de estos productos ya no está disponible en la cantidad que pediste. No se cobró nada y se liberaron todas las reservas.',
+      empty: 'Ninguno de estos productos sigue a la venta.',
+      failed: 'No se pudo completar la compra. Inténtalo de nuevo.',
     },
     footer: {
       note: 'Catálogo de demostración. Ningún pedido es real.',

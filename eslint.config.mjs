@@ -111,6 +111,11 @@ const scopeConstraints = [
       // nothing by it, and still cannot reach `scope:auth` or
       // `scope:marketplace-admin` — only the host that mounts all of them can.
       'scope:stock',
+      // The order shell, for the same reason. Widening the **host** scope is how
+      // a domain reaches the back office; `scope:order` gains nothing by it, and
+      // still cannot reach `scope:auth`, `scope:stock` or
+      // `scope:marketplace-admin` — only the host that mounts all of them can.
+      'scope:order',
       'scope:shared',
     ],
   },

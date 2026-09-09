@@ -77,10 +77,16 @@ describe('TransactionSettlement', () => {
   // cookie is the only credential available and a cross-origin connection would
   // carry none (ADR 0036) — a changed URL here is a stream that silently
   // authenticates as nobody.
+  //
+  // `/api/transaction`, not `/api/admin/transaction`, since the `transaction`
+  // slice took `:3103` (#229). This assertion is what caught the move: the
+  // *proxy target* changed and the browser's path had to follow, and a missed
+  // repoint shows up in a running fleet as a write that stays `PENDING` forever
+  // while every probe stays green.
   it('opens the stream on the same-origin proxy path', () => {
     renderIt();
 
-    expect(makeChannel).toHaveBeenCalledWith('/api/admin/transaction/events');
+    expect(makeChannel).toHaveBeenCalledWith('/api/transaction/events');
   });
 
   it('wires both consumers to that one channel', () => {

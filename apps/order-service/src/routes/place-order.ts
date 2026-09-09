@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from '@effect/platform';
+import {
+  HttpRouter,
+  HttpServerRequest,
+  HttpServerResponse,
+} from '@effect/platform';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
   EntifixBuildError,
@@ -125,10 +129,9 @@ export const placeOrderRoute = Effect.gen(function* () {
   if (!placed) {
     const existing = yield* Effect.tryPromise({
       try: () =>
-        db.collection(ORDER_COLLECTION).findOne(
-          { commandId },
-          { projection: { _id: 0 } },
-        ),
+        db
+          .collection(ORDER_COLLECTION)
+          .findOne({ commandId }, { projection: { _id: 0 } }),
       catch: error =>
         new EntifixConnError('Failed to read the claimed order', error, {
           commandId,

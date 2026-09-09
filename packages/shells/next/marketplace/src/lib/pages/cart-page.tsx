@@ -13,6 +13,7 @@ import { type Locale, localeHref } from '@r10c/entifix-ts-i18n/routing';
 import { removeFromCart } from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';
 import { cartCount } from '../cart/cart-state';
+import { checkout, type CheckoutOutcome } from '../cart/checkout-action';
 import { getOffering } from '../catalog/queries';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
@@ -28,7 +29,14 @@ import { StoreShell } from './store-shell';
  *
  * Dynamic by necessity, not by accident: `readCart` reads `cookies()`.
  */
-export async function CartPage({ locale }: { readonly locale: Locale }) {
+export async function CartPage({
+  locale,
+  outcome,
+}: {
+  readonly locale: Locale;
+  /** What a previous checkout attempt did, carried back on the query string. */
+  readonly outcome?: CheckoutOutcome;
+}) {
   const t = getServerTFor(locale, 'shell');
   const lines = await readCart();
 
@@ -47,6 +55,18 @@ export async function CartPage({ locale }: { readonly locale: Locale }) {
     <StoreShell locale={locale}>
       <Stack gap="l">
         <HeadingOne>{t('storefront.cart.heading')}</HeadingOne>
+
+        {outcome !== undefined && (
+          <Card>
+            {/* ⚠️ `unavailable` is the saga's `409`: a line was refused and every
+                hold it had taken was given back. That is a stock outcome the
+                buyer can act on, not a failure to apologise for — so it reads
+                as its own message rather than folding into an error. */}
+            <Text data-testid={`checkout-${outcome}`}>
+              {t(`storefront.checkout.${outcome}`)}
+            </Text>
+          </Card>
+        )}
 
         {present.length === 0 ? (
           <Stack gap="s" align="start">
@@ -87,12 +107,20 @@ export async function CartPage({ locale }: { readonly locale: Locale }) {
                 {': '}
                 {cartCount(lines)}
               </Text>
-              <ButtonLink
-                href={localeHref(locale, storePaths.home())}
-                variant="secondary"
-              >
-                {t('storefront.cart.keepShopping')}
-              </ButtonLink>
+              <Cluster gap="s">
+                <ButtonLink
+                  href={localeHref(locale, storePaths.home())}
+                  variant="secondary"
+                >
+                  {t('storefront.cart.keepShopping')}
+                </ButtonLink>
+                <form action={checkout}>
+                  <input type="hidden" name="locale" value={locale} />
+                  <Button type="submit" data-testid="checkout">
+                    {t('storefront.cart.checkout')}
+                  </Button>
+                </form>
+              </Cluster>
             </Cluster>
           </Stack>
         )}

@@ -1,7 +1,11 @@
 import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
-import { bearerFor, E2E_CROSSING_TOKEN, E2E_ORGANIZATION_ID } from '../support/tokens';
+import {
+  bearerFor,
+  E2E_CROSSING_TOKEN,
+  E2E_ORGANIZATION_ID,
+} from '../support/tokens';
 
 /**
  * Writing and reading an order.
@@ -88,10 +92,9 @@ describe('placing an order', () => {
       { ...line('offering-f'), vendorId: 'vendor-b' },
     ]);
 
-    expect(res.data.data.items.map((item: { vendorId: string }) => item.vendorId)).toEqual([
-      'vendor-a',
-      'vendor-b',
-    ]);
+    expect(
+      res.data.data.items.map((item: { vendorId: string }) => item.vendorId),
+    ).toEqual(['vendor-a', 'vendor-b']);
   });
 
   it('refuses an order with no lines', async () => {

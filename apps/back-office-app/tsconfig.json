@@ -54,6 +54,9 @@
       "path": "../../packages/shells/next/stock"
     },
     {
+      "path": "../../packages/shells/next/order"
+    },
+    {
       "path": "../../packages/shells/next/marketplace-admin"
     },
     {
