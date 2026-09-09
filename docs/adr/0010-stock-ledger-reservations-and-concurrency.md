@@ -23,6 +23,10 @@
   now `concurrency.live.spec.ts` — and **live-only on purpose**: the `mock`
   profile's Mongo is single-threaded, so a green race there proves nothing at
   all.
+- Revised: 2026-09-08 by [ADR 0052](0052-the-checkout-saga.md) — the claim that
+  the existing engine's `rollbackUCFactory` compensates a reservation is false
+  and is corrected in place below; the compensation now receives its own step's
+  outcome.
 
 ## Trigger
 
@@ -166,7 +170,20 @@ tempting mistake, so it is written down as a prohibition.
 `order-management` (platform) calls `stock-management` (tenant) **synchronously**
 to reserve — the buyer needs a yes/no now — and the order holds a **reservation
 id**, never a quantity. If the order write then fails, the compensation releases
-the reservation, which is exactly `rollbackUCFactory` in the existing engine.
+the reservation.
+
+> **Corrected 2026-09-08.** This paragraph ended _"which is exactly
+> `rollbackUCFactory` in the existing engine"_, and that was false from the day
+> it was written. `completeTransaction` hardcodes
+> `Effect.provideService(OutcomeTag, undefined)`, and a reservation id is minted
+> by stock-service **during** `execute` — so a rollback receives the command and
+> nothing else, and cannot release a hold it never saw.
+> [ADR 0039](0039-multi-step-sagas-are-orchestrated.md) measured this and called
+> the parameter _unreachable_;
+> [ADR 0052](0052-the-checkout-saga.md) is where the compensation is told what
+> its own step did. The sentence around it stands: the compensation is a release,
+> and the order holds an id rather than a quantity, which is what makes that
+> release possible at all.
 
 A multi-vendor cart is N reservations across N tenants, with N−1 compensations if
 one fails. That is a marketplace's normal case, and it is what the saga is for.
