@@ -508,6 +508,9 @@ importers:
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../packages/business/ts/catalog-reference
+      '@r10c/business-ts-stock-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/stock-management
     devDependencies:
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*

@@ -25,6 +25,9 @@
   ],
   "references": [
     {
+      "path": "../../packages/business/ts/stock-management"
+    },
+    {
       "path": "../../packages/business/ts/catalog-reference"
     },
     {

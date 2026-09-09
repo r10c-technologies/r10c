@@ -515,6 +515,51 @@ describe('the generated form', () => {
   });
 
   /**
+   * ⚠️ **Measured live on the stock surface, which is what this exists for.**
+   * `stock-item` answers `["read"]` — no role holds `stock-item:write` and the
+   * service serves no save route — so Save was correctly withheld while
+   * `onHand` and `reserved` still rendered as enabled number inputs. A vendor
+   * could type into the very field ADR 0010 forbids writing, and nothing would
+   * happen and nothing would say why.
+   *
+   * The record's values stay visible; what goes away is the ability to change
+   * them, decided by the same document that decides Save.
+   */
+  it('renders a record read-only when the caller may not write it', async () => {
+    slug = 'b-1';
+    fetchMetadata.mockResolvedValue({ actions: ['read'], useCases: [] });
+
+    renderPage(<verbBrandCrud.SingleViewPage />);
+
+    await waitFor(() => expect(screen.getByText('Acme')).toBeInTheDocument());
+    expect(screen.queryByLabelText(/nombre/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /guardar/i }),
+    ).not.toBeInTheDocument();
+    // And no way back into the inputs: the built-in Ver/Editar toggle is
+    // suppressed whenever the mode is supplied, so a refused write cannot be
+    // reached around.
+    expect(
+      screen.queryByRole('button', { name: /editar/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  /**
+   * A create has no record to read, so the rule above must not reach it — a
+   * `read` mode on a new entity is an empty form with no way to fill it.
+   */
+  it('still edits a create, whatever the descriptor says about writing', async () => {
+    // `new` is the create slug; the page resolves it to a null id, so there is
+    // no record — and no record is the exemption.
+    slug = CATALOG_NEW_SLUG;
+    fetchMetadata.mockResolvedValue({ actions: ['read'], useCases: [] });
+
+    renderPage(<verbBrandCrud.SingleViewPage />);
+
+    expect(await screen.findByLabelText(/nombre/i)).toBeInTheDocument();
+  });
+
+  /**
    * ⚠️ The defect this option exists for, measured live on `ProductOffering`:
    * `EntityForm` has rendered these buttons since ADR 0035 and `EntityCrudForm`
    * has accepted an `onUseCase` for as long, but `makeEntityCrud` never passed

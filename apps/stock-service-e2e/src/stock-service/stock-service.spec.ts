@@ -174,40 +174,51 @@ describe('the seeded store', () => {
   });
 });
 
+/**
+ * ⚠️ **Every journey that writes uses a fresh offering, never a seeded one.**
+ *
+ * The seeded assertions above are exact — #223's whole point is that a live run
+ * names the rows it checks rather than asserting something exists — and exact
+ * totals only survive if nothing in the suite moves them. Recording a receipt
+ * against `product-offering-1` would leave the store one run ahead of the
+ * numbers, so the *second* live pass on a lab would fail and say nothing about
+ * the code. A fresh id per test also means the first receipt exercises the
+ * upsert branch, which is the one that creates the row.
+ *
+ * The refusal journeys are the exception and need no help: they are asserted
+ * *not* to write.
+ */
+const freshOffering = (label: string) =>
+  `e2e-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
 describe('recording a movement', () => {
-  it('appends to the ledger and moves the total by exactly the quantity', async () => {
-    const before = await itemFor(SEEDED.simple.offeringId);
+  it('creates the item on the first movement, then moves it by exactly the quantity', async () => {
+    const offeringId = freshOffering('receipt');
 
-    const res = await recordMovement(SEEDED.simple.offeringId, 5, 'receipt');
+    const first = await recordMovement(offeringId, 3, 'receipt');
 
-    expect(res.status).toBe(201);
-    expect(res.data.data.quantity).toBe(5);
+    expect(first.status).toBe(201);
+    expect(first.data.data.quantity).toBe(3);
     // Server-owned: the client does not choose it, and a body that named one
     // would have it overwritten.
-    expect(typeof res.data.data.id).toBe('string');
+    expect(typeof first.data.data.id).toBe('string');
 
-    const after = await itemFor(SEEDED.simple.offeringId);
-    expect(after['onHand']).toBe((before['onHand'] as number) + 5);
+    // The upsert branch: a vendor's first receipt makes the row rather than
+    // requiring one to exist.
+    const created = await itemFor(offeringId);
+    expect(created['onHand']).toBe(3);
+    expect(created['reserved']).toBe(0);
+
+    expect((await recordMovement(offeringId, 5, 'receipt')).status).toBe(201);
+
+    const after = await itemFor(offeringId);
+    expect(after['onHand']).toBe(8);
     // The fold moved and the hold did not: a receipt is not a promise.
-    expect(after['reserved']).toBe(before['reserved']);
-  });
-
-  it('creates the item on the first movement for an offering that had none', async () => {
-    // The upsert branch — a vendor's first receipt makes the row rather than
-    // requiring one to exist. A fresh id each run so the assertion holds on a
-    // live store that has already been written to.
-    const offeringId = `e2e-first-receipt-${Date.now()}`;
-
-    const res = await recordMovement(offeringId, 3, 'receipt');
-
-    expect(res.status).toBe(201);
-    const item = await itemFor(offeringId);
-    expect(item['onHand']).toBe(3);
-    expect(item['reserved']).toBe(0);
+    expect(after['reserved']).toBe(0);
   });
 
   it('links the movement back to the item it folded into', async () => {
-    const res = await recordMovement(SEEDED.sold.offeringId, 1, 'receipt');
+    const res = await recordMovement(freshOffering('links'), 1, 'receipt');
 
     expect(res.status).toBe(201);
     const links = res.data.meta.links as Array<{ rel: string; href: string }>;
@@ -217,13 +228,13 @@ describe('recording a movement', () => {
   });
 
   it('takes a negative quantity for a sale', async () => {
-    const before = await itemFor(SEEDED.adjusted.offeringId);
+    const offeringId = freshOffering('sale');
+    await recordMovement(offeringId, 10, 'receipt');
 
-    const res = await recordMovement(SEEDED.adjusted.offeringId, -2, 'sale');
+    const res = await recordMovement(offeringId, -2, 'sale');
 
     expect(res.status).toBe(201);
-    const after = await itemFor(SEEDED.adjusted.offeringId);
-    expect(after['onHand']).toBe((before['onHand'] as number) - 2);
+    expect((await itemFor(offeringId))['onHand']).toBe(8);
   });
 
   it('refuses a sale with a positive quantity', async () => {
@@ -244,10 +255,16 @@ describe('recording a movement', () => {
   });
 
   it('accepts an adjustment in either direction', async () => {
-    const up = await recordMovement(SEEDED.sold.offeringId, 2, 'adjustment');
-    const down = await recordMovement(SEEDED.sold.offeringId, -2, 'adjustment');
+    // `adjustment` answers `'either'` to `movementDirection`, so this is what
+    // proves the consistency check reads the pair rather than the reason alone.
+    const offeringId = freshOffering('adjustment');
+    await recordMovement(offeringId, 10, 'receipt');
+
+    const up = await recordMovement(offeringId, 2, 'adjustment');
+    const down = await recordMovement(offeringId, -2, 'adjustment');
 
     expect([up.status, down.status]).toEqual([201, 201]);
+    expect((await itemFor(offeringId))['onHand']).toBe(10);
   });
 
   it('refuses a reason the enum does not name', async () => {

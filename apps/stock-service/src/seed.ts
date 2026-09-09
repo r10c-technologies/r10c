@@ -2,7 +2,10 @@ import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 
-import { STOCK_ITEM_COLLECTION } from './stock-item-index';
+import {
+  ensureStockItemIndexes,
+  STOCK_ITEM_COLLECTION,
+} from './stock-item-index';
 import { stockItemTempData, stockMovementTempData } from './stock-temp-data';
 
 /** The movement ledger's collection, matching `@entity({ key })`. */
@@ -68,6 +71,19 @@ export const seedStock = (tenantDbName: string) =>
   Effect.gen(function* () {
     const client = yield* MongoClientTag;
     const db = client.db(tenantDbName);
+
+    // ⚠️ **The index, before the rows.** `ensureStockItemIndexes` otherwise runs
+    // only inside `recordMovementRoute`, which is fine while a movement is the
+    // only thing that creates the collection — and stopped being true here.
+    // Measured on the live lab: after a `dev:reset` the seeded
+    // `stock_demo-organization` held 40 correct items and `stock-item` carried
+    // `_id_` and nothing else, so the fold's uniqueness was unguaranteed until
+    // somebody happened to record a movement.
+    //
+    // The collection exists from this write on, so this is the first moment the
+    // index can be created at all; `createIndex` is idempotent, so the
+    // per-request call stays exactly as it was.
+    yield* ensureStockItemIndexes(db);
 
     yield* seedCollection(
       db,
