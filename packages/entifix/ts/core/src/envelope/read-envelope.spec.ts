@@ -112,16 +112,16 @@ describe('isEntifixEnvelope', () => {
 
 describe('readEnvelope', () => {
   it('narrows a matching envelope', () => {
-    const envelope = makeEnvelope('transactionEvent', 'product', { at: 'now' });
+    const envelope = makeEnvelope('transactionRecord', 'product', { at: 'now' });
 
-    expect(Effect.runSync(readEnvelope(envelope, 'transactionEvent'))).toBe(
+    expect(Effect.runSync(readEnvelope(envelope, 'transactionRecord'))).toBe(
       envelope,
     );
   });
 
   it('fails when the body is not an envelope, naming the label', () => {
     const error = Effect.runSync(
-      readEnvelope({ at: 'now' }, 'transactionEvent', 'saga message').pipe(
+      readEnvelope({ at: 'now' }, 'transactionRecord', 'saga message').pipe(
         Effect.flip,
       ),
     );
@@ -143,14 +143,14 @@ describe('readEnvelope', () => {
     const error = Effect.runSync(
       readEnvelope(
         makeEnvelope('command', 'product', {}),
-        'transactionEvent',
+        'transactionRecord',
       ).pipe(Effect.flip),
     );
 
-    expect(error.message).toContain('type "transactionEvent"');
+    expect(error.message).toContain('type "transactionRecord"');
     expect(error.message).toContain('but got "command"');
     expect(error.details).toMatchObject({
-      expected: 'transactionEvent',
+      expected: 'transactionRecord',
       actual: 'command',
     });
   });

@@ -6,25 +6,32 @@ import type { EntityLoadRequest } from '../types/EntityLoadRequest';
 /**
  * Discriminates what {@link EntifixEnvelope.data} carries.
  *
- * `command`/`transactionEvent` extend the contract for the transactions layer:
- * a write is issued as a `command` and the saga reports progress as
- * `transactionEvent`s. Their `data` shapes live in `@r10c/entifix-transactions`
- * — core only owns the discriminant so every artifact agrees on it.
+ * `command` extends the contract for the transactions layer: a write is issued
+ * as a `command`, whose `data` shape lives in `@r10c/entifix-transactions` —
+ * core only owns the discriminant so every artifact agrees on it.
  *
- * `event` is what actually rides the bus, and it is deliberately not
- * `transactionEvent`: once a message can be `catalog.published` as easily as
- * `transaction.completed`, naming the envelope after one publisher's flow is
- * wrong. `transactionEvent` survives for the HTTP surface that frames a
- * transaction *record* — the `202` body and the tracker's read routes — which
- * is a separate wart, not a synonym for this one.
+ * `event` is what actually rides the bus, and it is deliberately not named
+ * after one publisher's flow: once a message can be `catalog.published` as
+ * easily as `transaction.completed`, `transactionEvent` would be the wrong
+ * name for it.
  *
- * `sagaResult` is what a settled multi-step flow answers with. It is
- * deliberately **not** `transactionEvent`: that discriminant frames a
- * transaction *record*, and a saga result is neither a record nor an event but
- * the outcome of a walk — which steps ran, and what each one returned
- * ([ADR 0052](../../../../../../docs/adr/0052-the-checkout-saga.md)). Reusing
- * the existing name would have made one discriminant mean three payload shapes,
- * which is the wart #176 already tracks for the two it means today.
+ * ⚠️ **The four transaction-shaped discriminants below are four because they
+ * carry four shapes.** `transactionEvent` used to mean all of them, and a
+ * discriminant that means several things asserts nothing when it is read —
+ * which is what `readTransactionEventEnvelope` was doing on the `202`: checking
+ * a name that the record route and the event type both also answered to
+ * ([ADR 0055](../../../../../../docs/adr/0055-a-coordinator-resumes-from-its-own-record.md),
+ * #176).
+ *
+ * - `transactionAccepted` — the `202` accept body, `{ transactionId, state }`.
+ *   Not a record: it has no `createdAt` and names no entity id yet.
+ * - `transactionRecord` — the fold a client polls, a `TransactionRecord`.
+ * - `sagaResult` — how a settled multi-step walk ended: which steps ran and
+ *   what each returned ([ADR 0052](../../../../../../docs/adr/0052-the-checkout-saga.md)).
+ * - `sagaInstance` — the durable instance itself, which is what a resumable
+ *   coordinator reads and what `GET /api/saga/:id` serves. It differs from
+ *   `sagaResult` in carrying the inputs and the resume count, because those are
+ *   what an operator needs to answer *why is this one still here*.
  *
  * `entityMetadata` is the same extension made once more, for the action model:
  * its `data` is an {@link EntityMetadataDocument}, which core does own because
@@ -37,8 +44,10 @@ export type EntifixEnvelopeType =
   | 'entityPage'
   | 'command'
   | 'event'
-  | 'transactionEvent'
+  | 'transactionAccepted'
+  | 'transactionRecord'
   | 'sagaResult'
+  | 'sagaInstance'
   | 'entityMetadata';
 
 export type EntifixEnvelopeMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';

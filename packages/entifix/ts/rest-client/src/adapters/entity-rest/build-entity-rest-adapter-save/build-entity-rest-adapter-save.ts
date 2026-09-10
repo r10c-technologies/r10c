@@ -1,6 +1,6 @@
 import {
   makeCommandEnvelope,
-  readTransactionEventEnvelope,
+  readTransactionAcceptedEnvelope,
   type TransactionCommand,
   TransactionSinkTag,
 } from '@r10c/entifix-transactions';
@@ -87,7 +87,7 @@ export const buildEntityRestAdapterSave =
         // Read for its shape, not its contents: this asserts the service really
         // accepted a transaction rather than answering something else with a
         // 2xx, which is the failure the old code path could not distinguish.
-        yield* readTransactionEventEnvelope(accepted.body);
+        yield* readTransactionAcceptedEnvelope(accepted.body);
 
         // Tell whoever is watching that a write is in flight. This is the only
         // point in the system that knows it — the entity returned below is

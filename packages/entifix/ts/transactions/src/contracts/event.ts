@@ -1,11 +1,8 @@
 import {
   type DomainEvent,
   type EntifixEnvelope,
-  type EntifixError,
   type EntityId,
-  readEnvelope,
 } from '@r10c/entifix-ts-core';
-import { Effect } from 'effect';
 
 import type { TransactionOutcome } from '../ports/transaction-handler';
 import type { TransactionCommand } from './command';
@@ -161,26 +158,3 @@ export const failedEvent = (
   });
 
 export type TransactionEventEnvelope = EntifixEnvelope<TransactionEvent>;
-
-/**
- * Parses a `transactionEvent` envelope off the **HTTP** surface.
- *
- * Not the bus — bus messages are `event` envelopes and are read with core's
- * `readEventEnvelope`. This one survives for the `202` accept body and the
- * tracker's read routes, which frame a transaction *record* under the
- * `transactionEvent` discriminant. A record is not an event and that is a wart,
- * but unpicking it changes the browser's accept-shape assertion and the e2e
- * mocks, so it is tracked separately.
- */
-export function readTransactionEventEnvelope(
-  body: unknown,
-): Effect.Effect<TransactionEvent, EntifixError> {
-  return Effect.map(
-    readEnvelope<TransactionEvent>(
-      body,
-      'transactionEvent',
-      'transactionEvent',
-    ),
-    envelope => envelope.data,
-  );
-}

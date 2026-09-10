@@ -27,7 +27,7 @@ const configuration = stubUriConfigurationLayer(
 const server = setupEntifixServer();
 
 const aRecord = (state: string) => ({
-  meta: { type: 'transactionEvent', entity: 'widget' },
+  meta: { type: 'transactionRecord', entity: 'widget' },
   data: {
     transactionId: TX,
     entity: 'widget',
@@ -108,6 +108,6 @@ describe('buildTransactionStatusReader', () => {
       ),
     );
 
-    await expect(read()).rejects.toThrow(/transactionEvent/);
+    await expect(read()).rejects.toThrow(/transactionRecord/);
   });
 });

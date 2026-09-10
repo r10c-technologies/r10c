@@ -124,7 +124,7 @@ const acceptedTransaction = (transactionId: string) =>
   HttpResponse.json(
     {
       meta: {
-        type: 'transactionEvent',
+        type: 'transactionAccepted',
         entity: 'widget',
         links: [
           {
@@ -304,7 +304,7 @@ describe('buildEntityRestAdapterSave, transactional create', () => {
 
     await expect(
       runCommandSave(makeWidget(undefined, 'Sprocket')),
-    ).rejects.toThrow(/transactionEvent/);
+    ).rejects.toThrow(/transactionAccepted/);
   });
 
   // The announcement is what lets the browser keep watching a write it cannot
@@ -364,7 +364,7 @@ describe('buildEntityRestAdapterSave, transactional create', () => {
     const announced: PendingTransaction[] = [];
     await expect(
       runCommandSaveWatchedBy(announced)(makeWidget(undefined, 'Sprocket')),
-    ).rejects.toThrow(/transactionEvent/);
+    ).rejects.toThrow(/transactionAccepted/);
 
     expect(announced).toEqual([]);
   });
