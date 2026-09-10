@@ -98,7 +98,16 @@ interface Line {
   readonly quantity: number;
 }
 
-const readLines = (rows: readonly EntityRowDraft[]): readonly Line[] =>
+/**
+ * The lines a stored draft holds.
+ *
+ * ⚠️ **Every member is defaulted, because a draft is not trusted.** What comes
+ * back from IndexedDB was written by whatever build was running then — ADR 0032's
+ * rule — so a row missing a member restores as an empty one rather than as
+ * `undefined` reaching an input and flipping it from controlled to
+ * uncontrolled mid-render.
+ */
+export const readLines = (rows: readonly EntityRowDraft[]): readonly Line[] =>
   rows.map(row => ({
     key: row[ROW_KEY] ?? newRowKey(),
     offeringId: row['offeringId'] ?? '',
@@ -120,6 +129,17 @@ const writeLines = (lines: readonly Line[]): EntityRowDraft[] =>
 
 const totalOf = (lines: readonly Line[]): number =>
   lines.reduce((sum, line) => sum + line.amount * line.quantity, 0);
+
+/**
+ * What the total is denominated in.
+ *
+ * One currency per sale, taken from the first line: the projection prices each
+ * offering in its own, and a basket mixing two would need a rate nobody has
+ * agreed on. Empty is the honest answer for an empty till rather than a
+ * currency nobody chose.
+ */
+export const currencyOf = (lines: readonly Line[]): string =>
+  lines.length === 0 ? '' : (lines[0] as Line).currency;
 
 export interface CounterSaleWizardProps {
   /** The step a workspace tab was addressed at (`wizard:counter-sale:lines`). */
@@ -321,6 +341,22 @@ export function CounterSaleWizard({
     candidate => candidate.id === activeStep,
   );
 
+  /**
+   * Move by one step, clamped to the graph.
+   *
+   * Clamped rather than guarded: `onNext` is only rendered on a step that has a
+   * next one and `onPrevious` only past the entry, so a guard here would be a
+   * branch nothing can take — and an unreachable branch reads as a case somebody
+   * forgot to handle.
+   */
+  const stepBy = (offset: number) => {
+    const index = Math.min(
+      Math.max(stepIndex + offset, 0),
+      COUNTER_SALE_WIZARD.steps.length - 1,
+    );
+    goTo((COUNTER_SALE_WIZARD.steps[index] as { id: string }).id);
+  };
+
   return (
     <Wizard
       steps={COUNTER_SALE_WIZARD.steps.map((candidate, index) => ({
@@ -338,18 +374,8 @@ export function CounterSaleWizard({
       canFinish={activeStep === 'summary'}
       canAdvance={canAdvance}
       isSubmitting={charging}
-      onNext={() => {
-        const next = COUNTER_SALE_WIZARD.steps[stepIndex + 1];
-        if (next) goTo(next.id);
-      }}
-      onPrevious={
-        stepIndex > 0
-          ? () => {
-              const previous = COUNTER_SALE_WIZARD.steps[stepIndex - 1];
-              if (previous) goTo(previous.id);
-            }
-          : undefined
-      }
+      onNext={() => stepBy(1)}
+      onPrevious={stepIndex > 0 ? () => stepBy(-1) : undefined}
       onFinish={() => {
         void charge();
       }}
@@ -453,7 +479,7 @@ export function CounterSaleWizard({
           ))}
           <Text>
             {translateKey('shell:sales.counterSale.total')}:{' '}
-            {totalOf(lines)} {lines[0]?.currency ?? ''}
+            {totalOf(lines)} {currencyOf(lines)}
           </Text>
           {failure !== undefined && <Text>{translateKey(`errors:${failure}`)}</Text>}
         </Stack>
