@@ -100,6 +100,7 @@ export const shell: EsShell = {
         channel: 'Channel',
         lines: 'Products',
         payment: 'Payment',
+        summary: 'Summary',
       },
       channelHint: 'Pick the channel this sale goes through.',
       linesHint: 'Add the published products you are selling.',

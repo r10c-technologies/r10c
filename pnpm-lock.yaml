@@ -2298,6 +2298,9 @@ importers:
       '@r10c/business-ts-sales-management':
         specifier: workspace:*
         version: link:../../../business/ts/sales-management
+      '@r10c/entifix-react-controls':
+        specifier: workspace:*
+        version: link:../../../entifix/react/controls
       '@r10c/entifix-react-integration':
         specifier: workspace:*
         version: link:../../../entifix/react/integration

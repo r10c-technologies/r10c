@@ -113,6 +113,7 @@ export const shell = {
         channel: 'Canal',
         lines: 'Productos',
         payment: 'Cobro',
+        summary: 'Resumen',
       },
       channelHint: 'Elige el canal por el que se hace esta venta.',
       linesHint: 'Agrega los productos publicados que estás vendiendo.',
