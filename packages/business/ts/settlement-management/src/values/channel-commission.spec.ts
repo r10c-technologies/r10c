@@ -1,21 +1,20 @@
+import { SalesChannelTypes } from '@r10c/business-ts-sales-vocabulary';
 import { describe, expect, it } from 'vitest';
 
-import {
-  CommissionableChannelTypes,
-  commissionForChannel,
-} from './channel-commission.js';
+import { commissionForChannel } from './channel-commission.js';
 
-describe('CommissionableChannelTypes', () => {
-  it('mirrors sales-management`s SalesChannelTypes, which it cannot import', () => {
-    // `business:domain` may never depend on another `business:domain`, so the
-    // values are copied. Nothing keeps the two lists in step — this assertion is
-    // what makes the drift visible in a diff (ADR 0024).
-    expect(CommissionableChannelTypes).toEqual([
-      'storefront',
-      'counter',
-      'phone',
-      'external',
-    ]);
+describe('ChannelCommissionRates', () => {
+  it('is keyed by the shared vocabulary, so there is no second list to drift', () => {
+    // The mirroring assertion this replaces pinned a local copy of the four
+    // literals against `sales-management`'s, because neither domain could import
+    // the other. Both now read the same `business:policy` package, which is what
+    // ADR 0056 built — so the check that made drift *visible* is gone along with
+    // the drift it watched for.
+    const everyType: Record<string, number> = Object.fromEntries(
+      SalesChannelTypes.map((type, index) => [type, index * 100]),
+    );
+
+    expect(commissionForChannel(everyType, 800, 'counter')).toBe(100);
   });
 });
 

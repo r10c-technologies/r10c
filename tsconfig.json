@@ -169,6 +169,9 @@
       "path": "./packages/business/ts/sales-management"
     },
     {
+      "path": "./packages/business/ts/sales-vocabulary"
+    },
+    {
       "path": "./tools/conventions"
     },
     {

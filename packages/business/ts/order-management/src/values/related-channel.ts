@@ -1,3 +1,5 @@
+import type { SalesChannelType } from '@r10c/business-ts-sales-vocabulary';
+
 /**
  * The channel a sale came through, copied onto the order.
  *
@@ -19,15 +21,18 @@
  * The copy is taken at capture and never refreshed. Renaming a channel does not
  * rewrite history, which is the intended behaviour for a receipt.
  *
- * `type` is a plain string rather than `SalesChannelType`: this package may not
- * import `sales-management` (`business:domain` never depends on another
- * `business:domain`), and the closed set lives there.
+ * `type` is the real `SalesChannelType`. It was a bare string until ADR 0056,
+ * for a reason that was true at the time: the union was declared inside
+ * `sales-management`, and a `business:domain` package may never depend on
+ * another. The set now lives in a `business:policy` vocabulary package that any
+ * domain may reach down to, so a receipt can no longer carry a channel type
+ * settlement has never heard of.
  */
 export interface RelatedChannel {
   /** The `SalesChannel` id, resolvable only inside the owning vendor's tenant. */
   readonly id: string;
   /** Copied at capture, so a platform-plane reader needs no tenant handle. */
   readonly name: string;
-  /** A `SalesChannelType` value. Settlement prices a line by this. */
-  readonly type: string;
+  /** Settlement prices a line by this. */
+  readonly type: SalesChannelType;
 }

@@ -1,6 +1,7 @@
 {
-  "name": "@r10c/business-ts-order-management",
+  "name": "@r10c/business-ts-sales-vocabulary",
   "version": "0.0.1",
+  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -21,10 +22,10 @@
   "nx": {
     "tags": [
       "layer:business",
-      "business:domain",
+      "business:policy",
       "scope:shared"
     ],
-    "sourceRoot": "packages/business/ts/order-management/src",
+    "sourceRoot": "packages/business/ts/sales-vocabulary/src",
     "targets": {
       "build": {
         "executor": "@nx/js:swc",
@@ -32,9 +33,9 @@
           "{options.outputPath}"
         ],
         "options": {
-          "outputPath": "packages/business/ts/order-management/dist",
-          "main": "packages/business/ts/order-management/src/index.ts",
-          "tsConfig": "packages/business/ts/order-management/tsconfig.lib.json",
+          "outputPath": "packages/business/ts/sales-vocabulary/dist",
+          "main": "packages/business/ts/sales-vocabulary/src/index.ts",
+          "tsConfig": "packages/business/ts/sales-vocabulary/tsconfig.lib.json",
           "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
@@ -42,8 +43,6 @@
     }
   },
   "dependencies": {
-    "@r10c/business-ts-sales-vocabulary": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
     "@swc/helpers": "0.5.23"
   }
 }

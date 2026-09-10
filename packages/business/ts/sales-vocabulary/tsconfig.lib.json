@@ -11,14 +11,7 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../sales-vocabulary/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/core/tsconfig.lib.json"
-    }
-  ],
+  "references": [],
   "exclude": [
     "jest.config.ts",
     "jest.config.cts",
