@@ -14,6 +14,11 @@ import {
   ProductSetupWizard,
 } from '@r10c/shells-next-marketplace-admin';
 import { ORDER_CRUDS } from '@r10c/shells-next-order';
+import {
+  COUNTER_SALE_SURFACE,
+  CounterSaleWizard,
+  SALES_CRUDS,
+} from '@r10c/shells-next-sales';
 import { STOCK_CRUDS } from '@r10c/shells-next-stock';
 import { ConfigurationListClientPage } from '@r10c/shells-next-system-management';
 
@@ -77,7 +82,13 @@ const screensFor = (
  * entity that *can* be derived is not a line here.
  */
 const masterScreens = (): EntityTabScreens => {
-  const derived = screensFor('master', MARKETPLACE_ADMIN_CRUDS);
+  // Definiciones, and the sales channels join it: a vendor names their counter
+  // and every order placed through it then references that record, which is
+  // exactly the test ADR 0033 applies.
+  const derived = screensFor('master', [
+    ...MARKETPLACE_ADMIN_CRUDS,
+    ...SALES_CRUDS,
+  ]);
   return {
     lists: {
       ...derived.lists,
@@ -123,6 +134,13 @@ const wizardKind = wizardTabKind({
   [PRODUCT_SETUP_SURFACE.key]: {
     titleKey: PRODUCT_SETUP_SURFACE.navLabelKey,
     render: step => <ProductSetupWizard step={step} />,
+  },
+  // The till, addressed `wizard:counter-sale[:<step>]`. It is an Asistente for
+  // the taxonomy's own reason — guided, multi-step, and it ends — and it owns no
+  // entity at all, which is why it is here rather than in a `screensFor` list.
+  [COUNTER_SALE_SURFACE.key]: {
+    titleKey: COUNTER_SALE_SURFACE.navLabelKey,
+    render: step => <CounterSaleWizard step={step} />,
   },
 });
 

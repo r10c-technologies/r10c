@@ -1,38 +1,21 @@
-/**
- * The channel-type names a commission rate can be set against.
- *
- * **Duplicated from `sales-management`'s `SalesChannelTypes` on purpose**, and
- * the duplication is structural rather than lazy: `business:domain` may never
- * depend on another `business:domain`, so importing the real union is an illegal
- * edge the build rejects. This is the same shape as every cross-store id in the
- * repository — `ProductSpecification.brandId` is a bare string for exactly this
- * reason — except that here the *values* are copied rather than a key.
- *
- * The cost, stated so nobody discovers it later: nothing keeps the two lists in
- * step. A channel type added in `sales-management` and not here silently becomes
- * unpriceable, falling through to the default rate. `settlement.spec.ts` pins
- * the list so at least the drift is visible in a diff, and the real fix — if
- * this ever bites — is a shared `business:policy` vocabulary package, not a
- * dependency edge.
- *
- * @see ADR 0024
- */
-export const CommissionableChannelTypes = [
-  'storefront',
-  'counter',
-  'phone',
-  'external',
-] as const;
-
-export type CommissionableChannelType =
-  (typeof CommissionableChannelTypes)[number];
+import type { SalesChannelType } from '@r10c/business-ts-sales-vocabulary';
 
 /**
  * Commission rates by channel type, in basis points. Partial: a channel type
  * with no entry is charged the agreement's default rate.
+ *
+ * The key is the **real** `SalesChannelType`, from the `business:policy`
+ * vocabulary both this domain and `sales-management` depend on. It used to be a
+ * local `CommissionableChannelTypes` copy of the same four literals, because
+ * `business:domain` may never depend on another `business:domain` and there was
+ * no third place for the set to live. Nothing kept the two lists in step, so a
+ * channel type added there and not here became unpriceable and fell through to
+ * the default rate below — a wrong invoice rather than an error
+ * ([ADR 0056](../../../../../docs/adr/0056-the-counter-sale-is-the-checkout-saga.md),
+ * which struck ADR 0024's "not doing either now").
  */
 export type ChannelCommissionRates = Readonly<
-  Partial<Record<CommissionableChannelType, number>>
+  Partial<Record<SalesChannelType, number>>
 >;
 
 /**
@@ -44,6 +27,10 @@ export type ChannelCommissionRates = Readonly<
  * rather than treated as absent: "we take nothing on your own counter" is the
  * whole reason per-channel rates exist, and `rates[type] || fallback` would
  * silently charge full commission for it.
+ *
+ * `channelType` stays a `string` rather than the union: it arrives off a
+ * `RelatedChannel` copied onto an order months ago, and a document written
+ * before a type was retired must still price rather than fail to compile.
  */
 export const commissionForChannel = (
   rates: ChannelCommissionRates | undefined,
@@ -54,7 +41,7 @@ export const commissionForChannel = (
     return defaultBasisPoints;
   }
 
-  const rate = rates[channelType as CommissionableChannelType];
+  const rate = rates[channelType as SalesChannelType];
 
   return rate === undefined ? defaultBasisPoints : rate;
 };

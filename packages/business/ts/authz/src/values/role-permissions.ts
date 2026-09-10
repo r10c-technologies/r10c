@@ -32,6 +32,13 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // Seeing which counters exist, so a member of staff can be shown the one
     // they are standing at. Authoring them is an `admin` act.
     `${SALES_DOMAIN}:*:read`,
+    // ⚠️ **Ringing up a sale is this role's job, not an administrative one.**
+    // The verb sits on the channel rather than on the order because no role
+    // holds `order-management:product-order:write` and none is coming — an
+    // order is written by the checkout saga behind a crossing token. This is
+    // the authority sales-service checks before presenting that token on a
+    // seller's behalf (ADR 0056).
+    `${SALES_DOMAIN}:sales-channel:sell`,
     // Seeing what is in stock. Recording a movement is an `admin` act — see the
     // note there for why these are named per entity rather than wildcarded.
     `${STOCK_DOMAIN}:stock-item:read`,
@@ -96,6 +103,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     `${SALES_DOMAIN}:*:read`,
     `${SALES_DOMAIN}:*:write`,
     `${SALES_DOMAIN}:*:delete`,
+    // An owner selling at their own counter. Granted explicitly rather than
+    // left to the wildcards above, which cover the three CRUD actions and not a
+    // declared verb.
+    `${SALES_DOMAIN}:sales-channel:sell`,
     // A vendor's own stock. ⚠️ **Named per entity, deliberately not
     // `stock-management:*:write`.** A wildcard here would also grant
     // `stock-management:reservation:write`, which is the one permission in this

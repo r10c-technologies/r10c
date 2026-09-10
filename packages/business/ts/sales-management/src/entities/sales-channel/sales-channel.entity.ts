@@ -1,3 +1,7 @@
+import {
+  type SalesChannelType,
+  SalesChannelTypes,
+} from '@r10c/business-ts-sales-vocabulary';
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { accessor, entity } from '@r10c/entifix-ts-core';
 
@@ -5,10 +9,6 @@ import {
   type SalesChannelStatus,
   SalesChannelStatuses,
 } from '../../values/sales-channel-status';
-import {
-  type SalesChannelType,
-  SalesChannelTypes,
-} from '../../values/sales-channel-type';
 
 /**
  * A route a vendor sells through — the storefront, a counter in their own shop,

@@ -448,6 +448,10 @@ export const entity: EsEntity = {
     },
   },
   'sales-channel': {
+    form: {
+      editTitle: 'Edit sales channel',
+      newTitle: 'New sales channel',
+    },
     label: 'Sales channel',
     plural: 'Sales channels',
     fields: {
@@ -467,6 +471,9 @@ export const entity: EsEntity = {
         active: 'Active',
         inactive: 'Inactive',
       },
+    },
+    useCases: {
+      sell: 'Sell through this channel',
     },
   },
   'stock-item': {

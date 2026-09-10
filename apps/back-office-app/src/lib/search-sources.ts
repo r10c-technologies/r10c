@@ -1,6 +1,7 @@
 import { AUTH_SEARCH_SOURCES } from '@r10c/shells-next-auth/server';
 import type { RecordSearchSource } from '@r10c/shells-next-common/server';
 import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from '@r10c/shells-next-marketplace-admin/server';
+import { SALES_SEARCH_SOURCES } from '@r10c/shells-next-sales/server';
 import { STOCK_SEARCH_SOURCES } from '@r10c/shells-next-stock/server';
 
 /**
@@ -27,5 +28,6 @@ export const SEARCH_SOURCES: readonly RecordSearchSource[] = [
   // those entities that can name one of their records, and how a vendor thinks
   // about them anyway.
   ...STOCK_SEARCH_SOURCES,
+  ...SALES_SEARCH_SOURCES,
   ...AUTH_SEARCH_SOURCES,
 ];

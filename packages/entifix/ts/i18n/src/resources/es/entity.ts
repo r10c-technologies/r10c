@@ -483,6 +483,10 @@ export const entity = {
     },
   },
   'sales-channel': {
+    form: {
+      editTitle: 'Editar canal de venta',
+      newTitle: 'Nuevo canal de venta',
+    },
     label: 'Canal de venta',
     plural: 'Canales de venta',
     fields: {
@@ -502,6 +506,9 @@ export const entity = {
         active: 'Activo',
         inactive: 'Inactivo',
       },
+    },
+    useCases: {
+      sell: 'Vender en este canal',
     },
   },
   'stock-item': {

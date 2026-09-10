@@ -253,6 +253,14 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // plane and session-guarded end to end, so unlike the marketplace row above
   // this proxy exists for the *reads* too — nothing here is anonymous. The app
   // rewrites it to `/api/stock` before the browser sees it.
+  // ⚠️ A rewrite with no row rewrites nothing: `/api/sales` in the config route
+  // only takes effect for a domain key the configuration actually carries.
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'sales-service-domain',
+    value: 'http://localhost:3109/api',
+  },
   {
     service: 'back-office-app',
     group_name: 'uri',
@@ -1122,6 +1130,105 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
   {
     service: 'stock-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
+  // sales-service — how a vendor sells, per vendor. Tenant plane and
+  // per-organization, so like stock-service it resolves a database handle inside
+  // the request and names none at boot: `mongo.db` is absent on purpose.
+  {
+    service: 'sales-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  // ⚠️ **`sales_`, and now there are three.** `catalog`, `stock` and `sales`
+  // share a plane, a partitioning and an engine, and the only thing keeping them
+  // in three databases is the prefix each service's tenant resolver is built
+  // with. A copied prefix merges two stores silently — every read works, every
+  // write lands, and two domains own one database.
+  {
+    service: 'sales-service',
+    group_name: 'tenant',
+    key: 'dbPrefix',
+    value: 'sales_',
+  },
+  // The same demo vendor the catalog and the stock positions are seeded under.
+  // ⚠️ A lab with no channel cannot ring up a counter sale at all: the till asks
+  // for one and `POST /api/counter-sale` refuses without it.
+  {
+    service: 'sales-service',
+    group_name: 'tenant',
+    key: 'demoOrganizationId',
+    value: 'demo-organization',
+  },
+  // The public half only. This service verifies access tokens and never mints
+  // one, so it cannot sign.
+  {
+    service: 'sales-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'sales-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  // Where the checkout coordinator answers, and the secret this service
+  // presents to start a flow through it.
+  //
+  // ⚠️ **The coordinator's *inbound* token, not a participant's.** It starts a
+  // saga; it does not write a vendor's stock or an order — transaction-service
+  // holds those separately, so a leak here cannot reach a tenant store directly
+  // (ADR 0023). It is the same secret the storefront's checkout action presents,
+  // and this is the second holder: the storefront holds it because it has no
+  // session to check, this service because it checks one first (ADR 0056).
+  {
+    service: 'sales-service',
+    group_name: 'transaction',
+    key: 'url',
+    value: 'http://localhost:3103/api',
+  },
+  {
+    service: 'sales-service',
+    group_name: 'transaction',
+    key: 'crossingToken',
+    value: 'dev-saga-crossing-token-change-me',
+    is_secret: true,
+  },
+  // The published projection a counter sale is priced from. Anonymous, because
+  // the projection is: `published-catalog` is platform plane and marketplace-
+  // service serves it to nobody in particular.
+  {
+    service: 'sales-service',
+    group_name: 'marketplace',
+    key: 'url',
+    value: 'http://localhost:3100/api',
+  },
+  {
+    service: 'sales-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'sales-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'sales-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'sales-service',
     group_name: 'otel',
     key: 'metricIntervalMs',
     value: '60000',

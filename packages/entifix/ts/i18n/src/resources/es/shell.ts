@@ -100,6 +100,36 @@ export const shell = {
       orders: 'Pedidos',
     },
   },
+  sales: {
+    nav: {
+      sales: 'Ventas',
+      channels: 'Canales de venta',
+      guided: 'Ventas',
+      counterSale: 'Vender en mostrador',
+    },
+    counterSale: {
+      title: 'Venta en mostrador',
+      steps: {
+        channel: 'Canal',
+        lines: 'Productos',
+        payment: 'Cobro',
+        summary: 'Resumen',
+      },
+      channelHint: 'Elige el canal por el que se hace esta venta.',
+      linesHint: 'Agrega los productos publicados que estás vendiendo.',
+      addLine: 'Agregar producto',
+      removeLine: 'Quitar',
+      quantity: 'Cantidad',
+      offering: 'Producto',
+      total: 'Total',
+      paymentMethod: 'Forma de pago',
+      charge: 'Cobrar',
+      sold: 'Venta registrada',
+      soldDetail: 'La existencia ya se descontó y el pedido quedó registrado.',
+      newSale: 'Nueva venta',
+      emptyLines: 'Agrega al menos un producto para cobrar.',
+    },
+  },
   marketplaceAdmin: {
     nav: {
       // Moved out of the `app:` catalog with the nav table itself: this copy

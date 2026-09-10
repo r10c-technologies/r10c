@@ -8,7 +8,7 @@ import { SEARCH_SOURCES } from '../src/lib/search-sources';
  * screens this app actually serves.
  */
 describe('SEARCH_SOURCES', () => {
-  it('composes all three shells, catalog then stock then people', () => {
+  it('composes all four shells, catalog then stock then sales then people', () => {
     // Order is the ranking, so this asserts the order rather than the set: an
     // operator learns where a kind of record lands, and a reshuffle is a
     // behaviour change even though every source still resolves.
@@ -21,6 +21,7 @@ describe('SEARCH_SOURCES', () => {
       'stock-item',
       'stock-movement',
       'reservation',
+      'sales-channel',
       'user-identity',
     ]);
   });

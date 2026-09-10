@@ -7,6 +7,11 @@
  * the same. A counter sale is the same order through a different channel
  * ([ADR 0024](../../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
  *
+ * It lives in `business:policy` rather than beside the `SalesChannel` entity
+ * because `settlement-management` and `order-management` both need it and
+ * neither may import a sibling domain — see this package's own entry point for
+ * what that cost before.
+ *
  * The set is **closed**, and that is load-bearing rather than tidy: an
  * `Agreement` carries a commission rate per channel type, so settlement reads
  * this vocabulary to decide what the platform takes. A free-form channel type

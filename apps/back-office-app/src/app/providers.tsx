@@ -18,6 +18,7 @@ import {
   TransactionSettlement,
 } from '@r10c/shells-next-marketplace-admin';
 import { OrderProvider } from '@r10c/shells-next-order';
+import { SalesProvider } from '@r10c/shells-next-sales';
 import { StockProvider } from '@r10c/shells-next-stock';
 import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
@@ -91,7 +92,9 @@ function ThemedProviders({
                   how React contexts stack. */}
               <SystemManagementProvider>
                 <StockProvider>
-                  <OrderProvider>{children}</OrderProvider>
+                  <OrderProvider>
+                    <SalesProvider>{children}</SalesProvider>
+                  </OrderProvider>
                 </StockProvider>
               </SystemManagementProvider>
             </PendingTransactionsProvider>

@@ -9,8 +9,8 @@ import { createConfigRoute } from '@r10c/shells-next-common/server';
  * the real address. The vendor-authored catalog goes through `/api/admin`, the
  * platform vocabulary it is classified in through `/api/marketplace`, the
  * configuration CRUD through `/api/system`, a vendor's stock through
- * `/api/stock`, and the transaction a `202` hands off to through
- * `/api/transaction`.
+ * `/api/stock`, their selling channels and the till through `/api/sales`, and
+ * the transaction a `202` hands off to through `/api/transaction`.
  *
  * Two catalog backends and not one since ADR 0022: `ProductSpecification` is
  * tenant-plane and marketplace-admin-service owns it, while `ProductBrand` and
@@ -29,5 +29,6 @@ export const GET = createConfigRoute({
     'stock-service-domain': '/api/stock',
     'transaction-service-domain': '/api/transaction',
     'order-service-domain': '/api/order',
+    'sales-service-domain': '/api/sales',
   },
 });

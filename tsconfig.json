@@ -169,6 +169,9 @@
       "path": "./packages/business/ts/sales-management"
     },
     {
+      "path": "./packages/business/ts/sales-vocabulary"
+    },
+    {
       "path": "./tools/conventions"
     },
     {
@@ -181,6 +184,9 @@
       "path": "./apps/stock-service"
     },
     {
+      "path": "./apps/sales-service"
+    },
+    {
       "path": "./apps/payment-service"
     },
     {
@@ -190,7 +196,13 @@
       "path": "./apps/stock-service-e2e"
     },
     {
+      "path": "./apps/sales-service-e2e"
+    },
+    {
       "path": "./packages/shells/next/stock"
+    },
+    {
+      "path": "./packages/shells/next/sales"
     },
     {
       "path": "./apps/transaction-service"

@@ -457,9 +457,14 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
    *
    * Duplicated from `matchesEventPattern` in `@r10c/entifix-ts-core` on purpose:
    * this tool is outside the workspace's package graph and importing a library
-   * from it would make the register check depend on a build. The duplication is
-   * the same shape as `SalesChannelType`'s (#96) — two small lists that must
-   * agree, both spec-pinned, rather than a dependency that must not exist.
+   * from it would make the register check depend on a build — a dependency that
+   * must not exist rather than one nobody got around to.
+   *
+   * It used to cite `SalesChannelType` as the same shape. That one was a
+   * *domain* vocabulary two packages both needed, and it had a legal home once
+   * somebody built it: a `business:policy` package they may both depend on
+   * (#96, ADR 0056). This is not that — no package edge would make a tool
+   * outside the graph able to import from inside it.
    */
   const matches = (pattern: string, name: string): boolean => {
     const walk = (

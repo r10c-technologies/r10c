@@ -178,6 +178,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0024](docs/adr/0024-selling-through-a-vendors-own-channel.md) **Selling through a vendor's own channel** — read when an in-store or non-marketplace sale — it is a channel on the same `ProductOrder`, never a second order, and commission resolves through `commissionFor`.
 - [0047](docs/adr/0047-authoring-an-offering-and-the-publish-verb.md) **Authoring an offering, and publication as a verb rather than a field** — read when authoring or publishing an offering — `published → published` is legal, and `status` is server-owned or the verb is decoration.
 - [0049](docs/adr/0049-the-publication-snapshot-carries-what-the-storefront-renders.md) **The publication snapshot carries what the storefront renders** — read when adding a member to the publication snapshot — optional is a safety property, and an absent member is written absent, never `undefined`.
+- [0056](docs/adr/0056-the-counter-sale-is-the-checkout-saga.md) **The counter sale is the checkout saga, and the till holds no secret** — read when a vendor sells somewhere other than the storefront, or a browser surface needs to start a flow that writes another slice's store — the sale is the same saga with a channel on it, and the decision is made where a session can actually be verified.
 
 **Entities and the framework**
 

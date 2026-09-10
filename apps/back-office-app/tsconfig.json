@@ -94,6 +94,9 @@
     },
     {
       "path": "../../packages/business/ts/access-management"
+    },
+    {
+      "path": "../../packages/shells/next/sales"
     }
   ]
 }

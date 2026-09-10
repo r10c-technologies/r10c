@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "@r10c/shells-next-sales": "workspace:*",
     "@r10c/business-ts-access-management": "workspace:*",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz": "workspace:*",
@@ -53,7 +54,8 @@
               "@r10c/marketplace-service",
               "@r10c/auth-service",
               "@r10c/config-service",
-              "@r10c/stock-service"
+              "@r10c/stock-service",
+              "@r10c/sales-service"
             ],
             "target": "dev"
           }
