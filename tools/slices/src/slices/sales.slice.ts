@@ -31,7 +31,7 @@ import type { SliceDeclaration } from '../types.js';
  */
 export const salesSlice: SliceDeclaration = {
   name: 'sales',
-  status: 'planned',
+  status: 'active',
   domains: ['sales-management'],
   stores: [
     {
@@ -42,11 +42,14 @@ export const salesSlice: SliceDeclaration = {
       truth: 'system-of-record',
     },
   ],
-  deployments: [],
+  deployments: ['sales-service'],
   coDeployedWith: [],
   exposedAPIs: [
     'GET /api/sales-channel{,/:id}',
     'POST|PUT|DELETE /api/sales-channel',
+    // The affordance document the back office's generated screens read to
+    // decide whether a Save exists at all (ADR 0026).
+    'GET /api/sales-channel/$metadata',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],

@@ -54,7 +54,7 @@ declaration as `bindingReason`.
 | `published-catalog` | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog` |
 | `saga-coordination` | control  | `marketplace-admin` | active       | —                | —                                                             | single           | system-of-record        |
 | `saga`              | control  | `transaction`       | active       | —                | —                                                             | single           | system-of-record        |
-| `sales`             | tenant   | `sales`             | **planned**  | —                | `sales-management`                                            | per-organization | system-of-record        |
+| `sales`             | tenant   | `sales`             | active       | —                | `sales-management`                                            | per-organization | system-of-record        |
 | `session`           | control  | `auth`              | active       | —                | —                                                             | single           | system-of-record        |
 | `settlement`        | control  | `settlement`        | **planned**  | —                | `settlement-management`                                       | single           | system-of-record        |
 | `stock`             | tenant   | `stock`             | active       | —                | `stock-management`                                            | per-organization | system-of-record        |

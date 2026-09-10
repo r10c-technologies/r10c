@@ -116,6 +116,10 @@ const scopeConstraints = [
       // still cannot reach `scope:auth`, `scope:stock` or
       // `scope:marketplace-admin` — only the host that mounts all of them can.
       'scope:order',
+      // The sales shell — the channel screens and the till. Same rule: widening
+      // the **host** scope is how a domain reaches the back office, and
+      // `scope:sales` gains nothing by it.
+      'scope:sales',
       'scope:shared',
     ],
   },
@@ -151,6 +155,12 @@ const scopeConstraints = [
   {
     sourceTag: 'scope:payment',
     onlyDependOnLibsWithTags: ['scope:payment', 'scope:shared'],
+  },
+  // The `sales` slice's own app and its back-office shell, for the same reason
+  // as the four above.
+  {
+    sourceTag: 'scope:sales',
+    onlyDependOnLibsWithTags: ['scope:sales', 'scope:shared'],
   },
 ];
 

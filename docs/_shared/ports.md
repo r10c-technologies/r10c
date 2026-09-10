@@ -15,7 +15,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | payment (6)             | —      | 3106⁸               |
 | settlement (7)          | —      | 3107⁵               |
 | stock (8)               | —      | 3108⁶               |
-| sales (9)               | —      | 3109⁵               |
+| sales (9)               | —      | 3109⁹               |
 | — platform —            |        | config-service 3190 |
 
 **The index is per host, not per pair.** ADR 0008 allocated `300N`/`310N` to
@@ -107,18 +107,16 @@ ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
 name any organization. Separate `is_secret` rows, separate rotations, and the
 named upgrade path is unchanged.
 
-⁵ **Reserved, not bound.** The `settlement` and `sales` slices exist in the
-register and own their stores, but are `planned` — no process runs them, so
-nothing listens on these ports yet
-([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md),
-[ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)). The index is
-allocated now so that promoting a slice is a `deployments` edit rather than a
-port negotiation. They are deliberately **not** in `ALL_PORTS`
-(`tools/free-ports.sh`) until something binds them.
+⁵ **Reserved, not bound.** The `settlement` slice exists in the register and
+owns its store, but is `planned` — no process runs it, so nothing listens on
+this port yet ([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md)). The
+index is allocated now so that promoting a slice is a `deployments` edit rather
+than a port negotiation. It is deliberately **not** in `ALL_PORTS`
+(`tools/free-ports.sh`) until something binds it.
 
-`payment` was on this list until #152 and is now footnote 8, which is the
-mechanism working: promoting it was a `deployments` edit and a `FLEET` entry,
-exactly as the reservation promised.
+`payment` was on this list until #152 and `sales` until #92, and they are now
+footnotes 8 and 9 — the mechanism working twice: promoting each was a
+`deployments` edit and a `FLEET` entry, exactly as the reservation promised.
 
 `sales` took index 9 rather than the then-free `3103`, which was reserved for
 the `transaction` slice splitting back out of marketplace-admin-service — and
@@ -206,6 +204,27 @@ credential, each way.
 
 Releasing and converting a hold, and the sweep that expires one, are not served
 yet.
+
+⁹ **sales-service, bound.** The third of the five reserved indices to be
+claimed, and the one that finally gives a vendor a way to sell somewhere other
+than this marketplace. It owns the `sales` store — **tenant** plane, one Mongo
+database per organization (`sales_<organizationId>`), a third beside the
+catalog's `tenant_<organizationId>` and stock's `stock_<organizationId>`. Same
+plane, same partitioning, three stores with three writing slices, which is what
+makes one-writer a property of the connection rather than of review
+([ADR 0020](../adr/0020-stores-and-slices.md)).
+
+It serves `SalesChannel` CRUD, session-guarded and organization-scoped like
+every other tenant read in the fleet. Nothing here is readable anonymously and
+nothing here accepts a crossing token **inbound**: a channel is authored by a
+member of the organization that owns it, so a verified session is the only
+credential any route accepts.
+
+⚠️ **It owns the channel and never the sale.** A counter sale is a
+`ProductOrder` with a `channel` on it, written by the checkout saga through
+order-service — the same order the storefront produces, which is what keeps a
+vendor's takings one query rather than two
+([ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)).
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

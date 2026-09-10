@@ -1126,6 +1126,74 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'metricIntervalMs',
     value: '60000',
   },
+  // sales-service — how a vendor sells, per vendor. Tenant plane and
+  // per-organization, so like stock-service it resolves a database handle inside
+  // the request and names none at boot: `mongo.db` is absent on purpose.
+  {
+    service: 'sales-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  // ⚠️ **`sales_`, and now there are three.** `catalog`, `stock` and `sales`
+  // share a plane, a partitioning and an engine, and the only thing keeping them
+  // in three databases is the prefix each service's tenant resolver is built
+  // with. A copied prefix merges two stores silently — every read works, every
+  // write lands, and two domains own one database.
+  {
+    service: 'sales-service',
+    group_name: 'tenant',
+    key: 'dbPrefix',
+    value: 'sales_',
+  },
+  // The same demo vendor the catalog and the stock positions are seeded under.
+  // ⚠️ A lab with no channel cannot ring up a counter sale at all: the till asks
+  // for one and `POST /api/counter-sale` refuses without it.
+  {
+    service: 'sales-service',
+    group_name: 'tenant',
+    key: 'demoOrganizationId',
+    value: 'demo-organization',
+  },
+  // The public half only. This service verifies access tokens and never mints
+  // one, so it cannot sign.
+  {
+    service: 'sales-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'sales-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  {
+    service: 'sales-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'sales-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'sales-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'sales-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
 ];
 
 const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
