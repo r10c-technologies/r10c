@@ -66,7 +66,7 @@ function assertEnvelope<TEntity extends Entity, TData>(
 
 /**
  * Narrows an arbitrary body to an envelope of the expected `meta.type` without
- * requiring an entity constructor — for `command`/`transactionEvent` messages
+ * requiring an entity constructor — for `command`/`transactionRecord` messages
  * whose `data` is not a serialized entity. `label` only sharpens error text.
  */
 export function readEnvelope<TData>(

@@ -49,7 +49,8 @@ one thing the client could not know was the identity of the thing it had just
 created.
 
 **So creating a record reported an error in the browser while succeeding on the
-server.** The service answers `202` with a `transactionEvent` envelope; the REST
+server.** The service answers `202` with a transaction-accepted envelope (framed
+`transactionEvent` at the time, `transactionAccepted` since #176); the REST
 save adapter called `readEntityEnvelope`, which asserts `meta.type === 'entity'`.
 `fetch-client.ts` treats `202` as `ok`, so this surfaced as an
 `EntifixBuildError` rather than an HTTP failure — and the write still landed

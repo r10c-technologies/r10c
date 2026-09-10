@@ -170,6 +170,12 @@ agree, both spec-pinned.
 
 ## Residual
 
+> **Discharged 2026-09-09 by #176.** `transactionEvent` is gone. The two
+> surfaces below carry `transactionRecord` and `transactionAccepted`, which are
+> two shapes and are now two names — and the accept-shape assertion the paragraph
+> worried about turned out to be the reason it mattered: while one discriminant
+> meant three things, that check passed on any of them.
+
 `GET /api/transaction/:id` and the `202` accept body both frame a transaction
 **record** under the `transactionEvent` discriminant. A record is not an event.
 Unpicking it needs a new discriminant, which changes the browser's accept-shape

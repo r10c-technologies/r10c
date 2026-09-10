@@ -77,10 +77,22 @@ It serves `/api/transaction/:id` and `/api/transaction/events` — both
 authenticated and organization-scoped since
 [ADR 0036](../adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md) —
 plus `POST /api/saga/:definition`, the coordinator that walks a declarative flow
-([ADR 0052](../adr/0052-the-checkout-saga.md)). The route is generic rather than
+([ADR 0052](../adr/0052-the-checkout-saga.md)). That route is generic rather than
 `/api/checkout` because this slice declares **no domain**, and a business verb
 here would put a domain name in a permission namespace nothing is provisioned
 for.
+
+`GET /api/saga/:id` answers where a flow stopped and what has been reversed. It
+is scoped to the organizations the flow's own **calls** named rather than to one
+member on the record, because a basket spanning two vendors belongs to both — and
+for the same reason it carries no permission of its own
+([ADR 0055](../adr/0055-a-coordinator-resumes-from-its-own-record.md)).
+
+It also runs a **second** sweep beside the tracker's. The recovery sweep labels
+stuck single-step transaction records `STALE`; the resume sweep finishes
+multi-step flows whose coordinator died, claiming each instance with a
+conditional write so two replicas cannot walk one flow together. Both are
+config-service dials and they are deliberately separate ones.
 
 ⚠️ **The browser's path did not change, and could not.** Those two reads move
 from `:3101` to `:3103` behind the back office's own same-origin proxy, which

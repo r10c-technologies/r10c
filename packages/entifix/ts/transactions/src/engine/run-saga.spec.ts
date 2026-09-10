@@ -18,7 +18,7 @@ import {
   SagaStoreTag,
 } from '../ports/saga-store.js';
 import type { SagaInputs } from './run-saga.js';
-import { runSaga } from './run-saga.js';
+import { resumeSaga, runSaga } from './run-saga.js';
 
 /**
  * A recording dispatcher plus an in-memory store.
@@ -34,6 +34,7 @@ const makeWorld = (
   const transitions: Array<{ state: SagaState; error?: string }> = [];
   const outcomes: SagaStepOutcome[] = [];
   const begun: number[] = [];
+  const compensated: string[] = [];
   let started: Omit<SagaInstance, 'updatedAt'> | undefined;
 
   const dispatcher = Layer.succeed(SagaDispatcherTag, {
@@ -70,6 +71,11 @@ const makeWorld = (
       }),
     get: () => Effect.succeed(undefined),
     findStale: () => Effect.succeed([]),
+    claimForResume: () => Effect.succeed(undefined),
+    markCompensated: (_sagaId: string, stepId: string) =>
+      Effect.sync(() => {
+        compensated.push(stepId);
+      }),
   });
 
   return {
@@ -78,6 +84,7 @@ const makeWorld = (
     transitions,
     outcomes,
     begun,
+    compensated,
     startedWith: () => started,
   };
 };
@@ -779,6 +786,289 @@ describe('runSaga — a derived fan-out still carries a body', () => {
     );
 
     expect(result.state).toBe('COMPLETED');
+    expect(world.dispatched).toEqual([]);
+  });
+});
+
+/**
+ * An instance as a dead coordinator would have left it.
+ *
+ * Everything a resume needs is here because everything a resume needs was
+ * written as the walk went: the inputs at `start`, the step index before each
+ * dispatch, an outcome after each one.
+ */
+const instanceAt = (
+  fields: Partial<SagaInstance> & Pick<SagaInstance, 'stepIndex'>,
+): SagaInstance => ({
+  sagaId: 'saga-1',
+  definition: 'checkout',
+  state: 'RUNNING',
+  outcomes: [],
+  inputs: twoLines,
+  resumeAttempts: 1,
+  createdAt: '2026-09-09T00:00:00.000Z',
+  updatedAt: '2026-09-09T00:00:00.000Z',
+  ...fields,
+});
+
+const resume = (
+  world: ReturnType<typeof makeWorld>,
+  instance: SagaInstance,
+  definition: SagaDefinition = checkout,
+  maxResumeAttempts = 3,
+) =>
+  Effect.runPromise(
+    resumeSaga({ instance, definition, maxResumeAttempts }).pipe(
+      Effect.provide(world.layer),
+      Effect.provide(Logger.remove(Logger.defaultLogger)),
+    ),
+  );
+
+/** One `reserve` outcome, as two successful holds would have recorded it. */
+const heldTwo: SagaStepOutcome = {
+  stepId: 'reserve',
+  calls: [
+    { index: 0, status: 201, body: { data: { id: 'r-0' } }, organizationId: 'org-a' },
+    { index: 1, status: 201, body: { data: { id: 'r-1' } }, organizationId: 'org-b' },
+  ],
+};
+
+describe('resumeSaga — where it re-enters the walk', () => {
+  /**
+   * The coordinator died *during* the dispatch, so nothing was recorded for the
+   * step it was on. Re-dispatching is the only option, and it is safe because
+   * the command id is stable and the participant claims it.
+   */
+  it('re-dispatches a step that recorded no outcome', async () => {
+    const world = makeWorld((_d, call) => ok({ data: { id: `r-${call}` } }));
+
+    const result = await resume(
+      world,
+      instanceAt({ stepIndex: 0, outcomes: [] }),
+    );
+
+    expect(result.state).toBe('COMPLETED');
+    expect(world.dispatched.map(d => d.commandId)).toEqual([
+      'saga-1:reserve:0',
+      'saga-1:reserve:1',
+      'saga-1:write-order',
+    ]);
+  });
+
+  /**
+   * ⚠️ The window between `recordOutcome` and the next `beginStep`. Starting at
+   * `stepIndex` here would take a second pair of holds against the same lines —
+   * the oversell ADR 0052 built the command inbox to prevent, reintroduced by
+   * the coordinator rather than by a redelivery.
+   */
+  it('starts after a step whose outcome was already recorded', async () => {
+    const world = makeWorld(() => ok({ data: { id: 'o-1' } }));
+
+    const result = await resume(
+      world,
+      instanceAt({ stepIndex: 0, outcomes: [heldTwo] }),
+    );
+
+    expect(result.state).toBe('COMPLETED');
+    expect(world.dispatched.map(d => d.commandId)).toEqual([
+      'saga-1:write-order',
+    ]);
+  });
+
+  /**
+   * The step refused and the process died deciding what to do about it. The
+   * decision is re-entered, not the dispatch: the refusal already happened.
+   */
+  it('unwinds when the recorded outcome carries a refusal', async () => {
+    const world = makeWorld(() => ok({}));
+
+    const result = await resume(
+      world,
+      instanceAt({
+        stepIndex: 1,
+        outcomes: [
+          heldTwo,
+          { stepId: 'write-order', calls: [], error: "step 'write-order' call 0 refused with 409" },
+        ],
+      }),
+    );
+
+    expect(result.state).toBe('COMPENSATED');
+    // Both holds released, newest first, and the order write has nothing to
+    // give back because it took nothing.
+    expect(world.dispatched.map(d => d.call.path)).toEqual([
+      '/api/reservation/r-1',
+      '/api/reservation/r-0',
+    ]);
+    // `write-order` is marked too: it took nothing, so it has nothing to give
+    // back and is trivially reversed. Unmarked, a later resume would walk it
+    // again for no reason.
+    expect(world.compensated).toEqual(['write-order', 'reserve']);
+  });
+
+  /**
+   * ⚠️ The rule ADR 0054 added to the in-process walk, now on the resumed one.
+   * A capture that committed is money taken; unwinding behind it would delete
+   * the order and put the goods back on sale.
+   */
+  it('strands rather than compensating behind a committed pivot', async () => {
+    const world = makeWorld(() => ok({}));
+
+    const result = await resume(
+      world,
+      instanceAt({
+        stepIndex: 3,
+        outcomes: [
+          heldTwo,
+          { stepId: 'write-order', calls: [{ index: 0, status: 201, body: { data: { id: 'o-1' } } }] },
+          { stepId: 'capture-payment', calls: [{ index: 0, status: 201, body: { data: { id: 'p-1' } } }] },
+          { stepId: 'convert-reservation', calls: [], error: 'refused with 409' },
+        ],
+      }),
+      checkoutWithCapture,
+    );
+
+    expect(result.state).toBe('STRANDED');
+    expect(world.dispatched).toEqual([]);
+  });
+});
+
+describe('resumeSaga — a coordinator that died while unwinding', () => {
+  it('continues the unwind and skips steps already given back', async () => {
+    const world = makeWorld(() => ok({}));
+
+    const result = await resume(
+      world,
+      instanceAt({
+        state: 'COMPENSATING',
+        stepIndex: 1,
+        error: 'refused with 409',
+        outcomes: [
+          heldTwo,
+          {
+            stepId: 'write-order',
+            calls: [{ index: 0, status: 201, body: { data: { id: 'o-1' } } }],
+            compensated: true,
+          },
+        ],
+      }),
+    );
+
+    expect(result.state).toBe('COMPENSATED');
+    // The order delete is *not* re-sent: it is already marked. Only the holds
+    // the dead coordinator had not reached come back.
+    expect(world.dispatched.map(d => d.call.path)).toEqual([
+      '/api/reservation/r-1',
+      '/api/reservation/r-0',
+    ]);
+  });
+
+  /**
+   * A `COMPENSATING` instance always carries the refusal that started the
+   * unwind — unless it was written before the member existed, in which case the
+   * unwind still has to run. What is being given back does not depend on why.
+   */
+  it('unwinds an instance that records no reason', async () => {
+    const world = makeWorld(() => ok({}));
+
+    const result = await resume(
+      world,
+      instanceAt({ state: 'COMPENSATING', stepIndex: 0, outcomes: [heldTwo] }),
+    );
+
+    expect(result.state).toBe('COMPENSATED');
+    expect(result.error).toBe('compensation resumed');
+    expect(world.dispatched).toHaveLength(2);
+  });
+
+  /**
+   * ⚠️ At-least-once compensation. The dead coordinator may have released a
+   * hold and died before marking it, so the retry finds nothing to release.
+   * Treating that `404` as a failure would strand exactly the flows that were
+   * cleaned up correctly.
+   */
+  it('counts a 404 from a compensation as already undone', async () => {
+    const world = makeWorld(() => ({ ok: false, status: 404, body: {} }));
+
+    const result = await resume(
+      world,
+      instanceAt({
+        state: 'COMPENSATING',
+        stepIndex: 0,
+        error: 'refused with 409',
+        outcomes: [heldTwo],
+      }),
+    );
+
+    expect(result.state).toBe('COMPENSATED');
+    expect(world.compensated).toEqual(['reserve']);
+  });
+
+  it('strands when a compensation is genuinely refused', async () => {
+    const world = makeWorld(() => refused);
+
+    const result = await resume(
+      world,
+      instanceAt({
+        state: 'COMPENSATING',
+        stepIndex: 0,
+        error: 'refused with 409',
+        outcomes: [heldTwo],
+      }),
+    );
+
+    expect(result.state).toBe('STRANDED');
+    // Left unmarked, so a later sweep tries again rather than assuming it is done.
+    expect(world.compensated).toEqual([]);
+  });
+});
+
+describe('resumeSaga — when it refuses to resume', () => {
+  it('strands past the resume ceiling instead of retrying forever', async () => {
+    const world = makeWorld(() => ok({}));
+
+    const result = await resume(
+      world,
+      instanceAt({ stepIndex: 0, resumeAttempts: 4 }),
+      checkout,
+      3,
+    );
+
+    expect(result.state).toBe('STRANDED');
+    expect(world.dispatched).toEqual([]);
+    expect(world.transitions).toEqual([
+      { state: 'STRANDED', error: 'resumed 3 times without settling' },
+    ]);
+  });
+
+  /**
+   * ⚠️ A definition that changed under a live instance describes a different
+   * flow. Carrying on would compensate the wrong steps in the wrong order, so
+   * it is surfaced for a human instead.
+   */
+  it('strands on an outcome naming a step the definition no longer has', async () => {
+    const world = makeWorld(() => ok({}));
+
+    const result = await resume(
+      world,
+      instanceAt({
+        stepIndex: 1,
+        outcomes: [{ stepId: 'reserve-v1', calls: [] }],
+      }),
+    );
+
+    expect(result.state).toBe('STRANDED');
+    expect(result.error).toContain("'reserve-v1' is not in definition");
+    expect(world.dispatched).toEqual([]);
+  });
+
+  it('strands when the step index is past the end of the definition', async () => {
+    const world = makeWorld(() => ok({}));
+
+    const result = await resume(world, instanceAt({ stepIndex: 9 }));
+
+    expect(result.state).toBe('STRANDED');
+    expect(result.error).toContain('step 9 is not in definition');
     expect(world.dispatched).toEqual([]);
   });
 });

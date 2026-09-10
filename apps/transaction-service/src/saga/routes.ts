@@ -58,7 +58,7 @@ const byIdRoute = requirePrincipal((principal: RequestPrincipal) =>
       return yield* notFound;
     }
     return yield* HttpServerResponse.json(
-      makeEnvelope('transactionEvent', record.entity, record),
+      makeEnvelope('transactionRecord', record.entity, record),
     );
   }),
 ).pipe(Effect.catchAll(serverError));

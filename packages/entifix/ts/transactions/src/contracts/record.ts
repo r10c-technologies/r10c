@@ -80,24 +80,59 @@ export class TransactionStoreTag extends Context.Tag('TransactionStoreTag')<
 >() {}
 
 /**
- * Parses the tracker's by-id response, which frames a {@link TransactionRecord}
- * under the `transactionEvent` discriminant.
+ * What a service answers a `202` with: the id to poll, and the state it starts
+ * in.
  *
- * ⚠️ **Do not reach for `readTransactionEventEnvelope` here**, even though it
- * reads the very same discriminant. That function is typed
- * `Effect<TransactionEvent, …>`, and `readEnvelope` validates the discriminant
- * and then *casts* the payload — it checks no members. So the call would succeed
- * and hand back a record typed as an event: no `step`, no `at`, and a `state`
- * the caller is about to branch on. The discriminant collision is a known wart
- * (see `event.ts`), and this is the reader's half of it fixed honestly; the
- * `202` accept-shape assertion keeps using the event reader, because there the
- * body really is an event.
+ * ⚠️ **Not a {@link TransactionRecord}, which is why it has its own
+ * discriminant.** Nothing has been folded yet — there is no `createdAt`, no
+ * entity id, and no code, because the write has not run. Framing it as a record
+ * meant the browser's accept-shape assertion was checking a name that the
+ * by-id route and the bus payload also answered to, so it asserted nothing it
+ * claimed to (#176,
+ * [ADR 0055](../../../../../../docs/adr/0055-a-coordinator-resumes-from-its-own-record.md)).
+ */
+export interface TransactionAccepted {
+  transactionId: string;
+  state: TransactionState;
+}
+
+/**
+ * Parses a `202` accept body, for a browser about to start polling.
+ *
+ * Read for its **shape**, not its contents: it asserts the service really
+ * accepted a transaction rather than answering something else with a `2xx`.
+ */
+export function readTransactionAcceptedEnvelope(
+  body: unknown,
+): Effect.Effect<TransactionAccepted, EntifixError> {
+  return Effect.map(
+    readEnvelope<TransactionAccepted>(
+      body,
+      'transactionAccepted',
+      'transactionAccepted',
+    ),
+    envelope => envelope.data,
+  );
+}
+
+/**
+ * Parses the tracker's by-id response, which frames a {@link TransactionRecord}.
+ *
+ * ⚠️ **`readEnvelope` validates the discriminant and then *casts* the payload**
+ * — it checks no members. So a discriminant shared by two shapes hands back
+ * whichever one the caller asked for, typed and wrong: a record read as an
+ * event has no `step`, no `at`, and a `state` the caller is about to branch on.
+ * That is the reason the four transaction-shaped discriminants are four.
  */
 export function readTransactionRecordEnvelope(
   body: unknown,
 ): Effect.Effect<TransactionRecord, EntifixError> {
   return Effect.map(
-    readEnvelope<TransactionRecord>(body, 'transactionEvent', 'transactionEvent'),
+    readEnvelope<TransactionRecord>(
+      body,
+      'transactionRecord',
+      'transactionRecord',
+    ),
     envelope => envelope.data,
   );
 }

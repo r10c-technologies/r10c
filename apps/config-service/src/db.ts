@@ -641,6 +641,36 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'recoveryIntervalMs',
     value: '10000',
   },
+  // How long a *saga instance* may sit untouched before a sweep presumes its
+  // coordinator is gone and finishes the flow itself (#233).
+  //
+  // ⚠️ A different window from `staleTimeoutMs` above, which is about
+  // single-step transaction records. `updatedAt` is re-stamped before every
+  // dispatch, so this must stay above the longest a step legitimately takes —
+  // below it, a resume runs underneath a coordinator still waiting on a slow
+  // participant, and both dispatch.
+  {
+    service: 'transaction-service',
+    group_name: 'saga',
+    key: 'resumeStaleAfterMs',
+    value: '60000',
+  },
+  // How often the resume sweep runs.
+  {
+    service: 'transaction-service',
+    group_name: 'saga',
+    key: 'resumeIntervalMs',
+    value: '30000',
+  },
+  // How many sweeps may pick one instance up before it is settled `STRANDED`
+  // and logged instead. The ceiling ADR 0030 gives an outbox entry, applied to
+  // the record that already exists rather than to a second one beside it.
+  {
+    service: 'transaction-service',
+    group_name: 'saga',
+    key: 'maxResumeAttempts',
+    value: '3',
+  },
   // The public half only. This service verifies access tokens and never mints
   // one.
   {

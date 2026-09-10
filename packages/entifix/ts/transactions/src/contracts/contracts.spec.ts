@@ -11,13 +11,11 @@ import {
   makeCommandEnvelope,
   readCommandEnvelope,
 } from './command.js';
+import { acceptedEvent, completedEvent, failedEvent } from './event.js';
 import {
-  acceptedEvent,
-  completedEvent,
-  failedEvent,
-  readTransactionEventEnvelope,
-} from './event.js';
-import { readTransactionRecordEnvelope } from './record.js';
+  readTransactionAcceptedEnvelope,
+  readTransactionRecordEnvelope,
+} from './record.js';
 
 const AT = '2026-07-20T12:00:00.000Z';
 
@@ -87,13 +85,13 @@ describe('command envelopes', () => {
     const error = Effect.runSync(
       Effect.flip(
         readCommandEnvelope({
-          meta: { type: 'transactionEvent', entity: 'product' },
+          meta: { type: 'transactionRecord', entity: 'product' },
           data: aCommand(),
         }),
       ),
     );
 
-    expect(error.message).toContain('but got "transactionEvent"');
+    expect(error.message).toContain('but got "transactionRecord"');
   });
 
   // A well-framed envelope carrying junk is the dangerous case: the framing
@@ -264,26 +262,43 @@ describe('event builders', () => {
   });
 });
 
-describe('event envelopes', () => {
-  // Bus messages are framed by core's `makeEventEnvelope`; what survives here is
-  // the HTTP reader for the `202` body and the tracker's read routes, which
-  // frame a transaction *record* under the `transactionEvent` discriminant.
-  it('reads a transactionEvent envelope off the HTTP surface', () => {
+describe('the accept envelope reader', () => {
+  // Bus messages are framed by core's `makeEventEnvelope`; what lives here is
+  // the HTTP reader for the `202` body, which carries neither a record nor an
+  // event but the id to poll and the state it starts in.
+  it('reads a 202 accept body', () => {
     const body = {
-      meta: { type: 'transactionEvent', entity: 'product' },
+      meta: { type: 'transactionAccepted', entity: 'product' },
       data: { transactionId: TX, state: 'PENDING' },
     };
 
-    expect(Effect.runSync(readTransactionEventEnvelope(body))).toEqual({
+    expect(Effect.runSync(readTransactionAcceptedEnvelope(body))).toEqual({
       transactionId: TX,
       state: 'PENDING',
     });
   });
 
+  // ⚠️ The assertion #176 existed for. While one discriminant meant the accept
+  // body, the record and the event, this call *passed* — the accept-shape check
+  // in the browser's save adapter accepted a by-id record as proof that a write
+  // had been accepted.
+  it('rejects the by-id record, which used to share its discriminant', () => {
+    const error = Effect.runSync(
+      Effect.flip(
+        readTransactionAcceptedEnvelope({
+          meta: { type: 'transactionRecord', entity: 'product' },
+          data: { transactionId: TX, entity: 'product', state: 'COMPLETED' },
+        }),
+      ),
+    );
+
+    expect(error.message).toContain('but got "transactionRecord"');
+  });
+
   it('rejects an envelope of the wrong type', () => {
     const error = Effect.runSync(
       Effect.flip(
-        readTransactionEventEnvelope(makeCommandEnvelope(aCommand())),
+        readTransactionAcceptedEnvelope(makeCommandEnvelope(aCommand())),
       ),
     );
 
@@ -292,13 +307,12 @@ describe('event envelopes', () => {
 });
 
 describe('the record envelope reader', () => {
-  // The tracker's by-id route frames a `TransactionRecord` under the
-  // `transactionEvent` discriminant, so this reader exists to give that body its
-  // real type. `readEnvelope` casts rather than validating members, which is
-  // exactly why reusing the event reader would have been a silent mistype.
+  // `readEnvelope` casts rather than validating members, so the discriminant is
+  // the whole assertion: a record read under a name the accept body also
+  // answered to would arrive typed as something it is not.
   it('reads the tracker record off the by-id response', () => {
     const body = {
-      meta: { type: 'transactionEvent', entity: 'product' },
+      meta: { type: 'transactionRecord', entity: 'product' },
       data: {
         transactionId: TX,
         entity: 'product',

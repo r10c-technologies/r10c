@@ -411,7 +411,7 @@ export const createTransactionRoute = <
     return yield* HttpServerResponse.json(
       {
         meta: {
-          type: 'transactionEvent',
+          type: 'transactionAccepted',
           entity: options.key,
           links: [
             {

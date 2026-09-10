@@ -129,10 +129,50 @@ export interface SagaCallOutcome {
   readonly organizationId?: string;
 }
 
+/**
+ * What one step is given to work with — one element per call on a `fanOut` step,
+ * exactly one otherwise.
+ */
+export interface SagaStepInput {
+  /** The body to send. */
+  readonly body?: unknown;
+  /** ADR 0023's explicit organization, for a tenant-plane participant. */
+  readonly organizationId?: string;
+}
+
+/**
+ * The inputs each step needs, keyed by step id, supplied by the caller.
+ *
+ * ⚠️ **Here rather than in the engine**, because the durable instance carries
+ * it: a resumed walk is a different process reading this off the store, so the
+ * port that persists it may not reach up into the engine to name its type
+ * ([ADR 0055](../../../../../../docs/adr/0055-a-coordinator-resumes-from-its-own-record.md)).
+ */
+export type SagaInputs = Readonly<Record<string, readonly SagaStepInput[]>>;
+
 /** Every call one step made, in dispatch order. */
 export interface SagaStepOutcome {
   readonly stepId: string;
   readonly calls: readonly SagaCallOutcome[];
+  /**
+   * Why this step stopped, when it did — absent on a step that succeeded.
+   *
+   * ⚠️ **Without it a resumed walk cannot tell a finished step from a refused
+   * one.** `calls` holds what succeeded either way, so the two are
+   * indistinguishable on the stored document, and the distinction is what
+   * decides whether the pivot committed. Guessing it either compensates behind
+   * a capture or walks past a refusal
+   * ([ADR 0055](../../../../../../docs/adr/0055-a-coordinator-resumes-from-its-own-record.md)).
+   */
+  readonly error?: string;
+  /**
+   * Whether this step's calls have already been given back.
+   *
+   * ⚠️ **What keeps a resumed unwind from compensating twice.** A second
+   * `DELETE` of an order already deleted answers `404`, which the dispatcher
+   * classifies as a refusal, which strands a flow that was in fact reversed.
+   */
+  readonly compensated?: boolean;
 }
 
 const fail = (definition: string, detail: string): never => {

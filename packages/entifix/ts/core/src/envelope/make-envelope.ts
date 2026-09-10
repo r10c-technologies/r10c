@@ -20,7 +20,7 @@ import type {
 
 /**
  * The transport-free envelope builder for payloads that are not serialized
- * entities — `command`/`transactionEvent` messages carry their own `data`
+ * entities — `command`/`transactionRecord` messages carry their own `data`
  * shapes (defined by the transactions layer), so they cannot go through the
  * entity builders. `entity` is still the routing label (`meta.entity`): the
  * target entity's `key` for a command, or the entity/transaction subject for an

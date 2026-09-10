@@ -51,7 +51,7 @@ const captureCreate = (
       return HttpResponse.json(
         {
           meta: {
-            type: 'transactionEvent',
+            type: 'transactionAccepted',
             entity: envelope.meta.entity,
             links: [
               {

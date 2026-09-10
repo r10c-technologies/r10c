@@ -178,7 +178,7 @@ const transactionHandlers = [
     };
     return HttpResponse.json(
       {
-        meta: { type: 'transactionEvent', entity: 'product-specification' },
+        meta: { type: 'transactionAccepted', entity: 'product-specification' },
         data: { transactionId: body.data.transactionId, state: 'PENDING' },
       },
       { status: 202 },
@@ -191,7 +191,7 @@ const transactionHandlers = [
           { status: 404 },
         )
       : HttpResponse.json({
-          meta: { type: 'transactionEvent', entity: 'product-specification' },
+          meta: { type: 'transactionRecord', entity: 'product-specification' },
           data: { ...transactionState.record, transactionId: params['id'] },
         }),
   ),

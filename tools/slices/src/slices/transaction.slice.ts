@@ -40,6 +40,11 @@ export const transactionSlice: SliceDeclaration = {
   exposedAPIs: [
     'GET /api/transaction/:id',
     'GET /api/transaction/events',
+    // Where a flow stopped and what has been reversed — the read ADR 0039
+    // chose orchestration for, served once the coordinator became resumable
+    // (#233). Scoped to the organizations the flow's own calls named, because a
+    // flow spanning two vendors belongs to both.
+    'GET /api/saga/:id',
     // The coordinator. Generic rather than `/api/checkout`, because this slice
     // declares no domain and a business verb here would put a domain name in a
     // permission namespace (ADR 0039, ADR 0052).

@@ -1,7 +1,10 @@
 import type { EntifixConnError } from '@r10c/entifix-ts-core';
 import { Context, type Effect } from 'effect';
 
-import type { SagaStepOutcome } from '../contracts/saga-definition';
+import type {
+  SagaInputs,
+  SagaStepOutcome,
+} from '../contracts/saga-definition';
 
 /**
  * Where a saga instance is.
@@ -31,6 +34,29 @@ export interface SagaInstance {
   /** The step being dispatched, or the last one dispatched. */
   readonly stepIndex: number;
   readonly outcomes: readonly SagaStepOutcome[];
+  /**
+   * What the caller supplied, kept so a **different process** can finish this
+   * flow.
+   *
+   * ⚠️ This is the member that makes the instance a resumable record rather
+   * than a report on one. Without it a resumed walk knows which step is next
+   * and has nothing to dispatch it with: a fan-out step's cardinality is its
+   * input's length, and a body template resolves against `inputs` before it
+   * resolves against earlier outcomes
+   * ([ADR 0055](../../../../../../docs/adr/0055-a-coordinator-resumes-from-its-own-record.md)).
+   */
+  readonly inputs: SagaInputs;
+  /**
+   * How many times a sweep has picked this instance up, which is the ceiling
+   * that stops a resume loop.
+   *
+   * It plays the part ADR 0030's `attempts` plays on an outbox entry, on the
+   * record that already exists rather than on a second one beside it. Past the
+   * ceiling the instance is settled `STRANDED` and logged — surfaced rather
+   * than retried forever, because a coordinator spinning on a permanent failure
+   * is how a customer's money stays captured with nobody told.
+   */
+  readonly resumeAttempts: number;
   readonly error?: string;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -77,6 +103,29 @@ export interface SagaStore {
   findStale(
     olderThanMs: number,
   ): Effect.Effect<readonly SagaInstance[], EntifixConnError>;
+  /**
+   * Take ownership of a stale instance, or answer `undefined`.
+   *
+   * ⚠️ **A claim, not a read**, and it is what makes the sweep safe to run in
+   * more than one process: the same conditional write that increments
+   * `resumeAttempts` also re-stamps `updatedAt`, so an instance already picked
+   * up is no longer stale and the second sweeper gets nothing. Reading and then
+   * resuming would have two coordinators dispatching one flow — survivable,
+   * because every participant claims the command id, but it would double every
+   * call and make the attempt ceiling meaningless.
+   *
+   * Re-stamping is also what stops *this* sweep's next tick finding the
+   * instance it is still working on.
+   */
+  claimForResume(
+    sagaId: string,
+    olderThanMs: number,
+  ): Effect.Effect<SagaInstance | undefined, EntifixConnError>;
+  /** Mark one step's calls as given back, so a resumed unwind skips them. */
+  markCompensated(
+    sagaId: string,
+    stepId: string,
+  ): Effect.Effect<void, EntifixConnError>;
 }
 
 export class SagaStoreTag extends Context.Tag('SagaStoreTag')<
