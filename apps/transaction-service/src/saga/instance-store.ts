@@ -87,6 +87,55 @@ export const makeMongoSagaStore = (db: Db) => {
         catch: failed('Failed to settle the saga instance', sagaId),
       }),
 
+    /**
+     * Take ownership of a stale instance, or answer `undefined`.
+     *
+     * ⚠️ **One conditional write, not a read and then a write.** The filter
+     * repeats `findStale`'s predicate, so two sweepers racing the same instance
+     * produce one winner: the loser's filter no longer matches because the
+     * winner re-stamped `updatedAt`. That stamp is also what stops this sweep's
+     * *next* tick finding the instance it is still working on.
+     */
+    claimForResume: (sagaId: string, olderThanMs: number) =>
+      Effect.tryPromise({
+        try: async () => {
+          const claimed = await collection.findOneAndUpdate(
+            {
+              sagaId,
+              state: { $in: ['RUNNING', 'COMPENSATING'] },
+              updatedAt: {
+                $lt: new Date(Date.now() - olderThanMs).toISOString(),
+              },
+            },
+            { $inc: { resumeAttempts: 1 }, $set: { updatedAt: stamp() } },
+            { returnDocument: 'after', projection: { _id: 0 } },
+          );
+          return (claimed ?? undefined) as SagaInstance | undefined;
+        },
+        catch: failed('Failed to claim the saga instance', sagaId),
+      }),
+
+    /**
+     * Flag one step's calls as given back.
+     *
+     * The positional filter addresses the outcome by its step id rather than by
+     * index: outcomes are `$push`ed, so an index is a fact about arrival order
+     * and a resumed walk must not depend on one.
+     */
+    markCompensated: (sagaId: string, stepId: string) =>
+      Effect.tryPromise({
+        try: async () => {
+          await collection.updateOne(
+            { sagaId },
+            {
+              $set: { 'outcomes.$[entry].compensated': true, updatedAt: stamp() },
+            },
+            { arrayFilters: [{ 'entry.stepId': stepId }] },
+          );
+        },
+        catch: failed('Failed to mark the step compensated', sagaId),
+      }),
+
     get: (sagaId: string) =>
       Effect.tryPromise({
         try: () =>
@@ -125,7 +174,8 @@ export const makeMongoSagaStore = (db: Db) => {
 /**
  * Provides {@link SagaStoreTag} from the pool plus the explicit `saga` database
  * name, with a unique index on `sagaId` so a resumed coordinator can never
- * create a second instance for one flow.
+ * create a second instance for one flow, and a `{ state, updatedAt }` index for
+ * the sweep that finds the ones nobody finished.
  */
 export const MongoSagaStoreLayer = Layer.effect(
   SagaStoreTag,
@@ -133,8 +183,12 @@ export const MongoSagaStoreLayer = Layer.effect(
     const client = yield* MongoClientTag;
     const db = client.db(yield* SagaDatabaseName);
     yield* Effect.tryPromise({
-      try: () =>
-        sagaCollection(db).createIndex({ sagaId: 1 }, { unique: true }),
+      try: async () => {
+        await sagaCollection(db).createIndex({ sagaId: 1 }, { unique: true });
+        // The sweep's predicate. Without it every pass is a collection scan of
+        // every saga ever run, on a schedule.
+        await sagaCollection(db).createIndex({ state: 1, updatedAt: 1 });
+      },
       catch: error =>
         new EntifixConnError('Failed to create the saga instance index', error),
     });

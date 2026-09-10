@@ -39,6 +39,12 @@ import {
   ParticipantsTag,
 } from './saga/http-dispatcher';
 import { MongoSagaStoreLayer } from './saga/instance-store';
+import {
+  SagaMaxResumeAttempts,
+  SagaResumeIntervalMs,
+  SagaStaleAfterMs,
+  startSagaResume,
+} from './saga/resume';
 import { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
 import {
   SagaRecoveryIntervalMs,
@@ -89,6 +95,15 @@ export const AppLayer = Layer.unwrapEffect(
     const sagaRecoveryIntervalMs = yield* store
       .in('saga')
       .getNumber('recoveryIntervalMs');
+    const sagaResumeIntervalMs = yield* store
+      .in('saga')
+      .getNumber('resumeIntervalMs');
+    const sagaStaleAfterMs = yield* store
+      .in('saga')
+      .getNumber('resumeStaleAfterMs');
+    const sagaMaxResumeAttempts = yield* store
+      .in('saga')
+      .getNumber('maxResumeAttempts');
 
     // The public half only. This service verifies access tokens and never mints
     // one, so it is configured with material that cannot sign.
@@ -146,6 +161,9 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(SagaDatabaseName, sagaDbName),
       Layer.succeed(SagaStaleTimeoutMs, sagaStaleTimeoutMs),
       Layer.succeed(SagaRecoveryIntervalMs, sagaRecoveryIntervalMs),
+      Layer.succeed(SagaResumeIntervalMs, sagaResumeIntervalMs),
+      Layer.succeed(SagaStaleAfterMs, sagaStaleAfterMs),
+      Layer.succeed(SagaMaxResumeAttempts, sagaMaxResumeAttempts),
       Layer.succeed(ServiceCrossingTokenTag, inboundToken),
       Layer.succeed(ParticipantsTag, participants),
     );
@@ -174,17 +192,23 @@ export const AppLayer = Layer.unwrapEffect(
       infra,
     );
 
+    const tracked = Layer.provideMerge(
+      // The tracker: it subscribes to the bus and forks the recovery sweep.
+      // Passive for a single-step write — it observes and recovers — while
+      // `POST /api/saga/:definition` beside it dispatches. Both read the same
+      // store, which is what makes "where did this stop, and what has been
+      // reversed" one query rather than a correlation across service logs.
+      Layer.effectDiscard(startTracking),
+      withProbes,
+    );
+
     return Layer.merge(
       observability,
-      Layer.provideMerge(
-        // The tracker: it subscribes to the bus and forks the recovery sweep.
-        // Passive for a single-step write — it observes and recovers — while
-        // `POST /api/saga/:definition` beside it dispatches. Both read the same
-        // store, which is what makes "where did this stop, and what has been
-        // reversed" one query rather than a correlation across service logs.
-        Layer.effectDiscard(startTracking),
-        withProbes,
-      ),
+      // ⚠️ Chained after the tracker rather than merged beside it, so the
+      // resume sweep is built on a context that already has the store and the
+      // dispatcher. Merged, the two forks would race for the same services at
+      // boot.
+      Layer.provideMerge(Layer.effectDiscard(startSagaResume), tracked),
     );
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

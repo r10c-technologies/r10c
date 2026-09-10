@@ -60,6 +60,46 @@ const CONFIGURATION = {
 };
 
 /**
+ * One settled instance, so the by-id route's **scoping** is provable here and
+ * not only against a live fleet.
+ *
+ * The organization is not a member of the instance — a flow spanning two
+ * vendors has two — so it is read off the calls the flow actually made, and
+ * seeding one is the only way a mock profile can exercise that.
+ */
+export const SEEDED_SAGA_ID = 'seeded-saga-1';
+export const SEEDED_SAGA_ORGANIZATION = 'demo-organization';
+
+const SEEDED_SAGAS = {
+  saga_instances: [
+    {
+      sagaId: SEEDED_SAGA_ID,
+      definition: 'checkout',
+      state: 'COMPENSATED',
+      stepIndex: 1,
+      inputs: {},
+      resumeAttempts: 0,
+      outcomes: [
+        {
+          stepId: 'reserve',
+          calls: [
+            {
+              index: 0,
+              status: 201,
+              body: { data: { id: 'r-0' } },
+              organizationId: SEEDED_SAGA_ORGANIZATION,
+            },
+          ],
+          compensated: true,
+        },
+      ],
+      createdAt: '2026-09-09T00:00:00.000Z',
+      updatedAt: '2026-09-09T00:00:00.000Z',
+    },
+  ],
+};
+
+/**
  * The `mock` composition root.
  *
  * ⚠️ **No AMQP layer and no tracker.** `startTracking` subscribes to the bus and
@@ -83,7 +123,7 @@ const MockAppLayer = Layer.provideMerge(
     HttpSagaDispatcherLayer,
   ),
   Layer.mergeAll(
-    fakeMongoLayer().layer,
+    fakeMongoLayer(SEEDED_SAGAS).layer,
     Layer.succeed(
       TokenServiceTag,
       makeJoseTokenService({

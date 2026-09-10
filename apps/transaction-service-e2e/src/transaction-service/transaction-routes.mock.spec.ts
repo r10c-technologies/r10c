@@ -11,7 +11,8 @@ import { signTokenFor } from '../support/tokens';
  * this profile alone — the same reason `auth-guard.mock.spec.ts` lives here.
  */
 const service = defineServiceE2e({
-  liveUrlEnvVar: 'MARKETPLACE_ADMIN_SERVICE_URL',
+  // The slice moved to its own process in #229; the env var did not follow it.
+  liveUrlEnvVar: 'TRANSACTION_SERVICE_URL',
   startMock: startMockService,
 });
 
