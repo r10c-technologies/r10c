@@ -490,6 +490,9 @@ importers:
       '@r10c/shells-next-order':
         specifier: workspace:*
         version: link:../../packages/shells/next/order
+      '@r10c/shells-next-sales':
+        specifier: workspace:*
+        version: link:../../packages/shells/next/sales
       '@r10c/shells-next-stock':
         specifier: workspace:*
         version: link:../../packages/shells/next/stock
@@ -511,6 +514,9 @@ importers:
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../packages/business/ts/catalog-reference
+      '@r10c/business-ts-sales-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/sales-management
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/stock-management

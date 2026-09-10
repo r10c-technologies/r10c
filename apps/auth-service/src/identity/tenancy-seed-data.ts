@@ -138,6 +138,10 @@ export const entitlementSeedData = (
       // `order-management` joined for exactly the reason `stock-management` did,
       // and the note above is the reason it was not forgotten this time.
       'order-management',
+      // `sales-management` is what makes the channels and the till visible.
+      // Without it a vendor with every grant in the table sees no Ventas
+      // section and no way to sell at their own counter.
+      'sales-management',
     ],
   },
 ];

@@ -3,6 +3,7 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import { SalesChannel } from '@r10c/business-ts-sales-management';
 import {
   Reservation,
   StockItem,
@@ -20,6 +21,7 @@ import {
 } from '@r10c/entifix-ts-testing-e2e/playwright';
 
 import { brandSeed, categorySeed, productSeed } from './catalog-seed';
+import { salesChannelSeed } from './sales-seed';
 import {
   reservationSeed,
   stockItemSeed,
@@ -45,6 +47,12 @@ export const REFERENCE_SERVICE_URL = 'http://localhost:3100/api';
  */
 export const STOCK_SERVICE_URL = 'http://localhost:3108/api';
 
+/**
+ * The fourth backend. Sales is tenant-plane and its own slice, so the app
+ * composes its URLs from a fourth configuration key.
+ */
+export const SALES_SERVICE_URL = 'http://localhost:3109/api';
+
 export const BRAND_URL = `${REFERENCE_SERVICE_URL}/product-brand`;
 export const CATEGORY_URL = `${REFERENCE_SERVICE_URL}/product-category`;
 export const PRODUCT_URL = `${SERVICE_URL}/product-specification`;
@@ -58,6 +66,7 @@ const CONFIGURATION = {
     { key: 'marketplace-admin-service-domain', value: SERVICE_URL },
     { key: 'marketplace-service-domain', value: REFERENCE_SERVICE_URL },
     { key: 'stock-service-domain', value: STOCK_SERVICE_URL },
+    { key: 'sales-service-domain', value: SALES_SERVICE_URL },
   ],
 };
 
@@ -93,6 +102,11 @@ const reservations = entityBackendHandlers(Reservation, {
   seed: reservationSeed,
 });
 
+const salesChannels = entityBackendHandlers(SalesChannel, {
+  baseUrl: `${SALES_SERVICE_URL}/sales-channel`,
+  seed: salesChannelSeed,
+});
+
 /**
  * The affordance documents the stock screens read, **captured verbatim from the
  * running service** rather than invented.
@@ -124,6 +138,28 @@ const stockMetadataHandlers = (
     }),
   ),
 );
+
+/**
+ * The channel screens' affordance document, served from the **app's own**
+ * `/api/sales/...` proxy path for the reason the stock ones are: the metadata
+ * source is app-relative so the browser never holds a backend address, and
+ * stubbing the backend path would leave these unstubbed and every screen
+ * pre-ADR-0026.
+ *
+ * `["read","write","delete"]`, unlike stock's: a vendor authors their own
+ * channels, so the generated form really does offer Save.
+ */
+const salesMetadataHandlers = [
+  http.get(`${APP_URL}/api/sales/sales-channel/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'sales-channel' },
+      data: { actions: ['read', 'write', 'delete'], useCases: [] },
+    }),
+  ),
+];
+
+/** The mock channel store, for reseeding or for breaking on purpose. */
+export const salesChannelBackend = salesChannels.backend;
 
 /** The mock stock store, for reseeding or for breaking on purpose. */
 export const stockItemBackend = stockItems.backend;
@@ -215,7 +251,9 @@ const base = defineEntifixE2eTest({
     ...stockItems.handlers,
     ...stockMovements.handlers,
     ...reservations.handlers,
+    ...salesChannels.handlers,
     ...stockMetadataHandlers,
+    ...salesMetadataHandlers,
     ...transactionHandlers,
   ],
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;
@@ -242,7 +280,13 @@ export const test = base.extend<{ session: void }>({
       // auth-service seeds for the demo organization.
       await seedSession(context, {
         roles: ['admin'],
-        entitlements: ['product-configuration-management', 'stock-management'],
+        entitlements: [
+          'product-configuration-management',
+          'stock-management',
+          // Without it the Ventas sections are hidden from a vendor holding
+          // every grant in the table — ADR 0007's second ceiling.
+          'sales-management',
+        ],
       });
       await use();
     },

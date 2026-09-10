@@ -253,6 +253,14 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // plane and session-guarded end to end, so unlike the marketplace row above
   // this proxy exists for the *reads* too — nothing here is anonymous. The app
   // rewrites it to `/api/stock` before the browser sees it.
+  // ⚠️ A rewrite with no row rewrites nothing: `/api/sales` in the config route
+  // only takes effect for a domain key the configuration actually carries.
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'sales-service-domain',
+    value: 'http://localhost:3109/api',
+  },
   {
     service: 'back-office-app',
     group_name: 'uri',
