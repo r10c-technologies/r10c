@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-17
+- Revised: 2026-09-10 by [ADR 0056](0056-the-counter-sale-is-the-checkout-saga.md) — the follow-ups are built: the slice is active on `:3109`, the counter sale is the checkout saga with a channel on its order, and the duplicated `SalesChannelTypes` this record left in place moved to a `business:policy` package
 - Area: business
 - Read when: an in-store or non-marketplace sale — it is a channel on the same `ProductOrder`, never a second order, and commission resolves through `commissionFor`
 
@@ -163,7 +164,10 @@ touched, and touching any of them would be the actual cost of this feature.
 - **This record amends ADR 0022 and ADR 0011 in place**, and supersedes neither.
   ADR 0022's inventory moves from eleven domains, 28 entities, 12 stores and 9
   slices to twelve, 29, 13 and 10 — deployments unchanged at six, because the
-  `sales` slice is planned. ADR 0011's claim that an organization has two tenant
+  `sales` slice is planned.
+  (Amended 2026-09-10 by [ADR 0056](0056-the-counter-sale-is-the-checkout-saga.md):
+  the slice is `active` and sales-service binds `:3109`, so the deployment count
+  moved with it.) ADR 0011's claim that an organization has two tenant
   databases becomes three. Both records' _reasoning_ holds unchanged; only their
   factual inventories moved, which is a correction rather than a reversal.
 - **The first duplicated vocabulary between two business domains.**
@@ -176,6 +180,12 @@ touched, and touching any of them would be the actual cost of this feature.
   to the default rate. Both lists are pinned by a spec so the drift shows in a
   diff. If it ever bites, the fix is a shared `business:policy` vocabulary
   package, not a dependency edge.
+
+  > Struck 2026-09-10 by [ADR 0056](0056-the-counter-sale-is-the-checkout-saga.md).
+  > It bit: building the counter sale made a channel type travel through three
+  > domains, so `@r10c/business-ts-sales-vocabulary` now holds the set,
+  > `CommissionableChannelTypes` is deleted rather than aliased, and
+  > `RelatedChannel.type` is no longer a bare `string`.
 - **`sales-management` is entitlement-grantable**, unlike `catalog-reference`. A
   vendor's own selling channels are exactly what an organization is provisioned
   for, so ADR 0022's "first exception to ADR 0007's ceiling" stays the only one.
@@ -192,6 +202,12 @@ touched, and touching any of them would be the actual cost of this feature.
   made, for the same reason.
 
 ## Follow-ups (deliberately out of scope)
+
+> The first two are built, by
+> [ADR 0056](0056-the-counter-sale-is-the-checkout-saga.md) — with one departure:
+> there is no implementation package. That layer holds no project and is empty by
+> design, since `makeEntityCrud` derives the organisms it existed for, so the
+> till lives in the shell as `ProductSetupWizard` does.
 
 - `sales-service` on `:3109`, promoting the `sales` slice to active.
 - The back-office selling surface: an implementation package, a `shells-next-sales`

@@ -226,6 +226,16 @@ order-service — the same order the storefront produces, which is what keeps a
 vendor's takings one query rather than two
 ([ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)).
 
+`POST /api/counter-sale` is the till's one write, and it persists nothing here.
+It takes a **session and no token**, checks
+`sales-management:sales-channel:sell`, loads the channel from the caller's own
+tenant handle, re-prices every line from the published projection, and only then
+presents the coordinator's inbound crossing token to
+`POST /api/saga/checkout`. So this process is the **second** holder of that
+secret, beside the storefront — which holds it for the opposite reason, having no
+session to check at all
+([ADR 0056](../adr/0056-the-counter-sale-is-the-checkout-saga.md)).
+
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime
 config from config-service (`GET /api/config/:service`); they never hardcode it.
