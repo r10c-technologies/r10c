@@ -87,6 +87,35 @@ export const shell: EsShell = {
       orders: 'Orders',
     },
   },
+  sales: {
+    nav: {
+      sales: 'Sales',
+      channels: 'Sales channels',
+      guided: 'Sales',
+      counterSale: 'Sell at the counter',
+    },
+    counterSale: {
+      title: 'Counter sale',
+      steps: {
+        channel: 'Channel',
+        lines: 'Products',
+        payment: 'Payment',
+      },
+      channelHint: 'Pick the channel this sale goes through.',
+      linesHint: 'Add the published products you are selling.',
+      addLine: 'Add product',
+      removeLine: 'Remove',
+      quantity: 'Quantity',
+      offering: 'Product',
+      total: 'Total',
+      paymentMethod: 'Payment method',
+      charge: 'Charge',
+      sold: 'Sale recorded',
+      soldDetail: 'The stock is already drawn down and the order is written.',
+      newSale: 'New sale',
+      emptyLines: 'Add at least one product to charge for.',
+    },
+  },
   marketplaceAdmin: {
     nav: {
       catalog: 'Catalog',

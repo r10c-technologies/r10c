@@ -2287,6 +2287,40 @@ importers:
         specifier: workspace:*
         version: link:../../../entifix/ts/testing-unit
 
+  packages/shells/next/sales:
+    dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../../../business/ts/authz
+      '@r10c/business-ts-marketplace-catalog':
+        specifier: workspace:*
+        version: link:../../../business/ts/marketplace-catalog
+      '@r10c/business-ts-sales-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-management
+      '@r10c/entifix-react-integration':
+        specifier: workspace:*
+        version: link:../../../entifix/react/integration
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/business
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/core
+      '@r10c/entifix-ts-rest-client':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/rest-client
+      '@r10c/shells-next-common':
+        specifier: workspace:*
+        version: link:../common
+      effect:
+        specifier: 3.22.1
+        version: 3.22.1
+    devDependencies:
+      '@r10c/entifix-ts-testing-unit':
+        specifier: workspace:*
+        version: link:../../../entifix/ts/testing-unit
+
   packages/shells/next/stock:
     dependencies:
       '@r10c/business-ts-authz':
