@@ -2,6 +2,7 @@ import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { requirePrincipal } from '@r10c/shells-effect-service';
 
 import { configIntrospectionRoute } from './routes/config.routes';
+import { counterSaleRoutes } from './routes/counter-sale';
 import { salesChannelRoutes } from './routes/sales-channel.routes';
 
 /**
@@ -18,6 +19,12 @@ import { salesChannelRoutes } from './routes/sales-channel.routes';
  * collection name. `HttpRouter` throws on a duplicate `method + path`, so a
  * module can decline to register a route but can never silently replace
  * another's.
+ *
+ * ⚠️ **`POST /api/counter-sale` is a write this slice does not persist.** It
+ * starts the checkout saga, which reserves stock, writes the order and captures
+ * the payment through the slices that own those stores. "A slice writes only the
+ * Stores it owns" holds unamended
+ * ([ADR 0056](../../../docs/adr/0056-the-counter-sale-is-the-checkout-saga.md)).
  */
 export const router = HttpRouter.empty.pipe(
   HttpRouter.get('/api/config', configIntrospectionRoute),
@@ -30,4 +37,4 @@ export const router = HttpRouter.empty.pipe(
   ),
 
   HttpRouter.concat(salesChannelRoutes),
-);
+).pipe(counterSaleRoutes);

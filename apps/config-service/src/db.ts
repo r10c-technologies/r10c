@@ -1170,6 +1170,37 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'keyId',
     value: DEV_KEY_ID,
   },
+  // Where the checkout coordinator answers, and the secret this service
+  // presents to start a flow through it.
+  //
+  // ⚠️ **The coordinator's *inbound* token, not a participant's.** It starts a
+  // saga; it does not write a vendor's stock or an order — transaction-service
+  // holds those separately, so a leak here cannot reach a tenant store directly
+  // (ADR 0023). It is the same secret the storefront's checkout action presents,
+  // and this is the second holder: the storefront holds it because it has no
+  // session to check, this service because it checks one first (ADR 0056).
+  {
+    service: 'sales-service',
+    group_name: 'transaction',
+    key: 'url',
+    value: 'http://localhost:3103/api',
+  },
+  {
+    service: 'sales-service',
+    group_name: 'transaction',
+    key: 'crossingToken',
+    value: 'dev-saga-crossing-token-change-me',
+    is_secret: true,
+  },
+  // The published projection a counter sale is priced from. Anonymous, because
+  // the projection is: `published-catalog` is platform plane and marketplace-
+  // service serves it to nobody in particular.
+  {
+    service: 'sales-service',
+    group_name: 'marketplace',
+    key: 'url',
+    value: 'http://localhost:3100/api',
+  },
   {
     service: 'sales-service',
     group_name: 'logging',

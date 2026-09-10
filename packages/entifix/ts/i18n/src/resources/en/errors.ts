@@ -34,6 +34,9 @@ export const errors: EsErrors = {
   // atomic write conditioned on it. Zero documents matched *is* the out-of-stock
   // answer, not a system error.
   insufficientStock: 'There is not enough stock to reserve.',
+  unavailable: 'The sale could not be completed. Check the stock on hand.',
+  channelInactive: 'That sales channel is retired.',
+  notYours: 'That offering belongs to another vendor.',
   resourceBusy: 'The resource is busy, try again.',
   identifierRequired: 'An account needs at least one identifier.',
   emailRequired: 'An email identifier is required.',

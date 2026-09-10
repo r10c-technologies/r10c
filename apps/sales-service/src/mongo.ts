@@ -26,6 +26,11 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import {
+  CheckoutCoordinatorUrl,
+  CheckoutCrossingToken,
+  PublishedCatalogUrl,
+} from './counter-sale-config';
 import { seedSales } from './seed';
 
 const SERVICE_NAME = 'sales-service';
@@ -73,6 +78,20 @@ export const AppLayer = Layer.unwrapEffect(
     const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
     const jwtKeyId = yield* store.in('jwt').getString('keyId');
 
+    // Where the checkout coordinator answers, and what this service presents to
+    // start a flow. The token is an `is_secret` row — the security boundary
+    // rather than a label, since an unflagged row is served in full from the
+    // *unauthenticated* `GET /api/config` this service also mounts.
+    const coordinatorUrl = yield* store.in('transaction').getString('url');
+    const coordinatorToken = yield* store
+      .in('transaction')
+      .getString('crossingToken');
+
+    // The published projection a counter sale is priced from — the same records
+    // the storefront charges a buyer against, which is what keeps one price for
+    // one offering however it sells (ADR 0056).
+    const catalogUrl = yield* store.in('marketplace').getString('url');
+
     const observability = yield* observabilityFromConfiguration(
       store,
       SERVICE_NAME,
@@ -94,6 +113,9 @@ export const AppLayer = Layer.unwrapEffect(
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(CheckoutCoordinatorUrl, coordinatorUrl),
+      Layer.succeed(CheckoutCrossingToken, coordinatorToken),
+      Layer.succeed(PublishedCatalogUrl, catalogUrl),
     );
 
     // The connection contributes its own readiness probe, named by the logical

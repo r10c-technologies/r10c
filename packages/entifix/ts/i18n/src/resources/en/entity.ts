@@ -468,6 +468,9 @@ export const entity: EsEntity = {
         inactive: 'Inactive',
       },
     },
+    useCases: {
+      sell: 'Sell through this channel',
+    },
   },
   'stock-item': {
     // ⚠️ A form title for a record nobody creates by hand. `newTitle` is the

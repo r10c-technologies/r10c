@@ -15,6 +15,9 @@ import {
   fakeMongoLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import {
+  CheckoutCoordinatorUrl,
+  CheckoutCrossingToken,
+  PublishedCatalogUrl,
   router,
   seedSales,
   SERVICE_NAME,
@@ -27,6 +30,9 @@ import {
 import { Layer } from 'effect';
 
 import { E2E_ORGANIZATION_ID } from './tokens';
+
+/** The coordinator's inbound secret, as the mock profile presents it. */
+const E2E_CROSSING_TOKEN = 'e2e-saga-crossing-token';
 
 /**
  * The configuration the service would otherwise fetch from config-service at
@@ -48,6 +54,15 @@ const CONFIGURATION = {
     { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
     { key: 'keyId', value: E2E_KEY_ID },
   ],
+  // Addresses nothing dials under `mock`: the counter-sale journeys that would
+  // reach them are `live`, because a saga against a fake coordinator would
+  // assert that this service can compose a request and nothing about whether a
+  // sale happens.
+  transaction: [
+    { key: 'url', value: 'http://mock-coordinator/api' },
+    { key: 'crossingToken', value: E2E_CROSSING_TOKEN },
+  ],
+  marketplace: [{ key: 'url', value: 'http://mock-catalog/api' }],
 };
 
 /**
@@ -78,6 +93,12 @@ const MockAppLayer = (() => {
     Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
+    // The shipped layer reads all three from config-service; here they are
+    // literals beside the other resolved values, and the matching entries in
+    // `CONFIGURATION` are what `GET /api/config` reports.
+    Layer.succeed(CheckoutCoordinatorUrl, 'http://mock-coordinator/api'),
+    Layer.succeed(CheckoutCrossingToken, E2E_CROSSING_TOKEN),
+    Layer.succeed(PublishedCatalogUrl, 'http://mock-catalog/api'),
   );
 
   // The REAL seed, so both profiles read the same channels and a shared journey

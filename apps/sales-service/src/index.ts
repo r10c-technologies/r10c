@@ -5,6 +5,16 @@
  * stand-in that could drift.
  */
 export { AppLayer } from './mongo';
+/**
+ * The till's dials, exported for the reason the seed is: the mock profile has to
+ * provide every value the shipped composition root reads from config-service,
+ * and a tag it cannot name is a layer it cannot build.
+ */
+export {
+  CheckoutCoordinatorUrl,
+  CheckoutCrossingToken,
+  PublishedCatalogUrl,
+} from './counter-sale-config';
 export { router } from './routes';
 export { SALES_CHANNEL_COLLECTION } from './sales-channel-index';
 export { salesChannelTempData } from './sales-temp-data';

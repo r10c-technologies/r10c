@@ -1636,6 +1636,9 @@ importers:
 
   packages/business/ts/sales-management:
     dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../authz
       '@r10c/business-ts-sales-vocabulary':
         specifier: workspace:*
         version: link:../sales-vocabulary

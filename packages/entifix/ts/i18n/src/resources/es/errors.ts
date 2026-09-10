@@ -51,6 +51,15 @@ export const errors = {
   // una escritura atómica condicionada a eso. Cero documentos alcanzados *es* la
   // respuesta de falta de existencia, no un error del sistema.
   insufficientStock: 'No hay existencia suficiente para reservar.',
+  // La venta se compensó por completo: alguna línea fue rechazada y toda
+  // existencia que se había apartado volvió a quedar disponible. Es un
+  // resultado de inventario sobre el que el vendedor puede actuar, no una
+  // falla.
+  unavailable: 'No se pudo completar la venta. Revisa la existencia.',
+  // Un canal retirado sigue siendo legible, porque cada pedido hecho por él
+  // sigue nombrándolo — así que hay que rechazar la venta, no ocultar el canal.
+  channelInactive: 'Ese canal de venta está inactivo.',
+  notYours: 'Esa oferta pertenece a otro vendedor.',
   resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
   emailRequired: 'Se requiere un identificador de correo electrónico.',

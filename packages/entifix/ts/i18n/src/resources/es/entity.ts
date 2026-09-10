@@ -503,6 +503,9 @@ export const entity = {
         inactive: 'Inactivo',
       },
     },
+    useCases: {
+      sell: 'Vender en este canal',
+    },
   },
   'stock-item': {
     // ⚠️ Un título de formulario para un registro que nadie crea a mano.

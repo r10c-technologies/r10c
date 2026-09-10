@@ -33,4 +33,5 @@
  */
 export { SALES_DOMAIN } from './domain';
 export * from './entities/sales-channel';
+export * from './use-cases';
 export * from './values';

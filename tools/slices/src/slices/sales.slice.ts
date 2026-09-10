@@ -50,8 +50,16 @@ export const salesSlice: SliceDeclaration = {
     // The affordance document the back office's generated screens read to
     // decide whether a Save exists at all (ADR 0026).
     'GET /api/sales-channel/$metadata',
+    // The till's one write. It persists nothing here: it starts the checkout
+    // saga, which reserves, writes the order and captures through the slices
+    // that own those stores (ADR 0056).
+    'POST /api/counter-sale',
   ],
-  dependantAPIs: ['GET /api/config/:service'],
+  dependantAPIs: [
+    'GET /api/config/:service',
+    'POST /api/saga/:definition',
+    'GET /api/published-offering',
+  ],
   publishedEvents: [],
   subscriptions: [],
 };
