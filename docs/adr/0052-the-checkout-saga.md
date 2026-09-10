@@ -6,6 +6,8 @@
 - Read when: a flow spans two services and one of them may have to be undone — the definition is data, a fan-out step compensates only the calls that succeeded, and a participant the saga may retry must be idempotent on the command id
 - Amended by: [ADR 0054](0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md) — the pivot this record deferred to M4 landed where it said it would; what it did not anticipate is that `runSaga` ignored `kind` outside definition validation, so the planned pivot would have been decorative and a post-pivot failure would have deleted a paid order
 
+- Amended by: [ADR 0055](0055-a-coordinator-resumes-from-its-own-record.md) — the outbox-entry-plus-HTTP-relay dispatch is struck; the four ways this record said that relay would differ from the AMQP one turned out to be the evidence it was not an outbox
+
 ## Context
 
 [ADR 0039](0039-multi-step-sagas-are-orchestrated.md) decided that a multi-step
@@ -145,6 +147,13 @@ at commands instead of events — the client mints the id, the id is the
 idempotency key — which the fleet already runs on.
 
 ### The dispatch is an outbox entry whose relay speaks HTTP
+
+> **Amended 2026-09-09 by [ADR 0055](0055-a-coordinator-resumes-from-its-own-record.md).**
+> Not built. Each difference listed below is a way the "relay" would have behaved
+> unlike a relay — walking one database, writing the response back before the
+> next step, telling a refusal from a failure — and all three are things the
+> engine does inline. The persist-before-dispatch rule is unchanged; what carries
+> it is `beginStep` on the instance.
 
 ADR 0039's rule, unchanged: persist the step transition, then dispatch it. What
 this record adds is how the HTTP relay differs from the AMQP one it sits beside

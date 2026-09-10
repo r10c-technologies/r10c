@@ -211,6 +211,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0050](docs/adr/0050-rebuilding-the-published-catalog-from-tenant-storage.md) **Rebuilding the published catalog from tenant storage** — read when the storefront is empty after a reset, or a publication was lost — the rebuild walk re-emits from tenant storage and must never stamp `now`.
 - [0052](docs/adr/0052-the-checkout-saga.md) **The checkout saga: a definition that is data, and a compensation that is told what it undid** — read when a flow spans two services and one of them may have to be undone — the definition is data, a fan-out step compensates only the calls that succeeded, and a participant the saga may retry must be idempotent on the command id.
 - [0054](docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md) **Capture is the pivot, and the bus carries what follows** — read when money has to be taken inside a flow, or a saga step fails after the point of no return — capture is a dispatched step and never a subscription, and a post-pivot failure rolls forward or strands, never back.
+- [0055](docs/adr/0055-a-coordinator-resumes-from-its-own-record.md) **A coordinator resumes from its own record, and a dispatch needs no outbox** — read when a saga has to survive its coordinator dying, or you are about to build the command outbox two earlier records specify — the instance is already the durable record of intent, and where to resume is derived from the outcomes rather than stored beside them.
 
 **Identity, sessions and authorization**
 

@@ -415,7 +415,8 @@ Every message on the wire is an `EntifixEnvelope`: `{ meta, data }`, built in
 the same shape goes over HTTP, over the bus, and into a test double.
 
 `meta.type` is one of `entity`, `entityCollection`, `entityPage`, `command`,
-`event`, `transactionEvent` or `entityMetadata`, and `meta.entity` is the
+`event`, `transactionAccepted`, `transactionRecord`, `sagaResult`,
+`sagaInstance` or `entityMetadata`, and `meta.entity` is the
 **routing label**: `key ?? class name`, resolved by `envelopeEntityName` — the
 identical resolution the REST adapter uses to build an endpoint and the Mongo
 adapter uses to pick a collection. One rule, three consumers, so a renamed `key`
@@ -458,9 +459,12 @@ its own domain object, and never digs into the payload to find the routing key.
 with no `name` cannot be routed and one with no `id` cannot be deduplicated, so
 both fail loudly the way a half-populated entity does.
 
-Two envelope arms, one contract. The HTTP arm is unchanged by any of this — the
-`transactionEvent` type still frames the transaction _record_ a `202` and
-`GET /api/transaction/:id` answer with, which is a wart tracked separately.
+Two envelope arms, one contract. The HTTP arm is unchanged by any of this. It
+used to carry a wart — one `transactionEvent` discriminant over the `202` body,
+the transaction record and the event type — and #176 split it into
+`transactionAccepted` and `transactionRecord`. `readEnvelope` validates the
+discriminant and then **casts**, so a name meaning three shapes asserted nothing:
+the browser's accept-shape check on the `202` passed on any of them.
 
 `event.id` being the deduplication key is what makes a consumer-side **inbox**
 the symmetric half of the outbox: the consumer claims that id in the same

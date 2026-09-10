@@ -261,6 +261,13 @@ makes a create addressable, not before.
   `step`, no `at`, and a `state` the caller then branches on. A sibling
   `readTransactionRecordEnvelope` fixes the reader's half; the `202` accept-shape
   assertion keeps the existing function unchanged.
+
+  > **Corrected 2026-09-09 by #176.** The wart is gone and so is
+  > `readTransactionEventEnvelope`. The `202` carries `transactionAccepted` and
+  > the by-id route carries `transactionRecord`, read by
+  > `readTransactionAcceptedEnvelope` and `readTransactionRecordEnvelope` — and
+  > the accept-shape assertion this bullet left alone was the reason it mattered,
+  > since it had been passing on all three shapes.
 - **`GET /api/transaction/:id`'s `404` body is corrected** from
   `{ message: 'transaction not found' }` to the fleet's `{ error, code }`. It was
   the only route answering a shape no envelope reader or `useErrorMessage` path

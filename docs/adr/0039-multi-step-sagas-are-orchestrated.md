@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-09-04
 - Area: messaging
+- Amended by: [ADR 0055](0055-a-coordinator-resumes-from-its-own-record.md) — the HTTP-dispatching outbox relay this record sized as "the one genuinely new mechanism" is struck rather than built: the saga instance is already the durable record of intent, and an entry beside it would be a second copy of the same fact
 - Read when: a flow spans slices — orchestrated per flow, commands over HTTP and results over the bus, with a stated condition for adopting a workflow engine instead
 - Revised: 2026-09-08 by [ADR 0052](0052-the-checkout-saga.md) — the deferred
   pieces below are designed there, and this record's own `:3103` trigger has
@@ -197,6 +198,14 @@ record says the opposite of the truth.
 So a step dispatch is an outbox entry whose relay performs an HTTP POST rather
 than an AMQP publish. This is **the one genuinely new mechanism** and the largest
 build item; everything else here reuses machinery that exists.
+
+> **Amended 2026-09-09 by [ADR 0055](0055-a-coordinator-resumes-from-its-own-record.md).**
+> The rule above this paragraph — persist the step transition before dispatching
+> it — holds and is what `runSaga` was built to. The outbox **entry** is not
+> built and will not be: a command's response is the step's outcome, so it is
+> needed inline rather than relayed, and every field such an entry would carry is
+> already in the instance or determined by the definition. Durability comes from
+> resuming the instance instead.
 
 ### Idempotency reuses the inbox and its key
 
