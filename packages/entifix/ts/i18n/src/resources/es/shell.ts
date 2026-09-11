@@ -100,6 +100,24 @@ export const shell = {
       orders: 'Pedidos',
     },
   },
+  settlement: {
+    nav: {
+      // El mismo nombre de grupo en las dos gradas: un acuerdo se redacta
+      // (Definiciones) y el resto lo produce un proceso (Operaciones). El
+      // encabezado de cada grada sale de `nav.screenType`.
+      settlement: 'Liquidaciones',
+      agreements: 'Acuerdos',
+      entries: 'Apuntes de comisión',
+      runs: 'Liquidaciones',
+      payouts: 'Pagos a vendedores',
+    },
+    agreement: {
+      channelRatesHint:
+        'Déjalo en blanco para cobrar la comisión por defecto en ese canal. Un 0 significa que no se cobra nada.',
+      channelRateDefault: 'Por defecto',
+      noChannelRates: 'Sin tarifas por canal',
+    },
+  },
   sales: {
     nav: {
       sales: 'Ventas',

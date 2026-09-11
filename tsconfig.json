@@ -190,6 +190,12 @@
       "path": "./apps/payment-service"
     },
     {
+      "path": "./apps/settlement-service"
+    },
+    {
+      "path": "./apps/settlement-service-e2e"
+    },
+    {
       "path": "./apps/payment-service-e2e"
     },
     {
@@ -218,6 +224,9 @@
     },
     {
       "path": "./apps/transaction-service-e2e"
+    },
+    {
+      "path": "./packages/shells/next/settlement"
     }
   ]
 }

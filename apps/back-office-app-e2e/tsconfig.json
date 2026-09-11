@@ -34,6 +34,9 @@
       "path": "../../packages/business/ts/sales-management"
     },
     {
+      "path": "../../packages/business/ts/settlement-management"
+    },
+    {
       "path": "../../packages/entifix/ts/testing-e2e"
     },
     {

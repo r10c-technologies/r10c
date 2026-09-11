@@ -179,6 +179,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0047](docs/adr/0047-authoring-an-offering-and-the-publish-verb.md) **Authoring an offering, and publication as a verb rather than a field** — read when authoring or publishing an offering — `published → published` is legal, and `status` is server-owned or the verb is decoration.
 - [0049](docs/adr/0049-the-publication-snapshot-carries-what-the-storefront-renders.md) **The publication snapshot carries what the storefront renders** — read when adding a member to the publication snapshot — optional is a safety property, and an absent member is written absent, never `undefined`.
 - [0056](docs/adr/0056-the-counter-sale-is-the-checkout-saga.md) **The counter sale is the checkout saga, and the till holds no secret** — read when a vendor sells somewhere other than the storefront, or a browser surface needs to start a flow that writes another slice's store — the sale is the same saga with a channel on it, and the decision is made where a session can actually be verified.
+- [0057](docs/adr/0057-settlement-joins-the-sale-to-its-payment.md) **Settlement joins the sale to its payment, and the ledger states its own base** — read when pricing a vendor's commission, or a consumer needs data that no single event on the bus carries — the fold joins two messages on the order id, and a payout is the gross less the cut rather than the sum of the cuts.
 
 **Entities and the framework**
 

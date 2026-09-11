@@ -19,6 +19,7 @@ import {
 } from '@r10c/shells-next-marketplace-admin';
 import { OrderProvider } from '@r10c/shells-next-order';
 import { SalesProvider } from '@r10c/shells-next-sales';
+import { SettlementProvider } from '@r10c/shells-next-settlement';
 import { StockProvider } from '@r10c/shells-next-stock';
 import { SystemManagementProvider } from '@r10c/shells-next-system-management';
 import { type PropsWithChildren, useMemo } from 'react';
@@ -93,7 +94,9 @@ function ThemedProviders({
               <SystemManagementProvider>
                 <StockProvider>
                   <OrderProvider>
-                    <SalesProvider>{children}</SalesProvider>
+                    <SalesProvider>
+                      <SettlementProvider>{children}</SettlementProvider>
+                    </SalesProvider>
                   </OrderProvider>
                 </StockProvider>
               </SystemManagementProvider>

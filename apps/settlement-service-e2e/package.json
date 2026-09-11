@@ -1,0 +1,40 @@
+{
+  "name": "@r10c/settlement-service-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "tags": [
+      "type:e2e",
+      "scope:settlement"
+    ],
+    "implicitDependencies": [
+      "@r10c/settlement-service"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.mts --passWithNoTests",
+          "cwd": "apps/settlement-service-e2e"
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/business-ts-party-management": "workspace:*",
+    "@r10c/business-ts-settlement-management": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*",
+    "@r10c/entifix-ts-jwt-client": "workspace:*",
+    "@r10c/entifix-ts-testing-e2e": "workspace:*",
+    "@r10c/settlement-service": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*"
+  },
+  "dependencies": {
+    "@r10c/business-ts-authz": "workspace:*"
+  }
+}

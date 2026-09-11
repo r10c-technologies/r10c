@@ -56,6 +56,18 @@ interface FakeCollection {
     modifiedCount: number;
     upsertedCount?: number;
   }>;
+  updateMany(
+    query: Record<string, unknown>,
+    update: { $set?: Record<string, unknown> },
+  ): Promise<{ matchedCount: number; modifiedCount: number }>;
+  findOneAndUpdate(
+    query: Record<string, unknown>,
+    update: {
+      $set?: Record<string, unknown>;
+      $setOnInsert?: Record<string, unknown>;
+    },
+    options?: { upsert?: boolean; returnDocument?: 'before' | 'after' },
+  ): Promise<Record<string, unknown> | null>;
   deleteOne(query: Record<string, unknown>): Promise<{ deletedCount: number }>;
   createIndex(
     spec: Record<string, unknown>,
@@ -1533,5 +1545,200 @@ describe('makeFakeMongoDb ledger operations', () => {
       await session.endSession();
       expect(session.hasEnded).toBe(true);
     });
+  });
+});
+
+/**
+ * The three operations a two-message join and a batch claim need.
+ *
+ * They live here rather than beside the service that wanted them because the
+ * fake is the fleet's, not settlement's: the next slice that joins two events
+ * or claims a batch of rows needs exactly these.
+ */
+describe('makeFakeMongoDb claim operations', () => {
+  it('matches a field that is absent with $exists: false', async () => {
+    // The predicate a settlement ledger keys "unpaid" on. `undefined` is what a
+    // document without the field reads as, so the fake has to distinguish
+    // absence from any value rather than from a falsy one.
+    const fake = makeFakeMongoDb({
+      entry: [
+        { id: 'e-1', runId: 'run-1' },
+        { id: 'e-2' },
+        { id: 'e-3', runId: '' },
+      ],
+    });
+
+    const unsettled = await collectionOf(fake, 'entry')
+      .find({ runId: { $exists: false } })
+      .toArray();
+
+    expect(unsettled.map(row => row['id'])).toEqual(['e-2']);
+  });
+
+  it('matches a field that is present with $exists: true', async () => {
+    const fake = makeFakeMongoDb({
+      entry: [{ id: 'e-1', runId: 'run-1' }, { id: 'e-2' }],
+    });
+
+    const settled = await collectionOf(fake, 'entry')
+      .find({ runId: { $exists: true } })
+      .toArray();
+
+    expect(settled.map(row => row['id'])).toEqual(['e-1']);
+  });
+
+  it('updateMany sets every match and counts them', async () => {
+    const fake = makeFakeMongoDb({
+      entry: [{ id: 'e-1' }, { id: 'e-2' }, { id: 'e-3', runId: 'run-0' }],
+    });
+
+    const result = await collectionOf(fake, 'entry').updateMany(
+      { runId: { $exists: false } },
+      { $set: { runId: 'run-1' } },
+    );
+
+    expect(result).toEqual({ matchedCount: 2, modifiedCount: 2 });
+    expect(fake.read('entry').map(row => row['runId'])).toEqual([
+      'run-1',
+      'run-1',
+      'run-0',
+    ]);
+  });
+
+  // The count is what a caller branches on: a run that claims nothing has lost
+  // the race to another replica and must settle itself cancelled. A fake that
+  // reported a fixed count would make the loser behave like the winner.
+  it('updateMany reports zero when nothing matches', async () => {
+    const fake = makeFakeMongoDb({ entry: [{ id: 'e-1', runId: 'run-0' }] });
+
+    expect(
+      await collectionOf(fake, 'entry').updateMany(
+        { runId: { $exists: false } },
+        { $set: { runId: 'run-1' } },
+      ),
+    ).toEqual({ matchedCount: 0, modifiedCount: 0 });
+  });
+
+  it('updateMany with no $set counts the matches and changes nothing', async () => {
+    const fake = makeFakeMongoDb({ entry: [{ id: 'e-1' }, { id: 'e-2' }] });
+
+    expect(await collectionOf(fake, 'entry').updateMany({}, {})).toEqual({
+      matchedCount: 2,
+      modifiedCount: 2,
+    });
+    expect(fake.read('entry')).toEqual([{ id: 'e-1' }, { id: 'e-2' }]);
+  });
+
+  it('updateMany refuses an operator it does not apply', async () => {
+    const fake = makeFakeMongoDb({ entry: [{ id: 'e-1' }] });
+
+    await expect(
+      collectionOf(fake, 'entry').updateMany({ id: 'e-1' }, {
+        $inc: { total: 1 },
+      } as { $set?: Record<string, unknown> }),
+    ).rejects.toThrow('does not implement $inc');
+  });
+
+  it('updateMany enforces a unique index', async () => {
+    const fake = makeFakeMongoDb({
+      entry: [
+        { id: 'e-1', orderId: 'o-1' },
+        { id: 'e-2', orderId: 'o-2' },
+      ],
+    });
+    await collectionOf(fake, 'entry').createIndex(
+      { orderId: 1 },
+      { unique: true },
+    );
+
+    await expect(
+      collectionOf(fake, 'entry').updateMany({}, { $set: { orderId: 'o-1' } }),
+    ).rejects.toThrow();
+  });
+
+  it('findOneAndUpdate returns the merged document after an upsert', async () => {
+    // The question a two-message join asks: not "did it write?" but "is the
+    // pair complete now?", which only the after state answers.
+    const fake = makeFakeMongoDb();
+
+    const merged = await collectionOf(fake, 'pending').findOneAndUpdate(
+      { orderId: 'o-1' },
+      { $set: { decidedAt: 'now' }, $setOnInsert: { folded: false } },
+      { upsert: true, returnDocument: 'after' },
+    );
+
+    expect(merged).toEqual({
+      orderId: 'o-1',
+      decidedAt: 'now',
+      folded: false,
+    });
+  });
+
+  it('findOneAndUpdate merges a second half onto an existing document', async () => {
+    const fake = makeFakeMongoDb({
+      pending: [{ orderId: 'o-1', folded: false, decidedAt: 'now' }],
+    });
+
+    const merged = await collectionOf(fake, 'pending').findOneAndUpdate(
+      { orderId: 'o-1' },
+      { $set: { lines: 2 } },
+      { upsert: true, returnDocument: 'after' },
+    );
+
+    expect(merged).toEqual({
+      orderId: 'o-1',
+      folded: false,
+      decidedAt: 'now',
+      lines: 2,
+    });
+  });
+
+  it('findOneAndUpdate returns null when nothing matched and no upsert', async () => {
+    const fake = makeFakeMongoDb({ pending: [] });
+
+    expect(
+      await collectionOf(fake, 'pending').findOneAndUpdate(
+        { orderId: 'o-1' },
+        { $set: { decidedAt: 'now' } },
+      ),
+    ).toBeNull();
+  });
+
+  it('findOneAndUpdate defaults to returning the after state', async () => {
+    const fake = makeFakeMongoDb({ pending: [{ orderId: 'o-1', half: 1 }] });
+
+    expect(
+      await collectionOf(fake, 'pending').findOneAndUpdate(
+        { orderId: 'o-1' },
+        { $set: { half: 2 } },
+      ),
+    ).toEqual({ orderId: 'o-1', half: 2 });
+  });
+
+  it('findOneAndUpdate refuses to return the before state', async () => {
+    const fake = makeFakeMongoDb({ pending: [{ orderId: 'o-1' }] });
+
+    await expect(
+      collectionOf(fake, 'pending').findOneAndUpdate(
+        { orderId: 'o-1' },
+        { $set: { half: 1 } },
+        { returnDocument: 'before' },
+      ),
+    ).rejects.toThrow('returnDocument');
+  });
+
+  it('findOneAndUpdate finds a row its operator condition no longer matches', async () => {
+    // After an upsert the query's operator conditions may not hold of the row
+    // just inserted, so it is found by the equality fields the upsert seeded it
+    // with — which are what identify it.
+    const fake = makeFakeMongoDb();
+
+    const merged = await collectionOf(fake, 'pending').findOneAndUpdate(
+      { orderId: 'o-1', folded: { $exists: false } },
+      { $set: { folded: true } },
+      { upsert: true, returnDocument: 'after' },
+    );
+
+    expect(merged).toEqual({ orderId: 'o-1', folded: true });
   });
 });

@@ -83,11 +83,20 @@ export class Agreement implements Entity {
     this.#id = value;
   }
 
-  /** The vendor `Organization` this agreement binds. */
+  /**
+   * The vendor `Organization` this agreement binds.
+   *
+   * Filterable because it is how settling finds the terms for a line, and how a
+   * vendor-scoped read narrows this collection to the caller's own record.
+   * Sortable because it is the only member here that can name one of these
+   * records: a record search source refuses a label member that is not
+   * simultaneously a string, filterable **and** sortable.
+   */
   @accessor({
     type: 'string',
     labelKey: 'entity:agreement.fields.vendorId',
     required: true,
+    sortable: true,
     filterable: true,
   })
   get vendorId(): string {

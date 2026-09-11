@@ -8,11 +8,14 @@
  * the type through either domain an illegal edge the build rejects.
  *
  * The repository predicted this package before it was needed:
- * `settlement-management`'s duplicated channel literals carry a comment saying
+ * `settlement-management`'s duplicated channel literals carried a comment saying
  * "the real fix — if this ever bites — is a shared `business:policy` vocabulary
  * package, not a dependency edge"
  * ([ADR 0024](../../../../docs/adr/0024-selling-through-a-vendors-own-channel.md)).
- * Four copied strings did not bite; a seven-member payload with a decoder does,
+ * It bit, and #96 built exactly that package —
+ * `@r10c/business-ts-sales-vocabulary` — so those four strings are no longer
+ * duplicated anywhere. Four copied strings took a while to bite; a seven-member
+ * payload with a decoder does immediately,
  * because nothing can compare two hand-written copies of a structure and a
  * member added on one side only is a field the projection silently never
  * writes.

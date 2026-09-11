@@ -358,6 +358,12 @@ export const entity = {
     },
   },
   agreement: {
+    // El único formulario editable del dominio, y lo edita el operador: fijar
+    // la comisión de un vendedor no es un acto del propio vendedor.
+    form: {
+      editTitle: 'Editar acuerdo',
+      newTitle: 'Nuevo acuerdo',
+    },
     label: 'Acuerdo',
     plural: 'Acuerdos',
     fields: {
@@ -369,17 +375,34 @@ export const entity = {
     },
   },
   'commission-entry': {
+    // ⚠️ Un título de formulario para un registro que nadie crea a mano, como
+    // el de `stock-item`: lo escribe la conciliación cuando se cobra una venta.
+    // `newTitle` es la condición del catálogo que `EntityCatalogKey` lee, no la
+    // promesa de un botón Nuevo.
+    form: {
+      editTitle: 'Apunte de comisión',
+      newTitle: 'Apunte de comisión',
+    },
     label: 'Apunte de comisión',
     plural: 'Apuntes de comisión',
     fields: {
       id: 'ID',
       orderId: 'ID de pedido',
       vendorId: 'ID de vendedor',
+      saleAmount: 'Importe de la venta',
       commissionAmount: 'Importe de comisión',
       currency: 'Moneda',
+      occurredAt: 'Fecha de la venta',
+      runId: 'ID de liquidación',
     },
   },
   'settlement-run': {
+    // Un lote, no un registro que se redacte. Lo abre el barrido periódico o la
+    // ruta que lo dispara a mano; la pantalla solo lo muestra.
+    form: {
+      editTitle: 'Liquidación',
+      newTitle: 'Liquidación',
+    },
     label: 'Liquidación',
     plural: 'Liquidaciones',
     fields: {
@@ -398,6 +421,12 @@ export const entity = {
     },
   },
   'vendor-payout': {
+    // Lo calcula una liquidación a partir de los apuntes del periodo. Nadie
+    // escribe un pago a mano, y no hay permiso de escritura para hacerlo.
+    form: {
+      editTitle: 'Pago a vendedor',
+      newTitle: 'Pago a vendedor',
+    },
     label: 'Pago a vendedor',
     plural: 'Pagos a vendedores',
     fields: {

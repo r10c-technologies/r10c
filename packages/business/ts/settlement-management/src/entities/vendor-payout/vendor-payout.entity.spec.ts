@@ -78,4 +78,17 @@ describe('VendorPayout', () => {
     expect(filterable).toContain('runId');
     expect(filterable).toContain('vendorId');
   });
+
+  it('can name one of its own records', () => {
+    // A record search source refuses a label member that is not simultaneously
+    // a string, filterable and sortable, and it throws at module load. `runId`
+    // names a batch rather than a payout, and the rest are numbers.
+    const vendorId = describeEntityColumns(VendorPayout).find(
+      column => column.name === 'vendorId',
+    );
+
+    expect(vendorId?.type).toBe('string');
+    expect(vendorId?.sortable).toBe(true);
+    expect(vendorId?.filterable).toBe(true);
+  });
 });

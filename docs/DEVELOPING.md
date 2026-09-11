@@ -207,9 +207,11 @@ is a code change; both are `dev:reset`, and a fresh machine needs nothing.
 `configuration` rows, auth-service the identities and tenancy,
 marketplace-service the platform-plane vocabulary, marketplace-admin-service the
 demo vendor's catalog into `tenant_<id>`, stock-service the stock positions into
-`stock_<id>`, and sales-service the vendor's selling channels into
-`sales_<id>` — without which the till has nothing to sell *through* and refuses
-the sale. The catalog-and-stock pair is the one worth stating: `catalog` and `stock`
+`stock_<id>`, sales-service the vendor's selling channels into
+`sales_<id>` — without which the till has nothing to sell _through_ and refuses
+the sale — and settlement-service the demo vendor's `Agreement` into the
+control-plane `settlement` database, without which every sale completes and the
+commission ledger stays empty with only an error log to say why. The catalog-and-stock pair is the one worth stating: `catalog` and `stock`
 are the same plane and the same partitioning but different stores with different
 writing slices, so seeding stock from marketplace-admin-service — where the
 offering ids it hangs off already are — is the one-writer violation
@@ -330,6 +332,21 @@ disjoint file sets**: swc emits `.js`/`.js.map`, `tsc --build` (the `typecheck`
 target) emits `.d.ts`/`.d.ts.map`/`.tsbuildinfo`. Keep it that way — a build tool
 that clears `dist` or emits its own `.d.ts` there reopens the collision. This is
 also why `package.json` points at `./dist/index.js` and `./dist/index.d.ts`.
+
+⚠️ **An app reopens it, which is why `typecheck` depends on `build`.** The rule
+above holds for libraries because swc adds files; a webpack app sets
+`output.clean`, so its `build` **empties** the very `dist/` the `typecheck`
+target is emitting declarations into. The two targets are independent, so Nx is
+free to run them at once for one project — and when it does, the bundle's clean
+races the declaration emit and every spec that imports its own source reports
+`TS6305`, then a cascade of fake `unknown` types on top.
+
+It is scheduling-dependent, so it hides: the same commit passes locally, passes
+on one CI shard, and fails on another simply because the task list is a
+different length. `nx.json` therefore declares `targetDefaults.typecheck` as
+`dependsOn: ["build"]`, which costs nothing — the two already run together in
+every command that names both — and makes the ordering a fact rather than a
+coincidence.
 
 #### The declaration pass `skipTypeCheck` does not skip
 
@@ -548,6 +565,7 @@ pnpm nx e2e back-office-app-e2e                       # mock
 pnpm nx e2e marketplace-admin-service-e2e                   # mock
 pnpm nx e2e stock-service-e2e                               # mock
 pnpm nx e2e sales-service-e2e                               # mock
+pnpm nx e2e settlement-service-e2e                          # mock
 
 pnpm run back-office:dev                                    # then, in another shell:
 E2E_PROFILE=live \
@@ -569,6 +587,10 @@ E2E_PROFILE=live STOCK_SERVICE_URL=http://localhost:3108 \
 E2E_PROFILE=live SALES_SERVICE_URL=http://localhost:3109 \
   JWT_PRIVATE_KEY="$(…)" JWT_PUBLIC_KEY="$(…)" \
   pnpm nx e2e sales-service-e2e
+
+E2E_PROFILE=live SETTLEMENT_SERVICE_URL=http://localhost:3107 \
+  JWT_PRIVATE_KEY="$(…)" JWT_PUBLIC_KEY="$(…)" \
+  pnpm nx e2e settlement-service-e2e
 ```
 
 `mock` is the default because the default has to run anywhere. `live` never

@@ -87,6 +87,21 @@ export const shell: EsShell = {
       orders: 'Orders',
     },
   },
+  settlement: {
+    nav: {
+      settlement: 'Settlement',
+      agreements: 'Agreements',
+      entries: 'Commission entries',
+      runs: 'Settlement runs',
+      payouts: 'Vendor payouts',
+    },
+    agreement: {
+      channelRatesHint:
+        'Leave blank to charge the default commission on that channel. A 0 means nothing is charged.',
+      channelRateDefault: 'Default',
+      noChannelRates: 'No per-channel rates',
+    },
+  },
   sales: {
     nav: {
       sales: 'Sales',
