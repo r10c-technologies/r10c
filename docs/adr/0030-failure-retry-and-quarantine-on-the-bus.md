@@ -20,6 +20,10 @@
   [ADR 0039](0039-multi-step-sagas-are-orchestrated.md) took retry and
   compensation, so only the sweep's constants remained here. See Consequences
   below.
+- Revised: 2026-09-11 — the broker is pinned to `4.3.5` (#181), so the upgrade
+  this record called backlogged is done. It also never ran "the 3.13 broker": the
+  tag was floating, which is the reason a claim about broker behaviour could not
+  be checked. Corrected in place below.
 
 ## Context
 
@@ -125,12 +129,27 @@ rather than logic every consumer reimplements. The adapter's nack splits
 accordingly: `requeue: true` for a transient handler failure, `requeue: false`
 for a poison message.
 
-Quorum queues and `x-delivery-limit` exist on the 3.13 broker the lab runs, so
-none of this waits on a version bump. RabbitMQ 4.3's separation of
-`acquired-count` from `delivery-count` makes the counter more accurate — a return
-that is not a genuine failure stops pushing a message toward the limit — but it
-enables nothing here. The upgrade is recommended and backlogged (#181), not a
-prerequisite.
+Quorum queues and `x-delivery-limit` exist on the 3.13 broker this was written
+against, so none of this waited on a version bump. RabbitMQ 4.3's separation of
+`acquired-count` from `delivery-count` makes the counter more accurate — the
+limit now counts only deliveries that actually failed, so a return for any other
+reason stops pushing a message toward it — but it enables nothing here.
+
+> **Corrected 2026-09-11 (#181).** Two things about the sentence above. The lab
+> now runs a **pinned `4.3.5`**, so the upgrade this paragraph called
+> "recommended and backlogged" is done. And it never ran "the 3.13 broker" in any
+> checkable sense: the manifest carried the floating tag `3-management`, so the
+> version was whatever a machine last pulled, and a claim about broker behaviour
+> had nothing to stand on. That is why the replacement is a patch pin rather than
+> `4-management`.
+>
+> ⚠️ **The upgrade is a reset, and that is a property of this record's own
+> decision.** `x-delivery-limit` is immutable once a queue exists, the queues are
+> durable on a `Retain` volume, and `assertQueue` runs on every boot — so a
+> broker that normalizes any declared argument differently answers
+> `PRECONDITION_FAILED` and closes the channel. `pnpm run <app>:dev:reset`
+> deletes the volume and the data directory under it, which is the same fix this
+> record already names for changing an attempt ceiling.
 
 **Delayed redelivery is rejected for now**, and the trigger for revisiting it is
 named: the first consumer whose failures are dominated by a flaky upstream rather
