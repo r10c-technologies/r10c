@@ -4,12 +4,13 @@
 - Date: 2026-09-09
 - Area: auth
 - Read when: a read has to be narrowed to whoever is asking, or an anonymous buyer has to be shown something that is theirs — the scope is conjoined onto the load request and never expressed as a query, and a receipt is carried rather than read back
+- Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the receipt gains a capability, and the rejected "receipt token on the order" is corrected as being about a read
 
 ## Context
 
 [ADR 0052](0052-the-checkout-saga.md) built checkout and left two holes recorded
 on the source rather than closed. Both are the same question asked from opposite
-ends — *whose order is this?* — and the fleet could answer it in neither
+ends — _whose order is this?_ — and the fleet could answer it in neither
 direction.
 
 **The read side.** `GET /api/product-order` guarded a permission and stopped:
@@ -19,7 +20,7 @@ direction.
 > `order-management:product-order:read` sees every order.
 
 That was correct for the two surfaces #231 built — an operator's view and a
-vendor's back-office list, both of which are *meant* to see more than one
+vendor's back-office list, both of which are _meant_ to see more than one
 buyer's orders. It stops being correct the moment a buyer holds a session.
 
 ⚠️ **The `order` store is platform plane**, which is what makes this different
@@ -72,8 +73,8 @@ reads the party store.
 resolves to no claim, and every consumer must narrow to nothing rather than
 widen; the same direction `entitlements` picks for the same reason.
 
-This is also the record that makes ADR 0015's *"`partyRole` is carried, not yet
-consumed"* consequence obsolete. It has been corrected in place there rather than
+This is also the record that makes ADR 0015's _"`partyRole` is carried, not yet
+consumed"_ consequence obsolete. It has been corrected in place there rather than
 restated here.
 
 ### The scope is conjoined onto the load request, and is never a query
@@ -92,17 +93,17 @@ empty page rather than that party's orders.
 
 The vendor predicate names `items.vendorId`, a path into a `composition`. The
 member allowlist runs at parse time and nothing re-checks downstream, which is
-exactly what lets *server* code reach an embedded path that a query string
+exactly what lets _server_ code reach an embedded path that a query string
 cannot — `items` stays unqueryable to every client.
 
 ### Three predicates, chosen by `partyRole`, gated by the permission
 
-| Principal              | Reads                                       |
-| ---------------------- | ------------------------------------------- |
-| `partyRole: operator`  | every order                                 |
-| `partyRole: vendor`    | orders with a line naming their organization |
-| anything else          | orders whose `buyerId` is their party        |
-| no organization / no party | nothing — an empty page, not a `403`    |
+| Principal                  | Reads                                        |
+| -------------------------- | -------------------------------------------- |
+| `partyRole: operator`      | every order                                  |
+| `partyRole: vendor`        | orders with a line naming their organization |
+| anything else              | orders whose `buyerId` is their party        |
+| no organization / no party | nothing — an empty page, not a `403`         |
 
 ⚠️ **`partyRole` selects a predicate; it grants nothing.** The route requires
 `order-management:product-order:read` first, so a party role on its own opens no
@@ -149,6 +150,17 @@ accident. The three alternatives were each worse:
   and it needs a public read route on a store holding every buyer's receipts.
 - **A receipt token on the order** — the same public route, plus its own rate
   limiting, plus a second identity mechanism for the storefront to maintain.
+
+  > **2026-09-11 — this rejection was about a _read_, and it is not a rule
+  > against the capability that later landed.** Everything above weighs a token
+  > against _showing_ the buyer their own receipt, where the carried cookie
+  > already gave that for free and a token bought nothing. Authorizing a
+  > **write** is a different job with no carried answer, and
+  > [ADR 0058](0058-the-order-after-payment.md) adds exactly one: a nonce in
+  > this cookie whose SHA-256 digest is stored on the order. It needs no public
+  > read route and no second identity mechanism — order-service compares a
+  > digest — so none of the three costs above applies to it.
+
 - **Read it server-side with a crossing token** — a second accepted credential on
   a read route, which is what [ADR 0023](0023-service-to-service-tenant-crossing.md)
   says makes the weaker one the security level.
@@ -156,6 +168,14 @@ accident. The three alternatives were each worse:
 The cookie is parsed as untrusted input: it is `httpOnly` so no page can write
 it, but a browser's owner can, and the worst a forged one achieves is showing its
 author a receipt they invented.
+
+> **2026-09-11 — still true after the cookie grew a capability.** It now also
+> carries the nonce that authorizes the buyer's own cancel
+> ([ADR 0058](0058-the-order-after-payment.md)), which looks like it should
+> change the sentence above and does not: the order stores that nonce's SHA-256
+> digest and order-service compares against _that_, so a forged nonce fails the
+> compare exactly as a forged receipt fails to describe a real order. The cookie
+> is a carrier, never an authority.
 
 **A cookie is 4KB and a basket has no upper bound**, so past a line cap the
 receipt keeps the order id, the totals and the line count and drops the lines,
@@ -193,5 +213,5 @@ this stood before there was a confirmation page.
   only top-level fields, so `items.vendorId` would have answered empty there
   while working against a real server — a spec passing while asserting the
   opposite of its claim. It now walks a path element-wise, and excludes a
-  document when *any* value at the path matches a negation, which is the
+  document when _any_ value at the path matches a negation, which is the
   server's own asymmetry.

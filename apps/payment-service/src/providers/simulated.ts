@@ -3,6 +3,7 @@ import {
   type PaymentProviderOutcome,
   PaymentProviderTag,
   type PaymentRequest,
+  type RefundProviderOutcome,
 } from '@r10c/business-ts-payment-management';
 import { Effect, Layer } from 'effect';
 
@@ -42,6 +43,37 @@ export const readSimulatedOutcome = (
  */
 const reference = (paymentId: string): string => `sim_${paymentId}`;
 
+/**
+ * A refund's own reference, which is deliberately not the capture's.
+ *
+ * A real provider issues a second identifier for the money going back, and a
+ * reconciliation joins on both. Reusing the capture's would make the two
+ * indistinguishable in exactly the place that has to tell them apart.
+ */
+const refundReference = (paymentId: string): string =>
+  `sim_refund_${paymentId}`;
+
+/**
+ * Money going back.
+ *
+ * A refund has no authorization step to skip and no `authorize` setting to
+ * honour: the money already moved, and the only question is whether it comes
+ * back. Cash included — a drawer that can take money can give it back.
+ */
+const answerRefund = (
+  settings: SimulatedProviderSettings,
+  request: PaymentRequest,
+): RefundProviderOutcome =>
+  settings.outcome === 'decline'
+    ? { status: 'failed', failureReason: settings.declineReason }
+    : {
+        status: 'refunded',
+        providerReference:
+          request.paymentMethod === 'cash'
+            ? undefined
+            : refundReference(request.paymentId),
+      };
+
 const answer = (
   settings: SimulatedProviderSettings,
   request: PaymentRequest,
@@ -65,7 +97,10 @@ const answer = (
     };
   }
 
-  return { status: 'captured', providerReference: reference(request.paymentId) };
+  return {
+    status: 'captured',
+    providerReference: reference(request.paymentId),
+  };
 };
 
 /**
@@ -82,6 +117,7 @@ export const makeSimulatedPaymentProvider = (
 ): PaymentProvider => ({
   authorize: request => Effect.succeed(answer(settings, request, 'authorize')),
   capture: request => Effect.succeed(answer(settings, request, 'capture')),
+  refund: request => Effect.succeed(answerRefund(settings, request)),
 });
 
 export const SimulatedPaymentProviderLayer = (

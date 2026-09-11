@@ -20,10 +20,17 @@
  * The capability map is in
  * [BUSINESS-ARCHITECTURE.md](../../../../docs/BUSINESS-ARCHITECTURE.md).
  *
+ * A {@link Refund} is the second record here, and it is a record rather than a
+ * status for the reason ADR 0054 gave for protecting the capture row: the
+ * evidence that a customer was charged must survive the money going back
+ * ([ADR 0058](../../../../docs/adr/0058-the-order-after-payment.md)).
+ *
  * Out of scope, and named so the silence reads as a decision: stored payment
- * methods, refunds and returns.
+ * methods, partial refunds, and returns — a return is goods coming back, which
+ * is logistics and not this state machine.
  */
 export { PAYMENT_DOMAIN } from './domain';
 export * from './entities/payment';
+export * from './entities/refund';
 export * from './ports';
 export * from './values';

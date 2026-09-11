@@ -1,5 +1,5 @@
 import { HttpRouter } from '@effect/platform';
-import { Payment } from '@r10c/business-ts-payment-management';
+import { Payment, Refund } from '@r10c/business-ts-payment-management';
 import {
   entityMetadataRoute,
   requireCrossing,
@@ -7,6 +7,7 @@ import {
 
 import { capturePaymentRoute } from './capture-payment';
 import { byIdRoute, guarded, listRoute } from './entity-crud';
+import { refundPaymentRoute } from './refund-payment';
 
 /**
  * Payments — platform plane, so no route here resolves a tenant handle.
@@ -19,11 +20,18 @@ import { byIdRoute, guarded, listRoute } from './entity-crud';
  * which is the distinction ADR 0023 draws — what it forbids is one *route*
  * taking either, because then the weaker one is the security level.
  *
- * ⚠️ **There is no `PUT` and no `DELETE`, and there will not be.** A capture is
- * the checkout saga's **pivot**: once it commits the flow rolls forward, so
- * there is nothing for a compensation to call. A refund is a new record with its
- * own money movement — ADR 0039's "a refund is not an uncharge" — and it is not
- * served yet.
+ * ⚠️ **There is no `PUT` and no `DELETE` on either entity, and there will not
+ * be.** A capture is the checkout saga's **pivot**: once it commits the flow
+ * rolls forward, so there is nothing for a compensation to call. A refund is a
+ * new record with its own money movement — ADR 0039's "a refund is not an
+ * uncharge" — which is why it is `POST /api/refund` and not a status written
+ * over the capture it reverses
+ * ([ADR 0058](../../../../docs/adr/0058-the-order-after-payment.md)).
+ *
+ * ⚠️ **`POST /api/refund` is the cancellation saga's pivot, as `POST
+ * /api/payment` is the checkout saga's.** Both take a crossing token and no
+ * session, for the same reason: the buyer behind a cancellation holds no grant
+ * over the money movement made on their behalf.
  *
  * `$metadata` stays a **literal** registered before `/:id`: as
  * `/api/:entity/$metadata` it is shadowed by the by-id route and silently never
@@ -42,5 +50,18 @@ export const paymentRoutes = HttpRouter.empty.pipe(
   HttpRouter.get(
     '/api/payment/:id',
     guarded(Payment, 'read', () => byIdRoute(Payment)),
+  ),
+  HttpRouter.post(
+    '/api/refund',
+    requireCrossing('payment-management:refund:write')(refundPaymentRoute),
+  ),
+  HttpRouter.get(
+    '/api/refund',
+    guarded(Refund, 'read', () => listRoute(Refund)),
+  ),
+  HttpRouter.get('/api/refund/$metadata', entityMetadataRoute(Refund)),
+  HttpRouter.get(
+    '/api/refund/:id',
+    guarded(Refund, 'read', () => byIdRoute(Refund)),
   ),
 );

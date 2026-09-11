@@ -153,6 +153,20 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // here would be inert against the route that exists and would suggest a
     // save route ought to, which is how a ledger becomes editable.
     `${PAYMENT_DOMAIN}:payment:read`,
+    // Reading refunds, on the same terms and for the same reason as the capture
+    // above: a refund is the record that a charge was given back, and evidence
+    // nobody can read is evidence that might as well not have been kept
+    // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
+    //
+    // ⚠️ **Named beside `payment:read` rather than widened to
+    // `payment-management:*:read`.** The wildcard would sweep in whatever this
+    // domain gains next, and what it gains next is the record of money moving.
+    //
+    // ⚠️ **No `refund:write` for any role.** Refunding is dispatched behind a
+    // crossing token by the cancellation saga, exactly as a capture is; a grant
+    // here would be inert against the route that exists and would suggest a save
+    // route ought to.
+    `${PAYMENT_DOMAIN}:refund:read`,
     // What the platform charges this vendor, what it has taken, and what it
     // owes. Granted where `payment:read` could not be, and the difference is
     // the scope: every settlement record carries a `vendorId`, so the routes

@@ -20,12 +20,16 @@ import {
 } from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 
+import { CancelWindowSeconds } from '../cancel-capability';
 import {
   claimCommand,
   COMMAND_ID_HEADER,
   ensureCommandInboxIndexes,
 } from '../command-inbox';
 import { ORDER_COLLECTION, orderPlacedEntry } from '../outbox';
+
+/** Milliseconds in a second, named so the arithmetic below reads as intent. */
+const MILLISECONDS = 1000;
 
 /** Thrown inside the transaction when this command was already applied. */
 class AlreadyPlaced extends Error {}
@@ -63,6 +67,7 @@ const serverError = (error: unknown) =>
 export const placeOrderRoute = Effect.gen(function* () {
   const client = yield* MongoClientTag;
   const db = yield* MongoDatabaseTag;
+  const cancelWindowSeconds = yield* CancelWindowSeconds;
 
   const request = yield* HttpServerRequest.HttpServerRequest;
   const body = yield* request.json;
@@ -85,6 +90,17 @@ export const placeOrderRoute = Effect.gen(function* () {
   order.id = randomUUID();
   order.status = 'pending';
   order.placedAt = new Date();
+
+  // ⚠️ **The window is stamped here, and only for an order that brought a
+  // digest.** A storefront checkout mints a nonce and sends its digest; a
+  // counter sale sends neither, because at a till there is no browser to hold a
+  // nonce and no buyer's cancel to authorize. Server-owned either way — a body
+  // that could choose its own expiry could choose one that never arrives
+  // ([ADR 0058](../../../../docs/adr/0058-the-order-after-payment.md)).
+  order.cancelWindowEndsAt =
+    order.cancelDigest === undefined || order.cancelDigest === ''
+      ? undefined
+      : new Date(order.placedAt.getTime() + cancelWindowSeconds * MILLISECONDS);
 
   const document = serializeEntity(ProductOrder, order);
   const commandId = request.headers[COMMAND_ID_HEADER]?.trim();

@@ -32,12 +32,35 @@ export interface PaymentProviderOutcome {
    * answers `pending`, which is the state a record is in before anyone was
    * asked. Widening this to the entity's own enum would make an unreachable
    * value expressible and every consumer branch on it.
+   *
+   * ⚠️ **`'refunded'` is deliberately not a member here.** Widening this one
+   * union to cover every call was the first shape tried, and the compiler
+   * refused it at the capture route: `payment.status = outcome.status` stopped
+   * typechecking, which is the type system saying a capture could now answer
+   * with a refund's outcome. {@link RefundProviderOutcome} carries that member
+   * instead, so the mistake is unwritable rather than caught in review
+   * ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
    */
   readonly status: 'authorized' | 'captured' | 'failed';
   /** The provider's own id for the attempt. Absent for cash, and on a refusal. */
   readonly providerReference?: string;
   /** Why a `failed` failed, when the provider said. */
   readonly failureReason?: string;
+}
+
+/**
+ * How the provider answered a {@link PaymentProvider.refund}.
+ *
+ * Everything but the status is the same fact it is for a capture, so the two
+ * share a shape by extension rather than by copy — the duplication a second
+ * standalone interface would carry is exactly what `Omit` here avoids, and the
+ * one member that genuinely differs is the one member written out.
+ */
+export interface RefundProviderOutcome extends Omit<
+  PaymentProviderOutcome,
+  'status'
+> {
+  readonly status: 'refunded' | 'failed';
 }
 
 /**
@@ -71,6 +94,20 @@ export interface PaymentProvider {
   capture(
     request: PaymentRequest,
   ): Effect.Effect<PaymentProviderOutcome, EntifixError>;
+  /**
+   * Money back for a capture that already happened.
+   *
+   * ⚠️ **There is no `void` beside it, and the distinction is the provider's
+   * own.** Voiding cancels an authorization before any money moved; refunding
+   * returns money that did. v1 captures at checkout, so nothing is ever left
+   * authorized-and-unsettled and a void would have nothing to act on.
+   *
+   * `request.providerReference` is the **capture's** reference, which is what a
+   * real adapter refunds against; the outcome carries the refund's own.
+   */
+  refund(
+    request: PaymentRequest,
+  ): Effect.Effect<RefundProviderOutcome, EntifixError>;
 }
 
 export class PaymentProviderTag extends Context.Tag('PaymentProviderTag')<

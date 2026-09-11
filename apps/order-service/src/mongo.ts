@@ -34,6 +34,7 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import { CancelWindowSeconds } from './cancel-capability';
 import { ORDER_SLICE } from './outbox';
 import { ensureProductOrderIndexes } from './product-order-index';
 import { startPaymentStatusProjection } from './projection/payment-status';
@@ -98,6 +99,14 @@ export const AppLayer = Layer.unwrapEffect(
       .in('outbox')
       .getNumber('maxAttempts');
 
+    // The buyer's own cancel window, in seconds. Read here rather than in the
+    // route so a missing row stops the process at boot instead of failing one
+    // checkout at request time — and `getNumber` rather than a cast, because a
+    // `NaN` window is a window every comparison falls out of.
+    const cancelWindowSeconds = yield* store
+      .in('order')
+      .getNumber('cancelWindowSeconds');
+
     const observability = yield* observabilityFromConfiguration(
       store,
       SERVICE_NAME,
@@ -122,6 +131,7 @@ export const AppLayer = Layer.unwrapEffect(
       // The **slice**, never the deployment and never the domain (ADR 0029).
       Layer.succeed(EventSourceTag, ORDER_SLICE),
       Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
+      Layer.succeed(CancelWindowSeconds, cancelWindowSeconds),
     );
 
     const infra = Layer.provideMerge(AmqpEventBusLayer, connections);

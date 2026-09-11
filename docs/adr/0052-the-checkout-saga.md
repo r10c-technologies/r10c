@@ -4,6 +4,7 @@
 - Date: 2026-09-08
 - Area: messaging
 - Read when: a flow spans two services and one of them may have to be undone — the definition is data, a fan-out step compensates only the calls that succeeded, and a participant the saga may retry must be idempotent on the command id
+- Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — its reopen condition for a step-graph grammar fired, and the grammar held
 - Amended by: [ADR 0054](0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md) — the pivot this record deferred to M4 landed where it said it would; what it did not anticipate is that `runSaga` ignored `kind` outside definition validation, so the planned pivot would have been decorative and a post-pivot failure would have deleted a paid order
 
 - Amended by: [ADR 0055](0055-a-coordinator-resumes-from-its-own-record.md) — the outbox-entry-plus-HTTP-relay dispatch is struck; the four ways this record said that relay would differ from the AMQP one turned out to be the evidence it was not an outbox
@@ -233,6 +234,12 @@ than opening one with it.
 - **A saga that fans out across steps rather than within one.** Checkout needs
   fan-out inside a step and sequential steps around it; a general graph is not
   built, and a second flow is the trigger to reconsider.
+
+  > **2026-09-11 — the trigger fired, and the answer was to keep the grammar.**
+  > The cancellation flow ([ADR 0058](0058-the-order-after-payment.md)) is the
+  > second flow: claim, refund, restore stock per line, settle. It is sequential
+  > with one fan-out, which `defineSaga` already expresses, so nothing here
+  > changed. The condition stands for a third flow that genuinely needs a graph.
 
 ## Amends
 

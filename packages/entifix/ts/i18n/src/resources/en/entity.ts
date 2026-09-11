@@ -286,6 +286,8 @@ export const entity: EsEntity = {
       channel: 'Sales channel',
       placedAt: 'Placed at',
       paidAt: 'Paid at',
+      cancelDigest: 'Cancel digest',
+      cancelWindowEndsAt: 'Cancel window ends at',
     },
     values: {
       status: {
@@ -321,6 +323,27 @@ export const entity: EsEntity = {
         card: 'Card',
         voucher: 'Voucher',
         transfer: 'Transfer',
+      },
+    },
+  },
+  refund: {
+    label: 'Refund',
+    plural: 'Refunds',
+    fields: {
+      id: 'ID',
+      paymentId: 'Payment ID',
+      orderId: 'Order ID',
+      amount: 'Amount',
+      currency: 'Currency',
+      status: 'Status',
+      providerReference: 'Provider reference',
+      decidedAt: 'Decided at',
+    },
+    values: {
+      status: {
+        pending: 'Pending',
+        refunded: 'Refunded',
+        failed: 'Failed',
       },
     },
   },

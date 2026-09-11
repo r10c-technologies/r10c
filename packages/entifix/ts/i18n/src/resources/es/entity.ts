@@ -321,6 +321,8 @@ export const entity = {
       channel: 'Canal de venta',
       placedAt: 'Fecha del pedido',
       paidAt: 'Fecha de pago',
+      cancelDigest: 'Huella de cancelación',
+      cancelWindowEndsAt: 'Fin del plazo de cancelación',
     },
     values: {
       status: {
@@ -356,6 +358,27 @@ export const entity = {
         card: 'Tarjeta',
         voucher: 'Vale',
         transfer: 'Transferencia',
+      },
+    },
+  },
+  refund: {
+    label: 'Reembolso',
+    plural: 'Reembolsos',
+    fields: {
+      id: 'ID',
+      paymentId: 'ID de pago',
+      orderId: 'ID de pedido',
+      amount: 'Importe',
+      currency: 'Moneda',
+      status: 'Estado',
+      providerReference: 'Referencia del proveedor',
+      decidedAt: 'Fecha de resolución',
+    },
+    values: {
+      status: {
+        pending: 'Pendiente',
+        refunded: 'Reembolsado',
+        failed: 'Fallido',
       },
     },
   },

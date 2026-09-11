@@ -59,6 +59,7 @@ export const stockSlice: SliceDeclaration = {
     'GET|POST /api/reservation',
     'GET|DELETE /api/reservation/:id',
     'POST /api/reservation/:id/conversion',
+    'POST /api/stock-restoration',
     // The served affordance documents (ADR 0026), which the back office's
     // generated screens read to decide whether a Save exists at all. Listed
     // because they are how a client learns this service has no write for two of

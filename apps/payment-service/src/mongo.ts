@@ -35,6 +35,7 @@ import {
 import { Effect, Layer } from 'effect';
 
 import { PAYMENT_SLICE } from './outbox';
+import { ensurePaymentIndexes } from './payment-index';
 import {
   DEFAULT_SIMULATED_SETTINGS,
   readSimulatedOutcome,
@@ -100,7 +101,9 @@ export const AppLayer = Layer.unwrapEffect(
     // without a rebuild — which is the only way to exercise the saga's
     // compensation path against a running fleet.
     const providerOutcome = yield* store.in('provider').getString('outcome');
-    const declineReason = yield* store.in('provider').getString('declineReason');
+    const declineReason = yield* store
+      .in('provider')
+      .getString('declineReason');
 
     const observability = yield* observabilityFromConfiguration(
       store,
@@ -152,7 +155,10 @@ export const AppLayer = Layer.unwrapEffect(
     const indexed = Layer.provideMerge(
       Layer.effectDiscard(
         Effect.flatMap(MongoDatabaseTag, database =>
-          ensureOutboxIndexes(database),
+          Effect.zipRight(
+            ensureOutboxIndexes(database),
+            ensurePaymentIndexes(database),
+          ),
         ),
       ),
       withProbes,
