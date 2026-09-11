@@ -1,7 +1,7 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { runReferenceBulk } from './catalog-crud.js';
+import { runCatalogBulk, runReferenceBulk } from './catalog-crud.js';
 
 interface Brandish extends Entity {
   id: EntityId;
@@ -102,5 +102,86 @@ describe('runReferenceBulk', () => {
         ids: new Set(['b-1']),
       }),
     ).rejects.toThrow('403');
+  });
+});
+
+/**
+ * The tenant-plane twin, one level up the path: a record's verb is
+ * `/<entity>/<id>/<key>` and a collection's is `/<entity>/<key>` (#216).
+ */
+describe('runCatalogBulk', () => {
+  it('posts the selection to the verb on the collection', async () => {
+    const fetchMock = answering({ data: [{ id: 'o-1', ok: true }] });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const outcomes = await runCatalogBulk('product-offering')<Brandish>(
+      'publish',
+      { mode: 'ids', ids: new Set(['o-1']) },
+    );
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      '/api/admin/product-offering/publish',
+    );
+    expect(outcomes).toEqual([{ id: 'o-1', ok: true }]);
+  });
+
+  it('reads a per-row refusal as data, not as a failure', async () => {
+    // Twenty offerings where three have no price is neither a success nor a
+    // failure. `offeringHasNoPrice` is the outcome this surface produces most.
+    const fetchMock = answering({
+      data: [
+        { id: 'o-1', ok: true },
+        { id: 'o-2', ok: false, code: 'offeringHasNoPrice' },
+      ],
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const outcomes = await runCatalogBulk('product-offering')<Brandish>(
+      'publish',
+      { mode: 'ids', ids: new Set(['o-1', 'o-2']) },
+    );
+
+    expect(outcomes).toHaveLength(2);
+    expect(outcomes[1]).toEqual({
+      id: 'o-2',
+      ok: false,
+      code: 'offeringHasNoPrice',
+    });
+  });
+
+  it('throws when the request itself failed, so the rows can be attributed', async () => {
+    const fetchMock = answering({ error: 'nope', code: 'forbidden' }, 403);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      runCatalogBulk('product-offering')<Brandish>('publish', {
+        mode: 'ids',
+        ids: new Set(['o-1']),
+      }),
+    ).rejects.toMatchObject({ details: { code: 'forbidden' } });
+  });
+
+  it('reads a body with no outcomes as nothing done', async () => {
+    const fetchMock = answering({});
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      runCatalogBulk('product-offering')<Brandish>('publish', {
+        mode: 'ids',
+        ids: new Set(['o-1']),
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  it('falls back to an unexpected code when the service names none', async () => {
+    const fetchMock = answering({}, 500);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      runCatalogBulk('product-offering')<Brandish>('publish', {
+        mode: 'ids',
+        ids: new Set(['o-1']),
+      }),
+    ).rejects.toMatchObject({ details: { code: 'unexpected' } });
   });
 });

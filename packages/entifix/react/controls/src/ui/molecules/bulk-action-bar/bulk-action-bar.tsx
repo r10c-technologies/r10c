@@ -27,7 +27,15 @@ export interface BulkActionBarProps {
   matchingTotal?: number;
   onSelectAllMatching?: () => void;
   onClear: () => void;
-  onUseCase: (key: string) => void;
+  /**
+   * Hands back the descriptor it rendered, not just its key.
+   *
+   * The caller has to know whether the verb asked to be confirmed, and the bar
+   * is already holding the answer. Passing the key alone forced a lookup back
+   * into the same list — a branch for "not found" that cannot happen, since
+   * every key here came from this array (#216).
+   */
+  onUseCase: (useCase: UseCaseDescriptor) => void;
   /** Disables every verb while one is running. */
   busy?: boolean;
   className?: string;
@@ -92,7 +100,7 @@ export function BulkActionBar({
           }
           size="sm"
           disabled={busy}
-          onClick={() => onUseCase(descriptor.key)}
+          onClick={() => onUseCase(descriptor)}
         >
           {/* A descriptor's label is a *runtime* catalog key — the type system
               cannot see a typo here, `@r10c/i18n-check` is what does. */}

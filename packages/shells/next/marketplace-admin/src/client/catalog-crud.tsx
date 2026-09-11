@@ -271,6 +271,45 @@ export const runCatalogUseCase =
     }
   };
 
+/**
+ * Runs a `collection`-bound catalog verb over a selection.
+ *
+ * The twin of {@link runCatalogUseCase}, one level up the path: a record's verb
+ * is `/<entity>/<id>/<key>` and a collection's is `/<entity>/<key>`.
+ *
+ * ⚠️ **Throws on a non-2xx rather than returning outcomes**, which is what lets
+ * `useEntityBulk` attribute a whole failed request across the ticked rows. A
+ * per-row refusal is not that: it comes back `200` in `data`, because the
+ * request succeeded and only some of the rows did not.
+ */
+export const runCatalogBulk =
+  (entityName: string) =>
+  async <TEntity extends Entity>(
+    key: string,
+    selection: EntitySelection<TEntity>,
+  ): Promise<readonly BulkOutcome[]> => {
+    const response = await fetch(`/api/admin/${entityName}/${key}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ selection: toWireSelection(selection) }),
+    });
+    const body = (await response.json()) as {
+      data?: readonly BulkOutcome[];
+      error?: string;
+      code?: string;
+    };
+    if (!response.ok) {
+      throw new EntifixLogicError(
+        body.error ?? 'bulk request failed',
+        undefined,
+        {
+          code: body.code ?? 'unexpected',
+        },
+      );
+    }
+    return body.data ?? [];
+  };
+
 export const productOfferingCrud = makeEntityCrud(ProductOffering, {
   useAdapters: useMarketplaceAdminAdapters,
   basePath: PRODUCT_OFFERING_SURFACE.basePath,
@@ -282,6 +321,11 @@ export const productOfferingCrud = makeEntityCrud(ProductOffering, {
   // handler renders buttons that do nothing.
   metadataSource: CATALOG_METADATA,
   runUseCase: runCatalogUseCase(PRODUCT_OFFERING_SURFACE.entityKey),
+  // The same two verbs over a selection (#216). The route is the verb key on
+  // the collection rather than on a record — `/api/admin/product-offering/publish`
+  // — which is the convention `runCatalogUseCase` above already follows one
+  // level down, and which nothing asserts.
+  runBulkUseCase: runCatalogBulk(PRODUCT_OFFERING_SURFACE.entityKey),
   // ⚠️ `status` is hidden because it is **not the vendor's to write**. The two
   // verbs own it, the write path overwrites whatever the form sends
   // (`preserveOfferingLifecycle`), and asking the operator for it made a required

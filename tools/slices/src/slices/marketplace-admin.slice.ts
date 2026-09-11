@@ -50,6 +50,11 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     // draft put it in front of buyers.
     'POST /api/product-offering/:id/publish',
     'POST /api/product-offering/:id/unpublish',
+    // The same two verbs over a selection, under the same two permissions
+    // (#216). One segment where the per-id routes have two, so neither shadows
+    // the other.
+    'POST /api/product-offering/publish',
+    'POST /api/product-offering/unpublish',
     'GET|POST|PUT|DELETE /api/product-offering-price',
   ],
   dependantAPIs: ['GET /api/config/:service'],
