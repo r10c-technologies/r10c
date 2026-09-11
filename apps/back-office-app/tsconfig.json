@@ -54,6 +54,12 @@
       "path": "../../packages/shells/next/stock"
     },
     {
+      "path": "../../packages/shells/next/settlement"
+    },
+    {
+      "path": "../../packages/shells/next/sales"
+    },
+    {
       "path": "../../packages/shells/next/order"
     },
     {
@@ -94,9 +100,6 @@
     },
     {
       "path": "../../packages/business/ts/access-management"
-    },
-    {
-      "path": "../../packages/shells/next/sales"
     }
   ]
 }

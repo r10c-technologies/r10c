@@ -12,6 +12,7 @@ export const SALES_DOMAIN = 'sales-management';
 export const STOCK_DOMAIN = 'stock-management';
 export const ORDER_DOMAIN = 'order-management';
 export const PAYMENT_DOMAIN = 'payment-management';
+export const SETTLEMENT_DOMAIN = 'settlement-management';
 export const AUTHN_DOMAIN = 'authn';
 
 /**
@@ -152,6 +153,31 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // here would be inert against the route that exists and would suggest a
     // save route ought to, which is how a ledger becomes editable.
     `${PAYMENT_DOMAIN}:payment:read`,
+    // What the platform charges this vendor, what it has taken, and what it
+    // owes. Granted where `payment:read` could not be, and the difference is
+    // the scope: every settlement record carries a `vendorId`, so the routes
+    // narrow the result to the caller's own organization and an operator's
+    // session is the only one that reads across vendors
+    // ([ADR 0057](../../../../../docs/adr/0057-settlement-joins-the-sale-to-its-payment.md)).
+    //
+    // ⚠️ **Named per entity rather than `settlement-management:*:read`.** The
+    // wildcard would sweep in whatever this domain gains next, and this is the
+    // domain whose records are a vendor's negotiated terms — the one place a
+    // future entity should have to be granted deliberately.
+    `${SETTLEMENT_DOMAIN}:agreement:read`,
+    `${SETTLEMENT_DOMAIN}:commission-entry:read`,
+    `${SETTLEMENT_DOMAIN}:settlement-run:read`,
+    `${SETTLEMENT_DOMAIN}:vendor-payout:read`,
+    // ⚠️ **No `agreement:write` for this role, and that is the point of the
+    // omission.** Setting what the platform charges a vendor is one half of a
+    // negotiation, and the vendor's own administrator is the other half of it —
+    // an `admin` who could write this row could set their own commission to
+    // zero. It is an operator act, reached through `super-admin`'s wildcard.
+    //
+    // ⚠️ **No `settlement-run:write` either.** Opening a run moves money for
+    // every vendor on the platform at once, which is not a tenant-scoped act in
+    // any sense; and no role holds a write on the ledger or the payouts, which
+    // a fold produces and nobody authors.
     `${AUTHN_DOMAIN}:user-identity:read`,
     `${AUTHN_DOMAIN}:user-identity:write`,
     // Two use-case verbs, not CRUD. Changing somebody's role or status and

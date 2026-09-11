@@ -8,7 +8,7 @@ import { SEARCH_SOURCES } from '../src/lib/search-sources';
  * screens this app actually serves.
  */
 describe('SEARCH_SOURCES', () => {
-  it('composes all four shells, catalog then stock then sales then people', () => {
+  it('composes all five shells, catalog then stock then sales then settlement then people', () => {
     // Order is the ranking, so this asserts the order rather than the set: an
     // operator learns where a kind of record lands, and a reshuffle is a
     // behaviour change even though every source still resolves.
@@ -22,6 +22,12 @@ describe('SEARCH_SOURCES', () => {
       'stock-movement',
       'reservation',
       'sales-channel',
+      // ⚠️ **Three, not four.** `SettlementRun` contributes no source and must
+      // not: it has no string member at all, so a source would label every run
+      // by its status and fill a palette with results called "Calculada".
+      'agreement',
+      'commission-entry',
+      'vendor-payout',
       'user-identity',
     ]);
   });

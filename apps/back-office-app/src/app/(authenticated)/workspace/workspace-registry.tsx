@@ -19,6 +19,10 @@ import {
   CounterSaleWizard,
   SALES_CRUDS,
 } from '@r10c/shells-next-sales';
+import {
+  SETTLEMENT_MASTER_CRUDS,
+  SETTLEMENT_OPERATION_CRUDS,
+} from '@r10c/shells-next-settlement';
 import { STOCK_CRUDS } from '@r10c/shells-next-stock';
 import { ConfigurationListClientPage } from '@r10c/shells-next-system-management';
 
@@ -85,9 +89,15 @@ const masterScreens = (): EntityTabScreens => {
   // Definiciones, and the sales channels join it: a vendor names their counter
   // and every order placed through it then references that record, which is
   // exactly the test ADR 0033 applies.
+  //
+  // ⚠️ **The settlement shell contributes to *both* tiers**, which is why it
+  // arrives as two exports rather than one. An agreement is authored and
+  // everything else that domain holds is produced, so splitting it anywhere but
+  // at the shell would put a run under a heading that says a person wrote it.
   const derived = screensFor('master', [
     ...MARKETPLACE_ADMIN_CRUDS,
     ...SALES_CRUDS,
+    ...SETTLEMENT_MASTER_CRUDS,
   ]);
   return {
     lists: {
@@ -165,7 +175,11 @@ export const workspaceRegistry = new TabRegistry()
   .register(
     entityTabKind(
       'operation',
-      screensFor('operation', [...STOCK_CRUDS, ...ORDER_CRUDS]),
+      screensFor('operation', [
+        ...STOCK_CRUDS,
+        ...ORDER_CRUDS,
+        ...SETTLEMENT_OPERATION_CRUDS,
+      ]),
     ),
   )
   .register(wizardKind);

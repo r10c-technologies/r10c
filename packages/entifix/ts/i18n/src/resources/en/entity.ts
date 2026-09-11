@@ -323,6 +323,10 @@ export const entity: EsEntity = {
     },
   },
   agreement: {
+    form: {
+      editTitle: 'Edit agreement',
+      newTitle: 'New agreement',
+    },
     label: 'Agreement',
     plural: 'Agreements',
     fields: {
@@ -334,17 +338,28 @@ export const entity: EsEntity = {
     },
   },
   'commission-entry': {
+    form: {
+      editTitle: 'Commission entry',
+      newTitle: 'Commission entry',
+    },
     label: 'Commission entry',
     plural: 'Commission entries',
     fields: {
       id: 'ID',
       orderId: 'Order ID',
       vendorId: 'Vendor ID',
+      saleAmount: 'Sale amount',
       commissionAmount: 'Commission amount',
       currency: 'Currency',
+      occurredAt: 'Sale date',
+      runId: 'Settlement run ID',
     },
   },
   'settlement-run': {
+    form: {
+      editTitle: 'Settlement run',
+      newTitle: 'Settlement run',
+    },
     label: 'Settlement run',
     plural: 'Settlement runs',
     fields: {
@@ -363,6 +378,10 @@ export const entity: EsEntity = {
     },
   },
   'vendor-payout': {
+    form: {
+      editTitle: 'Vendor payout',
+      newTitle: 'Vendor payout',
+    },
     label: 'Vendor payout',
     plural: 'Vendor payouts',
     fields: {

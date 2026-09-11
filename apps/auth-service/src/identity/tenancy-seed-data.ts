@@ -142,6 +142,13 @@ export const entitlementSeedData = (
       // Without it a vendor with every grant in the table sees no Ventas
       // section and no way to sell at their own counter.
       'sales-management',
+      // `settlement-management` is what makes a vendor's own commercial terms
+      // and their statement visible. It is here although the *records* are the
+      // platform's rather than the vendor's, because being provisioned for
+      // settlement is precisely what "we have terms with this organization"
+      // means — and the reads are scoped to the caller, so a vendor sees their
+      // own agreement and nobody else's.
+      'settlement-management',
     ],
   },
 ];

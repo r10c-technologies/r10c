@@ -207,9 +207,11 @@ is a code change; both are `dev:reset`, and a fresh machine needs nothing.
 `configuration` rows, auth-service the identities and tenancy,
 marketplace-service the platform-plane vocabulary, marketplace-admin-service the
 demo vendor's catalog into `tenant_<id>`, stock-service the stock positions into
-`stock_<id>`, and sales-service the vendor's selling channels into
-`sales_<id>` — without which the till has nothing to sell *through* and refuses
-the sale. The catalog-and-stock pair is the one worth stating: `catalog` and `stock`
+`stock_<id>`, sales-service the vendor's selling channels into
+`sales_<id>` — without which the till has nothing to sell _through_ and refuses
+the sale — and settlement-service the demo vendor's `Agreement` into the
+control-plane `settlement` database, without which every sale completes and the
+commission ledger stays empty with only an error log to say why. The catalog-and-stock pair is the one worth stating: `catalog` and `stock`
 are the same plane and the same partitioning but different stores with different
 writing slices, so seeding stock from marketplace-admin-service — where the
 offering ids it hangs off already are — is the one-writer violation
@@ -548,6 +550,7 @@ pnpm nx e2e back-office-app-e2e                       # mock
 pnpm nx e2e marketplace-admin-service-e2e                   # mock
 pnpm nx e2e stock-service-e2e                               # mock
 pnpm nx e2e sales-service-e2e                               # mock
+pnpm nx e2e settlement-service-e2e                          # mock
 
 pnpm run back-office:dev                                    # then, in another shell:
 E2E_PROFILE=live \
@@ -569,6 +572,10 @@ E2E_PROFILE=live STOCK_SERVICE_URL=http://localhost:3108 \
 E2E_PROFILE=live SALES_SERVICE_URL=http://localhost:3109 \
   JWT_PRIVATE_KEY="$(…)" JWT_PUBLIC_KEY="$(…)" \
   pnpm nx e2e sales-service-e2e
+
+E2E_PROFILE=live SETTLEMENT_SERVICE_URL=http://localhost:3107 \
+  JWT_PRIVATE_KEY="$(…)" JWT_PUBLIC_KEY="$(…)" \
+  pnpm nx e2e settlement-service-e2e
 ```
 
 `mock` is the default because the default has to run anywhere. `live` never

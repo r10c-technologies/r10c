@@ -51,6 +51,12 @@ const matchesCondition = (actual: unknown, condition: unknown): boolean => {
         return compare(actual, operand) <= 0;
       case '$in':
         return (operand as unknown[]).includes(actual);
+      // Absence, not falsiness. A settlement ledger keys "unpaid" on a `runId`
+      // that is not there at all, and `undefined` is what a document without
+      // the field reads as — so `{ $exists: false }` must be a different test
+      // from `{ $eq: undefined }` would be if the serializer ever wrote one.
+      case '$exists':
+        return (actual !== undefined) === (operand as boolean);
       case '$nin':
         return !(operand as unknown[]).includes(actual);
       case '$not':
@@ -537,6 +543,93 @@ export const makeFakeMongoDb = (
         assertUnique(name, updated, documents[index]);
         documents[index] = updated;
         return { matchedCount: 1, modifiedCount: 1, upsertedCount: 0 };
+      }),
+
+    /**
+     * `$set` across every matching document, and the count of what changed.
+     *
+     * ⚠️ **The count is what a caller branches on.** A settlement run claims its
+     * ledger lines with this and reads `modifiedCount === 0` as "another replica
+     * took them all" — so a fake returning a fixed `1`, or the match count
+     * rather than the modified count, would make the losing replica behave like
+     * the winning one and the conditional claim would test nothing.
+     *
+     * `$set` only. Anything else throws, for the reason `updateOne` gives:
+     * silently accepting an operator it does not apply lets a spec pass on an
+     * update that never happened.
+     */
+    updateMany: (query: QueryDocument, update: { $set?: Document }) =>
+      record(name, 'updateMany', () => {
+        const unsupported = Object.keys(update).filter(
+          operator => operator !== '$set',
+        );
+        if (unsupported.length > 0) {
+          throw new Error(
+            `fake-mongo: updateMany does not implement ${unsupported.join(', ')}`,
+          );
+        }
+
+        const documents = documentsOf(name);
+        let modifiedCount = 0;
+        documents.forEach((doc, index) => {
+          if (!matches(doc, query)) return;
+          const updated = { ...doc, ...(update.$set ?? {}) };
+          assertUnique(name, updated, doc);
+          documents[index] = updated;
+          modifiedCount += 1;
+        });
+        return { matchedCount: modifiedCount, modifiedCount };
+      }),
+
+    /**
+     * Update one document and hand back the result, upserting when asked.
+     *
+     * ⚠️ **`returnDocument: 'after'` is the only mode implemented, and the
+     * default here is `'after'` rather than the driver's `'before'`** — because
+     * the callers that need this primitive at all need the merged document. A
+     * two-message join upserts its own half and then asks "is the pair complete
+     * now?", which is a question only the *after* state answers. `'before'`
+     * throws rather than quietly returning the wrong half.
+     *
+     * Implemented over {@link updateOne} so the upsert seeding rule, the
+     * conflicting-path refusal and the unique-index enforcement are the same
+     * ones, rather than a second copy that could drift from them.
+     */
+    findOneAndUpdate: (
+      query: QueryDocument,
+      update: {
+        $set?: Document;
+        $addToSet?: Document;
+        $inc?: Document;
+        $setOnInsert?: Document;
+      },
+      options?: { upsert?: boolean; returnDocument?: 'before' | 'after' },
+    ) =>
+      record(name, 'findOneAndUpdate', async () => {
+        if (options?.returnDocument === 'before') {
+          throw new Error(
+            'fake-mongo: findOneAndUpdate only implements returnDocument: "after"',
+          );
+        }
+        // Where the document is *before* the write, because afterwards the
+        // query may no longer find it: an upsert's operator conditions need not
+        // hold of the row it just inserted — `{ folded: { $exists: false } }`
+        // matches nothing once `folded` has been set. `documentsOf` hands back
+        // the live array, which `updateOne` mutates in place or pushes onto, so
+        // the position is enough to identify it either way.
+        const documents = documentsOf(name);
+        const index = documents.findIndex(doc => matches(doc, query));
+
+        const result = await collection(name).updateOne(query, update, {
+          upsert: options?.upsert === true,
+        });
+        if (result.matchedCount === 0 && result.upsertedCount === 0) {
+          return null;
+        }
+
+        return index === -1
+          ? documents[documents.length - 1]
+          : documents[index];
       }),
 
     deleteOne: (query: QueryDocument) =>

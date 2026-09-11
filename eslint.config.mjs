@@ -120,6 +120,10 @@ const scopeConstraints = [
       // the **host** scope is how a domain reaches the back office, and
       // `scope:sales` gains nothing by it.
       'scope:sales',
+      // The settlement shell — a vendor's commercial terms and what they are
+      // owed. Same rule: widening the **host** scope is how a domain reaches the
+      // back office, and `scope:settlement` gains nothing by it.
+      'scope:settlement',
       'scope:shared',
     ],
   },
@@ -155,6 +159,13 @@ const scopeConstraints = [
   {
     sourceTag: 'scope:payment',
     onlyDependOnLibsWithTags: ['scope:payment', 'scope:shared'],
+  },
+  // The `settlement` slice's own app. It reaches nothing but the shared core:
+  // both of its inputs arrive on the bus, so it imports no other domain's
+  // package and dials no other slice's service.
+  {
+    sourceTag: 'scope:settlement',
+    onlyDependOnLibsWithTags: ['scope:settlement', 'scope:shared'],
   },
   // The `sales` slice's own app and its back-office shell, for the same reason
   // as the four above.

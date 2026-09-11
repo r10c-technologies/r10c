@@ -107,16 +107,52 @@ ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
 name any organization. Separate `is_secret` rows, separate rotations, and the
 named upgrade path is unchanged.
 
-⁵ **Reserved, not bound.** The `settlement` slice exists in the register and
-owns its store, but is `planned` — no process runs it, so nothing listens on
-this port yet ([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md)). The
-index is allocated now so that promoting a slice is a `deployments` edit rather
-than a port negotiation. It is deliberately **not** in `ALL_PORTS`
-(`tools/free-ports.sh`) until something binds it.
+⁵ **settlement-service, bound — and the last of the five reserved indices to be
+claimed.** It owns the `settlement` store, which is the one commerce store on the
+**control** plane. A plane answers _who may read it_, and an `Agreement` —
+commission terms between the platform and one vendor — is the platform's own
+record about a vendor, the same character as `Entitlement` and nothing like a
+public catalog ([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md) §8).
+
+It serves the vendor's terms and their statement: `GET|POST|PUT /api/agreement`,
+and read-only `commission-entry`, `settlement-run` and `vendor-payout`.
+
+⚠️ **Every read is narrowed to the caller.** An operator reads across vendors; a
+vendor reads their own agreement, their own ledger lines and their own payouts;
+anybody else gets an empty page. That scope is why a read grant exists here at
+all — `payment-management:payment:read` was withheld from every role but `admin`
+precisely because a `Payment` carries nobody to key a predicate on, and ADR 0054
+recorded the residual rather than shipping unscoped. Writing an agreement is
+granted to **no** role: an `admin` who could write it could set their own
+commission to zero, so it is an operator act reached through `super-admin`'s
+wildcard.
+
+⚠️ **It subscribes to two events, and neither is sufficient alone.**
+`payment.captured` says money moved and names the order; it carries no vendor
+lines and only a channel _id_, which points into a tenant store this slice cannot
+open. `order.placed` carries the vendor-tagged lines and the channel _type_
+copied onto the receipt. So the two are joined on the order id and whichever
+completes the pair writes the commission entries
+([ADR 0057](../adr/0057-settlement-joins-the-sale-to-its-payment.md)). This is
+the consumer ADR 0054 said `order.placed` was being drained for.
+
+It publishes `settlement.run.completed` from an outbox in its own store. Nothing
+consumes it yet — a payouts process is what would, and that is not built.
+
+⚠️ **It holds no crossing token and accepts none.** Both of its inputs arrive on
+the bus, so nothing dispatches into it, and every route it serves is guarded by a
+verified session. It is the only slice in the fleet with a store, a bus
+connection and no service secret at all.
+
+**`back-office:dev` starts it**, unlike order-service, payment-service and
+transaction-service, because it has a back-office surface: a vendor's terms and
+their statement are screens, and a proxy pointed at a process nothing started is
+a nav item that 502s.
 
 `payment` was on this list until #152 and `sales` until #92, and they are now
-footnotes 8 and 9 — the mechanism working twice: promoting each was a
-`deployments` edit and a `FLEET` entry, exactly as the reservation promised.
+footnotes 8 and 9 — the mechanism working three times over: promoting each was a
+`deployments` edit and a `FLEET` entry, exactly as the reservation promised. With
+this one the reserved list is empty.
 
 `sales` took index 9 rather than the then-free `3103`, which was reserved for
 the `transaction` slice splitting back out of marketplace-admin-service — and

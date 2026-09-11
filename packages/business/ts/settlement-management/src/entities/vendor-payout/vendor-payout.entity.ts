@@ -10,6 +10,12 @@ import { accessor, entity } from '@r10c/entifix-ts-core';
  * read. A payout that could not be traced back to its entries would be a number
  * nobody can defend in a dispute.
  *
+ * ⚠️ **It is what the platform *pays*, not what the platform keeps.**
+ * {@link amount} is `Σ saleAmount − Σ commissionAmount` over those lines, which
+ * is why the entry captures the base as well as the cut. Folding the commissions
+ * alone would total the platform's own revenue and file it under a record named
+ * for the vendor.
+ *
  * `runId` rather than a date range on the payout itself, so "everything in the
  * March run" is one query and a re-run cannot half-replace a period.
  *
@@ -65,10 +71,19 @@ export class VendorPayout implements Entity {
     this.#runId = value;
   }
 
+  /**
+   * The vendor this payout is for.
+   *
+   * Sortable as well as filterable because it is the only member here that can
+   * name one of these records — a record search source refuses a label member
+   * that is not simultaneously a string, filterable and sortable — and because a
+   * statement listing every vendor's payout for one run reads by vendor.
+   */
   @accessor({
     type: 'string',
     labelKey: 'entity:vendor-payout.fields.vendorId',
     required: true,
+    sortable: true,
     filterable: true,
   })
   get vendorId(): string {
@@ -78,7 +93,10 @@ export class VendorPayout implements Entity {
     this.#vendorId = value;
   }
 
-  /** Minor units. The fold of this vendor's commission entries for the run. */
+  /**
+   * Minor units, and **what the vendor is owed** — the run's commission entries
+   * for them, gross less the platform's cut. See the class note.
+   */
   @accessor({
     type: 'number',
     labelKey: 'entity:vendor-payout.fields.amount',

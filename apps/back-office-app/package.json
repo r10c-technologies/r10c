@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "@r10c/shells-next-sales": "workspace:*",
     "@r10c/business-ts-access-management": "workspace:*",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz": "workspace:*",
@@ -19,6 +18,8 @@
     "@r10c/shells-next-i18n": "workspace:*",
     "@r10c/shells-next-marketplace-admin": "workspace:*",
     "@r10c/shells-next-order": "workspace:*",
+    "@r10c/shells-next-sales": "workspace:*",
+    "@r10c/shells-next-settlement": "workspace:*",
     "@r10c/shells-next-stock": "workspace:*",
     "@r10c/shells-next-system-management": "workspace:*",
     "next": "16.2.10",
@@ -55,7 +56,8 @@
               "@r10c/auth-service",
               "@r10c/config-service",
               "@r10c/stock-service",
-              "@r10c/sales-service"
+              "@r10c/sales-service",
+              "@r10c/settlement-service"
             ],
             "target": "dev"
           }

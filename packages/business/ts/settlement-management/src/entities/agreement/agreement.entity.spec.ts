@@ -114,4 +114,18 @@ describe('Agreement', () => {
     expect(effectiveFrom?.sortable).toBe(true);
     expect(effectiveFrom?.filterable).toBe(true);
   });
+
+  it('can name one of its own records, and be narrowed to one vendor', () => {
+    // Two jobs on one member. A record search source refuses a label member
+    // that is not simultaneously a string, filterable and sortable; and a
+    // vendor-scoped read narrows this collection by the same member, since an
+    // agreement is a negotiated term no other vendor may read.
+    const vendorId = describeEntityColumns(Agreement).find(
+      column => column.name === 'vendorId',
+    );
+
+    expect(vendorId?.type).toBe('string');
+    expect(vendorId?.sortable).toBe(true);
+    expect(vendorId?.filterable).toBe(true);
+  });
 });

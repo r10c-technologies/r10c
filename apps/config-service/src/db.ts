@@ -261,6 +261,16 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'sales-service-domain',
     value: 'http://localhost:3109/api',
   },
+  // The vendor's commercial terms and their statement. Control plane and
+  // single, so unlike the sales and stock rows above it there is no tenancy in
+  // the path — what narrows a read here is a predicate built from the session
+  // the proxy carries upstream (ADR 0057).
+  {
+    service: 'back-office-app',
+    group_name: 'uri',
+    key: 'settlement-service-domain',
+    value: 'http://localhost:3107/api',
+  },
   {
     service: 'back-office-app',
     group_name: 'uri',
@@ -958,6 +968,105 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
   {
     service: 'payment-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
+  // settlement-service — what the platform owes each vendor, and on what terms.
+  // It owns the `settlement` store: **control** plane and single, so like
+  // order-service and payment-service it names a database at boot. The plane is
+  // the one thing that differs from its commerce neighbours, and it is not an
+  // oversight: a plane answers *who may read it*, and an `Agreement` is the
+  // platform's own record about a vendor — the same character as `Entitlement`
+  // (ADR 0022 §8).
+  {
+    service: 'settlement-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  {
+    service: 'settlement-service',
+    group_name: 'mongo',
+    key: 'db',
+    value: 'settlement',
+  },
+  // The broker earns its place twice over here: the relay publishes
+  // `settlement.run.completed`, and **two** subscriptions feed the fold —
+  // `order.placed` for the vendor-tagged lines and the channel, and
+  // `payment.captured` for the money and its timestamp (ADR 0057).
+  {
+    service: 'settlement-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
+  {
+    service: 'settlement-service',
+    group_name: 'outbox',
+    key: 'maxAttempts',
+    value: '5',
+  },
+  {
+    service: 'settlement-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'settlement-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  // The vendor whose agreement the lab seeds — the same id auth-service seeds
+  // the `Organization` under. ⚠️ Without an agreement on file the fold prices
+  // nothing and logs, deliberately: there is no default commission in this
+  // system, only a default *within* an agreement, and guessing one would put a
+  // term nobody negotiated into a ledger built to be defensible in a dispute.
+  {
+    service: 'settlement-service',
+    group_name: 'tenant',
+    key: 'demoOrganizationId',
+    value: 'demo-organization',
+  },
+  // ⚠️ **No `service.token` row, and the omission is deliberate.** This slice
+  // holds no crossing token and accepts none: both of its inputs arrive on the
+  // bus, so nothing dispatches into it, and every route it serves is guarded by
+  // a verified session. A secret it never reads would be a fourth holder of a
+  // credential that can name any organization (ADR 0023).
+  // How often the sweep folds unsettled commission entries into payouts. Five
+  // minutes in the lab: long enough that the log is readable, short enough that
+  // a period settles while you are still looking at it. A live pass does not
+  // wait for it — `POST /api/settlement-run` runs the same pass on demand.
+  {
+    service: 'settlement-service',
+    group_name: 'settlement',
+    key: 'runIntervalMs',
+    value: '300000',
+  },
+  {
+    service: 'settlement-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'settlement-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'settlement-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'settlement-service',
     group_name: 'otel',
     key: 'metricIntervalMs',
     value: '60000',

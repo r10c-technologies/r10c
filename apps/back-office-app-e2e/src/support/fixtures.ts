@@ -5,6 +5,12 @@ import {
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 import {
+  Agreement,
+  CommissionEntry,
+  SettlementRun,
+  VendorPayout,
+} from '@r10c/business-ts-settlement-management';
+import {
   Reservation,
   StockItem,
   StockMovement,
@@ -22,6 +28,12 @@ import {
 
 import { brandSeed, categorySeed, productSeed } from './catalog-seed';
 import { salesChannelSeed } from './sales-seed';
+import {
+  agreementSeed,
+  commissionEntrySeed,
+  settlementRunSeed,
+  vendorPayoutSeed,
+} from './settlement-seed';
 import {
   reservationSeed,
   stockItemSeed,
@@ -53,6 +65,14 @@ export const STOCK_SERVICE_URL = 'http://localhost:3108/api';
  */
 export const SALES_SERVICE_URL = 'http://localhost:3109/api';
 
+/**
+ * The fifth backend. Settlement is **control** plane rather than tenant, so the
+ * app composes its URLs from a fifth configuration key for a different reason
+ * than the two above: there is no tenancy in the path at all, and what narrows a
+ * read is a predicate built from the session the proxy carries upstream.
+ */
+export const SETTLEMENT_SERVICE_URL = 'http://localhost:3107/api';
+
 export const BRAND_URL = `${REFERENCE_SERVICE_URL}/product-brand`;
 export const CATEGORY_URL = `${REFERENCE_SERVICE_URL}/product-category`;
 export const PRODUCT_URL = `${SERVICE_URL}/product-specification`;
@@ -67,6 +87,7 @@ const CONFIGURATION = {
     { key: 'marketplace-service-domain', value: REFERENCE_SERVICE_URL },
     { key: 'stock-service-domain', value: STOCK_SERVICE_URL },
     { key: 'sales-service-domain', value: SALES_SERVICE_URL },
+    { key: 'settlement-service-domain', value: SETTLEMENT_SERVICE_URL },
   ],
 };
 
@@ -149,6 +170,53 @@ const stockMetadataHandlers = (
  * `["read","write","delete"]`, unlike stock's: a vendor authors their own
  * channels, so the generated form really does offer Save.
  */
+const agreements = entityBackendHandlers(Agreement, {
+  baseUrl: `${SETTLEMENT_SERVICE_URL}/agreement`,
+  seed: agreementSeed,
+});
+
+const commissionEntries = entityBackendHandlers(CommissionEntry, {
+  baseUrl: `${SETTLEMENT_SERVICE_URL}/commission-entry`,
+  seed: commissionEntrySeed,
+});
+
+const settlementRuns = entityBackendHandlers(SettlementRun, {
+  baseUrl: `${SETTLEMENT_SERVICE_URL}/settlement-run`,
+  seed: settlementRunSeed,
+});
+
+const vendorPayouts = entityBackendHandlers(VendorPayout, {
+  baseUrl: `${SETTLEMENT_SERVICE_URL}/vendor-payout`,
+  seed: vendorPayoutSeed,
+});
+
+/**
+ * The settlement screens' affordance documents, served from the **app's own**
+ * `/api/settlement/...` proxy path for the reason the stock ones are.
+ *
+ * ⚠️ **`agreement` answers `["read"]`, not `["read","write"]`**, and that is the
+ * assertion rather than a conservative fixture. No role holds
+ * `settlement-management:agreement:write` — an `admin` who could write it could
+ * set their own commission to zero — so the form an `admin` opens offers no
+ * Save, with no client-side flag anywhere. The other three are read-only because
+ * a fold produces them and nobody authors them.
+ */
+const settlementMetadataHandlers = (
+  [
+    ['agreement', ['read']],
+    ['commission-entry', ['read']],
+    ['settlement-run', ['read']],
+    ['vendor-payout', ['read']],
+  ] as const
+).map(([entity, actions]) =>
+  http.get(`${APP_URL}/api/settlement/${entity}/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity },
+      data: { actions, useCases: [] },
+    }),
+  ),
+);
+
 const salesMetadataHandlers = [
   http.get(`${APP_URL}/api/sales/sales-channel/$metadata`, () =>
     HttpResponse.json({
@@ -252,6 +320,11 @@ const base = defineEntifixE2eTest({
     ...stockMovements.handlers,
     ...reservations.handlers,
     ...salesChannels.handlers,
+    ...agreements.handlers,
+    ...commissionEntries.handlers,
+    ...settlementRuns.handlers,
+    ...vendorPayouts.handlers,
+    ...settlementMetadataHandlers,
     ...stockMetadataHandlers,
     ...salesMetadataHandlers,
     ...transactionHandlers,
@@ -286,6 +359,8 @@ export const test = base.extend<{ session: void }>({
           // Without it the Ventas sections are hidden from a vendor holding
           // every grant in the table — ADR 0007's second ceiling.
           'sales-management',
+          // And the same for the settlement sections, in both tiers.
+          'settlement-management',
         ],
       });
       await use();

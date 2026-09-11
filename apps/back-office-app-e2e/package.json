@@ -23,8 +23,9 @@
     "@r10c/entifix-ts-testing-e2e": "workspace:*"
   },
   "dependencies": {
-    "@r10c/business-ts-sales-management": "workspace:*",
     "@r10c/business-ts-catalog-reference": "workspace:*",
+    "@r10c/business-ts-sales-management": "workspace:*",
+    "@r10c/business-ts-settlement-management": "workspace:*",
     "@r10c/business-ts-stock-management": "workspace:*"
   }
 }

@@ -74,8 +74,14 @@ export type SliceStatus = 'active' | 'planned';
 /**
  * How a subscriber's queue is shaped. Mirrors `SubscriptionMode` in
  * `@r10c/entifix-transactions` — the register may not import a package, so the
- * two literal sets are duplicated the way `settlement-management` duplicates
- * `SalesChannelType`, and both are pinned by a spec.
+ * two literal sets are duplicated and both are pinned by a spec.
+ *
+ * > **Corrected 2026-09-10.** This note used to cite `settlement-management`
+ * > duplicating `SalesChannelType` as the precedent. That copy was deleted by
+ * > #96: the set moved to `@r10c/business-ts-sales-vocabulary`, a
+ * > `business:policy` package any domain may reach down to. The duplication here
+ * > remains and has no such escape — a build tool cannot import a workspace
+ * > package at all.
  */
 export const SUBSCRIPTION_MODES = ['work', 'broadcast'] as const;
 
