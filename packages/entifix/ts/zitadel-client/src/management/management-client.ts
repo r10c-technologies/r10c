@@ -35,6 +35,40 @@ export interface ZitadelHumanInput {
   readonly passwordChangeRequired?: boolean;
 }
 
+/** What to ask the event store for. */
+export interface ZitadelEventQuery {
+  /** Event types to match, e.g. `user.deactivated`. */
+  readonly eventTypes: readonly string[];
+  /** Oldest event to return, as an ISO timestamp. */
+  readonly since: string;
+  /** Page size. The caller sweeps on an interval, so this is a ceiling. */
+  readonly limit: number;
+}
+
+/**
+ * One event, reduced to what a reconciler needs.
+ *
+ * ⚠️ **`payload` is deliberately dropped.** A `user.human.added` event carries
+ * the user's `encodedHash` — a bcrypt hash of their password — and this fleet
+ * has no reason to hold one, log one, or move one across a process boundary.
+ * What a reconciler acts on is *which user* and *when*, which is the whole of
+ * this shape.
+ */
+export interface ZitadelEvent {
+  /** The aggregate the event is about — for a user event, the user id. */
+  readonly subject: string;
+  /** The event's own type, e.g. `user.locked`. */
+  readonly type: string;
+  /** When the instance recorded it, as an ISO timestamp. */
+  readonly createdAt: string;
+}
+
+interface V1EventRow {
+  readonly aggregate?: { readonly id?: string };
+  readonly type?: { readonly type?: string };
+  readonly creationDate?: string;
+}
+
 export interface ZitadelManagement {
   findUserByEmail(
     email: string,
@@ -57,6 +91,18 @@ export interface ZitadelManagement {
   ): Effect.Effect<void, EntifixConnError>;
   /** Compensating delete. Used when a provisioning half-write must be undone. */
   deleteUser(userId: string): Effect.Effect<void, EntifixConnError>;
+  /**
+   * Lifecycle events the instance recorded, oldest first, from a cursor.
+   *
+   * The one read here that is not about a single user: it answers "what
+   * happened while I was not listening". Zitadel's Actions v2 target is
+   * `restAsync` — it sends the call and ignores the response, and it does not
+   * retry — so an event fired while auth-service is down is gone for good
+   * ([ADR 0019](../../../../../../docs/adr/0019-provider-user-lifecycle-events-revoke-sessions.md)).
+   */
+  searchEvents(
+    query: ZitadelEventQuery,
+  ): Effect.Effect<readonly ZitadelEvent[], EntifixConnError>;
 }
 
 export class ZitadelManagementTag extends Context.Tag('ZitadelManagementTag')<
@@ -245,6 +291,47 @@ export const makeZitadelManagement = (
   const deleteUser = (userId: string) =>
     call<unknown>('DELETE', `/v2/users/${userId}`).pipe(Effect.asVoid);
 
+  /**
+   * ⚠️ **Snake_case, and that is the API rather than a slip.** The admin event
+   * search takes `event_types`, `creation_date` and `asc` while every other
+   * call in this module takes camelCase — the v1 surface and the v2 surface do
+   * not agree, and this is the one v1 endpoint with a body.
+   *
+   * `asc: true` because a reconciler advances a cursor: processing newest-first
+   * and then storing the newest timestamp would skip everything behind a page
+   * boundary.
+   *
+   * A row missing its aggregate id is dropped rather than failing the sweep.
+   * There is nothing to act on, and one malformed row must not stop the ones
+   * behind it from being reconciled.
+   */
+  const searchEvents = (query: ZitadelEventQuery) =>
+    call<{ events?: readonly V1EventRow[] }>(
+      'POST',
+      '/admin/v1/events/_search',
+      {
+        asc: true,
+        limit: query.limit,
+        creation_date: query.since,
+        event_types: query.eventTypes,
+      },
+    ).pipe(
+      Effect.map(payload =>
+        (payload.events ?? []).flatMap(row => {
+          const subject = row.aggregate?.id;
+          const type = row.type?.type;
+          if (
+            typeof subject !== 'string' ||
+            typeof type !== 'string' ||
+            typeof row.creationDate !== 'string'
+          ) {
+            return [];
+          }
+          return [{ subject, type, createdAt: row.creationDate }];
+        }),
+      ),
+    );
+
   return {
     findUserByEmail,
     getUser,
@@ -252,6 +339,7 @@ export const makeZitadelManagement = (
     updateProfile,
     setActive,
     deleteUser,
+    searchEvents,
   };
 };
 

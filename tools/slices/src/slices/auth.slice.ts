@@ -47,7 +47,13 @@ export const authSlice: SliceDeclaration = {
     'GET /api/user-identity',
     'GET /api/user-device',
   ],
-  dependantAPIs: ['GET /api/config/:service'],
+  dependantAPIs: [
+    'GET /api/config/:service',
+    // The reconciler's backstop read (#65). Zitadel's Actions v2 target is
+    // fire-and-forget, so an event fired while this process is down is never
+    // redelivered — this is how the slice finds out what it missed.
+    'POST /admin/v1/events/_search',
+  ],
   publishedEvents: [],
   subscriptions: [],
 };

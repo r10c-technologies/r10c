@@ -402,3 +402,94 @@ describe('transport failures', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('searchEvents', () => {
+  const query = {
+    eventTypes: ['user.deactivated', 'user.locked'],
+    since: '2026-09-11T00:00:00.000Z',
+    limit: 200,
+  };
+
+  it('asks the admin event store, oldest first, from the cursor', async () => {
+    answers({ events: [] });
+
+    await Effect.runPromise(management().searchEvents(query));
+
+    const call = lastCall();
+    expect(call.url).toBe('https://idp.test/admin/v1/events/_search');
+    expect(call.method).toBe('POST');
+    // ⚠️ Snake_case, and that is the API rather than a slip: this is the one v1
+    // endpoint with a body, and v1 and v2 do not agree on casing.
+    expect(call.body).toEqual({
+      asc: true,
+      limit: 200,
+      creation_date: '2026-09-11T00:00:00.000Z',
+      event_types: ['user.deactivated', 'user.locked'],
+    });
+  });
+
+  it('reduces a row to the subject, the type and the time', async () => {
+    answers({
+      events: [
+        {
+          aggregate: { id: 'user-9', type: { type: 'user' } },
+          type: { type: 'user.deactivated' },
+          creationDate: '2026-09-11T05:00:00.000Z',
+          // A `user.human.added` row carries the user's bcrypt hash here. It
+          // has no business crossing this boundary, so nothing reads it.
+          payload: { encodedHash: '$2a$14$not-ours-to-carry' },
+        },
+      ],
+    });
+
+    const events = await Effect.runPromise(management().searchEvents(query));
+
+    expect(events).toEqual([
+      {
+        subject: 'user-9',
+        type: 'user.deactivated',
+        createdAt: '2026-09-11T05:00:00.000Z',
+      },
+    ]);
+    expect(JSON.stringify(events)).not.toContain('encodedHash');
+  });
+
+  it('drops a malformed row rather than failing the sweep', async () => {
+    // One row with nothing to act on must not stop the ones behind it from
+    // being reconciled.
+    answers({
+      events: [
+        { type: { type: 'user.locked' }, creationDate: '2026-09-11T05:00:00Z' },
+        { aggregate: { id: 'user-1' }, creationDate: '2026-09-11T05:00:00Z' },
+        { aggregate: { id: 'user-2' }, type: { type: 'user.locked' } },
+        {
+          aggregate: { id: 'user-3' },
+          type: { type: 'user.locked' },
+          creationDate: '2026-09-11T06:00:00.000Z',
+        },
+      ],
+    });
+
+    const events = await Effect.runPromise(management().searchEvents(query));
+
+    expect(events.map(event => event.subject)).toEqual(['user-3']);
+  });
+
+  it('reads a response with no events at all as nothing to do', async () => {
+    answers({});
+
+    const events = await Effect.runPromise(management().searchEvents(query));
+
+    expect(events).toEqual([]);
+  });
+
+  it('fails loudly when the instance refuses the read', async () => {
+    answers({ message: 'permission denied' }, false, 403);
+
+    const error = await Effect.runPromise(
+      Effect.flip(management().searchEvents(query)),
+    );
+
+    expect(error.message).toContain('permission denied');
+  });
+});
