@@ -7,6 +7,11 @@
 - Revised: 2026-08-14 — the append-only `oidc:sid:` set is recorded as a
   deliberate invariant with the constraint that keeps it true, rather than as a
   question deferred to an issue. The decision is unchanged.
+- Revised: 2026-09-11 — "the next `refresh` 401s" became true only with #252,
+  which mounted the client half nothing had been calling. The front-channel half
+  this record rejected as complementary is closed with it rather than built: a
+  tab that refreshes reacts to the `401` already, which is what that half was
+  for. The decision is unchanged.
 
 ## Context
 
@@ -149,6 +154,15 @@ runs every twelve minutes per active user.
 Complementary rather than alternative, and the weaker half — it only works while
 a browser tab is open, which is not the case a compromised-account sign-out
 needs. Tracked as issue #53.
+
+> **Closed 2026-09-11 (#252), and not by building it.** #53 stayed open on the
+> strength of one sentence in this section's favour: an open tab keeps _looking_
+> signed in until something tells it otherwise. What that sentence assumed is
+> that something eventually did — and nothing did, because the client half of
+> the refresh was mounted in no app. A tab that refreshes on schedule meets the
+> `401` this record's Consequences already promise, clears its cookies and
+> leaves. That is the whole of what the iframe was for, at the price of no
+> embeddable endpoint and no relaxed frame-ancestor policy.
 
 ## Consequences
 

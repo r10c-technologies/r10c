@@ -287,6 +287,16 @@ export const shell = {
     expandGroup: 'Desplegar {{group}}',
     collapseGroup: 'Plegar {{group}}',
   },
+  /**
+   * The session strip, rendered by `SessionKeepalive` only inside the final
+   * window before the absolute ceiling. One key, because the strip says one
+   * thing: nothing here counts down, since a number that moves invites a person
+   * to watch it rather than to save their work.
+   */
+  session: {
+    expiringSoon:
+      'Tu sesión está por expirar. Guarda tu trabajo e inicia sesión de nuevo para continuar.',
+  },
   breadcrumbs: {
     home: 'Inicio',
     // The `/new` segment, which every domain's create route shares. It was

@@ -242,6 +242,10 @@ export const shell: EsShell = {
     expandGroup: 'Expand {{group}}',
     collapseGroup: 'Collapse {{group}}',
   },
+  session: {
+    expiringSoon:
+      'Your session is about to expire. Save your work and sign in again to continue.',
+  },
   breadcrumbs: {
     home: 'Home',
     // The `/new` segment, which every domain's create route shares. It was

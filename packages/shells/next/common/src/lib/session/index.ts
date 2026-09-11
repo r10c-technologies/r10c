@@ -6,4 +6,5 @@
 // `"use client"` by the bundler — so exporting them here turns a plain function
 // call in a server layout into "Attempted to call accountPaths() from the
 // server but accountPaths is on the client".
+export * from './session-keepalive';
 export * from './use-session-refresh';

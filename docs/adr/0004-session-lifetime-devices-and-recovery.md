@@ -12,6 +12,10 @@
 - Revised: 2026-08-13 — the `/server` subpath section's rollup reasoning is
   clarified in place: `packages/` builds per-file with `@nx/js:swc`. The subpath
   itself is still required, for the reason stated there.
+- Revised: 2026-09-11 — "every Next app schedules its refresh against them"
+  described an intention rather than the code until #252. This record fixed the
+  **server** half and left the client half unmounted: `useSessionRefresh` was
+  written, specced and referenced by nothing. Corrected in place below.
 
 ## Context
 
@@ -55,6 +59,25 @@ All five numbers live in `business-ts-authn/values/session-policy.ts`
 (`scope:shared`, framework-free), because both ends need them: the service mints
 sessions with them and every Next app schedules its refresh against them. Two
 copies of "fifteen minutes" is how a signer and a verifier silently disagree.
+
+> **Corrected 2026-09-11 (#252).** "Every Next app schedules its refresh against
+> them" was an intention, not a description, for as long as this record stood.
+> The half fixed here was the **server** one — the route handler this record
+> observes had never been written. The client half was written too,
+> `useSessionRefresh`, complete with its idle gate and a full spec — and then
+> mounted in no app, no shell and no layout, so nothing ever posted to the
+> handler.
+>
+> The failure that hid it is the one this record's own Context describes, one
+> layer along. Sizing `r10c_at` to the token bounced everyone to sign-in four
+> times an hour, which is loud. Sizing it to the **session ceiling** and never
+> refreshing is silent: the middleware's presence check keeps admitting the
+> visitor for up to seven days, every page renders, and only the calls behind
+> them fail. Measured on the live lab before the fix — a full back-office screen
+> over a `401` from `/api/user-identity/$metadata`.
+>
+> The numbers, the sliding model and the idle rule below are unchanged. What
+> changed is that something now reads them.
 
 ### Activity means a person, not an open tab
 
