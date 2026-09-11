@@ -553,9 +553,13 @@ and named here so their absence reads as a decision:
   The price is multi-device carts and abandoned-cart recovery.
 - **A private `VendorCategory`** beside the platform taxonomy. Defensible, and
   deferred until a vendor asks.
-- **`partyRole` scoped to the active organization.** v1 resolves a multi-role
-  party by precedence (`operator` > `vendor` > `customer`), so there is no way to
-  act as a buyer while being staff.
+- **Choosing which role to open a session as.** A role is now read from the
+  organization the session opened under (#76), so a party who sells for one
+  organization opens as its vendor rather than as whatever wider role they hold
+  elsewhere. What is still absent is a **choice**: a party with no membership has
+  only platform-wide roles, nothing says which they meant, and the widest wins —
+  so staff who are also buyers still get an operator session. That needs a role
+  switch at sign-in.
 
 Named so the map's silence reads as a decision rather than an oversight.
 

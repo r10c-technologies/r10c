@@ -59,15 +59,30 @@ export const individualSeedData: ReadonlyArray<Record<string, unknown>> = [
  * organization happened to resolve.
  *
  * One row each here, but the shape is the point — a party may hold several, and
- * `SessionScopeResolver` picks by reach (`operator` > `vendor` > `customer`).
- * A person with no row at all resolves to `customer`, which is the population
- * with the least reach and therefore the safest thing to be wrong about.
+ * `SessionScopeResolver` reads the one played in the organization the session
+ * opened under. A person with no row at all resolves to `customer`, which is the
+ * population with the least reach and therefore the safest thing to be wrong
+ * about.
+ *
+ * ⚠️ **Alan's row carries the organization and Ada's does not**, and that
+ * asymmetry is the model rather than an omission. A `vendor` is scoped to one
+ * tenant's storage, so the role and the membership name the same organization
+ * and the resolver reads them together. An `operator` holds no tenant scope at
+ * all, which is also why Ada is deliberately not a member of anything — see
+ * {@link membershipSeedData}. A row with no organization is a role played on the
+ * platform.
+ *
+ * Takes the organization for the same reason {@link membershipSeedData} does:
+ * the id is minted at boot, so a static array could not name it.
  */
-export const partyRoleSeedData: ReadonlyArray<Record<string, unknown>> = [
+export const partyRoleSeedData = (
+  organizationId: string,
+): ReadonlyArray<Record<string, unknown>> => [
   {
     id: 'party-role-user-2-vendor',
     partyId: 'party-user-2',
     role: 'vendor',
+    organizationId,
   },
   {
     id: 'party-role-user-1-operator',

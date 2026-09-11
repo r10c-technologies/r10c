@@ -218,6 +218,7 @@ export const entity = {
       id: 'ID',
       partyId: 'ID de parte',
       role: 'Rol',
+      organizationId: 'ID de organización',
     },
     values: {
       role: {

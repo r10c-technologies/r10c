@@ -8,6 +8,10 @@
   a twelfth domain (`sales-management`), a thirteenth store (`sales`) and a tenth
   slice join the register, so the inventory in Decision reads 12 / 29 / 13 / 10;
   `ProductOrder.buyerId` is no longer required.
+- Revised: 2026-09-11 — decision 6's precedence rule is superseded in place
+  (#76): `PartyRole` gains an optional `organizationId` and the session's role is
+  read from the membership it opened under. The residual survives for a party
+  with no membership and is restated where the rule was.
 
 ## Context
 
@@ -267,6 +271,28 @@ so there is no way to act as a buyer while being staff. The alternative —
 resolving the role from the membership the session opened under — is the better
 long-run answer and is deferred until something needs it.
 
+> **Superseded in place 2026-09-11 (#76).** The deferred alternative is built,
+> and building it surfaced the thing this paragraph could not say: a role is
+> played **in a context**, so `PartyRole` gains an optional `organizationId` and
+> the resolver reads the membership first, then the role played in that
+> organization. Precedence needed no extra input because it threw the context
+> away.
+>
+> ⚠️ **The residual is narrower, not gone.** A party with no membership has only
+> organization-less rows to choose between — `operator` and `customer` both are,
+> by decision, since neither holds tenant scope — and nothing in the session says
+> which it meant, so the widest still wins. Staff who are also buyers still open
+> an operator session. What is fixed is the case this record was actually about:
+> a party who sells for one organization now opens as its vendor rather than as
+> whatever wider role they hold somewhere else. Closing the rest needs an
+> explicit choice at sign-in, which re-mints the token through the path that
+> already exists and is not built.
+>
+> The claim's other properties are untouched: resolved once at sign-in,
+> re-signed unchanged on refresh, routing context and never a grant.
+> Re-resolving on refresh would let a membership edit move a live session to
+> another storage plane.
+
 `Individual.partyRole` is **removed** in the same change. Leaving it beside the
 entity would be two writers for one fact.
 
@@ -382,6 +408,7 @@ instructs agents to read the relevant ADR before designing in an area.
 - Building the four planned slices, in the order the storefront needs them:
   `stock` and `order` together, then `payment`, then `settlement`.
 - The catalog publisher — the `catalog.published` producer and its consumer.
-- Resolving `partyRole` from the membership the session opened under, replacing
-  the precedence rule in decision 6.
+- ~~Resolving `partyRole` from the membership the session opened under, replacing
+  the precedence rule in decision 6.~~ **Done 2026-09-11 (#76)** — see the note
+  on decision 6 for what it fixed and what it left.
 - A private `VendorCategory` beside the platform taxonomy, if a vendor ever asks.
