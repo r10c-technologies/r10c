@@ -12,6 +12,7 @@ import {
   isSelected,
   selectionSize,
   toggleSelected,
+  type UseCaseDescriptor,
 } from '@r10c/entifix-ts-core';
 import { Fragment, type ReactNode, useRef, useState } from 'react';
 
@@ -34,6 +35,7 @@ import { Link } from '../../atoms/text';
 import { BulkActionBar } from '../../molecules/bulk-action-bar';
 import { BulkResult } from '../../molecules/bulk-result';
 import { ColumnSettings } from '../../molecules/column-settings';
+import { ConfirmDialog } from '../../molecules/confirm-dialog';
 import { EntityRecordCard } from '../../molecules/entity-record-card';
 import { FilterBuilder } from '../../molecules/filter-builder';
 import { LoadingBoundary } from '../../molecules/loading-boundary';
@@ -89,6 +91,18 @@ const SKELETON_ROW_CAP = 5;
  * - **slots** — `<EntityColumn>` / `<EntityTableHeader>` / `<EntityTableRow>` /
  *   `<EntityTableToolbar>` children override any part of the default rendering.
  */
+/**
+ * What a pending verb will act on once it is confirmed.
+ *
+ * A form has one record; a table has a row or a selection, and those reach two
+ * different handlers with two different payloads. Carrying the selection itself
+ * rather than reading it back at confirm time also removes a branch that could
+ * not happen: the bulk bar only renders inside a truthy selection.
+ */
+type PendingTarget<TEntity extends Entity> =
+  | { kind: 'row'; item: TEntity }
+  | { kind: 'selection'; selection: EntitySelection<TEntity> };
+
 export function EntityTable<TEntity extends Entity>({
   entityConstructor,
   isLoading,
@@ -130,6 +144,34 @@ export function EntityTable<TEntity extends Entity>({
   const metaEntity = extractMetaEntity(entityConstructor);
   const slots = readEntityTableSlots<TEntity>(children);
   const [panel, setPanel] = useState<Panel>('none');
+
+  /**
+   * A verb waiting to be confirmed, and what it will act on.
+   *
+   * ⚠️ **The table had no confirmation flow at all** until #216 moved a
+   * destructive verb onto it. It read `confirm.tone` — only to pick a tone for
+   * a button or a menu item — and then fired on the first click. `unpublish` is
+   * declared `destructive`, so a verb reachable from a row menu without this
+   * would have been a one-click unpublish with a red label explaining what had
+   * already happened.
+   *
+   * The state holds the confirmation itself rather than the descriptor, so the
+   * dialog cannot open for a verb that never asked for one — the same shape
+   * `EntityForm` uses, and for the same reason.
+   *
+   * It carries the **target** too, which the form's does not need: a form has
+   * one record and a table has a row or a selection, and those run through two
+   * different handlers with two different payloads.
+   */
+  const [pending, setPending] = useState<
+    | {
+        key: string;
+        labelKey: string;
+        confirm: NonNullable<UseCaseDescriptor['confirm']>;
+        target: PendingTarget<TEntity>;
+      }
+    | undefined
+  >(undefined);
 
   const { columns, visibleColumns, hidden, setPersonalization } =
     useEntityTableColumns<TEntity>(
@@ -345,6 +387,28 @@ export function EntityTable<TEntity extends Entity>({
     />
   );
 
+  const runTarget = (key: string, target: PendingTarget<TEntity>) => {
+    if (target.kind === 'row') onUseCase?.(key, target.item);
+    else onBulkUseCase?.(key, target.selection);
+  };
+
+  const invoke = (
+    useCase: UseCaseDescriptor,
+    target: PendingTarget<TEntity>,
+  ) => {
+    const confirm = useCase.confirm;
+    if (confirm) {
+      setPending({
+        key: useCase.key,
+        labelKey: useCase.labelKey,
+        confirm,
+        target,
+      });
+      return;
+    }
+    runTarget(useCase.key, target);
+  };
+
   const rowMenu = (item: TEntity) =>
     hasRowMenu ? (
       <Menu>
@@ -360,7 +424,7 @@ export function EntityTable<TEntity extends Entity>({
                   ? 'destructive'
                   : 'neutral'
               }
-              onClick={() => onUseCase?.(useCase.key, item)}
+              onClick={() => invoke(useCase, { kind: 'row', item })}
             >
               {translateKey(useCase.labelKey)}
             </Menu.Item>
@@ -533,7 +597,25 @@ export function EntityTable<TEntity extends Entity>({
           }
           onSelectAllMatching={() => setSelection(everythingMatching)}
           onClear={() => setSelection(emptySelection<TEntity>())}
-          onUseCase={key => onBulkUseCase?.(key, selectionState)}
+          onUseCase={useCase =>
+            invoke(useCase, { kind: 'selection', selection: selectionState })
+          }
+        />
+      )}
+
+      {pending && (
+        <ConfirmDialog
+          open
+          tone={pending.confirm.tone}
+          title={translateKey(pending.labelKey)}
+          message={translateKey(pending.confirm.messageKey)}
+          busy={isBulkRunning}
+          onCancel={() => setPending(undefined)}
+          onConfirm={() => {
+            const { key, target } = pending;
+            setPending(undefined);
+            runTarget(key, target);
+          }}
         />
       )}
 

@@ -2,6 +2,7 @@ import { Entity, EntityConstructor } from '../../types/Entity';
 import { extractMetaUseCases } from '../helpers';
 import type {
   UseCaseBinding,
+  UseCaseCell,
   UseCaseConfirm,
   UseCasePlacement,
 } from '../meta-entities/meta-use-case';
@@ -19,6 +20,8 @@ export interface UseCaseDescriptor {
   key: string;
   binding: UseCaseBinding;
   placement: UseCasePlacement;
+  /** Further cells this same verb appears in — see `MetaUseCaseOptions`. */
+  alsoAt?: readonly UseCaseCell[];
   labelKey: string;
   keywordsKey?: string;
   confirm?: UseCaseConfirm;
@@ -42,6 +45,7 @@ export function describeEntityUseCases<TEntity extends Entity>(
     key: metaUseCase.key,
     binding: metaUseCase.binding,
     placement: metaUseCase.placement,
+    alsoAt: metaUseCase.alsoAt,
     labelKey: metaUseCase.labelKey,
     keywordsKey: metaUseCase.keywordsKey,
     confirm: metaUseCase.confirm,

@@ -13,6 +13,19 @@ export type UseCaseBinding = 'entity' | 'collection' | 'unbound';
 export type UseCasePlacement =
   'context-dependent' | 'context-independent' | 'determining';
 
+/**
+ * One place a verb can appear: a binding and a placement together.
+ *
+ * The pair is the unit rather than either half, because the two answer
+ * different questions — placement decides the *surface* and binding decides the
+ * *payload* — and a verb reachable from a row and from a selection differs in
+ * both at once.
+ */
+export interface UseCaseCell {
+  binding: UseCaseBinding;
+  placement: UseCasePlacement;
+}
+
 /** Confirmation a surface must obtain before running the use case. */
 export interface UseCaseConfirm {
   tone: 'destructive' | 'neutral';
@@ -42,6 +55,23 @@ export interface MetaUseCaseOptions<
   key: TKey;
   binding: UseCaseBinding;
   placement: UseCasePlacement;
+  /**
+   * Further places the same verb appears, beyond the {@link binding} and
+   * {@link placement} above.
+   *
+   * ⚠️ **One verb, one permission, several surfaces.** Publishing an offering
+   * from its form, from a row menu and over a selection is one act reached three
+   * ways, and the alternative was three `@useCase()` classes — which `slices`
+   * refuses anyway, since a verb key is the third segment of one permission and
+   * two classes cannot share a key. Three classes would have meant three
+   * permissions for one act, and a grant that let somebody publish one offering
+   * but not twenty (#216).
+   *
+   * The primary cell stays where it is so that nothing already declared
+   * changes, and so a descriptor still reads as "this verb lives here" with the
+   * rest as additions.
+   */
+  alsoAt?: readonly UseCaseCell[];
   labelKey: string;
   keywordsKey?: string;
   confirm?: UseCaseConfirm;
@@ -66,6 +96,7 @@ export class MetaUseCase {
   readonly key: string;
   readonly binding: UseCaseBinding;
   readonly placement: UseCasePlacement;
+  readonly alsoAt?: readonly UseCaseCell[];
   readonly labelKey: string;
   readonly keywordsKey?: string;
   readonly confirm?: UseCaseConfirm;
@@ -78,6 +109,7 @@ export class MetaUseCase {
     this.key = options.key;
     this.binding = options.binding;
     this.placement = options.placement;
+    this.alsoAt = options.alsoAt;
     this.labelKey = options.labelKey;
     this.keywordsKey = options.keywordsKey;
     this.confirm = options.confirm;

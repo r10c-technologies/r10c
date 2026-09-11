@@ -9,6 +9,7 @@ import {
   ACTION_SURFACES,
   type ActionSurface,
   surfaceFor,
+  surfacesFor,
   useCasesForSurface,
 } from './action-surfaces';
 
@@ -140,5 +141,82 @@ describe('useCasesForSurface', () => {
         descriptor('collection', 'determining'),
       ]),
     ).toThrow(/no surface renders/);
+  });
+});
+
+describe('a verb that names more than one cell', () => {
+  /**
+   * Publishing an offering, as #216 wanted it: from the form it is open in,
+   * from a row menu in the list, and over a selection. One act, one permission,
+   * three ways to reach it.
+   *
+   * The alternative was three `@useCase()` classes, which `@r10c/slices`
+   * refuses anyway — a verb key is the third segment of one permission and two
+   * classes cannot share a key — so it would have meant three permissions, and
+   * a grant that let somebody publish one offering but not twenty.
+   */
+  const publish: UseCaseDescriptor = {
+    ...descriptor('entity', 'context-independent', 'publish'),
+    alsoAt: [
+      { binding: 'entity', placement: 'context-dependent' },
+      { binding: 'collection', placement: 'context-dependent' },
+    ],
+  };
+
+  it('renders on its primary cell and on every cell it adds', () => {
+    expect(surfacesFor(publish)).toEqual([
+      'form-header',
+      'row-menu',
+      'bulk-bar',
+    ]);
+  });
+
+  it('is picked up by each of those surfaces', () => {
+    // Spelled out rather than looped: `useCasesForSurface` is not a hook, but
+    // its name begins with `use`, and `react-hooks/rules-of-hooks` cannot tell
+    // the difference — a loop around it fails the lint.
+    expect(useCasesForSurface('form-header', [publish])).toEqual([publish]);
+    expect(useCasesForSurface('row-menu', [publish])).toEqual([publish]);
+    expect(useCasesForSurface('bulk-bar', [publish])).toEqual([publish]);
+  });
+
+  it('stays off the surfaces it did not name', () => {
+    expect(useCasesForSurface('table-toolbar', [publish])).toEqual([]);
+    expect(useCasesForSurface('form-footer', [publish])).toEqual([]);
+  });
+
+  it('renders once per surface even if a cell is named twice', () => {
+    // Two cells can map to one surface. Rendering the verb twice in one menu
+    // reads as a bug in the screen rather than in the declaration.
+    const twice: UseCaseDescriptor = {
+      ...descriptor('entity', 'context-independent', 'twice'),
+      alsoAt: [{ binding: 'entity', placement: 'context-independent' }],
+    };
+
+    expect(surfacesFor(twice)).toEqual(['form-header']);
+    expect(useCasesForSurface('form-header', [twice])).toHaveLength(1);
+  });
+
+  it('rejects an unrenderable cell wherever it is declared', () => {
+    // The added cells get the same check as the primary pair, and on the same
+    // first render of any surface — not on the one they name.
+    const illegal: UseCaseDescriptor = {
+      ...descriptor('entity', 'context-independent', 'illegal'),
+      alsoAt: [{ binding: 'collection', placement: 'determining' }],
+    };
+
+    expect(() => useCasesForSurface('form-header', [illegal])).toThrow(
+      /no surface renders/,
+    );
+    expect(() => surfacesFor(illegal)).toThrow(/"illegal"/);
+  });
+
+  it('leaves a descriptor that names no extra cell exactly as it was', () => {
+    expect(surfacesFor(descriptor('collection', 'context-dependent'))).toEqual([
+      'bulk-bar',
+    ]);
+    expect(surfaceFor(descriptor('collection', 'context-dependent'))).toBe(
+      'bulk-bar',
+    );
   });
 });

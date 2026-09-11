@@ -484,7 +484,11 @@ describe('EntityTable bulk bar', () => {
     );
   });
 
-  it('runs a collection verb over the selection', async () => {
+  it('runs a collection verb over the selection, once confirmed', async () => {
+    // ⚠️ `retire` declares `confirm: { tone: 'destructive' }` and this bar used
+    // to fire on the first click anyway — it read the tone only to colour the
+    // button. A verb that asks to be confirmed is now confirmed wherever it
+    // renders (#216).
     const onBulkUseCase = vi.fn();
     const { user } = renderTable({
       selection: { mode: 'ids', ids: new Set(['1']) },
@@ -499,10 +503,47 @@ describe('EntityTable bulk bar', () => {
       }),
     );
 
+    expect(onBulkUseCase).not.toHaveBeenCalled();
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+
     expect(onBulkUseCase).toHaveBeenCalledWith(
       'retire',
       expect.objectContaining({ mode: 'ids' }),
     );
+  });
+
+  it('leaves the selection alone when a destructive bulk verb is cancelled', () => {
+    const onBulkUseCase = vi.fn();
+    renderTable({
+      selection: { mode: 'ids', ids: new Set(['1']) },
+      onSelectionChange: () => undefined,
+      metadata: metadata(retire),
+      onBulkUseCase,
+    });
+
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+    expect(onBulkUseCase).not.toHaveBeenCalled();
+  });
+
+  it('runs a bulk verb with no confirmation immediately', async () => {
+    const onBulkUseCase = vi.fn();
+    const { user } = renderTable({
+      selection: { mode: 'ids', ids: new Set(['1']) },
+      onSelectionChange: () => undefined,
+      metadata: metadata(useCase('tag', 'collection', 'context-dependent')),
+      onBulkUseCase,
+    });
+
+    await user.click(
+      within(screen.getByTestId('bulk-action-bar')).getByRole('button', {
+        name: 'gizmo.useCases.tag',
+      }),
+    );
+
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+    expect(onBulkUseCase).toHaveBeenCalledWith('tag', expect.anything());
   });
 
   /** A bulk verb with no `confirm` is an ordinary action, not a deletion. */
@@ -789,7 +830,10 @@ describe('EntityTable row menu', () => {
    * The cell ADR 0026 declared and no surface rendered: an entity-bound verb
    * that needs a row to act on.
    */
-  it('renders context-dependent entity verbs per row', async () => {
+  it('renders context-dependent entity verbs per row, and confirms a destructive one', async () => {
+    // `archive` is declared destructive. Before #216 the menu read that only to
+    // colour the entry and then fired on the first click — a one-click archive
+    // with a red label explaining what had already happened.
     const onUseCase = vi.fn();
     const { user } = renderTable({
       metadata: metadata(archive),
@@ -801,7 +845,45 @@ describe('EntityTable row menu', () => {
       screen.getByRole('menuitem', { name: 'gizmo.useCases.archive' }),
     );
 
+    expect(onUseCase).not.toHaveBeenCalled();
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+
     expect(onUseCase).toHaveBeenCalledWith('archive', ITEMS[0]);
+  });
+
+  it('drops a row verb that was asked about and cancelled', async () => {
+    const onUseCase = vi.fn();
+    const { user } = renderTable({
+      metadata: metadata(archive),
+      onUseCase,
+    });
+
+    await user.click(grid().getAllByRole('button', { name: 'Acciones' })[0]!);
+    await user.click(
+      screen.getByRole('menuitem', { name: 'gizmo.useCases.archive' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(onUseCase).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+  });
+
+  it('runs a row verb with no confirmation immediately', async () => {
+    const onUseCase = vi.fn();
+    const { user } = renderTable({
+      metadata: metadata(useCase('tag', 'entity', 'context-dependent')),
+      onUseCase,
+    });
+
+    await user.click(grid().getAllByRole('button', { name: 'Acciones' })[0]!);
+    await user.click(
+      screen.getByRole('menuitem', { name: 'gizmo.useCases.tag' }),
+    );
+
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument();
+    expect(onUseCase).toHaveBeenCalledWith('tag', ITEMS[0]);
   });
 
   /** A verb with no `confirm` reads as an ordinary entry, not a deletion. */
