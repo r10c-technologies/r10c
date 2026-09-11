@@ -20,7 +20,20 @@ spec:
     spec:
       containers:
         - name: rabbitmq
-          image: rabbitmq:3-management
+          # ⚠️ **Pinned to a patch, not a major.** This was `3-management`, a
+          # floating tag — so "which broker does the lab run" had no answer, a
+          # re-pull could move the version under a machine that changed nothing,
+          # and ADR 0030's claim about "the 3.13 broker the lab runs" was only
+          # ever true of whatever was last pulled. An exact tag makes the
+          # upgrade a commit.
+          #
+          # 4.3 is the release that separates `acquired-count` from
+          # `delivery-count`: the delivery limit now counts only deliveries that
+          # actually failed, so a message returned for any other reason stops
+          # eating the poison budget (#181). Nothing here requeues for another
+          # reason yet, which is why this was a backlog item rather than a
+          # prerequisite.
+          image: rabbitmq:4.3.5-management
           ports:
             - containerPort: 5672
             - containerPort: 15672
