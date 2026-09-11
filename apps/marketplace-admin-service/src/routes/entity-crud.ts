@@ -42,6 +42,7 @@ import {
   TenantDatabaseResolverTag,
 } from '@r10c/entifix-ts-business';
 import {
+  type BulkOutcome,
   EntifixBuildError,
   EntifixConnError,
   EntifixEnvelopeLink,
@@ -51,12 +52,14 @@ import {
   EntityConstructor,
   EntityId,
   EntityLoadRequest,
+  type EntitySelection,
   envelopeEntityName,
   extractMetaEntity,
   makeEntityEnvelope,
   makeEntityPageEnvelope,
   parseLoadRequestParams,
   readEntityEnvelope,
+  readWireSelection,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
 import {
@@ -560,7 +563,18 @@ export const guardedUseCase = <A, E, R>(
  * the browser re-renders the new status from the write's own answer rather than
  * re-reading it.
  */
-export const transitionOfferingRoute = (
+/**
+ * One offering's transition, committed with its announcement.
+ *
+ * Split out of {@link transitionOfferingRoute} when the same verb reached the
+ * bulk bar (#216): publishing twenty offerings is twenty of exactly this, and a
+ * second copy of a Mongo transaction that writes a status *and* an outbox entry
+ * is the copy that drifts. What stays in the routes is how the id arrives and
+ * how a refusal is answered — a path parameter and a `409` for one, a selection
+ * and a per-row `BulkOutcome` for many.
+ */
+export const transitionOneOffering = (
+  id: EntityId,
   transition: OfferingTransition,
   organizationId: string,
 ) =>
@@ -570,9 +584,6 @@ export const transitionOfferingRoute = (
     const bus = yield* EventBusTag;
     const maxAttempts = yield* OutboxMaxAttempts;
     const source = yield* EventSourceTag;
-
-    const params = yield* HttpRouter.params;
-    const id = params.id as EntityId;
 
     const { offering, event } = yield* transitionOffering.pipe(
       Effect.provideService(
@@ -663,6 +674,152 @@ export const transitionOfferingRoute = (
           database: db.databaseName,
         }),
       ),
+    );
+
+    return offering;
+  });
+
+/**
+ * The most offerings one bulk transition will touch.
+ *
+ * The same ceiling `catalog-reference`'s retire uses, and for the same reason:
+ * the alternative is a request that holds a tenant connection open for minutes
+ * and then fails as a whole. Past this the work belongs to the transaction
+ * stream, which is not built — so the cap is visible rather than a silent
+ * truncation.
+ */
+const BULK_SELECTION_CAP = 500;
+
+/** The ids a selection names, resolving a `matching` one through the listing. */
+const resolveOfferingSelection = (
+  selection: EntitySelection<ProductOffering>,
+) =>
+  Effect.gen(function* () {
+    // `Array.from`, never a spread: this package compiles through SWC's loose
+    // helper, which wraps a `Set` rather than iterating it.
+    if (selection.mode === 'ids') return Array.from(selection.ids);
+
+    const db = yield* MongoDatabaseTag;
+    const page = yield* loadUCFactory<ProductOffering>().pipe(
+      Effect.provideService(
+        EntityRepositoryTag,
+        makeMongoRepository(db, ProductOffering),
+      ),
+      Effect.provideService(EntityLoadRequestTag, {
+        filtering: selection.filtering,
+        page: 1,
+        pageSize: BULK_SELECTION_CAP,
+      } as unknown as EntityLoadRequest),
+    );
+
+    const excluded = new Set(Array.from(selection.excluded).map(String));
+    return page.items
+      .map(item => item.id)
+      .filter(id => !excluded.has(String(id)));
+  });
+
+/**
+ * `POST /api/product-offering/<verb>` — the same verb over a selection.
+ *
+ * ⚠️ **Per row, never one transaction**, which is the rule `BulkOutcome` exists
+ * to express. Twenty offerings where three have no price is neither a success
+ * nor a failure, and `offeringHasNoPrice` is exactly the outcome this surface
+ * will produce most: a vendor's twenty drafts are drafts precisely because some
+ * are unfinished. Rolling the whole request back would punish the seventeen
+ * that were ready.
+ *
+ * Each row keeps its own **`code`**, resolved through the shared `errors`
+ * catalog by the browser, so a retry re-runs only the failures and the operator
+ * is told which rows and why. The response is `200` with outcomes in the body:
+ * the *request* succeeded, and only some of the rows did not.
+ *
+ * Each row is also its own Mongo transaction, because each is a status write
+ * **and** an outbox entry that must commit together — see
+ * {@link transitionOneOffering}. What is not atomic across rows is deliberate;
+ * what is atomic within one row is load-bearing.
+ */
+export const bulkTransitionOfferingRoute = (
+  transition: OfferingTransition,
+  organizationId: string,
+) =>
+  Effect.gen(function* () {
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const body = (yield* request.json) as { selection?: unknown };
+
+    // Read rather than cast. The body is untrusted and decides which rows a
+    // write touches, and a `Set` does not survive JSON.
+    const selection = readWireSelection<ProductOffering>(body.selection);
+    if (!selection) {
+      return yield* HttpServerResponse.json(
+        {
+          error: 'invalid request body',
+          code: 'invalidBody',
+          detail:
+            'A bulk request carries a `selection` in `ids` or `matching` mode.',
+        },
+        { status: 400 },
+      );
+    }
+
+    const ids = yield* resolveOfferingSelection(selection);
+
+    const outcomes: BulkOutcome[] = [];
+    for (const id of ids) {
+      const outcome = yield* transitionOneOffering(
+        id as EntityId,
+        transition,
+        organizationId,
+      ).pipe(
+        Effect.as<BulkOutcome>({ id: id as EntityId, ok: true }),
+        // A row that refused is data, not a failure of the request. The code is
+        // the domain's own — `offeringHasNoPrice`, `illegalOfferingTransition` —
+        // and it is the same string the single-id route answers `409` with, so
+        // one catalog entry serves both surfaces.
+        Effect.catchAll(failure =>
+          Effect.succeed<BulkOutcome>({
+            id: id as EntityId,
+            ok: false,
+            code:
+              typeof (failure as { code?: unknown }).code === 'string'
+                ? (failure as { code: string }).code
+                : 'unexpected',
+          }),
+        ),
+      );
+      outcomes.push(outcome);
+    }
+
+    return yield* HttpServerResponse.json({
+      meta: {
+        type: 'bulkOutcome',
+        entity: envelopeEntityName(ProductOffering),
+      },
+      data: outcomes,
+    });
+  }).pipe(Effect.catchAll(serverError));
+
+/**
+ * `POST /api/product-offering/:id/<verb>` — one offering, one answer.
+ *
+ * Two refusals, both **`409`, not `400`**: the request is well-formed and the
+ * caller is allowed to make it — what is wrong is the *state of the record*,
+ * which is exactly the distinction a conflict status carries. A `400` would
+ * tell a vendor to fix their request when there is nothing in it to fix.
+ *
+ * The response is an ordinary entity envelope holding the record as stored, so
+ * the browser re-renders the new status from the write's own answer rather than
+ * re-reading it.
+ */
+export const transitionOfferingRoute = (
+  transition: OfferingTransition,
+  organizationId: string,
+) =>
+  Effect.gen(function* () {
+    const params = yield* HttpRouter.params;
+    const offering = yield* transitionOneOffering(
+      params.id as EntityId,
+      transition,
+      organizationId,
     );
 
     const key = envelopeEntityName(ProductOffering);

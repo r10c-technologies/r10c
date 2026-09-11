@@ -7,6 +7,7 @@ import {
 import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import {
+  bulkTransitionOfferingRoute,
   byIdRoute,
   deleteRoute,
   guarded,
@@ -88,6 +89,27 @@ export const productOfferingRoutes = HttpRouter.empty.pipe(
     '/api/product-offering/:id/unpublish',
     guardedUseCase(UNPUBLISH_PRODUCT_OFFERING, organizationId =>
       transitionOfferingRoute('unpublish', organizationId),
+    ),
+  ),
+  // The same two verbs over a selection (#216), which is where a vendor with
+  // twenty drafts actually works.
+  //
+  // ⚠️ **The same permission as the per-id route above, deliberately.** A verb
+  // key is the third segment of one permission, so a separate grant here would
+  // be a second permission for one act — and a role that could publish one
+  // offering but not twenty. Registered **before** `/:id/...` would shadow
+  // nothing either way, since these paths have one segment where those have
+  // two; they are grouped here because they are the same verb.
+  HttpRouter.post(
+    '/api/product-offering/publish',
+    guardedUseCase(PUBLISH_PRODUCT_OFFERING, organizationId =>
+      bulkTransitionOfferingRoute('publish', organizationId),
+    ),
+  ),
+  HttpRouter.post(
+    '/api/product-offering/unpublish',
+    guardedUseCase(UNPUBLISH_PRODUCT_OFFERING, organizationId =>
+      bulkTransitionOfferingRoute('unpublish', organizationId),
     ),
   ),
 );

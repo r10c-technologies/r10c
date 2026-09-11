@@ -249,6 +249,37 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
       },
     });
 
+    // What a row's overflow menu runs, and the one place the list reports a
+    // verb that failed.
+    //
+    // ⚠️ **A row verb and the form's are the same runner with different
+    // arguments.** `EntityTable` hands back the whole record, because that is
+    // what it has; `runUseCase` takes an id, because that is what a route needs
+    // (#216). The list has no error slot of its own, so a failure lands in the
+    // table's own error region — the same one a failed page read uses.
+    const [useCaseError, setUseCaseError] = useState<EntifixError | undefined>(
+      undefined,
+    );
+    // Called unconditionally and the *result* gated, the way the surfaces are
+    // read in `EntityForm`: the name begins with `use`, so short-circuiting it
+    // reads to `react-hooks/rules-of-hooks` as a conditional hook.
+    const rowUseCases = useCasesForSurface(
+      'row-menu',
+      affordances.metadata?.useCases,
+    );
+    const canRunRowUseCase = runUseCase !== undefined && rowUseCases.length > 0;
+
+    const handleRowUseCase = canRunRowUseCase
+      ? (key: string, item: TEntity) => {
+          if (item.id == null) return;
+          setUseCaseError(undefined);
+          void runUseCase(key, item.id).then(
+            () => queryClient.invalidateQueries({ queryKey: scope }),
+            (failure: unknown) => setUseCaseError(asEntifixError(failure)),
+          );
+        }
+      : undefined;
+
     return (
       <div className="flex flex-col gap-s">
         {/* Above the table, because this is where `afterSave()` leaves the
@@ -267,6 +298,8 @@ export function makeEntityCrud<TEntity extends Entity, TAdapters>(
           newHref={withLocale(`${basePath}/${CATALOG_NEW_SLUG}`)}
           {...affordances}
           {...bulk.tableProps}
+          onUseCase={handleRowUseCase}
+          error={useCaseError ?? pager.error}
         >
           {columns}
           {toolbar}

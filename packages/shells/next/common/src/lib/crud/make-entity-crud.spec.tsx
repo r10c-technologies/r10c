@@ -416,6 +416,116 @@ describe('the generated list page, opted into affordances', () => {
       .mockResolvedValue({ actions: ['read', 'write'], useCases: [RETIRE] });
   });
 
+  /**
+   * The row half of #216: the same verb the form header runs, reached from a
+   * row's overflow menu. `EntityTable` hands back the whole record and
+   * `runUseCase` takes an id, so the list adapts between them.
+   */
+  describe('a row verb on the list', () => {
+    const ARCHIVE = {
+      key: 'archive',
+      binding: 'entity' as const,
+      placement: 'context-dependent' as const,
+      labelKey: 'entity:product-brand.useCases.archive',
+    };
+
+    it('runs a served row verb and re-reads the rows', async () => {
+      const user = userEvent.setup();
+      runVerb.mockResolvedValue(undefined);
+      fetchMetadata
+        .mockReset()
+        .mockResolvedValue({ actions: ['read'], useCases: [ARCHIVE] });
+
+      renderPage(<verbBrandCrud.ListPage />);
+
+      await waitFor(() =>
+        expect(screen.getAllByText('Acme').length).toBeGreaterThan(0),
+      );
+
+      await user.click(screen.getAllByRole('button', { name: 'Acciones' })[0]!);
+      await user.click(
+        screen.getByRole('menuitem', {
+          name: 'product-brand.useCases.archive',
+        }),
+      );
+
+      await waitFor(() =>
+        expect(runVerb).toHaveBeenCalledWith('archive', 'b-1'),
+      );
+    });
+
+    it('surfaces a failed row verb where a failed read would appear', async () => {
+      // The list has no error slot of its own, so it borrows the table's —
+      // otherwise a verb that refused would look exactly like one that worked.
+      const user = userEvent.setup();
+      runVerb.mockRejectedValue(new Error('offeringHasNoPrice'));
+      fetchMetadata
+        .mockReset()
+        .mockResolvedValue({ actions: ['read'], useCases: [ARCHIVE] });
+
+      renderPage(<verbBrandCrud.ListPage />);
+
+      await waitFor(() =>
+        expect(screen.getAllByText('Acme').length).toBeGreaterThan(0),
+      );
+
+      await user.click(screen.getAllByRole('button', { name: 'Acciones' })[0]!);
+      await user.click(
+        screen.getByRole('menuitem', {
+          name: 'product-brand.useCases.archive',
+        }),
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toBeInTheDocument(),
+      );
+    });
+
+    it('does nothing for a row that has no id yet', async () => {
+      // An optimistic row is on screen before the service has written it. The
+      // verb needs an id to address a route with, so there is nothing to run —
+      // and running it against `undefined` would post to `/…/undefined`.
+      const user = userEvent.setup();
+      repositories = {
+        ...repositories,
+        brand: makeInMemoryEntityRepository([new Brand('Pending')] as Entity[]),
+      };
+      fetchMetadata
+        .mockReset()
+        .mockResolvedValue({ actions: ['read'], useCases: [ARCHIVE] });
+
+      renderPage(<verbBrandCrud.ListPage />);
+
+      await waitFor(() =>
+        expect(screen.getAllByText('Pending').length).toBeGreaterThan(0),
+      );
+
+      await user.click(screen.getAllByRole('button', { name: 'Acciones' })[0]!);
+      await user.click(
+        screen.getByRole('menuitem', {
+          name: 'product-brand.useCases.archive',
+        }),
+      );
+
+      expect(runVerb).not.toHaveBeenCalled();
+    });
+
+    it('renders no row menu when the crud carries no runner', async () => {
+      fetchMetadata
+        .mockReset()
+        .mockResolvedValue({ actions: ['read'], useCases: [ARCHIVE] });
+
+      renderPage(<brandCrud.ListPage />);
+
+      await waitFor(() =>
+        expect(screen.getAllByText('Acme').length).toBeGreaterThan(0),
+      );
+      expect(
+        screen.queryAllByRole('button', { name: 'Acciones' }),
+      ).toHaveLength(0);
+    });
+  });
+
   it('renders no selection column without a bulk runner', async () => {
     renderPage(<brandCrud.ListPage />);
 

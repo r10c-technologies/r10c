@@ -25,6 +25,15 @@ import { transitionOffering } from '../transition-offering';
   key: 'publish',
   binding: 'entity',
   placement: 'context-independent',
+  // The same verb from the list, which is where a vendor with twenty drafts
+  // actually works (#216). Three cells rather than three classes: a verb key is
+  // the third segment of one permission, so three `@useCase()` declarations
+  // would have been three permissions for one act — and a grant that let
+  // somebody publish one offering but not twenty.
+  alsoAt: [
+    { binding: 'entity', placement: 'context-dependent' },
+    { binding: 'collection', placement: 'context-dependent' },
+  ],
   labelKey: 'entity:product-offering.useCases.publish',
   confirm: {
     tone: 'neutral',
