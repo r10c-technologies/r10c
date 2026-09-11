@@ -333,6 +333,21 @@ target) emits `.d.ts`/`.d.ts.map`/`.tsbuildinfo`. Keep it that way — a build t
 that clears `dist` or emits its own `.d.ts` there reopens the collision. This is
 also why `package.json` points at `./dist/index.js` and `./dist/index.d.ts`.
 
+⚠️ **An app reopens it, which is why `typecheck` depends on `build`.** The rule
+above holds for libraries because swc adds files; a webpack app sets
+`output.clean`, so its `build` **empties** the very `dist/` the `typecheck`
+target is emitting declarations into. The two targets are independent, so Nx is
+free to run them at once for one project — and when it does, the bundle's clean
+races the declaration emit and every spec that imports its own source reports
+`TS6305`, then a cascade of fake `unknown` types on top.
+
+It is scheduling-dependent, so it hides: the same commit passes locally, passes
+on one CI shard, and fails on another simply because the task list is a
+different length. `nx.json` therefore declares `targetDefaults.typecheck` as
+`dependsOn: ["build"]`, which costs nothing — the two already run together in
+every command that names both — and makes the ordering a fact rather than a
+coincidence.
+
 #### The declaration pass `skipTypeCheck` does not skip
 
 `@nx/js:swc` guards its `tsc` run with `skipTypeCheck && !isTsSolutionSetup`. This

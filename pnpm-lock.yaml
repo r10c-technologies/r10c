@@ -735,6 +735,9 @@ importers:
       '@r10c/entifix-ts-jwt-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/jwt-client
+      '@r10c/entifix-ts-mongo-client':
+        specifier: workspace:*
+        version: link:../../packages/entifix/ts/mongo-client
       '@r10c/entifix-ts-redis-client':
         specifier: workspace:*
         version: link:../../packages/entifix/ts/redis-client

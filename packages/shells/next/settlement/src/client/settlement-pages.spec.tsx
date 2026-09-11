@@ -9,7 +9,7 @@ import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@r10c/entifix-ts-business';
-import { EntifixConnError,type Entity } from '@r10c/entifix-ts-core';
+import { EntifixConnError, type Entity } from '@r10c/entifix-ts-core';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,

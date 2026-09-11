@@ -10,6 +10,11 @@ import { EventSourceTag } from '@r10c/entifix-transactions';
 import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client';
 import { TokenServiceTag } from '@r10c/entifix-ts-business';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
+// `OutboxMaxAttempts` lives in the shared mongo client, not in this app: the
+// outbox relay was lifted out of marketplace-admin-service into
+// `@r10c/entifix-ts-mongo-client` when the payment slice was promoted (#237),
+// and every service that drains an outbox reads the tag from there.
+import { OutboxMaxAttempts } from '@r10c/entifix-ts-mongo-client';
 import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
@@ -23,7 +28,6 @@ import {
   fakeRedisLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import {
-  OutboxMaxAttempts,
   router,
   seedCatalog,
   SERVICE_NAME,

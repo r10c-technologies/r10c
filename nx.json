@@ -96,6 +96,9 @@
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
     },
+    "typecheck": {
+      "dependsOn": ["build"]
+    },
     "e2e": {
       "options": {
         "env": {

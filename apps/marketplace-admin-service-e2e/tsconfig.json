@@ -13,6 +13,9 @@
       "path": "../../packages/entifix/ts/transactions"
     },
     {
+      "path": "../../packages/entifix/ts/mongo-client"
+    },
+    {
       "path": "../../packages/business/ts/authz"
     },
     {
