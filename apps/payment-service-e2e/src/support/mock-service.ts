@@ -15,6 +15,7 @@ import {
   fakeMongoLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
 import {
+  PaymentIndexesLayer,
   router,
   SERVICE_NAME,
   SimulatedPaymentProviderLayer,
@@ -73,8 +74,14 @@ const CONFIGURATION = {
  * ⚠️ **The provider is the real simulated adapter**, not a mock of it. It is the
  * thing under test as much as the route is: the decline path decides whether the
  * saga's pivot commits, and asserting it against a stub would assert the stub.
+ *
+ * ⚠️ **The store's indexes are ensured here too**, which is not decoration: the
+ * unique index on a refund's `paymentId` is a correctness guard rather than a
+ * speed-up, and the driver fake enforces a unique index it has been told about.
+ * Omitting it would leave the one assertion about refunding a capture twice
+ * passing for the wrong reason.
  */
-const MockAppLayer = Layer.mergeAll(
+const connections = Layer.mergeAll(
   fakeMongoLayer().layer,
   Layer.succeed(
     TokenServiceTag,
@@ -94,6 +101,10 @@ const MockAppLayer = Layer.mergeAll(
     declineReason: 'simulated decline',
   }),
 ).pipe(Layer.orDie);
+
+const MockAppLayer = Layer.provideMerge(PaymentIndexesLayer, connections).pipe(
+  Layer.orDie,
+);
 
 /** Boots the service's real router in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>

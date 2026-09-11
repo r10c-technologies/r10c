@@ -844,6 +844,21 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: 'dev-order-crossing-token-change-me',
     is_secret: true,
   },
+  // ⚠️ **This number and the storefront's `RECEIPT_TTL_SECONDS` are one
+  // number.** The receipt cookie is the only place the buyer's cancel nonce
+  // lives, so a window wider than the cookie is a capability nobody can present
+  // and a cookie that outlives the window is a Cancel button that quietly stops
+  // working. 30 minutes, matching that constant
+  // ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md)).
+  //
+  // Not `is_secret`: it is a dial, not a credential, and an operator narrowing
+  // a cancel window should be able to read what it is today.
+  {
+    service: 'order-service',
+    group_name: 'order',
+    key: 'cancelWindowSeconds',
+    value: '1800',
+  },
   {
     service: 'order-service',
     group_name: 'logging',

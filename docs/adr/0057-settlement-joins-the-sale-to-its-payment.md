@@ -4,6 +4,7 @@
 - Date: 2026-09-10
 - Area: business
 - Read when: pricing a vendor's commission, or a consumer needs data that no single event on the bus carries — the fold joins two messages on the order id, and a payout is the gross less the cut rather than the sum of the cuts
+- Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the unique index backstopping the fold gains `kind` as a third key
 
 ## Context
 
@@ -71,6 +72,13 @@ both, so there is no race to reason about and no timeout to tune.
 the _filter_ of the update that sets it, so two redeliveries arriving together
 cannot both see a complete pair and both write. The unique index on
 `(orderId, vendorId)` is the backstop under that.
+
+> **2026-09-11 — that index gains a third key.**
+> [ADR 0058](0058-the-order-after-payment.md) reverses a commission entry with a
+> second, sign-flipped row for the same pair, which this two-key index would
+> refuse as a duplicate. It becomes `(orderId, vendorId, kind)`. The backstop is
+> unchanged in kind — one row per pair **per kind** — and the fold's reasoning
+> above is untouched.
 
 **Rejected: an HTTP read into order-service.** `GET /api/product-order/:id`
 accepts a session and no crossing token, by the "one route, one credential, each

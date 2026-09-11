@@ -217,3 +217,75 @@ describe('ProductOrder', () => {
     expect(rebuilt?.items[0]?.currency).toBe('EUR');
   });
 });
+
+/**
+ * The buyer's cancel capability, as the order carries it.
+ *
+ * ⚠️ **The digest, never the nonce.** An order is written inside the checkout
+ * saga, so everything on it becomes a step outcome the `saga` store keeps and
+ * `GET /api/saga/:id` serves to every vendor in the basket. A bearer token there
+ * would let one of them cancel a multi-vendor order their own session is refused
+ * with `409`; a digest is inert (ADR 0058).
+ */
+describe('the cancel capability on an order', () => {
+  it('serializes the digest and the window it opens', () => {
+    const order = new ProductOrder('party-1');
+    const cancelWindowEndsAt = new Date('2026-09-11T12:30:00.000Z');
+    order.cancelDigest = 'a'.repeat(64);
+    order.cancelWindowEndsAt = cancelWindowEndsAt;
+
+    expect(serializeEntity(ProductOrder, order)).toMatchObject({
+      cancelDigest: 'a'.repeat(64),
+      cancelWindowEndsAt,
+    });
+  });
+
+  /**
+   * ⚠️ **Not `hidden`, however much a machine-valued member wants to be.** That
+   * flag drops a member from deserialization as well as serialization, so a
+   * hidden digest would never arrive off the wire and the member would sit
+   * permanently empty — the same trap `readonly` is.
+   */
+  it('rebuilds the capability from a stored record', async () => {
+    const order = await Effect.runPromise(
+      deserializeSingleEntity(ProductOrder, {
+        id: 'order-1',
+        status: 'paid',
+        items: [],
+        cancelDigest: 'b'.repeat(64),
+        cancelWindowEndsAt: '2026-09-11T12:30:00.000Z',
+      }),
+    );
+
+    expect(order?.cancelDigest).toBe('b'.repeat(64));
+    expect(order?.cancelWindowEndsAt).toBeDefined();
+  });
+
+  /**
+   * ⚠️ Member metadata is the server-side query allowlist, so a filterable
+   * digest would let a caller confirm a guess one request at a time and a
+   * sortable one would leak the order they were minted in.
+   *
+   * ⚠️ **Asserted rather than assumed, because the defaults run the other way.**
+   * `describeEntityColumns` turns both on for any scalar that does not say
+   * otherwise, so this is the test that catches the flags being dropped in a
+   * later edit — omission is not denial.
+   */
+  it('makes the digest unqueryable and the window queryable', () => {
+    const columns = describeEntityColumns(ProductOrder);
+    const digest = columns.find(column => column.name === 'cancelDigest');
+    const window = columns.find(column => column.name === 'cancelWindowEndsAt');
+
+    expect(digest?.filterable).toBe(false);
+    expect(digest?.sortable).toBe(false);
+    expect(window?.filterable).toBe(true);
+  });
+
+  /** A counter sale carries neither: at a till there is no browser to hold one. */
+  it('carries neither by default', () => {
+    const order = new ProductOrder();
+
+    expect(order.cancelDigest).toBeUndefined();
+    expect(order.cancelWindowEndsAt).toBeUndefined();
+  });
+});

@@ -177,13 +177,31 @@ the order, which is only sayable if the two are separate calls.
 the fleet that cannot be compensated. It takes a **crossing token and no
 session** — the buyer behind a checkout holds no grant over the capture made on
 their behalf — while its reads take a session and no token. One route, one
-credential, each way. Its crossing permission is therefore the only unpaired
-entry in `SERVICE_CROSSING_PERMISSIONS`: a refund is a new record with its own
-money movement, not the absence of this one
+credential, each way. Its crossing permission is therefore an unpaired entry in
+`SERVICE_CROSSING_PERMISSIONS`: a refund is a new record with its own money
+movement, not the absence of this one
 ([ADR 0054](../adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
+It was the **only** such entry until the refund below became the second.
 
-It publishes `payment.captured` and `payment.failed` from an outbox in its own
-store. The capture _decision_ never arrives as a message — the saga dispatches
+⚠️ **`POST /api/refund` is the _cancellation_ saga's pivot**, and the second
+write here that cannot be compensated. It takes a crossing token and no session
+for the same reason the capture does, and it is addressed by **order id** — the
+saga holds an order and has never seen a payment — resolving the capture itself
+and copying the amount off it rather than reading one from the request. A
+`Refund` is its own record: ADR 0054 protects the capture row as the evidence a
+customer was charged, so a `'refunded'` status written over it would erase that
+evidence by another route ([ADR 0058](../adr/0058-the-order-after-payment.md)).
+Two guards stop a double refund and they answer different questions —
+`x-command-id` covers a redelivery of one command, a unique index on the refund's
+`paymentId` covers two different commands aimed at one capture.
+
+⚠️ **`payment-management:refund:write` is therefore a _second_ unpaired crossing
+permission, not the pairing the note above says `payment:write` lacks.** Filing
+it as one would be backwards: it is a new money movement whose own reversal
+question has the same answer, because un-refunding is charging a customer again.
+
+It publishes `payment.captured`, `payment.failed` and `payment.refunded` from an
+outbox in its own store. The capture _decision_ never arrives as a message — the saga dispatches
 it — so what the bus carries is the consequence: order-service advances an order
 to `paid`, and settlement will fold a commission entry in M6.
 
@@ -237,6 +255,17 @@ accepted credentials on one route means the weaker one is the security level
 ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). The reservation
 _reads_ beside it are ordinary session-guarded tenant reads — one route, one
 credential, each way.
+
+⚠️ **`POST /api/stock-restoration` is the second crossing into this store**, and
+the only other one in the fleet. A cancelled order's goods go back as a new
+`+quantity` movement with `reason: 'cancellation'` — never as an un-conversion,
+because by then the hold is spent and the ledger is append-only. Its permission
+is `stock-management:stock-movement:restore` rather than the `stock-movement:write`
+a vendor's own session holds, so a crossing token can write the one correction a
+cancellation makes and not that vendor's whole ledger
+([ADR 0058](../adr/0058-the-order-after-payment.md)). `reason` is server-owned,
+and the route is idempotent on `x-command-id` because the cancellation saga
+dispatches it **after** its pivot.
 
 Ending a hold is a **verb**, and there are two: `DELETE /api/reservation/:id`
 releases one and `POST /api/reservation/:id/conversion` converts it to a sale.

@@ -47,6 +47,8 @@ export class ProductOrder implements Entity {
   #items: readonly OrderItem[] = [];
   #placedAt?: Date;
   #paidAt?: Date;
+  #cancelDigest?: string;
+  #cancelWindowEndsAt?: Date;
   // #endregion
 
   // #region constructors
@@ -220,6 +222,81 @@ export class ProductOrder implements Entity {
   }
   set paidAt(value: Date | undefined) {
     this.#paidAt = value;
+  }
+
+  /**
+   * The SHA-256 digest of the nonce that authorizes the buyer's own cancel.
+   *
+   * ⚠️ **The digest, never the nonce.** The storefront mints 256 bits of
+   * randomness per checkout, keeps it in the buyer's `httpOnly` receipt cookie,
+   * and sends only this digest into the order. That is what lets an anonymous
+   * buyer be authorized for a write with nothing stored anywhere that can
+   * perform it ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md)).
+   *
+   * ⚠️ **Why it is not the signed token the obvious design reaches for.** An
+   * order is written *inside* the checkout saga, so anything the `201` carries
+   * becomes the step's outcome — persisted in the `saga` store and served whole
+   * by `GET /api/saga/:id` to any principal whose organization appears among the
+   * flow's calls, which is every vendor in the basket. A bearer token there
+   * would let one vendor cancel a multi-vendor order their own session is
+   * refused with `409`. A digest carries no such authority: it is serialized
+   * here in the open precisely because inverting it is the problem SHA-256 is.
+   *
+   * ⚠️ **Absent is a meaningful value.** A counter sale carries no digest,
+   * because at a till there is no browser to hold the nonce and no buyer's
+   * cancel to authorize. Clearing it is also how a cancel window is revoked.
+   *
+   * ⚠️ **Not `@accessor({ hidden })`, however much a machine-valued member
+   * wants to be.** That flag drops the member from **deserialization** as well
+   * as from serialization — the same trap `readonly` is, which `paidAt`
+   * documents a few lines up — so a hidden digest would never arrive off the
+   * wire and the member would sit permanently empty. Hiding the input is a
+   * screen's job, and the screen is `<EntityField … hidden />`.
+   *
+   * ⚠️ **`filterable` and `sortable` are written `false`, not omitted.**
+   * `describeEntityColumns` defaults both to **true** for a scalar, so leaving
+   * them out is how a member becomes queryable by accident — and member metadata
+   * is the server-side allowlist, so a queryable digest lets a caller confirm a
+   * guess one request at a time, and a sortable one leaks their order. Omission
+   * is not denial here.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:product-order.fields.cancelDigest',
+    sortable: false,
+    filterable: false,
+  })
+  get cancelDigest(): string | undefined {
+    return this.#cancelDigest;
+  }
+  set cancelDigest(value: string | undefined) {
+    this.#cancelDigest = value;
+  }
+
+  /**
+   * When the buyer's own cancel stops being possible.
+   *
+   * ⚠️ **Server-owned, stamped at placement from the order's own `placedAt`.**
+   * It is a stored timestamp rather than an expiry claim inside a token for two
+   * reasons: order-service can shorten or revoke it after the fact, and there is
+   * no key whose rotation silently ends every live window at once.
+   *
+   * It must match the receipt cookie's own lifetime. The cookie is the only
+   * place the nonce lives, so a window wider than the cookie is a capability
+   * nobody can present, and a cookie longer than the window is a Cancel button
+   * that quietly stops working.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.cancelWindowEndsAt',
+    sortable: true,
+    filterable: true,
+  })
+  get cancelWindowEndsAt(): Date | undefined {
+    return this.#cancelWindowEndsAt;
+  }
+  set cancelWindowEndsAt(value: Date | undefined) {
+    this.#cancelWindowEndsAt = value;
   }
   // #endregion
 }

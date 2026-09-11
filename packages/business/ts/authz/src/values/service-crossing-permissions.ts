@@ -38,6 +38,21 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   `${STOCK_DOMAIN}:reservation:write`,
   `${STOCK_DOMAIN}:reservation:release`,
   `${STOCK_DOMAIN}:reservation:convert`,
+  // Putting the goods back when a paid order is cancelled.
+  //
+  // ⚠️ **Not a fourth reservation verb, and not the reversal of `convert`.** By
+  // the time an order is `paid` the hold is `converted`, its sale movement is
+  // written and the ledger is append-only — so there is no hold left to act on
+  // and nothing to un-convert. This is a *new* `+quantity` movement with
+  // `reason: 'cancellation'`, which is why it names the ledger entity rather
+  // than the hold
+  // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
+  //
+  // ⚠️ **`restore` rather than `stock-movement:write`.** The session-guarded
+  // `POST /api/stock-movement` is granted to `admin` under that permission, and
+  // naming it here would let a crossing token reach a vendor's whole ledger —
+  // any reason, any sign — instead of the one correction a cancellation makes.
+  `${STOCK_DOMAIN}:stock-movement:restore`,
   // Writing the order the holds above were taken for, and deleting it when a
   // later step fails. Also not a person's act: the buyer behind a checkout holds
   // no grant over the receipt the coordinator writes on their behalf, and
@@ -60,6 +75,16 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // a customer was charged
   // ([ADR 0054](../../../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
   `${PAYMENT_DOMAIN}:payment:write`,
+  // Sending the money back, which the cancellation saga's pivot dispatches.
+  //
+  // ⚠️ **This is not the reversal the note above says `payment:write` has
+  // none of, and it must not be read as one.** A reversal would undo the
+  // capture; this writes a second record of a second money movement, leaving
+  // the evidence of the first exactly where it was. Its own reversal question
+  // has the same answer as the capture's: there is none, because un-refunding
+  // is charging a customer again
+  // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
+  `${PAYMENT_DOMAIN}:refund:write`,
 ];
 
 /**

@@ -227,7 +227,10 @@ describe('a read is scoped to the caller, from the principal', () => {
       '/api/product-order',
       {
         meta: { type: 'entity', entity: 'product-order' },
-        data: { buyerId: 'party-somebody-else', items: [line('offering-scope-d')] },
+        data: {
+          buyerId: 'party-somebody-else',
+          items: [line('offering-scope-d')],
+        },
       },
       { headers: crossing() },
     );
@@ -249,7 +252,10 @@ describe('a read is scoped to the caller, from the principal', () => {
       '/api/product-order',
       {
         meta: { type: 'entity', entity: 'product-order' },
-        data: { buyerId: 'party-somebody-else', items: [line('offering-scope-e')] },
+        data: {
+          buyerId: 'party-somebody-else',
+          items: [line('offering-scope-e')],
+        },
       },
       { headers: crossing() },
     );
@@ -269,7 +275,10 @@ describe('a read is scoped to the caller, from the principal', () => {
       '/api/product-order',
       {
         meta: { type: 'entity', entity: 'product-order' },
-        data: { buyerId: 'party-somebody-else', items: [line('offering-scope-g')] },
+        data: {
+          buyerId: 'party-somebody-else',
+          items: [line('offering-scope-g')],
+        },
       },
       { headers: crossing() },
     );
@@ -303,7 +312,10 @@ describe('a read is scoped to the caller, from the principal', () => {
       '/api/product-order',
       {
         meta: { type: 'entity', entity: 'product-order' },
-        data: { buyerId: 'party-somebody-else', items: [line('offering-scope-i')] },
+        data: {
+          buyerId: 'party-somebody-else',
+          items: [line('offering-scope-i')],
+        },
       },
       { headers: crossing() },
     );
@@ -409,5 +421,65 @@ describe('deleting an order is a compensation', () => {
     });
 
     expect(res.status).toBe(401);
+  });
+});
+
+/**
+ * The buyer's cancel capability, as much of it as this bundle builds: the digest
+ * arrives with the order and the window is stamped from it. The route that
+ * spends the capability is the cancellation saga's, and it is not served yet.
+ */
+const placeWithDigest = (
+  data: Record<string, unknown>,
+  extra: Record<string, string> = {},
+) =>
+  service.client.post(
+    '/api/product-order',
+    {
+      meta: { type: 'entity', entity: 'product-order' },
+      data: { buyerId: 'party-user-2', items: [line('offering-cap')], ...data },
+    },
+    { headers: crossing(extra) },
+  );
+
+describe('the cancel capability an order carries', () => {
+  it('stamps a window when the order brought a digest', async () => {
+    const res = await placeWithDigest({ cancelDigest: 'a'.repeat(64) });
+
+    expect(res.status).toBe(201);
+    expect(res.data.data.cancelDigest).toBe('a'.repeat(64));
+
+    const placedAt = Date.parse(String(res.data.data.placedAt));
+    const endsAt = Date.parse(String(res.data.data.cancelWindowEndsAt));
+    // 30 minutes, the same number the storefront's receipt cookie lives for.
+    expect(endsAt - placedAt).toBe(1800 * 1000);
+  });
+
+  /**
+   * ⚠️ A counter sale brings no digest, because at a till there is no browser to
+   * hold the nonce. An order with a window and nothing to open it would be a
+   * Cancel button nobody can press.
+   */
+  it('stamps no window when the order brought none', async () => {
+    const res = await placeWithDigest({});
+
+    expect(res.status).toBe(201);
+    expect(res.data.data.cancelDigest).toBeUndefined();
+    expect(res.data.data.cancelWindowEndsAt).toBeUndefined();
+  });
+
+  /**
+   * ⚠️ Server-owned. A body that could choose its own expiry could choose one
+   * that never arrives, which is a hold on a refund that never lapses.
+   */
+  it('owns the window whatever the body says', async () => {
+    const res = await placeWithDigest({
+      cancelDigest: 'b'.repeat(64),
+      cancelWindowEndsAt: '2099-01-01T00:00:00.000Z',
+    });
+
+    expect(Date.parse(String(res.data.data.cancelWindowEndsAt))).toBeLessThan(
+      Date.parse('2099-01-01T00:00:00.000Z'),
+    );
   });
 });

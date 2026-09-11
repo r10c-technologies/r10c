@@ -21,20 +21,42 @@ export const PAYMENT_CAPTURED = 'payment.captured';
  */
 export const PAYMENT_FAILED = 'payment.failed';
 
-/** Every payment outcome the bus carries, as a routable name. */
-export const PAYMENT_EVENTS = [PAYMENT_CAPTURED, PAYMENT_FAILED] as const;
+/**
+ * Money went back for an order.
+ *
+ * ⚠️ **Not the absence of a {@link PAYMENT_CAPTURED}, and not its correction.**
+ * The capture stands; this announces a second money movement with its own record
+ * and its own decision time. A consumer that folded a sale on the capture
+ * reverses it on this, which is why settlement joins the two rather than
+ * subtracting one from the other
+ * ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
+ *
+ * ⚠️ **Distinct from {@link PAYMENT_FAILED}, which is a capture that never
+ * happened.** A refusal has nothing to settle and nothing to un-settle; a refund
+ * has something that was settled and now must be undone. Different fact,
+ * different message, and a consumer must not treat one as the other.
+ */
+export const PAYMENT_REFUNDED = 'payment.refunded';
 
-/** One of the two payment outcome events. */
+/** Every payment outcome the bus carries, as a routable name. */
+export const PAYMENT_EVENTS = [
+  PAYMENT_CAPTURED,
+  PAYMENT_FAILED,
+  PAYMENT_REFUNDED,
+] as const;
+
+/** One of the payment outcome events. */
 export type PaymentEventName = (typeof PAYMENT_EVENTS)[number];
 
 /**
  * What one payment outcome announces.
  *
- * **One shape for both event names**, the choice `CatalogPublication` made and
- * for the same reason: a payload that varies by name means two decoders, and
- * two decoders means two places for a consumer's guard to be skipped. The name
- * says what happened; {@link PaymentOutcome.failureReason} is simply absent on a
- * capture.
+ * **One shape for all three event names**, the choice `CatalogPublication` made
+ * and for the same reason: a payload that varies by name means three decoders,
+ * and three decoders means three places for a consumer's guard to be skipped.
+ * The name says what happened; {@link PaymentOutcome.failureReason} is simply
+ * absent on a capture and {@link PaymentOutcome.refundId} on everything but a
+ * refund.
  *
  * ⚠️ **The optional members are optional as a safety property, not as laxity.**
  * {@link readPaymentOutcome} rejecting a payload classifies the message
@@ -94,6 +116,15 @@ export interface PaymentOutcome {
    * the adapter could not explain.
    */
   readonly failureReason?: string;
+  /**
+   * The `Refund.id` on a `payment.refunded`, absent on every other name.
+   *
+   * It is what joins the announcement back to the record that produced it. The
+   * outcome keeps carrying {@link PaymentOutcome.paymentId} beside it — the
+   * capture being reversed — because that is what a reconciliation pairs and
+   * what the deduplication key is built from.
+   */
+  readonly refundId?: string;
 }
 
 /**
@@ -139,6 +170,11 @@ export const paymentFailedEvent = (
   outcome: PaymentOutcome,
   source: string,
 ): DomainEvent<PaymentOutcome> => message(PAYMENT_FAILED, source, outcome);
+
+export const paymentRefundedEvent = (
+  outcome: PaymentOutcome,
+  source: string,
+): DomainEvent<PaymentOutcome> => message(PAYMENT_REFUNDED, source, outcome);
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value !== '';
@@ -218,5 +254,6 @@ export const readPaymentOutcome = (
       channelId: optionalString(raw['channelId']),
       providerReference: optionalString(raw['providerReference']),
       failureReason: optionalString(raw['failureReason']),
+      refundId: optionalString(raw['refundId']),
     };
   });

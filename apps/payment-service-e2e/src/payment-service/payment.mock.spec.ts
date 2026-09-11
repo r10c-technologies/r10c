@@ -185,3 +185,173 @@ describe('reading payments', () => {
     expect(res.data.code).toBe('notFound');
   });
 });
+
+/**
+ * Sending money back.
+ *
+ * The same credential split as a capture, for the same reason: refunding is the
+ * cancellation saga's pivot, and the buyer behind a cancellation holds no grant
+ * over the money movement made on their behalf.
+ */
+const refund = (
+  body: Record<string, unknown> = {},
+  extra: Record<string, string> = {},
+) =>
+  service.client.post(
+    '/api/refund',
+    { orderId: 'order-1', ...body },
+    { headers: crossing(extra) },
+  );
+
+describe('refunding a payment', () => {
+  it('writes its own record and leaves the capture alone', async () => {
+    const orderId = `order-refund-${String(Date.now())}`;
+    const captured = await capture({ orderId });
+    const res = await refund({ orderId });
+
+    expect(res.status).toBe(201);
+    expect(res.data.meta.entity).toBe('refund');
+    expect(res.data.data.status).toBe('refunded');
+    // The record it reverses, resolved by the route rather than named by the
+    // caller.
+    expect(res.data.data.paymentId).toBe(captured.data.data.id);
+
+    const after = await service.client.get(
+      `/api/payment/${String(captured.data.data.id)}`,
+    );
+    // ⚠️ The assertion the whole design rests on: ADR 0054 protects the capture
+    // row as the evidence a customer was charged, and money going back must not
+    // erase it.
+    expect(after.data.data.status).toBe('captured');
+  });
+
+  /**
+   * ⚠️ The amount is copied off the resolved capture, never read from the
+   * request. A body that can name its own amount can refund more than was ever
+   * charged.
+   */
+  it('refunds what was captured, not what the caller says', async () => {
+    const orderId = `order-amount-${String(Date.now())}`;
+    await capture({ orderId, amount: 1999 });
+    const res = await refund({ orderId, amount: 999_999 });
+
+    expect(res.status).toBe(201);
+    expect(res.data.data.amount).toBe(1999);
+  });
+
+  /**
+   * Its own reference, not the capture's. A reconciliation joins on both, and
+   * reusing one would make the two indistinguishable exactly where they have to
+   * be told apart.
+   */
+  it('carries a provider reference of its own', async () => {
+    const orderId = `order-reference-${String(Date.now())}`;
+    const captured = await capture({ orderId });
+    const res = await refund({ orderId });
+
+    expect(res.data.data.providerReference).not.toBe(
+      captured.data.data.providerReference,
+    );
+    expect(String(res.data.data.providerReference)).toContain('sim_refund_');
+  });
+
+  it('answers 404 for an order nobody paid for', async () => {
+    const res = await refund({ orderId: `order-unpaid-${String(Date.now())}` });
+
+    // A business refusal rather than a fault: the coordinator reads a 4xx as
+    // "this step refused" and compensates the claim before it.
+    expect(res.status).toBe(404);
+    expect(res.data.code).toBe('noCapturedPayment');
+  });
+
+  it('refuses a request that names no order', async () => {
+    const res = await service.client.post(
+      '/api/refund',
+      {},
+      { headers: crossing() },
+    );
+
+    expect(res.status).toBe(400);
+    expect(res.data.code).toBe('invalidBody');
+  });
+
+  it('refuses a session, even super-admin', async () => {
+    const orderId = `order-session-${String(Date.now())}`;
+    await capture({ orderId });
+    const res = await service.client.post(
+      '/api/refund',
+      { orderId },
+      { headers: { Authorization: await bearerFor(['super-admin']) } },
+    );
+
+    // Not 403. Two accepted credentials on one route means the weaker one is
+    // the security level.
+    expect(res.status).toBe(401);
+  });
+
+  it('refuses a wrong crossing token', async () => {
+    const res = await refund({}, { 'x-crossing-token': 'not-the-token' });
+
+    expect(res.status).toBe(401);
+  });
+
+  /**
+   * ⚠️ A redelivered command must answer the first decision rather than sending
+   * the money a second time. The claim is in the same transaction as the write.
+   */
+  it('answers the first decision when the command is redelivered', async () => {
+    const orderId = `order-replay-${String(Date.now())}`;
+    await capture({ orderId });
+    const commandId = `cmd-refund-${String(Date.now())}`;
+
+    const first = await refund({ orderId }, { 'x-command-id': commandId });
+    const second = await refund({ orderId }, { 'x-command-id': commandId });
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(200);
+    expect(second.data.data.id).toBe(first.data.data.id);
+  });
+
+  /**
+   * ⚠️ The other half of the guard, and a different question: two *distinct*
+   * commands aimed at one capture. The unique index on `paymentId` is what
+   * refuses the second, and the pre-read is what keeps it from moving money at
+   * the provider first.
+   */
+  it('refunds one capture once, however many commands ask', async () => {
+    const orderId = `order-twice-${String(Date.now())}`;
+    await capture({ orderId });
+
+    const first = await refund({ orderId }, { 'x-command-id': 'cmd-a' });
+    const second = await refund({ orderId }, { 'x-command-id': 'cmd-b' });
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(200);
+    expect(second.data.data.id).toBe(first.data.data.id);
+  });
+});
+
+describe('reading refunds', () => {
+  it('needs a session', async () => {
+    const res = await service.client.get('/api/refund', {
+      headers: { Authorization: undefined },
+    });
+
+    expect(res.status).toBe(401);
+  });
+
+  it('serves an admin a page', async () => {
+    const res = await service.client.get('/api/refund');
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.data.data.items)).toBe(true);
+  });
+
+  it('serves $metadata rather than treating it as an id', async () => {
+    const res = await service.client.get('/api/refund/$metadata');
+
+    expect(res.status).toBe(200);
+    // No role writes a refund, so the descriptor must not advertise one.
+    expect(res.data.data.actions).toEqual(['read']);
+  });
+});

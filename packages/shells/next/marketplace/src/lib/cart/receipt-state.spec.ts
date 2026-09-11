@@ -136,7 +136,9 @@ describe('reading a receipt back', () => {
   const totals = [{ currency: 'GTQ', amount: 1 }];
 
   it('refuses a receipt naming no order', () => {
-    expect(parseReceipt(JSON.stringify({ lineCount: 1, totals }))).toBeUndefined();
+    expect(
+      parseReceipt(JSON.stringify({ lineCount: 1, totals })),
+    ).toBeUndefined();
     expect(
       parseReceipt(JSON.stringify({ orderId: '', lineCount: 1, totals })),
     ).toBeUndefined();
@@ -215,5 +217,69 @@ describe('reading a receipt back', () => {
     );
 
     expect(receipt?.lines).toBeUndefined();
+  });
+});
+
+/**
+ * The cancel capability the receipt carries.
+ *
+ * ⚠️ **The nonce lives here and nowhere else.** The order stores its SHA-256
+ * digest, so this cookie is the only thing that can authorize the buyer's own
+ * cancel — and it is still parsed as untrusted input, because a forged nonce
+ * fails the server's compare exactly as a forged receipt fails to describe a
+ * real order.
+ */
+describe('the cancel capability on a receipt', () => {
+  const aLine = line('o-1');
+
+  it('carries the nonce and the window when the order was placed with one', () => {
+    const receipt = receiptFromOrder('order-1', undefined, [aLine], {
+      cancelNonce: 'the-nonce',
+      cancelWindowEndsAt: '2026-09-09T00:30:00.000Z',
+    });
+
+    expect(receipt.cancelNonce).toBe('the-nonce');
+    expect(receipt.cancelWindowEndsAt).toBe('2026-09-09T00:30:00.000Z');
+  });
+
+  it('carries neither when the order was placed without one', () => {
+    const receipt = receiptFromOrder('order-1', undefined, [aLine]);
+
+    expect(receipt.cancelNonce).toBeUndefined();
+    expect(receipt.cancelWindowEndsAt).toBeUndefined();
+    expect('cancelNonce' in receipt).toBe(false);
+  });
+
+  it('reads both back off the cookie', () => {
+    const parsed = parseReceipt(
+      serializeReceipt(
+        receiptFromOrder('order-1', undefined, [aLine], {
+          cancelNonce: 'the-nonce',
+          cancelWindowEndsAt: '2026-09-09T00:30:00.000Z',
+        }),
+      ),
+    );
+
+    expect(parsed?.cancelNonce).toBe('the-nonce');
+    expect(parsed?.cancelWindowEndsAt).toBe('2026-09-09T00:30:00.000Z');
+  });
+
+  /**
+   * ⚠️ An empty or non-string capability is dropped rather than carried. A page
+   * decides whether to offer the cancel by whether these are present, and an
+   * empty nonce would render a button whose request is bound to fail.
+   */
+  it('drops a capability that is empty or the wrong type', () => {
+    const receipt = receiptFromOrder('order-1', undefined, [aLine]);
+
+    for (const bad of [
+      { cancelNonce: '', cancelWindowEndsAt: '' },
+      { cancelNonce: 7, cancelWindowEndsAt: false },
+    ]) {
+      const parsed = parseReceipt(JSON.stringify({ ...receipt, ...bad }));
+
+      expect(parsed?.cancelNonce).toBeUndefined();
+      expect(parsed?.cancelWindowEndsAt).toBeUndefined();
+    }
   });
 });

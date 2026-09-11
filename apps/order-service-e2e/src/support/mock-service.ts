@@ -14,7 +14,7 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
-import { router, SERVICE_NAME } from '@r10c/order-service';
+import { CancelWindowSeconds, router, SERVICE_NAME } from '@r10c/order-service';
 import {
   LoadedConfigurationTag,
   type RunningTestService,
@@ -44,7 +44,13 @@ const CONFIGURATION = {
     { key: 'keyId', value: E2E_KEY_ID },
   ],
   service: [{ key: 'token', value: E2E_CROSSING_TOKEN }],
+  // The buyer's cancel window. A literal here for the same reason every other
+  // row is: the fixture is the config-service fetch, not a stub of the dial.
+  order: [{ key: 'cancelWindowSeconds', value: '1800' }],
 };
+
+/** Matches the seeded row, and the storefront's `RECEIPT_TTL_SECONDS`. */
+const E2E_CANCEL_WINDOW_SECONDS = 1800;
 
 /**
  * The `mock` composition root: the same shape as the service's own `AppLayer`,
@@ -75,6 +81,7 @@ const MockAppLayer = Layer.mergeAll(
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   Layer.succeed(ServiceCrossingTokenTag, E2E_CROSSING_TOKEN),
+  Layer.succeed(CancelWindowSeconds, E2E_CANCEL_WINDOW_SECONDS),
 ).pipe(Layer.orDie);
 
 /** Boots the service's real router in-process, on an ephemeral port. */

@@ -22,6 +22,12 @@ import type { SliceDeclaration } from '../types.js';
  * permission is therefore unpaired — every other entry in
  * `SERVICE_CROSSING_PERMISSIONS` has a reversal beside it and this one has none,
  * deliberately ([ADR 0054](../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
+ *
+ * ⚠️ **`POST /api/refund` did not change that, and must not be read as having
+ * done so.** It is the *cancellation* saga's pivot — a second money movement
+ * with its own record — rather than the reversal of the capture, so the store
+ * now holds two entities and the slice two unpaired crossing permissions
+ * ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md)).
  */
 export const paymentSlice: SliceDeclaration = {
   name: 'payment',
@@ -42,9 +48,16 @@ export const paymentSlice: SliceDeclaration = {
     'GET|POST /api/payment',
     'GET /api/payment/:id',
     'GET /api/payment/$metadata',
+    'GET|POST /api/refund',
+    'GET /api/refund/:id',
+    'GET /api/refund/$metadata',
   ],
   dependantAPIs: ['GET /api/config/:service'],
-  publishedEvents: ['payment.captured', 'payment.failed'],
+  // `payment.refunded` has no consumer yet; settlement grows one when it learns
+  // to reverse a commission entry. It is published now for ADR 0028's reason —
+  // the announcement commits with the write it announces, and retrofitting an
+  // outbox entry later is the dual write that rule exists to close.
+  publishedEvents: ['payment.captured', 'payment.failed', 'payment.refunded'],
   // ⚠️ **Nothing. It subscribed to `order.placed` and no longer does.**
   //
   // That declaration described an event-driven capture: the order lands, a

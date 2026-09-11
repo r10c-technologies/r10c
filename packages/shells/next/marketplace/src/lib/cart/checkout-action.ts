@@ -1,5 +1,7 @@
 'use server';
 
+import { createHash, randomBytes } from 'node:crypto';
+
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
@@ -138,7 +140,36 @@ interface CheckoutResult {
  * rather than positional: the step a definition runs last is a property of the
  * definition, and reading the array's end would break the day it grows one.
  */
-const orderFromSagaResult = (payload: unknown): Receipt | undefined => {
+/**
+ * Mint the secret that authorizes this buyer's own cancel.
+ *
+ * ⚠️ **The storefront mints it, and the order stores only its digest.** The
+ * obvious design has order-service mint a signed token and hand it back in the
+ * `201` — and that `201` *is* the saga's `write-order` outcome, persisted in the
+ * `saga` store and served whole by `GET /api/saga/:id` to any principal whose
+ * organization appears among the flow's calls, which is every vendor in this
+ * basket. A bearer token there would let one vendor cancel a multi-vendor order
+ * their own session is refused with `409`. A digest is inert, so the digest is
+ * what travels ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md)).
+ *
+ * 32 bytes from `randomBytes`, which is why the server may store an unsalted
+ * SHA-256 of it: there is no dictionary to iterate over 256 bits of randomness.
+ */
+const mintCancelCapability = (): {
+  readonly nonce: string;
+  readonly digest: string;
+} => {
+  const nonce = randomBytes(32).toString('hex');
+  return {
+    nonce,
+    digest: createHash('sha256').update(nonce, 'utf8').digest('hex'),
+  };
+};
+
+const orderFromSagaResult = (
+  payload: unknown,
+  cancelNonce: string,
+): Receipt | undefined => {
   if (typeof payload !== 'object' || payload === null) return undefined;
   const data = (payload as { data?: unknown }).data;
   if (typeof data !== 'object' || data === null) return undefined;
@@ -159,10 +190,11 @@ const orderFromSagaResult = (payload: unknown): Receipt | undefined => {
   const order = (body as { data?: unknown }).data;
   if (typeof order !== 'object' || order === null) return undefined;
 
-  const { id, placedAt, items } = order as {
+  const { id, placedAt, items, cancelWindowEndsAt } = order as {
     id?: unknown;
     placedAt?: unknown;
     items?: unknown;
+    cancelWindowEndsAt?: unknown;
   };
   if (typeof id !== 'string' || !Array.isArray(items)) return undefined;
 
@@ -184,6 +216,12 @@ const orderFromSagaResult = (payload: unknown): Receipt | undefined => {
     id,
     typeof placedAt === 'string' ? placedAt : undefined,
     lines,
+    // ⚠️ The nonce rides along **only** when the server answered with a window
+    // it stamped. A nonce with no window is a secret that opens nothing, and
+    // carrying it would put a Cancel button on a page whose request must fail.
+    typeof cancelWindowEndsAt === 'string'
+      ? { cancelNonce, cancelWindowEndsAt }
+      : undefined,
   );
 };
 
@@ -229,6 +267,8 @@ const placeOrder = async (
     { amount: 0, currency: STOREFRONT_CURRENCY },
   );
 
+  const capability = mintCancelCapability();
+
   const response = await fetch(`${checkoutServiceUrl()}/saga/checkout`, {
     method: 'POST',
     headers: {
@@ -248,7 +288,9 @@ const placeOrder = async (
           {
             body: {
               meta: { type: 'entity', entity: 'product-order' },
-              data: { items: lines },
+              // The digest, never the nonce — see `mintCancelCapability`. The
+              // server stamps the window from it and owns both timestamps.
+              data: { items: lines, cancelDigest: capability.digest },
             },
           },
         ],
@@ -280,7 +322,7 @@ const placeOrder = async (
     // it. They land on the cart's success banner instead, which is where this
     // page stood before there was a confirmation page at all.
     const payload = await response.json().catch(() => undefined);
-    const receipt = orderFromSagaResult(payload);
+    const receipt = orderFromSagaResult(payload, capability.nonce);
     return receipt ? { outcome: 'placed', receipt } : { outcome: 'placed' };
   }
   // `409` is the saga's own answer for "compensated" — a line was refused and

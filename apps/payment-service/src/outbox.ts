@@ -2,8 +2,9 @@ import {
   paymentCapturedEvent,
   paymentFailedEvent,
   type PaymentOutcome,
+  paymentRefundedEvent,
 } from '@r10c/business-ts-payment-contracts';
-import { Payment } from '@r10c/business-ts-payment-management';
+import { Payment, Refund } from '@r10c/business-ts-payment-management';
 import { envelopeEntityName } from '@r10c/entifix-ts-core';
 import {
   OUTBOX_COLLECTION,
@@ -13,6 +14,9 @@ import type { ClientSession, Db } from 'mongodb';
 
 /** Where a payment lives. The entity's own key, as every collection name is. */
 export const PAYMENT_COLLECTION = envelopeEntityName(Payment);
+
+/** Where a refund lives. Its own collection beside the capture, never a flag on it. */
+export const REFUND_COLLECTION = envelopeEntityName(Refund);
 
 /** The slice this process publishes as (ADR 0020's ownership noun). */
 export const PAYMENT_SLICE = 'payment';
@@ -51,4 +55,34 @@ export const paymentDecidedEntry = async (
   await db
     .collection(OUTBOX_COLLECTION)
     .insertOne(outboxDocument(event), { session });
+};
+
+/**
+ * Announce money going back, **in the caller's transaction** — same rule as
+ * {@link paymentDecidedEntry}, same reason.
+ *
+ * ⚠️ **Only a refund that happened is announced, and a refused one emits
+ * nothing.** The obvious symmetry would be to reuse `payment.failed` the way a
+ * refused capture does, and it would be wrong: that name already means *the
+ * capture did not happen*, and every note in the fleet about not consuming it —
+ * settlement's especially — was written about that meaning. Giving it a second
+ * one would make a consumer that later starts reading it silently inherit
+ * refund failures it never reasoned about. A refused refund is recorded as a
+ * `Refund` row with `status: 'failed'` and answered non-2xx to the caller, which
+ * is where the fact belongs
+ * ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md)).
+ */
+export const refundDecidedEntry = async (
+  db: Db,
+  session: ClientSession,
+  outcome: PaymentOutcome,
+  refunded: boolean,
+): Promise<void> => {
+  if (!refunded) return;
+
+  await db
+    .collection(OUTBOX_COLLECTION)
+    .insertOne(outboxDocument(paymentRefundedEvent(outcome, PAYMENT_SLICE)), {
+      session,
+    });
 };

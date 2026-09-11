@@ -4,6 +4,7 @@
 - Date: 2026-09-09
 - Area: messaging
 - Read when: money has to be taken inside a flow, or a saga step fails after the point of no return — capture is a dispatched step and never a subscription, and a post-pivot failure rolls forward or strands, never back
+- Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the refund it deferred exists, and the unpaired crossing permission gains a sibling
 
 ## Context
 
@@ -193,6 +194,15 @@ the relay costs one layer beside it.
   none: a refund is a new record with its own money movement, not the absence of
   this one — ADR 0039's _"a refund is not an uncharge"_ — so a delete permission
   would authorize erasing the evidence that a customer was charged.
+
+  > **2026-09-11 — that record now exists, and it did not make this one
+  > paired.** [ADR 0058](0058-the-order-after-payment.md) builds `Refund` and
+  > `payment-management:refund:write`. It sits beside this entry rather than
+  > under it: it is a second money movement, not the reversal of the first, and
+  > its own reversal question has the same answer — un-refunding is charging a
+  > customer again. The list now holds **two** unpaired permissions, for the same
+  > reason, and the capture row is untouched by either.
+
 - **The fleet gains a process**, `:3106`. The health ladder walks it.
 - **`order-contracts` was not built.** The plan called for it beside
   `payment-contracts`, and `order.placed` turned out to have no consumer once

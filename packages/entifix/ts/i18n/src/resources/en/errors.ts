@@ -13,6 +13,8 @@ export const errors: EsErrors = {
   noActiveOrganization: 'Select an organization to continue.',
   invalidRequest: 'The request is not valid.',
   paymentDeclined: 'The payment could not be processed. Try another method.',
+  refundDeclined: 'The refund could not be processed. Contact support.',
+  noCapturedPayment: 'No payment was taken for this order, so nothing can be sent back.',
   invalidBody: 'The request body is not valid.',
   invalidQuery: 'The query is not valid.',
   invalidCommand: 'The command is not valid.',

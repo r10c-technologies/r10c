@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -102,6 +104,7 @@ const sagaResponse = (
                     id: 'order-1',
                     status: 'pending',
                     placedAt: '2026-09-09T00:00:00.000Z',
+                    cancelWindowEndsAt: '2026-09-09T00:30:00.000Z',
                     items,
                     ...order,
                   },
@@ -295,12 +298,58 @@ describe('checkout', () => {
     expect(receiptCookie()).toEqual({
       orderId: 'order-1',
       placedAt: '2026-09-09T00:00:00.000Z',
+      cancelNonce: expect.any(String),
+      cancelWindowEndsAt: '2026-09-09T00:30:00.000Z',
       lines: [
         { offeringId: 'o-1', quantity: 2, amount: 1999, currency: 'GTQ' },
       ],
       lineCount: 1,
       totals: [{ currency: 'GTQ', amount: 3998 }],
     });
+  });
+
+  /**
+   * ⚠️ The digest goes to the server and the nonce stays in the cookie, and this
+   * is the assertion that keeps them from swapping places. The order write is
+   * the checkout saga's own step, so anything the request carries is persisted
+   * in the `saga` store and served to every vendor in the basket — a bearer
+   * token there would let one of them cancel an order their session cannot.
+   */
+  it('sends the digest to the order and keeps the nonce in the cookie', async () => {
+    await run();
+
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const digest = sent.inputs['write-order'][0].body.data.cancelDigest;
+    const receipt = receiptCookie();
+
+    expect(typeof digest).toBe('string');
+    expect(digest).toHaveLength(64);
+    expect(typeof receipt.cancelNonce).toBe('string');
+    expect(receipt.cancelNonce).not.toBe(digest);
+    // The digest the server stored is the digest of the nonce the buyer holds.
+    expect(
+      createHash('sha256')
+        .update(String(receipt.cancelNonce), 'utf8')
+        .digest('hex'),
+    ).toBe(digest);
+    expect(receipt.cancelWindowEndsAt).toBe('2026-09-09T00:30:00.000Z');
+  });
+
+  /**
+   * ⚠️ A nonce with no window is a secret that opens nothing. Carrying it would
+   * put a Cancel button on a page whose request is bound to fail — which is what
+   * a counter sale's receipt, and any order placed before the capability
+   * existed, actually look like.
+   */
+  it('carries no nonce when the server stamped no window', async () => {
+    fetchMock.mockResolvedValue(
+      sagaResponse([orderLine()], { cancelWindowEndsAt: undefined }),
+    );
+
+    await run();
+
+    expect(receiptCookie().cancelNonce).toBeUndefined();
+    expect(receiptCookie().cancelWindowEndsAt).toBeUndefined();
   });
 
   it('keeps the receipt out of the browser and short-lived', async () => {

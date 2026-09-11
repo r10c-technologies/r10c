@@ -21,11 +21,19 @@
 export const RECEIPT_COOKIE = 'r10c_receipt';
 
 /**
- * How long a receipt stays readable.
+ * How long a receipt stays readable, and **how long the buyer may cancel**.
  *
  * Long enough to read it, come back to the tab and reload; short enough that a
  * shared machine does not show the next person somebody's purchase. The page
  * degrades to an expired state rather than an error when it lapses.
+ *
+ * ⚠️ **This number and order-service's `order.cancelWindowSeconds` are one
+ * number, in two places that cannot import each other.** The cookie is the only
+ * place {@link Receipt.cancelNonce} lives, so a server window wider than this
+ * cookie is a capability nobody can present, and a cookie that outlives the
+ * window is a Cancel button that quietly stops working. Widening one without
+ * the other is the mistake this note exists to prevent
+ * ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md)).
  */
 export const RECEIPT_TTL_SECONDS = 30 * 60;
 
@@ -78,6 +86,30 @@ export interface Receipt {
    * showing two lines.
    */
   readonly totals: readonly ReceiptTotal[];
+  /**
+   * The secret that authorizes this buyer's own cancel, and **the only place it
+   * exists**.
+   *
+   * 256 bits of randomness minted at checkout. The order carries its SHA-256
+   * digest, never this, which is what keeps a bearer capability out of the saga
+   * store that every vendor in the basket can read
+   * ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md)).
+   *
+   * ⚠️ **Absent for a checkout that predates the capability, and absent forever
+   * on a counter sale.** A page must offer the cancel only when this is present
+   * and the window below is still open, rather than rendering a button and
+   * discovering the answer from a `401`.
+   */
+  readonly cancelNonce?: string;
+  /**
+   * ISO-8601, copied from the order the server stamped it on.
+   *
+   * The server is the authority; this is here so the page can say *when* the
+   * window closes rather than letting the button silently stop working. The two
+   * agree because {@link RECEIPT_TTL_SECONDS} and the server's own dial are one
+   * number.
+   */
+  readonly cancelWindowEndsAt?: string;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -115,6 +147,10 @@ export const receiptFromOrder = (
   orderId: string,
   placedAt: string | undefined,
   lines: readonly ReceiptLine[],
+  capability?: {
+    readonly cancelNonce?: string;
+    readonly cancelWindowEndsAt?: string;
+  },
 ): Receipt => {
   const byCurrency = new Map<string, number>();
   for (const line of lines) {
@@ -127,6 +163,12 @@ export const receiptFromOrder = (
   return {
     ...(lines.length > RECEIPT_LINE_CAP ? {} : { lines }),
     ...(placedAt === undefined ? {} : { placedAt }),
+    ...(capability?.cancelNonce === undefined
+      ? {}
+      : { cancelNonce: capability.cancelNonce }),
+    ...(capability?.cancelWindowEndsAt === undefined
+      ? {}
+      : { cancelWindowEndsAt: capability.cancelWindowEndsAt }),
     orderId,
     lineCount: lines.length,
     totals: [...byCurrency].map(([currency, amount]) => ({
@@ -148,6 +190,13 @@ export const serializeReceipt = (receipt: Receipt): string =>
  * treat the value as input rather than as something this module wrote. It
  * discloses nothing either way: the worst a forged cookie achieves is showing
  * its author a receipt they made up.
+ *
+ * ⚠️ **That stays true now that the cookie also carries a capability, and it is
+ * worth saying why.** {@link Receipt.cancelNonce} authorizes a write, so the
+ * obvious worry is that forging one forges an authority. It does not: the order
+ * stores the nonce's SHA-256 digest and order-service compares against *that*,
+ * so a made-up nonce fails the compare exactly as a made-up receipt fails to
+ * describe a real order. Nothing here is trusted; the cookie is a carrier.
  */
 export const parseReceipt = (
   value: string | undefined,
@@ -162,6 +211,7 @@ export const parseReceipt = (
   if (!isRecord(parsed)) return undefined;
 
   const { orderId, placedAt, lines, lineCount, totals } = parsed;
+  const { cancelNonce, cancelWindowEndsAt } = parsed;
   if (typeof orderId !== 'string' || orderId === '') return undefined;
   if (typeof lineCount !== 'number') return undefined;
   if (!Array.isArray(totals)) return undefined;
@@ -181,6 +231,12 @@ export const parseReceipt = (
   return {
     ...(readLines === undefined ? {} : { lines: readLines }),
     ...(typeof placedAt === 'string' ? { placedAt } : {}),
+    ...(typeof cancelNonce === 'string' && cancelNonce !== ''
+      ? { cancelNonce }
+      : {}),
+    ...(typeof cancelWindowEndsAt === 'string' && cancelWindowEndsAt !== ''
+      ? { cancelWindowEndsAt }
+      : {}),
     orderId,
     lineCount,
     totals: readTotals,

@@ -24,6 +24,8 @@ export const errors = {
   invalidRequest: 'La solicitud no es válida.',
   invalidBody: 'El cuerpo de la solicitud no es válido.',
   paymentDeclined: 'No se pudo procesar el pago. Intenta con otro método.',
+  refundDeclined: 'No se pudo procesar el reembolso. Contacta a soporte.',
+  noCapturedPayment: 'No se cobró este pedido, así que no hay nada que devolver.',
   invalidQuery: 'La consulta no es válida.',
   invalidCommand: 'El comando no es válido.',
   notFound: 'No se encontró el registro.',

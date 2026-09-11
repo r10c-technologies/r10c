@@ -1,5 +1,6 @@
 export { AppLayer } from './mongo';
-export { PAYMENT_COLLECTION, PAYMENT_SLICE } from './outbox';
+export { PAYMENT_COLLECTION, PAYMENT_SLICE, REFUND_COLLECTION } from './outbox';
+export { ensurePaymentIndexes, PaymentIndexesLayer } from './payment-index';
 export {
   makeSimulatedPaymentProvider,
   SimulatedPaymentProviderLayer,

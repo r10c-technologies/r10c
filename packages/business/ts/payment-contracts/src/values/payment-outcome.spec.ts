@@ -4,10 +4,12 @@ import { describe, expect, it } from 'vitest';
 import {
   PAYMENT_CAPTURED,
   PAYMENT_FAILED,
+  PAYMENT_REFUNDED,
   paymentCapturedEvent,
   paymentEventId,
   paymentFailedEvent,
   type PaymentOutcome,
+  paymentRefundedEvent,
   readPaymentOutcome,
 } from './payment-outcome.js';
 
@@ -36,7 +38,7 @@ describe('paymentEventId', () => {
   });
 });
 
-describe('the two event builders', () => {
+describe('the three event builders', () => {
   it('names the event and signs it with the emitting slice', () => {
     expect(paymentCapturedEvent(captured, 'payment')).toMatchObject({
       name: PAYMENT_CAPTURED,
@@ -45,6 +47,35 @@ describe('the two event builders', () => {
       data: captured,
     });
     expect(paymentFailedEvent(captured, 'payment').name).toBe(PAYMENT_FAILED);
+    expect(paymentRefundedEvent(captured, 'payment').name).toBe(
+      PAYMENT_REFUNDED,
+    );
+  });
+
+  /**
+   * ⚠️ A refund is not a failed capture. A refusal has nothing to settle and
+   * nothing to un-settle; a refund has something that was settled and now must
+   * be undone, so a consumer must be able to tell them apart by name alone.
+   */
+  it('keeps a refund distinct from a refusal', () => {
+    expect(PAYMENT_REFUNDED).not.toBe(PAYMENT_FAILED);
+  });
+
+  /**
+   * The refund's decision time is its own, so the deduplication key differs from
+   * the capture it reverses even though both name the same payment.
+   */
+  it('deduplicates a refund apart from the capture it reverses', () => {
+    const refunded: PaymentOutcome = {
+      ...captured,
+      decidedAt: '2026-01-03T00:00:00.000Z',
+      refundId: 'ref-1',
+    };
+
+    expect(paymentEventId(refunded)).not.toBe(paymentEventId(captured));
+    expect(paymentRefundedEvent(refunded, 'payment').data.refundId).toBe(
+      'ref-1',
+    );
   });
 
   /** The order, not the payment — it is what ties the whole flow together. */
@@ -64,6 +95,7 @@ describe('readPaymentOutcome', () => {
       channelId: undefined,
       providerReference: undefined,
       failureReason: undefined,
+      refundId: undefined,
     });
   });
 
@@ -102,11 +134,13 @@ describe('readPaymentOutcome', () => {
       channelId: null,
       providerReference: '',
       failureReason: undefined,
+      refundId: null,
     });
     expect(Either.getOrThrow(outcome)).toMatchObject({
       channelId: undefined,
       providerReference: undefined,
       failureReason: undefined,
+      refundId: undefined,
     });
   });
 

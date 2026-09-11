@@ -155,6 +155,10 @@ boundary rule; the rest are review:
 - **A tenant handle can also come from an explicit `organizationId`** — but only
   with a service token _and_ a narrow route permission, and only for a caller
   acting on data whose owner it was handed rather than chosen
-  ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). That is one
-  named path with one caller (checkout reserving stock), not a general escape
-  from the session rule above.
+  ([ADR 0023](../adr/0023-service-to-service-tenant-crossing.md)). There are
+  **two** such paths, both into stock and both dispatched by a saga: checkout
+  taking a hold, and a cancellation putting the goods back
+  ([ADR 0058](../adr/0058-the-order-after-payment.md)). Each is a named route
+  with its own narrow permission — `reservation:write` and
+  `stock-movement:restore` — never a general escape from the session rule above,
+  and each new one is an explicit line reviewed as one.
