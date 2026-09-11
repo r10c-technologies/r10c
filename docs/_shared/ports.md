@@ -238,8 +238,16 @@ accepted credentials on one route means the weaker one is the security level
 _reads_ beside it are ordinary session-guarded tenant reads — one route, one
 credential, each way.
 
-Releasing and converting a hold, and the sweep that expires one, are not served
-yet.
+Ending a hold is a **verb**, and there are two: `DELETE /api/reservation/:id`
+releases one and `POST /api/reservation/:id/conversion` converts it to a sale.
+Each carries its own crossing permission, and there is deliberately no `PUT` — a
+generic save could rewrite a quantity or an expiry after the fact, which is a
+hold that never expires granted by its holder. ⚠️ **Both answer `200` when the
+hold was already gone.** They are compensations the checkout saga dispatches,
+delivery is at-least-once, and a compensation that errors on its second delivery
+strands a flow that had in fact been fully reversed; the body says which
+happened. A sweep releases what expired, walking every `stock_<organizationId>`
+database on an interval.
 
 ⁹ **sales-service, bound.** The third of the five reserved indices to be
 claimed, and the one that finally gives a vendor a way to sell somewhere other

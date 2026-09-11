@@ -8,7 +8,7 @@ import { SEARCH_SOURCES } from '../src/lib/search-sources';
  * screens this app actually serves.
  */
 describe('SEARCH_SOURCES', () => {
-  it('composes all five shells, catalog then stock then sales then settlement then people', () => {
+  it('composes all six shells, catalog then stock then orders then sales then settlement then people', () => {
     // Order is the ranking, so this asserts the order rather than the set: an
     // operator learns where a kind of record lands, and a reshuffle is a
     // behaviour change even though every source still resolves.
@@ -21,6 +21,11 @@ describe('SEARCH_SOURCES', () => {
       'stock-item',
       'stock-movement',
       'reservation',
+      // Declared with the order screens since that shell landed and mounted
+      // here in #249. The host already served the screens, the nav item and the
+      // proxy, so the palette was the one surface those records were absent
+      // from.
+      'product-order',
       'sales-channel',
       // ⚠️ **Three, not four.** `SettlementRun` contributes no source and must
       // not: it has no string member at all, so a source would label every run
