@@ -1,5 +1,9 @@
 import { SCREEN_TYPE_LABEL_KEYS } from '@r10c/business-ts-authz';
-import { AccountMenu, BackOfficeShell } from '@r10c/shells-next-common';
+import {
+  AccountMenu,
+  BackOfficeShell,
+  SessionKeepalive,
+} from '@r10c/shells-next-common';
 // From the server entry: this module calls them directly, and the client entry
 // would hand back a client reference rather than the function.
 import { accountPaths } from '@r10c/shells-next-common/server';
@@ -99,6 +103,14 @@ export async function BackOfficeChrome({
         />
       }
     >
+      {/*
+        Mounted once here rather than per route group, because all three need a
+        session and only the permission they additionally demand differs. It
+        renders nothing until the session is close to its ceiling; what it does
+        unconditionally is keep the access token fresh, which nothing in this
+        fleet did before (#252).
+      */}
+      <SessionKeepalive />
       {children}
     </BackOfficeShell>
   );
