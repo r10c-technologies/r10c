@@ -1,6 +1,7 @@
 import { AUTH_SEARCH_SOURCES } from '@r10c/shells-next-auth/server';
 import type { RecordSearchSource } from '@r10c/shells-next-common/server';
 import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from '@r10c/shells-next-marketplace-admin/server';
+import { ORDER_SEARCH_SOURCES } from '@r10c/shells-next-order/server';
 import { SALES_SEARCH_SOURCES } from '@r10c/shells-next-sales/server';
 import { SETTLEMENT_SEARCH_SOURCES } from '@r10c/shells-next-settlement/server';
 import { STOCK_SEARCH_SOURCES } from '@r10c/shells-next-stock/server';
@@ -29,6 +30,11 @@ export const SEARCH_SOURCES: readonly RecordSearchSource[] = [
   // those entities that can name one of their records, and how a vendor thinks
   // about them anyway.
   ...STOCK_SEARCH_SOURCES,
+  // Orders, searched by the buyer who placed them. Declared with the screens
+  // since the shell landed and left unmounted until #249 — this host already
+  // serves the order screens, the nav item and the proxy, so the palette was
+  // the one surface where those records did not exist.
+  ...ORDER_SEARCH_SOURCES,
   ...SALES_SEARCH_SOURCES,
   ...SETTLEMENT_SEARCH_SOURCES,
   ...AUTH_SEARCH_SOURCES,
