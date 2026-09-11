@@ -27,6 +27,12 @@
   the existing engine's `rollbackUCFactory` compensates a reservation is false
   and is corrected in place below; the compensation now receives its own step's
   outcome.
+- Revised: 2026-09-11 — three false claims corrected in place (#249). Releasing,
+  converting and the expiry reaper all shipped (#227) and the checkout that
+  exercises them is built (#231), so the "Still unbuilt" list now names only the
+  reconciliation pass, which really is unbuilt. The conditional write's snippet
+  said `findOneAndUpdate` where the route uses `updateOne`. And the cross-plane
+  reserve is dispatched by transaction-service, not by order-management.
 
 ## Trigger
 
@@ -70,8 +76,20 @@ unit against an availability of 10 yielded exactly ten `201`s, ten `409`s, and
 `reserved: 10` — no oversell, and no hold row written for a refused request. The
 crossing that carries it is ADR 0023's, and the route accepts no session.
 
-**Still unbuilt:** releasing and converting a hold, the reaper that expires one,
-and the checkout that exercises them.
+**Built on 2026-09-08 (#227, #231):** the rest of a hold's life. `DELETE
+/api/reservation/:id` releases one and `POST /api/reservation/:id/conversion`
+converts it, both through the single `transitionReservation` whose conditional
+`{ id, status: 'held' }` update **is** the claim — `matchedCount === 0` answers
+`not-held` rather than erroring, because both verbs are also saga compensations
+and delivery is at-least-once. Only the conversion passes a movement reason, so
+only the conversion writes the `−quantity` sale movement and decrements
+`onHand`. A reaper sweeps every `stock_<organizationId>` database on a 30-second
+interval and releases what expired. The checkout that exercises all three is
+[ADR 0052](0052-the-checkout-saga.md)'s saga.
+
+**Still unbuilt:** the reconciliation job below — the pass that replays the
+ledger and compares it against the `StockItem` fold. That is the one thing this
+record calls "not optional" which nothing implements.
 
 Two things this record could not name when it was written, now settled:
 
@@ -140,11 +158,18 @@ type rather than a new module.
 Checkout takes one conditional atomic write:
 
 ```js
-findOneAndUpdate({ offeringId, $expr: { $gte: [{ $subtract: ['$onHand', '$reserved'] }, qty] } }, { $inc: { reserved: qty } });
+updateOne({ offeringId, $expr: { $gte: [{ $subtract: ['$onHand', '$reserved'] }, qty] } }, { $inc: { reserved: qty } });
 ```
 
 Zero documents matched means out of stock, and the buyer is told immediately.
 There is no read-then-check window to lose.
+
+⚠️ **`updateOne` and `matchedCount`, not `findOneAndUpdate`.** This snippet said
+`findOneAndUpdate` until 2026-09-11, and the shipped route never used it. The
+difference is not cosmetic: the route needs the _count_ of documents the filter
+matched, and the updated document it would have to read back is not the answer to
+"was there stock". Reading one would also be a second thing to get wrong inside
+the transaction that inserts the hold.
 
 Then: the reservation carries a TTL; payment confirmed converts it to a `−qty`
 sale movement; payment failed or TTL expired releases it. A reaper sweeps
@@ -167,10 +192,19 @@ tempting mistake, so it is written down as a prohibition.
 
 ### The saga carries the cross-plane part only
 
-`order-management` (platform) calls `stock-management` (tenant) **synchronously**
-to reserve — the buyer needs a yes/no now — and the order holds a **reservation
-id**, never a quantity. If the order write then fails, the compensation releases
-the reservation.
+The reserve call is **synchronous** — the buyer needs a yes/no now — and the
+order holds a **reservation id**, never a quantity. If the order write then
+fails, the compensation releases the reservation.
+
+> **Corrected 2026-09-11.** This paragraph opened _"`order-management` (platform)
+> calls `stock-management` (tenant) synchronously"_, and the caller moved.
+> [ADR 0052](0052-the-checkout-saga.md) made checkout an orchestrated flow, so
+> **transaction-service** dispatches the reserve and order-service is a peer
+> participant that reserves nothing itself. That is forced rather than tidy:
+> order-service holds no crossing token and a buyer's session names no
+> organization, so the one process that can name a vendor is the coordinator
+> ([ADR 0023](0023-service-to-service-tenant-crossing.md)). Which two planes the
+> call spans is unchanged, and it is the only claim this sentence was making.
 
 > **Corrected 2026-09-08.** This paragraph ended _"which is exactly
 > `rollbackUCFactory` in the existing engine"_, and that was false from the day
@@ -199,10 +233,16 @@ nothing here — a natural place to wrongly conclude the architecture is to blam
 
 - **`onHand` is derived and must be reconcilable.** The ledger is the truth; the
   materialized total is a cache. A reconciliation job that replays movements and
-  compares is not optional.
+  compares is not optional. ⚠️ **It is still not written**, which makes this the
+  one open item on this record — and the seed is the reason it matters more than
+  it reads: the seed writes the ledger rather than the fold precisely so a total
+  with no movements behind it never exists, and nothing checks that property
+  afterwards.
 - **Reservations need a reaper**, and a crashed service leaves stock held until
   the TTL expires. TTL length is a direct trade between overselling risk and
-  temporary under-availability.
+  temporary under-availability. **Built (#227)** — it sweeps every tenant
+  database on a 30-second interval and releases without a movement, since an
+  expired hold never became a sale.
 - **The storefront may show stock that is gone.** Correct and intended: display
   is a hint, the reservation is the truth
   ([ADR 0009](0009-catalog-authoring-and-publication.md)).
