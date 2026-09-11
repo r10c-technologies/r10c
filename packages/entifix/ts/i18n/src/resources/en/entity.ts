@@ -284,6 +284,7 @@ export const entity: EsEntity = {
       },
       channel: 'Sales channel',
       placedAt: 'Placed at',
+      paidAt: 'Paid at',
     },
     values: {
       status: {

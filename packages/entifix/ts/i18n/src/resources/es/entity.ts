@@ -319,6 +319,7 @@ export const entity = {
       },
       channel: 'Canal de venta',
       placedAt: 'Fecha del pedido',
+      paidAt: 'Fecha de pago',
     },
     values: {
       status: {

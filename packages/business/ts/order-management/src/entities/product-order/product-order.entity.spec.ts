@@ -112,13 +112,49 @@ describe('ProductOrder', () => {
     order.status = 'cancelled';
     order.items = [];
     order.placedAt = undefined;
+    order.paidAt = undefined;
     order.channel = undefined;
 
     expect(order.buyerId).toBe('buyer-3');
     expect(order.status).toBe('cancelled');
     expect(order.items).toEqual([]);
     expect(order.placedAt).toBeUndefined();
+    expect(order.paidAt).toBeUndefined();
     expect(order.channel).toBeUndefined();
+  });
+
+  it('carries the capture time the payment projection stamps', async () => {
+    // The projection writes `paidAt` beside `status` in one conditional update.
+    // It did that for a release while this accessor did not exist, which put the
+    // value in Mongo and nowhere a reader could reach — a member with no getter
+    // is invisible to every adapter (#249).
+    const paidAt = new Date('2026-09-08T12:00:00.000Z');
+    const order = await Effect.runPromise(
+      deserializeSingleEntity(ProductOrder, {
+        id: 'order-5',
+        buyerId: 'buyer-5',
+        status: 'paid',
+        items: [lineData('vendor-a', 500)],
+        placedAt: new Date('2026-09-08T11:00:00.000Z'),
+        paidAt,
+      }),
+    );
+
+    expect(order?.paidAt).toEqual(paidAt);
+    expect(serializeEntity(ProductOrder, order!)).toMatchObject({ paidAt });
+  });
+
+  it('answers queries about when money arrived', () => {
+    // Both flags on purpose: "what did we take money for this week" is the
+    // question a vendor's statement is reconciled against, and member metadata
+    // is the server-side query allowlist.
+    const paidAt = describeEntityColumns(ProductOrder).find(
+      column => column.name === 'paidAt',
+    );
+
+    expect(paidAt?.type).toBe('date');
+    expect(paidAt?.sortable).toBe(true);
+    expect(paidAt?.filterable).toBe(true);
   });
 
   it('keeps a multi-vendor basket as one order, tagged per line', () => {

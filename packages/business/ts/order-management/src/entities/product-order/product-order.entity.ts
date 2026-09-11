@@ -46,6 +46,7 @@ export class ProductOrder implements Entity {
   #status: OrderStatus = 'pending';
   #items: readonly OrderItem[] = [];
   #placedAt?: Date;
+  #paidAt?: Date;
   // #endregion
 
   // #region constructors
@@ -186,6 +187,39 @@ export class ProductOrder implements Entity {
   }
   set placedAt(value: Date | undefined) {
     this.#placedAt = value;
+  }
+
+  /**
+   * When the capture that paid for this order was decided.
+   *
+   * ⚠️ **Server-owned, and writable anyway.** The payment projection sets it
+   * from `payment.captured`'s own `decidedAt` in the same conditional update
+   * that moves `status` to `paid`, and no route accepts it from a caller.
+   * Declaring it `readonly` would drop it from **deserialization** as well as
+   * serialization, so the value would never reach a screen either — the same
+   * trap a read-only audit stamp always is.
+   *
+   * It existed in Mongo before it existed here: the projection wrote the field
+   * and this entity declared no accessor for it, so it reached no envelope, no
+   * column and no form (#249). A member without a getter is invisible to every
+   * adapter, which is why the write looked correct and changed nothing anybody
+   * could see.
+   *
+   * Sortable and filterable because "what did we take money for this week" is
+   * the question a vendor's statement is reconciled against, and member
+   * metadata is the server-side query allowlist.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.paidAt',
+    sortable: true,
+    filterable: true,
+  })
+  get paidAt(): Date | undefined {
+    return this.#paidAt;
+  }
+  set paidAt(value: Date | undefined) {
+    this.#paidAt = value;
   }
   // #endregion
 }
