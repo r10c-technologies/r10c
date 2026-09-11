@@ -142,6 +142,28 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // to, which is how a receipt becomes editable
     // ([ADR 0052](../../../../../docs/adr/0052-the-checkout-saga.md)).
     `${ORDER_DOMAIN}:product-order:read`,
+    // What a vendor may do to a paid order, as two **verbs** — which is the
+    // same move `sales-channel:sell` above makes, and for the same reason. The
+    // note directly above still holds: there is no `write`, because these are
+    // named acts with their own rules rather than a save that happens to change
+    // a status. Delivering the goods is per line and cancelling is per order,
+    // and the asymmetry is decided in ADR 0058 §1 rather than here.
+    //
+    // ⚠️ **`cancel` is granted although a cancellation refunds money**, and that
+    // is not an oversight. The refund itself is dispatched behind a crossing
+    // token by a saga; what this grants is the authority to *ask*, which a
+    // vendor must have — they are the party who knows the parcel cannot be sent.
+    // A vendor may only cancel an order all of whose lines are theirs, and
+    // order-service enforces that rather than this table
+    // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
+    //
+    // Written as literals rather than imported from the use cases that declare
+    // them, for this package's standing reason: it is `business:policy` and may
+    // depend only on `layer:entifix`/`layer:utils`, so it cannot reach a domain
+    // package. The source scan in `@r10c/slices` is what keeps these two strings
+    // and the `@useCase()` declarations from drifting apart.
+    `${ORDER_DOMAIN}:product-order:fulfil`,
+    `${ORDER_DOMAIN}:product-order:cancel`,
     // Reading payments — reconciliation, and answering "did this actually go
     // through?". Granted here and **not** to `user`: the read is unscoped, so
     // this is a platform-wide view of every payment taken, which is an
@@ -248,5 +270,14 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // narrows that wildcard nobody should discover it by being unable to sign
     // themselves out.
     `${AUTHN_DOMAIN}:user-identity:sign-out-others`,
+    // Closing an order across vendors. Named here as well as under `admin`
+    // because an operator's reach is genuinely wider rather than the same act
+    // with a different badge: a vendor fulfils the lines they owe and may cancel
+    // only an order that is theirs alone, while an operator does both over a
+    // basket spanning several vendors. That widening lives in order-service's
+    // scope predicate, and naming the verbs here is what keeps it reachable if
+    // the wildcard above is ever narrowed.
+    `${ORDER_DOMAIN}:product-order:fulfil`,
+    `${ORDER_DOMAIN}:product-order:cancel`,
   ],
 };

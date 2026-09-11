@@ -317,6 +317,7 @@ export const entity = {
         amount: 'Importe',
         currency: 'Moneda',
         reservationId: 'ID de reserva',
+        fulfilledAt: 'Fecha de entrega',
       },
       channel: 'Canal de venta',
       placedAt: 'Fecha del pedido',
@@ -328,9 +329,16 @@ export const entity = {
       status: {
         pending: 'Pendiente',
         paid: 'Pagado',
+        cancelling: 'Cancelando',
         fulfilled: 'Entregado',
         cancelled: 'Cancelado',
       },
+    },
+    useCases: {
+      fulfil: 'Marcar como entregado',
+      cancel: 'Cancelar pedido',
+      cancelConfirm:
+        'Se devolverá el dinero al comprador y las unidades volverán a tu inventario. Esto no se puede deshacer: volver a cobrar es una compra nueva.',
     },
   },
   payment: {

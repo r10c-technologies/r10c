@@ -35,6 +35,10 @@ import {
 import { Effect, Layer } from 'effect';
 
 import { CancelWindowSeconds } from './cancel-capability';
+import {
+  CancellationCoordinatorUrl,
+  CancellationCrossingToken,
+} from './coordinator-config';
 import { ORDER_SLICE } from './outbox';
 import { ensureProductOrderIndexes } from './product-order-index';
 import { startPaymentStatusProjection } from './projection/payment-status';
@@ -107,6 +111,26 @@ export const AppLayer = Layer.unwrapEffect(
       .in('order')
       .getNumber('cancelWindowSeconds');
 
+    // Where the cancellation coordinator answers, and the secret this service
+    // presents to start a flow through it.
+    //
+    // ⚠️ **The coordinator's *inbound* token, deliberately not `service.token`
+    // above.** That one is what transaction-service presents *to* this process
+    // when it dispatches a step; this is what this process presents *to*
+    // transaction-service to start one. One shared value would mean anyone
+    // allowed to write an order also held the key that starts any flow in the
+    // fleet ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+    //
+    // This makes order-service the **third** holder of that secret, beside the
+    // storefront and sales-service — and unlike either of those it is also a
+    // participant in the flow it starts. The cycle is accepted in ADR 0058 §6:
+    // a cancellation's authority is a buyer's capability or a vendor's session,
+    // and neither is verifiable anywhere but here.
+    const coordinatorUrl = yield* store.in('transaction').getString('url');
+    const coordinatorToken = yield* store
+      .in('transaction')
+      .getString('crossingToken');
+
     const observability = yield* observabilityFromConfiguration(
       store,
       SERVICE_NAME,
@@ -132,6 +156,8 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(EventSourceTag, ORDER_SLICE),
       Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
       Layer.succeed(CancelWindowSeconds, cancelWindowSeconds),
+      Layer.succeed(CancellationCoordinatorUrl, coordinatorUrl),
+      Layer.succeed(CancellationCrossingToken, coordinatorToken),
     );
 
     const infra = Layer.provideMerge(AmqpEventBusLayer, connections);

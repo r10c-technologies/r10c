@@ -26,5 +26,10 @@ export default defineEntifixTest({
     // parsing — which is the part with decisions in it — lives in
     // `receipt-state.ts` and is covered directly.
     '**/lib/cart/receipt-cookie.ts',
+    // Same reason as `cart-actions`: a `'use server'` module that reads
+    // `cookies()` and ends in a `redirect`, neither of which exists outside a
+    // request. The decision it contains — whether a cancel may be offered at
+    // all — is `cancel-window.ts`, which is covered directly.
+    '**/lib/cart/cancel-action.ts',
   ],
 });

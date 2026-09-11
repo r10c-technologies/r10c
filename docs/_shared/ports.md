@@ -82,6 +82,15 @@ plus `POST /api/saga/:definition`, the coordinator that walks a declarative flow
 here would put a domain name in a permission namespace nothing is provisioned
 for.
 
+It now knows **two** definitions: `checkout`, and `cancellation` — claim the
+order, refund, restore the stock, close the record. That second one is what ADR
+0052 named as the trigger to reconsider the step grammar, and the answer was that
+the grammar held: the flow is sequential with one fan-out, which `defineSaga`
+already expresses ([ADR 0058](../adr/0058-the-order-after-payment.md) §7). Both
+run on `order-management:product-order:write`, so neither adds an entry to
+`SERVICE_CROSSING_PERMISSIONS`; registering a definition is what makes it
+resumable, because the sweep looks an instance's flow up by name.
+
 `GET /api/saga/:id` answers where a flow stopped and what has been reversed. It
 is scoped to the organizations the flow's own **calls** named rather than to one
 member on the record, because a basket spanning two vendors belongs to both — and
@@ -220,15 +229,42 @@ gets one receipt and settlement still aggregates per vendor
 
 ⚠️ **It reserves nothing itself.** ADR 0023's crossing into stock is dispatched
 by transaction-service, which holds both halves of the checkout flow; this
-service is a _participant_. Its two writes accept a **crossing token and no
+service is a _participant_. The checkout writes accept a **crossing token and no
 session** — the buyer behind a checkout holds no grant over the receipt written
 on their behalf — while its reads accept a session and no token. One route, one
 credential, each way ([ADR 0052](../adr/0052-the-checkout-saga.md)).
 
 `DELETE /api/product-order/:id` is a **compensation**, not a customer-facing
 cancel: it undoes a step that should not have happened. A cancellation is a
-business event with its own record and its own money consequences, and it is not
-served yet.
+business event with its own record and its own money consequences, and it is
+`POST /api/product-order/:id/cancellation`.
+
+⚠️ **Three credentials on one surface, and each route still takes exactly one.**
+`fulfil` and `cancellation` are session-guarded by the permissions their own
+`@useCase()` descriptors derive — there is still no `product-order:write` for any
+role, and these are verbs rather than saves. `buyer-cancellation` takes the nonce
+from a storefront receipt and **no session at all**: the order stores that
+nonce's SHA-256 digest, so the record is the authority and the credential is
+inert wherever else it travels. The saga's own `cancelling` and `cancelled` steps
+take a crossing token
+([ADR 0058](../adr/0058-the-order-after-payment.md)).
+
+⚠️ **`/cancelling` and `/cancellation` are one letter apart and are not the same
+thing.** The first takes the concurrency claim and is dispatched by the
+coordinator; the second is what a person reaches. A browser reaching the first
+would lock an order with no refund behind it.
+
+⚠️ **Fulfilment is per line; cancellation is per order.** `OrderItem` carries
+`fulfilledAt` and the order reaches `fulfilled` only once every line has one, so
+one vendor cannot state something true about another's lines. A vendor may cancel
+only an order that is theirs alone and gets `409 multiVendorOrder` otherwise —
+the money was taken once, for the whole basket, on one capture.
+
+⚠️ **It holds the coordinator's inbound token and is a participant in the flow it
+starts**, making it the third holder of that secret beside the storefront and
+sales-service. The cycle is deliberate: a cancellation's authority is verifiable
+only where the order lives, and handing the digest and the window to a slice that
+declares no domain would put an order's authorization rule outside the order.
 
 The cart is **not** here. It is a cookie, so the storefront's first response is
 correct without a round trip, and the fleet keeps zero anonymous write surfaces.

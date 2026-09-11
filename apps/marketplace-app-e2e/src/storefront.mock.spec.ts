@@ -146,6 +146,40 @@ test.describe('the cart', () => {
     await expect(page.getByText('Tu carrito está vacío')).toBeVisible();
   });
 
+  /**
+   * ⚠️ **The affordance and the window are one decision, and this is the half a
+   * unit test cannot show.** The receipt carries the nonce and the moment the
+   * server stamped; the page offers the button only while both hold. The
+   * alternative the rule exists to prevent is a button that is always drawn and
+   * a `401` as the only explanation for it (ADR 0058 §5).
+   */
+  test('a receipt with a live window offers the buyer their own cancel', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-aurora-desk-lamp');
+    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page.waitForURL(/\/es\/cart$/);
+    await page.getByTestId('checkout').click();
+    await page.waitForURL(/\/es\/order\/confirmation$/);
+
+    // The window is *named*, rather than left for the button to stop working on
+    // its own at a moment the buyer was never told about.
+    await expect(page.getByTestId('cancel-window')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Cancelar pedido' }).click();
+    await page.waitForURL(/cancel=cancelled/);
+
+    // Rendered from what the cancel answered, not from a re-read: the
+    // storefront holds no session and this page reads nothing back.
+    await expect(page.getByTestId('order-placed')).toContainText('Cancelamos');
+    // The capability is spent, so the button is gone — and the order reference
+    // stays, because a cancelled order is still the buyer's receipt.
+    await expect(
+      page.getByRole('button', { name: 'Cancelar pedido' }),
+    ).toHaveCount(0);
+    await expect(page.getByTestId('order-id')).toContainText('e2e-order-1');
+  });
+
   test('a visitor with no receipt is told so rather than shown an error', async ({
     page,
   }) => {

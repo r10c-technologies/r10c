@@ -859,6 +859,39 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'cancelWindowSeconds',
     value: '1800',
   },
+  // Where the cancellation coordinator answers, and the secret this service
+  // presents to start a flow through it.
+  //
+  // ⚠️ **The coordinator's *inbound* token, deliberately not the `service.token`
+  // row above.** That one is what transaction-service presents *to* this process
+  // when it dispatches a step; this is what this process presents *to*
+  // transaction-service to start one. One shared value would mean anyone allowed
+  // to write an order also held the key that starts any flow in the fleet
+  // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+  //
+  // This makes order-service the **third** holder of that secret, beside the
+  // storefront and sales-service — and unlike either of those it is also a
+  // participant in the flow it starts. The cycle is accepted in
+  // [ADR 0058](../../../docs/adr/0058-the-order-after-payment.md) §6: a
+  // cancellation's authority is a buyer's capability or a vendor's session, and
+  // neither is verifiable anywhere but here.
+  //
+  // ⚠️ The value carries the `/api` suffix, matching sales-service's row and not
+  // transaction-service's own `participant.*Url` rows, which do not. The route
+  // composes `${url}/saga/<definition>`.
+  {
+    service: 'order-service',
+    group_name: 'transaction',
+    key: 'url',
+    value: 'http://localhost:3103/api',
+  },
+  {
+    service: 'order-service',
+    group_name: 'transaction',
+    key: 'crossingToken',
+    value: 'dev-saga-crossing-token-change-me',
+    is_secret: true,
+  },
   {
     service: 'order-service',
     group_name: 'logging',

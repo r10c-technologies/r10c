@@ -2,9 +2,20 @@
  * Where an order is in its life.
  *
  * `pending` → `paid` → `fulfilled`, with `cancelled` reachable from **`paid`
- * alone**. The states are about **money and promises**, not about logistics:
- * there is no `shipped` because fulfillment is deliberately out of v1 scope, and
- * adding it later is a member here rather than a second status field.
+ * alone** and only through `cancelling`. The states are about **money and
+ * promises**, not about logistics: there is no `shipped` because fulfillment is
+ * deliberately out of v1 scope, and adding it later is a member here rather than
+ * a second status field.
+ *
+ * ⚠️ **`cancelling` is a claim, not a phase.** The conditional write
+ * `paid → cancelling` is what stops two cancels running at once — the semantic
+ * lock a compensatable step takes so a second flow can see the first one holding
+ * the record, and the same trick `transitionReservation` uses for a hold. A
+ * saga's command id is stable across attempts of **one** flow and so says
+ * nothing about two, which is why it cannot do this job. A stranded
+ * cancellation therefore leaves the order visibly `cancelling` rather than
+ * silently wrong, which is the state a sweep or a person can act on
+ * ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md) §3).
  *
  * ⚠️ **`pending` is not cancellable, and this line used to say it was.** A
  * `pending` order is a checkout still in flight or a saga that stranded, and
@@ -24,6 +35,7 @@
 export const OrderStatuses = [
   'pending',
   'paid',
+  'cancelling',
   'fulfilled',
   'cancelled',
 ] as const;

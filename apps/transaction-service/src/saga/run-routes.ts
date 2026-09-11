@@ -15,7 +15,7 @@ import { makeEnvelope } from '@r10c/entifix-ts-core';
 import { requireCrossing } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
-import { SAGAS } from '../sagas/checkout.saga';
+import { SAGAS } from '../sagas';
 
 const serverError = (error: unknown) =>
   HttpServerResponse.json(

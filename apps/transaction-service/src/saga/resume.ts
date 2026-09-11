@@ -10,7 +10,7 @@ import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
 import { Context, Duration, Effect, Fiber } from 'effect';
 
 import { recordSagaResume, recordStaleSagas } from '../observability/metrics';
-import { SAGAS } from '../sagas/checkout.saga';
+import { SAGAS } from '../sagas';
 
 /**
  * How often the sweep looks for instances nobody finished, from config-service.
@@ -48,9 +48,10 @@ export class SagaStaleAfterMs extends Context.Tag('SagaStaleAfterMs')<
  * because a coordinator spinning on a permanent failure is how a customer's
  * money stays captured with nobody told.
  */
-export class SagaMaxResumeAttempts extends Context.Tag(
-  'SagaMaxResumeAttempts',
-)<SagaMaxResumeAttempts, number>() {}
+export class SagaMaxResumeAttempts extends Context.Tag('SagaMaxResumeAttempts')<
+  SagaMaxResumeAttempts,
+  number
+>() {}
 
 /**
  * Resume one claimed instance, reporting rather than propagating a failure.

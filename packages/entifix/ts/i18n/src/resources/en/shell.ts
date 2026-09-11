@@ -341,6 +341,18 @@ export const shell: EsShell = {
       expiredHeading: 'There is no order to show',
       expired:
         'The receipt for your last purchase is no longer available in this browser. If you have just bought something, check your confirmation email.',
+      // The window is named rather than left for the button to stop working on
+      // its own: the receipt carries the moment the server stamped, and the two
+      // agree because `RECEIPT_TTL_SECONDS` and the service's own dial are one
+      // number (ADR 0058 §5).
+      cancel: 'Cancel order',
+      cancelWindow: 'You can cancel this order until {{time}}.',
+      cancelPending: 'Cancelling…',
+      cancelledHeading: 'Order cancelled',
+      cancelled:
+        'We have cancelled your order and the refund is on its way. It can take a few days to appear on your statement.',
+      cancelFailed:
+        'The order could not be cancelled. The window may have closed, or it may already be on its way.',
     },
     footer: {
       note: 'Demo catalog. No order is real.',

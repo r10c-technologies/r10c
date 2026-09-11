@@ -32,3 +32,21 @@ export const checkoutServiceUrl = (): string =>
  */
 export const sagaCrossingToken = (): string =>
   process.env['SAGA_CROSSING_TOKEN'] ?? 'dev-saga-crossing-token-change-me';
+
+/**
+ * order-service's API root, server-side — where a buyer's own cancel is
+ * presented.
+ *
+ * ⚠️ **No token goes with it, and that is the whole design.** The buyer's
+ * authority is the nonce in their receipt cookie, whose SHA-256 digest the order
+ * itself carries; order-service compares against that. A crossing token here
+ * would be a second, stronger credential on a route that must accept exactly one
+ * ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md) §4).
+ *
+ * ⚠️ **The storefront talks to order-service directly rather than through a
+ * proxy**, because it mounts none: it has no session to carry and nothing to
+ * add. The call is made from a `'use server'` action, so the address never
+ * reaches the browser either way.
+ */
+export const orderServiceUrl = (): string =>
+  process.env['ORDER_SERVICE_URL'] ?? 'http://localhost:3105/api';

@@ -78,6 +78,23 @@ step marks the record so a second flow can see the first one holding it.
 `sagaCommandId` is stable across attempts of **one** saga and says nothing about
 two, so it cannot do this job.
 
+⚠️ **The converse is also true, and the build found it the expensive way: the
+status cannot do `sagaCommandId`'s job either.** Both a redelivery of one claim
+and a rival flow arrive at an order that is already `cancelling`, and the status
+alone cannot tell them apart — so the claim route consults the **command inbox**
+as well, in the same transaction as the conditional write. Getting this wrong is
+not a near-miss: the first build answered a rival the same `200` a redelivery is
+owed, and six simultaneous cancels of one order measured **one refund and six
+stock restorations**, because every step after the claim is idempotent only on
+its own command id. The refund was protected by its unique index on `paymentId`;
+the ledger had nothing equivalent, and a vendor was handed back five units nobody
+had bought. Two guards, two questions — _is this the same command?_ and _is this
+order still claimable?_ — and neither is redundant.
+
+⚠️ **A sequential run proves nothing here.** Six cancels one after another pass
+under both the broken and the fixed claim. The test is a parallel burst against a
+live fleet, asserting the refund count *and* the movement count.
+
 A stranded cancellation therefore leaves the order visibly `cancelling` rather
 than silently wrong, which is the state a sweep or a person can act on.
 

@@ -102,6 +102,51 @@ const collections = [
  */
 const CHECKOUT_URL = 'http://localhost:3103/api/saga/checkout';
 
+/**
+ * Where the buyer's own cancel is presented, matching `orderServiceUrl()`'s dev
+ * default. Stubbed here rather than with `page.route()` for the same reason the
+ * coordinator is: the cancel is a server action, so an interceptor in the
+ * browser would never see the call.
+ */
+const BUYER_CANCEL_URL =
+  'http://localhost:3105/api/product-order/:id/buyer-cancellation';
+
+/**
+ * The cancel window the real service stamps at placement.
+ *
+ * ⚠️ **A long one on purpose.** The storefront renders the Cancel button only
+ * while the window is open, so a fixture in the past would make the affordance
+ * invisible and the spec below would pass while asserting the opposite of what
+ * it claims. Far future, so the run's own clock cannot close it.
+ */
+const CANCEL_WINDOW_ENDS_AT = '2099-01-01T00:30:00.000Z';
+
+/**
+ * A buyer cancelling their own order.
+ *
+ * It checks the nonce is *present* and nothing more: what the digest comparison
+ * protects is the service's own decision, and asserting it here would be
+ * asserting a fixture. What this suite is for is the half only a browser can
+ * show — that the button appears exactly when the receipt says it may, and that
+ * the page afterwards says the order was cancelled.
+ */
+const buyerCancelHandler = http.post(BUYER_CANCEL_URL, async ({ request }) => {
+  const body = await request.json().catch(() => undefined);
+  if (typeof body?.cancelNonce !== 'string' || body.cancelNonce === '') {
+    return HttpResponse.json(
+      {
+        error: 'the order cannot be cancelled from here',
+        code: 'cancelNotAuthorized',
+      },
+      { status: 401 },
+    );
+  }
+  return HttpResponse.json({
+    meta: { type: 'entity', entity: 'product-order' },
+    data: { id: 'e2e-order-1', status: 'cancelled' },
+  });
+});
+
 const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
   const body = await request.json();
   const items = body?.inputs?.['write-order']?.[0]?.body?.data?.items ?? [];
@@ -133,6 +178,10 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
                     id: 'e2e-order-1',
                     status: 'pending',
                     placedAt: '2026-09-09T00:00:00.000Z',
+                    // ⚠️ Server-stamped, and only for an order that brought a
+                    // digest. It is what turns the nonce the action minted into
+                    // a capability the confirmation page may offer.
+                    cancelWindowEndsAt: CANCEL_WINDOW_ENDS_AT,
                     items,
                   },
                 },
@@ -147,6 +196,7 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
 });
 
 setupServer(
+  buyerCancelHandler,
   configurationHandler(CONFIG_URL, CONFIGURATION),
   checkoutHandler,
   ...collections.flatMap(({ handlers }) => handlers),

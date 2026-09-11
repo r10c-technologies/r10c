@@ -3,7 +3,11 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
-import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
+import {
+  type Action,
+  type Permission,
+  permissionForEntity,
+} from '@r10c/business-ts-authz';
 import {
   EntityIdTag,
   EntityLoadRequestTag,
@@ -146,10 +150,7 @@ export const listRoute = <T extends Entity>(
         ? parsed
         : ({
             ...parsed,
-            filtering: [
-              ...(parsed.filtering ?? []),
-              scopeFilter,
-            ],
+            filtering: [...(parsed.filtering ?? []), scopeFilter],
           } as EntityLoadRequest);
     const page = yield* loadUCFactory<T>().pipe(
       Effect.provideService(
@@ -258,3 +259,25 @@ export const guarded = <T extends Entity, A, E, R>(
   action: Action,
   route: (principal: RequestPrincipal) => Effect.Effect<A, E, R>,
 ) => requirePermission(permissionForEntity(entityConstructor, action))(route);
+
+/**
+ * Guard a route with the permission a **use case** derives, rather than one of
+ * the CRUD triple.
+ *
+ * A sibling of {@link guarded} rather than a parameter on it, because the two
+ * resolve their permission from different things: `permissionForEntity` composes
+ * `<domain>:<key>:<action>` from an `Action`, while `permissionForUseCase` reads
+ * the verb off a descriptor and throws at module load if the entity never
+ * declared it. Passing a verb string into the first would compile and then name
+ * a permission no `@useCase()` backs — which `@r10c/slices` catches in the grant
+ * table and nowhere else.
+ *
+ * ⚠️ **The served `$metadata` filters the same descriptors by the same
+ * permission**, so a caller who cannot reach this route never sees the button
+ * either. That is one decision in two places by construction rather than a
+ * client-side check agreeing with a server-side one (ADR 0026).
+ */
+export const guardedUseCase = <A, E, R>(
+  permission: Permission,
+  route: (principal: RequestPrincipal) => Effect.Effect<A, E, R>,
+) => requirePermission(permission)(route);

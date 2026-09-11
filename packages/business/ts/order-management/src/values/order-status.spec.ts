@@ -9,6 +9,7 @@ describe('OrderStatuses', () => {
     expect(OrderStatuses).toEqual([
       'pending',
       'paid',
+      'cancelling',
       'fulfilled',
       'cancelled',
     ]);
@@ -16,6 +17,13 @@ describe('OrderStatuses', () => {
 
   it('opens as `pending`, before any money has moved', () => {
     expect(OrderStatuses[0]).toBe('pending');
+  });
+
+  it('carries the claim a cancellation takes before it refunds', () => {
+    // `cancelling` is the conditional write that stops two cancels running at
+    // once. Without it in the vocabulary there is nothing for the claim to
+    // write, and the concurrency guard is a comment (ADR 0058 §3).
+    expect(OrderStatuses).toContain('cancelling');
   });
 });
 

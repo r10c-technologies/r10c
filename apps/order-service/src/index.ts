@@ -10,6 +10,10 @@ export {
   digestOf,
   verifyCancelCapability,
 } from './cancel-capability';
+export {
+  CancellationCoordinatorUrl,
+  CancellationCrossingToken,
+} from './coordinator-config';
 export { AppLayer } from './mongo';
 export { ORDER_COLLECTION, ORDER_SLICE } from './outbox';
 export { router } from './routes';
