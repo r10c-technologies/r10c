@@ -21,10 +21,16 @@ import { type PartyRoleName, PartyRoles } from '../../values/party-role';
  * ([ADR 0015](../../../../../../docs/adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md)).
  * Only its source moved, from a column to a queryable record.
  *
- * When a party holds several, `SessionScopeResolver` picks by **reach**:
- * `operator` > `vendor` > `customer`. Recorded cost — an operator who is also a
- * buyer always gets an operator session, so there is no way to act as a buyer
- * while being staff.
+ * A role is played **in a context**, which is what {@link organizationId}
+ * carries. `SessionScopeResolver` resolves the session's organization from the
+ * membership it opened under and then reads the role played there, so a party
+ * that sells for one organization and buys from another gets the role that
+ * matches the door it came in through rather than the widest one it holds.
+ *
+ * An organization-less row is a role with no tenant context — `operator`, which
+ * holds no tenant scope at all, and a plain `customer`, who belongs to no
+ * organization. Those are the only rows a party with no membership can have, and
+ * among them the resolver still picks by reach; see {@link organizationId}.
  *
  * The role name stays the closed set in `values/party-role.ts`, because it is
  * also the plane selector and a storage boundary must not be decided by a
@@ -43,6 +49,7 @@ export class PartyRole implements Entity {
   #id?: EntityId;
   #partyId: string;
   #role: PartyRoleName;
+  #organizationId?: string;
   // #endregion
 
   // #region constructors
@@ -94,6 +101,46 @@ export class PartyRole implements Entity {
   }
   set role(value: PartyRoleName) {
     this.#role = value;
+  }
+
+  /**
+   * The organization the role is played in, when it is played in one.
+   *
+   * **Optional, and the two cases are not symmetrical.** A `vendor` is scoped to
+   * one tenant's storage, so a vendor role without an organization names nothing
+   * — it is the membership's organization, and the resolver reads the two
+   * together. An `operator` holds **no** tenant scope at all by decision, and a
+   * `customer` belongs to no organization either, so both are stored without
+   * one. Absent therefore means "played on the platform", not "not filled in".
+   *
+   * This is what replaced precedence by reach (#76). The old rule picked the
+   * widest role a party held anywhere — `operator` over `vendor` over `customer`
+   * — which needed no extra input and could not express the ordinary fact that a
+   * party sells for one organization and buys from another.
+   *
+   * ⚠️ **Precedence survives in one place, and the residual is narrower rather
+   * than gone.** A party with no membership has only organization-less rows to
+   * choose between, and nothing in the session says which it meant; the resolver
+   * still takes the widest. So staff who are also buyers still open an operator
+   * session. Closing that needs an explicit choice at sign-in — a role switch,
+   * which re-mints the token through the path that already exists — and is not
+   * built.
+   *
+   * Filterable because resolving a session asks for exactly one row: this
+   * party's role in this organization. Member metadata is also the server-side
+   * allowlist, so a lookup that could not filter would read every role the party
+   * holds and narrow it in memory.
+   */
+  @accessor({
+    type: 'string',
+    labelKey: 'entity:party-role.fields.organizationId',
+    filterable: true,
+  })
+  get organizationId(): string | undefined {
+    return this.#organizationId;
+  }
+  set organizationId(value: string | undefined) {
+    this.#organizationId = value;
   }
   // #endregion
 }

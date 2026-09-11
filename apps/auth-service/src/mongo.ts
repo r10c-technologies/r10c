@@ -126,7 +126,7 @@ const seedTenancy = (organizationId: string) =>
     [
       seedCollection('organization', organizationSeedData(organizationId)),
       seedCollection('individual', individualSeedData),
-      seedCollection('party-role', partyRoleSeedData),
+      seedCollection('party-role', partyRoleSeedData(organizationId)),
       seedCollection('role', roleSeedData(organizationId)),
       seedCollection('membership', membershipSeedData(organizationId)),
       seedCollection('entitlement', entitlementSeedData(organizationId)),

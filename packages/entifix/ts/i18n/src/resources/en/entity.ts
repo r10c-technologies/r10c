@@ -184,6 +184,7 @@ export const entity: EsEntity = {
       id: 'ID',
       partyId: 'Party ID',
       role: 'Role',
+      organizationId: 'Organization ID',
     },
     values: {
       role: {
