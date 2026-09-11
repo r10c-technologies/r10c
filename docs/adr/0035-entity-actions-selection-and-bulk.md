@@ -8,6 +8,9 @@
 - Amended by: [ADR 0044](0044-the-command-palette.md) — the `unbound` row of the
   surface map gains a renderer and its first declared verb; the map itself is
   unchanged.
+- Revised: 2026-09-11 — a verb may name more than one cell (#216). The map and
+  the rule that made it are unchanged; the arity is not. Recorded on decision 1,
+  with the cost.
 
 ## Context
 
@@ -72,6 +75,27 @@ that no surface re-derives them:
 | `collection` | `context-independent` | **table toolbar**              |
 | `collection` | `determining`         | **invalid — throws at render** |
 | `unbound`    | any                   | command palette (#129)         |
+
+> **Amended 2026-09-11 (#216): a verb may sit in more than one cell.** The map
+> above is unchanged and so is the rule that made it — placement decides the
+> surface, binding decides the payload. What changed is the arity: a descriptor
+> carries its primary `binding` + `placement` and may name further cells in
+> `alsoAt`, each validated exactly as the primary pair is and on the same first
+> render of any surface.
+>
+> ⚠️ **The alternative was three permissions for one act.** Publishing an
+> offering is wanted from the form it is open in, from a row menu, and over a
+> selection. Declaring that as three `@useCase()` classes is not merely
+> repetitive — `@r10c/slices` refuses it, because a verb key _is_ the third
+> segment of one permission and two classes cannot share a key. Three classes
+> would have meant three grants, and a role that could publish one offering but
+> not twenty.
+>
+> The cost, stated: one verb can now differ in **binding** across its cells, so
+> `publish` is entity-bound from a row and collection-bound from the bulk bar.
+> That is the payload difference this table already describes, and it is why the
+> two reach different handlers — but a reader of a single descriptor can no
+> longer assume one payload shape from `binding` alone.
 
 `collection` + `determining` throws rather than being dropped. A determining
 action _finalizes a page_ — it is an object page's footer — and a list screen
