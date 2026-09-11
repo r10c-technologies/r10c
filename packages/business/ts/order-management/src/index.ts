@@ -32,4 +32,12 @@
  */
 export { ORDER_DOMAIN } from './domain';
 export * from './entities/product-order';
+/**
+ * ⚠️ **Load-bearing, not tidiness.** A `@useCase()` registers itself onto its
+ * entity when its module evaluates, so a descriptor no importer can reach leaves
+ * `ProductOrder` serving an empty action list — a `200` that reads as "no
+ * actions here" rather than as a wiring fault. `@r10c/slices` asserts this
+ * barrel reaches every declaration.
+ */
+export * from './use-cases';
 export * from './values';

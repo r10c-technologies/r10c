@@ -55,7 +55,7 @@ import {
   ORDER_PARTICIPANT,
   PAYMENT_PARTICIPANT,
   STOCK_PARTICIPANT,
-} from './sagas/checkout.saga';
+} from './sagas';
 
 const SERVICE_NAME = 'transaction-service';
 const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';

@@ -67,3 +67,66 @@ export const orderPlacedEntry = async (
     session,
   });
 };
+
+/**
+ * Announce a cancelled order, **in the caller's transaction**.
+ *
+ * ⚠️ **`order.cancelled` has been declared by this slice since it was written,
+ * with nothing emitting it.** This is the emitter, and it lands in the same
+ * Mongo transaction as the `cancelled` status for the reason above: an
+ * announcement that commits apart from the write it announces is the dual write
+ * ADR 0028 exists to close, and retrofitting it later is that same bug arriving
+ * on purpose.
+ *
+ * Its consumer is settlement, which joins it against `payment.refunded` on the
+ * order id to reverse a commission entry — neither message alone carries both
+ * which vendors and that the money moved
+ * ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md) §9).
+ *
+ * ⚠️ **The payload is the whole order, as `order.placed`'s is.** A consumer
+ * reversing a commission needs the vendor-tagged lines, and a message carrying
+ * only an id would send it back to a store it cannot open.
+ *
+ * ⚠️ **It takes the stored document rather than a `ProductOrder`**, which is the
+ * one difference from `orderPlacedEntry` above. That function is called with an
+ * order it just built in memory and serializes it; this one is called from
+ * inside a transaction that has just read the document back, and the document
+ * *is* the serialized form. Deserializing it into an entity only to serialize it
+ * again would round-trip through an `Effect` that cannot be awaited inside the
+ * driver callback, for a value that is already exactly what is wanted.
+ */
+export const orderCancelledEntry = async (
+  db: Db,
+  session: ClientSession,
+  order: { readonly id: string },
+): Promise<void> => {
+  const at = new Date().toISOString();
+  const event: DomainEvent = {
+    name: 'order.cancelled',
+    // `<orderId>:cancelled`, distinct from `<orderId>:placed` for the reason
+    // that suffix exists: one order emits several messages over its life, and
+    // keying on the order id alone would make this look like a redelivery of
+    // the placement.
+    id: `${order.id}:cancelled`,
+    source: ORDER_SLICE,
+    at,
+    correlationId: order.id,
+    // The document as stored, which is the same shape `serializeEntity` answers
+    // for `order.placed` — minus Mongo's own `_id`, which the caller projects
+    // away and which is not part of any entity.
+    data: order as Record<string, unknown>,
+  };
+
+  const entry: OutboxEntry = {
+    eventId: event.id,
+    event,
+    sent: false,
+    attempts: 0,
+    quarantined: false,
+    createdAt: at,
+  };
+
+  await db.collection<OutboxEntry>(OUTBOX_COLLECTION).insertOne(entry, {
+    session,
+  });
+};

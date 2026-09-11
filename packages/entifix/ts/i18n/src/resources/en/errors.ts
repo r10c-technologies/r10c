@@ -14,7 +14,25 @@ export const errors: EsErrors = {
   invalidRequest: 'The request is not valid.',
   paymentDeclined: 'The payment could not be processed. Try another method.',
   refundDeclined: 'The refund could not be processed. Contact support.',
-  noCapturedPayment: 'No payment was taken for this order, so nothing can be sent back.',
+  noCapturedPayment:
+    'No payment was taken for this order, so nothing can be sent back.',
+  // A vendor asking to cancel a basket that also names somebody else. Partial
+  // cancellation of a multi-vendor order is out of scope by decision rather than
+  // by omission — the money was taken once, for the whole basket, on one capture
+  // (ADR 0058 §1) — so the message says who can do it instead of implying a
+  // retry would work.
+  multiVendorOrder:
+    'This order also covers another vendor, so only an operator can cancel it.',
+  orderNotFulfillable:
+    'This order can no longer be marked as delivered. It may have been cancelled.',
+  orderNotCancellable:
+    'This order can no longer be cancelled. It may already be on its way, or a cancellation may be in progress.',
+  // Every refusal of the buyer's own cancel capability answers with this one
+  // code. The three-way distinction order-service draws — no capability, a bad
+  // one, a closed window — is for the log: telling an unauthenticated caller
+  // which of the three they hit is telling them how to get closer.
+  cancelNotAuthorized:
+    'This order cannot be cancelled from here. The cancellation window may have closed.',
   invalidBody: 'The request body is not valid.',
   invalidQuery: 'The query is not valid.',
   invalidCommand: 'The command is not valid.',

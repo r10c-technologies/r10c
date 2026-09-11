@@ -25,7 +25,16 @@ export const errors = {
   invalidBody: 'El cuerpo de la solicitud no es válido.',
   paymentDeclined: 'No se pudo procesar el pago. Intenta con otro método.',
   refundDeclined: 'No se pudo procesar el reembolso. Contacta a soporte.',
-  noCapturedPayment: 'No se cobró este pedido, así que no hay nada que devolver.',
+  noCapturedPayment:
+    'No se cobró este pedido, así que no hay nada que devolver.',
+  multiVendorOrder:
+    'Este pedido también incluye a otro vendedor, así que solo un operador puede cancelarlo.',
+  orderNotFulfillable:
+    'Este pedido ya no se puede marcar como entregado. Puede que se haya cancelado.',
+  orderNotCancellable:
+    'Este pedido ya no se puede cancelar. Puede que ya vaya en camino o que la cancelación esté en curso.',
+  cancelNotAuthorized:
+    'Este pedido no se puede cancelar desde aquí. Puede que el plazo de cancelación haya terminado.',
   invalidQuery: 'La consulta no es válida.',
   invalidCommand: 'El comando no es válido.',
   notFound: 'No se encontró el registro.',

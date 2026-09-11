@@ -282,6 +282,7 @@ export const entity: EsEntity = {
         amount: 'Amount',
         currency: 'Currency',
         reservationId: 'Reservation ID',
+        fulfilledAt: 'Fulfilled at',
       },
       channel: 'Sales channel',
       placedAt: 'Placed at',
@@ -293,9 +294,16 @@ export const entity: EsEntity = {
       status: {
         pending: 'Pending',
         paid: 'Paid',
+        cancelling: 'Cancelling',
         fulfilled: 'Fulfilled',
         cancelled: 'Cancelled',
       },
+    },
+    useCases: {
+      fulfil: 'Mark as delivered',
+      cancel: 'Cancel order',
+      cancelConfirm:
+        'The buyer will be refunded and the units will go back into your stock. This cannot be undone: charging again is a new purchase.',
     },
   },
   payment: {

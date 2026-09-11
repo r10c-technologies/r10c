@@ -425,9 +425,9 @@ describe('deleting an order is a compensation', () => {
 });
 
 /**
- * The buyer's cancel capability, as much of it as this bundle builds: the digest
- * arrives with the order and the window is stamped from it. The route that
- * spends the capability is the cancellation saga's, and it is not served yet.
+ * The buyer's cancel capability: the digest arrives with the order and the
+ * window is stamped from it. The route that spends it is asserted further down —
+ * everything up to the dispatch, which needs live participants.
  */
 const placeWithDigest = (
   data: Record<string, unknown>,
@@ -481,5 +481,386 @@ describe('the cancel capability an order carries', () => {
     expect(Date.parse(String(res.data.data.cancelWindowEndsAt))).toBeLessThan(
       Date.parse('2099-01-01T00:00:00.000Z'),
     );
+  });
+});
+
+/**
+ * The two verbs a person can reach, and the three credentials around them.
+ *
+ * ⚠️ **Nothing here drives an order to `paid`, because nothing can.** The only
+ * writer of that status is the `payment.captured` projection, so neither profile
+ * can reach it from a request — which puts the *happy* paths of both verbs in
+ * two other places by necessity rather than by choice: the stamping rule and the
+ * status it derives are unit-tested in `order-transition.spec.ts`, and the flow
+ * end to end is the live pass. What is asserted here is everything a request can
+ * reach: which credential each route accepts, the scope it checks, and every
+ * refusal.
+ *
+ * ⚠️ **One invariant is therefore proven only on the lab, and it is the one
+ * worth naming.** Six simultaneous cancels of one paid order must produce
+ * exactly one refund and exactly one stock restoration. The first build of the
+ * claim answered a rival flow the same `200` it owes a redelivery, and that
+ * measured **one refund and six restorations** — a vendor handed back five units
+ * nobody bought. Nothing in this file could have caught it: reaching the claim's
+ * success path needs a `paid` order, and a sequential run of six cancels would
+ * have passed either way. A parallel burst against the live fleet is the test,
+ * and it belongs in the verification notes rather than here.
+ *
+ * ⚠️ **The coordinator's address in this profile resolves nowhere on purpose.**
+ * A route that got past its checks would hang on a dispatch, so every assertion
+ * below stops short of one.
+ */
+const asVendorOf = async (organizationId: string) => ({
+  Authorization: `Bearer ${await signTokenFor(
+    ['admin'],
+    'user-1',
+    organizationId,
+    'vendor',
+    E2E_PARTY_ID,
+  )}`,
+});
+
+const asOperator = async () => ({
+  Authorization: `Bearer ${await signTokenFor(
+    ['admin'],
+    'user-1',
+    null,
+    'operator',
+    null,
+  )}`,
+});
+
+describe('fulfilling an order', () => {
+  it('refuses a crossing token, because fulfilling is a person’s act', async () => {
+    const placed = await place([line('offering-ff')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/fulfil`,
+      {},
+      { headers: crossing() },
+    );
+
+    // The mirror image of the write next door: one route, one credential.
+    expect(res.status).toBe(401);
+  });
+
+  it('answers 404 to a vendor with no line on the order', async () => {
+    const placed = await place([
+      { ...line('offering-fe'), vendorId: 'vendor-fe' },
+    ]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/fulfil`,
+      {},
+      { headers: await asVendorOf('vendor-elsewhere') },
+    );
+
+    // The same answer an absent order gets. A 403 would confirm it exists to
+    // somebody who may not act on it.
+    expect(res.status).toBe(404);
+  });
+
+  it('answers 404 to a buyer, who fulfils nothing', async () => {
+    const placed = await place([line('offering-fh')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/fulfil`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${await signTokenFor(
+            ['admin'],
+            'user-1',
+            null,
+            'customer',
+            E2E_PARTY_ID,
+          )}`,
+        },
+      },
+    );
+
+    expect(res.status).toBe(404);
+  });
+
+  it('refuses to fulfil an order that is not paid', async () => {
+    const placed = await place([line('offering-fg')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/fulfil`,
+      {},
+      { headers: await asOperator() },
+    );
+
+    expect(res.status).toBe(409);
+    expect(res.data.code).toBe('orderNotFulfillable');
+  });
+});
+
+describe('the cancellation claim', () => {
+  /**
+   * ⚠️ The rule ADR 0058 §2 corrects: a `pending` order is a checkout still in
+   * flight or a saga that stranded, and undoing one is the coordinator's job. A
+   * second actor cancelling underneath it would race a compensation already on
+   * its way.
+   */
+  it('refuses an order that is not paid', async () => {
+    const placed = await place([line('offering-ca')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/cancelling`,
+      {},
+      { headers: crossing() },
+    );
+
+    expect(res.status).toBe(409);
+    expect(res.data.code).toBe('orderNotCancellable');
+  });
+
+  it('answers 404 for an order that is not there', async () => {
+    const res = await service.client.post(
+      '/api/product-order/no-such-order/cancelling',
+      {},
+      { headers: crossing() },
+    );
+
+    expect(res.status).toBe(404);
+  });
+
+  it('refuses a session, because the claim is a saga step', async () => {
+    const placed = await place([line('offering-cd')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/cancelling`,
+      {},
+      { headers: { Authorization: await bearerFor(['admin']) } },
+    );
+
+    expect(res.status).toBe(401);
+  });
+
+  /**
+   * ⚠️ `200` with nothing to undo, for the reason every compensation in this
+   * fleet answers so: delivery is at-least-once, and a compensation that errored
+   * on its second delivery would strand a flow that had in fact been reversed.
+   */
+  it('releases a claim that was never taken, and says so', async () => {
+    const placed = await place([line('offering-cc')]);
+
+    const res = await service.client.delete(
+      `/api/product-order/${placed.data.data.id as string}/cancelling`,
+      { headers: crossing() },
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.data.outcome).toBe('not-claimed');
+  });
+
+  it('refuses a session on the release too', async () => {
+    const placed = await place([line('offering-ce')]);
+
+    const res = await service.client.delete(
+      `/api/product-order/${placed.data.data.id as string}/cancelling`,
+      { headers: { Authorization: await bearerFor(['admin']) } },
+    );
+
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('settling a cancellation', () => {
+  /**
+   * ⚠️ The conditional filter is the whole guard. An order nobody claimed must
+   * not be walked to `cancelled` by a stray delivery — and the answer is still
+   * `200`, because this step sits after the pivot and may only roll forward, so
+   * a refusal here would strand a flow rather than fix anything. The body is
+   * what says nothing happened.
+   */
+  it('leaves an unclaimed order alone and reports what it found', async () => {
+    const placed = await place([line('offering-sa')]);
+    const id = placed.data.data.id as string;
+
+    const res = await service.client.post(
+      `/api/product-order/${id}/cancelled`,
+      {},
+      { headers: crossing({ 'x-command-id': 'cmd-settle-a' }) },
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.data.data.status).toBe('pending');
+  });
+
+  it('answers 404 for an order that is not there', async () => {
+    const res = await service.client.post(
+      '/api/product-order/no-such-order/cancelled',
+      {},
+      { headers: crossing({ 'x-command-id': 'cmd-settle-missing' }) },
+    );
+
+    expect(res.status).toBe(404);
+  });
+
+  it('refuses a session, like every other step', async () => {
+    const placed = await place([line('offering-sc')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/cancelled`,
+      {},
+      { headers: { Authorization: await bearerFor(['admin']) } },
+    );
+
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('the buyer’s own cancel', () => {
+  const NONCE = 'c'.repeat(64);
+
+  const digestOfNonce = async (): Promise<string> => {
+    const { createHash } = await import('node:crypto');
+    return createHash('sha256').update(NONCE, 'utf8').digest('hex');
+  };
+
+  const withCapability = async (): Promise<string> => {
+    const res = await placeWithDigest({ cancelDigest: await digestOfNonce() });
+    return res.data.data.id as string;
+  };
+
+  it('refuses a nonce that does not match, and says nothing about why', async () => {
+    const id = await withCapability();
+
+    const res = await service.client.post(
+      `/api/product-order/${id}/buyer-cancellation`,
+      { cancelNonce: 'd'.repeat(64) },
+      { headers: { Authorization: undefined } },
+    );
+
+    expect(res.status).toBe(401);
+    expect(res.data.code).toBe('cancelNotAuthorized');
+  });
+
+  it('refuses a request carrying no nonce at all', async () => {
+    const id = await withCapability();
+
+    const res = await service.client.post(
+      `/api/product-order/${id}/buyer-cancellation`,
+      {},
+      { headers: { Authorization: undefined } },
+    );
+
+    expect(res.status).toBe(401);
+  });
+
+  /**
+   * ⚠️ A counter sale carries no digest, because at a till there is no browser
+   * to hold a nonce. "No capability was required" must never be reachable from
+   * "no capability was presented".
+   */
+  it('refuses every nonce on an order that carries no digest', async () => {
+    const placed = await place([line('offering-bc')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/buyer-cancellation`,
+      { cancelNonce: NONCE },
+      { headers: { Authorization: undefined } },
+    );
+
+    expect(res.status).toBe(401);
+  });
+
+  /**
+   * ⚠️ `401` rather than `404`, so an order id cannot be confirmed to exist by
+   * anyone presenting a nonce they do not have.
+   */
+  it('answers an absent order the same way it answers a bad nonce', async () => {
+    const res = await service.client.post(
+      '/api/product-order/no-such-order/buyer-cancellation',
+      { cancelNonce: NONCE },
+      { headers: { Authorization: undefined } },
+    );
+
+    expect(res.status).toBe(401);
+    expect(res.data.code).toBe('cancelNotAuthorized');
+  });
+
+  /**
+   * A valid capability against an order that is not `paid`. It is a `409` rather
+   * than the blanket `401` above, because the caller has proved they may ask —
+   * what they are being told is about the order, not about them.
+   */
+  it('refuses an order that is not paid, once the nonce checks out', async () => {
+    const id = await withCapability();
+
+    const res = await service.client.post(
+      `/api/product-order/${id}/buyer-cancellation`,
+      { cancelNonce: NONCE },
+      { headers: { Authorization: undefined } },
+    );
+
+    expect(res.status).toBe(409);
+    expect(res.data.code).toBe('orderNotCancellable');
+  });
+});
+
+describe('a vendor or operator asking to cancel', () => {
+  /**
+   * ⚠️ Partial cancellation of a multi-vendor order is out of scope by decision
+   * rather than by omission: the money was taken once, for the whole basket, on
+   * one capture. So a vendor is refused with a code naming who can — and that
+   * check runs **before** the status one, because "not cancellable right now"
+   * reads as a retry and there is no moment at which this one succeeds.
+   */
+  it('refuses a vendor an order that also names somebody else', async () => {
+    const placed = await place([
+      { ...line('offering-va'), vendorId: 'vendor-va' },
+      { ...line('offering-vb'), vendorId: 'vendor-vb' },
+    ]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/cancellation`,
+      {},
+      { headers: await asVendorOf('vendor-va') },
+    );
+
+    expect(res.status).toBe(409);
+    expect(res.data.code).toBe('multiVendorOrder');
+  });
+
+  it('refuses an operator an order that is not paid', async () => {
+    const placed = await place([line('offering-ve')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/cancellation`,
+      {},
+      { headers: await asOperator() },
+    );
+
+    expect(res.status).toBe(409);
+    expect(res.data.code).toBe('orderNotCancellable');
+  });
+
+  it('answers 404 to a vendor with no line on the order', async () => {
+    const placed = await place([
+      { ...line('offering-vc'), vendorId: 'vendor-vc' },
+    ]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/cancellation`,
+      {},
+      { headers: await asVendorOf('vendor-elsewhere') },
+    );
+
+    expect(res.status).toBe(404);
+  });
+
+  it('refuses a crossing token, because asking is a person’s act', async () => {
+    const placed = await place([line('offering-vd')]);
+
+    const res = await service.client.post(
+      `/api/product-order/${placed.data.data.id as string}/cancellation`,
+      {},
+      { headers: crossing() },
+    );
+
+    expect(res.status).toBe(401);
   });
 });

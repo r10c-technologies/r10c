@@ -50,6 +50,7 @@ export class OrderItem {
   #amount: number;
   #currency: string;
   #reservationId?: string;
+  #fulfilledAt?: Date;
   // #endregion
 
   // #region constructors
@@ -143,6 +144,36 @@ export class OrderItem {
   }
   set reservationId(value: string | undefined) {
     this.#reservationId = value;
+  }
+
+  /**
+   * When the vendor that owes this line delivered it.
+   *
+   * ⚠️ **Fulfilment is per line, and cancellation is per order.** One order
+   * spans several vendors, so an order-level `fulfilled` flipped by one of them
+   * states something about another vendor's lines that is not true. The order
+   * reaches `fulfilled` only when every line carries a stamp
+   * ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md) §1).
+   *
+   * The asymmetry with cancellation is deliberate rather than an oversight: a
+   * promise is kept per vendor, while a cancellation moves money that was taken
+   * once, for the whole basket, on one capture.
+   *
+   * Server-owned — the fulfil route stamps it from the clock, never from the
+   * request — but **not** `@accessor({ readonly })`, for the reason `paidAt`
+   * already documents one entity up: that flag drops a member from
+   * deserialization as well as serialization, so the stamp would never reach
+   * the screen that exists to show it.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:product-order.fields.item.fulfilledAt',
+  })
+  get fulfilledAt(): Date | undefined {
+    return this.#fulfilledAt;
+  }
+  set fulfilledAt(value: Date | undefined) {
+    this.#fulfilledAt = value;
   }
   // #endregion
 }

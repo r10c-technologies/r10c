@@ -250,6 +250,27 @@ describe('the cancel capability on a receipt', () => {
     expect('cancelNonce' in receipt).toBe(false);
   });
 
+  /**
+   * ⚠️ `true` only, and anything else is absent rather than `false`. The cookie
+   * is `httpOnly` but its owner can still edit it, and a forged
+   * `cancelled: 'yes'` must not make the page tell somebody their order was
+   * cancelled when it was not.
+   */
+  it('reads a cancellation back only when it is exactly true', () => {
+    const base = receiptFromOrder('order-1', undefined, [aLine]);
+
+    const marked = parseReceipt(serializeReceipt({ ...base, cancelled: true }));
+    expect(marked?.cancelled).toBe(true);
+
+    for (const forged of ['yes', 1, {}, null]) {
+      const parsed = parseReceipt(
+        JSON.stringify({ ...base, cancelled: forged }),
+      );
+      expect(parsed?.cancelled).toBeUndefined();
+      expect(parsed !== undefined && 'cancelled' in parsed).toBe(false);
+    }
+  });
+
   it('reads both back off the cookie', () => {
     const parsed = parseReceipt(
       serializeReceipt(

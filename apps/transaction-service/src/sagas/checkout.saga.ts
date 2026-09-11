@@ -104,8 +104,3 @@ export const checkoutSaga: SagaDefinition = defineSaga({
     },
   ],
 });
-
-/** Every definition this coordinator knows, by name. */
-export const SAGAS: Readonly<Record<string, SagaDefinition>> = {
-  [checkoutSaga.name]: checkoutSaga,
-};

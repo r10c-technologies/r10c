@@ -13,7 +13,7 @@ export {
 } from './saga/http-dispatcher';
 export { MongoSagaStoreLayer } from './saga/instance-store';
 export { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
-export { checkoutSaga, SAGAS } from './sagas/checkout.saga';
+export { cancellationSaga, checkoutSaga, SAGAS } from './sagas';
 
 export const SERVICE_NAME = '@r10c/transaction-service';
 

@@ -14,7 +14,13 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@r10c/entifix-ts-testing-e2e/fixtures';
-import { CancelWindowSeconds, router, SERVICE_NAME } from '@r10c/order-service';
+import {
+  CancellationCoordinatorUrl,
+  CancellationCrossingToken,
+  CancelWindowSeconds,
+  router,
+  SERVICE_NAME,
+} from '@r10c/order-service';
 import {
   LoadedConfigurationTag,
   type RunningTestService,
@@ -24,6 +30,16 @@ import {
 import { Layer } from 'effect';
 
 import { E2E_CROSSING_TOKEN } from './tokens';
+
+/**
+ * Where this profile's cancellation entry routes would dispatch.
+ *
+ * ⚠️ **Unreachable on purpose.** No mock spec runs a flow — that needs live
+ * participants — so what these routes are asserted on is everything *before* the
+ * dispatch: the credential each accepts, the scope check, and the refusals. An
+ * address that resolved would make a green run depend on what answered it.
+ */
+const COORDINATOR_URL = 'http://coordinator.invalid/api';
 
 /**
  * The configuration the service would otherwise fetch from config-service at
@@ -47,6 +63,13 @@ const CONFIGURATION = {
   // The buyer's cancel window. A literal here for the same reason every other
   // row is: the fixture is the config-service fetch, not a stub of the dial.
   order: [{ key: 'cancelWindowSeconds', value: '1800' }],
+  // Where this service starts a cancellation. The real composition root reads
+  // both rows; this profile builds the two tags directly below, and the rows are
+  // here so the fixture keeps describing the same config-service document.
+  transaction: [
+    { key: 'url', value: COORDINATOR_URL },
+    { key: 'crossingToken', value: E2E_CROSSING_TOKEN },
+  ],
 };
 
 /** Matches the seeded row, and the storefront's `RECEIPT_TTL_SECONDS`. */
@@ -82,6 +105,8 @@ const MockAppLayer = Layer.mergeAll(
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   Layer.succeed(ServiceCrossingTokenTag, E2E_CROSSING_TOKEN),
   Layer.succeed(CancelWindowSeconds, E2E_CANCEL_WINDOW_SECONDS),
+  Layer.succeed(CancellationCoordinatorUrl, COORDINATOR_URL),
+  Layer.succeed(CancellationCrossingToken, E2E_CROSSING_TOKEN),
 ).pipe(Layer.orDie);
 
 /** Boots the service's real router in-process, on an ephemeral port. */

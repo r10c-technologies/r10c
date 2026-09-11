@@ -416,6 +416,18 @@ export const shell = {
       expiredHeading: 'No hay ningún pedido que mostrar',
       expired:
         'El comprobante de tu última compra ya no está disponible en este navegador. Si acabas de comprar, revisa el correo de confirmación.',
+      // El plazo se nombra en vez de dejar que el botón deje de funcionar solo:
+      // el comprobante lleva la fecha que el servidor selló, y las dos
+      // concuerdan porque `RECEIPT_TTL_SECONDS` y el ajuste del servicio son un
+      // solo número (ADR 0058 §5).
+      cancel: 'Cancelar pedido',
+      cancelWindow: 'Puedes cancelar este pedido hasta las {{time}}.',
+      cancelPending: 'Cancelando…',
+      cancelledHeading: 'Pedido cancelado',
+      cancelled:
+        'Cancelamos tu pedido y el reembolso ya va en camino. Puede tardar unos días en aparecer en tu estado de cuenta.',
+      cancelFailed:
+        'No se pudo cancelar el pedido. Puede que el plazo haya terminado o que ya vaya en camino.',
     },
     footer: {
       note: 'Catálogo de demostración. Ningún pedido es real.',

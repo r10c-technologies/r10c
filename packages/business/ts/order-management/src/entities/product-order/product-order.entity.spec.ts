@@ -178,6 +178,19 @@ describe('ProductOrder', () => {
     expect(order.items[0]?.reservationId).toBe('res-vendor-a');
   });
 
+  it('carries the delivery stamp on the line, not on the order', () => {
+    // ⚠️ The asymmetry `fulfil` exists for: one order spans several vendors, so
+    // an order-level `fulfilled` flipped by one of them would state something
+    // about another's lines that is not true. The order reaches `fulfilled`
+    // only when every line carries a stamp (ADR 0058 §1).
+    const at = new Date('2026-09-11T12:00:00.000Z');
+    const item = new OrderItem('offering-a', 'vendor-a', 1, 1000, 'GTQ');
+
+    expect(item.fulfilledAt).toBeUndefined();
+    item.fulfilledAt = at;
+    expect(item.fulfilledAt).toBe(at);
+  });
+
   it('keeps the embedded lines on the wire but out of the query allowlist', () => {
     // A `composition`: owned rows, one write, no life outside this order
     // (ADR 0034). Never queryable — member metadata is also the server-side

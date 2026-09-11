@@ -110,6 +110,22 @@ export interface Receipt {
    * number.
    */
   readonly cancelWindowEndsAt?: string;
+  /**
+   * Whether this order has been cancelled from this browser.
+   *
+   * ⚠️ **Not a status, and deliberately not one.** The receipt carries no
+   * `status` member: the order is `pending` when the write returns and the
+   * capture that makes it `paid` happens later in the same flow, so a status
+   * copied at checkout would be stale before the page rendered. This is written
+   * only by {@link cancelOrder}, from the answer to the cancel it just made, and
+   * is therefore a fact about something that happened rather than a snapshot of
+   * something that keeps moving.
+   *
+   * It exists because the page reads nothing back — the storefront holds no
+   * session and order-service's reads take one — so the cookie is the page's
+   * only state ([ADR 0053](../../../../../../docs/adr/0053-scoping-a-platform-plane-read-to-its-caller.md)).
+   */
+  readonly cancelled?: boolean;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -211,7 +227,7 @@ export const parseReceipt = (
   if (!isRecord(parsed)) return undefined;
 
   const { orderId, placedAt, lines, lineCount, totals } = parsed;
-  const { cancelNonce, cancelWindowEndsAt } = parsed;
+  const { cancelNonce, cancelWindowEndsAt, cancelled } = parsed;
   if (typeof orderId !== 'string' || orderId === '') return undefined;
   if (typeof lineCount !== 'number') return undefined;
   if (!Array.isArray(totals)) return undefined;
@@ -237,6 +253,9 @@ export const parseReceipt = (
     ...(typeof cancelWindowEndsAt === 'string' && cancelWindowEndsAt !== ''
       ? { cancelWindowEndsAt }
       : {}),
+    // `true` only. Anything else is absent rather than `false`, so a forged
+    // `cancelled: 'yes'` cannot make the page claim an order was cancelled.
+    ...(cancelled === true ? { cancelled: true } : {}),
     orderId,
     lineCount,
     totals: readTotals,
