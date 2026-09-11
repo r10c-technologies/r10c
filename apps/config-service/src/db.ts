@@ -448,6 +448,21 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: zitadelValue('ZITADEL_ACTION_SIGNING_KEY'),
     is_secret: true,
   },
+  // How often the reconciler asks the provider what it missed. Three minutes:
+  // slow enough that a lab with no lifecycle events costs one idle round trip
+  // per pass, fast enough that the gap the webhook cannot cover — a user
+  // deactivated while auth-service was down — closes in minutes rather than
+  // lasting to the session's seven-day ceiling (#65).
+  //
+  // ⚠️ **Not a retry policy.** The webhook is the primary mechanism and is
+  // unchanged; this is the backstop for the window where it cannot be
+  // delivered at all, because the Actions v2 target is fire-and-forget.
+  {
+    service: 'auth-service',
+    group_name: 'lifecycle',
+    key: 'sweepIntervalMs',
+    value: '180000',
+  },
   // The browser comes back to the APP, never to the service: the app is what
   // owns cookies. It must match a redirect URI registered on the OIDC app or
   // Zitadel refuses the authorization outright. That app is back-office-app

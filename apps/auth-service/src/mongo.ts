@@ -42,6 +42,11 @@ import { Effect, Layer } from 'effect';
 
 import { makeMongoAccountRepository } from './identity/account-repository';
 import { IdTokenStoreLayer } from './identity/id-token-store';
+import { LifecycleCursorLayer } from './identity/lifecycle-cursor';
+import {
+  LifecycleSweepIntervalMs,
+  startLifecycleReconciler,
+} from './identity/lifecycle-reconciler';
 import { makeDevNotificationPort } from './identity/notifications';
 import { ProviderSessionIndexLayer } from './identity/provider-session-index';
 import { provisionZitadelHuman } from './identity/provisioning';
@@ -259,6 +264,11 @@ export const AppLayer = Layer.unwrapEffect(
     const zitadelActionSigningKey = yield* store
       .in('zitadel')
       .getString('actionSigningKey');
+    // ⚠️ `getNumber`, never a cast: `'three minutes'` would cast to `NaN` and a
+    // daemon scheduled on `NaN` never fires, silently.
+    const lifecycleSweepIntervalMs = yield* store
+      .in('lifecycle')
+      .getNumber('sweepIntervalMs');
 
     const infra = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
@@ -286,6 +296,7 @@ export const AppLayer = Layer.unwrapEffect(
         personalAccessToken: zitadelPat,
       }),
       ZitadelActionsLayer({ signingKey: zitadelActionSigningKey }),
+      Layer.succeed(LifecycleSweepIntervalMs, lifecycleSweepIntervalMs),
       // The authorization policy behind `requirePermission`. Static
       // role→permission table today; an attribute-aware engine would replace
       // this one line.
@@ -299,6 +310,7 @@ export const AppLayer = Layer.unwrapEffect(
         RedisOneTimeTokenStoreLayer(),
         IdTokenStoreLayer,
         ProviderSessionIndexLayer,
+        LifecycleCursorLayer,
         AccountRepositoryLayer,
         SessionScopeResolverLayer,
         UserDeviceRepositoryLayer,
@@ -341,6 +353,14 @@ export const AppLayer = Layer.unwrapEffect(
       store,
       SERVICE_NAME,
     );
-    return Layer.merge(observability, Layer.provideMerge(seed, withProbes));
+    // The backstop for lifecycle events the webhook could not be handed,
+    // started after the seed so its first pass runs against a populated store
+    // (#65). Discarded like the seed: it provides nothing, it starts something.
+    const reconciler = Layer.effectDiscard(startLifecycleReconciler);
+
+    return Layer.merge(
+      observability,
+      Layer.provideMerge(Layer.merge(seed, reconciler), withProbes),
+    );
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

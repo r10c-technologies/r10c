@@ -4,6 +4,10 @@
 - Date: 2026-08-11
 - Area: auth
 - Read when: a user deactivated at the provider keeps refreshing — the seam is an Actions v2 execution authenticated by HMAC, and the signing key is minted once and never served again
+- Revised: 2026-09-11 — the reconciler this record rejected _for now_ is built
+  (#65). It is the backstop, not a replacement: the webhook still closes the
+  measured hole, and this closes the window where the webhook cannot be
+  delivered at all. The decision is unchanged.
 
 ## Context
 
@@ -120,6 +124,29 @@ exercise. The webhook is what closes the measured hole; the reconciler is the
 durability upgrade on top of it, and is worth building when the gap below is felt
 rather than pre-emptively.
 
+> **Built 2026-09-11 (#65), and the "instead of" in this heading still holds.**
+> The gap was felt: auth-service runs as a host process and the fleet is
+> routinely up while it is not, so the webhook's `restAsync` target fires into
+> nothing more often here than the phrase "residual gap" suggests.
+>
+> Three of the four costs named above are real and were paid as described — a
+> second scheduled process, a cursor in Redis, and a thing only a live pass can
+> exercise. The fourth, "instead of a webhook", is what was **not** paid: the
+> webhook is untouched and remains the primary mechanism, because it is the one
+> that acts in a second rather than within an interval.
+>
+> The cursor is a **timestamp with a minute of overlap**, not a sequence. A
+> timestamp cannot distinguish "newer than the last event I saw" from "recorded
+> in the same millisecond and already handled", and re-reading a window costs
+> duplicate revokes — which are free, since revoking a revoked session is a
+> no-op. That same property is why the sweep takes no lock: two replicas
+> sweeping together cost duplicate work and nothing else.
+>
+> It runs on boot and then on a config-service interval, and deliberately **not**
+> on `refresh` — [ADR 0017](0017-back-channel-logout-from-the-identity-provider.md)
+> rejected that for a reason that still holds, since it couples session renewal
+> to provider availability.
+
 ### Rejected: confirming the event against the provider before revoking
 
 Re-reading `GET /v2/users/{id}` with the PAT would make forgery useless without a
@@ -137,7 +164,10 @@ to avoid. Once the signature holds, the confirmation buys nothing.
 - **An event fired while auth-service is down is lost.** Event executions are
   fire-and-forget (`restAsync`) and Zitadel does not retry them, so the session
   survives to its seven-day ceiling exactly as before. That is the residual gap,
-  it is bounded, and closing it is the reconciler above.
+  it is bounded, and closing it is the reconciler above. **Closed 2026-09-11
+  (#65)**: the reconciler is built, so the bound is now the sweep interval rather
+  than the session ceiling. What it cannot shorten is the 15-minute access-token
+  TTL on the hot path, which is stateless verification working as designed.
 - **auth-service now holds a symmetric secret.** `zitadel.actionSigningKey`, seeded
   `is_secret: true` so the unauthenticated `/api/config` blanks it. A row that
   forgot the flag would publish it, and publishing it is equivalent to leaving the
