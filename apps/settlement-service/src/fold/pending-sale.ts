@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import type { CommissionEntryKind } from '@r10c/business-ts-settlement-management';
 import {
   Agreement,
   CommissionEntry,
@@ -22,7 +23,7 @@ import {
   AGREEMENT_COLLECTION,
   COMMISSION_ENTRY_COLLECTION,
 } from '../settlement-index';
-import type { VendorCommission } from './commission';
+import { reversalOf, type VendorCommission } from './commission';
 
 /**
  * Where the two halves of a sale meet.
@@ -38,6 +39,18 @@ import type { VendorCommission } from './commission';
  * different queues, with independent relays and independent retries. Any
  * ordering rule between them would be a guess, so the record is written by both
  * and the fold is performed by whichever completes the pair.
+ *
+ * ⚠️ **One document per order carries *four* halves, not two.** The reversal's
+ * pair — `order.cancelled` and `payment.refunded` — lands here beside the sale's
+ * rather than in a collection of its own, and the reason is the sentence above
+ * applied across both folds instead of only within one. A separate reversal
+ * record has no way to see whether the sale was ever folded: if `order.placed`
+ * is quarantined or its relay is stuck when the cancellation pair completes, the
+ * reversal finds no ledger rows, writes nothing, marks itself done — and the
+ * replay of the placement then writes a commission that nothing will ever
+ * reverse. Sharing the document lets the reversal require {@link
+ * PendingSale.folded}, and lets a late placement write the sale *and* its
+ * reversal in one transaction.
  */
 export const PENDING_SALE_COLLECTION = 'settlement_pending_sale';
 
@@ -64,15 +77,34 @@ export interface PendingSale {
   readonly decidedAt?: string;
   /** Whether the commission entries have been written. */
   readonly folded: boolean;
+  /**
+   * The cancellation's half: that the order was cancelled at all.
+   *
+   * It contributes no amounts. A reversal mirrors the rows already in the
+   * ledger, so what this half adds is the *fact* — money going back is not on
+   * its own a cancellation, and an order cancelled before it was ever paid has
+   * nothing to reverse. Both must be true.
+   */
+  readonly cancelledAt?: string;
+  /** The refund's half. ISO-8601, and the reversing rows' `occurredAt`. */
+  readonly refundedAt?: string;
+  /** Whether the reversing entries have been written. */
+  readonly reversed?: boolean;
 }
 
-/** The pair is complete when both halves have landed. */
+/** The sale's pair is complete when both of its halves have landed. */
 const isComplete = (
   sale: PendingSale,
 ): sale is PendingSale & {
   commissions: readonly VendorCommission[];
   decidedAt: string;
 } => sale.commissions !== undefined && sale.decidedAt !== undefined;
+
+/** The reversal's pair is complete when both of *its* halves have landed. */
+const isReversible = (
+  sale: PendingSale,
+): sale is PendingSale & { cancelledAt: string; refundedAt: string } =>
+  sale.cancelledAt !== undefined && sale.refundedAt !== undefined;
 
 /**
  * The index the join rides: one document per order.
@@ -122,7 +154,8 @@ export const agreementsFor = (db: Db, vendorIds: readonly string[]) =>
 const entryDocuments = (
   orderId: string,
   commissions: readonly VendorCommission[],
-  decidedAt: string,
+  occurredAt: string,
+  kind: CommissionEntryKind,
 ): Record<string, unknown>[] =>
   commissions.map(commission => {
     const entry = new CommissionEntry(
@@ -131,34 +164,81 @@ const entryDocuments = (
       commission.saleAmount,
       commission.commissionAmount,
       commission.currency,
-      new Date(decidedAt),
+      new Date(occurredAt),
+      kind,
     );
     entry.id = randomUUID();
     return { ...serializeEntity(CommissionEntry, entry), id: entry.id };
   });
 
 /**
- * What one handler contributes to the join.
+ * A stored ledger line, as the reversal reads it back.
+ *
+ * The four members a mirror needs and nothing else — `id`, `occurredAt` and
+ * `runId` all belong to the row being reversed and none of them is carried
+ * across. In particular the mirror carries **no `runId`**, so the next sweep
+ * picks it up as any other unsettled line.
+ */
+interface LedgerLine {
+  readonly vendorId: string;
+  readonly saleAmount: number;
+  readonly commissionAmount: number;
+  readonly currency: string;
+}
+
+/**
+ * The mirrors of an order's recorded sale lines.
+ *
+ * ⚠️ **`occurredAt` is the refund's own decision time, never the sale's and
+ * never `now`.** It is what a settlement run compares against its period, so
+ * copying the sale's timestamp would file the claw-back in a period that may
+ * already be settled, and stamping the handling time would file it differently
+ * on every redelivery or replay.
+ */
+const reversalDocuments = (
+  orderId: string,
+  lines: readonly LedgerLine[],
+  refundedAt: string,
+): Record<string, unknown>[] =>
+  entryDocuments(orderId, lines.map(reversalOf), refundedAt, 'reversal');
+
+/**
+ * What one handler contributes to the join. One arm per subscribed message.
  *
  * `commissions` and `unpriced` travel together because they are one pricing
- * pass; `decidedAt` is the other half on its own.
+ * pass; the other three are each a timestamp on its own. Only `decidedAt` and
+ * `refundedAt` are ever read as values — `cancelledAt` exists to be *present*,
+ * because a refund alone does not say the order was cancelled and a cancellation
+ * alone does not say the money went back.
  */
 export type SaleHalf =
   | {
       readonly commissions: readonly VendorCommission[];
       readonly unpriced: readonly string[];
     }
-  | { readonly decidedAt: string };
-
-/** What the write did, so the caller can log it and the bus can ack. */
-export type FoldOutcome =
-  | { readonly kind: 'waiting' }
-  | { readonly kind: 'folded'; readonly entries: number }
-  | { readonly kind: 'duplicate' };
+  | { readonly decidedAt: string }
+  | { readonly cancelledAt: string }
+  | { readonly refundedAt: string };
 
 /**
- * Claim the message, contribute a half, and fold if that completed the pair —
- * all in one Mongo transaction.
+ * What the write did, so the caller can log it and the bus can ack.
+ *
+ * `written` counts both directions because one pass can now do both: a placement
+ * arriving after its order was already cancelled and refunded completes the sale
+ * and its reversal in the same transaction.
+ */
+export type FoldOutcome =
+  | { readonly kind: 'waiting' }
+  | { readonly kind: 'duplicate' }
+  | {
+      readonly kind: 'written';
+      readonly folded: number;
+      readonly reversed: number;
+    };
+
+/**
+ * Claim the message, contribute a half, and write whichever of the two folds
+ * that completed — all in one Mongo transaction.
  *
  * ⚠️ **The claim and the effect commit together or not at all.** That is the
  * whole mechanism: a claim written separately from the write it guards leaves a
@@ -166,10 +246,17 @@ export type FoldOutcome =
  * redelivery repeating it.
  *
  * ⚠️ **`folded: false` is in the filter of the fold's own update, not just its
- * `$set`.** Two redeliveries arriving together would otherwise both read a
- * complete pair and both write entries; the conditional write means exactly one
- * of them matches, and the unique index on `(orderId, vendorId)` is the backstop
- * if even that is somehow raced.
+ * `$set`**, and `reversed` is claimed the same conditional way. Two redeliveries
+ * arriving together would otherwise both read a complete pair and both write
+ * entries; the conditional write means exactly one of them matches, and the
+ * unique index on `(orderId, vendorId, kind)` is the backstop if even that is
+ * somehow raced.
+ *
+ * ⚠️ **Both folds are attempted, in that order, on every pass.** They are not
+ * alternatives. An `order.placed` that arrives after its order has already been
+ * cancelled and refunded completes the sale *and* its reversal here, in one
+ * transaction — which is the case a separate reversal record could not express
+ * and would silently drop.
  *
  * A duplicate key on the *claim* means this message was already handled, and the
  * correct answer is to ack it. Nacking would requeue it against
@@ -190,6 +277,12 @@ export const contributeToSale = (
       try {
         let outcome: FoldOutcome = { kind: 'waiting' };
         await session.withTransaction(async () => {
+          // Re-entered verbatim when the driver retries a write conflict, so
+          // every counter is reset rather than accumulated across attempts.
+          let folded = 0;
+          let reversed = 0;
+          outcome = { kind: 'waiting' };
+
           await db
             .collection<InboxClaim>(INBOX_COLLECTION)
             .insertOne(inboxDocument(consumer, eventId), { session });
@@ -198,39 +291,79 @@ export const contributeToSale = (
             .collection<PendingSale>(PENDING_SALE_COLLECTION)
             .findOneAndUpdate(
               { orderId },
-              { $set: half, $setOnInsert: { orderId, folded: false } },
+              {
+                $set: half,
+                $setOnInsert: { orderId, folded: false, reversed: false },
+              },
               { upsert: true, returnDocument: 'after', session },
             );
 
-          if (merged === null || !isComplete(merged) || merged.folded) {
-            outcome = { kind: 'waiting' };
-            return;
-          }
+          if (merged === null) return;
 
-          const claimed = await db
-            .collection<PendingSale>(PENDING_SALE_COLLECTION)
-            .updateOne(
+          const sales = db.collection<PendingSale>(PENDING_SALE_COLLECTION);
+          const ledger = db.collection(COMMISSION_ENTRY_COLLECTION);
+
+          // The sale. `saleFolded` tracks whether this order's ledger rows exist
+          // at all, which is what the reversal below needs to know — and a lost
+          // claim answers that question just as well as a won one.
+          let saleFolded = merged.folded;
+          if (!saleFolded && isComplete(merged)) {
+            const claimed = await sales.updateOne(
               { orderId, folded: false },
               { $set: { folded: true } },
               { session },
             );
-
-          if (claimed.modifiedCount === 0) {
-            outcome = { kind: 'waiting' };
-            return;
+            saleFolded = true;
+            if (claimed.modifiedCount > 0) {
+              const documents = entryDocuments(
+                orderId,
+                merged.commissions,
+                merged.decidedAt,
+                'sale',
+              );
+              if (documents.length > 0) {
+                await ledger.insertMany(documents, { session });
+              }
+              folded = documents.length;
+            }
           }
 
-          const documents = entryDocuments(
-            orderId,
-            merged.commissions,
-            merged.decidedAt,
-          );
-          if (documents.length > 0) {
-            await db
-              .collection(COMMISSION_ENTRY_COLLECTION)
-              .insertMany(documents, { session });
+          // The reversal, over the rows the sale wrote — including the ones
+          // written a few lines above, which this transaction can read back.
+          //
+          // ⚠️ `saleFolded` in the condition is the ordering rule: a reversal
+          // can never precede the sale it mirrors, and a cancellation whose
+          // placement has not arrived stays pending until it does.
+          //
+          // ⚠️ `reversed: { $ne: true }` rather than `reversed: false`. A
+          // document written before this member existed carries none at all, and
+          // an equality filter would never match it — a record stuck forever in
+          // a state nothing reports.
+          if (saleFolded && merged.reversed !== true && isReversible(merged)) {
+            const claimed = await sales.updateOne(
+              { orderId, reversed: { $ne: true } },
+              { $set: { reversed: true } },
+              { session },
+            );
+            if (claimed.modifiedCount > 0) {
+              const lines = (await ledger
+                .find({ orderId, kind: 'sale' }, { session })
+                .toArray()) as unknown as LedgerLine[];
+              const documents = reversalDocuments(
+                orderId,
+                lines,
+                merged.refundedAt,
+              );
+              if (documents.length > 0) {
+                await ledger.insertMany(documents, { session });
+              }
+              reversed = documents.length;
+            }
           }
-          outcome = { kind: 'folded', entries: documents.length };
+
+          if (folded > 0 || reversed > 0) {
+            outcome = { kind: 'written', folded, reversed };
+          }
         });
         return outcome;
       } finally {

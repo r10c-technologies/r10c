@@ -24,14 +24,29 @@ import type { SliceDeclaration } from '../types.js';
  * **Promoted to `active` by the commit that wrote the store** (#153):
  * settlement-service on `:3107`.
  *
- * ⚠️ **It subscribes to two events and neither is sufficient alone.**
- * `payment.captured` says money moved and names the order; it carries no vendor
- * lines and only a channel *id*, which points into a tenant store this slice
- * cannot open. `order.placed` carries the vendor-tagged lines and the channel
- * *type* copied onto the receipt. The cut cannot be priced without both, so the
- * two are joined on the order id
+ * ⚠️ **It subscribes to four events, in two pairs, and no member of either pair
+ * is sufficient alone.** `payment.captured` says money moved and names the
+ * order; it carries no vendor lines and only a channel *id*, which points into a
+ * tenant store this slice cannot open. `order.placed` carries the vendor-tagged
+ * lines and the channel *type* copied onto the receipt. The cut cannot be priced
+ * without both, so the two are joined on the order id
  * ([ADR 0057](../../../docs/adr/0057-settlement-joins-the-sale-to-its-payment.md)).
  * This is the consumer ADR 0054 said `order.placed` was being drained for.
+ *
+ * ⚠️ **The second pair undoes what the first did, and it is a pair for a
+ * different reason.** `payment.refunded` says money went back; `order.cancelled`
+ * says the sale is off. Neither implies the other — a cancelled order that was
+ * never paid has nothing to reverse — so the reversal is written only when both
+ * are true. The amounts come from this slice's own ledger rather than from
+ * either message: re-pricing the cancelled order's lines would read whatever the
+ * vendor's agreement says now, and terms re-negotiated since the sale would
+ * leave a pair that does not cancel
+ * ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md) §9).
+ *
+ * ⚠️ **`payment.failed` is still not consumed, and that is not an omission.** A
+ * capture that refused is the checkout saga's pivot refusing, which compensates
+ * the flow and deletes the order — nothing to settle and nothing to un-settle. A
+ * refused *refund* likewise emits nothing at all, so there is no third case.
  */
 export const settlementSlice: SliceDeclaration = {
   name: 'settlement',
@@ -60,10 +75,11 @@ export const settlementSlice: SliceDeclaration = {
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: ['settlement.run.completed'],
-  // `inbox` on both: a settlement run accumulates, so folding one sale twice
-  // overpays a vendor by its amount. A claim guards a *message*, and there are
-  // two of them — one per queue, keyed `(consumer, eventId)`, so the two
-  // consumers coexist in one database without either starving the other.
+  // `inbox` on all four: a settlement run accumulates, so folding one sale twice
+  // overpays a vendor by its amount and reversing it twice claws back money
+  // nobody took. A claim guards a *message*, and there are four of them — one
+  // per queue, keyed `(consumer, eventId)`, so the four consumers coexist in one
+  // database without any of them starving the others.
   subscriptions: [
     {
       event: 'order.placed',
@@ -73,6 +89,18 @@ export const settlementSlice: SliceDeclaration = {
     },
     {
       event: 'payment.captured',
+      mode: 'work',
+      maxAttempts: 5,
+      dedupe: 'inbox',
+    },
+    {
+      event: 'order.cancelled',
+      mode: 'work',
+      maxAttempts: 5,
+      dedupe: 'inbox',
+    },
+    {
+      event: 'payment.refunded',
       mode: 'work',
       maxAttempts: 5,
       dedupe: 'inbox',

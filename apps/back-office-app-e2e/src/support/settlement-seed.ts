@@ -36,6 +36,7 @@ export const commissionEntrySeed = [
     currency: 'GTQ',
     occurredAt: '2026-03-04T10:00:00.000Z',
     runId: 'settlement-run-1',
+    kind: 'sale',
   },
 ];
 

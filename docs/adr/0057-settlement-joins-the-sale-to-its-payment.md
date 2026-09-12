@@ -79,6 +79,16 @@ cannot both see a complete pair and both write. The unique index on
 > refuse as a duplicate. It becomes `(orderId, vendorId, kind)`. The backstop is
 > unchanged in kind — one row per pair **per kind** — and the fold's reasoning
 > above is untouched.
+>
+> **And the join record grows two more halves rather than acquiring a sibling.**
+> `settlement_pending_sale` now carries `cancelledAt`, `refundedAt` and a second
+> conditional claim beside `folded`, so one document holds both pairs and both
+> folds run on every pass. A reversal in a collection of its own could not see
+> whether the sale had been folded, and would write nothing — permanently — for
+> an order whose `order.placed` was still quarantined when the cancellation
+> landed. Sharing the record is this section's own "arrival order is not assumed
+> in either direction" applied between the two folds as well as within each, and
+> it is what lets a late placement write the sale and its mirror together.
 
 **Rejected: an HTTP read into order-service.** `GET /api/product-order/:id`
 accepts a session and no crossing token, by the "one route, one credential, each
@@ -220,6 +230,21 @@ is corrected in place.
   produce entries, and the counter one prices at the agreement's `counter: 0`
   rate while the storefront one takes the default — which is the first time the
   per-channel rate ADR 0024 put on the `Agreement` has been read by anything.
+
+  > **2026-09-11 — it did not, until the commit that built ADR 0058 §9 drove the
+  > first live sale through it.** Three defects, each of which alone kept the
+  > ledger empty, and none of which any build or test caught: the two bus
+  > handlers were written with `Effect.fn`, whose value this runtime cannot
+  > execute, so the process died on the first delivered message; the fold's
+  > `[...new Set(ids)]` produced iterator objects rather than vendor ids in the
+  > bundle, so the agreement query matched nothing and every vendor was reported
+  > as having no terms on file; and the sweep's `[...byVendor]` failed the same
+  > way, so every settlement run ended in `Failed to settle`. The decision in
+  > this record is untouched — the mechanism was right and unreachable. What it
+  > shows is that a slice whose only inputs arrive on a bus has **no automated
+  > coverage at all** here: the mock e2e profile boots no broker, so no handler
+  > runs in it, and a consumer that dies on its first message keeps every
+  > readiness probe green while its queues fill.
 - **`order.placed` has a consumer**, which ADR 0054 §5 said would arrive later.
   Its relay stops being a backlog drained for its own sake.
 - **The last of ADR 0022's four planned slices is promoted**, and the reserved
@@ -232,7 +257,9 @@ is corrected in place.
   exist, and nothing consumes that event yet.
 - **Residual: the join document is never swept.** A sale whose payment never
   captures — a checkout that compensated, say — leaves a half-written record in
-  `settlement_pending_sale` forever. It is small, it is inert, and it is honest
+  `settlement_pending_sale` forever. Since 2026-09-11 the same is true of an
+  order cancelled before it was paid, which contributes a `cancelledAt` to a
+  reversal pair no refund will ever complete. It is small, it is inert, and it is honest
   about what happened; a sweep that expired them would need a rule for how long a
   capture may legitimately take, which nothing knows yet.
 - **Residual: nothing charts the ledger.** The outbox relay and the bus export

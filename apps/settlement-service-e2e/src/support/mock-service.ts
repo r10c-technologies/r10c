@@ -70,6 +70,7 @@ const CONFIGURATION = {
 export const SEEDED_AGREEMENT_ID = `agreement-${E2E_ORGANIZATION_ID}`;
 export const SEEDED_OTHER_AGREEMENT_ID = `agreement-${E2E_OTHER_ORGANIZATION_ID}`;
 export const SEEDED_ENTRY_ID = 'commission-entry-1';
+export const SEEDED_REVERSAL_ID = 'commission-entry-3';
 export const SEEDED_PAYOUT_ID = 'vendor-payout-1';
 export const SEEDED_RUN_ID = 'settlement-run-1';
 
@@ -98,6 +99,7 @@ const SEED = {
       commissionAmount: 200,
       currency: 'GTQ',
       occurredAt: new Date('2026-03-04T10:00:00.000Z'),
+      kind: 'sale',
     },
     {
       id: 'commission-entry-2',
@@ -107,6 +109,22 @@ const SEED = {
       commissionAmount: 120,
       currency: 'GTQ',
       occurredAt: new Date('2026-03-05T10:00:00.000Z'),
+      kind: 'sale',
+    },
+    // The mirror of `commission-entry-1`: same order, same vendor, both signs
+    // flipped, filed under when the money went back rather than when it was
+    // taken. The fold that writes one of these needs a bus, which the mock
+    // profile deliberately has none of — what is exercised here is that a
+    // reversal reads back scoped, labelled and separable from a sale.
+    {
+      id: SEEDED_REVERSAL_ID,
+      orderId: 'order-1',
+      vendorId: E2E_ORGANIZATION_ID,
+      saleAmount: -2500,
+      commissionAmount: -200,
+      currency: 'GTQ',
+      occurredAt: new Date('2026-03-09T08:00:00.000Z'),
+      kind: 'reversal',
     },
   ],
   'settlement-run': [

@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { CommissionEntry } from './commission-entry.entity.js';
 
 const OCCURRED_AT = new Date('2026-03-04T10:00:00.000Z');
+const REFUNDED_AT = new Date('2026-03-09T08:00:00.000Z');
 
 describe('CommissionEntry', () => {
   it('serializes one sale’s cut against its order and vendor', () => {
@@ -30,6 +31,7 @@ describe('CommissionEntry', () => {
       commissionAmount: 25,
       currency: 'EUR',
       occurredAt: OCCURRED_AT,
+      kind: 'sale',
     });
   });
 
@@ -63,6 +65,7 @@ describe('CommissionEntry', () => {
         // entry, not by the deserializer that reads it.
         occurredAt: OCCURRED_AT,
         runId: 'run-1',
+        kind: 'reversal',
       }),
     );
 
@@ -71,6 +74,7 @@ describe('CommissionEntry', () => {
     expect(entry?.commissionAmount).toBe(100);
     expect(entry?.occurredAt).toEqual(OCCURRED_AT);
     expect(entry?.runId).toBe('run-1');
+    expect(entry?.kind).toBe('reversal');
   });
 
   it('starts empty at zero, which contributes nothing to a payout', () => {
@@ -121,6 +125,7 @@ describe('CommissionEntry', () => {
       'currency',
       'occurredAt',
       'runId',
+      'kind',
     ]);
     expect(names).not.toContain('commissionBasisPoints');
   });
@@ -160,6 +165,57 @@ describe('CommissionEntry', () => {
     expect(occurredAt?.type).toBe('date');
     expect(occurredAt?.filterable).toBe(true);
     expect(occurredAt?.sortable).toBe(true);
+  });
+
+  it('records a sale unless told otherwise', () => {
+    // Every line the fold writes is a sale; only the mirror a cancellation
+    // produces is not. Defaulting the other way would make the ordinary case
+    // the one every caller has to remember.
+    expect(new CommissionEntry().kind).toBe('sale');
+  });
+
+  it('mirrors a sale with both signs flipped rather than deleting it', () => {
+    // The storno shape. A deletion would leave a total nothing explains, and an
+    // edit would erase what the platform actually took — the evidence this
+    // ledger exists to hold.
+    const sale = new CommissionEntry(
+      'order-1',
+      'vendor-1',
+      1000,
+      25,
+      'EUR',
+      OCCURRED_AT,
+    );
+    const reversal = new CommissionEntry(
+      'order-1',
+      'vendor-1',
+      -1000,
+      -25,
+      'EUR',
+      REFUNDED_AT,
+      'reversal',
+    );
+
+    expect(sale.saleAmount + reversal.saleAmount).toBe(0);
+    expect(sale.commissionAmount + reversal.commissionAmount).toBe(0);
+    // Filed under when the money went back, not when it was taken: a run
+    // compares this against its period, and the sale's own date would file the
+    // claw-back into a period that may already be settled.
+    expect(reversal.occurredAt).toBe(REFUNDED_AT);
+  });
+
+  it('makes "only the reversals" a first-class query', () => {
+    // Member metadata is also the server-side allowlist, so this one flag is
+    // what lets a vendor's statement separate claw-backs from sales. Not
+    // sortable: nothing orders a ledger by it.
+    const kind = describeEntityColumns(CommissionEntry).find(
+      column => column.name === 'kind',
+    );
+
+    expect(kind?.type).toBe('enum');
+    expect(kind?.enumValues).toEqual(['sale', 'reversal']);
+    expect(kind?.filterable).toBe(true);
+    expect(kind?.sortable).toBe(false);
   });
 
   it('can name one of its own records', () => {

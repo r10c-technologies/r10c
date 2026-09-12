@@ -1,6 +1,11 @@
 import type { Entity, EntityId } from '@r10c/entifix-ts-core';
 import { accessor, entity } from '@r10c/entifix-ts-core';
 
+import {
+  type CommissionEntryKind,
+  CommissionEntryKinds,
+} from '../../values/commission-entry-kind';
+
 /**
  * One sale's commission, recorded when the sale happens rather than computed
  * when a payout is prepared.
@@ -26,6 +31,12 @@ import { accessor, entity } from '@r10c/entifix-ts-core';
  * run has already paid it. A ledger with neither can be folded once and never
  * twice.
  *
+ * {@link kind} is how a sale is undone. A cancelled, refunded order does not
+ * delete this line or edit its amounts — it writes a mirror of it with both
+ * signs flipped, and both rows stay on file. Deleting would leave a total
+ * nothing explains; editing would erase what the platform actually took, which
+ * is the evidence this ledger exists to hold.
+ *
  * Control plane, `settlement` store.
  */
 @entity({
@@ -44,6 +55,7 @@ export class CommissionEntry implements Entity {
   #currency: string;
   #occurredAt?: Date;
   #runId?: string;
+  #kind: CommissionEntryKind;
   // #endregion
 
   // #region constructors
@@ -54,6 +66,7 @@ export class CommissionEntry implements Entity {
     commissionAmount = 0,
     currency = '',
     occurredAt?: Date,
+    kind: CommissionEntryKind = 'sale',
   ) {
     this.#orderId = orderId;
     this.#vendorId = vendorId;
@@ -61,6 +74,7 @@ export class CommissionEntry implements Entity {
     this.#commissionAmount = commissionAmount;
     this.#currency = currency;
     this.#occurredAt = occurredAt;
+    this.#kind = kind;
   }
   // #endregion
 
@@ -207,6 +221,38 @@ export class CommissionEntry implements Entity {
   }
   set runId(value: string | undefined) {
     this.#runId = value;
+  }
+
+  /**
+   * Whether this line records a sale or reverses one.
+   *
+   * A reversal is the same line with {@link saleAmount} and
+   * {@link commissionAmount} negated, so the fold that totals a payout needs no
+   * sign handling at all and a vendor's statement shows both movements.
+   *
+   * ⚠️ **A run may therefore produce a negative {@link VendorPayout}**, which is
+   * a claw-back against the next period. Allowed, never clamped: clamping at
+   * zero would silently forgive the money and make the ledger disagree with
+   * itself.
+   *
+   * Filterable so "only the reversals" is expressible, and because a member's
+   * metadata is the server-side query allowlist. Not sortable — nothing orders
+   * a ledger by it.
+   */
+  @accessor({
+    type: 'enum',
+    labelKey: 'entity:commission-entry.fields.kind',
+    enumValues: CommissionEntryKinds,
+    enumLabelKey: 'entity:commission-entry.values.kind',
+    required: true,
+    sortable: false,
+    filterable: true,
+  })
+  get kind(): CommissionEntryKind {
+    return this.#kind;
+  }
+  set kind(value: CommissionEntryKind) {
+    this.#kind = value;
   }
   // #endregion
 }

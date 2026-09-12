@@ -136,21 +136,46 @@ granted to **no** role: an `admin` who could write it could set their own
 commission to zero, so it is an operator act reached through `super-admin`'s
 wildcard.
 
-⚠️ **It subscribes to two events, and neither is sufficient alone.**
-`payment.captured` says money moved and names the order; it carries no vendor
-lines and only a channel _id_, which points into a tenant store this slice cannot
-open. `order.placed` carries the vendor-tagged lines and the channel _type_
-copied onto the receipt. So the two are joined on the order id and whichever
-completes the pair writes the commission entries
+⚠️ **It subscribes to four events, in two pairs, and no member of either pair is
+sufficient alone.** `payment.captured` says money moved and names the order; it
+carries no vendor lines and only a channel _id_, which points into a tenant store
+this slice cannot open. `order.placed` carries the vendor-tagged lines and the
+channel _type_ copied onto the receipt. So the two are joined on the order id and
+whichever completes the pair writes the commission entries
 ([ADR 0057](../adr/0057-settlement-joins-the-sale-to-its-payment.md)). This is
 the consumer ADR 0054 said `order.placed` was being drained for.
+
+⚠️ **The second pair undoes the first, and it is a pair for a different reason.**
+`payment.refunded` says money went back, `order.cancelled` says the sale is off,
+and neither implies the other — an order cancelled before it was ever paid has
+nothing to reverse — so a reversal is written only when both are true. The
+amounts are **mirrored from this slice's own ledger**, never re-priced from the
+cancelled order: re-reading the agreement at cancellation time would price the
+mirror at whatever rate is in force now, and terms re-negotiated since the sale
+would leave a pair that does not cancel. The reversing rows carry negative
+amounts and no `runId`, so the next sweep picks them up like any unsettled line
+and a run may legitimately produce a **negative** `VendorPayout` — a claw-back
+against the vendor's next period, allowed rather than clamped
+([ADR 0058](../adr/0058-the-order-after-payment.md) §9).
+
+⚠️ **Both halves of both pairs land on one join record**, and the second pair's
+fold refuses to run until the first has. A reversal cannot precede the sale it
+mirrors, and a placement that arrives after its order was already cancelled and
+refunded writes the sale and its mirror in a single transaction. A separate
+reversal record would have written neither.
+
+⚠️ **`payment.failed` is still not consumed, and a refused refund emits
+nothing.** A capture that refused is the checkout saga's pivot refusing, which
+compensates the flow and deletes the order — nothing to settle and nothing to
+un-settle. Reusing that name for a refund that was declined would hand every
+consumer a second meaning it never reasoned about, so there is no third case.
 
 It publishes `settlement.run.completed` from an outbox in its own store. Nothing
 consumes it yet — a payouts process is what would, and that is not built.
 
-⚠️ **It holds no crossing token and accepts none.** Both of its inputs arrive on
-the bus, so nothing dispatches into it, and every route it serves is guarded by a
-verified session. It is the only slice in the fleet with a store, a bus
+⚠️ **It holds no crossing token and accepts none.** Every one of its inputs
+arrives on the bus, so nothing dispatches into it, and every route it serves is
+guarded by a verified session. It is the only slice in the fleet with a store, a bus
 connection and no service secret at all.
 
 **`back-office:dev` starts it**, unlike order-service, payment-service and
