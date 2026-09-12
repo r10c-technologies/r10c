@@ -2,8 +2,10 @@ import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
 
 import {
   SEEDED_AGREEMENT_ID,
+  SEEDED_ENTRY_ID,
   SEEDED_OTHER_AGREEMENT_ID,
   SEEDED_PAYOUT_ID,
+  SEEDED_REVERSAL_ID,
   startMockService,
 } from '../support/mock-service';
 import {
@@ -87,10 +89,38 @@ describe('reading as a vendor', () => {
 
     expect(
       entries.data.data.items.map((row: { vendorId: string }) => row.vendorId),
-    ).toEqual([E2E_ORGANIZATION_ID]);
+    ).toEqual([E2E_ORGANIZATION_ID, E2E_ORGANIZATION_ID]);
     expect(
       payouts.data.data.items.map((row: { id: string }) => row.id),
     ).toEqual([SEEDED_PAYOUT_ID]);
+  });
+
+  it('shows a claw-back beside the sale it reverses', async () => {
+    // Both rows stay on file and both belong to the vendor. A deletion would
+    // leave a statement whose total nothing explains.
+    const res = await service.client.get('/api/commission-entry');
+    const rows: { id: string; kind: string; saleAmount: number }[] =
+      res.data.data.items;
+
+    expect(rows.map(row => row.id)).toEqual([
+      SEEDED_ENTRY_ID,
+      SEEDED_REVERSAL_ID,
+    ]);
+    expect(rows.map(row => row.kind)).toEqual(['sale', 'reversal']);
+    expect(rows.reduce((total, row) => total + row.saleAmount, 0)).toBe(0);
+  });
+
+  it('separates claw-backs from sales through the query allowlist', async () => {
+    // `kind` is filterable on the entity, which is the only thing that makes
+    // this expressible — a query naming a member without it is refused 400.
+    const res = await service.client.get(
+      '/api/commission-entry?rsql=kind==reversal',
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.data.data.items.map((row: { id: string }) => row.id)).toEqual([
+      SEEDED_REVERSAL_ID,
+    ]);
   });
 });
 

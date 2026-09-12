@@ -133,3 +133,20 @@ export const readPlacedOrder = (
         ? error
         : new EntifixBuildError(String(error)),
   });
+
+/**
+ * Decode an `order.cancelled` payload, or fail.
+ *
+ * The same reader under a second name, because it is the same payload: both
+ * events carry the whole serialized `ProductOrder`, and order-service says so
+ * explicitly — a message carrying only an id "would send a consumer reversing a
+ * commission back to a store it cannot open."
+ *
+ * ⚠️ **The reversal needs only the order id off it**, and reads the amounts back
+ * from its own ledger instead. Decoding the whole payload anyway is not waste:
+ * it is what classifies a malformed message poison and quarantines it loudly
+ * (ADR 0030), rather than acking a shape nobody looked at. An alias rather than
+ * a copy so there is one reader to keep true, and one place a removed member
+ * shows up.
+ */
+export const readCancelledOrder = readPlacedOrder;

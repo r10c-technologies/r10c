@@ -4,6 +4,7 @@
 - Date: 2026-09-11
 - Area: business
 - Read when: a paid order has to move again, or an anonymous buyer has to be authorized for a write — the cancel is a saga whose pivot is a refund, and the buyer's capability is a digest at rest because the order write is itself a saga step
+- Revised: 2026-09-11 by the commit that built §9 — the reversing amounts are mirrored from the recorded ledger rows rather than re-priced, and the join lives on ADR 0057's existing record rather than beside it
 
 ## Context
 
@@ -242,8 +243,38 @@ against the next period. Allowed, not clamped: clamping it at zero would silentl
 forgive the money and make the ledger disagree with itself.
 
 Its inputs are `order.cancelled` and `payment.refunded`, joined on the order id
-the way ADR 0057's fold already joins two messages — for the same reason, that
-neither message alone carries both which vendors and that the money moved.
+the way ADR 0057's fold already joins two messages.
+
+> **2026-09-11 — corrected in place by the commit that built this section.** Two
+> claims above are wrong about the mechanism, and the decision is unchanged by
+> both.
+>
+> **The reversing amounts are mirrored from the recorded rows, not re-priced.**
+> The sentence this replaces gave the reason for the join as "neither message
+> alone carries both which vendors and that the money moved", which reads as
+> pricing the mirror from the cancelled order's lines. Doing that reads whatever
+> the vendor's `Agreement` says at cancellation time, so terms re-negotiated
+> since the sale leave a pair that does not cancel — a sale of 666 at 2.5% and a
+> mirror at 3% net to +3 rather than to zero. That is the rate drift
+> [ADR 0022](0022-v1-marketplace-module-boundaries.md) §8 captures commission per
+> sale to close, arriving through the back door. settlement holds the ledger it
+> is reversing, so the only defensible input is the row itself.
+>
+> The join is still both messages, for a reason the original sentence did not
+> reach: **neither fact implies the other.** Money going back is not on its own a
+> cancellation, and an order cancelled before it was ever paid has nothing to
+> reverse. `order.cancelled` therefore contributes its presence and no amounts.
+>
+> **The join lives on ADR 0057's own `settlement_pending_sale` document**, which
+> now carries four halves rather than two, instead of a second collection beside
+> it. A separate record cannot see whether the sale was ever folded: if
+> `order.placed` is quarantined or its relay is stuck when the cancellation pair
+> completes, the reversal finds no ledger rows, writes nothing and marks itself
+> done — and the later replay of the placement writes a commission that nothing
+> will ever reverse. One document lets the reversal require `folded`, and lets a
+> late placement write the sale *and* its mirror in one transaction. That is
+> ADR 0057 §1's "arrival order is not assumed in either direction" applied across
+> both folds rather than only within one.
 
 ### 10. Stock restoration is a movement, not an un-conversion
 

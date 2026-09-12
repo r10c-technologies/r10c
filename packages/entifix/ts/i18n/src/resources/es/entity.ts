@@ -427,6 +427,13 @@ export const entity = {
       currency: 'Moneda',
       occurredAt: 'Fecha de la venta',
       runId: 'ID de liquidación',
+      kind: 'Tipo',
+    },
+    values: {
+      kind: {
+        sale: 'Venta',
+        reversal: 'Reverso',
+      },
     },
   },
   'settlement-run': {

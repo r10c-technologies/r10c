@@ -168,9 +168,18 @@ export const settleOnce = (client: MongoClient, db: Db) =>
             }
           }
 
-          const payouts = [...byVendor].map(([vendorId, entries]) => {
+          // ⚠️ `byVendor.forEach`, deliberately not `[...byVendor].map(...)`.
+          // Spreading a Map is broken in this bundle exactly as spreading a Set
+          // is (see `uniqueVendors` in the fold): the entries come back as the
+          // iterator's own objects rather than `[key, value]` pairs, so the
+          // destructuring above yielded `undefined` for both and every run died
+          // in `payoutFor` with nothing but "Failed to settle" to say why.
+          // `forEach` hands the callback its arguments directly and needs no
+          // iterator protocol.
+          const payouts: Record<string, unknown>[] = [];
+          byVendor.forEach((entries, vendorId) => {
             const { amount, currency } = payoutFor(vendorId, entries);
-            return payoutDocument(runId, vendorId, amount, currency);
+            payouts.push(payoutDocument(runId, vendorId, amount, currency));
           });
 
           if (payouts.length > 0) {

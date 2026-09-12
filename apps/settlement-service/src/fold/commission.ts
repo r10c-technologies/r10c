@@ -136,6 +136,33 @@ export const commissionsForOrder = ({
 };
 
 /**
+ * Turn one priced line into the line that reverses it.
+ *
+ * The *storno* shape: both amounts flip sign and everything else is carried
+ * across unchanged, so the pair sums to zero and {@link payoutFor} needs no sign
+ * handling at all.
+ *
+ * ⚠️ **The reversal mirrors what was *recorded*, never a fresh pricing pass.**
+ * Re-reading the vendor's agreement at cancellation time would price the mirror
+ * at whatever rate is in force now, so an agreement re-negotiated between the
+ * sale and the cancel would leave a pair that does not cancel — the rate-drift
+ * ADR 0022 §8 captures commission per sale to close, arriving through the back
+ * door. The recorded row is the only defensible input.
+ *
+ * ⚠️ **Zero is negated to zero, not to `-0`.** A commission of exactly zero is
+ * ordinary rather than exotic — `counter: 0` is the whole term the per-channel
+ * rate map exists for — and `-0` would travel into BSON, out through the API and
+ * onto a vendor's statement as a signed nothing.
+ */
+export const reversalOf = (entry: VendorCommission): VendorCommission => ({
+  vendorId: entry.vendorId,
+  saleAmount: entry.saleAmount === 0 ? 0 : -entry.saleAmount,
+  commissionAmount:
+    entry.commissionAmount === 0 ? 0 : -entry.commissionAmount,
+  currency: entry.currency,
+});
+
+/**
  * What one vendor is owed for a set of ledger lines: the gross less the cut.
  *
  * ⚠️ **Not the sum of the commissions.** Both entity docblocks used to describe
@@ -146,6 +173,13 @@ export const commissionsForOrder = ({
  * Mixed currencies are refused for the reason they are refused above, one level
  * up: a payout is a single amount, and a single amount in two currencies is not
  * one.
+ *
+ * ⚠️ **A negative total is a legitimate answer, not an error to clamp.** A run
+ * that picks up a cancellation's reversal without the sale it reverses — the sale
+ * having been settled in an earlier period — owes the vendor less than nothing,
+ * which is a claw-back against their next period. Clamping it at zero would
+ * silently forgive the money and leave the ledger disagreeing with the payouts
+ * folded out of it.
  */
 export const payoutFor = (
   vendorId: string,

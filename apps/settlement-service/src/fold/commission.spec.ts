@@ -2,7 +2,7 @@ import { Agreement } from '@r10c/business-ts-settlement-management';
 import { EntifixBuildError } from '@r10c/entifix-ts-core';
 import { describe, expect, it } from 'vitest';
 
-import { commissionsForOrder, payoutFor } from './commission';
+import { commissionsForOrder, payoutFor, reversalOf } from './commission';
 import type { PlacedOrderLine } from './placed-order';
 
 const line = (
@@ -187,6 +187,56 @@ describe('commissionsForOrder', () => {
   });
 });
 
+describe('reversalOf', () => {
+  it('mirrors a line with both signs flipped and nothing else changed', () => {
+    expect(
+      reversalOf({
+        vendorId: 'acme',
+        saleAmount: 3330,
+        commissionAmount: 83,
+        currency: 'GTQ',
+      }),
+    ).toEqual({
+      vendorId: 'acme',
+      saleAmount: -3330,
+      commissionAmount: -83,
+      currency: 'GTQ',
+    });
+  });
+
+  it('negates zero to zero rather than to a signed nothing', () => {
+    // A commission of exactly zero is ordinary — `counter: 0` is the whole term
+    // the per-channel rate map exists for — and `-0` would travel into BSON, out
+    // through the API and onto a vendor's statement.
+    const mirror = reversalOf({
+      vendorId: 'acme',
+      saleAmount: 1000,
+      commissionAmount: 0,
+      currency: 'GTQ',
+    });
+
+    expect(Object.is(mirror.commissionAmount, -0)).toBe(false);
+    expect(mirror.commissionAmount).toBe(0);
+  });
+
+  it('mirrors what was recorded, so a re-priced rate cannot reach it', () => {
+    // The reversal takes the stored line as its only input. Re-pricing the
+    // cancelled order against today's agreement is the rate drift ADR 0022 §8
+    // captures commission per sale to close, arriving through the back door.
+    const recorded = {
+      vendorId: 'acme',
+      saleAmount: 666,
+      commissionAmount: 17,
+      currency: 'GTQ',
+    };
+
+    expect(payoutFor('acme', [recorded, reversalOf(recorded)])).toEqual({
+      amount: 0,
+      currency: 'GTQ',
+    });
+  });
+});
+
 describe('payoutFor', () => {
   it('pays the gross less the platform’s cut', () => {
     // Not the sum of the commissions, which is what the platform keeps.
@@ -217,5 +267,17 @@ describe('payoutFor', () => {
 
   it('refuses to pay a vendor with no entries', () => {
     expect(() => payoutFor('acme', [])).toThrow(EntifixBuildError);
+  });
+
+  it('totals a reversal picked up without the sale it reverses', () => {
+    // The sale was settled in an earlier period, so this run sees only the
+    // claw-back. A negative payout is the honest answer: clamping it at zero
+    // would silently forgive the money and leave the ledger disagreeing with
+    // the payouts folded out of it.
+    expect(
+      payoutFor('acme', [
+        { saleAmount: -1000, commissionAmount: -80, currency: 'GTQ' },
+      ]),
+    ).toEqual({ amount: -920, currency: 'GTQ' });
   });
 });

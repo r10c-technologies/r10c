@@ -386,6 +386,13 @@ export const entity: EsEntity = {
       currency: 'Currency',
       occurredAt: 'Sale date',
       runId: 'Settlement run ID',
+      kind: 'Kind',
+    },
+    values: {
+      kind: {
+        sale: 'Sale',
+        reversal: 'Reversal',
+      },
     },
   },
   'settlement-run': {
