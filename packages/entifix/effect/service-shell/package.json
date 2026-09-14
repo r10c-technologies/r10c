@@ -21,7 +21,7 @@
       "scope:shared",
       "shell:base"
     ],
-    "sourceRoot": "packages/shells/effect/service/src",
+    "sourceRoot": "packages/entifix/effect/service-shell/src",
     "targets": {
       "build": {
         "executor": "@nx/js:swc",
@@ -29,9 +29,9 @@
           "{options.outputPath}"
         ],
         "options": {
-          "outputPath": "packages/shells/effect/service/dist",
-          "main": "packages/shells/effect/service/src/index.ts",
-          "tsConfig": "packages/shells/effect/service/tsconfig.lib.json",
+          "outputPath": "packages/entifix/effect/service-shell/dist",
+          "main": "packages/entifix/effect/service-shell/src/index.ts",
+          "tsConfig": "packages/entifix/effect/service-shell/tsconfig.lib.json",
           "skipTypeCheck": true,
           "stripLeadingPaths": true
         }

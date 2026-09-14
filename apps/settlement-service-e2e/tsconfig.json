@@ -13,7 +13,7 @@
       "path": "../../packages/business/ts/authz"
     },
     {
-      "path": "../../packages/shells/effect/service"
+      "path": "../../packages/entifix/effect/service-shell"
     },
     {
       "path": "../settlement-service"
@@ -25,13 +25,13 @@
       "path": "../../packages/entifix/ts/jwt-client"
     },
     {
+      "path": "../../packages/entifix/ts/core"
+    },
+    {
       "path": "../../packages/entifix/ts/business"
     },
     {
       "path": "../../packages/business/ts/settlement-management"
-    },
-    {
-      "path": "../../packages/entifix/ts/core"
     },
     {
       "path": "../../packages/business/ts/party-management"

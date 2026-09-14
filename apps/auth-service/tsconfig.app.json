@@ -29,7 +29,7 @@
   ],
   "references": [
     {
-      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+      "path": "../../packages/entifix/effect/service-shell/tsconfig.lib.json"
     },
     {
       "path": "../../packages/entifix/ts/zitadel-client/tsconfig.lib.json"

@@ -34,22 +34,22 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../../entifix/ts/i18n/tsconfig.lib.json"
+      "path": "../../ts/i18n/tsconfig.lib.json"
     },
     {
-      "path": "../../../entifix/ts/core/tsconfig.lib.json"
+      "path": "../../ts/core/tsconfig.lib.json"
     },
     {
-      "path": "../../../entifix/ts/business/tsconfig.lib.json"
+      "path": "../../ts/business/tsconfig.lib.json"
     },
     {
-      "path": "../../../entifix/ts/transactions/tsconfig.lib.json"
+      "path": "../../ts/transactions/tsconfig.lib.json"
     },
     {
-      "path": "../../../entifix/react/integration/tsconfig.lib.json"
+      "path": "../../react/integration/tsconfig.lib.json"
     },
     {
-      "path": "../../../entifix/react/controls/tsconfig.lib.json"
+      "path": "../../react/controls/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/authz/tsconfig.lib.json"
@@ -58,7 +58,7 @@
       "path": "../../../business/ts/authn/tsconfig.lib.json"
     },
     {
-      "path": "../../../entifix/ts/testing-unit"
+      "path": "../../ts/testing-unit"
     }
   ]
 }

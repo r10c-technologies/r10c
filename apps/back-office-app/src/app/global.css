@@ -10,7 +10,7 @@
 
 /* Class detection for workspace UI packages consumed as source (@r10c/source). */
 @source '../../../../packages/entifix/react/controls/src';
-@source '../../../../packages/shells/next/common/src';
+@source '../../../../packages/entifix/next/shell/src';
 @source '../../../../packages/shells/next/marketplace-admin/src';
 /* back-office-app mounts four shells, and Tailwind only emits utilities it can
    SEE. Without these two, a class used exclusively in the auth or

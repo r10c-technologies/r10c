@@ -30,7 +30,7 @@
       "scope:shared",
       "shell:base"
     ],
-    "sourceRoot": "packages/shells/next/i18n/src",
+    "sourceRoot": "packages/entifix/next/i18n/src",
     "targets": {
       "build": {
         "executor": "@nx/js:swc",
@@ -38,9 +38,9 @@
           "{options.outputPath}"
         ],
         "options": {
-          "outputPath": "packages/shells/next/i18n/dist",
-          "main": "packages/shells/next/i18n/src/index.ts",
-          "tsConfig": "packages/shells/next/i18n/tsconfig.lib.json",
+          "outputPath": "packages/entifix/next/i18n/dist",
+          "main": "packages/entifix/next/i18n/src/index.ts",
+          "tsConfig": "packages/entifix/next/i18n/tsconfig.lib.json",
           "skipTypeCheck": true,
           "stripLeadingPaths": true
         }

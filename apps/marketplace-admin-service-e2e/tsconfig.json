@@ -13,13 +13,10 @@
       "path": "../../packages/entifix/ts/transactions"
     },
     {
-      "path": "../../packages/entifix/ts/mongo-client"
-    },
-    {
       "path": "../../packages/business/ts/authz"
     },
     {
-      "path": "../../packages/shells/effect/service"
+      "path": "../../packages/entifix/effect/service-shell"
     },
     {
       "path": "../marketplace-admin-service"
@@ -31,10 +28,10 @@
       "path": "../../packages/entifix/ts/testing-e2e"
     },
     {
-      "path": "../../packages/business/ts/party-management"
+      "path": "../../packages/entifix/ts/redis-client"
     },
     {
-      "path": "../../packages/entifix/ts/redis-client"
+      "path": "../../packages/entifix/ts/mongo-client"
     },
     {
       "path": "../../packages/entifix/ts/jwt-client"
@@ -44,6 +41,9 @@
     },
     {
       "path": "../../packages/entifix/ts/amqp-client"
+    },
+    {
+      "path": "../../packages/business/ts/party-management"
     },
     {
       "path": "../../packages/business/ts/authn"

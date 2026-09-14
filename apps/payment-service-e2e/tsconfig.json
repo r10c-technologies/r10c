@@ -13,7 +13,7 @@
       "path": "../../packages/business/ts/authz"
     },
     {
-      "path": "../../packages/shells/effect/service"
+      "path": "../../packages/entifix/effect/service-shell"
     },
     {
       "path": "../payment-service"

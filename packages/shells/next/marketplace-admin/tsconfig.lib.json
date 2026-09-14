@@ -34,7 +34,7 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../common/tsconfig.lib.json"
+      "path": "../../../entifix/next/shell/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/rest-client/tsconfig.lib.json"

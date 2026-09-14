@@ -6,7 +6,7 @@
       "scope:shared",
       "shell:base"
     ],
-    "sourceRoot": "packages/shells/next/common/src",
+    "sourceRoot": "packages/entifix/next/shell/src",
     "targets": {
       "build": {
         "executor": "@nx/js:swc",
@@ -14,9 +14,9 @@
           "{options.outputPath}"
         ],
         "options": {
-          "outputPath": "packages/shells/next/common/dist",
-          "main": "packages/shells/next/common/src/index.ts",
-          "tsConfig": "packages/shells/next/common/tsconfig.lib.json",
+          "outputPath": "packages/entifix/next/shell/dist",
+          "main": "packages/entifix/next/shell/src/index.ts",
+          "tsConfig": "packages/entifix/next/shell/tsconfig.lib.json",
           "skipTypeCheck": true,
           "stripLeadingPaths": true
         }

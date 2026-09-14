@@ -66,10 +66,10 @@
       "path": "../../packages/shells/next/marketplace-admin"
     },
     {
-      "path": "../../packages/shells/next/i18n"
+      "path": "../../packages/entifix/next/i18n"
     },
     {
-      "path": "../../packages/shells/next/common"
+      "path": "../../packages/entifix/next/shell"
     },
     {
       "path": "../../packages/shells/next/auth"
