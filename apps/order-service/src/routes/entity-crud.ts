@@ -29,10 +29,7 @@ import {
   makeEntityPageEnvelope,
   parseLoadRequestParams,
 } from '@entifix/core';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
 import {
   type RequestPrincipal,
   requirePermission,

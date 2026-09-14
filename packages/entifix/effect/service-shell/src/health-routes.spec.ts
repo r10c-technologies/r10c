@@ -1,9 +1,6 @@
 import { HttpRouter } from '@effect/platform';
 import type { ShutdownRegistry } from '@entifix/business';
-import {
-  HealthRegistryTag,
-  ShutdownRegistryTag,
-} from '@entifix/business';
+import { HealthRegistryTag, ShutdownRegistryTag } from '@entifix/business';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it } from 'vitest';
 

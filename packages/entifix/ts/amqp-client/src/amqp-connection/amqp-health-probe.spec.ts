@@ -1,8 +1,5 @@
 import type { HealthReport } from '@entifix/business';
-import {
-  HealthRegistryLayer,
-  HealthRegistryTag,
-} from '@entifix/business';
+import { HealthRegistryLayer, HealthRegistryTag } from '@entifix/business';
 import type * as amqp from 'amqplib';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';

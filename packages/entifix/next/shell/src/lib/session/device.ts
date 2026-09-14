@@ -2,7 +2,6 @@ import type { DeviceContext } from '@entifix/business';
 import { DEVICE_COOKIE } from '@entifix/core';
 import { type NextRequest, type NextResponse, userAgent } from 'next/server';
 
-
 /** Two years: long enough that a familiar browser stays familiar. */
 const DID_MAX_AGE = 60 * 60 * 24 * 730;
 

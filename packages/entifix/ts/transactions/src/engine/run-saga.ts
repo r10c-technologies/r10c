@@ -473,7 +473,11 @@ const walk = (
     // ordinary compensation case below.
     let pivotCommitted = pivotCommittedIn(taken);
 
-    for (let index = from.startIndex; index < definition.steps.length; index++) {
+    for (
+      let index = from.startIndex;
+      index < definition.steps.length;
+      index++
+    ) {
       const step = definition.steps[index];
       /* v8 ignore next 3 -- the loop bound makes this unreachable; it exists
          because `noUncheckedIndexedAccess` cannot see that. */
@@ -489,7 +493,11 @@ const walk = (
         pivotCommitted ? POST_PIVOT_RETRIES : 0,
       );
 
-      const outcome: SagaStepOutcome = { stepId: step.id, calls, ...(error === undefined ? {} : { error }) };
+      const outcome: SagaStepOutcome = {
+        stepId: step.id,
+        calls,
+        ...(error === undefined ? {} : { error }),
+      };
       taken.push({ step, outcome });
       yield* store.recordOutcome(sagaId, outcome);
 
@@ -609,7 +617,10 @@ export const resumeSaga = (
         instance.error ??
           `resumed ${String(instance.resumeAttempts - 1)} times without settling`,
         'saga abandoned after too many resumes',
-        { definition: definition.name, resumeAttempts: instance.resumeAttempts },
+        {
+          definition: definition.name,
+          resumeAttempts: instance.resumeAttempts,
+        },
       );
     }
 

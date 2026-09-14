@@ -277,9 +277,7 @@ describe('useRecordsSource', () => {
       (_url: string, init: RequestInit) =>
         new Promise((_resolve, reject) => {
           init.signal?.addEventListener('abort', () =>
-            reject(
-              Object.assign(new Error('aborted'), { name: 'AbortError' }),
-            ),
+            reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
           );
         }),
     );

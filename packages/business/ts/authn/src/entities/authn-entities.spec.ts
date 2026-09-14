@@ -1,8 +1,4 @@
-import {
-  DEFAULT_ROLE,
-  permissionForEntity,
-  Roles,
-} from '@entifix/authz';
+import { DEFAULT_ROLE, permissionForEntity, Roles } from '@entifix/authz';
 import {
   describeEntityColumns,
   deserializeSingleEntity,

@@ -1,7 +1,4 @@
-import type {
-  EntityIdTag,
-  EntityLoadRequestTag,
-} from '@entifix/business';
+import type { EntityIdTag, EntityLoadRequestTag } from '@entifix/business';
 import type {
   EntifixError,
   Entity,

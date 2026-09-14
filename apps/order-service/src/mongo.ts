@@ -5,10 +5,7 @@ import {
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import {
-  ConfigurationRepositoryTag,
-  TokenServiceTag,
-} from '@entifix/business';
+import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
 import { ConfigurationClientInMemory } from '@entifix/core';
 import { makeJoseTokenService } from '@entifix/jwt';
 import {

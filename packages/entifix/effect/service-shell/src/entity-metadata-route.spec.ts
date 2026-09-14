@@ -1,8 +1,5 @@
 import { HttpRouter } from '@effect/platform';
-import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-} from '@entifix/authz';
+import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import { type TokenClaims, TokenServiceTag } from '@entifix/business';
 import {
   accessor,

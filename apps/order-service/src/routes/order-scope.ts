@@ -117,9 +117,7 @@ export const orderScopeFilter = (
     case 'buyer':
       return {
         operator: 'and',
-        values: [
-          { property: 'buyerId', operator: 'eq', value: scope.partyId },
-        ],
+        values: [{ property: 'buyerId', operator: 'eq', value: scope.partyId }],
       };
     default:
       return undefined;

@@ -43,7 +43,9 @@ import {
  * — it makes a channel neither active nor retired — and is refused in the same
  * breath rather than left as the one unchecked member.
  */
-const validateChannel = (channel: SalesChannel): EntifixBuildError | undefined =>
+const validateChannel = (
+  channel: SalesChannel,
+): EntifixBuildError | undefined =>
   !isSalesChannelType(channel.type)
     ? new EntifixBuildError(
         `A sales channel type must be one of the declared types, not "${String(channel.type)}"`,

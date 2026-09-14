@@ -23,7 +23,8 @@ const service = defineServiceE2e({
 
 const get = (path: string, authorization?: string) =>
   service.client.get(path, {
-    headers: authorization === undefined ? {} : { Authorization: authorization },
+    headers:
+      authorization === undefined ? {} : { Authorization: authorization },
   });
 
 describe('an unauthenticated request', () => {
@@ -45,9 +46,9 @@ describe('an unauthenticated request', () => {
 
 describe('an authenticated request', () => {
   it('reaches the ledger with a role that may read it', async () => {
-    expect((await get('/api/stock-item', await bearerFor(['user']))).status).toBe(
-      200,
-    );
+    expect(
+      (await get('/api/stock-item', await bearerFor(['user']))).status,
+    ).toBe(200);
   });
 
   it('is refused 403 for a role that may not write a movement', async () => {
@@ -59,7 +60,11 @@ describe('an authenticated request', () => {
       '/api/stock-movement',
       {
         meta: { type: 'entity', entity: 'stock-movement' },
-        data: { offeringId: 'product-offering-1', quantity: 1, reason: 'receipt' },
+        data: {
+          offeringId: 'product-offering-1',
+          quantity: 1,
+          reason: 'receipt',
+        },
       },
       { headers: { Authorization: await bearerFor(['user']) } },
     );

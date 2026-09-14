@@ -2,10 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { ShutdownRegistryTag } from '@entifix/business';
 import { EntifixConnError, serializeEntity } from '@entifix/core';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   SettlementRun,
   VendorPayout,

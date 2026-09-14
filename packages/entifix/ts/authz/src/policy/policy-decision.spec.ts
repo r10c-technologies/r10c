@@ -72,7 +72,10 @@ describe('PolicyDecisionTag', () => {
 
     const allowed = Effect.runSync(
       program.pipe(
-        Effect.provideService(PolicyDecisionTag, makeStaticPolicyDecision(GRANTS)),
+        Effect.provideService(
+          PolicyDecisionTag,
+          makeStaticPolicyDecision(GRANTS),
+        ),
       ),
     );
     expect(allowed).toBe(true);

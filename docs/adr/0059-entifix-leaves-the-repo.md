@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-09-14
 - Area: platform
-- Read when: adding a package under `packages/entifix/`, or wondering why a framework file takes a cookie name as an option instead of reading one — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported
+- Read when: adding a package under `packages/entifix/`, or wondering why a framework file imports a cookie name from core instead of declaring its own — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported
 
 ## Context
 
@@ -48,12 +48,12 @@ Composability is what keeps that honest. Six tiers, and a package may hard-depen
 only on its own tier or below:
 
 ```
-T0  standalone     style · tooling · i18n
+T0  standalone     style · tooling
 T1  entity         core · business
 T2  adapters       mongo · sql · redis · amqp · rest · transactions
-                   jwt · zitadel · posthog
+                   jwt · zitadel · posthog · i18n
 T3  ui             react-controls · react-integration
-T4  app framework  authz · authn · service-shell · next-shell · next-i18n
+T4  app framework  authz · service-shell · next-shell · next-i18n
 T5  testing        testing-unit · testing-e2e · testing-auth
 ```
 
@@ -61,10 +61,17 @@ Someone who wants only entity metadata takes T1. Someone who wants a table takes
 T3 and must not thereby install i18next, a Spanish catalog, a Mongo driver and a
 saga engine.
 
-⚠️ **The invariant that enforces this is not about direction.** All three
-composition defects found when the tiers were drawn point *downward* —
+`i18n` is an adapter rather than standalone: it is the i18next binding of the
+translator port `react-controls` declares, exactly as `mongo` is the driver binding
+of a repository. `authn` does not ship at all — it holds entity classes, use cases
+and repositories r10c's `auth` slice owns, and the only thing the Next shell took
+from it was four session-timing constants, which became hook options.
+
+⚠️ **The invariant that enforces this is not about direction.** Three of the four
+composition defects found when the tiers were drawn point _downward_ —
 `react-controls`→`i18n`, the datastore adapters→`transactions`, and
-`testing-e2e`→three database drivers. A downward edge is legal; what is not is a
+`testing-e2e`→three database drivers. The fourth, `next-shell`→`authn`, left the
+framework entirely. A downward edge is legal; what is not is a
 **hard** dependency on an optional capability. Such an edge must be a
 `peerDependencies` entry with `peerDependenciesMeta.optional` behind a subpath
 export. `@r10c/tiers` fails the build on both rules, and on a package carrying no
@@ -75,12 +82,12 @@ export. `@r10c/tiers` fails the build on both rules, and on a package carrying n
 Four places had r10c baked into framework code, and all four resolve the same
 way: the framework declares a port, the host supplies a value at composition.
 
-| what | framework declares | r10c supplies |
-| --- | --- | --- |
-| catalogs | a namespace per package, plus a parity checker | its own `app` namespace, and the single `declare module 'i18next'` |
-| grants | `PolicyDecision`, `can(grants, …)` | `ROLE_PERMISSIONS`, `SERVICE_CROSSING_PERMISSIONS` |
-| cookie and storage names | neutral names, fixed, declared once in core; storage keys that were already parameters keep a neutral default | nothing — r10c adopts `entifix_at`, `entifix_sid`, `entifix_locale`, and stops re-declaring them |
-| the principal | `TokenServiceTag`, `PolicyDecisionTag` | the Zitadel-backed Layers |
+| what                     | framework declares                                                                                             | r10c supplies                                                                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| catalogs                 | a namespace per package for the copy it renders (`controls`, `shell`), and a registry to install catalogs into | `entity`, `errors` and `app` — the copy that names its own entities, codes and back office — and the single `declare module 'i18next'` |
+| grants                   | `PolicyDecision`, `can(grants, …)`                                                                             | `ROLE_PERMISSIONS`, `SERVICE_CROSSING_PERMISSIONS`                                                                                     |
+| cookie and storage names | neutral names, fixed, declared once in core; storage keys that were already parameters keep a neutral default  | nothing — r10c adopts `entifix_at`, `entifix_sid`, `entifix_locale`, and stops re-declaring them                                       |
+| the principal            | `TokenServiceTag`, `PolicyDecisionTag`                                                                         | the Zitadel-backed Layers                                                                                                              |
 
 **A value, not a path.** A framework that takes `./config/roles.json` has to
 resolve, read and parse it, which means it now owns a filesystem contract and a
@@ -92,7 +99,7 @@ that must configure at runtime.
 ⚠️ **The typed-key gate is the one seam that cannot be split.** TypeScript permits
 exactly one `declare module 'i18next' { interface CustomTypeOptions }` per
 compilation — a second is `TS2717: subsequent property declarations must have the
-same type`. So catalogs are owned per package but the *type* gate is composed by
+same type`. So catalogs are owned per package but the _type_ gate is composed by
 the host, in about ten lines. Every `useT` call site reads exactly as before;
 what an adopter gains is a file they must write, and it belongs in the README.
 
@@ -116,7 +123,7 @@ entifix begins its own collection at 0001.
 them.** `@r10c/entifix-ts-core` is written `@entifix/core` throughout, because a
 reader greps the current name and a record naming a package that no longer exists
 is a dead end. No record gains a `- Revised:` line for it: nothing any of them
-*asserts* has changed, only the spelling of a name, and 29 Revised lines pointing
+_asserts_ has changed, only the spelling of a name, and 29 Revised lines pointing
 at one mechanical pass would bury the four real in-place corrections this
 collection has made. The mapping is here, once:
 
@@ -134,8 +141,8 @@ collection has made. The mapping is here, once:
 @r10c/shells-effect-service      → @entifix/service-shell
 @r10c/shells-next-common         → @entifix/next-shell
 @r10c/shells-next-i18n           → @entifix/next-i18n
-@r10c/business-ts-authz          → @entifix/authz   (the vocabulary half)
-@r10c/business-ts-authn          → @entifix/authn
+@r10c/business-ts-authz          → @entifix/authz   (the vocabulary half;
+                                   the grants stay as @r10c/business-ts-authz-grants)
 ```
 
 ### Big bang, because there is nothing to stage against
@@ -159,9 +166,17 @@ and the copy into the new repository follows it.
 - **Every adopter writes the i18n augmentation.** Ten lines, and a wrong one is a
   compile error rather than a runtime surprise — but it is the first thing an
   adopter meets.
-- **Three packages ship unexercised.** `zitadel-client`, `posthog-client` and
-  `authn` have no example. The README says so rather than letting an adopter
-  infer coverage from their presence.
+- **Three packages ship unexercised.** `@entifix/zitadel`, `@entifix/jwt` and
+  `@entifix/posthog` have no example. The README says so rather than letting an
+  adopter infer coverage from their presence.
+- ⚠️ **The catalog registry has to be installed once per bundle.** `getServerT`
+  is called inside server components with no composition root to thread a value
+  through, so catalogs are installed into a registry — and a Next application's
+  server and client are separate bundles with separate module state. r10c first
+  installed only from its `'use client'` provider, and every server render threw
+  `No i18n catalogs are installed`; no unit spec could see it, because specs
+  install catalogs themselves. A host installs from its root layout for the
+  server graph and from its provider for the client.
 - ⚠️ **`@r10c/source` is joined, not renamed.** The custom export condition is a
   workspace-wide convention used by **73** projects here, most of which are not
   entifix. entifix packages key their `exports` on `@entifix/source`; this

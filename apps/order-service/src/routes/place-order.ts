@@ -13,10 +13,7 @@ import {
   readEntityEnvelope,
   serializeEntity,
 } from '@entifix/core';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import { Effect } from 'effect';
 

@@ -52,9 +52,14 @@ describe('the stock adapters context', () => {
       wrapper: wrapperWith(),
     });
 
-    expect(Context.get(result.current.stockItemRest, EntityRepositoryTag)).toBeDefined();
     expect(
-      Context.get(result.current.configurationStore, ConfigurationRepositoryTag),
+      Context.get(result.current.stockItemRest, EntityRepositoryTag),
+    ).toBeDefined();
+    expect(
+      Context.get(
+        result.current.configurationStore,
+        ConfigurationRepositoryTag,
+      ),
     ).toBeDefined();
   });
 

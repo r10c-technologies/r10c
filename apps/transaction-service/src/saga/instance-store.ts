@@ -128,7 +128,10 @@ export const makeMongoSagaStore = (db: Db) => {
           await collection.updateOne(
             { sagaId },
             {
-              $set: { 'outcomes.$[entry].compensated': true, updatedAt: stamp() },
+              $set: {
+                'outcomes.$[entry].compensated': true,
+                updatedAt: stamp(),
+              },
             },
             { arrayFilters: [{ 'entry.stepId': stepId }] },
           );

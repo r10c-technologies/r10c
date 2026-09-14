@@ -5,11 +5,7 @@ import {
   HttpServerResponse,
   UrlParams,
 } from '@effect/platform';
-import {
-  isRole,
-  permissionForEntity,
-  type Role,
-} from '@entifix/authz';
+import { isRole, permissionForEntity, type Role } from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,
   type DeviceContext,
@@ -38,10 +34,7 @@ import {
 } from '@entifix/core';
 import { isLocale } from '@entifix/core';
 import { publicJwks } from '@entifix/jwt';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
 import {
   entityMetadataRoute,
   LoadedConfigurationTag,

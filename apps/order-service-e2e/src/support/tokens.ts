@@ -71,8 +71,7 @@ export const E2E_ORGANIZATION_ID =
  * store, which is why the claim is minted there and carried rather than looked
  * up here.
  */
-export const E2E_PARTY_ID =
-  process.env['ORDER_PARTY_ID'] ?? 'party-user-2';
+export const E2E_PARTY_ID = process.env['ORDER_PARTY_ID'] ?? 'party-user-2';
 
 /**
  * The crossing secret `POST /api/product-order` expects.

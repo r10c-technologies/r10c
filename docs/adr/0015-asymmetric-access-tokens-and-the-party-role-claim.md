@@ -124,7 +124,7 @@ key's name, because a naming heuristic that misses once publishes a signing key.
   build error rather than producing an unsigned token. `marketplace-admin-service`
   and `config-service` are now structurally incapable of forging a principal.
 - **`partyRole` was carried inert, and now has a consumer.** Nothing branched on
-  it in *this* change — no guard, no resolver, no nav filter — which is what kept
+  it in _this_ change — no guard, no resolver, no nav filter — which is what kept
   it reviewable. Since
   [ADR 0053](0053-scoping-a-platform-plane-read-to-its-caller.md) it selects
   which predicate an order read is narrowed by, and the token carries `partyId`

@@ -3,10 +3,7 @@ import {
   EntityRepositoryTag,
 } from '@entifix/business';
 import type { EntifixError } from '@entifix/core';
-import {
-  makeMongoRepository,
-  MongoClientTag,
-} from '@entifix/mongo';
+import { makeMongoRepository, MongoClientTag } from '@entifix/mongo';
 import {
   ensureOutboxIndexes,
   makeMongoOutbox,

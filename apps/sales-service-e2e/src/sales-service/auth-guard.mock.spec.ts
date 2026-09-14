@@ -22,7 +22,8 @@ const service = defineServiceE2e({
 
 const get = (path: string, authorization?: string) =>
   service.client.get(path, {
-    headers: authorization === undefined ? {} : { Authorization: authorization },
+    headers:
+      authorization === undefined ? {} : { Authorization: authorization },
   });
 
 describe('an unauthenticated request', () => {

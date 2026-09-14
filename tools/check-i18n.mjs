@@ -102,7 +102,9 @@ for (const locale of others) {
     }
     for (const name of actual) {
       if (!expected.has(name)) {
-        problems.push(`${locale}: "${key}" adds an unknown {{${name}}} placeholder`);
+        problems.push(
+          `${locale}: "${key}" adds an unknown {{${name}}} placeholder`,
+        );
       }
     }
   }

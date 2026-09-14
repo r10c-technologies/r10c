@@ -1,8 +1,5 @@
 import type { EntityId } from '@entifix/core';
-import type {
-  ZitadelIdentity,
-  ZitadelManagement,
-} from '@entifix/zitadel';
+import type { ZitadelIdentity, ZitadelManagement } from '@entifix/zitadel';
 import {
   type AccountRepository,
   AccountRepositoryTag,

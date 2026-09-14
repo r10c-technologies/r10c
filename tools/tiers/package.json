@@ -11,12 +11,18 @@
     }
   },
   "nx": {
-    "tags": ["layer:app", "scope:shared", "type:testing"],
+    "tags": [
+      "layer:app",
+      "scope:shared",
+      "type:testing"
+    ],
     "sourceRoot": "tools/tiers/src",
     "targets": {
       "test": {
         "executor": "nx:run-commands",
-        "outputs": ["{projectRoot}/test-output/vitest"],
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
         "options": {
           "command": "vitest run --config vitest.config.mts",
           "cwd": "tools/tiers"

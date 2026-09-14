@@ -7,10 +7,7 @@ import {
   makeEntityEnvelope,
   serializeEntity,
 } from '@entifix/core';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import type { PaymentOutcome } from '@r10c/business-ts-payment-contracts';
 import {
   type PaymentMethod,

@@ -6,7 +6,7 @@ import type { i18n as I18nInstance } from 'i18next';
 import { type PropsWithChildren, useMemo } from 'react';
 import { I18nextProvider, initReactI18next } from 'react-i18next';
 
-import { type Translator,TranslatorProvider } from '../i18n/i18n-context';
+import { type Translator, TranslatorProvider } from '../i18n/i18n-context';
 
 /**
  * The i18next binding of the translator port.
@@ -16,10 +16,7 @@ import { type Translator,TranslatorProvider } from '../i18n/i18n-context';
  * Package-level dependencies are not per-subpath — the optional peers are what
  * does the work, the same arrangement as `@entifix/mongo/transactions`.
  */
-const translatorFor = (
-  instance: I18nInstance,
-  locale: Locale,
-): Translator => ({
+const translatorFor = (instance: I18nInstance, locale: Locale): Translator => ({
   locale,
   formatters: makeFormatters(locale),
   // `Translator.t` takes a plain string, because the port has to be

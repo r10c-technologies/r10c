@@ -9,10 +9,7 @@ import {
   getUCFactory,
 } from '@entifix/business';
 import { makeEnvelope } from '@entifix/core';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
 import { requireOrganization } from '@entifix/service-shell';
 import {
   SalesChannel,
@@ -245,7 +242,10 @@ const counterSaleRoute = (organizationId: string) =>
                 organizationId: line.vendorId,
                 body: {
                   meta: { type: 'entity', entity: 'reservation' },
-                  data: { offeringId: line.offeringId, quantity: line.quantity },
+                  data: {
+                    offeringId: line.offeringId,
+                    quantity: line.quantity,
+                  },
                 },
               })),
               'write-order': [

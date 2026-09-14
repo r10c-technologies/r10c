@@ -1,4 +1,9 @@
-import { DEFAULT_LOCALE, isLocale, type Locale, LOCALE_HEADER } from '@entifix/core';
+import {
+  DEFAULT_LOCALE,
+  isLocale,
+  type Locale,
+  LOCALE_HEADER,
+} from '@entifix/core';
 import { createI18n } from '@entifix/i18n';
 import type { Namespace } from 'i18next';
 import { headers } from 'next/headers';

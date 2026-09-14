@@ -6,8 +6,7 @@ import { useTabsSource } from './use-tabs-source.js';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/es/workspace' }));
 
-const run = (term = '') =>
-  renderHook(() => useTabsSource(term)).result.current;
+const run = (term = '') => renderHook(() => useTabsSource(term)).result.current;
 
 describe('useTabsSource', () => {
   beforeEach(() => {

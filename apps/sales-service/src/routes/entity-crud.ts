@@ -29,10 +29,7 @@ import {
   parseLoadRequestParams,
   readEntityEnvelope,
 } from '@entifix/core';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
 import { requireOrganization } from '@entifix/service-shell';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';

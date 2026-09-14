@@ -1,9 +1,6 @@
 import { SqlClient } from '@effect/sql';
 import type { HealthReport } from '@entifix/business';
-import {
-  HealthRegistryLayer,
-  HealthRegistryTag,
-} from '@entifix/business';
+import { HealthRegistryLayer, HealthRegistryTag } from '@entifix/business';
 import {
   type FakeSqlClient,
   makeFakeSqlClient,

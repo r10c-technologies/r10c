@@ -153,12 +153,12 @@ describe('BackOfficeShell, domain groups', () => {
 
     // Hidden, and remembered — a group that re-expands on every reload is a
     // preference that was never really offered.
-    await waitFor(() =>
-      expect(screen.queryByText('Products')).toBeNull(),
-    );
+    await waitFor(() => expect(screen.queryByText('Products')).toBeNull());
     await waitFor(() =>
       expect(
-        window.localStorage.getItem('entifix-ui:back-office:nav-collapsed-groups'),
+        window.localStorage.getItem(
+          'entifix-ui:back-office:nav-collapsed-groups',
+        ),
       ).toBe('{"Catalog":true}'),
     );
   });
@@ -189,9 +189,7 @@ describe('BackOfficeShell, at a narrow viewport', () => {
     // scroll away, which is what "no mobile behaviour" looked like.
     expect(screen.queryByRole('navigation', { name: 'Principal' })).toBeNull();
 
-    await user.click(
-      screen.getByRole('button', { name: 'Abrir el menú' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Abrir el menú' }));
 
     const drawer = await screen.findByRole('dialog');
     expect(
@@ -221,9 +219,7 @@ describe('BackOfficeShell, at a narrow viewport', () => {
     stubViewport(900);
     renderShell();
 
-    await waitFor(() =>
-      expect(screen.queryByText('Acme Admin')).toBeNull(),
-    );
+    await waitFor(() => expect(screen.queryByText('Acme Admin')).toBeNull());
     expect(
       window.localStorage.getItem('entifix-ui:back-office:sidebar-collapsed'),
     ).toBeNull();

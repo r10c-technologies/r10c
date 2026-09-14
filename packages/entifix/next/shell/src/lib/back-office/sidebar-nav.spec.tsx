@@ -125,7 +125,9 @@ describe('SidebarNav', () => {
       }),
     ).toHaveAttribute('href', '/es/workspace?tab=master%3Aproduct-category');
     expect(
-      within(nav).getByRole('link', { name: 'Abrir Categories en una pestaña nueva' }),
+      within(nav).getByRole('link', {
+        name: 'Abrir Categories en una pestaña nueva',
+      }),
     ).toHaveAttribute('target', '_blank');
   });
 
@@ -141,7 +143,9 @@ describe('SidebarNav', () => {
       }),
     ).toBeNull();
     expect(
-      within(nav).getByRole('link', { name: 'Abrir Products en una pestaña nueva' }),
+      within(nav).getByRole('link', {
+        name: 'Abrir Products en una pestaña nueva',
+      }),
     ).toBeInTheDocument();
   });
 
@@ -201,9 +205,7 @@ describe('SidebarNav', () => {
     expect(
       within(nav).getByRole('button', { name: 'Desplegar Catalog' }),
     ).toHaveAttribute('aria-expanded', 'false');
-    expect(
-      within(nav).queryByRole('link', { name: 'Brands' }),
-    ).toBeNull();
+    expect(within(nav).queryByRole('link', { name: 'Brands' })).toBeNull();
     // The untyped section is a different group and is unaffected.
     expect(destination(nav, 'Account')).toBeInTheDocument();
   });

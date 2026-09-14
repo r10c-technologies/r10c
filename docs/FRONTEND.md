@@ -222,12 +222,12 @@ Navegación (`visibleNav`), Pestañas abiertas (`useTabsState`), Registros
 
 The parts, and where each lives:
 
-| Piece                                                  | Where                                                       |
-| ------------------------------------------------------ | ----------------------------------------------------------- |
+| Piece                                                  | Where                                                     |
+| ------------------------------------------------------ | --------------------------------------------------------- |
 | `CommandSource` / `CommandPage`, matching, the grammar | `@entifix/core` — framework-free, like `EntityLinkSource` |
-| `CommandPalette`, `useHotkey`                          | `@entifix/react-controls` — presentational, no router        |
-| the five source hooks, recency, `CommandPaletteHost`   | `@entifix/next-shell`                                        |
-| `GuardedCommand` fragments                             | each domain shell; the host concatenates and filters        |
+| `CommandPalette`, `useHotkey`                          | `@entifix/react-controls` — presentational, no router     |
+| the five source hooks, recency, `CommandPaletteHost`   | `@entifix/next-shell`                                     |
+| `GuardedCommand` fragments                             | each domain shell; the host concatenates and filters      |
 
 Five rules that are easy to get wrong:
 
@@ -262,13 +262,13 @@ its own definition.
 
 The parts, and where each lives:
 
-| Piece                                                   | Where                                                    |
-| ------------------------------------------------------- | -------------------------------------------------------- |
+| Piece                                                   | Where                                                  |
+| ------------------------------------------------------- | ------------------------------------------------------ |
 | the step graph, `WizardState`, `assertWizardDefinition` | `@entifix/core` — framework-free, like `CommandSource` |
-| `Wizard` (stepper, step slot, recap, footer)            | `@entifix/react-controls` — presentational, no router     |
-| `useWizard`, `WizardDraftStore`                         | `@entifix/react-integration`                              |
-| `useWizardDraft`, the step-URL sync, `wizardTabKind`    | `@entifix/next-shell`                                     |
-| a wizard's own definition and steps                     | the domain shell that owns the records it writes         |
+| `Wizard` (stepper, step slot, recap, footer)            | `@entifix/react-controls` — presentational, no router  |
+| `useWizard`, `WizardDraftStore`                         | `@entifix/react-integration`                           |
+| `useWizardDraft`, the step-URL sync, `wizardTabKind`    | `@entifix/next-shell`                                  |
+| a wizard's own definition and steps                     | the domain shell that owns the records it writes       |
 
 Seven rules that are easy to get wrong:
 
@@ -928,9 +928,9 @@ shells, per the design-system rule.
 
 | Concern                                                                                                                                                                                           | Package                               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`, `useEntityLinkSource`                                                                | `@entifix/react-integration`     |
-| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`, `EntityLinkInput`/`EntityLinkPicker`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`                                                         | `@entifix/react-controls`        |
-| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                                                                            | `@entifix/next-shell`            |
+| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`, `useEntityLinkSource`                                                                | `@entifix/react-integration`          |
+| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`, `EntityLinkInput`/`EntityLinkPicker`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`                                                         | `@entifix/react-controls`             |
+| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                                                                            | `@entifix/next-shell`                 |
 | `PageView({addr})` pages, registrations, adapters                                                                                                                                                 | `@r10c/shells-next-marketplace-admin` |
 | `(back-office)` user management over `EntityTable`/`EntityForm`, account surface, sign-in                                                                                                         | `@r10c/shells-next-auth`              |
 | The stock surface: items, the movement form and the read-only ledger — the first **Operaciones** screens                                                                                          | `@r10c/shells-next-stock`             |
@@ -966,14 +966,14 @@ justify itself.
 
 ## What that costs, and what it buys
 
-|                   | Back-office                        | Storefront                                 |
-| ----------------- | ---------------------------------- | ------------------------------------------ |
-| Default component | client                             | **server**                                 |
-| Locale            | `x-entifix-locale` header → dynamic   | `[locale]` route param → **prerenderable** |
-| Data              | TanStack over REST, in the browser | use-case run on the server, in the page    |
-| Links             | `LocaleLink` (client)              | `StoreLink` (**server**)                   |
-| CTA               | `Button`                           | `ButtonLink` where the click navigates     |
-| Mutations         | mutation hooks                     | `<form action={serverAction}>`             |
+|                   | Back-office                         | Storefront                                 |
+| ----------------- | ----------------------------------- | ------------------------------------------ |
+| Default component | client                              | **server**                                 |
+| Locale            | `x-entifix-locale` header → dynamic | `[locale]` route param → **prerenderable** |
+| Data              | TanStack over REST, in the browser  | use-case run on the server, in the page    |
+| Links             | `LocaleLink` (client)               | `StoreLink` (**server**)                   |
+| CTA               | `Button`                            | `ButtonLink` where the click navigates     |
+| Mutations         | mutation hooks                      | `<form action={serverAction}>`             |
 
 Home and every product page are cached per locale with ISR, revalidated every
 60s. `/cart` reads `cookies()` and `/search` reads `searchParams`, so both are

@@ -1,9 +1,6 @@
 'use client';
 
-import type {
-  EntityFieldDescriptor,
-  MetaAccessorType,
-} from '@entifix/core';
+import type { EntityFieldDescriptor, MetaAccessorType } from '@entifix/core';
 
 import { useEnumLabel } from '../../../i18n';
 import { Checkbox, Select, TextInput } from '../field';

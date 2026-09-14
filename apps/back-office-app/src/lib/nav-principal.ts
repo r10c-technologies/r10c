@@ -2,7 +2,6 @@ import { ACCESS_COOKIE } from '@entifix/core';
 import { unverifiedClaims } from '@entifix/jwt';
 import { cookies } from 'next/headers';
 
-
 /**
  * What the navigation filter needs to know about the caller.
  *

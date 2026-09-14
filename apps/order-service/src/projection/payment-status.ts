@@ -1,9 +1,6 @@
 import { queueNameFor } from '@entifix/amqp/transactions';
 import { EntifixConnError } from '@entifix/core';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   ensureInboxIndexes,
   INBOX_COLLECTION,

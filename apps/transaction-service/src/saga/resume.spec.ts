@@ -120,12 +120,7 @@ const runPass = async (
   }> = [];
 
   await Effect.runPromise(
-    resumeStaleSagas(
-      store,
-      SAGAS,
-      STALE_AFTER_MS,
-      MAX_RESUME_ATTEMPTS,
-    ).pipe(
+    resumeStaleSagas(store, SAGAS, STALE_AFTER_MS, MAX_RESUME_ATTEMPTS).pipe(
       Effect.provide(layer),
       Effect.provide(
         Logger.replace(
@@ -158,9 +153,9 @@ describe('resumeStaleSagas', () => {
       'saga-1:write-order',
     ]);
     expect(settled).toEqual([{ state: 'COMPLETED', error: undefined }]);
-    expect(
-      logs.some(line => line.message === 'resumed a saga instance'),
-    ).toBe(true);
+    expect(logs.some(line => line.message === 'resumed a saga instance')).toBe(
+      true,
+    );
   });
 
   /**

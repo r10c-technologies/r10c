@@ -5,10 +5,7 @@ import {
   type EntityId,
   serializeEntity,
 } from '@entifix/core';
-import {
-  runRepository,
-  runRepositoryExit,
-} from '@entifix/testing-unit';
+import { runRepository, runRepositoryExit } from '@entifix/testing-unit';
 import {
   ContractWidget,
   describeEntityRepositoryContract,

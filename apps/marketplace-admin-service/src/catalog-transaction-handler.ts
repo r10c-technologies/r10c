@@ -9,10 +9,7 @@ import {
   serializeEntity,
 } from '@entifix/core';
 import { makeMongoRepository } from '@entifix/mongo';
-import {
-  OUTBOX_COLLECTION,
-  outboxDocument,
-} from '@entifix/mongo/transactions';
+import { OUTBOX_COLLECTION, outboxDocument } from '@entifix/mongo/transactions';
 import {
   completedEvent,
   type SequenceService,

@@ -1,17 +1,11 @@
 import { defineCatalogs } from '@entifix/i18n';
-import {
-  shellCatalogs,
-  type ShellResources,
-} from '@entifix/next-shell';
+import { shellCatalogs, type ShellResources } from '@entifix/next-shell';
 import {
   controlsCatalogs,
   type ControlsResources,
   registerFallbackCatalog,
 } from '@entifix/react-controls';
-import {
-  r10cCatalogs,
-  type R10cOwnResources,
-} from '@r10c/business-ts-i18n';
+import { r10cCatalogs, type R10cOwnResources } from '@r10c/business-ts-i18n';
 
 /**
  * r10c's catalogs, and the composition of entifix's with them.
@@ -40,7 +34,6 @@ export const R10C_RESOURCES = {
     ...r10cCatalogs.en,
   },
 } as const;
-
 
 /**
  * The single typed-key shape, composed here because only a host can compose it:

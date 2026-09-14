@@ -1,8 +1,5 @@
 import type { HealthReport } from '@entifix/business';
-import {
-  HealthRegistryLayer,
-  HealthRegistryTag,
-} from '@entifix/business';
+import { HealthRegistryLayer, HealthRegistryTag } from '@entifix/business';
 import { Effect, Layer } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

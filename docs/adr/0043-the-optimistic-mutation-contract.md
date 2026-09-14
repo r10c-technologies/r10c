@@ -268,6 +268,7 @@ makes a create addressable, not before.
   > `readTransactionAcceptedEnvelope` and `readTransactionRecordEnvelope` — and
   > the accept-shape assertion this bullet left alone was the reason it mattered,
   > since it had been passing on all three shapes.
+
 - **`GET /api/transaction/:id`'s `404` body is corrected** from
   `{ message: 'transaction not found' }` to the fleet's `{ error, code }`. It was
   the only route answering a shape no envelope reader or `useErrorMessage` path

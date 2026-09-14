@@ -1,9 +1,6 @@
 'use client';
 
-import type {
-  PendingEntry,
-  PendingTransaction,
-} from '@entifix/transactions';
+import type { PendingEntry, PendingTransaction } from '@entifix/transactions';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 

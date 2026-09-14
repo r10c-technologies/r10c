@@ -1,9 +1,4 @@
-import {
-  accessor,
-  type Entity,
-  entity,
-  type EntityId,
-} from '@entifix/core';
+import { accessor, type Entity, entity, type EntityId } from '@entifix/core';
 import { stubUriConfigurationLayer } from '@entifix/testing-unit';
 import {
   entityRestHandlers,
@@ -103,21 +98,22 @@ const runCommandSave = (widget: Widget) =>
  * Two runners rather than one with a flag, because "no sink provided" is a real
  * caller — the storefront and every plain REST adapter — and not a test double.
  */
-const runCommandSaveWatchedBy = (sink: PendingTransaction[]) => (widget: Widget) =>
-  Effect.runPromise(
-    buildEntityRestAdapterSave(
-      Widget,
-      commandOptions,
-    )(widget).pipe(
-      Effect.provide(
-        Layer.succeed(TransactionSinkTag, {
-          began: pending => {
-            sink.push(pending);
-          },
-        }).pipe(Layer.merge(configuration)),
+const runCommandSaveWatchedBy =
+  (sink: PendingTransaction[]) => (widget: Widget) =>
+    Effect.runPromise(
+      buildEntityRestAdapterSave(
+        Widget,
+        commandOptions,
+      )(widget).pipe(
+        Effect.provide(
+          Layer.succeed(TransactionSinkTag, {
+            began: pending => {
+              sink.push(pending);
+            },
+          }).pipe(Layer.merge(configuration)),
+        ),
       ),
-    ),
-  );
+    );
 
 /** What marketplace-admin-service answers a command with. */
 const acceptedTransaction = (transactionId: string) =>

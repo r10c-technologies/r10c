@@ -50,7 +50,7 @@ function ItemActions({ item, label }: { item: NavItem; label: string }) {
           href={workspaceHref(item.workspace)}
           aria-label={t('nav.openInWorkspace', { label })}
           title={t('nav.openInWorkspaceShort')}
-          className="focus-ring shrink-0 rounded p-3xs text-content-muted transition-colors hover:bg-surface hover:text-content"
+          className="shrink-0 rounded p-3xs text-content-muted focus-ring transition-colors hover:bg-surface hover:text-content"
         >
           <span aria-hidden="true">⧉</span>
         </LocaleLink>
@@ -61,7 +61,7 @@ function ItemActions({ item, label }: { item: NavItem; label: string }) {
         rel="noopener noreferrer"
         aria-label={t('nav.openInNewTab', { label })}
         title={t('nav.openInNewTabShort')}
-        className="focus-ring shrink-0 rounded p-3xs text-content-muted transition-colors hover:bg-surface hover:text-content"
+        className="shrink-0 rounded p-3xs text-content-muted focus-ring transition-colors hover:bg-surface hover:text-content"
       >
         <span aria-hidden="true">↗</span>
       </a>
@@ -84,8 +84,10 @@ function ItemLink({
       aria-current={active ? 'page' : undefined}
       title={collapsed ? item.label : undefined}
       className={cn(
-        'focus-ring flex flex-1 items-center gap-2xs rounded-md px-2xs py-3xs text-step-sm transition-colors',
-        active ? 'bg-primary text-primary-content' : 'text-content hover:bg-surface',
+        'flex flex-1 items-center gap-2xs rounded-md px-2xs py-3xs text-step-sm focus-ring transition-colors',
+        active
+          ? 'bg-primary text-primary-content'
+          : 'text-content hover:bg-surface',
       )}
     >
       {item.icon !== undefined && (
@@ -152,9 +154,7 @@ export function SidebarNav({
               ? {}
               : {
                   role: 'group',
-                  'aria-label': translateKey(
-                    SCREEN_TYPE_LABEL_KEYS[tier.type],
-                  ),
+                  'aria-label': translateKey(SCREEN_TYPE_LABEL_KEYS[tier.type]),
                 })}
           >
             {tier.sections.map((section, sectionIndex) => {
@@ -189,7 +189,7 @@ export function SidebarNav({
                             : t('sidebar.collapseGroup', { group: title })
                         }
                         className={cn(
-                          'focus-ring flex items-center gap-3xs rounded px-2xs text-step-xs tracking-wide uppercase transition-colors hover:text-content',
+                          'flex items-center gap-3xs rounded px-2xs text-step-xs tracking-wide uppercase focus-ring transition-colors hover:text-content',
                           groupCollapsed && hasActive
                             ? 'text-content'
                             : 'text-content-muted',

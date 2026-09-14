@@ -6,7 +6,6 @@ import {
 } from '@entifix/next-shell';
 import { cookies } from 'next/headers';
 
-
 /**
  * Which persisted workspace this visitor gets — their open tabs and autosaved
  * drafts.

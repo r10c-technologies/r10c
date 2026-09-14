@@ -1,10 +1,5 @@
 import type { EntityRepository } from '@entifix/business';
-import {
-  accessor,
-  type Entity,
-  entity,
-  type EntityId,
-} from '@entifix/core';
+import { accessor, type Entity, entity, type EntityId } from '@entifix/core';
 import { Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 

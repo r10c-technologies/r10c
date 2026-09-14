@@ -1,7 +1,4 @@
-import {
-  describeEntityUseCases,
-  EntifixLogicError,
-} from '@entifix/core';
+import { describeEntityUseCases, EntifixLogicError } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { ProductOrder } from '../../entities/product-order/index.js';

@@ -82,10 +82,7 @@ export const permissionForStockSurface = (surface: StockSurface): Permission =>
 export const stockListAddress = (surface: StockSurface): string =>
   screenAddress({ type: 'operation', key: surface.entityKey });
 
-export const stockRecordAddress = (
-  surface: StockSurface,
-  id: string,
-): string =>
+export const stockRecordAddress = (surface: StockSurface, id: string): string =>
   screenAddress({ type: 'operation', key: surface.entityKey, id });
 
 type StockSurfaceDeclaration<TEntity extends Entity> = Omit<

@@ -138,7 +138,9 @@ describe('useUseCaseSources', () => {
       { 'sign-out-others': noop },
     );
 
-    await waitFor(() => expect(result.current[0].groups[0].isLoading).toBe(false));
+    await waitFor(() =>
+      expect(result.current[0].groups[0].isLoading).toBe(false),
+    );
     expect(options(result.current)).toEqual([]);
   });
 

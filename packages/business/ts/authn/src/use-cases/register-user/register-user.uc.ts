@@ -1,8 +1,4 @@
-import {
-  canAssignRole,
-  DEFAULT_ROLE,
-  type Role,
-} from '@entifix/authz';
+import { canAssignRole, DEFAULT_ROLE, type Role } from '@entifix/authz';
 import { Context, Effect } from 'effect';
 
 import { AuthnError, ForbiddenError } from '../../errors';

@@ -1,7 +1,4 @@
-import type {
-  BoundSubscription,
-  WiringRegistry,
-} from '@entifix/business';
+import type { BoundSubscription, WiringRegistry } from '@entifix/business';
 import {
   makeShutdownRegistry,
   ShutdownRegistryTag,

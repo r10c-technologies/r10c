@@ -144,12 +144,12 @@ describe('ThemeProvider', () => {
         wrapper: wrapper({ palettes: { dark: { primary: '#111' } } }),
       });
 
-      expect(
-        document.querySelectorAll(`#${PALETTES_STYLE_ID}`),
-      ).toHaveLength(1);
-      expect(
-        document.getElementById(PALETTES_STYLE_ID)?.textContent,
-      ).toContain('#111');
+      expect(document.querySelectorAll(`#${PALETTES_STYLE_ID}`)).toHaveLength(
+        1,
+      );
+      expect(document.getElementById(PALETTES_STYLE_ID)?.textContent).toContain(
+        '#111',
+      );
     });
 
     it.each([

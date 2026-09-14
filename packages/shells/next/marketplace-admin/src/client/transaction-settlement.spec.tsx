@@ -46,9 +46,8 @@ const read = vi.fn(() =>
 );
 
 vi.mock('@entifix/rest', async () => {
-  const actual = await vi.importActual<
-    typeof import('@entifix/rest')
-  >('@entifix/rest');
+  const actual =
+    await vi.importActual<typeof import('@entifix/rest')>('@entifix/rest');
   return {
     ...actual,
     buildTransactionStatusReader: () => Effect.succeed({ read }),

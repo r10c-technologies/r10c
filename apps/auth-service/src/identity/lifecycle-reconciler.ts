@@ -1,7 +1,4 @@
-import {
-  SessionStoreTag,
-  ShutdownRegistryTag,
-} from '@entifix/business';
+import { SessionStoreTag, ShutdownRegistryTag } from '@entifix/business';
 import {
   PROVIDER_USER_LIFECYCLE_EVENTS,
   ZitadelManagementTag,

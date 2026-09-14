@@ -18,10 +18,7 @@ import {
   reconstructEntity,
   type WizardDefinition,
 } from '@entifix/core';
-import type {
-  CrudContext,
-  EntityCrudLinkSource,
-} from '@entifix/next-shell';
+import type { CrudContext, EntityCrudLinkSource } from '@entifix/next-shell';
 import {
   handOffWrite,
   mergeCrudContext,

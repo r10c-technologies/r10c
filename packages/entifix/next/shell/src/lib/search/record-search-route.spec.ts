@@ -71,7 +71,11 @@ const get = async (
   options: Parameters<typeof createRecordSearchRoute>[0] = {
     sources: [things, people],
   },
-): Promise<{ status: number; body: RecordSearchResponse; response: Response }> => {
+): Promise<{
+  status: number;
+  body: RecordSearchResponse;
+  response: Response;
+}> => {
   const response = await createRecordSearchRoute(options)(
     new Request(`http://app.test/api/search${query}`),
   );
@@ -292,7 +296,11 @@ describe('createRecordSearchRoute', () => {
 
     it.each([
       ['clamps a limit above the ceiling', '&limit=999', 'pageSize=20'],
-      ['falls back on a limit that is not a number', '&limit=abc', 'pageSize=5'],
+      [
+        'falls back on a limit that is not a number',
+        '&limit=abc',
+        'pageSize=5',
+      ],
       ['falls back on a limit below one', '&limit=0', 'pageSize=5'],
       ['honours a limit in range', '&limit=3', 'pageSize=3'],
     ])('%s', async (_case, query, expected) => {

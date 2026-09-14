@@ -51,7 +51,9 @@ describe('createClientAdapters', () => {
   it('exposes one repository per stock entity plus the configuration store', () => {
     const adapters = createClientAdapters();
 
-    expect(Context.get(adapters.stockItemRest, EntityRepositoryTag)).toBeDefined();
+    expect(
+      Context.get(adapters.stockItemRest, EntityRepositoryTag),
+    ).toBeDefined();
     expect(
       Context.get(adapters.stockMovementRest, EntityRepositoryTag),
     ).toBeDefined();

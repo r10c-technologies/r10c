@@ -1,9 +1,6 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import type { HealthReport } from '@entifix/business';
-import {
-  HealthRegistryTag,
-  ShutdownRegistryTag,
-} from '@entifix/business';
+import { HealthRegistryTag, ShutdownRegistryTag } from '@entifix/business';
 import { Effect, Ref } from 'effect';
 
 /**

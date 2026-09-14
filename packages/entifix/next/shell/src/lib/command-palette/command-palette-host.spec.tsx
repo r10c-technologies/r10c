@@ -1,11 +1,6 @@
 import { NEW_COMMAND_PAGE } from '@entifix/authz';
 import type { EntityMetadataSource } from '@entifix/core';
-import {
-  accessor,
-  type Entity,
-  entity,
-  type EntityId,
-} from '@entifix/core';
+import { accessor, type Entity, entity, type EntityId } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { renderWithAdapters } from '@entifix/testing-unit/react';
 import { screen, waitFor } from '@testing-library/react';
@@ -121,7 +116,9 @@ describe('CommandPaletteHost', () => {
     expect(
       await screen.findByRole('option', { name: /Nuevo…/ }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: /Productos/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: /Productos/ }),
+    ).toBeInTheDocument();
   });
 
   it('narrows to commands on ">" and asks no service for records', async () => {
@@ -150,7 +147,9 @@ describe('CommandPaletteHost', () => {
     mount();
     await open();
 
-    await userEvent.click(await screen.findByRole('option', { name: /Nuevo…/ }));
+    await userEvent.click(
+      await screen.findByRole('option', { name: /Nuevo…/ }),
+    );
 
     expect(
       screen.getByPlaceholderText('¿Qué quieres crear?'),
@@ -168,7 +167,9 @@ describe('CommandPaletteHost', () => {
   it('spends no fan-out on a pushed page, which shows its own sources', async () => {
     mount();
     await open();
-    await userEvent.click(await screen.findByRole('option', { name: /Nuevo…/ }));
+    await userEvent.click(
+      await screen.findByRole('option', { name: /Nuevo…/ }),
+    );
 
     await userEvent.type(screen.getByRole('combobox'), 'acme');
 
@@ -283,7 +284,9 @@ describe('CommandPaletteHost', () => {
       await open();
 
       await userEvent.click(
-        await screen.findByRole('option', { name: /Cerrar mis otras sesiones/ }),
+        await screen.findByRole('option', {
+          name: /Cerrar mis otras sesiones/,
+        }),
       );
 
       // The list goes away with the question, so a second selection cannot land
@@ -300,7 +303,9 @@ describe('CommandPaletteHost', () => {
       mountWithVerb(run);
       await open();
       await userEvent.click(
-        await screen.findByRole('option', { name: /Cerrar mis otras sesiones/ }),
+        await screen.findByRole('option', {
+          name: /Cerrar mis otras sesiones/,
+        }),
       );
 
       await userEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
@@ -314,7 +319,9 @@ describe('CommandPaletteHost', () => {
       mountWithVerb(run);
       await open();
       await userEvent.click(
-        await screen.findByRole('option', { name: /Cerrar mis otras sesiones/ }),
+        await screen.findByRole('option', {
+          name: /Cerrar mis otras sesiones/,
+        }),
       );
 
       await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
@@ -332,7 +339,9 @@ describe('CommandPaletteHost', () => {
       mountWithVerb(run);
       await open();
       await userEvent.click(
-        await screen.findByRole('option', { name: /Cerrar mis otras sesiones/ }),
+        await screen.findByRole('option', {
+          name: /Cerrar mis otras sesiones/,
+        }),
       );
 
       await userEvent.click(screen.getByRole('button', { name: 'Confirmar' }));

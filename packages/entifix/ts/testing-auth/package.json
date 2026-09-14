@@ -11,7 +11,12 @@
     }
   },
   "nx": {
-    "tags": ["layer:entifix", "scope:shared", "type:testing", "tier:5"],
+    "tags": [
+      "layer:entifix",
+      "scope:shared",
+      "type:testing",
+      "tier:5"
+    ],
     "sourceRoot": "packages/entifix/ts/testing-auth/src",
     "targets": {}
   },

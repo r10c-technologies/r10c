@@ -205,9 +205,9 @@ describe('pendingFor', () => {
       dismiss: () => undefined,
     };
 
-    expect(pendingFor(store, 'product').map(entry => entry.transactionId)).toEqual(
-      ['a'],
-    );
+    expect(
+      pendingFor(store, 'product').map(entry => entry.transactionId),
+    ).toEqual(['a']);
   });
 });
 
@@ -249,7 +249,10 @@ describe('pendingRecordsFor', () => {
   // before persisting, because a class instance does not survive JSON.
   it('skips an entry whose record did not survive a refresh', () => {
     expect(
-      pendingRecordsFor(store([{ ...aPending('a'), state: 'pending' }]), 'product'),
+      pendingRecordsFor(
+        store([{ ...aPending('a'), state: 'pending' }]),
+        'product',
+      ),
     ).toEqual([]);
   });
 

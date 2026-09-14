@@ -1,7 +1,6 @@
 import { ACCESS_COOKIE, SESSION_COOKIE } from '@entifix/core';
 import type { NextResponse } from 'next/server';
 
-
 /** What auth-service hands back from login / register / refresh. */
 export interface SessionCookiePayload {
   readonly accessToken: string;
@@ -36,9 +35,17 @@ export const applySessionCookies = (
   payload: SessionCookiePayload,
 ): NextResponse => {
   const maxAge = payload.sessionExpiresIn;
-  response.cookies.set(ACCESS_COOKIE, payload.accessToken, cookieOptions(maxAge));
+  response.cookies.set(
+    ACCESS_COOKIE,
+    payload.accessToken,
+    cookieOptions(maxAge),
+  );
   if (payload.sessionId !== undefined) {
-    response.cookies.set(SESSION_COOKIE, payload.sessionId, cookieOptions(maxAge));
+    response.cookies.set(
+      SESSION_COOKIE,
+      payload.sessionId,
+      cookieOptions(maxAge),
+    );
   }
   return response;
 };

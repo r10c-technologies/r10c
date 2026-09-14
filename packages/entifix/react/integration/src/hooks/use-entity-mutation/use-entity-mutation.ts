@@ -1,9 +1,5 @@
 import { EntityIdTag, EntityTag } from '@entifix/business';
-import {
-  EntifixError,
-  type Entity,
-  type EntityId,
-} from '@entifix/core';
+import { EntifixError, type Entity, type EntityId } from '@entifix/core';
 import { Context, Effect } from 'effect';
 import { useCallback, useReducer } from 'react';
 

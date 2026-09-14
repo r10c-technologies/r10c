@@ -35,7 +35,6 @@ const ACTION_TIMEOUT_MS = 10_000;
 const STEP_POLLS = 40;
 const STEP_POLL_MS = 250;
 
-
 export interface SeedSessionOptions {
   /** Roles the seeded principal should carry. */
   roles?: readonly string[];

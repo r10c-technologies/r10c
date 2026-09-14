@@ -1,9 +1,4 @@
-import {
-  accessor,
-  type Entity,
-  entity,
-  type EntityId,
-} from '@entifix/core';
+import { accessor, type Entity, entity, type EntityId } from '@entifix/core';
 import { setupEntifixServer } from '@entifix/testing-unit/http';
 
 import { configurationHandler, entityBackendHandlers } from './entity-handlers';

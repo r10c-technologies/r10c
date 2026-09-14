@@ -1,9 +1,6 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import type { BoundSubscription, ProbeKind } from '@entifix/business';
-import {
-  HealthRegistryTag,
-  WiringRegistryTag,
-} from '@entifix/business';
+import { HealthRegistryTag, WiringRegistryTag } from '@entifix/business';
 import { Effect } from 'effect';
 
 import { requireServiceToken } from './auth/service-token.js';

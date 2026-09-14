@@ -116,9 +116,9 @@ describe('concurrent holds against the last units', () => {
   it('let exactly the available quantity through and refuse the rest', async () => {
     const offeringId = freshOffering('holds');
     const available = 10;
-    expect((await recordMovement(offeringId, available, 'receipt')).status).toBe(
-      201,
-    );
+    expect(
+      (await recordMovement(offeringId, available, 'receipt')).status,
+    ).toBe(201);
 
     const responses = await Promise.all(
       Array.from({ length: BURST }, () => takeHold(offeringId, 1)),

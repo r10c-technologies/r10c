@@ -31,11 +31,12 @@ const productSetup: WizardDefinition = {
   ],
 };
 
-const store = (state?: WizardState) => ({
-  state,
-  save: vi.fn<(next: WizardState) => void>(),
-  clear: vi.fn(),
-}) satisfies WizardDraftStore;
+const store = (state?: WizardState) =>
+  ({
+    state,
+    save: vi.fn<(next: WizardState) => void>(),
+    clear: vi.fn(),
+  }) satisfies WizardDraftStore;
 
 describe('walking the flow', () => {
   it('starts at the entry step with the whole path projected', () => {

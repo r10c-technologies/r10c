@@ -62,10 +62,8 @@ export const permissionForSalesSurface = (surface: SalesSurface): Permission =>
 export const salesListAddress = (surface: SalesSurface): string =>
   screenAddress({ type: 'master', key: surface.entityKey });
 
-export const salesRecordAddress = (
-  surface: SalesSurface,
-  id: string,
-): string => screenAddress({ type: 'master', key: surface.entityKey, id });
+export const salesRecordAddress = (surface: SalesSurface, id: string): string =>
+  screenAddress({ type: 'master', key: surface.entityKey, id });
 
 type SalesSurfaceDeclaration<TEntity extends Entity> = Omit<
   SalesSurface<TEntity>,

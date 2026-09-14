@@ -157,8 +157,7 @@ export const commissionsForOrder = ({
 export const reversalOf = (entry: VendorCommission): VendorCommission => ({
   vendorId: entry.vendorId,
   saleAmount: entry.saleAmount === 0 ? 0 : -entry.saleAmount,
-  commissionAmount:
-    entry.commissionAmount === 0 ? 0 : -entry.commissionAmount,
+  commissionAmount: entry.commissionAmount === 0 ? 0 : -entry.commissionAmount,
   currency: entry.currency,
 });
 

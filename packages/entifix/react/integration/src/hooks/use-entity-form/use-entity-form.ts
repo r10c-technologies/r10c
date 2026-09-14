@@ -8,13 +8,7 @@ import {
   seedEntityLinkSelection,
 } from '@entifix/core';
 import { revalidateLogic, useForm, useStore } from '@tanstack/react-form';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   composeEntityFormErrors,
@@ -74,7 +68,9 @@ export function useEntityForm<TEntity extends Entity>({
     const described = describeEntityColumns(entityConstructor, entity);
     return scope === undefined
       ? described
-      : described.filter(descriptor => scope.split(',').includes(descriptor.name));
+      : described.filter(descriptor =>
+          scope.split(',').includes(descriptor.name),
+        );
   }, [entityConstructor, entity, scope]);
   // A persisted draft is layered over the seed, never substituted for it: the
   // entity decides which members exist, the draft only decides their values.

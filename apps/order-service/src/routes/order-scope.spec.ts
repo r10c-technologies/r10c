@@ -74,13 +74,14 @@ describe('the scope a principal reads orders in', () => {
 
 describe('the predicate a scope becomes', () => {
   it('names the embedded vendor path for a vendor', () => {
-    const filter = orderScopeFilter({ kind: 'vendor', organizationId: 'org-1' });
+    const filter = orderScopeFilter({
+      kind: 'vendor',
+      organizationId: 'org-1',
+    });
 
     expect(filter).toEqual({
       operator: 'and',
-      values: [
-        { property: 'items.vendorId', operator: 'eq', value: 'org-1' },
-      ],
+      values: [{ property: 'items.vendorId', operator: 'eq', value: 'org-1' }],
     });
   });
 
@@ -125,15 +126,15 @@ describe('testing one loaded order against a scope', () => {
   });
 
   it('admits the buyer their own order', () => {
-    expect(orderInScope({ kind: 'buyer', partyId: 'party-user-2' }, order)).toBe(
-      true,
-    );
+    expect(
+      orderInScope({ kind: 'buyer', partyId: 'party-user-2' }, order),
+    ).toBe(true);
   });
 
   it('refuses another buyer, whatever id they hold', () => {
-    expect(orderInScope({ kind: 'buyer', partyId: 'party-user-1' }, order)).toBe(
-      false,
-    );
+    expect(
+      orderInScope({ kind: 'buyer', partyId: 'party-user-1' }, order),
+    ).toBe(false);
   });
 
   it('refuses a counter sale with no buyer to a buyer', () => {
@@ -141,9 +142,9 @@ describe('testing one loaded order against a scope', () => {
     // otherwise hand every walk-in sale to any party with no id of its own.
     const walkIn = orderFor(undefined, ['org-1']);
 
-    expect(orderInScope({ kind: 'buyer', partyId: 'party-user-2' }, walkIn)).toBe(
-      false,
-    );
+    expect(
+      orderInScope({ kind: 'buyer', partyId: 'party-user-2' }, walkIn),
+    ).toBe(false);
   });
 
   it('refuses everything for a caller who reads nothing', () => {

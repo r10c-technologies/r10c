@@ -41,9 +41,9 @@ describe('useCommandRecency', () => {
   it('leaves a group untouched before anything has been stored', () => {
     const { held } = mount();
 
-    expect(held.current?.rank(group(['a', 'b'])).options.map(o => o.id)).toEqual(
-      ['a', 'b'],
-    );
+    expect(
+      held.current?.rank(group(['a', 'b'])).options.map(o => o.id),
+    ).toEqual(['a', 'b']);
   });
 
   it('offers the most recently used command first', async () => {
@@ -78,9 +78,9 @@ describe('useCommandRecency', () => {
     act(() => held.current?.remember('a'));
 
     await waitFor(() =>
-      expect(
-        preferences.entries['back-office:command-recency'],
-      ).toHaveProperty('a'),
+      expect(preferences.entries['back-office:command-recency']).toHaveProperty(
+        'a',
+      ),
     );
   });
 

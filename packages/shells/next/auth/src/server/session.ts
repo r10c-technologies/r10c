@@ -2,7 +2,6 @@ import { ACCESS_COOKIE, SESSION_COOKIE } from '@entifix/core';
 import { SESSION_ABSOLUTE_TTL_SECONDS } from '@r10c/business-ts-authn';
 import { cookies } from 'next/headers';
 
-
 /** auth-service (:3102), reached server-side from the route handlers. */
 export const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL ?? 'http://localhost:3102';

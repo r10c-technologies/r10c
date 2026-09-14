@@ -99,10 +99,7 @@ export function UserDetailPage({
   // values — `restoreEntityDraft`'s rule, applied by hand because this form is
   // not `useEntityForm`'s.
   const restored = draft?.draft as EntityDraft | undefined;
-  const pending = useMemo(
-    () => ({ ...restored, ...edits }),
-    [restored, edits],
-  );
+  const pending = useMemo(() => ({ ...restored, ...edits }), [restored, edits]);
 
   const values: EntityDraft = {
     displayName: user?.displayName ?? '',

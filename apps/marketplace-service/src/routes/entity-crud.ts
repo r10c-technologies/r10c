@@ -34,10 +34,7 @@ import {
   readEntityEnvelope,
   readWireSelection,
 } from '@entifix/core';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
 import { requirePermission } from '@entifix/service-shell';
 import {
   RetireReferenceInputTag,

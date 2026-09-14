@@ -70,7 +70,10 @@ const NOTHING_YET: RecordsState = { term: '', failed: false };
  * never ran, and absent would leave someone wondering whether records are
  * searchable here at all.
  */
-export function useRecordsSource(term: string, enabled: boolean): CommandSource {
+export function useRecordsSource(
+  term: string,
+  enabled: boolean,
+): CommandSource {
   const t = useT('shell');
   const translateKey = useTranslateKey();
   const withLocale = useLocaleHref();

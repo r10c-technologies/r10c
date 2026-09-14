@@ -2,7 +2,6 @@ import { ACCESS_COOKIE } from '@entifix/core';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-
 export interface ConfigProxyRouteOptions {
   /** Overrides `CONFIG_API_URL`; mainly for tests. */
   readonly configApiUrl?: string;

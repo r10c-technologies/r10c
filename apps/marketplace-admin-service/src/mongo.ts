@@ -19,10 +19,7 @@ import {
   MongoHealthProbeLayer,
 } from '@entifix/mongo';
 import { OutboxMaxAttempts } from '@entifix/mongo/transactions';
-import {
-  RedisHealthProbeLayer,
-  RedisLayer,
-} from '@entifix/redis';
+import { RedisHealthProbeLayer, RedisLayer } from '@entifix/redis';
 import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,

@@ -1,8 +1,4 @@
-import type {
-  ConfigurationClient,
-  Entity,
-  EntityId,
-} from '@entifix/core';
+import type { ConfigurationClient, Entity, EntityId } from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 import { ConfigurationRepositoryTag } from '../repository/config.repository.js';

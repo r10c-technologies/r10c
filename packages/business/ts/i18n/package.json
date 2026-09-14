@@ -15,14 +15,23 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "!**/*.tsbuildinfo"],
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
   "nx": {
-    "tags": ["layer:business", "business:policy", "scope:shared"],
+    "tags": [
+      "layer:business",
+      "business:policy",
+      "scope:shared"
+    ],
     "sourceRoot": "packages/business/ts/i18n/src",
     "targets": {
       "build": {
         "executor": "@nx/js:swc",
-        "outputs": ["{options.outputPath}"],
+        "outputs": [
+          "{options.outputPath}"
+        ],
         "options": {
           "outputPath": "packages/business/ts/i18n/dist",
           "main": "packages/business/ts/i18n/src/index.ts",

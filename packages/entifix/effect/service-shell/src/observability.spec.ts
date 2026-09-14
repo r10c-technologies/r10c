@@ -267,7 +267,9 @@ describe('the OTLP log sink', () => {
     await vi.waitFor(
       () =>
         expect(
-          written.some(line => line.startsWith('[otlp-log-sink] export failed')),
+          written.some(line =>
+            line.startsWith('[otlp-log-sink] export failed'),
+          ),
         ).toBe(true),
       { timeout: 8000, interval: 100 },
     );
@@ -331,7 +333,9 @@ describe('observabilityFromConfiguration', () => {
     );
 
     await expect(
-      Effect.runPromise(Effect.logInfo('configured').pipe(Effect.provide(layer))),
+      Effect.runPromise(
+        Effect.logInfo('configured').pipe(Effect.provide(layer)),
+      ),
     ).resolves.toBeUndefined();
   });
 
@@ -347,12 +351,10 @@ describe('observabilityFromConfiguration', () => {
     const layer = await Effect.runPromise(
       observabilityFromConfiguration(store, '@r10c/spec-service'),
     );
-    const emit = vi
-      .spyOn(process.stdout, 'write')
-      .mockImplementation(chunk => {
-        records.push(JSON.parse(String(chunk)) as LogRecord);
-        return true;
-      });
+    const emit = vi.spyOn(process.stdout, 'write').mockImplementation(chunk => {
+      records.push(JSON.parse(String(chunk)) as LogRecord);
+      return true;
+    });
 
     await Effect.runPromise(
       Effect.logInfo('no collector').pipe(Effect.provide(layer)),
@@ -475,8 +477,8 @@ describe('a log message that is not an array', () => {
       }).pipe(Effect.provide(observability.layer)),
     );
 
-    expect(
-      observability.logRecords.map(record => record.message),
-    ).toContain('bare string');
+    expect(observability.logRecords.map(record => record.message)).toContain(
+      'bare string',
+    );
   });
 });

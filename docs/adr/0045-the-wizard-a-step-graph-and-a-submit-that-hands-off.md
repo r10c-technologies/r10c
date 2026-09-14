@@ -21,12 +21,12 @@ reading "Wizards — do not exist (#128)".
 A repository-wide search finds the word in exactly five places, and every one of
 them is a declaration waiting for a consumer:
 
-| Where                                      | What is there                              |
-| ------------------------------------------ | ------------------------------------------ |
-| `@entifix/authz/values/screen-type.ts`  | the `ScreenTypes` member and its label key |
-| `@entifix/i18n` `es`/`en` `shell.ts`     | `'Asistentes'` / `'Wizards'`               |
+| Where                                       | What is there                              |
+| ------------------------------------------- | ------------------------------------------ |
+| `@entifix/authz/values/screen-type.ts`      | the `ScreenTypes` member and its label key |
+| `@entifix/i18n` `es`/`en` `shell.ts`        | `'Asistentes'` / `'Wizards'`               |
 | `@entifix/next-shell/workspace/tab-kind.ts` | a doc comment reserving the kind by name   |
-| `back-office/group-by-screen-type.spec.ts` | a test fixture                             |
+| `back-office/group-by-screen-type.spec.ts`  | a test fixture                             |
 
 So the sidebar already knows how to render an **Asistentes** tier, the address
 grammar already parses `wizard:`, and the palette's nav source already turns a

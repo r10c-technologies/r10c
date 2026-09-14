@@ -56,10 +56,10 @@ export class StockMovement implements Entity {
     this.#id = value;
   }
 
-    // `sortable` as well as `filterable`, and not for the table's sake: this
-    // metadata is simultaneously the server-side allowlist, and it is the only
-    // member of these entities that can name one of their records — a search
-    // source refuses a label member that is not sortable, at module load.
+  // `sortable` as well as `filterable`, and not for the table's sake: this
+  // metadata is simultaneously the server-side allowlist, and it is the only
+  // member of these entities that can name one of their records — a search
+  // source refuses a label member that is not sortable, at module load.
   @accessor({
     type: 'string',
     labelKey: 'entity:stock-movement.fields.offeringId',

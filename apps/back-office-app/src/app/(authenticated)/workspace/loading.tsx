@@ -1,7 +1,4 @@
-import {
-  Skeleton,
-  SkeletonText,
-} from '@entifix/react-controls/primitives';
+import { Skeleton, SkeletonText } from '@entifix/react-controls/primitives';
 
 /**
  * Server-rendered skeleton chrome shown while the workspace client hydrates —

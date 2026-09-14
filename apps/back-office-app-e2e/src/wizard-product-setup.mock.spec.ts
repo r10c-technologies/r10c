@@ -125,7 +125,9 @@ test('walks the blank path and hands one command off', async ({
 
   // The classification step is *not* blocked by `nombre`, which belongs to the
   // step before it — without a per-step scope, no step but the last could pass.
-  await expect(page.getByRole('heading', { name: 'Clasificación' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Clasificación' }),
+  ).toBeVisible();
   await next(page);
 
   // The summary repeats what was answered, before anything is written.
@@ -220,13 +222,17 @@ test('resumes a half-finished flow after a refresh, and recaps it', async ({
   await next(page);
   await fillIdentity(page, 'Cacao');
   await next(page);
-  await expect(page.getByRole('heading', { name: 'Clasificación' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Clasificación' }),
+  ).toBeVisible();
 
   await page.reload();
 
   // Position and values both come back — the position from the persisted
   // wizard, not from the address.
-  await expect(page.getByRole('heading', { name: 'Clasificación' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Clasificación' }),
+  ).toBeVisible();
   await expect(page.getByTestId('wizard-recap')).toContainText('Cacao');
 });
 
@@ -235,8 +241,6 @@ test('opens as a workspace tab, captioned by the wizard and not the step', async
 }) => {
   await page.goto('/workspace?tab=wizard:product-setup');
 
-  await expect(
-    page.getByRole('tab', { name: /Nuevo producto/ }),
-  ).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Nuevo producto/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Origen' })).toBeVisible();
 });

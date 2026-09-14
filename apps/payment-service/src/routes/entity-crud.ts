@@ -25,10 +25,7 @@ import {
   makeEntityPageEnvelope,
   parseLoadRequestParams,
 } from '@entifix/core';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
 import {
   type RequestPrincipal,
   requirePermission,
@@ -151,10 +148,7 @@ export const listRoute = <T extends Entity>(
         ? parsed
         : ({
             ...parsed,
-            filtering: [
-              ...(parsed.filtering ?? []),
-              scopeFilter,
-            ],
+            filtering: [...(parsed.filtering ?? []), scopeFilter],
           } as EntityLoadRequest);
     const page = yield* loadUCFactory<T>().pipe(
       Effect.provideService(

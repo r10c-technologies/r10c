@@ -1,8 +1,5 @@
 import { requireLiveUrl } from '@entifix/testing-e2e';
-import {
-  baseTest as test,
-  expect,
-} from '@entifix/testing-e2e/playwright';
+import { baseTest as test, expect } from '@entifix/testing-e2e/playwright';
 
 /**
  * The half of the protocol the browser cannot reach.

@@ -1,6 +1,6 @@
 'use client';
 
-import { screenAddress,type ScreenType } from '@entifix/authz';
+import { screenAddress, type ScreenType } from '@entifix/authz';
 import type { EntityCrudSingleViewProps } from '@entifix/next-shell';
 import { useEntityDraft, useTabEntityNav } from '@entifix/next-shell';
 import type { ReactElement } from 'react';

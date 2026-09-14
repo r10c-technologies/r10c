@@ -1,7 +1,4 @@
-import {
-  baseTest as test,
-  expect,
-} from '@entifix/testing-e2e/playwright';
+import { baseTest as test, expect } from '@entifix/testing-e2e/playwright';
 
 /**
  * The storefront's whole point is that a visitor — or a crawler, or a phone on

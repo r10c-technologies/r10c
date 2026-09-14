@@ -9,10 +9,7 @@ import {
 } from '@entifix/business';
 import type { EntityCrudSingleViewProps } from '@entifix/next-shell';
 import { useLocaleHref } from '@entifix/next-shell';
-import {
-  useEntityMutation,
-  useEntityRecord,
-} from '@entifix/react-integration';
+import { useEntityMutation, useEntityRecord } from '@entifix/react-integration';
 import { Agreement } from '@r10c/business-ts-settlement-management';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';

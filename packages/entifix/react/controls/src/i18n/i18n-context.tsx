@@ -34,7 +34,11 @@ export interface Translator {
   readonly locale: Locale;
   readonly formatters: Formatters;
   /** `ns` is the namespace a caller asked for, or the default when omitted. */
-  t(ns: string | undefined, key: string, params?: Record<string, unknown>): string;
+  t(
+    ns: string | undefined,
+    key: string,
+    params?: Record<string, unknown>,
+  ): string;
 }
 
 const I18nContext = createContext<Translator | null>(null);
@@ -112,7 +116,10 @@ function fallbackTranslator(): Translator {
       const namespace = qualified ? prefix : ns;
       const bare = qualified ? rest.join(':') : key;
 
-      const catalog = fallbackCatalogFor(namespace ?? 'controls', DEFAULT_LOCALE);
+      const catalog = fallbackCatalogFor(
+        namespace ?? 'controls',
+        DEFAULT_LOCALE,
+      );
       if (catalog === undefined) return bare;
       const text = lookup(catalog, bare, params);
       return text === undefined ? bare : interpolate(text, params);

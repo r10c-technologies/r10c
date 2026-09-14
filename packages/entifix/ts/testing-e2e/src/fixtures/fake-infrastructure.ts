@@ -1,7 +1,4 @@
-import {
-  AmqpChannelTag,
-  type AmqpConnector,
-} from '@entifix/amqp';
+import { AmqpChannelTag, type AmqpConnector } from '@entifix/amqp';
 import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
@@ -10,10 +7,7 @@ import {
   ConfigurationClientInMemory,
   type ConfigurationPlain,
 } from '@entifix/core';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import { RedisTag } from '@entifix/redis';
 import {
   type FakeAmqpChannel,

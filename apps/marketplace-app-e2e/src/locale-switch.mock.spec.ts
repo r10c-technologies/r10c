@@ -1,7 +1,4 @@
-import {
-  baseTest as test,
-  expect,
-} from '@entifix/testing-e2e/playwright';
+import { baseTest as test, expect } from '@entifix/testing-e2e/playwright';
 
 /**
  * The one check that catches a screen wired to no provider at all.

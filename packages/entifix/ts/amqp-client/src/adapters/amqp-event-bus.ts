@@ -1,8 +1,5 @@
 import type { WiringRegistry } from '@entifix/business';
-import {
-  ShutdownRegistryTag,
-  WiringRegistryTag,
-} from '@entifix/business';
+import { ShutdownRegistryTag, WiringRegistryTag } from '@entifix/business';
 import {
   EntifixBuildError,
   EntifixConnError,

@@ -8,10 +8,7 @@ import {
   saveUCFactory,
 } from '@entifix/business';
 import { useLocaleHref } from '@entifix/next-shell';
-import {
-  useEntityMutation,
-  useEntityRecord,
-} from '@entifix/react-integration';
+import { useEntityMutation, useEntityRecord } from '@entifix/react-integration';
 import { Configuration } from '@r10c/business-ts-configuration';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
@@ -75,8 +72,10 @@ export function ConfigurationSingleViewClientPage({
     ctx,
   });
 
-  const afterSave = onSaved ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
-  const afterDelete = onDeleted ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
+  const afterSave =
+    onSaved ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
+  const afterDelete =
+    onDeleted ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
 
   const handleSave = async (row: Configuration) => {
     if (await save(row)) {

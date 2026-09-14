@@ -1,8 +1,5 @@
 import { HttpRouter } from '@effect/platform';
-import {
-  entityMetadataRoute,
-  requireCrossing,
-} from '@entifix/service-shell';
+import { entityMetadataRoute, requireCrossing } from '@entifix/service-shell';
 import {
   CANCEL_PRODUCT_ORDER,
   FULFIL_PRODUCT_ORDER,

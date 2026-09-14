@@ -172,7 +172,12 @@ export const defineEntifixTest = ({
           // imports Node's native loader rejects; inline them so Vite resolves
           // those imports (`@opentelemetry/api` is additionally aliased to its
           // CommonJS build above).
-          inline: [/@r10c\//, /@entifix\//, /@opentelemetry\//, /@effect\/opentelemetry/],
+          inline: [
+            /@r10c\//,
+            /@entifix\//,
+            /@opentelemetry\//,
+            /@effect\/opentelemetry/,
+          ],
         },
       },
       reporters: ['default'],

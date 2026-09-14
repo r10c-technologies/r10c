@@ -8,16 +8,16 @@ through the `@r10c/source` condition. Depend on it as a `devDependency`.
 
 Which kind of double to reach for, and where each lives:
 
-| Kind             | What it is                                                    | Where                    |
-| ---------------- | ------------------------------------------------------------- | ------------------------ |
-| **Stub**         | Canned answers, no assertions on it                            | inline, or `makeStub*`   |
-| **Fake**         | Working in-memory implementation of a **driven port**          | `.` (`makeInMemory*`)    |
-| **Driver fake**  | Fake of a *third-party client*, one level below an adapter     | `./drivers`              |
-| **Recording**    | A fake that records what happened, asserted as state           | `.` (`makeRecording*`)   |
-| **MSW**          | The boundary for everything HTTP                               | `./http`                 |
+| Kind            | What it is                                                 | Where                  |
+| --------------- | ---------------------------------------------------------- | ---------------------- |
+| **Stub**        | Canned answers, no assertions on it                        | inline, or `makeStub*` |
+| **Fake**        | Working in-memory implementation of a **driven port**      | `.` (`makeInMemory*`)  |
+| **Driver fake** | Fake of a _third-party client_, one level below an adapter | `./drivers`            |
+| **Recording**   | A fake that records what happened, asserted as state       | `.` (`makeRecording*`) |
+| **MSW**         | The boundary for everything HTTP                           | `./http`               |
 
 Mocks with call assertions are a last resort, kept for cases where the
-behaviour *is* the interaction (event publication, lock ordering, rollback).
+behaviour _is_ the interaction (event publication, lock ordering, rollback).
 Prefer a recording fake — `expect(bus.published)` reads as state, a spy
 protocol does not.
 
@@ -45,8 +45,8 @@ The driver fakes sit one level lower, so the real adapter executes against them.
 Each driven port has one suite, run against **every** implementation:
 
 ```ts
-describeEntityRepositoryContract('in-memory fake', { makeRepository: (seed) => makeInMemoryEntityRepository(seed) });
-describeEntityRepositoryContract('mongo adapter over a fake driver', { makeRepository: (seed) => makeMongoRepository(fakeDb, Widget) });
+describeEntityRepositoryContract('in-memory fake', { makeRepository: seed => makeInMemoryEntityRepository(seed) });
+describeEntityRepositoryContract('mongo adapter over a fake driver', { makeRepository: seed => makeMongoRepository(fakeDb, Widget) });
 ```
 
 This is what keeps a fake from quietly becoming a more forgiving version of the

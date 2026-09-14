@@ -238,9 +238,7 @@ describe('defineRecordSearchSource', () => {
     });
 
     it('drops a record with no id, since it cannot be routed to', () => {
-      expect(define().read(aPage([{ name: 'Acme' }]))?.items).toEqual(
-        [],
-      );
+      expect(define().read(aPage([{ name: 'Acme' }]))?.items).toEqual([]);
     });
 
     it.each([

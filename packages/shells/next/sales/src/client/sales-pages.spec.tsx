@@ -91,9 +91,9 @@ describe('the channel screens', () => {
     renderPage(<SalesChannelListClientPage />);
 
     await waitFor(() =>
-      expect(
-        screen.getAllByText('Mostrador principal').length,
-      ).toBeGreaterThan(0),
+      expect(screen.getAllByText('Mostrador principal').length).toBeGreaterThan(
+        0,
+      ),
     );
   });
 

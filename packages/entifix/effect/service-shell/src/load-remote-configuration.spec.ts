@@ -1,7 +1,4 @@
-import {
-  ConfigurationClientInMemory,
-  EntifixConnError,
-} from '@entifix/core';
+import { ConfigurationClientInMemory, EntifixConnError } from '@entifix/core';
 import {
   http,
   HttpResponse,

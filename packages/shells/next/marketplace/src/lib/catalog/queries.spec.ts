@@ -361,7 +361,9 @@ describe('when the backend does not answer', () => {
     const { loadCategories } = await load();
     const logged = vi.spyOn(console, 'error').mockImplementation(noop);
 
-    server.use(http.get(CONFIG_URL, () => new HttpResponse(null, { status: 503 })));
+    server.use(
+      http.get(CONFIG_URL, () => new HttpResponse(null, { status: 503 })),
+    );
 
     expect((await loadCategories()).items).toEqual([]);
     expect(logged).toHaveBeenCalled();

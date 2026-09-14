@@ -217,8 +217,7 @@ export function CounterSaleWizard({
 
   const [channelId] = readStepIds(state, 'channel');
   const lines = readLines(
-    (readStepDraft(state, 'lines')['lines'] ??
-      []) as readonly EntityRowDraft[],
+    (readStepDraft(state, 'lines')['lines'] ?? []) as readonly EntityRowDraft[],
   );
   const paymentMethod =
     (readStepDraft(state, 'payment')['paymentMethod'] as string) ?? 'cash';
@@ -305,8 +304,7 @@ export function CounterSaleWizard({
       return;
     }
     const body = (await response?.json().catch(() => undefined)) as
-      | { code?: string }
-      | undefined;
+      { code?: string } | undefined;
     setFailure(body?.code ?? 'unexpected');
   };
 
@@ -478,10 +476,12 @@ export function CounterSaleWizard({
             </Text>
           ))}
           <Text>
-            {translateKey('shell:sales.counterSale.total')}:{' '}
-            {totalOf(lines)} {currencyOf(lines)}
+            {translateKey('shell:sales.counterSale.total')}: {totalOf(lines)}{' '}
+            {currencyOf(lines)}
           </Text>
-          {failure !== undefined && <Text>{translateKey(`errors:${failure}`)}</Text>}
+          {failure !== undefined && (
+            <Text>{translateKey(`errors:${failure}`)}</Text>
+          )}
         </Stack>
       )}
     </Wizard>

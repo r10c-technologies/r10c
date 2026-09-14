@@ -71,11 +71,7 @@ const itemFor = async (offeringId: string) => {
   return pageOf(res).items[0];
 };
 
-const recordMovement = (
-  offeringId: string,
-  quantity: number,
-  reason: string,
-) =>
+const recordMovement = (offeringId: string, quantity: number, reason: string) =>
   service.client.post('/api/stock-movement', {
     meta: { type: 'entity', entity: 'stock-movement' },
     data: { offeringId, quantity, reason },

@@ -30,7 +30,13 @@ export const hasManifest = (dir: string): boolean =>
  * whose own `package.json` files would otherwise register as packages.
  */
 export const packageDirs = (root: string): string[] => {
-  const skip = new Set(['node_modules', 'dist', 'out-tsc', 'test-output', '.next']);
+  const skip = new Set([
+    'node_modules',
+    'dist',
+    'out-tsc',
+    'test-output',
+    '.next',
+  ]);
   const found: string[] = [];
 
   const walk = (absolute: string) => {
@@ -63,8 +69,8 @@ export const tierTagCount = (manifest: Manifest): number =>
 
 /** Workspace dependencies only — the `@r10c/*` edges, not the npm ones. */
 export const workspaceDependencies = (manifest: Manifest): string[] =>
-  Object.keys(manifest.dependencies ?? {}).filter(name =>
-    name.startsWith('@r10c/') || name.startsWith('@entifix/'),
+  Object.keys(manifest.dependencies ?? {}).filter(
+    name => name.startsWith('@r10c/') || name.startsWith('@entifix/'),
   );
 
 export const declaresOptionalPeer = (

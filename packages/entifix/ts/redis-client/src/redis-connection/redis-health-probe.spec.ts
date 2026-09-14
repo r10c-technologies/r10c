@@ -1,8 +1,5 @@
 import type { HealthReport } from '@entifix/business';
-import {
-  HealthRegistryLayer,
-  HealthRegistryTag,
-} from '@entifix/business';
+import { HealthRegistryLayer, HealthRegistryTag } from '@entifix/business';
 import { Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
 import { describe, expect, it } from 'vitest';

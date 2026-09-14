@@ -7,10 +7,7 @@ import {
   entity,
   type EntityId,
 } from '@entifix/core';
-import {
-  runRepository,
-  runRepositoryExit,
-} from '@entifix/testing-unit';
+import { runRepository, runRepositoryExit } from '@entifix/testing-unit';
 import {
   type FakeSqlClient,
   makeFakeSqlClient,

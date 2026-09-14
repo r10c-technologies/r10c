@@ -78,7 +78,15 @@ describe('I18nProvider', () => {
 });
 
 describe('the no-provider fallback', () => {
-  function Bare({ ns, k, params }: { ns?: string; k: string; params?: Record<string, unknown> }) {
+  function Bare({
+    ns,
+    k,
+    params,
+  }: {
+    ns?: string;
+    k: string;
+    params?: Record<string, unknown>;
+  }) {
     const t = useT(ns);
     return <span data-testid="out">{t(k, params)}</span>;
   }
@@ -102,7 +110,9 @@ describe('the no-provider fallback', () => {
 
   it('answers with the key when the namespace is registered but the key is not', () => {
     render(<Bare k="table.nothingLikeThis" />);
-    expect(screen.getByTestId('out')).toHaveTextContent('table.nothingLikeThis');
+    expect(screen.getByTestId('out')).toHaveTextContent(
+      'table.nothingLikeThis',
+    );
   });
 
   it('picks the singular and the plural form from a count', () => {
@@ -112,7 +122,9 @@ describe('the no-provider fallback', () => {
 
   it('interpolates a parameter, and leaves an unmatched placeholder alone', () => {
     render(<Bare k="validation.required" params={{ field: 'Código' }} />);
-    expect(screen.getByTestId('out')).toHaveTextContent('Código es obligatorio');
+    expect(screen.getByTestId('out')).toHaveTextContent(
+      'Código es obligatorio',
+    );
   });
 
   it('stops at a key that names an object rather than a sentence', () => {
@@ -137,7 +149,10 @@ describe('the no-provider fallback', () => {
   });
 
   it('takes a namespace another package registers', () => {
-    registerFallbackCatalog('demo', { es: { hello: 'Hola' }, en: { hello: 'Hi' } });
+    registerFallbackCatalog('demo', {
+      es: { hello: 'Hola' },
+      en: { hello: 'Hi' },
+    });
     render(<Bare ns="demo" k="hello" />);
     expect(screen.getByTestId('out')).toHaveTextContent('Hola');
   });

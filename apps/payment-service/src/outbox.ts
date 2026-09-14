@@ -1,8 +1,5 @@
 import { envelopeEntityName } from '@entifix/core';
-import {
-  OUTBOX_COLLECTION,
-  outboxDocument,
-} from '@entifix/mongo/transactions';
+import { OUTBOX_COLLECTION, outboxDocument } from '@entifix/mongo/transactions';
 import {
   paymentCapturedEvent,
   paymentFailedEvent,

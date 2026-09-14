@@ -26,15 +26,17 @@ import { salesChannelRoutes } from './routes/sales-channel.routes';
  * Stores it owns" holds unamended
  * ([ADR 0056](../../../docs/adr/0056-the-counter-sale-is-the-checkout-saga.md)).
  */
-export const router = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/config', configIntrospectionRoute),
+export const router = HttpRouter.empty
+  .pipe(
+    HttpRouter.get('/api/config', configIntrospectionRoute),
 
-  // Token-verified backend integration: returns the caller's principal, proving
-  // a downstream service trusts the access token auth-service minted.
-  HttpRouter.get(
-    '/api/me',
-    requirePrincipal(principal => HttpServerResponse.json(principal)),
-  ),
+    // Token-verified backend integration: returns the caller's principal, proving
+    // a downstream service trusts the access token auth-service minted.
+    HttpRouter.get(
+      '/api/me',
+      requirePrincipal(principal => HttpServerResponse.json(principal)),
+    ),
 
-  HttpRouter.concat(salesChannelRoutes),
-).pipe(counterSaleRoutes);
+    HttpRouter.concat(salesChannelRoutes),
+  )
+  .pipe(counterSaleRoutes);

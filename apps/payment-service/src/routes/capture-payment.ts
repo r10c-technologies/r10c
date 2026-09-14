@@ -9,10 +9,7 @@ import {
   readEntityEnvelope,
   serializeEntity,
 } from '@entifix/core';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import type { PaymentOutcome } from '@r10c/business-ts-payment-contracts';
 import {
   Payment,

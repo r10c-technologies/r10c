@@ -1,8 +1,5 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
-import {
-  HealthRegistryTag,
-  WiringRegistryTag,
-} from '@entifix/business';
+import { HealthRegistryTag, WiringRegistryTag } from '@entifix/business';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it } from 'vitest';
 

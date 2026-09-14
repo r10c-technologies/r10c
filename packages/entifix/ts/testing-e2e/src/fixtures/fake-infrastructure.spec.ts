@@ -3,10 +3,7 @@ import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
 } from '@entifix/business';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import { RedisTag } from '@entifix/redis';
 import { Effect } from 'effect';
 

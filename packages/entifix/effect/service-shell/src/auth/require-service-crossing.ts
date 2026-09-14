@@ -1,10 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 
 import { HttpServerRequest, HttpServerResponse } from '@effect/platform';
-import {
-  type Permission,
-  ServiceCrossingPolicyTag,
-} from '@entifix/authz';
+import { type Permission, ServiceCrossingPolicyTag } from '@entifix/authz';
 import { Context, Effect } from 'effect';
 
 /**

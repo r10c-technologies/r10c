@@ -44,8 +44,8 @@ describe('handOffWrite', () => {
   });
 
   it('works for a screen that holds no draft at all', () => {
-    expect(
-      handOffWrite({ id: 'p-1', record: {}, pending: store(false) }),
-    ).toBe(false);
+    expect(handOffWrite({ id: 'p-1', record: {}, pending: store(false) })).toBe(
+      false,
+    );
   });
 });

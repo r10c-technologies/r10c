@@ -1,8 +1,5 @@
 import { queueNameFor } from '@entifix/amqp/transactions';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@entifix/mongo';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import { ensureInboxIndexes } from '@entifix/mongo/transactions';
 import { EventBusTag, type Subscription } from '@entifix/transactions';
 import {

@@ -61,7 +61,10 @@ describe('the till`s one write', () => {
 
   it.each([
     ['no channel', { paymentMethod: 'cash', lines: ONE_LINE.lines }],
-    ['no lines', { channelId: 'sales-channel-counter', paymentMethod: 'cash', lines: [] }],
+    [
+      'no lines',
+      { channelId: 'sales-channel-counter', paymentMethod: 'cash', lines: [] },
+    ],
     [
       'a fractional quantity',
       {
