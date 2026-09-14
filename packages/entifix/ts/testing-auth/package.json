@@ -1,0 +1,29 @@
+{
+  "name": "@r10c/entifix-ts-testing-auth",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "nx": {
+    "tags": ["layer:entifix", "scope:shared", "type:testing", "tier:5"],
+    "sourceRoot": "packages/entifix/ts/testing-auth/src",
+    "targets": {}
+  },
+  "dependencies": {
+    "@r10c/business-ts-authz": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
+    "@r10c/entifix-ts-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "effect": ">=3.22 <4"
+  },
+  "devDependencies": {
+    "effect": "3.22.1"
+  }
+}

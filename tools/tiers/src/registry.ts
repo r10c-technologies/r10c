@@ -156,6 +156,14 @@ export const PACKAGES: readonly PackageDeclaration[] = [
     dir: 'packages/entifix/ts/testing-e2e',
     tier: 5,
   },
+  // A stub principal, so an example can serve `$metadata` without an identity
+  // provider — by replacing the token and policy ports, never by opening the
+  // route. `type:testing`, because its token service trusts every token.
+  {
+    name: '@r10c/entifix-ts-testing-auth',
+    dir: 'packages/entifix/ts/testing-auth',
+    tier: 5,
+  },
 ];
 
 export interface CapabilityException {

@@ -2300,6 +2300,22 @@ importers:
         specifier: 3.22.1
         version: 3.22.1
 
+  packages/entifix/ts/testing-auth:
+    dependencies:
+      '@r10c/business-ts-authz':
+        specifier: workspace:*
+        version: link:../authz
+      '@r10c/entifix-ts-business':
+        specifier: workspace:*
+        version: link:../business
+      '@r10c/entifix-ts-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      effect:
+        specifier: 3.22.1
+        version: 3.22.1
+
   packages/entifix/ts/testing-e2e:
     dependencies:
       '@msw/playwright':

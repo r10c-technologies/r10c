@@ -23,7 +23,7 @@ describe('ADR 0059 — the tier register is complete', () => {
   // stops matching would make every assertion below pass while checking
   // nothing. Pin the count so that failure is loud.
   it('finds the packages it is meant to check', () => {
-    expect(PACKAGES.length).toBeGreaterThanOrEqual(22);
+    expect(PACKAGES.length).toBeGreaterThanOrEqual(23);
     expect(SCANNED_ROOTS.flatMap(packageDirs).length).toBeGreaterThanOrEqual(
       19,
     );
