@@ -1,4 +1,12 @@
 import './global.css';
+// ⚠️ Installs r10c's catalogs for the **server** graph. `providers.tsx` does the
+// same for the client, and neither reaches the other: a Next app's server and
+// client are separate bundles with separate module state, so an install that
+// only ran in the `'use client'` provider left `getServerT` below with an empty
+// registry and every render threw `No i18n catalogs are installed`. The root
+// layout is evaluated before its own `generateMetadata` and before every page
+// under it, which is why this is the one place that covers them all.
+import '@r10c/i18n-catalog';
 
 import { getRequestLocale, getServerT } from '@entifix/next-i18n/server';
 

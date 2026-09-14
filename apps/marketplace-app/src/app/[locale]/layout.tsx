@@ -1,4 +1,9 @@
 import '../global.css';
+// ⚠️ Installs r10c's catalogs for the **server** graph — every storefront page
+// renders `getServerTFor` in a server component under this layout. The client
+// install in `providers.tsx` cannot stand in for it: server and client are
+// separate bundles with separate module state.
+import '@r10c/i18n-catalog';
 
 import { isLocale, type Locale } from '@entifix/core';
 import { getServerTFor } from '@entifix/next-i18n/server';
