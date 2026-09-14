@@ -28,7 +28,8 @@
     "tags": [
       "layer:shell",
       "scope:shared",
-      "shell:base"
+      "shell:base",
+      "tier:4"
     ],
     "sourceRoot": "packages/entifix/next/i18n/src",
     "targets": {

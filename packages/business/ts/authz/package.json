@@ -19,7 +19,8 @@
     "tags": [
       "layer:business",
       "business:policy",
-      "scope:shared"
+      "scope:shared",
+      "tier:4"
     ],
     "sourceRoot": "packages/business/ts/authz/src",
     "targets": {

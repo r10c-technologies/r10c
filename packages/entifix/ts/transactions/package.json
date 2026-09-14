@@ -22,7 +22,8 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "entifix:transactions"
+      "entifix:transactions",
+      "tier:2"
     ],
     "sourceRoot": "packages/entifix/ts/transactions/src",
     "targets": {

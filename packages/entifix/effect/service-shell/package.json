@@ -19,7 +19,8 @@
     "tags": [
       "layer:shell",
       "scope:shared",
-      "shell:base"
+      "shell:base",
+      "tier:4"
     ],
     "sourceRoot": "packages/entifix/effect/service-shell/src",
     "targets": {

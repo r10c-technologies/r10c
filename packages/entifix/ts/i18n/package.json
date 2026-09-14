@@ -28,7 +28,8 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "entifix:tooling"
+      "entifix:tooling",
+      "tier:0"
     ],
     "sourceRoot": "packages/entifix/ts/i18n/src",
     "targets": {

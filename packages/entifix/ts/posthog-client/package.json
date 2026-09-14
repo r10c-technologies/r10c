@@ -28,7 +28,8 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "entifix:client"
+      "entifix:client",
+      "tier:2"
     ],
     "sourceRoot": "packages/entifix/ts/posthog-client/src",
     "targets": {

@@ -30,7 +30,8 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "type:testing"
+      "type:testing",
+      "tier:5"
     ],
     "sourceRoot": "packages/entifix/ts/testing-unit/src",
     "targets": {}

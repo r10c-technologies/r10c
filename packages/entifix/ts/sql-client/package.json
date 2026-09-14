@@ -23,7 +23,8 @@
       "layer:entifix",
       "scope:shared",
       "entifix:client",
-      "runtime:datastore"
+      "runtime:datastore",
+      "tier:2"
     ],
     "sourceRoot": "packages/entifix/ts/sql-client/src",
     "targets": {
