@@ -181,7 +181,7 @@ not a fifth category, it is a section that is not a screen group at all.
 ### Where the type is declared, and where it is not
 
 `GuardedNavSection` gains `type?: ScreenType`. That interface lives in
-`business-ts-authz` because it is the only layer both a `layer:shell` package and
+`@entifix/authz` because it is the only layer both a `layer:shell` package and
 a `layer:app` can depend on, so **every contributing shell declares its own** —
 this is not an edit in the host.
 

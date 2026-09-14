@@ -1,3 +1,5 @@
+import { envelopeEntityName } from '@entifix/core';
+import { OUTBOX_COLLECTION, outboxDocument } from '@entifix/mongo/transactions';
 import {
   paymentCapturedEvent,
   paymentFailedEvent,
@@ -5,11 +7,6 @@ import {
   paymentRefundedEvent,
 } from '@r10c/business-ts-payment-contracts';
 import { Payment, Refund } from '@r10c/business-ts-payment-management';
-import { envelopeEntityName } from '@r10c/entifix-ts-core';
-import {
-  OUTBOX_COLLECTION,
-  outboxDocument,
-} from '@r10c/entifix-ts-mongo-client';
 import type { ClientSession, Db } from 'mongodb';
 
 /** Where a payment lives. The entity's own key, as every collection name is. */

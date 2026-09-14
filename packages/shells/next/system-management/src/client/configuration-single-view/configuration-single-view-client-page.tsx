@@ -1,18 +1,15 @@
 'use client';
 
-import { Configuration } from '@r10c/business-ts-configuration';
-import {
-  useEntityMutation,
-  useEntityRecord,
-} from '@r10c/entifix-react-integration';
 import {
   type ConfigurationRepositoryTag,
   deleteUCFactory,
   type EntityRepositoryTag,
   getUCFactory,
   saveUCFactory,
-} from '@r10c/entifix-ts-business';
-import { useLocaleHref } from '@r10c/shells-next-common';
+} from '@entifix/business';
+import { useLocaleHref } from '@entifix/next-shell';
+import { useEntityMutation, useEntityRecord } from '@entifix/react-integration';
+import { Configuration } from '@r10c/business-ts-configuration';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -75,8 +72,10 @@ export function ConfigurationSingleViewClientPage({
     ctx,
   });
 
-  const afterSave = onSaved ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
-  const afterDelete = onDeleted ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
+  const afterSave =
+    onSaved ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
+  const afterDelete =
+    onDeleted ?? (() => router.push(withLocale(CONFIGURATION_LIST_HREF)));
 
   const handleSave = async (row: Configuration) => {
     if (await save(row)) {

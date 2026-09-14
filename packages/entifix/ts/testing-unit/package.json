@@ -1,28 +1,28 @@
 {
-  "name": "@r10c/entifix-ts-testing-unit",
+  "name": "@entifix/testing-unit",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "default": "./src/index.ts"
     },
     "./drivers": {
-      "@r10c/source": "./src/drivers/index.ts",
+      "@entifix/source": "./src/drivers/index.ts",
       "default": "./src/drivers/index.ts"
     },
     "./http": {
-      "@r10c/source": "./src/http/index.ts",
+      "@entifix/source": "./src/http/index.ts",
       "default": "./src/http/index.ts"
     },
     "./contracts": {
-      "@r10c/source": "./src/contracts/index.ts",
+      "@entifix/source": "./src/contracts/index.ts",
       "default": "./src/contracts/index.ts"
     },
     "./react": {
-      "@r10c/source": "./src/react/index.tsx",
+      "@entifix/source": "./src/react/index.tsx",
       "default": "./src/react/index.tsx"
     }
   },
@@ -30,29 +30,40 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "type:testing"
+      "type:testing",
+      "tier:5"
     ],
     "sourceRoot": "packages/entifix/ts/testing-unit/src",
     "targets": {}
   },
   "dependencies": {
     "@effect/sql": "0.52.1",
-    "@r10c/entifix-transactions": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@swc/helpers": "0.5.23",
-    "effect": "3.22.1"
+    "@entifix/transactions": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*",
+    "@swc/helpers": "0.5.23"
   },
   "peerDependencies": {
+    "@effect/vitest": ">=0.30 <1",
+    "@entifix/react-controls": "workspace:*",
     "@testing-library/react": "*",
+    "@testing-library/user-event": "*",
+    "effect": ">=3.22 <4",
     "msw": "*",
     "react": "*",
-    "vitest": "*",
-    "@r10c/entifix-react-controls": "workspace:*",
-    "@testing-library/user-event": "*"
+    "vitest": "*"
   },
   "peerDependenciesMeta": {
+    "@effect/vitest": {
+      "optional": true
+    },
+    "@entifix/react-controls": {
+      "optional": true
+    },
     "@testing-library/react": {
+      "optional": true
+    },
+    "@testing-library/user-event": {
       "optional": true
     },
     "msw": {
@@ -63,12 +74,10 @@
     },
     "vitest": {
       "optional": true
-    },
-    "@r10c/entifix-react-controls": {
-      "optional": true
-    },
-    "@testing-library/user-event": {
-      "optional": true
     }
+  },
+  "devDependencies": {
+    "@effect/vitest": "^0.30.0",
+    "effect": "3.22.1"
   }
 }

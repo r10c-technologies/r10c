@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/entifix-ts-i18n",
+  "name": "@entifix/i18n",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,13 +8,13 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./routing": {
-      "@r10c/source": "./src/routing.ts",
+      "@entifix/source": "./src/routing.ts",
       "types": "./dist/routing.d.ts",
       "import": "./dist/routing.js",
       "default": "./dist/routing.js"
@@ -28,7 +28,8 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "entifix:tooling"
+      "entifix:client",
+      "tier:2"
     ],
     "sourceRoot": "packages/entifix/ts/i18n/src",
     "targets": {
@@ -44,18 +45,17 @@
           "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
-      },
-      "i18n-check": {
-        "executor": "nx:run-commands",
-        "options": {
-          "command": "node tools/check-i18n.mjs",
-          "cwd": "{workspaceRoot}"
-        }
       }
     }
   },
   "dependencies": {
-    "@swc/helpers": "0.5.23",
+    "@entifix/core": "workspace:*",
+    "@swc/helpers": "0.5.23"
+  },
+  "peerDependencies": {
+    "i18next": ">=26 <27"
+  },
+  "devDependencies": {
     "i18next": "26.3.6"
   }
 }

@@ -1,5 +1,21 @@
 'use client';
 
+import type {
+  BulkOutcome,
+  Entity,
+  EntityId,
+  EntitySelection,
+} from '@entifix/core';
+import { EntifixLogicError, toWireSelection } from '@entifix/core';
+import type { EntityCrud } from '@entifix/next-shell';
+import { makeEntityCrud, useLocaleHref } from '@entifix/next-shell';
+import {
+  ButtonLink,
+  EntityColumn,
+  EntityTableToolbar,
+  useTranslateKey,
+} from '@entifix/react-controls';
+import { makeEntityMetadataSource } from '@entifix/rest';
 import {
   ProductBrand,
   ProductCategory,
@@ -9,22 +25,6 @@ import {
   ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
-import {
-  ButtonLink,
-  EntityColumn,
-  EntityTableToolbar,
-  useTranslateKey,
-} from '@r10c/entifix-react-controls';
-import type {
-  BulkOutcome,
-  Entity,
-  EntityId,
-  EntitySelection,
-} from '@r10c/entifix-ts-core';
-import { EntifixLogicError, toWireSelection } from '@r10c/entifix-ts-core';
-import { makeEntityMetadataSource } from '@r10c/entifix-ts-rest-client';
-import type { EntityCrud } from '@r10c/shells-next-common';
-import { makeEntityCrud, useLocaleHref } from '@r10c/shells-next-common';
 
 import {
   PRODUCT_BRAND_SURFACE,

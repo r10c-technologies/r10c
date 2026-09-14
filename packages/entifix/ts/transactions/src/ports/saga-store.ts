@@ -1,10 +1,7 @@
-import type { EntifixConnError } from '@r10c/entifix-ts-core';
+import type { EntifixConnError } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
-import type {
-  SagaInputs,
-  SagaStepOutcome,
-} from '../contracts/saga-definition';
+import type { SagaInputs, SagaStepOutcome } from '../contracts/saga-definition';
 
 /**
  * Where a saga instance is.

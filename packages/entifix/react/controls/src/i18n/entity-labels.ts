@@ -1,6 +1,6 @@
 'use client';
 
-import type { EntityFieldDescriptor } from '@r10c/entifix-ts-core';
+import type { EntityFieldDescriptor } from '@entifix/core';
 import { useCallback, useMemo } from 'react';
 
 import { useTranslateKey } from './i18n-context';

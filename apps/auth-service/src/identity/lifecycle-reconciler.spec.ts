@@ -1,6 +1,6 @@
+import { SessionStoreTag } from '@entifix/business';
+import { ZitadelManagementTag } from '@entifix/zitadel';
 import { AccountRepositoryTag } from '@r10c/business-ts-authn';
-import { SessionStoreTag } from '@r10c/entifix-ts-business';
-import { ZitadelManagementTag } from '@r10c/entifix-ts-zitadel-client';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 

@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { EntifixConnError } from '@entifix/core';
 import { Effect, Layer, Logger } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -23,7 +23,7 @@ import { resumeSaga, runSaga } from './run-saga.js';
 /**
  * A recording dispatcher plus an in-memory store.
  *
- * This package *defines* the ports `@r10c/entifix-ts-testing-unit` implements,
+ * This package *defines* the ports `@entifix/testing-unit` implements,
  * so its doubles cannot be used here without a cycle — these stay local, the
  * same choice `run-transaction.spec.ts` made.
  */
@@ -828,8 +828,18 @@ const resume = (
 const heldTwo: SagaStepOutcome = {
   stepId: 'reserve',
   calls: [
-    { index: 0, status: 201, body: { data: { id: 'r-0' } }, organizationId: 'org-a' },
-    { index: 1, status: 201, body: { data: { id: 'r-1' } }, organizationId: 'org-b' },
+    {
+      index: 0,
+      status: 201,
+      body: { data: { id: 'r-0' } },
+      organizationId: 'org-a',
+    },
+    {
+      index: 1,
+      status: 201,
+      body: { data: { id: 'r-1' } },
+      organizationId: 'org-b',
+    },
   ],
 };
 
@@ -888,7 +898,11 @@ describe('resumeSaga — where it re-enters the walk', () => {
         stepIndex: 1,
         outcomes: [
           heldTwo,
-          { stepId: 'write-order', calls: [], error: "step 'write-order' call 0 refused with 409" },
+          {
+            stepId: 'write-order',
+            calls: [],
+            error: "step 'write-order' call 0 refused with 409",
+          },
         ],
       }),
     );
@@ -920,9 +934,19 @@ describe('resumeSaga — where it re-enters the walk', () => {
         stepIndex: 3,
         outcomes: [
           heldTwo,
-          { stepId: 'write-order', calls: [{ index: 0, status: 201, body: { data: { id: 'o-1' } } }] },
-          { stepId: 'capture-payment', calls: [{ index: 0, status: 201, body: { data: { id: 'p-1' } } }] },
-          { stepId: 'convert-reservation', calls: [], error: 'refused with 409' },
+          {
+            stepId: 'write-order',
+            calls: [{ index: 0, status: 201, body: { data: { id: 'o-1' } } }],
+          },
+          {
+            stepId: 'capture-payment',
+            calls: [{ index: 0, status: 201, body: { data: { id: 'p-1' } } }],
+          },
+          {
+            stepId: 'convert-reservation',
+            calls: [],
+            error: 'refused with 409',
+          },
         ],
       }),
       checkoutWithCapture,

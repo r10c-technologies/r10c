@@ -29,9 +29,9 @@ stock is a crossing rather than an act a session performs. So "the seller may
 write an order" was never available as an answer.
 
 **A Next server action can carry a session cookie and cannot verify one.** The
-only session readers in `shells-next-common` are `sessionToken` and
+only session readers in `@entifix/next-shell` are `sessionToken` and
 `bearerHeader`, which forward a token and check nothing, plus the nav's
-`unverifiedClaims`, which reads the cookie *without checking its signature* and
+`unverifiedClaims`, which reads the cookie _without checking its signature_ and
 is documented as never a decision.
 
 ## Decision
@@ -67,7 +67,7 @@ token**, and does four things in an order that is what makes the fourth safe:
 point.** `checkout-action.ts` reads the crossing secret in a `'use server'`
 module and posts to the coordinator itself, because the storefront has no session
 to check — what a crossing token proves there is that the fleet is asking. The
-back office *has* a session, so copying that arrangement would mean holding a
+back office _has_ a session, so copying that arrangement would mean holding a
 secret in a process that cannot check who is exercising it, one guard-swap away
 from being the security level. Two holders of the coordinator's inbound token,
 each for a reason the other does not have.
@@ -80,7 +80,7 @@ there.
 
 A browser that could send an amount could sell a vendor's goods for nothing, and
 this route presents a token that can name any organization — so the one input
-that must not be caller-controlled is the money. Reading the vendor's *tenant*
+that must not be caller-controlled is the money. Reading the vendor's _tenant_
 catalog instead would have allowed selling an unpublished offering, at the cost
 of a price-selection rule nobody has written and a counter that can charge a
 price no buyer was ever shown. An unpublished offering is not sellable at the
@@ -138,7 +138,7 @@ duplicate goes with the duplicate.
 - **Enum members are checked on the channel's save route.** `enumValues` is
   metadata a form renders from, not a server-side validator, and every other
   service in the fleet accepts a member outside its declared set. A channel
-  *type* is priced against, so one nobody has a rate for falls through to the
+  _type_ is priced against, so one nobody has a rate for falls through to the
   agreement's default — a wrong invoice rather than an error.
 - **What is still absent**: settlement reading `commissionFor` (its slice is
   still `planned`), a till that reconciles cash, and any way to attach a party to

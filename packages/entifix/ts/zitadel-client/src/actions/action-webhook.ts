@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-import { EntifixLogicError } from '@r10c/entifix-ts-core';
+import { EntifixLogicError } from '@entifix/core';
 import { Context, Effect, Layer } from 'effect';
 
 /**

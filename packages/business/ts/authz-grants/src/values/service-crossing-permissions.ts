@@ -1,0 +1,105 @@
+import {
+  makeStaticServiceCrossingPolicy,
+  type Permission,
+} from '@entifix/authz';
+
+import { ORDER_DOMAIN, PAYMENT_DOMAIN, STOCK_DOMAIN } from './role-permissions';
+
+/**
+ * What a **service** may do when it crosses into another party's tenant storage
+ * — the whole of it, in one list.
+ *
+ * A platform-plane caller sometimes acts for an organization it was *handed*
+ * rather than one it picked: checkout reserving a vendor's stock, where the
+ * organization comes from the item and a buyer's session names none. That call
+ * presents a service token and an explicit organization, and this table is what
+ * decides whether the token may do the thing it is asking to do
+ * ([ADR 0023](../../../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
+ *
+ * ⚠️ **Deliberately not part of `ROLE_PERMISSIONS`, and never read by `can()`.**
+ * `permissionsOf` expands grants by looking a *role string* up in that table, so
+ * a crossing grant living there would be inherited by any access token carrying
+ * the matching string — turning a session claim into a cross-organization write.
+ * Two tables, two lookups, and the only way to reach this one is
+ * {@link r10cServiceCrossingPolicy}, which no session guard calls.
+ *
+ * ⚠️ **No wildcards.** A `*` segment here would make fleet membership itself the
+ * capability, which is the distinction the token/permission split exists to
+ * draw: the token proves the caller is the fleet, this list says what the fleet
+ * may do. Adding a crossing is therefore an explicit line, reviewed as one.
+ */
+export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
+  // A hold's whole life, and each end of it is its own line. None is a person's
+  // act — no role grants them, and the routes that serve them accept no session
+  // (ADR 0023).
+  //
+  // ⚠️ **Three permissions rather than one `reservation:*`.** The wildcard would
+  // be shorter and would say something false: a caller that may *release* a hold
+  // is giving a claim back and can at worst free stock early, while a caller
+  // that may *convert* one consumes the goods and moves `onHand`. Collapsing
+  // them makes the weaker act carry the stronger one's authority, which is the
+  // same mistake as accepting two credentials on one route.
+  `${STOCK_DOMAIN}:reservation:write`,
+  `${STOCK_DOMAIN}:reservation:release`,
+  `${STOCK_DOMAIN}:reservation:convert`,
+  // Putting the goods back when a paid order is cancelled.
+  //
+  // ⚠️ **Not a fourth reservation verb, and not the reversal of `convert`.** By
+  // the time an order is `paid` the hold is `converted`, its sale movement is
+  // written and the ledger is append-only — so there is no hold left to act on
+  // and nothing to un-convert. This is a *new* `+quantity` movement with
+  // `reason: 'cancellation'`, which is why it names the ledger entity rather
+  // than the hold
+  // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
+  //
+  // ⚠️ **`restore` rather than `stock-movement:write`.** The session-guarded
+  // `POST /api/stock-movement` is granted to `admin` under that permission, and
+  // naming it here would let a crossing token reach a vendor's whole ledger —
+  // any reason, any sign — instead of the one correction a cancellation makes.
+  `${STOCK_DOMAIN}:stock-movement:restore`,
+  // Writing the order the holds above were taken for, and deleting it when a
+  // later step fails. Also not a person's act: the buyer behind a checkout holds
+  // no grant over the receipt the coordinator writes on their behalf, and
+  // `ROLE_PERMISSIONS` grants `product-order:read` and nothing more
+  // ([ADR 0052](../../../../../docs/adr/0052-the-checkout-saga.md)).
+  //
+  // ⚠️ `delete` here is a **compensation**, not a customer-facing cancel. A
+  // cancellation is a business event with its own record and its own money
+  // consequences; this undoes a step that should not have happened.
+  `${ORDER_DOMAIN}:product-order:write`,
+  `${ORDER_DOMAIN}:product-order:delete`,
+  // Taking the money the order above was placed for — the checkout saga's
+  // **pivot**, and the one crossing on this list that cannot be undone.
+  //
+  // ⚠️ **There is deliberately no `payment:delete` beside it.** Every other
+  // write here is paired with its reversal because every other step is
+  // compensatable; a capture is not. A refund is a new record with its own money
+  // movement, not the absence of this one — ADR 0039's "a refund is not an
+  // uncharge" — so a delete permission would authorize erasing the evidence that
+  // a customer was charged
+  // ([ADR 0054](../../../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
+  `${PAYMENT_DOMAIN}:payment:write`,
+  // Sending the money back, which the cancellation saga's pivot dispatches.
+  //
+  // ⚠️ **This is not the reversal the note above says `payment:write` has
+  // none of, and it must not be read as one.** A reversal would undo the
+  // capture; this writes a second record of a second money movement, leaving
+  // the evidence of the first exactly where it was. Its own reversal question
+  // has the same answer as the capture's: there is none, because un-refunding
+  // is charging a customer again
+  // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
+  `${PAYMENT_DOMAIN}:refund:write`,
+];
+
+/**
+ * May a caller holding a valid service token exercise this permission?
+ *
+ * Separate from {@link can} on purpose — see the note above. This is r10c's
+ * binding of the framework's `ServiceCrossingPolicy` port, so the comparison
+ * still goes through `permissionMatches` rather than `includes` and a required
+ * permission is matched by the same rule everywhere in the system; what differs
+ * is only which list is consulted.
+ */
+export const r10cServiceCrossingPolicy = makeStaticServiceCrossingPolicy(
+  SERVICE_CROSSING_PERMISSIONS,
+);

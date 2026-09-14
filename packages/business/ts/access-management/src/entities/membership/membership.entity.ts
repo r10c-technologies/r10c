@@ -1,5 +1,5 @@
-import type { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { accessor, entity } from '@r10c/entifix-ts-core';
+import type { Entity, EntityId } from '@entifix/core';
+import { accessor, entity } from '@entifix/core';
 
 /**
  * A party's participation in an organization, and the roles it holds there.

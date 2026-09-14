@@ -54,7 +54,7 @@ the same `'a,b'` back as a **string**. Opening a `Membership` and saving it
 without touching the roles replaced an array of two ids with one comma-joined
 value.
 
-The fixed-point spec in `entifix-react-integration` exists precisely to catch a
+The fixed-point spec in `@entifix/react-integration` exists precisely to catch a
 seed/coerce disagreement, and it could not see this one: both halves were wrong
 in the same direction, so the round trip was still a fixed point. Only checking
 the rebuilt member's **type** catches that class of bug, and it now does.

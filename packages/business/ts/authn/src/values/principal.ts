@@ -1,4 +1,4 @@
-import type { EntityId } from '@r10c/entifix-ts-core';
+import type { EntityId } from '@entifix/core';
 
 /**
  * The authenticated subject as it travels to the microservices — the shape the

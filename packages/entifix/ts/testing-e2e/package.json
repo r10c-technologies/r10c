@@ -1,24 +1,24 @@
 {
-  "name": "@r10c/entifix-ts-testing-e2e",
+  "name": "@entifix/testing-e2e",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "default": "./src/index.ts"
     },
     "./fixtures": {
-      "@r10c/source": "./src/fixtures/index.ts",
+      "@entifix/source": "./src/fixtures/index.ts",
       "default": "./src/fixtures/index.ts"
     },
     "./service": {
-      "@r10c/source": "./src/service/index.ts",
+      "@entifix/source": "./src/service/index.ts",
       "default": "./src/service/index.ts"
     },
     "./playwright": {
-      "@r10c/source": "./src/playwright/index.ts",
+      "@entifix/source": "./src/playwright/index.ts",
       "default": "./src/playwright/index.ts"
     }
   },
@@ -26,25 +26,28 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "type:testing"
+      "type:testing",
+      "tier:5"
     ],
     "sourceRoot": "packages/entifix/ts/testing-e2e/src",
     "targets": {}
   },
   "dependencies": {
-    "@r10c/entifix-ts-amqp-client": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-mongo-client": "workspace:*",
-    "@r10c/entifix-ts-redis-client": "workspace:*",
-    "@r10c/entifix-ts-testing-unit": "workspace:*",
-    "@swc/helpers": "0.5.23",
-    "effect": "3.22.1"
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*",
+    "@entifix/testing-unit": "workspace:*",
+    "@swc/helpers": "0.5.23"
   },
   "peerDependencies": {
     "@msw/playwright": "*",
+    "@nx/devkit": ">=23 <24",
+    "@nx/playwright": ">=23 <24",
     "@playwright/test": "*",
+    "@entifix/amqp": "workspace:*",
+    "@entifix/mongo": "workspace:*",
+    "@entifix/redis": "workspace:*",
     "axios": "*",
+    "effect": ">=3.22 <4",
     "msw": "*",
     "vitest": "*"
   },
@@ -52,7 +55,22 @@
     "@msw/playwright": {
       "optional": true
     },
+    "@nx/devkit": {
+      "optional": true
+    },
+    "@nx/playwright": {
+      "optional": true
+    },
     "@playwright/test": {
+      "optional": true
+    },
+    "@entifix/amqp": {
+      "optional": true
+    },
+    "@entifix/mongo": {
+      "optional": true
+    },
+    "@entifix/redis": {
       "optional": true
     },
     "axios": {
@@ -64,5 +82,13 @@
     "vitest": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@nx/devkit": "23.0.1",
+    "@nx/playwright": "23.0.1",
+    "@entifix/amqp": "workspace:*",
+    "@entifix/mongo": "workspace:*",
+    "@entifix/redis": "workspace:*",
+    "effect": "3.22.1"
   }
 }

@@ -1,29 +1,34 @@
 import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
+  ServiceCrossingPolicyTag,
+} from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
   TokenServiceTag,
-} from '@r10c/entifix-ts-business';
-import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
+} from '@entifix/business';
+import { ConfigurationClientInMemory } from '@entifix/core';
+import { makeJoseTokenService } from '@entifix/jwt';
 import {
   makeMongoTenantResolver,
   MongoClientLayer,
   MongoClientTag,
   MongoHealthProbeLayer,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/mongo';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
   observabilityFromConfiguration,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { Effect, Layer } from 'effect';
 
 import {
@@ -112,7 +117,11 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(LoadedConfigurationTag, plain),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
-      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(
+        PolicyDecisionTag,
+        makeStaticPolicyDecision(ROLE_PERMISSIONS),
+      ),
+      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
       Layer.succeed(CheckoutCoordinatorUrl, coordinatorUrl),
       Layer.succeed(CheckoutCrossingToken, coordinatorToken),
       Layer.succeed(PublishedCatalogUrl, catalogUrl),

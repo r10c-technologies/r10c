@@ -4,17 +4,14 @@ import {
   entity,
   type EntityId,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
-import {
-  runRepository,
-  runRepositoryExit,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/core';
+import { runRepository, runRepositoryExit } from '@entifix/testing-unit';
 import {
   ContractWidget,
   describeEntityRepositoryContract,
   makeContractWidget,
-} from '@r10c/entifix-ts-testing-unit/contracts';
-import { makeFakeMongoDb } from '@r10c/entifix-ts-testing-unit/drivers';
+} from '@entifix/testing-unit/contracts';
+import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { Exit } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';

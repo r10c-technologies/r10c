@@ -3,15 +3,18 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "@r10c/entifix-react-controls": "workspace:*",
-    "@r10c/entifix-style": "workspace:*",
-    "@r10c/entifix-ts-i18n": "workspace:*",
-    "@r10c/shells-next-common": "workspace:*",
+    "@entifix/react-controls": "workspace:*",
+    "@entifix/style": "workspace:*",
+    "@entifix/i18n": "workspace:*",
+    "@r10c/i18n-catalog": "workspace:*",
+    "@entifix/next-shell": "workspace:*",
+    "@entifix/next-i18n": "workspace:*",
     "@r10c/shells-next-marketplace": "workspace:*",
-    "@r10c/shells-next-i18n": "workspace:*",
+    "i18next": "26.3.6",
     "next": "16.2.10",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-i18next": "17.0.11"
   },
   "nx": {
     "tags": [

@@ -1,4 +1,4 @@
-import type { DomainEvent } from '@r10c/entifix-ts-core';
+import type { DomainEvent } from '@entifix/core';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';

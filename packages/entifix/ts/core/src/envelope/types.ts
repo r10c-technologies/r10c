@@ -7,7 +7,7 @@ import type { EntityLoadRequest } from '../types/EntityLoadRequest';
  * Discriminates what {@link EntifixEnvelope.data} carries.
  *
  * `command` extends the contract for the transactions layer: a write is issued
- * as a `command`, whose `data` shape lives in `@r10c/entifix-transactions` —
+ * as a `command`, whose `data` shape lives in `@entifix/transactions` —
  * core only owns the discriminant so every artifact agrees on it.
  *
  * `event` is what actually rides the bus, and it is deliberately not named

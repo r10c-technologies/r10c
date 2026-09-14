@@ -124,7 +124,7 @@ key's name, because a naming heuristic that misses once publishes a signing key.
   build error rather than producing an unsigned token. `marketplace-admin-service`
   and `config-service` are now structurally incapable of forging a principal.
 - **`partyRole` was carried inert, and now has a consumer.** Nothing branched on
-  it in *this* change — no guard, no resolver, no nav filter — which is what kept
+  it in _this_ change — no guard, no resolver, no nav filter — which is what kept
   it reviewable. Since
   [ADR 0053](0053-scoping-a-platform-plane-read-to-its-caller.md) it selects
   which predicate an order read is narrowed by, and the token carries `partyId`
@@ -139,6 +139,6 @@ key's name, because a naming heuristic that misses once publishes a signing key.
 - **Supersedes ADR 0002 on RS256 only.** Its role/permission model, its
   `PolicyDecision` port and its "grants are derived at the consumer, never in the
   token" invariant all stand — `partyRole` is routing context, not a grant.
-- **The e2e suites hold their own key pair** (`entifix-ts-testing-e2e/fixtures`),
+- **The e2e suites hold their own key pair** (`@entifix/testing-e2e/fixtures`),
   deliberately not the development pair, so a suite cannot pass by verifying a
   real token.

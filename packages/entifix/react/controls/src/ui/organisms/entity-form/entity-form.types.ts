@@ -7,7 +7,7 @@ import type {
   EntityFieldDescriptor,
   EntityLinkSource,
   EntityMetadataDocument,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import type { ReactNode } from 'react';
 
 /** Whether the form shows values as text (`read`) or as inputs (`edit`). */

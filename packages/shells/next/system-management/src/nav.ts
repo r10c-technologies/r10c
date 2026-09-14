@@ -2,7 +2,7 @@ import {
   type GuardedNavSection,
   permissionForEntity,
   screenAddress,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
 import { Configuration } from '@r10c/business-ts-configuration';
 
 import { CONFIGURATION_LIST_HREF } from './client/configuration-list/configuration-list-client-page';

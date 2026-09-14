@@ -108,19 +108,19 @@ moves.
 ### A `shell:` tag dimension, so a domain module can exist
 
 `layer:shell` forbids same-layer edges, so a per-domain API module could not
-import `shells-effect-service` for `requirePermission` and `makeServerLayer`.
+import `@entifix/service-shell` for `requirePermission` and `makeServerLayer`.
 
 Add `shell:base` ‹ `shell:domain`, mirroring the existing `entifix:*` and
-`business:*` intra-layer ordering. `shells-effect-service`,
-`shells-next-common` and `shells-next-i18n` are `shell:base`; the domain shells
+`business:*` intra-layer ordering. `@entifix/service-shell`,
+`@entifix/next-shell` and `@entifix/next-i18n` are `shell:base`; the domain shells
 are `shell:domain`.
 
 Rejected: pushing domain modules down to `layer:implementation` and moving the
-route/auth primitives out of `shells-effect-service`. Purer layering, much larger
+route/auth primitives out of `@entifix/service-shell`. Purer layering, much larger
 refactor of the service base, no different outcome.
 
 Side effect, not acted on here: this also makes it legal for
-`shells-next-system-management` to import `shells-next-common` instead of
+`shells-next-system-management` to import `@entifix/next-shell` instead of
 carrying duplicate REST adapters. That duplication was forced by the old
 constraint; removing it is a separate change.
 
@@ -131,7 +131,7 @@ Apps are `layer:app`, the top layer, so nothing currently stops
 and writing the database directly. That is the one hole in the ownership model,
 and it is tag-fixable.
 
-`entifix-ts-mongo-client`, `-sql-client`, `-redis-client` and `-amqp-client` gain
+`@entifix/mongo`, `-sql-client`, `-redis-client` and `-amqp-client` gain
 `runtime:datastore`. Next apps are `host:next`, Effect services `host:effect`,
 and:
 

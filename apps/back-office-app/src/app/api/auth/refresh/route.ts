@@ -1,5 +1,5 @@
+import { createRefreshRoute } from '@entifix/next-shell/server';
 import { AUTH_SERVICE_URL } from '@r10c/shells-next-auth/server';
-import { createRefreshRoute } from '@r10c/shells-next-common/server';
 
 /**
  * `POST /api/auth/refresh` — mint a fresh access token from the session cookie.

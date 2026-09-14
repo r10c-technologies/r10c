@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/entifix-ts-amqp-client",
+  "name": "@entifix/amqp",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,10 +8,16 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./transactions": {
+      "@entifix/source": "./src/transactions/index.ts",
+      "types": "./dist/transactions/index.d.ts",
+      "import": "./dist/transactions/index.js",
+      "default": "./dist/transactions/index.js"
     }
   },
   "files": [
@@ -23,7 +29,8 @@
       "layer:entifix",
       "scope:shared",
       "entifix:client",
-      "runtime:datastore"
+      "runtime:datastore",
+      "tier:2"
     ],
     "sourceRoot": "packages/entifix/ts/amqp-client/src",
     "targets": {
@@ -43,15 +50,24 @@
     }
   },
   "dependencies": {
-    "@r10c/entifix-transactions": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "amqplib": "2.0.1",
-    "effect": "3.22.1"
+    "amqplib": "2.0.1"
   },
   "devDependencies": {
+    "@entifix/transactions": "workspace:*",
+    "@entifix/testing-unit": "workspace:*",
     "@types/amqplib": "0.10.5",
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "effect": "3.22.1"
+  },
+  "peerDependencies": {
+    "@entifix/transactions": "workspace:*",
+    "effect": ">=3.22 <4"
+  },
+  "peerDependenciesMeta": {
+    "@entifix/transactions": {
+      "optional": true
+    }
   }
 }

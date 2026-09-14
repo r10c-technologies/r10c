@@ -1,0 +1,69 @@
+{
+  "name": "@entifix/next-i18n",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@entifix/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "@entifix/source": "./src/server.ts",
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "default": "./dist/server.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:shared",
+      "shell:base",
+      "tier:4"
+    ],
+    "sourceRoot": "packages/entifix/next/i18n/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/entifix/next/i18n/dist",
+          "main": "packages/entifix/next/i18n/src/index.ts",
+          "tsConfig": "packages/entifix/next/i18n/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/i18n": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "@entifix/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "next": ">=16",
+    "i18next": ">=26 <27"
+  },
+  "devDependencies": {
+    "next": "16.2.10",
+    "i18next": "26.3.6"
+  },
+  "peerDependenciesMeta": {
+    "i18next": {
+      "optional": true
+    }
+  }
+}

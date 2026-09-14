@@ -1,4 +1,4 @@
-import { useUiPreference } from '@r10c/entifix-react-controls';
+import { useUiPreference } from '@entifix/react-controls';
 import { Effect } from 'effect';
 import { createContext, useContext } from 'react';
 import { describe, expect, it } from 'vitest';

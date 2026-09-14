@@ -8,7 +8,7 @@ import { Entity, EntityConstructor, EntityId } from '../../../types/Entity';
  * implementation lives at the composition root (a REST-backed resolver on the
  * web, a Mongo-backed one on the backend) and is injected through Effect's
  * context. Keeping the interface in `core` avoids an upward dependency on the
- * repository contracts defined in `entifix-ts-business`.
+ * repository contracts defined in `@entifix/business`.
  */
 export interface EntityLinkResolver {
   resolve<TEntity extends Entity>(

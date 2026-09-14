@@ -1,11 +1,4 @@
-import {
-  completedEvent,
-  type SequenceService,
-  type TransactionCommand,
-  type TransactionHandler,
-  type TransactionOutcome,
-} from '@r10c/entifix-transactions';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
+import { ConfigurationRepositoryTag } from '@entifix/business';
 import {
   type ConfigurationClient,
   deserializeSingleEntity,
@@ -14,12 +7,16 @@ import {
   type Entity,
   type EntityConstructor,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { makeMongoRepository } from '@entifix/mongo';
+import { OUTBOX_COLLECTION, outboxDocument } from '@entifix/mongo/transactions';
 import {
-  makeMongoRepository,
-  OUTBOX_COLLECTION,
-  outboxDocument,
-} from '@r10c/entifix-ts-mongo-client';
+  completedEvent,
+  type SequenceService,
+  type TransactionCommand,
+  type TransactionHandler,
+  type TransactionOutcome,
+} from '@entifix/transactions';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

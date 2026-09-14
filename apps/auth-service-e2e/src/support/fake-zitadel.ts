@@ -1,13 +1,14 @@
 import { createHmac } from 'node:crypto';
 
-import { EntifixLogicError } from '@r10c/entifix-ts-core';
+import { EntifixLogicError } from '@entifix/core';
 import type {
   LogoutEvent,
+  ZitadelEvent,
   ZitadelIdentity,
   ZitadelManagement,
   ZitadelOidc,
   ZitadelUser,
-} from '@r10c/entifix-ts-zitadel-client';
+} from '@entifix/zitadel';
 import { Effect } from 'effect';
 
 /** Where the fake hosted UI pretends to live. Nothing ever fetches it. */
@@ -136,6 +137,17 @@ export const makeFakeZitadel = () => {
         byId.delete(userId);
         idByEmail.delete(existing.email?.toLowerCase() ?? '');
       }),
+    /**
+     * Always empty, and that is the honest answer rather than a stub.
+     *
+     * This fake is a *directory* — it holds users, not the instance event log
+     * the reconciler sweeps. An empty result says "no lifecycle event went
+     * unseen by the webhook", which is true of every journey here: the
+     * reconciler's own behaviour is proven by its unit spec, which injects the
+     * events directly. Synthesising an event log from `byId` would make these
+     * journeys assert a reconciliation nothing here performs.
+     */
+    searchEvents: () => Effect.succeed<readonly ZitadelEvent[]>([]),
   };
 
   /**

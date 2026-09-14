@@ -1,4 +1,4 @@
-# @r10c/entifix-ts-testing-unit
+# @entifix/testing-unit
 
 Shared test doubles, port contract suites, and HTTP stubbing for the workspace.
 Test-only: it is private, has no build target, and resolves straight to source
@@ -8,27 +8,27 @@ through the `@r10c/source` condition. Depend on it as a `devDependency`.
 
 Which kind of double to reach for, and where each lives:
 
-| Kind             | What it is                                                    | Where                    |
-| ---------------- | ------------------------------------------------------------- | ------------------------ |
-| **Stub**         | Canned answers, no assertions on it                            | inline, or `makeStub*`   |
-| **Fake**         | Working in-memory implementation of a **driven port**          | `.` (`makeInMemory*`)    |
-| **Driver fake**  | Fake of a *third-party client*, one level below an adapter     | `./drivers`              |
-| **Recording**    | A fake that records what happened, asserted as state           | `.` (`makeRecording*`)   |
-| **MSW**          | The boundary for everything HTTP                               | `./http`                 |
+| Kind            | What it is                                                 | Where                  |
+| --------------- | ---------------------------------------------------------- | ---------------------- |
+| **Stub**        | Canned answers, no assertions on it                        | inline, or `makeStub*` |
+| **Fake**        | Working in-memory implementation of a **driven port**      | `.` (`makeInMemory*`)  |
+| **Driver fake** | Fake of a _third-party client_, one level below an adapter | `./drivers`            |
+| **Recording**   | A fake that records what happened, asserted as state       | `.` (`makeRecording*`) |
+| **MSW**         | The boundary for everything HTTP                           | `./http`               |
 
 Mocks with call assertions are a last resort, kept for cases where the
-behaviour *is* the interaction (event publication, lock ordering, rollback).
+behaviour _is_ the interaction (event publication, lock ordering, rollback).
 Prefer a recording fake — `expect(bus.published)` reads as state, a spy
 protocol does not.
 
 ## Entry points
 
 ```ts
-import { makeInMemoryEntityRepository, runRepository } from '@r10c/entifix-ts-testing-unit';
-import { makeFakeMongoDb } from '@r10c/entifix-ts-testing-unit/drivers';
-import { entityRestHandlers, setupEntifixServer } from '@r10c/entifix-ts-testing-unit/http';
-import { describeEntityRepositoryContract } from '@r10c/entifix-ts-testing-unit/contracts';
-import { renderWithAdapters } from '@r10c/entifix-ts-testing-unit/react';
+import { makeInMemoryEntityRepository, runRepository } from '@entifix/testing-unit';
+import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
+import { entityRestHandlers, setupEntifixServer } from '@entifix/testing-unit/http';
+import { describeEntityRepositoryContract } from '@entifix/testing-unit/contracts';
+import { renderWithAdapters } from '@entifix/testing-unit/react';
 ```
 
 `.` carries no React and no msw, so TS-only packages pull neither.
@@ -45,16 +45,16 @@ The driver fakes sit one level lower, so the real adapter executes against them.
 Each driven port has one suite, run against **every** implementation:
 
 ```ts
-describeEntityRepositoryContract('in-memory fake', { makeRepository: (seed) => makeInMemoryEntityRepository(seed) });
-describeEntityRepositoryContract('mongo adapter over a fake driver', { makeRepository: (seed) => makeMongoRepository(fakeDb, Widget) });
+describeEntityRepositoryContract('in-memory fake', { makeRepository: seed => makeInMemoryEntityRepository(seed) });
+describeEntityRepositoryContract('mongo adapter over a fake driver', { makeRepository: seed => makeMongoRepository(fakeDb, Widget) });
 ```
 
 This is what keeps a fake from quietly becoming a more forgiving version of the
-thing it stands in for. `@r10c/entifix-ts-testing-integration` will later run
+thing it stands in for. `@entifix/testing-integration` will later run
 the same suites against real infrastructure.
 
 ## Known constraint
 
-`@r10c/entifix-ts-business` and `@r10c/entifix-transactions` **cannot** use this
+`@entifix/business` and `@entifix/transactions` **cannot** use this
 package: it is built on their interfaces, so depending on it from them is a
 cycle. Those two define their doubles locally. Everything else uses this.

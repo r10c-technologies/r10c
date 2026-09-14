@@ -1,8 +1,5 @@
-import type { DomainEvent } from '@r10c/entifix-ts-core';
-import {
-  OUTBOX_COLLECTION,
-  outboxDocument,
-} from '@r10c/entifix-ts-mongo-client';
+import type { DomainEvent } from '@entifix/core';
+import { OUTBOX_COLLECTION, outboxDocument } from '@entifix/mongo/transactions';
 import type { ClientSession, Db } from 'mongodb';
 
 /** The slice this process publishes as (ADR 0020's ownership noun). */

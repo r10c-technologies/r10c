@@ -3,7 +3,7 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
-import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
+import { type Action, permissionForEntity } from '@entifix/authz';
 import {
   deleteUCFactory,
   EntityIdTag,
@@ -14,7 +14,7 @@ import {
   loadUCFactory,
   saveUCFactory,
   TenantDatabaseResolverTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   EntifixBuildError,
   type EntifixEnvelopeLink,
@@ -28,12 +28,9 @@ import {
   makeEntityPageEnvelope,
   parseLoadRequestParams,
   readEntityEnvelope,
-} from '@r10c/entifix-ts-core';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
-import { requireOrganization } from '@r10c/shells-effect-service';
+} from '@entifix/core';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
+import { requireOrganization } from '@entifix/service-shell';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

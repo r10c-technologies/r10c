@@ -46,7 +46,7 @@ the caller's own session, and returns grouped results.** No index, ever.
 ### The caller's session and nothing else
 
 Each source is asked over the same guarded route its screens use, with the
-caller's `r10c_at` forwarded as a bearer. No service token, no elevation, no new
+caller's `entifix_at` forwarded as a bearer. No service token, no elevation, no new
 tenant-crossing path — a tenant-plane source resolves its handle from the session
 exactly as its own routes do, so [ADR 0023](0023-service-to-service-tenant-crossing.md)
 remains the single named crossing.

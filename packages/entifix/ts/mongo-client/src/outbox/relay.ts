@@ -1,10 +1,10 @@
+import { ShutdownRegistryTag } from '@entifix/business';
 import {
   type EventBus,
   EventBusTag,
   type OutboxStats,
   type TransactionOutbox,
-} from '@r10c/entifix-transactions';
-import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
+} from '@entifix/transactions';
 import { Context, Duration, Effect, Either, Fiber } from 'effect';
 
 import { MongoDatabaseTag } from '../mongo-database/mongo-database';

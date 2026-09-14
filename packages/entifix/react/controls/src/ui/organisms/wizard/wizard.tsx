@@ -1,6 +1,6 @@
 'use client';
 
-import type { WizardStepStatus } from '@r10c/entifix-ts-core';
+import type { WizardStepStatus } from '@entifix/core';
 import { type ReactNode, useEffect, useRef } from 'react';
 
 import { useT } from '../../../i18n';
@@ -137,18 +137,18 @@ export function Wizard({
           as two panels for one step. */}
       <Stack gap="s">
         <Stack gap="3xs">
-            {/*
+          {/*
               A plain heading with a real ref, and `tabIndex={-1}` so script can
               focus it without putting it in the tab order — the target of the
               advance above.
             */}
-            <h2
-              ref={heading}
-              tabIndex={-1}
-              className="rounded-sm text-step-1 font-semibold text-content focus-ring outline-none"
-            >
-              {title}
-            </h2>
+          <h2
+            ref={heading}
+            tabIndex={-1}
+            className="rounded-sm text-step-1 font-semibold text-content focus-ring outline-none"
+          >
+            {title}
+          </h2>
           {position > 0 && (
             <Text step={-1} tone="muted">
               {t('wizard.stepOf', {

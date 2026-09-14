@@ -68,7 +68,7 @@ interface EntifixEventMeta {
 }
 ```
 
-Both live in `entifix-ts-core` beside the envelope, because core already owns the
+Both live in `@entifix/core` beside the envelope, because core already owns the
 discriminant "so every artifact agrees on it". A `DomainEvent<TData>` is that
 metadata plus its payload, and `makeEventEnvelope`/`readEventEnvelope` are the
 bus's counterparts to the entity builders.

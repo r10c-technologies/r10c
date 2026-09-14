@@ -165,7 +165,7 @@ implementation quietly stops honouring it while every consumer keeps compiling.
 
 ### The pending set persists; the payload does not
 
-Entries live in a zustand store persisted to the `r10c-workspace` IndexedDB
+Entries live in a zustand store persisted to the `entifix-workspace` IndexedDB
 beside tabs and drafts, scoped `pending:<userId>:<organizationId>` and versioned,
 under every rule ADR 0032 fixed for drafts — including that the scope is applied
 with `persist.setOptions` **before** rehydrating.
@@ -268,6 +268,7 @@ makes a create addressable, not before.
   > `readTransactionAcceptedEnvelope` and `readTransactionRecordEnvelope` — and
   > the accept-shape assertion this bullet left alone was the reason it mattered,
   > since it had been passing on all three shapes.
+
 - **`GET /api/transaction/:id`'s `404` body is corrected** from
   `{ message: 'transaction not found' }` to the fleet's `{ error, code }`. It was
   the only route answering a shape no envelope reader or `useErrorMessage` path

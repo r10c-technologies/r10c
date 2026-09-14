@@ -1,4 +1,4 @@
-import { EntifixConnError, type EntifixError } from '@r10c/entifix-ts-core';
+import { EntifixConnError, type EntifixError } from '@entifix/core';
 import { Effect, Layer } from 'effect';
 import { type IDBPDatabase, openDB } from 'idb';
 

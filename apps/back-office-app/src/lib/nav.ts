@@ -1,11 +1,12 @@
-import { isPermissionEntitled } from '@r10c/business-ts-access-management';
 import {
   can,
   type GuardedNavItem,
   type GuardedNavSection,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
+import type { NavSection } from '@entifix/next-shell';
+import { isPermissionEntitled } from '@r10c/business-ts-access-management';
+import { ROLE_PERMISSIONS } from '@r10c/business-ts-authz-grants';
 import { AUTH_NAV } from '@r10c/shells-next-auth/server';
-import type { NavSection } from '@r10c/shells-next-common';
 import { MARKETPLACE_ADMIN_NAV } from '@r10c/shells-next-marketplace-admin/server';
 import { ORDER_NAV } from '@r10c/shells-next-order/server';
 import { SALES_NAV } from '@r10c/shells-next-sales/server';
@@ -94,7 +95,7 @@ export const isNavItemVisible = (
   if (item.permission === undefined) {
     return true;
   }
-  if (!can(principal.roles, item.permission)) {
+  if (!can(ROLE_PERMISSIONS, principal.roles, item.permission)) {
     return false;
   }
   // A session acting for no organization — an operator, a buyer — is outside

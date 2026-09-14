@@ -1,5 +1,5 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
-import { requirePrincipal } from '@r10c/shells-effect-service';
+import { requirePrincipal } from '@entifix/service-shell';
 
 import { configIntrospectionRoute } from './routes/config.routes';
 import { productOrderRoutes } from './routes/product-order.routes';

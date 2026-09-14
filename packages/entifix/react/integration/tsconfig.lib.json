@@ -34,16 +34,10 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../ts/business/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../utils/ts/object/tsconfig.lib.json"
-    },
-    {
-      "path": "../../ts/i18n/tsconfig.lib.json"
-    },
-    {
       "path": "../../ts/core/tsconfig.lib.json"
+    },
+    {
+      "path": "../../ts/business/tsconfig.lib.json"
     },
     {
       "path": "../../ts/transactions/tsconfig.lib.json"

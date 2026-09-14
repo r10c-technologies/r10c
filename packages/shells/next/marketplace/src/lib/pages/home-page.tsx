@@ -1,3 +1,5 @@
+import { type Locale, localeHref } from '@entifix/core';
+import { getServerTFor } from '@entifix/i18n';
 import {
   ButtonLink,
   HeadingOne,
@@ -5,9 +7,7 @@ import {
   Lead,
   Overline,
   Stack,
-} from '@r10c/entifix-react-controls/primitives';
-import { getServerTFor } from '@r10c/entifix-ts-i18n';
-import { type Locale, localeHref } from '@r10c/entifix-ts-i18n/routing';
+} from '@entifix/react-controls/primitives';
 import { Suspense } from 'react';
 
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';

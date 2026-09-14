@@ -52,9 +52,6 @@
       "path": "./packages/shells/next/marketplace-admin"
     },
     {
-      "path": "./packages/shells/next/common"
-    },
-    {
       "path": "./packages/shells/next/marketplace"
     },
     {
@@ -88,25 +85,13 @@
       "path": "./apps/auth-service"
     },
     {
-      "path": "./packages/business/ts/authn"
-    },
-    {
-      "path": "./packages/shells/effect/service"
-    },
-    {
       "path": "./packages/entifix/ts/testing-unit"
     },
     {
       "path": "./packages/entifix/ts/testing-e2e"
     },
     {
-      "path": "./packages/business/ts/authz"
-    },
-    {
       "path": "./packages/entifix/ts/i18n"
-    },
-    {
-      "path": "./packages/shells/next/i18n"
     },
     {
       "path": "./packages/entifix/ts/sql-client"
@@ -227,6 +212,36 @@
     },
     {
       "path": "./packages/shells/next/settlement"
+    },
+    {
+      "path": "./packages/entifix/effect/service-shell"
+    },
+    {
+      "path": "./packages/entifix/next/shell"
+    },
+    {
+      "path": "./packages/entifix/next/i18n"
+    },
+    {
+      "path": "./packages/business/ts/authn"
+    },
+    {
+      "path": "./tools/tiers"
+    },
+    {
+      "path": "./packages/business/ts/authz-grants"
+    },
+    {
+      "path": "./packages/entifix/ts/authz"
+    },
+    {
+      "path": "./packages/shells/next/i18n-catalog"
+    },
+    {
+      "path": "./packages/business/ts/i18n"
+    },
+    {
+      "path": "./packages/entifix/ts/testing-auth"
     }
   ]
 }

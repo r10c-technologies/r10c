@@ -2,7 +2,7 @@ import {
   type DomainEvent,
   type EntifixEnvelope,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 import type { TransactionOutcome } from '../ports/transaction-handler';
 import type { TransactionCommand } from './command';

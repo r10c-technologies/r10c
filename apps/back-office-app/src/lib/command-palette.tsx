@@ -1,13 +1,13 @@
 'use client';
 
-import { UserIdentity } from '@r10c/business-ts-authn';
-import { makeEntityMetadataSource } from '@r10c/entifix-ts-rest-client';
 import {
   CommandPaletteHost,
   type NavSection,
   type PaletteCommand,
   type UseCaseCommandEntity,
-} from '@r10c/shells-next-common';
+} from '@entifix/next-shell';
+import { makeEntityMetadataSource } from '@entifix/rest';
+import { UserIdentity } from '@r10c/business-ts-authn';
 
 /**
  * Built once at module scope, not per render: it holds no state, and a new
@@ -69,7 +69,7 @@ export interface BackOfficeCommandPaletteProps {
  * an entity constructor and a handler function, neither of which survives the
  * server→client boundary as a prop. The chrome is a server component, so the
  * only way the palette can hold them is to be a client module that imports them
- * itself — which is also what keeps `shells-next-common` from naming any
+ * itself — which is also what keeps `@entifix/next-shell` from naming any
  * domain's entities.
  */
 export function BackOfficeCommandPalette({

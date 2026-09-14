@@ -1,4 +1,4 @@
-import type { WizardStepStatus } from '@r10c/entifix-ts-core';
+import type { WizardStepStatus } from '@entifix/core';
 import type { ReactNode } from 'react';
 
 /**

@@ -1,8 +1,8 @@
-import type { Page, Request } from '@playwright/test';
 import {
   EntityTablePage,
   type NetworkFixture,
-} from '@r10c/entifix-ts-testing-e2e/playwright';
+} from '@entifix/testing-e2e/playwright';
+import type { Page, Request } from '@playwright/test';
 import { http, HttpResponse } from 'msw';
 
 import { BRAND_URL, expect, test } from './support/fixtures';

@@ -1,7 +1,51 @@
 import type { ThirdPartyModule } from 'i18next';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createI18n, getServerTFor, sharedFallbackI18n } from './instance.js';
+import {
+  createI18n,
+  defineCatalogs,
+  getServerTFor,
+  resetCatalogs,
+  sharedFallbackI18n,
+} from './instance.js';
+
+/**
+ * Catalogs of this spec's own.
+ *
+ * ⚠️ **This package ships none.** It used to import five namespaces, two of
+ * which were r10c product copy, and the whole point of the change is that it
+ * now takes them as a value. So its own tests supply the smallest catalog that
+ * exercises the machinery: two locales, two namespaces, one interpolation.
+ */
+const CATALOGS = {
+  resources: {
+    es: {
+      controls: {
+        table: { open: 'Abrir', actions: 'Acciones' },
+        form: { save: 'Guardar' },
+        validation: { required: '{{field}} es obligatorio' },
+      },
+      entity: { 'product-specification': { label: 'Producto' } },
+      shell: { breadcrumbs: { home: 'Inicio' } },
+    },
+    en: {
+      controls: {
+        table: { open: 'Open', actions: 'Actions' },
+        form: { save: 'Save' },
+        validation: { required: '{{field}} is required' },
+      },
+      entity: { 'product-specification': { label: 'Product' } },
+      shell: { breadcrumbs: { home: 'Home' } },
+    },
+  },
+  namespaces: ['controls', 'entity', 'shell'],
+  defaultNS: 'controls',
+} as const;
+
+beforeEach(() => {
+  resetCatalogs();
+  defineCatalogs(CATALOGS);
+});
 
 describe('createI18n', () => {
   it('resolves keys synchronously, so the first paint is already translated', () => {
@@ -107,5 +151,15 @@ describe('getServerTFor', () => {
     expect(spanish('breadcrumbs.home')).toBe('Inicio');
     expect(english('breadcrumbs.home')).toBe('Home');
     expect(spanish('breadcrumbs.home')).toBe('Inicio');
+  });
+});
+
+describe('defineCatalogs', () => {
+  it('refuses to build an instance before a host installs catalogs', () => {
+    resetCatalogs();
+
+    // A loud failure rather than an i18next instance with no resources, which
+    // would render raw keys at a user and look like a translation bug.
+    expect(() => createI18n('es')).toThrow(/No i18n catalogs are installed/);
   });
 });

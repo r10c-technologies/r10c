@@ -3,7 +3,7 @@ import {
   type UseCaseBinding,
   type UseCaseDescriptor,
   type UseCasePlacement,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 /**
  * Where a declared verb is rendered.

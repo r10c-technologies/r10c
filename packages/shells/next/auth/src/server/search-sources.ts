@@ -1,8 +1,8 @@
-import { UserIdentity } from '@r10c/business-ts-authn';
 import {
   defineRecordSearchSource,
   type RecordSearchSource,
-} from '@r10c/shells-next-common/server';
+} from '@entifix/next-shell/server';
+import { UserIdentity } from '@r10c/business-ts-authn';
 
 import { AUTH_SERVICE_URL } from './session';
 

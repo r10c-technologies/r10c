@@ -2,17 +2,17 @@ import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
   loadUCFactory,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   EntifixConnError,
   type Entity,
   type EntityLoadRequest,
   type FilterGroup,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Context } from 'effect';
 import type { ReactNode } from 'react';

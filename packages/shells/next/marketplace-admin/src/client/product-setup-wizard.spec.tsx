@@ -1,25 +1,25 @@
 import 'fake-indexeddb/auto';
 
 import {
-  ProductBrand,
-  ProductCategory,
-} from '@r10c/business-ts-catalog-reference';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
-import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   assertWizardDefinition,
   EntifixConnError,
   type Entity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { useDraftsState } from '@entifix/next-shell';
+import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
-import { useDraftsState } from '@r10c/shells-next-common';
+} from '@entifix/testing-unit';
+import {
+  ProductBrand,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context } from 'effect';

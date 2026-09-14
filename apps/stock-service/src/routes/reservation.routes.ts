@@ -1,6 +1,6 @@
 import { HttpRouter } from '@effect/platform';
+import { entityMetadataRoute } from '@entifix/service-shell';
 import { Reservation } from '@r10c/business-ts-stock-management';
-import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import {
   convertReservationRoute,

@@ -102,9 +102,9 @@ an editable element.
 
 ### The sources filter; the control renders
 
-`CommandSource` in `entifix-ts-core` is state — groups, options, `isLoading`,
+`CommandSource` in `@entifix/core` is state — groups, options, `isLoading`,
 `unavailable` — produced by hooks in the shell layer and consumed by a
-presentational `CommandPalette` in `entifix-react-controls`. Exactly
+presentational `CommandPalette` in `@entifix/react-controls`. Exactly
 `EntityLinkSource`'s arrangement, and for the same boundary reason: those two
 packages are both `entifix:react` and may not import each other.
 

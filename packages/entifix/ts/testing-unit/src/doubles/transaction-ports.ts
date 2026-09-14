@@ -1,17 +1,17 @@
-import type {
-  EventBus,
-  LockHandle,
-  LockService,
-  SequenceService,
-  TransactionInbox,
-} from '@r10c/entifix-transactions';
 import {
   type DomainEvent,
   EntifixConnError,
   type EntifixError,
   EntifixLockError,
   matchesEventPattern,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import type {
+  EventBus,
+  LockHandle,
+  LockService,
+  SequenceService,
+  TransactionInbox,
+} from '@entifix/transactions';
 import { Effect } from 'effect';
 
 export interface InMemoryLockService extends LockService {

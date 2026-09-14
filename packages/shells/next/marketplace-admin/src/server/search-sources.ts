@@ -1,7 +1,7 @@
 import {
   defineRecordSearchSource,
   type RecordSearchSource,
-} from '@r10c/shells-next-common/server';
+} from '@entifix/next-shell/server';
 
 import {
   type CatalogService,

@@ -1,12 +1,12 @@
-import type { Permission } from '@r10c/business-ts-authz';
-import type { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { accessor, entity } from '@r10c/entifix-ts-core';
+import type { Permission } from '@entifix/authz';
+import type { Entity, EntityId } from '@entifix/core';
+import { accessor, entity } from '@entifix/core';
 
 /**
  * A role an organization defines for its own staff — "sales", "inventory",
  * whatever its business needs — together with the permissions it grants.
  *
- * This is the axis the platform's own `Role` (`business-ts-authz`) cannot
+ * This is the axis the platform's own `Role` (`@entifix/authz`) cannot
  * express. That one is a closed, ordered set in code, because an ordered tier is
  * what makes the escalation rule sayable without a policy language. A role
  * invented by a customer last week cannot live in a closed set, so it lives

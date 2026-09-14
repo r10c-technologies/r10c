@@ -1,4 +1,4 @@
-import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
+import { MongoDatabaseTag } from '@entifix/mongo';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 
@@ -41,7 +41,7 @@ export const ensurePaymentIndexes = (db: Db) =>
  * reach for a Mongo tag itself.
  *
  * That matters for the `mock` e2e profile: its composition root has no business
- * importing `entifix-ts-mongo-client` just to name a tag, and the unique index
+ * importing `@entifix/mongo` just to name a tag, and the unique index
  * below is load-bearing for one of its assertions.
  */
 export const PaymentIndexesLayer = Layer.effectDiscard(

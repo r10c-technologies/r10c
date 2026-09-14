@@ -1,42 +1,43 @@
-import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
+import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
+import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
-import { EventSourceTag } from '@r10c/entifix-transactions';
-import {
-  AmqpEventBusLayer,
-  AmqpHealthProbeLayer,
-  AmqpLayer,
-} from '@r10c/entifix-ts-amqp-client';
+  ServiceCrossingPolicyTag,
+} from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
   TokenServiceTag,
-} from '@r10c/entifix-ts-business';
-import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
+} from '@entifix/business';
+import { ConfigurationClientInMemory } from '@entifix/core';
+import { makeJoseTokenService } from '@entifix/jwt';
 import {
   makeMongoTenantResolver,
   MongoClientLayer,
   MongoClientTag,
   MongoHealthProbeLayer,
-  OutboxMaxAttempts,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/mongo';
+import { OutboxMaxAttempts } from '@entifix/mongo/transactions';
+import { RedisHealthProbeLayer, RedisLayer } from '@entifix/redis';
 import {
-  RedisHealthProbeLayer,
-  RedisLayer,
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
-} from '@r10c/entifix-ts-redis-client';
+} from '@entifix/redis/transactions';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
   observabilityFromConfiguration,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
+import { EventSourceTag } from '@entifix/transactions';
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { Layer } from 'effect';
 import { Effect } from 'effect';
 
@@ -129,7 +130,11 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
-      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(
+        PolicyDecisionTag,
+        makeStaticPolicyDecision(ROLE_PERMISSIONS),
+      ),
+      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     );
 
     // Transaction ports built from those connections (lock/sequence over Redis,

@@ -101,7 +101,7 @@ describe('WiringRegistry', () => {
   });
 
   /**
-   * Pinned against `SubscriptionMode` in `@r10c/entifix-transactions` and
+   * Pinned against `SubscriptionMode` in `@entifix/transactions` and
    * `SUBSCRIPTION_MODES` in `tools/slices/`. The literals are duplicated because
    * both of those sit above this package, so nothing but a spec can see them
    * drift.

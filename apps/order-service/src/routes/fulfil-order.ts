@@ -1,15 +1,15 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import {
-  FulfilProductOrderUC,
-  ProductOrder,
-} from '@r10c/business-ts-order-management';
-import {
   EntifixConnError,
   envelopeEntityName,
   makeEntityEnvelope,
-} from '@r10c/entifix-ts-core';
-import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
-import type { RequestPrincipal } from '@r10c/shells-effect-service';
+} from '@entifix/core';
+import { MongoDatabaseTag } from '@entifix/mongo';
+import type { RequestPrincipal } from '@entifix/service-shell';
+import {
+  FulfilProductOrderUC,
+  ProductOrder,
+} from '@r10c/business-ts-order-management';
 import { Effect } from 'effect';
 
 import { ORDER_COLLECTION } from '../outbox';

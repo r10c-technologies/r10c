@@ -24,7 +24,7 @@ import './ts-source-resolver.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Same default as `shells-effect-service`, so a local run needs no env. */
+/** Same default as `@entifix/service-shell`, so a local run needs no env. */
 const SERVICE_TOKEN =
   process.env.CONFIG_SERVICE_TOKEN ?? 'dev-config-service-token-change-me';
 

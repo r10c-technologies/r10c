@@ -4,7 +4,7 @@ import {
   entity,
   type EntityId,
   makeEntityMetadataEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { makeEntityMetadataSource } from './make-entity-metadata-source/index.js';

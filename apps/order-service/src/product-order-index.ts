@@ -1,5 +1,5 @@
+import { envelopeEntityName } from '@entifix/core';
 import { ProductOrder } from '@r10c/business-ts-order-management';
-import { envelopeEntityName } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

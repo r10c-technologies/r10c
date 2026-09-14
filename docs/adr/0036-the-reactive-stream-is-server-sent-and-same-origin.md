@@ -24,7 +24,7 @@ of the workspace cannot tell the difference between "the transport is missing"
 and "nothing changed".
 
 **A browser WebSocket would be this repo's first cross-origin browser
-connection.** `rewriteServiceDomains` exists for one reason: `r10c_at` is
+connection.** `rewriteServiceDomains` exists for one reason: `entifix_at` is
 `httpOnly` and `sameSite: 'lax'`, so a browser pointed at `:3101` sends no
 session and gets a `401`. Every service address the browser sees is rewritten to
 a same-origin proxy path before it leaves `GET /api/config`, and
@@ -215,9 +215,9 @@ and re-reading it is cheap.
   connection, so nothing is re-declared with different arguments — the
   `PRECONDITION_FAILED` trap `x-delivery-limit` carries does not apply.
 - Widening `EntityChangeEvent` touches `useReactiveInvalidation` and its two
-  specs. `entifix-react-integration` sits above `entifix-ts-core`, so importing
+  specs. `@entifix/react-integration` sits above `@entifix/core`, so importing
   `DomainEvent` there is a legal edge.
-- `back-office-app` imports from `@r10c/entifix-react-integration` without
+- `back-office-app` imports from `@entifix/react-integration` without
   declaring it, resolving transitively. The build that adds the stream should fix
   the declaration rather than inherit it.
 - One stream per proxied service, not one per entity or one per tab. Only

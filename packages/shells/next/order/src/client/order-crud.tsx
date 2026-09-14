@@ -1,10 +1,10 @@
 'use client';
 
+import { EntifixLogicError, type EntityId } from '@entifix/core';
+import type { EntityCrud } from '@entifix/next-shell';
+import { makeEntityCrud } from '@entifix/next-shell';
+import { makeEntityMetadataSource } from '@entifix/rest';
 import { ProductOrder } from '@r10c/business-ts-order-management';
-import { EntifixLogicError, type EntityId } from '@r10c/entifix-ts-core';
-import { makeEntityMetadataSource } from '@r10c/entifix-ts-rest-client';
-import type { EntityCrud } from '@r10c/shells-next-common';
-import { makeEntityCrud } from '@r10c/shells-next-common';
 
 import { PRODUCT_ORDER_SURFACE } from '../order-surfaces';
 import { useOrderAdapters } from './order-context';

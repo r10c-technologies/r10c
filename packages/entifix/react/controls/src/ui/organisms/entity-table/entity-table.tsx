@@ -13,7 +13,7 @@ import {
   selectionSize,
   toggleSelected,
   type UseCaseDescriptor,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Fragment, type ReactNode, useRef, useState } from 'react';
 
 import { useErrorMessage, useT, useTranslateKey } from '../../../i18n';

@@ -1,7 +1,7 @@
 import type {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import type { Context } from 'effect/Context';
 
 export interface MarketplaceAdminAdapters {

@@ -1,5 +1,5 @@
+import type { NetworkFixture } from '@entifix/testing-e2e/playwright';
 import type { Page } from '@playwright/test';
-import type { NetworkFixture } from '@r10c/entifix-ts-testing-e2e/playwright';
 import { http, HttpResponse } from 'msw';
 
 import { expect, PRODUCT_URL, test } from './support/fixtures';

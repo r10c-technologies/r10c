@@ -1,4 +1,4 @@
-import { createHealthRoutes } from '@r10c/shells-next-common/server';
+import { createHealthRoutes } from '@entifix/next-shell/server';
 
 const routes = createHealthRoutes({
   app: '@r10c/back-office-app',

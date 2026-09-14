@@ -1,4 +1,4 @@
-import type { Entity } from '@r10c/entifix-ts-core';
+import type { Entity } from '@entifix/core';
 import { Children, isValidElement, type ReactNode } from 'react';
 
 import type { EntityFieldRenderContext } from './entity-form.types';

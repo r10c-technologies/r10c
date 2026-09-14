@@ -1,11 +1,11 @@
-import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import type { Locale } from '@entifix/core';
 import {
   Grid,
   Skeleton,
   Stack,
   Text,
-} from '@r10c/entifix-react-controls/primitives';
-import type { Locale } from '@r10c/entifix-ts-i18n/routing';
+} from '@entifix/react-controls/primitives';
+import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 
 import { OfferingCard } from './offering-card';
 import { loadBrands } from './queries';

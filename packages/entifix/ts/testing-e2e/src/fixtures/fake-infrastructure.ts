@@ -1,20 +1,14 @@
-import {
-  AmqpChannelTag,
-  type AmqpConnector,
-} from '@r10c/entifix-ts-amqp-client';
+import { AmqpChannelTag, type AmqpConnector } from '@entifix/amqp';
 import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   ConfigurationClientInMemory,
   type ConfigurationPlain,
-} from '@r10c/entifix-ts-core';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
-import { RedisTag } from '@r10c/entifix-ts-redis-client';
+} from '@entifix/core';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
+import { RedisTag } from '@entifix/redis';
 import {
   type FakeAmqpChannel,
   type FakeMongoDb,
@@ -22,7 +16,7 @@ import {
   makeFakeAmqpChannel,
   makeFakeMongoDb,
   makeFakeRedis,
-} from '@r10c/entifix-ts-testing-unit/drivers';
+} from '@entifix/testing-unit/drivers';
 import { Effect, Layer } from 'effect';
 
 import type { BackendRow } from './entity-backend';

@@ -1,4 +1,4 @@
-import { accessor } from '@r10c/entifix-ts-core';
+import { accessor } from '@entifix/core';
 
 /**
  * One line of an order, tagged with the vendor that owes it.

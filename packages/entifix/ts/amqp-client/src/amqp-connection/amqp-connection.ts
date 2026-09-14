@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { EntifixConnError } from '@entifix/core';
 import * as amqp from 'amqplib';
 import { Context, Effect, Layer } from 'effect';
 

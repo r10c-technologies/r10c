@@ -3,8 +3,8 @@ import React from 'react';
 import { vi } from 'vitest';
 
 // The page resolves its own copy on the server; the catalog is covered in
-// `@r10c/entifix-ts-i18n`, so the key is echoed back here.
-vi.mock('@r10c/shells-next-i18n/server', () => ({
+// `@entifix/i18n`, so the key is echoed back here.
+vi.mock('@entifix/next-i18n/server', () => ({
   getServerT: () => Promise.resolve((key: string) => key),
 }));
 

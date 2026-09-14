@@ -1,5 +1,5 @@
+import { EntifixBuildError } from '@entifix/core';
 import { Agreement } from '@r10c/business-ts-settlement-management';
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
 import { describe, expect, it } from 'vitest';
 
 import { commissionsForOrder, payoutFor, reversalOf } from './commission';

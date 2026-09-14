@@ -1,18 +1,18 @@
-import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import type { Role } from '@r10c/business-ts-authz';
-import type { PartyRoleName } from '@r10c/business-ts-party-management';
-import { signAccessToken } from '@r10c/entifix-ts-jwt-client';
+import type { Role } from '@entifix/authz';
+import { signAccessToken } from '@entifix/jwt';
 // From the package root, not `/playwright`: that subpath pulls in Playwright,
 // which has no business loading inside a vitest service suite.
-import { isMockProfile } from '@r10c/entifix-ts-testing-e2e';
+import { isMockProfile } from '@entifix/testing-e2e';
 import {
   E2E_KEY_ID,
   E2E_PRIVATE_KEY_PEM,
   E2E_PUBLIC_KEY_PEM,
-} from '@r10c/entifix-ts-testing-e2e/fixtures';
+} from '@entifix/testing-e2e/fixtures';
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
+import type { PartyRoleName } from '@r10c/business-ts-party-management';
 
 /**
  * The key pair a spec signs tokens with.
@@ -71,8 +71,7 @@ export const E2E_ORGANIZATION_ID =
  * store, which is why the claim is minted there and carried rather than looked
  * up here.
  */
-export const E2E_PARTY_ID =
-  process.env['ORDER_PARTY_ID'] ?? 'party-user-2';
+export const E2E_PARTY_ID = process.env['ORDER_PARTY_ID'] ?? 'party-user-2';
 
 /**
  * The crossing secret `POST /api/product-order` expects.

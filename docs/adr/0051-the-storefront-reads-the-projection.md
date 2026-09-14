@@ -186,7 +186,7 @@ locally.
 ⚠️ **The preload needs a resolver hook at all**, because every module in this
 workspace writes extensionless relative imports and Node's ESM resolver requires
 an extension — every other consumer (webpack, swc, Turbopack, vite) supplies one.
-`.ts` is in its list because `@r10c/entifix-ts-testing-e2e` publishes TypeScript
+`.ts` is in its list because `@entifix/testing-e2e` publishes TypeScript
 source: it is `type:testing` and has no build target. Node 26 strips the types
 itself, which works only because nothing on that path uses a decorator — and the
 entity classes therefore have to come from their `dist`, which is the second

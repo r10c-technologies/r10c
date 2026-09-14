@@ -358,7 +358,7 @@ describe('ADR 0026 — declared use cases, their grants and their implementation
   const grantedActions = (): Map<string, string[]> => {
     const file = join(
       BUSINESS_ROOT,
-      'authz',
+      'authz-grants',
       'src',
       'values',
       'role-permissions.ts',
@@ -455,7 +455,7 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
    * AMQP topic semantics: `*` matches exactly one dot-separated word, `#` zero
    * or more.
    *
-   * Duplicated from `matchesEventPattern` in `@r10c/entifix-ts-core` on purpose:
+   * Duplicated from `matchesEventPattern` in `@entifix/core` on purpose:
    * this tool is outside the workspace's package graph and importing a library
    * from it would make the register check depend on a build — a dependency that
    * must not exist rather than one nobody got around to.

@@ -1,17 +1,14 @@
-import { EventBusTag, type Subscription } from '@r10c/entifix-transactions';
-import type {
-  BoundSubscription,
-  WiringRegistry,
-} from '@r10c/entifix-ts-business';
+import type { BoundSubscription, WiringRegistry } from '@entifix/business';
 import {
   makeShutdownRegistry,
   ShutdownRegistryTag,
   WiringRegistryTag,
-} from '@r10c/entifix-ts-business';
-import type { DomainEvent } from '@r10c/entifix-ts-core';
-import { EntifixBuildError, EntifixConnError } from '@r10c/entifix-ts-core';
-import { describeEventBusContract } from '@r10c/entifix-ts-testing-unit/contracts';
-import { makeFakeAmqpChannel } from '@r10c/entifix-ts-testing-unit/drivers';
+} from '@entifix/business';
+import type { DomainEvent } from '@entifix/core';
+import { EntifixBuildError, EntifixConnError } from '@entifix/core';
+import { describeEventBusContract } from '@entifix/testing-unit/contracts';
+import { makeFakeAmqpChannel } from '@entifix/testing-unit/drivers';
+import { EventBusTag, type Subscription } from '@entifix/transactions';
 import type { Channel } from 'amqplib';
 import { Effect, Exit, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';

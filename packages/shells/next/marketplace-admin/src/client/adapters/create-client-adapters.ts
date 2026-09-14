@@ -1,4 +1,17 @@
 import {
+  ConfigurationRepositoryTag,
+  EntityRepositoryTag,
+} from '@entifix/business';
+import { Entity, EntityConstructor } from '@entifix/core';
+import {
+  buildEntityRestAdapterDelete,
+  buildEntityRestAdapterGet,
+  buildEntityRestAdapterLoad,
+  buildEntityRestAdapterSave,
+  BuildEntityRestOptions,
+  ConfigurationClientRestClient,
+} from '@entifix/rest';
+import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -7,19 +20,6 @@ import {
   ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
-import {
-  ConfigurationRepositoryTag,
-  EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
-import { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
-import {
-  buildEntityRestAdapterDelete,
-  buildEntityRestAdapterGet,
-  buildEntityRestAdapterLoad,
-  buildEntityRestAdapterSave,
-  BuildEntityRestOptions,
-  ConfigurationClientRestClient,
-} from '@r10c/entifix-ts-rest-client';
 import { Context } from 'effect';
 
 import type { MarketplaceAdminAdapters } from '../client-types';

@@ -1,3 +1,5 @@
+import { type Locale, localeHref } from '@entifix/core';
+import { getServerTFor } from '@entifix/i18n';
 import {
   Button,
   ButtonLink,
@@ -6,9 +8,7 @@ import {
   HeadingOne,
   Stack,
   Text,
-} from '@r10c/entifix-react-controls/primitives';
-import { getServerTFor } from '@r10c/entifix-ts-i18n';
-import { type Locale, localeHref } from '@r10c/entifix-ts-i18n/routing';
+} from '@entifix/react-controls/primitives';
 
 import { removeFromCart } from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';

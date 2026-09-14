@@ -1,4 +1,5 @@
-import { can } from '@r10c/business-ts-authz';
+import { can } from '@entifix/authz';
+import { ROLE_PERMISSIONS } from '@r10c/business-ts-authz-grants';
 import { loadPrincipal } from '@r10c/shells-next-auth/server';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -28,7 +29,7 @@ export default async function BackOfficeLayout({
   if (principal === null) {
     redirect('/');
   }
-  if (!can(principal.roles, 'authn:user-identity:read')) {
+  if (!can(ROLE_PERMISSIONS, principal.roles, 'authn:user-identity:read')) {
     redirect('/home');
   }
 

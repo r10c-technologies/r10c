@@ -1,4 +1,4 @@
-import type { EntifixError } from '@r10c/entifix-ts-core';
+import type { EntifixError } from '@entifix/core';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
 

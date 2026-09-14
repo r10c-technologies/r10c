@@ -8,11 +8,12 @@ import {
   type EntityId,
   ROW_KEY,
   type StandardSchemaV1,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import {
   composeEntityFormErrors,
+  DEFAULT_VALIDATION_MESSAGES,
   type EntityDraftMessages,
   restoreEntityDraft,
   seedEntityDraft,
@@ -285,5 +286,25 @@ describe('restoreEntityDraft — owned collections', () => {
 
     expect(restored).toEqual({ ...seed, id: 'order-1', lines: [] });
     expect(byName('lines').type).toBe('composition');
+  });
+});
+
+describe('DEFAULT_VALIDATION_MESSAGES', () => {
+  // What an adopter who has wired no copy sees. Honest rather than English:
+  // there is no catalog in this package to resolve against, and a visible key
+  // is what tells a host it has not supplied one.
+  it('renders each failure as its own catalog key', () => {
+    expect(DEFAULT_VALIDATION_MESSAGES.required('Código')).toBe(
+      'validation.required:Código',
+    );
+    expect(DEFAULT_VALIDATION_MESSAGES.number('Stock')).toBe(
+      'validation.number:Stock',
+    );
+    expect(DEFAULT_VALIDATION_MESSAGES.date('Released')).toBe(
+      'validation.date:Released',
+    );
+    expect(DEFAULT_VALIDATION_MESSAGES.option('Tier')).toBe(
+      'validation.option:Tier',
+    );
   });
 });

@@ -1,37 +1,38 @@
+import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
+import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
+import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
+} from '@entifix/authz';
+import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
+import { ConfigurationClientInMemory } from '@entifix/core';
+import { makeJoseTokenService } from '@entifix/jwt';
+import {
+  MongoDatabaseLayer,
+  MongoDatabaseTag,
+  MongoHealthProbeLayer,
+} from '@entifix/mongo';
+import {
+  ensureInboxIndexes,
+  ensureOutboxIndexes,
+  OutboxMaxAttempts,
+  startOutboxRelay,
+} from '@entifix/mongo/transactions';
+import {
+  LoadedConfigurationTag,
+  loadRemoteConfiguration,
+  observabilityFromConfiguration,
+} from '@entifix/service-shell';
+import { EventSourceTag } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
 import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
-import { EventSourceTag } from '@r10c/entifix-transactions';
-import {
-  AmqpEventBusLayer,
-  AmqpHealthProbeLayer,
-  AmqpLayer,
-} from '@r10c/entifix-ts-amqp-client';
-import {
-  ConfigurationRepositoryTag,
-  TokenServiceTag,
-} from '@r10c/entifix-ts-business';
-import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
-import {
-  ensureInboxIndexes,
-  ensureOutboxIndexes,
-  MongoDatabaseLayer,
-  MongoDatabaseTag,
-  MongoHealthProbeLayer,
-  OutboxMaxAttempts,
-  startOutboxRelay,
-} from '@r10c/entifix-ts-mongo-client';
-import {
-  LoadedConfigurationTag,
-  loadRemoteConfiguration,
-  observabilityFromConfiguration,
-} from '@r10c/shells-effect-service';
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { Effect, Layer } from 'effect';
 
 import { startSettlementFold } from './fold/subscriptions';
@@ -132,7 +133,11 @@ export const AppLayer = Layer.unwrapEffect(
       ),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
-      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(
+        PolicyDecisionTag,
+        makeStaticPolicyDecision(ROLE_PERMISSIONS),
+      ),
+      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
       // The **slice**, never the deployment and never the domain (ADR 0029).
       Layer.succeed(EventSourceTag, SETTLEMENT_SLICE),
       Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),

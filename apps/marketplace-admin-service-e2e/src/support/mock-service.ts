@@ -1,24 +1,27 @@
-import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
+import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
-import { EventSourceTag } from '@r10c/entifix-transactions';
-import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client';
-import { TokenServiceTag } from '@r10c/entifix-ts-business';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
+  ServiceCrossingPolicyTag,
+} from '@entifix/authz';
+import { TokenServiceTag } from '@entifix/business';
+import { makeJoseTokenService } from '@entifix/jwt';
 // `OutboxMaxAttempts` lives in the shared mongo client, not in this app: the
 // outbox relay was lifted out of marketplace-admin-service into
-// `@r10c/entifix-ts-mongo-client` when the payment slice was promoted (#237),
+// `@entifix/mongo` when the payment slice was promoted (#237),
 // and every service that drains an outbox reads the tag from there.
-import { OutboxMaxAttempts } from '@r10c/entifix-ts-mongo-client';
+import { OutboxMaxAttempts } from '@entifix/mongo/transactions';
 import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
-} from '@r10c/entifix-ts-redis-client';
+} from '@entifix/redis/transactions';
+import {
+  type InMemoryObservability,
+  LoadedConfigurationTag,
+  makeInMemoryObservabilityLayer,
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
@@ -26,19 +29,21 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
   fakeRedisLayer,
-} from '@r10c/entifix-ts-testing-e2e/fixtures';
+} from '@entifix/testing-e2e/fixtures';
+import { EventSourceTag } from '@entifix/transactions';
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import {
   router,
   seedCatalog,
   SERVICE_NAME,
 } from '@r10c/marketplace-admin-service';
-import {
-  type InMemoryObservability,
-  LoadedConfigurationTag,
-  makeInMemoryObservabilityLayer,
-  type RunningTestService,
-  serveTestService,
-} from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
 /**
@@ -64,7 +69,7 @@ const CONFIGURATION = {
   outbox: [{ key: 'maxAttempts', value: '5' }],
 };
 
-// The key pair itself lives in `@r10c/entifix-ts-testing-e2e` so this layer and
+// The key pair itself lives in `@entifix/testing-e2e` so this layer and
 // the spec helper that signs tokens cannot drift onto different keys.
 
 /**
@@ -94,7 +99,11 @@ const MockAppLayer = (() => {
     // The real policy, not a fake: the grant table is what `requirePermission`
     // consults, so stubbing it here would make every authorization assertion
     // in this suite meaningless.
-    Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+    Layer.succeed(
+      PolicyDecisionTag,
+      makeStaticPolicyDecision(ROLE_PERMISSIONS),
+    ),
+    Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
     // The shipped layer reads this from config-service; here it is a literal

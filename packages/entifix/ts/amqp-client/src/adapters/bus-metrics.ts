@@ -1,4 +1,4 @@
-import type { SubscriptionMode } from '@r10c/entifix-transactions';
+import type { SubscriptionMode } from '@entifix/transactions';
 import { Metric } from 'effect';
 
 /**

@@ -1,14 +1,14 @@
-import { type Locale, localeHref } from '@r10c/entifix-ts-i18n/routing';
+import { type Locale, localeHref } from '@entifix/core';
 import Link from 'next/link';
 import type { ComponentPropsWithoutRef } from 'react';
 
 /**
  * `next/link` with the active locale already on the href — the storefront's
- * counterpart to `shells-next-common`'s `LocaleLink`, and a **server**
+ * counterpart to `@entifix/next-shell`'s `LocaleLink`, and a **server**
  * component where that one is a client one.
  *
  * Two reasons it is not simply reused. `layer:shell` may not depend on
- * `layer:shell`, so this package cannot import `shells-next-common` at all; and
+ * `layer:shell`, so this package cannot import `@entifix/next-shell` at all; and
  * `LocaleLink` has to be `'use client'` because the rewrite-based apps have no
  * locale in the route tree, leaving it to read one from context. Here the
  * locale *is* a route param, so it arrives as a prop and every link in the

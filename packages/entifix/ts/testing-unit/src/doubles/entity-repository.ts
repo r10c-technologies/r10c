@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { EntityRepository } from '@r10c/entifix-ts-business';
+import type { EntityRepository } from '@entifix/business';
 import {
   EntifixConnError,
   type EntifixError,
@@ -12,7 +12,7 @@ import {
   type EntityPage,
   type EntitySorting,
   type FilterGroup,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 
 /** Escapes a string so `like`/`nlike` match literally, as the Mongo adapter does. */

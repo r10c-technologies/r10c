@@ -1,6 +1,6 @@
-import { OneTimeTokenStoreTag } from '@r10c/entifix-ts-business';
-import { run, runFailure } from '@r10c/entifix-ts-testing-unit';
-import { makeFakeRedis } from '@r10c/entifix-ts-testing-unit/drivers';
+import { OneTimeTokenStoreTag } from '@entifix/business';
+import { run, runFailure } from '@entifix/testing-unit';
+import { makeFakeRedis } from '@entifix/testing-unit/drivers';
 import { Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
 import { describe, expect, it } from 'vitest';

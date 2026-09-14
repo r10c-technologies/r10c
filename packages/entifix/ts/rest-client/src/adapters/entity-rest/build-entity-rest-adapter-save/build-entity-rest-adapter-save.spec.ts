@@ -1,12 +1,5 @@
-import type { PendingTransaction } from '@r10c/entifix-transactions';
-import { TransactionSinkTag } from '@r10c/entifix-transactions';
-import {
-  accessor,
-  type Entity,
-  entity,
-  type EntityId,
-} from '@r10c/entifix-ts-core';
-import { stubUriConfigurationLayer } from '@r10c/entifix-ts-testing-unit';
+import { accessor, type Entity, entity, type EntityId } from '@entifix/core';
+import { stubUriConfigurationLayer } from '@entifix/testing-unit';
 import {
   entityRestHandlers,
   http,
@@ -14,7 +7,9 @@ import {
   respondWith500,
   respondWithMalformedEnvelope,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
+import type { PendingTransaction } from '@entifix/transactions';
+import { TransactionSinkTag } from '@entifix/transactions';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -103,21 +98,22 @@ const runCommandSave = (widget: Widget) =>
  * Two runners rather than one with a flag, because "no sink provided" is a real
  * caller — the storefront and every plain REST adapter — and not a test double.
  */
-const runCommandSaveWatchedBy = (sink: PendingTransaction[]) => (widget: Widget) =>
-  Effect.runPromise(
-    buildEntityRestAdapterSave(
-      Widget,
-      commandOptions,
-    )(widget).pipe(
-      Effect.provide(
-        Layer.succeed(TransactionSinkTag, {
-          began: pending => {
-            sink.push(pending);
-          },
-        }).pipe(Layer.merge(configuration)),
+const runCommandSaveWatchedBy =
+  (sink: PendingTransaction[]) => (widget: Widget) =>
+    Effect.runPromise(
+      buildEntityRestAdapterSave(
+        Widget,
+        commandOptions,
+      )(widget).pipe(
+        Effect.provide(
+          Layer.succeed(TransactionSinkTag, {
+            began: pending => {
+              sink.push(pending);
+            },
+          }).pipe(Layer.merge(configuration)),
+        ),
       ),
-    ),
-  );
+    );
 
 /** What marketplace-admin-service answers a command with. */
 const acceptedTransaction = (transactionId: string) =>

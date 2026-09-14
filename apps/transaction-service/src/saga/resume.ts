@@ -1,3 +1,4 @@
+import { ShutdownRegistryTag } from '@entifix/business';
 import {
   resumeSaga,
   type SagaDefinition,
@@ -5,8 +6,7 @@ import {
   type SagaInstance,
   type SagaStore,
   SagaStoreTag,
-} from '@r10c/entifix-transactions';
-import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
+} from '@entifix/transactions';
 import { Context, Duration, Effect, Fiber } from 'effect';
 
 import { recordSagaResume, recordStaleSagas } from '../observability/metrics';

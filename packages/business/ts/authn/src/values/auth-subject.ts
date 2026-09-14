@@ -1,4 +1,4 @@
-import type { EntityId } from '@r10c/entifix-ts-core';
+import type { EntityId } from '@entifix/core';
 
 import type { UserIdentity } from '../entities/user-identity';
 

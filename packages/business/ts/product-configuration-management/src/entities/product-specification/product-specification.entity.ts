@@ -1,5 +1,5 @@
-import { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { accessor, entity } from '@r10c/entifix-ts-core';
+import { Entity, EntityId } from '@entifix/core';
+import { accessor, entity } from '@entifix/core';
 
 /**
  * What a thing **is** — the facts common to every instance of it. Definitional,

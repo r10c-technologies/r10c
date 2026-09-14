@@ -4,7 +4,7 @@ import type {
   EntityFiltering,
   EntitySorting,
   FilterGroup,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 /** A Mongo query document (`{ field: condition, $and: [...], ... }`). */
 export type MongoFilter = Record<string, unknown>;

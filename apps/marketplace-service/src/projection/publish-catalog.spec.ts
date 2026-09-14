@@ -1,10 +1,10 @@
+import { describeEntityColumns } from '@entifix/core';
 import {
   CATALOG_PUBLISHED,
   CATALOG_UNPUBLISHED,
   type CatalogPublication,
 } from '@r10c/business-ts-catalog-contracts';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { describeEntityColumns } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';

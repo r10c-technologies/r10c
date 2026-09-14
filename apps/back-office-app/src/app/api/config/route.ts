@@ -1,4 +1,4 @@
-import { createConfigRoute } from '@r10c/shells-next-common/server';
+import { createConfigRoute } from '@entifix/next-shell/server';
 
 /**
  * This app's centralized configuration, fetched server-side from config-service

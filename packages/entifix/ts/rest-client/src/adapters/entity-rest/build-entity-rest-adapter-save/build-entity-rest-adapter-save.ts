@@ -1,10 +1,4 @@
-import {
-  makeCommandEnvelope,
-  readTransactionAcceptedEnvelope,
-  type TransactionCommand,
-  TransactionSinkTag,
-} from '@r10c/entifix-transactions';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
+import { ConfigurationRepositoryTag } from '@entifix/business';
 import {
   Entity,
   EntityConstructor,
@@ -12,7 +6,13 @@ import {
   makeEntityEnvelope,
   readEntityEnvelope,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import {
+  makeCommandEnvelope,
+  readTransactionAcceptedEnvelope,
+  type TransactionCommand,
+  TransactionSinkTag,
+} from '@entifix/transactions';
 import { Effect, Option } from 'effect';
 
 import { performHttpRequestThroughFetch } from '../../../clients/fetch';

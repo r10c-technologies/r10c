@@ -1,4 +1,4 @@
-import { HealthRegistryTag } from '@r10c/entifix-ts-business';
+import { HealthRegistryTag } from '@entifix/business';
 import { Effect, Layer } from 'effect';
 
 import { MongoClientTag } from './mongo-database';

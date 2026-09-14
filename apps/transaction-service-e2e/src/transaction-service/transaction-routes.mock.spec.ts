@@ -1,4 +1,4 @@
-import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
+import { defineServiceE2e } from '@entifix/testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
 import { signTokenFor } from '../support/tokens';
@@ -17,7 +17,7 @@ const service = defineServiceE2e({
 });
 
 const cookieFor = async (organizationId: string | null) => ({
-  Cookie: `r10c_at=${await signTokenFor(['admin'], 'user-1', organizationId)}`,
+  Cookie: `entifix_at=${await signTokenFor(['admin'], 'user-1', organizationId)}`,
 });
 
 describe('GET /api/transaction', () => {

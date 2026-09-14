@@ -8,7 +8,7 @@ import {
   Stack,
   Text,
   useT,
-} from '@r10c/entifix-react-controls';
+} from '@entifix/react-controls';
 
 import type { Principal } from '../principal-types';
 

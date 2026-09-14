@@ -1,6 +1,12 @@
 'use client';
 
 import {
+  commandEffectOf,
+  type CommandGroup,
+  type CommandOption,
+  type CommandPage,
+} from '@entifix/core';
+import {
   Combobox,
   ComboboxInput,
   ComboboxOption,
@@ -9,12 +15,6 @@ import {
   DialogPanel,
   DialogTitle,
 } from '@headlessui/react';
-import {
-  commandEffectOf,
-  type CommandGroup,
-  type CommandOption,
-  type CommandPage,
-} from '@r10c/entifix-ts-core';
 import type { KeyboardEvent } from 'react';
 
 import { SkeletonText } from '../../atoms/skeleton';
@@ -173,8 +173,8 @@ function Group({
  * knows no router — every group arrives already filtered, already authorized and
  * already translated, from hooks in the shell layer that meet this component at
  * the framework-free `CommandSource` port in core. That is the same arrangement
- * `EntityLinkSource` uses, and it exists because `entifix-react-controls` may
- * not import `entifix-react-integration`.
+ * `EntityLinkSource` uses, and it exists because `@entifix/react-controls` may
+ * not import `@entifix/react-integration`.
  *
  * **The sources filter, not this component.** A record group is filtered by the
  * service that answered it; a command group is filtered by the hook that built

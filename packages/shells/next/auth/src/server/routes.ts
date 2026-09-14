@@ -1,8 +1,8 @@
-import { LOCALE_COOKIE } from '@r10c/entifix-ts-i18n/routing';
+import { LOCALE_COOKIE } from '@entifix/core';
 import {
   applyDeviceCookie,
   readDeviceContext,
-} from '@r10c/shells-next-common/server';
+} from '@entifix/next-shell/server';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { authorizationHeader } from './principal';
@@ -22,7 +22,7 @@ import {
  * exactly these, and a second host would otherwise copy them. Nothing varies per
  * host — `AUTH_SERVICE_URL` is environment, not composition — so they are ready
  * handlers rather than factories; `createConfigRoute` stays a factory in
- * `shells-next-common` because its `service` name genuinely differs per app.
+ * `@entifix/next-shell` because its `service` name genuinely differs per app.
  *
  * They are exported from `/server` and never from the package's main entry:
  * anything a route handler runs must not be reachable through the client

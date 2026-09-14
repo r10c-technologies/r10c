@@ -1,4 +1,4 @@
-import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
+import { MongoClientTag } from '@entifix/mongo';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

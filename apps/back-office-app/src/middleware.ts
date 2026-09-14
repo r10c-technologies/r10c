@@ -1,14 +1,13 @@
-import { localeHref } from '@r10c/entifix-ts-i18n/routing';
+import { ACCESS_COOKIE, localeHref } from '@entifix/core';
 import {
   rememberLocale,
   resolveLocale,
   rewriteToLocale,
-} from '@r10c/shells-next-i18n';
+} from '@entifix/next-i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Inlined rather than imported from the auth shell's `/server`, so this
 // edge-runtime module never pulls in `next/headers`.
-const AT_COOKIE = 'r10c_at';
 
 /**
  * Paths that only make sense while signed **out**. An authenticated visitor
@@ -48,7 +47,7 @@ export function middleware(request: NextRequest) {
   const locale = resolveLocale(request);
   if (locale.redirect) return locale.redirect;
 
-  const authenticated = request.cookies.get(AT_COOKIE) !== undefined;
+  const authenticated = request.cookies.get(ACCESS_COOKIE) !== undefined;
   // The locale-stripped path — matching on `request.nextUrl.pathname` would
   // read `/es/users` and miss every branch.
   const pathname = locale.pathname;

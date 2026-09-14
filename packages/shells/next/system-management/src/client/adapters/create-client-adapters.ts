@@ -1,8 +1,7 @@
-import { Configuration } from '@r10c/business-ts-configuration';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   buildEntityRestAdapterDelete,
   buildEntityRestAdapterGet,
@@ -10,7 +9,8 @@ import {
   buildEntityRestAdapterSave,
   type BuildEntityRestOptions,
   ConfigurationClientRestClient,
-} from '@r10c/entifix-ts-rest-client';
+} from '@entifix/rest';
+import { Configuration } from '@r10c/business-ts-configuration';
 import { Context } from 'effect';
 
 import type { SystemManagementAdapters } from '../client-types';

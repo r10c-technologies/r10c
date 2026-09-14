@@ -1,16 +1,16 @@
 'use client';
 
-import { UserIdentity } from '@r10c/business-ts-authn';
-import { EntityForm, useT } from '@r10c/entifix-react-controls';
-import { useEntityUseCases } from '@r10c/entifix-react-integration';
 import {
   deserializeSingleEntity,
   type EntityDraft,
   readDraftString,
-} from '@r10c/entifix-ts-core';
-import { makeEntityMetadataSource } from '@r10c/entifix-ts-rest-client';
-import type { EntityCrudSingleViewProps } from '@r10c/shells-next-common';
-import { useLocaleHref } from '@r10c/shells-next-common';
+} from '@entifix/core';
+import type { EntityCrudSingleViewProps } from '@entifix/next-shell';
+import { useLocaleHref } from '@entifix/next-shell';
+import { EntityForm, useT } from '@entifix/react-controls';
+import { useEntityUseCases } from '@entifix/react-integration';
+import { makeEntityMetadataSource } from '@entifix/rest';
+import { UserIdentity } from '@r10c/business-ts-authn';
 import { Effect } from 'effect';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -99,10 +99,7 @@ export function UserDetailPage({
   // values — `restoreEntityDraft`'s rule, applied by hand because this form is
   // not `useEntityForm`'s.
   const restored = draft?.draft as EntityDraft | undefined;
-  const pending = useMemo(
-    () => ({ ...restored, ...edits }),
-    [restored, edits],
-  );
+  const pending = useMemo(() => ({ ...restored, ...edits }), [restored, edits]);
 
   const values: EntityDraft = {
     displayName: user?.displayName ?? '',

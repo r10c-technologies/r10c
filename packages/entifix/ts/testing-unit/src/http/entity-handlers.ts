@@ -4,7 +4,7 @@ import {
   type EntityId,
   makeEntityEnvelope,
   makeEntityPageEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { http, HttpResponse, type RequestHandler } from 'msw';
 
 export interface EntityRestHandlerOptions<TEntity extends Entity> {

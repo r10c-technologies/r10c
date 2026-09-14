@@ -1,13 +1,13 @@
-import { StockItem, StockMovement } from '@r10c/business-ts-stock-management';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   http,
   HttpResponse,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
+import { StockItem, StockMovement } from '@r10c/business-ts-stock-management';
 import { Context, Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -51,7 +51,9 @@ describe('createClientAdapters', () => {
   it('exposes one repository per stock entity plus the configuration store', () => {
     const adapters = createClientAdapters();
 
-    expect(Context.get(adapters.stockItemRest, EntityRepositoryTag)).toBeDefined();
+    expect(
+      Context.get(adapters.stockItemRest, EntityRepositoryTag),
+    ).toBeDefined();
     expect(
       Context.get(adapters.stockMovementRest, EntityRepositoryTag),
     ).toBeDefined();

@@ -4,7 +4,7 @@ import {
   makeEnvelope,
   readEnvelope,
   type SerializedEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 
 /**

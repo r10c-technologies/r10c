@@ -12,7 +12,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
  *
  * `variable` is what connects them to the design system: `--font-inter` and
  * `--font-jetbrains-mono` are the first entry in `--font-sans` / `--font-mono`
- * in `@r10c/entifix-style/tokens.css`, and everything behind them there is a
+ * in `@entifix/style/tokens.css`, and everything behind them there is a
  * real fallback stack — what renders during the swap.
  *
  * `next/font` also generates a `size-adjust` fallback face, which is why the

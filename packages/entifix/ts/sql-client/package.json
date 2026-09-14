@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/entifix-ts-sql-client",
+  "name": "@entifix/sql",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,7 +8,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
@@ -23,7 +23,8 @@
       "layer:entifix",
       "scope:shared",
       "entifix:client",
-      "runtime:datastore"
+      "runtime:datastore",
+      "tier:2"
     ],
     "sourceRoot": "packages/entifix/ts/sql-client/src",
     "targets": {
@@ -44,12 +45,15 @@
   },
   "dependencies": {
     "@effect/sql": "0.52.1",
-    "@swc/helpers": "0.5.23",
-    "effect": "3.22.1",
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*"
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*",
+    "@swc/helpers": "0.5.23"
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@entifix/testing-unit": "workspace:*",
+    "effect": "3.22.1"
+  },
+  "peerDependencies": {
+    "effect": ">=3.22 <4"
   }
 }

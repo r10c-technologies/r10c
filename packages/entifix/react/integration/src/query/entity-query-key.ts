@@ -4,7 +4,7 @@ import {
   type EntityLoadRequest,
   envelopeEntityName,
   serializeLoadRequestParams,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 /**
  * The TanStack Query cache key for a single entity list request.

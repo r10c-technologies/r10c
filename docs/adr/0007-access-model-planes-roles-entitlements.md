@@ -121,7 +121,7 @@ the first domain to sit outside it.
 - **The static `ROLE_PERMISSIONS` table survives** for platform roles. Two grant
   mechanisms coexist by design: code for the population we employ, data for the
   population we serve.
-- **`business-ts-authz` stays `business:policy`** — vocabulary and ports only.
+- **`@entifix/authz` stays `business:policy`** — vocabulary and ports only.
   The role _records_ live in `business-ts-access-management` (`business:domain`),
   because entities and repositories must not appear in the shared policy
   vocabulary every domain depends on.

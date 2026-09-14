@@ -2,15 +2,15 @@ import {
   type Permission,
   permissionForEntity,
   screenAddress,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
+import type { Entity, EntityConstructor } from '@entifix/core';
+import { EntifixBuildError, extractMetaEntity } from '@entifix/core';
+import type { EntityCatalogKey } from '@entifix/next-shell';
 import {
   Reservation,
   StockItem,
   StockMovement,
 } from '@r10c/business-ts-stock-management';
-import type { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
-import { EntifixBuildError, extractMetaEntity } from '@r10c/entifix-ts-core';
-import type { EntityCatalogKey } from '@r10c/shells-next-common';
 
 /**
  * One stock screen, declared once, for everything that has to name it.
@@ -82,10 +82,7 @@ export const permissionForStockSurface = (surface: StockSurface): Permission =>
 export const stockListAddress = (surface: StockSurface): string =>
   screenAddress({ type: 'operation', key: surface.entityKey });
 
-export const stockRecordAddress = (
-  surface: StockSurface,
-  id: string,
-): string =>
+export const stockRecordAddress = (surface: StockSurface, id: string): string =>
   screenAddress({ type: 'operation', key: surface.entityKey, id });
 
 type StockSurfaceDeclaration<TEntity extends Entity> = Omit<

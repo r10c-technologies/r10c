@@ -4,7 +4,7 @@ import {
   type Entity,
   type EntityConstructor,
   type EntityLinkResolver,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 import { ConfigurationRepositoryTag } from './config.repository';

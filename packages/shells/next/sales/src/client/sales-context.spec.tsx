@@ -1,11 +1,11 @@
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
 import { render, screen } from '@testing-library/react';
 import { Context } from 'effect';
 import { describe, expect, it } from 'vitest';

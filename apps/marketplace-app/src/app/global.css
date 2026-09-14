@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import '@r10c/entifix-style/tokens.css';
+@import '@entifix/style/tokens.css';
 /* App-owned brand palettes (no shared presets — this storefront has its own). */
 @import './themes.css';
 

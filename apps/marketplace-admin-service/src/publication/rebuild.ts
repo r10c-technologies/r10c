@@ -1,4 +1,16 @@
 import {
+  type ConfigurationRepositoryTag,
+  EntityRepositoryTag,
+} from '@entifix/business';
+import type { EntifixError } from '@entifix/core';
+import { makeMongoRepository, MongoClientTag } from '@entifix/mongo';
+import {
+  ensureOutboxIndexes,
+  makeMongoOutbox,
+  reviveQuarantined,
+} from '@entifix/mongo/transactions';
+import { EventSourceTag } from '@entifix/transactions';
+import {
   OfferingPriceRepositoryTag,
   OfferingSpecificationRepositoryTag,
   ProductOffering,
@@ -7,19 +19,6 @@ import {
   transitionOffering,
   TransitionOfferingInputTag,
 } from '@r10c/business-ts-product-configuration-management';
-import { EventSourceTag } from '@r10c/entifix-transactions';
-import {
-  type ConfigurationRepositoryTag,
-  EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
-import type { EntifixError } from '@r10c/entifix-ts-core';
-import {
-  ensureOutboxIndexes,
-  makeMongoOutbox,
-  makeMongoRepository,
-  MongoClientTag,
-  reviveQuarantined,
-} from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

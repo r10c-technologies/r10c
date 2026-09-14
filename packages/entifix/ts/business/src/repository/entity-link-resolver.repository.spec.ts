@@ -6,7 +6,7 @@ import {
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context, Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -67,7 +67,7 @@ const configuration = Context.make(
 
 /**
  * A hand-rolled double rather than `makeInMemoryEntityRepository` from
- * `@r10c/entifix-ts-testing-unit`: that package depends on **this** one for its
+ * `@entifix/testing-unit`: that package depends on **this** one for its
  * tags, so dev-depending on it back would make the two projects a cycle in the
  * task graph. Only `get` is exercised here anyway — a link resolver never loads
  * a page.

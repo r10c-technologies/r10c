@@ -1,25 +1,30 @@
 import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
-import { TokenServiceTag } from '@r10c/entifix-ts-business';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
+  ServiceCrossingPolicyTag,
+} from '@entifix/authz';
+import { TokenServiceTag } from '@entifix/business';
+import { makeJoseTokenService } from '@entifix/jwt';
+import {
+  LoadedConfigurationTag,
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
   fakeConfigurationLayer,
   fakeMongoLayer,
-} from '@r10c/entifix-ts-testing-e2e/fixtures';
-import { router, SERVICE_NAME } from '@r10c/settlement-service';
+} from '@entifix/testing-e2e/fixtures';
 import {
-  LoadedConfigurationTag,
-  type RunningTestService,
-  serveTestService,
-} from '@r10c/shells-effect-service';
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
+import { router, SERVICE_NAME } from '@r10c/settlement-service';
 import { Layer } from 'effect';
 
 import { E2E_ORGANIZATION_ID, E2E_OTHER_ORGANIZATION_ID } from './tokens';
@@ -179,7 +184,8 @@ const MockAppLayer = Layer.mergeAll(
       audience: AUTH_TOKEN_AUDIENCE,
     }),
   ),
-  Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+  Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision(ROLE_PERMISSIONS)),
+  Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
 ).pipe(Layer.orDie);

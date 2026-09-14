@@ -1,11 +1,11 @@
 'use client';
 
+import { TextInput, useT } from '@entifix/react-controls';
 import {
   type SalesChannelType,
   SalesChannelTypes,
 } from '@r10c/business-ts-sales-vocabulary';
 import type { ChannelCommissionRates } from '@r10c/business-ts-settlement-management';
-import { TextInput, useT } from '@r10c/entifix-react-controls';
 
 export interface ChannelRateEditorProps {
   /** The rates as the record carries them: absent keys take the default. */

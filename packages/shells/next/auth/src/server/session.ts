@@ -1,10 +1,6 @@
+import { ACCESS_COOKIE, SESSION_COOKIE } from '@entifix/core';
 import { SESSION_ABSOLUTE_TTL_SECONDS } from '@r10c/business-ts-authn';
 import { cookies } from 'next/headers';
-
-/** Opaque session id — the revocation handle + refresh source. */
-export const SID_COOKIE = 'r10c_sid';
-/** Short-lived signed access token the services verify. */
-export const AT_COOKIE = 'r10c_at';
 
 /** auth-service (:3102), reached server-side from the route handlers. */
 export const AUTH_SERVICE_URL =
@@ -42,7 +38,7 @@ const cookieOptions = (maxAge: number) => ({
 /**
  * Persist the access + session ids as httpOnly cookies on the app's origin.
  *
- * Both are sized to the SESSION, not to the access token. Sizing `r10c_at` to
+ * Both are sized to the SESSION, not to the access token. Sizing `entifix_at` to
  * `expiresIn` is what signed everyone out every fifteen minutes: when the cookie
  * expired, the middleware's presence check could not tell "this token needs
  * refreshing" from "there is no session", and picked the second — while the
@@ -53,18 +49,18 @@ const cookieOptions = (maxAge: number) => ({
 export async function setSessionCookies(result: AuthResult): Promise<void> {
   const store = await cookies();
   const maxAge = result.sessionExpiresIn ?? SESSION_MAX_AGE;
-  store.set(AT_COOKIE, result.accessToken, cookieOptions(maxAge));
-  store.set(SID_COOKIE, result.sessionId, cookieOptions(maxAge));
+  store.set(ACCESS_COOKIE, result.accessToken, cookieOptions(maxAge));
+  store.set(SESSION_COOKIE, result.sessionId, cookieOptions(maxAge));
 }
 
 /** Clear both cookies (logout). */
 export async function clearSessionCookies(): Promise<void> {
   const store = await cookies();
-  store.delete(AT_COOKIE);
-  store.delete(SID_COOKIE);
+  store.delete(ACCESS_COOKIE);
+  store.delete(SESSION_COOKIE);
 }
 
 /** Read the current session id, if any. */
 export async function readSessionId(): Promise<string | undefined> {
-  return (await cookies()).get(SID_COOKIE)?.value;
+  return (await cookies()).get(SESSION_COOKIE)?.value;
 }

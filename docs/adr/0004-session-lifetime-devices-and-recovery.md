@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-26
 - Area: auth
-- Read when: changing a session duration, a cookie lifetime or a device record — sessions slide under a ceiling, and sizing `r10c_at` to the token signs everyone out every 15 minutes
+- Read when: changing a session duration, a cookie lifetime or a device record — sessions slide under a ceiling, and sizing `entifix_at` to the token signs everyone out every 15 minutes
 - Revised: 2026-08-13 by [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md) —
   records here the supersession ADR 0016 declared but never wrote back: the
   **recovery** and **lockout** sections below are superseded, and the Context
@@ -26,7 +26,7 @@ session visibility were all listed as deferred.
 
 Two things forced the issue.
 
-**The refresh half was dead code.** `setSessionCookies` sized the `r10c_at`
+**The refresh half was dead code.** `setSessionCookies` sized the `entifix_at`
 cookie to the _access token's_ 15 minutes. When that cookie expired, the
 middleware's presence check could not tell "this token needs refreshing" from
 "there is no session", and chose the second — so every user was bounced to
@@ -69,7 +69,7 @@ copies of "fifteen minutes" is how a signer and a verifier silently disagree.
 > handler.
 >
 > The failure that hid it is the one this record's own Context describes, one
-> layer along. Sizing `r10c_at` to the token bounced everyone to sign-in four
+> layer along. Sizing `entifix_at` to the token bounced everyone to sign-in four
 > times an hour, which is loud. Sizing it to the **session ceiling** and never
 > refreshing is silent: the middleware's presence check keeps admitting the
 > visitor for up to seven days, every page renders, and only the calls behind
@@ -97,13 +97,13 @@ presence, and costs a Redis write per request.
 tab's session alive indefinitely, which makes "idle timeout" mean "a tab is
 open".
 
-### A server subpath for `@r10c/shells-next-common`
+### A server subpath for `@entifix/next-shell`
 
 The shared refresh handler cannot ship from the package's main entry: rollup
 emits one bundle with a `"use client"` banner, so a route handler pulled in
 through it becomes a client reference and its `next/server` imports fail. A
-second rollup entry publishes `@r10c/shells-next-common/server` without the
-banner, mirroring the `./server` subpath `shells-next-i18n` already had.
+second rollup entry publishes `@entifix/next-shell/server` without the
+banner, mirroring the `./server` subpath `@entifix/next-i18n` already had.
 
 > **Revised 2026-08-13.** There is no rollup here any more — `packages/` builds
 > per-file with `@nx/js:swc`, which keeps each module's own `"use client"` and so
@@ -120,7 +120,7 @@ exported from the client entry is still a client function, which surfaced as
 
 ### Devices are labels, never authorization inputs
 
-An opaque `r10c_did` cookie (256-bit, httpOnly, ~2 years) plus a label parsed
+An opaque `entifix_did` cookie (256-bit, httpOnly, ~2 years) plus a label parsed
 with `userAgent()` from `next/server` — already bundled with Next, so no new
 dependency, and notably not `ua-parser-js`, whose v2 is AGPL/dual-licensed.
 
@@ -137,7 +137,7 @@ The rule everywhere: **a copied cookie copies the device, and that is acceptable
 precisely because nothing here decides anything.** It powers the session list and
 the notification; the access token authorizes.
 
-**Rejected: comparing the device at refresh time.** The `r10c_did` cookie lives
+**Rejected: comparing the device at refresh time.** The `entifix_did` cookie lives
 on auth-app's origin, so in production there is nothing to compare on another
 app's origin — a check that would appear to work on localhost and silently stop
 working in production.
@@ -153,7 +153,7 @@ working in production.
 >
 > Two pieces of this section outlived the decision and are still live, which is
 > why the reasoning is kept rather than deleted. The `OneTimeTokenStore` port
-> (`entifix-ts-business` + its Redis adapter) survives and now holds the OIDC
+> (`@entifix/business` + its Redis adapter) survives and now holds the OIDC
 > `{codeVerifier, nonce, redirect}` stash whose token **is** the `state` — the
 > `GETDEL` single-redemption property that made a reset link safe is what makes
 > that consumption a CSRF and replay check. And `GET /api/dev/outbox` survives,
@@ -161,7 +161,7 @@ working in production.
 > `NotificationKind.SessionsRevoked`: the notifications r10c still sends are
 > about _sessions_, not credentials.
 
-A `OneTimeTokenStore` port (`entifix-ts-business`, Redis adapter) keeps only the
+A `OneTimeTokenStore` port (`@entifix/business`, Redis adapter) keeps only the
 SHA-256 of the token and redeems it with `GETDEL`, so two clicks on the same
 emailed link cannot both succeed. `POST /api/auth/password/forgot` always answers
 `202` — for a missing account, a suspended one, an account with no email, and a

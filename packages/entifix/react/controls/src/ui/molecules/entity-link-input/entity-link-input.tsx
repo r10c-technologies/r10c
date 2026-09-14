@@ -1,5 +1,10 @@
 'use client';
 
+import type {
+  Entity,
+  EntityFieldDescriptor,
+  EntityLinkSource,
+} from '@entifix/core';
 import {
   Combobox,
   ComboboxButton,
@@ -7,11 +12,6 @@ import {
   ComboboxOption,
   ComboboxOptions,
 } from '@headlessui/react';
-import type {
-  Entity,
-  EntityFieldDescriptor,
-  EntityLinkSource,
-} from '@r10c/entifix-ts-core';
 
 import { useErrorMessage, useT } from '../../../i18n';
 import { Button } from '../../atoms/button';

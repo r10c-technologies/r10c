@@ -18,16 +18,16 @@
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/jetbrains-mono';
 
-@import '@r10c/entifix-style/tokens.css';
+@import '@entifix/style/tokens.css';
 
 /* The dense operator scale. Inert until something opts in with `data-scale`,
    so every story renders fluid unless it scopes a `[data-scale="fixed"]`
    subtree — which is how the specimen shows both scales on one page. */
-@import '@r10c/entifix-style/presets/fixed-scale.css';
+@import '@entifix/style/presets/fixed-scale.css';
 
-@import '@r10c/entifix-style/presets/aurora.css';
-@import '@r10c/entifix-style/presets/sunset.css';
-@import '@r10c/entifix-style/presets/midnight.css';
+@import '@entifix/style/presets/aurora.css';
+@import '@entifix/style/presets/sunset.css';
+@import '@entifix/style/presets/midnight.css';
 
 /* Scan the controls source so Tailwind detects the utility classes the
    components emit (they are consumed as source via @r10c/source). */

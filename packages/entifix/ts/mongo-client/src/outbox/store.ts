@@ -1,8 +1,5 @@
-import type {
-  OutboxEntry,
-  TransactionOutbox,
-} from '@r10c/entifix-transactions';
-import { type DomainEvent, EntifixConnError } from '@r10c/entifix-ts-core';
+import { type DomainEvent, EntifixConnError } from '@entifix/core';
+import type { OutboxEntry, TransactionOutbox } from '@entifix/transactions';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

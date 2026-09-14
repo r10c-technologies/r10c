@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { EntifixConnError } from '@entifix/core';
 import { Effect, Layer } from 'effect';
 
 import {
@@ -6,7 +6,7 @@ import {
   UiPreferencesStateTag,
 } from './ui-preferences-state';
 
-export const DEFAULT_UI_PREFERENCES_NAMESPACE = 'r10c-ui';
+export const DEFAULT_UI_PREFERENCES_NAMESPACE = 'entifix-ui';
 
 /** No `window` during SSR — reads resolve empty and writes are dropped. */
 function isBrowser(): boolean {

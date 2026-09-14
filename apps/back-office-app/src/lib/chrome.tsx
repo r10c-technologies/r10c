@@ -1,17 +1,17 @@
-import { SCREEN_TYPE_LABEL_KEYS } from '@r10c/business-ts-authz';
-import {
-  AccountMenu,
-  BackOfficeShell,
-  SessionKeepalive,
-} from '@r10c/shells-next-common';
-// From the server entry: this module calls them directly, and the client entry
-// would hand back a client reference rather than the function.
-import { accountPaths } from '@r10c/shells-next-common/server';
+import { SCREEN_TYPE_LABEL_KEYS } from '@entifix/authz';
 import {
   getRequestLocale,
   getServerT,
   getServerTranslateKey,
-} from '@r10c/shells-next-i18n/server';
+} from '@entifix/next-i18n/server';
+import {
+  AccountMenu,
+  BackOfficeShell,
+  SessionKeepalive,
+} from '@entifix/next-shell';
+// From the server entry: this module calls them directly, and the client entry
+// would hand back a client reference rather than the function.
+import { accountPaths } from '@entifix/next-shell/server';
 import type { ReactNode } from 'react';
 
 import { BackOfficeCommandPalette } from './command-palette';

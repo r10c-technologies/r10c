@@ -1,4 +1,4 @@
-import { Entity } from '@r10c/entifix-ts-core';
+import { Entity } from '@entifix/core';
 import { Effect } from 'effect';
 
 import { EntityRepositoryTag } from '../../repository/entity.repository';

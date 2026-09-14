@@ -1,4 +1,4 @@
-import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
+import { defineServiceE2e } from '@entifix/testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
 import { bearerFor } from '../support/tokens';
@@ -71,11 +71,7 @@ const itemFor = async (offeringId: string) => {
   return pageOf(res).items[0];
 };
 
-const recordMovement = (
-  offeringId: string,
-  quantity: number,
-  reason: string,
-) =>
+const recordMovement = (offeringId: string, quantity: number, reason: string) =>
   service.client.post('/api/stock-movement', {
     meta: { type: 'entity', entity: 'stock-movement' },
     data: { offeringId, quantity, reason },

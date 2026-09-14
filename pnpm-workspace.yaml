@@ -5,8 +5,13 @@ packages:
   - 'packages/utils/ts/*'
   - 'packages/entifix/react/*'
   - 'packages/entifix/style'
+  # The two shells entifix ships. They are framework, not r10c's — the base
+  # Effect service and the base Next shell — so they live in the entifix tree
+  # beside the packages they mount, and `packages/shells/next/*` below holds
+  # only the per-domain shells that stay with the marketplace.
+  - 'packages/entifix/effect/*'
+  - 'packages/entifix/next/*'
   - 'packages/shells/next/*'
-  - 'packages/shells/effect/*'
   # Not shipped code: checks that run against the repository's own structure.
   # `slices` is the executable form of the ADR 0020 store register; `docs` holds
   # the documentation assertions, and reads the same entity scan.
@@ -14,6 +19,9 @@ packages:
   - 'tools/docs'
   # `i18n` asserts that every error code a service emits has a catalog entry.
   - 'tools/i18n'
+  # `tiers` asserts entifix's composition contract: what each tier may
+  # hard-depend on, and therefore what an adopter installs without asking.
+  - 'tools/tiers'
   # `conventions` asserts the repository's own working conventions — the ones
   # that were stated in prose and skipped anyway.
   - 'tools/conventions'

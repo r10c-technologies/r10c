@@ -1,4 +1,4 @@
-import { matchesEventPattern } from '@r10c/entifix-ts-core';
+import { matchesEventPattern } from '@entifix/core';
 
 /**
  * A fake of the amqplib channel, not of the {@link EventBus} port.

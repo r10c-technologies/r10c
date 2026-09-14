@@ -1,7 +1,7 @@
 import {
   defineRecordSearchSource,
   type RecordSearchSource,
-} from '@r10c/shells-next-common/server';
+} from '@entifix/next-shell/server';
 
 import { SALES_SURFACES, type SalesSurface } from '../sales-surfaces';
 import { SALES_SERVICE_URL } from './service-urls';

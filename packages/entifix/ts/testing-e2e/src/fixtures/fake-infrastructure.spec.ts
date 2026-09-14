@@ -1,13 +1,10 @@
-import { AmqpChannelTag } from '@r10c/entifix-ts-amqp-client';
+import { AmqpChannelTag } from '@entifix/amqp';
 import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
-} from '@r10c/entifix-ts-business';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
-import { RedisTag } from '@r10c/entifix-ts-redis-client';
+} from '@entifix/business';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
+import { RedisTag } from '@entifix/redis';
 import { Effect } from 'effect';
 
 import {

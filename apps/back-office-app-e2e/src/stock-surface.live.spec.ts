@@ -2,7 +2,7 @@ import {
   baseTest as test,
   expect,
   seedSession,
-} from '@r10c/entifix-ts-testing-e2e/playwright';
+} from '@entifix/testing-e2e/playwright';
 
 /**
  * The stock surface against the real fleet: a real session, the app's own

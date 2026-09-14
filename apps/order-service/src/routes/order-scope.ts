@@ -1,6 +1,6 @@
+import type { FilterGroup } from '@entifix/core';
+import type { RequestPrincipal } from '@entifix/service-shell';
 import type { ProductOrder } from '@r10c/business-ts-order-management';
-import type { FilterGroup } from '@r10c/entifix-ts-core';
-import type { RequestPrincipal } from '@r10c/shells-effect-service';
 
 /**
  * Whose orders a caller may read.
@@ -117,9 +117,7 @@ export const orderScopeFilter = (
     case 'buyer':
       return {
         operator: 'and',
-        values: [
-          { property: 'buyerId', operator: 'eq', value: scope.partyId },
-        ],
+        values: [{ property: 'buyerId', operator: 'eq', value: scope.partyId }],
       };
     default:
       return undefined;

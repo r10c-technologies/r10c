@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { EntifixConnError } from '@entifix/core';
 import { Effect } from 'effect';
 
 /** The subset of the OIDC discovery document this client uses. */

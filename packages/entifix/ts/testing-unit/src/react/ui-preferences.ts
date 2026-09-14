@@ -1,4 +1,4 @@
-import type { UiPreferencesState } from '@r10c/entifix-react-controls';
+import type { UiPreferencesState } from '@entifix/react-controls';
 import { Effect } from 'effect';
 
 export interface InMemoryUiPreferencesState extends UiPreferencesState {

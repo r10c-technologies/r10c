@@ -1,17 +1,17 @@
 import { randomUUID } from 'node:crypto';
 
-import {
-  type RememberedDevice,
-  UserDevice,
-  type UserDeviceRepository,
-} from '@r10c/business-ts-authn';
-import type { DeviceContext } from '@r10c/entifix-ts-business';
+import type { DeviceContext } from '@entifix/business';
 import {
   deserializeEntityCollection,
   deserializeSingleEntity,
   EntifixConnError,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import {
+  type RememberedDevice,
+  UserDevice,
+  type UserDeviceRepository,
+} from '@r10c/business-ts-authn';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

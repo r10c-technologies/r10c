@@ -1,5 +1,5 @@
+import { entity } from '@entifix/core';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
-import { entity } from '@r10c/entifix-ts-core';
 import { describe, expect, it } from 'vitest';
 
 import {

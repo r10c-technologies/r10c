@@ -4,7 +4,7 @@ import type {
   EntityId,
   EntityLoadRequest,
   EntityPage,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
 

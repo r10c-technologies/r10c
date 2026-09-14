@@ -1,16 +1,16 @@
-import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { SalesChannel } from '@r10c/business-ts-sales-management';
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
-import type { Entity } from '@r10c/entifix-ts-core';
+} from '@entifix/business';
+import type { Entity } from '@entifix/core';
+import { useDraftsState } from '@entifix/next-shell';
+import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
-import { useDraftsState } from '@r10c/shells-next-common';
+} from '@entifix/testing-unit';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { SalesChannel } from '@r10c/business-ts-sales-management';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context } from 'effect';
@@ -292,9 +292,9 @@ describe('walking the till', () => {
 
     await user.click(screen.getByRole('button', { name: /Atrás/i }));
 
-    expect(
-      await screen.findByRole('combobox', { name: 'Canal' }),
-    ).toHaveValue('sales-channel-counter');
+    expect(await screen.findByRole('combobox', { name: 'Canal' })).toHaveValue(
+      'sales-channel-counter',
+    );
   });
 
   it('blocks again when the channel is cleared', async () => {
@@ -310,7 +310,10 @@ describe('walking the till', () => {
     );
     expect(screen.getByRole('button', { name: /Continuar/i })).toBeEnabled();
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Canal' }), '');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Canal' }),
+      '',
+    );
 
     expect(screen.getByRole('button', { name: /Continuar/i })).toBeDisabled();
   });
@@ -373,9 +376,7 @@ describe('the lines step', () => {
     await user.click(screen.getByRole('button', { name: 'Agregar producto' }));
     // The offering's name is also an `<option>` in the picker above, so the
     // line is found by the button that removes it rather than by its text.
-    expect(
-      await screen.findByRole('button', { name: 'Quitar' }),
-    ).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Quitar' })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: 'Quitar' }));
 
@@ -447,10 +448,14 @@ describe('charging', () => {
 
     await ringUp(user);
     await user.click(screen.getByRole('button', { name: /Finalizar/i }));
-    await user.click(await screen.findByRole('button', { name: 'Nueva venta' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Nueva venta' }),
+    );
 
     expect(onFinished).toHaveBeenCalled();
-    expect(await screen.findByRole('combobox', { name: 'Canal' })).toBeVisible();
+    expect(
+      await screen.findByRole('combobox', { name: 'Canal' }),
+    ).toBeVisible();
   });
 });
 

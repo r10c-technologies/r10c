@@ -1,13 +1,13 @@
-import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   http,
   HttpResponse,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
+import { ProductOrder } from '@r10c/business-ts-order-management';
 import { Context, Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 

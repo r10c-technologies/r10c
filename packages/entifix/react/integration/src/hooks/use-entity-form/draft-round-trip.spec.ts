@@ -8,7 +8,7 @@ import {
   type EntityId,
   EntityLink,
   reconstructEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { seedEntityDraft } from './use-entity-form.helpers.js';

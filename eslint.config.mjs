@@ -340,7 +340,7 @@ export default [
     },
   },
   {
-    // `@r10c/entifix-ts-testing-unit` is deliberately non-buildable: it is
+    // `@entifix/testing-unit` is deliberately non-buildable: it is
     // test-only, never published, and resolves straight to source. Specs are not
     // part of any build output, so the buildable-lib rule does not apply to them
     // — it stays fully enforced for source files. Specs may also import
@@ -406,7 +406,7 @@ export default [
     // Declared right here rather than leaned on from a project's own config:
     // ESLint resolves a rule's plugin within the same config object, so without
     // this the rule hard-errors in every project that has no React config of
-    // its own (`entifix-ts-testing-unit` was the one that caught it).
+    // its own (`@entifix/testing-unit` was the one that caught it).
     plugins: { react },
     ignores: [
       '**/*.spec.tsx',

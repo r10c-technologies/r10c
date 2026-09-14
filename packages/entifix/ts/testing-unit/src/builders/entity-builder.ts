@@ -1,4 +1,4 @@
-import type { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
+import type { Entity, EntityConstructor } from '@entifix/core';
 
 export interface EntityBuilder<TEntity extends Entity> {
   /** Produces one instance, overriding the defaults with `overrides`. */

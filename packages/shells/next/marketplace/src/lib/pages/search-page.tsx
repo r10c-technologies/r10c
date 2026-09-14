@@ -1,12 +1,12 @@
+import type { Locale } from '@entifix/core';
+import { getServerTFor } from '@entifix/i18n';
 import {
   Button,
   HeadingOne,
   Stack,
   Text,
   TextInput,
-} from '@r10c/entifix-react-controls/primitives';
-import { getServerTFor } from '@r10c/entifix-ts-i18n';
-import type { Locale } from '@r10c/entifix-ts-i18n/routing';
+} from '@entifix/react-controls/primitives';
 import { Suspense } from 'react';
 
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';

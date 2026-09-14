@@ -13,10 +13,13 @@
       "path": "../../packages/entifix/ts/core"
     },
     {
-      "path": "../../packages/business/ts/authz"
+      "path": "../../packages/business/ts/authz-grants"
     },
     {
-      "path": "../../packages/shells/effect/service"
+      "path": "../../packages/entifix/ts/authz"
+    },
+    {
+      "path": "../../packages/entifix/effect/service-shell"
     },
     {
       "path": "../../packages/entifix/ts/testing-unit"

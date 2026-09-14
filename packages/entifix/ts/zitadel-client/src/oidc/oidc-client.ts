@@ -1,4 +1,4 @@
-import { EntifixConnError, EntifixLogicError } from '@r10c/entifix-ts-core';
+import { EntifixConnError, EntifixLogicError } from '@entifix/core';
 import { Context, Effect, Layer } from 'effect';
 import { createRemoteJWKSet, type JWTPayload, jwtVerify } from 'jose';
 
@@ -55,7 +55,7 @@ export interface AuthorizationUrlInput {
    * of BCP 47 tags, most preferred first, as `ui_locales` (OIDC Core §3.1.2.1).
    *
    * **Already validated by the caller.** This client has no opinion on which
-   * locales exist: the fleet's list lives in `@r10c/entifix-ts-i18n`, and the
+   * locales exist: the fleet's list lives in `@entifix/i18n`, and the
    * value arrives here from a browser cookie, so whoever reads that cookie is
    * the one that must check it against the list rather than echo it into a
    * redirect URL.

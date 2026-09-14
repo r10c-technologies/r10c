@@ -1,5 +1,5 @@
-import type { TokenClaims, TokenService } from '@r10c/entifix-ts-business';
-import { EntifixBuildError, EntifixConnError } from '@r10c/entifix-ts-core';
+import type { TokenClaims, TokenService } from '@entifix/business';
+import { EntifixBuildError, EntifixConnError } from '@entifix/core';
 import { Effect } from 'effect';
 import {
   type CryptoKey,

@@ -1,4 +1,4 @@
-import type { Props, Tracker } from '@r10c/entifix-ts-tooling/tracking';
+import type { Props, Tracker } from '@entifix/tooling/tracking';
 import type { PostHog } from 'posthog-js';
 
 const toProperties = (props?: Props): Record<string, unknown> | undefined =>

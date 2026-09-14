@@ -1,4 +1,38 @@
 import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
+} from '@entifix/authz';
+import {
+  OneTimeTokenStoreTag,
+  SessionStoreTag,
+  TokenServiceTag,
+} from '@entifix/business';
+import { makeJoseTokenService } from '@entifix/jwt';
+import { MongoDatabaseTag } from '@entifix/mongo';
+import {
+  makeRedisOneTimeTokenStore,
+  makeRedisSessionStore,
+} from '@entifix/redis';
+import {
+  LoadedConfigurationTag,
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell';
+import {
+  E2E_KEY_ID,
+  E2E_PRIVATE_KEY_PEM,
+  E2E_PUBLIC_KEY_PEM,
+  fakeConfigurationLayer,
+  fakeMongoLayer,
+} from '@entifix/testing-e2e/fixtures';
+import { makeFakeRedis } from '@entifix/testing-unit/drivers';
+import {
+  ZitadelActionsLayer,
+  ZitadelManagementTag,
+  ZitadelOidcTag,
+} from '@entifix/zitadel';
+import {
   entityIdentifierSeedData,
   IdTokenStoreTag,
   individualSeedData,
@@ -26,38 +60,9 @@ import {
   UserDeviceRepositoryTag,
 } from '@r10c/business-ts-authn';
 import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
-import {
-  OneTimeTokenStoreTag,
-  SessionStoreTag,
-  TokenServiceTag,
-} from '@r10c/entifix-ts-business';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
-import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
-import {
-  makeRedisOneTimeTokenStore,
-  makeRedisSessionStore,
-} from '@r10c/entifix-ts-redis-client';
-import {
-  E2E_KEY_ID,
-  E2E_PRIVATE_KEY_PEM,
-  E2E_PUBLIC_KEY_PEM,
-  fakeConfigurationLayer,
-  fakeMongoLayer,
-} from '@r10c/entifix-ts-testing-e2e/fixtures';
-import { makeFakeRedis } from '@r10c/entifix-ts-testing-unit/drivers';
-import {
-  ZitadelActionsLayer,
-  ZitadelManagementTag,
-  ZitadelOidcTag,
-} from '@r10c/entifix-ts-zitadel-client';
-import {
-  LoadedConfigurationTag,
-  type RunningTestService,
-  serveTestService,
-} from '@r10c/shells-effect-service';
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { Effect, Layer } from 'effect';
 
 import {
@@ -174,7 +179,8 @@ const base = Layer.mergeAll(
   ZitadelActionsLayer({ signingKey: MOCK_ACTION_SIGNING_KEY }),
   // The real grant table, not a fake — it is what `requirePermission` consults,
   // so stubbing it would make every authorization assertion here meaningless.
-  Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+  Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision(ROLE_PERMISSIONS)),
+  Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
   // The fake ioredis honours set/get/expire/sadd/smembers/del/getdel — enough
   // for the session store, the pending-authorization tokens, the id-token store
   // and the provider-session index.

@@ -1,7 +1,7 @@
 /**
  * **sales-vocabulary** — the channel types, and nothing else.
  *
- * `business:policy`, the role `business-ts-authz` plays for permissions: a
+ * `business:policy`, the role `@entifix/authz` plays for permissions: a
  * vocabulary several domains express themselves in, depended on by any of them
  * and depending on none.
  *

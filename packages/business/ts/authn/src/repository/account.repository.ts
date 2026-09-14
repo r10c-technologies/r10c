@@ -1,5 +1,5 @@
-import type { Role } from '@r10c/business-ts-authz';
-import type { EntifixError, EntityId } from '@r10c/entifix-ts-core';
+import type { Role } from '@entifix/authz';
+import type { EntifixError, EntityId } from '@entifix/core';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
 

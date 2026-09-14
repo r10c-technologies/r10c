@@ -1,4 +1,4 @@
-import { ConfigurationExtractMode } from '@r10c/entifix-ts-core';
+import { ConfigurationExtractMode } from '@entifix/core';
 
 /**
  * How a create is sent to this entity's service.

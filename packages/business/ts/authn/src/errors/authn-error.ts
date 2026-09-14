@@ -1,4 +1,4 @@
-import { EntifixError } from '@r10c/entifix-ts-core';
+import { EntifixError } from '@entifix/core';
 
 /**
  * A key in the shared `errors` catalog — what the client actually shows.

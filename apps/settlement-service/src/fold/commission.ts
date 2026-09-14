@@ -1,5 +1,5 @@
+import { EntifixBuildError } from '@entifix/core';
 import type { Agreement } from '@r10c/business-ts-settlement-management';
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
 
 import type { PlacedOrderLine } from './placed-order';
 
@@ -157,8 +157,7 @@ export const commissionsForOrder = ({
 export const reversalOf = (entry: VendorCommission): VendorCommission => ({
   vendorId: entry.vendorId,
   saleAmount: entry.saleAmount === 0 ? 0 : -entry.saleAmount,
-  commissionAmount:
-    entry.commissionAmount === 0 ? 0 : -entry.commissionAmount,
+  commissionAmount: entry.commissionAmount === 0 ? 0 : -entry.commissionAmount,
   currency: entry.currency,
 });
 

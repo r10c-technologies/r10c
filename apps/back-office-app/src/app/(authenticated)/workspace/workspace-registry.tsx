@@ -1,13 +1,13 @@
 'use client';
 
-import type { ScreenType } from '@r10c/business-ts-authz';
-import { UserDetailPage, UsersPage } from '@r10c/shells-next-auth';
+import type { ScreenType } from '@entifix/authz';
 import {
   entityTabKind,
   type EntityTabScreens,
   TabRegistry,
   wizardTabKind,
-} from '@r10c/shells-next-common';
+} from '@entifix/next-shell';
+import { UserDetailPage, UsersPage } from '@r10c/shells-next-auth';
 import {
   MARKETPLACE_ADMIN_CRUDS,
   PRODUCT_SETUP_SURFACE,

@@ -1,14 +1,14 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
-import {
-  TransactionStoreTag,
-  TransactionStreamHubTag,
-} from '@r10c/entifix-transactions';
-import { makeEnvelope } from '@r10c/entifix-ts-core';
+import { makeEnvelope } from '@entifix/core';
 import {
   type RequestPrincipal,
   requirePrincipal,
   sseResponse,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
+import {
+  TransactionStoreTag,
+  TransactionStreamHubTag,
+} from '@entifix/transactions';
 import { Effect, Stream } from 'effect';
 
 const serverError = (error: unknown) =>

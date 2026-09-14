@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/entifix-ts-posthog-client",
+  "name": "@entifix/posthog",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,13 +8,13 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./browser": {
-      "@r10c/source": "./src/browser/index.ts",
+      "@entifix/source": "./src/browser/index.ts",
       "types": "./dist/browser/index.d.ts",
       "import": "./dist/browser/index.js",
       "default": "./dist/browser/index.js"
@@ -28,7 +28,8 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "entifix:client"
+      "entifix:client",
+      "tier:2"
     ],
     "sourceRoot": "packages/entifix/ts/posthog-client/src",
     "targets": {
@@ -48,9 +49,9 @@
     }
   },
   "dependencies": {
+    "@entifix/tooling": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "@r10c/entifix-ts-tooling": "workspace:*",
-    "posthog-node": "5.49.0",
-    "posthog-js": "1.417.0"
+    "posthog-js": "1.417.0",
+    "posthog-node": "5.49.0"
   }
 }

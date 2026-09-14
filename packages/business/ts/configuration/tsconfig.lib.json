@@ -19,7 +19,7 @@
       "path": "../../../entifix/ts/testing-unit"
     },
     {
-      "path": "../authz/tsconfig.lib.json"
+      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
     }
   ],
   "exclude": [

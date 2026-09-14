@@ -1,14 +1,18 @@
+import * as core from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
-import * as barrel from './index.js';
 import * as routing from './routing.js';
 
 /**
  * The `/routing` entry point exists so Next middleware — which runs on the edge
- * — can negotiate a locale without pulling the i18next runtime and all five
- * catalogs into its bundle. Nothing in the type system enforces that, so it is
- * asserted here: the day someone re-exports `createI18n` for convenience, this
- * fails rather than quietly inflating every app's edge bundle.
+ * — can negotiate a locale without pulling the i18next runtime into its bundle.
+ * Nothing in the type system enforces that, so it is asserted here: the day
+ * someone re-exports `createI18n` for convenience, this fails rather than
+ * quietly inflating every app's edge bundle.
+ *
+ * The implementation moved to `@entifix/core`, which is what makes a middleware
+ * bundle free of this package entirely — so the agreement asserted below is with
+ * core rather than with this package's own barrel.
  */
 describe('the routing entry point', () => {
   it('carries the whole negotiation surface middleware needs', () => {
@@ -31,11 +35,14 @@ describe('the routing entry point', () => {
     expect(routing).not.toHaveProperty('resources');
   });
 
-  it('agrees with the barrel on everything it does export', () => {
+  it('re-exports core, adding nothing of its own', () => {
     for (const name of Object.keys(routing)) {
-      expect(barrel[name as keyof typeof barrel]).toBe(
-        routing[name as keyof typeof routing],
-      );
+      expect(
+        core[name as keyof typeof core],
+        `${name} is exported from the routing entry but is not core's — a ` +
+          'second implementation of locale routing is how the middleware and ' +
+          'the server disagree about which locale a request is in',
+      ).toBe(routing[name as keyof typeof routing]);
     }
   });
 });

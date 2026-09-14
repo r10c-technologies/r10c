@@ -1,3 +1,5 @@
+import { EntifixConnError } from '@entifix/core';
+import { MongoClientTag } from '@entifix/mongo';
 import {
   TRANSACTION_STATES,
   type TransactionEvent,
@@ -5,9 +7,7 @@ import {
   type TransactionState,
   type TransactionStore,
   TransactionStoreTag,
-} from '@r10c/entifix-transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
-import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/transactions';
 import { Context, Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 
@@ -64,7 +64,7 @@ export const transactionsCollection = (db: Db) =>
 
 /**
  * Mongo-backed {@link TransactionStore}. Lives in the service (not
- * `entifix-ts-mongo-client`) so the adapter package stays free of a transactions
+ * `@entifix/mongo`) so the adapter package stays free of a transactions
  * dependency. `db` is closed over, so every method's Effect has `R = never`.
  *
  * This is the `transaction` slice's code, co-deployed into

@@ -1,5 +1,5 @@
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
-import type { TransactionRecord } from '@r10c/entifix-transactions';
+import { EntifixQueryProvider } from '@entifix/react-integration';
+import type { TransactionRecord } from '@entifix/transactions';
 import { render } from '@testing-library/react';
 import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
@@ -16,10 +16,10 @@ const useTransactionSettlement = vi.fn();
 // `EventSource`, and what this component is responsible for is *which* URL it
 // opens and *what* it wires together — the settlement behaviour itself is
 // `useTransactionSettlement`'s own spec.
-vi.mock('@r10c/entifix-react-integration', async () => {
+vi.mock('@entifix/react-integration', async () => {
   const actual = await vi.importActual<
-    typeof import('@r10c/entifix-react-integration')
-  >('@r10c/entifix-react-integration');
+    typeof import('@entifix/react-integration')
+  >('@entifix/react-integration');
   return {
     ...actual,
     makeEventSourceReactiveChannel: (url: string) => makeChannel(url),
@@ -45,10 +45,9 @@ const read = vi.fn(() =>
   Effect.succeed<TransactionRecord | undefined>(aRecord),
 );
 
-vi.mock('@r10c/entifix-ts-rest-client', async () => {
-  const actual = await vi.importActual<
-    typeof import('@r10c/entifix-ts-rest-client')
-  >('@r10c/entifix-ts-rest-client');
+vi.mock('@entifix/rest', async () => {
+  const actual =
+    await vi.importActual<typeof import('@entifix/rest')>('@entifix/rest');
   return {
     ...actual,
     buildTransactionStatusReader: () => Effect.succeed({ read }),
@@ -73,7 +72,7 @@ describe('TransactionSettlement', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  // ⚠️ Same-origin through the app's own proxy. `r10c_at` is httpOnly, so the
+  // ⚠️ Same-origin through the app's own proxy. `entifix_at` is httpOnly, so the
   // cookie is the only credential available and a cross-origin connection would
   // carry none (ADR 0036) — a changed URL here is a stream that silently
   // authenticates as nobody.

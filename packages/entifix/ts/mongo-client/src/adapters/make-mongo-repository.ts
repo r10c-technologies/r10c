@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { EntityRepository } from '@r10c/entifix-ts-business';
+import type { EntityRepository } from '@entifix/business';
 import {
   deserializeEntityCollection,
   deserializeSingleEntity,
@@ -13,7 +13,7 @@ import {
   EntityPage,
   extractMetaEntity,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

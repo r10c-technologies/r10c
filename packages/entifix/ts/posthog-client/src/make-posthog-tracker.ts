@@ -1,4 +1,4 @@
-import type { Props, Tracker } from '@r10c/entifix-ts-tooling/tracking';
+import type { Props, Tracker } from '@entifix/tooling/tracking';
 import type { PostHog } from 'posthog-node';
 
 /** Options for {@link makePostHogTracker}. */
@@ -21,7 +21,7 @@ const resolveDistinctId = (
 /**
  * Adapt the `posthog-node` client to the framework-free {@link Tracker} port.
  * The server-side half of the analytics adapter: provided as `TrackerTag`
- * (`@r10c/entifix-ts-business`) at a service composition root.
+ * (`@entifix/business`) at a service composition root.
  *
  * `flag` returns `false` here: `posthog-node` evaluates flags asynchronously, so
  * the synchronous `Tracker.flag` (which fits the browser's cached, sync eval) has

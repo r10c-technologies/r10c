@@ -1,4 +1,4 @@
-import { createRecordSearchRoute } from '@r10c/shells-next-common/server';
+import { createRecordSearchRoute } from '@entifix/next-shell/server';
 
 import { SEARCH_SOURCES } from '../../../lib/search-sources';
 

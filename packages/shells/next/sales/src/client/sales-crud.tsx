@@ -1,9 +1,9 @@
 'use client';
 
+import type { EntityCrud } from '@entifix/next-shell';
+import { makeEntityCrud } from '@entifix/next-shell';
+import { makeEntityMetadataSource } from '@entifix/rest';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
-import { makeEntityMetadataSource } from '@r10c/entifix-ts-rest-client';
-import type { EntityCrud } from '@r10c/shells-next-common';
-import { makeEntityCrud } from '@r10c/shells-next-common';
 
 import { SALES_CHANNEL_SURFACE } from '../sales-surfaces';
 import { useSalesAdapters } from './sales-context';

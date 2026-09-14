@@ -1,4 +1,4 @@
-import type { DomainEvent, EntityChangeEvent } from '@r10c/entifix-ts-core';
+import type { DomainEvent, EntityChangeEvent } from '@entifix/core';
 import { Chunk, Effect, Stream } from 'effect';
 import { describe, expect, it } from 'vitest';
 

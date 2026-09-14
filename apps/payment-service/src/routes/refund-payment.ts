@@ -1,22 +1,19 @@
 import { randomUUID } from 'node:crypto';
 
 import { HttpServerRequest, HttpServerResponse } from '@effect/platform';
+import {
+  EntifixConnError,
+  envelopeEntityName,
+  makeEntityEnvelope,
+  serializeEntity,
+} from '@entifix/core';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import type { PaymentOutcome } from '@r10c/business-ts-payment-contracts';
 import {
   type PaymentMethod,
   PaymentProviderTag,
   Refund,
 } from '@r10c/business-ts-payment-management';
-import {
-  EntifixConnError,
-  envelopeEntityName,
-  makeEntityEnvelope,
-  serializeEntity,
-} from '@r10c/entifix-ts-core';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 
 import {

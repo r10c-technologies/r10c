@@ -25,7 +25,7 @@
  * which is why `package.json` makes this project's `e2e` target depend on those
  * builds by name. Nothing else produces them: Next transpiles workspace source
  * itself, so the app's own build leaves no library `dist` behind, and
- * `@r10c/entifix-ts-testing-e2e` has no build target of its own — so `^build`
+ * `@entifix/testing-e2e` has no build target of its own — so `^build`
  * stops there and never reaches what its fixtures import. A runner that skips
  * them fails with `ERR_MODULE_NOT_FOUND` before the server starts.
  *
@@ -55,7 +55,7 @@ const [
 ] = await Promise.all([
   import('@r10c/business-ts-catalog-reference'),
   import('@r10c/business-ts-marketplace-catalog'),
-  import('@r10c/entifix-ts-testing-e2e/fixtures'),
+  import('@entifix/testing-e2e/fixtures'),
   import('msw/node'),
   import('./catalog-seed.mjs'),
 ]);

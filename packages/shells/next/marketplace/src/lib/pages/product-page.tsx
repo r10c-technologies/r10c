@@ -1,3 +1,5 @@
+import type { Locale } from '@entifix/core';
+import { getServerTFor } from '@entifix/i18n';
 import {
   Button,
   Card,
@@ -7,9 +9,7 @@ import {
   Overline,
   Stack,
   Text,
-} from '@r10c/entifix-react-controls/primitives';
-import { getServerTFor } from '@r10c/entifix-ts-i18n';
-import type { Locale } from '@r10c/entifix-ts-i18n/routing';
+} from '@entifix/react-controls/primitives';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 

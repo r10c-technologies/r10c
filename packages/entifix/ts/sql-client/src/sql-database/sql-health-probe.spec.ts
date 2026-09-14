@@ -1,13 +1,10 @@
 import { SqlClient } from '@effect/sql';
-import type { HealthReport } from '@r10c/entifix-ts-business';
-import {
-  HealthRegistryLayer,
-  HealthRegistryTag,
-} from '@r10c/entifix-ts-business';
+import type { HealthReport } from '@entifix/business';
+import { HealthRegistryLayer, HealthRegistryTag } from '@entifix/business';
 import {
   type FakeSqlClient,
   makeFakeSqlClient,
-} from '@r10c/entifix-ts-testing-unit/drivers';
+} from '@entifix/testing-unit/drivers';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 

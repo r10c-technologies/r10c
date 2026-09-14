@@ -1,13 +1,8 @@
 import {
-  Reservation,
-  StockItem,
-  StockMovement,
-} from '@r10c/business-ts-stock-management';
-import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
-import { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
+} from '@entifix/business';
+import { Entity, EntityConstructor } from '@entifix/core';
 import {
   buildEntityRestAdapterDelete,
   buildEntityRestAdapterGet,
@@ -15,7 +10,12 @@ import {
   buildEntityRestAdapterSave,
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
-} from '@r10c/entifix-ts-rest-client';
+} from '@entifix/rest';
+import {
+  Reservation,
+  StockItem,
+  StockMovement,
+} from '@r10c/business-ts-stock-management';
 import { Context } from 'effect';
 
 import type { StockAdapters } from '../client-types';

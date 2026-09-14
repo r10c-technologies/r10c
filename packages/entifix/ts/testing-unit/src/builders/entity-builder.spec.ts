@@ -4,7 +4,7 @@ import {
   entity,
   type EntityId,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { defineEntityBuilder } from './entity-builder';

@@ -1,5 +1,5 @@
-import { EntityRepositoryTag } from '@r10c/entifix-ts-business';
-import type { BulkOutcome, Entity, EntityId } from '@r10c/entifix-ts-core';
+import { EntityRepositoryTag } from '@entifix/business';
+import type { BulkOutcome, Entity, EntityId } from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 import type { ReferenceStatus } from '../../values/reference-status';

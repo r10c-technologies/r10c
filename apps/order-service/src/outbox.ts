@@ -1,11 +1,11 @@
-import { ProductOrder } from '@r10c/business-ts-order-management';
-import type { OutboxEntry } from '@r10c/entifix-transactions';
 import {
   type DomainEvent,
   envelopeEntityName,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
-import { OUTBOX_COLLECTION } from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/core';
+import { OUTBOX_COLLECTION } from '@entifix/mongo/transactions';
+import type { OutboxEntry } from '@entifix/transactions';
+import { ProductOrder } from '@r10c/business-ts-order-management';
 import type { ClientSession, Db } from 'mongodb';
 
 /** Where an order lives. The entity's own key, as every collection name is. */

@@ -3,7 +3,7 @@ import type {
   WizardState,
   WizardStepStatus,
   WizardStepValue,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 import type { EntityDraftStore } from '../use-entity-form/use-entity-form.types';
 
@@ -13,7 +13,7 @@ import type { EntityDraftStore } from '../use-entity-form/use-entity-form.types'
  * A **port**, and for exactly the reason `EntityDraftStore` is one: `useDraft`
  * and the zustand store behind it are `layer:shell`, this package is
  * `layer:entifix`, and `@nx/enforce-module-boundaries` fails the build on the
- * upward edge. `useWizardDraft` in `shells-next-common` is the one adapter.
+ * upward edge. `useWizardDraft` in `@entifix/next-shell` is the one adapter.
  *
  * It is a second port rather than a reuse of `EntityDraftStore` because the two
  * carry different shapes — one holds an `EntityDraft`, this holds a whole

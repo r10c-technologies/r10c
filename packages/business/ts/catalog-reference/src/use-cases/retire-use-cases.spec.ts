@@ -2,7 +2,7 @@ import {
   describeEntityUseCases,
   type Entity,
   type EntityConstructor,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { ProductBrand } from '../entities/product-brand/product-brand.entity.js';

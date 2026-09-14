@@ -1,5 +1,5 @@
-import { SessionStoreTag } from '@r10c/entifix-ts-business';
-import { EntifixLogicError } from '@r10c/entifix-ts-core';
+import { SessionStoreTag } from '@entifix/business';
+import { EntifixLogicError } from '@entifix/core';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 

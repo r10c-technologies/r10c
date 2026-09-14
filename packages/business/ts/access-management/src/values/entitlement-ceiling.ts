@@ -1,4 +1,4 @@
-import type { Permission } from '@r10c/business-ts-authz';
+import type { Permission } from '@entifix/authz';
 
 /** The `<domain>` segment of a permission — the first of three. */
 const domainOf = (permission: Permission): string =>
@@ -8,7 +8,7 @@ const domainOf = (permission: Permission): string =>
  * May an organization's role grant this permission?
  *
  * The second assignment ceiling: the first is the actor's own tier
- * (`canAssignRole` in `business-ts-authz`), and this one is what the
+ * (`canAssignRole` in `@entifix/authz`), and this one is what the
  * organization actually bought. A vendor cannot mint a role granting
  * `stock-management:*:write` unless it is provisioned for stock, no matter how
  * senior the person minting it.

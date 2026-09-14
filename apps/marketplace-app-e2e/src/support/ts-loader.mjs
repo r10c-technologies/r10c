@@ -6,7 +6,7 @@
  * one, because every consumer — webpack, swc, Turbopack, vite — supplies it.
  * The mock preload beside this file is the one place plain Node loads workspace
  * modules directly, so it has to do the same. `.ts` is in the list because
- * `@r10c/entifix-ts-testing-e2e` publishes TypeScript source (it is
+ * `@entifix/testing-e2e` publishes TypeScript source (it is
  * `type:testing` and has no build target); Node 26 strips the types itself.
  *
  * Deliberately a fallback rather than a rewrite: anything Node can already

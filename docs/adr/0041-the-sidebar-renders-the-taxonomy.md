@@ -96,7 +96,7 @@ is no beside.
 ### The drawer is a `Dialog`, and it is a primitive
 
 `Drawer` joins `ConfirmDialog` and the entity link picker in
-`entifix-react-controls`, on Headless UI's `Dialog`. Focus trap, `Escape`,
+`@entifix/react-controls`, on Headless UI's `Dialog`. Focus trap, `Escape`,
 backdrop click and focus restoration are the library's rather than four
 hand-written behaviours that each have to be right — and a drawer that traps
 focus badly is worse than no drawer, because a keyboard visitor cannot leave it.

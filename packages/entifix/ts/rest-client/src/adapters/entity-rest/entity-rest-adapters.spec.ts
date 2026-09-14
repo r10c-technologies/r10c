@@ -4,8 +4,8 @@ import {
   entity,
   type EntityId,
   type EntityLoadRequest,
-} from '@r10c/entifix-ts-core';
-import { stubUriConfigurationLayer } from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/core';
+import { stubUriConfigurationLayer } from '@entifix/testing-unit';
 import {
   entityRestHandlers,
   http,
@@ -16,7 +16,7 @@ import {
   respondWithNetworkError,
   respondWithNonJson,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it } from 'vitest';
 

@@ -10,31 +10,34 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../packages/business/ts/authn"
+      "path": "../../packages/business/ts/authz-grants"
     },
     {
-      "path": "../../packages/business/ts/authz"
+      "path": "../../packages/entifix/ts/authz"
     },
     {
-      "path": "../../packages/business/ts/party-management"
+      "path": "../../packages/entifix/effect/service-shell"
     },
     {
-      "path": "../../packages/business/ts/sales-management"
-    },
-    {
-      "path": "../../packages/entifix/ts/business"
-    },
-    {
-      "path": "../../packages/entifix/ts/jwt-client"
+      "path": "../sales-service"
     },
     {
       "path": "../../packages/entifix/ts/testing-e2e"
     },
     {
-      "path": "../../packages/shells/effect/service"
+      "path": "../../packages/entifix/ts/jwt-client"
     },
     {
-      "path": "../sales-service"
+      "path": "../../packages/entifix/ts/business"
+    },
+    {
+      "path": "../../packages/business/ts/sales-management"
+    },
+    {
+      "path": "../../packages/business/ts/party-management"
+    },
+    {
+      "path": "../../packages/business/ts/authn"
     }
   ]
 }

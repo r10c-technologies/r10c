@@ -19,8 +19,8 @@
  * `data-scale` / `data-density` attribute, exactly like `data-theme` on the
  * palettes. An app opts in once, on <html>:
  *
- *   @import '@r10c/entifix-style/tokens.css';
- *   @import '@r10c/entifix-style/presets/fixed-scale.css';
+ *   @import '@entifix/style/tokens.css';
+ *   @import '@entifix/style/presets/fixed-scale.css';
  *
  *   <html data-scale="fixed" data-density="compact">
  *

@@ -3,7 +3,7 @@ import {
   EntityRepositoryTag,
   getUCFactory,
   loadUCFactory,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   accessor,
   describeEntityColumns,
@@ -14,11 +14,11 @@ import {
   type EntityFieldDescriptor,
   type EntityId,
   EntityLink,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Context } from 'effect';
 import type { ReactNode } from 'react';

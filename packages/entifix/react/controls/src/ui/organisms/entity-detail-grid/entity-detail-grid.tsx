@@ -9,7 +9,7 @@ import {
   parseRowFieldPath,
   ROW_KEY,
   rowFieldPath,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { type KeyboardEvent, useId, useMemo } from 'react';
 
 import { useLocalizedDescriptors, useT } from '../../../i18n';

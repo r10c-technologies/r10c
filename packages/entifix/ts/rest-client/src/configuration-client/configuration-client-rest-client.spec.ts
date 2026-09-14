@@ -1,9 +1,9 @@
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
+import { EntifixBuildError } from '@entifix/core';
 import {
   http,
   HttpResponse,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 

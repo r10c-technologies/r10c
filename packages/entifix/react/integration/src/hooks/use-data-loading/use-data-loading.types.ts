@@ -1,11 +1,11 @@
-import { EntityLoadRequestTag } from '@r10c/entifix-ts-business';
+import { EntityLoadRequestTag } from '@entifix/business';
 import {
   EntifixError,
   Entity,
   EntityPage,
   EntitySorting,
   FilterGroup,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 export interface UseDataLoadingState<T extends Entity> {

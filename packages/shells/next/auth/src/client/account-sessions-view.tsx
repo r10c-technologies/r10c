@@ -12,7 +12,7 @@ import {
   Text,
   useFormatters,
   useT,
-} from '@r10c/entifix-react-controls';
+} from '@entifix/react-controls';
 import { useState } from 'react';
 
 import { useAsyncResource } from './use-async-resource';

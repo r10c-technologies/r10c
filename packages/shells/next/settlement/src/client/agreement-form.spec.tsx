@@ -1,9 +1,9 @@
-import { Agreement } from '@r10c/business-ts-settlement-management';
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import type {
   EntityMetadataDocument,
   EntityMetadataSource,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { EntifixQueryProvider } from '@entifix/react-integration';
+import { Agreement } from '@r10c/business-ts-settlement-management';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';

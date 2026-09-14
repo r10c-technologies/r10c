@@ -1,4 +1,4 @@
-import { defineSaga, type SagaDefinition } from '@r10c/entifix-transactions';
+import { defineSaga, type SagaDefinition } from '@entifix/transactions';
 
 import {
   ORDER_PARTICIPANT,

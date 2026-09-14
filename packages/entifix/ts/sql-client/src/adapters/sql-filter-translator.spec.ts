@@ -7,8 +7,8 @@ import {
   type EntityFiltering,
   type EntityId,
   type EntitySorting,
-} from '@r10c/entifix-ts-core';
-import { makeFakeSqlClient } from '@r10c/entifix-ts-testing-unit/drivers';
+} from '@entifix/core';
+import { makeFakeSqlClient } from '@entifix/testing-unit/drivers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {

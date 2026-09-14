@@ -20,9 +20,37 @@
 import { createJiti } from 'jiti';
 
 const jiti = createJiti(import.meta.url);
-const { resources } = await jiti.import(
-  '../packages/entifix/ts/i18n/src/resources/index.ts',
-);
+
+/**
+ * Every namespace r10c renders, read from the file that owns it.
+ *
+ * ⚠️ **Composed here from the catalog files, not imported from
+ * `@r10c/i18n-catalog`.** That barrel merges in the framework's namespaces by
+ * importing `@entifix/react-controls` and `@entifix/next-shell` —
+ * React components, Tailwind classes, `next` — and a parity check has no reason
+ * to load any of it. Since ADR 0059 each namespace lives with its owner, so
+ * the list below is also the list of owners.
+ */
+const NAMESPACE_FILES = {
+  controls: 'packages/entifix/react/controls/src/i18n/catalog',
+  shell: 'packages/entifix/next/shell/src/lib/i18n/catalog',
+  entity: 'packages/business/ts/i18n/src',
+  errors: 'packages/business/ts/i18n/src',
+  app: 'packages/business/ts/i18n/src',
+};
+
+const resources = {};
+for (const locale of ['es', 'en']) {
+  resources[locale] = {};
+  for (const [namespace, dir] of Object.entries(NAMESPACE_FILES)) {
+    // The framework owners keep one file per locale holding one namespace; the
+    // r10c package keeps one directory per locale holding three.
+    const file = dir.startsWith('packages/business/')
+      ? `../${dir}/${locale}/${namespace}.ts`
+      : `../${dir}/${locale}.ts`;
+    resources[locale][namespace] = (await jiti.import(file))[namespace];
+  }
+}
 
 const PLACEHOLDER = /\{\{\s*([\w.]+)\s*\}\}/g;
 
@@ -74,7 +102,9 @@ for (const locale of others) {
     }
     for (const name of actual) {
       if (!expected.has(name)) {
-        problems.push(`${locale}: "${key}" adds an unknown {{${name}}} placeholder`);
+        problems.push(
+          `${locale}: "${key}" adds an unknown {{${name}}} placeholder`,
+        );
       }
     }
   }

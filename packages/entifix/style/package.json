@@ -1,10 +1,11 @@
 {
-  "name": "@r10c/entifix-style",
+  "name": "@entifix/style",
   "nx": {
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "entifix:style"
+      "entifix:style",
+      "tier:0"
     ]
   },
   "version": "0.0.1",

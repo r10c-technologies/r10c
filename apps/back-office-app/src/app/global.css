@@ -1,16 +1,16 @@
 @import 'tailwindcss';
-@import '@r10c/entifix-style/tokens.css';
+@import '@entifix/style/tokens.css';
 /* Dense operator scale: fixed 4px spacing + 14px base type, and the
    [data-density] blocks. The storefront omits this and keeps fluid Utopia. */
-@import '@r10c/entifix-style/presets/fixed-scale.css';
+@import '@entifix/style/presets/fixed-scale.css';
 /* Static palettes this app ships. Pick only the presets you want. */
-@import '@r10c/entifix-style/presets/aurora.css';
-@import '@r10c/entifix-style/presets/sunset.css';
-@import '@r10c/entifix-style/presets/midnight.css';
+@import '@entifix/style/presets/aurora.css';
+@import '@entifix/style/presets/sunset.css';
+@import '@entifix/style/presets/midnight.css';
 
 /* Class detection for workspace UI packages consumed as source (@r10c/source). */
 @source '../../../../packages/entifix/react/controls/src';
-@source '../../../../packages/shells/next/common/src';
+@source '../../../../packages/entifix/next/shell/src';
 @source '../../../../packages/shells/next/marketplace-admin/src';
 /* back-office-app mounts four shells, and Tailwind only emits utilities it can
    SEE. Without these two, a class used exclusively in the auth or

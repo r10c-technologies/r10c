@@ -93,7 +93,7 @@ each is one link away in the decision index below.
   nothing.
 - **A permission is `<domain>:<entityKey>:<action>`**, derived from the entity's
   own `@entity({ domain, key })`. Guard a route with `requirePermission(...)` from
-  `@r10c/shells-effect-service` — **hiding a nav item protects nothing** — and
+  `@entifix/service-shell` — **hiding a nav item protects nothing** — and
   grants come from `ROLE_PERMISSIONS`, never from the token. `unverifiedClaims`
   reads the cookie **without checking its signature**: nav filtering only, never a
   decision.
@@ -219,7 +219,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 **Identity, sessions and authorization**
 
 - [0002](docs/adr/0002-authorization-roles-and-abac.md) **Authorization: role aspects behind an ABAC-shaped port** — read when guarding a route, adding a permission, or deciding what a token may carry — grants come from `ROLE_PERMISSIONS`, never from the token, and hiding a nav item protects nothing.
-- [0004](docs/adr/0004-session-lifetime-devices-and-recovery.md) **Session lifetime, device identity, and account recovery** — read when changing a session duration, a cookie lifetime or a device record — sessions slide under a ceiling, and sizing `r10c_at` to the token signs everyone out every 15 minutes.
+- [0004](docs/adr/0004-session-lifetime-devices-and-recovery.md) **Session lifetime, device identity, and account recovery** — read when changing a session duration, a cookie lifetime or a device record — sessions slide under a ceiling, and sizing `entifix_at` to the token signs everyone out every 15 minutes.
 - [0007](docs/adr/0007-access-model-planes-roles-entitlements.md) **Access model: planes, platform roles, tenant-defined roles, entitlements** — read when granting a role or provisioning an organization — two ceilings, what a role may assign and what the organization was provisioned for.
 - [0012](docs/adr/0012-operator-cross-tenant-access.md) _(Proposed)_ **Operator cross-tenant access is an audited crossing, never a bypass** — read when designing any operator cross-tenant read — a _discretionary_ crossing needing a human's permission, a time box and a `Crossing` record, which is not ADR 0023's determined one. Unbuilt.
 - [0015](docs/adr/0015-asymmetric-access-tokens-and-the-party-role-claim.md) **Asymmetric access tokens, and the party role as a claim** — read when touching token minting or verification — RS256 with `algorithms` pinned is the security boundary, and `partyRole` is routing context, never a grant.
@@ -236,5 +236,6 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0025](docs/adr/0025-where-planning-and-business-knowledge-live.md) **Where planning and business knowledge live** — read when deciding where a process, a decision, a contract or a plan belongs — four artifacts with one job each, and the repo's exposure is decided per commit, permanently.
 - [0031](docs/adr/0031-a-service-describes-its-own-wiring.md) **A service describes its own wiring** — read when adding a datastore, a queue binding or an upstream to a service — `/api/$service` diffs what a service does against what the register declares.
 - [0046](docs/adr/0046-conventions-are-checked-not-stated.md) **A convention that is only stated is a convention that gets skipped** — read when adding a working convention, or wondering why attribution trailers keep reappearing — a convention that is only stated is one that gets skipped.
+- [0059](docs/adr/0059-entifix-leaves-the-repo.md) **entifix leaves the repo, and r10c becomes one of its consumers** — read when adding a package under `packages/entifix/`, or wondering why a framework file imports a cookie name from core instead of declaring its own — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported.
 
 <!-- docs:end adr-triggers -->

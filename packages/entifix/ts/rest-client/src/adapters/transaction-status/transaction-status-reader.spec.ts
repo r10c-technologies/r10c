@@ -1,9 +1,9 @@
-import { stubUriConfigurationLayer } from '@r10c/entifix-ts-testing-unit';
+import { stubUriConfigurationLayer } from '@entifix/testing-unit';
 import {
   http,
   HttpResponse,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -46,7 +46,11 @@ const read = (transactionId = TX) =>
 
 describe('buildTransactionStatusReader', () => {
   it('reads a tracked record by its transaction id', async () => {
-    server.use(http.get(`${BASE_URL}/${TX}`, () => HttpResponse.json(aRecord('COMPLETED'))));
+    server.use(
+      http.get(`${BASE_URL}/${TX}`, () =>
+        HttpResponse.json(aRecord('COMPLETED')),
+      ),
+    );
 
     await expect(read()).resolves.toMatchObject({
       transactionId: TX,
@@ -78,7 +82,10 @@ describe('buildTransactionStatusReader', () => {
   it('answers undefined for an untracked id rather than failing', async () => {
     server.use(
       http.get(`${BASE_URL}/${TX}`, () =>
-        HttpResponse.json({ error: 'transaction not found', code: 'notFound' }, { status: 404 }),
+        HttpResponse.json(
+          { error: 'transaction not found', code: 'notFound' },
+          { status: 404 },
+        ),
       ),
     );
 

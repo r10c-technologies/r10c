@@ -3,7 +3,7 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
-import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
+import { type Action, permissionForEntity } from '@entifix/authz';
 import {
   EntityIdTag,
   EntityLoadRequestTag,
@@ -12,7 +12,7 @@ import {
   getUCFactory,
   loadUCFactory,
   saveUCFactory,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   EntifixBuildError,
   type EntifixEnvelopeLink,
@@ -27,15 +27,12 @@ import {
   makeEntityPageEnvelope,
   parseLoadRequestParams,
   readEntityEnvelope,
-} from '@r10c/entifix-ts-core';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/core';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
 import {
   type RequestPrincipal,
   requirePermission,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
 import { Effect } from 'effect';
 
 /**
@@ -61,7 +58,7 @@ import { Effect } from 'effect';
 /**
  * Reads the load request from the query string: `rsql` (filtering), `sort`,
  * `page` and `pageSize`. Parsing is done by the shared codec in
- * `entifix-ts-core` — the same one the REST client serializes with — and is
+ * `@entifix/core` — the same one the REST client serializes with — and is
  * validated against the entity's own metadata, so a client can only name
  * members the entity declared filterable/sortable.
  */

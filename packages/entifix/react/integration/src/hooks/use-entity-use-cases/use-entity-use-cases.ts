@@ -4,7 +4,7 @@ import {
   type EntityMetadataDocument,
   type EntityMetadataSource,
   envelopeEntityName,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { skipToken, useQuery } from '@tanstack/react-query';
 
 export interface UseEntityUseCasesResult {

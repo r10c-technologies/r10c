@@ -1,11 +1,11 @@
 import { HttpRouter } from '@effect/platform';
+import { EntifixBuildError } from '@entifix/core';
+import { entityMetadataRoute } from '@entifix/service-shell';
 import {
   isSalesChannelStatus,
   isSalesChannelType,
   SalesChannel,
 } from '@r10c/business-ts-sales-management';
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
-import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import {
   byIdRoute,
@@ -43,7 +43,9 @@ import {
  * — it makes a channel neither active nor retired — and is refused in the same
  * breath rather than left as the one unchecked member.
  */
-const validateChannel = (channel: SalesChannel): EntifixBuildError | undefined =>
+const validateChannel = (
+  channel: SalesChannel,
+): EntifixBuildError | undefined =>
   !isSalesChannelType(channel.type)
     ? new EntifixBuildError(
         `A sales channel type must be one of the declared types, not "${String(channel.type)}"`,

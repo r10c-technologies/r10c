@@ -9,7 +9,7 @@ import type {
   EntitySelection,
   EntitySorting,
   FilterGroup,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import type { ReactNode } from 'react';
 
 /**

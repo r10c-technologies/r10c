@@ -1,6 +1,6 @@
 # Entifix — entities and the Effect-agnostic use-case
 
-> **Status (2026-07)** — `entifix-ts-core`, `-business`, `-rest-client`,
+> **Status (2026-07)** — `@entifix/core`, `-business`, `-rest-client`,
 > `-mongo-client`, and `entifix-react-{controls,integration}` are implemented.
 > The `load` and `get` use-cases run end-to-end over both REST and Mongo;
 > `save`/`delete` are implemented on the adapters (and the shared serializer) but
@@ -21,7 +21,7 @@ use-case declares what it needs without importing what provides it).
 ## 1. Entities describe themselves
 
 An entity is a plain class decorated with `@entity()` and `@accessor()`
-(`entifix-ts-core`). The decorators register metadata on `MetaEntity` /
+(`@entifix/core`). The decorators register metadata on `MetaEntity` /
 `MetaAccessor` via the stage-3 `Symbol.metadata` protocol; free functions read it
 back:
 
@@ -61,7 +61,7 @@ it derives the collection/endpoint name (`key ?? name`) and the field list
 
 **Authorization reads the same metadata.** A permission is
 `` `<domain>:<entityKey>:<action>` ``, so `permissionForEntity(Product, 'read')`
-(`@r10c/business-ts-authz`) resolves to
+(`@entifix/authz`) resolves to
 `product-configuration-management:product:read` from the `@entity()` options
 alone. Making a new entity guardable therefore needs no new vocabulary anywhere —
 the same trick as `filterable`/`sortable` doubling as the server-side query
@@ -104,7 +104,7 @@ number/boolean, else `string`). Declared always beats inferred.
 
 ### Serialization is shared and transport-agnostic
 
-`entifix-ts-core` owns the (de)serializer, so REST and Mongo round-trip the
+`@entifix/core` owns the (de)serializer, so REST and Mongo round-trip the
 identical wire shape:
 
 - `deserializeSingleEntity(Ctor, plain)` — `new Ctor()`, then for each writable
@@ -248,7 +248,7 @@ Four things it decides, none of them obvious:
   first (`raw === 'true'`) because a cleared checkbox drafts as `''` and means
   `false`, and `number` checks empty first because `Number('')` is `0`. Both
   disagreements survive validation and reach the service, so the round trip is
-  pinned by a fixed-point spec in `entifix-react-integration` — the only package
+  pinned by a fixed-point spec in `@entifix/react-integration` — the only package
   that can import both halves.
 - **Read-only members are skipped**, unlike the column list: a form still shows
   one, it just cannot write it back.
@@ -259,7 +259,7 @@ A form that genuinely needs a custom rebuild simply does not call it.
 
 This is the crux. A use-case never receives a repository or a resolver as an
 argument or an import — it **yields a `Context.Tag`**, and Effect tracks that
-requirement in the type. `entifix-ts-business` defines the tags
+requirement in the type. `@entifix/business` defines the tags
 (`EntityRepositoryTag`, `EntityLoadRequestTag`, `EntityIdTag`,
 `EntityLinkResolverTag`) and the factories:
 
@@ -382,7 +382,7 @@ interface EntityRepository {
   (de)serializer. `MongoDatabaseLayer` provides the connection as a scoped Layer
   (closed on shutdown); `makeMongoLinkResolver` builds an `EntityLinkResolver`
   from the same adapters.
-- **SQL adapter** — `makeSqlRepository(sql, Ctor)` (`@r10c/entifix-ts-sql-client`)
+- **SQL adapter** — `makeSqlRepository(sql, Ctor)` (`@entifix/sql`)
   is the relational mirror, and it is short for the same reason the Mongo one is:
   `serializeEntity` already emits a **flat record keyed by `alias ?? name`**, which
   for a scalar entity _is_ a table row. **So an accessor's `alias` is the column
@@ -411,7 +411,7 @@ unregistered resolver).
 ### The envelope is the message
 
 Every message on the wire is an `EntifixEnvelope`: `{ meta, data }`, built in
-`entifix-ts-core` (`src/envelope/make-envelope.ts`) and therefore transport-free —
+`@entifix/core` (`src/envelope/make-envelope.ts`) and therefore transport-free —
 the same shape goes over HTTP, over the bus, and into a test double.
 
 `meta.type` is one of `entity`, `entityCollection`, `entityPage`, `command`,
@@ -480,13 +480,13 @@ at the transaction it started.
 
 ## 5. The React side
 
-`entifix-react-integration` runs a use-case against an adapter context inside a
+`@entifix/react-integration` runs a use-case against an adapter context inside a
 component: `useDataLoading({ uc, ctx })` executes the Effect and exposes
 loading/data/error; `useEntityLinkResolver(configStore, registrations)` builds the
 resolver context at the page level. The page is the composition root; the organism
 and the use-case never learn the transport.
 
-`entifix-react-controls` provides the UI, split in two: entity-agnostic
+`@entifix/react-controls` provides the UI, split in two: entity-agnostic
 primitives (`Table`/`TableRow`/`TableCell`, `Button`, `Select`, `Pagination`, …)
 and the **`EntityTable`** organism built on them.
 
@@ -502,7 +502,7 @@ Three things layer on top of that default:
   shipped adapter is `makeLocalStorageUiPreferencesState(namespace)`; the port is
   async-capable on purpose, so a server-backed per-user store is a drop-in swap at
   `UiPreferencesProvider`. Keys are `<namespace>:<component>:<scope>`, e.g.
-  `r10c-ui:entity-table:product`. A stored layout degrades rather than breaks:
+  `entifix-ui:entity-table:product`. A stored layout degrades rather than breaks:
   stale names are dropped and columns added to the entity later append at the end.
 - **Responsiveness** — below `pivotBreakpoint` (default `md`) rows pivot into
   label/value cards. Both layouts are rendered and CSS picks one, driven by the
@@ -546,7 +546,7 @@ trap the `uc`/`ctx` refs in that hook exist to avoid).
 ## 6. The RSQL query protocol
 
 Filtering and sorting travel from the REST client to the service as query
-parameters, and the codec for them lives in `entifix-ts-core` (`src/rsql/`) —
+parameters, and the codec for them lives in `@entifix/core` (`src/rsql/`) —
 the one package both the browser adapter and an Effect service already depend
 on. **RSQL** is the standard for the filtering half; sorting gets a companion
 `sort` parameter, since RSQL standardizes no sort grammar.

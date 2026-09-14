@@ -7,11 +7,7 @@ import {
   type Action,
   type Permission,
   permissionForEntity,
-} from '@r10c/business-ts-authz';
-import {
-  RetireReferenceInputTag,
-  retireReferences,
-} from '@r10c/business-ts-catalog-reference';
+} from '@entifix/authz';
 import {
   deleteUCFactory,
   EntityIdTag,
@@ -21,7 +17,7 @@ import {
   getUCFactory,
   loadUCFactory,
   saveUCFactory,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   EntifixBuildError,
   type EntifixEnvelopeLink,
@@ -37,12 +33,13 @@ import {
   parseLoadRequestParams,
   readEntityEnvelope,
   readWireSelection,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
+import { requirePermission } from '@entifix/service-shell';
 import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
-import { requirePermission } from '@r10c/shells-effect-service';
+  RetireReferenceInputTag,
+  retireReferences,
+} from '@r10c/business-ts-catalog-reference';
 import { Effect } from 'effect';
 
 /**

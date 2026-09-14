@@ -5,7 +5,9 @@ import type {
   EntityDraftValue,
   EntityLinkSelection,
   StandardSchemaV1,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+
+import type { EntityDraftMessages } from './use-entity-form.helpers';
 
 /**
  * Where an autosaved draft is persisted, as the form sees it.
@@ -14,14 +16,14 @@ import type {
  * store behind it are `layer:shell`, this package is `layer:entifix`, and
  * `@nx/enforce-module-boundaries` fails the build on the upward edge. Retagging
  * to make it legal would put an IndexedDB store under the framework layer, so
- * the shell implements this instead — `useEntityDraft` in `shells-next-common`
+ * the shell implements this instead — `useEntityDraft` in `@entifix/next-shell`
  * is the one adapter today.
  *
- * It lives here rather than in `entifix-ts-core`, and the asymmetry with
+ * It lives here rather than in `@entifix/core`, and the asymmetry with
  * `EntityLinkSource` is deliberate: that port sits in core because
- * `entifix-react-controls` and `entifix-react-integration` are both
+ * `@entifix/react-controls` and `@entifix/react-integration` are both
  * `entifix:react` and may not import each other, so they *had* to meet below
- * both. Nothing forces that here — `shells-next-common` already imports this
+ * both. Nothing forces that here — `@entifix/next-shell` already imports this
  * hook — so the port stays beside the options it joins.
  *
  * Everything it carries is JSON round-trippable, because a draft is written
@@ -61,6 +63,18 @@ export interface EntityDraftStore {
 export interface UseEntityFormOptions<TEntity extends Entity> {
   /** Metadata source; fields and their validation rules derive from it. */
   entityConstructor: EntityConstructor<TEntity>;
+  /**
+   * Copy for the four field-level validation failures. Omit and the keys
+   * render, which is what an adopter with no i18n library sees.
+   */
+  validationMessages?: EntityDraftMessages;
+  /**
+   * Resolves a schema issue's message, which is authored as a catalog key
+   * (`validation.minLength`) so a rule written in one language never reaches a
+   * user untranslated. `useTranslateKey` from the controls package is what a
+   * host passes; omit it and the message renders as authored.
+   */
+  translateKey?: (key: string, params?: Record<string, unknown>) => string;
   /** The record being edited; seeds the initial draft. Omit to create. */
   entity?: TEntity;
   /**

@@ -1,4 +1,4 @@
-import { ConfigurationClient } from '@r10c/entifix-ts-core';
+import { ConfigurationClient } from '@entifix/core';
 import { Effect } from 'effect';
 
 import { BuildEntityRestOptions } from '../types';

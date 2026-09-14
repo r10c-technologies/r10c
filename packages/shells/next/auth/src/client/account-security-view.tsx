@@ -1,5 +1,6 @@
 'use client';
 
+import type { ConfigurationPlain } from '@entifix/core';
 import {
   ButtonLink,
   Card,
@@ -9,8 +10,7 @@ import {
   Stack,
   Text,
   useT,
-} from '@r10c/entifix-react-controls';
-import type { ConfigurationPlain } from '@r10c/entifix-ts-core';
+} from '@entifix/react-controls';
 
 import { useAsyncResource } from './use-async-resource';
 

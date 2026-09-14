@@ -13,7 +13,7 @@ import {
   readDraftString,
   readRowDrafts,
   type UseCaseDescriptor,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { type ReactNode, useId, useState } from 'react';
 
 import {

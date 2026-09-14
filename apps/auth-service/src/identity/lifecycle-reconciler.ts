@@ -1,12 +1,9 @@
-import { AccountRepositoryTag } from '@r10c/business-ts-authn';
-import {
-  SessionStoreTag,
-  ShutdownRegistryTag,
-} from '@r10c/entifix-ts-business';
+import { SessionStoreTag, ShutdownRegistryTag } from '@entifix/business';
 import {
   PROVIDER_USER_LIFECYCLE_EVENTS,
   ZitadelManagementTag,
-} from '@r10c/entifix-ts-zitadel-client';
+} from '@entifix/zitadel';
+import { AccountRepositoryTag } from '@r10c/business-ts-authn';
 import { Context, Duration, Effect, Fiber } from 'effect';
 
 import { LifecycleCursorTag } from './lifecycle-cursor';

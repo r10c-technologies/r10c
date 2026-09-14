@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { EntifixConnError } from '@entifix/core';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { PropsWithChildren } from 'react';

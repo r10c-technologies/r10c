@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { EntifixConnError } from '@entifix/core';
 import { Effect, Exit } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 import { describe, expect, it, vi } from 'vitest';

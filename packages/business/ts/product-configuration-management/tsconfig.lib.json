@@ -22,7 +22,7 @@
       "path": "../catalog-contracts/tsconfig.lib.json"
     },
     {
-      "path": "../authz/tsconfig.lib.json"
+      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/testing-unit"

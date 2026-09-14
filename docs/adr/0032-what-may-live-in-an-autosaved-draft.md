@@ -52,7 +52,7 @@ crash, because it is silent: `initialValues` went straight to the form engine's
 `defaultValues`, so a member added since the draft was written arrived
 `undefined` and its input flipped from controlled to uncontrolled mid-render.
 
-**Nothing is scoped.** The database is `r10c-workspace` and the keys were the
+**Nothing is scoped.** The database is `entifix-workspace` and the keys were the
 literals `tabs` and `drafts`. IndexedDB is a property of the browser profile, not
 of the session, so two accounts on one machine shared both: the second saw the
 first's open tabs and restored their unsaved edits. A draft is keyed by a
@@ -71,7 +71,7 @@ nothing reports it.
 
 The rule is written where it can be checked, in two halves:
 
-- **Compile time.** `JsonValue` in `entifix-ts-core`, and
+- **Compile time.** `JsonValue` in `@entifix/core`, and
   `DraftsState.drafts: Record<string, JsonValue>` where it used to be
   `Record<string, unknown>`. `useDraft<TDraft extends JsonValue>` pushes the same
   constraint out to every call site.
@@ -207,7 +207,7 @@ behind a restored draft is still authorized by the service that answers it.
   restore, and there is nothing to hook: the workspace's own sign-out menu item
   has no handler at all, and `POST /api/auth/logout` is a server route that
   cannot touch IndexedDB. Worth revisiting with the sign-out UI.
-- **`UiPreferencesState` is unscoped**, defaulting to the `r10c-ui` namespace for
+- **`UiPreferencesState` is unscoped**, defaulting to the `entifix-ui` namespace for
   everyone. It holds column layout and sidebar collapse; its `namespace` argument
   is the seam if that changes.
 - **No per-entity draft migration.** The version handles the envelope and

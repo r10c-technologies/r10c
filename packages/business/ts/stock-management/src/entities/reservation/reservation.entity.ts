@@ -1,5 +1,5 @@
-import type { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { accessor, entity } from '@r10c/entifix-ts-core';
+import type { Entity, EntityId } from '@entifix/core';
+import { accessor, entity } from '@entifix/core';
 
 import {
   type ReservationStatus,
@@ -60,10 +60,10 @@ export class Reservation implements Entity {
     this.#id = value;
   }
 
-    // `sortable` as well as `filterable`, and not for the table's sake: this
-    // metadata is simultaneously the server-side allowlist, and it is the only
-    // member of these entities that can name one of their records — a search
-    // source refuses a label member that is not sortable, at module load.
+  // `sortable` as well as `filterable`, and not for the table's sake: this
+  // metadata is simultaneously the server-side allowlist, and it is the only
+  // member of these entities that can name one of their records — a search
+  // source refuses a label member that is not sortable, at module load.
   @accessor({
     type: 'string',
     labelKey: 'entity:reservation.fields.offeringId',

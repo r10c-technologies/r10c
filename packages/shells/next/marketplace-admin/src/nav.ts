@@ -2,7 +2,7 @@ import type {
   GuardedNavItem,
   GuardedNavSection,
   Permission,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
 
 import {
   MARKETPLACE_ADMIN_CATALOG_SURFACES,

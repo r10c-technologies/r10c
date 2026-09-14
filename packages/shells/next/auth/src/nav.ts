@@ -1,10 +1,10 @@
-import { UserIdentity } from '@r10c/business-ts-authn';
 import {
   type GuardedNavSection,
   permissionForEntity,
   screenAddress,
-} from '@r10c/business-ts-authz';
-import { ACCOUNT_DESTINATIONS } from '@r10c/shells-next-common/server';
+} from '@entifix/authz';
+import { ACCOUNT_DESTINATIONS } from '@entifix/next-shell/server';
+import { UserIdentity } from '@r10c/business-ts-authn';
 
 /** Presentation only, and this shell's to choose — the account list has none. */
 const ACCOUNT_ICONS: Record<string, string> = {

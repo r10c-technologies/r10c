@@ -1,5 +1,5 @@
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { ConfigurationRepositoryTag } from '@entifix/business';
+import { EntifixConnError } from '@entifix/core';
 import { Effect, Exit, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 

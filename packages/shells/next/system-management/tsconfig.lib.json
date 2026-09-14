@@ -34,7 +34,7 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../common/tsconfig.lib.json"
+      "path": "../../../entifix/next/shell/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/rest-client/tsconfig.lib.json"
@@ -55,10 +55,13 @@
       "path": "../../../business/ts/configuration/tsconfig.lib.json"
     },
     {
-      "path": "../../../business/ts/authz/tsconfig.lib.json"
+      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/testing-unit"
+    },
+    {
+      "path": "../../../business/ts/authz-grants/tsconfig.lib.json"
     }
   ]
 }

@@ -1,17 +1,17 @@
 'use client';
 
 import {
-  Agreement,
-  type ChannelCommissionRates,
-} from '@r10c/business-ts-settlement-management';
-import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
-import { useEntityForm } from '@r10c/entifix-react-integration';
-import {
   type EntifixError,
   type EntityMetadataSource,
   readDraftString,
-} from '@r10c/entifix-ts-core';
-import { useEntityAffordances } from '@r10c/shells-next-common';
+} from '@entifix/core';
+import { useEntityAffordances } from '@entifix/next-shell';
+import { EntityField, EntityForm, useT } from '@entifix/react-controls';
+import { useEntityForm } from '@entifix/react-integration';
+import {
+  Agreement,
+  type ChannelCommissionRates,
+} from '@r10c/business-ts-settlement-management';
 import { useState } from 'react';
 
 import { ChannelRateEditor } from './channel-rate-editor';

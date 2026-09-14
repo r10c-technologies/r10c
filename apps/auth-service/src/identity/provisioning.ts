@@ -1,3 +1,5 @@
+import type { EntityId } from '@entifix/core';
+import type { ZitadelIdentity, ZitadelManagement } from '@entifix/zitadel';
 import {
   type AccountRepository,
   AccountRepositoryTag,
@@ -11,11 +13,6 @@ import {
   UnauthenticatedError,
   UserStatus,
 } from '@r10c/business-ts-authn';
-import type { EntityId } from '@r10c/entifix-ts-core';
-import type {
-  ZitadelIdentity,
-  ZitadelManagement,
-} from '@r10c/entifix-ts-zitadel-client';
 import { Effect } from 'effect';
 
 /** Stamped on identifier rows this provider owns, so their origin is readable. */

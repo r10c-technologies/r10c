@@ -6,7 +6,7 @@ import { defineEntifixTest } from '../../vitest.shared.mjs';
  * skipping itself into a green report.
  *
  * The variable is read directly rather than through
- * `@r10c/entifix-ts-testing-e2e`: Vitest loads this config with Node's native
+ * `@entifix/testing-e2e`: Vitest loads this config with Node's native
  * TypeScript stripping, which cannot resolve the package's extensionless
  * internal imports. The value is still validated in the suite, where
  * `defineServiceE2e` rejects anything that is not a known profile.

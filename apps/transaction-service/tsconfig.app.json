@@ -22,10 +22,7 @@
   ],
   "references": [
     {
-      "path": "../../packages/entifix/ts/testing-unit"
-    },
-    {
-      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+      "path": "../../packages/entifix/effect/service-shell/tsconfig.lib.json"
     },
     {
       "path": "../../packages/entifix/ts/tooling/tsconfig.lib.json"
@@ -49,10 +46,16 @@
       "path": "../../packages/entifix/ts/transactions/tsconfig.lib.json"
     },
     {
-      "path": "../../packages/business/ts/authz/tsconfig.lib.json"
+      "path": "../../packages/business/ts/authz-grants/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/authz/tsconfig.lib.json"
     },
     {
       "path": "../../packages/business/ts/authn/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/entifix/ts/testing-unit"
     }
   ]
 }

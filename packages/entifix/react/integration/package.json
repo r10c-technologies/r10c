@@ -1,10 +1,11 @@
 {
-  "name": "@r10c/entifix-react-integration",
+  "name": "@entifix/react-integration",
   "nx": {
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "entifix:react"
+      "entifix:react",
+      "tier:3"
     ],
     "sourceRoot": "packages/entifix/react/integration/src",
     "targets": {
@@ -31,7 +32,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
@@ -42,13 +43,21 @@
     "!**/*.tsbuildinfo"
   ],
   "dependencies": {
-    "@r10c/entifix-transactions": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-i18n": "workspace:*",
-    "@tanstack/react-form": "1.33.5",
-    "react-i18next": "17.0.11"
+    "@entifix/transactions": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*"
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@entifix/testing-unit": "workspace:*",
+    "@tanstack/react-form": "1.33.5",
+    "@tanstack/react-query": "^5.101.4",
+    "effect": "3.22.1",
+    "react": "19.2.8"
+  },
+  "peerDependencies": {
+    "@tanstack/react-form": ">=1.33 <2",
+    "@tanstack/react-query": ">=5.101 <6",
+    "effect": ">=3.22 <4",
+    "react": ">=19 <20"
   }
 }

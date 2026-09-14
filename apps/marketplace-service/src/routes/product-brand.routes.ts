@@ -1,9 +1,9 @@
 import { HttpRouter } from '@effect/platform';
+import { entityMetadataRoute } from '@entifix/service-shell';
 import {
   ProductBrand,
   RETIRE_PRODUCT_BRAND,
 } from '@r10c/business-ts-catalog-reference';
-import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import {
   byIdRoute,

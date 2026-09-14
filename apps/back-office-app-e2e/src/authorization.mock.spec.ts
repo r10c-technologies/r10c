@@ -2,7 +2,7 @@ import {
   baseTest as base,
   expect,
   seedSession,
-} from '@r10c/entifix-ts-testing-e2e/playwright';
+} from '@entifix/testing-e2e/playwright';
 
 import { test } from './support/fixtures';
 

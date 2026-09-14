@@ -1,5 +1,5 @@
-import type { TokenClaims } from '@r10c/entifix-ts-business';
-import { run, runFailure } from '@r10c/entifix-ts-testing-unit';
+import type { TokenClaims } from '@entifix/business';
+import { run, runFailure } from '@entifix/testing-unit';
 import { exportPKCS8, exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { describe, expect, it } from 'vitest';
 

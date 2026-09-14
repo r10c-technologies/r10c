@@ -2,21 +2,18 @@ import { randomUUID } from 'node:crypto';
 
 import { HttpServerRequest, HttpServerResponse } from '@effect/platform';
 import {
-  isReservableQuantity,
-  Reservation,
-} from '@r10c/business-ts-stock-management';
-import {
   EntifixBuildError,
   EntifixConnError,
   envelopeEntityName,
   makeEntityEnvelope,
   readEntityEnvelope,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
+  isReservableQuantity,
+  Reservation,
+} from '@r10c/business-ts-stock-management';
 import { Effect } from 'effect';
 
 import {

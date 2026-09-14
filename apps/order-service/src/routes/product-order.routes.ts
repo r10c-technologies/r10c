@@ -1,13 +1,10 @@
 import { HttpRouter } from '@effect/platform';
+import { entityMetadataRoute, requireCrossing } from '@entifix/service-shell';
 import {
   CANCEL_PRODUCT_ORDER,
   FULFIL_PRODUCT_ORDER,
   ProductOrder,
 } from '@r10c/business-ts-order-management';
-import {
-  entityMetadataRoute,
-  requireCrossing,
-} from '@r10c/shells-effect-service';
 
 import { buyerCancelOrderRoute, cancelOrderRoute } from './cancel-order';
 import {

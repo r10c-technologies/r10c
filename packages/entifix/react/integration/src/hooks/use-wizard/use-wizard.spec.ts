@@ -3,7 +3,7 @@ import {
   withStepValue,
   type WizardDefinition,
   type WizardState,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -31,11 +31,12 @@ const productSetup: WizardDefinition = {
   ],
 };
 
-const store = (state?: WizardState) => ({
-  state,
-  save: vi.fn<(next: WizardState) => void>(),
-  clear: vi.fn(),
-}) satisfies WizardDraftStore;
+const store = (state?: WizardState) =>
+  ({
+    state,
+    save: vi.fn<(next: WizardState) => void>(),
+    clear: vi.fn(),
+  }) satisfies WizardDraftStore;
 
 describe('walking the flow', () => {
   it('starts at the entry step with the whole path projected', () => {

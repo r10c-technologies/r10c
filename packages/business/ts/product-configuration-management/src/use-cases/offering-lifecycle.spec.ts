@@ -1,4 +1,4 @@
-import { describeEntityUseCases } from '@r10c/entifix-ts-core';
+import { describeEntityUseCases } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { ProductOffering } from '../entities/product-offering/product-offering.entity.js';

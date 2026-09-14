@@ -3,12 +3,19 @@
   "version": "0.0.1",
   "private": true,
   "nx": {
-    "tags": ["type:e2e", "scope:sales"],
-    "implicitDependencies": ["@r10c/sales-service"],
+    "tags": [
+      "type:e2e",
+      "scope:sales"
+    ],
+    "implicitDependencies": [
+      "@r10c/sales-service"
+    ],
     "targets": {
       "e2e": {
         "executor": "nx:run-commands",
-        "outputs": ["{projectRoot}/test-output/vitest"],
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
         "options": {
           "command": "vitest run --config vitest.config.mts --passWithNoTests",
           "cwd": "apps/sales-service-e2e"
@@ -20,13 +27,14 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
     "@r10c/business-ts-sales-management": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-jwt-client": "workspace:*",
-    "@r10c/entifix-ts-testing-e2e": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/jwt": "workspace:*",
+    "@entifix/testing-e2e": "workspace:*",
     "@r10c/sales-service": "workspace:*",
-    "@r10c/shells-effect-service": "workspace:*"
+    "@entifix/service-shell": "workspace:*"
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*"
+    "@entifix/authz": "workspace:*",
+    "@r10c/business-ts-authz-grants": "workspace:*"
   }
 }

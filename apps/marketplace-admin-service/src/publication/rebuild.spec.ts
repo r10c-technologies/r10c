@@ -1,6 +1,6 @@
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
-import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
-import { OUTBOX_COLLECTION } from '@r10c/entifix-ts-mongo-client';
+import { ConfigurationRepositoryTag } from '@entifix/business';
+import { ConfigurationClientInMemory } from '@entifix/core';
+import { OUTBOX_COLLECTION } from '@entifix/mongo/transactions';
 import { Effect, Exit } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';

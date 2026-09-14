@@ -1,4 +1,5 @@
-import { can } from '@r10c/business-ts-authz';
+import { can } from '@entifix/authz';
+import { ROLE_PERMISSIONS } from '@r10c/business-ts-authz-grants';
 import { describe, expect, it } from 'vitest';
 
 import { SYSTEM_MANAGEMENT_NAV } from './nav.js';
@@ -21,9 +22,9 @@ describe('SYSTEM_MANAGEMENT_NAV', () => {
 
     expect(permissions).toHaveLength(items.length);
     for (const permission of permissions) {
-      expect(can(['super-admin'], permission)).toBe(true);
-      expect(can(['admin'], permission)).toBe(false);
-      expect(can(['user'], permission)).toBe(false);
+      expect(can(ROLE_PERMISSIONS, ['super-admin'], permission)).toBe(true);
+      expect(can(ROLE_PERMISSIONS, ['admin'], permission)).toBe(false);
+      expect(can(ROLE_PERMISSIONS, ['user'], permission)).toBe(false);
     }
   });
 

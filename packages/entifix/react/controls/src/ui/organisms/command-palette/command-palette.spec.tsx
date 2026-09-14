@@ -1,8 +1,4 @@
-import type {
-  CommandGroup,
-  CommandOption,
-  CommandPage,
-} from '@r10c/entifix-ts-core';
+import type { CommandGroup, CommandOption, CommandPage } from '@entifix/core';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

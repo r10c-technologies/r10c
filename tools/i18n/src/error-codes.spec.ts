@@ -11,7 +11,7 @@
  * which is the failure mode `docs.spec.ts` and `slices.spec.ts` guard the same
  * way.
  */
-import { resources } from '@r10c/entifix-ts-i18n';
+import { R10C_RESOURCES as resources } from '@r10c/i18n-catalog';
 import { describe, expect, it } from 'vitest';
 
 import { emissions, emittedCodes } from './error-codes.js';
@@ -128,7 +128,7 @@ describe('Every emitted error code is cataloged', () => {
 
     expect(
       [...new Set(uncataloged)],
-      `these codes reach the browser as their own literal text — add them to\npackages/entifix/ts/i18n/src/resources/es/errors.ts:\n  ${[...new Set(uncataloged)].join('\n  ')}`,
+      `these codes reach the browser as their own literal text — add them to\npackages/business/ts/i18n/src/es/errors.ts:\n  ${[...new Set(uncataloged)].join('\n  ')}`,
     ).toEqual([]);
   });
 });

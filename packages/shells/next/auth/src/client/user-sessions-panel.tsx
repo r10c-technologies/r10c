@@ -7,7 +7,7 @@ import {
   Text,
   useFormatters,
   useT,
-} from '@r10c/entifix-react-controls';
+} from '@entifix/react-controls';
 import { useState } from 'react';
 
 import type { SessionRow } from './account-sessions-view';

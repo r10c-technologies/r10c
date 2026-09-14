@@ -232,7 +232,7 @@ the three it gained are exactly the offering codes it had been missing.
   `transitionOffering` reads the offering itself with `repository.get`, which is
   the conflation this record avoided for the specification and did not fix for
   the offering. The clean answer is an `EntifixNotFoundError` in
-  `entifix-ts-core`, which is a change under the 100% gate with call sites across
+  `@entifix/core`, which is a change under the 100% gate with call sites across
   the fleet — deliberately deferred rather than smuggled in.
 - **Nothing checks an `@accessor({ labelKey })` in either direction.** The
   use-case key spec covers `@useCase()` descriptors only, and `check-i18n.mjs`

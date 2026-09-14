@@ -1,0 +1,60 @@
+{
+  "name": "@r10c/i18n-catalog",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:shared",
+      "shell:domain"
+    ],
+    "sourceRoot": "packages/shells/next/i18n-catalog/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/next/i18n-catalog/dist",
+          "main": "packages/shells/next/i18n-catalog/src/index.ts",
+          "tsConfig": "packages/shells/next/i18n-catalog/tsconfig.lib.json",
+          "skipTypeCheck": true,
+          "stripLeadingPaths": true
+        }
+      },
+      "i18n-check": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node tools/check-i18n.mjs",
+          "cwd": "{workspaceRoot}"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@r10c/business-ts-i18n": "workspace:*",
+    "@entifix/react-controls": "workspace:*",
+    "@entifix/i18n": "workspace:*",
+    "@entifix/next-shell": "workspace:*",
+    "i18next": "26.3.6"
+  },
+  "sideEffects": true
+}

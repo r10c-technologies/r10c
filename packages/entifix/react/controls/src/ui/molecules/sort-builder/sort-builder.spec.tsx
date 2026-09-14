@@ -2,7 +2,7 @@ import type {
   Entity,
   EntityFieldDescriptor,
   EntitySorting,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

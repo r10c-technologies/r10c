@@ -1,4 +1,4 @@
-import { EntifixLogicError } from '@r10c/entifix-ts-core';
+import { EntifixLogicError } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { resolveBodyTemplate, resolveTemplate } from './resolve-template.js';

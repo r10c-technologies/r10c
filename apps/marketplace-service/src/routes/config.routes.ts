@@ -2,7 +2,7 @@ import { HttpServerResponse } from '@effect/platform';
 import {
   LoadedConfigurationTag,
   redactConfiguration,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
 import { Effect } from 'effect';
 
 /** `GET /api/config` — this service's loaded parameters (credentials redacted). */

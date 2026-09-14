@@ -1,4 +1,4 @@
-import { bearerHeader, sessionToken } from '@r10c/shells-next-common/server';
+import { bearerHeader, sessionToken } from '@entifix/next-shell/server';
 import { MARKETPLACE_ADMIN_SERVICE_URL } from '@r10c/shells-next-marketplace-admin/server';
 import { NextResponse } from 'next/server';
 

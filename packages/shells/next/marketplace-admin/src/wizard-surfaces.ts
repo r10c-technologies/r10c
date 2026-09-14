@@ -2,9 +2,9 @@ import {
   type Permission,
   permissionForEntity,
   screenAddress,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
+import type { Entity, EntityConstructor } from '@entifix/core';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
-import type { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
 
 /**
  * One guided screen, declared once for everything that has to name it.

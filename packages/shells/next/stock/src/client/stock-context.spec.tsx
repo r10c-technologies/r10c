@@ -1,11 +1,11 @@
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context } from 'effect';
 import type { PropsWithChildren } from 'react';
@@ -52,9 +52,14 @@ describe('the stock adapters context', () => {
       wrapper: wrapperWith(),
     });
 
-    expect(Context.get(result.current.stockItemRest, EntityRepositoryTag)).toBeDefined();
     expect(
-      Context.get(result.current.configurationStore, ConfigurationRepositoryTag),
+      Context.get(result.current.stockItemRest, EntityRepositoryTag),
+    ).toBeDefined();
+    expect(
+      Context.get(
+        result.current.configurationStore,
+        ConfigurationRepositoryTag,
+      ),
     ).toBeDefined();
   });
 

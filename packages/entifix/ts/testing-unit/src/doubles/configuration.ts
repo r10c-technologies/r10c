@@ -1,9 +1,9 @@
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
+import { ConfigurationRepositoryTag } from '@entifix/business';
 import {
   type ConfigurationClient,
   ConfigurationClientInMemory,
   type ConfigurationPlain,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Layer } from 'effect';
 
 /**

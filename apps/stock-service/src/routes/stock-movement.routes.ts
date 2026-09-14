@@ -1,6 +1,6 @@
 import { HttpRouter } from '@effect/platform';
+import { entityMetadataRoute } from '@entifix/service-shell';
 import { StockMovement } from '@r10c/business-ts-stock-management';
-import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import { byIdRoute, crossed, guarded, listRoute } from './entity-crud';
 import { recordMovementRoute } from './record-movement';

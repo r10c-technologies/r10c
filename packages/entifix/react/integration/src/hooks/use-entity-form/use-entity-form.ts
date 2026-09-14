@@ -6,21 +6,13 @@ import {
   type EntityDraft,
   type EntityLinkSelection,
   seedEntityLinkSelection,
-} from '@r10c/entifix-ts-core';
-import { sharedFallbackI18n } from '@r10c/entifix-ts-i18n';
+} from '@entifix/core';
 import { revalidateLogic, useForm, useStore } from '@tanstack/react-form';
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import { I18nContext, initReactI18next, useTranslation } from 'react-i18next';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   composeEntityFormErrors,
+  DEFAULT_VALIDATION_MESSAGES,
   readFieldErrors,
   restoreEntityDraft,
   seedEntityDraft,
@@ -64,6 +56,8 @@ export function useEntityForm<TEntity extends Entity>({
   fields,
   schema,
   validate,
+  validationMessages,
+  translateKey,
   onSubmit,
 }: UseEntityFormOptions<TEntity>): UseEntityFormResult {
   // Keyed on the **names**, not the array, so a caller may write the list inline
@@ -74,7 +68,9 @@ export function useEntityForm<TEntity extends Entity>({
     const described = describeEntityColumns(entityConstructor, entity);
     return scope === undefined
       ? described
-      : described.filter(descriptor => scope.split(',').includes(descriptor.name));
+      : described.filter(descriptor =>
+          scope.split(',').includes(descriptor.name),
+        );
   }, [entityConstructor, entity, scope]);
   // A persisted draft is layered over the seed, never substituted for it: the
   // entity decides which members exist, the draft only decides their values.
@@ -97,26 +93,19 @@ export function useEntityForm<TEntity extends Entity>({
     seedEntityLinkSelection(descriptors, entity),
   );
 
-  // Read straight from react-i18next rather than through the controls package:
-  // both are `entifix:react`, and the boundary rule forbids a sideways import.
-  // The provider a host mounts is the same React context either way — and with
-  // no provider, react-i18next would reach for its uninitialized global and
-  // render raw keys, so the shared default instance is passed explicitly.
-  const provided = useContext(I18nContext);
-  const { t } = useTranslation(
-    'controls',
-    provided === undefined
-      ? { i18n: sharedFallbackI18n([initReactI18next]) }
-      : {},
-  );
+  // Supplied by the caller, and that is the seam.
+  //
+  // ⚠️ This used to reach into react-i18next and `@entifix/i18n` directly,
+  // because both React packages are `entifix:react` and the boundary rule
+  // forbids a sideways import of the controls package that owns the `controls`
+  // catalog. The effect was that anyone taking the integration hooks also took
+  // i18next and a Spanish catalog — the composition defect the tier register
+  // was written to catch. The one real caller, `entity-crud-form.tsx`, sits a
+  // layer up where `useT('controls')` is reachable, so it resolves the four
+  // sentences and hands them over.
   const messages = useMemo(
-    () => ({
-      required: (field: string) => t('validation.required', { field }),
-      number: (field: string) => t('validation.number', { field }),
-      date: (field: string) => t('validation.date', { field }),
-      option: (field: string) => t('validation.option', { field }),
-    }),
-    [t],
+    () => validationMessages ?? DEFAULT_VALIDATION_MESSAGES,
+    [validationMessages],
   );
 
   // A schema's message is authored as a catalog key (`validation.minLength`),
@@ -124,18 +113,19 @@ export function useEntityForm<TEntity extends Entity>({
   // the one thing the i18n gate exists to prevent. `defaultValue` keeps an
   // unkeyed literal readable instead of rendering the key back at the user, and
   // `field` is offered as a parameter so a message can name its own label.
-  // The same cast `useTranslateKey` makes in the controls package, for the same
-  // reason: a key only known at runtime cannot be checked against the catalogs.
-  const translateKey = t as unknown as (
-    key: string,
-    params?: Record<string, unknown>,
-  ) => string;
+  // Supplied by the caller for the same reason the four sentences above are —
+  // and this one is `useTranslateKey`'s job rather than `useT`'s, because a
+  // schema's message is a key only known at runtime. With nothing supplied the
+  // message renders as authored, which is what `defaultValue` always did.
   const translateIssue = useCallback(
     (message: string, field: string | undefined) =>
-      translateKey(message, {
-        defaultValue: message,
-        field: descriptors.find(entry => entry.name === field)?.label ?? field,
-      }),
+      translateKey === undefined
+        ? message
+        : translateKey(message, {
+            defaultValue: message,
+            field:
+              descriptors.find(entry => entry.name === field)?.label ?? field,
+          }),
     [translateKey, descriptors],
   );
 

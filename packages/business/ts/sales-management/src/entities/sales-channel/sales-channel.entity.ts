@@ -1,9 +1,9 @@
+import type { Entity, EntityId } from '@entifix/core';
+import { accessor, entity } from '@entifix/core';
 import {
   type SalesChannelType,
   SalesChannelTypes,
 } from '@r10c/business-ts-sales-vocabulary';
-import type { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { accessor, entity } from '@r10c/entifix-ts-core';
 
 import {
   type SalesChannelStatus,

@@ -1,7 +1,7 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { SqlClient, SqlError } from '@effect/sql';
-import { ConfigurationPlain } from '@r10c/entifix-ts-core';
-import { redactValue, requireServiceToken } from '@r10c/shells-effect-service';
+import { ConfigurationPlain } from '@entifix/core';
+import { redactValue, requireServiceToken } from '@entifix/service-shell';
 import { Effect } from 'effect';
 
 import { configurationRoutes } from './configuration-routes';

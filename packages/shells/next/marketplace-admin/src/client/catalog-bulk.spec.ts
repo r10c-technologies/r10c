@@ -1,4 +1,4 @@
-import type { Entity, EntityId } from '@r10c/entifix-ts-core';
+import type { Entity, EntityId } from '@entifix/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { runCatalogBulk, runReferenceBulk } from './catalog-crud.js';

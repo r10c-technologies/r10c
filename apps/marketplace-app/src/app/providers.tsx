@@ -1,12 +1,15 @@
 'use client';
 
+// Installs r10c's catalogs into the i18next binding. Importing is the act.
+import '@r10c/i18n-catalog';
+
+import type { Locale } from '@entifix/core';
+import { I18nProvider } from '@entifix/react-controls/i18next';
 import {
-  I18nProvider,
   type ThemeOption,
   ThemeProvider,
   useT,
-} from '@r10c/entifix-react-controls/primitives';
-import type { Locale } from '@r10c/entifix-ts-i18n';
+} from '@entifix/react-controls/primitives';
 import { type PropsWithChildren, useMemo } from 'react';
 
 /**

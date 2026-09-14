@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/entifix-ts-jwt-client",
+  "name": "@entifix/jwt",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,7 +8,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
@@ -22,7 +22,8 @@
     "tags": [
       "layer:entifix",
       "scope:shared",
-      "entifix:client"
+      "entifix:client",
+      "tier:2"
     ],
     "sourceRoot": "packages/entifix/ts/jwt-client/src",
     "targets": {
@@ -42,13 +43,16 @@
     }
   },
   "dependencies": {
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "3.22.1",
-    "jose": "6.2.8",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*"
+    "jose": "6.2.8"
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@entifix/testing-unit": "workspace:*",
+    "effect": "3.22.1"
+  },
+  "peerDependencies": {
+    "effect": ">=3.22 <4"
   }
 }

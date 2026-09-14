@@ -4,9 +4,9 @@
  * PMs/growth, long-retained and user-identified) that fans out to a different
  * backend (PostHog), unlike observability logs. Same package, separate module.
  *
- * A real adapter (see `@r10c/entifix-ts-posthog-client`) implements this
+ * A real adapter (see `@entifix/posthog`) implements this
  * interface; it is provided per environment behind `TrackerTag` (Effect
- * `Context.Tag`, in `@r10c/entifix-ts-business`) — the browser and backend both
+ * `Context.Tag`, in `@entifix/business`) — the browser and backend both
  * run Effect DI, so the same seam works in each.
  */
 

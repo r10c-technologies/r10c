@@ -73,7 +73,7 @@ export type SliceStatus = 'active' | 'planned';
 
 /**
  * How a subscriber's queue is shaped. Mirrors `SubscriptionMode` in
- * `@r10c/entifix-transactions` — the register may not import a package, so the
+ * `@entifix/transactions` — the register may not import a package, so the
  * two literal sets are duplicated and both are pinned by a spec.
  *
  * > **Corrected 2026-09-10.** This note used to cite `settlement-management`
@@ -95,7 +95,7 @@ export type SubscriptionMode = (typeof SUBSCRIPTION_MODES)[number];
  * construction and must say **why**, because that is a property of the code
  * which nothing else checks and which the next edit can quietly remove.
  *
- * Duplicated from `@r10c/entifix-transactions` for the reason
+ * Duplicated from `@entifix/transactions` for the reason
  * {@link SUBSCRIPTION_MODES} is.
  */
 export const DEDUPE_STRATEGIES = ['inbox', 'natural'] as const;

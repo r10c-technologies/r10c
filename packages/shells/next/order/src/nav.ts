@@ -1,7 +1,4 @@
-import type {
-  GuardedNavItem,
-  GuardedNavSection,
-} from '@r10c/business-ts-authz';
+import type { GuardedNavItem, GuardedNavSection } from '@entifix/authz';
 
 import {
   ORDER_SURFACES,

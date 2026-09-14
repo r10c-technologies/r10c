@@ -5,6 +5,51 @@ import {
   HttpServerResponse,
   UrlParams,
 } from '@effect/platform';
+import { isRole, permissionForEntity, type Role } from '@entifix/authz';
+import {
+  ConfigurationRepositoryTag,
+  type DeviceContext,
+  EntityIdTag,
+  EntityLoadRequestTag,
+  EntityRepositoryTag,
+  getUCFactory,
+  loadUCFactory,
+  OneTimeTokenStoreTag,
+  type SessionRecord,
+  SessionStoreTag,
+  TokenServiceTag,
+} from '@entifix/business';
+import {
+  EntifixBuildError,
+  type EntifixEnvelopeLink,
+  Entity,
+  EntityConstructor,
+  EntityLoadRequest,
+  envelopeEntityName,
+  extractMetaEntity,
+  makeEntityPageEnvelope,
+  parseLoadRequestParams,
+  serializeEntity,
+  serializeEntityCollection,
+} from '@entifix/core';
+import { isLocale } from '@entifix/core';
+import { publicJwks } from '@entifix/jwt';
+import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
+import {
+  entityMetadataRoute,
+  LoadedConfigurationTag,
+  redactConfiguration,
+  requirePermission,
+  requirePrincipal,
+} from '@entifix/service-shell';
+import {
+  ACTION_SIGNATURE_HEADER,
+  createOpaqueValue,
+  createPkcePair,
+  ZitadelActionsTag,
+  ZitadelManagementTag,
+  ZitadelOidcTag,
+} from '@entifix/zitadel';
 import {
   AccountRepositoryTag,
   type AuthSubject,
@@ -32,58 +77,6 @@ import {
   UserIdentity,
   UserStatus,
 } from '@r10c/business-ts-authn';
-import {
-  isRole,
-  permissionForEntity,
-  type Role,
-} from '@r10c/business-ts-authz';
-import {
-  ConfigurationRepositoryTag,
-  type DeviceContext,
-  EntityIdTag,
-  EntityLoadRequestTag,
-  EntityRepositoryTag,
-  getUCFactory,
-  loadUCFactory,
-  OneTimeTokenStoreTag,
-  type SessionRecord,
-  SessionStoreTag,
-  TokenServiceTag,
-} from '@r10c/entifix-ts-business';
-import {
-  EntifixBuildError,
-  type EntifixEnvelopeLink,
-  Entity,
-  EntityConstructor,
-  EntityLoadRequest,
-  envelopeEntityName,
-  extractMetaEntity,
-  makeEntityPageEnvelope,
-  parseLoadRequestParams,
-  serializeEntity,
-  serializeEntityCollection,
-} from '@r10c/entifix-ts-core';
-import { isLocale } from '@r10c/entifix-ts-i18n/routing';
-import { publicJwks } from '@r10c/entifix-ts-jwt-client';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
-import {
-  ACTION_SIGNATURE_HEADER,
-  createOpaqueValue,
-  createPkcePair,
-  ZitadelActionsTag,
-  ZitadelManagementTag,
-  ZitadelOidcTag,
-} from '@r10c/entifix-ts-zitadel-client';
-import {
-  entityMetadataRoute,
-  LoadedConfigurationTag,
-  redactConfiguration,
-  requirePermission,
-  requirePrincipal,
-} from '@r10c/shells-effect-service';
 import { Effect, Option } from 'effect';
 
 import { IdTokenStoreTag } from './identity/id-token-store';

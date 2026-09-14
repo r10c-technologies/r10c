@@ -1,10 +1,10 @@
-import type { EntifixConnError } from '@r10c/entifix-ts-core';
+import type { EntifixConnError } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
  * A monotonic, gap-free-under-contention counter — the mechanism that makes
  * codes unique across service instances. Implemented as Redis `INCR` in
- * `entifix-ts-redis-client`; the atomicity of `INCR` is what guarantees no two
+ * `@entifix/redis`; the atomicity of `INCR` is what guarantees no two
  * concurrent commands ever draw the same number.
  */
 export interface SequenceService {

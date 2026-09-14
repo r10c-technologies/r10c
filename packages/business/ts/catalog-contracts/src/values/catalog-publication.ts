@@ -2,7 +2,7 @@ import {
   type DomainEvent,
   EntifixBuildError,
   type EntifixError,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 
 /**

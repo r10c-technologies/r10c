@@ -1,4 +1,4 @@
-import type { DomainEvent, EntityChangeEvent } from '@r10c/entifix-ts-core';
+import type { DomainEvent, EntityChangeEvent } from '@entifix/core';
 import { Context } from 'effect';
 
 export type { EntityChangeEvent };

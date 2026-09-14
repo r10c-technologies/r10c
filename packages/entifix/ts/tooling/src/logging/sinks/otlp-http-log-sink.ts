@@ -89,7 +89,7 @@ export const toOtlpLogsPayload = (
       },
       scopeLogs: [
         {
-          scope: { name: '@r10c/entifix-ts-tooling' },
+          scope: { name: '@entifix/tooling' },
           logRecords: records.map(record => ({
             timeUnixNano: (
               BigInt(Date.parse(record.timestamp)) * 1_000_000n

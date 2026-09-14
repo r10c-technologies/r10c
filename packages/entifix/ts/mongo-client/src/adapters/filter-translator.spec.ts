@@ -1,8 +1,4 @@
-import type {
-  Entity,
-  EntityFiltering,
-  EntitySorting,
-} from '@r10c/entifix-ts-core';
+import type { Entity, EntityFiltering, EntitySorting } from '@entifix/core';
 
 import { translateFiltering, translateSorting } from './filter-translator.js';
 

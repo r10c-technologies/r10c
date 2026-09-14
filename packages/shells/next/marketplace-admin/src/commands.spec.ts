@@ -1,4 +1,4 @@
-import { NEW_COMMAND_PAGE } from '@r10c/business-ts-authz';
+import { NEW_COMMAND_PAGE } from '@entifix/authz';
 import { describe, expect, it } from 'vitest';
 
 import { MARKETPLACE_ADMIN_CATALOG_SURFACES } from './catalog-surfaces';
