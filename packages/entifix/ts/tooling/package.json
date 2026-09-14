@@ -55,7 +55,12 @@
     }
   },
   "dependencies": {
-    "@swc/helpers": "0.5.23",
+    "@swc/helpers": "0.5.23"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": ">=1.9 <2"
+  },
+  "devDependencies": {
     "@opentelemetry/api": "1.9.1"
   }
 }

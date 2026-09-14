@@ -44,14 +44,17 @@
     }
   },
   "dependencies": {
-    "@swc/helpers": "0.5.23",
-    "effect": "3.22.1",
-    "ioredis": "6.0.0",
+    "@r10c/entifix-transactions": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-transactions": "workspace:*"
+    "@swc/helpers": "0.5.23",
+    "ioredis": "6.0.0"
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@r10c/entifix-ts-testing-unit": "workspace:*",
+    "effect": "3.22.1"
+  },
+  "peerDependencies": {
+    "effect": ">=3.22 <4"
   }
 }

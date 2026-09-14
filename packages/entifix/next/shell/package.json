@@ -45,7 +45,13 @@
     }
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@r10c/entifix-ts-testing-unit": "workspace:*",
+    "@tanstack/react-query": "^5.101.4",
+    "effect": "3.22.1",
+    "next": "16.2.10",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zustand": "^5.0.15"
   },
   "dependencies": {
     "@r10c/business-ts-authn": "workspace:*",
@@ -56,7 +62,15 @@
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@r10c/entifix-ts-i18n": "workspace:*",
-    "effect": "3.22.1"
+    "idb": "^8.0.3"
   },
-  "files": []
+  "files": [],
+  "peerDependencies": {
+    "@tanstack/react-query": ">=5.101 <6",
+    "effect": ">=3.22 <4",
+    "next": ">=16 <17",
+    "react": ">=19 <20",
+    "react-dom": ">=19 <20",
+    "zustand": ">=5 <6"
+  }
 }

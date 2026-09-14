@@ -41,19 +41,29 @@
     "@r10c/entifix-transactions": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
-    "@swc/helpers": "0.5.23",
-    "effect": "3.22.1"
+    "@swc/helpers": "0.5.23"
   },
   "peerDependencies": {
+    "@effect/vitest": ">=0.30 <1",
+    "@r10c/entifix-react-controls": "workspace:*",
     "@testing-library/react": "*",
+    "@testing-library/user-event": "*",
+    "effect": ">=3.22 <4",
     "msw": "*",
     "react": "*",
-    "vitest": "*",
-    "@r10c/entifix-react-controls": "workspace:*",
-    "@testing-library/user-event": "*"
+    "vitest": "*"
   },
   "peerDependenciesMeta": {
+    "@effect/vitest": {
+      "optional": true
+    },
+    "@r10c/entifix-react-controls": {
+      "optional": true
+    },
     "@testing-library/react": {
+      "optional": true
+    },
+    "@testing-library/user-event": {
       "optional": true
     },
     "msw": {
@@ -64,12 +74,10 @@
     },
     "vitest": {
       "optional": true
-    },
-    "@r10c/entifix-react-controls": {
-      "optional": true
-    },
-    "@testing-library/user-event": {
-      "optional": true
     }
+  },
+  "devDependencies": {
+    "@effect/vitest": "^0.30.0",
+    "effect": "3.22.1"
   }
 }

@@ -45,12 +45,15 @@
   },
   "dependencies": {
     "@effect/sql": "0.52.1",
-    "@swc/helpers": "0.5.23",
-    "effect": "3.22.1",
+    "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*"
+    "@swc/helpers": "0.5.23"
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@r10c/entifix-ts-testing-unit": "workspace:*",
+    "effect": "3.22.1"
+  },
+  "peerDependencies": {
+    "effect": ">=3.22 <4"
   }
 }

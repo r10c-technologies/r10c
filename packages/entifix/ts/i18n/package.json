@@ -56,7 +56,12 @@
     }
   },
   "dependencies": {
-    "@swc/helpers": "0.5.23",
+    "@swc/helpers": "0.5.23"
+  },
+  "peerDependencies": {
+    "i18next": ">=26 <27"
+  },
+  "devDependencies": {
     "i18next": "26.3.6"
   }
 }

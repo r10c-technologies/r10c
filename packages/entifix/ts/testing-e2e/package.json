@@ -39,18 +39,26 @@
     "@r10c/entifix-ts-mongo-client": "workspace:*",
     "@r10c/entifix-ts-redis-client": "workspace:*",
     "@r10c/entifix-ts-testing-unit": "workspace:*",
-    "@swc/helpers": "0.5.23",
-    "effect": "3.22.1"
+    "@swc/helpers": "0.5.23"
   },
   "peerDependencies": {
     "@msw/playwright": "*",
+    "@nx/devkit": ">=23 <24",
+    "@nx/playwright": ">=23 <24",
     "@playwright/test": "*",
     "axios": "*",
+    "effect": ">=3.22 <4",
     "msw": "*",
     "vitest": "*"
   },
   "peerDependenciesMeta": {
     "@msw/playwright": {
+      "optional": true
+    },
+    "@nx/devkit": {
+      "optional": true
+    },
+    "@nx/playwright": {
       "optional": true
     },
     "@playwright/test": {
@@ -65,5 +73,10 @@
     "vitest": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@nx/devkit": "23.0.1",
+    "@nx/playwright": "23.0.1",
+    "effect": "3.22.1"
   }
 }

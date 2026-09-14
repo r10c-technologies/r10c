@@ -1,2 +1,2 @@
-export * from './manifests';
-export * from './registry';
+export * from './manifests.js';
+export * from './registry.js';

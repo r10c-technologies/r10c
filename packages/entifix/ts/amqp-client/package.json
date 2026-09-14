@@ -48,11 +48,14 @@
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "amqplib": "2.0.1",
-    "effect": "3.22.1"
+    "amqplib": "2.0.1"
   },
   "devDependencies": {
+    "@r10c/entifix-ts-testing-unit": "workspace:*",
     "@types/amqplib": "0.10.5",
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "effect": "3.22.1"
+  },
+  "peerDependencies": {
+    "effect": ">=3.22 <4"
   }
 }

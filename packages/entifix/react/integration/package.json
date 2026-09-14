@@ -44,12 +44,23 @@
   ],
   "dependencies": {
     "@r10c/entifix-transactions": "workspace:*",
+    "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-i18n": "workspace:*",
-    "@tanstack/react-form": "1.33.5",
-    "react-i18next": "17.0.11"
+    "@r10c/entifix-ts-i18n": "workspace:*"
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@r10c/entifix-ts-testing-unit": "workspace:*",
+    "@tanstack/react-form": "1.33.5",
+    "@tanstack/react-query": "^5.101.4",
+    "effect": "3.22.1",
+    "react": "19.2.8",
+    "react-i18next": "17.0.11"
+  },
+  "peerDependencies": {
+    "@tanstack/react-form": ">=1.33 <2",
+    "@tanstack/react-query": ">=5.101 <6",
+    "effect": ">=3.22 <4",
+    "react": ">=19 <20",
+    "react-i18next": ">=17 <18"
   }
 }
