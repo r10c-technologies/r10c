@@ -1,4 +1,5 @@
-import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { type Locale, localeHref } from '@entifix/core';
+import { getServerTFor } from '@entifix/i18n';
 import {
   ButtonLink,
   Card,
@@ -6,9 +7,8 @@ import {
   HeadingThree,
   Stack,
   Text,
-} from '@r10c/entifix-react-controls/primitives';
-import { type Locale, localeHref } from '@r10c/entifix-ts-core';
-import { getServerTFor } from '@r10c/entifix-ts-i18n';
+} from '@entifix/react-controls/primitives';
+import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 
 import { storePaths } from '../routing/paths';
 import { formatMoney } from './money';

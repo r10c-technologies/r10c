@@ -1,7 +1,7 @@
 import {
   baseTest as test,
   expect,
-} from '@r10c/entifix-ts-testing-e2e/playwright';
+} from '@entifix/testing-e2e/playwright';
 
 /**
  * The storefront's journeys, walked the way a visitor walks them.

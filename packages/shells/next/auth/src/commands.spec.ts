@@ -1,4 +1,4 @@
-import { NEW_COMMAND_PAGE } from '@r10c/business-ts-authz';
+import { NEW_COMMAND_PAGE } from '@entifix/authz';
 import { describe, expect, it } from 'vitest';
 
 import { AUTH_COMMANDS } from './commands';

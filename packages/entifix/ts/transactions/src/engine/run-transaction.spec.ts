@@ -3,7 +3,7 @@ import {
   EntifixConnError,
   EntifixLockError,
   EntifixTransactionError,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect, Exit, HashMap, Layer, Logger } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -49,7 +49,7 @@ const outcome: TransactionOutcome = { code: 'product-001', entityId: 'p-1' };
 
 /**
  * A scripted handler plus recording lock service and bus. This package defines
- * the ports `@r10c/entifix-ts-testing-unit` implements, so its doubles cannot be
+ * the ports `@entifix/testing-unit` implements, so its doubles cannot be
  * used here without a cycle — these stay local.
  */
 const makeWorld = (

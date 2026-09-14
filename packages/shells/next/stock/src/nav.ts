@@ -1,7 +1,7 @@
 import type {
   GuardedNavItem,
   GuardedNavSection,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
 
 import {
   permissionForStockSurface,

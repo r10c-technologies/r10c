@@ -1,5 +1,5 @@
-import { EntityRepositoryTag } from '@r10c/entifix-ts-business';
-import { type Entity, type EntityId } from '@r10c/entifix-ts-core';
+import { EntityRepositoryTag } from '@entifix/business';
+import { type Entity, type EntityId } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 

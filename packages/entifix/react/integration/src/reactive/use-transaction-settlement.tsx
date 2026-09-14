@@ -4,7 +4,7 @@ import type {
   PendingEntry,
   PendingTransactionStore,
   TransactionRecord,
-} from '@r10c/entifix-transactions';
+} from '@entifix/transactions';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef } from 'react';
 

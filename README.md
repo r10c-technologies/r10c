@@ -64,12 +64,12 @@ database handle the request resolves to_, so no query can leak by omission. See
 
 The framework is decorator + [Effect](https://effect.website)-based:
 
-- **`entifix-ts-core`** — `@entity()` / `@accessor()` register metadata on `MetaEntity`; domain types (`Entity`, `EntityLoadRequest`, `EntityPage`, filtering/sorting); the shared (de)serializer; **entity links** (`EntityLink` / `EntityCollectionLink`) that model relations as either a foreign key or embedded data, resolved lazily through an `EntityLinkResolver`.
-- **`entifix-ts-business`** — repository/resolver contracts + use-case factories over Effect. Repositories return `Effect<T, EntifixError>`; dependencies are injected as `Context.Tag`s.
-- **`entifix-ts-rest-client`** / **`entifix-ts-mongo-client`** / **`entifix-ts-sql-client`** — turn an entity into an `EntityRepository` over HTTP (web), MongoDB or PostgreSQL (backend). The same use-case runs against any of them; only the composition root swaps the adapter.
+- **`@entifix/core`** — `@entity()` / `@accessor()` register metadata on `MetaEntity`; domain types (`Entity`, `EntityLoadRequest`, `EntityPage`, filtering/sorting); the shared (de)serializer; **entity links** (`EntityLink` / `EntityCollectionLink`) that model relations as either a foreign key or embedded data, resolved lazily through an `EntityLinkResolver`.
+- **`@entifix/business`** — repository/resolver contracts + use-case factories over Effect. Repositories return `Effect<T, EntifixError>`; dependencies are injected as `Context.Tag`s.
+- **`@entifix/rest`** / **`@entifix/mongo`** / **`@entifix/sql`** — turn an entity into an `EntityRepository` over HTTP (web), MongoDB or PostgreSQL (backend). The same use-case runs against any of them; only the composition root swaps the adapter.
 - **`entifix-react-*`** — `controls` (UI primitives) and `integration` (Effect-aware hooks: `useDataLoading`, `useEntityLinkResolver`).
 
-Backends are **Effect-native** (no Nest): they compose `@r10c/shells-effect-service` (`@effect/platform` HTTP + `/api/health{,/live,/ready}` + `Layer` DI + graceful shutdown) and compile stage-3 like entifix, so they import entity classes natively. Frontends and backends both resolve runtime config through `config-service` (`:3190`), never hardcoded.
+Backends are **Effect-native** (no Nest): they compose `@entifix/service-shell` (`@effect/platform` HTTP + `/api/health{,/live,/ready}` + `Layer` DI + graceful shutdown) and compile stage-3 like entifix, so they import entity classes natively. Frontends and backends both resolve runtime config through `config-service` (`:3190`), never hardcoded.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/ENTIFIX.md](docs/ENTIFIX.md) for the full picture.
 

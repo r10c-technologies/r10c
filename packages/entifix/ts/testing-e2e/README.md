@@ -1,4 +1,4 @@
-# @r10c/entifix-ts-testing-e2e
+# @entifix/testing-e2e
 
 The e2e layer: one set of journeys, two profiles. Test-only — private, no build
 target, resolves straight to source through the `@r10c/source` condition. Depend
@@ -59,10 +59,10 @@ mock-only by nature; assertions about real seeded data are live-only.
 ## Entry points
 
 ```ts
-import { resolveE2eProfile, isMockProfile, requireLiveUrl } from '@r10c/entifix-ts-testing-e2e';
-import { entityBackendHandlers, configurationHandler } from '@r10c/entifix-ts-testing-e2e/fixtures';
-import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
-import { defineEntifixE2eConfig, defineEntifixE2eTest, EntityTablePage } from '@r10c/entifix-ts-testing-e2e/playwright';
+import { resolveE2eProfile, isMockProfile, requireLiveUrl } from '@entifix/testing-e2e';
+import { entityBackendHandlers, configurationHandler } from '@entifix/testing-e2e/fixtures';
+import { defineServiceE2e } from '@entifix/testing-e2e/service';
+import { defineEntifixE2eConfig, defineEntifixE2eTest, EntityTablePage } from '@entifix/testing-e2e/playwright';
 ```
 
 `.` carries no Playwright, no msw and no vitest, so a consumer pulls only what
@@ -112,7 +112,7 @@ it('lists the catalog', async () => {
 });
 ```
 
-In `mock`, `serveTestService` (from `@r10c/shells-effect-service`) boots the
+In `mock`, `serveTestService` (from `@entifix/service-shell`) boots the
 service's **real router** through the **real `makeServerLayer`** on an ephemeral
 port, with only the `appLayer` swapped for one built from the driver fakes. The
 routes, the use-cases, the repository adapter and the query translation all
@@ -141,7 +141,7 @@ This package sits under `entifix`, so it must not import from `shells` or
 booting the service itself: the e2e project — which may depend on both — is what
 puts `serveTestService` and its service's `router` together.
 
-## Relationship to `entifix-ts-testing-unit`
+## Relationship to `@entifix/testing-unit`
 
 `testing-unit` owns doubles, port contract suites and msw handlers for **unit**
 specs; this package owns **profiles, fixtures and drivers** for e2e. It depends

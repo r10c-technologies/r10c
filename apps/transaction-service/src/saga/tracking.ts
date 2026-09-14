@@ -1,3 +1,13 @@
+import { queueNameFor } from '@entifix/amqp/transactions';
+import { ShutdownRegistryTag } from '@entifix/business';
+import { type DomainEvent, EntifixConnError } from '@entifix/core';
+import { MongoClientTag } from '@entifix/mongo';
+import {
+  ensureInboxIndexes,
+  INBOX_COLLECTION,
+  inboxDocument,
+  isDuplicateKey,
+} from '@entifix/mongo/transactions';
 import {
   EventBusTag,
   type InboxClaim,
@@ -6,17 +16,7 @@ import {
   type TransactionStore,
   TransactionStoreTag,
   TransactionStreamHubTag,
-} from '@r10c/entifix-transactions';
-import { queueNameFor } from '@r10c/entifix-ts-amqp-client/transactions';
-import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
-import { type DomainEvent, EntifixConnError } from '@r10c/entifix-ts-core';
-import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
-import {
-  ensureInboxIndexes,
-  INBOX_COLLECTION,
-  inboxDocument,
-  isDuplicateKey,
-} from '@r10c/entifix-ts-mongo-client/transactions';
+} from '@entifix/transactions';
 import { Context, Duration, Effect, Fiber } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

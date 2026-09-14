@@ -6,12 +6,12 @@ import {
   type SessionRecord,
   type SessionStore,
   SessionStoreTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   EntifixConnError,
   EntifixLogicError,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
 

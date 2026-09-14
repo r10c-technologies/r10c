@@ -1,7 +1,7 @@
 import {
   describeEntityUseCases,
   EntifixLogicError,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { ProductOrder } from '../../entities/product-order/index.js';

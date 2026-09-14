@@ -1,12 +1,12 @@
 import { it as effectIt } from '@effect/vitest';
+import type { DomainEvent } from '@entifix/core';
 import type {
   EventBus,
   LockService,
   SequenceService,
   Subscription,
   TransactionInbox,
-} from '@r10c/entifix-transactions';
-import type { DomainEvent } from '@r10c/entifix-ts-core';
+} from '@entifix/transactions';
 import { Duration, Effect, Exit, Fiber, TestClock } from 'effect';
 import { describe, expect, it } from 'vitest';
 

@@ -1,5 +1,5 @@
-import type { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { accessor, entity } from '@r10c/entifix-ts-core';
+import type { Entity, EntityId } from '@entifix/core';
+import { accessor, entity } from '@entifix/core';
 
 /**
  * The ways a user can present themselves at login. Every identifier resolves to

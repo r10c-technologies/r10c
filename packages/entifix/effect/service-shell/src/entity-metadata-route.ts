@@ -7,7 +7,7 @@ import {
   permissionForEntity,
   permissionForUseCase,
   PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
 import {
   describeEntityUseCases,
   type Entity,
@@ -16,7 +16,7 @@ import {
   type EntityMetadataDocument,
   extractMetaEntity,
   makeEntityMetadataEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 
 import { requirePrincipal } from './auth';

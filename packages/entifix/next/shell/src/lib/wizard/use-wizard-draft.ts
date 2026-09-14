@@ -1,7 +1,7 @@
 'use client';
 
-import type { WizardDraftStore } from '@r10c/entifix-react-integration';
-import { readWizardState, type WizardState } from '@r10c/entifix-ts-core';
+import { readWizardState, type WizardState } from '@entifix/core';
+import type { WizardDraftStore } from '@entifix/react-integration';
 import { useMemo } from 'react';
 
 import { useDraft } from '../workspace/drafts-state';

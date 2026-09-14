@@ -3,7 +3,7 @@
  *
  * Standard Schema is an interface, not a library: Zod, Valibot and ArkType all
  * expose `~standard` and nothing else is needed to run one. Declaring it here
- * lets an entity carry a real schema without `entifix-ts-core` — the bottom of
+ * lets an entity carry a real schema without `@entifix/core` — the bottom of
  * the stack — taking a runtime dependency on any validation library, and keeps
  * whichever one a domain picks an implementation detail of that domain.
  *

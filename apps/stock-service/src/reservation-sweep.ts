@@ -1,5 +1,5 @@
-import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
-import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
+import { ShutdownRegistryTag } from '@entifix/business';
+import { MongoClientTag } from '@entifix/mongo';
 import { Context, Duration, Effect, Fiber } from 'effect';
 import type { MongoClient } from 'mongodb';
 

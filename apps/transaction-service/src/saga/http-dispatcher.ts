@@ -1,13 +1,13 @@
+import { EntifixConnError } from '@entifix/core';
+import {
+  CROSSING_TOKEN_HEADER,
+  ORGANIZATION_HEADER,
+} from '@entifix/service-shell';
 import {
   type SagaDispatch,
   SagaDispatcherTag,
   type SagaResponse,
-} from '@r10c/entifix-transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
-import {
-  CROSSING_TOKEN_HEADER,
-  ORGANIZATION_HEADER,
-} from '@r10c/shells-effect-service';
+} from '@entifix/transactions';
 import { Context, Effect, Layer } from 'effect';
 
 /** The command id a participant claims, so a redelivery is not a second act. */

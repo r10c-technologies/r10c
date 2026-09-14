@@ -1,5 +1,5 @@
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
-import type { TransactionRecord } from '@r10c/entifix-transactions';
+import { EntifixQueryProvider } from '@entifix/react-integration';
+import type { TransactionRecord } from '@entifix/transactions';
 import { render } from '@testing-library/react';
 import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
@@ -16,10 +16,10 @@ const useTransactionSettlement = vi.fn();
 // `EventSource`, and what this component is responsible for is *which* URL it
 // opens and *what* it wires together — the settlement behaviour itself is
 // `useTransactionSettlement`'s own spec.
-vi.mock('@r10c/entifix-react-integration', async () => {
+vi.mock('@entifix/react-integration', async () => {
   const actual = await vi.importActual<
-    typeof import('@r10c/entifix-react-integration')
-  >('@r10c/entifix-react-integration');
+    typeof import('@entifix/react-integration')
+  >('@entifix/react-integration');
   return {
     ...actual,
     makeEventSourceReactiveChannel: (url: string) => makeChannel(url),
@@ -45,10 +45,10 @@ const read = vi.fn(() =>
   Effect.succeed<TransactionRecord | undefined>(aRecord),
 );
 
-vi.mock('@r10c/entifix-ts-rest-client', async () => {
+vi.mock('@entifix/rest', async () => {
   const actual = await vi.importActual<
-    typeof import('@r10c/entifix-ts-rest-client')
-  >('@r10c/entifix-ts-rest-client');
+    typeof import('@entifix/rest')
+  >('@entifix/rest');
   return {
     ...actual,
     buildTransactionStatusReader: () => Effect.succeed({ read }),

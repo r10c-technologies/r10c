@@ -4,7 +4,7 @@ import {
   EntityRepositoryTag,
   getUCFactory,
   loadUCFactory,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   type EntifixEnvelopeLink,
   type Entity,
@@ -15,13 +15,13 @@ import {
   makeEntityEnvelope,
   makeEntityPageEnvelope,
   parseLoadRequestParams,
-} from '@r10c/entifix-ts-core';
-import { makeMongoRepository } from '@r10c/entifix-ts-mongo-client';
-import { stubConfigurationLayer } from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/core';
+import { makeMongoRepository } from '@entifix/mongo';
+import { stubConfigurationLayer } from '@entifix/testing-unit';
 import {
   type FakeMongoDb,
   makeFakeMongoDb,
-} from '@r10c/entifix-ts-testing-unit/drivers';
+} from '@entifix/testing-unit/drivers';
 import { Effect } from 'effect';
 
 /**

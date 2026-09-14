@@ -1,11 +1,11 @@
 'use client';
 
+import { loadUCFactory } from '@entifix/business';
+import type { EntityId } from '@entifix/core';
+import { useLocaleHref } from '@entifix/next-shell';
+import { EntityTable } from '@entifix/react-controls';
+import { useDataLoading } from '@entifix/react-integration';
 import { Configuration } from '@r10c/business-ts-configuration';
-import { EntityTable } from '@r10c/entifix-react-controls';
-import { useDataLoading } from '@r10c/entifix-react-integration';
-import { loadUCFactory } from '@r10c/entifix-ts-business';
-import type { EntityId } from '@r10c/entifix-ts-core';
-import { useLocaleHref } from '@r10c/shells-next-common';
 import { Context } from 'effect';
 
 import { useSystemManagementAdapters } from '../system-management-context';

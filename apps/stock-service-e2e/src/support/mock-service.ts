@@ -1,30 +1,30 @@
 import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
-} from '@r10c/business-ts-authz';
-import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { TokenServiceTag } from '@r10c/entifix-ts-business';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
-import {
-  E2E_KEY_ID,
-  E2E_PUBLIC_KEY_PEM,
-  fakeConfigurationLayer,
-  fakeMongoLayer,
-} from '@r10c/entifix-ts-testing-e2e/fixtures';
+} from '@entifix/authz';
+import { TokenServiceTag } from '@entifix/business';
+import { makeJoseTokenService } from '@entifix/jwt';
 import {
   LoadedConfigurationTag,
   type RunningTestService,
   serveTestService,
   ServiceCrossingTokenTag,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
+import {
+  E2E_KEY_ID,
+  E2E_PUBLIC_KEY_PEM,
+  fakeConfigurationLayer,
+  fakeMongoLayer,
+} from '@entifix/testing-e2e/fixtures';
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import {
   ReservationTtlSecondsTag,
   router,

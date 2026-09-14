@@ -4,7 +4,7 @@ import {
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 import type { EntityTableColumn } from './entity-table.types';
 import {

@@ -3,7 +3,7 @@
 import type {
   PendingEntry,
   PendingTransaction,
-} from '@r10c/entifix-transactions';
+} from '@entifix/transactions';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 

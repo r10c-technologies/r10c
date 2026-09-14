@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
 import {
+  deserializeSingleEntity,
+  EntifixConnError,
+  type EntityId,
+} from '@entifix/core';
+import {
   type AccountRepository,
   AuthnError,
   type CreateAccountInput,
@@ -9,11 +14,6 @@ import {
   type UpdateUserAspects,
   UserIdentity,
 } from '@r10c/business-ts-authn';
-import {
-  deserializeSingleEntity,
-  EntifixConnError,
-  type EntityId,
-} from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import type { Db, Document, PushOperator } from 'mongodb';
 

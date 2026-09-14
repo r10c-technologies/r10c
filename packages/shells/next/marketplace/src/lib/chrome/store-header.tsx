@@ -1,10 +1,10 @@
+import type { Locale } from '@entifix/core';
+import { getServerTFor } from '@entifix/i18n';
 import {
   Cluster,
   Text,
   ThemeSwitcher,
-} from '@r10c/entifix-react-controls/primitives';
-import type { Locale } from '@r10c/entifix-ts-core';
-import { getServerTFor } from '@r10c/entifix-ts-i18n';
+} from '@entifix/react-controls/primitives';
 
 import { CartBadge } from '../cart/cart-badge';
 import { storePaths } from '../routing/paths';

@@ -1,10 +1,10 @@
+import { envelopeEntityName } from '@entifix/core';
 import {
   Agreement,
   CommissionEntry,
   SettlementRun,
   VendorPayout,
 } from '@r10c/business-ts-settlement-management';
-import { envelopeEntityName } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

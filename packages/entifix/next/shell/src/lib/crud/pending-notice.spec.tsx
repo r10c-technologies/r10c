@@ -1,4 +1,4 @@
-import type { PendingEntry } from '@r10c/entifix-transactions';
+import type { PendingEntry } from '@entifix/transactions';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

@@ -1,11 +1,11 @@
+import { EntifixConnError } from '@entifix/core';
+import { MongoClientTag } from '@entifix/mongo';
 import {
   type SagaInstance,
   type SagaState,
   type SagaStepOutcome,
   SagaStoreTag,
-} from '@r10c/entifix-transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
-import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/transactions';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 

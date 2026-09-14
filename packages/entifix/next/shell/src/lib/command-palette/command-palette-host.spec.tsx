@@ -1,13 +1,13 @@
-import { NEW_COMMAND_PAGE } from '@r10c/business-ts-authz';
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
-import type { EntityMetadataSource } from '@r10c/entifix-ts-core';
+import { NEW_COMMAND_PAGE } from '@entifix/authz';
+import type { EntityMetadataSource } from '@entifix/core';
 import {
   accessor,
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
-import { renderWithAdapters } from '@r10c/entifix-ts-testing-unit/react';
+} from '@entifix/core';
+import { EntifixQueryProvider } from '@entifix/react-integration';
+import { renderWithAdapters } from '@entifix/testing-unit/react';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

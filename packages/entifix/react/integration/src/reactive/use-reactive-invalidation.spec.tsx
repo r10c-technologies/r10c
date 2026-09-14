@@ -1,4 +1,4 @@
-import type { DomainEvent, EntityChangeEvent } from '@r10c/entifix-ts-core';
+import type { DomainEvent, EntityChangeEvent } from '@entifix/core';
 import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';

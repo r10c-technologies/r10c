@@ -1,12 +1,12 @@
 'use client';
 
+import { usePendingTransactions } from '@entifix/next-shell';
 import {
   makeEventSourceReactiveChannel,
   useReactiveInvalidation,
   useTransactionSettlement,
-} from '@r10c/entifix-react-integration';
-import { buildTransactionStatusReader } from '@r10c/entifix-ts-rest-client';
-import { usePendingTransactions } from '@r10c/shells-next-common';
+} from '@entifix/react-integration';
+import { buildTransactionStatusReader } from '@entifix/rest';
 import { Effect } from 'effect';
 import { useCallback } from 'react';
 

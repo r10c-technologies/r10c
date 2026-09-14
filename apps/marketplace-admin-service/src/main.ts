@@ -1,4 +1,4 @@
-import { makeService } from '@r10c/shells-effect-service';
+import { makeService } from '@entifix/service-shell';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
 import { AppLayer } from './mongo';

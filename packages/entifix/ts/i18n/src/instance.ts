@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, EntifixBuildError, type Locale } from '@r10c/entifix-ts-core';
+import { DEFAULT_LOCALE, EntifixBuildError, type Locale } from '@entifix/core';
 import i18next, {
   type i18n,
   type Namespace,
@@ -102,7 +102,7 @@ export function createI18n(
  * Request-free by construction, and that is the point: a component built on it
  * touches neither `headers()` nor `cookies()`, so the page containing it stays
  * statically renderable and can be prerendered once per locale. Its
- * request-reading counterpart is `getServerT` in `@r10c/shells-next-i18n`,
+ * request-reading counterpart is `getServerT` in `@entifix/next-i18n`,
  * which re-exports this one for symmetry at app call sites.
  *
  * It lives here rather than in the Next i18n shell because a `layer:shell`

@@ -1,4 +1,4 @@
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
+import { EntifixBuildError } from '@entifix/core';
 import { renderHook } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it } from 'vitest';

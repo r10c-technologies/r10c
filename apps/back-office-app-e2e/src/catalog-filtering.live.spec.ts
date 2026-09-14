@@ -1,8 +1,8 @@
-import { requireLiveUrl } from '@r10c/entifix-ts-testing-e2e';
+import { requireLiveUrl } from '@entifix/testing-e2e';
 import {
   baseTest as test,
   expect,
-} from '@r10c/entifix-ts-testing-e2e/playwright';
+} from '@entifix/testing-e2e/playwright';
 
 /**
  * The half of the protocol the browser cannot reach.

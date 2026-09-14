@@ -1,4 +1,4 @@
-import type { Locale } from '@r10c/entifix-ts-core';
+import type { Locale } from '@entifix/core';
 
 /**
  * A published price, rendered.

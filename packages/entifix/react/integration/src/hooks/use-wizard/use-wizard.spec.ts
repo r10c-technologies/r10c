@@ -3,7 +3,7 @@ import {
   withStepValue,
   type WizardDefinition,
   type WizardState,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import type { EntityDraftStore } from '@r10c/entifix-react-integration';
-import type { EntityDraft } from '@r10c/entifix-ts-core';
+import type { EntityDraft } from '@entifix/core';
+import type { EntityDraftStore } from '@entifix/react-integration';
 import { useMemo } from 'react';
 
 import { useDraft } from './drafts-state';

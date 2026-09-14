@@ -1,6 +1,6 @@
+import { ConfigurationRepositoryTag } from '@entifix/business';
+import { ConfigurationClientInMemory } from '@entifix/core';
 import { ProductOffering } from '@r10c/business-ts-product-configuration-management';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
-import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';

@@ -1,5 +1,5 @@
+import { EntityTablePage } from '@entifix/testing-e2e/playwright';
 import type { Page } from '@playwright/test';
-import { EntityTablePage } from '@r10c/entifix-ts-testing-e2e/playwright';
 
 import { expect, test } from './support/fixtures';
 

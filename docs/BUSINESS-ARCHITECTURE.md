@@ -366,7 +366,7 @@ Then two rules that apply to the entity itself:
 use-cases and adapters still to come. Every capability above owns exactly one
 store, and every store has one writing slice — see the register.
 
-Authorization vocabulary (`business-ts-authz`) is not a capability — it is the
+Authorization vocabulary (`@entifix/authz`) is not a capability — it is the
 shared policy language every capability expresses itself in, which is why it is
 tagged `business:policy` rather than `business:domain`.
 
@@ -415,7 +415,7 @@ things:
    marketplace catalog the storefront queries.
 
 The projection runs on the existing saga engine (the `transaction` slice's
-tracker + `entifix-transactions`). This buys approval and moderation, price snapshots taken
+tracker + `@entifix/transactions`). This buys approval and moderation, price snapshots taken
 at publish time, and a storefront whose read path cannot be slowed by a tenant's
 write load.
 

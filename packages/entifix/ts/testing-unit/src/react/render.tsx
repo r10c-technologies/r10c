@@ -1,7 +1,7 @@
 import {
   UiPreferencesProvider,
   type UiPreferencesState,
-} from '@r10c/entifix-react-controls';
+} from '@entifix/react-controls';
 import {
   render,
   type RenderOptions,

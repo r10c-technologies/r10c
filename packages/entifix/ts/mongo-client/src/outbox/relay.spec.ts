@@ -1,11 +1,11 @@
+import { ShutdownRegistryTag } from '@entifix/business';
+import { type DomainEvent, EntifixConnError } from '@entifix/core';
 import {
   type EventBus,
   EventBusTag,
   type OutboxEntry,
   type TransactionOutbox,
-} from '@r10c/entifix-transactions';
-import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
-import { type DomainEvent, EntifixConnError } from '@r10c/entifix-ts-core';
+} from '@entifix/transactions';
 import { Effect, HashMap, Layer, Logger } from 'effect';
 import { describe, expect, it } from 'vitest';
 

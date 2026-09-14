@@ -1,3 +1,4 @@
+import { EntifixConnError } from '@entifix/core';
 import {
   defineSaga,
   type SagaDefinition,
@@ -5,8 +6,7 @@ import {
   SagaDispatcherTag,
   type SagaInstance,
   type SagaStore,
-} from '@r10c/entifix-transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+} from '@entifix/transactions';
 import { Effect, HashMap, Layer, Logger } from 'effect';
 import { describe, expect, it } from 'vitest';
 

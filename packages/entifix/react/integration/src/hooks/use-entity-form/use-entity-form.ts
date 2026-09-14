@@ -6,7 +6,7 @@ import {
   type EntityDraft,
   type EntityLinkSelection,
   seedEntityLinkSelection,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { revalidateLogic, useForm, useStore } from '@tanstack/react-form';
 import {
   useCallback,

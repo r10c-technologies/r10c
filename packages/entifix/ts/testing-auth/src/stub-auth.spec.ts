@@ -1,6 +1,6 @@
-import { PolicyDecisionTag } from '@r10c/business-ts-authz';
-import { TokenServiceTag } from '@r10c/entifix-ts-business';
-import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
+import { PolicyDecisionTag } from '@entifix/authz';
+import { TokenServiceTag } from '@entifix/business';
+import { ACCESS_COOKIE } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 

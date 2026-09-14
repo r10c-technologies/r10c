@@ -1,8 +1,8 @@
-import type { CommandGroup } from '@r10c/entifix-ts-core';
+import type { CommandGroup } from '@entifix/core';
 import {
   makeInMemoryUiPreferencesState,
   renderWithAdapters,
-} from '@r10c/entifix-ts-testing-unit/react';
+} from '@entifix/testing-unit/react';
 import { act, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

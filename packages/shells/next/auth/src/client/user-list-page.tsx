@@ -1,8 +1,8 @@
 'use client';
 
+import { useLocaleHref } from '@entifix/next-shell';
+import { EntityTable } from '@entifix/react-controls';
 import { UserIdentity } from '@r10c/business-ts-authn';
-import { EntityTable } from '@r10c/entifix-react-controls';
-import { useLocaleHref } from '@r10c/shells-next-common';
 import { useState } from 'react';
 
 import { useUsers } from './use-users';

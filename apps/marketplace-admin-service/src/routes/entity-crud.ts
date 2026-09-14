@@ -7,28 +7,7 @@ import {
   type Action,
   type Permission,
   permissionForEntity,
-} from '@r10c/business-ts-authz';
-import {
-  OfferingPriceRepositoryTag,
-  OfferingSpecificationRepositoryTag,
-  type OfferingTransition,
-  ProductOffering,
-  ProductOfferingPrice,
-  ProductSpecification,
-  transitionOffering,
-  TransitionOfferingInputTag,
-} from '@r10c/business-ts-product-configuration-management';
-import {
-  acceptTransaction,
-  CommandTag,
-  completeTransaction,
-  EventBusTag,
-  EventSourceTag,
-  readCommandEnvelope,
-  SequenceServiceTag,
-  TransactionHandlerTag,
-  TransactionOutboxTag,
-} from '@r10c/entifix-transactions';
+} from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,
   deleteUCFactory,
@@ -40,7 +19,7 @@ import {
   loadUCFactory,
   saveUCFactory,
   TenantDatabaseResolverTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   type BulkOutcome,
   EntifixBuildError,
@@ -61,12 +40,12 @@ import {
   readEntityEnvelope,
   readWireSelection,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   makeMongoRepository,
   MongoClientTag,
   MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/mongo';
 import {
   drainOutbox,
   ensureOutboxIndexes,
@@ -74,8 +53,29 @@ import {
   OUTBOX_COLLECTION,
   outboxDocument,
   OutboxMaxAttempts,
-} from '@r10c/entifix-ts-mongo-client/transactions';
-import { requireOrganization } from '@r10c/shells-effect-service';
+} from '@entifix/mongo/transactions';
+import { requireOrganization } from '@entifix/service-shell';
+import {
+  acceptTransaction,
+  CommandTag,
+  completeTransaction,
+  EventBusTag,
+  EventSourceTag,
+  readCommandEnvelope,
+  SequenceServiceTag,
+  TransactionHandlerTag,
+  TransactionOutboxTag,
+} from '@entifix/transactions';
+import {
+  OfferingPriceRepositoryTag,
+  OfferingSpecificationRepositoryTag,
+  type OfferingTransition,
+  ProductOffering,
+  ProductOfferingPrice,
+  ProductSpecification,
+  transitionOffering,
+  TransitionOfferingInputTag,
+} from '@r10c/business-ts-product-configuration-management';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 
@@ -96,7 +96,7 @@ import {
 /**
  * Reads the load request from the query string: `rsql` (filtering), `sort`,
  * `page` and `pageSize`. Parsing is done by the shared codec in
- * `entifix-ts-core` — the same one the REST client serializes with — and is
+ * `@entifix/core` — the same one the REST client serializes with — and is
  * validated against the entity's own metadata, so a client can only name
  * members the entity declared filterable/sortable.
  */

@@ -2,7 +2,7 @@ import type {
   Entity,
   EntityFiltering,
   EntitySorting,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 import { translateFiltering, translateSorting } from './filter-translator.js';
 

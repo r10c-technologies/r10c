@@ -3,7 +3,7 @@ import {
   type Entity,
   type EntityConstructor,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { ReferenceStatuses } from '../values/reference-status.js';

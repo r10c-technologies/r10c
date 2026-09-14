@@ -1,5 +1,5 @@
-import type { TokenClaims } from '@r10c/entifix-ts-business';
-import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
+import type { TokenClaims } from '@entifix/business';
+import { ACCESS_COOKIE } from '@entifix/core';
 
 /**
  * The principal a stubbed application runs as when nobody configured one.

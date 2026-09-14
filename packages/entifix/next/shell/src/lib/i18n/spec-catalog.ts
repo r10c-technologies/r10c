@@ -1,4 +1,4 @@
-import { registerFallbackCatalog } from '@r10c/entifix-react-controls';
+import { registerFallbackCatalog } from '@entifix/react-controls';
 
 /**
  * An `entity` catalog for this package's own specs.

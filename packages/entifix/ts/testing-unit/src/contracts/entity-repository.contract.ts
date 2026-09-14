@@ -1,10 +1,10 @@
-import type { EntityRepository } from '@r10c/entifix-ts-business';
+import type { EntityRepository } from '@entifix/business';
 import {
   accessor,
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 

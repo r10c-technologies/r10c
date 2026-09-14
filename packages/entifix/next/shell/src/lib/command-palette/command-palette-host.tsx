@@ -1,6 +1,13 @@
 'use client';
 
-import { NEW_COMMAND_PAGE } from '@r10c/business-ts-authz';
+import { NEW_COMMAND_PAGE } from '@entifix/authz';
+import {
+  type CommandOption,
+  type CommandPage,
+  type CommandSource,
+  parseCommandTerm,
+  ROOT_COMMAND_PAGE,
+} from '@entifix/core';
 import {
   Button,
   CommandPalette,
@@ -8,14 +15,7 @@ import {
   ConfirmDialog,
   useHotkey,
   useT,
-} from '@r10c/entifix-react-controls';
-import {
-  type CommandOption,
-  type CommandPage,
-  type CommandSource,
-  parseCommandTerm,
-  ROOT_COMMAND_PAGE,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/react-controls';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -80,7 +80,7 @@ const NO_ENTITIES: readonly UseCaseCommandEntity[] = [];
  * The back office's command palette: its trigger, its shortcuts, and everything
  * it can reach.
  *
- * This is the composition point. The control in `entifix-react-controls` is
+ * This is the composition point. The control in `@entifix/react-controls` is
  * presentational and the sources are hooks; what lives here is the small set of
  * decisions neither can make — which sources a typed prefix asks for, what
  * selecting an option does, and when to ask first.

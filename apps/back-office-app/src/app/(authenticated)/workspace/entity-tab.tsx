@@ -1,8 +1,8 @@
 'use client';
 
-import { screenAddress,type ScreenType } from '@r10c/business-ts-authz';
-import type { EntityCrudSingleViewProps } from '@r10c/shells-next-common';
-import { useEntityDraft, useTabEntityNav } from '@r10c/shells-next-common';
+import { screenAddress,type ScreenType } from '@entifix/authz';
+import type { EntityCrudSingleViewProps } from '@entifix/next-shell';
+import { useEntityDraft, useTabEntityNav } from '@entifix/next-shell';
 import type { ReactElement } from 'react';
 
 /**

@@ -1,11 +1,11 @@
-# @r10c/entifix-ts-posthog-client
+# @entifix/posthog
 
 The PostHog adapter for the product-analytics `Tracker` port
-(`@r10c/entifix-ts-tooling/tracking`). One vendor, two SDKs, two entry points:
+(`@entifix/tooling/tracking`). One vendor, two SDKs, two entry points:
 
-- **`@r10c/entifix-ts-posthog-client`** — `makePostHogTracker(client)` over
+- **`@entifix/posthog`** — `makePostHogTracker(client)` over
   `posthog-node` (backend, server-side events).
-- **`@r10c/entifix-ts-posthog-client/browser`** — `makeBrowserTracker(posthog)`
+- **`@entifix/posthog/browser`** — `makeBrowserTracker(posthog)`
   over `posthog-js` (browser events + sync feature-flag / A-B reads).
 
 Both return a framework-free `Tracker`, provided per environment behind

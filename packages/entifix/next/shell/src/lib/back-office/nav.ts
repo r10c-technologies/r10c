@@ -1,4 +1,4 @@
-import type { ScreenType } from '@r10c/business-ts-authz';
+import type { ScreenType } from '@entifix/authz';
 import type { ReactNode } from 'react';
 
 export interface NavItem {

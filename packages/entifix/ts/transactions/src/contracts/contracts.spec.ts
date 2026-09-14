@@ -1,7 +1,7 @@
 import {
   EntifixBuildError,
   EntifixTransactionError,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

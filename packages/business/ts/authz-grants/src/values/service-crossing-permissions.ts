@@ -1,7 +1,7 @@
 import {
   makeStaticServiceCrossingPolicy,
   type Permission,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
 
 import { ORDER_DOMAIN, PAYMENT_DOMAIN, STOCK_DOMAIN } from './role-permissions';
 

@@ -1,4 +1,4 @@
-import { NEW_COMMAND_PAGE } from '@r10c/business-ts-authz';
+import { NEW_COMMAND_PAGE } from '@entifix/authz';
 
 import { COMMANDS, visibleCommands } from '../src/lib/commands';
 import type { NavPrincipal } from '../src/lib/nav-principal';

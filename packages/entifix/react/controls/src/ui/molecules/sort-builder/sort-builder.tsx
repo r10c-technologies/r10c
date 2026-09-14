@@ -5,7 +5,7 @@ import type {
   EntityFieldDescriptor,
   EntitySorting,
   EntitySortType,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { useCallback, useState } from 'react';
 
 import { useT } from '../../../i18n';

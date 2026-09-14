@@ -73,10 +73,10 @@ so the input the caller controls is not the input that grants anything.
 
 > **Revised 2026-09-08 (#73) — what was built, and where the wording was wrong.**
 > This section said "`TenantContextTag` gains a second provider". That tag was
-> exported by `entifix-ts-business` and **provided by nothing**: every tenant
+> exported by `@entifix/business` and **provided by nothing**: every tenant
 > route in the fleet resolves its handle through `requireOrganization`, which
 > hands the organization to the handler directly. So the second path was built as
-> its sibling — `requireServiceCrossing` in `@r10c/shells-effect-service` — and
+> its sibling — `requireServiceCrossing` in `@entifix/service-shell` — and
 > the two guards are the two providers this section decides on. The never-used
 > tag was deleted rather than left as a documented seam nothing implements, which
 > is the failure the paragraph above names. The decision is untouched: two ways

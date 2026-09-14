@@ -1,15 +1,15 @@
-import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { SalesChannel } from '@r10c/business-ts-sales-management';
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
-import type { Entity } from '@r10c/entifix-ts-core';
+} from '@entifix/business';
+import type { Entity } from '@entifix/core';
+import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { SalesChannel } from '@r10c/business-ts-sales-management';
 import { render, screen, waitFor } from '@testing-library/react';
 import { Context } from 'effect';
 import type { ReactElement } from 'react';

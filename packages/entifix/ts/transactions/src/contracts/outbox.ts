@@ -1,4 +1,4 @@
-import type { DomainEvent, EntifixConnError } from '@r10c/entifix-ts-core';
+import type { DomainEvent, EntifixConnError } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**

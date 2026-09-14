@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-import { defineEntifixE2eConfig } from '@r10c/entifix-ts-testing-e2e/playwright';
+import { defineEntifixE2eConfig } from '@entifix/testing-e2e/playwright';
 
 /**
  * ⚠️ Absolute, because `NODE_OPTIONS` is inherited by **every** node process

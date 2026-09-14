@@ -35,24 +35,24 @@ export interface PackageDeclaration {
  * that does not exist — the register is not allowed to drift in either
  * direction.
  *
- * ⚠️ `business-ts-authz` still carries its old *name* — every name changes at
+ * ⚠️ `@entifix/authz` still carries its old *name* — every name changes at
  * once, later, so the rename is one reviewable commit. Its grant table has
  * already left for `@r10c/business-ts-authz-grants`, and what remains is the
  * vocabulary and the two policy ports.
  */
 export const PACKAGES: readonly PackageDeclaration[] = [
   // T0 — standalone. Nothing below them; each is usable on its own.
-  { name: '@r10c/entifix-style', dir: 'packages/entifix/style', tier: 0 },
+  { name: '@entifix/style', dir: 'packages/entifix/style', tier: 0 },
   {
-    name: '@r10c/entifix-ts-tooling',
+    name: '@entifix/tooling',
     dir: 'packages/entifix/ts/tooling',
     tier: 0,
   },
 
   // T1 — the entity system and the contracts a use case is written against.
-  { name: '@r10c/entifix-ts-core', dir: 'packages/entifix/ts/core', tier: 1 },
+  { name: '@entifix/core', dir: 'packages/entifix/ts/core', tier: 1 },
   {
-    name: '@r10c/entifix-ts-business',
+    name: '@entifix/business',
     dir: 'packages/entifix/ts/business',
     tier: 1,
   },
@@ -61,63 +61,63 @@ export const PACKAGES: readonly PackageDeclaration[] = [
   // installed: `mongodb` and `amqplib` are different answers to "what did this
   // pull in", which is why these are packages rather than subpaths.
   {
-    name: '@r10c/entifix-ts-mongo-client',
+    name: '@entifix/mongo',
     dir: 'packages/entifix/ts/mongo-client',
     tier: 2,
   },
   {
-    name: '@r10c/entifix-ts-sql-client',
+    name: '@entifix/sql',
     dir: 'packages/entifix/ts/sql-client',
     tier: 2,
   },
   {
-    name: '@r10c/entifix-ts-redis-client',
+    name: '@entifix/redis',
     dir: 'packages/entifix/ts/redis-client',
     tier: 2,
   },
   {
-    name: '@r10c/entifix-ts-amqp-client',
+    name: '@entifix/amqp',
     dir: 'packages/entifix/ts/amqp-client',
     tier: 2,
   },
   {
-    name: '@r10c/entifix-ts-rest-client',
+    name: '@entifix/rest',
     dir: 'packages/entifix/ts/rest-client',
     tier: 2,
   },
   {
-    name: '@r10c/entifix-transactions',
+    name: '@entifix/transactions',
     dir: 'packages/entifix/ts/transactions',
     tier: 2,
   },
   {
-    name: '@r10c/entifix-ts-jwt-client',
+    name: '@entifix/jwt',
     dir: 'packages/entifix/ts/jwt-client',
     tier: 2,
   },
   {
-    name: '@r10c/entifix-ts-zitadel-client',
+    name: '@entifix/zitadel',
     dir: 'packages/entifix/ts/zitadel-client',
     tier: 2,
   },
   {
-    name: '@r10c/entifix-ts-posthog-client',
+    name: '@entifix/posthog',
     dir: 'packages/entifix/ts/posthog-client',
     tier: 2,
   },
   // The i18next binding of the translator seam — an adapter to an external
   // library exactly as the datastore clients are, which is why it is not T0.
-  { name: '@r10c/entifix-ts-i18n', dir: 'packages/entifix/ts/i18n', tier: 2 },
+  { name: '@entifix/i18n', dir: 'packages/entifix/ts/i18n', tier: 2 },
 
   // T3 — the agnostic UI. Adoptable without T0: a table must not arrive with
   // i18next and a Spanish catalog attached.
   {
-    name: '@r10c/entifix-react-controls',
+    name: '@entifix/react-controls',
     dir: 'packages/entifix/react/controls',
     tier: 3,
   },
   {
-    name: '@r10c/entifix-react-integration',
+    name: '@entifix/react-integration',
     dir: 'packages/entifix/react/integration',
     tier: 3,
   },
@@ -125,34 +125,34 @@ export const PACKAGES: readonly PackageDeclaration[] = [
   // T4 — the application framework: the authorization vocabulary and the two
   // shells that serve and render an entity.
   {
-    name: '@r10c/business-ts-authz',
+    name: '@entifix/authz',
     dir: 'packages/entifix/ts/authz',
     tier: 4,
   },
   {
-    name: '@r10c/shells-effect-service',
+    name: '@entifix/service-shell',
     dir: 'packages/entifix/effect/service-shell',
     tier: 4,
   },
   {
-    name: '@r10c/shells-next-common',
+    name: '@entifix/next-shell',
     dir: 'packages/entifix/next/shell',
     tier: 4,
   },
   {
-    name: '@r10c/shells-next-i18n',
+    name: '@entifix/next-i18n',
     dir: 'packages/entifix/next/i18n',
     tier: 4,
   },
 
   // T5 — testing. Above everything because a double may impersonate anything.
   {
-    name: '@r10c/entifix-ts-testing-unit',
+    name: '@entifix/testing-unit',
     dir: 'packages/entifix/ts/testing-unit',
     tier: 5,
   },
   {
-    name: '@r10c/entifix-ts-testing-e2e',
+    name: '@entifix/testing-e2e',
     dir: 'packages/entifix/ts/testing-e2e',
     tier: 5,
   },
@@ -160,7 +160,7 @@ export const PACKAGES: readonly PackageDeclaration[] = [
   // provider — by replacing the token and policy ports, never by opening the
   // route. `type:testing`, because its token service trusts every token.
   {
-    name: '@r10c/entifix-ts-testing-auth',
+    name: '@entifix/testing-auth',
     dir: 'packages/entifix/ts/testing-auth',
     tier: 5,
   },
@@ -199,17 +199,17 @@ export interface OptionalCapability {
  */
 export const OPTIONAL_CAPABILITIES: readonly OptionalCapability[] = [
   {
-    name: '@r10c/entifix-ts-i18n',
+    name: '@entifix/i18n',
     optionalFor: [1, 2, 3],
     otherwiseInstalls: 'i18next, react-i18next and a Spanish catalog',
   },
   {
-    name: '@r10c/entifix-transactions',
+    name: '@entifix/transactions',
     optionalFor: [2],
     otherwiseInstalls: 'the transactional outbox and the saga engine',
     except: [
       {
-        name: '@r10c/entifix-ts-rest-client',
+        name: '@entifix/rest',
         because:
           'the REST save adapter writes `makeCommandEnvelope` onto the wire ' +
           'and reads `readTransactionAcceptedEnvelope` back, which is the ' +
@@ -221,17 +221,17 @@ export const OPTIONAL_CAPABILITIES: readonly OptionalCapability[] = [
     ],
   },
   {
-    name: '@r10c/entifix-ts-mongo-client',
+    name: '@entifix/mongo',
     optionalFor: [5],
     otherwiseInstalls: 'the `mongodb` driver',
   },
   {
-    name: '@r10c/entifix-ts-redis-client',
+    name: '@entifix/redis',
     optionalFor: [5],
     otherwiseInstalls: 'the `ioredis` driver',
   },
   {
-    name: '@r10c/entifix-ts-amqp-client',
+    name: '@entifix/amqp',
     optionalFor: [5],
     otherwiseInstalls: 'the `amqplib` driver',
   },

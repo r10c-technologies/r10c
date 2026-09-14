@@ -2,7 +2,7 @@ import {
   baseTest as test,
   expect,
   seedSession,
-} from '@r10c/entifix-ts-testing-e2e/playwright';
+} from '@entifix/testing-e2e/playwright';
 
 /**
  * The account surface's edge behaviour.

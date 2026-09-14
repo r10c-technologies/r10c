@@ -1,19 +1,19 @@
 'use client';
 
-import { Agreement } from '@r10c/business-ts-settlement-management';
-import {
-  useEntityMutation,
-  useEntityRecord,
-} from '@r10c/entifix-react-integration';
 import {
   type ConfigurationRepositoryTag,
   deleteUCFactory,
   type EntityRepositoryTag,
   getUCFactory,
   saveUCFactory,
-} from '@r10c/entifix-ts-business';
-import type { EntityCrudSingleViewProps } from '@r10c/shells-next-common';
-import { useLocaleHref } from '@r10c/shells-next-common';
+} from '@entifix/business';
+import type { EntityCrudSingleViewProps } from '@entifix/next-shell';
+import { useLocaleHref } from '@entifix/next-shell';
+import {
+  useEntityMutation,
+  useEntityRecord,
+} from '@entifix/react-integration';
+import { Agreement } from '@r10c/business-ts-settlement-management';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 

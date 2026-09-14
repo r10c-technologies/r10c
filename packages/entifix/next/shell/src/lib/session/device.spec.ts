@@ -1,4 +1,4 @@
-import { DEVICE_COOKIE } from '@r10c/entifix-ts-core';
+import { DEVICE_COOKIE } from '@entifix/core';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { describe, expect, it } from 'vitest';

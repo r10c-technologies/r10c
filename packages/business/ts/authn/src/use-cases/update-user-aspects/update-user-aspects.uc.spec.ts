@@ -1,5 +1,5 @@
-import type { Role } from '@r10c/business-ts-authz';
-import { EntifixLogicError } from '@r10c/entifix-ts-core';
+import type { Role } from '@entifix/authz';
+import { EntifixLogicError } from '@entifix/core';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 

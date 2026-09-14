@@ -29,7 +29,7 @@ stock is a crossing rather than an act a session performs. So "the seller may
 write an order" was never available as an answer.
 
 **A Next server action can carry a session cookie and cannot verify one.** The
-only session readers in `shells-next-common` are `sessionToken` and
+only session readers in `@entifix/next-shell` are `sessionToken` and
 `bearerHeader`, which forward a token and check nothing, plus the nav's
 `unverifiedClaims`, which reads the cookie *without checking its signature* and
 is documented as never a decision.

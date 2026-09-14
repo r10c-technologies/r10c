@@ -1,4 +1,4 @@
-import { type Permission, type Role } from '@r10c/business-ts-authz';
+import { type Permission, type Role } from '@entifix/authz';
 
 /**
  * Entity domains referenced by the grant table. They mirror the `domain` passed

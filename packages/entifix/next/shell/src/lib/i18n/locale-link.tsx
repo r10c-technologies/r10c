@@ -1,7 +1,7 @@
 'use client';
 
-import { useLocale } from '@r10c/entifix-react-controls';
-import { type Locale, localeHref, splitLocalePath } from '@r10c/entifix-ts-core';
+import { type Locale, localeHref, splitLocalePath } from '@entifix/core';
+import { useLocale } from '@entifix/react-controls';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentPropsWithoutRef } from 'react';

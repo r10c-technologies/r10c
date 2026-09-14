@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { EntifixConnError } from '@entifix/core';
 import type * as amqp from 'amqplib';
 import { Cause, Effect, Exit, Option } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

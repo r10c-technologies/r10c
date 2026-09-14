@@ -3,7 +3,7 @@ import {
   type EntifixError,
   type EntityId,
   readEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 import type { TransactionEvent, TransactionState } from './event';

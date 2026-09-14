@@ -109,7 +109,11 @@ describe('Dependencies point down, or sideways within a tier', () => {
     for (const pkg of PACKAGES) {
       const manifest = readManifest(pkg.dir);
       for (const dep of Object.keys(manifest.dependencies ?? {})) {
-        if (!dep.startsWith('@r10c/') || byName.has(dep)) continue;
+        if (
+          !(dep.startsWith('@r10c/') || dep.startsWith('@entifix/')) ||
+          byName.has(dep)
+        )
+          continue;
         foreign.push(`${pkg.name} depends on ${dep}`);
       }
     }

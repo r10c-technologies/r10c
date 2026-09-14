@@ -1,9 +1,9 @@
-import { EntityIdTag, EntityTag } from '@r10c/entifix-ts-business';
+import { EntityIdTag, EntityTag } from '@entifix/business';
 import {
   EntifixError,
   type Entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context, Effect } from 'effect';
 import { useCallback, useReducer } from 'react';
 

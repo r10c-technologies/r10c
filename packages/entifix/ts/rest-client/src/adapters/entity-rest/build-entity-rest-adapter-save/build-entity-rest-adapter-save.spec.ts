@@ -1,12 +1,10 @@
-import type { PendingTransaction } from '@r10c/entifix-transactions';
-import { TransactionSinkTag } from '@r10c/entifix-transactions';
 import {
   accessor,
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
-import { stubUriConfigurationLayer } from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/core';
+import { stubUriConfigurationLayer } from '@entifix/testing-unit';
 import {
   entityRestHandlers,
   http,
@@ -14,7 +12,9 @@ import {
   respondWith500,
   respondWithMalformedEnvelope,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
+import type { PendingTransaction } from '@entifix/transactions';
+import { TransactionSinkTag } from '@entifix/transactions';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 

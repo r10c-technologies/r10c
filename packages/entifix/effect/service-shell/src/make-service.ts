@@ -10,7 +10,7 @@ import {
   ShutdownRegistryTag,
   WiringRegistryLayer,
   WiringRegistryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import { Effect, Layer } from 'effect';
 
 import { withHealthRoutes } from './health-routes.js';
@@ -146,7 +146,7 @@ export const makeService = <E, R>(def: ServiceDefinition<E, R>): void => {
 
   // `disablePrettyLogger` keeps `runMain` from swapping Effect's `defaultLogger`
   // for `prettyLoggerDefault`. A service that replaces `defaultLogger` (e.g. to
-  // route logs through `@r10c/entifix-ts-tooling`) needs it present to replace;
+  // route logs through `@entifix/tooling`) needs it present to replace;
   // services that don't simply keep the structured default logger.
   NodeRuntime.runMain(
     Layer.launch(makeServerLayer(def, def.port, shutdown.registry)),

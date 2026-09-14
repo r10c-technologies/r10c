@@ -3,12 +3,12 @@ import {
   deleteUCFactory,
   EntityRepositoryTag,
   saveUCFactory,
-} from '@r10c/entifix-ts-business';
-import { EntifixConnError, type Entity } from '@r10c/entifix-ts-core';
+} from '@entifix/business';
+import { EntifixConnError, type Entity } from '@entifix/core';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
 import { act, renderHook } from '@testing-library/react';
 import { Context } from 'effect';
 import { beforeEach, describe, expect, it } from 'vitest';

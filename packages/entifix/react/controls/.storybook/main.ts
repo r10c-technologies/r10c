@@ -10,7 +10,7 @@ import type { StorybookConfig } from '@storybook/react-vite';
  * Stories **do** instantiate decorated entities — `EntityTable`, `EntityForm`
  * and `EntityLinkInput` build themselves from metadata, so there is no way to
  * show them without one. The default React-Vite transform handles the stage-3
- * decorators, and `Symbol.metadata` is polyfilled by `entifix-ts-core` itself on
+ * decorators, and `Symbol.metadata` is polyfilled by `@entifix/core` itself on
  * first import, so no SWC pass is needed here (unlike the Vitest config, which
  * runs one for the spec files). `nx build-storybook` runs in CI precisely
  * because that arrangement is load-bearing and nothing else checks it.
@@ -24,6 +24,7 @@ const config: StorybookConfig = {
     viteConfig.resolve ??= {};
     viteConfig.resolve.conditions = [
       '@r10c/source',
+      '@entifix/source',
       ...(viteConfig.resolve.conditions ?? [
         'browser',
         'module',

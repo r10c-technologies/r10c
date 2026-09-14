@@ -6,7 +6,7 @@ import {
   type EntityAction,
   type EntityId,
   type EntitySelection,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 
@@ -15,7 +15,7 @@ import { EntityTable } from './entity-table';
 /**
  * A decorated fixture, because the table builds itself from metadata — there is
  * no way to show it without an entity. The `Symbol.metadata` polyfill installs
- * itself on the first import from `@r10c/entifix-ts-core`, so nothing else is
+ * itself on the first import from `@entifix/core`, so nothing else is
  * needed to make the decorators work here.
  */
 @entity({ key: 'story-widget' })

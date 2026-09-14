@@ -4,19 +4,19 @@ import {
   HttpServerResponse,
 } from '@effect/platform';
 import {
+  EntifixConnError,
+  EntifixLogicError,
+  envelopeEntityName,
+  makeEntityEnvelope,
+} from '@entifix/core';
+import { MongoDatabaseTag } from '@entifix/mongo';
+import type { RequestPrincipal } from '@entifix/service-shell';
+import {
   CancelProductOrderUC,
   MULTI_VENDOR_ORDER,
   ORDER_NOT_CANCELLABLE,
   ProductOrder,
 } from '@r10c/business-ts-order-management';
-import {
-  EntifixConnError,
-  EntifixLogicError,
-  envelopeEntityName,
-  makeEntityEnvelope,
-} from '@r10c/entifix-ts-core';
-import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
-import type { RequestPrincipal } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
 import {

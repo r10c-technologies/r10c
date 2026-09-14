@@ -1,4 +1,4 @@
-// Server-only surface, published as `@r10c/shells-next-common/server`.
+// Server-only surface, published as `@entifix/next-shell/server`.
 //
 // It stays a separate entry so route handlers and cookie helpers are never
 // reached through the client surface: stamped as client modules they would

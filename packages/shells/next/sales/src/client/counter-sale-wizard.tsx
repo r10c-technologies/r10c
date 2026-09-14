@@ -1,7 +1,21 @@
 'use client';
 
-import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { SalesChannel } from '@r10c/business-ts-sales-management';
+import { loadUCFactory } from '@entifix/business';
+import {
+  assertWizardDefinition,
+  emptyWizardState,
+  type EntityRowDraft,
+  newRowKey,
+  readStepDraft,
+  readStepIds,
+  ROW_KEY,
+  type WizardDefinition,
+} from '@entifix/core';
+import {
+  useFollowWizardStepUrl,
+  useWizardDraft,
+  useWizardStepUrl,
+} from '@entifix/next-shell';
 import {
   Button,
   Card,
@@ -12,24 +26,10 @@ import {
   TextInput,
   useTranslateKey,
   Wizard,
-} from '@r10c/entifix-react-controls';
-import { useDataLoading } from '@r10c/entifix-react-integration';
-import { loadUCFactory } from '@r10c/entifix-ts-business';
-import {
-  assertWizardDefinition,
-  emptyWizardState,
-  type EntityRowDraft,
-  newRowKey,
-  readStepDraft,
-  readStepIds,
-  ROW_KEY,
-  type WizardDefinition,
-} from '@r10c/entifix-ts-core';
-import {
-  useFollowWizardStepUrl,
-  useWizardDraft,
-  useWizardStepUrl,
-} from '@r10c/shells-next-common';
+} from '@entifix/react-controls';
+import { useDataLoading } from '@entifix/react-integration';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { SalesChannel } from '@r10c/business-ts-sales-management';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { COUNTER_SALE_SURFACE } from '../sales-surfaces';

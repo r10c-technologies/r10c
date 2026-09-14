@@ -5,7 +5,7 @@ import {
   EntityFilterRangeOperators,
   EntityFilterStringOperators,
   type MetaAccessorType,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 export type EntityFilterOperator =
   | (typeof EntityFilterBinaryOperators)[number]
@@ -19,7 +19,7 @@ export type EntityFilterOperator =
  * key share a shape by construction, so adding an operator cannot leave a label
  * behind: `controls.operator` is typed, and a missing entry fails to compile.
  *
- * Not to be confused with `RSQL_TOKENS` in `entifix-ts-core` — those are wire
+ * Not to be confused with `RSQL_TOKENS` in `@entifix/core` — those are wire
  * tokens (`==`, `=gt=`) and are never translated.
  */
 export function operatorLabelKey(

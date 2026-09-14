@@ -1,4 +1,4 @@
-import { resolveLocale } from '@r10c/shells-next-i18n';
+import { resolveLocale } from '@entifix/next-i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 
 /**

@@ -1,6 +1,6 @@
-import { permissionForUseCase } from '@r10c/business-ts-authz';
-import { SessionStoreTag } from '@r10c/entifix-ts-business';
-import { type EntityId, useCase } from '@r10c/entifix-ts-core';
+import { permissionForUseCase } from '@entifix/authz';
+import { SessionStoreTag } from '@entifix/business';
+import { type EntityId, useCase } from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 import { UserIdentity } from '../../entities/user-identity';

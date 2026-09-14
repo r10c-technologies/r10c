@@ -2,7 +2,7 @@ import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import {
   HealthRegistryTag,
   WiringRegistryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it } from 'vitest';
 

@@ -24,7 +24,7 @@
   logs, no OTel dependency and no `logging.*`/`otel.*` seed row — so half the
   fleet was invisible in Grafana, including every sign-in and every fleet
   configuration read. All four services are now instrumented, and the layer
-  factory they share moved out of the apps into `@r10c/shells-effect-service`;
+  factory they share moved out of the apps into `@entifix/service-shell`;
   it had been a byte-identical 351-line copy in two of them, under an "edit
   both" instruction, with only one copy under a test project. Composition is
   unchanged — each service still merges the layer into its own `AppLayer`. No
@@ -77,7 +77,7 @@ provider was left open during design and then settled.
 
 ### Logging package
 
-- **`@r10c/entifix-ts-tooling`** — a framework-free leaf built on the OTel
+- **`@entifix/tooling`** — a framework-free leaf built on the OTel
   standard (not an Effect wrap, so it serves Effect backends, the Next server,
   and the browser from one package). Two independent subpath modules:
   `/logging` (leveled `createLogger` over a pluggable `LogSink`; stamps service,
@@ -93,7 +93,7 @@ provider was left open during design and then settled.
 ### Product analytics + A/B
 
 - **PostHog** (analytics + feature flags + experiments in one SDK; generous free
-  tier). Adapter package **`@r10c/entifix-ts-posthog-client`**
+  tier). Adapter package **`@entifix/posthog`**
   (`posthog-node` + `posthog-js`/`browser`) implements the `Tracker` port,
   provided per environment behind `TrackerTag` (Effect `Context.Tag`, business
   layer) — the same adapter-per-environment shape as REST vs Mongo behind
@@ -119,8 +119,8 @@ provider was left open during design and then settled.
 
 ## What shipped in iteration 1
 
-- `@r10c/entifix-ts-tooling` (`/logging` real, `/tracking` interface + stub).
-- `@r10c/entifix-ts-posthog-client` (adapter built + tested, not yet wired into a
+- `@entifix/tooling` (`/logging` real, `/tracking` interface + stub).
+- `@entifix/posthog` (adapter built + tested, not yet wired into a
   running app).
 - `grafana/otel-lgtm` in `infra/local` (NodePorts 30000 Grafana, 30317/30318
   OTLP); config-service seed rows for `marketplace-admin-service`.

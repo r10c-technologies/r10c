@@ -1,10 +1,10 @@
+import { makeStubConfigurationClient } from '@entifix/testing-unit';
+import type { LogRecord } from '@entifix/tooling/logging';
 import {
   DataPointType,
   type MetricData,
   type SumMetricData,
 } from '@opentelemetry/sdk-metrics';
-import { makeStubConfigurationClient } from '@r10c/entifix-ts-testing-unit';
-import type { LogRecord } from '@r10c/entifix-ts-tooling/logging';
 import {
   Cause,
   Effect,

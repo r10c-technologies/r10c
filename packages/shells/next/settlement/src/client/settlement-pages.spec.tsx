@@ -1,19 +1,19 @@
 import {
+  ConfigurationRepositoryTag,
+  EntityRepositoryTag,
+} from '@entifix/business';
+import { EntifixConnError, type Entity } from '@entifix/core';
+import { EntifixQueryProvider } from '@entifix/react-integration';
+import {
+  makeInMemoryEntityRepository,
+  makeStubConfigurationClient,
+} from '@entifix/testing-unit';
+import {
   Agreement,
   CommissionEntry,
   SettlementRun,
   VendorPayout,
 } from '@r10c/business-ts-settlement-management';
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
-import {
-  ConfigurationRepositoryTag,
-  EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
-import { EntifixConnError, type Entity } from '@r10c/entifix-ts-core';
-import {
-  makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Context } from 'effect';
 import type { ReactElement } from 'react';

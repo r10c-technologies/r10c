@@ -64,7 +64,7 @@ export const tierTagCount = (manifest: Manifest): number =>
 /** Workspace dependencies only — the `@r10c/*` edges, not the npm ones. */
 export const workspaceDependencies = (manifest: Manifest): string[] =>
   Object.keys(manifest.dependencies ?? {}).filter(name =>
-    name.startsWith('@r10c/'),
+    name.startsWith('@r10c/') || name.startsWith('@entifix/'),
   );
 
 export const declaresOptionalPeer = (

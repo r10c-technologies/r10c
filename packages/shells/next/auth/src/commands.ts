@@ -1,9 +1,9 @@
-import { UserIdentity } from '@r10c/business-ts-authn';
 import {
   type GuardedCommand,
   NEW_COMMAND_PAGE,
   permissionForEntity,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
+import { UserIdentity } from '@r10c/business-ts-authn';
 
 /**
  * This shell's contribution to a host's command palette, beside `AUTH_NAV`.

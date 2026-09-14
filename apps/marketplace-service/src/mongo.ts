@@ -1,34 +1,34 @@
+import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
+import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
+import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
+} from '@entifix/authz';
+import {
+  ConfigurationRepositoryTag,
+  TokenServiceTag,
+} from '@entifix/business';
+import { ConfigurationClientInMemory } from '@entifix/core';
+import { makeJoseTokenService } from '@entifix/jwt';
+import {
+  MongoDatabaseLayer,
+  MongoHealthProbeLayer,
+} from '@entifix/mongo';
+import {
+  LoadedConfigurationTag,
+  loadRemoteConfiguration,
+  observabilityFromConfiguration,
+} from '@entifix/service-shell';
+import { EventSourceTag } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
 import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@r10c/business-ts-authz';
-import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
-import { EventSourceTag } from '@r10c/entifix-transactions';
-import { AmqpHealthProbeLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
-import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client/transactions';
-import {
-  ConfigurationRepositoryTag,
-  TokenServiceTag,
-} from '@r10c/entifix-ts-business';
-import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
-import {
-  MongoDatabaseLayer,
-  MongoHealthProbeLayer,
-} from '@r10c/entifix-ts-mongo-client';
-import {
-  LoadedConfigurationTag,
-  loadRemoteConfiguration,
-  observabilityFromConfiguration,
-} from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
 import { startProjecting } from './projection/publish-catalog';

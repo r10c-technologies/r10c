@@ -1,11 +1,11 @@
 'use client';
 
+import { splitLocalePath } from '@entifix/core';
 import {
   type BreadcrumbItem,
   Breadcrumbs,
   useT,
-} from '@r10c/entifix-react-controls';
-import { splitLocalePath } from '@r10c/entifix-ts-core';
+} from '@entifix/react-controls';
 import { usePathname } from 'next/navigation';
 
 import { LocaleLink } from '../i18n';

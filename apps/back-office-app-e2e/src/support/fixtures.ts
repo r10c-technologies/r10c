@@ -1,4 +1,14 @@
 import {
+  configurationHandler,
+  entityBackendHandlers,
+  http,
+  HttpResponse,
+} from '@entifix/testing-e2e/fixtures';
+import {
+  defineEntifixE2eTest,
+  seedSession,
+} from '@entifix/testing-e2e/playwright';
+import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
@@ -15,16 +25,6 @@ import {
   StockItem,
   StockMovement,
 } from '@r10c/business-ts-stock-management';
-import {
-  configurationHandler,
-  entityBackendHandlers,
-  http,
-  HttpResponse,
-} from '@r10c/entifix-ts-testing-e2e/fixtures';
-import {
-  defineEntifixE2eTest,
-  seedSession,
-} from '@r10c/entifix-ts-testing-e2e/playwright';
 
 import { brandSeed, categorySeed, productSeed } from './catalog-seed';
 import { salesChannelSeed } from './sales-seed';

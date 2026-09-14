@@ -6,7 +6,7 @@ import {
   type Entity,
   type EntityId,
   type EntitySelection,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { useCallback, useState } from 'react';
 
 /**

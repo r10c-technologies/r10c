@@ -1,7 +1,7 @@
-import type { PolicyDecision } from '@r10c/business-ts-authz';
-import { PolicyDecisionTag } from '@r10c/business-ts-authz';
-import type { TokenClaims, TokenService } from '@r10c/entifix-ts-business';
-import { TokenServiceTag } from '@r10c/entifix-ts-business';
+import type { PolicyDecision } from '@entifix/authz';
+import { PolicyDecisionTag } from '@entifix/authz';
+import type { TokenClaims, TokenService } from '@entifix/business';
+import { TokenServiceTag } from '@entifix/business';
 import { Effect, Layer } from 'effect';
 
 import { STUB_CLAIMS, stubAccessToken } from './stub-principal';

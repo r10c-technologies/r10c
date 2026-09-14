@@ -1,12 +1,12 @@
 {
-  "name": "@r10c/entifix-ts-testing-auth",
+  "name": "@entifix/testing-auth",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "default": "./src/index.ts"
     }
   },
@@ -16,9 +16,9 @@
     "targets": {}
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*"
+    "@entifix/authz": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*"
   },
   "peerDependencies": {
     "effect": ">=3.22 <4"

@@ -26,7 +26,7 @@ const jiti = createJiti(import.meta.url);
  *
  * ⚠️ **Composed here from the catalog files, not imported from
  * `@r10c/i18n-catalog`.** That barrel merges in the framework's namespaces by
- * importing `@r10c/entifix-react-controls` and `@r10c/shells-next-common` —
+ * importing `@entifix/react-controls` and `@entifix/next-shell` —
  * React components, Tailwind classes, `next` — and a parity check has no reason
  * to load any of it. Since ADR 0059 each namespace lives with its owner, so
  * the list below is also the list of owners.

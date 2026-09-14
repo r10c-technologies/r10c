@@ -1,10 +1,10 @@
+import { ConfigurationRepositoryTag } from '@entifix/business';
+import type { EntifixError } from '@entifix/core';
 import {
   readTransactionRecordEnvelope,
   type TransactionRecord,
   type TransactionStatusReader,
-} from '@r10c/entifix-transactions';
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
-import type { EntifixError } from '@r10c/entifix-ts-core';
+} from '@entifix/transactions';
 import { Effect } from 'effect';
 
 import { performHttpRequestThroughFetch } from '../../../clients/fetch';

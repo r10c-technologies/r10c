@@ -1,4 +1,4 @@
-import type { TransactionState } from '@r10c/entifix-transactions';
+import type { TransactionState } from '@entifix/transactions';
 import { Effect, Metric } from 'effect';
 
 /**

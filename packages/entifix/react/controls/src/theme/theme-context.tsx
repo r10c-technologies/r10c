@@ -32,7 +32,7 @@ export interface ThemeProviderProps extends PropsWithChildren {
 
 /**
  * Applies the active palette by writing `data-theme` on <html> and persisting
- * the choice. Static palette VALUES live in CSS (@r10c/entifix-style presets or
+ * the choice. Static palette VALUES live in CSS (@entifix/style presets or
  * an app-local themes.css); this flips the selector. Dynamic palettes passed via
  * `palettes` are injected at runtime under the same `data-theme` mechanism.
  */

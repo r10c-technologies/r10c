@@ -1,6 +1,6 @@
 'use client';
 
-import { EntityIdTag, EntityLoadRequestTag } from '@r10c/entifix-ts-business';
+import { EntityIdTag, EntityLoadRequestTag } from '@entifix/business';
 import {
   describeEntityColumns,
   type EntifixError,
@@ -9,7 +9,7 @@ import {
   type EntityLinkSource,
   type EntityLoadRequest,
   type EntityPage,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { useQuery } from '@tanstack/react-query';
 import { Context, Effect } from 'effect';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -57,9 +57,9 @@ function assertSearchable<TTarget extends Entity>(
  * type-ahead, the browse list, and the label of whatever key is currently held.
  *
  * This is the data half of the link mechanism. It exists as a hook — rather than
- * inside the input — because `entifix-react-controls` may not import this package
+ * inside the input — because `@entifix/react-controls` may not import this package
  * (both are `entifix:react`, and the boundary rule forbids the sideways edge), so
- * the two meet at the framework-free port declared in `entifix-ts-core`. A form
+ * the two meet at the framework-free port declared in `@entifix/core`. A form
  * wrapper calls it once per relation and hands the results to `EntityForm`'s
  * `linkSources`.
  *

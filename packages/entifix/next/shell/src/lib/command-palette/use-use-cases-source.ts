@@ -1,12 +1,6 @@
 'use client';
 
 import {
-  useCasesForSurface,
-  useT,
-  useTranslateKey,
-} from '@r10c/entifix-react-controls';
-import { useEntityUseCases } from '@r10c/entifix-react-integration';
-import {
   type CommandOption,
   type CommandSource,
   EntifixLogicError,
@@ -16,7 +10,13 @@ import {
   envelopeEntityName,
   matchesCommand,
   parseKeywords,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import {
+  useCasesForSurface,
+  useT,
+  useTranslateKey,
+} from '@entifix/react-controls';
+import { useEntityUseCases } from '@entifix/react-integration';
 import { useMemo } from 'react';
 
 /** How a declared verb is actually carried out, keyed by the verb. */

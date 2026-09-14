@@ -7,7 +7,7 @@ import {
   useT,
   useUiPreference,
   useViewportMode,
-} from '@r10c/entifix-react-controls';
+} from '@entifix/react-controls';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useState } from 'react';
 

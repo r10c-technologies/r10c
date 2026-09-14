@@ -1,7 +1,7 @@
 'use client';
 
-import { useUiPreference } from '@r10c/entifix-react-controls';
-import type { CommandGroup } from '@r10c/entifix-ts-core';
+import type { CommandGroup } from '@entifix/core';
+import { useUiPreference } from '@entifix/react-controls';
 import { useCallback, useMemo } from 'react';
 
 /** `namespace:` is prepended by the store → `entifix-ui:back-office:command-recency`. */

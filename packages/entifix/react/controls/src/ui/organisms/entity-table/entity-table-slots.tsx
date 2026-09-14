@@ -1,4 +1,4 @@
-import type { Entity, MetaAccessorType } from '@r10c/entifix-ts-core';
+import type { Entity, MetaAccessorType } from '@entifix/core';
 import { Children, isValidElement, type ReactNode } from 'react';
 
 import type { EntityTableColumn } from './entity-table.types';

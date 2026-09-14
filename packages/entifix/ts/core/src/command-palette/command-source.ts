@@ -3,7 +3,7 @@
  *
  * The same contract `EntityLinkSource` is, and for the same boundary reason: the
  * hooks that fetch live in the shell layer, the component that renders lives in
- * `entifix-react-controls`, and those two may not import each other. It carries
+ * `@entifix/react-controls`, and those two may not import each other. It carries
  * no Effect, no React and no router — a source hands over resolved copy and a
  * thunk, never a key and never a `push()`.
  */

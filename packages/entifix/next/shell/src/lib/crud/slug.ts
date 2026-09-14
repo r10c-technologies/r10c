@@ -1,4 +1,4 @@
-import type { EntityId } from '@r10c/entifix-ts-core';
+import type { EntityId } from '@entifix/core';
 
 /**
  * The `[slug]` value that means "create" rather than an existing record, as in

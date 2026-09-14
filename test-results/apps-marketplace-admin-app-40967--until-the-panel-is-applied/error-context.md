@@ -25,7 +25,7 @@ Call log:
   2   | import {
   3   |   EntityTablePage,
   4   |   type NetworkFixture,
-  5   | } from '@r10c/entifix-ts-testing-e2e/playwright';
+  5   | } from '@entifix/testing-e2e/playwright';
   6   | import { http, HttpResponse } from 'msw';
   7   | 
   8   | import { BRAND_URL, expect, test } from './support/fixtures';

@@ -11,7 +11,7 @@ import {
   type EntityFiltering,
   type EntitySorting,
   type FilterGroup,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 /** SQL comparison for each binary operator. Fixed strings, never user input. */
 const BINARY_OPERATORS: Record<EntityFilterBinaryOperator, string> = {

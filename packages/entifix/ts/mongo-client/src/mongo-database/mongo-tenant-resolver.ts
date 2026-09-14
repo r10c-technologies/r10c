@@ -1,5 +1,5 @@
-import type { TenantDatabaseResolver } from '@r10c/entifix-ts-business';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import type { TenantDatabaseResolver } from '@entifix/business';
+import { EntifixConnError } from '@entifix/core';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

@@ -1,14 +1,14 @@
 'use client';
 
-import { Configuration } from '@r10c/business-ts-configuration';
+import { type EntifixError, readDraftString } from '@entifix/core';
 import {
   EntityField,
   EntityForm,
   TextInput,
   useT,
-} from '@r10c/entifix-react-controls';
-import { useEntityForm } from '@r10c/entifix-react-integration';
-import { type EntifixError, readDraftString } from '@r10c/entifix-ts-core';
+} from '@entifix/react-controls';
+import { useEntityForm } from '@entifix/react-integration';
+import { Configuration } from '@r10c/business-ts-configuration';
 
 export interface ConfigurationFormProps {
   entity?: Configuration;

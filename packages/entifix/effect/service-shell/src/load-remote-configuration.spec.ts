@@ -1,12 +1,12 @@
 import {
   ConfigurationClientInMemory,
   EntifixConnError,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   http,
   HttpResponse,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
 import { Context, Effect, Schedule } from 'effect';
 import { describe, expect, it } from 'vitest';
 

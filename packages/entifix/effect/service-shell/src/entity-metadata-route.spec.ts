@@ -2,8 +2,8 @@ import { HttpRouter } from '@effect/platform';
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
-import { type TokenClaims, TokenServiceTag } from '@r10c/entifix-ts-business';
+} from '@entifix/authz';
+import { type TokenClaims, TokenServiceTag } from '@entifix/business';
 import {
   accessor,
   EntifixBuildError,
@@ -11,7 +11,7 @@ import {
   entity,
   type EntityId,
   useCase,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect, Layer } from 'effect';
 
 import { entityMetadataRoute } from './entity-metadata-route.js';

@@ -2,8 +2,8 @@ import {
   type GuardedCommand,
   NEW_COMMAND_PAGE,
   permissionForEntity,
-} from '@r10c/business-ts-authz';
-import { CATALOG_NEW_SLUG } from '@r10c/shells-next-common/server';
+} from '@entifix/authz';
+import { CATALOG_NEW_SLUG } from '@entifix/next-shell/server';
 
 import { MARKETPLACE_ADMIN_CATALOG_SURFACES } from './catalog-surfaces';
 

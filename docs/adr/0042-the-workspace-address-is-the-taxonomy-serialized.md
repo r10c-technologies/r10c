@@ -48,10 +48,10 @@ screen with and without a record, which is what the optional id says.
 grammar. `TabRegistry` is untouched: it is generic over `kind` strings and never
 encoded these three itself.
 
-### The builder lives in `business-ts-authz`
+### The builder lives in `@entifix/authz`
 
-Beside `screen-type.ts`, not in `shells-next-common`. Not for a boundary reason —
-`shells-next-common` is `shell:base` and every consumer may reach it — but
+Beside `screen-type.ts`, not in `@entifix/next-shell`. Not for a boundary reason —
+`@entifix/next-shell` is `shell:base` and every consumer may reach it — but
 because the address **is** `ScreenType` serialized, and because every `nav.ts`
 (marketplace-admin, auth, system-management) is a plain data module importing only
 this package. Putting the builder anywhere else means a nav file pulls in a

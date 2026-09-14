@@ -4,7 +4,7 @@ import { HttpServerRequest, HttpServerResponse } from '@effect/platform';
 import {
   type Permission,
   ServiceCrossingPolicyTag,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
 import { Context, Effect } from 'effect';
 
 /**

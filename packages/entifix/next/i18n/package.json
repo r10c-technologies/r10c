@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/shells-next-i18n",
+  "name": "@entifix/next-i18n",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,13 +8,13 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./server": {
-      "@r10c/source": "./src/server.ts",
+      "@entifix/source": "./src/server.ts",
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js",
       "default": "./dist/server.js"
@@ -49,9 +49,9 @@
     }
   },
   "dependencies": {
-    "@r10c/entifix-ts-i18n": "workspace:*",
+    "@entifix/i18n": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "@r10c/entifix-ts-core": "workspace:*"
+    "@entifix/core": "workspace:*"
   },
   "peerDependencies": {
     "next": ">=16",

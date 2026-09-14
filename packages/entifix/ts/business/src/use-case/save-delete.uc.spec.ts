@@ -2,7 +2,7 @@ import type {
   ConfigurationClient,
   Entity,
   EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 import { ConfigurationRepositoryTag } from '../repository/config.repository.js';

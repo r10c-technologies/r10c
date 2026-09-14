@@ -1,4 +1,4 @@
-import type { EntifixConnError, EntifixLockError } from '@r10c/entifix-ts-core';
+import type { EntifixConnError, EntifixLockError } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /** A held lock; `token` proves ownership so release only frees our own lock. */
@@ -9,7 +9,7 @@ export interface LockHandle {
 
 /**
  * Distributed mutual exclusion — the facade's `lock`/`free` steps. Implemented
- * over Redis (`SET NX PX` + bounded retry) in `entifix-ts-redis-client`.
+ * over Redis (`SET NX PX` + bounded retry) in `@entifix/redis`.
  */
 export interface LockService {
   /**

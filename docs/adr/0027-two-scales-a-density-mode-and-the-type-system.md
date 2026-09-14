@@ -19,7 +19,7 @@ the spacing steps are:
 ```
 
 `2xs → s` is a **2× jump**, and nothing lands on 4, 8, 12 or 16 — the sizes a
-dense grid needs. Measured across `entifix-react-controls` and the shells,
+dense grid needs. Measured across `@entifix/react-controls` and the shells,
 `gap-2xs` (32), `px-2xs` (19), `py-3xs` (16) and `px-s` (15) carry most of the
 call sites while `2xl` and `3xl` are used twice between them. **The bottom third
 of a nine-step scale carries everything**, which is what a scale looks like when
@@ -213,7 +213,7 @@ dark surface needs different blur _geometry_, not merely more opacity.
 - **Keeping `shadow-xs`/`sm`/`lg` and forcing the override.** Rejected: it
   fights Tailwind's own namespace to keep names that describe size rather than
   meaning.
-- **A TS export from `entifix-style`** so `tools/zitadel-seed.mjs` could stop
+- **A TS export from `@entifix/style`** so `tools/zitadel-seed.mjs` could stop
   duplicating the aurora and midnight hexes. Declined here. The seed is a plain
   Node script that runs at fleet boot; making it depend on a built `dist` trades
   a documented, `ZITADEL_SEED_REVISION`-pinned copy for a build-order coupling

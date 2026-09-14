@@ -31,11 +31,11 @@ convention that decays.
 
 ### `i18next` + `react-i18next`, not `next-intl`
 
-`entifix-react-controls` is framework-agnostic by rule (docs/FRONTEND.md) and is
+`@entifix/react-controls` is framework-agnostic by rule (docs/FRONTEND.md) and is
 exercised in Storybook, which has no Next request scope. `next-intl`'s
 `useTranslations` needs `NextIntlClientProvider` plus that scope.
 
-**Rejected: `next-intl`.** Putting `next` into `entifix-react-controls` would
+**Rejected: `next-intl`.** Putting `next` into `@entifix/react-controls` would
 also be a _silent_ boundary violation — `next` is an npm dependency, not a
 workspace project, so `@nx/enforce-module-boundaries` would not flag the edge.
 It re-introduces the class of server-context/prerender coupling that broke
@@ -48,7 +48,7 @@ gate below possible at all.
 ### Catalogs are centralized, not co-located
 
 All five namespaces (`controls`, `shell`, `errors`, `entity`, `app`) live in
-`@r10c/entifix-ts-i18n`.
+`@entifix/i18n`.
 
 **Rejected: a catalog per owning package.** The typed-key augmentation has to
 see every namespace from one module, and `entifix:tooling` may not import
@@ -66,7 +66,7 @@ so a key that exists in Spanish and not in English is a **compile** error.
 allowed dependency. `eslint.config.mjs` and `docs/_shared/layering.md` are
 untouched — unlike ADR 0002, this change required no new ordering dimension.
 
-A second entry point, `@r10c/entifix-ts-i18n/routing`, exports only the locale
+A second entry point, `@entifix/i18n/routing`, exports only the locale
 type and the negotiation helpers. Next middleware runs on the edge, and
 importing the barrel would pull the i18next runtime and all five catalogs into a
 bundle that only reads a cookie and a header.
@@ -153,28 +153,28 @@ swallow the real findings.
   matching on it.
 - Workspace tab captions are re-derived from the registry on render rather than
   read back from IndexedDB, so switching locale relabels open tabs.
-- The Next server/edge half lives in its own package, `@r10c/shells-next-i18n`,
-  rather than in `shells-next-common`, whose rollup output stamps a blanket
+- The Next server/edge half lives in its own package, `@entifix/next-i18n`,
+  rather than in `@entifix/next-shell`, whose rollup output stamps a blanket
   `"use client"` banner that server components and edge middleware must not
   carry.
 
 ### A React library bundled into a package's `dist` must externalize it
 
-> **Revised 2026-08-13.** Both this section and the `shells-next-i18n` bullet
+> **Revised 2026-08-13.** Both this section and the `@entifix/next-i18n` bullet
 > above reason from bundler behaviour that no longer exists: every library under
 > `packages/` now builds per-file with `@nx/js:swc`, and there is no rollup or
 > vite config left in the tree. Per-file emit keeps each module's own
 > `"use client"` directive, so there is no blanket banner to route around, and it
 > inlines nothing, so there is no dependency to externalize.
 >
-> **Both decisions stand, and the reasoning is why.** `@r10c/shells-next-i18n`
+> **Both decisions stand, and the reasoning is why.** `@entifix/next-i18n`
 > stays its own package — a server/edge surface separated from a client one is
 > right independent of who stamps the directive — and "a library must not absorb
 > its React dependencies" became the general rule: bundling is what produced the
 > `require('react')` shim described below, and dropping the bundler is how it was
 > fixed for good.
 
-`entifix-react-integration` builds with Vite, and its `rollupOptions.external`
+`@entifix/react-integration` builds with Vite, and its `rollupOptions.external`
 listed React but not `react-i18next`. So the Vite build **inlined** react-i18next
 _and_ `use-sync-external-store`'s CJS shim — whose module-scope `require('react')`
 then threw against Turbopack's require stub, 500ing every SSR'd page.

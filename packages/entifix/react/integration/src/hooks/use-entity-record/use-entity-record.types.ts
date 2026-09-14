@@ -1,5 +1,5 @@
-import { EntityIdTag } from '@r10c/entifix-ts-business';
-import { EntifixError, Entity, EntityId } from '@r10c/entifix-ts-core';
+import { EntityIdTag } from '@entifix/business';
+import { EntifixError, Entity, EntityId } from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 export interface UseEntityRecordState<TEntity extends Entity> {

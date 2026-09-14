@@ -1,5 +1,5 @@
 /**
- * Copy owned by `@r10c/entifix-react-controls` — the agnostic entity UI. It lives
+ * Copy owned by `@entifix/react-controls` — the agnostic entity UI. It lives
  * here rather than next to the components because the typed-key augmentation has
  * to see every namespace from one module, and `entifix:tooling` may not import
  * `entifix:react`.
@@ -181,7 +181,7 @@ export const controls = {
   },
   /**
    * The filter vocabulary shown to a user. Deliberately distinct from
-   * `RSQL_TOKENS` in `entifix-ts-core` — those are wire tokens (`==`, `=gt=`)
+   * `RSQL_TOKENS` in `@entifix/core` — those are wire tokens (`==`, `=gt=`)
    * and must never be translated.
    */
   operator: {
@@ -204,7 +204,7 @@ export const controls = {
     label: 'Tema',
   },
   /**
-   * Captions for the theme presets shipped by `@r10c/entifix-style`, plus the
+   * Captions for the theme presets shipped by `@entifix/style`, plus the
    * per-app brand sets. They name design-system tokens, not app copy, so they
    * live beside the switcher that renders them and stay reachable from
    * Storybook, where no shell is mounted.

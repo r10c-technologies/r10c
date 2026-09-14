@@ -3,6 +3,8 @@
 // Installs r10c's catalogs into the i18next binding. Importing is the act.
 import '@r10c/i18n-catalog';
 
+import type { Locale } from '@entifix/core';
+import { PendingTransactionsProvider } from '@entifix/next-shell';
 import {
   makeIndexedDbUiPreferencesState,
   type ThemeOption,
@@ -10,11 +12,9 @@ import {
   ThemeProvider,
   UiPreferencesProvider,
   useT,
-} from '@r10c/entifix-react-controls';
-import { I18nProvider } from '@r10c/entifix-react-controls/i18next';
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
-import type { Locale } from '@r10c/entifix-ts-core';
-import { PendingTransactionsProvider } from '@r10c/shells-next-common';
+} from '@entifix/react-controls';
+import { I18nProvider } from '@entifix/react-controls/i18next';
+import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   createClientAdapters,
   MarketplaceAdminAdaptersProvider,

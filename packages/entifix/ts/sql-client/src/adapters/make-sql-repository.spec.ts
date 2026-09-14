@@ -6,15 +6,15 @@ import {
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   runRepository,
   runRepositoryExit,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
 import {
   type FakeSqlClient,
   makeFakeSqlClient,
-} from '@r10c/entifix-ts-testing-unit/drivers';
+} from '@entifix/testing-unit/drivers';
 import { Exit } from 'effect';
 import { beforeEach, describe, expect, it } from 'vitest';
 

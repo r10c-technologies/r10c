@@ -8,7 +8,7 @@ import {
   type EntityId,
   ROW_KEY,
   type StandardSchemaV1,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import {

@@ -1,6 +1,6 @@
 import './global.css';
 
-import { getRequestLocale, getServerT } from '@r10c/shells-next-i18n/server';
+import { getRequestLocale, getServerT } from '@entifix/next-i18n/server';
 
 import { workspaceScope } from '../lib/workspace-scope';
 import { fontVariables } from './fonts';

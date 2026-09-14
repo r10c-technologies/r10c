@@ -1,4 +1,4 @@
-import * as core from '@r10c/entifix-ts-core';
+import * as core from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import * as routing from './routing.js';

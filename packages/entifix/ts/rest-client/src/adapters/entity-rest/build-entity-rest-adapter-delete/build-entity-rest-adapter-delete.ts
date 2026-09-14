@@ -1,11 +1,11 @@
-import { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
+import { ConfigurationRepositoryTag } from '@entifix/business';
 import {
   EntifixLogicError,
   Entity,
   EntityConstructor,
   EntityId,
   extractMetaEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 
 import { performHttpRequestThroughFetch } from '../../../clients/fetch';

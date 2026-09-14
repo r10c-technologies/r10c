@@ -1,4 +1,4 @@
-import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
+import { ACCESS_COOKIE } from '@entifix/core';
 import { cookies } from 'next/headers';
 
 /**

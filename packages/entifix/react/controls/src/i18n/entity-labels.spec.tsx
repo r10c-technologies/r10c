@@ -1,4 +1,4 @@
-import type { EntityFieldDescriptor } from '@r10c/entifix-ts-core';
+import type { EntityFieldDescriptor } from '@entifix/core';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

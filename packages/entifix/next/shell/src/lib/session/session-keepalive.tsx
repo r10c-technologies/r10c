@@ -1,6 +1,6 @@
 'use client';
 
-import { useT } from '@r10c/entifix-react-controls';
+import { useT } from '@entifix/react-controls';
 import { useCallback } from 'react';
 
 import { useSessionRefresh } from './use-session-refresh';

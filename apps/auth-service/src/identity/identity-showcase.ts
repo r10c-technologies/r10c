@@ -1,9 +1,9 @@
+import { extractMetaAccessors, extractMetaEntity } from '@entifix/core';
 import {
   EntityIdentifier,
   IdentifierType,
   UserIdentity,
 } from '@r10c/business-ts-authn';
-import { extractMetaAccessors, extractMetaEntity } from '@r10c/entifix-ts-core';
 
 /**
  * The proof this whole spike exists for: construct entifix entity CLASSES and

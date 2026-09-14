@@ -1,4 +1,4 @@
-import { bearerHeader, sessionToken } from '@r10c/shells-next-common/server';
+import { bearerHeader, sessionToken } from '@entifix/next-shell/server';
 
 import type { Principal } from '../principal-types';
 import { AUTH_SERVICE_URL } from './session';

@@ -71,7 +71,7 @@ nothing reports it.
 
 The rule is written where it can be checked, in two halves:
 
-- **Compile time.** `JsonValue` in `entifix-ts-core`, and
+- **Compile time.** `JsonValue` in `@entifix/core`, and
   `DraftsState.drafts: Record<string, JsonValue>` where it used to be
   `Record<string, unknown>`. `useDraft<TDraft extends JsonValue>` pushes the same
   constraint out to every call site.

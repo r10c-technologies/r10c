@@ -1,17 +1,17 @@
 'use client';
 
-import { EntityField, EntityForm, useT } from '@r10c/entifix-react-controls';
-import {
-  type EntityDraftStore,
-  useEntityForm,
-} from '@r10c/entifix-react-integration';
 import {
   type EntifixError,
   type Entity,
   type EntityConstructor,
   type EntityMetadataSource,
   reconstructEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { EntityField, EntityForm, useT } from '@entifix/react-controls';
+import {
+  type EntityDraftStore,
+  useEntityForm,
+} from '@entifix/react-integration';
 import { useEffect, useMemo } from 'react';
 
 import type {

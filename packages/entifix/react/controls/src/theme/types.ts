@@ -8,7 +8,7 @@ export interface ThemeOption {
 }
 
 /** The semantic color tokens an app may supply values for. Matches the
- *  `--color-*` contract declared in @r10c/entifix-style/tokens.css. */
+ *  `--color-*` contract declared in @entifix/style/tokens.css. */
 export type ThemeColorToken =
   | 'surface'
   | 'surface-elevated'

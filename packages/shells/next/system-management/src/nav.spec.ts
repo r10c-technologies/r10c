@@ -1,4 +1,4 @@
-import { can } from '@r10c/business-ts-authz';
+import { can } from '@entifix/authz';
 import { ROLE_PERMISSIONS } from '@r10c/business-ts-authz-grants';
 import { describe, expect, it } from 'vitest';
 

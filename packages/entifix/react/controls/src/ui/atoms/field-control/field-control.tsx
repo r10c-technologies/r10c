@@ -3,7 +3,7 @@
 import type {
   EntityFieldDescriptor,
   MetaAccessorType,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 import { useEnumLabel } from '../../../i18n';
 import { Checkbox, Select, TextInput } from '../field';

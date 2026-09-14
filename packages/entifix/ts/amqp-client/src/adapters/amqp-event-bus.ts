@@ -1,20 +1,20 @@
-import {
-  type EventBus,
-  EventBusTag,
-  type Subscription,
-  type SubscriptionMode,
-} from '@r10c/entifix-transactions';
-import type { WiringRegistry } from '@r10c/entifix-ts-business';
+import type { WiringRegistry } from '@entifix/business';
 import {
   ShutdownRegistryTag,
   WiringRegistryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   EntifixBuildError,
   EntifixConnError,
   makeEventEnvelope,
   readEventEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import {
+  type EventBus,
+  EventBusTag,
+  type Subscription,
+  type SubscriptionMode,
+} from '@entifix/transactions';
 import type { Channel, ConsumeMessage } from 'amqplib';
 import { Duration, Effect, Layer } from 'effect';
 

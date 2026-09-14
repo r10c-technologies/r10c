@@ -1,9 +1,9 @@
 import { HttpRouter } from '@effect/platform';
+import { entityMetadataRoute } from '@entifix/service-shell';
 import {
   CommissionEntry,
   VendorPayout,
 } from '@r10c/business-ts-settlement-management';
-import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import {
   byIdRoute,

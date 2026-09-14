@@ -1,9 +1,9 @@
+import { EntifixConnError } from '@entifix/core';
 import type {
   TransactionEvent,
   TransactionRecord,
   TransactionStore,
-} from '@r10c/entifix-transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+} from '@entifix/transactions';
 import { Effect, HashMap, Logger } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 import { describe, expect, it } from 'vitest';

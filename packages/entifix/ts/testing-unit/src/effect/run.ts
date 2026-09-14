@@ -1,4 +1,4 @@
-import type { ConfigurationRepositoryTag } from '@r10c/entifix-ts-business';
+import type { ConfigurationRepositoryTag } from '@entifix/business';
 import { Effect, Exit, type Layer } from 'effect';
 
 import { stubConfigurationLayer } from '../doubles/configuration';

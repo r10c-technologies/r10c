@@ -1,12 +1,12 @@
-import { EntityLinkResolverTag } from '@r10c/entifix-ts-business';
+import { EntityLinkResolverTag } from '@entifix/business';
 import {
   accessor,
   EntifixLogicError,
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
-import { makeFakeMongoDb } from '@r10c/entifix-ts-testing-unit/drivers';
+} from '@entifix/core';
+import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { Context, Effect, Exit } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';

@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 
-import type { PendingTransaction } from '@r10c/entifix-transactions';
+import type { PendingTransaction } from '@entifix/transactions';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {

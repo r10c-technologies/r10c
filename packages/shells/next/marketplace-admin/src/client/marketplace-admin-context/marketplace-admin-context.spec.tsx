@@ -1,12 +1,12 @@
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
+} from '@entifix/business';
+import { EntifixBuildError } from '@entifix/core';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context } from 'effect';
 import type { PropsWithChildren } from 'react';

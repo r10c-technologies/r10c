@@ -23,9 +23,9 @@ them is a declaration waiting for a consumer:
 
 | Where                                      | What is there                              |
 | ------------------------------------------ | ------------------------------------------ |
-| `business-ts-authz/values/screen-type.ts`  | the `ScreenTypes` member and its label key |
-| `entifix-ts-i18n` `es`/`en` `shell.ts`     | `'Asistentes'` / `'Wizards'`               |
-| `shells-next-common/workspace/tab-kind.ts` | a doc comment reserving the kind by name   |
+| `@entifix/authz/values/screen-type.ts`  | the `ScreenTypes` member and its label key |
+| `@entifix/i18n` `es`/`en` `shell.ts`     | `'Asistentes'` / `'Wizards'`               |
+| `@entifix/next-shell/workspace/tab-kind.ts` | a doc comment reserving the kind by name   |
 | `back-office/group-by-screen-type.spec.ts` | a test fixture                             |
 
 So the sidebar already knows how to render an **Asistentes** tier, the address
@@ -260,7 +260,7 @@ implementation.
 - New copy: `controls.wizard.*` for the control, `shell:marketplaceAdmin.wizard.*`
   for the first wizard's own names.
 - The step graph is in **core**, framework-free, for `command-matching.ts`'s
-  reason: `entifix-react-controls` and `entifix-react-integration` are both
+  reason: `@entifix/react-controls` and `@entifix/react-integration` are both
   `entifix:react` and may not import each other, so anything both need meets
   below them.
 - A wizard is **not** generated. ADR 0033 already recorded that `makeEntityCrud`

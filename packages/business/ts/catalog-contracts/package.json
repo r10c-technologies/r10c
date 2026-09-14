@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "@swc/helpers": "0.5.23",
-    "@r10c/entifix-ts-core": "workspace:*",
+    "@entifix/core": "workspace:*",
     "effect": "3.22.1"
   }
 }

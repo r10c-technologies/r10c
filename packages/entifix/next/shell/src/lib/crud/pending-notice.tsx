@@ -1,7 +1,7 @@
 'use client';
 
-import { Button, cn, useT } from '@r10c/entifix-react-controls/primitives';
-import type { PendingEntry } from '@r10c/entifix-transactions';
+import { Button, cn, useT } from '@entifix/react-controls/primitives';
+import type { PendingEntry } from '@entifix/transactions';
 
 export interface PendingNoticeProps {
   /** This entity's in-flight and failed writes, newest last. */

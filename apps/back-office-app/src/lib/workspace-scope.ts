@@ -1,9 +1,9 @@
-import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
-import { unverifiedClaims } from '@r10c/entifix-ts-jwt-client';
+import { ACCESS_COOKIE } from '@entifix/core';
+import { unverifiedClaims } from '@entifix/jwt';
 import {
   ANONYMOUS_WORKSPACE_SCOPE,
   workspaceScopeKey,
-} from '@r10c/shells-next-common';
+} from '@entifix/next-shell';
 import { cookies } from 'next/headers';
 
 

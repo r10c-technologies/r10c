@@ -184,7 +184,7 @@ the relay costs one layer beside it.
   the coordinator otherwise on the second delivery is the same bug from a
   different direction.
 - **The single-database outbox relay is now shared**, in
-  `entifix-ts-mongo-client` beside the Mongo store it drives. Three slices own an
+  `@entifix/mongo` beside the Mongo store it drives. Three slices own an
   outbox, and an Effect metric is keyed on its description — three hand-written
   definitions of `outbox_pending_entries` are three series the moment one wording
   drifts, and a dashboard would go quiet without failing anything.

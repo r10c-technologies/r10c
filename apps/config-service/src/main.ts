@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { makeService } from '@r10c/shells-effect-service';
+import { makeService } from '@entifix/service-shell';
 import { config as loadEnv } from 'dotenv';
 
 import { AppLayer } from './db';

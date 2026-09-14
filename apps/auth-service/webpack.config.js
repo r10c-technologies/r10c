@@ -16,7 +16,7 @@ module.exports = {
     // decorator mode entifix authored it in — so entities load natively with
     // no EntifixBuildError and no `/contracts` firewall. That is the whole
     // point of the spike vs the Nest build.
-    conditionNames: ['@r10c/source', 'import', 'node', 'require', 'default'],
+    conditionNames: ['@r10c/source', '@entifix/source', 'import', 'node', 'require', 'default'],
   },
   plugins: [
     new NxAppWebpackPlugin({

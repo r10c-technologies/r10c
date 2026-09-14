@@ -1,5 +1,5 @@
-import { DEFAULT_LOCALE, isLocale, type Locale, LOCALE_HEADER } from '@r10c/entifix-ts-core';
-import { createI18n } from '@r10c/entifix-ts-i18n';
+import { DEFAULT_LOCALE, isLocale, type Locale, LOCALE_HEADER } from '@entifix/core';
+import { createI18n } from '@entifix/i18n';
 import type { Namespace } from 'i18next';
 import { headers } from 'next/headers';
 
@@ -32,9 +32,9 @@ export async function getRequestLocale(): Promise<Locale> {
  * app's call sites while still being reachable from packages that may not
  * depend on this one: `layer:shell` forbids same-layer edges, and the
  * storefront shell is precisely the caller that needs it. The implementation
- * lives in `@r10c/entifix-ts-i18n`.
+ * lives in `@entifix/i18n`.
  */
-export { getServerTFor } from '@r10c/entifix-ts-i18n';
+export { getServerTFor } from '@entifix/i18n';
 
 /**
  * A translate function for a server component. A fresh instance per request,

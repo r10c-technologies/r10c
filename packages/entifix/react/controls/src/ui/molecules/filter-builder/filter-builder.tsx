@@ -7,7 +7,7 @@ import type {
   FilterGroup,
   LogicOperator,
   MetaAccessorType,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { useCallback, useId, useState } from 'react';
 
 import { useEnumLabel, useT } from '../../../i18n';

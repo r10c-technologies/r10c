@@ -1,4 +1,4 @@
-import { defineEntifixE2eConfig } from '@r10c/entifix-ts-testing-e2e/playwright';
+import { defineEntifixE2eConfig } from '@entifix/testing-e2e/playwright';
 
 /**
  * back-office-app e2e — catalog, system management, users and the account

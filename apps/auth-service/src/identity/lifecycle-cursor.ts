@@ -1,4 +1,4 @@
-import { RedisTag } from '@r10c/entifix-ts-redis-client';
+import { RedisTag } from '@entifix/redis';
 import { Context, Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
 

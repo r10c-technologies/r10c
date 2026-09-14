@@ -1,6 +1,6 @@
 'use client';
 
-import { Text } from '@r10c/entifix-react-controls/primitives';
+import { Text } from '@entifix/react-controls/primitives';
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 

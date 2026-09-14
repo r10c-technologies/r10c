@@ -7,7 +7,7 @@ import {
   type EntityId,
   type EntityRowDraft,
   ROW_KEY,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

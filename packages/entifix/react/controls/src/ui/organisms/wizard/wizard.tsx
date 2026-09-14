@@ -1,6 +1,6 @@
 'use client';
 
-import type { WizardStepStatus } from '@r10c/entifix-ts-core';
+import type { WizardStepStatus } from '@entifix/core';
 import { type ReactNode, useEffect, useRef } from 'react';
 
 import { useT } from '../../../i18n';

@@ -5,14 +5,14 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
-import type { Permission } from '@r10c/business-ts-authz';
+import type { Permission } from '@entifix/authz';
+import { makeEnvelope } from '@entifix/core';
+import { requireCrossing } from '@entifix/service-shell';
 import {
   runSaga,
   type SagaInputs,
   type SagaStepInput,
-} from '@r10c/entifix-transactions';
-import { makeEnvelope } from '@r10c/entifix-ts-core';
-import { requireCrossing } from '@r10c/shells-effect-service';
+} from '@entifix/transactions';
 import { Effect } from 'effect';
 
 import { SAGAS } from '../sagas';
@@ -124,8 +124,8 @@ const runRoute = Effect.gen(function* () {
   // The permission comes off the **definition**, so this route stays generic.
   // One permission for every saga would make "may run a flow" a single
   // capability regardless of what the flow does, and checkout writes an order.
-  // The definition carries it as a plain string — `entifix-transactions` sits
-  // below `business-ts-authz` and may not name its type. This service is where
+  // The definition carries it as a plain string — `@entifix/transactions` sits
+  // below `@entifix/authz` and may not name its type. This service is where
   // the two meet, so the narrowing happens here and `requireCrossing` still
   // resolves it against the closed list.
   return yield* requireCrossing(definition.permission as Permission)(

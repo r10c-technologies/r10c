@@ -1,5 +1,5 @@
 import { SqlClient } from '@effect/sql';
-import { HealthRegistryTag } from '@r10c/entifix-ts-business';
+import { HealthRegistryTag } from '@entifix/business';
 import { Effect, Layer } from 'effect';
 
 /** Probe name reported by `/api/health/ready` when the database is unreachable. */

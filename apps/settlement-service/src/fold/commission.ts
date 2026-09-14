@@ -1,5 +1,5 @@
+import { EntifixBuildError } from '@entifix/core';
 import type { Agreement } from '@r10c/business-ts-settlement-management';
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
 
 import type { PlacedOrderLine } from './placed-order';
 

@@ -4,8 +4,8 @@ import type {
   EntityId,
   EntityLoadRequest,
   EntityPage,
-} from '@r10c/entifix-ts-core';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { EntifixConnError } from '@entifix/core';
 import { Context, Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -32,7 +32,7 @@ const aPage = (items: Widget[]): EntityPage<Widget> => ({
 
 /**
  * A hand-rolled repository double. This package defines the very interfaces
- * `@r10c/entifix-ts-testing-unit` is built on, so depending on that package
+ * `@entifix/testing-unit` is built on, so depending on that package
  * here would be a cycle — the doubles stay local by design.
  */
 function makeRepositoryDouble(options: {

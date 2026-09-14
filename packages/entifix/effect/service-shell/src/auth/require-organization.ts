@@ -1,5 +1,5 @@
 import { HttpServerResponse } from '@effect/platform';
-import type { Permission } from '@r10c/business-ts-authz';
+import type { Permission } from '@entifix/authz';
 import { Effect } from 'effect';
 
 import { type RequestPrincipal, requirePermission } from './require-principal';

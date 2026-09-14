@@ -1,4 +1,4 @@
-import { EntifixBuildError, entity, useCase } from '@r10c/entifix-ts-core';
+import { EntifixBuildError, entity, useCase } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import {

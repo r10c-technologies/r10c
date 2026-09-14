@@ -2,7 +2,7 @@ import {
   describeEntityColumns,
   deserializeSingleEntity,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 

@@ -1,11 +1,7 @@
 import type {
-  EntityDraftStore,
-  EntityLinkSourceConfig,
-} from '@r10c/entifix-react-integration';
-import type {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import type {
   BulkOutcome,
   Entity,
@@ -14,7 +10,11 @@ import type {
   EntityId,
   EntityMetadataSource,
   EntitySelection,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import type {
+  EntityDraftStore,
+  EntityLinkSourceConfig,
+} from '@entifix/react-integration';
 import type { Context } from 'effect/Context';
 import type { CustomTypeOptions } from 'i18next';
 import type { ReactElement, ReactNode } from 'react';

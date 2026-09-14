@@ -1,18 +1,18 @@
 import {
-  ProductBrand,
-  ProductCategory,
-} from '@r10c/business-ts-catalog-reference';
-import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import {
   type Entity,
   type EntityConstructor,
   makeEntityPageEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   http,
   HttpResponse,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
+import {
+  ProductBrand,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**

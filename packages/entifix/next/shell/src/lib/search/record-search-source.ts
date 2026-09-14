@@ -8,7 +8,7 @@ import {
   envelopeEntityName,
   readEntityPageEnvelope,
   serializeLoadRequestParams,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect, Exit } from 'effect';
 
 import type { RecordSearchOption } from './record-search.types';

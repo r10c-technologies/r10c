@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 
-import type { PendingEntry } from '@r10c/entifix-transactions';
+import type { PendingEntry } from '@entifix/transactions';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

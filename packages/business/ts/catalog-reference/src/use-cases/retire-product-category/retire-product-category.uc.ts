@@ -1,5 +1,5 @@
-import { permissionForUseCase } from '@r10c/business-ts-authz';
-import { useCase } from '@r10c/entifix-ts-core';
+import { permissionForUseCase } from '@entifix/authz';
+import { useCase } from '@entifix/core';
 
 import { ProductCategory } from '../../entities/product-category';
 import { retireReferences } from '../retire-reference';

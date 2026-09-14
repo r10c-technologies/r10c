@@ -1,4 +1,4 @@
-import { EntifixLogicError } from '@r10c/entifix-ts-core';
+import { EntifixLogicError } from '@entifix/core';
 
 /** The `{a.b.c}` placeholders a {@link SagaCall}'s path may carry. */
 const PLACEHOLDER = /\{([^{}]+)\}/g;

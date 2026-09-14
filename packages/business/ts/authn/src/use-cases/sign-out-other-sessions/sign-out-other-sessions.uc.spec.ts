@@ -1,9 +1,9 @@
-import { SessionStoreTag } from '@r10c/entifix-ts-business';
+import { SessionStoreTag } from '@entifix/business';
 import {
   describeEntityUseCases,
   EntifixLogicError,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 

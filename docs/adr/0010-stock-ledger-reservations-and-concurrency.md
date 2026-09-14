@@ -181,7 +181,7 @@ race to resolve.
 
 ### Do not take a distributed lock per decrement
 
-`LockService` (`entifix-transactions/ports/lock-service.ts`) is for **coarse**
+`LockService` (`@entifix/transactions/ports/lock-service.ts`) is for **coarse**
 operations: a catalog publication, a settlement run, an order spanning several
 vendors.
 

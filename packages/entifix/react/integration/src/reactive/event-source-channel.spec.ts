@@ -1,4 +1,4 @@
-import { makeEventEnvelope } from '@r10c/entifix-ts-core';
+import { makeEventEnvelope } from '@entifix/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { makeEventSourceReactiveChannel } from './event-source-channel.js';

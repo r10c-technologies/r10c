@@ -1,8 +1,8 @@
 import { HttpRouter } from '@effect/platform';
+import { EntifixBuildError } from '@entifix/core';
+import { entityMetadataRoute } from '@entifix/service-shell';
 import { SalesChannelTypes } from '@r10c/business-ts-sales-vocabulary';
 import { Agreement } from '@r10c/business-ts-settlement-management';
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
-import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import {
   byIdRoute,

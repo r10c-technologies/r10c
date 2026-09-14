@@ -1,4 +1,4 @@
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
+import { EntifixBuildError } from '@entifix/core';
 import { Effect } from 'effect';
 
 /**

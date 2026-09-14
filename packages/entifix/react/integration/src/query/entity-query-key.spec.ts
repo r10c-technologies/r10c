@@ -3,7 +3,7 @@ import {
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import {

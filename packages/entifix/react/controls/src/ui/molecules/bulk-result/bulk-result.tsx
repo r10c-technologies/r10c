@@ -5,7 +5,7 @@ import {
   type EntityId,
   failedIds,
   succeededCount,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 import { useT, useTranslateKey } from '../../../i18n';
 import { Button } from '../../atoms/button';

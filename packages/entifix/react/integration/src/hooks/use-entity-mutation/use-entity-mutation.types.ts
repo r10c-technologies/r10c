@@ -1,5 +1,5 @@
-import { EntityIdTag, EntityTag } from '@r10c/entifix-ts-business';
-import { EntifixError, Entity } from '@r10c/entifix-ts-core';
+import { EntityIdTag, EntityTag } from '@entifix/business';
+import { EntifixError, Entity } from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 export interface UseEntityMutationState {

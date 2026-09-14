@@ -3,7 +3,7 @@ import { Context, Effect, Layer, Ref } from 'effect';
 /**
  * The queue shapes a subscriber may ask for (ADR 0030).
  *
- * Duplicated from `SubscriptionMode` in `@r10c/entifix-transactions` rather than
+ * Duplicated from `SubscriptionMode` in `@entifix/transactions` rather than
  * imported: that package sits at `entifix:transactions`, **above** this one at
  * `entifix:contract`, so the edge would point upward and the boundary rule fails
  * the build on it. The same duplication exists in `tools/slices/src/types.ts`
@@ -59,7 +59,7 @@ export interface WiringRegistry {
 /**
  * DI tag for the wiring registry.
  *
- * It lives here, in the contract layer, so `entifix-ts-amqp-client` can record
+ * It lives here, in the contract layer, so `@entifix/amqp` can record
  * into it without depending on a shell — the same placement, and the same
  * reason, as {@link HealthRegistryTag}.
  */

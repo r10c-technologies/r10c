@@ -11,14 +11,14 @@
  * "Nombre" and fail — or worse, a looser assertion would pass for the wrong
  * reason.
  *
- * ⚠️ **It must not import `@r10c/shells-next-common`.** A setup file runs before
+ * ⚠️ **It must not import `@entifix/next-shell`.** A setup file runs before
  * each spec's `vi.mock` calls take effect, so loading that barrel here binds its
  * components to the real `next/navigation` and every render throws `invariant
  * expected app router to be mounted`. It does not need to: the Next shell
  * registers its own `shell` namespace the moment a spec imports it.
  */
+import { registerFallbackCatalog } from '@entifix/react-controls';
 import { r10cCatalogs } from '@r10c/business-ts-i18n';
-import { registerFallbackCatalog } from '@r10c/entifix-react-controls';
 
 for (const namespace of ['entity', 'errors', 'app'] as const) {
   registerFallbackCatalog(namespace, {

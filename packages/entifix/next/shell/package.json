@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/shells-next-common",
+  "name": "@entifix/next-shell",
   "nx": {
     "tags": [
       "layer:shell",
@@ -32,20 +32,20 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./server": {
-      "@r10c/source": "./src/server.ts",
+      "@entifix/source": "./src/server.ts",
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js",
       "default": "./dist/server.js"
     }
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*",
+    "@entifix/testing-unit": "workspace:*",
     "@tanstack/react-query": "^5.101.4",
     "effect": "3.22.1",
     "i18next": "26.3.6",
@@ -55,13 +55,13 @@
     "zustand": "^5.0.15"
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*",
-    "@r10c/entifix-react-controls": "workspace:*",
-    "@r10c/entifix-react-integration": "workspace:*",
-    "@r10c/entifix-transactions": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-i18n": "workspace:*",
+    "@entifix/authz": "workspace:*",
+    "@entifix/react-controls": "workspace:*",
+    "@entifix/react-integration": "workspace:*",
+    "@entifix/transactions": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*",
+    "@entifix/i18n": "workspace:*",
     "idb": "^8.0.3"
   },
   "files": [],

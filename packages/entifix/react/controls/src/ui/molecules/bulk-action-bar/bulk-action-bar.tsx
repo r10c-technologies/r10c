@@ -1,6 +1,6 @@
 'use client';
 
-import type { UseCaseDescriptor } from '@r10c/entifix-ts-core';
+import type { UseCaseDescriptor } from '@entifix/core';
 
 import { useT, useTranslateKey } from '../../../i18n';
 import { Button } from '../../atoms/button';

@@ -13,7 +13,7 @@ which data plane they live in, and how they extend — is
 > **auth-service → MongoDB**. **Full CRUD** runs end-to-end for the
 > marketplace-admin catalog: `load`/`get`/`save`/`delete` over REST on the web and
 > Mongo on the backend — and the same use-cases run against Postgres through
-> `entifix-ts-sql-client`, which is what config-service's own operator CRUD uses —
+> `@entifix/sql`, which is what config-service's own operator CRUD uses —
 > with every message framed as an
 > [EntifixEnvelope](./ENTIFIX.md#the-envelope-is-the-message). auth-service is
 > still on the pre-envelope wire shape for its `UserIdentity`/`EntityIdentifier`
@@ -52,7 +52,7 @@ layer diagram and the six tag dimensions (`layer` / `scope` / `entifix` /
 [DEVELOPING.md → Module boundaries](./DEVELOPING.md#module-boundaries).
 
 The value of the layering is substitutability: a use-case in `business` depends only
-on contracts (`entifix-ts-business`), never on a transport, so the same use-case runs
+on contracts (`@entifix/business`), never on a transport, so the same use-case runs
 on the web against a REST adapter and on a backend against a Mongo adapter — the
 transport is injected at the composition root.
 
@@ -62,7 +62,7 @@ The core idea is **environment-agnostic use-cases**, wired with the
 [Effect](https://effect.website) library's dependency injection (`Context.Tag` +
 `Layer`).
 
-1. **Contract** — `EntityRepository` (in `entifix-ts-business`) declares
+1. **Contract** — `EntityRepository` (in `@entifix/business`) declares
    `get` / `load` / `save` / `delete`, each returning `Effect<T, EntifixError, …>`.
    It is exposed as a `Context.Tag` — `EntityRepositoryTag`.
 
@@ -75,12 +75,12 @@ The core idea is **environment-agnostic use-cases**, wired with the
    typed entity back: the input tags carry no entity type of their own.
 
 3. **Adapter** — a concrete `EntityRepository`:
-   - `entifix-ts-rest-client` — `buildEntityRestAdapter*` over HTTP (the web).
-   - `entifix-ts-mongo-client` — `makeMongoRepository(db, Ctor)` over MongoDB
+   - `@entifix/rest` — `buildEntityRestAdapter*` over HTTP (the web).
+   - `@entifix/mongo` — `makeMongoRepository(db, Ctor)` over MongoDB
      (the backend). Collection/endpoint name = the entity's `key`.
 
    Both ends of a _read_ share one wire format for filtering and sorting: the
-   **RSQL codec** in `entifix-ts-core` (`?rsql=` + `?sort=`). It lives in `core`
+   **RSQL codec** in `@entifix/core` (`?rsql=` + `?sort=`). It lives in `core`
    rather than in either adapter because both sides need it — the REST client
    serializes an `EntityLoadRequest` into it, a service parses one back out and
    validates it against the entity's metadata, and only then does the Mongo
@@ -130,7 +130,7 @@ Foreign-key vs embedded relations are handled transparently by the shared
 
 ## Backends: Effect-native services
 
-Backends compose `@r10c/shells-effect-service` (`@effect/platform` HTTP server,
+Backends compose `@entifix/service-shell` (`@effect/platform` HTTP server,
 `/api/health`, `Layer` DI, graceful shutdown) and compile stage-3 decorators like
 entifix, so they import entity classes natively. There is **no Nest**: DI is
 Effect Layers.
@@ -159,7 +159,7 @@ Effect Layers.
   design.
 
   Three callers send it: `loadRemoteConfiguration` when a service boots, and — in
-  `shells-next-common`, sharing `lib/config/service-token.ts` — an app's
+  `@entifix/next-shell`, sharing `lib/config/service-token.ts` — an app's
   `createConfigRoute` and its **readiness probe**. The probe belongs on that list
   because readiness _reads_ the gated route: without the header it sees a `401`,
   reports `degraded`, and the app never becomes Ready despite being healthy, which
@@ -222,7 +222,7 @@ throughout: the process is healthy, it is leaving. The drain that follows is
 outbox relay sweeps once more before any connection closes.
 
 **The finalizer's position is the mechanism.** `ShutdownRegistryTag` sits in
-`entifix-ts-business` beside `HealthRegistryTag` and `WiringRegistryTag`, and for
+`@entifix/business` beside `HealthRegistryTag` and `WiringRegistryTag`, and for
 the same reason — a service that gains a bus gains its drain with nothing to
 remember. It collects `stop-intake` then `flush` hooks, and `makeServerLayer`
 releases them from a finalizer built **between** the composition root and
@@ -251,7 +251,7 @@ carry the hook, and Kubernetes runs `preStop` _before_ SIGTERM, so nothing in th
 in-process sequence depends on it.
 
 Backends build the answer from a **probe registry** (`HealthRegistryTag` in
-`@r10c/entifix-ts-business`): `MongoHealthProbeLayer`, `RedisHealthProbeLayer`
+`@entifix/business`): `MongoHealthProbeLayer`, `RedisHealthProbeLayer`
 and `AmqpHealthProbeLayer` ship with the clients they describe, so a service
 that gains a datastore gains its readiness probe by merging one layer — nothing
 in the service hand-maintains a list that can drift. `makeServerLayer` provides
@@ -337,7 +337,7 @@ Instrument once against **OTLP** (vendor-neutral), so the storage backend is a
 swappable seam — Grafana Cloud in production (via an OpenTelemetry Collector),
 `grafana/otel-lgtm` locally. The full decision is [ADR 0001](adr/0001-observability-and-tooling.md).
 
-- **`@r10c/entifix-ts-tooling`** is a framework-free leaf (built on the OTel
+- **`@entifix/tooling`** is a framework-free leaf (built on the OTel
   standard, _not_ an Effect wrap, so the browser and Next server can use it too).
   `/logging` exposes `createLogger({ service, level, sink, redact })` over a
   pluggable `LogSink`; every record carries the service, an OTel `SeverityNumber`,
@@ -346,14 +346,14 @@ swappable seam — Grafana Cloud in production (via an OpenTelemetry Collector),
   filelog), `makeOtlpHttpLogSink` (dev → otel-lgtm; batches + interval-flushes),
   the `LogSink` interface for anything else. `/tracking` holds the `Tracker`
   interface (product analytics — a _separate_ concern from logs, backed by
-  PostHog via `@r10c/entifix-ts-posthog-client`, never routed into Loki/OTel).
+  PostHog via `@entifix/posthog`, never routed into Loki/OTel).
 - **Do not wrap OpenTelemetry in a `Context.Tag`** — it is cross-cutting and
   already vendor-neutral. The product-analytics SDK _is_ wrapped (a real vendor).
 - **Composition** happens at the existing roots, never in the shared packages: a
   service merges an observability layer into its `AppLayer` (replaces Effect's
   default logger with the tooling logger + stands up the OTel tracer and meter),
   reading `logging.level`/`logging.sink`/`otel.endpoint` from config-service.
-  The **factory** ships from `@r10c/shells-effect-service` — `makeObservabilityLayer`
+  The **factory** ships from `@entifix/service-shell` — `makeObservabilityLayer`
   beside `observabilityFromConfiguration(store, serviceName)`, which performs that
   read — the way `MongoHealthProbeLayer` ships from the Mongo client. Only the
   merge is per service, and all four do it. config-service is the one that cannot
@@ -436,7 +436,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
 
 - short-lived signed token, chosen over a bare JWT so a session is revocable):
 
-* `POST /api/auth/oidc/start` mints a PKCE pair (`entifix-ts-zitadel-client`) and
+* `POST /api/auth/oidc/start` mints a PKCE pair (`@entifix/zitadel`) and
   stashes `{codeVerifier, nonce, redirect}` in the one-time token store. The token
   it mints **is** the `state`: unguessable, single-use, TTL'd and hashed at rest
   is exactly what a `state` handle wants, so there is no second value to keep in
@@ -450,8 +450,8 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   first sight** through the same `registerUserUCFactory` an administrative create
   runs, projects the identity attributes, and calls the unchanged
   `establishSession`: `SessionStoreTag.create` mints an opaque session id in
-  Redis (the revocation handle — `entifix-ts-redis-client`'s
-  `RedisSessionStoreLayer`), and `TokenServiceTag.sign` (`entifix-ts-jwt-client`'s
+  Redis (the revocation handle — `@entifix/redis`'s
+  `RedisSessionStoreLayer`), and `TokenServiceTag.sign` (`@entifix/jwt`'s
   jose-backed RS256 service) mints a short-lived access token carrying only
   `userId`/`subject`/`sessionId`/`roles`/`activeOrganizationId`/`partyRole`.
 * **One writer per field.** Two records exist for one person and only one system
@@ -478,7 +478,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   (`business-ts-authn/values/session-policy.ts`) because the service and every
   app need the same numbers. What slides the session is _user_ activity, not
   traffic: `requirePrincipal` stays stateless and never reads Redis, so the
-  browser's `useSessionRefresh` hook (`@r10c/shells-next-common`) refreshes at
+  browser's `useSessionRefresh` hook (`@entifix/next-shell`) refreshes at
   80% of the token's life and **stops after 15 minutes without interaction** —
   an abandoned tab lets its session age out. See
   [ADR 0004](adr/0004-session-lifetime-devices-and-recovery.md).
@@ -526,7 +526,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   session, not to the token** — a cookie that dies with the token makes an
   expired token indistinguishable from no session, which is what used to sign
   everyone out every 15 minutes. The shared refresh handler is
-  `createRefreshRoute` from `@r10c/shells-next-common/server` — anything a route
+  `createRefreshRoute` from `@entifix/next-shell/server` — anything a route
   handler or server layout _calls_ must ship from `/server` so it is never
   reached through the client surface and stamped as a client reference;
   each app mounts its own, since cookies are per-origin. A `middleware.ts` per
@@ -584,8 +584,8 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   column and `redactConfiguration` blanks it. The URI credential mask alone was
   not enough — a signing key is not a URI.
 * `SessionStoreTag`/`TokenServiceTag` are framework-free contracts in
-  `entifix-ts-business` (`sessions/`, `tokens/`); `entifix-ts-redis-client`,
-  `entifix-ts-jwt-client` and `entifix-ts-zitadel-client` are their concrete
+  `@entifix/business` (`sessions/`, `tokens/`); `@entifix/redis`,
+  `@entifix/jwt` and `@entifix/zitadel` are their concrete
   adapters. That layering is what made the swap cheap: `establishSession` and
   every downstream use-case were untouched, and the change was confined to how a
   credential gets verified.
@@ -593,7 +593,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
 ## Authorization: role aspects + permissions
 
 Authentication answers _who_; this answers _what_. The whole policy lives in
-`@r10c/business-ts-authz` (`layer:business`, `scope:shared`) — pure and
+`@entifix/authz` (`layer:business`, `scope:shared`) — pure and
 Effect-free apart from the DI tag, so the identical check runs in a service, a
 Next server component, edge middleware and the browser. See
 [ADR 0002](./adr/0002-authorization-roles-and-abac.md).
@@ -620,7 +620,7 @@ context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
   middleware does an edge presence check (a fast bounce); the server-rendered
   layout filters nav with `can(...)` and gates back-office-app's `(back-office)`
   route group; the
-  service guard `requirePermission` (`@r10c/shells-effect-service`) verifies the
+  service guard `requirePermission` (`@entifix/service-shell`) verifies the
   token and asks the policy — `401` unauthenticated, `403` denied. The role gate
   sits in the server layout rather than middleware to keep verification off every
   server render; under RS256 it would only need `jwt.publicKey`, which is served
@@ -629,7 +629,7 @@ context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
   ([ADR 0002](adr/0002-authorization-roles-and-abac.md), revised).
 - **How each layer gets the roles** differs, on purpose. A **presentation**
   decision (which nav entries to render) reads them with `unverifiedClaims`
-  (`entifix-ts-jwt-client`) — the cookie is decoded, _not_ verified. The same
+  (`@entifix/jwt`) — the cookie is decoded, _not_ verified. The same
   read also yields the organization and its entitlements, which is the nav's
   second ceiling ([ADR 0037](adr/0037-entitlement-aware-navigation.md)). Forging it
   shows someone a menu; every route behind it still goes to a service that
@@ -680,13 +680,13 @@ The path from cookie to collection has four steps, each in a different layer:
    `UserIdentity` is an account, an `Individual` is the person, and a
    `Membership` is that person's participation in one organization.
 2. **The token carries it.** `TokenClaims.activeOrganizationId`
-   (`entifix-ts-business`) → `Principal.organizationId` (`business-ts-authn`).
+   (`@entifix/business`) → `Principal.organizationId` (`business-ts-authn`).
    It is a **first-class field, deliberately not in `attributes`**: attributes
    are ABAC decision inputs, the organization is a storage routing key, and the
    two must not share a blast radius. A party with no membership — a buyer, an
    operator — resolves to `undefined`, which is a normal answer, not a failure.
 3. **The guard requires it.** `requireOrganization(permission)`
-   (`@r10c/shells-effect-service`) composes over `requirePermission` and hands
+   (`@entifix/service-shell`) composes over `requirePermission` and hands
    the id to the handler. No organization → **`409 noActiveOrganization`**, not
    `403`: the caller is authenticated _and_ permitted, but the session names no
    storage to read. The value comes from the verified token and nowhere else — a
@@ -695,8 +695,8 @@ The path from cookie to collection has four steps, each in a different layer:
    `super-admin` holding `*:*:*` does **not** reach a tenant's data: a wildcard
    grant widens permissions, never scope.
 4. **The resolver returns the handle.** `TenantDatabaseResolverTag`
-   (`entifix-ts-business`) is the port; `makeMongoTenantResolver(client, prefix)`
-   (`entifix-ts-mongo-client`) is the adapter, returning
+   (`@entifix/business`) is the port; `makeMongoTenantResolver(client, prefix)`
+   (`@entifix/mongo`) is the adapter, returning
    ``client.db(`${prefix}${organizationId}`)``. It validates the id against
    `/^[a-zA-Z0-9_-]+$/` and the 63-char Mongo limit before assembling the name,
    and never echoes a rejected id — that check is the file's security boundary.
@@ -745,11 +745,11 @@ port table is the single source in [_shared/ports.md](_shared/ports.md).
 
 Reads stay direct; **writes become transactions**. A `POST` is a _command_: the
 service runs a five-step facade — validate → lock → execute → rollback → free —
-over it. `@r10c/entifix-transactions` holds the facade (each step a `*UCFactory`
+over it. `@entifix/transactions` holds the facade (each step a `*UCFactory`
 in the entity-use-case style), the `runTransaction` engine, and the ports
 (`LockService`, `SequenceService`, `EventBus`, `TransactionStore`,
-`TransactionHandler`). Adapters mirror the entity ones: `entifix-ts-redis-client`
-(lock via `SET NX`, sequences via atomic `INCR`) and `entifix-ts-amqp-client`
+`TransactionHandler`). Adapters mirror the entity ones: `@entifix/redis`
+(lock via `SET NX`, sequences via atomic `INCR`) and `@entifix/amqp`
 (RabbitMQ topic event bus — `entifix.events`, routed by the event's own name
 since [ADR 0029](adr/0029-the-event-envelope-and-a-routed-bus.md)).
 
@@ -929,39 +929,39 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   callback UCs over `AccountRepositoryTag`/`IdentityProviderTag`. There is no
   `PasswordHasherTag` — auth-service holds no credential
   ([ADR 0016](adr/0016-zitadel-authenticates-r10c-authorizes.md)).
-- `business-ts-authz` — the authorization policy: `Permission`/`Role`,
+- `@entifix/authz` — the authorization policy: `Permission`/`Role`,
   `ROLE_PERMISSIONS`, the pure `can()` check and the `PolicyDecisionTag` port
   (see [Authorization](#authorization-role-aspects--permissions)).
 - `business-ts-common` — shared domain primitives.
 
 **Entity framework** (`packages/entifix/*`):
 
-- `entifix-ts-core` — decorators, metadata, links, types, (de)serializer,
+- `@entifix/core` — decorators, metadata, links, types, (de)serializer,
   configuration store, and the **RSQL query codec** (`src/rsql/`).
-- `entifix-ts-business` — repository/resolver contracts + use-case factories,
+- `@entifix/business` — repository/resolver contracts + use-case factories,
   plus the framework-free `SessionStoreTag`/`TokenServiceTag` contracts (see
   [Auth: sessions + tokens](#auth-sessions--tokens)).
-- `entifix-ts-rest-client` — HTTP `EntityRepository` adapter (web).
-- `entifix-ts-mongo-client` — MongoDB `EntityRepository` adapter (backend), plus
+- `@entifix/rest` — HTTP `EntityRepository` adapter (web).
+- `@entifix/mongo` — MongoDB `EntityRepository` adapter (backend), plus
   the `TenantDatabaseResolver` adapter that gives each organization its own
   database off the shared client (see [Tenancy](#tenancy-resolving-the-organizations-storage)).
-- `entifix-ts-sql-client` — PostgreSQL `EntityRepository` adapter (backend) over
+- `@entifix/sql` — PostgreSQL `EntityRepository` adapter (backend) over
   `@effect/sql`. An accessor's `alias` **is** its column, so a scalar entity's
   serialized form already is a table row; the filter translator emits only
   parameterized fragments and validates every identifier against the entity's
   `filterable`/`sortable` allowlist before interpolation.
-- `entifix-transactions` — transaction facade + engine + ports (framework-free).
-  `entifix-ts-redis-client` (lock + sequence, and now `SessionStoreTag`'s Redis
-  adapter) and `entifix-ts-amqp-client` (event bus) are its transport adapters.
-- `entifix-ts-jwt-client` — `TokenServiceTag`'s jose-backed **RS256** adapter
+- `@entifix/transactions` — transaction facade + engine + ports (framework-free).
+  `@entifix/redis` (lock + sequence, and now `SessionStoreTag`'s Redis
+  adapter) and `@entifix/amqp` (event bus) are its transport adapters.
+- `@entifix/jwt` — `TokenServiceTag`'s jose-backed **RS256** adapter
   (`TOKEN_ALGORITHM`; sign/verify short-lived access tokens). `verifyAccessToken`
   pins `algorithms: ['RS256']`, which is the security boundary: jose otherwise
   trusts the token's own `alg` header and the openly-served public key would pass
   as an HMAC secret.
-- `entifix-react-controls` / `entifix-react-integration` — UI primitives +
-  Effect-aware hooks. `entifix-style` — design tokens.
-- `entifix-ts-testing-unit` — doubles, driver fakes and port contract suites for
-  unit specs. `entifix-ts-testing-e2e` — the e2e layer: the `E2E_PROFILE`
+- `@entifix/react-controls` / `@entifix/react-integration` — UI primitives +
+  Effect-aware hooks. `@entifix/style` — design tokens.
+- `@entifix/testing-unit` — doubles, driver fakes and port contract suites for
+  unit specs. `@entifix/testing-e2e` — the e2e layer: the `E2E_PROFILE`
   (`mock` | `live`) seam, a mock backend built from the production query
   pipeline, and the Playwright/Vitest presets. Both are test-only and private.
 
@@ -972,8 +972,8 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   the layer stays declared for the first component that cannot be derived.
 - `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-auth`,
   `shells-next-system-management` (`scope:shared`, so a second host can mount it
-  with no moves), `shells-next-common` and `shells-next-i18n` — Next pages +
-  client adapters. `shells-effect-service` — the backend base.
+  with no moves), `@entifix/next-shell` and `@entifix/next-i18n` — Next pages +
+  client adapters. `@entifix/service-shell` — the backend base.
 
 **A host keeps composition, and that includes the proxy mounts.** A shell
 contributes its pages, its adapters, its nav fragment and its search sources; the
@@ -989,10 +989,10 @@ is what left those two pages requesting routes that no longer existed, invisibly
 because the e2e fixture stubbed the same wrong address. And the system-management
 proxy is mounted at **`/api/system`, never `/api/config`**, which is already the
 config _fetch_ route. `shell:domain` may depend on `shell:base` and both domain
-shells do; the reverse is forbidden, so `shells-next-common` may import **no**
+shells do; the reverse is forbidden, so `@entifix/next-shell` may import **no**
 other shell — which is why nav and search sources are contributed rather than
 imported, and why the permission-annotated vocabulary
-(`GuardedNavItem`/`GuardedNavSection`) lives in `business-ts-authz`, the only
+(`GuardedNavItem`/`GuardedNavSection`) lives in `@entifix/authz`, the only
 layer a shell and an app both reach.
 
 **Apps** — frontends `marketplace-app` (`:3000`, the public storefront) and

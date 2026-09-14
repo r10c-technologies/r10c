@@ -1,4 +1,4 @@
-import type { TokenClaims } from '@r10c/entifix-ts-business';
+import type { TokenClaims } from '@entifix/business';
 
 /**
  * Base64url → JSON. `atob` + `TextDecoder` rather than `Buffer` so the same

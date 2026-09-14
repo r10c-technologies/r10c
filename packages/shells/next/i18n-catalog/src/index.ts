@@ -1,17 +1,17 @@
+import { defineCatalogs } from '@entifix/i18n';
 import {
-  r10cCatalogs,
-  type R10cOwnResources,
-} from '@r10c/business-ts-i18n';
+  shellCatalogs,
+  type ShellResources,
+} from '@entifix/next-shell';
 import {
   controlsCatalogs,
   type ControlsResources,
   registerFallbackCatalog,
-} from '@r10c/entifix-react-controls';
-import { defineCatalogs } from '@r10c/entifix-ts-i18n';
+} from '@entifix/react-controls';
 import {
-  shellCatalogs,
-  type ShellResources,
-} from '@r10c/shells-next-common';
+  r10cCatalogs,
+  type R10cOwnResources,
+} from '@r10c/business-ts-i18n';
 
 /**
  * r10c's catalogs, and the composition of entifix's with them.

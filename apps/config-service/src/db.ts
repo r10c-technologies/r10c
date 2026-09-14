@@ -3,29 +3,29 @@ import { readFileSync } from 'node:fs';
 import { SqlClient } from '@effect/sql';
 import { PgClient } from '@effect/sql-pg';
 import {
+  makeStaticPolicyDecision,
+  PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
+} from '@entifix/authz';
+import {
+  ConfigurationRepositoryTag,
+  TokenServiceTag,
+} from '@entifix/business';
+import {
+  ConfigurationClientInMemory,
+  type ConfigurationPlain,
+} from '@entifix/core';
+import { makeJoseTokenService } from '@entifix/jwt';
+import { observabilityFromConfiguration } from '@entifix/service-shell';
+import { SqlHealthProbeLayer } from '@entifix/sql';
+import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
 import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@r10c/business-ts-authz';
-import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
-import {
-  ConfigurationRepositoryTag,
-  TokenServiceTag,
-} from '@r10c/entifix-ts-business';
-import {
-  ConfigurationClientInMemory,
-  type ConfigurationPlain,
-} from '@r10c/entifix-ts-core';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
-import { SqlHealthProbeLayer } from '@r10c/entifix-ts-sql-client';
-import { observabilityFromConfiguration } from '@r10c/shells-effect-service';
 import { Config, Effect, Layer, Redacted } from 'effect';
 
 /**
@@ -1535,7 +1535,7 @@ export const DbLive = Layer.provideMerge(
 /**
  * Readiness probe for the Postgres connection.
  *
- * Re-exported from `@r10c/entifix-ts-sql-client`, where it moved once a second
+ * Re-exported from `@entifix/sql`, where it moved once a second
  * relational consumer became possible: the probe is a plain `SELECT 1` with
  * nothing config-service-specific about it. The alias keeps this app's existing
  * import name working.

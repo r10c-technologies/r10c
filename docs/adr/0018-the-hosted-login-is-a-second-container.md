@@ -5,7 +5,7 @@
 - Area: platform
 - Read when: the sign-in page 404s behind green probes — the hosted login is a second container on `:30081`, applied at ladder rung L6 and pointed at by the seed at L7
 - Revised: 2026-08-14 — the hosted login is no longer the one screen in the
-  fleet that ignores `@r10c/entifix-style`; the seed writes r10c's colours into
+  fleet that ignores `@entifix/style`; the seed writes r10c's colours into
   the instance label policy. The decision is unchanged.
 
 ## Context
@@ -30,7 +30,7 @@ But the pin was a deprecation clock, not a decision (issue #51). Three things
 would make it come due: Zitadel announcing a removal version for v1, something
 the lab needs landing only in v2, or wanting the hosted login to look like r10c.
 The third is the one that fired. The hosted login is the only screen in the fleet
-that ignores `@r10c/entifix-style`, and v2 is themable in ways v1 is not. Doing
+that ignores `@entifix/style`, and v2 is themable in ways v1 is not. Doing
 the move now means doing it without a 404 setting the schedule.
 
 > **Revised 2026-08-14 — done.** The paragraph above is kept as the motivation it

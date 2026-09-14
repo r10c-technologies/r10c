@@ -2,17 +2,17 @@ import {
   ConfigurationRepositoryTag,
   EntityLinkResolverTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   accessor,
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context, Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';

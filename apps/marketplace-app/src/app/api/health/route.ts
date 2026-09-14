@@ -1,4 +1,4 @@
-import { createHealthRoutes } from '@r10c/shells-next-common/server';
+import { createHealthRoutes } from '@entifix/next-shell/server';
 
 /**
  * Probe endpoints for this app, mirroring the backends' `/api/health*`.

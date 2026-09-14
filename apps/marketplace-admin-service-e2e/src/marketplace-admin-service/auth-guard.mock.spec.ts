@@ -1,15 +1,15 @@
-import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import { signAccessToken } from '@r10c/entifix-ts-jwt-client';
+import { signAccessToken } from '@entifix/jwt';
 import {
   E2E_FOREIGN_PRIVATE_KEY_PEM,
   E2E_KEY_ID,
   E2E_PRIVATE_KEY_PEM,
   E2E_PUBLIC_KEY_PEM,
-} from '@r10c/entifix-ts-testing-e2e/fixtures';
-import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
+} from '@entifix/testing-e2e/fixtures';
+import { defineServiceE2e } from '@entifix/testing-e2e/service';
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
 
 import { startMockService } from '../support/mock-service';
 import { bearerFor, signTokenFor } from '../support/tokens';

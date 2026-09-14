@@ -1,11 +1,11 @@
 'use client';
 
-import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import type {
   Entity,
   EntityFieldDescriptor,
   EntityLinkSource,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 
 import { useT } from '../../../i18n';
 import { Button } from '../../atoms/button';

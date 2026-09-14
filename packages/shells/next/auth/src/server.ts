@@ -6,7 +6,7 @@
  * Everything reachable from here either reads `next/headers` or is called by
  * something that does. Keeping it out of the package's main entry is what stops
  * Next stamping a cookie reader as a client reference — the same reason
- * `shells-next-common` splits its own `/server`.
+ * `@entifix/next-shell` splits its own `/server`.
  */
 export { AUTH_NAV } from './nav';
 export type { Principal } from './principal-types';

@@ -1,48 +1,48 @@
 import {
-  AccountRepositoryTag,
-  IdentityProviderTag,
-  NotificationPortTag,
-  UserDeviceRepositoryTag,
-} from '@r10c/business-ts-authn';
-import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
-} from '@r10c/business-ts-authz';
-import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
+} from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,
   SessionStoreTag,
   TokenServiceTag,
-} from '@r10c/entifix-ts-business';
-import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
+} from '@entifix/business';
+import { ConfigurationClientInMemory } from '@entifix/core';
+import { makeJoseTokenService } from '@entifix/jwt';
 import {
   MongoDatabaseLayer,
   MongoDatabaseTag,
   MongoHealthProbeLayer,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/mongo';
 import {
   RedisHealthProbeLayer,
   RedisLayer,
   RedisOneTimeTokenStoreLayer,
   RedisSessionStoreLayer,
-} from '@r10c/entifix-ts-redis-client';
+} from '@entifix/redis';
+import {
+  LoadedConfigurationTag,
+  loadRemoteConfiguration,
+  observabilityFromConfiguration,
+} from '@entifix/service-shell';
 import {
   ZitadelActionsLayer,
   ZitadelHealthProbeLayer,
   ZitadelManagementLayer,
   ZitadelManagementTag,
   ZitadelOidcLayer,
-} from '@r10c/entifix-ts-zitadel-client';
+} from '@entifix/zitadel';
 import {
-  LoadedConfigurationTag,
-  loadRemoteConfiguration,
-  observabilityFromConfiguration,
-} from '@r10c/shells-effect-service';
+  AccountRepositoryTag,
+  IdentityProviderTag,
+  NotificationPortTag,
+  UserDeviceRepositoryTag,
+} from '@r10c/business-ts-authn';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { Effect, Layer } from 'effect';
 
 import { makeMongoAccountRepository } from './identity/account-repository';

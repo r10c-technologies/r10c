@@ -12,7 +12,7 @@ import {
   withStepValue,
   type WizardState,
   type WizardStepValue,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { EntityDraftStore } from '../use-entity-form/use-entity-form.types';

@@ -42,9 +42,9 @@
     }
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
+    "@entifix/authz": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "3.22.1"
   }

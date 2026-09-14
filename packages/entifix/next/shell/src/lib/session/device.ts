@@ -1,5 +1,5 @@
-import type { DeviceContext } from '@r10c/entifix-ts-business';
-import { DEVICE_COOKIE } from '@r10c/entifix-ts-core';
+import type { DeviceContext } from '@entifix/business';
+import { DEVICE_COOKIE } from '@entifix/core';
 import { type NextRequest, type NextResponse, userAgent } from 'next/server';
 
 

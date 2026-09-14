@@ -1,5 +1,5 @@
+import type { RecordSearchSource } from '@entifix/next-shell/server';
 import { AUTH_SEARCH_SOURCES } from '@r10c/shells-next-auth/server';
-import type { RecordSearchSource } from '@r10c/shells-next-common/server';
 import { MARKETPLACE_ADMIN_SEARCH_SOURCES } from '@r10c/shells-next-marketplace-admin/server';
 import { ORDER_SEARCH_SOURCES } from '@r10c/shells-next-order/server';
 import { SALES_SEARCH_SOURCES } from '@r10c/shells-next-sales/server';

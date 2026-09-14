@@ -1,5 +1,5 @@
-import type { ConfigurationPlain } from '@r10c/entifix-ts-core';
-import type { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
+import type { ConfigurationPlain } from '@entifix/core';
+import type { Entity, EntityConstructor } from '@entifix/core';
 import { http, HttpResponse, type RequestHandler } from 'msw';
 
 import {

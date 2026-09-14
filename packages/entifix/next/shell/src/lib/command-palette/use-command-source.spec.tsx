@@ -1,5 +1,5 @@
-import { NEW_COMMAND_PAGE } from '@r10c/business-ts-authz';
-import type { CommandSource } from '@r10c/entifix-ts-core';
+import { NEW_COMMAND_PAGE } from '@entifix/authz';
+import type { CommandSource } from '@entifix/core';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

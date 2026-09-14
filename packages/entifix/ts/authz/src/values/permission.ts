@@ -8,12 +8,12 @@ import {
   extractMetaEntity,
   extractMetaUseCaseBinding,
   type UseCaseConstructor,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 /**
  * What a caller wants to do with a resource.
  *
- * Defined in `@r10c/entifix-ts-core` and aliased here, not duplicated: a UI
+ * Defined in `@entifix/core` and aliased here, not duplicated: a UI
  * reads the same triple off a served `EntityMetadataDocument` to decide whether
  * to render Save and Delete, and `entifix:react` may not import the business
  * layer. Aliasing keeps one definition and leaves every call site below

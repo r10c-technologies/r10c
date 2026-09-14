@@ -42,14 +42,14 @@
     }
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*",
+    "@entifix/authz": "workspace:*",
     "@r10c/business-ts-catalog-contracts": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "3.22.1"
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@entifix/testing-unit": "workspace:*"
   }
 }

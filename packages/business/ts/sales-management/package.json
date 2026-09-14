@@ -42,9 +42,9 @@
     }
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*",
+    "@entifix/authz": "workspace:*",
     "@r10c/business-ts-sales-vocabulary": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
+    "@entifix/core": "workspace:*",
     "@swc/helpers": "0.5.23"
   }
 }

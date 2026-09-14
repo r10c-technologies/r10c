@@ -1,5 +1,5 @@
 import { HttpServerResponse } from '@effect/platform';
-import { type DomainEvent, makeEventEnvelope } from '@r10c/entifix-ts-core';
+import { type DomainEvent, makeEventEnvelope } from '@entifix/core';
 import { Duration, Effect, Stream } from 'effect';
 
 /**

@@ -4,21 +4,21 @@ import {
   HttpServerResponse,
 } from '@effect/platform';
 import {
+  EntityIdTag,
+  EntityRepositoryTag,
+  getUCFactory,
+} from '@entifix/business';
+import { makeEnvelope } from '@entifix/core';
+import {
+  makeMongoRepository,
+  MongoDatabaseTag,
+} from '@entifix/mongo';
+import { requireOrganization } from '@entifix/service-shell';
+import {
   SalesChannel,
   SELL_AT_CHANNEL,
   SellAtChannelUC,
 } from '@r10c/business-ts-sales-management';
-import {
-  EntityIdTag,
-  EntityRepositoryTag,
-  getUCFactory,
-} from '@r10c/entifix-ts-business';
-import { makeEnvelope } from '@r10c/entifix-ts-core';
-import {
-  makeMongoRepository,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
-import { requireOrganization } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
 import {

@@ -1,7 +1,7 @@
 import {
   type EntityChangeEvent,
   readEventEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect, Either } from 'effect';
 
 import type { EntityChangeListener, ReactiveChannel } from './reactive-channel';

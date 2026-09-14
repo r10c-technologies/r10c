@@ -1,7 +1,7 @@
 'use client';
 
-import { type Locale, makeFormatters } from '@r10c/entifix-ts-core';
-import { createI18n, sharedFallbackI18n } from '@r10c/entifix-ts-i18n';
+import { type Locale, makeFormatters } from '@entifix/core';
+import { createI18n, sharedFallbackI18n } from '@entifix/i18n';
 import type { i18n as I18nInstance } from 'i18next';
 import { type PropsWithChildren, useMemo } from 'react';
 import { I18nextProvider, initReactI18next } from 'react-i18next';

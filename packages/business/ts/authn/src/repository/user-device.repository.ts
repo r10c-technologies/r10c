@@ -1,5 +1,5 @@
-import type { DeviceContext } from '@r10c/entifix-ts-business';
-import type { EntifixError, EntityId } from '@r10c/entifix-ts-core';
+import type { DeviceContext } from '@entifix/business';
+import type { EntifixError, EntityId } from '@entifix/core';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
 

@@ -1,4 +1,4 @@
-import type { ServiceE2eContext } from '@r10c/entifix-ts-testing-e2e/service';
+import type { ServiceE2eContext } from '@entifix/testing-e2e/service';
 
 /**
  * Drive a full sign-in the way a browser would, minus the browser.

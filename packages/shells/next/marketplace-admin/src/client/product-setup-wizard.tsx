@@ -1,36 +1,11 @@
 'use client';
 
 import {
-  ProductBrand,
-  ProductCategory,
-} from '@r10c/business-ts-catalog-reference';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
-import {
-  Button,
-  Card,
-  Cluster,
-  EntityField,
-  EntityForm,
-  EntityTable,
-  Stack,
-  Text,
-  useTranslateKey,
-  Wizard,
-} from '@r10c/entifix-react-controls';
-import {
-  seedEntityDraft,
-  useDataLoading,
-  useEntityForm,
-  useEntityMutation,
-  useWizard,
-} from '@r10c/entifix-react-integration';
-import type { TransactionSink } from '@r10c/entifix-transactions';
-import {
   deleteUCFactory,
   getUCFactory,
   loadUCFactory,
   saveUCFactory,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   assertWizardDefinition,
   cloneEntityDraft,
@@ -42,11 +17,11 @@ import {
   readStepIds,
   reconstructEntity,
   type WizardDefinition,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import type {
   CrudContext,
   EntityCrudLinkSource,
-} from '@r10c/shells-next-common';
+} from '@entifix/next-shell';
 import {
   handOffWrite,
   mergeCrudContext,
@@ -56,7 +31,32 @@ import {
   usePendingTransactions,
   useWizardDraft,
   useWizardStepUrl,
-} from '@r10c/shells-next-common';
+} from '@entifix/next-shell';
+import {
+  Button,
+  Card,
+  Cluster,
+  EntityField,
+  EntityForm,
+  EntityTable,
+  Stack,
+  Text,
+  useTranslateKey,
+  Wizard,
+} from '@entifix/react-controls';
+import {
+  seedEntityDraft,
+  useDataLoading,
+  useEntityForm,
+  useEntityMutation,
+  useWizard,
+} from '@entifix/react-integration';
+import type { TransactionSink } from '@entifix/transactions';
+import {
+  ProductBrand,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
+import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef } from 'react';
 

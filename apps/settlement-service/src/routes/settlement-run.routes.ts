@@ -1,10 +1,10 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
-import { SettlementRun } from '@r10c/business-ts-settlement-management';
 import {
   MongoClientTag,
   MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
-import { entityMetadataRoute } from '@r10c/shells-effect-service';
+} from '@entifix/mongo';
+import { entityMetadataRoute } from '@entifix/service-shell';
+import { SettlementRun } from '@r10c/business-ts-settlement-management';
 import { Effect } from 'effect';
 
 import { settleOnce } from '../run/sweep';

@@ -1,20 +1,20 @@
 import {
-  ProductBrand,
-  ProductCategory,
-} from '@r10c/business-ts-catalog-reference';
-import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import {
   ConfigurationRepositoryTag,
   EntityLoadRequestTag,
   EntityRepositoryTag,
   loadUCFactory,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import type {
   Entity,
   EntityConstructor,
   EntityLoadRequest,
   EntityPage,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import {
+  configApiUrl,
+  SERVICE_TOKEN_HEADER,
+  serviceToken,
+} from '@entifix/next-shell/server';
 import {
   buildEntityRestAdapterDelete,
   buildEntityRestAdapterGet,
@@ -22,12 +22,12 @@ import {
   buildEntityRestAdapterSave,
   type BuildEntityRestOptions,
   ConfigurationClientRestClient,
-} from '@r10c/entifix-ts-rest-client';
+} from '@entifix/rest';
 import {
-  configApiUrl,
-  SERVICE_TOKEN_HEADER,
-  serviceToken,
-} from '@r10c/shells-next-common/server';
+  ProductBrand,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Cause, Context, Effect } from 'effect';
 
 /**

@@ -1,7 +1,7 @@
 import type {
   EntityIdTag,
   EntityLoadRequestTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import type {
   EntifixError,
   Entity,
@@ -10,7 +10,7 @@ import type {
   EntityId,
   EntityPage,
   FilterGroup,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import type { Context, Effect } from 'effect';
 
 /**

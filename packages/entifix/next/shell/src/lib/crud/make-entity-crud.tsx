@@ -1,14 +1,5 @@
 'use client';
 
-import { EntityTable, useCasesForSurface } from '@r10c/entifix-react-controls';
-import {
-  entityQueryScope,
-  useDataLoading,
-  useEntityMutation,
-  useEntityRecord,
-} from '@r10c/entifix-react-integration';
-import type { TransactionSink } from '@r10c/entifix-transactions';
-import { TransactionSinkTag } from '@r10c/entifix-transactions';
 import {
   type ConfigurationRepositoryTag,
   deleteUCFactory,
@@ -16,7 +7,7 @@ import {
   getUCFactory,
   loadUCFactory,
   saveUCFactory,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   describeEntityColumns,
   EntifixBuildError,
@@ -26,7 +17,16 @@ import {
   type EntityConstructor,
   envelopeEntityName,
   extractMetaEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { EntityTable, useCasesForSurface } from '@entifix/react-controls';
+import {
+  entityQueryScope,
+  useDataLoading,
+  useEntityMutation,
+  useEntityRecord,
+} from '@entifix/react-integration';
+import type { TransactionSink } from '@entifix/transactions';
+import { TransactionSinkTag } from '@entifix/transactions';
 import { useQueryClient } from '@tanstack/react-query';
 import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';

@@ -1,11 +1,11 @@
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import {
   accessor,
   type Entity,
   entity,
   type EntityId,
   type EntityMetadataSource,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { EntifixQueryProvider } from '@entifix/react-integration';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';

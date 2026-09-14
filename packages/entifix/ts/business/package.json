@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/entifix-ts-business",
+  "name": "@entifix/business",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,7 +8,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
@@ -43,7 +43,7 @@
     }
   },
   "dependencies": {
-    "@r10c/entifix-ts-core": "workspace:*",
+    "@entifix/core": "workspace:*",
     "@swc/helpers": "0.5.23"
   },
   "peerDependencies": {

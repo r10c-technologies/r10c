@@ -9,7 +9,7 @@ import {
   Stack,
   Text,
   useT,
-} from '@r10c/entifix-react-controls';
+} from '@entifix/react-controls';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 

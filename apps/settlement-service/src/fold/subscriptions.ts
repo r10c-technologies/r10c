@@ -1,15 +1,15 @@
+import { queueNameFor } from '@entifix/amqp/transactions';
+import {
+  MongoClientTag,
+  MongoDatabaseTag,
+} from '@entifix/mongo';
+import { ensureInboxIndexes } from '@entifix/mongo/transactions';
+import { EventBusTag, type Subscription } from '@entifix/transactions';
 import {
   PAYMENT_CAPTURED,
   PAYMENT_REFUNDED,
   readPaymentOutcome,
 } from '@r10c/business-ts-payment-contracts';
-import { EventBusTag, type Subscription } from '@r10c/entifix-transactions';
-import { queueNameFor } from '@r10c/entifix-ts-amqp-client/transactions';
-import {
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
-import { ensureInboxIndexes } from '@r10c/entifix-ts-mongo-client/transactions';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

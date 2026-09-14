@@ -1,4 +1,4 @@
-import type { PendingTransactionStore } from '@r10c/entifix-transactions';
+import type { PendingTransactionStore } from '@entifix/transactions';
 import { describe, expect, it, vi } from 'vitest';
 
 import { handOffWrite } from './hand-off-write.js';

@@ -1,4 +1,4 @@
-import { EntifixError } from '@r10c/entifix-ts-core';
+import { EntifixError } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import {

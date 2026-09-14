@@ -4,8 +4,8 @@ import {
   type OneTimeTokenStore,
   OneTimeTokenStoreTag,
   type TokenPurpose,
-} from '@r10c/entifix-ts-business';
-import { EntifixConnError, EntifixLogicError } from '@r10c/entifix-ts-core';
+} from '@entifix/business';
+import { EntifixConnError, EntifixLogicError } from '@entifix/core';
 import { Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
 

@@ -1,14 +1,14 @@
-import { Configuration } from '@r10c/business-ts-configuration';
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
-import { EntifixConnError, type Entity } from '@r10c/entifix-ts-core';
+} from '@entifix/business';
+import { EntifixConnError, type Entity } from '@entifix/core';
+import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
+import { Configuration } from '@r10c/business-ts-configuration';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Context } from 'effect';

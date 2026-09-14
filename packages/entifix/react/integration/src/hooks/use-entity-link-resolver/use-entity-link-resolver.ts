@@ -3,7 +3,7 @@ import {
   createEntityLinkResolver,
   type EntityLinkRegistration,
   type EntityLinkResolverTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import type { Context } from 'effect';
 import { useMemo } from 'react';
 
@@ -17,7 +17,7 @@ export { createEntityLinkResolver };
  * touching the base adapters or the use-case.
  *
  * The assembly itself is `createEntityLinkResolver` in
- * `@r10c/entifix-ts-business` — nothing about it is React, and a server
+ * `@entifix/business` — nothing about it is React, and a server
  * component needs it without dragging this package's hooks along. Re-exported
  * here so existing client call sites keep one import.
  */

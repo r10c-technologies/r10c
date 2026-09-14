@@ -1,12 +1,12 @@
 'use client';
 
-import { NEW_COMMAND_PAGE } from '@r10c/business-ts-authz';
-import { useT } from '@r10c/entifix-react-controls';
+import { NEW_COMMAND_PAGE } from '@entifix/authz';
 import {
   type CommandOption,
   type CommandSource,
   matchesCommand,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { useT } from '@entifix/react-controls';
 import { useMemo } from 'react';
 
 import { useLocaleHref } from '../i18n';

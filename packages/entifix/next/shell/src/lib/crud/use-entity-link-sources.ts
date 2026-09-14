@@ -1,13 +1,13 @@
 'use client';
 
-import { useEntityLinkSource } from '@r10c/entifix-react-integration';
 import {
   type Entity,
   type EntityDraft,
   type EntityLinkSelection,
   type EntityLinkSource,
   readDraftString,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { useEntityLinkSource } from '@entifix/react-integration';
 
 import type { EntityCrudLinkSource } from './make-entity-crud.types';
 

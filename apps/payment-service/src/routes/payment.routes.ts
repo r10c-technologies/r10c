@@ -1,9 +1,9 @@
 import { HttpRouter } from '@effect/platform';
-import { Payment, Refund } from '@r10c/business-ts-payment-management';
 import {
   entityMetadataRoute,
   requireCrossing,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
+import { Payment, Refund } from '@r10c/business-ts-payment-management';
 
 import { capturePaymentRoute } from './capture-payment';
 import { byIdRoute, guarded, listRoute } from './entity-crud';

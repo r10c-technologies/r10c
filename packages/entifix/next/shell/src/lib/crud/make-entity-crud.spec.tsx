@@ -1,11 +1,7 @@
-import { EntityColumn } from '@r10c/entifix-react-controls';
-import { EntifixQueryProvider } from '@r10c/entifix-react-integration';
-import type { TransactionSink } from '@r10c/entifix-transactions';
-import { TransactionSinkTag } from '@r10c/entifix-transactions';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   accessor,
   EntifixBuildError,
@@ -15,11 +11,15 @@ import {
   entity,
   type EntityDraft,
   type EntityId,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { EntityColumn } from '@entifix/react-controls';
+import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
   makeStubConfigurationClient,
-} from '@r10c/entifix-ts-testing-unit';
+} from '@entifix/testing-unit';
+import type { TransactionSink } from '@entifix/transactions';
+import { TransactionSinkTag } from '@entifix/transactions';
 import {
   fireEvent,
   render,

@@ -14,7 +14,7 @@ import { defineEntifixTest } from '../../vitest.shared.mjs';
  * ([ADR 0010](../../docs/adr/0010-stock-ledger-reservations-and-concurrency.md)).
  *
  * The variable is read directly rather than through
- * `@r10c/entifix-ts-testing-e2e`: Vitest loads this config with Node's native
+ * `@entifix/testing-e2e`: Vitest loads this config with Node's native
  * TypeScript stripping, which cannot resolve the package's extensionless
  * internal imports. Validation of the value still happens in the suite, where
  * `defineServiceE2e` rejects anything that is not a known profile.

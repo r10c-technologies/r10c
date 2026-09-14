@@ -1,4 +1,4 @@
-import type { CommandSource } from '@r10c/entifix-ts-core';
+import type { CommandSource } from '@entifix/core';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

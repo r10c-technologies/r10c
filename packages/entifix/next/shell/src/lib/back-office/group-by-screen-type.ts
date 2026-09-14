@@ -1,4 +1,4 @@
-import { screenTypeRank } from '@r10c/business-ts-authz';
+import { screenTypeRank } from '@entifix/authz';
 
 import type { NavSection, NavTier } from './nav';
 

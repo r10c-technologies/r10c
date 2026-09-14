@@ -1,4 +1,4 @@
-import type { EntifixEnvelope } from '@r10c/entifix-ts-core';
+import type { EntifixEnvelope } from '@entifix/core';
 
 import { HttpMethod, HttpRequest } from '../../../clients/types';
 

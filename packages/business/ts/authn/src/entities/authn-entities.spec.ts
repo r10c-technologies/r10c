@@ -2,12 +2,12 @@ import {
   DEFAULT_ROLE,
   permissionForEntity,
   Roles,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
 import {
   describeEntityColumns,
   deserializeSingleEntity,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 

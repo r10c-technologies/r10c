@@ -1,4 +1,4 @@
-import { describeTransactionInboxContract } from '@r10c/entifix-ts-testing-unit/contracts';
+import { describeTransactionInboxContract } from '@entifix/testing-unit/contracts';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';

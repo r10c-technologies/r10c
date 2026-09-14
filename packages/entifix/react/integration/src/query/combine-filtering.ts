@@ -1,4 +1,4 @@
-import type { Entity, FilterGroup } from '@r10c/entifix-ts-core';
+import type { Entity, FilterGroup } from '@entifix/core';
 
 /**
  * ANDs filter groups, dropping the ones that say nothing.

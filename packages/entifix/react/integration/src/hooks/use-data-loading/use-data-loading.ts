@@ -1,4 +1,4 @@
-import { EntityLoadRequestTag } from '@r10c/entifix-ts-business';
+import { EntityLoadRequestTag } from '@entifix/business';
 import {
   type EntifixError,
   type Entity,
@@ -8,7 +8,7 @@ import {
   type FilterGroup,
   serializeRsql,
   serializeSort,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Context, Effect } from 'effect';
 import {

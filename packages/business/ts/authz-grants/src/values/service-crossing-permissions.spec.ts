@@ -1,4 +1,4 @@
-import { can, permissionsOf, Roles } from '@r10c/business-ts-authz';
+import { can, permissionsOf, Roles } from '@entifix/authz';
 import { describe, expect, it } from 'vitest';
 
 import { ROLE_PERMISSIONS } from './role-permissions.js';

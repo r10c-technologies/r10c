@@ -1,4 +1,4 @@
-import type { Entity, FilterGroup } from '@r10c/entifix-ts-core';
+import type { Entity, FilterGroup } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { combineFilterGroups } from './combine-filtering.js';

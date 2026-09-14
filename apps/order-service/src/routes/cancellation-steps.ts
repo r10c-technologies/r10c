@@ -3,16 +3,16 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
-import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
   EntifixConnError,
   envelopeEntityName,
   makeEntityEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   MongoClientTag,
   MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/mongo';
+import { ProductOrder } from '@r10c/business-ts-order-management';
 import { Effect } from 'effect';
 
 import {

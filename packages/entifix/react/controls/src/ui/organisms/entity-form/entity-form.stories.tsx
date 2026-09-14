@@ -4,7 +4,7 @@ import {
   entity,
   type EntityId,
   type UseCaseDescriptor,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 
@@ -13,7 +13,7 @@ import { EntityForm } from './entity-form';
 /**
  * A decorated fixture, because the form builds its rows from metadata. The
  * `Symbol.metadata` polyfill installs itself on the first import from
- * `@r10c/entifix-ts-core`, so the decorators need no further setup here.
+ * `@entifix/core`, so the decorators need no further setup here.
  */
 @entity({ key: 'story-gadget' })
 class StoryGadget implements Entity {

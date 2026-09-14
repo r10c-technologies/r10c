@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 
-import { EntifixLogicError } from '@r10c/entifix-ts-core';
+import { EntifixLogicError } from '@entifix/core';
 import type {
   LogoutEvent,
   ZitadelEvent,
@@ -8,7 +8,7 @@ import type {
   ZitadelManagement,
   ZitadelOidc,
   ZitadelUser,
-} from '@r10c/entifix-ts-zitadel-client';
+} from '@entifix/zitadel';
 import { Effect } from 'effect';
 
 /** Where the fake hosted UI pretends to live. Nothing ever fetches it. */

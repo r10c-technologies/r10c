@@ -1,5 +1,5 @@
-import type { InboxClaim, TransactionInbox } from '@r10c/entifix-transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { EntifixConnError } from '@entifix/core';
+import type { InboxClaim, TransactionInbox } from '@entifix/transactions';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

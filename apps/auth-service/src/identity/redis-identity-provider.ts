@@ -1,10 +1,10 @@
+import type { SessionRecord, SessionStore } from '@entifix/business';
 import {
   type AccountRepository,
   type IdentityProvider,
   type Principal,
   UnauthenticatedError,
 } from '@r10c/business-ts-authn';
-import type { SessionRecord, SessionStore } from '@r10c/entifix-ts-business';
 import { Effect } from 'effect';
 
 /**

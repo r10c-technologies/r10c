@@ -1,5 +1,5 @@
+import { ACCESS_COOKIE, SESSION_COOKIE } from '@entifix/core';
 import { SESSION_ABSOLUTE_TTL_SECONDS } from '@r10c/business-ts-authn';
-import { ACCESS_COOKIE, SESSION_COOKIE } from '@r10c/entifix-ts-core';
 import { cookies } from 'next/headers';
 
 

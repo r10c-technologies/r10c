@@ -1,7 +1,7 @@
 import type {
   EntityFieldDescriptor,
   MetaAccessorType,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 

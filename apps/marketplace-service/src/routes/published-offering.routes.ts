@@ -1,6 +1,6 @@
 import { HttpRouter } from '@effect/platform';
+import { entityMetadataRoute } from '@entifix/service-shell';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import { byIdRoute, listRoute } from './entity-crud';
 

@@ -1,14 +1,8 @@
 import {
-  Agreement,
-  CommissionEntry,
-  SettlementRun,
-  VendorPayout,
-} from '@r10c/business-ts-settlement-management';
-import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
-import { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
+} from '@entifix/business';
+import { Entity, EntityConstructor } from '@entifix/core';
 import {
   buildEntityRestAdapterDelete,
   buildEntityRestAdapterGet,
@@ -16,7 +10,13 @@ import {
   buildEntityRestAdapterSave,
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
-} from '@r10c/entifix-ts-rest-client';
+} from '@entifix/rest';
+import {
+  Agreement,
+  CommissionEntry,
+  SettlementRun,
+  VendorPayout,
+} from '@r10c/business-ts-settlement-management';
 import { Context } from 'effect';
 
 import type { SettlementAdapters } from '../client-types';

@@ -5,7 +5,6 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from '@effect/platform';
-import { ProductOrder } from '@r10c/business-ts-order-management';
 import {
   EntifixBuildError,
   EntifixConnError,
@@ -13,11 +12,12 @@ import {
   makeEntityEnvelope,
   readEntityEnvelope,
   serializeEntity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   MongoClientTag,
   MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/mongo';
+import { ProductOrder } from '@r10c/business-ts-order-management';
 import { Effect } from 'effect';
 
 import { CancelWindowSeconds } from '../cancel-capability';

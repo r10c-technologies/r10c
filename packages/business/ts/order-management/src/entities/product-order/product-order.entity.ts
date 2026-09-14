@@ -1,5 +1,5 @@
-import type { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { accessor, entity } from '@r10c/entifix-ts-core';
+import type { Entity, EntityId } from '@entifix/core';
+import { accessor, entity } from '@entifix/core';
 
 import { OrderItem } from '../../values/order-item';
 import { type OrderStatus, OrderStatuses } from '../../values/order-status';

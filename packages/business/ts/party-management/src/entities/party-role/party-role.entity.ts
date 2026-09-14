@@ -1,5 +1,5 @@
-import type { Entity, EntityId } from '@r10c/entifix-ts-core';
-import { accessor, entity } from '@r10c/entifix-ts-core';
+import type { Entity, EntityId } from '@entifix/core';
+import { accessor, entity } from '@entifix/core';
 
 import { type PartyRoleName, PartyRoles } from '../../values/party-role';
 

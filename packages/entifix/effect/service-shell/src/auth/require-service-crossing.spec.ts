@@ -3,8 +3,8 @@ import {
   makeStaticServiceCrossingPolicy,
   type Permission,
   ServiceCrossingPolicyTag,
-} from '@r10c/business-ts-authz';
-import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
+} from '@entifix/authz';
+import { ACCESS_COOKIE } from '@entifix/core';
 import { Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { Menu, useT } from '@r10c/entifix-react-controls';
-import { WorkspaceShell } from '@r10c/shells-next-common';
+import { WorkspaceShell } from '@entifix/next-shell';
+import { Menu, useT } from '@entifix/react-controls';
 
 import { workspaceRegistry } from './workspace-registry';
 

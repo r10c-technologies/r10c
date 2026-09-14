@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { EntifixConnError } from '@entifix/core';
 import { Effect, Layer, Logger } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -23,7 +23,7 @@ import { resumeSaga, runSaga } from './run-saga.js';
 /**
  * A recording dispatcher plus an in-memory store.
  *
- * This package *defines* the ports `@r10c/entifix-ts-testing-unit` implements,
+ * This package *defines* the ports `@entifix/testing-unit` implements,
  * so its doubles cannot be used here without a cycle — these stay local, the
  * same choice `run-transaction.spec.ts` made.
  */

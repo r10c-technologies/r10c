@@ -1,6 +1,6 @@
 'use client';
 
-import { parseScreenPayload } from '@r10c/business-ts-authz';
+import { parseScreenPayload } from '@entifix/authz';
 import type { ReactNode } from 'react';
 
 import type { TabKind } from '../workspace/tab-kind';

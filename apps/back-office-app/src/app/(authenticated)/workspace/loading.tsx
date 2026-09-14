@@ -1,7 +1,7 @@
 import {
   Skeleton,
   SkeletonText,
-} from '@r10c/entifix-react-controls/primitives';
+} from '@entifix/react-controls/primitives';
 
 /**
  * Server-rendered skeleton chrome shown while the workspace client hydrates —

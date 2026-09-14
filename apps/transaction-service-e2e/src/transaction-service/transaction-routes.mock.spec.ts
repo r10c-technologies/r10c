@@ -1,4 +1,4 @@
-import { defineServiceE2e } from '@r10c/entifix-ts-testing-e2e/service';
+import { defineServiceE2e } from '@entifix/testing-e2e/service';
 
 import { startMockService } from '../support/mock-service';
 import { signTokenFor } from '../support/tokens';

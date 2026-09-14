@@ -93,7 +93,7 @@ each is one link away in the decision index below.
   nothing.
 - **A permission is `<domain>:<entityKey>:<action>`**, derived from the entity's
   own `@entity({ domain, key })`. Guard a route with `requirePermission(...)` from
-  `@r10c/shells-effect-service` — **hiding a nav item protects nothing** — and
+  `@entifix/service-shell` — **hiding a nav item protects nothing** — and
   grants come from `ROLE_PERMISSIONS`, never from the token. `unverifiedClaims`
   reads the cookie **without checking its signature**: nav filtering only, never a
   decision.

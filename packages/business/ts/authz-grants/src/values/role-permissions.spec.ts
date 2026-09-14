@@ -1,5 +1,5 @@
-import { permissionMatches } from '@r10c/business-ts-authz';
-import { Roles } from '@r10c/business-ts-authz';
+import { permissionMatches } from '@entifix/authz';
+import { Roles } from '@entifix/authz';
 import { describe, expect, it } from 'vitest';
 
 import {

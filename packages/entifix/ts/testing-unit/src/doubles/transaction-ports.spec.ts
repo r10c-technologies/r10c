@@ -1,5 +1,5 @@
-import type { Subscription } from '@r10c/entifix-transactions';
-import type { DomainEvent } from '@r10c/entifix-ts-core';
+import type { DomainEvent } from '@entifix/core';
+import type { Subscription } from '@entifix/transactions';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 

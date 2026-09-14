@@ -67,7 +67,13 @@ const sharedCoverageExclude = [
 // `@opentelemetry/api`, selects an ESM entry using extensionless imports that
 // Node's loader rejects; without it OTel packages resolve to their `import`/
 // `default` (working) entries. `@r10c/source` still wins for workspace packages.
-const workspaceConditions = ['@r10c/source', 'import', 'node', 'default'];
+const workspaceConditions = [
+  '@r10c/source',
+  '@entifix/source',
+  'import',
+  'node',
+  'default',
+];
 
 export interface EntifixTestOptions {
   /** Project name, as reported by the Vitest runner (`@r10c/…`). */
@@ -166,7 +172,7 @@ export const defineEntifixTest = ({
           // imports Node's native loader rejects; inline them so Vite resolves
           // those imports (`@opentelemetry/api` is additionally aliased to its
           // CommonJS build above).
-          inline: [/@r10c\//, /@opentelemetry\//, /@effect\/opentelemetry/],
+          inline: [/@r10c\//, /@entifix\//, /@opentelemetry\//, /@effect\/opentelemetry/],
         },
       },
       reporters: ['default'],

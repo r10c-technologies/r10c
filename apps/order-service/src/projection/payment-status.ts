@@ -1,25 +1,25 @@
-import {
-  PAYMENT_CAPTURED,
-  type PaymentOutcome,
-  readPaymentOutcome,
-} from '@r10c/business-ts-payment-contracts';
-import {
-  EventBusTag,
-  type InboxClaim,
-  type Subscription,
-} from '@r10c/entifix-transactions';
-import { queueNameFor } from '@r10c/entifix-ts-amqp-client/transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+import { queueNameFor } from '@entifix/amqp/transactions';
+import { EntifixConnError } from '@entifix/core';
 import {
   MongoClientTag,
   MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/mongo';
 import {
   ensureInboxIndexes,
   INBOX_COLLECTION,
   inboxDocument,
   isDuplicateKey,
-} from '@r10c/entifix-ts-mongo-client/transactions';
+} from '@entifix/mongo/transactions';
+import {
+  EventBusTag,
+  type InboxClaim,
+  type Subscription,
+} from '@entifix/transactions';
+import {
+  PAYMENT_CAPTURED,
+  type PaymentOutcome,
+  readPaymentOutcome,
+} from '@r10c/business-ts-payment-contracts';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

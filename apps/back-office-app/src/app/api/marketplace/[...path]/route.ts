@@ -1,4 +1,4 @@
-import { createServiceProxyRoute } from '@r10c/shells-next-common/server';
+import { createServiceProxyRoute } from '@entifix/next-shell/server';
 import { MARKETPLACE_SERVICE_URL } from '@r10c/shells-next-marketplace-admin/server';
 
 /**

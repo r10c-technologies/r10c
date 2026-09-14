@@ -1,8 +1,8 @@
 import type {
   GuardedNavItem,
   GuardedNavSection,
-} from '@r10c/business-ts-authz';
-import { screenAddress } from '@r10c/business-ts-authz';
+} from '@entifix/authz';
+import { screenAddress } from '@entifix/authz';
 import { SELL_AT_CHANNEL } from '@r10c/business-ts-sales-management';
 
 import {

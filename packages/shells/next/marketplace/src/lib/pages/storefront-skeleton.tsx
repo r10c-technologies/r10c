@@ -2,7 +2,7 @@ import {
   Skeleton,
   SkeletonText,
   Stack,
-} from '@r10c/entifix-react-controls/primitives';
+} from '@entifix/react-controls/primitives';
 
 import { OfferingGridSkeleton } from '../catalog/offering-grid';
 

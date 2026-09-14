@@ -1,7 +1,7 @@
 'use client';
 
-import { SCREEN_TYPE_LABEL_KEYS } from '@r10c/business-ts-authz';
-import { cn, useT, useTranslateKey } from '@r10c/entifix-react-controls';
+import { SCREEN_TYPE_LABEL_KEYS } from '@entifix/authz';
+import { cn, useT, useTranslateKey } from '@entifix/react-controls';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 
@@ -118,7 +118,7 @@ export function SidebarNav({
   onToggleGroup,
 }: SidebarNavProps) {
   const t = useT('shell');
-  // The four type names are `shell:` copy owned by `business-ts-authz`'s
+  // The four type names are `shell:` copy owned by `@entifix/authz`'s
   // `SCREEN_TYPE_LABEL_KEYS`, so they arrive as fully-qualified keys rather than
   // as names in this namespace — the documented escape hatch, not authored copy.
   const translateKey = useTranslateKey();

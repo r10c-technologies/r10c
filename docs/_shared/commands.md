@@ -4,7 +4,7 @@ Nx 23 monorepo with pnpm workspaces. Pinned toolchain: **Node 26.4**, **pnpm 11.
 (see `engines` in the root `package.json`). Always use `pnpm` (never `npm`/`yarn`)
 and run Nx via `pnpm nx …` (or `pnpm exec nx`). Project names are scoped
 `@r10c/<name>`, but Nx accepts the unscoped suffix for most commands
-(e.g. `marketplace-app`, `entifix-ts-core`).
+(e.g. `marketplace-app`); the framework's are scoped `@entifix/<name>` and are addressed by their full name (`@entifix/core`).
 
 ```sh
 # Dev, self-healing — the shortest path to a running app. Each `<app>:dev`

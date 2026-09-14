@@ -1,15 +1,15 @@
 import { randomUUID } from 'node:crypto';
 
 import {
+  EntifixConnError,
+  envelopeEntityName,
+  serializeEntity,
+} from '@entifix/core';
+import {
   type MovementReason,
   Reservation,
   StockMovement,
 } from '@r10c/business-ts-stock-management';
-import {
-  EntifixConnError,
-  envelopeEntityName,
-  serializeEntity,
-} from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

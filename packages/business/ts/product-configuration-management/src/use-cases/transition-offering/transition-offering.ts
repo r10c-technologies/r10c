@@ -1,10 +1,10 @@
+import { EntityRepositoryTag } from '@entifix/business';
+import type { DomainEvent, EntityId } from '@entifix/core';
 import {
   type CatalogPublication,
   catalogPublishedEvent,
   catalogUnpublishedEvent,
 } from '@r10c/business-ts-catalog-contracts';
-import { EntityRepositoryTag } from '@r10c/entifix-ts-business';
-import type { DomainEvent, EntityId } from '@r10c/entifix-ts-core';
 import { Context, Data, Effect } from 'effect';
 
 import type { ProductOffering } from '../../entities/product-offering';
@@ -32,7 +32,7 @@ export interface TransitionOfferingInput {
    * The emitting slice, for the message's `source`.
    *
    * Passed in rather than read from `EventSourceTag`, which lives in
-   * `entifix-ts-transactions`: this package would gain a dependency on the
+   * `@entifix/transactions`: this package would gain a dependency on the
    * transaction machinery to spell one string, and a domain use case has no
    * business knowing a bus exists. The route holds the tag and hands the value
    * down — the same shape as the repositories above it.

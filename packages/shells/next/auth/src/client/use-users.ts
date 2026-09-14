@@ -1,7 +1,7 @@
 'use client';
 
+import { readEntityPageEnvelope } from '@entifix/core';
 import { UserIdentity } from '@r10c/business-ts-authn';
-import { readEntityPageEnvelope } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 
 import { useAsyncResource } from './use-async-resource';

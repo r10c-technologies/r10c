@@ -1,5 +1,5 @@
-import type { Entity, FilterGroup } from '@r10c/entifix-ts-core';
-import type { RequestPrincipal } from '@r10c/shells-effect-service';
+import type { Entity, FilterGroup } from '@entifix/core';
+import type { RequestPrincipal } from '@entifix/service-shell';
 
 /**
  * Whose settlement records a caller may read.

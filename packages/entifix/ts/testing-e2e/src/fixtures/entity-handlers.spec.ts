@@ -3,8 +3,8 @@ import {
   type Entity,
   entity,
   type EntityId,
-} from '@r10c/entifix-ts-core';
-import { setupEntifixServer } from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/core';
+import { setupEntifixServer } from '@entifix/testing-unit/http';
 
 import { configurationHandler, entityBackendHandlers } from './entity-handlers';
 

@@ -1,4 +1,4 @@
-import type { SagaDefinition } from '@r10c/entifix-transactions';
+import type { SagaDefinition } from '@entifix/transactions';
 
 import { cancellationSaga } from './cancellation.saga';
 import { checkoutSaga } from './checkout.saga';

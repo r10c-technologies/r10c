@@ -229,8 +229,8 @@ only owns the discriminant so every artifact agrees on it". The document's
 originally say. Save and Delete are the three most common affordances on any
 screen and they have no descriptor, so a document of verbs alone would leave a
 form rendering its buttons unconditionally and describe only the rare half of
-the surface. `ENTITY_ACTIONS` therefore moved down from `business-ts-authz` into
-core, and authz aliases it: `entifix-react-controls` reads the same triple off
+the surface. `ENTITY_ACTIONS` therefore moved down from `@entifix/authz` into
+core, and authz aliases it: `@entifix/react-controls` reads the same triple off
 the served document, and `entifix:react` may not import the business layer.
 
 **The route mounts per entity at a literal path.** `HttpRouter` resolves through
@@ -239,7 +239,7 @@ backtracking once the parametric branch has matched. A `/api/:entity/$metadata`
 route registered alongside an existing `/api/<entity>/:id` therefore **never
 runs**: the by-id handler wins with `id === "$metadata"`, misses, and answers its
 own `404` — an endpoint that appears mounted and silently reads as "this entity
-has no metadata". Measured both ways. So `shells-effect-service` exports
+has no metadata". Measured both ways. So `@entifix/service-shell` exports
 `entityMetadataRoute(Ctor)` and each service registers it for each of its own
 entities; it cannot be a `withHealthRoutes`-style wrapper.
 

@@ -1,4 +1,4 @@
-import { getServerT } from '@r10c/shells-next-i18n/server';
+import { getServerT } from '@entifix/next-i18n/server';
 
 /** Where middleware lands an authenticated visitor; still a placeholder. */
 export default async function AdminHomePage() {

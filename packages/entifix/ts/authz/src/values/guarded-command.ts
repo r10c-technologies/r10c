@@ -29,7 +29,7 @@ export interface GuardedCommand {
   /**
    * A catalog key whose value is a **comma-separated** list of extra terms this
    * command answers to — how a Spanish command still matches the English word
-   * someone typed. `parseKeywords` in `entifix-ts-core` owns the split.
+   * someone typed. `parseKeywords` in `@entifix/core` owns the split.
    */
   keywordsKey?: string;
   /** Locale-free, like every other internal href; the renderer prefixes it. */

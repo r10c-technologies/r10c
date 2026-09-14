@@ -1,4 +1,4 @@
-import { describeEntityColumns, serializeEntity } from '@r10c/entifix-ts-core';
+import { describeEntityColumns, serializeEntity } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import { SalesChannel } from './sales-channel.entity.js';

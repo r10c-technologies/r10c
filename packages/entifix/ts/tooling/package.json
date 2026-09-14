@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/entifix-ts-tooling",
+  "name": "@entifix/tooling",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,19 +8,19 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "@r10c/source": "./src/index.ts",
+      "@entifix/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./logging": {
-      "@r10c/source": "./src/logging/index.ts",
+      "@entifix/source": "./src/logging/index.ts",
       "types": "./dist/logging/index.d.ts",
       "import": "./dist/logging/index.js",
       "default": "./dist/logging/index.js"
     },
     "./tracking": {
-      "@r10c/source": "./src/tracking/index.ts",
+      "@entifix/source": "./src/tracking/index.ts",
       "types": "./dist/tracking/index.d.ts",
       "import": "./dist/tracking/index.js",
       "default": "./dist/tracking/index.js"

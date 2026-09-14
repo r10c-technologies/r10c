@@ -2,7 +2,7 @@ import {
   baseTest as test,
   expect,
   requireLiveUrl,
-} from '@r10c/entifix-ts-testing-e2e/playwright';
+} from '@entifix/testing-e2e/playwright';
 
 import {
   FEATURED_OFFERINGS,

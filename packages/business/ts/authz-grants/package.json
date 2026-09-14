@@ -43,6 +43,6 @@
     }
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*"
+    "@entifix/authz": "workspace:*"
   }
 }

@@ -1,11 +1,11 @@
-import { EntityLinkResolverTag } from '@r10c/entifix-ts-business';
+import { EntityLinkResolverTag } from '@entifix/business';
 import {
   EntifixError,
   EntifixLogicError,
   Entity,
   EntityConstructor,
   EntityLinkResolver,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context, Effect } from 'effect';
 import type { Db } from 'mongodb';
 

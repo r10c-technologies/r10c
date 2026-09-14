@@ -1,7 +1,7 @@
 import {
   baseTest as test,
   expect,
-} from '@r10c/entifix-ts-testing-e2e/playwright';
+} from '@entifix/testing-e2e/playwright';
 
 /**
  * The one check that catches a screen wired to no provider at all.

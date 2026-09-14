@@ -4,8 +4,7 @@ import {
   HttpServerResponse,
 } from '@effect/platform';
 import { SqlClient } from '@effect/sql';
-import { type Action, permissionForEntity } from '@r10c/business-ts-authz';
-import { Configuration } from '@r10c/business-ts-configuration';
+import { type Action, permissionForEntity } from '@entifix/authz';
 import {
   deleteUCFactory,
   EntityIdTag,
@@ -15,7 +14,7 @@ import {
   getUCFactory,
   loadUCFactory,
   saveUCFactory,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   EntifixBuildError,
   type EntifixEnvelopeLink,
@@ -26,13 +25,14 @@ import {
   makeEntityPageEnvelope,
   parseLoadRequestParams,
   readEntityEnvelope,
-} from '@r10c/entifix-ts-core';
-import { makeSqlRepository } from '@r10c/entifix-ts-sql-client';
+} from '@entifix/core';
 import {
   entityMetadataRoute,
   type RequestPrincipal,
   requirePermission,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
+import { makeSqlRepository } from '@entifix/sql';
+import { Configuration } from '@r10c/business-ts-configuration';
 import { Effect } from 'effect';
 
 /** The entity's own key, which is also its table name and its route segment. */

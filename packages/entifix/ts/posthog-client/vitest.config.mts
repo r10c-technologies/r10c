@@ -1,6 +1,6 @@
 import { defineEntifixTest } from '../../../../vitest.shared.mjs';
 
 export default defineEntifixTest({
-  name: '@r10c/entifix-ts-posthog-client',
+  name: '@entifix/posthog',
   root: __dirname,
 });

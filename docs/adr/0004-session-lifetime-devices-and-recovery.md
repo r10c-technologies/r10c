@@ -97,13 +97,13 @@ presence, and costs a Redis write per request.
 tab's session alive indefinitely, which makes "idle timeout" mean "a tab is
 open".
 
-### A server subpath for `@r10c/shells-next-common`
+### A server subpath for `@entifix/next-shell`
 
 The shared refresh handler cannot ship from the package's main entry: rollup
 emits one bundle with a `"use client"` banner, so a route handler pulled in
 through it becomes a client reference and its `next/server` imports fail. A
-second rollup entry publishes `@r10c/shells-next-common/server` without the
-banner, mirroring the `./server` subpath `shells-next-i18n` already had.
+second rollup entry publishes `@entifix/next-shell/server` without the
+banner, mirroring the `./server` subpath `@entifix/next-i18n` already had.
 
 > **Revised 2026-08-13.** There is no rollup here any more — `packages/` builds
 > per-file with `@nx/js:swc`, which keeps each module's own `"use client"` and so
@@ -153,7 +153,7 @@ working in production.
 >
 > Two pieces of this section outlived the decision and are still live, which is
 > why the reasoning is kept rather than deleted. The `OneTimeTokenStore` port
-> (`entifix-ts-business` + its Redis adapter) survives and now holds the OIDC
+> (`@entifix/business` + its Redis adapter) survives and now holds the OIDC
 > `{codeVerifier, nonce, redirect}` stash whose token **is** the `state` — the
 > `GETDEL` single-redemption property that made a reset link safe is what makes
 > that consumption a CSRF and replay check. And `GET /api/dev/outbox` survives,
@@ -161,7 +161,7 @@ working in production.
 > `NotificationKind.SessionsRevoked`: the notifications r10c still sends are
 > about _sessions_, not credentials.
 
-A `OneTimeTokenStore` port (`entifix-ts-business`, Redis adapter) keeps only the
+A `OneTimeTokenStore` port (`@entifix/business`, Redis adapter) keeps only the
 SHA-256 of the token and redeems it with `GETDEL`, so two clicks on the same
 emailed link cannot both succeed. `POST /api/auth/password/forgot` always answers
 `202` — for a missing account, a suspended one, an account with no email, and a

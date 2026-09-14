@@ -1,5 +1,5 @@
-import { permissionForUseCase } from '@r10c/business-ts-authz';
-import { EntifixLogicError, useCase } from '@r10c/entifix-ts-core';
+import { permissionForUseCase } from '@entifix/authz';
+import { EntifixLogicError, useCase } from '@entifix/core';
 
 import { SalesChannel } from '../../entities/sales-channel';
 

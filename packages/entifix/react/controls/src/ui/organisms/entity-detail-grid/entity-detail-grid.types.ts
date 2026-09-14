@@ -1,7 +1,7 @@
 import type {
   EntityFieldDescriptor,
   EntityRowDraft,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import type { ReactNode } from 'react';
 
 export interface EntityDetailGridProps {

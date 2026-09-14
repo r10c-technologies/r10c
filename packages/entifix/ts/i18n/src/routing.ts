@@ -20,4 +20,4 @@ export {
   type NegotiateLocaleInput,
   parseAcceptLanguage,
   splitLocalePath,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';

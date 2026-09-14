@@ -1,8 +1,8 @@
+import { EntifixConnError } from '@entifix/core';
 import {
   type SequenceService,
   SequenceServiceTag,
-} from '@r10c/entifix-transactions';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
+} from '@entifix/transactions';
 import { Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
 

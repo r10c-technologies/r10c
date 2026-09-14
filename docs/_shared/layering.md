@@ -1,15 +1,18 @@
 <!-- Single source imported by CLAUDE.md and docs/ARCHITECTURE.md. Edit here only. -->
 
 The repo is layered top-to-bottom and **dependencies only point downward**. A
-package's name encodes its layer (`@r10c/<area>-<lang>-<name>`), and the Nx
+package's name encodes its layer (`@r10c/<area>-<lang>-<name>`) — except the
+framework, whose packages are `@entifix/<name>`, named for what they are rather
+than where they sit because they are published
+([ADR 0059](../adr/0059-entifix-leaves-the-repo.md)) — and the Nx
 ESLint rule `@nx/enforce-module-boundaries` **fails the build** on any upward edge.
 
 ```
 apps/                               ← runtime hosts (Next.js frontends / Effect-native services)
-packages/shells/{next,effect}/*     ← framework shells: Next pages+adapters / the effect-service base
+packages/shells/next/*              ← per-domain shells: a domain mounted onto the framework's Next shell
 packages/implementation/<domain>/*  ← a domain wired to a delivery mechanism (currently unpopulated)
 packages/business/ts/<domain>       ← pure domain entities & use-cases (no framework)
-packages/entifix/{ts,react}/*       ← the entity framework + platform tooling
+packages/entifix/{ts,react,effect,next}/*  ← the framework: entity system, adapters, UI and base shells (@entifix/*)
 packages/utils/ts/*                 ← generic TS helpers
 ```
 
@@ -19,19 +22,19 @@ The boundary is enforced by six tag dimensions declared in every project's
 - **`layer:*`** — `app` › `shell` › `implementation` › `business` › `entifix` › `utils`; a project may depend only on layers **below** it. `shell`, `business` and `entifix` additionally allow same-layer edges, which their own dimension below then orders.
 - **`scope:*`** — a domain scope (`marketplace`, `marketplace-admin`, `auth`, `transaction`, `config`) may depend only on itself or `scope:shared`; `scope:shared` (all of `entifix`/`business`/`implementation`/`utils` + the base shells) is the reusable core, dependable by anyone.
 - **`entifix:*`** — internal ordering inside the entifix layer: `core` ‹ `contract` ‹ {`tooling`, `style`} ‹ `transactions` ‹ `client` ‹ `react`.
-- **`business:*`** — internal ordering inside the business layer: `policy` ‹ `domain`. `business:policy` is the shared authorization vocabulary (`business-ts-authz`) that any domain may express itself in; a `business:domain` package may reach down to it but **never sideways to another domain**.
+- **`business:*`** — internal ordering inside the business layer: `policy` ‹ `domain`. `business:policy` is the shared authorization vocabulary (`@entifix/authz`) that any domain may express itself in; a `business:domain` package may reach down to it but **never sideways to another domain**.
   **The implementation layer holds no project today**, and that is a result rather
   than an oversight. It existed for entity-tight React organisms — `ProductTable`,
   `ProductForm` — every one of which was a pass-through whose only non-generic
-  token was a class name. `makeEntityCrud` in `shells-next-common` derives them
+  token was a class name. `makeEntityCrud` in `@entifix/next-shell` derives them
   from the entity's own metadata instead, so there is nothing left to wrap. The
   layer stays declared, and its tags stay enforced, for the first component that is
   genuinely specific to one domain and cannot be derived.
 
-- **`shell:*`** — internal ordering inside the shell layer: `base` ‹ `domain`. `shell:base` is the reusable framework shell (`shells-effect-service`, `shells-next-common`, `shells-next-i18n`); a `shell:domain` package mounts a domain onto it. Without this dimension a per-domain API module could not reach `requirePermission`/`makeServerLayer` at all.
+- **`shell:*`** — internal ordering inside the shell layer: `base` ‹ `domain`. `shell:base` is the reusable framework shell (`@entifix/service-shell`, `@entifix/next-shell`, `@entifix/next-i18n`); a `shell:domain` package mounts a domain onto it. Without this dimension a per-domain API module could not reach `requirePermission`/`makeServerLayer` at all.
 - **`tier:*`** — entifix's own composition contract, carried only by the packages it publishes and checked by `pnpm nx test @r10c/tiers` rather than by the boundary rule. Six tiers — `0` standalone (`style`, `tooling`, `i18n`) ‹ `1` entity (`core`, `business`) ‹ `2` adapters (the datastore, REST, JWT, Zitadel and PostHog clients, plus `transactions`) ‹ `3` ui (`react-controls`, `react-integration`) ‹ `4` app framework (the authorization vocabulary and the two base shells) ‹ `5` testing — and a package may depend on its own tier or below.
   ⚠️ **The rule that matters is not the direction.** A hard dependency on a capability the tier is meant to be adoptable without fails the build even though it points downward: a table must not arrive with i18next attached, a Mongo repository must not arrive with the saga engine, and Playwright session helpers must not arrive with three database drivers. Those edges belong in `peerDependencies` with `peerDependenciesMeta.optional`, behind a subpath export — package-level dependencies are not per-subpath, so the optional peer is the part that does the work. The register is `tools/tiers/src/registry.ts` and
   [ADR 0059](../adr/0059-entifix-leaves-the-repo.md) is the reasoning.
-- **`host:*`** + **`runtime:datastore`** — `host:next` (a Next app) may **not** depend on a `runtime:datastore` package (`entifix-ts-mongo-client`, `-sql-client`, `-redis-client`, `-amqp-client`). A Next backend is composition — cookies, proxying, RSC aggregation — never data access; only a `host:effect` service binds a repository to a datastore.
+- **`host:*`** + **`runtime:datastore`** — `host:next` (a Next app) may **not** depend on a `runtime:datastore` package (`@entifix/mongo`, `-sql-client`, `-redis-client`, `-amqp-client`). A Next backend is composition — cookies, proxying, RSC aggregation — never data access; only a `host:effect` service binds a repository to a datastore.
 
-Spec files may additionally import `type:testing` libs (doubles/fixtures); source files may not. **To add a queryable/importable edge, retag the project — never weaken the rule.** The value of the layering is substitutability: a `business` use-case depends only on contracts (`entifix-ts-business`), so the same use-case runs on the web against a REST adapter and on a backend against a Mongo adapter, the transport injected at the composition root.
+Spec files may additionally import `type:testing` libs (doubles/fixtures); source files may not. **To add a queryable/importable edge, retag the project — never weaken the rule.** The value of the layering is substitutability: a `business` use-case depends only on contracts (`@entifix/business`), so the same use-case runs on the web against a REST adapter and on a backend against a Mongo adapter, the transport injected at the composition root.

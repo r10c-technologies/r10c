@@ -1,8 +1,8 @@
 /**
  * Probe route handlers for the Next apps, mirroring what
- * `@r10c/shells-effect-service` mounts on the backends.
+ * `@entifix/service-shell` mounts on the backends.
  *
- * They ship from `@r10c/shells-next-common/server` because a route handler must
+ * They ship from `@entifix/next-shell/server` because a route handler must
  * not come from the `"use client"` bundle.
  */
 
@@ -21,7 +21,7 @@ const READY_TIMEOUT_MS = 2_000;
  * attached to. Playwright reuses whatever already listens on the app's port, so
  * a suite started while a dev server is up tests a different bundle against a
  * different backend than the one it claims to — see `assertExpectedServer` in
- * `@r10c/entifix-ts-testing-e2e/playwright`.
+ * `@entifix/testing-e2e/playwright`.
  *
  * On liveness rather than readiness because liveness is the one endpoint that
  * answers from the process alone, before config-service or any backend is up.

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
-import { type LockService, LockServiceTag } from '@r10c/entifix-transactions';
-import { EntifixConnError, EntifixLockError } from '@r10c/entifix-ts-core';
+import { EntifixConnError, EntifixLockError } from '@entifix/core';
+import { type LockService, LockServiceTag } from '@entifix/transactions';
 import { Duration, Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
 

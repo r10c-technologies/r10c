@@ -8,7 +8,7 @@ import {
   stepStatuses,
   withStepValue,
   type WizardDefinition,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 
@@ -60,7 +60,7 @@ const BODIES: Record<string, string> = {
 };
 
 /**
- * A driven wizard: the state machine from `entifix-ts-core`, the control from
+ * A driven wizard: the state machine from `@entifix/core`, the control from
  * here, and nothing else. It is what a real host does minus the persistence and
  * the router, which is exactly the seam the control does not own.
  */

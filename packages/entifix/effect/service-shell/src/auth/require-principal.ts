@@ -3,9 +3,9 @@ import {
   parsePermission,
   type Permission,
   PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
-import { type TokenClaims, TokenServiceTag } from '@r10c/entifix-ts-business';
-import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
+} from '@entifix/authz';
+import { type TokenClaims, TokenServiceTag } from '@entifix/business';
+import { ACCESS_COOKIE } from '@entifix/core';
 import { Effect, Option } from 'effect';
 
 

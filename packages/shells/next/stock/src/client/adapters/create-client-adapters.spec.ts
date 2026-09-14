@@ -1,13 +1,13 @@
-import { StockItem, StockMovement } from '@r10c/business-ts-stock-management';
 import {
   ConfigurationRepositoryTag,
   EntityRepositoryTag,
-} from '@r10c/entifix-ts-business';
+} from '@entifix/business';
 import {
   http,
   HttpResponse,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
+import { StockItem, StockMovement } from '@r10c/business-ts-stock-management';
 import { Context, Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 

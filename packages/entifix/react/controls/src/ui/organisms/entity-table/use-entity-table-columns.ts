@@ -4,7 +4,7 @@ import {
   describeEntityColumns,
   type Entity,
   type EntityConstructor,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { useMemo } from 'react';
 
 import { useLocalizedDescriptors } from '../../../i18n';

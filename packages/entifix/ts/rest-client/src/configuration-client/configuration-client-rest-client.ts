@@ -5,7 +5,7 @@ import {
   ConfigurationExtractMode,
   ConfigurationPlain,
   EntifixBuildError,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 
 export interface ConfigurationClientRestClientOptions {
@@ -19,7 +19,7 @@ export interface ConfigurationClientRestClientOptions {
    * there is no origin to proxy through and no browser to hide an address from
    * — and that endpoint is gated on the shared fleet token, so the caller has
    * to carry it. The header itself stays out of this package: the token is a
-   * Next server concern and lives in `shells-next-common`.
+   * Next server concern and lives in `@entifix/next-shell`.
    */
   headers?: Readonly<Record<string, string>>;
 }

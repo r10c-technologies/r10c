@@ -139,6 +139,6 @@ key's name, because a naming heuristic that misses once publishes a signing key.
 - **Supersedes ADR 0002 on RS256 only.** Its role/permission model, its
   `PolicyDecision` port and its "grants are derived at the consumer, never in the
   token" invariant all stand — `partyRole` is routing context, not a grant.
-- **The e2e suites hold their own key pair** (`entifix-ts-testing-e2e/fixtures`),
+- **The e2e suites hold their own key pair** (`@entifix/testing-e2e/fixtures`),
   deliberately not the development pair, so a suite cannot pass by verifying a
   real token.

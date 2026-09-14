@@ -1,4 +1,4 @@
-import { defineSaga, type SagaDefinition } from '@r10c/entifix-transactions';
+import { defineSaga, type SagaDefinition } from '@entifix/transactions';
 
 /** The participant keys this coordinator resolves addresses and tokens for. */
 export const STOCK_PARTICIPANT = 'stock-service';

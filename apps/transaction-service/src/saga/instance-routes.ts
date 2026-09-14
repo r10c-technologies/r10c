@@ -1,13 +1,13 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
-import {
-  type SagaInstance,
-  SagaStoreTag,
-} from '@r10c/entifix-transactions';
-import { makeEnvelope } from '@r10c/entifix-ts-core';
+import { makeEnvelope } from '@entifix/core';
 import {
   type RequestPrincipal,
   requirePrincipal,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
+import {
+  type SagaInstance,
+  SagaStoreTag,
+} from '@entifix/transactions';
 import { Effect } from 'effect';
 
 const serverError = (error: unknown) =>

@@ -1,10 +1,10 @@
+import { EntityRepositoryTag } from '@entifix/business';
+import type { DomainEvent, Entity, EntityId } from '@entifix/core';
 import {
   CATALOG_PUBLISHED,
   CATALOG_UNPUBLISHED,
   type CatalogPublication,
 } from '@r10c/business-ts-catalog-contracts';
-import { EntityRepositoryTag } from '@r10c/entifix-ts-business';
-import type { DomainEvent, Entity, EntityId } from '@r10c/entifix-ts-core';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 

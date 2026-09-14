@@ -1,4 +1,4 @@
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
+import { EntifixBuildError } from '@entifix/core';
 import { type Context, createContext, useContext } from 'react';
 
 export function createAdaptersContext<TAdapters>() {

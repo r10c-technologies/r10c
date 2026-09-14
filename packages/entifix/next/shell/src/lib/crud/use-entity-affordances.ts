@@ -1,12 +1,12 @@
 'use client';
 
-import { useEntityUseCases } from '@r10c/entifix-react-integration';
 import type {
   Entity,
   EntityConstructor,
   EntityMetadataDocument,
   EntityMetadataSource,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { useEntityUseCases } from '@entifix/react-integration';
 
 /** What a surface needs to render an entity's served affordances. */
 export interface EntityAffordances {

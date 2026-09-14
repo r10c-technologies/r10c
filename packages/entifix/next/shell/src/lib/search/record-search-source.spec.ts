@@ -5,7 +5,7 @@ import {
   entity,
   type EntityId,
   makeEntityPageEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import type { RecordSearchOption } from './record-search.types';

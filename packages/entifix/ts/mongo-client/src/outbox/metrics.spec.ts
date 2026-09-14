@@ -1,4 +1,4 @@
-import type { OutboxStats } from '@r10c/entifix-transactions';
+import type { OutboxStats } from '@entifix/transactions';
 import { Effect, Metric } from 'effect';
 import { describe, expect, it } from 'vitest';
 

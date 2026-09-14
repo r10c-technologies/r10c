@@ -100,7 +100,7 @@ by hand. The two sides get there differently:
   rebuilds + restarts (~5s).
 - **Frontends** — the Next apps resolve `@r10c/source` → `import` → **`dist`**, and
   `tools/watch-libs.sh` keeps `dist` in step with `src`: it rebuilds the changed
-  library (~3s for a small one, ~5s for `shells-next-common`) and Turbopack then
+  library (~3s for a small one, ~5s for `@entifix/next-shell`) and Turbopack then
   hot-reloads the app. It is the root `watch-libs` target, a `dependsOn` of every
   app's `dev`, so it starts with the app and dies with it.
 
@@ -110,7 +110,7 @@ new facts): Next 16's `turbopack` config accepts only `resolveAlias` /
 `resolveExtensions`, with no `conditionNames` knob; and Next's swc enables decorators
 **only** when tsconfig sets `experimentalDecorators`, i.e. the _legacy_ emit, while
 the entity framework uses stage-3 decorators writing to `Symbol.metadata`. Feeding
-`entifix-react-controls` or `business-ts-authz` source through Turbopack therefore
+`@entifix/react-controls` or `@entifix/authz` source through Turbopack therefore
 either fails to parse or yields entities with no metadata. `withNx` cannot help
 either: it derives `transpilePackages` from `tsconfig.base.json` `paths`, and this
 workspace has none.
@@ -135,12 +135,12 @@ TS solution setup, so the declaration pass always runs, with
 `ignoreDiagnostics: true` — while `noEmitOnError` (from `tsconfig.base.json`)
 still blocks the emit. A library whose `tsconfig.lib.json` overrides `lib` and
 drops what the base provides (`decorators`/`esnext.decorators`, which
-`Symbol.metadata` in `entifix-ts-core` needs) or omits `dom` therefore produces a
+`Symbol.metadata` in `@entifix/core` needs) or omits `dom` therefore produces a
 **green build with zero `.d.ts`**, and the poisoned `.tsbuildinfo` then makes the
 next `tsc --build` report a `TS6305` cascade that names none of it. When
 overriding `lib`, extend the base list rather than replacing it. To see what the
 pass is hiding: `pnpm nx build <lib> --skipTypeCheck=false`.
-`@r10c/entifix-style` needs no rebuild at all: it has no build target, its CSS
+`@entifix/style` needs no rebuild at all: it has no build target, its CSS
 subpaths are consumed straight from `src`.
 
 Each app's `dev` also depends on the inferred `build-deps`, so `dist` is correct at
@@ -153,7 +153,7 @@ behind. When no app is running, build the one library you edited:
 actively harmful: `@nx/js:node` force-enables `runBuildTargetDependencies` for
 any `nx:run-commands` build target (it needs the build event the CLI emits —
 see `@nx/js/src/executors/node/node.impl`), so every rebuild forked
-`nx run <service>:build`, re-entered `shells-effect-service:build` already
+`nx run <service>:build`, re-entered `@entifix/service-shell:build` already
 running in the parent chain, and Nx killed it with
 `Recursive task invocation detected` → `Build failed, waiting for changes to
 restart…`. The service stayed dead until the next save. Cache correctness does
@@ -359,7 +359,7 @@ having written **zero `.d.ts`**, and the poisoned `.tsbuildinfo` then makes the 
 
 The usual cause is a `tsconfig.lib.json` that **replaces** `lib` instead of
 extending the base list — dropping `decorators`/`esnext.decorators` (needed by
-`Symbol.metadata` in `entifix-ts-core`) or omitting `dom`. To see what the pass is
+`Symbol.metadata` in `@entifix/core`) or omitting `dom`. To see what the pass is
 hiding:
 
 ```sh
@@ -375,7 +375,7 @@ pnpm nx build <lib> --skipTypeCheck=false
    `shells`). The lint rule fails the build; if you feel the need to break it,
    the design is wrong — pass the dependency in as an argument or a `Context.Tag`.
 2. **Use-cases stay framework-free.** Anything in `business/ts/*` must import only
-   contracts (`entifix-ts-business`) and Effect — never a transport, a React hook,
+   contracts (`@entifix/business`) and Effect — never a transport, a React hook,
    or `@effect/platform`. If a use-case needs something, it _yields a `Context.Tag`_;
    the composition root provides it.
 3. **Inject with Effect, don't pass instances.** Wire new dependencies as
@@ -414,7 +414,7 @@ it the right `layer:`/`scope:` (plus `entifix:` under `packages/entifix` or
 `business:` under `packages/business`).
 Verify with `pnpm nx run-many -t lint`.
 
-**Why `business:*` exists.** `business-ts-authz` holds the authorization
+**Why `business:*` exists.** `@entifix/authz` holds the authorization
 vocabulary (`Permission`, `Role`, `can`) that `business-ts-authn` needs in order
 to give `UserIdentity` a role. That is a same-layer edge, which the `layer:*`
 dimension alone would either forbid outright or open up completely — so the
@@ -424,7 +424,7 @@ to policy; it still cannot import a sibling domain.
 
 **Why `shell:*` exists.** Same story one layer up. `layer:shell` forbade
 same-layer edges outright, so a per-domain API module could not reach
-`requirePermission`/`makeServerLayer` in `shells-effect-service` — the module
+`requirePermission`/`makeServerLayer` in `@entifix/service-shell` — the module
 pattern was unbuildable. `shell:base` ‹ `shell:domain` orders the layer the same
 way, so a domain shell mounts onto the framework shell while base shells stay
 independent of each other.
@@ -482,7 +482,7 @@ backend is composition — cookies, proxying, RSC aggregation — never data acc
 
 ## Backends
 
-- Compose `@r10c/shells-effect-service`; keep the service thin (routes + an
+- Compose `@entifix/service-shell`; keep the service thin (routes + an
   `AppLayer`). Health and shutdown come from the base.
 - Resolve runtime config from config-service at boot (`loadRemoteConfiguration`),
   never from ad-hoc `process.env` beyond a single bootstrap value (e.g.
@@ -515,7 +515,7 @@ pnpm nx run-many -t test --coverage
 ### Which double to reach for
 
 The kind of double is decided by where it lives, in
-`@r10c/entifix-ts-testing-unit`:
+`@entifix/testing-unit`:
 
 | Kind               | What it is                                                 | Where                  |
 | ------------------ | ---------------------------------------------------------- | ---------------------- |
@@ -544,8 +544,8 @@ against _every_ implementation: the in-memory fake and the real adapter over
 its driver fake. That is what stops a fake from quietly becoming a more
 forgiving version of the thing it stands in for.
 
-Two packages cannot use the test library: `entifix-ts-business` and
-`entifix-transactions` define the interfaces it is built on, so depending on it
+Two packages cannot use the test library: `@entifix/business` and
+`@entifix/transactions` define the interfaces it is built on, so depending on it
 from them is a cycle. They keep local doubles.
 
 Elsewhere, add it as a `devDependency`, then `pnpm install` and `pnpm nx sync`.
@@ -553,7 +553,7 @@ Elsewhere, add it as a `devDependency`, then `pnpm install` and `pnpm nx sync`.
 ### E2E and `E2E_PROFILE`
 
 E2E suites run in one of two profiles, selected by `E2E_PROFILE` and provided by
-`@r10c/entifix-ts-testing-e2e`:
+`@entifix/testing-e2e`:
 
 | Profile          | What is real                           | Infra | Where              |
 | ---------------- | -------------------------------------- | ----- | ------------------ |
@@ -659,7 +659,7 @@ read as coverage.
 
 **Asserting emitted telemetry.** Because `serveTestService` runs the real
 `AppLayer`, a service can merge an observability layer built with **in-memory
-exporters** and assert on what it emitted. `@r10c/shells-effect-service` exports
+exporters** and assert on what it emitted. `@entifix/service-shell` exports
 `makeInMemoryObservabilityLayer(serviceName)` (real logger replacement + OTel
 tracer, in-memory sink + span exporter); the mock `mock-service.ts` merges it and
 re-exports `capturedLogRecords`/`capturedSpans`, and `logging.mock.spec.ts`
@@ -891,7 +891,7 @@ cannot be bisected. Two families are grouped so they can never be split:
 **Never merge a Dependabot lockfile as-is.** This is the rule that keeps the
 tree coherent, and there is no mechanism standing behind it — it rewrites
 `pnpm-lock.yaml` surgically rather than resolving it, so it can produce a lock
-`pnpm install` would never emit. In one PR the `entifix-ts-testing-unit`
+`pnpm install` would never emit. In one PR the `@entifix/testing-unit`
 importer, whose optional peer is `react: '*'`, kept
 `react-dom@19.2.8(react@19.2.7)` and React threw `Incompatible React versions`
 at test time. Check out the branch, run `pnpm install`, and commit the
@@ -918,7 +918,7 @@ the transport boundary, so a green check says nothing about `ioredis`, `mongodb`
 ## Commits & PRs
 
 - **Conventional Commits with Nx scopes** (`@commitlint/config-nx-scopes`) — the
-  scope is the project name: `feat(entifix-ts-mongo-client): add filter translator`.
+  scope is the project name: `feat(@entifix/mongo): add filter translator`.
   Enforced by commitlint.
 - `.husky/pre-commit` runs `lint-staged`, then `node tools/sync-docs.mjs --check`,
   then `pnpm nx affected -t lint,build --base=origin/main` (it `git fetch`es

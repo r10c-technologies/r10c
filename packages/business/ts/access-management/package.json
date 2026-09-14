@@ -43,10 +43,10 @@
   },
   "dependencies": {
     "@swc/helpers": "0.5.23",
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/business-ts-authz": "workspace:*"
+    "@entifix/core": "workspace:*",
+    "@entifix/authz": "workspace:*"
   },
   "devDependencies": {
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@entifix/testing-unit": "workspace:*"
   }
 }

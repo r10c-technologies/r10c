@@ -1,41 +1,41 @@
-import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
+import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
+import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
-} from '@r10c/business-ts-authz';
-import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { EventSourceTag } from '@r10c/entifix-transactions';
-import { AmqpHealthProbeLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
-import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client/transactions';
+} from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,
   TokenServiceTag,
-} from '@r10c/entifix-ts-business';
-import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
-import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
+} from '@entifix/business';
+import { ConfigurationClientInMemory } from '@entifix/core';
+import { makeJoseTokenService } from '@entifix/jwt';
 import {
   MongoDatabaseLayer,
   MongoDatabaseTag,
   MongoHealthProbeLayer,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/mongo';
 import {
   ensureOutboxIndexes,
   OutboxMaxAttempts,
   startOutboxRelay,
-} from '@r10c/entifix-ts-mongo-client/transactions';
+} from '@entifix/mongo/transactions';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,
   observabilityFromConfiguration,
   ServiceCrossingTokenTag,
-} from '@r10c/shells-effect-service';
+} from '@entifix/service-shell';
+import { EventSourceTag } from '@entifix/transactions';
+import {
+  AUTH_TOKEN_AUDIENCE,
+  AUTH_TOKEN_ISSUER,
+} from '@r10c/business-ts-authn';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { Effect, Layer } from 'effect';
 
 import { PAYMENT_SLICE } from './outbox';

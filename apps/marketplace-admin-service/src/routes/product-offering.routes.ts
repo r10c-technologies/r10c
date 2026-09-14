@@ -1,10 +1,10 @@
 import { HttpRouter } from '@effect/platform';
+import { entityMetadataRoute } from '@entifix/service-shell';
 import {
   ProductOffering,
   PUBLISH_PRODUCT_OFFERING,
   UNPUBLISH_PRODUCT_OFFERING,
 } from '@r10c/business-ts-product-configuration-management';
-import { entityMetadataRoute } from '@r10c/shells-effect-service';
 
 import {
   bulkTransitionOfferingRoute,

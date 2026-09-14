@@ -1,4 +1,4 @@
-import { defineCatalogs } from '@r10c/entifix-ts-i18n';
+import { defineCatalogs } from '@entifix/i18n';
 
 import { controlsCatalogs } from '../src/i18n/catalog';
 

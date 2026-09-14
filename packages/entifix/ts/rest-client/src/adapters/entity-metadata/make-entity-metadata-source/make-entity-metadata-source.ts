@@ -6,7 +6,7 @@ import {
   type EntityMetadataSource,
   envelopeEntityName,
   readEntityMetadataEnvelope,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Effect } from 'effect';
 
 export interface EntityMetadataSourceOptions {

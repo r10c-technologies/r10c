@@ -2,7 +2,7 @@ import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import {
   MongoClientTag,
   MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@entifix/mongo';
 import { Effect } from 'effect';
 
 import { transitionReservation } from '../reservation-transition';

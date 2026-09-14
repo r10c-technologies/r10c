@@ -1,4 +1,4 @@
-import type { EntifixConnError } from '@r10c/entifix-ts-core';
+import type { EntifixConnError } from '@entifix/core';
 import { Effect } from 'effect';
 
 import {

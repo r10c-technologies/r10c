@@ -1,5 +1,5 @@
 // The entity-free half of the design system, published as
-// `@r10c/entifix-react-controls/primitives`.
+// `@entifix/react-controls/primitives`.
 //
 // It exists because the package's main barrel is one flat re-export of
 // everything, and a bundler cannot drop what a module graph reaches: a

@@ -1,4 +1,4 @@
-# @r10c/entifix-ts-testing-unit
+# @entifix/testing-unit
 
 Shared test doubles, port contract suites, and HTTP stubbing for the workspace.
 Test-only: it is private, has no build target, and resolves straight to source
@@ -24,11 +24,11 @@ protocol does not.
 ## Entry points
 
 ```ts
-import { makeInMemoryEntityRepository, runRepository } from '@r10c/entifix-ts-testing-unit';
-import { makeFakeMongoDb } from '@r10c/entifix-ts-testing-unit/drivers';
-import { entityRestHandlers, setupEntifixServer } from '@r10c/entifix-ts-testing-unit/http';
-import { describeEntityRepositoryContract } from '@r10c/entifix-ts-testing-unit/contracts';
-import { renderWithAdapters } from '@r10c/entifix-ts-testing-unit/react';
+import { makeInMemoryEntityRepository, runRepository } from '@entifix/testing-unit';
+import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
+import { entityRestHandlers, setupEntifixServer } from '@entifix/testing-unit/http';
+import { describeEntityRepositoryContract } from '@entifix/testing-unit/contracts';
+import { renderWithAdapters } from '@entifix/testing-unit/react';
 ```
 
 `.` carries no React and no msw, so TS-only packages pull neither.
@@ -50,11 +50,11 @@ describeEntityRepositoryContract('mongo adapter over a fake driver', { makeRepos
 ```
 
 This is what keeps a fake from quietly becoming a more forgiving version of the
-thing it stands in for. `@r10c/entifix-ts-testing-integration` will later run
+thing it stands in for. `@entifix/testing-integration` will later run
 the same suites against real infrastructure.
 
 ## Known constraint
 
-`@r10c/entifix-ts-business` and `@r10c/entifix-transactions` **cannot** use this
+`@entifix/business` and `@entifix/transactions` **cannot** use this
 package: it is built on their interfaces, so depending on it from them is a
 cycle. Those two define their doubles locally. Everything else uses this.

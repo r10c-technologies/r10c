@@ -1,5 +1,5 @@
-import { LOCALE_HEADER } from '@r10c/entifix-ts-core';
-import { defineCatalogs } from '@r10c/entifix-ts-i18n';
+import { LOCALE_HEADER } from '@entifix/core';
+import { defineCatalogs } from '@entifix/i18n';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {

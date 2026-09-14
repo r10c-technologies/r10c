@@ -1,7 +1,7 @@
 import '../global.css';
 
-import { isLocale, type Locale } from '@r10c/entifix-ts-core';
-import { getServerTFor } from '@r10c/shells-next-i18n/server';
+import { isLocale, type Locale } from '@entifix/core';
+import { getServerTFor } from '@entifix/next-i18n/server';
 import { notFound } from 'next/navigation';
 
 import { fontVariables } from '../fonts';

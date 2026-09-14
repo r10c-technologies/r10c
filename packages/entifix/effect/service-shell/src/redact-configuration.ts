@@ -1,4 +1,4 @@
-import { ConfigurationPlain } from '@r10c/entifix-ts-core';
+import { ConfigurationPlain } from '@entifix/core';
 
 // Matches the `user:password@` credential segment of a connection URI
 // (`scheme://user:pass@host...`) so it can be masked in diagnostic output.

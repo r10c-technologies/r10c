@@ -1,4 +1,4 @@
-import type { EntifixError, EntityId } from '@r10c/entifix-ts-core';
+import type { EntifixError, EntityId } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 import type { TransactionCommand } from '../contracts/command';

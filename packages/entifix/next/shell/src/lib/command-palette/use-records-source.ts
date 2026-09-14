@@ -1,11 +1,11 @@
 'use client';
 
-import { useT, useTranslateKey } from '@r10c/entifix-react-controls';
 import type {
   CommandGroup,
   CommandSource,
   CommandUnavailableSeverity,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { useT, useTranslateKey } from '@entifix/react-controls';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useLocaleHref } from '../i18n';

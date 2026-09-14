@@ -1,4 +1,4 @@
-import { ConfigurationClient } from '@r10c/entifix-ts-core';
+import { ConfigurationClient } from '@entifix/core';
 import { Context } from 'effect';
 
 export class ConfigurationRepositoryTag extends Context.Tag(

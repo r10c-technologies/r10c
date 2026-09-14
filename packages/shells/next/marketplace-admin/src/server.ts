@@ -1,6 +1,6 @@
 // Server-only surface, published as `@r10c/shells-next-marketplace-admin/server`.
 //
-// A separate entry for the same reason `shells-next-common` splits one: anything
+// A separate entry for the same reason `@entifix/next-shell` splits one: anything
 // reachable from the package's main entry is stamped as a client module, and a
 // declaration that reads `process.env` or that a route handler runs must not be.
 

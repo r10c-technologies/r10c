@@ -1,5 +1,5 @@
-import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
-import { unverifiedClaims } from '@r10c/entifix-ts-jwt-client';
+import { ACCESS_COOKIE } from '@entifix/core';
+import { unverifiedClaims } from '@entifix/jwt';
 import { cookies } from 'next/headers';
 
 

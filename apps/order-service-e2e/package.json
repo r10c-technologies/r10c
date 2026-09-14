@@ -27,14 +27,14 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
     "@r10c/business-ts-order-management": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-jwt-client": "workspace:*",
-    "@r10c/entifix-ts-testing-e2e": "workspace:*",
-    "@r10c/shells-effect-service": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/jwt": "workspace:*",
+    "@entifix/testing-e2e": "workspace:*",
+    "@entifix/service-shell": "workspace:*",
     "@r10c/order-service": "workspace:*"
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*",
+    "@entifix/authz": "workspace:*",
     "@r10c/business-ts-authz-grants": "workspace:*"
   }
 }

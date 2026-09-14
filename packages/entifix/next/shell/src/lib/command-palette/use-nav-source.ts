@@ -1,12 +1,12 @@
 'use client';
 
-import { SCREEN_TYPE_LABEL_KEYS } from '@r10c/business-ts-authz';
-import { useT, useTranslateKey } from '@r10c/entifix-react-controls';
+import { SCREEN_TYPE_LABEL_KEYS } from '@entifix/authz';
 import {
   type CommandOption,
   type CommandSource,
   matchesCommand,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { useT, useTranslateKey } from '@entifix/react-controls';
 import { useMemo } from 'react';
 
 import type { NavSection } from '../back-office/nav';

@@ -79,7 +79,7 @@ distinct components, and the reason applies here unchanged: who a party _is_
 changes on a different clock from what it may _do_. `Organization` and
 `Individual` are stable records; role definitions and grants churn.
 
-`business-ts-authz` stays `business:policy` — the shared vocabulary
+`@entifix/authz` stays `business:policy` — the shared vocabulary
 (`Permission`, `canAssignRole`, the ports) that any domain may express itself in.
 `business-ts-access-management` is `business:domain` because it owns entities and
 a repository, which `business:policy` must not.
@@ -149,7 +149,7 @@ free for TMF637's meaning.
 - **A domain rename is now expensive on purpose.** Each package exports a
   `<DOMAIN>_DOMAIN` constant that is simultaneously the package identity, the
   `@entity({ domain })` value and the permission namespace.
-  `business-ts-authz/values/role-permissions.ts` already hand-declares
+  `@entifix/authz/values/role-permissions.ts` already hand-declares
   `CATALOG_DOMAIN`/`AUTHN_DOMAIN` for exactly this reason; it should import them
   from the owning packages as those gain entities.
 - **`module` has one meaning across three systems.** The module a vendor grants

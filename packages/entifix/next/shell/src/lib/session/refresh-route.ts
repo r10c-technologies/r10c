@@ -1,4 +1,4 @@
-import { SESSION_COOKIE } from '@r10c/entifix-ts-core';
+import { SESSION_COOKIE } from '@entifix/core';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { applySessionCookies, clearSessionCookies } from './cookies.js';

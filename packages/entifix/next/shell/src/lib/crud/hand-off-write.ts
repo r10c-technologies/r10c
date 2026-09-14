@@ -1,4 +1,4 @@
-import type { PendingTransactionStore } from '@r10c/entifix-transactions';
+import type { PendingTransactionStore } from '@entifix/transactions';
 
 export interface HandOffWriteOptions {
   /** The saved record's id — the transaction id, for a tracked create. */

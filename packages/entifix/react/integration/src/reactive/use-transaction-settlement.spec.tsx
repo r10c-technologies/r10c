@@ -1,10 +1,10 @@
+import type { DomainEvent, EntityChangeEvent } from '@entifix/core';
 import type {
   PendingEntry,
   PendingTransactionStore,
   TransactionRecord,
   TransactionState,
-} from '@r10c/entifix-transactions';
-import type { DomainEvent, EntityChangeEvent } from '@r10c/entifix-ts-core';
+} from '@entifix/transactions';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

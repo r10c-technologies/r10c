@@ -5,7 +5,7 @@ import {
   type EntityId,
   type EntityMetadataDocument,
   type EntityMetadataSource,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';

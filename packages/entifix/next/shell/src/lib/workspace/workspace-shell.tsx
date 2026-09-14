@@ -7,7 +7,7 @@ import {
   TopBar,
   useT,
   useTranslateKey,
-} from '@r10c/entifix-react-controls';
+} from '@entifix/react-controls';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 

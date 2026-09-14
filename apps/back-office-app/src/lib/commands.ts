@@ -1,7 +1,7 @@
-import type { GuardedCommand } from '@r10c/business-ts-authz';
-import { parseKeywords } from '@r10c/entifix-ts-core';
+import type { GuardedCommand } from '@entifix/authz';
+import { parseKeywords } from '@entifix/core';
+import type { PaletteCommand } from '@entifix/next-shell';
 import { AUTH_COMMANDS } from '@r10c/shells-next-auth/server';
-import type { PaletteCommand } from '@r10c/shells-next-common';
 import { MARKETPLACE_ADMIN_COMMANDS } from '@r10c/shells-next-marketplace-admin/server';
 
 import { isNavItemVisible } from './nav';

@@ -2,7 +2,7 @@ import type {
   DomainEvent,
   EntifixConnError,
   EntifixError,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
@@ -67,7 +67,7 @@ export interface Subscription {
 }
 
 /**
- * The domain event bus (RabbitMQ in `entifix-ts-amqp-client`). Services publish
+ * The domain event bus (RabbitMQ in `@entifix/amqp`). Services publish
  * what happened; interested slices subscribe to the names they declared.
  *
  * Typed on {@link DomainEvent} rather than on any one publisher's payload: a bus

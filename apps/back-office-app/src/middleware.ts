@@ -1,9 +1,9 @@
-import { ACCESS_COOKIE, localeHref } from '@r10c/entifix-ts-core';
+import { ACCESS_COOKIE, localeHref } from '@entifix/core';
 import {
   rememberLocale,
   resolveLocale,
   rewriteToLocale,
-} from '@r10c/shells-next-i18n';
+} from '@entifix/next-i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Inlined rather than imported from the auth shell's `/server`, so this

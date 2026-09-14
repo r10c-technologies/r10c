@@ -2,7 +2,7 @@ import {
   canAssignRole,
   DEFAULT_ROLE,
   type Role,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
 import { Context, Effect } from 'effect';
 
 import { AuthnError, ForbiddenError } from '../../errors';

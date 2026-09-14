@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import { EntifixConnError } from '@entifix/core';
 import type { Notification, NotificationPort } from '@r10c/business-ts-authn';
-import { EntifixConnError } from '@r10c/entifix-ts-core';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

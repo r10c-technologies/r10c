@@ -112,8 +112,8 @@ A `Layer` per request would rebuild the pool per request. This is the single
 mistake most likely to be made here, so it is stated as a rule rather than left
 to be inferred.
 
-The seam is a `TenantDatabaseResolver` port in `entifix-ts-business` with a Mongo
-adapter in `entifix-ts-mongo-client`, so the strategy is swappable per datastore
+The seam is a `TenantDatabaseResolver` port in `@entifix/business` with a Mongo
+adapter in `@entifix/mongo`, so the strategy is swappable per datastore
 and per tenant tier without touching a call site.
 
 ### Mongo db-per-org now; Postgres schema-per-org designed, not yet exercised
@@ -158,7 +158,7 @@ plane, matching the existing rule that liveness never checks a dependency.
   That is the design's central claim and the reason this shape was chosen.
 - **Every authenticated route now depends on the session carrying an
   organization.** e2e fixtures that mint sessions (`seedSession` in
-  `entifix-ts-testing-e2e`) must include the claim, or tenant-plane routes
+  `@entifix/testing-e2e`) must include the claim, or tenant-plane routes
   resolve nothing.
 - **An operator has no tenant scope.** That is correct and it means operators
   cannot read tenant data until the audited crossing exists

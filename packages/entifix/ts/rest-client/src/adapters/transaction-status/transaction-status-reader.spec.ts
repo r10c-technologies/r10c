@@ -1,9 +1,9 @@
-import { stubUriConfigurationLayer } from '@r10c/entifix-ts-testing-unit';
+import { stubUriConfigurationLayer } from '@entifix/testing-unit';
 import {
   http,
   HttpResponse,
   setupEntifixServer,
-} from '@r10c/entifix-ts-testing-unit/http';
+} from '@entifix/testing-unit/http';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 

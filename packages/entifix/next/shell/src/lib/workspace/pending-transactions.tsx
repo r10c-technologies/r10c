@@ -3,8 +3,8 @@
 import type {
   PendingEntry,
   PendingTransactionStore,
-} from '@r10c/entifix-transactions';
-import { NoopTransactionSink } from '@r10c/entifix-transactions';
+} from '@entifix/transactions';
+import { NoopTransactionSink } from '@entifix/transactions';
 import {
   createContext,
   type ReactNode,

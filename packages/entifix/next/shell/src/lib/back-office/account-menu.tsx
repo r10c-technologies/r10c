@@ -1,6 +1,6 @@
 'use client';
 
-import { Menu, useT } from '@r10c/entifix-react-controls';
+import { Menu, useT } from '@entifix/react-controls';
 import { useState } from 'react';
 
 import type { AccountLink } from '../session/account-links';

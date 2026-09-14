@@ -1,4 +1,18 @@
 import { NodeSdk } from '@effect/opentelemetry';
+import type {
+  ConfigurationClient,
+  EntifixBuildError,
+} from '@entifix/core';
+import {
+  type Attributes,
+  createLogger,
+  type Logger as ToolingLogger,
+  type LogLevel,
+  type LogRecord,
+  type LogSink,
+  makeOtlpHttpLogSink,
+  makeStdoutJsonSink,
+} from '@entifix/tooling/logging';
 import { context } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
@@ -17,20 +31,6 @@ import {
   SimpleSpanProcessor,
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
-import type {
-  ConfigurationClient,
-  EntifixBuildError,
-} from '@r10c/entifix-ts-core';
-import {
-  type Attributes,
-  createLogger,
-  type Logger as ToolingLogger,
-  type LogLevel,
-  type LogRecord,
-  type LogSink,
-  makeOtlpHttpLogSink,
-  makeStdoutJsonSink,
-} from '@r10c/entifix-ts-tooling/logging';
 import { Effect, HashMap, Layer, Logger } from 'effect';
 
 /** Resolved observability settings (from config-service `logging.*`/`otel.*`). */

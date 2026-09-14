@@ -44,19 +44,19 @@
     }
   },
   "dependencies": {
-    "@r10c/entifix-react-controls": "workspace:*",
+    "@entifix/react-controls": "workspace:*",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
-    "@r10c/business-ts-authz": "workspace:*",
+    "@entifix/authz": "workspace:*",
     "@r10c/business-ts-sales-management": "workspace:*",
-    "@r10c/entifix-react-integration": "workspace:*",
-    "@r10c/entifix-ts-business": "workspace:*",
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-rest-client": "workspace:*",
-    "@r10c/shells-next-common": "workspace:*",
+    "@entifix/react-integration": "workspace:*",
+    "@entifix/business": "workspace:*",
+    "@entifix/core": "workspace:*",
+    "@entifix/rest": "workspace:*",
+    "@entifix/next-shell": "workspace:*",
     "effect": "3.22.1"
   },
   "devDependencies": {
     "@r10c/business-ts-i18n": "workspace:*",
-    "@r10c/entifix-ts-testing-unit": "workspace:*"
+    "@entifix/testing-unit": "workspace:*"
   }
 }

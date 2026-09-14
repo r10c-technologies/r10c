@@ -1,4 +1,4 @@
-import type { Entity } from '@r10c/entifix-ts-core';
+import type { Entity } from '@entifix/core';
 
 import type { EntityFormField } from './entity-form.types';
 import type { EntityFieldSlotProps } from './entity-form-slots';

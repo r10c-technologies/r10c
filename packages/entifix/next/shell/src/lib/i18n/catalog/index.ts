@@ -1,4 +1,4 @@
-import { registerFallbackCatalog } from '@r10c/entifix-react-controls';
+import { registerFallbackCatalog } from '@entifix/react-controls';
 
 import { shell as enShell } from './en';
 import { shell as esShell } from './es';

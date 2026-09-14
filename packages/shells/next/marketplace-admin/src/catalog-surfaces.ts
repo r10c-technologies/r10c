@@ -2,7 +2,10 @@ import {
   type Permission,
   permissionForEntity,
   screenAddress,
-} from '@r10c/business-ts-authz';
+} from '@entifix/authz';
+import type { Entity, EntityConstructor } from '@entifix/core';
+import { EntifixBuildError, extractMetaEntity } from '@entifix/core';
+import type { EntityCatalogKey } from '@entifix/next-shell';
 import {
   ProductBrand,
   ProductCategory,
@@ -12,9 +15,6 @@ import {
   ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
-import type { Entity, EntityConstructor } from '@r10c/entifix-ts-core';
-import { EntifixBuildError, extractMetaEntity } from '@r10c/entifix-ts-core';
-import type { EntityCatalogKey } from '@r10c/shells-next-common';
 
 /**
  * Which of the catalog's two backends answers for a surface.

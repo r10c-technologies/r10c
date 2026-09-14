@@ -1,11 +1,11 @@
 'use client';
 
-import { useT } from '@r10c/entifix-react-controls';
 import {
   type CommandOption,
   type CommandSource,
   matchesCommand,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
+import { useT } from '@entifix/react-controls';
 import { useMemo } from 'react';
 
 import { useLocaleHref } from '../i18n';

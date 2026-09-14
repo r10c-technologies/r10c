@@ -5,7 +5,7 @@ import {
   type Formatters,
   type Locale,
   makeFormatters,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import {
   createContext,
   type PropsWithChildren,

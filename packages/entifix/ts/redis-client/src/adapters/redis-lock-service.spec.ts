@@ -2,8 +2,8 @@ import { it as effectIt } from '@effect/vitest';
 import {
   describeLockServiceContract,
   describeSequenceServiceContract,
-} from '@r10c/entifix-ts-testing-unit/contracts';
-import { makeFakeRedis } from '@r10c/entifix-ts-testing-unit/drivers';
+} from '@entifix/testing-unit/contracts';
+import { makeFakeRedis } from '@entifix/testing-unit/drivers';
 import { Duration, Effect, Exit, Fiber, TestClock } from 'effect';
 import type { Redis } from 'ioredis';
 import { describe, expect, it } from 'vitest';

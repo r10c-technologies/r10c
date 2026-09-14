@@ -1,5 +1,5 @@
+import { ACCESS_COOKIE, LOCALE_COOKIE, SESSION_COOKIE } from '@entifix/core';
 import type { BrowserContext, Page } from '@playwright/test';
-import { ACCESS_COOKIE, LOCALE_COOKIE, SESSION_COOKIE } from '@r10c/entifix-ts-core';
 
 import { isMockProfile } from '../profile/profile';
 

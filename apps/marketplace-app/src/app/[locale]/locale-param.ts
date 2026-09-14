@@ -1,4 +1,4 @@
-import { isLocale, type Locale } from '@r10c/entifix-ts-core';
+import { isLocale, type Locale } from '@entifix/core';
 import { notFound } from 'next/navigation';
 
 /**

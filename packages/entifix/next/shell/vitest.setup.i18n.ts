@@ -12,10 +12,10 @@ import './src/lib/i18n/catalog';
 // And an `entity` fixture, because that namespace is the host's.
 import './src/lib/i18n/spec-catalog';
 
-import { controlsCatalogs } from '@r10c/entifix-react-controls';
 // And the i18next binding's own catalogs, for the specs that mount the real
 // `I18nProvider` rather than relying on the no-provider fallback.
-import { defineCatalogs } from '@r10c/entifix-ts-i18n';
+import { defineCatalogs } from '@entifix/i18n';
+import { controlsCatalogs } from '@entifix/react-controls';
 
 import { shellCatalogs } from './src/lib/i18n/catalog';
 

@@ -2,7 +2,7 @@ import {
   ConfigurationClientInMemory,
   ConfigurationPlain,
   EntifixConnError,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 import { Context, Effect, Schedule } from 'effect';
 
 import { SERVICE_TOKEN_HEADER, serviceToken } from './auth/service-token';

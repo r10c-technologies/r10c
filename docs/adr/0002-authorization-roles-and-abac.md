@@ -121,7 +121,7 @@ of every page.
 > page, not about secret distribution. Keeping it also means the one place that
 > _must_ be right (`requirePermission`, on the service) stays the only verifier.
 
-So `unverifiedClaims` (`entifix-ts-jwt-client`) decodes the cookie **without
+So `unverifiedClaims` (`@entifix/jwt`) decodes the cookie **without
 checking its signature**, and is used only where being wrong costs a menu item.
 
 > _Revised 2026-09-02 ([ADR 0037](0037-entitlement-aware-navigation.md)):_ this
@@ -151,12 +151,12 @@ checking its signature**, and is used only where being wrong costs a menu item.
 
 ### Package placement
 
-New `@r10c/business-ts-authz` (`layer:business`, `scope:shared`), depending only
-on `entifix-ts-core`. `can`/`permissionMatches`/the role table are pure and
+New `@entifix/authz` (`layer:business`, `scope:shared`), depending only
+on `@entifix/core`. `can`/`permissionMatches`/the role table are pure and
 Effect-free so the identical check runs in a service, in a Next server
 component, in edge middleware and in the browser; only `PolicyDecisionTag`
 imports `effect`. The shared guards live one layer up in
-`@r10c/shells-effect-service`, which both services already depend on.
+`@entifix/service-shell`, which both services already depend on.
 
 This required a **new `business:*` tag dimension**. `business-ts-authn` has to
 import the role vocabulary to give `UserIdentity` a role, and that is a

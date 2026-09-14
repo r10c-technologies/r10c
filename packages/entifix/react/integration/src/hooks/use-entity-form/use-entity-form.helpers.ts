@@ -17,7 +17,7 @@ import {
   seededRowKey,
   type StandardSchemaV1,
   type StandardSchemaV1Issue,
-} from '@r10c/entifix-ts-core';
+} from '@entifix/core';
 
 /**
  * A member no form writes back, whatever the draft says about it — and the only

@@ -215,9 +215,9 @@ and re-reading it is cheap.
   connection, so nothing is re-declared with different arguments — the
   `PRECONDITION_FAILED` trap `x-delivery-limit` carries does not apply.
 - Widening `EntityChangeEvent` touches `useReactiveInvalidation` and its two
-  specs. `entifix-react-integration` sits above `entifix-ts-core`, so importing
+  specs. `@entifix/react-integration` sits above `@entifix/core`, so importing
   `DomainEvent` there is a legal edge.
-- `back-office-app` imports from `@r10c/entifix-react-integration` without
+- `back-office-app` imports from `@entifix/react-integration` without
   declaring it, resolving transitively. The build that adds the stream should fix
   the declaration rather than inherit it.
 - One stream per proxied service, not one per entity or one per tab. Only

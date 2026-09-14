@@ -13,7 +13,7 @@ built on almost none of it. Backend/domain architecture is in
 
 The agnostic UI kit and the conventions for extending it. Two homes:
 
-- **`@r10c/entifix-react-controls`** (`packages/entifix/react/controls`) — every
+- **`@entifix/react-controls`** (`packages/entifix/react/controls`) — every
   **entity-agnostic** component: `ui/atoms`, `ui/molecules`, `ui/layout`,
   `ui/organisms`. Knows nothing about any domain.
 - **`implementation/<domain>/react`** — **entity-tight** components. Empty today:
@@ -34,15 +34,15 @@ on a plain route and inside a workspace tab.
 
 ### `makeEntityCrud` — the pages, generated
 
-`makeEntityCrud(Ctor, options)` (`@r10c/shells-next-common`) builds the list page
+`makeEntityCrud(Ctor, options)` (`@entifix/next-shell`) builds the list page
 and the single-record page for one entity, and returns them as a **named
 descriptor** — `entityConstructor`, `entityKey`, `basePath`, `ListPage`,
 `SingleViewPage` — so a nav entry and a workspace `TabKind` can be derived from
 the same object rather than restated in a const map.
 
 It **cannot live beside the hooks**: it needs `EntityTable`/`EntityForm` from
-`entifix-react-controls` and `useDataLoading`/`useEntityForm`/`useEntityRecord`/
-`useEntityMutation`/`useEntityLinkSource` from `entifix-react-integration`, and
+`@entifix/react-controls` and `useDataLoading`/`useEntityForm`/`useEntityRecord`/
+`useEntityMutation`/`useEntityLinkSource` from `@entifix/react-integration`, and
 those two are both `entifix:react`, which is absent from its own allow-list. The
 shell layer is the lowest place that can reach both — and it is also where
 `useLocaleHref` and the `TabRegistry` already are.
@@ -71,7 +71,7 @@ Three details worth not rediscovering:
   rendered fields, not from the draft, so a value the create transaction assigned
   (`ProductBrand.code`) survives an update that never showed it.
 
-Styling foundation lives in **`@r10c/entifix-style`** (`packages/entifix/style`,
+Styling foundation lives in **`@entifix/style`** (`packages/entifix/style`,
 CSS-only): `tokens.css` declares the Utopia fluid scales, the layout tokens, and
 the semantic colour **contract**; `presets/*` and app-local `themes.css` override
 the contract values per palette. See [[design-system-theme]] in memory and
@@ -124,7 +124,7 @@ Three things worth not re-deriving:
   differ.** `query` was unusable (RSQL, TanStack Query and `filterable` metadata
   all already mean something by it) and `assistant` reads as an AI agent, so the
   enum took `report` and `wizard`. `SCREEN_TYPE_LABEL_KEYS`, next to the enum in
-  `business-ts-authz`, is the single place that reconciles them — the names are
+  `@entifix/authz`, is the single place that reconciles them — the names are
   one vocabulary, and a second declaration site is the drift `nav.ts` was already
   merged once to stop.
 - **`Definiciones`, not `Maestros`.** The ERP-standard word needs the ERP
@@ -224,9 +224,9 @@ The parts, and where each lives:
 
 | Piece                                                  | Where                                                       |
 | ------------------------------------------------------ | ----------------------------------------------------------- |
-| `CommandSource` / `CommandPage`, matching, the grammar | `entifix-ts-core` — framework-free, like `EntityLinkSource` |
-| `CommandPalette`, `useHotkey`                          | `entifix-react-controls` — presentational, no router        |
-| the five source hooks, recency, `CommandPaletteHost`   | `shells-next-common`                                        |
+| `CommandSource` / `CommandPage`, matching, the grammar | `@entifix/core` — framework-free, like `EntityLinkSource` |
+| `CommandPalette`, `useHotkey`                          | `@entifix/react-controls` — presentational, no router        |
+| the five source hooks, recency, `CommandPaletteHost`   | `@entifix/next-shell`                                        |
 | `GuardedCommand` fragments                             | each domain shell; the host concatenates and filters        |
 
 Five rules that are easy to get wrong:
@@ -264,10 +264,10 @@ The parts, and where each lives:
 
 | Piece                                                   | Where                                                    |
 | ------------------------------------------------------- | -------------------------------------------------------- |
-| the step graph, `WizardState`, `assertWizardDefinition` | `entifix-ts-core` — framework-free, like `CommandSource` |
-| `Wizard` (stepper, step slot, recap, footer)            | `entifix-react-controls` — presentational, no router     |
-| `useWizard`, `WizardDraftStore`                         | `entifix-react-integration`                              |
-| `useWizardDraft`, the step-URL sync, `wizardTabKind`    | `shells-next-common`                                     |
+| the step graph, `WizardState`, `assertWizardDefinition` | `@entifix/core` — framework-free, like `CommandSource` |
+| `Wizard` (stepper, step slot, recap, footer)            | `@entifix/react-controls` — presentational, no router     |
+| `useWizard`, `WizardDraftStore`                         | `@entifix/react-integration`                              |
+| `useWizardDraft`, the step-URL sync, `wizardTabKind`    | `@entifix/next-shell`                                     |
 | a wizard's own definition and steps                     | the domain shell that owns the records it writes         |
 
 Seven rules that are easy to get wrong:
@@ -397,7 +397,7 @@ grids. Primitives live in `ui/layout/`:
 lives under `ui/molecules/stack`.
 
 **Page shells are compositions of primitives** and belong in the Next shells, not
-here — e.g. the back-office shell (`@r10c/shells-next-common`,
+here — e.g. the back-office shell (`@entifix/next-shell`,
 `src/lib/back-office/`) is `Sidebar( nav , Stack( Cluster(topbar+breadcrumbs) ,
 content ) )`, with the Next coupling (routing, breadcrumbs, persisted collapse)
 living in the shell because primitives stay framework- and domain-free.
@@ -427,7 +427,7 @@ More rules (locked; see [[layout-primitives-decision]] in memory):
   (`basis-[var(--_side-width,20rem)]`). Private vars are prefixed `--_`.
 - **Region primitives** (Sidebar, Cover) expose **compound** subcomponents via
   `Object.assign(Root, { Side, Main })`; flow primitives take children.
-- **Exports are flat named** (`import { Sidebar } from '@r10c/entifix-react-controls'`).
+- **Exports are flat named** (`import { Sidebar } from '@entifix/react-controls'`).
 - Add `'use client'` only to interactive/stateful components; pure presentational
   ones omit it. The directive is **per file and it survives the build**: React
   libraries compile per-file with `@nx/js:swc`, so each module keeps (or omits)
@@ -445,8 +445,8 @@ resolution condition (`.storybook/main.ts`) — and a theme toolbar
 (`withThemeByDataAttribute`) flips `data-theme` across the shipped presets.
 
 ```sh
-pnpm nx run entifix-react-controls:storybook        # dev server on :6006
-pnpm nx run entifix-react-controls:build-storybook  # static build
+pnpm nx run @entifix/react-controls:storybook        # dev server on :6006
+pnpm nx run @entifix/react-controls:build-storybook  # static build
 ```
 
 Stories are co-located (`*.stories.tsx`) with `tags: ['autodocs']`; MDX pages
@@ -455,7 +455,7 @@ Stories are co-located (`*.stories.tsx`) with `tags: ['autodocs']`; MDX pages
 `vitest.config.mts`. Stories **may** instantiate decorated entities, and the
 entity-aware organisms have to — `EntityTable` and `EntityForm` build themselves
 from metadata, so there is no way to show one without an entity. The default
-React-Vite transform compiles the stage-3 decorators, and `entifix-ts-core`
+React-Vite transform compiles the stage-3 decorators, and `@entifix/core`
 polyfills `Symbol.metadata` on first import, so no SWC pass is configured here
 (unlike Vitest, which runs one for the spec files).
 
@@ -575,7 +575,7 @@ crashing. Sharing a whole workspace (multiple tabs in one link) is deferred.
 **An address is `<screenType>:<key>[:<id>]`** — `master:product-brand` for the list,
 `master:product-brand:abc123` for one record
 ([ADR 0042](adr/0042-the-workspace-address-is-the-taxonomy-serialized.md)). One grammar,
-built and parsed only by `screenAddress`/`parseScreenPayload` in `business-ts-authz`; the
+built and parsed only by `screenAddress`/`parseScreenPayload` in `@entifix/authz`; the
 key is the same string `@entity({ key })` derives and the sidebar's `workspace:` address
 carries, and both now come from the same surface declaration — `CatalogSurface` in the
 catalog shell, `StockSurface` in the stock one, one per contributing shell. The registry
@@ -606,7 +606,7 @@ and they do **not** share a contract — see
 [ADR 0032](adr/0032-what-may-live-in-an-autosaved-draft.md).
 
 - **Zustand + IndexedDB**, through the hand-rolled `makeIndexedDbStateStorage`
-  (`shells-next-common/lib/workspace/`), which keys several stores into one
+  (`@entifix/next-shell/lib/workspace/`), which keys several stores into one
   object store by the `persist` `name`. There is no `zustand-indexeddb` package.
   - `useTabsState` — `{ tabs, activeParam }` + `open` / `close` / `activate`.
     A tab's dirtiness is **derived** — `WorkspaceShell` asks whether the drafts
@@ -624,7 +624,7 @@ and they do **not** share a contract — see
 `UseEntityFormOptions.draft` takes an `EntityDraftStore`
 (`draft` / `save` / `clear`), the hook writes to it from an effect whenever the
 values differ from their seed, and `useEntityDraft(address)` in
-`shells-next-common` is the workspace's implementation. It is a port because
+`@entifix/next-shell` is the workspace's implementation. It is a port because
 `useDraft` is `layer:shell` and `useEntityForm` is `layer:entifix` — the hook
 cannot import the store. Handing a store to a form is the **whole** opt-in, so a
 plain route stays ephemeral by omission rather than by a flag, and every entity
@@ -641,7 +641,7 @@ asserted here:
 - **A draft is JSON round-trippable, period.** It is written through
   `createJSONStorage`, so a class instance, an `EntityLink` or a `Date` does not
   degrade — it comes back as something else, silently. `JsonValue` (in
-  `entifix-ts-core`) is the compile-time half; `mergeDrafts` running `isJsonValue`
+  `@entifix/core`) is the compile-time half; `mergeDrafts` running `isJsonValue`
   per entry at restore is the runtime half. `UiPreferencesState` is deliberately
   **not** held to this: structured clone keeps a `Date`, and the two contracts
   must not be conflated. Declare a draft type as a `type`, never an `interface` —
@@ -672,7 +672,7 @@ Server state (list rows, entities, menu data) is cached by **TanStack Query**. T
 use-case/adapter pattern is fully intact: Effect UCs remain the fetch function; TanStack is a
 client-only cache/orchestration jacket over `Effect.runPromise`.
 
-- **Placement**: `@r10c/entifix-react-integration` (may import business + TanStack; core/business
+- **Placement**: `@entifix/react-integration` (may import business + TanStack; core/business
   import neither, so layering holds). `QueryClientProvider` mounts at the shell root.
 - **The seam**: `queryFn`/`mutationFn` run the UC exactly as before —
   `Effect.runPromise(Effect.provide(uc, ctx.pipe(Context.add(EntityLoadRequestTag, loadRequest))))`.
@@ -722,9 +722,9 @@ the target's own `EntityTable` — filters, sorting, paging and all — inside a
 with `onSelect` replacing row navigation.
 
 The split that makes it work is a boundary constraint, not taste:
-`entifix-react-controls` and `entifix-react-integration` are both `entifix:react`,
+`@entifix/react-controls` and `@entifix/react-integration` are both `entifix:react`,
 so neither may import the other. They meet at **`EntityLinkSource`**, a
-framework-free port in `entifix-ts-core` (plain data + callbacks: `quick`,
+framework-free port in `@entifix/core` (plain data + callbacks: `quick`,
 `browse`, `selected`, `labelOf`).
 
 - **`EntityLinkInput`** / **`EntityLinkPicker`** (controls) are presentational: every
@@ -915,12 +915,12 @@ event ever reaches the tracker. See [ADR 0043](adr/0043-the-optimistic-mutation-
 
 ## 8. Design-system fit
 
-The workspace chrome stays inside the locked token contract (`@r10c/entifix-style`: semantic
+The workspace chrome stays inside the locked token contract (`@entifix/style`: semantic
 `--color-*`, Utopia spacing/type steps, radius/shadow/motion tokens) and the flex-first layout
 primitives. The **signature** element is the tab strip: the active tab dissolves its lower edge
 into the workspace surface, and each tab carries a live **autosave pulse** — the chrome makes
 "your parallel work is saved" visible, the one thing this product does that a browser's tabs do
-not. `Skeleton`, `TopBar`, and `Menu` are new **agnostic** controls (in `entifix-react-controls`,
+not. `Skeleton`, `TopBar`, and `Menu` are new **agnostic** controls (in `@entifix/react-controls`,
 with Storybook stories); the stateful wiring (stores, registry, nav host) lives in the Next
 shells, per the design-system rule.
 
@@ -928,9 +928,9 @@ shells, per the design-system rule.
 
 | Concern                                                                                                                                                                                           | Package                               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`, `useEntityLinkSource`                                                                | `@r10c/entifix-react-integration`     |
-| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`, `EntityLinkInput`/`EntityLinkPicker`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`                                                         | `@r10c/entifix-react-controls`        |
-| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                                                                            | `@r10c/shells-next-common`            |
+| TanStack wrapper, `entityQueryKey`, `ReactiveChannel` port, `useDataLoading`/mutation guts, `useEntityForm`, `useEntityLinkSource`                                                                | `@entifix/react-integration`     |
+| Agnostic UI: `EntityTable`/`EntityForm` (+`FieldControl`, `EntityLinkInput`/`EntityLinkPicker`), `Skeleton`, `TopBar`, `Menu`, `TabStrip`                                                         | `@entifix/react-controls`        |
+| `TabKind` registry, `tabsStore`/`draftsStore`, `EntityNavHost`, workspace shell chrome                                                                                                            | `@entifix/next-shell`            |
 | `PageView({addr})` pages, registrations, adapters                                                                                                                                                 | `@r10c/shells-next-marketplace-admin` |
 | `(back-office)` user management over `EntityTable`/`EntityForm`, account surface, sign-in                                                                                                         | `@r10c/shells-next-auth`              |
 | The stock surface: items, the movement form and the read-only ledger — the first **Operaciones** screens                                                                                          | `@r10c/shells-next-stock`             |
@@ -995,7 +995,7 @@ rather than a warm cache. The empty declaration is what keeps an on-demand rende
 
 ## Two rules that are easy to get wrong
 
-**Import from `@r10c/entifix-react-controls/primitives`, not the barrel.** The
+**Import from `@entifix/react-controls/primitives`, not the barrel.** The
 main entry is one flat re-export, and a bundler cannot drop what the module graph
 reaches: importing `Card` from `.` pulled `EntityTable`, `FilterBuilder`, the
 column/sort builders and the whole Effect runtime (via the UI-preferences store)
@@ -1005,7 +1005,7 @@ presentational, entity-free half; the main barrel still re-exports all of it, so
 no existing import breaks.
 
 **Anything a server component calls ships from `/server`.** `@r10c/shells-next-marketplace`
-splits its surface exactly like `shells-next-common`: `/server` for pages, Server
+splits its surface exactly like `@entifix/next-shell`: `/server` for pages, Server
 Actions and `next/headers` readers, `.` for the one client island. A module that
 mixes the two — as `cart-cookie` first did, holding both the pure wire format and
 a `cookies()` reader — drags a server-only API into the browser bundle and Next

@@ -2,9 +2,9 @@ import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
-} from '@r10c/business-ts-authz';
-import { type TokenClaims, TokenServiceTag } from '@r10c/entifix-ts-business';
-import { EntifixBuildError } from '@r10c/entifix-ts-core';
+} from '@entifix/authz';
+import { type TokenClaims, TokenServiceTag } from '@entifix/business';
+import { EntifixBuildError } from '@entifix/core';
 import { Effect, Layer } from 'effect';
 
 import { serveTestService } from '../serve-test-service.js';

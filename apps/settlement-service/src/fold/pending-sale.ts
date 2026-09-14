@@ -1,21 +1,21 @@
 import { randomUUID } from 'node:crypto';
 
+import {
+  deserializeSingleEntity,
+  EntifixConnError,
+  serializeEntity,
+} from '@entifix/core';
+import {
+  INBOX_COLLECTION,
+  inboxDocument,
+  isDuplicateKey,
+} from '@entifix/mongo/transactions';
+import type { InboxClaim } from '@entifix/transactions';
 import type { CommissionEntryKind } from '@r10c/business-ts-settlement-management';
 import {
   Agreement,
   CommissionEntry,
 } from '@r10c/business-ts-settlement-management';
-import type { InboxClaim } from '@r10c/entifix-transactions';
-import {
-  deserializeSingleEntity,
-  EntifixConnError,
-  serializeEntity,
-} from '@r10c/entifix-ts-core';
-import {
-  INBOX_COLLECTION,
-  inboxDocument,
-  isDuplicateKey,
-} from '@r10c/entifix-ts-mongo-client/transactions';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

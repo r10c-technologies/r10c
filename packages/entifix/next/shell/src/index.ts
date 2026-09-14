@@ -31,4 +31,4 @@ export * from './lib/workspace';
  * declaration, reachable from the layer its consumers already depend on.
  */
 export * from './lib/i18n/catalog';
-export type { EntityDraft } from '@r10c/entifix-ts-core';
+export type { EntityDraft } from '@entifix/core';

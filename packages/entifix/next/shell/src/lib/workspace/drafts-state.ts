@@ -1,6 +1,6 @@
 'use client';
 
-import { isJsonValue, type JsonValue } from '@r10c/entifix-ts-core';
+import { isJsonValue, type JsonValue } from '@entifix/core';
 import { useCallback, useEffect } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';

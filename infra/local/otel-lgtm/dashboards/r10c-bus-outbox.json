@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "The write path, end to end: an entry leaves the outbox, the broker accepts it, a consumer acks it, and the transaction reaches a terminal state. Every series here is emitted by marketplace-admin-service, the only app that depends on @r10c/entifix-ts-amqp-client.",
+  "description": "The write path, end to end: an entry leaves the outbox, the broker accepts it, a consumer acks it, and the transaction reaches a terminal state. Every series here is emitted by marketplace-admin-service, the only app that depends on @entifix/amqp.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,

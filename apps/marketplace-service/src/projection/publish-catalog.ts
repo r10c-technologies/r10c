@@ -1,17 +1,17 @@
 import {
+  EntifixConnError,
+  type EntifixError,
+  envelopeEntityName,
+  serializeEntity,
+} from '@entifix/core';
+import { MongoDatabaseTag } from '@entifix/mongo';
+import { EventBusTag, type Subscription } from '@entifix/transactions';
+import {
   CATALOG_PUBLISHED,
   type CatalogPublication,
   readCatalogPublication,
 } from '@r10c/business-ts-catalog-contracts';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { EventBusTag, type Subscription } from '@r10c/entifix-transactions';
-import {
-  EntifixConnError,
-  type EntifixError,
-  envelopeEntityName,
-  serializeEntity,
-} from '@r10c/entifix-ts-core';
-import { MongoDatabaseTag } from '@r10c/entifix-ts-mongo-client';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 

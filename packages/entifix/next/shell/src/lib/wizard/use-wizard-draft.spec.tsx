@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 
-import type { WizardState } from '@r10c/entifix-ts-core';
+import type { WizardState } from '@entifix/core';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,7 +1,7 @@
 import { defineEntifixTest } from '../../../../vitest.shared.mjs';
 
 export default defineEntifixTest({
-  name: '@r10c/shells-effect-service',
+  name: '@entifix/service-shell',
   root: __dirname,
   coverageExclude: [
     // Process bootstrap: binds a port and hands control to `NodeRuntime.runMain`,

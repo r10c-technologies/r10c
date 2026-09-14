@@ -1,4 +1,4 @@
-import { ACCESS_COOKIE, SESSION_COOKIE } from '@r10c/entifix-ts-core';
+import { ACCESS_COOKIE, SESSION_COOKIE } from '@entifix/core';
 import { NextResponse } from 'next/server';
 import { describe, expect, it } from 'vitest';
 

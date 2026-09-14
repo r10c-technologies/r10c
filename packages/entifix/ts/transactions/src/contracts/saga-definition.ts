@@ -1,4 +1,4 @@
-import { EntifixLogicError } from '@r10c/entifix-ts-core';
+import { EntifixLogicError } from '@entifix/core';
 
 /**
  * Richardson's classification, and adopting the vocabulary is most of the answer
@@ -100,7 +100,7 @@ export interface SagaDefinition {
    * does — and checkout writes an order.
    *
    * It is a plain string here rather than authz's `Permission`: this package is
-   * `layer:entifix`, and `business-ts-authz` sits above it. The service that
+   * `layer:entifix`, and `@entifix/authz` sits above it. The service that
    * mounts the route resolves the string against
    * `SERVICE_CROSSING_PERMISSIONS`, which is where the closed list belongs.
    */

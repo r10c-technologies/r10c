@@ -1,6 +1,6 @@
 'use client';
 
-import { screenAddress } from '@r10c/business-ts-authz';
+import { screenAddress } from '@entifix/authz';
 import { useRouter } from 'next/navigation';
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 

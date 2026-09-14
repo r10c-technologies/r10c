@@ -1,5 +1,5 @@
+import type { RequestPrincipal } from '@entifix/service-shell';
 import { OrderItem, ProductOrder } from '@r10c/business-ts-order-management';
-import type { RequestPrincipal } from '@r10c/shells-effect-service';
 import { describe, expect, it } from 'vitest';
 
 import { orderInScope, orderScopeFilter, orderScopeFor } from './order-scope';

@@ -84,7 +84,7 @@ describe('toOtlpLogsPayload', () => {
       value: { stringValue: 'svc' },
     });
     const log = payload.resourceLogs[0].scopeLogs[0];
-    expect(log.scope.name).toBe('@r10c/entifix-ts-tooling');
+    expect(log.scope.name).toBe('@entifix/tooling');
     expect(log.logRecords[0].severityText).toBe('ERROR');
     expect(log.logRecords[0].body).toEqual({ stringValue: 'hello' });
     expect(log.logRecords[0].timeUnixNano).toBe(

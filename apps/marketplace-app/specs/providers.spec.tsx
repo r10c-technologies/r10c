@@ -1,4 +1,4 @@
-import { useT } from '@r10c/entifix-react-controls';
+import { useT } from '@entifix/react-controls';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 
