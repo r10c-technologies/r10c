@@ -13,7 +13,7 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../authz/tsconfig.lib.json"
+      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/core/tsconfig.lib.json"

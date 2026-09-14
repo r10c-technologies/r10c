@@ -1,7 +1,7 @@
+import { permissionMatches } from '@r10c/business-ts-authz';
+import { Roles } from '@r10c/business-ts-authz';
 import { describe, expect, it } from 'vitest';
 
-import { permissionMatches } from './permission.js';
-import { Roles } from './role.js';
 import {
   AUTHN_DOMAIN,
   CATALOG_DOMAIN,

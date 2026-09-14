@@ -5,7 +5,12 @@ import {
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import {
   makeTransactionStreamHubEffect,
   TransactionStreamHubTag,
@@ -154,7 +159,11 @@ export const AppLayer = Layer.unwrapEffect(
       ),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
-      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(
+        PolicyDecisionTag,
+        makeStaticPolicyDecision(ROLE_PERMISSIONS),
+      ),
+      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
       Layer.succeed(SagaDatabaseName, sagaDbName),
       Layer.succeed(SagaStaleTimeoutMs, sagaStaleTimeoutMs),
       Layer.succeed(SagaRecoveryIntervalMs, sagaRecoveryIntervalMs),

@@ -44,7 +44,7 @@
       "path": "../../../business/ts/order-management/tsconfig.lib.json"
     },
     {
-      "path": "../../../business/ts/authz/tsconfig.lib.json"
+      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/testing-unit"

@@ -1,5 +1,5 @@
 {
-  "name": "@r10c/business-ts-authz",
+  "name": "@r10c/business-ts-authz-grants",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -15,14 +15,17 @@
       "default": "./dist/index.js"
     }
   },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
   "nx": {
     "tags": [
       "layer:business",
       "business:policy",
-      "scope:shared",
-      "tier:4"
+      "scope:shared"
     ],
-    "sourceRoot": "packages/business/ts/authz/src",
+    "sourceRoot": "packages/business/ts/authz-grants/src",
     "targets": {
       "build": {
         "executor": "@nx/js:swc",
@@ -30,9 +33,9 @@
           "{options.outputPath}"
         ],
         "options": {
-          "outputPath": "packages/business/ts/authz/dist",
-          "main": "packages/business/ts/authz/src/index.ts",
-          "tsConfig": "packages/business/ts/authz/tsconfig.lib.json",
+          "outputPath": "packages/business/ts/authz-grants/dist",
+          "main": "packages/business/ts/authz-grants/src/index.ts",
+          "tsConfig": "packages/business/ts/authz-grants/tsconfig.lib.json",
           "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
@@ -40,13 +43,6 @@
     }
   },
   "dependencies": {
-    "@r10c/entifix-ts-core": "workspace:*",
-    "@swc/helpers": "0.5.23"
-  },
-  "peerDependencies": {
-    "effect": ">=3.22 <4"
-  },
-  "devDependencies": {
-    "effect": "3.22.1"
+    "@r10c/business-ts-authz": "workspace:*"
   }
 }

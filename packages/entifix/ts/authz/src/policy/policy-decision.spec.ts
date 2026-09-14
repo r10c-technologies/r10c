@@ -1,14 +1,31 @@
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { CATALOG_DOMAIN } from '../values/role-permissions.js';
+import type { Permission } from '../values/permission.js';
+import type { GrantTable } from './can.js';
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
 } from './policy-decision.js';
 
+const CATALOG_DOMAIN = 'catalog';
+
+/**
+ * The spec's own grant table. It used to be r10c's, which made the framework's
+ * policy test assert one application's business rules.
+ */
+const GRANTS: GrantTable = {
+  user: [`${CATALOG_DOMAIN}:product:read`] as readonly Permission[],
+  admin: [
+    `${CATALOG_DOMAIN}:product:read`,
+    `${CATALOG_DOMAIN}:product:write`,
+    'authn:user-identity:write',
+  ],
+  'super-admin': ['*:*:*'],
+};
+
 describe('makeStaticPolicyDecision', () => {
-  const policy = makeStaticPolicyDecision();
+  const policy = makeStaticPolicyDecision(GRANTS);
 
   it('allows an action the subject’s roles grant', () => {
     expect(
@@ -55,7 +72,7 @@ describe('PolicyDecisionTag', () => {
 
     const allowed = Effect.runSync(
       program.pipe(
-        Effect.provideService(PolicyDecisionTag, makeStaticPolicyDecision()),
+        Effect.provideService(PolicyDecisionTag, makeStaticPolicyDecision(GRANTS)),
       ),
     );
     expect(allowed).toBe(true);

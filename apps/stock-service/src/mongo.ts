@@ -5,7 +5,12 @@ import {
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
@@ -126,7 +131,11 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(LoadedConfigurationTag, plain),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
-      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(
+        PolicyDecisionTag,
+        makeStaticPolicyDecision(ROLE_PERMISSIONS),
+      ),
+      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
       Layer.succeed(ServiceCrossingTokenTag, crossingToken),
       Layer.succeed(ReservationTtlSecondsTag, reservationTtlSeconds),
       // The reaper's prefix — the same `stock_` the tenant resolver is built

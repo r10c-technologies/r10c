@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@r10c/business-ts-authz": "workspace:*",
+    "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/entifix-transactions": "workspace:*"
   }
 }

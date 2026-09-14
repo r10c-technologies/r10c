@@ -112,6 +112,26 @@ const router = HttpRouter.empty.pipe(
   ),
 );
 
+/**
+ * The grant table this spec authorizes against.
+ *
+ * ⚠️ **The shell's own, not an application's.** These specs used to authorize
+ * through r10c's `ROLE_PERMISSIONS`, which is exactly the coupling the split
+ * removes: a shell is supposed to take a grant table, so its tests supply one.
+ */
+const GRANTS = {
+  // Read and write but deliberately not delete, so "and no more" has something
+  // to be true about; and a wildcard role for the triple.
+  admin: [
+    'authn:user-identity:read',
+    'authn:user-identity:write',
+    'authn:user-identity:update-aspects',
+    'authn:user-identity:revoke-sessions',
+  ],
+  user: [],
+  'super-admin': ['*:*:*'],
+} as const;
+
 const definition = {
   name: '@r10c/spec-metadata-service',
   port: 0,
@@ -119,7 +139,7 @@ const definition = {
   router,
   appLayer: Layer.mergeAll(
     Layer.succeed(TokenServiceTag, fakeTokens),
-    Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+    Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision(GRANTS)),
   ),
 };
 

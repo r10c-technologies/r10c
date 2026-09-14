@@ -10,7 +10,10 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../packages/business/ts/authz"
+      "path": "../../packages/business/ts/authz-grants"
+    },
+    {
+      "path": "../../packages/entifix/ts/authz"
     },
     {
       "path": "../stock-service"

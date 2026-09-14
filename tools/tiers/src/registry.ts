@@ -35,10 +35,10 @@ export interface PackageDeclaration {
  * that does not exist — the register is not allowed to drift in either
  * direction.
  *
- * ⚠️ `business-ts-authz` is listed by its present path. Only its *vocabulary*
- * half ships; `ROLE_PERMISSIONS` and `SERVICE_CROSSING_PERMISSIONS` are r10c's
- * and leave for a package of their own, at which point this entry moves to
- * `packages/entifix/ts/authz`.
+ * ⚠️ `business-ts-authz` still carries its old *name* — every name changes at
+ * once, later, so the rename is one reviewable commit. Its grant table has
+ * already left for `@r10c/business-ts-authz-grants`, and what remains is the
+ * vocabulary and the two policy ports.
  */
 export const PACKAGES: readonly PackageDeclaration[] = [
   // T0 — standalone. Nothing below them; each is usable on its own.
@@ -124,7 +124,7 @@ export const PACKAGES: readonly PackageDeclaration[] = [
   // shells that serve and render an entity.
   {
     name: '@r10c/business-ts-authz',
-    dir: 'packages/business/ts/authz',
+    dir: 'packages/entifix/ts/authz',
     tier: 4,
   },
   {

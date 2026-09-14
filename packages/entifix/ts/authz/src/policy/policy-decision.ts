@@ -5,7 +5,7 @@ import {
   permissionOf,
   type Resource,
 } from '../values/permission';
-import { can } from './can';
+import { can, type GrantTable } from './can';
 
 /** The subject half of a policy request — a `Principal` structurally satisfies it. */
 export interface PolicySubject {
@@ -43,11 +43,20 @@ export class PolicyDecisionTag extends Context.Tag('PolicyDecisionTag')<
 >() {}
 
 /**
- * The v1 implementation: role-derived grants from the static table, ignoring
- * resource attributes and context. Swapping in an attribute-aware engine is a
- * change of the `Layer` that provides {@link PolicyDecisionTag}, nothing more.
+ * The v1 implementation: role-derived grants from a table the host supplies,
+ * ignoring resource attributes and context. Swapping in an attribute-aware
+ * engine is a change of the `Layer` that provides {@link PolicyDecisionTag},
+ * nothing more.
+ *
+ * ⚠️ **The table is an argument now, and that is the whole seam.** It used to be
+ * imported, which meant this framework shipped the sentence "a `user` may ring
+ * up a counter sale" to everyone who installed it. Passing it in costs one
+ * argument at each composition root and is what lets two applications with
+ * different roles share a policy engine.
  */
-export const makeStaticPolicyDecision = (): PolicyDecision => ({
+export const makeStaticPolicyDecision = (
+  grants: GrantTable,
+): PolicyDecision => ({
   decide: ({ subject, resource, action }) =>
-    can(subject.roles, permissionOf(resource, action)),
+    can(grants, subject.roles, permissionOf(resource, action)),
 });

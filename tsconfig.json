@@ -226,10 +226,13 @@
       "path": "./packages/business/ts/authn"
     },
     {
-      "path": "./packages/business/ts/authz"
+      "path": "./tools/tiers"
     },
     {
-      "path": "./tools/tiers"
+      "path": "./packages/business/ts/authz-grants"
+    },
+    {
+      "path": "./packages/entifix/ts/authz"
     }
   ]
 }

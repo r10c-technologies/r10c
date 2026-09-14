@@ -4,6 +4,7 @@ import {
   type GuardedNavItem,
   type GuardedNavSection,
 } from '@r10c/business-ts-authz';
+import { ROLE_PERMISSIONS } from '@r10c/business-ts-authz-grants';
 import { AUTH_NAV } from '@r10c/shells-next-auth/server';
 import type { NavSection } from '@r10c/shells-next-common';
 import { MARKETPLACE_ADMIN_NAV } from '@r10c/shells-next-marketplace-admin/server';
@@ -94,7 +95,7 @@ export const isNavItemVisible = (
   if (item.permission === undefined) {
     return true;
   }
-  if (!can(principal.roles, item.permission)) {
+  if (!can(ROLE_PERMISSIONS, principal.roles, item.permission)) {
     return false;
   }
   // A session acting for no organization — an operator, a buyer — is outside

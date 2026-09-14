@@ -1,29 +1,30 @@
+import { can, permissionsOf, Roles } from '@r10c/business-ts-authz';
 import { describe, expect, it } from 'vitest';
 
-import { can, permissionsOf } from '../policy/can.js';
-import { Roles } from './role.js';
 import { ROLE_PERMISSIONS } from './role-permissions.js';
 import {
+  r10cServiceCrossingPolicy,
   SERVICE_CROSSING_PERMISSIONS,
-  serviceCrossingAllows,
 } from './service-crossing-permissions.js';
 
 describe('SERVICE_CROSSING_PERMISSIONS', () => {
   it('allows the one crossing the fleet has', () => {
-    expect(serviceCrossingAllows('stock-management:reservation:write')).toBe(
-      true,
-    );
+    expect(
+      r10cServiceCrossingPolicy.allows('stock-management:reservation:write'),
+    ).toBe(true);
   });
 
   it('allows nothing else, including the neighbouring writes', () => {
-    expect(serviceCrossingAllows('stock-management:reservation:read')).toBe(
-      false,
-    );
-    expect(serviceCrossingAllows('stock-management:stock-movement:write')).toBe(
-      false,
-    );
     expect(
-      serviceCrossingAllows('product-configuration-management:*:write'),
+      r10cServiceCrossingPolicy.allows('stock-management:reservation:read'),
+    ).toBe(false);
+    expect(
+      r10cServiceCrossingPolicy.allows('stock-management:stock-movement:write'),
+    ).toBe(false);
+    expect(
+      r10cServiceCrossingPolicy.allows(
+        'product-configuration-management:*:write',
+      ),
     ).toBe(false);
   });
 
@@ -55,15 +56,23 @@ describe('SERVICE_CROSSING_PERMISSIONS', () => {
     // do not exist yet, and narrowing it is not the fix. The fix is that the
     // reservation write accepts a crossing token and nothing else, so no
     // session, however privileged, is a credential for it.
-    expect(can(['super-admin'], 'stock-management:reservation:write')).toBe(
-      true,
-    );
-    expect(can(['admin'], 'stock-management:reservation:write')).toBe(false);
-    expect(can(['user'], 'stock-management:reservation:write')).toBe(false);
+    expect(
+      can(
+        ROLE_PERMISSIONS,
+        ['super-admin'],
+        'stock-management:reservation:write',
+      ),
+    ).toBe(true);
+    expect(
+      can(ROLE_PERMISSIONS, ['admin'], 'stock-management:reservation:write'),
+    ).toBe(false);
+    expect(
+      can(ROLE_PERMISSIONS, ['user'], 'stock-management:reservation:write'),
+    ).toBe(false);
   });
 
   it('is not reachable through the role expansion at all for a tenant role', () => {
-    const tenantGrants = permissionsOf(['admin', 'user']);
+    const tenantGrants = permissionsOf(ROLE_PERMISSIONS, ['admin', 'user']);
 
     for (const crossing of SERVICE_CROSSING_PERMISSIONS) {
       expect(tenantGrants).not.toContain(crossing);

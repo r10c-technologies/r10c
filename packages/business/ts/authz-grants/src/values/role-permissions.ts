@@ -1,5 +1,4 @@
-import { type Permission } from './permission';
-import { type Role } from './role';
+import { type Permission, type Role } from '@r10c/business-ts-authz';
 
 /**
  * Entity domains referenced by the grant table. They mirror the `domain` passed

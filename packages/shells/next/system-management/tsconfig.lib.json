@@ -55,10 +55,13 @@
       "path": "../../../business/ts/configuration/tsconfig.lib.json"
     },
     {
-      "path": "../../../business/ts/authz/tsconfig.lib.json"
+      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/testing-unit"
+    },
+    {
+      "path": "../../../business/ts/authz-grants/tsconfig.lib.json"
     }
   ]
 }

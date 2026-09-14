@@ -93,7 +93,10 @@
       "path": "../../packages/entifix/react/controls"
     },
     {
-      "path": "../../packages/business/ts/authz"
+      "path": "../../packages/business/ts/authz-grants"
+    },
+    {
+      "path": "../../packages/entifix/ts/authz"
     },
     {
       "path": "../../packages/business/ts/authn"

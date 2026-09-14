@@ -5,7 +5,12 @@ import {
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { EventSourceTag } from '@r10c/entifix-transactions';
 import { AmqpHealthProbeLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
 import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client/transactions';
@@ -149,7 +154,11 @@ export const AppLayer = Layer.unwrapEffect(
       ),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
-      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(
+        PolicyDecisionTag,
+        makeStaticPolicyDecision(ROLE_PERMISSIONS),
+      ),
+      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
       Layer.succeed(ServiceCrossingTokenTag, crossingToken),
       // The **slice**, never the deployment and never the domain (ADR 0029).
       Layer.succeed(EventSourceTag, ORDER_SLICE),

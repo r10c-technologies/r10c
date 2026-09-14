@@ -3,12 +3,19 @@
   "version": "0.0.1",
   "private": true,
   "nx": {
-    "tags": ["type:e2e", "scope:sales"],
-    "implicitDependencies": ["@r10c/sales-service"],
+    "tags": [
+      "type:e2e",
+      "scope:sales"
+    ],
+    "implicitDependencies": [
+      "@r10c/sales-service"
+    ],
     "targets": {
       "e2e": {
         "executor": "nx:run-commands",
-        "outputs": ["{projectRoot}/test-output/vitest"],
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
         "options": {
           "command": "vitest run --config vitest.config.mts --passWithNoTests",
           "cwd": "apps/sales-service-e2e"
@@ -27,6 +34,7 @@
     "@r10c/shells-effect-service": "workspace:*"
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*"
+    "@r10c/business-ts-authz": "workspace:*",
+    "@r10c/business-ts-authz-grants": "workspace:*"
   }
 }

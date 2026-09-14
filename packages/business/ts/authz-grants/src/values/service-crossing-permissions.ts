@@ -1,4 +1,8 @@
-import { type Permission, permissionMatches } from './permission';
+import {
+  makeStaticServiceCrossingPolicy,
+  type Permission,
+} from '@r10c/business-ts-authz';
+
 import { ORDER_DOMAIN, PAYMENT_DOMAIN, STOCK_DOMAIN } from './role-permissions';
 
 /**
@@ -17,7 +21,7 @@ import { ORDER_DOMAIN, PAYMENT_DOMAIN, STOCK_DOMAIN } from './role-permissions';
  * a crossing grant living there would be inherited by any access token carrying
  * the matching string — turning a session claim into a cross-organization write.
  * Two tables, two lookups, and the only way to reach this one is
- * {@link serviceCrossingAllows}, which no session guard calls.
+ * {@link r10cServiceCrossingPolicy}, which no session guard calls.
  *
  * ⚠️ **No wildcards.** A `*` segment here would make fleet membership itself the
  * capability, which is the distinction the token/permission split exists to
@@ -90,12 +94,12 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
 /**
  * May a caller holding a valid service token exercise this permission?
  *
- * Separate from {@link can} on purpose — see the note above. The comparison
- * still goes through `permissionMatches` rather than `includes`, so a required
+ * Separate from {@link can} on purpose — see the note above. This is r10c's
+ * binding of the framework's `ServiceCrossingPolicy` port, so the comparison
+ * still goes through `permissionMatches` rather than `includes` and a required
  * permission is matched by the same rule everywhere in the system; what differs
  * is only which list is consulted.
  */
-export const serviceCrossingAllows = (required: Permission): boolean =>
-  SERVICE_CROSSING_PERMISSIONS.some(granted =>
-    permissionMatches(granted, required),
-  );
+export const r10cServiceCrossingPolicy = makeStaticServiceCrossingPolicy(
+  SERVICE_CROSSING_PERMISSIONS,
+);

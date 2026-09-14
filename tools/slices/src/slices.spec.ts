@@ -358,7 +358,7 @@ describe('ADR 0026 — declared use cases, their grants and their implementation
   const grantedActions = (): Map<string, string[]> => {
     const file = join(
       BUSINESS_ROOT,
-      'authz',
+      'authz-grants',
       'src',
       'values',
       'role-permissions.ts',

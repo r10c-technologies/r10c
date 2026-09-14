@@ -3,7 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { HttpServerRequest, HttpServerResponse } from '@effect/platform';
 import {
   type Permission,
-  serviceCrossingAllows,
+  ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
 import { Context, Effect } from 'effect';
 
@@ -108,7 +108,7 @@ const organizationRequired = HttpServerResponse.json(
  * proven:
  *
  * 1. the token, compared in constant time → `401`;
- * 2. the permission, against `SERVICE_CROSSING_PERMISSIONS` → `403`. The token
+ * 2. the permission, against `ServiceCrossingPolicyTag` → `403`. The token
  *    proves the caller is the fleet; it does not say what the caller may do, and
  *    fleet membership is not a capability;
  * 3. the organization header, non-blank → `400`.
@@ -134,7 +134,8 @@ export const requireServiceCrossing =
         return yield* unauthenticated;
       }
 
-      if (!serviceCrossingAllows(permission)) {
+      const crossing = yield* ServiceCrossingPolicyTag;
+      if (!crossing.allows(permission)) {
         return yield* forbidden(permission);
       }
 
@@ -157,7 +158,7 @@ export const requireServiceCrossing =
  * caller learns to satisfy with any value.
  *
  * What is unchanged, and is the part that matters: the token proves the caller
- * is the fleet, {@link SERVICE_CROSSING_PERMISSIONS} says what the fleet may do,
+ * is the fleet, the host's `ServiceCrossingPolicy` says what the fleet may do,
  * and **no session is accepted**. A saga step is not a person's act — the buyer
  * behind a checkout holds no grant over the order the coordinator is writing on
  * their behalf, and accepting their session here would make the weaker
@@ -178,7 +179,8 @@ export const requireCrossing =
         return yield* unauthenticated;
       }
 
-      if (!serviceCrossingAllows(permission)) {
+      const crossing = yield* ServiceCrossingPolicyTag;
+      if (!crossing.allows(permission)) {
         return yield* forbidden(permission);
       }
 

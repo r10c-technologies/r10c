@@ -28,7 +28,12 @@ import {
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import {
   OneTimeTokenStoreTag,
   SessionStoreTag,
@@ -174,7 +179,8 @@ const base = Layer.mergeAll(
   ZitadelActionsLayer({ signingKey: MOCK_ACTION_SIGNING_KEY }),
   // The real grant table, not a fake — it is what `requirePermission` consults,
   // so stubbing it would make every authorization assertion here meaningless.
-  Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+  Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision(ROLE_PERMISSIONS)),
+  Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
   // The fake ioredis honours set/get/expire/sadd/smembers/del/getdel — enough
   // for the session store, the pending-authorization tokens, the id-token store
   // and the provider-session index.

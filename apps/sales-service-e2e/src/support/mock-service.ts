@@ -5,7 +5,12 @@ import {
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { TokenServiceTag } from '@r10c/entifix-ts-business';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
@@ -90,7 +95,11 @@ const MockAppLayer = (() => {
         audience: AUTH_TOKEN_AUDIENCE,
       }),
     ),
-    Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+    Layer.succeed(
+      PolicyDecisionTag,
+      makeStaticPolicyDecision(ROLE_PERMISSIONS),
+    ),
+    Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
     // The shipped layer reads all three from config-service; here they are

@@ -1,11 +1,5 @@
 'use client';
 
-import {
-  ACCESS_TOKEN_TTL_SECONDS,
-  CLIENT_IDLE_STOP_SECONDS,
-  refreshDelaySeconds,
-  SESSION_EXPIRY_WARNING_SECONDS,
-} from '@r10c/business-ts-authn';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** Browser events that count as a person being present. */
@@ -16,11 +10,41 @@ const ACTIVITY_EVENTS = [
   'visibilitychange',
 ] as const;
 
+/**
+ * Session timing, as this shell assumes it when a host says nothing.
+ *
+ * ⚠️ **Defaults, not policy.** These four used to be imported from the
+ * application's own session package, which made a framework hook carry one
+ * product's security decisions — and meant a second application could not use
+ * the hook at all without adopting r10c's token lifetime. A host that has a
+ * session policy passes it in; a host that has not yet thought about it gets
+ * numbers that are defensible rather than absent.
+ *
+ * The server is still the authority. These only decide when the browser *asks*;
+ * the refresh endpoint decides whether the session actually slides.
+ */
+const DEFAULT_TOKEN_TTL_SECONDS = 60 * 15;
+const DEFAULT_IDLE_STOP_SECONDS = 60 * 15;
+const DEFAULT_EXPIRY_WARNING_SECONDS = 60 * 5;
+const DEFAULT_REFRESH_LEAD_RATIO = 0.8;
+
 export interface UseSessionRefreshOptions {
   /** Where this app mounts the shared refresh handler. */
   readonly endpoint?: string;
   /** Access-token lifetime in seconds; the schedule derives from it. */
   readonly tokenTtlSeconds?: number;
+  /**
+   * How long without interaction before the timer stops asking.
+   *
+   * This is what makes "idle timeout" measure whether a person is there rather
+   * than whether a tab is open, so a host raising it is choosing to keep
+   * forgotten tabs alive.
+   */
+  readonly idleStopSeconds?: number;
+  /** How long before the absolute ceiling `expiringSoon` turns true. */
+  readonly expiryWarningSeconds?: number;
+  /** Fraction of the token's life at which to refresh. */
+  readonly refreshLeadRatio?: number;
   /** Called when the session is gone and the user has to sign in again. */
   readonly onExpired?: () => void;
 }
@@ -52,7 +76,10 @@ export function useSessionRefresh(
 ): SessionRefreshState {
   const {
     endpoint = '/api/auth/refresh',
-    tokenTtlSeconds = ACCESS_TOKEN_TTL_SECONDS,
+    tokenTtlSeconds = DEFAULT_TOKEN_TTL_SECONDS,
+    idleStopSeconds = DEFAULT_IDLE_STOP_SECONDS,
+    expiryWarningSeconds = DEFAULT_EXPIRY_WARNING_SECONDS,
+    refreshLeadRatio = DEFAULT_REFRESH_LEAD_RATIO,
     onExpired,
   } = options;
 
@@ -94,7 +121,8 @@ export function useSessionRefresh(
   useEffect(() => {
     if (expired) return undefined;
 
-    const periodMs = refreshDelaySeconds(tokenTtlSeconds) * 1000;
+    const periodMs =
+      Math.max(1, Math.floor(tokenTtlSeconds * refreshLeadRatio)) * 1000;
     let cancelled = false;
 
     const tick = async () => {
@@ -102,7 +130,7 @@ export function useSessionRefresh(
 
       const idleFor = (Date.now() - lastActivity.current) / 1000;
       // Nobody is here. Skipping the refresh is what lets the session lapse.
-      if (idleFor > CLIENT_IDLE_STOP_SECONDS) return;
+      if (idleFor > idleStopSeconds) return;
 
       try {
         const response = await fetch(endpoint, {
@@ -139,7 +167,7 @@ export function useSessionRefresh(
     sessionExpiresIn,
     expiringSoon:
       sessionExpiresIn !== undefined &&
-      sessionExpiresIn <= SESSION_EXPIRY_WARNING_SECONDS,
+      sessionExpiresIn <= expiryWarningSeconds,
     expired,
   };
 }

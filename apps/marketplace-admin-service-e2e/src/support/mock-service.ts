@@ -5,7 +5,12 @@ import {
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { EventSourceTag } from '@r10c/entifix-transactions';
 import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client/transactions';
 import { TokenServiceTag } from '@r10c/entifix-ts-business';
@@ -94,7 +99,11 @@ const MockAppLayer = (() => {
     // The real policy, not a fake: the grant table is what `requirePermission`
     // consults, so stubbing it here would make every authorization assertion
     // in this suite meaningless.
-    Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+    Layer.succeed(
+      PolicyDecisionTag,
+      makeStaticPolicyDecision(ROLE_PERMISSIONS),
+    ),
+    Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
     // The shipped layer reads this from config-service; here it is a literal

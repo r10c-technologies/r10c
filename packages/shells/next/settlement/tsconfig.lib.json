@@ -50,7 +50,7 @@
       "path": "../../../business/ts/sales-vocabulary/tsconfig.lib.json"
     },
     {
-      "path": "../../../business/ts/authz/tsconfig.lib.json"
+      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
     },
     {
       "path": "../../../entifix/ts/testing-unit"

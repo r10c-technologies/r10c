@@ -7,7 +7,12 @@ import {
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import {
   ConfigurationRepositoryTag,
   SessionStoreTag,
@@ -300,7 +305,11 @@ export const AppLayer = Layer.unwrapEffect(
       // The authorization policy behind `requirePermission`. Static
       // role→permission table today; an attribute-aware engine would replace
       // this one line.
-      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(
+        PolicyDecisionTag,
+        makeStaticPolicyDecision(ROLE_PERMISSIONS),
+      ),
+      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     );
 
     // Session store + account/device repos build on the connections.

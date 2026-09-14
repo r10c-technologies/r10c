@@ -34,6 +34,7 @@
     "@r10c/shells-effect-service": "workspace:*"
   },
   "dependencies": {
-    "@r10c/business-ts-authz": "workspace:*"
+    "@r10c/business-ts-authz": "workspace:*",
+    "@r10c/business-ts-authz-grants": "workspace:*"
   }
 }

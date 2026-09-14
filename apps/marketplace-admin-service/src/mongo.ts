@@ -5,7 +5,12 @@ import {
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
+  ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
+import {
+  r10cServiceCrossingPolicy,
+  ROLE_PERMISSIONS,
+} from '@r10c/business-ts-authz-grants';
 import { EventSourceTag } from '@r10c/entifix-transactions';
 import { AmqpHealthProbeLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
 import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client/transactions';
@@ -128,7 +133,11 @@ export const AppLayer = Layer.unwrapEffect(
       Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
       // The authorization policy. Static role→permission table today; swapping
       // in an attribute-aware engine is a change of this line alone.
-      Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision()),
+      Layer.succeed(
+        PolicyDecisionTag,
+        makeStaticPolicyDecision(ROLE_PERMISSIONS),
+      ),
+      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     );
 
     // Transaction ports built from those connections (lock/sequence over Redis,

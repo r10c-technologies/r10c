@@ -1,4 +1,9 @@
 import { HttpRouter, HttpServerResponse } from '@effect/platform';
+import {
+  makeStaticServiceCrossingPolicy,
+  type Permission,
+  ServiceCrossingPolicyTag,
+} from '@r10c/business-ts-authz';
 import { Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -13,6 +18,20 @@ import {
 } from './require-service-crossing.js';
 
 const EXPECTED = 'spec-crossing-token';
+
+/**
+ * The crossings this spec's fleet is configured for.
+ *
+ * The four it grants and the two it withholds are the shape r10c happens to
+ * have, kept because the withheld pair is what the tests below are *about* —
+ * `stock-item:write` and `payment:delete` are refused with a valid token, which
+ * is the whole point of a permission table separate from the token check.
+ */
+const ALLOWED_CROSSINGS: readonly Permission[] = [
+  'stock-management:reservation:write',
+  'order-management:product-order:write',
+  'payment-management:payment:write',
+];
 
 const router = HttpRouter.empty.pipe(
   HttpRouter.post(
@@ -65,7 +84,15 @@ const withService = async (
     port: 0,
     slices: ['test'],
     router,
-    appLayer: Layer.succeed(ServiceCrossingTokenTag, EXPECTED),
+    appLayer: Layer.mergeAll(
+      Layer.succeed(ServiceCrossingTokenTag, EXPECTED),
+      // The allowlist is the host's now, so the spec brings its own rather
+      // than authorizing against the marketplace's crossings.
+      Layer.succeed(
+        ServiceCrossingPolicyTag,
+        makeStaticServiceCrossingPolicy(ALLOWED_CROSSINGS),
+      ),
+    ),
   });
   try {
     await use(service.baseUrl);
