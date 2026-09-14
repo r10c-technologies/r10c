@@ -1,0 +1,50 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "emitDeclarationOnly": true,
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "forceConsistentCasingInFileNames": true,
+    "types": [
+      "node",
+      "@nx/react/typings/cssmodule.d.ts",
+      "@nx/react/typings/image.d.ts",
+      "next",
+      "@nx/next/typings/image.d.ts"
+    ],
+    "jsx": "react-jsx",
+    "lib": ["es2022", "decorators", "esnext.decorators", "dom", "dom.iterable"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../../entifix/next/shell/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/ts/i18n/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../entifix/react/controls/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/i18n/tsconfig.lib.json"
+    }
+  ],
+  "exclude": [
+    "vite.config.ts",
+    "vite.config.mts",
+    "vitest.config.ts",
+    "vitest.config.mts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.js",
+    "src/**/*.spec.js",
+    "src/**/*.test.jsx",
+    "src/**/*.spec.jsx"
+  ]
+}

@@ -7,8 +7,8 @@ import {
   Stack,
   Text,
 } from '@r10c/entifix-react-controls/primitives';
+import { type Locale, localeHref } from '@r10c/entifix-ts-core';
 import { getServerTFor } from '@r10c/entifix-ts-i18n';
-import { type Locale, localeHref } from '@r10c/entifix-ts-i18n/routing';
 
 import { removeFromCart } from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';

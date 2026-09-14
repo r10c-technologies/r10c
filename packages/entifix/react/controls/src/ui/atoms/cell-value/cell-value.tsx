@@ -1,5 +1,6 @@
 'use client';
 
+import type { Formatters } from '@r10c/entifix-ts-core';
 import {
   type Entity,
   EntityCollectionLink,
@@ -7,7 +8,6 @@ import {
   EntityLink,
   type MetaAccessorType,
 } from '@r10c/entifix-ts-core';
-import type { Formatters } from '@r10c/entifix-ts-i18n';
 
 import { useEnumLabel, useFormatters, useT } from '../../../i18n';
 

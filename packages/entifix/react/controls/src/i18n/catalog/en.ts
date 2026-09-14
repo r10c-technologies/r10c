@@ -4,7 +4,7 @@
  * reach a build. `tools/check-i18n.mjs` covers what types cannot — empty values,
  * and keys present here but absent from `es`.
  */
-type EsControls = typeof import('../es/controls').controls;
+type EsControls = typeof import('./es').controls;
 
 export const controls: EsControls = {
   table: {

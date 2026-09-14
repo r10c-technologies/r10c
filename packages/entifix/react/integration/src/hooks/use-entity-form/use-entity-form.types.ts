@@ -7,6 +7,8 @@ import type {
   StandardSchemaV1,
 } from '@r10c/entifix-ts-core';
 
+import type { EntityDraftMessages } from './use-entity-form.helpers';
+
 /**
  * Where an autosaved draft is persisted, as the form sees it.
  *
@@ -61,6 +63,18 @@ export interface EntityDraftStore {
 export interface UseEntityFormOptions<TEntity extends Entity> {
   /** Metadata source; fields and their validation rules derive from it. */
   entityConstructor: EntityConstructor<TEntity>;
+  /**
+   * Copy for the four field-level validation failures. Omit and the keys
+   * render, which is what an adopter with no i18n library sees.
+   */
+  validationMessages?: EntityDraftMessages;
+  /**
+   * Resolves a schema issue's message, which is authored as a catalog key
+   * (`validation.minLength`) so a rule written in one language never reaches a
+   * user untranslated. `useTranslateKey` from the controls package is what a
+   * host passes; omit it and the message renders as authored.
+   */
+  translateKey?: (key: string, params?: Record<string, unknown>) => string;
   /** The record being edited; seeds the initial draft. Omit to create. */
   entity?: TEntity;
   /**

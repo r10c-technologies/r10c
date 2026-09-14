@@ -1,6 +1,6 @@
 import { Caption } from '@r10c/entifix-react-controls/primitives';
+import type { Locale } from '@r10c/entifix-ts-core';
 import { getServerTFor } from '@r10c/entifix-ts-i18n';
-import type { Locale } from '@r10c/entifix-ts-i18n/routing';
 
 export function StoreFooter({ locale }: { readonly locale: Locale }) {
   const t = getServerTFor(locale, 'shell');

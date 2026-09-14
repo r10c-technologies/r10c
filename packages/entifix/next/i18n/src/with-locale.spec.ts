@@ -2,7 +2,7 @@
 // than `nodenext` (see tsconfig.spec.json). `next` ships no `exports` map, so
 // NodeNext's ESM mode refuses the bare `next/server` subpath outright — and this
 // is the only spec that imports Next directly.
-import { LOCALE_COOKIE, LOCALE_HEADER } from '@r10c/entifix-ts-i18n/routing';
+import { LOCALE_COOKIE, LOCALE_HEADER } from '@r10c/entifix-ts-core';
 import { NextRequest, NextResponse } from 'next/server';
 import { describe, expect, it } from 'vitest';
 

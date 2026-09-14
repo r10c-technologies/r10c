@@ -6,7 +6,7 @@ import {
   EntityLink,
   type MetaAccessorType,
 } from '@r10c/entifix-ts-core';
-import { makeFormatters } from '@r10c/entifix-ts-i18n';
+import { makeFormatters } from '@r10c/entifix-ts-core';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

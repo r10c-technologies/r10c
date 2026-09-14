@@ -48,7 +48,6 @@ export const PACKAGES: readonly PackageDeclaration[] = [
     dir: 'packages/entifix/ts/tooling',
     tier: 0,
   },
-  { name: '@r10c/entifix-ts-i18n', dir: 'packages/entifix/ts/i18n', tier: 0 },
 
   // T1 — the entity system and the contracts a use case is written against.
   { name: '@r10c/entifix-ts-core', dir: 'packages/entifix/ts/core', tier: 1 },
@@ -106,6 +105,9 @@ export const PACKAGES: readonly PackageDeclaration[] = [
     dir: 'packages/entifix/ts/posthog-client',
     tier: 2,
   },
+  // The i18next binding of the translator seam — an adapter to an external
+  // library exactly as the datastore clients are, which is why it is not T0.
+  { name: '@r10c/entifix-ts-i18n', dir: 'packages/entifix/ts/i18n', tier: 2 },
 
   // T3 — the agnostic UI. Adoptable without T0: a table must not arrive with
   // i18next and a Spanish catalog attached.

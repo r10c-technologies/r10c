@@ -26,6 +26,9 @@
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../../../entifix/react/controls/tsconfig.lib.json"
+    },
+    {
       "path": "../../../entifix/next/shell/tsconfig.lib.json"
     },
     {
@@ -48,6 +51,9 @@
     },
     {
       "path": "../../../entifix/ts/testing-unit"
+    },
+    {
+      "path": "../../../business/ts/i18n/tsconfig.lib.json"
     }
   ]
 }

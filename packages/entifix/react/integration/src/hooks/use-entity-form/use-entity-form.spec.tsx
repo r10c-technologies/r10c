@@ -10,10 +10,7 @@ import {
   type StandardSchemaV1,
   type StandardSchemaV1Issue,
 } from '@r10c/entifix-ts-core';
-import { createI18n } from '@r10c/entifix-ts-i18n';
 import { act, renderHook } from '@testing-library/react';
-import { createElement, type PropsWithChildren } from 'react';
-import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -278,6 +275,37 @@ const MESSAGES = {
   number: (field: string) => `${field} must be a number`,
   date: (field: string) => `${field} must be a date`,
   option: (field: string) => `${field} is not a valid option`,
+};
+
+/**
+ * The same four sentences in Spanish, supplied the way the real caller supplies
+ * them — `entity-crud-form.tsx` resolves them with `useT('controls')` and hands
+ * them over. This hook no longer reads a catalog itself.
+ */
+/**
+ * Stands in for the controls package's `useTranslateKey`, which is what the one
+ * real caller passes. A schema message is a catalog key, so resolving it is the
+ * host's job now.
+ */
+const SPANISH_KEYS: Record<string, string> = {
+  'validation.minLength': '{{field}} es demasiado corto',
+  'validation.pattern': '{{field}} no tiene el formato correcto',
+};
+
+const translateKey = (
+  key: string,
+  params?: Record<string, unknown>,
+): string => {
+  const text = SPANISH_KEYS[key];
+  if (text === undefined) return String(params?.['defaultValue'] ?? key);
+  return text.replace('{{field}}', String(params?.['field'] ?? ''));
+};
+
+const SPANISH: typeof MESSAGES = {
+  required: field => `${field} es obligatorio`,
+  number: field => `${field} debe ser un número`,
+  date: field => `${field} debe ser una fecha`,
+  option: field => `${field} no es una opción válida`,
 };
 
 describe('validateEntityDraft', () => {
@@ -807,6 +835,7 @@ describe('useEntityForm', () => {
   it('localizes every metadata-derived message', async () => {
     const { result } = renderHook(() =>
       useEntityForm({
+        validationMessages: SPANISH,
         entityConstructor: Gadget,
         entity: makeGadget(),
         onSubmit: vi.fn(),
@@ -827,20 +856,75 @@ describe('useEntityForm', () => {
     });
   });
 
-  // With a provider in the tree the hook must follow it, not the shared default.
-  it('follows a mounted provider instead of the fallback instance', async () => {
-    const i18n = createI18n('en', [initReactI18next]);
-    const wrapper = ({ children }: PropsWithChildren) =>
-      createElement(I18nextProvider, { i18n }, children);
-
-    const { result } = renderHook(
-      () => useEntityForm({ entityConstructor: Gadget, onSubmit: vi.fn() }),
-      { wrapper },
+  // The wording is the caller's now, so the hook must use what it was handed
+  // rather than anything of its own.
+  it('uses the messages it was handed', async () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        validationMessages: MESSAGES,
+        onSubmit: vi.fn(),
+      }),
     );
 
     await act(async () => result.current.submit());
 
     expect(result.current.errors).toEqual({ code: 'Code is required' });
+  });
+
+  // A schema issue whose path names no member of this entity: the resolver is
+  // still handed a `field`, and it is the raw path rather than a label.
+  it('passes the raw path when the issue names no member', async () => {
+    const seen: Record<string, unknown>[] = [];
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        schema: schemaOf([
+          { message: 'validation.minLength', path: ['nothingLikeThis'] },
+        ]),
+        translateKey: (key, params) => {
+          seen.push(params ?? {});
+          return key;
+        },
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    await act(async () => result.current.submit());
+
+    expect(seen[0]?.['field']).toBe('nothingLikeThis');
+  });
+
+  // A schema message with no resolver supplied renders as authored, which is
+  // what `defaultValue` always did.
+  it('renders a schema message as authored when no resolver is supplied', async () => {
+    const { result } = renderHook(() =>
+      useEntityForm({
+        entityConstructor: Gadget,
+        entity: makeGadget(),
+        schema: schemaOf([{ message: 'Code is too short', path: ['code'] }]),
+        onSubmit: vi.fn(),
+      }),
+    );
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.errors.code).toBe('Code is too short');
+  });
+
+  // And with nothing handed over it renders the key, which is what an adopter
+  // who has wired no copy sees.
+  it('renders the catalog key when no messages are supplied', async () => {
+    const { result } = renderHook(() =>
+      useEntityForm({ entityConstructor: Gadget, onSubmit: vi.fn() }),
+    );
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.errors).toEqual({
+      code: 'validation.required:Code',
+    });
   });
 
   // The wizard's "Siguiente" *is* the step's submit, so it has to learn whether
@@ -925,6 +1009,7 @@ describe('useEntityForm', () => {
   it('still reports a rule that belongs to a member it does own', async () => {
     const { result } = renderHook(() =>
       useEntityForm({
+        validationMessages: SPANISH,
         entityConstructor: Gadget,
         fields: ['code', 'stock'],
         onSubmit: vi.fn(),
@@ -939,7 +1024,11 @@ describe('useEntityForm', () => {
   it('hides errors until the first submit attempt', async () => {
     const onSubmit = vi.fn();
     const { result } = renderHook(() =>
-      useEntityForm({ entityConstructor: Gadget, onSubmit }),
+      useEntityForm({
+        entityConstructor: Gadget,
+        validationMessages: SPANISH,
+        onSubmit,
+      }),
     );
 
     // A create form has an empty required `code`, but nothing shows yet.
@@ -978,6 +1067,7 @@ describe('useEntityForm', () => {
         entityConstructor: Gadget,
         entity: makeGadget(),
         schema: schemaOf([{ message: 'validation.minLength', path: ['code'] }]),
+        translateKey,
         onSubmit: vi.fn(),
       }),
     );

@@ -1,4 +1,4 @@
-import type { Locale } from '@r10c/entifix-ts-i18n/routing';
+import type { Locale } from '@r10c/entifix-ts-core';
 
 import type { Receipt } from './receipt-state';
 

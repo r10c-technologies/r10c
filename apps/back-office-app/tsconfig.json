@@ -75,6 +75,9 @@
       "path": "../../packages/shells/next/auth"
     },
     {
+      "path": "../../packages/shells/next/i18n-catalog"
+    },
+    {
       "path": "../../packages/entifix/ts/rest-client"
     },
     {

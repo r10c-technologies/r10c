@@ -1,4 +1,4 @@
-import { localeHref } from '@r10c/entifix-ts-i18n/routing';
+import { localeHref } from '@r10c/entifix-ts-core';
 import {
   rememberLocale,
   resolveLocale,

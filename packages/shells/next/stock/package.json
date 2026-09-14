@@ -54,6 +54,7 @@
     "effect": "3.22.1"
   },
   "devDependencies": {
+    "@r10c/business-ts-i18n": "workspace:*",
     "@r10c/entifix-ts-testing-unit": "workspace:*"
   }
 }

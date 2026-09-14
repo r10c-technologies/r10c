@@ -1,4 +1,4 @@
-import type { Locale } from '@r10c/entifix-ts-i18n';
+import type { Locale } from '@r10c/entifix-ts-core';
 
 /**
  * The catalog keys naming these destinations, in the `shell` namespace.

@@ -1,11 +1,4 @@
-import {
-  type Locale,
-  LOCALE_COOKIE,
-  LOCALE_HEADER,
-  localeHref,
-  negotiateLocale,
-  splitLocalePath,
-} from '@r10c/entifix-ts-i18n/routing';
+import { type Locale, LOCALE_COOKIE, LOCALE_HEADER, localeHref, negotiateLocale, splitLocalePath } from '@r10c/entifix-ts-core';
 import { type NextRequest, NextResponse } from 'next/server';
 
 export interface LocaleResolution {

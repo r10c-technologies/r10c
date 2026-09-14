@@ -13,7 +13,7 @@
       "path": "../slices"
     },
     {
-      "path": "../../packages/entifix/ts/i18n"
+      "path": "../../packages/shells/next/i18n-catalog"
     }
   ]
 }

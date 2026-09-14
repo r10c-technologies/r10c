@@ -1,4 +1,5 @@
-import { LOCALE_HEADER } from '@r10c/entifix-ts-i18n';
+import { LOCALE_HEADER } from '@r10c/entifix-ts-core';
+import { defineCatalogs } from '@r10c/entifix-ts-i18n';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -7,6 +8,37 @@ import {
   getServerTFor,
   getServerTranslateKey,
 } from './server';
+
+/**
+ * Catalogs of this spec's own.
+ *
+ * ⚠️ **This package ships none, and neither does `@entifix/i18n`.** Both take
+ * them from the host now, so a shell's test supplies the smallest set that
+ * exercises what the shell does: two locales, the default namespace and one
+ * beside it.
+ */
+defineCatalogs({
+  resources: {
+    es: {
+      controls: {
+        table: { open: 'Abrir' },
+        validation: { required: '{{field}} es obligatorio' },
+      },
+      app: { admin: { nav: { dashboard: 'Panel' } } },
+      shell: { breadcrumbs: { home: 'Inicio' }, greet: 'Hola {{name}}' },
+    },
+    en: {
+      controls: {
+        table: { open: 'Open' },
+        validation: { required: '{{field}} is required' },
+      },
+      app: { admin: { nav: { dashboard: 'Dashboard' } } },
+      shell: { breadcrumbs: { home: 'Home' }, greet: 'Hello {{name}}' },
+    },
+  },
+  namespaces: ['controls', 'shell', 'app'],
+  defaultNS: 'controls',
+});
 
 const requestHeaders = vi.hoisted(() => ({ value: new Headers() }));
 

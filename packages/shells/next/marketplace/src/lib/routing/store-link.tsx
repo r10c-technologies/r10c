@@ -1,4 +1,4 @@
-import { type Locale, localeHref } from '@r10c/entifix-ts-i18n/routing';
+import { type Locale, localeHref } from '@r10c/entifix-ts-core';
 import Link from 'next/link';
 import type { ComponentPropsWithoutRef } from 'react';
 

@@ -63,7 +63,7 @@ import {
   serializeEntity,
   serializeEntityCollection,
 } from '@r10c/entifix-ts-core';
-import { isLocale } from '@r10c/entifix-ts-i18n/routing';
+import { isLocale } from '@r10c/entifix-ts-core';
 import { publicJwks } from '@r10c/entifix-ts-jwt-client';
 import {
   makeMongoRepository,

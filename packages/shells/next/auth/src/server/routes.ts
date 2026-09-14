@@ -1,4 +1,4 @@
-import { LOCALE_COOKIE } from '@r10c/entifix-ts-i18n/routing';
+import { LOCALE_COOKIE } from '@r10c/entifix-ts-core';
 import {
   applyDeviceCookie,
   readDeviceContext,

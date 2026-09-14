@@ -10,7 +10,7 @@ import {
   EntityLink,
   type EntityLinkSource,
 } from '@r10c/entifix-ts-core';
-import { makeFormatters } from '@r10c/entifix-ts-i18n';
+import { makeFormatters } from '@r10c/entifix-ts-core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode, useState } from 'react';

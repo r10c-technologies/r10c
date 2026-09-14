@@ -12,7 +12,7 @@ import {
   type EntityMetadataSource,
   reconstructEntity,
 } from '@r10c/entifix-ts-core';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import type {
   EntityCatalogKey,
@@ -84,10 +84,28 @@ export function EntityCrudForm<TEntity extends Entity>({
   onUseCase,
 }: EntityCrudFormProps<TEntity>) {
   const et = useT('entity');
+  const ct = useT('controls');
+
+  // `controls` copy, resolved here and handed down. The integration package
+  // owns the validation *rules* and this shell owns the sentences, because a
+  // sideways import between the two `entifix:react` packages is what the
+  // boundary rule forbids.
+  const validationMessages = useMemo(() => {
+    const say =
+      (failure: 'required' | 'number' | 'date' | 'option') => (field: string) =>
+        ct(`validation.${failure}`, { field });
+    return {
+      required: say('required'),
+      number: say('number'),
+      date: say('date'),
+      option: say('option'),
+    };
+  }, [ct]);
 
   const form = useEntityForm<TEntity>({
     entityConstructor,
     entity,
+    validationMessages,
     draft,
     onSubmit: values =>
       onSave(

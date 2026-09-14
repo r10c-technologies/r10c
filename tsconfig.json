@@ -233,6 +233,12 @@
     },
     {
       "path": "./packages/entifix/ts/authz"
+    },
+    {
+      "path": "./packages/shells/next/i18n-catalog"
+    },
+    {
+      "path": "./packages/business/ts/i18n"
     }
   ]
 }

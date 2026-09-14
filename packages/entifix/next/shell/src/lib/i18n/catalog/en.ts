@@ -1,4 +1,4 @@
-type EsShell = typeof import('../es/shell').shell;
+type EsShell = typeof import('./es').shell;
 
 export const shell: EsShell = {
   auth: {

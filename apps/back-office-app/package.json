@@ -14,6 +14,7 @@
     "@r10c/entifix-ts-i18n": "workspace:*",
     "@r10c/entifix-ts-jwt-client": "workspace:*",
     "@r10c/entifix-ts-rest-client": "workspace:*",
+    "@r10c/i18n-catalog": "workspace:*",
     "@r10c/shells-next-auth": "workspace:*",
     "@r10c/shells-next-common": "workspace:*",
     "@r10c/shells-next-i18n": "workspace:*",
@@ -23,9 +24,11 @@
     "@r10c/shells-next-settlement": "workspace:*",
     "@r10c/shells-next-stock": "workspace:*",
     "@r10c/shells-next-system-management": "workspace:*",
+    "i18next": "26.3.6",
     "next": "16.2.10",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-i18next": "17.0.11"
   },
   "nx": {
     "tags": [

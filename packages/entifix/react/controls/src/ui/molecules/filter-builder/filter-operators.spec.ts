@@ -1,5 +1,6 @@
 import type { MetaAccessorType } from '@r10c/entifix-ts-core';
-import { createI18n, type Locale, LOCALES } from '@r10c/entifix-ts-i18n';
+import { type Locale, LOCALES } from '@r10c/entifix-ts-core';
+import { createI18n } from '@r10c/entifix-ts-i18n';
 import { describe, expect, it } from 'vitest';
 
 import {

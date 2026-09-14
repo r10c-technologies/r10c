@@ -13,7 +13,7 @@
  * ADR 0026 assigns this to `@r10c/i18n-check`, which is why it lives here rather
  * than beside the source scan that feeds it.
  */
-import { resources } from '@r10c/entifix-ts-i18n';
+import { R10C_RESOURCES as resources } from '@r10c/i18n-catalog';
 import { declaredUseCases } from '@r10c/slices';
 import { describe, expect, it } from 'vitest';
 

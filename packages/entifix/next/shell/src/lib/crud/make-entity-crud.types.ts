@@ -15,8 +15,8 @@ import type {
   EntityMetadataSource,
   EntitySelection,
 } from '@r10c/entifix-ts-core';
-import type { Resources } from '@r10c/entifix-ts-i18n';
 import type { Context } from 'effect/Context';
+import type { CustomTypeOptions } from 'i18next';
 import type { ReactElement, ReactNode } from 'react';
 
 /**
@@ -44,16 +44,43 @@ import type { ReactElement, ReactNode } from 'react';
  * use. `AccountLabelKey` in `../session/account-links.ts` is the same trick
  * written out by hand; this one cannot drift because it is computed.
  */
-export type EntityCatalogKey = {
-  [K in keyof Resources['entity']]: Resources['entity'][K] extends {
-    form: { editTitle: string; newTitle: string };
-    label: string;
-    plural: string;
-  }
-    ? K
-    : never;
-}[keyof Resources['entity']] &
-  string;
+export type EntityCatalogKey<
+  TEntityCatalog = EntityCatalogOf<TypeOptionsResources>,
+> = [TEntityCatalog] extends [never]
+  ? // No host augmentation in this compilation — this package's own specs, or
+    // an adopter who has not declared one. The factory still works; the key is
+    // simply unchecked, which is the same trade `useTranslateKey` makes.
+    string
+  : {
+      [K in keyof TEntityCatalog]: TEntityCatalog[K] extends {
+        form: { editTitle: string; newTitle: string };
+        label: string;
+        plural: string;
+      }
+        ? K
+        : never;
+    }[keyof TEntityCatalog] &
+      string;
+
+/**
+ * The host's `entity` namespace, read back out of its own `i18next`
+ * augmentation.
+ *
+ * ⚠️ **The `entity` catalog is the host's, not entifix's.** It names *their*
+ * entities — a parameter, an offering, a sales channel — so a framework that
+ * shipped one would be shipping an application's product copy. Reading it back
+ * through `CustomTypeOptions` keeps the key union computed rather than written
+ * out, which is what stops it drifting, while leaving the catalog where it
+ * belongs. A host that declares no augmentation gets `string`, and the factory
+ * still works with the gate relaxed.
+ */
+type TypeOptionsResources = CustomTypeOptions extends { resources: infer R }
+  ? R
+  : never;
+
+type EntityCatalogOf<TResources> = TResources extends { entity: infer E }
+  ? E
+  : never;
 
 /**
  * A relation the generated form edits with a picker.

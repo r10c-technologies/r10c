@@ -1,4 +1,4 @@
-import { I18nProvider } from '@r10c/entifix-react-controls';
+import { I18nProvider } from '@r10c/entifix-react-controls/i18next';
 import { render, renderHook, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';

@@ -1,11 +1,6 @@
-import {
-  createI18n,
-  DEFAULT_LOCALE,
-  isLocale,
-  type Locale,
-  LOCALE_HEADER,
-  type Namespace,
-} from '@r10c/entifix-ts-i18n';
+import { DEFAULT_LOCALE, isLocale, type Locale, LOCALE_HEADER } from '@r10c/entifix-ts-core';
+import { createI18n } from '@r10c/entifix-ts-i18n';
+import type { Namespace } from 'i18next';
 import { headers } from 'next/headers';
 
 /**
@@ -46,7 +41,7 @@ export { getServerTFor } from '@r10c/entifix-ts-i18n';
  * because a module-level singleton would let one visitor's locale leak into
  * another's markup under concurrent rendering.
  */
-export async function getServerT(ns?: Namespace) {
+export async function getServerT<N extends Namespace>(ns?: N) {
   const locale = await getRequestLocale();
   return createI18n(locale).getFixedT(locale, ns ?? null);
 }
@@ -65,8 +60,8 @@ export type TranslateKey = (
  * the typed-key guarantee is traded away on the server, and authored copy must
  * keep going through `getServerT` so a typo stays a compile error.
  */
-export async function getServerTranslateKey(
-  ns?: Namespace,
+export async function getServerTranslateKey<N extends Namespace>(
+  ns?: N,
 ): Promise<TranslateKey> {
   const t = await getServerT(ns);
   return t as unknown as TranslateKey;

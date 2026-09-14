@@ -30,4 +30,5 @@ export * from './lib/workspace';
  * [ADR 0034](../../../../docs/adr/0034-composition-metadata.md) collapsed. One
  * declaration, reachable from the layer its consumers already depend on.
  */
+export * from './lib/i18n/catalog';
 export type { EntityDraft } from '@r10c/entifix-ts-core';

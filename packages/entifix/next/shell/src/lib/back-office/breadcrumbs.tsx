@@ -5,7 +5,7 @@ import {
   Breadcrumbs,
   useT,
 } from '@r10c/entifix-react-controls';
-import { splitLocalePath } from '@r10c/entifix-ts-i18n/routing';
+import { splitLocalePath } from '@r10c/entifix-ts-core';
 import { usePathname } from 'next/navigation';
 
 import { LocaleLink } from '../i18n';

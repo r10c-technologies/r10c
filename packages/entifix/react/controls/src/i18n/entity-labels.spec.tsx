@@ -2,12 +2,15 @@ import type { EntityFieldDescriptor } from '@r10c/entifix-ts-core';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { I18nProvider } from '../i18next';
 import {
   useEnumLabel,
   useErrorMessage,
   useLocalizedDescriptors,
 } from './entity-labels';
-import { I18nProvider } from './i18n-context';
+import { installSpecCatalogs } from './spec-support/catalogs';
+
+installSpecCatalogs();
 
 function descriptor(
   overrides: Partial<EntityFieldDescriptor> = {},

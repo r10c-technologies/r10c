@@ -6,7 +6,7 @@ import {
   type EntityId,
   EntityLink,
 } from '@r10c/entifix-ts-core';
-import { makeFormatters } from '@r10c/entifix-ts-i18n';
+import { makeFormatters } from '@r10c/entifix-ts-core';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Effect } from 'effect';

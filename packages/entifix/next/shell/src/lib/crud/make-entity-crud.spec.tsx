@@ -613,6 +613,27 @@ describe('the generated form', () => {
     await waitFor(() => expect(screen.getByText('Editar marca')).toBeVisible());
   });
 
+  /**
+   * The i18n seam, end to end.
+   *
+   * ⚠️ **This shell resolves the `controls` copy and the integration package
+   * renders it.** The two are both `entifix:react`, so `useEntityForm` cannot
+   * import the catalog that owns these sentences — it takes them as an option,
+   * and this is the only place the wiring is proven. Before the split the hook
+   * reached into react-i18next itself, which is what made taking the hooks mean
+   * taking i18next and a Spanish catalog.
+   */
+  it('renders a validation failure in the catalog’s own words', async () => {
+    renderPage(<brandCrud.SingleViewPage />);
+    await waitFor(() => expect(screen.getByText('Nueva marca')).toBeVisible());
+
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/es obligatorio/i)).toBeVisible(),
+    );
+  });
+
   // `entity` is undefined until the record lands, so testing it alone titled a
   // loading edit form "New" and then relabelled it (#139).
   it('does not title a loading edit form as a create', async () => {

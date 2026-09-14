@@ -5,8 +5,8 @@ import {
   Stack,
   Text,
 } from '@r10c/entifix-react-controls/primitives';
+import { type Locale } from '@r10c/entifix-ts-core';
 import { getServerTFor } from '@r10c/entifix-ts-i18n';
-import { type Locale } from '@r10c/entifix-ts-i18n/routing';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 

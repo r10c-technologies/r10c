@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { isLocale, type Locale } from '@r10c/entifix-ts-i18n/routing';
+import { isLocale, type Locale } from '@r10c/entifix-ts-core';
 import { getServerTFor } from '@r10c/shells-next-i18n/server';
 import { notFound } from 'next/navigation';
 

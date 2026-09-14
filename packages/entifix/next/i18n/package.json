@@ -50,12 +50,20 @@
   },
   "dependencies": {
     "@r10c/entifix-ts-i18n": "workspace:*",
-    "@swc/helpers": "0.5.23"
+    "@swc/helpers": "0.5.23",
+    "@r10c/entifix-ts-core": "workspace:*"
   },
   "peerDependencies": {
-    "next": ">=16"
+    "next": ">=16",
+    "i18next": ">=26 <27"
   },
   "devDependencies": {
-    "next": "16.2.10"
+    "next": "16.2.10",
+    "i18next": "26.3.6"
+  },
+  "peerDependenciesMeta": {
+    "i18next": {
+      "optional": true
+    }
   }
 }

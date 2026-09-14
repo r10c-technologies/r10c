@@ -469,3 +469,19 @@ export function composeEntityFormErrors({
     form: schemaIssues.form,
   };
 }
+
+/**
+ * What a caller who supplies no {@link ValidationMessages} gets: the catalog key
+ * itself, with the field appended.
+ *
+ * Honest rather than English — there is no catalog in this package to resolve
+ * against — and visible enough in a form that a host notices it has wired no
+ * copy. It sits beside the validator rather than in `.types.ts`, which this
+ * repository keeps type-only.
+ */
+export const DEFAULT_VALIDATION_MESSAGES: EntityDraftMessages = {
+  required: field => `validation.required:${field}`,
+  number: field => `validation.number:${field}`,
+  date: field => `validation.date:${field}`,
+  option: field => `validation.option:${field}`,
+};
