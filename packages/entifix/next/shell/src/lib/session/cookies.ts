@@ -1,9 +1,6 @@
+import { ACCESS_COOKIE, SESSION_COOKIE } from '@r10c/entifix-ts-core';
 import type { NextResponse } from 'next/server';
 
-/** Short-lived signed access token the services verify. */
-export const AT_COOKIE = 'r10c_at';
-/** Opaque session id — the revocation handle and the refresh source. */
-export const SID_COOKIE = 'r10c_sid';
 
 /** What auth-service hands back from login / register / refresh. */
 export interface SessionCookiePayload {
@@ -17,7 +14,7 @@ export interface SessionCookiePayload {
 /**
  * Both cookies outlive the access token on purpose.
  *
- * Sizing `r10c_at` to the token's own 15 minutes is what used to sign everyone
+ * Sizing `entifix_at` to the token's own 15 minutes is what used to sign everyone
  * out four times an hour: once the cookie vanished, the middleware's presence
  * check could no longer tell "your token needs refreshing" from "you were never
  * signed in", and chose the second. The JWT's `exp` is the real authority on
@@ -39,16 +36,16 @@ export const applySessionCookies = (
   payload: SessionCookiePayload,
 ): NextResponse => {
   const maxAge = payload.sessionExpiresIn;
-  response.cookies.set(AT_COOKIE, payload.accessToken, cookieOptions(maxAge));
+  response.cookies.set(ACCESS_COOKIE, payload.accessToken, cookieOptions(maxAge));
   if (payload.sessionId !== undefined) {
-    response.cookies.set(SID_COOKIE, payload.sessionId, cookieOptions(maxAge));
+    response.cookies.set(SESSION_COOKIE, payload.sessionId, cookieOptions(maxAge));
   }
   return response;
 };
 
 /** Clear both cookies on an outgoing response (sign-out, dead session). */
 export const clearSessionCookies = (response: NextResponse): NextResponse => {
-  response.cookies.delete(AT_COOKIE);
-  response.cookies.delete(SID_COOKIE);
+  response.cookies.delete(ACCESS_COOKIE);
+  response.cookies.delete(SESSION_COOKIE);
   return response;
 };

@@ -32,14 +32,12 @@ export {
 // beside `AUTH_NAV`, so a host that mounts this shell gains both together.
 export { AUTH_SEARCH_SOURCES } from './server/search-sources';
 export {
-  AT_COOKIE,
   AUTH_SERVICE_URL,
   type AuthResult,
   clearSessionCookies,
   DEFAULT_REDIRECT,
   readSessionId,
   setSessionCookies,
-  SID_COOKIE,
 } from './server/session';
 
 // The palette's create command, contributed beside the nav and the search

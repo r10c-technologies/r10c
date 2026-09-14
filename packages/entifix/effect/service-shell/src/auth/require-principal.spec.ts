@@ -130,7 +130,7 @@ describe('requirePrincipal', () => {
   it('accepts the token from the forwarded cookie too', async () => {
     await withService(async baseUrl => {
       const res = await fetch(`${baseUrl}/api/me`, {
-        headers: { Cookie: `r10c_at=${tokenFor(['user'])}` },
+        headers: { Cookie: `entifix_at=${tokenFor(['user'])}` },
       });
 
       expect(res.status).toBe(200);

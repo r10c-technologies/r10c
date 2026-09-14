@@ -17,7 +17,7 @@ import {
 
 /**
  * The reactive stream, reached **same-origin** through the `/api/admin` proxy:
- * `r10c_at` is httpOnly, so the cookie is the only credential available and a
+ * `entifix_at` is httpOnly, so the cookie is the only credential available and a
  * cross-origin connection would carry none (ADR 0036).
  *
  * Module scope, so every mount shares one connection.

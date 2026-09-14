@@ -4,7 +4,7 @@ import { useUiPreference } from '@r10c/entifix-react-controls';
 import type { CommandGroup } from '@r10c/entifix-ts-core';
 import { useCallback, useMemo } from 'react';
 
-/** `namespace:` is prepended by the store → `r10c-ui:back-office:command-recency`. */
+/** `namespace:` is prepended by the store → `entifix-ui:back-office:command-recency`. */
 const RECENCY_PREF_KEY = 'back-office:command-recency';
 
 /**

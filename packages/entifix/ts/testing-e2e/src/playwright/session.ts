@@ -1,4 +1,5 @@
 import type { BrowserContext, Page } from '@playwright/test';
+import { ACCESS_COOKIE, LOCALE_COOKIE, SESSION_COOKIE } from '@r10c/entifix-ts-core';
 
 import { isMockProfile } from '../profile/profile';
 
@@ -16,10 +17,6 @@ const ACTION_TIMEOUT_MS = 10_000;
 const STEP_POLLS = 40;
 const STEP_POLL_MS = 250;
 
-/** The cookies the back office sets, host-scoped so the fleet shares them in dev. */
-const ACCESS_COOKIE = 'r10c_at';
-const SESSION_COOKIE = 'r10c_sid';
-const LOCALE_COOKIE = 'r10c_locale';
 
 export interface SeedSessionOptions {
   /** Roles the seeded principal should carry. */

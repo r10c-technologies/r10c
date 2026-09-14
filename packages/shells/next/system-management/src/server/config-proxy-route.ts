@@ -1,7 +1,7 @@
+import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-const AT_COOKIE = 'r10c_at';
 
 export interface ConfigProxyRouteOptions {
   /** Overrides `CONFIG_API_URL`; mainly for tests. */
@@ -14,7 +14,7 @@ type Params = { params: Promise<{ path: string[] }> };
  * Builds the same-origin proxy for config-service, to be mounted as a catch-all
  * route handler — e.g. `app/api/system/[...path]/route.ts`.
  *
- * The browser can never call `:3190` directly: `r10c_at` is httpOnly and
+ * The browser can never call `:3190` directly: `entifix_at` is httpOnly and
  * same-origin, so a cross-origin request carries no cookie and a guarded service
  * answers `401`. Host-scoping the cookie does not help — that governs which host
  * *stores* it, not which cross-origin requests send it. Routing through the app's
@@ -40,7 +40,7 @@ export const createConfigProxyRoute = ({
     const baseUrl =
       configApiUrl ?? process.env.CONFIG_API_URL ?? 'http://localhost:3190';
     const { path } = await params;
-    const token = (await cookies()).get(AT_COOKIE)?.value;
+    const token = (await cookies()).get(ACCESS_COOKIE)?.value;
     const search = new URL(request.url).search;
 
     const headers: Record<string, string> = {

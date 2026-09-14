@@ -11,7 +11,7 @@ vi.mock('next/headers', () => ({
     Promise.resolve({
       get: (name: string) => {
         const value = cookieValue();
-        return name === 'r10c_at' && value !== undefined
+        return name === 'entifix_at' && value !== undefined
           ? { name, value }
           : undefined;
       },

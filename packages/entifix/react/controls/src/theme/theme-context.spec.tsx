@@ -5,6 +5,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ThemeProvider, useTheme } from './theme-context.js';
 import type { ThemeOption } from './types.js';
 
+/**
+ * Derived, the way the provider derives it (`${storageKey}-runtime-palettes`),
+ * rather than written out. Hardcoding the full id made a spec that overrode
+ * `storageKey` look for a style element that was never going to exist.
+ */
+const DEFAULT_STORAGE_KEY = 'entifix-theme';
+const PALETTES_STYLE_ID = `${DEFAULT_STORAGE_KEY}-runtime-palettes`;
+
 const themes: ThemeOption[] = [
   { id: 'light', label: 'Light' },
   { id: 'dark', label: 'Dark' },
@@ -24,7 +32,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  document.getElementById('r10c-theme-runtime-palettes')?.remove();
+  document.getElementById(PALETTES_STYLE_ID)?.remove();
 });
 
 describe('ThemeProvider', () => {
@@ -66,7 +74,7 @@ describe('ThemeProvider', () => {
       wrapper: wrapper({ defaultTheme: 'dark' }),
     });
 
-    expect(window.localStorage.getItem('r10c-theme')).toBe('dark');
+    expect(window.localStorage.getItem('entifix-theme')).toBe('dark');
   });
 
   it('namespaces persistence by the given storage key', () => {
@@ -81,7 +89,7 @@ describe('ThemeProvider', () => {
   // SSR, so the server renders the default and the client corrects after mount.
   // Reading it during render would be a hydration mismatch.
   it('adopts a previously stored preference on mount', () => {
-    window.localStorage.setItem('r10c-theme', 'dark');
+    window.localStorage.setItem('entifix-theme', 'dark');
 
     const { result } = renderHook(() => useTheme(), { wrapper: wrapper() });
 
@@ -92,7 +100,7 @@ describe('ThemeProvider', () => {
     ['an unknown theme id', 'solarized'],
     ['no stored value at all', null],
   ])('ignores %s in storage', (_label, stored) => {
-    if (stored !== null) window.localStorage.setItem('r10c-theme', stored);
+    if (stored !== null) window.localStorage.setItem('entifix-theme', stored);
 
     const { result } = renderHook(() => useTheme(), { wrapper: wrapper() });
 
@@ -106,7 +114,7 @@ describe('ThemeProvider', () => {
 
     expect(result.current.theme).toBe('dark');
     expect(document.documentElement.dataset['theme']).toBe('dark');
-    expect(window.localStorage.getItem('r10c-theme')).toBe('dark');
+    expect(window.localStorage.getItem('entifix-theme')).toBe('dark');
   });
 
   describe('runtime palettes', () => {
@@ -119,7 +127,7 @@ describe('ThemeProvider', () => {
         }),
       });
 
-      const style = document.getElementById('r10c-theme-runtime-palettes');
+      const style = document.getElementById(PALETTES_STYLE_ID);
       expect(style?.textContent).toContain("[data-theme='dark']");
       expect(style?.textContent).toContain('--color-primary: #000;');
       expect(style?.textContent).toContain('--color-accent: #fff;');
@@ -137,10 +145,10 @@ describe('ThemeProvider', () => {
       });
 
       expect(
-        document.querySelectorAll('#r10c-theme-runtime-palettes'),
+        document.querySelectorAll(`#${PALETTES_STYLE_ID}`),
       ).toHaveLength(1);
       expect(
-        document.getElementById('r10c-theme-runtime-palettes')?.textContent,
+        document.getElementById(PALETTES_STYLE_ID)?.textContent,
       ).toContain('#111');
     });
 
@@ -150,7 +158,7 @@ describe('ThemeProvider', () => {
     ])('injects nothing for %s', (_label, palettes) => {
       renderHook(() => useTheme(), { wrapper: wrapper({ palettes }) });
 
-      expect(document.getElementById('r10c-theme-runtime-palettes')).toBeNull();
+      expect(document.getElementById(PALETTES_STYLE_ID)).toBeNull();
     });
   });
 });

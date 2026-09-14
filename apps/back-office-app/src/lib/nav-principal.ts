@@ -1,8 +1,7 @@
+import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
 import { unverifiedClaims } from '@r10c/entifix-ts-jwt-client';
 import { cookies } from 'next/headers';
 
-/** The access cookie this host sets at the end of the OIDC callback. */
-const AT_COOKIE = 'r10c_at';
 
 /**
  * What the navigation filter needs to know about the caller.
@@ -40,7 +39,7 @@ export interface NavPrincipal {
  */
 export async function navPrincipal(): Promise<NavPrincipal> {
   const claims = unverifiedClaims(
-    (await cookies()).get(AT_COOKIE)?.value ?? '',
+    (await cookies()).get(ACCESS_COOKIE)?.value ?? '',
   );
   const organizationId = claims?.activeOrganizationId;
   const entitlements = claims?.entitlements;

@@ -165,7 +165,7 @@ implementation quietly stops honouring it while every consumer keeps compiling.
 
 ### The pending set persists; the payload does not
 
-Entries live in a zustand store persisted to the `r10c-workspace` IndexedDB
+Entries live in a zustand store persisted to the `entifix-workspace` IndexedDB
 beside tabs and drafts, scoped `pending:<userId>:<organizationId>` and versioned,
 under every rule ADR 0032 fixed for drafts — including that the scope is applied
 with `persist.setOptions` **before** rehydrating.

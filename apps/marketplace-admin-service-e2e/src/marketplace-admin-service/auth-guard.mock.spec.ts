@@ -62,11 +62,11 @@ describe('marketplace-admin-service /api/me guard', () => {
     expect(res.data.roles).toEqual(['admin']);
   });
 
-  it('accepts the token from the r10c_at cookie', async () => {
+  it('accepts the token from the entifix_at cookie', async () => {
     const token = await signTestToken();
 
     const res = await service.client.get('/api/me', {
-      headers: { Cookie: `r10c_at=${token}` },
+      headers: { Cookie: `entifix_at=${token}` },
     });
 
     expect(res.status).toBe(200);

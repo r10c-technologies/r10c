@@ -104,7 +104,7 @@ export const entityMetadataRoute = <TEntity extends Entity>(
 /**
  * The response varies by principal, so it must never land in a shared cache.
  * `Vary` names **both** credential carriers because the shell reads the access
- * token from the `r10c_at` cookie *or* an `Authorization: Bearer` header, and a
+ * token from the `entifix_at` cookie *or* an `Authorization: Bearer` header, and a
  * cache keyed on only one of them would serve across the other.
  */
 const cacheHeaders = (etag: string) => ({

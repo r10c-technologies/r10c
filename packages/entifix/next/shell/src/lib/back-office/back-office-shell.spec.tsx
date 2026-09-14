@@ -127,7 +127,7 @@ describe('BackOfficeShell', () => {
     // Persisted through the UiPreferencesState (localStorage adapter).
     await waitFor(() =>
       expect(
-        window.localStorage.getItem('r10c-ui:back-office:sidebar-collapsed'),
+        window.localStorage.getItem('entifix-ui:back-office:sidebar-collapsed'),
       ).toBe('true'),
     );
 
@@ -158,14 +158,14 @@ describe('BackOfficeShell, domain groups', () => {
     );
     await waitFor(() =>
       expect(
-        window.localStorage.getItem('r10c-ui:back-office:nav-collapsed-groups'),
+        window.localStorage.getItem('entifix-ui:back-office:nav-collapsed-groups'),
       ).toBe('{"Catalog":true}'),
     );
   });
 
   it('expands a group that was persisted collapsed', async () => {
     window.localStorage.setItem(
-      'r10c-ui:back-office:nav-collapsed-groups',
+      'entifix-ui:back-office:nav-collapsed-groups',
       '{"Catalog":true}',
     );
     const user = userEvent.setup();
@@ -225,7 +225,7 @@ describe('BackOfficeShell, at a narrow viewport', () => {
       expect(screen.queryByText('Acme Admin')).toBeNull(),
     );
     expect(
-      window.localStorage.getItem('r10c-ui:back-office:sidebar-collapsed'),
+      window.localStorage.getItem('entifix-ui:back-office:sidebar-collapsed'),
     ).toBeNull();
   });
 });

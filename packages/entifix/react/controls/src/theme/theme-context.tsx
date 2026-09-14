@@ -40,7 +40,7 @@ export function ThemeProvider({
   children,
   themes,
   defaultTheme,
-  storageKey = 'r10c-theme',
+  storageKey = 'entifix-theme',
   palettes,
 }: ThemeProviderProps) {
   const initial = defaultTheme ?? themes[0]?.id ?? '';

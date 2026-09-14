@@ -13,7 +13,7 @@ type PlainConfiguration = Record<
  *
  * config-service holds the real address, which is what the *server* needs. A
  * browser pointed at it would be making a cross-origin request that carries no
- * session cookie and gets a `401` — `r10c_at` is httpOnly and same-origin, and
+ * session cookie and gets a `401` — `entifix_at` is httpOnly and same-origin, and
  * host-scoping it does not help, since that governs which host stores the cookie
  * rather than which cross-origin requests send it.
  *

@@ -20,7 +20,7 @@ export interface SearchRecordsOptions {
  * where debounce and abort belong) and a server component or a test can call the
  * same function.
  *
- * Same-origin on purpose: `r10c_at` is httpOnly and `sameSite: 'lax'`, so a
+ * Same-origin on purpose: `entifix_at` is httpOnly and `sameSite: 'lax'`, so a
  * cross-origin call would carry no session and every group would come back
  * unavailable.
  */

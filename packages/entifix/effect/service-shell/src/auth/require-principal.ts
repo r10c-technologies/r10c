@@ -5,10 +5,9 @@ import {
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
 import { type TokenClaims, TokenServiceTag } from '@r10c/entifix-ts-business';
+import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
 import { Effect, Option } from 'effect';
 
-/** The httpOnly cookie a Next app forwards carrying the access token. */
-export const ACCESS_COOKIE = 'r10c_at';
 
 /**
  * The authenticated subject as a service sees it. Structurally identical to
@@ -108,7 +107,7 @@ const forbidden = (permission: Permission) =>
 
 /**
  * Resolve the caller's principal from the request, or `None`. Reads the token
- * from the `r10c_at` cookie (the Next app forwards it) or an
+ * from the `entifix_at` cookie (the Next app forwards it) or an
  * `Authorization: Bearer` header and verifies it statelessly via
  * {@link TokenServiceTag} — no store round trip on the hot path.
  */

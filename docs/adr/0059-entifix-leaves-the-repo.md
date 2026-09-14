@@ -79,7 +79,7 @@ way: the framework declares a port, the host supplies a value at composition.
 | --- | --- | --- |
 | catalogs | a namespace per package, plus a parity checker | its own `app` namespace, and the single `declare module 'i18next'` |
 | grants | `PolicyDecision`, `can(grants, …)` | `ROLE_PERMISSIONS`, `SERVICE_CROSSING_PERMISSIONS` |
-| cookie and storage names | a configurable prefix with a neutral default | `r10c_at`, `r10c_sid`, `r10c_locale`, `r10c-theme`, `r10c-ui` |
+| cookie and storage names | neutral names, fixed, declared once in core; storage keys that were already parameters keep a neutral default | nothing — r10c adopts `entifix_at`, `entifix_sid`, `entifix_locale`, and stops re-declaring them |
 | the principal | `TokenServiceTag`, `PolicyDecisionTag` | the Zitadel-backed Layers |
 
 **A value, not a path.** A framework that takes `./config/roles.json` has to

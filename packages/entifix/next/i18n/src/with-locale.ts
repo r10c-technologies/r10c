@@ -52,7 +52,7 @@ export function resolveLocale(request: NextRequest): LocaleResolution {
 /**
  * Carries the resolved locale to the app: a request header the server
  * components read, and a cookie so the next unprefixed visit skips negotiation.
- * Host-scoped, matching `r10c_at`/`r10c_sid`, so the choice follows the visitor
+ * Host-scoped, matching `entifix_at`/`entifix_sid`, so the choice follows the visitor
  * across the fleet's ports in dev.
  */
 export function rememberLocale(response: NextResponse, locale: Locale): void {

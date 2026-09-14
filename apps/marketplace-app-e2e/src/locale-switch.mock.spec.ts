@@ -21,7 +21,7 @@ test.describe('switching locale', () => {
     await expect(page.getByText('View product').first()).toBeVisible();
   });
 
-  // Nothing pins `r10c_locale` here, so an unprefixed path falls through to
+  // Nothing pins `entifix_locale` here, so an unprefixed path falls through to
   // `Accept-Language`, which is the browser's to set.
   test.describe('an unprefixed path', () => {
     test.use({ locale: 'en-US' });

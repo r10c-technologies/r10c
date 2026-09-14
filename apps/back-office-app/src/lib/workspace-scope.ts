@@ -1,3 +1,4 @@
+import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
 import { unverifiedClaims } from '@r10c/entifix-ts-jwt-client';
 import {
   ANONYMOUS_WORKSPACE_SCOPE,
@@ -5,8 +6,6 @@ import {
 } from '@r10c/shells-next-common';
 import { cookies } from 'next/headers';
 
-/** The access cookie this host sets at the end of the OIDC callback. */
-const AT_COOKIE = 'r10c_at';
 
 /**
  * Which persisted workspace this visitor gets — their open tabs and autosaved
@@ -25,7 +24,7 @@ const AT_COOKIE = 'r10c_at';
  */
 export async function workspaceScope(): Promise<string> {
   const claims = unverifiedClaims(
-    (await cookies()).get(AT_COOKIE)?.value ?? '',
+    (await cookies()).get(ACCESS_COOKIE)?.value ?? '',
   );
   if (claims?.userId == null) return ANONYMOUS_WORKSPACE_SCOPE;
 

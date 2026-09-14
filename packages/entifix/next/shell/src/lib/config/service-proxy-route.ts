@@ -29,7 +29,7 @@ export interface ServiceProxyRouteOptions {
  * Builds a same-origin proxy for one backend service, mounted as a catch-all
  * route handler — e.g. `app/api/admin/[...path]/route.ts`.
  *
- * The browser can never call `:310N` directly: `r10c_at` is httpOnly and
+ * The browser can never call `:310N` directly: `entifix_at` is httpOnly and
  * same-origin, so a cross-origin request carries no cookie and a guarded route
  * answers `401`. Host-scoping the cookie does not help — that governs which host
  * *stores* it, not which cross-origin requests send it. Routing through the app's

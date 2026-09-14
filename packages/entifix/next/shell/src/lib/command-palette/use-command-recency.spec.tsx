@@ -20,7 +20,7 @@ const group = (ids: string[], key = 'commands'): CommandGroup => ({
  * and hands the result back through a ref — `renderHook` cannot take the
  * provider that helper supplies.
  *
- * The seed key carries **no** `r10c-ui:` prefix: the namespace is the shipped
+ * The seed key carries **no** `entifix-ui:` prefix: the namespace is the shipped
  * adapters' doing, not the port's, and this double stores exactly the key
  * `useUiPreference` passes it.
  */

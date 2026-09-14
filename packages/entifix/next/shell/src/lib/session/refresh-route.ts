@@ -1,10 +1,7 @@
+import { SESSION_COOKIE } from '@r10c/entifix-ts-core';
 import { type NextRequest, NextResponse } from 'next/server';
 
-import {
-  applySessionCookies,
-  clearSessionCookies,
-  SID_COOKIE,
-} from './cookies.js';
+import { applySessionCookies, clearSessionCookies } from './cookies.js';
 
 /** The subset of auth-service's refresh response this handler needs. */
 interface RefreshPayload {
@@ -69,7 +66,7 @@ export const createRefreshRoute =
       process.env.AUTH_SERVICE_URL ??
       'http://localhost:3102';
 
-    const sessionId = request.cookies.get(SID_COOKIE)?.value;
+    const sessionId = request.cookies.get(SESSION_COOKIE)?.value;
     if (sessionId === undefined) {
       return NextResponse.json(
         { error: 'no session', code: 'unauthenticated' },

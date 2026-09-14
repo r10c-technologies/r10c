@@ -522,7 +522,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   `sessionExpiresIn`/`principal`); auth-service itself sets no cookies. Each Next
   app owns turning that JSON into httpOnly cookies via its own
   `POST /api/auth/*` route handlers (`apps/*-app/src/app/api/auth/*`,
-  `apps/*-app/src/lib/session.ts`): `r10c_sid` and `r10c_at`, **both sized to the
+  `apps/*-app/src/lib/session.ts`): `entifix_sid` and `entifix_at`, **both sized to the
   session, not to the token** — a cookie that dies with the token makes an
   expired token indistinguishable from no session, which is what used to sign
   everyone out every 15 minutes. The shared refresh handler is
@@ -530,7 +530,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   handler or server layout _calls_ must ship from `/server` so it is never
   reached through the client surface and stamped as a client reference;
   each app mounts its own, since cookies are per-origin. A `middleware.ts` per
-  app does an edge-only presence check on `r10c_at` — back-office-app classifies
+  app does an edge-only presence check on `entifix_at` — back-office-app classifies
   paths (`/` bounces when authenticated, `/account/*`+`/users` require a session;
   there is no third class any more, because sign-up and recovery are screens at
   the provider) — with the real signature
@@ -544,7 +544,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   `/account` sits in its own `(account)` route group, because the
   `(back-office)` layout additionally demands `authn:user-identity:read` and a
   plain `user` must still reach their own account.
-* **Devices** are an opaque `r10c_did` cookie plus a `userAgent()`-parsed label,
+* **Devices** are an opaque `entifix_did` cookie plus a `userAgent()`-parsed label,
   captured at the app edge and stored durably as `UserDevice` in Mongo. They are
   a label for the session list and for "new device signed in" notifications, and
   **never an authorization input**.
@@ -560,7 +560,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
 * Downstream services that need to authorize a request (e.g.
   marketplace-admin-service) never call auth-service or touch Redis on the hot
   path: `requirePrincipal` (`apps/marketplace-admin-service/src/auth.ts`) reads
-  `r10c_at` (cookie or `Authorization: Bearer`) and verifies it statelessly via
+  `entifix_at` (cookie or `Authorization: Bearer`) and verifies it statelessly via
   `TokenServiceTag` — a Mongo/Redis-free `401` check. A handler that needs the
   richer, volatile session `attributes` reads Redis directly by `sessionId`.
 * **Tokens are RS256 and only auth-service can mint one.** It alone resolves

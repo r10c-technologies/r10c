@@ -4,11 +4,11 @@ import {
   type Permission,
   ServiceCrossingPolicyTag,
 } from '@r10c/business-ts-authz';
+import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
 import { Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { serveTestService } from '../serve-test-service.js';
-import { ACCESS_COOKIE } from './require-principal.js';
 import {
   CROSSING_TOKEN_HEADER,
   ORGANIZATION_HEADER,

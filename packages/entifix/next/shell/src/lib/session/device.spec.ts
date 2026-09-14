@@ -1,13 +1,9 @@
+import { DEVICE_COOKIE } from '@r10c/entifix-ts-core';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { describe, expect, it } from 'vitest';
 
-import {
-  applyDeviceCookie,
-  DID_COOKIE,
-  readDeviceContext,
-  truncateIp,
-} from './device';
+import { applyDeviceCookie, readDeviceContext, truncateIp } from './device';
 
 const CHROME_MAC =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
@@ -19,7 +15,7 @@ const requestWith = (
   ({
     cookies: {
       get: (name: string) =>
-        name === DID_COOKIE && options.deviceId !== undefined
+        name === DEVICE_COOKIE && options.deviceId !== undefined
           ? { name, value: options.deviceId }
           : undefined,
     },
@@ -107,7 +103,7 @@ describe('applyDeviceCookie', () => {
   it('writes a long-lived httpOnly cookie', () => {
     const response = applyDeviceCookie(NextResponse.json({}), 'device-1');
 
-    const cookie = response.cookies.get(DID_COOKIE);
+    const cookie = response.cookies.get(DEVICE_COOKIE);
     expect(cookie?.value).toBe('device-1');
     // Nothing in the browser needs to read it.
     expect(cookie?.httpOnly).toBe(true);

@@ -17,7 +17,7 @@ const service = defineServiceE2e({
 });
 
 const cookieFor = async (organizationId: string | null) => ({
-  Cookie: `r10c_at=${await signTokenFor(['admin'], 'user-1', organizationId)}`,
+  Cookie: `entifix_at=${await signTokenFor(['admin'], 'user-1', organizationId)}`,
 });
 
 describe('GET /api/transaction', () => {

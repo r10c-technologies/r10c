@@ -1,8 +1,7 @@
 import type { DeviceContext } from '@r10c/entifix-ts-business';
+import { DEVICE_COOKIE } from '@r10c/entifix-ts-core';
 import { type NextRequest, type NextResponse, userAgent } from 'next/server';
 
-/** Long-lived, opaque device id. Cleared with cookies — that is intended. */
-export const DID_COOKIE = 'r10c_did';
 
 /** Two years: long enough that a familiar browser stays familiar. */
 const DID_MAX_AGE = 60 * 60 * 24 * 730;
@@ -61,7 +60,7 @@ const clientIp = (request: NextRequest): string | undefined => {
 export const readDeviceContext = (
   request: NextRequest,
 ): { device: DeviceContext; issued: boolean } => {
-  const existing = request.cookies.get(DID_COOKIE)?.value;
+  const existing = request.cookies.get(DEVICE_COOKIE)?.value;
   const deviceId = existing ?? mintDeviceId();
   const agent = userAgent(request);
 
@@ -87,7 +86,7 @@ export const applyDeviceCookie = (
   response: NextResponse,
   deviceId: string,
 ): NextResponse => {
-  response.cookies.set(DID_COOKIE, deviceId, {
+  response.cookies.set(DEVICE_COOKIE, deviceId, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',

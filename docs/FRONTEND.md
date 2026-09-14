@@ -882,7 +882,7 @@ A framework-free **`ReactiveChannel` port** (a `Context.Tag`, mirroring the enti
 philosophy) emits entity-change events. Its transport is **server-sent events** on a plain `GET`
 through the app's own same-origin proxy, scoped per connection to the principal's organization
 ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)). Not a WebSocket:
-`r10c_at` is `httpOnly` and the `WebSocket` constructor accepts no headers, so a socket would
+`entifix_at` is `httpOnly` and the `WebSocket` constructor accepts no headers, so a socket would
 need a second class of bearer token in client JavaScript — and a duplex frame has no caller here
 anyway.
 
@@ -969,7 +969,7 @@ justify itself.
 |                   | Back-office                        | Storefront                                 |
 | ----------------- | ---------------------------------- | ------------------------------------------ |
 | Default component | client                             | **server**                                 |
-| Locale            | `x-r10c-locale` header → dynamic   | `[locale]` route param → **prerenderable** |
+| Locale            | `x-entifix-locale` header → dynamic   | `[locale]` route param → **prerenderable** |
 | Data              | TanStack over REST, in the browser | use-case run on the server, in the page    |
 | Links             | `LocaleLink` (client)              | `StoreLink` (**server**)                   |
 | CTA               | `Button`                           | `ButtonLink` where the click navigates     |

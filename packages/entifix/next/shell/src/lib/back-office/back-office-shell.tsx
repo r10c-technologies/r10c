@@ -15,7 +15,7 @@ import { BackOfficeBreadcrumbs } from './breadcrumbs';
 import type { NavSection } from './nav';
 import { SidebarNav } from './sidebar-nav';
 
-/** `namespace:` is prepended by the store → `r10c-ui:back-office:sidebar-collapsed`. */
+/** `namespace:` is prepended by the store → `entifix-ui:back-office:sidebar-collapsed`. */
 const SIDEBAR_PREF_KEY = 'back-office:sidebar-collapsed';
 
 /**

@@ -20,6 +20,7 @@ export * from './entity-definition/metadata';
 export * from './entity-definition/reconstruct';
 export * from './entity-definition/serializer';
 export * from './envelope';
+export * from './http/session-cookies';
 export * from './i18n/format';
 export * from './i18n/locales';
 export * from './i18n/negotiate';

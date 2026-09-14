@@ -9,7 +9,7 @@ import type { EntityChangeListener, ReactiveChannel } from './reactive-channel';
 /**
  * The reactive stream's browser end: one `EventSource` over a same-origin URL.
  *
- * **Same-origin is the whole reason this is SSE and not a WebSocket.** `r10c_at`
+ * **Same-origin is the whole reason this is SSE and not a WebSocket.** `entifix_at`
  * is `httpOnly` and `sameSite: 'lax'`, and the `WebSocket` constructor accepts
  * no headers — so a socket would need a second class of bearer token handed to
  * client JavaScript, which is the one thing `httpOnly` protects against. An

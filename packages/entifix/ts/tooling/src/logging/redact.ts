@@ -9,8 +9,8 @@ export const DEFAULT_REDACT_KEYS: readonly string[] = [
   'authorization',
   'cookie',
   'set-cookie',
-  'r10c_at',
-  'r10c_sid',
+  'entifix_at',
+  'entifix_sid',
   'password',
   'token',
 ];

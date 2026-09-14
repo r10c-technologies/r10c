@@ -502,7 +502,7 @@ Three things layer on top of that default:
   shipped adapter is `makeLocalStorageUiPreferencesState(namespace)`; the port is
   async-capable on purpose, so a server-backed per-user store is a drop-in swap at
   `UiPreferencesProvider`. Keys are `<namespace>:<component>:<scope>`, e.g.
-  `r10c-ui:entity-table:product`. A stored layout degrades rather than breaks:
+  `entifix-ui:entity-table:product`. A stored layout degrades rather than breaks:
   stale names are dropped and columns added to the entity later append at the end.
 - **Responsiveness** — below `pivotBreakpoint` (default `md`) rows pivot into
   label/value cards. Both layouts are rendered and CSS picks one, driven by the

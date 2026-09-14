@@ -47,7 +47,7 @@ describe('CartBadge', () => {
   });
 
   it('ignores an unrelated cookie', () => {
-    document.cookie = 'r10c_locale=es; path=/';
+    document.cookie = 'entifix_locale=es; path=/';
 
     render(<CartBadge href="/es/cart" label="Carrito" />);
 

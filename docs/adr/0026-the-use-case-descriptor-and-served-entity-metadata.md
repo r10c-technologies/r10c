@@ -269,7 +269,7 @@ authenticating it was for.
 
 Because the response varies by principal it is `Cache-Control: private` and
 `Vary: Cookie, Authorization` — **both** carriers, because the service shell
-accepts the access token from the `r10c_at` cookie or an `Authorization: Bearer`
+accepts the access token from the `entifix_at` cookie or an `Authorization: Bearer`
 header, and a cache keyed on one would serve across the other.
 
 The ETag hashes the **computed document**. An earlier draft of this record said

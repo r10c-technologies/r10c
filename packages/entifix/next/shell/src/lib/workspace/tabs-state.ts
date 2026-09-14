@@ -24,7 +24,7 @@ export function persistedTabs(store: TabsState): TabsSnapshot {
   return { tabs: store.tabs, activeParam: store.activeParam };
 }
 
-export const WORKSPACE_DB = 'r10c-workspace';
+export const WORKSPACE_DB = 'entifix-workspace';
 const WORKSPACE_STORE = 'stores';
 
 /**

@@ -73,7 +73,7 @@ describe('TransactionSettlement', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  // ⚠️ Same-origin through the app's own proxy. `r10c_at` is httpOnly, so the
+  // ⚠️ Same-origin through the app's own proxy. `entifix_at` is httpOnly, so the
   // cookie is the only credential available and a cross-origin connection would
   // carry none (ADR 0036) — a changed URL here is a stream that silently
   // authenticates as nobody.

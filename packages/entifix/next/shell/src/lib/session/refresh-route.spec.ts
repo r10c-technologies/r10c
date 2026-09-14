@@ -1,7 +1,7 @@
+import { ACCESS_COOKIE, SESSION_COOKIE } from '@r10c/entifix-ts-core';
 import type { NextRequest } from 'next/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { AT_COOKIE, SID_COOKIE } from './cookies';
 import { createRefreshRoute } from './refresh-route';
 
 const AUTH_URL = 'http://auth.test';
@@ -11,7 +11,7 @@ const requestWith = (sessionId?: string): NextRequest =>
   ({
     cookies: {
       get: (name: string) =>
-        name === SID_COOKIE && sessionId !== undefined
+        name === SESSION_COOKIE && sessionId !== undefined
           ? { name, value: sessionId }
           : undefined,
     },
@@ -53,7 +53,7 @@ describe('createRefreshRoute', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.cookies.get(AT_COOKIE)?.value).toBe('fresh');
+    expect(response.cookies.get(ACCESS_COOKIE)?.value).toBe('fresh');
     expect(await response.json()).toMatchObject({
       ok: true,
       sessionExpiresIn: 604_800,
@@ -74,8 +74,8 @@ describe('createRefreshRoute', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     // Both callers still get a usable body — the shared Response is cloned.
-    expect(first.cookies.get(AT_COOKIE)?.value).toBe('fresh');
-    expect(second.cookies.get(AT_COOKIE)?.value).toBe('fresh');
+    expect(first.cookies.get(ACCESS_COOKIE)?.value).toBe('fresh');
+    expect(second.cookies.get(ACCESS_COOKIE)?.value).toBe('fresh');
   });
 
   it('clears the cookies when the session is gone', async () => {
@@ -99,8 +99,8 @@ describe('createRefreshRoute', () => {
     expect(response.status).toBe(401);
     // Leaving them would keep the middleware protecting a session that can
     // never be renewed again.
-    expect(response.cookies.get(AT_COOKIE)?.value).toBe('');
-    expect(response.cookies.get(SID_COOKIE)?.value).toBe('');
+    expect(response.cookies.get(ACCESS_COOKIE)?.value).toBe('');
+    expect(response.cookies.get(SESSION_COOKIE)?.value).toBe('');
   });
 
   it('keeps the cookies when auth-service is unreachable', async () => {
@@ -116,7 +116,7 @@ describe('createRefreshRoute', () => {
     // A network blip is not evidence the session died, so signing the user out
     // here would be the wrong call.
     expect(response.status).toBe(503);
-    expect(response.cookies.get(AT_COOKIE)).toBeUndefined();
+    expect(response.cookies.get(ACCESS_COOKIE)).toBeUndefined();
     expect(await response.json()).toMatchObject({ code: 'network' });
   });
 

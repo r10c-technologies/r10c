@@ -21,14 +21,14 @@ describe('redactAttributes', () => {
   it('masks matching keys case-insensitively and keeps the rest', () => {
     const out = redactAttributes({
       Authorization: 'Bearer x',
-      r10c_at: 'token',
+      entifix_at: 'token',
       userId: 'u1',
       count: 3,
     });
 
     expect(out).toEqual({
       Authorization: REDACTED,
-      r10c_at: REDACTED,
+      entifix_at: REDACTED,
       userId: 'u1',
       count: 3,
     });
@@ -44,7 +44,7 @@ describe('redactAttributes', () => {
 
   it('exposes the canonical default keys', () => {
     expect(DEFAULT_REDACT_KEYS).toContain('authorization');
-    expect(DEFAULT_REDACT_KEYS).toContain('r10c_at');
+    expect(DEFAULT_REDACT_KEYS).toContain('entifix_at');
     expect(DEFAULT_REDACT_KEYS).toContain('password');
   });
 });

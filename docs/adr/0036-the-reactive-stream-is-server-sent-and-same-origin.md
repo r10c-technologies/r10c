@@ -24,7 +24,7 @@ of the workspace cannot tell the difference between "the transport is missing"
 and "nothing changed".
 
 **A browser WebSocket would be this repo's first cross-origin browser
-connection.** `rewriteServiceDomains` exists for one reason: `r10c_at` is
+connection.** `rewriteServiceDomains` exists for one reason: `entifix_at` is
 `httpOnly` and `sameSite: 'lax'`, so a browser pointed at `:3101` sends no
 session and gets a `401`. Every service address the browser sees is rewritten to
 a same-origin proxy path before it leaves `GET /api/config`, and

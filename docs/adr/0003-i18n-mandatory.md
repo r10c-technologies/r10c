@@ -74,7 +74,7 @@ bundle that only reads a cookie and a header.
 ### Locale routing is a middleware rewrite, not an `app/[locale]` segment
 
 An unprefixed path is redirected to `/<negotiated>/…`; a prefixed one is
-rewritten onto the plain route tree with an `x-r10c-locale` request header that
+rewritten onto the plain route tree with an `x-entifix-locale` request header that
 `getRequestLocale()` reads.
 
 **Rejected: a real `app/[locale]` route segment.** All three apps are dynamic

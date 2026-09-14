@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-26
 - Area: auth
-- Read when: changing a session duration, a cookie lifetime or a device record — sessions slide under a ceiling, and sizing `r10c_at` to the token signs everyone out every 15 minutes
+- Read when: changing a session duration, a cookie lifetime or a device record — sessions slide under a ceiling, and sizing `entifix_at` to the token signs everyone out every 15 minutes
 - Revised: 2026-08-13 by [ADR 0016](0016-zitadel-authenticates-r10c-authorizes.md) —
   records here the supersession ADR 0016 declared but never wrote back: the
   **recovery** and **lockout** sections below are superseded, and the Context
@@ -26,7 +26,7 @@ session visibility were all listed as deferred.
 
 Two things forced the issue.
 
-**The refresh half was dead code.** `setSessionCookies` sized the `r10c_at`
+**The refresh half was dead code.** `setSessionCookies` sized the `entifix_at`
 cookie to the _access token's_ 15 minutes. When that cookie expired, the
 middleware's presence check could not tell "this token needs refreshing" from
 "there is no session", and chose the second — so every user was bounced to
@@ -69,7 +69,7 @@ copies of "fifteen minutes" is how a signer and a verifier silently disagree.
 > handler.
 >
 > The failure that hid it is the one this record's own Context describes, one
-> layer along. Sizing `r10c_at` to the token bounced everyone to sign-in four
+> layer along. Sizing `entifix_at` to the token bounced everyone to sign-in four
 > times an hour, which is loud. Sizing it to the **session ceiling** and never
 > refreshing is silent: the middleware's presence check keeps admitting the
 > visitor for up to seven days, every page renders, and only the calls behind
@@ -120,7 +120,7 @@ exported from the client entry is still a client function, which surfaced as
 
 ### Devices are labels, never authorization inputs
 
-An opaque `r10c_did` cookie (256-bit, httpOnly, ~2 years) plus a label parsed
+An opaque `entifix_did` cookie (256-bit, httpOnly, ~2 years) plus a label parsed
 with `userAgent()` from `next/server` — already bundled with Next, so no new
 dependency, and notably not `ua-parser-js`, whose v2 is AGPL/dual-licensed.
 
@@ -137,7 +137,7 @@ The rule everywhere: **a copied cookie copies the device, and that is acceptable
 precisely because nothing here decides anything.** It powers the session list and
 the notification; the access token authorizes.
 
-**Rejected: comparing the device at refresh time.** The `r10c_did` cookie lives
+**Rejected: comparing the device at refresh time.** The `entifix_did` cookie lives
 on auth-app's origin, so in production there is nothing to compare on another
 app's origin — a check that would appear to work on localhost and silently stop
 working in production.

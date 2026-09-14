@@ -1,16 +1,15 @@
+import { ACCESS_COOKIE } from '@r10c/entifix-ts-core';
 import { cookies } from 'next/headers';
-
-import { AT_COOKIE } from './cookies';
 
 /**
  * The caller's access token, or `undefined` when they hold no session.
  *
- * `r10c_at` is httpOnly, so only the server can read it — which is the whole
+ * `entifix_at` is httpOnly, so only the server can read it — which is the whole
  * reason a browser talks to a backend through this app's own origin rather than
  * calling `:310N` directly.
  */
 export const sessionToken = async (): Promise<string | undefined> =>
-  (await cookies()).get(AT_COOKIE)?.value;
+  (await cookies()).get(ACCESS_COOKIE)?.value;
 
 /**
  * The token as a forwardable header, and `{}` when there is none.
