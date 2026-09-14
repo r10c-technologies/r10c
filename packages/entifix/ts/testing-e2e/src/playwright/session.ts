@@ -1,7 +1,25 @@
-import { ACCESS_COOKIE, LOCALE_COOKIE, SESSION_COOKIE } from '@entifix/core';
 import type { BrowserContext, Page } from '@playwright/test';
 
 import { isMockProfile } from '../profile/profile';
+
+/**
+ * The cookies a signed-in session travels in — the same names
+ * `@entifix/core` declares, **written out rather than imported**.
+ *
+ * ⚠️ **This module must import no built package at runtime.** Nx builds its
+ * project graph by loading every e2e project's `playwright.config.ts` in plain
+ * Node — no source condition, nothing built — and that config reaches this
+ * file. An `import … from '@entifix/core'` here resolves core's `dist`, which a
+ * CI job that only lints never builds, and the whole graph fails with
+ * `Cannot find module …/entifix-ts-core/dist/index.js`. It passed locally only
+ * because a developer machine always has `dist` from a previous build.
+ *
+ * `session-cookies.spec.ts` imports core and fails if these drift, so the
+ * duplication is checked rather than trusted.
+ */
+export const ACCESS_COOKIE = 'entifix_at';
+export const SESSION_COOKIE = 'entifix_sid';
+export const LOCALE_COOKIE = 'entifix_locale';
 
 /** Give a hosted-UI component time to hydrate before its input is retyped. */
 const STEP_SETTLE_MS = 1_000;
