@@ -8,16 +8,18 @@ import {
   type InboxClaim,
   type Subscription,
 } from '@r10c/entifix-transactions';
-import { queueNameFor } from '@r10c/entifix-ts-amqp-client';
+import { queueNameFor } from '@r10c/entifix-ts-amqp-client/transactions';
 import { EntifixConnError } from '@r10c/entifix-ts-core';
+import {
+  MongoClientTag,
+  MongoDatabaseTag,
+} from '@r10c/entifix-ts-mongo-client';
 import {
   ensureInboxIndexes,
   INBOX_COLLECTION,
   inboxDocument,
   isDuplicateKey,
-  MongoClientTag,
-  MongoDatabaseTag,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@r10c/entifix-ts-mongo-client/transactions';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

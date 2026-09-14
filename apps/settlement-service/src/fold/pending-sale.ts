@@ -15,7 +15,7 @@ import {
   INBOX_COLLECTION,
   inboxDocument,
   isDuplicateKey,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@r10c/entifix-ts-mongo-client/transactions';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

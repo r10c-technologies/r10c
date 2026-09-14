@@ -9,7 +9,7 @@ import { envelopeEntityName } from '@r10c/entifix-ts-core';
 import {
   OUTBOX_COLLECTION,
   outboxDocument,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@r10c/entifix-ts-mongo-client/transactions';
 import type { ClientSession, Db } from 'mongodb';
 
 /** Where a payment lives. The entity's own key, as every collection name is. */

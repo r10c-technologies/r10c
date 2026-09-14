@@ -63,16 +63,18 @@ import {
   serializeEntity,
 } from '@r10c/entifix-ts-core';
 import {
-  drainOutbox,
-  ensureOutboxIndexes,
-  makeMongoOutbox,
   makeMongoRepository,
   MongoClientTag,
   MongoDatabaseTag,
+} from '@r10c/entifix-ts-mongo-client';
+import {
+  drainOutbox,
+  ensureOutboxIndexes,
+  makeMongoOutbox,
   OUTBOX_COLLECTION,
   outboxDocument,
   OutboxMaxAttempts,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@r10c/entifix-ts-mongo-client/transactions';
 import { requireOrganization } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';

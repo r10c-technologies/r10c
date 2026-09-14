@@ -33,11 +33,8 @@
     "targets": {}
   },
   "dependencies": {
-    "@r10c/entifix-ts-amqp-client": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
-    "@r10c/entifix-ts-mongo-client": "workspace:*",
-    "@r10c/entifix-ts-redis-client": "workspace:*",
     "@r10c/entifix-ts-testing-unit": "workspace:*",
     "@swc/helpers": "0.5.23"
   },
@@ -46,6 +43,9 @@
     "@nx/devkit": ">=23 <24",
     "@nx/playwright": ">=23 <24",
     "@playwright/test": "*",
+    "@r10c/entifix-ts-amqp-client": "workspace:*",
+    "@r10c/entifix-ts-mongo-client": "workspace:*",
+    "@r10c/entifix-ts-redis-client": "workspace:*",
     "axios": "*",
     "effect": ">=3.22 <4",
     "msw": "*",
@@ -64,6 +64,15 @@
     "@playwright/test": {
       "optional": true
     },
+    "@r10c/entifix-ts-amqp-client": {
+      "optional": true
+    },
+    "@r10c/entifix-ts-mongo-client": {
+      "optional": true
+    },
+    "@r10c/entifix-ts-redis-client": {
+      "optional": true
+    },
     "axios": {
       "optional": true
     },
@@ -77,6 +86,9 @@
   "devDependencies": {
     "@nx/devkit": "23.0.1",
     "@nx/playwright": "23.0.1",
+    "@r10c/entifix-ts-amqp-client": "workspace:*",
+    "@r10c/entifix-ts-mongo-client": "workspace:*",
+    "@r10c/entifix-ts-redis-client": "workspace:*",
     "effect": "3.22.1"
   }
 }

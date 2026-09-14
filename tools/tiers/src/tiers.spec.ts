@@ -24,7 +24,9 @@ describe('ADR 0059 — the tier register is complete', () => {
   // nothing. Pin the count so that failure is loud.
   it('finds the packages it is meant to check', () => {
     expect(PACKAGES.length).toBeGreaterThanOrEqual(22);
-    expect(SCANNED_ROOTS.flatMap(packageDirs).length).toBeGreaterThanOrEqual(19);
+    expect(SCANNED_ROOTS.flatMap(packageDirs).length).toBeGreaterThanOrEqual(
+      19,
+    );
   });
 
   it('declares a directory that exists, holding the package it names', () => {
@@ -51,7 +53,7 @@ describe('ADR 0059 — the tier register is complete', () => {
     expect(
       unregistered,
       'these packages live under an entifix root and carry no tier, so ' +
-        'nothing constrains what they may drag into an adopter\'s tree:\n  ' +
+        "nothing constrains what they may drag into an adopter's tree:\n  " +
         unregistered.join('\n  '),
     ).toEqual([]);
   });
@@ -130,6 +132,21 @@ describe('An optional capability is never a hard dependency', () => {
         `${capability.name} is named as an optional capability but is not a ` +
           'registered package, so nothing below can see it',
       ).toBe(true);
+
+      // An exemption that no longer applies is worse than none: it reads as a
+      // considered decision while protecting a package that has since been
+      // fixed, moved or renamed.
+      for (const exception of capability.except ?? []) {
+        const exempt = byName.get(exception.name);
+        expect(
+          exempt !== undefined &&
+            capability.optionalFor.includes(exempt.tier) &&
+            capability.name in (readManifest(exempt.dir).dependencies ?? {}),
+          `${exception.name} is exempted from ${capability.name} and does not ` +
+            'need to be — it is no longer a registered package in an affected ' +
+            'tier, or no longer hard-depends on it. Delete the exemption.',
+        ).toBe(true);
+      }
     }
   });
 
@@ -139,6 +156,7 @@ describe('An optional capability is never a hard dependency', () => {
     for (const capability of OPTIONAL_CAPABILITIES) {
       for (const pkg of PACKAGES) {
         if (!capability.optionalFor.includes(pkg.tier)) continue;
+        if (capability.except?.some(e => e.name === pkg.name)) continue;
 
         const manifest = readManifest(pkg.dir);
         if (!(capability.name in (manifest.dependencies ?? {}))) continue;

@@ -7,11 +7,8 @@ import {
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
 import { EventSourceTag } from '@r10c/entifix-transactions';
-import {
-  AmqpEventBusLayer,
-  AmqpHealthProbeLayer,
-  AmqpLayer,
-} from '@r10c/entifix-ts-amqp-client';
+import { AmqpHealthProbeLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
+import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client/transactions';
 import {
   ConfigurationRepositoryTag,
   TokenServiceTag,
@@ -19,13 +16,15 @@ import {
 import { ConfigurationClientInMemory } from '@r10c/entifix-ts-core';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 import {
-  ensureOutboxIndexes,
   MongoDatabaseLayer,
   MongoDatabaseTag,
   MongoHealthProbeLayer,
+} from '@r10c/entifix-ts-mongo-client';
+import {
+  ensureOutboxIndexes,
   OutboxMaxAttempts,
   startOutboxRelay,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@r10c/entifix-ts-mongo-client/transactions';
 import {
   LoadedConfigurationTag,
   loadRemoteConfiguration,

@@ -1,14 +1,14 @@
 import { type EventBus, EventBusTag } from '@r10c/entifix-transactions';
 import { ShutdownRegistryTag } from '@r10c/entifix-ts-business';
+import { MongoClientTag } from '@r10c/entifix-ts-mongo-client';
 import {
   drainOutbox,
   ensureOutboxIndexes,
   makeMongoOutbox,
-  MongoClientTag,
   OutboxMaxAttempts,
   recordOutboxStats,
   SWEEP_INTERVAL,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@r10c/entifix-ts-mongo-client/transactions';
 import { Context, Effect, Fiber } from 'effect';
 import type { MongoClient } from 'mongodb';
 

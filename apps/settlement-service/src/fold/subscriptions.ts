@@ -4,12 +4,12 @@ import {
   readPaymentOutcome,
 } from '@r10c/business-ts-payment-contracts';
 import { EventBusTag, type Subscription } from '@r10c/entifix-transactions';
-import { queueNameFor } from '@r10c/entifix-ts-amqp-client';
+import { queueNameFor } from '@r10c/entifix-ts-amqp-client/transactions';
 import {
-  ensureInboxIndexes,
   MongoClientTag,
   MongoDatabaseTag,
 } from '@r10c/entifix-ts-mongo-client';
+import { ensureInboxIndexes } from '@r10c/entifix-ts-mongo-client/transactions';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 
@@ -172,38 +172,37 @@ const uniqueVendors = (
  * domain must never do. The line is loud because it means a real vendor is
  * selling with no commercial terms on file, which somebody has to fix.
  */
-const handlePlaced = (client: MongoClient, db: Db, consumer: string) =>
-  ((event: {
-    id: string;
-    data: unknown;
-  }) => Effect.gen(function* () {
-    const order = yield* readPlacedOrder(event.data);
-    const vendorIds = uniqueVendors(order.lines);
-    const agreements = yield* agreementsFor(db, vendorIds);
-    const { commissions, unpriced } = commissionsForOrder({
-      lines: order.lines,
-      channelType: order.channelType,
-      agreements,
-    });
+const handlePlaced =
+  (client: MongoClient, db: Db, consumer: string) =>
+  (event: { id: string; data: unknown }) =>
+    Effect.gen(function* () {
+      const order = yield* readPlacedOrder(event.data);
+      const vendorIds = uniqueVendors(order.lines);
+      const agreements = yield* agreementsFor(db, vendorIds);
+      const { commissions, unpriced } = commissionsForOrder({
+        lines: order.lines,
+        channelType: order.channelType,
+        agreements,
+      });
 
-    if (unpriced.length > 0) {
-      yield* Effect.logError(
-        'sold for a vendor with no agreement on file',
-      ).pipe(
-        Effect.annotateLogs({ orderId: order.orderId, vendors: unpriced }),
+      if (unpriced.length > 0) {
+        yield* Effect.logError(
+          'sold for a vendor with no agreement on file',
+        ).pipe(
+          Effect.annotateLogs({ orderId: order.orderId, vendors: unpriced }),
+        );
+      }
+
+      const outcome = yield* contributeToSale(
+        client,
+        db,
+        consumer,
+        event.id,
+        order.orderId,
+        { commissions, unpriced },
       );
-    }
-
-    const outcome = yield* contributeToSale(
-      client,
-      db,
-      consumer,
-      event.id,
-      order.orderId,
-      { commissions, unpriced },
-    );
-    yield* logOutcome(ORDER_PLACED, order.orderId, outcome);
-  }).pipe(Effect.withSpan('settlement.order.placed')));
+      yield* logOutcome(ORDER_PLACED, order.orderId, outcome);
+    }).pipe(Effect.withSpan('settlement.order.placed'));
 
 /**
  * The payment's half: a timestamp, and the fold if the order already landed.
@@ -220,22 +219,21 @@ const handlePlaced = (client: MongoClient, db: Db, consumer: string) =>
  * to be running in — and a redelivery or a replay would file it differently each
  * time.
  */
-const handleCaptured = (client: MongoClient, db: Db, consumer: string) =>
-  ((event: {
-    id: string;
-    data: unknown;
-  }) => Effect.gen(function* () {
-    const outcome = yield* readPaymentOutcome(event.data);
-    const folded = yield* contributeToSale(
-      client,
-      db,
-      consumer,
-      event.id,
-      outcome.orderId,
-      { decidedAt: outcome.decidedAt },
-    );
-    yield* logOutcome(PAYMENT_CAPTURED, outcome.orderId, folded);
-  }).pipe(Effect.withSpan('settlement.payment.captured')));
+const handleCaptured =
+  (client: MongoClient, db: Db, consumer: string) =>
+  (event: { id: string; data: unknown }) =>
+    Effect.gen(function* () {
+      const outcome = yield* readPaymentOutcome(event.data);
+      const folded = yield* contributeToSale(
+        client,
+        db,
+        consumer,
+        event.id,
+        outcome.orderId,
+        { decidedAt: outcome.decidedAt },
+      );
+      yield* logOutcome(PAYMENT_CAPTURED, outcome.orderId, folded);
+    }).pipe(Effect.withSpan('settlement.payment.captured'));
 
 /**
  * The cancellation's half: the fact, and the reversal if the refund already
@@ -254,27 +252,25 @@ const handleCaptured = (client: MongoClient, db: Db, consumer: string) =>
  * classifies it poison and quarantines it loudly rather than acking a shape
  * nobody has looked at.
  */
-const handleCancelled = (client: MongoClient, db: Db, consumer: string) =>
-  ((event: {
-    id: string;
-    at: string;
-    data: unknown;
-  }) => Effect.gen(function* () {
-    const order = yield* readCancelledOrder(event.data);
-    // The envelope's own `at`, which order-service stamps in the same
-    // transaction as the `cancelled` status. It is recorded for the audit trail
-    // and never used as an `occurredAt`: a claw-back is filed under when the
-    // *money* went back, which is the refund's `decidedAt`, not this.
-    const outcome = yield* contributeToSale(
-      client,
-      db,
-      consumer,
-      event.id,
-      order.orderId,
-      { cancelledAt: event.at },
-    );
-    yield* logOutcome(ORDER_CANCELLED, order.orderId, outcome);
-  }).pipe(Effect.withSpan('settlement.order.cancelled')));
+const handleCancelled =
+  (client: MongoClient, db: Db, consumer: string) =>
+  (event: { id: string; at: string; data: unknown }) =>
+    Effect.gen(function* () {
+      const order = yield* readCancelledOrder(event.data);
+      // The envelope's own `at`, which order-service stamps in the same
+      // transaction as the `cancelled` status. It is recorded for the audit trail
+      // and never used as an `occurredAt`: a claw-back is filed under when the
+      // *money* went back, which is the refund's `decidedAt`, not this.
+      const outcome = yield* contributeToSale(
+        client,
+        db,
+        consumer,
+        event.id,
+        order.orderId,
+        { cancelledAt: event.at },
+      );
+      yield* logOutcome(ORDER_CANCELLED, order.orderId, outcome);
+    }).pipe(Effect.withSpan('settlement.order.cancelled'));
 
 /**
  * The refund's half: a timestamp, and the reversal if the cancellation already
@@ -291,22 +287,21 @@ const handleCancelled = (client: MongoClient, db: Db, consumer: string) =>
  * period, and the sale's own timestamp would file a claw-back into a period that
  * may already be settled.
  */
-const handleRefunded = (client: MongoClient, db: Db, consumer: string) =>
-  ((event: {
-    id: string;
-    data: unknown;
-  }) => Effect.gen(function* () {
-    const outcome = yield* readPaymentOutcome(event.data);
-    const written = yield* contributeToSale(
-      client,
-      db,
-      consumer,
-      event.id,
-      outcome.orderId,
-      { refundedAt: outcome.decidedAt },
-    );
-    yield* logOutcome(PAYMENT_REFUNDED, outcome.orderId, written);
-  }).pipe(Effect.withSpan('settlement.payment.refunded')));
+const handleRefunded =
+  (client: MongoClient, db: Db, consumer: string) =>
+  (event: { id: string; data: unknown }) =>
+    Effect.gen(function* () {
+      const outcome = yield* readPaymentOutcome(event.data);
+      const written = yield* contributeToSale(
+        client,
+        db,
+        consumer,
+        event.id,
+        outcome.orderId,
+        { refundedAt: outcome.decidedAt },
+      );
+      yield* logOutcome(PAYMENT_REFUNDED, outcome.orderId, written);
+    }).pipe(Effect.withSpan('settlement.payment.refunded'));
 
 /**
  * Start consuming all four halves: a sale's two, and its reversal's two.

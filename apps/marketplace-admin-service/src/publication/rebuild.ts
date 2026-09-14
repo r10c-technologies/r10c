@@ -14,12 +14,14 @@ import {
 } from '@r10c/entifix-ts-business';
 import type { EntifixError } from '@r10c/entifix-ts-core';
 import {
-  ensureOutboxIndexes,
-  makeMongoOutbox,
   makeMongoRepository,
   MongoClientTag,
-  reviveQuarantined,
 } from '@r10c/entifix-ts-mongo-client';
+import {
+  ensureOutboxIndexes,
+  makeMongoOutbox,
+  reviveQuarantined,
+} from '@r10c/entifix-ts-mongo-client/transactions';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

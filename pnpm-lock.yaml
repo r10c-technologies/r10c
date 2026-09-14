@@ -2023,9 +2023,6 @@ importers:
 
   packages/entifix/ts/amqp-client:
     dependencies:
-      '@r10c/entifix-transactions':
-        specifier: workspace:*
-        version: link:../transactions
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../business
@@ -2039,6 +2036,9 @@ importers:
         specifier: 2.0.1
         version: 2.0.1
     devDependencies:
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../transactions
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*
         version: link:../testing-unit
@@ -2106,9 +2106,6 @@ importers:
 
   packages/entifix/ts/mongo-client:
     dependencies:
-      '@r10c/entifix-transactions':
-        specifier: workspace:*
-        version: link:../transactions
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../business
@@ -2122,6 +2119,9 @@ importers:
         specifier: 7.5.0
         version: 7.5.0
     devDependencies:
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../transactions
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*
         version: link:../testing-unit
@@ -2146,9 +2146,6 @@ importers:
 
   packages/entifix/ts/redis-client:
     dependencies:
-      '@r10c/entifix-transactions':
-        specifier: workspace:*
-        version: link:../transactions
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../business
@@ -2162,6 +2159,9 @@ importers:
         specifier: 6.0.0
         version: 6.0.0
     devDependencies:
+      '@r10c/entifix-transactions':
+        specifier: workspace:*
+        version: link:../transactions
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*
         version: link:../testing-unit
@@ -2221,21 +2221,12 @@ importers:
       '@playwright/test':
         specifier: '*'
         version: 1.61.1
-      '@r10c/entifix-ts-amqp-client':
-        specifier: workspace:*
-        version: link:../amqp-client
       '@r10c/entifix-ts-business':
         specifier: workspace:*
         version: link:../business
       '@r10c/entifix-ts-core':
         specifier: workspace:*
         version: link:../core
-      '@r10c/entifix-ts-mongo-client':
-        specifier: workspace:*
-        version: link:../mongo-client
-      '@r10c/entifix-ts-redis-client':
-        specifier: workspace:*
-        version: link:../redis-client
       '@r10c/entifix-ts-testing-unit':
         specifier: workspace:*
         version: link:../testing-unit
@@ -2258,6 +2249,15 @@ importers:
       '@nx/playwright':
         specifier: 23.0.1
         version: 23.0.1(@babel/traverse@7.29.8)(@nx/jest@23.0.1(8447954e8b41787631f25706b759ff14))(@playwright/test@1.61.1)(@swc-node/register@1.11.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(@swc/types@0.1.27)(typescript@6.0.3))(@swc/cli@0.8.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(chokidar@5.0.0))(@swc/core@1.15.43(@swc/helpers@0.5.23))(@zkochan/js-yaml@0.0.7)(eslint@10.6.0(jiti@2.7.0))(nx@23.0.1(@swc-node/register@1.11.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(@swc/types@0.1.27)(typescript@6.0.3))(@swc/core@1.15.43(@swc/helpers@0.5.23)))(verdaccio@6.7.4(typanion@3.14.0))
+      '@r10c/entifix-ts-amqp-client':
+        specifier: workspace:*
+        version: link:../amqp-client
+      '@r10c/entifix-ts-mongo-client':
+        specifier: workspace:*
+        version: link:../mongo-client
+      '@r10c/entifix-ts-redis-client':
+        specifier: workspace:*
+        version: link:../redis-client
       effect:
         specifier: 3.22.1
         version: 3.22.1

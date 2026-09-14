@@ -12,6 +12,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./transactions": {
+      "@r10c/source": "./src/transactions/index.ts",
+      "types": "./dist/transactions/index.d.ts",
+      "import": "./dist/transactions/index.js",
+      "default": "./dist/transactions/index.js"
     }
   },
   "files": [
@@ -44,18 +50,24 @@
     }
   },
   "dependencies": {
-    "@r10c/entifix-transactions": "workspace:*",
     "@r10c/entifix-ts-business": "workspace:*",
     "@r10c/entifix-ts-core": "workspace:*",
     "@swc/helpers": "0.5.23",
     "amqplib": "2.0.1"
   },
   "devDependencies": {
+    "@r10c/entifix-transactions": "workspace:*",
     "@r10c/entifix-ts-testing-unit": "workspace:*",
     "@types/amqplib": "0.10.5",
     "effect": "3.22.1"
   },
   "peerDependencies": {
+    "@r10c/entifix-transactions": "workspace:*",
     "effect": ">=3.22 <4"
+  },
+  "peerDependenciesMeta": {
+    "@r10c/entifix-transactions": {
+      "optional": true
+    }
   }
 }

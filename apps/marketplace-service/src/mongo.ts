@@ -7,11 +7,8 @@ import {
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
 import { EventSourceTag } from '@r10c/entifix-transactions';
-import {
-  AmqpEventBusLayer,
-  AmqpHealthProbeLayer,
-  AmqpLayer,
-} from '@r10c/entifix-ts-amqp-client';
+import { AmqpHealthProbeLayer, AmqpLayer } from '@r10c/entifix-ts-amqp-client';
+import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client/transactions';
 import {
   ConfigurationRepositoryTag,
   TokenServiceTag,

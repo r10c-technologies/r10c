@@ -7,18 +7,18 @@ import {
   PolicyDecisionTag,
 } from '@r10c/business-ts-authz';
 import { EventSourceTag } from '@r10c/entifix-transactions';
-import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client';
+import { AmqpEventBusLayer } from '@r10c/entifix-ts-amqp-client/transactions';
 import { TokenServiceTag } from '@r10c/entifix-ts-business';
 import { makeJoseTokenService } from '@r10c/entifix-ts-jwt-client';
 // `OutboxMaxAttempts` lives in the shared mongo client, not in this app: the
 // outbox relay was lifted out of marketplace-admin-service into
 // `@r10c/entifix-ts-mongo-client` when the payment slice was promoted (#237),
 // and every service that drains an outbox reads the tag from there.
-import { OutboxMaxAttempts } from '@r10c/entifix-ts-mongo-client';
+import { OutboxMaxAttempts } from '@r10c/entifix-ts-mongo-client/transactions';
 import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
-} from '@r10c/entifix-ts-redis-client';
+} from '@r10c/entifix-ts-redis-client/transactions';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,

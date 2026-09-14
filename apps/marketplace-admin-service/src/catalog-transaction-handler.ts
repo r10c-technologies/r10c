@@ -15,11 +15,11 @@ import {
   type EntityConstructor,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
+import { makeMongoRepository } from '@r10c/entifix-ts-mongo-client';
 import {
-  makeMongoRepository,
   OUTBOX_COLLECTION,
   outboxDocument,
-} from '@r10c/entifix-ts-mongo-client';
+} from '@r10c/entifix-ts-mongo-client/transactions';
 import { Effect } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 

@@ -5,7 +5,7 @@ import {
   envelopeEntityName,
   serializeEntity,
 } from '@r10c/entifix-ts-core';
-import { OUTBOX_COLLECTION } from '@r10c/entifix-ts-mongo-client';
+import { OUTBOX_COLLECTION } from '@r10c/entifix-ts-mongo-client/transactions';
 import type { ClientSession, Db } from 'mongodb';
 
 /** Where an order lives. The entity's own key, as every collection name is. */
