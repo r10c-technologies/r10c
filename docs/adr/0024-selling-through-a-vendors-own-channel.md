@@ -186,6 +186,7 @@ touched, and touching any of them would be the actual cost of this feature.
   > domains, so `@r10c/business-ts-sales-vocabulary` now holds the set,
   > `CommissionableChannelTypes` is deleted rather than aliased, and
   > `RelatedChannel.type` is no longer a bare `string`.
+
 - **`sales-management` is entitlement-grantable**, unlike `catalog-reference`. A
   vendor's own selling channels are exactly what an organization is provisioned
   for, so ADR 0022's "first exception to ADR 0007's ceiling" stays the only one.

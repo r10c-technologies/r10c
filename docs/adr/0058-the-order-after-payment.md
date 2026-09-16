@@ -94,7 +94,7 @@ order still claimable?_ — and neither is redundant.
 
 ⚠️ **A sequential run proves nothing here.** Six cancels one after another pass
 under both the broken and the fixed claim. The test is a parallel burst against a
-live fleet, asserting the refund count *and* the movement count.
+live fleet, asserting the refund count _and_ the movement count.
 
 A stranded cancellation therefore leaves the order visibly `cancelling` rather
 than silently wrong, which is the state a sweep or a person can act on.
@@ -272,7 +272,7 @@ the way ADR 0057's fold already joins two messages.
 > completes, the reversal finds no ledger rows, writes nothing and marks itself
 > done — and the later replay of the placement writes a commission that nothing
 > will ever reverse. One document lets the reversal require `folded`, and lets a
-> late placement write the sale *and* its mirror in one transaction. That is
+> late placement write the sale _and_ its mirror in one transaction. That is
 > ADR 0057 §1's "arrival order is not assumed in either direction" applied across
 > both folds rather than only within one.
 

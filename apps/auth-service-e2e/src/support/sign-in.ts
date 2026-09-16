@@ -1,4 +1,5 @@
 import type { ServiceE2eContext } from '@entifix/testing-e2e/service';
+import type { AxiosResponse } from 'axios';
 
 /**
  * Drive a full sign-in the way a browser would, minus the browser.
@@ -13,11 +14,14 @@ import type { ServiceE2eContext } from '@entifix/testing-e2e/service';
  * a raw email is not a valid code — which is why the live pass is a browser
  * journey and not this helper.
  */
+// Annotated rather than inferred: the inferred type names axios's response
+// through the installed @entifix/testing-e2e's own copy of axios, which the
+// declaration emit cannot name portably.
 export const signIn = async (
   service: ServiceE2eContext,
   email: string,
   device?: Record<string, unknown>,
-) => {
+): Promise<AxiosResponse> => {
   const start = await service.client.post('/api/auth/oidc/start', {});
   const state = new URL(start.data.authorizationUrl as string).searchParams.get(
     'state',

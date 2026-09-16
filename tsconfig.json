@@ -10,24 +10,6 @@
       "path": "./apps/marketplace-app"
     },
     {
-      "path": "./packages/entifix/ts/core"
-    },
-    {
-      "path": "./packages/entifix/ts/tooling"
-    },
-    {
-      "path": "./packages/entifix/ts/posthog-client"
-    },
-    {
-      "path": "./packages/entifix/ts/business"
-    },
-    {
-      "path": "./packages/entifix/ts/transactions"
-    },
-    {
-      "path": "./packages/entifix/ts/jwt-client"
-    },
-    {
       "path": "./packages/business/ts/common"
     },
     {
@@ -46,28 +28,10 @@
       "path": "./packages/utils/ts/type"
     },
     {
-      "path": "./packages/entifix/react/controls"
-    },
-    {
       "path": "./packages/shells/next/marketplace-admin"
     },
     {
       "path": "./packages/shells/next/marketplace"
-    },
-    {
-      "path": "./packages/entifix/ts/rest-client"
-    },
-    {
-      "path": "./packages/entifix/ts/mongo-client"
-    },
-    {
-      "path": "./packages/entifix/ts/redis-client"
-    },
-    {
-      "path": "./packages/entifix/ts/amqp-client"
-    },
-    {
-      "path": "./packages/entifix/react/integration"
     },
     {
       "path": "./apps/marketplace-admin-service-e2e"
@@ -83,18 +47,6 @@
     },
     {
       "path": "./apps/auth-service"
-    },
-    {
-      "path": "./packages/entifix/ts/testing-unit"
-    },
-    {
-      "path": "./packages/entifix/ts/testing-e2e"
-    },
-    {
-      "path": "./packages/entifix/ts/i18n"
-    },
-    {
-      "path": "./packages/entifix/ts/sql-client"
     },
     {
       "path": "./packages/business/ts/configuration"
@@ -122,9 +74,6 @@
     },
     {
       "path": "./packages/business/ts/stock-management"
-    },
-    {
-      "path": "./packages/entifix/ts/zitadel-client"
     },
     {
       "path": "./tools/slices"
@@ -214,34 +163,16 @@
       "path": "./packages/shells/next/settlement"
     },
     {
-      "path": "./packages/entifix/effect/service-shell"
-    },
-    {
-      "path": "./packages/entifix/next/shell"
-    },
-    {
-      "path": "./packages/entifix/next/i18n"
-    },
-    {
       "path": "./packages/business/ts/authn"
     },
     {
-      "path": "./tools/tiers"
-    },
-    {
       "path": "./packages/business/ts/authz-grants"
-    },
-    {
-      "path": "./packages/entifix/ts/authz"
     },
     {
       "path": "./packages/shells/next/i18n-catalog"
     },
     {
       "path": "./packages/business/ts/i18n"
-    },
-    {
-      "path": "./packages/entifix/ts/testing-auth"
     }
   ]
 }

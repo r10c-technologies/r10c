@@ -13,7 +13,7 @@ built on almost none of it. Backend/domain architecture is in
 
 The agnostic UI kit and the conventions for extending it. Two homes:
 
-- **`@entifix/react-controls`** (`packages/entifix/react/controls`) — every
+- **`@entifix/react-controls`** (installed; `packages/react/controls` in the entifix repository) — every
   **entity-agnostic** component: `ui/atoms`, `ui/molecules`, `ui/layout`,
   `ui/organisms`. Knows nothing about any domain.
 - **`implementation/<domain>/react`** — **entity-tight** components. Empty today:
@@ -71,7 +71,7 @@ Three details worth not rediscovering:
   rendered fields, not from the draft, so a value the create transaction assigned
   (`ProductBrand.code`) survives an update that never showed it.
 
-Styling foundation lives in **`@entifix/style`** (`packages/entifix/style`,
+Styling foundation lives in **`@entifix/style`** (installed from the registry,
 CSS-only): `tokens.css` declares the Utopia fluid scales, the layout tokens, and
 the semantic colour **contract**; `presets/*` and app-local `themes.css` override
 the contract values per palette. See [[design-system-theme]] in memory and
@@ -476,7 +476,7 @@ the only thing that compiles them, which is why it runs in CI.
    package barrel `src/index.ts` (keep it alphabetical within its group).
 4. **No copy in the component.** Every user-facing string comes from `useT()`
    and lives in the `controls` namespace
-   (`packages/entifix/ts/i18n/src/resources/{es,en}/controls.ts`);
+   (`packages/react/controls/src/i18n/catalog/{es,en}.ts` in the entifix repository);
    `react/jsx-no-literals` fails the build otherwise. Dates and numbers go
    through `useFormatters()`, never a bare `toLocaleString()`. See
    [I18N.md](I18N.md).

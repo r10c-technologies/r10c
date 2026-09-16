@@ -6,7 +6,7 @@ import { defineEntifixE2eConfig } from '@entifix/testing-e2e/playwright';
  *
  * Everything profile-dependent — which specs are collected, which browsers run,
  * which base URL is used — lives in the shared preset. See
- * `packages/entifix/ts/testing-e2e/README.md`.
+ * the `@entifix/testing-e2e` README.
  */
 export default defineEntifixE2eConfig({
   configFile: __filename,

@@ -126,7 +126,7 @@ Product (business, @entity + EntityLink brand/category)
 ```
 
 Foreign-key vs embedded relations are handled transparently by the shared
-(de)serializer — see `packages/entifix/ts/core/src/entity-definition`.
+(de)serializer — see `packages/ts/core/src/entity-definition` in the entifix repository.
 
 ## Backends: Effect-native services
 
@@ -934,7 +934,7 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   (see [Authorization](#authorization-role-aspects--permissions)).
 - `business-ts-common` — shared domain primitives.
 
-**Entity framework** (`packages/entifix/*`):
+**Entity framework** (`@entifix/*`, installed from the registry — source in [r10c-technologies/entifix](https://github.com/r10c-technologies/entifix)):
 
 - `@entifix/core` — decorators, metadata, links, types, (de)serializer,
   configuration store, and the **RSQL query codec** (`src/rsql/`).

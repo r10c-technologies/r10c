@@ -27,14 +27,14 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
     "@r10c/business-ts-payment-management": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/jwt": "workspace:*",
-    "@entifix/testing-e2e": "workspace:*",
+    "@entifix/business": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/testing-e2e": "catalog:",
     "@r10c/payment-service": "workspace:*",
-    "@entifix/service-shell": "workspace:*"
+    "@entifix/service-shell": "catalog:"
   },
   "dependencies": {
-    "@entifix/authz": "workspace:*",
+    "@entifix/authz": "catalog:",
     "@r10c/business-ts-authz-grants": "workspace:*"
   }
 }

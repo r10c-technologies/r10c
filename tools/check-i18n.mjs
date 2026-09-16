@@ -32,8 +32,10 @@ const jiti = createJiti(import.meta.url);
  * the list below is also the list of owners.
  */
 const NAMESPACE_FILES = {
-  controls: 'packages/entifix/react/controls/src/i18n/catalog',
-  shell: 'packages/entifix/next/shell/src/lib/i18n/catalog',
+  // The framework's two, read from the release installed here — the copy that
+  // actually renders — rather than from a source tree r10c no longer has.
+  controls: 'node_modules/@entifix/react-controls/dist/i18n/catalog',
+  shell: 'node_modules/@entifix/next-shell/dist/lib/i18n/catalog',
   entity: 'packages/business/ts/i18n/src',
   errors: 'packages/business/ts/i18n/src',
   app: 'packages/business/ts/i18n/src',
@@ -43,11 +45,11 @@ const resources = {};
 for (const locale of ['es', 'en']) {
   resources[locale] = {};
   for (const [namespace, dir] of Object.entries(NAMESPACE_FILES)) {
-    // The framework owners keep one file per locale holding one namespace; the
-    // r10c package keeps one directory per locale holding three.
+    // The framework owners keep one built file per locale holding one
+    // namespace; the r10c package keeps one directory per locale holding three.
     const file = dir.startsWith('packages/business/')
       ? `../${dir}/${locale}/${namespace}.ts`
-      : `../${dir}/${locale}.ts`;
+      : `../${dir}/${locale}.js`;
     resources[locale][namespace] = (await jiti.import(file))[namespace];
   }
 }

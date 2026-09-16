@@ -13,22 +13,7 @@
       "path": "../../packages/business/ts/authz-grants"
     },
     {
-      "path": "../../packages/entifix/ts/authz"
-    },
-    {
       "path": "../stock-service"
-    },
-    {
-      "path": "../../packages/entifix/effect/service-shell"
-    },
-    {
-      "path": "../../packages/entifix/ts/testing-e2e"
-    },
-    {
-      "path": "../../packages/entifix/ts/jwt-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/business"
     },
     {
       "path": "../../packages/business/ts/stock-management"

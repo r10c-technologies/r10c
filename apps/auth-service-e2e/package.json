@@ -26,17 +26,17 @@
   "devDependencies": {
     "@r10c/auth-service": "workspace:*",
     "@r10c/business-ts-authn": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/jwt": "workspace:*",
-    "@entifix/mongo": "workspace:*",
-    "@entifix/redis": "workspace:*",
-    "@entifix/testing-e2e": "workspace:*",
-    "@entifix/zitadel": "workspace:*",
-    "@entifix/testing-unit": "workspace:*",
-    "@entifix/service-shell": "workspace:*"
+    "@entifix/business": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/redis": "catalog:",
+    "@entifix/testing-e2e": "catalog:",
+    "@entifix/zitadel": "catalog:",
+    "@entifix/testing-unit": "catalog:",
+    "@entifix/service-shell": "catalog:"
   },
   "dependencies": {
-    "@entifix/authz": "workspace:*",
+    "@entifix/authz": "catalog:",
     "@r10c/business-ts-authz-grants": "workspace:*"
   }
 }

@@ -66,40 +66,13 @@
       "path": "../../packages/shells/next/marketplace-admin"
     },
     {
-      "path": "../../packages/entifix/next/i18n"
-    },
-    {
-      "path": "../../packages/entifix/next/shell"
-    },
-    {
       "path": "../../packages/shells/next/auth"
     },
     {
       "path": "../../packages/shells/next/i18n-catalog"
     },
     {
-      "path": "../../packages/entifix/ts/rest-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/jwt-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/i18n"
-    },
-    {
-      "path": "../../packages/entifix/ts/core"
-    },
-    {
-      "path": "../../packages/entifix/react/integration"
-    },
-    {
-      "path": "../../packages/entifix/react/controls"
-    },
-    {
       "path": "../../packages/business/ts/authz-grants"
-    },
-    {
-      "path": "../../packages/entifix/ts/authz"
     },
     {
       "path": "../../packages/business/ts/authn"

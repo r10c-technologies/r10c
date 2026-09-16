@@ -154,15 +154,6 @@ jobs:
         if: always()
         run: pnpm nx test @r10c/slices
 
-      # entifix's composition contract: each package's tier, and what it is
-      # allowed to drag into an adopter's tree. Unconditional for the same
-      # reason as the three above — a tier claim is about the whole framework,
-      # and the PR that breaks it is usually one adding a dependency to a
-      # single package, which would never make `tools/tiers` affected.
-      - name: Check the entifix tier register
-        if: always()
-        run: pnpm nx test @r10c/tiers
-
       # The repository's own working conventions. Attribution is the first one,
       # and it is here because prose could not hold it: it was written in three
       # places and skipped anyway, in five pull requests and six commits.
@@ -256,7 +247,7 @@ jobs:
       # The hermetic profile: the app and the service under test are real, and
       # everything they talk to is a fake wired in at the transport boundary. No
       # minikube, no Mongo, no config-service — none of which exist on a runner.
-      # See packages/entifix/ts/testing-e2e/README.md.
+      # See the @entifix/testing-e2e README.
       E2E_PROFILE: mock
     steps:
       - uses: actions/checkout@v4

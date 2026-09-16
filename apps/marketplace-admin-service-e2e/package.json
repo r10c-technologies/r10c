@@ -26,19 +26,19 @@
   "devDependencies": {
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
-    "@entifix/amqp": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/jwt": "workspace:*",
-    "@entifix/mongo": "workspace:*",
-    "@entifix/redis": "workspace:*",
-    "@entifix/testing-e2e": "workspace:*",
-    "@entifix/tooling": "workspace:*",
+    "@entifix/amqp": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/redis": "catalog:",
+    "@entifix/testing-e2e": "catalog:",
+    "@entifix/tooling": "catalog:",
     "@r10c/marketplace-admin-service": "workspace:*",
-    "@entifix/service-shell": "workspace:*"
+    "@entifix/service-shell": "catalog:"
   },
   "dependencies": {
-    "@entifix/authz": "workspace:*",
+    "@entifix/authz": "catalog:",
     "@r10c/business-ts-authz-grants": "workspace:*",
-    "@entifix/transactions": "workspace:*"
+    "@entifix/transactions": "catalog:"
   }
 }

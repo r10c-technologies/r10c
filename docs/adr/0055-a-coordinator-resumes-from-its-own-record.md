@@ -34,7 +34,7 @@ status, body and `organizationId`. On a refusal it writes `COMPENSATING`, then
 
 That is not a report on a flow. It is the flow's state, written at every point
 where it changes, in the store the `saga` slice owns. What it lacked was one
-member — the caller's `inputs` — without which a *different process* reading it
+member — the caller's `inputs` — without which a _different process_ reading it
 knows which step is next and has nothing to dispatch it with, because a fan-out
 step's cardinality is its input's length.
 
@@ -47,7 +47,7 @@ turned up that neither record anticipated:
    Mongo, and deliberately counts `COMPENSATING` as stuck — the state that
    leaves holds in place — and nothing ever looked. The instances were there,
    correct, and unobserved. ⚠️ The recovery sweep in `saga/tracking.ts` is a
-   *different* one: it walks `TransactionStore`, a port with the same method
+   _different_ one: it walks `TransactionStore`, a port with the same method
    name and single-step transaction records behind it.
 
 2. **A participant `5xx` aborted the walk without compensating.** The HTTP
@@ -74,7 +74,7 @@ message is written into the same transaction as the state and relayed
 afterwards.
 
 A saga step is not that shape. The "message" is an HTTP call **whose result is
-needed inline** — a command's response *is* the step's outcome, which ADR 0052
+needed inline** — a command's response _is_ the step's outcome, which ADR 0052
 already noticed when it wrote that the HTTP relay, unlike the AMQP one, "writes
 back". And the state change the entry would be written beside is
 `beginStep`, which is already persisted before the dispatch. An entry per call
@@ -103,12 +103,12 @@ A resume pointer written beside the outcomes would be a second record of the
 same fact again. The outcomes say what happened and `beginStep`-before-dispatch
 means `stepIndex` says what was attempted, so four exhaustive cases fall out:
 
-| The instance says                          | The coordinator died           | So                                        |
-| ------------------------------------------ | ------------------------------ | ----------------------------------------- |
-| no outcome for the step at `stepIndex`     | during the dispatch            | re-dispatch it                            |
-| a successful outcome for it                | after `recordOutcome`          | start at the **next** step                |
-| an outcome carrying `error`                | deciding what to do about it   | re-enter that decision                    |
-| state `COMPENSATING`                       | mid-unwind                     | continue, skipping `compensated` steps    |
+| The instance says                      | The coordinator died         | So                                     |
+| -------------------------------------- | ---------------------------- | -------------------------------------- |
+| no outcome for the step at `stepIndex` | during the dispatch          | re-dispatch it                         |
+| a successful outcome for it            | after `recordOutcome`        | start at the **next** step             |
+| an outcome carrying `error`            | deciding what to do about it | re-enter that decision                 |
+| state `COMPENSATING`                   | mid-unwind                   | continue, skipping `compensated` steps |
 
 ⚠️ **The second row is the one that would oversell.** Re-dispatching at
 `stepIndex` after the outcome was recorded takes a second set of holds against
@@ -129,7 +129,7 @@ describing a flow that **was** reversed, so counting that as a refusal would
 strand exactly the sagas that were cleaned up correctly.
 
 This is the same reasoning ADR 0054 recorded from the other side, where
-`POST /api/reservation/:id/conversion` is built deliberately *total* so that an
+`POST /api/reservation/:id/conversion` is built deliberately _total_ so that an
 at-least-once compensation cannot error on redelivery. Here it is the caller's
 half of that contract.
 
@@ -216,11 +216,11 @@ lets a caller confirm that a given checkout happened.
 ## What this does not build
 
 - **The command outbox and its HTTP relay** — struck, not deferred. If a future
-  flow has a step whose result is *not* needed inline, that step is a message and
+  flow has a step whose result is _not_ needed inline, that step is a message and
   belongs on the bus the fleet already has, which is ADR 0039's own asymmetry
   rather than a new mechanism.
 - **A resumed flow does not answer anybody.** The buyer's HTTP response was lost
-  with the coordinator that died. What the sweep restores is the *system's*
+  with the coordinator that died. What the sweep restores is the _system's_
   consistency — holds released or converted, the order written or deleted — and
   the buyer learns the outcome from the order, not from the saga.
 - **Backoff between resume attempts.** The sweep's interval is the backoff, and

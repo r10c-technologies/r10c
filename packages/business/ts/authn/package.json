@@ -45,9 +45,9 @@
     }
   },
   "dependencies": {
-    "@entifix/authz": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/core": "workspace:*",
+    "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
     "@swc/helpers": "0.5.23",
     "effect": "3.22.1"
   }

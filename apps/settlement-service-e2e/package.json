@@ -27,15 +27,15 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
     "@r10c/business-ts-settlement-management": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/core": "workspace:*",
-    "@entifix/jwt": "workspace:*",
-    "@entifix/testing-e2e": "workspace:*",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/testing-e2e": "catalog:",
     "@r10c/settlement-service": "workspace:*",
-    "@entifix/service-shell": "workspace:*"
+    "@entifix/service-shell": "catalog:"
   },
   "dependencies": {
-    "@entifix/authz": "workspace:*",
+    "@entifix/authz": "catalog:",
     "@r10c/business-ts-authz-grants": "workspace:*"
   }
 }

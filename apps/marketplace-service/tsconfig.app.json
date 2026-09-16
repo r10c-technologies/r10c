@@ -22,30 +22,6 @@
   ],
   "references": [
     {
-      "path": "../../packages/entifix/effect/service-shell/tsconfig.lib.json"
-    },
-    {
-      "path": "../../packages/entifix/ts/tooling/tsconfig.lib.json"
-    },
-    {
-      "path": "../../packages/entifix/ts/mongo-client/tsconfig.lib.json"
-    },
-    {
-      "path": "../../packages/entifix/ts/jwt-client/tsconfig.lib.json"
-    },
-    {
-      "path": "../../packages/entifix/ts/core/tsconfig.lib.json"
-    },
-    {
-      "path": "../../packages/entifix/ts/business/tsconfig.lib.json"
-    },
-    {
-      "path": "../../packages/entifix/ts/amqp-client/tsconfig.lib.json"
-    },
-    {
-      "path": "../../packages/entifix/ts/transactions/tsconfig.lib.json"
-    },
-    {
       "path": "../../packages/business/ts/marketplace-catalog/tsconfig.lib.json"
     },
     {
@@ -56,9 +32,6 @@
     },
     {
       "path": "../../packages/business/ts/authz-grants/tsconfig.lib.json"
-    },
-    {
-      "path": "../../packages/entifix/ts/authz/tsconfig.lib.json"
     },
     {
       "path": "../../packages/business/ts/authn/tsconfig.lib.json"

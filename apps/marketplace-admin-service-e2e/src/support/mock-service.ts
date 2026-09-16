@@ -150,8 +150,16 @@ const MockAppLayer = (() => {
  */
 const observability = makeInMemoryObservabilityLayer(SERVICE_NAME);
 
-/** Log records the service emitted during the in-process mock run. */
-export const capturedLogRecords = observability.logRecords;
+/**
+ * Log records the service emitted during the in-process mock run.
+ *
+ * Annotated for the same reason `capturedSpans` is: the inferred type names
+ * `LogRecord` through the service shell's own copy of `@entifix/tooling`,
+ * which the declaration emit cannot name portably once that copy is installed
+ * rather than a workspace link.
+ */
+export const capturedLogRecords: InMemoryObservability['logRecords'] =
+  observability.logRecords;
 
 /**
  * Spans the service exported during the in-process mock run.

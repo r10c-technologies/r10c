@@ -8,9 +8,11 @@
 @import '@entifix/style/presets/sunset.css';
 @import '@entifix/style/presets/midnight.css';
 
-/* Class detection for workspace UI packages consumed as source (@r10c/source). */
-@source '../../../../packages/entifix/react/controls/src';
-@source '../../../../packages/entifix/next/shell/src';
+/* Class detection for workspace UI packages consumed as source (@r10c/source),
+   and for the entifix UI packages installed from the registry, whose classes
+   exist only in their built `dist`. */
+@source '../../node_modules/@entifix/react-controls/dist';
+@source '../../node_modules/@entifix/next-shell/dist';
 @source '../../../../packages/shells/next/marketplace-admin/src';
 /* back-office-app mounts four shells, and Tailwind only emits utilities it can
    SEE. Without these two, a class used exclusively in the auth or

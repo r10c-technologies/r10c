@@ -10,37 +10,7 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../packages/entifix/ts/core"
-    },
-    {
       "path": "../../packages/business/ts/authz-grants"
-    },
-    {
-      "path": "../../packages/entifix/ts/authz"
-    },
-    {
-      "path": "../../packages/entifix/effect/service-shell"
-    },
-    {
-      "path": "../../packages/entifix/ts/testing-unit"
-    },
-    {
-      "path": "../../packages/entifix/ts/zitadel-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/testing-e2e"
-    },
-    {
-      "path": "../../packages/entifix/ts/redis-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/mongo-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/jwt-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/business"
     },
     {
       "path": "../../packages/business/ts/authn"

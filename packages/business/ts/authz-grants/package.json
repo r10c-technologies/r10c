@@ -43,6 +43,6 @@
     }
   },
   "dependencies": {
-    "@entifix/authz": "workspace:*"
+    "@entifix/authz": "catalog:"
   }
 }

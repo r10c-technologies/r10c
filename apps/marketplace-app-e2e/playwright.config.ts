@@ -15,7 +15,7 @@ const PRELOAD = join(__dirname, 'src/support/server-mocks.mjs');
  *
  * Everything profile-dependent — which specs are collected, which browsers run,
  * which base URL is used — lives in the shared preset. See
- * `packages/entifix/ts/testing-e2e/README.md`.
+ * the `@entifix/testing-e2e` README.
  *
  * ⚠️ The one thing this suite cannot take from the preset is how the server is
  * started. The storefront reads marketplace-service from **server components**,

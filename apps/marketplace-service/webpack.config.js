@@ -10,14 +10,7 @@ module.exports = {
     }),
   },
   resolve: {
-    conditionNames: [
-      '@r10c/source',
-      '@entifix/source',
-      'import',
-      'node',
-      'require',
-      'default',
-    ],
+    conditionNames: ['@r10c/source', 'import', 'node', 'require', 'default'],
   },
   plugins: [
     new NxAppWebpackPlugin({

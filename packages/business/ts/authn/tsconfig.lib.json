@@ -11,17 +11,7 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../../../entifix/ts/core/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/business/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
-    }
-  ],
+  "references": [],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts",

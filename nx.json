@@ -102,7 +102,7 @@
     "e2e": {
       "options": {
         "env": {
-          "NODE_OPTIONS": "--conditions=@r10c/source --conditions=@entifix/source"
+          "NODE_OPTIONS": "--conditions=@r10c/source"
         }
       }
     }

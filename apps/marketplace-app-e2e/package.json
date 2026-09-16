@@ -27,6 +27,6 @@
   "devDependencies": {
     "@r10c/business-ts-catalog-reference": "workspace:*",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
-    "@entifix/testing-e2e": "workspace:*"
+    "@entifix/testing-e2e": "catalog:"
   }
 }

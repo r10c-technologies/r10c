@@ -28,16 +28,13 @@
       "path": "../../packages/business/ts/stock-management"
     },
     {
-      "path": "../../packages/business/ts/catalog-reference"
+      "path": "../../packages/business/ts/settlement-management"
     },
     {
       "path": "../../packages/business/ts/sales-management"
     },
     {
-      "path": "../../packages/business/ts/settlement-management"
-    },
-    {
-      "path": "../../packages/entifix/ts/testing-e2e"
+      "path": "../../packages/business/ts/catalog-reference"
     },
     {
       "path": "../../packages/business/ts/product-configuration-management"

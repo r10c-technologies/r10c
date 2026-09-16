@@ -12,8 +12,8 @@ apps/                               ← runtime hosts (Next.js frontends / Effec
 packages/shells/next/*              ← per-domain shells: a domain mounted onto the framework's Next shell
 packages/implementation/<domain>/*  ← a domain wired to a delivery mechanism (currently unpopulated)
 packages/business/ts/<domain>       ← pure domain entities & use-cases (no framework)
-packages/entifix/{ts,react,effect,next}/*  ← the framework: entity system, adapters, UI and base shells (@entifix/*)
 packages/utils/ts/*                 ← generic TS helpers
+@entifix/*  (installed)             ← the framework: entity system, adapters, UI and base shells
 ```
 
 The boundary is enforced by six tag dimensions declared in every project's
@@ -32,8 +32,8 @@ The boundary is enforced by six tag dimensions declared in every project's
   genuinely specific to one domain and cannot be derived.
 
 - **`shell:*`** — internal ordering inside the shell layer: `base` ‹ `domain`. `shell:base` is the reusable framework shell (`@entifix/service-shell`, `@entifix/next-shell`, `@entifix/next-i18n`); a `shell:domain` package mounts a domain onto it. Without this dimension a per-domain API module could not reach `requirePermission`/`makeServerLayer` at all.
-- **`tier:*`** — entifix's own composition contract, carried only by the packages it publishes and checked by `pnpm nx test @r10c/tiers` rather than by the boundary rule. Six tiers — `0` standalone (`style`, `tooling`, `i18n`) ‹ `1` entity (`core`, `business`) ‹ `2` adapters (the datastore, REST, JWT, Zitadel and PostHog clients, plus `transactions`) ‹ `3` ui (`react-controls`, `react-integration`) ‹ `4` app framework (the authorization vocabulary and the two base shells) ‹ `5` testing — and a package may depend on its own tier or below.
-  ⚠️ **The rule that matters is not the direction.** A hard dependency on a capability the tier is meant to be adoptable without fails the build even though it points downward: a table must not arrive with i18next attached, a Mongo repository must not arrive with the saga engine, and Playwright session helpers must not arrive with three database drivers. Those edges belong in `peerDependencies` with `peerDependenciesMeta.optional`, behind a subpath export — package-level dependencies are not per-subpath, so the optional peer is the part that does the work. The register is `tools/tiers/src/registry.ts` and
+- **`tier:*`** — entifix's own composition contract, carried only by the packages it publishes and checked in the entifix repository by `pnpm nx test @entifix/tiers` rather than by the boundary rule here. Six tiers — `0` standalone (`style`, `tooling`, `i18n`) ‹ `1` entity (`core`, `business`) ‹ `2` adapters (the datastore, REST, JWT, Zitadel and PostHog clients, plus `transactions`) ‹ `3` ui (`react-controls`, `react-integration`) ‹ `4` app framework (the authorization vocabulary and the two base shells) ‹ `5` testing — and a package may depend on its own tier or below.
+  ⚠️ **The rule that matters is not the direction.** A hard dependency on a capability the tier is meant to be adoptable without fails the build even though it points downward: a table must not arrive with i18next attached, a Mongo repository must not arrive with the saga engine, and Playwright session helpers must not arrive with three database drivers. Those edges belong in `peerDependencies` with `peerDependenciesMeta.optional`, behind a subpath export — package-level dependencies are not per-subpath, so the optional peer is the part that does the work. The register is entifix's `tools/tiers/src/registry.ts` and
   [ADR 0059](../adr/0059-entifix-leaves-the-repo.md) is the reasoning.
 - **`host:*`** + **`runtime:datastore`** — `host:next` (a Next app) may **not** depend on a `runtime:datastore` package (`@entifix/mongo`, `-sql-client`, `-redis-client`, `-amqp-client`). A Next backend is composition — cookies, proxying, RSC aggregation — never data access; only a `host:effect` service binds a repository to a datastore.
 

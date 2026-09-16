@@ -43,10 +43,10 @@
   },
   "dependencies": {
     "@swc/helpers": "0.5.23",
-    "@entifix/core": "workspace:*",
-    "@entifix/authz": "workspace:*"
+    "@entifix/core": "catalog:",
+    "@entifix/authz": "catalog:"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "workspace:*"
+    "@entifix/testing-unit": "catalog:"
   }
 }
