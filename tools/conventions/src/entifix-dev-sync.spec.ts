@@ -23,9 +23,16 @@ const guard = (await import(
   join(import.meta.dirname, '..', 'entifix-dev-sync.mjs')
 )) as {
   syncedEntifixPackages: (root: string) => SyncedPackage[];
+  syncedEntifixEntries: (root: string) => string[];
+  restoreRelease: (root: string, install: (root: string) => void) => number;
   formatSyncedFindings: (packages: SyncedPackage[]) => string;
 };
-const { formatSyncedFindings, syncedEntifixPackages } = guard;
+const {
+  formatSyncedFindings,
+  restoreRelease,
+  syncedEntifixEntries,
+  syncedEntifixPackages,
+} = guard;
 
 let root: string;
 
@@ -90,6 +97,40 @@ describe('syncedEntifixPackages', () => {
   });
 });
 
+describe('restoreRelease', () => {
+  it('deletes only entries whose own package is synced, then installs once', () => {
+    copy('@entifix+core@0.1.1', 'core', synced('core'));
+    copy('@entifix+core@0.1.1_effect@3.22.1', 'core', synced('core'));
+    // A release entry that links the synced core beside its own package.
+    copy('@entifix+amqp@0.1.1', 'amqp', {
+      name: '@entifix/amqp',
+      version: '0.1.1',
+    });
+    copy('@entifix+amqp@0.1.1', 'core', synced('core'));
+    const store = join(root, 'node_modules/.pnpm');
+
+    expect(syncedEntifixEntries(root)).toEqual([
+      join(store, '@entifix+core@0.1.1'),
+      join(store, '@entifix+core@0.1.1_effect@3.22.1'),
+    ]);
+
+    const installs: string[] = [];
+    expect(restoreRelease(root, dir => installs.push(dir))).toBe(2);
+    expect(installs).toEqual([root]);
+    expect(syncedEntifixEntries(root)).toEqual([]);
+    expect(syncedEntifixPackages(root)).toEqual([
+      { name: '@entifix/core', version: '0.1.1-dev.1', source: 'abc1234' },
+    ]);
+  });
+
+  it('installs nothing when nothing is synced', () => {
+    const installs: string[] = [];
+    expect(restoreRelease(root, dir => installs.push(dir))).toBe(0);
+    expect(syncedEntifixEntries(root)).toEqual([]);
+    expect(installs).toEqual([]);
+  });
+});
+
 describe('formatSyncedFindings', () => {
   it('names the source, every package and both ways out', () => {
     const message = formatSyncedFindings([
@@ -98,7 +139,7 @@ describe('formatSyncedFindings', () => {
 
     expect(message).toContain('synced from abc1234');
     expect(message).toContain('@entifix/core@0.1.1-dev.1');
-    expect(message).toContain('pnpm install --force');
+    expect(message).toContain('entifix-dev-sync.mjs --restore');
     expect(message).toContain('ENTIFIX_DEV_SYNC_OK=1');
   });
 });

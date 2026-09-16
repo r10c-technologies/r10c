@@ -153,14 +153,20 @@ the loop: from an entifix checkout beside this one,
 ENTIFIX_CONSUMERS=$PWD/../r10c pnpm nx run @entifix/source:dev-sync
 ```
 
-builds every entifix package, then rebuilds each one you save and copies its
-`dist` over the release installed here, under `node_modules/.pnpm`. Nothing in
-this repository's manifests or lockfile changes. Each copy's manifest version
-becomes `<release>-dev.<timestamp>`, because webpack rebuilds a package under
-`node_modules` only when its version moves, and carries an `entifixDevSync`
-marker naming the entifix commit.
+builds every entifix package, then rebuilds each one you save and copies what it
+publishes over the release installed here, under `node_modules/.pnpm`, file by
+file. A running service rebuilds, and the Next dev server serves the change,
+about five seconds after the save — nothing to restart. Nothing in this
+repository's manifests or lockfile changes. Each copy's manifest version becomes
+`<release>-dev.<timestamp>` and carries an `entifixDevSync` marker naming the
+entifix commit.
 
-- **Put the release back** with `pnpm install --force`.
+- **Put the release back** with
+  `node tools/conventions/entifix-dev-sync.mjs --restore` (or entifix's
+  `dev-sync-reset`). ⚠️ Not `pnpm install --force`: with manifests and lockfile
+  unchanged, pnpm 11's optimistic repeat install answers "Already up to date" and
+  leaves every synced copy in place. The restore deletes the synced entries and
+  reinstalls without that shortcut, in under two seconds.
 - **A commit is refused while any marker is present** —
   `tools/conventions/entifix-dev-sync.mjs` in `.husky/pre-commit`. CI installs
   the pinned release, so code that works only against the synced build fails
