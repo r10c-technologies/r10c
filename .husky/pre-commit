@@ -12,6 +12,6 @@ node tools/sync-docs.mjs --check
 
 # A commit built on an entifix `dev-sync` copy passes here and fails in CI, which
 # installs the pinned release. ENTIFIX_DEV_SYNC_OK=1 lets one through on purpose.
-node tools/conventions/entifix-dev-sync.mjs
+node tools/entifix/src/guard.mjs
 
 pnpm nx affected --target=lint,build --base=origin/main --head=HEAD

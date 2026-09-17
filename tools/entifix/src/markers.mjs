@@ -1,31 +1,25 @@
-#!/usr/bin/env node
 /**
- * Refuses a commit made while `node_modules` carries an unreleased entifix.
+ * What a consumer's `node_modules` holds of entifix: the release its lockfile
+ * pins, or copies synced from a local entifix checkout.
  *
- * entifix's `dev-sync` copies a local build over the release this repository
- * installs, so a change can be tried here the moment it is saved in entifix.
- * That copy lives only in `node_modules`: CI installs the version the catalog in
- * `pnpm-workspace.yaml` pins. A commit that works locally because of synced code
- * is therefore a commit that fails in CI, or worse passes there against a
- * release that does not have the behaviour it was written for.
+ * entifix's `dev-sync` copies a local build over the installed release, file by
+ * file, under `node_modules/.pnpm`. Every copy's manifest carries an
+ * `entifixDevSync` marker and a `<release>-dev.<timestamp>` version, both written
+ * by the sync. Everything in this kit — the commit guard, the status report, the
+ * cache fingerprint and the restore — reads those markers through this one
+ * module, so they cannot disagree about what "synced" means.
  *
- * Every synced copy carries an `entifixDevSync` marker in its manifest, written
- * by the sync. This reads the markers, and with `--restore` puts the release
- * back.
- *
- * `ENTIFIX_DEV_SYNC_OK=1` lets a commit through deliberately — a branch that is
- * waiting on an entifix release it already knows it needs. The escape is an
- * environment variable rather than `--no-verify` so the rest of the hook still
- * runs.
+ * Plain `.mjs` with no dependency and no import from the consumer, so a hook,
+ * an Nx runtime input and a person can all run it without a build, and the kit
+ * can move into entifix unchanged.
  */
-import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 /**
- * `{ name, version, entifixDevSync }` for every synced copy under a checkout's
- * virtual store, sorted and de-duplicated by name.
+ * `{ name, version, source }` for every synced copy under a checkout's virtual
+ * store, sorted and de-duplicated by name.
  *
  * pnpm keeps one directory per resolved peer set, so one package can have
  * several copies; the report names the package once.
@@ -101,36 +95,45 @@ export function restoreRelease(root, install) {
   return entries.length;
 }
 
+/**
+ * A cache-key fragment for the task hasher: empty while the release is
+ * installed, a digest of every synced `name@version` otherwise.
+ *
+ * Nx keys an installed package on the version its lockfile resolves, and a
+ * synced copy leaves the lockfile untouched — so without this, a build against a
+ * local entifix and a build against the release share one cache entry, and
+ * whichever ran first is served to the other. Empty on the release keeps every
+ * hash exactly what it was before this input existed; each sync writes a new dev
+ * version, so each sync is a miss; and a restore brings the old hits back.
+ */
+export function fingerprint(packages) {
+  if (packages.length === 0) return '';
+  return createHash('sha256')
+    .update(packages.map(pkg => `${pkg.name}@${pkg.version}`).join('\n'))
+    .digest('hex')
+    .slice(0, 16);
+}
+
+export function formatStatus(packages) {
+  if (packages.length === 0) {
+    return 'entifix: the release — every @entifix/* is what the lockfile pins.';
+  }
+  return [
+    `entifix: ${packages.length} package(s) synced from a local checkout:`,
+    ...packages.map(
+      pkg => `  ${pkg.name}@${pkg.version}  (from ${pkg.source})`,
+    ),
+  ].join('\n');
+}
+
 export function formatSyncedFindings(packages) {
   const sources = [...new Set(packages.map(pkg => pkg.source))].join(', ');
   return [
     `node_modules carries unreleased entifix, synced from ${sources}:`,
     ...packages.map(pkg => `  ${pkg.name}@${pkg.version}`),
     '',
-    'CI installs the version the catalog in pnpm-workspace.yaml pins, not this.',
-    'Put the release back with `node tools/conventions/entifix-dev-sync.mjs --restore`, or commit with',
+    'CI installs the version the lockfile pins, not this.',
+    'Put the release back with `node tools/entifix/src/guard.mjs --restore`, or commit with',
     'ENTIFIX_DEV_SYNC_OK=1 if this change deliberately waits on an entifix release.',
   ].join('\n');
-}
-
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  if (process.argv.includes('--restore')) {
-    const restored = restoreRelease(process.cwd(), root =>
-      execFileSync(
-        'pnpm',
-        ['install', '--config.optimistic-repeat-install=false'],
-        {
-          cwd: root,
-          stdio: 'inherit',
-        },
-      ),
-    );
-    console.log(`Restored ${restored} synced entifix entries to the release.`);
-    process.exit(0);
-  }
-  const synced = syncedEntifixPackages(process.cwd());
-  if (synced.length > 0 && process.env.ENTIFIX_DEV_SYNC_OK !== '1') {
-    console.error(formatSyncedFindings(synced));
-    process.exit(1);
-  }
 }

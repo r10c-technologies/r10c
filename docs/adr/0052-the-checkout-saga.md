@@ -6,6 +6,8 @@
 - Read when: a flow spans two services and one of them may have to be undone — the definition is data, a fan-out step compensates only the calls that succeeded, and a participant the saga may retry must be idempotent on the command id
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — its reopen condition for a step-graph grammar fired, and the grammar held
 - Amended by: [ADR 0054](0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md) — the pivot this record deferred to M4 landed where it said it would; what it did not anticipate is that `runSaga` ignored `kind` outside definition validation, so the planned pivot would have been decorative and a post-pivot failure would have deleted a paid order
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): the engine file is `@entifix/transactions`'s
+  `src/engine/run-transaction.ts`.
 
 - Amended by: [ADR 0055](0055-a-coordinator-resumes-from-its-own-record.md) — the outbox-entry-plus-HTTP-relay dispatch is struck; the four ways this record said that relay would differ from the AMQP one turned out to be the evidence it was not an outbox
 
@@ -32,7 +34,7 @@ compensation is free:
 
 It is not. `completeTransaction` hardcodes
 `Effect.provideService(OutcomeTag, undefined)`
-(`packages/entifix/ts/transactions/src/engine/run-transaction.ts`), and the
+(`@entifix/transactions`'s `src/engine/run-transaction.ts`), and the
 reservation ids are minted by stock-service **during** `execute`. A rollback
 receives the command and nothing else, so it cannot release holds it never saw.
 ADR 0039 measured this and called the parameter _unreachable_; ADR 0010 was

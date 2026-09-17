@@ -17,8 +17,9 @@ packages/
   business/ts/<domain>/     pure entities + use-cases (no framework)
   implementation/<domain>/react/   entity-tight React organisms (none today — see below)
   shells/next/<shell>/      Next pages + client adapters
-  shells/effect/service/    shared backend base (makeService, config helpers)
   utils/ts/{array,date,object,type}   generic helpers
+tools/entifix/               the swap kit: run against a local entifix, put the release back
+.entifix/                   this checkout's own entifix clone (gitignored, after entifix:checkout)
 infra/local/                minikube platform (MongoDB, Redis, Postgres, Zitadel, otel-lgtm)
 docs/                       this documentation
 nx.json  tsconfig.base.json  pnpm-workspace.yaml  package.json (root)
@@ -28,7 +29,7 @@ The framework is not in this tree. `@entifix/*` is installed from the registry
 at the one version the `catalog:` in `pnpm-workspace.yaml` pins, and its source
 lives in [r10c-technologies/entifix](https://github.com/r10c-technologies/entifix)
 ([ADR 0059](adr/0059-entifix-leaves-the-repo.md)). To work on both at once, see
-[Changing entifix while r10c runs](#changing-entifix-while-r10c-runs).
+[Working on entifix from r10c](#working-on-entifix-from-r10c).
 
 ### Workspace resolution: the `@r10c/source` condition
 
@@ -39,8 +40,8 @@ package's `src/index.ts`** — no rebuild needed between dependent libraries dur
 dev/typecheck. When you add a library, mirror this `exports` shape or cross-package
 imports won't resolve in dev.
 
-Declaring the condition is not the same as consuming it: TypeScript, Vitest,
-Storybook and the service webpack all opt in, the Next apps cannot (they resolve
+Declaring the condition is not the same as consuming it: TypeScript, Vitest
+and the service webpack all opt in, the Next apps cannot (they resolve
 `dist`, kept fresh by a watcher — see
 [Library edits](#library-edits-reload-everywhere-two-mechanisms)).
 
@@ -144,34 +145,46 @@ pass is hiding: `pnpm nx build <lib> --skipTypeCheck=false`.
 `@entifix/style` needs no rebuild at all: it has no build target, its CSS
 subpaths are consumed straight from `src`.
 
-### Changing entifix while r10c runs
+### Working on entifix from r10c
 
-entifix is installed, so `watch-libs` never sees it. Its own repository carries
-the loop: from an entifix checkout beside this one,
+entifix is installed from the registry, so `watch-libs` never sees it. To change
+it while r10c runs, this checkout keeps **its own** entifix clone and syncs it
+over the release. The kit is `tools/entifix` (its README is the contract):
 
 ```sh
-ENTIFIX_CONSUMERS=$PWD/../r10c pnpm nx run @entifix/source:dev-sync
+pnpm run entifix:checkout   # clone entifix into .entifix/ (gitignored) + install
+pnpm run entifix:local      # build, copy over the release, rebuild on every save
+pnpm run entifix:status     # the release, or what is synced and from which commit
+pnpm run entifix:registry   # put the release back (~2s)
 ```
 
-builds every entifix package, then rebuilds each one you save and copies what it
-publishes over the release installed here, under `node_modules/.pnpm`, file by
-file. A running service rebuilds, and the Next dev server serves the change,
-about five seconds after the save — nothing to restart. Nothing in this
-repository's manifests or lockfile changes. Each copy's manifest version becomes
-`<release>-dev.<timestamp>` and carries an `entifixDevSync` marker naming the
-entifix commit.
+`entifix:local` runs entifix's own `dev-sync` from the clone: it builds every
+entifix package, then rebuilds each one you save in `.entifix/` and copies what it
+publishes over the release under `node_modules/.pnpm`, file by file. A running
+service rebuilds and the Next dev server serves the change about five seconds
+after the save — nothing to restart, and nothing in this repository's manifests
+or lockfile changes. Each copy's version becomes `<release>-dev.<timestamp>` and
+carries an `entifixDevSync` marker naming the entifix commit. Open
+`r10c.code-workspace` to edit and commit both repositories from one window.
 
-- **Put the release back** with
-  `node tools/conventions/entifix-dev-sync.mjs --restore` (or entifix's
-  `dev-sync-reset`). ⚠️ Not `pnpm install --force`: with manifests and lockfile
+- **One clone per checkout.** Every consumer — this repository, each of its
+  worktrees, another entifix project — has its own `.entifix/` on its own branch,
+  so two of them can change entifix at once. An entifix branch one needs from
+  another is pushed and fetched like any other.
+- **A commit is refused while any marker is present** — `tools/entifix/src/guard.mjs`
+  in `.husky/pre-commit`. CI installs the pinned release, so code that works only
+  against the synced build fails there. `ENTIFIX_DEV_SYNC_OK=1 git commit …` lets
+  one through on purpose, for a branch that already knows it waits on an entifix
+  release.
+- **The task cache knows.** Nx keys an installed package on its lockfile version,
+  which a sync leaves alone, so `nx.json`'s `sharedGlobals` carries
+  `tools/entifix/src/fingerprint.mjs` as a runtime input: empty on the release
+  (every hash unchanged), a new digest after each sync (a miss), empty again after
+  `entifix:registry` (the old hits return).
+- ⚠️ **Not `pnpm install --force`** to go back: with manifests and lockfile
   unchanged, pnpm 11's optimistic repeat install answers "Already up to date" and
-  leaves every synced copy in place. The restore deletes the synced entries and
-  reinstalls without that shortcut, in under two seconds.
-- **A commit is refused while any marker is present** —
-  `tools/conventions/entifix-dev-sync.mjs` in `.husky/pre-commit`. CI installs
-  the pinned release, so code that works only against the synced build fails
-  there. `ENTIFIX_DEV_SYNC_OK=1 git commit …` lets one through on purpose, for a
-  branch that already knows it waits on an entifix release.
+  leaves every synced copy in place. `entifix:registry` deletes the synced entries
+  and reinstalls without that shortcut.
 - **A new entifix dependency stops the sync.** A copy cannot install anything:
   release entifix, bump the catalog, `pnpm install`.
 - **Never a `link:` or `file:` specifier.** A linked package resolves `effect`
@@ -430,17 +443,20 @@ pnpm nx build <lib> --skipTypeCheck=false
 
 The golden rule above is **enforced**, not just reviewed. Every project declares
 `nx.tags` in its `package.json`, and `eslint.config.mjs` turns those tags into
-`@nx/enforce-module-boundaries` constraints across six dimensions:
+`@nx/enforce-module-boundaries` constraints across five dimensions:
 
-| Dimension    | Tags                                                                                     | Rule                                                                                         |
-| ------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **layer**    | `layer:app` › `shell` › `implementation` › `business` › `entifix` › `utils`              | depend only on layers **below** (`shell`/`business`/`entifix` also allow ordered same-layer) |
-| **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}`              | a domain may depend only on itself or `scope:shared` (the reusable core)                     |
-| **entifix**  | `entifix:core` ‹ `contract` ‹ {`tooling`, `style`} ‹ `transactions` ‹ `client` ‹ `react` | internal ordering inside the entifix layer                                                   |
-| **business** | `business:policy` ‹ `business:domain`                                                    | a domain may use the shared authorization vocabulary, never another domain                   |
-| **shell**    | `shell:base` ‹ `shell:domain`                                                            | a domain shell may mount onto the framework shell; base shells stay independent              |
-| **host**     | `host:next`, `host:effect`, `runtime:datastore`                                          | a `host:next` app may **not** depend on a `runtime:datastore` package                        |
-| **type**     | `type:testing`, `type:e2e`                                                               | spec files may import `type:testing` libs; source files may not                              |
+| Dimension    | Tags                                                                        | Rule                                                                                  |
+| ------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **layer**    | `layer:app` › `shell` › `implementation` › `business` › `utils`             | depend only on layers **below** (`shell`/`business` also allow ordered same-layer)    |
+| **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}` | a domain may depend only on itself or `scope:shared` (the reusable core)              |
+| **business** | `business:policy` ‹ `business:domain`                                       | a domain may use the shared vocabulary, never another domain                          |
+| **shell**    | `shell:domain`                                                              | a domain shell mounts onto the installed base shells, never onto another domain shell |
+| **host**     | `host:next`, `host:effect`                                                  | a `host:next` app may **not** import `@entifix/{mongo,sql,redis,amqp}` or a subpath   |
+| **type**     | `type:testing`, `type:e2e`                                                  | spec files may import `type:testing` libs; source files may not                       |
+
+`@entifix/*` is not in the table because it is not a project: it is installed
+from the registry, carries no tags, and any layer may import it. Its own
+ordering is entifix's `tier:*` contract, checked in the entifix repository.
 
 The rule ANDs every constraint a project's tags match, so the dimensions compose.
 Consequence: **to make an edge legal, retag the project — never relax the rule.**
@@ -452,23 +468,23 @@ Verify with `pnpm nx run-many -t lint`.
 vocabulary (`Permission`, `Role`, `can`) that `business-ts-authn` needs in order
 to give `UserIdentity` a role. That is a same-layer edge, which the `layer:*`
 dimension alone would either forbid outright or open up completely — so the
-business layer got the same treatment `entifix:*` already gives the framework
-layer: one ordered dimension, `policy` ‹ `domain`. A domain package reaches down
+business layer got one ordered dimension, `policy` ‹ `domain`. A domain package reaches down
 to policy; it still cannot import a sibling domain.
 
-**Why `shell:*` exists.** Same story one layer up. `layer:shell` forbade
-same-layer edges outright, so a per-domain API module could not reach
-`requirePermission`/`makeServerLayer` in `@entifix/service-shell` — the module
-pattern was unbuildable. `shell:base` ‹ `shell:domain` orders the layer the same
-way, so a domain shell mounts onto the framework shell while base shells stay
-independent of each other.
+**Why `shell:*` exists.** Same story one layer up. `layer:shell` allows
+same-layer edges so that a domain shell could once reach the in-tree base shells;
+with those installed from the registry instead, `shell:domain` is what still
+stops one domain shell importing another.
 
 **Why `host:*` exists.** Apps sit at the top layer, so nothing stopped a Next app
 from importing `makeMongoRepository` and writing a database directly — the one
 hole in "one writer per database"
-([ADR 0008](adr/0008-domain-modules-and-service-topology.md)). The datastore
-clients carry `runtime:datastore`, Next apps carry `host:next`, and a
-`notDependOnLibsWithTags` constraint makes that import a build failure. A Next
+([ADR 0008](adr/0008-domain-modules-and-service-topology.md)). Next apps carry
+`host:next`, and a `bannedExternalImports` constraint makes importing
+`@entifix/mongo`, `@entifix/sql`, `@entifix/redis` or `@entifix/amqp` — or any
+subpath of them — a build failure. ⚠️ It used to be a tag rule
+(`runtime:datastore` on the in-tree clients); an installed package carries no
+tags, so that form would have kept passing while matching nothing. A Next
 backend is composition — cookies, proxying, RSC aggregation — never data access.
 
 ## Entities

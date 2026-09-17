@@ -7,23 +7,21 @@ import { r10cPlugin } from './tools/eslint/no-foreign-app-namespace.mjs';
 // ---------------------------------------------------------------------------
 // Module-boundary hierarchy (enforced by @nx/enforce-module-boundaries).
 //
-// Every project is tagged in its package.json `nx.tags` across three dimensions:
-//   layer:*    app › shell › implementation › business › entifix › utils
-//              (a project may only depend DOWNWARD)
+// Every project is tagged in its package.json `nx.tags` across these dimensions:
+//   layer:*    app › shell › implementation › business › utils
+//              (a project may only depend DOWNWARD). The framework is not a
+//              layer here: `@entifix/*` is installed from the registry, and an
+//              external package carries no tags — any layer may import it.
 //   scope:*    a domain scope (marketplace / marketplace-admin / auth /
 //              transaction / config) may only depend on itself or `scope:shared`;
 //              `scope:shared` is the reusable core and is dependable by anyone.
-//   entifix:*  internal ordering INSIDE the entifix layer:
-//              core ‹ contract ‹ {tooling, style} ‹ transactions ‹ client ‹ react
 //   business:* internal ordering INSIDE the business layer: policy ‹ domain
 //              (a domain may use the shared authorization vocabulary; it may
 //              never import another domain)
-//   shell:*    internal ordering INSIDE the shell layer: base ‹ domain
-//              (a domain shell mounts onto the framework shell; base shells
-//              stay independent of each other)
-//   host:*     what kind of runtime host an app is — `next` or `effect`. Paired
-//              with `runtime:datastore` on the datastore clients: a Next app may
-//              not reach a database driver at all.
+//   shell:*    a domain shell mounts one domain onto the framework's base
+//              shells (installed); it never imports another domain shell
+//   host:*     what kind of runtime host an app is — `next` or `effect`. A Next
+//              app may not import entifix's datastore clients at all.
 //   type:*     testing/e2e helpers (relaxed — see specConstraints).
 //
 // The rule ANDs every constraint whose `sourceTag` a project carries, so the
@@ -37,7 +35,6 @@ const layerConstraints = [
       'layer:shell',
       'layer:implementation',
       'layer:business',
-      'layer:entifix',
       'layer:utils',
     ],
   },
@@ -50,32 +47,21 @@ const layerConstraints = [
       'layer:shell',
       'layer:implementation',
       'layer:business',
-      'layer:entifix',
       'layer:utils',
     ],
   },
   {
     sourceTag: 'layer:implementation',
-    onlyDependOnLibsWithTags: [
-      'layer:business',
-      'layer:entifix',
-      'layer:utils',
-    ],
+    onlyDependOnLibsWithTags: ['layer:business', 'layer:utils'],
   },
   {
     sourceTag: 'layer:business',
     onlyDependOnLibsWithTags: [
-      // Same-layer edges are allowed but ORDERED by `business:*` below, exactly
-      // as `layer:entifix` is ordered by `entifix:*`. Without that second
-      // dimension this line would let any domain import any other.
+      // Same-layer edges are allowed but ORDERED by `business:*` below. Without
+      // that second dimension this line would let any domain import any other.
       'layer:business',
-      'layer:entifix',
       'layer:utils',
     ],
-  },
-  {
-    sourceTag: 'layer:entifix',
-    onlyDependOnLibsWithTags: ['layer:entifix', 'layer:utils'],
   },
   { sourceTag: 'layer:utils', onlyDependOnLibsWithTags: ['layer:utils'] },
 ];
@@ -175,87 +161,30 @@ const scopeConstraints = [
   },
 ];
 
-const entifixConstraints = [
-  { sourceTag: 'entifix:core', onlyDependOnLibsWithTags: ['layer:utils'] },
-  {
-    sourceTag: 'entifix:contract',
-    onlyDependOnLibsWithTags: ['entifix:core', 'layer:utils'],
-  },
-  { sourceTag: 'entifix:tooling', onlyDependOnLibsWithTags: ['layer:utils'] },
-  { sourceTag: 'entifix:style', onlyDependOnLibsWithTags: [] },
-  {
-    sourceTag: 'entifix:transactions',
-    onlyDependOnLibsWithTags: [
-      'entifix:core',
-      'entifix:contract',
-      'entifix:tooling',
-      'layer:utils',
-    ],
-  },
-  {
-    sourceTag: 'entifix:client',
-    onlyDependOnLibsWithTags: [
-      'entifix:core',
-      'entifix:contract',
-      'entifix:tooling',
-      'entifix:transactions',
-      'layer:utils',
-    ],
-  },
-  {
-    sourceTag: 'entifix:react',
-    onlyDependOnLibsWithTags: [
-      'entifix:core',
-      'entifix:contract',
-      'entifix:client',
-      'entifix:transactions',
-      'entifix:tooling',
-      'entifix:style',
-      'layer:utils',
-    ],
-  },
-];
-
-// Internal ordering INSIDE the business layer, mirroring `entifix:*`.
+// Internal ordering INSIDE the business layer.
 // `policy` is the authorization vocabulary every domain may express itself in;
 // a `domain` may reach down to it but never sideways to another domain.
 const businessConstraints = [
   {
     sourceTag: 'business:policy',
-    onlyDependOnLibsWithTags: ['layer:entifix', 'layer:utils'],
+    onlyDependOnLibsWithTags: ['layer:utils'],
   },
   {
     sourceTag: 'business:domain',
-    onlyDependOnLibsWithTags: [
-      'business:policy',
-      'layer:entifix',
-      'layer:utils',
-    ],
+    onlyDependOnLibsWithTags: ['business:policy', 'layer:utils'],
   },
 ];
 
-// Internal ordering INSIDE the shell layer, mirroring `business:*`.
-// `base` is the reusable framework shell (the effect-service base, the Next
-// common/i18n shells); a `domain` shell mounts one domain onto it. Without this
-// dimension `layer:shell` forbids same-layer edges outright, and a per-domain
-// API module cannot reach `requirePermission`/`makeServerLayer` at all.
+// Internal ordering INSIDE the shell layer. The base shells a domain shell
+// mounts onto (`@entifix/service-shell`, `@entifix/next-shell`,
+// `@entifix/next-i18n`) are installed packages, so what is left to order is that
+// a domain shell never reaches sideways into another one.
 const shellConstraints = [
-  {
-    sourceTag: 'shell:base',
-    onlyDependOnLibsWithTags: [
-      'layer:implementation',
-      'layer:business',
-      'layer:entifix',
-      'layer:utils',
-    ],
-  },
   {
     sourceTag: 'shell:domain',
     onlyDependOnLibsWithTags: [
-      'shell:base',
       'layer:implementation',
       'layer:business',
-      'layer:entifix',
       'layer:utils',
     ],
   },
@@ -267,10 +196,25 @@ const shellConstraints = [
 // (docs/adr/0008). A Next backend is composition (cookies, proxying, RSC
 // aggregation), never data access; only a `host:effect` service binds a
 // repository to a datastore client.
+//
+// ⚠️ A ban on external imports, not a tag. The datastore clients used to carry
+// `runtime:datastore` as in-tree projects; installed from the registry they
+// carry no tags, so a `notDependOnLibsWithTags` rule would still pass while
+// matching nothing. Each client is named twice because a subpath import
+// (`@entifix/mongo/transactions`) does not match the bare package name.
 const hostConstraints = [
   {
     sourceTag: 'host:next',
-    notDependOnLibsWithTags: ['runtime:datastore'],
+    bannedExternalImports: [
+      '@entifix/mongo',
+      '@entifix/mongo/*',
+      '@entifix/sql',
+      '@entifix/sql/*',
+      '@entifix/redis',
+      '@entifix/redis/*',
+      '@entifix/amqp',
+      '@entifix/amqp/*',
+    ],
   },
 ];
 
@@ -279,7 +223,6 @@ const hostConstraints = [
 const sourceConstraints = [
   ...layerConstraints,
   ...scopeConstraints,
-  ...entifixConstraints,
   ...businessConstraints,
   ...shellConstraints,
   ...hostConstraints,
@@ -291,7 +234,7 @@ const sourceConstraints = [
 // `type:testing`. Source files stay strict — production code must not import
 // a testing lib.
 //
-// A deny-list constraint (`notDependOnLibsWithTags`, i.e. `host:*`) carries no
+// A deny-list constraint (`bannedExternalImports`, i.e. `host:*`) carries no
 // allow-list to widen and passes through unchanged: relaxing it for specs would
 // let a Next app reach a database driver through a test file, which is exactly
 // the edge it exists to forbid.
@@ -324,6 +267,9 @@ export default [
       '**/test-output',
       '**/vite.config.*.timestamp*',
       '**/vitest.config.*.timestamp*',
+      // A consumer's own entifix clone (tools/entifix). It is gitignored, but
+      // flat config does not read `.gitignore`, and entifix lints itself.
+      '.entifix/**',
     ],
   },
   {
@@ -340,9 +286,7 @@ export default [
     },
   },
   {
-    // `@entifix/testing-unit` is deliberately non-buildable: it is
-    // test-only, never published, and resolves straight to source. Specs are not
-    // part of any build output, so the buildable-lib rule does not apply to them
+    // Specs are not part of any build output, so the buildable-lib rule does not apply to them
     // — it stays fully enforced for source files. Specs may also import
     // `type:testing` libs (see specConstraints).
     files: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.test.ts', '**/*.test.tsx'],

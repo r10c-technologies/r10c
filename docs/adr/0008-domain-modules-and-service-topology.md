@@ -18,6 +18,9 @@
   **Stores** it writes), not plane, because a slice may own stores in more than
   one plane. One writer per database, the three forbidden couplings, and the
   `shell:`/`host:` dimensions all stand.
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): `shell:base` and `runtime:datastore` are gone with the in-tree packages that
+  carried them; `shell:domain` still forbids a sideways shell edge, and the
+  `host:next` ban is now `bannedExternalImports` on the four datastore clients.
 
 ## Context
 

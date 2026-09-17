@@ -39,11 +39,11 @@ packages/business/ts/<domain>       ← pure domain entities & use-cases (no fra
 packages/utils/ts/*                 ← generic TS helpers
 ```
 
-Six tag dimensions in each project's `nx.tags` make that arrow enforceable —
-`layer:`, `scope:`, `entifix:`, `business:`, `shell:` and `host:` — and
+Five tag dimensions in each project's `nx.tags` make that arrow enforceable —
+`layer:`, `scope:`, `business:`, `shell:` and `host:` — and
 `@nx/enforce-module-boundaries` fails the build on any upward or cross-domain
-edge. `host:next` may not depend on `runtime:datastore`: a Next backend is
-composition (cookies, proxying, RSC aggregation), never data access.
+edge. A `host:next` app may not import entifix's datastore clients: a Next
+backend is composition (cookies, proxying, RSC aggregation), never data access.
 
 Business data lives in a **Store**, a Store belongs to a **Slice**, and a Store
 sits in one of **three planes** — **control** (parties, access, identity, config,

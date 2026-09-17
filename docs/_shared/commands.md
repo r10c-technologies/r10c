@@ -4,7 +4,9 @@ Nx 23 monorepo with pnpm workspaces. Pinned toolchain: **Node 26.4**, **pnpm 11.
 (see `engines` in the root `package.json`). Always use `pnpm` (never `npm`/`yarn`)
 and run Nx via `pnpm nx …` (or `pnpm exec nx`). Project names are scoped
 `@r10c/<name>`, but Nx accepts the unscoped suffix for most commands
-(e.g. `marketplace-app`); the framework's are scoped `@entifix/<name>` and are addressed by their full name (`@entifix/core`).
+(e.g. `marketplace-app`). The framework, `@entifix/*`, is **installed** from the
+registry at one version (the `catalog:` in `pnpm-workspace.yaml`) — it is not a
+project here, and it changes through the swap commands below.
 
 ```sh
 # Dev, self-healing — the shortest path to a running app. Each `<app>:dev`
@@ -82,6 +84,13 @@ pnpm nx show project <project>
 pnpm nx graph
 pnpm nx sync                 # sync tsconfig project references after adding deps
 pnpm nx local-registry       # verdaccio, for testing publishes
+
+# Working on entifix: this checkout's own clone in .entifix/, synced over the
+# release while you save. See DEVELOPING.md → "Working on entifix from r10c".
+pnpm run entifix:checkout    # clone (gitignored) + install
+pnpm run entifix:local       # build, sync, rebuild on save — until Ctrl-C
+pnpm run entifix:status      # release, or what is synced and from which commit
+pnpm run entifix:registry    # put the release back; a commit is refused until then
 
 # Toolchain upgrades. Nx pins typescript, @swc/*, typescript-eslint, vite,
 # vitest, next and webpack* and bumps them as a set it has tested, with

@@ -8,6 +8,9 @@
   the register table below is superseded by the live one (12 stores, 9 slices);
   `SliceDeclaration` gains `status: 'active' | 'planned'`; the
   `published-catalog` follow-up is done.
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): the `host:next` ✗ `runtime:datastore` rule restated below is now a
+  `bannedExternalImports` ban on entifix's four datastore clients — the same
+  rule, since an installed package carries no tag.
 
 ## Context
 

@@ -17,7 +17,7 @@
 #
 #   tools/watch-libs.sh    (or: pnpm exec nx run @r10c/source:watch-libs)
 #
-# The selector is the five library `layer:` tags — every buildable package carries
+# The selector is the four library `layer:` tags — every buildable package carries
 # exactly one of them, and apps/services (`layer:app`) carry none of them. Do NOT
 # write it as `'*,!tag:layer:app'`: `*` also matches the workspace root project,
 # whose project root is `''`, so every file not inside another project (docs,
@@ -48,6 +48,6 @@ set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 exec pnpm exec nx watch \
-  --projects tag:layer:business,tag:layer:entifix,tag:layer:implementation,tag:layer:shell,tag:layer:utils \
+  --projects tag:layer:business,tag:layer:implementation,tag:layer:shell,tag:layer:utils \
   -- pnpm exec nx run-many -t build -p '$NX_PROJECT_NAME' \
     --excludeTaskDependencies --skipSync

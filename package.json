@@ -10,7 +10,11 @@
     "back-office:dev:reset": "bash infra/local/reset.sh && nx run back-office-app:dev",
     "dev-infra:doctor": "bash infra/local/doctor.sh",
     "dev-infra:map": "node tools/fleet-map.mjs",
-    "dev-ports:free": "bash tools/free-ports.sh"
+    "dev-ports:free": "bash tools/free-ports.sh",
+    "entifix:checkout": "nx run @r10c/source:entifix-checkout",
+    "entifix:local": "nx run @r10c/source:entifix-local",
+    "entifix:registry": "nx run @r10c/source:entifix-registry",
+    "entifix:status": "nx run @r10c/source:entifix-status"
   },
   "engines": {
     "node": "26.4",
@@ -132,6 +136,34 @@
         "cache": false,
         "options": {
           "command": "bash tools/watch-libs.sh"
+        }
+      },
+      "entifix-checkout": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/entifix/checkout.sh"
+        }
+      },
+      "entifix-local": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/entifix/local.sh"
+        }
+      },
+      "entifix-registry": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/entifix/src/guard.mjs --restore"
+        }
+      },
+      "entifix-status": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/entifix/src/status.mjs"
         }
       },
       "local-registry": {

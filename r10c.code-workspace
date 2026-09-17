@@ -1,0 +1,52 @@
+{
+  // This checkout and its own entifix clone, side by side, each with its own
+  // Source Control panel. Open with File → Open Workspace from File. The second
+  // folder exists after `pnpm run entifix:checkout`; until then VS Code lists it
+  // as missing and everything else works. docs/DEVELOPING.md → "Working on
+  // entifix from r10c".
+  "folders": [
+    { "name": "r10c", "path": "." },
+    { "name": "entifix (local)", "path": ".entifix" },
+  ],
+  "settings": {
+    // The clone is also a folder of the first root. Hide it there so every
+    // entifix file is opened, searched and committed through its own root.
+    "files.exclude": { ".entifix": true },
+    "search.exclude": { ".entifix": true },
+    "typescript.tsdk": "node_modules/typescript/lib",
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "entifix: checkout",
+        "type": "shell",
+        "command": "pnpm run entifix:checkout",
+        "options": { "cwd": "${workspaceFolder:r10c}" },
+        "problemMatcher": [],
+      },
+      {
+        "label": "entifix: local",
+        "type": "shell",
+        "command": "pnpm run entifix:local",
+        "options": { "cwd": "${workspaceFolder:r10c}" },
+        "isBackground": true,
+        "problemMatcher": [],
+      },
+      {
+        "label": "entifix: registry",
+        "type": "shell",
+        "command": "pnpm run entifix:registry",
+        "options": { "cwd": "${workspaceFolder:r10c}" },
+        "problemMatcher": [],
+      },
+      {
+        "label": "entifix: status",
+        "type": "shell",
+        "command": "pnpm run entifix:status",
+        "options": { "cwd": "${workspaceFolder:r10c}" },
+        "problemMatcher": [],
+      },
+    ],
+  },
+}

@@ -4,13 +4,14 @@
 - Date: 2026-09-01
 - Area: frontend
 - Read when: changing spacing, type scale, density or elevation — one token set with two scales, and a `@theme` shadow is baked at build time rather than referenced
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): the token file is `@entifix/style`'s `src/tokens.css`.
 
 ## Context
 
 The back office is for complex, repetitive operator work, and it does not use
 its space well. That is not a discipline problem — the scale is the wrong scale.
 
-`packages/entifix/style/src/tokens.css` generates spacing and type with the
+`@entifix/style`'s `src/tokens.css` generates spacing and type with the
 Utopia calculator for **prose at an 18–20px base**, viewport 360–1240. Resolved,
 the spacing steps are:
 

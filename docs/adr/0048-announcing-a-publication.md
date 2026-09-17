@@ -17,6 +17,7 @@
 - Revised: 2026-09-08 by [ADR 0050](0050-rebuilding-the-published-catalog-from-tenant-storage.md)
   — the fleet-wide rebuild is built, and the cross-tenant surface this record
   said it needed turned out not to be one.
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): `business:policy` no longer lists `layer:entifix`.
 
 ## Context
 
@@ -75,7 +76,7 @@ a domain package **is** allowed to depend on. That widens `business:policy` from
 "the shared _authorization_ vocabulary" to "shared vocabulary a domain may
 express itself in", and the widening is stated rather than smuggled. What keeps
 it honest is unchanged and is enforced by `@nx/enforce-module-boundaries`:
-`business:policy` may depend only on `layer:entifix` and `layer:utils`, so
+`business:policy` may depend only on `layer:utils` and installed packages, so
 nothing in that package can reach an entity, a use case or a repository. It
 holds a payload type, two event names, two builders and a decoder — no
 behaviour.

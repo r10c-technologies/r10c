@@ -988,9 +988,9 @@ platform vocabulary into `catalog-reference`; composing both from one domain key
 is what left those two pages requesting routes that no longer existed, invisibly,
 because the e2e fixture stubbed the same wrong address. And the system-management
 proxy is mounted at **`/api/system`, never `/api/config`**, which is already the
-config _fetch_ route. `shell:domain` may depend on `shell:base` and both domain
-shells do; the reverse is forbidden, so `@entifix/next-shell` may import **no**
-other shell — which is why nav and search sources are contributed rather than
+config _fetch_ route. Both domain shells build on `@entifix/next-shell`, and the
+reverse cannot happen: `@entifix/next-shell` is a published package that may
+import **no** shell — which is why nav and search sources are contributed rather than
 imported, and why the permission-annotated vocabulary
 (`GuardedNavItem`/`GuardedNavSection`) lives in `@entifix/authz`, the only
 layer a shell and an app both reach.

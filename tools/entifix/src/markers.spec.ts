@@ -1,10 +1,12 @@
 /**
- * The guard against committing on top of a synced entifix build.
+ * The marker reader behind the commit guard, the status report, the cache
+ * fingerprint and the restore.
  *
  * Driven against a fake virtual store rather than this checkout's, because the
  * real one is supposed to hold no markers at all — a scan that finds nothing
  * there proves nothing about whether it could.
  */
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,22 +19,31 @@ interface SyncedPackage {
   source: string;
 }
 
-// Loaded by path, like `attribution.mjs` in `conventions.spec.ts`: the hook runs
-// this file with plain Node, so it is `.mjs` with no declaration beside it.
-const guard = (await import(
-  join(import.meta.dirname, '..', 'entifix-dev-sync.mjs')
-)) as {
+// Loaded by path: a hook and an Nx runtime input run these files with plain
+// Node, so they are `.mjs` with no declaration beside them.
+const markers = (await import(join(import.meta.dirname, 'markers.mjs'))) as {
   syncedEntifixPackages: (root: string) => SyncedPackage[];
   syncedEntifixEntries: (root: string) => string[];
   restoreRelease: (root: string, install: (root: string) => void) => number;
+  fingerprint: (packages: SyncedPackage[]) => string;
+  formatStatus: (packages: SyncedPackage[]) => string;
   formatSyncedFindings: (packages: SyncedPackage[]) => string;
 };
 const {
+  fingerprint,
+  formatStatus,
   formatSyncedFindings,
   restoreRelease,
   syncedEntifixEntries,
   syncedEntifixPackages,
-} = guard;
+} = markers;
+
+/** Runs one of the kit's command-line entry points in a checkout. */
+const run = (script: string, cwd: string) =>
+  execFileSync(process.execPath, [join(import.meta.dirname, script)], {
+    cwd,
+    encoding: 'utf8',
+  });
 
 let root: string;
 
@@ -55,7 +66,7 @@ const synced = (name: string) => ({
 });
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'entifix-dev-sync-'));
+  root = mkdtempSync(join(tmpdir(), 'entifix-swap-'));
 });
 
 afterEach(() => rmSync(root, { recursive: true, force: true }));
@@ -139,7 +150,93 @@ describe('formatSyncedFindings', () => {
 
     expect(message).toContain('synced from abc1234');
     expect(message).toContain('@entifix/core@0.1.1-dev.1');
-    expect(message).toContain('entifix-dev-sync.mjs --restore');
+    expect(message).toContain('guard.mjs --restore');
     expect(message).toContain('ENTIFIX_DEV_SYNC_OK=1');
+  });
+});
+
+describe('fingerprint', () => {
+  it('is empty on the release, so every task hash stays what it was', () => {
+    expect(fingerprint([])).toBe('');
+  });
+
+  it('is stable for one sync and changes with the next', () => {
+    const first = [
+      { name: '@entifix/core', version: '0.1.2-dev.1', source: 'abc1234' },
+    ];
+    const next = [
+      { name: '@entifix/core', version: '0.1.2-dev.2', source: 'abc1234' },
+    ];
+
+    expect(fingerprint(first)).toMatch(/^[0-9a-f]{16}$/);
+    expect(fingerprint(first)).toBe(fingerprint(first));
+    expect(fingerprint(next)).not.toBe(fingerprint(first));
+  });
+});
+
+describe('formatStatus', () => {
+  it('says release when nothing is synced', () => {
+    expect(formatStatus([])).toContain('the release');
+  });
+
+  it('names every synced package and the commit it came from', () => {
+    const message = formatStatus([
+      { name: '@entifix/core', version: '0.1.2-dev.1', source: 'abc1234' },
+    ]);
+
+    expect(message).toContain('1 package(s) synced');
+    expect(message).toContain('@entifix/core@0.1.2-dev.1  (from abc1234)');
+  });
+});
+
+describe('fingerprint.mjs', () => {
+  it('prints nothing where nothing is installed, as on a CI runner', () => {
+    expect(run('fingerprint.mjs', root)).toBe('');
+  });
+
+  it('prints the digest of what is synced', () => {
+    copy('@entifix+core@0.1.1', 'core', synced('core'));
+
+    expect(run('fingerprint.mjs', root)).toBe(
+      fingerprint(syncedEntifixPackages(root)),
+    );
+  });
+
+  it('misses the cache rather than failing every task on an unreadable store', () => {
+    const dir = join(
+      root,
+      'node_modules/.pnpm/@entifix+core@0.1.1/node_modules/@entifix/core',
+    );
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'package.json'), '{ not json');
+
+    expect(run('fingerprint.mjs', root)).toBe('unreadable');
+  });
+});
+
+describe('guard.mjs and status.mjs', () => {
+  it('pass and report the release when nothing is synced', () => {
+    expect(run('guard.mjs', root)).toBe('');
+    expect(run('status.mjs', root)).toContain('the release');
+  });
+
+  it('refuses while a copy is synced, and lets one through on purpose', () => {
+    copy('@entifix+core@0.1.1', 'core', synced('core'));
+
+    expect(() =>
+      execFileSync(process.execPath, [join(import.meta.dirname, 'guard.mjs')], {
+        cwd: root,
+        stdio: 'pipe',
+        env: { ...process.env, ENTIFIX_DEV_SYNC_OK: '' },
+      }),
+    ).toThrow(/unreleased entifix/);
+    expect(
+      execFileSync(process.execPath, [join(import.meta.dirname, 'guard.mjs')], {
+        cwd: root,
+        encoding: 'utf8',
+        env: { ...process.env, ENTIFIX_DEV_SYNC_OK: '1' },
+      }),
+    ).toBe('');
+    expect(run('status.mjs', root)).toContain('@entifix/core@0.1.1-dev.1');
   });
 });

@@ -148,7 +148,8 @@ boundary rule; the rest are review:
   the staleness with a synchronous tenant-plane call from a prerendered page.
 - **A Next app belongs to no Slice, because it owns no Store.** The Next backend
   is composition — cookies, proxying, RSC aggregation — never data access. The
-  `host:next` / `runtime:datastore` boundary rule fails the build on a violation.
+  `host:next` boundary rule, which bans entifix's datastore clients from a Next
+  app, fails the build on a violation.
 - **A cross-store reference is an id, never a `link`.** A `link` accessor invites
   the storage-layer join the first rule forbids, and the target is another
   slice's store. Resolve through the owning domain's use-case port.

@@ -7,68 +7,68 @@ settings:
 catalogs:
   default:
     '@entifix/amqp':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/authz':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/business':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/core':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/i18n':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/jwt':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/mongo':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/next-i18n':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/next-shell':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/react-controls':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/react-integration':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/redis':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/rest':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/service-shell':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/sql':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/style':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/testing-e2e':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/testing-unit':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/tooling':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/transactions':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
     '@entifix/zitadel':
-      specifier: 0.1.1
-      version: 0.1.1
+      specifier: 0.1.2
+      version: 0.1.2
 
 importers:
 
@@ -128,22 +128,22 @@ importers:
         version: 0.30.0(effect@3.22.1)(vitest@4.1.9)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@entifix/react-integration':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@eslint/compat':
         specifier: 2.1.0
         version: 2.1.0(eslint@10.6.0(jiti@2.7.0))
@@ -395,34 +395,34 @@ importers:
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/i18n':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
+        version: 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/redis':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(717ec9bb6087e04e5f9411cf812c8009)
+        version: 0.1.2(717ec9bb6087e04e5f9411cf812c8009)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@entifix/zitadel':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -479,35 +479,35 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
     devDependencies:
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/redis':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(b0922e599a90f67baf1b5992e09c95e5)
+        version: 0.1.2(febbf119f7a3532c9ec4995cafaa95cd)
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
       '@entifix/zitadel':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/auth-service':
         specifier: workspace:*
         version: link:../auth-service
@@ -519,34 +519,34 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/i18n':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
+        version: 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/next-i18n':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))
+        version: 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@entifix/react-integration':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/style':
         specifier: 'catalog:'
-        version: 0.1.1
+        version: 0.1.2
       '@r10c/business-ts-access-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/access-management
@@ -613,7 +613,7 @@ importers:
     devDependencies:
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(7e1bb2f64cf0cc0efcf5f5d511394129)
+        version: 0.1.2(8486ceeaa3835907424602280f5437d0)
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/product-configuration-management
@@ -637,25 +637,25 @@ importers:
         version: 0.53.0(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/sql':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -715,34 +715,34 @@ importers:
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/amqp':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/redis':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(717ec9bb6087e04e5f9411cf812c8009)
+        version: 0.1.2(717ec9bb6087e04e5f9411cf812c8009)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@entifix/transactions':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -800,44 +800,44 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   apps/marketplace-admin-service-e2e:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/transactions':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
     devDependencies:
       '@entifix/amqp':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/redis':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(b0922e599a90f67baf1b5992e09c95e5)
+        version: 0.1.2(febbf119f7a3532c9ec4995cafaa95cd)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
@@ -852,19 +852,19 @@ importers:
     dependencies:
       '@entifix/i18n':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
+        version: 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
       '@entifix/next-i18n':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))
+        version: 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@entifix/style':
         specifier: 'catalog:'
-        version: 0.1.1
+        version: 0.1.2
       '@r10c/i18n-catalog':
         specifier: workspace:*
         version: link:../../packages/shells/next/i18n-catalog
@@ -891,7 +891,7 @@ importers:
     devDependencies:
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(7e1bb2f64cf0cc0efcf5f5d511394129)
+        version: 0.1.2(8486ceeaa3835907424602280f5437d0)
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../packages/business/ts/catalog-reference
@@ -912,31 +912,31 @@ importers:
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/amqp':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@entifix/transactions':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -1008,31 +1008,31 @@ importers:
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/amqp':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@entifix/transactions':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -1087,29 +1087,29 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   apps/order-service-e2e:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
     devDependencies:
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(b0922e599a90f67baf1b5992e09c95e5)
+        version: 0.1.2(febbf119f7a3532c9ec4995cafaa95cd)
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
@@ -1136,31 +1136,31 @@ importers:
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/amqp':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@entifix/transactions':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -1215,29 +1215,29 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   apps/payment-service-e2e:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
     devDependencies:
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(b0922e599a90f67baf1b5992e09c95e5)
+        version: 0.1.2(febbf119f7a3532c9ec4995cafaa95cd)
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
@@ -1264,25 +1264,25 @@ importers:
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -1336,23 +1336,23 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
     devDependencies:
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(b0922e599a90f67baf1b5992e09c95e5)
+        version: 0.1.2(febbf119f7a3532c9ec4995cafaa95cd)
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
@@ -1379,31 +1379,31 @@ importers:
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/amqp':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@entifix/transactions':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -1461,32 +1461,32 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   apps/settlement-service-e2e:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
     devDependencies:
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(b0922e599a90f67baf1b5992e09c95e5)
+        version: 0.1.2(febbf119f7a3532c9ec4995cafaa95cd)
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
@@ -1513,25 +1513,25 @@ importers:
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -1585,23 +1585,23 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
     devDependencies:
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(b0922e599a90f67baf1b5992e09c95e5)
+        version: 0.1.2(febbf119f7a3532c9ec4995cafaa95cd)
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
@@ -1628,31 +1628,31 @@ importers:
         version: 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
       '@entifix/amqp':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/mongo':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+        version: 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/tooling':
         specifier: 'catalog:'
-        version: 0.1.1(@opentelemetry/api@1.9.1)
+        version: 0.1.2(@opentelemetry/api@1.9.1)
       '@entifix/transactions':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -1701,32 +1701,32 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   apps/transaction-service-e2e:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
     devDependencies:
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/jwt':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/service-shell':
         specifier: 'catalog:'
-        version: 0.1.1(c0a45b99eecd371593424893fa78f6e7)
+        version: 0.1.2(c0a45b99eecd371593424893fa78f6e7)
       '@entifix/testing-e2e':
         specifier: 'catalog:'
-        version: 0.1.1(b0922e599a90f67baf1b5992e09c95e5)
+        version: 0.1.2(febbf119f7a3532c9ec4995cafaa95cd)
       '@entifix/transactions':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
@@ -1741,29 +1741,29 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   packages/business/ts/authn:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -1775,13 +1775,13 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
 
   packages/business/ts/catalog-contracts:
     dependencies:
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -1793,13 +1793,13 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -1817,17 +1817,17 @@ importers:
     dependencies:
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
     devDependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   packages/business/ts/i18n: {}
 
@@ -1835,7 +1835,7 @@ importers:
     dependencies:
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -1844,10 +1844,10 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-sales-vocabulary':
         specifier: workspace:*
         version: link:../sales-vocabulary
@@ -1859,20 +1859,20 @@ importers:
     dependencies:
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   packages/business/ts/payment-contracts:
     dependencies:
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -1884,7 +1884,7 @@ importers:
     dependencies:
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -1896,13 +1896,13 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-catalog-contracts':
         specifier: workspace:*
         version: link:../catalog-contracts
@@ -1915,16 +1915,16 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   packages/business/ts/sales-management:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-sales-vocabulary':
         specifier: workspace:*
         version: link:../sales-vocabulary
@@ -1942,7 +1942,7 @@ importers:
     dependencies:
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-sales-vocabulary':
         specifier: workspace:*
         version: link:../sales-vocabulary
@@ -1954,7 +1954,7 @@ importers:
     dependencies:
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -1963,28 +1963,28 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/i18n':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
+        version: 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
       '@entifix/next-i18n':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))
+        version: 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@entifix/react-integration':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../../business/ts/authn
@@ -1993,13 +1993,13 @@ importers:
     dependencies:
       '@entifix/i18n':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
+        version: 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
@@ -2011,22 +2011,22 @@ importers:
     dependencies:
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/i18n':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
+        version: 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../../business/ts/catalog-reference
@@ -2039,34 +2039,34 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
 
   packages/shells/next/marketplace-admin:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@entifix/react-integration':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/transactions':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../../business/ts/catalog-reference
@@ -2079,7 +2079,7 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
@@ -2088,22 +2088,22 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-integration':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-order-management':
         specifier: workspace:*
         version: link:../../../business/ts/order-management
@@ -2113,7 +2113,7 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
@@ -2122,25 +2122,25 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@entifix/react-integration':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-catalog
@@ -2153,7 +2153,7 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
@@ -2162,25 +2162,25 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@entifix/react-integration':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-sales-vocabulary':
         specifier: workspace:*
         version: link:../../../business/ts/sales-vocabulary
@@ -2193,7 +2193,7 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
@@ -2202,22 +2202,22 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-integration':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../../business/ts/stock-management
@@ -2227,7 +2227,7 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../../business/ts/i18n
@@ -2236,25 +2236,25 @@ importers:
     dependencies:
       '@entifix/authz':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/business':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/core':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@entifix/next-shell':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))
       '@entifix/react-controls':
         specifier: 'catalog:'
-        version: 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+        version: 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@entifix/react-integration':
         specifier: 'catalog:'
-        version: 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+        version: 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
       '@entifix/rest':
         specifier: 'catalog:'
-        version: 0.1.1(effect@3.22.1)
+        version: 0.1.2(effect@3.22.1)
       '@r10c/business-ts-configuration':
         specifier: workspace:*
         version: link:../../../business/ts/configuration
@@ -2267,7 +2267,7 @@ importers:
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
-        version: 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+        version: 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../../business/ts/authz-grants
@@ -2303,6 +2303,8 @@ importers:
       '@r10c/slices':
         specifier: workspace:*
         version: link:../slices
+
+  tools/entifix: {}
 
   tools/i18n:
     devDependencies:
@@ -3401,51 +3403,51 @@ packages:
   '@emnapi/wasi-threads@1.2.3':
     resolution: {integrity: sha512-ELEBe8PsLvvJ6QMr0zLt8ffvOHW/dc1m3CEzNMg7aJUv3bMaoDtw2TXyDAwkYBuroxxuHEwhRTLJSe5sya547g==}
 
-  '@entifix/amqp@0.1.1':
-    resolution: {integrity: sha512-Wzw+ZNaS+BFvSJZBM2HlUwI9tu3Zrdu0jBGKpJhcX40njCqw9vHSaRcq+ISebQtkUmSS6Ursn5I1OtXvp8I/Lg==}
+  '@entifix/amqp@0.1.2':
+    resolution: {integrity: sha512-D4UZlYWua2OUGnG9471yeEUF514uXBrsJQRfaFxF41DKaAUJEv7fLDeJrzbatm9DTKP2cguHPZLRtM8RhR2N6A==}
     peerDependencies:
-      '@entifix/transactions': 0.1.1
+      '@entifix/transactions': 0.1.2
       effect: '>=3.22 <4'
     peerDependenciesMeta:
       '@entifix/transactions':
         optional: true
 
-  '@entifix/authz@0.1.1':
-    resolution: {integrity: sha512-dCHh3piQ0QseV+1EbSnVXzDJzeh1ZtneJgnv4g62J8sVt0c8pN0+ihvmNr65mGtB94CIQ5xz5ipz24JxwgcPRQ==}
+  '@entifix/authz@0.1.2':
+    resolution: {integrity: sha512-3b+Vh0/Z7KaliPzGQPcdVBEH+TB4BDIq1zqpVIFDyrHPj2A96TepWIEyYhjqpf0Df4D4MvdmuIuq2CHE+dXncw==}
     peerDependencies:
       effect: '>=3.22 <4'
 
-  '@entifix/business@0.1.1':
-    resolution: {integrity: sha512-tLV/lh4hjfgRvvnVr6y9IVKahzL4bvWwOM3A6pd90Wye1S28PGlKYDxyI8Ll3vF5YJMSSgIKKA8uo3qNiin26Q==}
+  '@entifix/business@0.1.2':
+    resolution: {integrity: sha512-HqW3bmevd0zhOLTxze9+E0xkivMY3v6h5wCQ7S5DZJV4G8yOS7KsUX7yTvKMl6f0Do8OuL2P4obQY6BU/wem2w==}
     peerDependencies:
       effect: '>=3.22 <4'
 
-  '@entifix/core@0.1.1':
-    resolution: {integrity: sha512-p+5LLFRrrUrxhcbR6pfZO44vROK6z495TvRy3lCnXLnQnzhB9L/o4jLQp8EDwM0h/5YSdFBA2LEcyHEtyplzvA==}
+  '@entifix/core@0.1.2':
+    resolution: {integrity: sha512-SAMo/JZKXT1R9b0Ra2XhLawY800RttondxAMf3/5su+Nat5DafjUhNqWb3X22h2N4DlItJR/zlxSLELNVnTCEg==}
     peerDependencies:
       effect: '>=3.22 <4'
 
-  '@entifix/i18n@0.1.1':
-    resolution: {integrity: sha512-9PrnC++IONyJsXTAB0RiLkr+SUz1BLH00pKBVRQuSdJIaS/wOZLGJW+LByHtoIelJvBmCSm8NUPBrzGBfHoDFw==}
+  '@entifix/i18n@0.1.2':
+    resolution: {integrity: sha512-aKs2TNXnA+gf2dnSl9iDZO8jfbaSXfP4FSPwtFMIGvD+uqEN5KYm9bnPFnFaamSsxVILmQ+tGk1xsocOWsiFCg==}
     peerDependencies:
       i18next: '>=26 <27'
 
-  '@entifix/jwt@0.1.1':
-    resolution: {integrity: sha512-sYFc+M+NH+xVeySWMnCPVKNo1cJhks9XrxyTt+vieaDnIpzD/zs15MAUCykWDcub+tUmd4ZUTXXzN5YuIS9ptA==}
+  '@entifix/jwt@0.1.2':
+    resolution: {integrity: sha512-TzzJvqj05K3JD/5EiWO0qSqrxbXeiEf/PK6fW9fSZmL2XNPpsoDMlkEs9z8VDyB/tYMmGwlzPm2NXxJ4TJ7Mug==}
     peerDependencies:
       effect: '>=3.22 <4'
 
-  '@entifix/mongo@0.1.1':
-    resolution: {integrity: sha512-vkJyZYY+4jvJbAYwJIJEzIeKWXvuQLkhUGivVbeJDB5SRHQ3GHFyyz5mtTvpEFpYms9ezs65lDXy1suBhMxVlw==}
+  '@entifix/mongo@0.1.2':
+    resolution: {integrity: sha512-4Z4e9awX/apt7k9CwOztaUxUNQ9upUTgSS3L/d8Fhi6IfgLTX74FdkEJM0jRH1hxb9oDCyMRk4dY43ABBAtIaQ==}
     peerDependencies:
-      '@entifix/transactions': 0.1.1
+      '@entifix/transactions': 0.1.2
       effect: '>=3.22 <4'
     peerDependenciesMeta:
       '@entifix/transactions':
         optional: true
 
-  '@entifix/next-i18n@0.1.1':
-    resolution: {integrity: sha512-PyXI3M2IgcV00fHTFztWdGxex06Gsi1UZ+WrRHsFcmZl3unba3kBogHb7CFFLFA8jXanGQsJD6UMNgD1CSgk/g==}
+  '@entifix/next-i18n@0.1.2':
+    resolution: {integrity: sha512-QSuOnbbv+WGVrfU5VmivohFSdASMz7UKk5ZWoS5cwoouVSbeQcp/9A8HXB+PvXym6bxpEXcmZ9iqSy00Acxfig==}
     peerDependencies:
       i18next: '>=26 <27'
       next: '>=16'
@@ -3453,8 +3455,8 @@ packages:
       i18next:
         optional: true
 
-  '@entifix/next-shell@0.1.1':
-    resolution: {integrity: sha512-2Yez8Yw25zJ61/iq9v/9vj2RtXz1qooSqTmzIl/hwzelmL053HXZdDalXkYCXbJOaolN2h8KebOX4AnFuLiogQ==}
+  '@entifix/next-shell@0.1.2':
+    resolution: {integrity: sha512-VlythZZRDvK6yG8D0r0GWDcmyQMQ/Vujxf4voUpqCI94ElTNuMfC2RMmTxAxXIXK3YS5SdClrCb/krPcBw2PJw==}
     peerDependencies:
       '@tanstack/react-query': '>=5.101 <6'
       effect: '>=3.22 <4'
@@ -3467,10 +3469,10 @@ packages:
       i18next:
         optional: true
 
-  '@entifix/react-controls@0.1.1':
-    resolution: {integrity: sha512-qGwdjkZhxAnlvDiVUj2JZ4SojOAXuuyQHZw4JYvAX4wnxmzSMwcL//+yILx4yPMQFiXInIVmg5qCYA83wLe6Ag==}
+  '@entifix/react-controls@0.1.2':
+    resolution: {integrity: sha512-xjHWHnSSI20bJqgipw+GHeNQTQgQZJi0YZy9qyfDv4TE57iEE6MFim31wPeflXbM1yfHu/LabNxD/R9KKOMP1Q==}
     peerDependencies:
-      '@entifix/i18n': 0.1.1
+      '@entifix/i18n': 0.1.2
       effect: '>=3.22 <4'
       i18next: '>=26 <27'
       react: '>=19 <20'
@@ -3483,48 +3485,48 @@ packages:
       react-i18next:
         optional: true
 
-  '@entifix/react-integration@0.1.1':
-    resolution: {integrity: sha512-xTUVWwxfEBiaxjhupccULT1SLGr+z9Y9rQtnBzmpnrlvrQmUOeEiY7IPFHIVQB46d+knGht5SfTZDWlnjYl8hQ==}
+  '@entifix/react-integration@0.1.2':
+    resolution: {integrity: sha512-jYMNFnlpoZRJ19QYiKEKCl+KvXLpxR+TpV13B0tNek8EW/nRCo39u6BVvngglky5xTtl4KrPwzpEau7osHpFxA==}
     peerDependencies:
       '@tanstack/react-form': '>=1.33 <2'
       '@tanstack/react-query': '>=5.101 <6'
       effect: '>=3.22 <4'
       react: '>=19 <20'
 
-  '@entifix/redis@0.1.1':
-    resolution: {integrity: sha512-tPJzQYA8EU/s95jbxFyJhq8JCR7ErYFJTqbX4SI+UXzsDRyZMb0g0cV1pXeRGp20gZoIGci8ofgm9mqgIqFx9A==}
+  '@entifix/redis@0.1.2':
+    resolution: {integrity: sha512-2uVJJsLQVadST4UYCyBunR72HwJ7hjcwBnn8X1QpVlGfB/ri1b+CjZOPRMrO0lTMghn8l2JAw5MG2KGNfOJchA==}
     peerDependencies:
-      '@entifix/transactions': 0.1.1
+      '@entifix/transactions': 0.1.2
       effect: '>=3.22 <4'
     peerDependenciesMeta:
       '@entifix/transactions':
         optional: true
 
-  '@entifix/rest@0.1.1':
-    resolution: {integrity: sha512-ZGXczvXzG8R7YcNcKlS/SwcNWOthyFHA75Q/jMOPVMGZJKUAFWnPTzqW2zDDCem+O1BpQPs9Nns3UoIXlEGqNw==}
+  '@entifix/rest@0.1.2':
+    resolution: {integrity: sha512-q9udawBjGgdWiMI3DH0GnqRBn7ZC5jWZtL+dXF23x1BkAvd7yF3tcuGYhiY1gEEYW7UeXQoFGg9gHN1Ukka1ng==}
     peerDependencies:
       effect: '>=3.22 <4'
 
-  '@entifix/service-shell@0.1.1':
-    resolution: {integrity: sha512-YkJx7gWjZi/KoMvDlpB5wvYpJOC6WacYS44X2NASrI/kj0qA2+L0haJE6VZ2lJow9Xj7JwDXd0XUh8ZURAbkFg==}
+  '@entifix/service-shell@0.1.2':
+    resolution: {integrity: sha512-93HhyAu2Jxby5H2v8slqD7SzyLGpshap99PBAJ48hQ0K+reosbX5bKSn+Ibxx/hpSduxEpTGo3lDbP7x4ehgqQ==}
     peerDependencies:
       '@opentelemetry/api': '>=1.9 <2'
       effect: '>=3.22 <4'
 
-  '@entifix/sql@0.1.1':
-    resolution: {integrity: sha512-Il68m0sU2l9msNsaYgKUvnkqb0Q2Pr6UXu7mlaBcq8S9rkYOAfqhfCbqJOW8qTa1vpgCZSodqfnV8TetGx3dmg==}
+  '@entifix/sql@0.1.2':
+    resolution: {integrity: sha512-NhO7SgPqK49Fb06QEez3kH1DcPfSnrTpbrHXq/vMV7o75vnkN2j7EffbY7sJDYA791lQzr4anuXW2Ai7/3YbXg==}
     peerDependencies:
       effect: '>=3.22 <4'
 
-  '@entifix/style@0.1.1':
-    resolution: {integrity: sha512-4nxX/d48qBEq/AZc930aXzwt0dHpq/BnUd5WYL7NotsUB9CrOc3ySp4Ag3bpdkR5cOnfjy4FogxOJ2qQNioqQA==}
+  '@entifix/style@0.1.2':
+    resolution: {integrity: sha512-eFtsAYUsKi8IsEd2oVhCybxZEmHqKRy/Jca8x5bdKvccgxk6OXm+zQ4cELuO0yoCTPpZJ4i8TiZEUqCwtjvgTQ==}
 
-  '@entifix/testing-e2e@0.1.1':
-    resolution: {integrity: sha512-vdBL8pDK7wasO9aiX26/pCtBsLs1/CydZLkPDKCnhSsMXAQTNqjbhdPP/KOzBCsJ7t61Ne0zazw3Xjdk2duQSA==}
+  '@entifix/testing-e2e@0.1.2':
+    resolution: {integrity: sha512-v8pH22s9JyYuQxSWzX5rRwIiE13GSRP/C7yZv4D91xQuwTjI4NuTmC3pRmhbLem9dLzqMElvoQIGERsk+lByWQ==}
     peerDependencies:
-      '@entifix/amqp': 0.1.1
-      '@entifix/mongo': 0.1.1
-      '@entifix/redis': 0.1.1
+      '@entifix/amqp': 0.1.2
+      '@entifix/mongo': 0.1.2
+      '@entifix/redis': 0.1.2
       '@msw/playwright': '*'
       '@nx/devkit': '>=23 <24'
       '@nx/playwright': '>=23 <24'
@@ -3555,11 +3557,11 @@ packages:
       vitest:
         optional: true
 
-  '@entifix/testing-unit@0.1.1':
-    resolution: {integrity: sha512-womkr6qAk0+4AEIiATgItF/MjLth78SDh/A+nf+cioYmLCUhT3sUtEPDs4gde/mw5SxbCqPaT5RrXv5Gy2EDyA==}
+  '@entifix/testing-unit@0.1.2':
+    resolution: {integrity: sha512-iYHIhP9gZnas2l+dD1KrhFsJzu0xTG3AnHhckftC2A6XgSsnPXv9rhcfmKeiPI4htAgNzVteUg2EqWx8L1u2PQ==}
     peerDependencies:
       '@effect/vitest': '>=0.30 <1'
-      '@entifix/react-controls': 0.1.1
+      '@entifix/react-controls': 0.1.2
       '@testing-library/react': '*'
       '@testing-library/user-event': '*'
       effect: '>=3.22 <4'
@@ -3582,18 +3584,18 @@ packages:
       vitest:
         optional: true
 
-  '@entifix/tooling@0.1.1':
-    resolution: {integrity: sha512-Y1mBsgDEqmIYEwsv1hZRLoSqJeLD/fSXD0lJI6M2Ct8x04LvjBVAu0JDunyPcxrwtABjYMTO0de2988YXAFdYg==}
+  '@entifix/tooling@0.1.2':
+    resolution: {integrity: sha512-ernGXRxW753THCXoorGJvBCJCgTbh/6JXcYlFK8s7c7VTMC+PGsd6aku7fdmMsx5mj3XfS1jl0UPY8D2Nq+iJg==}
     peerDependencies:
       '@opentelemetry/api': '>=1.9 <2'
 
-  '@entifix/transactions@0.1.1':
-    resolution: {integrity: sha512-g5d1IJMHMOKKyqUT/ImKTIbBq0eNZmID8xc4OkVmxmXU6l4h8rTmHJTJpaKsgyxayHjpNtMt7Hr0Pt6rEnAAxQ==}
+  '@entifix/transactions@0.1.2':
+    resolution: {integrity: sha512-0iciF/DCX0I+JUTjtyXuHQ6UdMadnbvxohCfj8+jnvRpaOpPbwg4vQzT2C3gtXKOaAItaZDkYQCIFj7ng1/Gvg==}
     peerDependencies:
       effect: '>=3.22 <4'
 
-  '@entifix/zitadel@0.1.1':
-    resolution: {integrity: sha512-BulSLnbma4PRx0QsU08dhjuYuJPeW28+xzH7IfHUzdg+lYS6SFqYTdUypiJ+iklJ5EKVO/RI87hms9bSase7Jw==}
+  '@entifix/zitadel@0.1.2':
+    resolution: {integrity: sha512-mhfdEUZqpr3tKG+KnePR8uZLYlqaUqdlpU3G64bWC30RGu3xUW5XPlspAMDhGKy5s8f6lOHn78yi/TGQ2yjuRg==}
     peerDependencies:
       effect: '>=3.22 <4'
 
@@ -14425,58 +14427,58 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@entifix/amqp@0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)':
+  '@entifix/amqp@0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)':
     dependencies:
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       amqplib: 2.0.1
       effect: 3.22.1
     optionalDependencies:
-      '@entifix/transactions': 0.1.1(effect@3.22.1)
+      '@entifix/transactions': 0.1.2(effect@3.22.1)
 
-  '@entifix/authz@0.1.1(effect@3.22.1)':
+  '@entifix/authz@0.1.2(effect@3.22.1)':
     dependencies:
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
 
-  '@entifix/business@0.1.1(effect@3.22.1)':
+  '@entifix/business@0.1.2(effect@3.22.1)':
     dependencies:
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
 
-  '@entifix/core@0.1.1(effect@3.22.1)':
+  '@entifix/core@0.1.2(effect@3.22.1)':
     dependencies:
       '@swc/helpers': 0.5.23
       effect: 3.22.1
 
-  '@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))':
+  '@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))':
     dependencies:
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       i18next: 26.3.6(typescript@6.0.3)
     transitivePeerDependencies:
       - effect
 
-  '@entifix/jwt@0.1.1(effect@3.22.1)':
+  '@entifix/jwt@0.1.2(effect@3.22.1)':
     dependencies:
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
       jose: 6.2.8
 
-  '@entifix/mongo@0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)':
+  '@entifix/mongo@0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)':
     dependencies:
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
       mongodb: 7.5.0
     optionalDependencies:
-      '@entifix/transactions': 0.1.1(effect@3.22.1)
+      '@entifix/transactions': 0.1.2(effect@3.22.1)
     transitivePeerDependencies:
       - '@aws-sdk/credential-providers'
       - '@mongodb-js/zstd'
@@ -14486,10 +14488,10 @@ snapshots:
       - snappy
       - socks
 
-  '@entifix/next-i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))':
+  '@entifix/next-i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))':
     dependencies:
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/i18n': 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/i18n': 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
       '@swc/helpers': 0.5.23
       next: 16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0)
     optionalDependencies:
@@ -14497,15 +14499,15 @@ snapshots:
     transitivePeerDependencies:
       - effect
 
-  '@entifix/next-shell@0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))':
+  '@entifix/next-shell@0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(next@16.2.10(@babel/core@8.0.1)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.101.0))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)(zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)))':
     dependencies:
-      '@entifix/authz': 0.1.1(effect@3.22.1)
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/i18n': 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
-      '@entifix/react-controls': 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
-      '@entifix/react-integration': 0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
-      '@entifix/transactions': 0.1.1(effect@3.22.1)
+      '@entifix/authz': 0.1.2(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/i18n': 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
+      '@entifix/react-controls': 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+      '@entifix/react-integration': 0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)
+      '@entifix/transactions': 0.1.2(effect@3.22.1)
       '@tanstack/react-query': 5.101.4(react@19.2.8)
       effect: 3.22.1
       idb: 8.0.3
@@ -14519,60 +14521,60 @@ snapshots:
       - '@tanstack/react-form'
       - react-i18next
 
-  '@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)':
+  '@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)':
     dependencies:
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@headlessui/react': 2.2.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       class-variance-authority: 0.7.1
       effect: 3.22.1
       idb: 8.0.3
       react: 19.2.8
     optionalDependencies:
-      '@entifix/i18n': 0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
+      '@entifix/i18n': 0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))
       i18next: 26.3.6(typescript@6.0.3)
       react-i18next: 17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
     transitivePeerDependencies:
       - react-dom
 
-  '@entifix/react-integration@0.1.1(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)':
+  '@entifix/react-integration@0.1.2(@tanstack/react-form@1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(effect@3.22.1)(react@19.2.8)':
     dependencies:
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/transactions': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/transactions': 0.1.2(effect@3.22.1)
       '@tanstack/react-form': 1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tanstack/react-query': 5.101.4(react@19.2.8)
       effect: 3.22.1
       react: 19.2.8
 
-  '@entifix/redis@0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)':
+  '@entifix/redis@0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)':
     dependencies:
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
       ioredis: 6.0.0
     optionalDependencies:
-      '@entifix/transactions': 0.1.1(effect@3.22.1)
+      '@entifix/transactions': 0.1.2(effect@3.22.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@entifix/rest@0.1.1(effect@3.22.1)':
+  '@entifix/rest@0.1.2(effect@3.22.1)':
     dependencies:
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/transactions': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/transactions': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
 
-  '@entifix/service-shell@0.1.1(717ec9bb6087e04e5f9411cf812c8009)':
+  '@entifix/service-shell@0.1.2(717ec9bb6087e04e5f9411cf812c8009)':
     dependencies:
       '@effect/opentelemetry': 0.64.0(@effect/platform@0.97.1(effect@3.22.1))(@opentelemetry/api@1.9.1)(@opentelemetry/resources@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.221.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-node@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-web@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.43.0)(effect@3.22.1)
       '@effect/platform': 0.97.1(effect@3.22.1)
       '@effect/platform-node': 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
-      '@entifix/authz': 0.1.1(effect@3.22.1)
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/tooling': 0.1.1(@opentelemetry/api@1.9.1)
+      '@entifix/authz': 0.1.2(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/tooling': 0.1.2(@opentelemetry/api@1.9.1)
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/context-async-hooks': 2.10.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-metrics-otlp-http': 0.221.0(@opentelemetry/api@1.9.1)
@@ -14593,15 +14595,15 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@entifix/service-shell@0.1.1(c0a45b99eecd371593424893fa78f6e7)':
+  '@entifix/service-shell@0.1.2(c0a45b99eecd371593424893fa78f6e7)':
     dependencies:
       '@effect/opentelemetry': 0.64.0(@effect/platform@0.97.1(effect@3.22.1))(@opentelemetry/api@1.9.1)(@opentelemetry/resources@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.221.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-node@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-web@2.10.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.43.0)(effect@3.22.1)
       '@effect/platform': 0.97.1(effect@3.22.1)
       '@effect/platform-node': 0.108.1(@effect/cluster@0.59.0(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(effect@3.22.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/rpc@0.75.1(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(@effect/sql@0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1))(effect@3.22.1)
-      '@entifix/authz': 0.1.1(effect@3.22.1)
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/tooling': 0.1.1(@opentelemetry/api@1.9.1)
+      '@entifix/authz': 0.1.2(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/tooling': 0.1.2(@opentelemetry/api@1.9.1)
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/context-async-hooks': 2.10.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-metrics-otlp-http': 0.221.0(@opentelemetry/api@1.9.1)
@@ -14622,30 +14624,30 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@entifix/sql@0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)':
+  '@entifix/sql@0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)':
     dependencies:
       '@effect/sql': 0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
     transitivePeerDependencies:
       - '@effect/experimental'
       - '@effect/platform'
 
-  '@entifix/style@0.1.1': {}
+  '@entifix/style@0.1.2': {}
 
-  '@entifix/testing-e2e@0.1.1(7e1bb2f64cf0cc0efcf5f5d511394129)':
+  '@entifix/testing-e2e@0.1.2(8486ceeaa3835907424602280f5437d0)':
     dependencies:
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/testing-unit': 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/testing-unit': 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
     optionalDependencies:
-      '@entifix/amqp': 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
-      '@entifix/mongo': 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
-      '@entifix/redis': 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+      '@entifix/amqp': 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
+      '@entifix/mongo': 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
+      '@entifix/redis': 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@msw/playwright': 0.6.7(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))
       '@nx/devkit': 23.0.1(nx@23.0.1(@swc-node/register@1.11.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(@swc/types@0.1.27)(typescript@6.0.3))(@swc/core@1.15.43(@swc/helpers@0.5.23)))
       '@nx/playwright': 23.0.1(@babel/traverse@7.29.8)(@nx/jest@23.0.1(8447954e8b41787631f25706b759ff14))(@playwright/test@1.61.1)(@swc-node/register@1.11.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(@swc/types@0.1.27)(typescript@6.0.3))(@swc/cli@0.8.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(chokidar@5.0.0))(@swc/core@1.15.43(@swc/helpers@0.5.23))(@zkochan/js-yaml@0.0.7)(eslint@10.6.0(jiti@2.7.0))(nx@23.0.1(@swc-node/register@1.11.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(@swc/types@0.1.27)(typescript@6.0.3))(@swc/core@1.15.43(@swc/helpers@0.5.23)))(verdaccio@6.7.4(typanion@3.14.0))
@@ -14662,17 +14664,17 @@ snapshots:
       - '@testing-library/user-event'
       - react
 
-  '@entifix/testing-e2e@0.1.1(b0922e599a90f67baf1b5992e09c95e5)':
+  '@entifix/testing-e2e@0.1.2(febbf119f7a3532c9ec4995cafaa95cd)':
     dependencies:
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/testing-unit': 0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/testing-unit': 0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
     optionalDependencies:
-      '@entifix/amqp': 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
-      '@entifix/mongo': 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
-      '@entifix/redis': 0.1.1(@entifix/transactions@0.1.1(effect@3.22.1))(effect@3.22.1)
+      '@entifix/amqp': 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
+      '@entifix/mongo': 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
+      '@entifix/redis': 0.1.2(@entifix/transactions@0.1.2(effect@3.22.1))(effect@3.22.1)
       '@msw/playwright': 0.6.7(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))
       '@nx/devkit': 23.0.1(nx@23.0.1(@swc-node/register@1.11.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(@swc/types@0.1.27)(typescript@6.0.3))(@swc/core@1.15.43(@swc/helpers@0.5.23)))
       '@nx/playwright': 23.0.1(@babel/traverse@7.29.8)(@nx/jest@23.0.1(8447954e8b41787631f25706b759ff14))(@playwright/test@1.61.1)(@swc-node/register@1.11.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(@swc/types@0.1.27)(typescript@6.0.3))(@swc/cli@0.8.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(chokidar@5.0.0))(@swc/core@1.15.43(@swc/helpers@0.5.23))(@zkochan/js-yaml@0.0.7)(eslint@10.6.0(jiti@2.7.0))(nx@23.0.1(@swc-node/register@1.11.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(@swc/types@0.1.27)(typescript@6.0.3))(@swc/core@1.15.43(@swc/helpers@0.5.23)))(verdaccio@6.7.4(typanion@3.14.0))
@@ -14689,17 +14691,17 @@ snapshots:
       - '@testing-library/user-event'
       - react
 
-  '@entifix/testing-unit@0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)':
+  '@entifix/testing-unit@0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)':
     dependencies:
       '@effect/sql': 0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@5.11.1))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/transactions': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/transactions': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
     optionalDependencies:
       '@effect/vitest': 0.30.0(effect@3.22.1)(vitest@4.1.9)
-      '@entifix/react-controls': 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+      '@entifix/react-controls': 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@testing-library/react': 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
       msw: 2.15.0(@types/node@26.0.1)(typescript@6.0.3)
@@ -14709,17 +14711,17 @@ snapshots:
       - '@effect/experimental'
       - '@effect/platform'
 
-  '@entifix/testing-unit@0.1.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)':
+  '@entifix/testing-unit@0.1.2(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(@effect/vitest@0.30.0(effect@3.22.1)(vitest@4.1.9))(@entifix/react-controls@0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1))(effect@3.22.1)(msw@2.15.0(@types/node@26.0.1)(typescript@6.0.3))(react@19.2.8)(vitest@4.1.9)':
     dependencies:
       '@effect/sql': 0.52.1(@effect/experimental@0.60.0(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)(ioredis@6.0.0))(@effect/platform@0.97.1(effect@3.22.1))(effect@3.22.1)
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
-      '@entifix/transactions': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
+      '@entifix/transactions': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
     optionalDependencies:
       '@effect/vitest': 0.30.0(effect@3.22.1)(vitest@4.1.9)
-      '@entifix/react-controls': 0.1.1(@entifix/i18n@0.1.1(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
+      '@entifix/react-controls': 0.1.2(@entifix/i18n@0.1.2(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3)))(effect@3.22.1)(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react-i18next@17.0.11(i18next@26.3.6(typescript@6.0.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(react@19.2.8)
       '@testing-library/react': 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
       msw: 2.15.0(@types/node@26.0.1)(typescript@6.0.3)
@@ -14729,21 +14731,22 @@ snapshots:
       - '@effect/experimental'
       - '@effect/platform'
 
-  '@entifix/tooling@0.1.1(@opentelemetry/api@1.9.1)':
+  '@entifix/tooling@0.1.2(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@swc/helpers': 0.5.23
 
-  '@entifix/transactions@0.1.1(effect@3.22.1)':
+  '@entifix/transactions@0.1.2(effect@3.22.1)':
     dependencies:
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
 
-  '@entifix/zitadel@0.1.1(effect@3.22.1)':
+  '@entifix/zitadel@0.1.2(effect@3.22.1)':
     dependencies:
-      '@entifix/business': 0.1.1(effect@3.22.1)
-      '@entifix/core': 0.1.1(effect@3.22.1)
+      '@entifix/business': 0.1.2(effect@3.22.1)
+      '@entifix/core': 0.1.2(effect@3.22.1)
       '@swc/helpers': 0.5.23
       effect: 3.22.1
       jose: 6.2.8
