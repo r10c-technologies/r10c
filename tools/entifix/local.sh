@@ -25,6 +25,15 @@ if [[ -z "$checkout" || ! -f "$checkout/nx.json" ]]; then
   exit 1
 fi
 
+# ⚠️ Prune orphaned store entries first. After a catalog bump pnpm keeps the
+# previous release's `node_modules/.pnpm/@entifix+<name>@<old>` directories for
+# `modulesCacheMaxAge` — seven days by default — and the sync finds copies by
+# name, so it writes into those orphans too and stops on the first one whose
+# older dependency list lacks something the new build needs. Measured after
+# 0.1.1 → 0.1.2: "@entifix/transactions now needs @entifix/business … never
+# installed", with every live entry perfectly current.
+(cd "$root" && pnpm install --config.modules-cache-max-age=0 --config.optimistic-repeat-install=false)
+
 while IFS= read -r name; do
   unset "$name"
 done < <(env | sed -n 's/^\(NX_[A-Za-z0-9_]*\)=.*/\1/p')

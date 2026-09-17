@@ -7,10 +7,14 @@ release back. Four commands, one per script:
 | --------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------- |
 | `pnpm run entifix:checkout` | `checkout.sh`             | clones entifix into `.entifix/` if it is missing, then `pnpm install` inside it                |
 | `pnpm run entifix:local`    | `local.sh`                | runs entifix's `dev-sync` from that clone: build, copy over the release, rebuild on every save |
-| `pnpm run entifix:registry` | `src/guard.mjs --restore` | deletes the synced copies and relinks the release, in about two seconds                        |
+| `pnpm run entifix:registry` | `src/guard.mjs --restore` | deletes the synced copies and relinks the release, in a few seconds                            |
 | `pnpm run entifix:status`   | `src/status.mjs`          | the release, or which packages are synced and from which entifix commit                        |
 | (pre-commit)                | `src/guard.mjs`           | refuses a commit while a synced copy is installed; `ENTIFIX_DEV_SYNC_OK=1` lets one through    |
 | (Nx runtime input)          | `src/fingerprint.mjs`     | keeps a synced build out of the task cache                                                     |
+
+A Next dev server serves a synced change by itself; a service started by
+`@nx/js:node` does not, because it restarts on the Nx daemon's file events and the
+daemon ignores `node_modules` — restart it.
 
 Every consumer checkout — each repository, and each worktree of one — keeps its
 **own** clone, so two of them can change entifix on two branches at once. An
@@ -37,6 +41,14 @@ another consumer — or into entifix — unchanged. The consumer supplies:
   its lockfile version, and a synced copy keeps it; without this input a build
   against the local entifix and a build against the release share a cache entry.
 - **Nx targets or scripts** that run the four commands from the repository root.
+
+## Orphaned store entries
+
+After a catalog bump pnpm keeps the previous release's store entries for
+`modulesCacheMaxAge` (seven days). The sync finds copies by name, so it would
+write into those orphans and stop on the first whose older dependency list lacks
+something the new build needs. `local.sh` therefore installs with
+`--config.modules-cache-max-age=0` before it starts, and so does the restore.
 
 ## Why a copy and not pnpm's own mechanisms
 

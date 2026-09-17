@@ -155,17 +155,23 @@ over the release. The kit is `tools/entifix` (its README is the contract):
 pnpm run entifix:checkout   # clone entifix into .entifix/ (gitignored) + install
 pnpm run entifix:local      # build, copy over the release, rebuild on every save
 pnpm run entifix:status     # the release, or what is synced and from which commit
-pnpm run entifix:registry   # put the release back (~2s)
+pnpm run entifix:registry   # put the release back (a few seconds)
 ```
 
 `entifix:local` runs entifix's own `dev-sync` from the clone: it builds every
 entifix package, then rebuilds each one you save in `.entifix/` and copies what it
-publishes over the release under `node_modules/.pnpm`, file by file. A running
-service rebuilds and the Next dev server serves the change about five seconds
-after the save — nothing to restart, and nothing in this repository's manifests
-or lockfile changes. Each copy's version becomes `<release>-dev.<timestamp>` and
-carries an `entifixDevSync` marker naming the entifix commit. Open
-`r10c.code-workspace` to edit and commit both repositories from one window.
+publishes over the release under `node_modules/.pnpm`, file by file. Nothing in
+this repository's manifests or lockfile changes.
+
+- **A Next dev server serves the change by itself**, about six seconds after the
+  save (measured on marketplace-app, twice in a row, no restart).
+- ⚠️ **A service does not: restart its `dev`.** `@nx/js:node` restarts a service
+  on the Nx daemon's file events, and the daemon ignores `node_modules` — so a
+  sync leaves the running process on the code it booted with, while a restart
+  picks the synced build up (measured on config-service with
+  `@entifix/service-shell`). Each copy's version becomes `<release>-dev.<timestamp>` and
+  carries an `entifixDevSync` marker naming the entifix commit. Open
+  `r10c.code-workspace` to edit and commit both repositories from one window.
 
 - **One clone per checkout.** Every consumer — this repository, each of its
   worktrees, another entifix project — has its own `.entifix/` on its own branch,
@@ -187,6 +193,11 @@ carries an `entifixDevSync` marker naming the entifix commit. Open
   and reinstalls without that shortcut.
 - **A new entifix dependency stops the sync.** A copy cannot install anything:
   release entifix, bump the catalog, `pnpm install`.
+- ⚠️ **After a catalog bump the previous release lingers.** pnpm keeps orphaned
+  store entries for `modulesCacheMaxAge` (seven days), the sync finds copies by
+  name, and an orphan's older dependency list stops it with a "never installed"
+  error that is about a package nothing uses. `entifix:local` prunes them
+  (`--config.modules-cache-max-age=0`) before it starts.
 - **Never a `link:` or `file:` specifier.** A linked package resolves `effect`
   from entifix's own `node_modules`, and two copies of Effect break
   `Context.Tag` identity without an error.

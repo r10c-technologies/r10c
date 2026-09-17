@@ -30,7 +30,13 @@ if (process.argv.includes('--restore')) {
   const restored = restoreRelease(root, dir =>
     execFileSync(
       'pnpm',
-      ['install', '--config.optimistic-repeat-install=false'],
+      [
+        'install',
+        '--config.optimistic-repeat-install=false',
+        // Drop orphaned store entries too, or a previous release's copies
+        // linger for a week and the next sync writes into them (local.sh).
+        '--config.modules-cache-max-age=0',
+      ],
       {
         cwd: dir,
         stdio: 'inherit',
