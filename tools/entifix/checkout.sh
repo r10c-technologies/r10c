@@ -23,7 +23,9 @@ cd "$root"
 dir="${ENTIFIX_DIR:-.entifix}"
 repo="${ENTIFIX_REPO:-git@github.com:r10c-technologies/entifix.git}"
 
-if ! git check-ignore -q "$dir"; then
+# Asked with a trailing slash: a directory pattern such as `/.entifix/` does not
+# match the bare path of a directory that does not exist yet.
+if ! git check-ignore -q "${dir%/}/"; then
   echo "entifix:checkout: $dir is not gitignored here — add it to .gitignore first" >&2
   exit 1
 fi
