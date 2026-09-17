@@ -155,7 +155,7 @@ const MONGO_URI =
 const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // Locale policy, per frontend. `default` is what an unprefixed URL negotiates
   // to when the visitor has no cookie and their `Accept-Language` names nothing
-  // we speak; `supported` is the set the middleware will honour in a path
+  // we speak; `supported` is the set the proxy will honour in a path
   // prefix. Operators can narrow a deployment to one language by editing these
   // without a rebuild.
   {

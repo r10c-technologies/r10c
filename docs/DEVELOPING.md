@@ -726,14 +726,14 @@ asserts a request produces a structured record carrying its span's `trace_id`.
 It is a `*.mock.spec.ts` because it reads an in-process sink; the same guarantee
 against real infra is checked by hand (logs in Loki, the trace in Tempo).
 
-**Signing a suite in.** Both Next apps are behind the auth middleware, so a spec
+**Signing a suite in.** Both Next apps are behind the auth proxy, so a spec
 that navigates without a session gets a redirect instead of a page. Two things
 follow, and a new gated e2e project needs both:
 
 - **`seedSession(context, { roles })`** (`…/playwright`) puts a session on the
   browser context before the first navigation. In `mock` it fabricates the
   cookie — deliberately unsigned, since the only things exercised there are the
-  middleware's presence check and the server-rendered nav filter, and the
+  proxy's presence check and the server-rendered nav filter, and the
   services are msw fixtures anyway. In `live` it performs a **real sign-in**
   through Zitadel's hosted v2 login, so the token is one auth-service minted and
   the downstream `requirePermission` checks are genuinely hit — which is why the

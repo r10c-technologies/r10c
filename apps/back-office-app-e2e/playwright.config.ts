@@ -12,7 +12,7 @@ export default defineEntifixE2eConfig({
   configFile: __filename,
   appDir: 'apps/back-office-app',
   port: 3001,
-  // Everything but the front door is behind the auth middleware, and `/` itself
+  // Everything but the front door is behind the auth proxy, and `/` itself
   // renders the sign-in card rather than a ready page. `/api/health` is exempt
   // from the matcher and depends on nothing.
   readyPath: '/api/health',

@@ -132,7 +132,7 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
  * A `ButtonLink` and not a `Button`, because the click is a navigation: it keeps
  * middle-click, open-in-new-tab and the status bar, and costs no client
  * boundary of its own. `useLocaleHref` because every internal href carries the
- * locale — an unprefixed one still resolves through the middleware, at the cost
+ * locale — an unprefixed one still resolves through the proxy, at the cost
  * of a round trip per click.
  */
 function ProductSetupLink() {

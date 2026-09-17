@@ -47,7 +47,7 @@ interface LocaleParams {
  * scheme in the back offices forces every render to be dynamic.
  */
 
-/** A prefix the middleware never produces (`/de/...`, typed by hand) is a 404. */
+/** A prefix the proxy never produces (`/de/...`, typed by hand) is a 404. */
 function requireLocale(locale: string): Locale {
   if (!isLocale(locale)) notFound();
   return locale;

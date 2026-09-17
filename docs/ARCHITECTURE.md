@@ -529,8 +529,8 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   `createRefreshRoute` from `@entifix/next-shell/server` — anything a route
   handler or server layout _calls_ must ship from `/server` so it is never
   reached through the client surface and stamped as a client reference;
-  each app mounts its own, since cookies are per-origin. A `middleware.ts` per
-  app does an edge-only presence check on `entifix_at` — back-office-app classifies
+  each app mounts its own, since cookies are per-origin. A `proxy.ts` per
+  app (Next 16's name for middleware) does a presence-only check on `entifix_at` — back-office-app classifies
   paths (`/` bounces when authenticated, `/account/*`+`/users` require a session;
   there is no third class any more, because sign-up and recovery are screens at
   the provider) — with the real signature
@@ -595,7 +595,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
 Authentication answers _who_; this answers _what_. The whole policy lives in
 `@entifix/authz` (`layer:business`, `scope:shared`) — pure and
 Effect-free apart from the DI tag, so the identical check runs in a service, a
-Next server component, edge middleware and the browser. See
+Next server component, the Next proxy and the browser. See
 [ADR 0002](./adr/0002-authorization-roles-and-abac.md).
 
 - **The aspect is a role on the user.** `UserIdentity.role` is one of `user` ‹
@@ -617,12 +617,12 @@ context })` is already attribute-shaped; `makeStaticPolicyDecision()` ignores
   `context` and consults the role table. Swapping in a rule engine is a change of
   `Layer`, not of call sites.
 - **Enforcement is layered, and only the last layer is security.** Next
-  middleware does an edge presence check (a fast bounce); the server-rendered
+  proxy does a cookie presence check (a fast bounce); the server-rendered
   layout filters nav with `can(...)` and gates back-office-app's `(back-office)`
   route group; the
   service guard `requirePermission` (`@entifix/service-shell`) verifies the
   token and asks the policy — `401` unauthenticated, `403` denied. The role gate
-  sits in the server layout rather than middleware to keep verification off every
+  sits in the server layout rather than the proxy to keep verification off every
   server render; under RS256 it would only need `jwt.publicKey`, which is served
   openly at `/.well-known/jwks.json`, so the original "never copy the secret"
   reason has lapsed while the placement has not

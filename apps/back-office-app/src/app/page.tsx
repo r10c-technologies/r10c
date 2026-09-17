@@ -45,7 +45,7 @@ function SignIn() {
   const params = useSearchParams();
   const error = params.get('error');
 
-  // Where the visitor was refused, carried here by the middleware. Forwarded
+  // Where the visitor was refused, carried here by the proxy. Forwarded
   // untouched and unvalidated: `oidcStartRoute` stashes it server-side with the
   // pending authorization and `safeRedirect` re-checks it against the allowlist
   // on the way back, deliberately — a value that made a round trip through a

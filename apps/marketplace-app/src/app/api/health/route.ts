@@ -5,7 +5,7 @@ import { createHealthRoutes } from '@entifix/next-shell/server';
  *
  * Liveness answers as soon as Next is listening — no config-service, no
  * backend, no session. That is precisely why it exists: with the whole app
- * behind the auth middleware, a probe against `/` gets a redirect to an
+ * behind the proxy, a probe against `/` gets a redirect to an
  * back-office-app that may not be running. Playwright's `webServer.url` points here.
  */
 const routes = createHealthRoutes({

@@ -4,6 +4,10 @@
 - Date: 2026-07-26
 - Area: platform
 - Read when: writing user-visible copy, adding an error `code`, or adding a locale binder — three build gates make i18n mandatory, and a code missing from the catalog reaches the user raw
+- Revised: 2026-09-17 — Next 16 renamed middleware to **proxy** (`src/proxy.ts`),
+  and a proxy runs on Node rather than the edge (#282). The routing section keeps
+  its reasoning; the edge claim below is corrected in place. `@entifix/i18n/routing`
+  staying free of i18next and the catalogs still keeps that per-request module small.
 - Revised: 2026-08-19 by [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md) —
   "No metadata endpoint had to be invented" is no longer true: `$metadata` serves
   descriptors per entity. The decision is untouched — the document carries keys,
@@ -67,9 +71,10 @@ allowed dependency. `eslint.config.mjs` and `docs/_shared/layering.md` are
 untouched — unlike ADR 0002, this change required no new ordering dimension.
 
 A second entry point, `@entifix/i18n/routing`, exports only the locale
-type and the negotiation helpers. Next middleware runs on the edge, and
-importing the barrel would pull the i18next runtime and all five catalogs into a
-bundle that only reads a cookie and a header.
+type and the negotiation helpers. Next middleware ran on the edge when this was
+written (Next 16's proxy, which replaced it, runs on Node), and importing the
+barrel would pull the i18next runtime and all five catalogs into a bundle that
+only reads a cookie and a header.
 
 ### Locale routing is a middleware rewrite, not an `app/[locale]` segment
 

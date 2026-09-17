@@ -40,7 +40,7 @@ const cookieOptions = (maxAge: number) => ({
  *
  * Both are sized to the SESSION, not to the access token. Sizing `entifix_at` to
  * `expiresIn` is what signed everyone out every fifteen minutes: when the cookie
- * expired, the middleware's presence check could not tell "this token needs
+ * expired, the proxy's presence check could not tell "this token needs
  * refreshing" from "there is no session", and picked the second — while the
  * Redis session had days left. The JWT's own `exp` remains the authority on
  * whether a token is *usable*; the cookie only has to outlive it long enough for

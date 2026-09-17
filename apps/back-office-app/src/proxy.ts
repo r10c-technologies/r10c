@@ -6,8 +6,8 @@ import {
 } from '@entifix/next-i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 
-// Inlined rather than imported from the auth shell's `/server`, so this
-// edge-runtime module never pulls in `next/headers`.
+// Inlined rather than imported from the auth shell's `/server`, so this proxy,
+// which runs before every matched request, never pulls in `next/headers`.
 
 /**
  * Paths that only make sense while signed **out**. An authenticated visitor
@@ -33,7 +33,7 @@ const matches = (pathname: string, routes: readonly string[]): boolean =>
  * the visitor is not going to stay on; doing it the other way round sends them
  * to sign-in and back to a URL that redirects again.
  *
- * Presence of the access cookie is the fast edge check, and that is all it is.
+ * Presence of the access cookie is the fast check, and that is all it is.
  * Two other layers do the work that matters: the back-office layout filters
  * navigation to what the caller's roles grant, and the services verify the
  * token's signature and apply `requirePermission` to every route. A forged
@@ -43,7 +43,7 @@ const matches = (pathname: string, routes: readonly string[]): boolean =>
  * bounce to auth-app on `:3002` is now a redirect to this host's own `/`, so a
  * refused visitor never leaves the origin that holds their cookies.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const locale = resolveLocale(request);
   if (locale.redirect) return locale.redirect;
 

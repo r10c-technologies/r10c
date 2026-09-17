@@ -3,7 +3,7 @@
  *
  * Locale-free on purpose: `StoreLink` applies the prefix. A component that
  * builds a path by hand is the one that will eventually ship an unprefixed
- * href, which still works — the middleware redirects — but costs the visitor a
+ * href, which still works — the proxy redirects — but costs the visitor a
  * round trip and can land them in a different language than the page they came
  * from.
  */

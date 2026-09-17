@@ -2,7 +2,7 @@ import { isLocale, type Locale } from '@entifix/core';
 import { notFound } from 'next/navigation';
 
 /**
- * Narrows the `[locale]` route param, 404ing on anything the middleware would
+ * Narrows the `[locale]` route param, 404ing on anything the proxy would
  * never have produced (`/de/...`, typed by hand).
  *
  * Every page does this, so it lives once. It stays in the app rather than the

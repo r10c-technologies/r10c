@@ -31,7 +31,7 @@ export function NewUserPage() {
   const t = useT('shell');
   const errorT = useT('errors');
   const router = useRouter();
-  // Every internal navigation carries the locale, or the middleware bounces it.
+  // Every internal navigation carries the locale, or the proxy bounces it.
   const withLocale = useLocaleHref();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');

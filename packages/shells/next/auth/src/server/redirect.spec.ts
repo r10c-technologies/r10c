@@ -14,7 +14,7 @@ describe('safeRedirect', () => {
   });
 
   it('resolves a relative path against this app', () => {
-    // The host's own middleware writes bare paths pointing at its own routes.
+    // The host's own proxy writes bare paths pointing at its own routes.
     expect(safeRedirect('/account', SELF)).toBe(`${SELF}/account`);
   });
 

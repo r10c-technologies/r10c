@@ -42,7 +42,7 @@ test.describe('server rendering', () => {
   });
 
   // A locale segment is a locale or it is nothing. `/de` is not a prefix the
-  // middleware ever mints, so it is treated as an ordinary path: prefixed with
+  // proxy ever mints, so it is treated as an ordinary path: prefixed with
   // the negotiated locale, and then absent from the route tree.
   test('404s on a path that only looks like a locale', async ({ request }) => {
     const response = await request.get('/es/de');

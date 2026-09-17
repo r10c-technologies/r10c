@@ -16,7 +16,7 @@ import { baseTest as test, expect } from '@entifix/testing-e2e/playwright';
  *
  * `test` comes from `@playwright/test` rather than `./support/fixtures`: that
  * module's `session` fixture is `auto: true`, and an authenticated `/es` is
- * `signedOutOnly`, so the middleware would bounce it to `/es/home` and the card
+ * `signedOutOnly`, so the proxy would bounce it to `/es/home` and the card
  * would never render.
  */
 test.describe('the sign-in card', () => {
