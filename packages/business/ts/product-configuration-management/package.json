@@ -42,14 +42,14 @@
     }
   },
   "dependencies": {
-    "@entifix/authz": "workspace:*",
+    "@entifix/authz": "catalog:",
     "@r10c/business-ts-catalog-contracts": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/core": "workspace:*",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
     "@swc/helpers": "0.5.23",
     "effect": "3.22.1"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "workspace:*"
+    "@entifix/testing-unit": "catalog:"
   }
 }

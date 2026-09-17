@@ -12,6 +12,8 @@
   (#76): `PartyRole` gains an optional `organizationId` and the session's role is
   read from the membership it opened under. The residual survives for a party
   with no membership and is restated where the rule was.
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): the quoted `business:domain` rule no longer lists
+  `layer:entifix`; the framework is installed and carries no tag.
 
 ## Context
 
@@ -136,7 +138,7 @@ by `DictionaryTerm`.
 > `ProductSpecification` declared typed `EntityLink<ProductBrand>` /
 > `EntityLink<ProductCategory>`, resolved at the storage layer by
 > `makeMongoLinkResolver` against the same tenant database. The `business:domain`
-> tag may depend only on `business:policy`, `layer:entifix` and `layer:utils` —
+> tag may depend only on `business:policy`, `layer:utils` and installed packages —
 > **never on another `business:domain`** — so the moment `ProductBrand` lives in
 > `catalog-reference`, the typed link is an illegal edge and the build says so.
 >

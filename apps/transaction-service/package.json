@@ -129,22 +129,22 @@
     "@opentelemetry/sdk-trace-node": "2.10.0",
     "@opentelemetry/semantic-conventions": "1.43.0",
     "@r10c/business-ts-authn": "workspace:*",
-    "@entifix/authz": "workspace:*",
+    "@entifix/authz": "catalog:",
     "@r10c/business-ts-authz-grants": "workspace:*",
-    "@entifix/transactions": "workspace:*",
-    "@entifix/amqp": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/core": "workspace:*",
-    "@entifix/jwt": "workspace:*",
-    "@entifix/mongo": "workspace:*",
-    "@entifix/tooling": "workspace:*",
-    "@entifix/service-shell": "workspace:*",
+    "@entifix/transactions": "catalog:",
+    "@entifix/amqp": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/tooling": "catalog:",
+    "@entifix/service-shell": "catalog:",
     "effect": "3.22.1",
     "jose": "6.2.8",
     "mongodb": "7.5.0",
     "tslib": "2.8.1"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "workspace:*"
+    "@entifix/testing-unit": "catalog:"
   }
 }

@@ -13,7 +13,7 @@
       "!{projectRoot}/src/test-setup.[jt]s",
       "!{projectRoot}/test-setup.[jt]s"
     ],
-    "sharedGlobals": []
+    "sharedGlobals": [{ "runtime": "node tools/entifix/src/fingerprint.mjs" }]
   },
   "plugins": [
     {
@@ -102,7 +102,7 @@
     "e2e": {
       "options": {
         "env": {
-          "NODE_OPTIONS": "--conditions=@r10c/source --conditions=@entifix/source"
+          "NODE_OPTIONS": "--conditions=@r10c/source"
         }
       }
     }

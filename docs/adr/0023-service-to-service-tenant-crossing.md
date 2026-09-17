@@ -7,6 +7,8 @@
 - Revised: 2026-09-08 — built (#73). The mechanism is two guards rather than a
   `Context.Tag`, and the crossing carries `x-crossing-token` +
   `x-organization-id`; the decision is unchanged.
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): the framework file named in Context lived in the in-tree copy, now
+  entifix's `@entifix/business`.
 
 ## Trigger
 
@@ -27,7 +29,7 @@ synchronous call ([ADR 0010](0010-stock-ledger-reservations-and-concurrency.md))
 The rule that governs tenant access has no answer for it.
 [ADR 0006](0006-multitenancy-planes-and-tenant-storage.md) makes tenancy
 _ambient_: the handle resolves from the session's `activeOrganizationId`, and
-`packages/entifix/ts/business/src/tenancy/tenant-context.ts` says so in its own
+`@entifix/business`'s `src/tenancy/tenant-context.ts` said so in its own
 doc comment — (that file was deleted on 2026-09-08; the rule now lives on
 `requireOrganization`, for the reason in the revision note below) —
 

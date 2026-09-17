@@ -14,9 +14,6 @@
   "references": [
     {
       "path": "../sales-vocabulary/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/core/tsconfig.lib.json"
     }
   ],
   "exclude": [

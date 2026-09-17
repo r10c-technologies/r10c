@@ -3,8 +3,9 @@
 /* App-owned brand palettes (no shared presets — this storefront has its own). */
 @import './themes.css';
 
-/* Class detection for workspace UI packages consumed as source (@r10c/source). */
-@source '../../../../packages/entifix/react/controls/src';
+/* Class detection for the entifix UI package, installed from the registry: its
+   classes exist only in its built `dist`. */
+@source '../../node_modules/@entifix/react-controls/dist';
 
 html {
   -webkit-text-size-adjust: 100%;

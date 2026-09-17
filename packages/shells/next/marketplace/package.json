@@ -46,15 +46,15 @@
   "dependencies": {
     "@r10c/business-ts-catalog-reference": "workspace:*",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
-    "@entifix/react-controls": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/core": "workspace:*",
-    "@entifix/i18n": "workspace:*",
-    "@entifix/rest": "workspace:*",
-    "@entifix/next-shell": "workspace:*",
+    "@entifix/react-controls": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/i18n": "catalog:",
+    "@entifix/rest": "catalog:",
+    "@entifix/next-shell": "catalog:",
     "effect": "3.22.1"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "workspace:*"
+    "@entifix/testing-unit": "catalog:"
   }
 }

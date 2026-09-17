@@ -245,6 +245,7 @@ is corrected in place.
   > coverage at all** here: the mock e2e profile boots no broker, so no handler
   > runs in it, and a consumer that dies on its first message keeps every
   > readiness probe green while its queues fill.
+
 - **`order.placed` has a consumer**, which ADR 0054 §5 said would arrive later.
   Its relay stops being a backlog drained for its own sake.
 - **The last of ADR 0022's four planned slices is promoted**, and the reserved

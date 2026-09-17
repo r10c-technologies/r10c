@@ -18,6 +18,8 @@
   cell, rejects the one no surface owns, and adds the selection and per-row
   bulk result the collection surfaces need. Its decisions on `Clone` and on the
   action-segment wildcard **uphold** this record's rather than changing them.
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): framework paths name the `@entifix/*` package rather than
+  `packages/entifix`, and `business:policy` no longer lists `layer:entifix`.
 
 ## Context
 
@@ -167,7 +169,7 @@ checking that the entity actually declares that use case, throwing
 >
 > The one place that still repeats the string is the grant table, and it has no
 > choice: `role-permissions.ts` is `business:policy`, which may depend only on
-> `layer:entifix`/`layer:utils`, so it cannot import from the domain package
+> `layer:utils` and installed packages, so it cannot import from the domain package
 > that declares the verb. The source scan below is what holds the two together —
 > which is why "every declared verb appears in at least one grant" is a real
 > check rather than a tidiness one.
@@ -331,7 +333,7 @@ across locales, so parity cannot see it.
 decision it supports is untouched: the served document carries **keys**, never
 copy, so translation still happens in the browser and `describeEntityColumns`
 still never resolves. `docs/I18N.md` and
-`packages/entifix/ts/i18n/src/resources/es/entity.ts` carry the same claim and are
+`@entifix/i18n`'s `src/resources/es/entity.ts` carried the same claim and are
 corrected in the same commit.
 
 **Amends [ADR 0014](0014-entity-specifications-and-the-characteristic-dictionary.md)**

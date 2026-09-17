@@ -69,7 +69,6 @@ const sharedCoverageExclude = [
 // `default` (working) entries. `@r10c/source` still wins for workspace packages.
 const workspaceConditions = [
   '@r10c/source',
-  '@entifix/source',
   'import',
   'node',
   'default',

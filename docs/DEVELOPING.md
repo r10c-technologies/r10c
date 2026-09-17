@@ -14,20 +14,22 @@ apps/
   config-service/          Postgres-backed configuration service
   *-e2e/                   Playwright (Next apps) / Vitest (services)
 packages/
-  entifix/ts/{core,business,rest-client,mongo-client,redis-client,amqp-client,jwt-client,posthog-client}
-  entifix/ts/{transactions,tooling}                     CQRS transactions / OTel logging+tracking
-  entifix/ts/{testing-unit,testing-e2e}                 test libraries (private)
-  entifix/react/{controls,integration}                  React side of the framework
-  entifix/style/                                        design tokens (CSS-only)
   business/ts/<domain>/     pure entities + use-cases (no framework)
   implementation/<domain>/react/   entity-tight React organisms (none today — see below)
   shells/next/<shell>/      Next pages + client adapters
-  shells/effect/service/    shared backend base (makeService, config helpers)
   utils/ts/{array,date,object,type}   generic helpers
+tools/entifix/               the swap kit: run against a local entifix, put the release back
+.entifix/                   this checkout's own entifix clone (gitignored, after entifix:checkout)
 infra/local/                minikube platform (MongoDB, Redis, Postgres, Zitadel, otel-lgtm)
 docs/                       this documentation
 nx.json  tsconfig.base.json  pnpm-workspace.yaml  package.json (root)
 ```
+
+The framework is not in this tree. `@entifix/*` is installed from the registry
+at the one version the `catalog:` in `pnpm-workspace.yaml` pins, and its source
+lives in [r10c-technologies/entifix](https://github.com/r10c-technologies/entifix)
+([ADR 0059](adr/0059-entifix-leaves-the-repo.md)). To work on both at once, see
+[Working on entifix from r10c](#working-on-entifix-from-r10c).
 
 ### Workspace resolution: the `@r10c/source` condition
 
@@ -38,8 +40,8 @@ package's `src/index.ts`** — no rebuild needed between dependent libraries dur
 dev/typecheck. When you add a library, mirror this `exports` shape or cross-package
 imports won't resolve in dev.
 
-Declaring the condition is not the same as consuming it: TypeScript, Vitest,
-Storybook and the service webpack all opt in, the Next apps cannot (they resolve
+Declaring the condition is not the same as consuming it: TypeScript, Vitest
+and the service webpack all opt in, the Next apps cannot (they resolve
 `dist`, kept fresh by a watcher — see
 [Library edits](#library-edits-reload-everywhere-two-mechanisms)).
 
@@ -142,6 +144,63 @@ overriding `lib`, extend the base list rather than replacing it. To see what the
 pass is hiding: `pnpm nx build <lib> --skipTypeCheck=false`.
 `@entifix/style` needs no rebuild at all: it has no build target, its CSS
 subpaths are consumed straight from `src`.
+
+### Working on entifix from r10c
+
+entifix is installed from the registry, so `watch-libs` never sees it. To change
+it while r10c runs, this checkout keeps **its own** entifix clone and syncs it
+over the release. The kit is `tools/entifix` (its README is the contract):
+
+```sh
+pnpm run entifix:checkout   # clone entifix into .entifix/ (gitignored) + install
+pnpm run entifix:local      # build, copy over the release, rebuild on every save
+pnpm run entifix:status     # the release, or what is synced and from which commit
+pnpm run entifix:registry   # put the release back (a few seconds)
+```
+
+`entifix:local` runs entifix's own `dev-sync` from the clone: it builds every
+entifix package, then rebuilds each one you save in `.entifix/` and copies what it
+publishes over the release under `node_modules/.pnpm`, file by file. Nothing in
+this repository's manifests or lockfile changes.
+
+- **A Next dev server serves the change by itself**, about six seconds after the
+  save (measured on marketplace-app, twice in a row, no restart).
+- ⚠️ **A service does not: restart its `dev`.** `@nx/js:node` restarts a service
+  on the Nx daemon's file events, and the daemon ignores `node_modules` — so a
+  sync leaves the running process on the code it booted with, while a restart
+  picks the synced build up (measured on config-service with
+  `@entifix/service-shell`). Each copy's version becomes `<release>-dev.<timestamp>` and
+  carries an `entifixDevSync` marker naming the entifix commit. Open
+  `r10c.code-workspace` to edit and commit both repositories from one window.
+
+- **One clone per checkout.** Every consumer — this repository, each of its
+  worktrees, another entifix project — has its own `.entifix/` on its own branch,
+  so two of them can change entifix at once. An entifix branch one needs from
+  another is pushed and fetched like any other.
+- **A commit is refused while any marker is present** — `tools/entifix/src/guard.mjs`
+  in `.husky/pre-commit`. CI installs the pinned release, so code that works only
+  against the synced build fails there. `ENTIFIX_DEV_SYNC_OK=1 git commit …` lets
+  one through on purpose, for a branch that already knows it waits on an entifix
+  release.
+- **The task cache knows.** Nx keys an installed package on its lockfile version,
+  which a sync leaves alone, so `nx.json`'s `sharedGlobals` carries
+  `tools/entifix/src/fingerprint.mjs` as a runtime input: empty on the release
+  (every hash unchanged), a new digest after each sync (a miss), empty again after
+  `entifix:registry` (the old hits return).
+- ⚠️ **Not `pnpm install --force`** to go back: with manifests and lockfile
+  unchanged, pnpm 11's optimistic repeat install answers "Already up to date" and
+  leaves every synced copy in place. `entifix:registry` deletes the synced entries
+  and reinstalls without that shortcut.
+- **A new entifix dependency stops the sync.** A copy cannot install anything:
+  release entifix, bump the catalog, `pnpm install`.
+- ⚠️ **After a catalog bump the previous release lingers.** pnpm keeps orphaned
+  store entries for `modulesCacheMaxAge` (seven days), the sync finds copies by
+  name, and an orphan's older dependency list stops it with a "never installed"
+  error that is about a package nothing uses. `entifix:local` prunes them
+  (`--config.modules-cache-max-age=0`) before it starts.
+- **Never a `link:` or `file:` specifier.** A linked package resolves `effect`
+  from entifix's own `node_modules`, and two copies of Effect break
+  `Context.Tag` identity without an error.
 
 Each app's `dev` also depends on the inferred `build-deps`, so `dist` is correct at
 boot — otherwise the first page load silently serves whatever the last build left
@@ -280,7 +339,7 @@ find packages -name 'rollup.config.*' -o -name 'vite.config.ts' | grep -v node_m
 
 1. Delete the generated bundler config.
 2. Add the `build` target to `package.json` under `nx.targets` (paths are
-   workspace-relative — copy from `packages/entifix/react/controls/package.json`):
+   workspace-relative — copy from `packages/utils/ts/array/package.json`):
 
    ```json
    {
@@ -395,46 +454,48 @@ pnpm nx build <lib> --skipTypeCheck=false
 
 The golden rule above is **enforced**, not just reviewed. Every project declares
 `nx.tags` in its `package.json`, and `eslint.config.mjs` turns those tags into
-`@nx/enforce-module-boundaries` constraints across six dimensions:
+`@nx/enforce-module-boundaries` constraints across five dimensions:
 
-| Dimension    | Tags                                                                                     | Rule                                                                                         |
-| ------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **layer**    | `layer:app` › `shell` › `implementation` › `business` › `entifix` › `utils`              | depend only on layers **below** (`shell`/`business`/`entifix` also allow ordered same-layer) |
-| **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}`              | a domain may depend only on itself or `scope:shared` (the reusable core)                     |
-| **entifix**  | `entifix:core` ‹ `contract` ‹ {`tooling`, `style`} ‹ `transactions` ‹ `client` ‹ `react` | internal ordering inside the entifix layer                                                   |
-| **business** | `business:policy` ‹ `business:domain`                                                    | a domain may use the shared authorization vocabulary, never another domain                   |
-| **shell**    | `shell:base` ‹ `shell:domain`                                                            | a domain shell may mount onto the framework shell; base shells stay independent              |
-| **host**     | `host:next`, `host:effect`, `runtime:datastore`                                          | a `host:next` app may **not** depend on a `runtime:datastore` package                        |
-| **type**     | `type:testing`, `type:e2e`                                                               | spec files may import `type:testing` libs; source files may not                              |
+| Dimension    | Tags                                                                        | Rule                                                                                  |
+| ------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **layer**    | `layer:app` › `shell` › `implementation` › `business` › `utils`             | depend only on layers **below** (`shell`/`business` also allow ordered same-layer)    |
+| **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}` | a domain may depend only on itself or `scope:shared` (the reusable core)              |
+| **business** | `business:policy` ‹ `business:domain`                                       | a domain may use the shared vocabulary, never another domain                          |
+| **shell**    | `shell:domain`                                                              | a domain shell mounts onto the installed base shells, never onto another domain shell |
+| **host**     | `host:next`, `host:effect`                                                  | a `host:next` app may **not** import `@entifix/{mongo,sql,redis,amqp}` or a subpath   |
+| **type**     | `type:testing`, `type:e2e`                                                  | spec files may import `type:testing` libs; source files may not                       |
+
+`@entifix/*` is not in the table because it is not a project: it is installed
+from the registry, carries no tags, and any layer may import it. Its own
+ordering is entifix's `tier:*` contract, checked in the entifix repository.
 
 The rule ANDs every constraint a project's tags match, so the dimensions compose.
 Consequence: **to make an edge legal, retag the project — never relax the rule.**
 Adding a new project without tags leaves it on the permissive `*` catch-all; give
-it the right `layer:`/`scope:` (plus `entifix:` under `packages/entifix` or
-`business:` under `packages/business`).
+it the right `layer:`/`scope:` (plus `business:` under `packages/business`).
 Verify with `pnpm nx run-many -t lint`.
 
 **Why `business:*` exists.** `@entifix/authz` holds the authorization
 vocabulary (`Permission`, `Role`, `can`) that `business-ts-authn` needs in order
 to give `UserIdentity` a role. That is a same-layer edge, which the `layer:*`
 dimension alone would either forbid outright or open up completely — so the
-business layer got the same treatment `entifix:*` already gives the framework
-layer: one ordered dimension, `policy` ‹ `domain`. A domain package reaches down
+business layer got one ordered dimension, `policy` ‹ `domain`. A domain package reaches down
 to policy; it still cannot import a sibling domain.
 
-**Why `shell:*` exists.** Same story one layer up. `layer:shell` forbade
-same-layer edges outright, so a per-domain API module could not reach
-`requirePermission`/`makeServerLayer` in `@entifix/service-shell` — the module
-pattern was unbuildable. `shell:base` ‹ `shell:domain` orders the layer the same
-way, so a domain shell mounts onto the framework shell while base shells stay
-independent of each other.
+**Why `shell:*` exists.** Same story one layer up. `layer:shell` allows
+same-layer edges so that a domain shell could once reach the in-tree base shells;
+with those installed from the registry instead, `shell:domain` is what still
+stops one domain shell importing another.
 
 **Why `host:*` exists.** Apps sit at the top layer, so nothing stopped a Next app
 from importing `makeMongoRepository` and writing a database directly — the one
 hole in "one writer per database"
-([ADR 0008](adr/0008-domain-modules-and-service-topology.md)). The datastore
-clients carry `runtime:datastore`, Next apps carry `host:next`, and a
-`notDependOnLibsWithTags` constraint makes that import a build failure. A Next
+([ADR 0008](adr/0008-domain-modules-and-service-topology.md)). Next apps carry
+`host:next`, and a `bannedExternalImports` constraint makes importing
+`@entifix/mongo`, `@entifix/sql`, `@entifix/redis` or `@entifix/amqp` — or any
+subpath of them — a build failure. ⚠️ It used to be a tag rule
+(`runtime:datastore` on the in-tree clients); an installed package carries no
+tags, so that form would have kept passing while matching nothing. A Next
 backend is composition — cookies, proxying, RSC aggregation — never data access.
 
 ## Entities
@@ -459,7 +520,7 @@ backend is composition — cookies, proxying, RSC aggregation — never data acc
    unless the flow is genuinely new. Give `@entity` a `labelKey`/`pluralKey` and
    every `@accessor` a `labelKey` (plus `enumLabelKey` when it is an enum), then
    add the matching subtree to the `entity` namespace in
-   `packages/entifix/ts/i18n/src/resources/{es,en}/entity.ts`. Keys mirror the
+   `packages/business/ts/i18n/src/{es,en}/entity.ts`. Keys mirror the
    entity's own `key`, so they are derivable: `entity:product.fields.code`. See
    [I18N.md](I18N.md).
 2. **CRUD surfaces** — one `makeEntityCrud(Ctor, { … })` call in the domain
@@ -908,6 +969,14 @@ a catalog, has open Dependabot bugs of exactly the kind being defended against
 ([dependabot-core#14339](https://github.com/dependabot/dependabot-core/issues/14339)).
 The `react` group plus regenerating the lock covers it without a mechanism that
 can break the build.
+
+**entifix moves by the catalog, as one group.** Every `@entifix/*` dependency
+is written `catalog:`, and the version lives once, in `pnpm-workspace.yaml`.
+Dependabot's `entifix` group bumps all 23 together, which matters beyond
+tidiness: [dependabot-core#14339](https://github.com/dependabot/dependabot-core/issues/14339)
+drops the catalog entries an update does not touch from the lock it writes, and
+a group that touches every entry leaves none to drop. The lock is regenerated
+before merge like any other.
 
 **A datastore driver major is not something CI can clear.** The e2e job runs
 `E2E_PROFILE: mock`, which replaces Redis, Mongo, RabbitMQ and config-service at

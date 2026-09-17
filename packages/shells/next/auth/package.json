@@ -45,13 +45,13 @@
   },
   "dependencies": {
     "@r10c/business-ts-authn": "workspace:*",
-    "@entifix/authz": "workspace:*",
-    "@entifix/react-controls": "workspace:*",
-    "@entifix/react-integration": "workspace:*",
-    "@entifix/core": "workspace:*",
-    "@entifix/i18n": "workspace:*",
-    "@entifix/rest": "workspace:*",
-    "@entifix/next-shell": "workspace:*",
-    "@entifix/next-i18n": "workspace:*"
+    "@entifix/authz": "catalog:",
+    "@entifix/react-controls": "catalog:",
+    "@entifix/react-integration": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/i18n": "catalog:",
+    "@entifix/rest": "catalog:",
+    "@entifix/next-shell": "catalog:",
+    "@entifix/next-i18n": "catalog:"
   }
 }

@@ -26,15 +26,15 @@
   "devDependencies": {
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
-    "@entifix/transactions": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/jwt": "workspace:*",
-    "@entifix/testing-e2e": "workspace:*",
-    "@entifix/service-shell": "workspace:*",
+    "@entifix/transactions": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/testing-e2e": "catalog:",
+    "@entifix/service-shell": "catalog:",
     "@r10c/transaction-service": "workspace:*"
   },
   "dependencies": {
-    "@entifix/authz": "workspace:*",
+    "@entifix/authz": "catalog:",
     "@r10c/business-ts-authz-grants": "workspace:*"
   }
 }

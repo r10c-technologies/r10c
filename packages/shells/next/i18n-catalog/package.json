@@ -51,9 +51,9 @@
   },
   "dependencies": {
     "@r10c/business-ts-i18n": "workspace:*",
-    "@entifix/react-controls": "workspace:*",
-    "@entifix/i18n": "workspace:*",
-    "@entifix/next-shell": "workspace:*",
+    "@entifix/react-controls": "catalog:",
+    "@entifix/i18n": "catalog:",
+    "@entifix/next-shell": "catalog:",
     "i18next": "26.3.6"
   },
   "sideEffects": true

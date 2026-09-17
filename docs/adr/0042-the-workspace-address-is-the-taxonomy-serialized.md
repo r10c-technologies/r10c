@@ -9,6 +9,7 @@
   a step for `wizard`.
 - Amends: [ADR 0033](0033-the-screen-taxonomy.md) (its `TabKind` consequence
   predicted a rename; this is a collapse, and the difference matters).
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): `@entifix/next-shell` is installed rather than `shell:base`.
 
 ## Context
 
@@ -51,7 +52,7 @@ encoded these three itself.
 ### The builder lives in `@entifix/authz`
 
 Beside `screen-type.ts`, not in `@entifix/next-shell`. Not for a boundary reason —
-`@entifix/next-shell` is `shell:base` and every consumer may reach it — but
+`@entifix/next-shell` is installed and every consumer may reach it — but
 because the address **is** `ScreenType` serialized, and because every `nav.ts`
 (marketplace-admin, auth, system-management) is a plain data module importing only
 this package. Putting the builder anywhere else means a nav file pulls in a

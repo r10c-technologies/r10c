@@ -42,7 +42,7 @@
     }
   },
   "dependencies": {
-    "@entifix/core": "workspace:*",
+    "@entifix/core": "catalog:",
     "@swc/helpers": "0.5.23",
     "effect": "3.22.1"
   }

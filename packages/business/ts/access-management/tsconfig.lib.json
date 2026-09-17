@@ -11,17 +11,7 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/core/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/testing-unit"
-    }
-  ],
+  "references": [],
   "exclude": [
     "jest.config.ts",
     "jest.config.cts",

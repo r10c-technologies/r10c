@@ -9,6 +9,8 @@
   pieces below are designed there, and this record's own `:3103` trigger has
   fired: checkout's participants are stock-service and order-service, neither of
   them marketplace-admin-service.
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): framework paths name `@entifix/transactions` rather than
+  `packages/entifix/ts/transactions`.
 
 ## Context
 
@@ -19,7 +21,7 @@ The engine runs **one** step in **one** service, and every part of it says so.
 `handler.execute(command)`. `TransactionStep` is
 `'accepted' | 'completed' | 'failed'` — three values, none of which is a step
 index. There is no step list, no ordering, and no per-step compensation
-anywhere in `packages/entifix/ts/transactions`.
+anywhere in `@entifix/transactions`.
 
 That is not a gap in the engine. It is the whole engine, and it is correct for
 what it does: assign a code, write one entity, announce it.
@@ -42,7 +44,7 @@ Issue #105 says the claim is in `CLAUDE.md`. It is not. `grep` finds it in four
 places, none of them CLAUDE.md: `docs/ARCHITECTURE.md`,
 `apps/marketplace-admin-service/src/mongo.ts`,
 `apps/marketplace-admin-service/src/saga/tracking.ts`, and
-`packages/entifix/ts/transactions/src/contracts/event.ts`. The issue also asks
+`@entifix/transactions`'s `src/contracts/event.ts`. The issue also asks
 for ADR 0011's reciprocal line; ADR 0011 is _organization provisioning and
 migrations_ and has nothing to do with sagas. The record this amends is
 [ADR 0028](0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md).
@@ -106,7 +108,7 @@ There is no legal home for that class.
 
 So the flow is **data**: a `SagaDefinition` naming steps, each with an id, the
 participant's address, the command to send, the compensation to send, and its
-classification. A generic engine in `packages/entifix/ts/transactions` walks it.
+classification. A generic engine in `@entifix/transactions` walks it.
 Nothing imports anything, the boundary rule is untouched, and the constraint that
 looked like an obstacle is the design.
 

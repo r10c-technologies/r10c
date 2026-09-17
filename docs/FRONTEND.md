@@ -13,7 +13,7 @@ built on almost none of it. Backend/domain architecture is in
 
 The agnostic UI kit and the conventions for extending it. Two homes:
 
-- **`@entifix/react-controls`** (`packages/entifix/react/controls`) — every
+- **`@entifix/react-controls`** (installed; `packages/react/controls` in the entifix repository) — every
   **entity-agnostic** component: `ui/atoms`, `ui/molecules`, `ui/layout`,
   `ui/organisms`. Knows nothing about any domain.
 - **`implementation/<domain>/react`** — **entity-tight** components. Empty today:
@@ -43,7 +43,8 @@ the same object rather than restated in a const map.
 It **cannot live beside the hooks**: it needs `EntityTable`/`EntityForm` from
 `@entifix/react-controls` and `useDataLoading`/`useEntityForm`/`useEntityRecord`/
 `useEntityMutation`/`useEntityLinkSource` from `@entifix/react-integration`, and
-those two are both `entifix:react`, which is absent from its own allow-list. The
+those two are both tier `3` in entifix's composition contract, with no sideways
+edge declared between them, so neither may import the other. The
 shell layer is the lowest place that can reach both — and it is also where
 `useLocaleHref` and the `TabRegistry` already are.
 
@@ -71,7 +72,7 @@ Three details worth not rediscovering:
   rendered fields, not from the draft, so a value the create transaction assigned
   (`ProductBrand.code`) survives an update that never showed it.
 
-Styling foundation lives in **`@entifix/style`** (`packages/entifix/style`,
+Styling foundation lives in **`@entifix/style`** (installed from the registry,
 CSS-only): `tokens.css` declares the Utopia fluid scales, the layout tokens, and
 the semantic colour **contract**; `presets/*` and app-local `themes.css` override
 the contract values per palette. See [[design-system-theme]] in memory and
@@ -439,12 +440,15 @@ More rules (locked; see [[layout-primitives-decision]] in memory):
 ## Storybook
 
 Agnostic-only Storybook (Storybook 10 + React-Vite) hosted **in the controls
-package**. It reproduces the app runtime — the Tailwind v4 pipeline
+package** — which now lives in the entifix repository, so it runs there (or in
+this checkout's `.entifix/` clone, see
+[DEVELOPING.md → Working on entifix from r10c](./DEVELOPING.md#working-on-entifix-from-r10c)). It reproduces the app runtime — the Tailwind v4 pipeline
 (`.storybook/preview.css` + `postcss.config.cjs`) and the `@r10c/source`
 resolution condition (`.storybook/main.ts`) — and a theme toolbar
 (`withThemeByDataAttribute`) flips `data-theme` across the shipped presets.
 
 ```sh
+# from an entifix checkout (e.g. .entifix/)
 pnpm nx run @entifix/react-controls:storybook        # dev server on :6006
 pnpm nx run @entifix/react-controls:build-storybook  # static build
 ```
@@ -462,7 +466,8 @@ polyfills `Symbol.metadata` on first import, so no SWC pass is configured here
 Stories are in **no tsconfig project** (`tsconfig.lib.json` excludes them,
 `tsconfig.spec.json` does not include them), so `nx typecheck` cannot see a type
 error in a story and Vitest never loads one. `nx build-storybook` is therefore
-the only thing that compiles them, which is why it runs in CI.
+the only thing that compiles them. It ran in this repository's CI while the
+package lived here; entifix's CI does not run it yet.
 
 ## Adding a new component — checklist
 
@@ -476,7 +481,7 @@ the only thing that compiles them, which is why it runs in CI.
    package barrel `src/index.ts` (keep it alphabetical within its group).
 4. **No copy in the component.** Every user-facing string comes from `useT()`
    and lives in the `controls` namespace
-   (`packages/entifix/ts/i18n/src/resources/{es,en}/controls.ts`);
+   (`packages/react/controls/src/i18n/catalog/{es,en}.ts` in the entifix repository);
    `react/jsx-no-literals` fails the build otherwise. Dates and numbers go
    through `useFormatters()`, never a bare `toLocaleString()`. See
    [I18N.md](I18N.md).
@@ -625,8 +630,8 @@ and they do **not** share a contract — see
 (`draft` / `save` / `clear`), the hook writes to it from an effect whenever the
 values differ from their seed, and `useEntityDraft(address)` in
 `@entifix/next-shell` is the workspace's implementation. It is a port because
-`useDraft` is `layer:shell` and `useEntityForm` is `layer:entifix` — the hook
-cannot import the store. Handing a store to a form is the **whole** opt-in, so a
+`useDraft` lives in a shell and `useEntityForm` in `@entifix/react-integration`,
+which is published below every shell — the hook cannot import the store. Handing a store to a form is the **whole** opt-in, so a
 plain route stays ephemeral by omission rather than by a flag, and every entity
 a `makeEntityCrud` catalog generates autosaves without its page knowing.
 
@@ -722,8 +727,9 @@ the target's own `EntityTable` — filters, sorting, paging and all — inside a
 with `onSelect` replacing row navigation.
 
 The split that makes it work is a boundary constraint, not taste:
-`@entifix/react-controls` and `@entifix/react-integration` are both `entifix:react`,
-so neither may import the other. They meet at **`EntityLinkSource`**, a
+`@entifix/react-controls` and `@entifix/react-integration` are both tier `3` in
+entifix's composition contract, with no sideways edge declared between them, so
+neither may import the other. They meet at **`EntityLinkSource`**, a
 framework-free port in `@entifix/core` (plain data + callbacks: `quick`,
 `browse`, `selected`, `labelOf`).
 
@@ -874,7 +880,8 @@ boundary does not have.
 **Enforcement.** A lint rule for "supports a skeleton" is not writable. What is:
 `src/ui/loading-contract.spec.ts` scans the source for components whose props
 type declares `isLoading` and fails the build unless each ships a `Loading`
-Storybook story — and `nx build-storybook` in CI proves that story renders.
+Storybook story — and `nx build-storybook` proves that story renders (in the
+entifix repository, whose CI does not run it yet).
 
 ## 7. Reactive updates (the reactive stream)
 

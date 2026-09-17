@@ -69,8 +69,8 @@ each is one link away in the decision index below.
 - **Boundaries are enforced; to make an edge legal, retag — never weaken the
   rule.** Imports point downward and stay in-scope, driven by each project's
   `nx.tags`, and `@nx/enforce-module-boundaries` fails the build otherwise. A new
-  project needs `layer:`/`scope:` tags (and `entifix:`, `business:`, `shell:` or
-  `host:` where they apply). See
+  project needs `layer:`/`scope:` tags (and `business:`, `shell:` or `host:`
+  where they apply). See
   [DEVELOPING.md → Module boundaries](docs/DEVELOPING.md#module-boundaries).
 - **Inject with Effect.** Wire dependencies as `Context.Tag` subclasses provided
   via `Layer`, not instances through constructors — a missing dep is a compile
@@ -236,6 +236,6 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0025](docs/adr/0025-where-planning-and-business-knowledge-live.md) **Where planning and business knowledge live** — read when deciding where a process, a decision, a contract or a plan belongs — four artifacts with one job each, and the repo's exposure is decided per commit, permanently.
 - [0031](docs/adr/0031-a-service-describes-its-own-wiring.md) **A service describes its own wiring** — read when adding a datastore, a queue binding or an upstream to a service — `/api/$service` diffs what a service does against what the register declares.
 - [0046](docs/adr/0046-conventions-are-checked-not-stated.md) **A convention that is only stated is a convention that gets skipped** — read when adding a working convention, or wondering why attribution trailers keep reappearing — a convention that is only stated is one that gets skipped.
-- [0059](docs/adr/0059-entifix-leaves-the-repo.md) **entifix leaves the repo, and r10c becomes one of its consumers** — read when adding a package under `packages/entifix/`, or wondering why a framework file imports a cookie name from core instead of declaring its own — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported.
+- [0059](docs/adr/0059-entifix-leaves-the-repo.md) **entifix leaves the repo, and r10c becomes one of its consumers** — read when looking for the framework's source, changing entifix while r10c runs, or wondering why a framework file imports a cookie name from core instead of declaring its own — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported.
 
 <!-- docs:end adr-triggers -->

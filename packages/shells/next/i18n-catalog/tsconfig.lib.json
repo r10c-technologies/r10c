@@ -21,15 +21,6 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../../entifix/next/shell/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/i18n/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/react/controls/tsconfig.lib.json"
-    },
-    {
       "path": "../../../business/ts/i18n/tsconfig.lib.json"
     }
   ],

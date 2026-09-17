@@ -10,7 +10,11 @@
     "back-office:dev:reset": "bash infra/local/reset.sh && nx run back-office-app:dev",
     "dev-infra:doctor": "bash infra/local/doctor.sh",
     "dev-infra:map": "node tools/fleet-map.mjs",
-    "dev-ports:free": "bash tools/free-ports.sh"
+    "dev-ports:free": "bash tools/free-ports.sh",
+    "entifix:checkout": "nx run @r10c/source:entifix-checkout",
+    "entifix:local": "nx run @r10c/source:entifix-local",
+    "entifix:registry": "nx run @r10c/source:entifix-registry",
+    "entifix:status": "nx run @r10c/source:entifix-status"
   },
   "engines": {
     "node": "26.4",
@@ -60,12 +64,12 @@
     "@playwright/test": "1.61.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@r10c/business-ts-product-configuration-management": "workspace:*",
-    "@entifix/react-controls": "workspace:*",
-    "@entifix/react-integration": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/core": "workspace:*",
-    "@entifix/rest": "workspace:*",
-    "@entifix/next-shell": "workspace:*",
+    "@entifix/react-controls": "catalog:",
+    "@entifix/react-integration": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/rest": "catalog:",
+    "@entifix/next-shell": "catalog:",
     "@r10c/shells-next-marketplace-admin": "workspace:*",
     "@r10c/utils-ts-array": "workspace:*",
     "@r10c/utils-ts-date": "workspace:*",
@@ -132,6 +136,34 @@
         "cache": false,
         "options": {
           "command": "bash tools/watch-libs.sh"
+        }
+      },
+      "entifix-checkout": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/entifix/checkout.sh"
+        }
+      },
+      "entifix-local": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/entifix/local.sh"
+        }
+      },
+      "entifix-registry": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/entifix/src/guard.mjs --restore"
+        }
+      },
+      "entifix-status": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node tools/entifix/src/status.mjs"
         }
       },
       "local-registry": {

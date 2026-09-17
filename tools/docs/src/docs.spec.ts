@@ -10,7 +10,7 @@
  * asserting nothing — the failure mode `slices.spec.ts` guards the same way.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 
 import { declaredEntityClasses, declaredEntityDomains } from '@r10c/slices';
 import { describe, expect, it } from 'vitest';
@@ -25,6 +25,54 @@ import {
   read,
   REPO_ROOT,
 } from './corpus.js';
+
+/**
+ * The `dist` of every entifix package this checkout installs, one per package.
+ *
+ * Read out of pnpm's virtual store, because only the packages the root itself
+ * depends on are linked at the top of `node_modules`. pnpm keeps one directory
+ * per resolved peer set; they hold the same files, so the first one found for a
+ * name is enough.
+ */
+const installedEntifixDists = (): string[] => {
+  const store = join(REPO_ROOT, 'node_modules', '.pnpm');
+  const byName = new Map<string, string>();
+  for (const entry of readdirSync(store).sort()) {
+    if (!entry.startsWith('@entifix+')) continue;
+    const scope = join(store, entry, 'node_modules', '@entifix');
+    if (!existsSync(scope)) continue;
+    for (const name of readdirSync(scope)) {
+      const dist = join(scope, name, 'dist');
+      if (!byName.has(name) && existsSync(dist)) byName.set(name, dist);
+    }
+  }
+  return [...byName.values()];
+};
+
+/** `dist` path of one installed entifix package, e.g. `amqp`. */
+const installedEntifixDist = (name: string): string => {
+  const dist = installedEntifixDists().find(dir =>
+    dir.endsWith(join('@entifix', name, 'dist')),
+  );
+  if (!dist) throw new Error(`@entifix/${name} is not installed`);
+  return dist;
+};
+
+/** Adds every type-ish name a tree of `.d.ts` files declares to `found`. */
+const walkDeclarations = (dir: string, found: Set<string>): void => {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkDeclarations(full, found);
+    } else if (entry.name.endsWith('.d.ts')) {
+      for (const match of readFileSync(full, 'utf8').matchAll(
+        /\b(?:class|interface|type|enum|function|const)\s+([A-Z]\w+)/g,
+      )) {
+        found.add(match[1]);
+      }
+    }
+  }
+};
 
 describe('Links resolve', () => {
   it('finds the documents it is meant to check', () => {
@@ -445,6 +493,10 @@ describe('The business map matches the entities that exist', () => {
       }
     };
     for (const root of ['packages', 'apps']) walk(join(REPO_ROOT, root));
+    // entifix is installed rather than in the tree, so what it declares is read
+    // from the declarations it ships. A name the docs use from the framework is
+    // as real as one r10c declares — and one entifix renamed is as stale.
+    for (const dir of installedEntifixDists()) walkDeclarations(dir, found);
     return found;
   };
 
@@ -719,12 +771,23 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   const PROVIDER = 'infra/local/otel-lgtm/dashboards/r10c-dashboards.yaml';
   const DEPLOYMENT = 'infra/local/otel-lgtm/deployment.yaml';
   const SOURCES = [
-    'packages/entifix/ts/amqp-client/src/adapters/bus-metrics.ts',
+    // The two framework modules are read from the release installed here, which
+    // is the code the fleet actually runs; the built JS keeps each declaration
+    // as `export const … = Metric.counter('…')`, which is all this reads.
+    join(
+      relative(REPO_ROOT, installedEntifixDist('amqp')),
+      'adapters',
+      'bus-metrics.js',
+    ),
     // The outbox gauges left marketplace-admin-service when a second and third
     // slice grew an outbox (#152): they now sit beside the relay that samples
     // them, because an Effect metric is keyed on its *description* and three
     // hand-maintained copies are three series the moment one wording drifts.
-    'packages/entifix/ts/mongo-client/src/outbox/metrics.ts',
+    join(
+      relative(REPO_ROOT, installedEntifixDist('mongo')),
+      'outbox',
+      'metrics.js',
+    ),
     // `transactions_by_state` left with the `saga` store's owner when the
     // `transaction` slice took `:3103` (#229). A module missing from this list
     // is not a loud failure — the dashboard check would simply stop knowing the

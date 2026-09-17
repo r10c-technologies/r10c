@@ -1,0 +1,30 @@
+{
+  "name": "@r10c/entifix-swap",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./src/markers.mjs"
+  },
+  "nx": {
+    "tags": [
+      "layer:app",
+      "scope:shared",
+      "type:testing"
+    ],
+    "sourceRoot": "tools/entifix/src",
+    "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.mts",
+          "cwd": "tools/entifix"
+        }
+      }
+    }
+  }
+}

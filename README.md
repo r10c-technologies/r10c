@@ -33,18 +33,17 @@ Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over REST, Mongo and Po
 
 ```
 apps/                               ← runtime hosts (Next.js frontends / Effect-native services)
-packages/shells/{next,effect}/*     ← framework shells: Next pages+adapters / the effect-service base
+packages/shells/next/*              ← per-domain shells: a domain mounted onto the framework's Next shell
 packages/implementation/<domain>/*  ← domain wired to a delivery mechanism (currently unpopulated)
 packages/business/ts/<domain>       ← pure domain entities & use-cases (no framework)
-packages/entifix/{ts,react}/*       ← the entity framework (core / business / rest-client / mongo-client / sql-client / react/*)
 packages/utils/ts/*                 ← generic TS helpers
 ```
 
-Six tag dimensions in each project's `nx.tags` make that arrow enforceable —
-`layer:`, `scope:`, `entifix:`, `business:`, `shell:` and `host:` — and
+Five tag dimensions in each project's `nx.tags` make that arrow enforceable —
+`layer:`, `scope:`, `business:`, `shell:` and `host:` — and
 `@nx/enforce-module-boundaries` fails the build on any upward or cross-domain
-edge. `host:next` may not depend on `runtime:datastore`: a Next backend is
-composition (cookies, proxying, RSC aggregation), never data access.
+edge. A `host:next` app may not import entifix's datastore clients: a Next
+backend is composition (cookies, proxying, RSC aggregation), never data access.
 
 Business data lives in a **Store**, a Store belongs to a **Slice**, and a Store
 sits in one of **three planes** — **control** (parties, access, identity, config,

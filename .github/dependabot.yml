@@ -29,6 +29,15 @@ updates:
       - dependency-name: '@nx/*'
       - dependency-name: 'verdaccio'
     groups:
+      # entifix releases on fixed versioning, so its 23 packages move as one PR
+      # or not at all. Grouped first so no other group claims a member. It is
+      # also what keeps dependabot-core#14339 away from this catalog: that bug
+      # drops the catalog entries an update does *not* touch from the lock, and
+      # a group that bumps every @entifix/* entry leaves none untouched. The
+      # lock is regenerated before merge regardless (DEVELOPING.md → Dependency
+      # updates). `0.x` breaks on the minor, so minors are not excluded here.
+      entifix:
+        patterns: ['@entifix/*']
       # `@effect/sql*` must stay aligned with the pinned `@effect/platform`, so
       # the family moves as one PR or not at all.
       effect:

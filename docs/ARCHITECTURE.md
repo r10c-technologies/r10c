@@ -126,7 +126,7 @@ Product (business, @entity + EntityLink brand/category)
 ```
 
 Foreign-key vs embedded relations are handled transparently by the shared
-(de)serializer — see `packages/entifix/ts/core/src/entity-definition`.
+(de)serializer — see `packages/ts/core/src/entity-definition` in the entifix repository.
 
 ## Backends: Effect-native services
 
@@ -934,7 +934,7 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   (see [Authorization](#authorization-role-aspects--permissions)).
 - `business-ts-common` — shared domain primitives.
 
-**Entity framework** (`packages/entifix/*`):
+**Entity framework** (`@entifix/*`, installed from the registry — source in [r10c-technologies/entifix](https://github.com/r10c-technologies/entifix)):
 
 - `@entifix/core` — decorators, metadata, links, types, (de)serializer,
   configuration store, and the **RSQL query codec** (`src/rsql/`).
@@ -988,9 +988,9 @@ platform vocabulary into `catalog-reference`; composing both from one domain key
 is what left those two pages requesting routes that no longer existed, invisibly,
 because the e2e fixture stubbed the same wrong address. And the system-management
 proxy is mounted at **`/api/system`, never `/api/config`**, which is already the
-config _fetch_ route. `shell:domain` may depend on `shell:base` and both domain
-shells do; the reverse is forbidden, so `@entifix/next-shell` may import **no**
-other shell — which is why nav and search sources are contributed rather than
+config _fetch_ route. Both domain shells build on `@entifix/next-shell`, and the
+reverse cannot happen: `@entifix/next-shell` is a published package that may
+import **no** shell — which is why nav and search sources are contributed rather than
 imported, and why the permission-annotated vocabulary
 (`GuardedNavItem`/`GuardedNavSection`) lives in `@entifix/authz`, the only
 layer a shell and an app both reach.

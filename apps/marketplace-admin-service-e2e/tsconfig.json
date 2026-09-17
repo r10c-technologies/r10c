@@ -10,40 +10,10 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../packages/entifix/ts/transactions"
-    },
-    {
       "path": "../../packages/business/ts/authz-grants"
     },
     {
-      "path": "../../packages/entifix/ts/authz"
-    },
-    {
-      "path": "../../packages/entifix/effect/service-shell"
-    },
-    {
       "path": "../marketplace-admin-service"
-    },
-    {
-      "path": "../../packages/entifix/ts/tooling"
-    },
-    {
-      "path": "../../packages/entifix/ts/testing-e2e"
-    },
-    {
-      "path": "../../packages/entifix/ts/redis-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/mongo-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/jwt-client"
-    },
-    {
-      "path": "../../packages/entifix/ts/business"
-    },
-    {
-      "path": "../../packages/entifix/ts/amqp-client"
     },
     {
       "path": "../../packages/business/ts/party-management"

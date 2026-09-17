@@ -9,6 +9,9 @@
   Trigger checked and **not** fired: `EntitySpecification`,
   `CharacteristicSpecification` and `DictionaryTerm` exist as entities, but no
   offering carries a vendor-authored characteristic yet.
+- Revised: 2026-09-16 — entifix is installed from the registry (#273): the framework invariants below name the installed `@entifix/*`
+  packages rather than a `packages/entifix` path, and `layer:entifix` is no
+  longer a tag.
 
 - Revised: 2026-08-19 by [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md) —
   supplies the delivery mechanism this record needed and did not name:
@@ -70,7 +73,7 @@ Four red lines. Any of them means the layering has slipped:
 
 - no `EntityConstructor` synthesized at runtime;
 - no write to `Symbol.metadata` outside a decorator;
-- no spec-aware branch anywhere under `packages/entifix`;
+- no spec-aware branch anywhere in `@entifix/*`;
 - no characteristic reaching into the RSQL allowlist, which stays constructor-derived.
 
 ### The skeleton stays fixed; only characteristics are specification-driven
@@ -297,7 +300,7 @@ offering. That works precisely because a released version is immutable.
 ## Consequences
 
 - **The `business:*` tag dimension needs a third tier.** `business:domain` may
-  depend only on `business:policy`, `layer:entifix` and `layer:utils`, and the
+  depend only on `business:policy`, `layer:utils` and installed packages, and the
   constraints are ANDed — so `@r10c/business-ts-common` (`business:domain` +
   `scope:shared`) is unreachable from any domain today. The generic specification
   vocabulary needs `business:kernel ‹ business:policy ‹ business:domain`, with

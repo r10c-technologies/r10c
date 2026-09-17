@@ -10,4 +10,8 @@ pnpm exec lint-staged --relative
 # Prettier over table alignment.
 node tools/sync-docs.mjs --check
 
+# A commit built on an entifix `dev-sync` copy passes here and fails in CI, which
+# installs the pinned release. ENTIFIX_DEV_SYNC_OK=1 lets one through on purpose.
+node tools/entifix/src/guard.mjs
+
 pnpm nx affected --target=lint,build --base=origin/main --head=HEAD

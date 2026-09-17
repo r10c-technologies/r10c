@@ -105,7 +105,7 @@ const LOGIN_BASE_URI =
  *
  * The pair is **aurora** (light) and **midnight** (dark), the two presets
  * back-office-app ships, because sign-in hands the visitor straight to it.
- * Values are copied from `packages/entifix/style/src/presets/aurora.css` and
+ * Values are copied from `@entifix/style`'s `presets/aurora.css` and
  * `…/midnight.css`: `@entifix/style` ships CSS only — no `src/index.ts`,
  * and its `exports` map covers `.css` and nothing else — so a Node script has
  * nothing to import and the literals are duplicated by necessity. Every r10c

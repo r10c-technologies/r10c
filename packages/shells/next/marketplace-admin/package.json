@@ -45,19 +45,19 @@
   },
   "devDependencies": {
     "@r10c/business-ts-i18n": "workspace:*",
-    "@entifix/testing-unit": "workspace:*"
+    "@entifix/testing-unit": "catalog:"
   },
   "dependencies": {
-    "@entifix/authz": "workspace:*",
+    "@entifix/authz": "catalog:",
     "@r10c/business-ts-catalog-reference": "workspace:*",
     "@r10c/business-ts-product-configuration-management": "workspace:*",
-    "@entifix/react-controls": "workspace:*",
-    "@entifix/react-integration": "workspace:*",
-    "@entifix/transactions": "workspace:*",
-    "@entifix/business": "workspace:*",
-    "@entifix/core": "workspace:*",
-    "@entifix/rest": "workspace:*",
-    "@entifix/next-shell": "workspace:*",
+    "@entifix/react-controls": "catalog:",
+    "@entifix/react-integration": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/rest": "catalog:",
+    "@entifix/next-shell": "catalog:",
     "effect": "3.22.1"
   }
 }

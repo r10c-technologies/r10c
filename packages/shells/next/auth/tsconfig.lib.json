@@ -34,30 +34,6 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../../entifix/next/i18n/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/next/shell/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/rest-client/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/i18n/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/core/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/react/integration/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/react/controls/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../entifix/ts/authz/tsconfig.lib.json"
-    },
-    {
       "path": "../../../business/ts/authn/tsconfig.lib.json"
     }
   ]

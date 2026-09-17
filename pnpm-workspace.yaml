@@ -1,16 +1,7 @@
 packages:
   - 'apps/*'
-  - 'packages/entifix/ts/*'
   - 'packages/business/ts/*'
   - 'packages/utils/ts/*'
-  - 'packages/entifix/react/*'
-  - 'packages/entifix/style'
-  # The two shells entifix ships. They are framework, not r10c's — the base
-  # Effect service and the base Next shell — so they live in the entifix tree
-  # beside the packages they mount, and `packages/shells/next/*` below holds
-  # only the per-domain shells that stay with the marketplace.
-  - 'packages/entifix/effect/*'
-  - 'packages/entifix/next/*'
   - 'packages/shells/next/*'
   # Not shipped code: checks that run against the repository's own structure.
   # `slices` is the executable form of the ADR 0020 store register; `docs` holds
@@ -19,12 +10,42 @@ packages:
   - 'tools/docs'
   # `i18n` asserts that every error code a service emits has a catalog entry.
   - 'tools/i18n'
-  # `tiers` asserts entifix's composition contract: what each tier may
-  # hard-depend on, and therefore what an adopter installs without asking.
-  - 'tools/tiers'
   # `conventions` asserts the repository's own working conventions — the ones
   # that were stated in prose and skipped anyway.
   - 'tools/conventions'
+  # `entifix` is the swap kit: this checkout's own entifix clone, synced over
+  # the release and put back again (docs/DEVELOPING.md → "Working on entifix from
+  # r10c").
+  - 'tools/entifix'
+# entifix is installed from the registry, at one version for every package: it
+# releases on fixed versioning, so two @entifix/* at different versions is a
+# combination nobody tested. Every manifest says `catalog:` and this is the only
+# place a version is written. To see an unreleased entifix change here, use
+# `pnpm run entifix:local` (tools/entifix) — never a link or a file: specifier.
+catalog:
+  '@entifix/amqp': 0.1.2
+  '@entifix/authz': 0.1.2
+  '@entifix/business': 0.1.2
+  '@entifix/core': 0.1.2
+  '@entifix/i18n': 0.1.2
+  '@entifix/jwt': 0.1.2
+  '@entifix/mongo': 0.1.2
+  '@entifix/next-i18n': 0.1.2
+  '@entifix/next-shell': 0.1.2
+  '@entifix/posthog': 0.1.2
+  '@entifix/react-controls': 0.1.2
+  '@entifix/react-integration': 0.1.2
+  '@entifix/redis': 0.1.2
+  '@entifix/rest': 0.1.2
+  '@entifix/service-shell': 0.1.2
+  '@entifix/sql': 0.1.2
+  '@entifix/style': 0.1.2
+  '@entifix/testing-auth': 0.1.2
+  '@entifix/testing-e2e': 0.1.2
+  '@entifix/testing-unit': 0.1.2
+  '@entifix/tooling': 0.1.2
+  '@entifix/transactions': 0.1.2
+  '@entifix/zitadel': 0.1.2
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false
@@ -42,6 +63,10 @@ allowBuilds:
 autoInstallPeers: true
 ignoreWorkspaceRootCheck: true
 minimumReleaseAgeExclude:
+  # Our own framework: a release is adopted the day it ships, and the age gate
+  # exists for third-party supply chain, not for a scope this organization
+  # publishes through trusted publishing.
+  - '@entifix/*'
   - '@typescript-eslint/eslint-plugin@8.62.1'
   - '@typescript-eslint/parser@8.62.1'
   - '@typescript-eslint/project-service@8.62.1'

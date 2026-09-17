@@ -3,7 +3,14 @@
 - Status: Accepted
 - Date: 2026-09-14
 - Area: platform
-- Read when: adding a package under `packages/entifix/`, or wondering why a framework file imports a cookie name from core instead of declaring its own — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported
+- Read when: looking for the framework's source, changing entifix while r10c runs, or wondering why a framework file imports a cookie name from core instead of declaring its own — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported
+- Revised: 2026-09-16 — built on r10c's side (#273, #278). `packages/entifix`
+  and `tools/tiers` are deleted; the 23 packages install from the registry at one
+  version, written once in the `pnpm-workspace.yaml` catalog. The local loop the
+  last section leaves to entifix now has a consumer half: each checkout keeps its
+  own gitignored entifix clone at `.entifix/`, and `tools/entifix` syncs it over
+  the release and puts the release back (DEVELOPING.md → "Working on entifix
+  from r10c").
 
 ## Context
 
@@ -74,7 +81,7 @@ composition defects found when the tiers were drawn point _downward_ —
 framework entirely. A downward edge is legal; what is not is a
 **hard** dependency on an optional capability. Such an edge must be a
 `peerDependencies` entry with `peerDependenciesMeta.optional` behind a subpath
-export. `@r10c/tiers` fails the build on both rules, and on a package carrying no
+export. `@entifix/tiers`, in the entifix repository, fails the build on both rules, and on a package carrying no
 `tier:` tag.
 
 ### The seam takes values, never file paths
@@ -184,7 +191,10 @@ and the copy into the new repository follows it.
   `tsconfig.base.json`, `nx.json`'s e2e `NODE_OPTIONS`, `vitest.shared.mts`, the
   Storybook config, every service's `webpack.config.js`, and the marketplace e2e
   mock server that must run with it **off**. Miss one and resolution falls back
-  to `dist`, which mostly works, which is why it would go unnoticed.
+  to `dist`, which mostly works, which is why it would go unnoticed. **Since
+  #273 the `@entifix/source` condition is gone from all six**: the installed
+  packages ship `dist` only, and their manifests still map that condition to a
+  `./src/index.ts` the tarball does not contain.
 
 ## What this record does not decide
 
