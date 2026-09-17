@@ -32,7 +32,6 @@
           "outputPath": "packages/business/ts/catalog-contracts/dist",
           "main": "packages/business/ts/catalog-contracts/src/index.ts",
           "tsConfig": "packages/business/ts/catalog-contracts/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

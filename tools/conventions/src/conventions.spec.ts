@@ -315,3 +315,49 @@ describe('the enforcement surfaces are wired to that predicate', () => {
     expect(claudeMd.toLowerCase()).toContain('attribution');
   });
 });
+
+/**
+ * `skipTypeCheck: true` on an `@nx/js:swc` build does not skip the declaration
+ * pass — the pass is what writes the `.d.ts` — it only hides its diagnostics.
+ * A library whose declarations did not compile therefore built green with no
+ * `.d.ts`, cached the success, and surfaced as a `TS6305` cascade in consumers
+ * that named none of the cause (#276). The executor's default reports the
+ * errors, so the convention is simply that no library turns them off again —
+ * and a generator that writes the flag back is the likely way it returns.
+ */
+describe('a library build reports its declaration errors', () => {
+  const manifests = trackedTextFiles()
+    .filter(path => path.endsWith('/package.json'))
+    .map(path => ({
+      path,
+      manifest: JSON.parse(readFileSync(join(REPO_ROOT, path), 'utf8')) as {
+        nx?: {
+          targets?: Record<
+            string,
+            { executor?: string; options?: Record<string, unknown> }
+          >;
+        };
+      },
+    }));
+  const swcBuilds = manifests.flatMap(({ path, manifest }) =>
+    Object.entries(manifest.nx?.targets ?? {})
+      .filter(([, target]) => target.executor === '@nx/js:swc')
+      .map(([name, target]) => ({ path, name, target })),
+  );
+
+  it('reads the libraries it means to check', () => {
+    // Pinned, for the same reason as the scan above: a check that finds no
+    // targets passes by checking nothing.
+    expect(swcBuilds.length).toBeGreaterThanOrEqual(31);
+  });
+
+  it('never silences the declaration pass', () => {
+    const silenced = swcBuilds
+      .filter(({ target }) => target.options?.['skipTypeCheck'] === true)
+      .map(({ path, name }) => `${path} (${name})`);
+    expect(
+      silenced,
+      `@nx/js:swc targets hiding their declaration errors:\n  ${silenced.join('\n  ')}`,
+    ).toEqual([]);
+  });
+});

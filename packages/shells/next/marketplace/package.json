@@ -17,7 +17,6 @@
           "outputPath": "packages/shells/next/marketplace/dist",
           "main": "packages/shells/next/marketplace/src/index.ts",
           "tsConfig": "packages/shells/next/marketplace/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

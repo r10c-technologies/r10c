@@ -36,7 +36,6 @@
           "outputPath": "packages/business/ts/sales-vocabulary/dist",
           "main": "packages/business/ts/sales-vocabulary/src/index.ts",
           "tsConfig": "packages/business/ts/sales-vocabulary/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

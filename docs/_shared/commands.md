@@ -54,9 +54,8 @@ pnpm nx run @r10c/source:watch-libs
 
 # Build / typecheck / lint / test a single project
 pnpm nx build <project>       # libs: @nx/js:swc, per-file .js — never a bundler
-pnpm nx build <project> --skipTypeCheck=false   # show the declaration pass's
-                              # hidden errors (it emits the .d.ts; its diagnostics
-                              # are suppressed, so a "green" build can emit none)
+                              # a declaration error fails a library build — no
+                              # library may set skipTypeCheck (@r10c/conventions)
 pnpm nx typecheck <project>   # tsc --build, emits the .d.ts alongside swc's .js
 pnpm nx lint <project>                        # add --fix to autofix (import sort etc.)
 pnpm nx test <project>                        # all tests in the project

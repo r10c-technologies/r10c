@@ -17,7 +17,6 @@
           "outputPath": "packages/shells/next/system-management/dist",
           "main": "packages/shells/next/system-management/src/index.ts",
           "tsConfig": "packages/shells/next/system-management/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

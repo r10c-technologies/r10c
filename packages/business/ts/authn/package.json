@@ -38,7 +38,6 @@
           "outputPath": "packages/business/ts/authn/dist",
           "main": "packages/business/ts/authn/src/index.ts",
           "tsConfig": "packages/business/ts/authn/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

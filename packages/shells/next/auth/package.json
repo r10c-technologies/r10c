@@ -17,7 +17,6 @@
           "outputPath": "packages/shells/next/auth/dist",
           "main": "packages/shells/next/auth/src/index.ts",
           "tsConfig": "packages/shells/next/auth/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

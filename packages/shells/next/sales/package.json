@@ -17,7 +17,6 @@
           "outputPath": "packages/shells/next/sales/dist",
           "main": "packages/shells/next/sales/src/index.ts",
           "tsConfig": "packages/shells/next/sales/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

@@ -127,21 +127,17 @@ build the same shared library on one keystroke. The watcher does not chase its o
 output: the Nx daemon's file watcher honours `.gitignore`, and `dist` is ignored.
 
 Two rough edges worth knowing. A rebuild is swc emit **plus** a `tsc` declaration
-pass — `@nx/js:swc` always runs it in a TS solution setup, `skipTypeCheck` only
-silences its diagnostics — which is most of those seconds. And a save landing while
-Turbopack is mid-read can serve a torn module; the next save clears it.
+pass — `@nx/js:swc` always runs it in a TS solution setup — which is most of those
+seconds. And a save landing while Turbopack is mid-read can serve a torn module;
+the next save clears it.
 
-⚠️ **That silenced pass can emit nothing and still report success.** The
-executor's guard is `skipTypeCheck && !isTsSolutionSetup`, and this repo _is_ a
-TS solution setup, so the declaration pass always runs, with
-`ignoreDiagnostics: true` — while `noEmitOnError` (from `tsconfig.base.json`)
-still blocks the emit. A library whose `tsconfig.lib.json` overrides `lib` and
-drops what the base provides (`decorators`/`esnext.decorators`, which
-`Symbol.metadata` in `@entifix/core` needs) or omits `dom` therefore produces a
-**green build with zero `.d.ts`**, and the poisoned `.tsbuildinfo` then makes the
-next `tsc --build` report a `TS6305` cascade that names none of it. When
-overriding `lib`, extend the base list rather than replacing it. To see what the
-pass is hiding: `pnpm nx build <lib> --skipTypeCheck=false`.
+⚠️ **A declaration error fails the build, and a watched rebuild prints it.** No
+library sets `skipTypeCheck`, and `@r10c/conventions` fails the build if one does
+([below](#the-declaration-pass-reports-its-errors)). A library whose
+`tsconfig.lib.json` overrides `lib` and drops what the base provides
+(`decorators`/`esnext.decorators`, which `Symbol.metadata` in `@entifix/core`
+needs) or omits `dom` now fails where it is, instead of building green with zero
+`.d.ts`. When overriding `lib`, extend the base list rather than replacing it.
 `@entifix/style` needs no rebuild at all: it has no build target, its CSS
 subpaths are consumed straight from `src`.
 
@@ -354,7 +350,6 @@ find packages -name 'rollup.config.*' -o -name 'vite.config.ts' | grep -v node_m
              "outputPath": "packages/<path>/dist",
              "main": "packages/<path>/src/index.ts",
              "tsConfig": "packages/<path>/tsconfig.lib.json",
-             "skipTypeCheck": true,
              "stripLeadingPaths": true
            }
          }
@@ -407,23 +402,26 @@ different length. `nx.json` therefore declares `targetDefaults.typecheck` as
 every command that names both — and makes the ordering a fact rather than a
 coincidence.
 
-#### The declaration pass `skipTypeCheck` does not skip
+#### The declaration pass reports its errors
 
 `@nx/js:swc` guards its `tsc` run with `skipTypeCheck && !isTsSolutionSetup`. This
-repo **is** a TS solution setup, so the declaration pass always runs — with
-`ignoreDiagnostics: true`. Its errors are invisible, but `noEmitOnError` (from
-`tsconfig.base.json`) still blocks the emit, so a library can build "successfully"
-having written **zero `.d.ts`**, and the poisoned `.tsbuildinfo` then makes the next
-`tsc --build` report a `TS6305` cascade.
+repo **is** a TS solution setup, so the declaration pass — the one that writes the
+`.d.ts` — always runs; `skipTypeCheck: true` only set `ignoreDiagnostics`. With
+`noEmitOnError` (from `tsconfig.base.json`) still blocking the emit, a library
+used to build "successfully" having written **zero `.d.ts`**, cache that success,
+and leave a `.tsbuildinfo` that made the next `tsc --build` no-op. Every consumer
+then reported `TS6305` against an import that was fine, naming none of the cause
+(#276).
 
-The usual cause is a `tsconfig.lib.json` that **replaces** `lib` instead of
-extending the base list — dropping `decorators`/`esnext.decorators` (needed by
-`Symbol.metadata` in `@entifix/core`) or omitting `dom`. To see what the pass is
-hiding:
+So no library sets the flag, and the executor's default prints the errors and
+fails the build. **Do not add it back** — copying a sibling's target or a generator's
+output is how it would return, which is why `@r10c/conventions` asserts that no
+`@nx/js:swc` target carries `skipTypeCheck: true`. Turning the diagnostics on cost nothing measurable
+(1.4–1.8s per library either way): the pass was already running.
 
-```sh
-pnpm nx build <lib> --skipTypeCheck=false
-```
+⚠️ **Not as a CI flag.** `pnpm nx run-many -t build --skipTypeCheck=false` fails
+every app, because Nx forwards the unknown option to `next build` and
+`webpack-cli`, which reject it. The setting belongs on the library targets.
 
 ---
 

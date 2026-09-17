@@ -35,7 +35,6 @@
           "outputPath": "packages/business/ts/common/dist",
           "main": "packages/business/ts/common/src/index.ts",
           "tsConfig": "packages/business/ts/common/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

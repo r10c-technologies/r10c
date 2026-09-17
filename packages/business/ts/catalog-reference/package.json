@@ -35,7 +35,6 @@
           "outputPath": "packages/business/ts/catalog-reference/dist",
           "main": "packages/business/ts/catalog-reference/src/index.ts",
           "tsConfig": "packages/business/ts/catalog-reference/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

@@ -17,7 +17,6 @@
           "outputPath": "packages/shells/next/settlement/dist",
           "main": "packages/shells/next/settlement/src/index.ts",
           "tsConfig": "packages/shells/next/settlement/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

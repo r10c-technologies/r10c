@@ -35,7 +35,6 @@
           "outputPath": "packages/business/ts/access-management/dist",
           "main": "packages/business/ts/access-management/src/index.ts",
           "tsConfig": "packages/business/ts/access-management/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }
