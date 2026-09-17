@@ -161,11 +161,14 @@ this repository's manifests or lockfile changes.
 
 - **A Next dev server serves the change by itself**, about six seconds after the
   save (measured on marketplace-app, twice in a row, no restart).
-- ⚠️ **A service does not: restart its `dev`.** `@nx/js:node` restarts a service
-  on the Nx daemon's file events, and the daemon ignores `node_modules` — so a
-  sync leaves the running process on the code it booted with, while a restart
-  picks the synced build up (measured on config-service with
-  `@entifix/service-shell`). Each copy's version becomes `<release>-dev.<timestamp>` and
+- **A running service is restarted for you**, about nine seconds after the save
+  (measured on config-service with `@entifix/service-shell`). `@nx/js:node`
+  restarts a service only on the Nx daemon's file events, and the daemon ignores
+  `node_modules`, so `entifix:local` also runs `tools/entifix/src/reload.mjs`: it
+  touches the `package.json` of every service that runs a changed package —
+  following entifix's own dependencies, so a `core` change restarts every service
+  — which fires the restart and changes no content. `entifix:registry` does the
+  same when it puts the release back. Each copy's version becomes `<release>-dev.<timestamp>` and
   carries an `entifixDevSync` marker naming the entifix commit. Open
   `r10c.code-workspace` to edit and commit both repositories from one window.
 

@@ -8,6 +8,11 @@
 # rebuilds and re-copies whatever you save. Runs until Ctrl-C; the copies stay
 # until `entifix:registry` puts the release back.
 #
+# Beside it runs `src/reload.mjs`, which restarts the running services each sync
+# changed. A Next dev server picks a sync up by itself; an `@nx/js:node` service
+# restarts only on the Nx daemon's file events, and the daemon ignores
+# `node_modules`.
+#
 # ⚠️ Every inherited `NX_*` variable is cleared first. Started through this
 # repository's Nx, the environment carries its workspace root, its task id and
 # its `NX_INVOCATION_ROOT_PID` — and entifix's Nx reading those believes it is a
@@ -38,6 +43,12 @@ while IFS= read -r name; do
   unset "$name"
 done < <(env | sed -n 's/^\(NX_[A-Za-z0-9_]*\)=.*/\1/p')
 
+# Not `exec`: the reload loop has to stop with the sync, so this shell stays to
+# reap it.
+(cd "$root" && exec node tools/entifix/src/reload.mjs) &
+reload=$!
+trap 'kill "$reload" 2>/dev/null || true' EXIT INT TERM
+
 export ENTIFIX_CONSUMERS="$root"
 cd "$checkout"
-exec pnpm exec nx run @entifix/source:dev-sync
+pnpm exec nx run @entifix/source:dev-sync
