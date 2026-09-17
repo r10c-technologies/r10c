@@ -38,7 +38,10 @@ pnpm nx run marketplace-app:dev            # :3000 (auto-starts marketplace-serv
 pnpm nx run back-office-app:dev            # :3001 (catalog + system management +
                                            #        users + account, one origin;
                                            #        auto-starts admin-service,
-                                           #        auth-service, config-service)
+                                           #        auth-service, config-service,
+                                           #        marketplace-, stock-, sales-,
+                                           #        settlement- and
+                                           #        transaction-service)
 pnpm nx run config-service:dev             # :3190 (Postgres; runs ensure-infra first)
 pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo + Redis + RabbitMQ;
                                            #        also runs the co-deployed
@@ -54,9 +57,8 @@ pnpm nx run @r10c/source:watch-libs
 
 # Build / typecheck / lint / test a single project
 pnpm nx build <project>       # libs: @nx/js:swc, per-file .js — never a bundler
-pnpm nx build <project> --skipTypeCheck=false   # show the declaration pass's
-                              # hidden errors (it emits the .d.ts; its diagnostics
-                              # are suppressed, so a "green" build can emit none)
+                              # a declaration error fails a library build — no
+                              # library may set skipTypeCheck (@r10c/conventions)
 pnpm nx typecheck <project>   # tsc --build, emits the .d.ts alongside swc's .js
 pnpm nx lint <project>                        # add --fix to autofix (import sort etc.)
 pnpm nx test <project>                        # all tests in the project

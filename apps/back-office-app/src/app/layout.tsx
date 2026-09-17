@@ -28,7 +28,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // The locale the middleware negotiated. `lang` has to carry it: screen readers
+  // The locale the proxy negotiated. `lang` has to carry it: screen readers
   // pick their voice from it, and so does the browser's translate prompt.
   const locale = await getRequestLocale();
   // Who the persisted client stores belong to. Resolved here rather than per

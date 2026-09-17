@@ -16,7 +16,7 @@ import { type NextRequest, NextResponse } from 'next/server';
  * cache from serving it, and the redirect branch (inside `resolveLocale`)
  * already persists the choice on the one request that actually made one.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   return resolveLocale(request).redirect ?? NextResponse.next();
 }
 

@@ -11,7 +11,7 @@ export const app = {
     title: 'r10c · Administración del marketplace',
     description: 'Back-office del marketplace r10c.',
     nav: {
-      // `//home`, where middleware lands an authenticated visitor. Not the
+      // `//home`, where the proxy lands an authenticated visitor. Not the
       // breadcrumb root — that is the shell's `shell:breadcrumbs.home`.
       dashboard: 'Panel',
       account: 'Cuenta',

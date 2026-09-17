@@ -35,7 +35,6 @@
           "outputPath": "packages/business/ts/payment-management/dist",
           "main": "packages/business/ts/payment-management/src/index.ts",
           "tsConfig": "packages/business/ts/payment-management/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

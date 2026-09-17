@@ -35,7 +35,6 @@
           "outputPath": "packages/business/ts/settlement-management/dist",
           "main": "packages/business/ts/settlement-management/src/index.ts",
           "tsConfig": "packages/business/ts/settlement-management/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

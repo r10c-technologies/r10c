@@ -17,7 +17,6 @@
           "outputPath": "packages/shells/next/order/dist",
           "main": "packages/shells/next/order/src/index.ts",
           "tsConfig": "packages/shells/next/order/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

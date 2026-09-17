@@ -36,7 +36,6 @@
           "outputPath": "packages/business/ts/authz-grants/dist",
           "main": "packages/business/ts/authz-grants/src/index.ts",
           "tsConfig": "packages/business/ts/authz-grants/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

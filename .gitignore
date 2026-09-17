@@ -5,6 +5,10 @@ dist
 tmp
 out-tsc
 
+# Next writes this on every `next dev` and `next build`, with a different route
+# types path for each, so a tracked copy flips and dirties the tree (#281).
+next-env.d.ts
+
 # dependencies
 node_modules
 

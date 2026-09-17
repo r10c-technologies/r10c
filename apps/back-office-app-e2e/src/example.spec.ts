@@ -5,7 +5,7 @@ import { expect, test } from './support/fixtures';
 // `@playwright/test` directly so it arrives with a session — the app is gated,
 // and an unauthenticated visit is a redirect to auth-app, not a page.
 //
-// `/` no longer renders a page of its own: middleware redirects it to
+// `/` no longer renders a page of its own: the proxy redirects it to
 // `/<locale>/home`, whose body is the dashboard placeholder — so the assertion
 // is on the shell landmarks, not on a heading the page does not have.
 test('lands a signed-in visitor on the home page', async ({ page }) => {

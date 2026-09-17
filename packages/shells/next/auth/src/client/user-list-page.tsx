@@ -15,7 +15,7 @@ import { useUsers } from './use-users';
  */
 export function UsersPage() {
   // Every internal href carries the locale. An unprefixed one still resolves —
-  // the middleware redirects it — but the visitor pays a round trip per click.
+  // the proxy redirects it — but the visitor pays a round trip per click.
   const withLocale = useLocaleHref();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);

@@ -35,7 +35,6 @@
           "outputPath": "packages/business/ts/marketplace-catalog/dist",
           "main": "packages/business/ts/marketplace-catalog/src/index.ts",
           "tsConfig": "packages/business/ts/marketplace-catalog/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

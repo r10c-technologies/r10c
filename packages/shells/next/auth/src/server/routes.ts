@@ -33,7 +33,7 @@ import {
  * `GET /api/auth/oidc/start` — leave for the hosted login page.
  *
  * A redirect rather than JSON, so a signed-out visitor can be sent here by an
- * ordinary link or by the middleware without any client code running first.
+ * ordinary link or by the proxy without any client code running first.
  * auth-service mints the PKCE pair and the `state`; this handler only carries
  * the browser.
  *
@@ -48,7 +48,7 @@ import {
  * the hosted login is the one screen in the fleet the i18n gate cannot reach, so
  * without `ui_locales` a visitor reading Spanish is handed an English sign-in
  * page and back. It is read from the cookie rather than from `getRequestLocale`
- * because the middleware skips `/api` wholesale, so no locale header reaches
+ * because the proxy skips `/api` wholesale, so no locale header reaches
  * here — and it is forwarded raw, since auth-service is what checks it against
  * the fleet's list before it can reach a redirect URL.
  */
@@ -216,7 +216,7 @@ export async function revokeOtherSessionsRoute() {
  *
  * auth-service owns the ownership check; this handler only adds the part that
  * has to happen on this origin: if you ended the session you are currently
- * using, the cookies for it are now worthless and must go, or the middleware
+ * using, the cookies for it are now worthless and must go, or the proxy
  * keeps waving through a browser that has no session left.
  */
 export async function deleteSessionRoute(

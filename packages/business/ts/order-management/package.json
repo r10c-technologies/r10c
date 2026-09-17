@@ -35,7 +35,6 @@
           "outputPath": "packages/business/ts/order-management/dist",
           "main": "packages/business/ts/order-management/src/index.ts",
           "tsConfig": "packages/business/ts/order-management/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

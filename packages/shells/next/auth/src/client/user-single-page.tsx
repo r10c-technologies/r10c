@@ -67,7 +67,7 @@ export function UserDetailPage({
   const t = useT('shell');
   const errorT = useT('errors');
   // The back link is a plain `<a>` inside `EntityForm`, so an unprefixed href
-  // costs a full document load *and* the middleware's redirect.
+  // costs a full document load *and* the proxy's redirect.
   const withLocale = useLocaleHref();
   const params = useParams<{ id: string }>();
   const id = slug ?? params.id;

@@ -111,6 +111,14 @@ rewrite. The stream is same-origin by _necessity_ — the session cookie is
 credential — and the catalog's `202` link is relative, so no caller ever encoded
 either arrangement.
 
+⚠️ **`back-office:dev` starts it**, because that proxy is on every workspace
+load: the stream opens as the workspace mounts, and the optimistic-mutation
+contract ([ADR 0043](../adr/0043-the-optimistic-mutation-contract.md)) reconciles
+over it. Left unstarted, every back-office page logged a `500` from
+`/api/transaction/events` and the stream never connected (#283). It does **not**
+start order-service or payment-service, so a live checkout still needs those two
+by hand.
+
 It holds a **crossing token per participant**, which is the concentration
 ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
 name any organization. Separate `is_secret` rows, separate rotations, and the
@@ -178,8 +186,8 @@ arrives on the bus, so nothing dispatches into it, and every route it serves is
 guarded by a verified session. It is the only slice in the fleet with a store, a bus
 connection and no service secret at all.
 
-**`back-office:dev` starts it**, unlike order-service, payment-service and
-transaction-service, because it has a back-office surface: a vendor's terms and
+**`back-office:dev` starts it**, unlike order-service and payment-service,
+because it has a back-office surface: a vendor's terms and
 their statement are screens, and a proxy pointed at a process nothing started is
 a nav item that 502s.
 
@@ -239,9 +247,9 @@ outbox in its own store. The capture _decision_ never arrives as a message — t
 it — so what the bus carries is the consequence: order-service advances an order
 to `paid`, and settlement will fold a commission entry in M6.
 
-⚠️ **No dev target starts it.** Like order-service and transaction-service it is
-not a dependency of either frontend's `dev`, so a live checkout needs it started
-by hand — `node apps/payment-service/dist/main.js` — or the saga's pivot fails
+⚠️ **No dev target starts it.** Like order-service it is not a dependency of
+either frontend's `dev` (transaction-service is, since #283), so a live checkout
+needs it started by hand — `node apps/payment-service/dist/main.js` — or the saga's pivot fails
 against an address nothing is listening on.
 
 ⁷ **order-service, bound.** It owns the `order` store — **platform** plane and

@@ -32,7 +32,6 @@
           "outputPath": "packages/business/ts/payment-contracts/dist",
           "main": "packages/business/ts/payment-contracts/src/index.ts",
           "tsConfig": "packages/business/ts/payment-contracts/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

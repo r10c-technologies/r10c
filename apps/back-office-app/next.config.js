@@ -1,19 +1,13 @@
 //@ts-check
 
-const { composePlugins, withNx } = require('@nx/next');
-
 /**
- * @type {import('@nx/next/plugins/with-nx').WithNxOptions}
+ * A plain Next config. `withNx`/`composePlugins` from `@nx/next` are deprecated
+ * and removed in Nx 24, and supplied nothing here: this workspace declares no
+ * tsconfig `paths`, so their `transpilePackages` list came out empty, and their
+ * webpack hook never runs under Turbopack.
+ *
+ * @type {import('next').NextConfig}
  **/
-const nextConfig = {
-  // Use this to set Nx-specific options
-  // See: https://nx.dev/recipes/next/next-config-setup
-  nx: {},
-};
+const nextConfig = {};
 
-const plugins = [
-  // Add more Next.js plugins to this list if needed.
-  withNx,
-];
-
-module.exports = composePlugins(...plugins)(nextConfig);
+module.exports = nextConfig;

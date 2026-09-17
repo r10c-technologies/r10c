@@ -4,6 +4,9 @@
 - Date: 2026-07-24
 - Area: auth
 - Read when: guarding a route, adding a permission, or deciding what a token may carry — grants come from `ROLE_PERMISSIONS`, never from the token, and hiding a nav item protects nothing
+- Revised: 2026-09-17 — layer 1 below is Next 16's **proxy** (`src/proxy.ts`),
+  the renamed middleware, and it runs on Node rather than the edge (#282). Still
+  cookie presence only, still not a check; the three layers are unchanged.
 - Revised: 2026-08-13 by [ADR 0015](0015-asymmetric-access-tokens-and-the-party-role-claim.md) —
   records here the "supersedes ADR 0002 on RS256 only" that ADR 0015 declared but
   never wrote back. `jwt.secret` is gone; verification takes a public key.
@@ -137,7 +140,7 @@ checking its signature**, and is used only where being wrong costs a menu item.
 
 ### Three enforcement layers, one of which is security
 
-1. **Next middleware** — cookie presence, a fast bounce. Not a check.
+1. **Next proxy** (middleware when this was written) — cookie presence, a fast bounce. Not a check.
 2. **Server-rendered layout / menu** — filters nav items with `can(...)` and
    gates the auth-app back-office. This is UX, and it is where the role gate
    lives rather than in middleware, because verifying the JWT at the edge would
@@ -154,7 +157,7 @@ checking its signature**, and is used only where being wrong costs a menu item.
 New `@entifix/authz` (`layer:business`, `scope:shared`), depending only
 on `@entifix/core`. `can`/`permissionMatches`/the role table are pure and
 Effect-free so the identical check runs in a service, in a Next server
-component, in edge middleware and in the browser; only `PolicyDecisionTag`
+component, in the Next proxy and in the browser; only `PolicyDecisionTag`
 imports `effect`. The shared guards live one layer up in
 `@entifix/service-shell`, which both services already depend on.
 

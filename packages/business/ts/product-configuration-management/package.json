@@ -35,7 +35,6 @@
           "outputPath": "packages/business/ts/product-configuration-management/dist",
           "main": "packages/business/ts/product-configuration-management/src/index.ts",
           "tsConfig": "packages/business/ts/product-configuration-management/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }

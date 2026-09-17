@@ -71,7 +71,7 @@ export function SessionsView() {
       const body = (await res.json()) as { signedOut?: boolean };
       if (body.signedOut === true) {
         // Our own cookies are gone; anything short of a full navigation would
-        // render a shell the middleware is about to reject anyway.
+        // render a shell the proxy is about to reject anyway.
         window.location.assign('/');
         return;
       }

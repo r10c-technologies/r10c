@@ -36,7 +36,6 @@
           "outputPath": "packages/shells/next/i18n-catalog/dist",
           "main": "packages/shells/next/i18n-catalog/src/index.ts",
           "tsConfig": "packages/shells/next/i18n-catalog/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       },

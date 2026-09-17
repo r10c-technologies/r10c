@@ -336,7 +336,7 @@ const base = defineEntifixE2eTest({
 
 /**
  * Every catalog journey runs signed in, because the app is now gated: its
- * middleware bounces a request with no access cookie, and the sidebar renders
+ * proxy bounces a request with no access cookie, and the sidebar renders
  * only what the caller's roles grant. The session is seeded on the context
  * before the first navigation — an `auto` fixture rather than a per-spec call,
  * so a new spec cannot forget it and get a redirect instead of a page.

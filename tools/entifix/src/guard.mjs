@@ -19,6 +19,14 @@
 import { execFileSync } from 'node:child_process';
 
 import {
+  affectedPackages,
+  entifixDependencies,
+  formatRestart,
+  servicesToRestart,
+  touch,
+  workspaceManifests,
+} from './consumers.mjs';
+import {
   formatSyncedFindings,
   restoreRelease,
   syncedEntifixPackages,
@@ -27,6 +35,10 @@ import {
 const root = process.cwd();
 
 if (process.argv.includes('--restore')) {
+  // Read before the restore deletes them: a running service still holds the
+  // synced code, and `entifix:local`'s reload loop has stopped by now.
+  const wasSynced = syncedEntifixPackages(root).map(pkg => pkg.name);
+  const dependencies = entifixDependencies(root);
   const restored = restoreRelease(root, dir =>
     execFileSync(
       'pnpm',
@@ -44,6 +56,14 @@ if (process.argv.includes('--restore')) {
     ),
   );
   console.log(`Restored ${restored} synced entifix entries to the release.`);
+  if (wasSynced.length > 0) {
+    const services = servicesToRestart(
+      workspaceManifests(root),
+      affectedPackages(wasSynced, dependencies),
+    );
+    touch(root, services);
+    console.log(formatRestart(wasSynced, services, 'put back'));
+  }
 } else {
   const synced = syncedEntifixPackages(root);
   if (synced.length > 0 && process.env.ENTIFIX_DEV_SYNC_OK !== '1') {

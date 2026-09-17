@@ -42,7 +42,7 @@ export function ConfigurationSingleViewClientPage({
     useSystemManagementAdapters();
   const router = useRouter();
   // Every internal navigation carries the locale. Unprefixed, each one is
-  // bounced by the middleware — and the form's back link is a plain `<a>`,
+  // bounced by the proxy — and the form's back link is a plain `<a>`,
   // so that redirect rides on top of a full document load.
   const withLocale = useLocaleHref();
   const params = useParams<{ slug: string }>();

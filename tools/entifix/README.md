@@ -7,14 +7,34 @@ release back. Four commands, one per script:
 | --------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------- |
 | `pnpm run entifix:checkout` | `checkout.sh`             | clones entifix into `.entifix/` if it is missing, then `pnpm install` inside it                |
 | `pnpm run entifix:local`    | `local.sh`                | runs entifix's `dev-sync` from that clone: build, copy over the release, rebuild on every save |
+| (beside `entifix:local`)    | `src/reload.mjs`          | restarts each running service a sync changed                                                   |
 | `pnpm run entifix:registry` | `src/guard.mjs --restore` | deletes the synced copies and relinks the release, in a few seconds                            |
 | `pnpm run entifix:status`   | `src/status.mjs`          | the release, or which packages are synced and from which entifix commit                        |
 | (pre-commit)                | `src/guard.mjs`           | refuses a commit while a synced copy is installed; `ENTIFIX_DEV_SYNC_OK=1` lets one through    |
 | (Nx runtime input)          | `src/fingerprint.mjs`     | keeps a synced build out of the task cache                                                     |
 
-A Next dev server serves a synced change by itself; a service started by
-`@nx/js:node` does not, because it restarts on the Nx daemon's file events and the
-daemon ignores `node_modules` — restart it.
+A Next dev server serves a synced change by itself. A service started by
+`@nx/js:node` restarts only on the Nx daemon's file events, and the daemon ignores
+`node_modules` — so `reload.mjs` runs beside the sync and touches the
+`package.json` of every service that runs a changed package. A touch moves the
+mtime and no content, so it fires the restart and leaves `git status` clean. Both
+directions restart: a sync, and `entifix:registry` putting the release back.
+
+## Restarting services
+
+- **Which services.** A tracked `package.json` whose `nx.targets.dev.executor` is
+  `@nx/js:node` and whose dependencies name a changed package **or any entifix
+  package that depends on one** — a change to `@entifix/core` restarts a service
+  that lists only `@entifix/service-shell`. The dependency graph is read from the
+  installed entifix manifests, not from the consumer.
+- **When.** It polls the synced versions every second and acts once they have held
+  still for 1.5s, so a sync of every package restarts each service once. The sync
+  writes each copy's manifest last, by rename, so a new version means that copy is
+  complete. Tune with `ENTIFIX_RELOAD_POLL_MS` / `ENTIFIX_RELOAD_SETTLE_MS`.
+- **Measured** on r10c's config-service (2026-09-17): a save in
+  `@entifix/service-shell` ran in the service 9s later, with one restart.
+- A consumer whose services declare their `dev` target somewhere other than
+  `package.json` (a `project.json`) gets no restart, and restarts by hand.
 
 Every consumer checkout — each repository, and each worktree of one — keeps its
 **own** clone, so two of them can change entifix on two branches at once. An

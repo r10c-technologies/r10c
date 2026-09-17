@@ -34,7 +34,6 @@
           "outputPath": "packages/utils/ts/array/dist",
           "main": "packages/utils/ts/array/src/index.ts",
           "tsConfig": "packages/utils/ts/array/tsconfig.lib.json",
-          "skipTypeCheck": true,
           "stripLeadingPaths": true
         }
       }
