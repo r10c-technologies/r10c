@@ -10,11 +10,11 @@
     "@entifix/next-shell": "catalog:",
     "@entifix/next-i18n": "catalog:",
     "@r10c/shells-next-marketplace": "workspace:*",
-    "i18next": "26.3.6",
+    "i18next": "26.4.2",
     "next": "16.2.10",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-i18next": "17.0.11"
+    "react-i18next": "17.0.16"
   },
   "nx": {
     "tags": [

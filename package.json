@@ -24,10 +24,10 @@
   "dependencies": {
     "@headlessui/react": "2.2.10",
     "@tailwindcss/postcss": "^4.3.3",
-    "@tanstack/react-query": "^5.101.4",
-    "axios": "1.19.0",
+    "@tanstack/react-query": "^5.104.1",
+    "axios": "1.20.0",
     "effect": "3.22.1",
-    "idb": "^8.0.3",
+    "idb": "^8.0.4",
     "next": "16.2.10",
     "react": "19.2.8",
     "react-dom": "19.2.8",
