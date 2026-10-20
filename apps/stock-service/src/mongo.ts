@@ -63,7 +63,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  * item through a single key — draws from no sequence, and declares no published
  * event, so there is no outbox to commit alongside a write.
  */
-export const AppLayer = Layer.unwrapEffect(
+export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
     const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
     const store = new ConfigurationClientInMemory(plain);

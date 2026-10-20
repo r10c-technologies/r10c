@@ -31,9 +31,10 @@ export interface ProviderSessionIndex {
   take(providerSessionId: string): Effect.Effect<readonly string[]>;
 }
 
-export class ProviderSessionIndexTag extends Context.Tag(
-  'ProviderSessionIndexTag',
-)<ProviderSessionIndexTag, ProviderSessionIndex>() {}
+export class ProviderSessionIndexTag extends Context.Service<
+  ProviderSessionIndexTag,
+  ProviderSessionIndex
+>()('ProviderSessionIndexTag') {}
 
 const key = (providerSessionId: string) => `oidc:sid:${providerSessionId}`;
 
@@ -72,14 +73,14 @@ export const makeRedisProviderSessionIndex = (
       await redis.expire(key(providerSessionId), SESSION_ABSOLUTE_TTL_SECONDS);
     }).pipe(
       Effect.asVoid,
-      Effect.catchAll(() => Effect.void),
+      Effect.catch(() => Effect.void),
     ),
   take: providerSessionId =>
     Effect.tryPromise(async () => {
       const members = await redis.smembers(key(providerSessionId));
       await redis.del(key(providerSessionId));
       return members;
-    }).pipe(Effect.catchAll(() => Effect.succeed([] as readonly string[]))),
+    }).pipe(Effect.catch(() => Effect.succeed([] as readonly string[]))),
 });
 
 /** Provides {@link ProviderSessionIndexTag} from the same Redis the sessions use. */

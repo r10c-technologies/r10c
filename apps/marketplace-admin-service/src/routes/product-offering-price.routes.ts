@@ -1,6 +1,6 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import { ProductOfferingPrice } from '@r10c/business-ts-product-configuration-management';
+import { HttpRouter } from 'effect/http';
 
 import {
   byIdRoute,
@@ -24,39 +24,45 @@ import {
  * Plain REST throughout, for the same reason as the offering itself: nothing
  * here is assigned server-side.
  */
-export const productOfferingPriceRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const productOfferingPriceRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/product-offering-price',
     guarded(ProductOfferingPrice, 'read', () =>
       listRoute(ProductOfferingPrice),
     ),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-offering-price/:id',
     guarded(ProductOfferingPrice, 'read', () =>
       byIdRoute(ProductOfferingPrice),
     ),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-offering-price/$metadata',
     entityMetadataRoute(ProductOfferingPrice),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-offering-price',
     guarded(ProductOfferingPrice, 'write', () =>
       saveRoute(ProductOfferingPrice, { fromParams: false }),
     ),
   ),
-  HttpRouter.put(
+  HttpRouter.route(
+    'PUT',
     '/api/product-offering-price/:id',
     guarded(ProductOfferingPrice, 'write', () =>
       saveRoute(ProductOfferingPrice, { fromParams: true }),
     ),
   ),
-  HttpRouter.del(
+  HttpRouter.route(
+    'DELETE',
     '/api/product-offering-price/:id',
     guarded(ProductOfferingPrice, 'delete', () =>
       deleteRoute(ProductOfferingPrice),
     ),
   ),
-);
+]);

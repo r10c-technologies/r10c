@@ -16,9 +16,10 @@ export interface RevokeUserSessionsInput {
 }
 
 /** Input tag: the target account, provided per call. */
-export class RevokeUserSessionsInputTag extends Context.Tag(
-  'RevokeUserSessionsInputTag',
-)<RevokeUserSessionsInputTag, RevokeUserSessionsInput>() {}
+export class RevokeUserSessionsInputTag extends Context.Service<
+  RevokeUserSessionsInputTag,
+  RevokeUserSessionsInput
+>()('RevokeUserSessionsInputTag') {}
 
 /**
  * Tell the owner their sessions were ended for them, because they did not do
@@ -41,7 +42,7 @@ const notifyOwner = (userId: EntityId) =>
       userId,
       to,
     });
-  }).pipe(Effect.catchAll(() => Effect.void));
+  }).pipe(Effect.catch(() => Effect.void));
 
 /**
  * End every session an account holds — an administrator signing somebody out

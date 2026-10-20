@@ -1,5 +1,6 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { requirePrincipal } from '@entifix/service-shell';
+import { Layer } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 import { agreementRoutes } from './routes/agreement.routes';
 import { configIntrospectionRoute } from './routes/config.routes';
@@ -19,14 +20,17 @@ import {
  * credential that can name any organization
  * ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
  */
-export const router = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/config', configIntrospectionRoute),
-  HttpRouter.get(
-    '/api/me',
-    requirePrincipal(principal => HttpServerResponse.json(principal)),
-  ),
-  HttpRouter.concat(agreementRoutes),
-  HttpRouter.concat(commissionEntryRoutes),
-  HttpRouter.concat(settlementRunRoutes),
-  HttpRouter.concat(vendorPayoutRoutes),
+export const router = Layer.mergeAll(
+  HttpRouter.addAll([
+    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
+    HttpRouter.route(
+      'GET',
+      '/api/me',
+      requirePrincipal(principal => HttpServerResponse.json(principal)),
+    ),
+  ]),
+  agreementRoutes,
+  commissionEntryRoutes,
+  settlementRunRoutes,
+  vendorPayoutRoutes,
 );

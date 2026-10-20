@@ -28,9 +28,10 @@ import {
  * *records* either — a run states the period it actually covered, so changing
  * the cadence does not invalidate what came before.
  */
-export class SettlementRunIntervalMs extends Context.Tag(
-  'SettlementRunIntervalMs',
-)<SettlementRunIntervalMs, number>() {}
+export class SettlementRunIntervalMs extends Context.Service<
+  SettlementRunIntervalMs,
+  number
+>()('SettlementRunIntervalMs') {}
 
 /** The stored shape of a ledger line, as the sweep reads it back. */
 interface LedgerRow {
@@ -253,14 +254,14 @@ export const startSettlementSweep = Effect.gen(function* () {
           )
         : Effect.void,
     ),
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.logError('settlement sweep failed').pipe(
         Effect.annotateLogs({ error: String(error) }),
       ),
     ),
   );
 
-  const daemon = yield* Effect.forkDaemon(
+  const daemon = yield* Effect.forkDetach(
     sweepOnce.pipe(Effect.delay(Duration.millis(interval)), Effect.forever),
   );
 

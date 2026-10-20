@@ -1,4 +1,3 @@
-import { HttpRouter } from '@effect/platform';
 import { EntifixBuildError } from '@entifix/core';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import {
@@ -6,6 +5,7 @@ import {
   isSalesChannelType,
   SalesChannel,
 } from '@r10c/business-ts-sales-management';
+import { HttpRouter } from 'effect/http';
 
 import {
   byIdRoute,
@@ -56,33 +56,39 @@ const validateChannel = (
         )
       : undefined;
 
-export const salesChannelRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const salesChannelRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/sales-channel',
     guarded(SalesChannel, 'read', () => listRoute(SalesChannel)),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/sales-channel/$metadata',
     entityMetadataRoute(SalesChannel),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/sales-channel/:id',
     guarded(SalesChannel, 'read', () => byIdRoute(SalesChannel)),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/sales-channel',
     guarded(SalesChannel, 'write', () =>
       saveRoute(SalesChannel, { fromParams: false, validate: validateChannel }),
     ),
   ),
-  HttpRouter.put(
+  HttpRouter.route(
+    'PUT',
     '/api/sales-channel/:id',
     guarded(SalesChannel, 'write', () =>
       saveRoute(SalesChannel, { fromParams: true, validate: validateChannel }),
     ),
   ),
-  HttpRouter.del(
+  HttpRouter.route(
+    'DELETE',
     '/api/sales-channel/:id',
     guarded(SalesChannel, 'delete', () => deleteRoute(SalesChannel)),
   ),
-);
+]);

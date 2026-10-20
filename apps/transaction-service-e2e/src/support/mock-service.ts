@@ -120,7 +120,7 @@ const MockAppLayer = Layer.provideMerge(
   Layer.mergeAll(
     MongoTransactionStoreLayer,
     MongoSagaStoreLayer,
-    Layer.scoped(TransactionStreamHubTag, makeTransactionStreamHubEffect),
+    Layer.effect(TransactionStreamHubTag, makeTransactionStreamHubEffect),
     // The dispatcher the run route resolves. Built over an empty participant
     // map: no spec here runs a saga — that needs two live participants — and a
     // definition naming a participant this map lacks fails the *effect* rather

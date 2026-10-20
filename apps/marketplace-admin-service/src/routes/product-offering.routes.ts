@@ -1,10 +1,10 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import {
   ProductOffering,
   PUBLISH_PRODUCT_OFFERING,
   UNPUBLISH_PRODUCT_OFFERING,
 } from '@r10c/business-ts-product-configuration-management';
+import { HttpRouter } from 'effect/http';
 
 import {
   bulkTransitionOfferingRoute,
@@ -44,20 +44,24 @@ import {
  * their own permission, and a route guarded by `write` would let anyone who can
  * edit a draft put it in front of buyers.
  */
-export const productOfferingRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const productOfferingRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/product-offering',
     guarded(ProductOffering, 'read', () => listRoute(ProductOffering)),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-offering/:id',
     guarded(ProductOffering, 'read', () => byIdRoute(ProductOffering)),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-offering/$metadata',
     entityMetadataRoute(ProductOffering),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-offering',
     guarded(ProductOffering, 'write', () =>
       saveRoute(ProductOffering, {
@@ -66,7 +70,8 @@ export const productOfferingRoutes = HttpRouter.empty.pipe(
       }),
     ),
   ),
-  HttpRouter.put(
+  HttpRouter.route(
+    'PUT',
     '/api/product-offering/:id',
     guarded(ProductOffering, 'write', () =>
       saveRoute(ProductOffering, {
@@ -75,17 +80,20 @@ export const productOfferingRoutes = HttpRouter.empty.pipe(
       }),
     ),
   ),
-  HttpRouter.del(
+  HttpRouter.route(
+    'DELETE',
     '/api/product-offering/:id',
     guarded(ProductOffering, 'delete', () => deleteRoute(ProductOffering)),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-offering/:id/publish',
     guardedUseCase(PUBLISH_PRODUCT_OFFERING, organizationId =>
       transitionOfferingRoute('publish', organizationId),
     ),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-offering/:id/unpublish',
     guardedUseCase(UNPUBLISH_PRODUCT_OFFERING, organizationId =>
       transitionOfferingRoute('unpublish', organizationId),
@@ -100,16 +108,18 @@ export const productOfferingRoutes = HttpRouter.empty.pipe(
   // offering but not twenty. Registered **before** `/:id/...` would shadow
   // nothing either way, since these paths have one segment where those have
   // two; they are grouped here because they are the same verb.
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-offering/publish',
     guardedUseCase(PUBLISH_PRODUCT_OFFERING, organizationId =>
       bulkTransitionOfferingRoute('publish', organizationId),
     ),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-offering/unpublish',
     guardedUseCase(UNPUBLISH_PRODUCT_OFFERING, organizationId =>
       bulkTransitionOfferingRoute('unpublish', organizationId),
     ),
   ),
-);
+]);

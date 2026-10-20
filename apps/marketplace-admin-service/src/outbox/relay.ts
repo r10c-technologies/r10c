@@ -13,10 +13,10 @@ import { Context, Effect, Fiber } from 'effect';
 import type { MongoClient } from 'mongodb';
 
 /** The `tenant_` prefix tenant databases are named with, from config-service. */
-export class TenantDatabasePrefix extends Context.Tag('TenantDatabasePrefix')<
+export class TenantDatabasePrefix extends Context.Service<
   TenantDatabasePrefix,
   string
->() {}
+>()('TenantDatabasePrefix') {}
 
 /**
  * Every tenant database this slice owns.
@@ -78,7 +78,7 @@ export const sweepTenantOutboxes = (
         // already enumerates every tenant database once per sweep.
         yield* recordOutboxStats(name, yield* outbox.stats());
       }).pipe(
-        Effect.catchAll(error =>
+        Effect.catch(error =>
           Effect.logError('draining a tenant outbox failed').pipe(
             Effect.annotateLogs({ database: name, error: String(error) }),
           ),
@@ -91,7 +91,7 @@ export const sweepTenantOutboxes = (
     // *logged*, though: swallowing it silently is how an `ensureOutboxIndexes`
     // conflict, or a tenant enumeration that stopped working, would leave the
     // relay dead while every probe stayed green.
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.logError('outbox sweep failed').pipe(
         Effect.annotateLogs({ error: String(error) }),
       ),
@@ -117,7 +117,7 @@ export const startOutboxRelay = Effect.gen(function* () {
 
   const sweepOnce = sweepTenantOutboxes(client, bus, { prefix, maxAttempts });
 
-  const daemon = yield* Effect.forkDaemon(
+  const daemon = yield* Effect.forkDetach(
     sweepOnce.pipe(Effect.delay(SWEEP_INTERVAL), Effect.forever),
   );
 

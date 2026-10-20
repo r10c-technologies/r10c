@@ -17,9 +17,10 @@ export interface UpdateUserAspectsInput {
 }
 
 /** Input tag: the aspect change, provided per call. */
-export class UpdateUserAspectsInputTag extends Context.Tag(
-  'UpdateUserAspectsInputTag',
-)<UpdateUserAspectsInputTag, UpdateUserAspectsInput>() {}
+export class UpdateUserAspectsInputTag extends Context.Service<
+  UpdateUserAspectsInputTag,
+  UpdateUserAspectsInput
+>()('UpdateUserAspectsInputTag') {}
 
 /**
  * Change an existing account's role and/or status under the same tier rule that

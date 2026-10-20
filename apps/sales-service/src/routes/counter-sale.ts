@@ -1,9 +1,4 @@
 import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
-import {
   EntityIdTag,
   EntityRepositoryTag,
   getUCFactory,
@@ -17,6 +12,7 @@ import {
   SellAtChannelUC,
 } from '@r10c/business-ts-sales-management';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import {
   CheckoutCoordinatorUrl,
@@ -159,7 +155,7 @@ const counterSaleRoute = (organizationId: string) =>
       // A channel this organization does not have. Not found rather than
       // forbidden: the id is the store's primary key, and a 403 would make the
       // route an oracle for which channels exist elsewhere.
-      Effect.catchAll(() => Effect.succeed(undefined)),
+      Effect.catch(() => Effect.succeed(undefined)),
     );
     if (channel === undefined) {
       return yield* HttpServerResponse.json(
@@ -171,7 +167,7 @@ const counterSaleRoute = (organizationId: string) =>
     const active = yield* Effect.try({
       try: () => SellAtChannelUC.run(channel),
       catch: () => undefined,
-    }).pipe(Effect.catchAll(() => Effect.succeed(undefined)));
+    }).pipe(Effect.catch(() => Effect.succeed(undefined)));
     if (active === undefined) {
       return yield* HttpServerResponse.json(
         {
@@ -304,7 +300,7 @@ const counterSaleRoute = (organizationId: string) =>
     const payload = yield* Effect.tryPromise({
       try: () => response.json() as Promise<unknown>,
       catch: error => error,
-    }).pipe(Effect.catchAll(() => Effect.succeed(undefined)));
+    }).pipe(Effect.catch(() => Effect.succeed(undefined)));
 
     if (response.status === 201) {
       return yield* HttpServerResponse.json(
@@ -328,7 +324,7 @@ const counterSaleRoute = (organizationId: string) =>
     return yield* serverError(
       `the checkout coordinator answered ${response.status}`,
     );
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /**
  * `POST /api/counter-sale` — the till's one write.
@@ -338,12 +334,12 @@ const counterSaleRoute = (organizationId: string) =>
  * entity: `permissionForEntity(SalesChannel, 'write')` would let anyone who can
  * rename a channel sell through it, and the two are not the same authority.
  */
-export const counterSaleRoutes = <E, R>(router: HttpRouter.HttpRouter<E, R>) =>
-  router.pipe(
-    HttpRouter.post(
-      '/api/counter-sale',
-      requireOrganization(SELL_AT_CHANNEL)(organizationId =>
-        withTenantDatabase(organizationId, counterSaleRoute(organizationId)),
-      ),
+export const counterSaleRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'POST',
+    '/api/counter-sale',
+    requireOrganization(SELL_AT_CHANNEL)(organizationId =>
+      withTenantDatabase(organizationId, counterSaleRoute(organizationId)),
     ),
-  );
+  ),
+]);

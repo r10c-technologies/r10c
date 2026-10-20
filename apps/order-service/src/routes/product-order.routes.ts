@@ -1,10 +1,10 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute, requireCrossing } from '@entifix/service-shell';
 import {
   CANCEL_PRODUCT_ORDER,
   FULFIL_PRODUCT_ORDER,
   ProductOrder,
 } from '@r10c/business-ts-order-management';
+import { HttpRouter } from 'effect/http';
 
 import { buyerCancelOrderRoute, cancelOrderRoute } from './cancel-order';
 import {
@@ -64,12 +64,14 @@ import { deleteOrderRoute, placeOrderRoute } from './place-order';
  * `/api/:entity/$metadata` it is shadowed by the by-id route and silently never
  * runs, which reads as "this entity has no metadata" (ADR 0026).
  */
-export const productOrderRoutes = HttpRouter.empty.pipe(
-  HttpRouter.post(
+export const productOrderRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'POST',
     '/api/product-order',
     requireCrossing('order-management:product-order:write')(placeOrderRoute),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-order',
     guarded(ProductOrder, 'read', principal => {
       const scope = orderScopeFor(principal);
@@ -81,29 +83,34 @@ export const productOrderRoutes = HttpRouter.empty.pipe(
         : listRoute(ProductOrder, orderScopeFilter(scope));
     }),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-order/$metadata',
     entityMetadataRoute(ProductOrder),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-order/:id',
     guarded(ProductOrder, 'read', principal => {
       const scope = orderScopeFor(principal);
       return byIdRoute(ProductOrder, order => orderInScope(scope, order));
     }),
   ),
-  HttpRouter.del(
+  HttpRouter.route(
+    'DELETE',
     '/api/product-order/:id',
     requireCrossing('order-management:product-order:delete')(deleteOrderRoute),
   ),
   // The two verbs a person can reach, each guarded by the permission its own
   // `@useCase()` derives rather than by one of the CRUD triple — there is no
   // `product-order:write` for any role and none is coming.
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-order/:id/fulfil',
     guardedUseCase(FULFIL_PRODUCT_ORDER, fulfilOrderRoute),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-order/:id/cancellation',
     guardedUseCase(CANCEL_PRODUCT_ORDER, cancelOrderRoute),
   ),
@@ -111,28 +118,32 @@ export const productOrderRoutes = HttpRouter.empty.pipe(
   // sits beside the route above rather than replacing it because the two carry
   // different credentials, and one route accepting either would make the weaker
   // one the security level (ADR 0058 §4).
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-order/:id/buyer-cancellation',
     buyerCancelOrderRoute,
   ),
   // The cancellation saga's own steps — a crossing token and no session, like
   // every other write the coordinator dispatches here.
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-order/:id/cancelling',
     requireCrossing('order-management:product-order:write')(
       claimCancellationRoute,
     ),
   ),
-  HttpRouter.del(
+  HttpRouter.route(
+    'DELETE',
     '/api/product-order/:id/cancelling',
     requireCrossing('order-management:product-order:write')(
       releaseCancellationClaimRoute,
     ),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-order/:id/cancelled',
     requireCrossing('order-management:product-order:write')(
       settleCancellationRoute,
     ),
   ),
-);
+]);

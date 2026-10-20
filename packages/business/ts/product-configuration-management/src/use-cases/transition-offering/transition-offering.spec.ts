@@ -5,7 +5,7 @@ import {
   CATALOG_UNPUBLISHED,
   type CatalogPublication,
 } from '@r10c/business-ts-catalog-contracts';
-import { Effect, Exit } from 'effect';
+import { Cause, Effect, Exit, Option } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ProductOffering } from '../../entities/product-offering/product-offering.entity.js';
@@ -194,7 +194,7 @@ const decisionOf = (
 
 const failureOf = <TError>(exit: Exit.Exit<unknown, TError>): TError => {
   if (!Exit.isFailure(exit)) throw new Error('expected a failure');
-  return (exit.cause as unknown as { error: TError }).error;
+  return Option.getOrThrow(Cause.findErrorOption(exit.cause));
 };
 
 const publicationOf = (

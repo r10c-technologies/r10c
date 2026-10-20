@@ -23,29 +23,29 @@ packages:
 # place a version is written. To see an unreleased entifix change here, use
 # `pnpm run entifix:local` (tools/entifix) — never a link or a file: specifier.
 catalog:
-  '@entifix/amqp': 0.1.4
-  '@entifix/authz': 0.1.4
-  '@entifix/business': 0.1.4
-  '@entifix/core': 0.1.4
-  '@entifix/i18n': 0.1.4
-  '@entifix/jwt': 0.1.4
-  '@entifix/mongo': 0.1.4
-  '@entifix/next-i18n': 0.1.4
-  '@entifix/next-shell': 0.1.4
-  '@entifix/posthog': 0.1.4
-  '@entifix/react-controls': 0.1.4
-  '@entifix/react-integration': 0.1.4
-  '@entifix/redis': 0.1.4
-  '@entifix/rest': 0.1.4
-  '@entifix/service-shell': 0.1.4
-  '@entifix/sql': 0.1.4
-  '@entifix/style': 0.1.4
-  '@entifix/testing-auth': 0.1.4
-  '@entifix/testing-e2e': 0.1.4
-  '@entifix/testing-unit': 0.1.4
-  '@entifix/tooling': 0.1.4
-  '@entifix/transactions': 0.1.4
-  '@entifix/zitadel': 0.1.4
+  '@entifix/amqp': 0.2.0
+  '@entifix/authz': 0.2.0
+  '@entifix/business': 0.2.0
+  '@entifix/core': 0.2.0
+  '@entifix/i18n': 0.2.0
+  '@entifix/jwt': 0.2.0
+  '@entifix/mongo': 0.2.0
+  '@entifix/next-i18n': 0.2.0
+  '@entifix/next-shell': 0.2.0
+  '@entifix/posthog': 0.2.0
+  '@entifix/react-controls': 0.2.0
+  '@entifix/react-integration': 0.2.0
+  '@entifix/redis': 0.2.0
+  '@entifix/rest': 0.2.0
+  '@entifix/service-shell': 0.2.0
+  '@entifix/sql': 0.2.0
+  '@entifix/style': 0.2.0
+  '@entifix/testing-auth': 0.2.0
+  '@entifix/testing-e2e': 0.2.0
+  '@entifix/testing-unit': 0.2.0
+  '@entifix/tooling': 0.2.0
+  '@entifix/transactions': 0.2.0
+  '@entifix/zitadel': 0.2.0
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false

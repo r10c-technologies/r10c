@@ -39,6 +39,7 @@ export interface UserDeviceRepository {
 }
 
 /** DI tag the composition root binds to a concrete {@link UserDeviceRepository}. */
-export class UserDeviceRepositoryTag extends Context.Tag(
-  'UserDeviceRepositoryTag',
-)<UserDeviceRepositoryTag, UserDeviceRepository>() {}
+export class UserDeviceRepositoryTag extends Context.Service<
+  UserDeviceRepositoryTag,
+  UserDeviceRepository
+>()('UserDeviceRepositoryTag') {}

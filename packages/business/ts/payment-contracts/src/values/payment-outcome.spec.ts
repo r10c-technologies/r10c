@@ -1,4 +1,4 @@
-import { Effect, Either } from 'effect';
+import { Effect, Result } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -23,7 +23,7 @@ const captured: PaymentOutcome = {
 };
 
 const read = (data: unknown) =>
-  Effect.runSync(Effect.either(readPaymentOutcome(data)));
+  Effect.runSync(Effect.result(readPaymentOutcome(data)));
 
 describe('paymentEventId', () => {
   /**
@@ -89,8 +89,8 @@ describe('the three event builders', () => {
 describe('readPaymentOutcome', () => {
   it('reads a well-formed payload', () => {
     const outcome = read({ ...captured });
-    expect(Either.isRight(outcome)).toBe(true);
-    expect(Either.getOrThrow(outcome)).toEqual({
+    expect(Result.isSuccess(outcome)).toBe(true);
+    expect(Result.getOrThrow(outcome)).toEqual({
       ...captured,
       channelId: undefined,
       providerReference: undefined,
@@ -100,14 +100,14 @@ describe('readPaymentOutcome', () => {
   });
 
   it('rejects a payload that is not an object', () => {
-    expect(Either.isLeft(read('pay-1'))).toBe(true);
-    expect(Either.isLeft(read(null))).toBe(true);
+    expect(Result.isFailure(read('pay-1'))).toBe(true);
+    expect(Result.isFailure(read(null))).toBe(true);
   });
 
   it('names every member it is missing, rather than the first', () => {
     const outcome = read({ amount: 1 });
-    expect(Either.isLeft(outcome)).toBe(true);
-    const message = Either.isLeft(outcome) ? outcome.left.message : '';
+    expect(Result.isFailure(outcome)).toBe(true);
+    const message = Result.isFailure(outcome) ? outcome.failure.message : '';
     expect(message).toContain('paymentId');
     expect(message).toContain('orderId');
     expect(message).toContain('currency');
@@ -120,7 +120,9 @@ describe('readPaymentOutcome', () => {
    * reach Mongo, store, and settle as an amount owed to a vendor.
    */
   it('rejects a NaN amount', () => {
-    expect(Either.isLeft(read({ ...captured, amount: Number.NaN }))).toBe(true);
+    expect(Result.isFailure(read({ ...captured, amount: Number.NaN }))).toBe(
+      true,
+    );
   });
 
   /**
@@ -136,7 +138,7 @@ describe('readPaymentOutcome', () => {
       failureReason: undefined,
       refundId: null,
     });
-    expect(Either.getOrThrow(outcome)).toMatchObject({
+    expect(Result.getOrThrow(outcome)).toMatchObject({
       channelId: undefined,
       providerReference: undefined,
       failureReason: undefined,
@@ -151,7 +153,7 @@ describe('readPaymentOutcome', () => {
       providerReference: 'psp-9',
       failureReason: 'insufficient funds',
     });
-    expect(Either.getOrThrow(outcome)).toMatchObject({
+    expect(Result.getOrThrow(outcome)).toMatchObject({
       channelId: 'counter-1',
       providerReference: 'psp-9',
       failureReason: 'insufficient funds',

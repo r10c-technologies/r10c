@@ -81,7 +81,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  *
  * No Redis: this slice takes no lock and draws from no sequence.
  */
-export const AppLayer = Layer.unwrapEffect(
+export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
     const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
     const store = new ConfigurationClientInMemory(plain);
@@ -185,7 +185,7 @@ export const AppLayer = Layer.unwrapEffect(
     const indexed = Layer.provideMerge(
       Layer.effectDiscard(
         Effect.flatMap(MongoDatabaseTag, database =>
-          Effect.zipRight(
+          Effect.andThen(
             ensureOutboxIndexes(database),
             ensureProductOrderIndexes(database),
           ),

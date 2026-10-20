@@ -63,9 +63,10 @@ const MAX_ATTEMPTS = 5;
  * adopted on the next boot instead of failing `PRECONDITION_FAILED` against a
  * queue that already exists.
  */
-export class SagaRecoveryIntervalMs extends Context.Tag(
-  'SagaRecoveryIntervalMs',
-)<SagaRecoveryIntervalMs, number>() {}
+export class SagaRecoveryIntervalMs extends Context.Service<
+  SagaRecoveryIntervalMs,
+  number
+>()('SagaRecoveryIntervalMs') {}
 
 /**
  * How old a non-terminal transaction must be before the sweep presumes it stuck,
@@ -77,10 +78,10 @@ export class SagaRecoveryIntervalMs extends Context.Tag(
  * per-type resource lock, so a merely-slow transaction is not mistaken for a
  * stalled one.
  */
-export class SagaStaleTimeoutMs extends Context.Tag('SagaStaleTimeoutMs')<
+export class SagaStaleTimeoutMs extends Context.Service<
   SagaStaleTimeoutMs,
   number
->() {}
+>()('SagaStaleTimeoutMs') {}
 
 /**
  * The fold, claimed and applied as one fact.
@@ -143,7 +144,7 @@ export const foldClaimed = (
     // lift it back: a redelivery must ack, never nack. Nacking would requeue it
     // against `x-delivery-limit` and eventually quarantine a message that was
     // in fact processed.
-    Effect.catchAll(outcome =>
+    Effect.catch(outcome =>
       outcome === 'duplicate'
         ? Effect.succeed('duplicate' as const)
         : Effect.fail(outcome),
@@ -185,7 +186,7 @@ export const sweepStale = (store: TransactionStore, staleTimeoutMs: number) =>
     // transaction going stale was discoverable only by polling its own id.
     yield* recordTransactionStates(yield* store.countByState());
   }).pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.logError('saga recovery sweep failed').pipe(
         Effect.annotateLogs({ error: String(error) }),
       ),
@@ -290,7 +291,7 @@ export const startTracking = Effect.gen(function* () {
   );
 
   // Recovery sweep as a detached daemon so it outlives the boot effect.
-  const daemon = yield* Effect.forkDaemon(
+  const daemon = yield* Effect.forkDetach(
     sweepStale(store, staleTimeoutMs).pipe(
       Effect.delay(Duration.millis(recoveryInterval)),
       Effect.forever,

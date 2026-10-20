@@ -1,4 +1,3 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { makeEnvelope } from '@entifix/core';
 import {
   type RequestPrincipal,
@@ -6,6 +5,7 @@ import {
 } from '@entifix/service-shell';
 import { type SagaInstance, SagaStoreTag } from '@entifix/transactions';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 const serverError = (error: unknown) =>
   HttpServerResponse.json(
@@ -88,7 +88,7 @@ const byIdRoute = requirePrincipal((principal: RequestPrincipal) =>
       makeEnvelope('sagaInstance', instance.definition, instance),
     );
   }),
-).pipe(Effect.catchAll(serverError));
+).pipe(Effect.catch(serverError));
 
 /**
  * The instance read surface.
@@ -100,5 +100,6 @@ const byIdRoute = requirePrincipal((principal: RequestPrincipal) =>
  * organization's flows, which is the surface #194 deleted
  * `GET /api/transaction` for.
  */
-export const sagaInstanceRoutes = <E, R>(router: HttpRouter.HttpRouter<E, R>) =>
-  router.pipe(HttpRouter.get('/api/saga/:id', byIdRoute));
+export const sagaInstanceRoutes = HttpRouter.addAll([
+  HttpRouter.route('GET', '/api/saga/:id', byIdRoute),
+]);

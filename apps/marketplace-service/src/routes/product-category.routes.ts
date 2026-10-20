@@ -1,9 +1,9 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import {
   ProductCategory,
   RETIRE_PRODUCT_CATEGORY,
 } from '@r10c/business-ts-catalog-reference';
+import { HttpRouter } from 'effect/http';
 
 import {
   byIdRoute,
@@ -16,16 +16,22 @@ import {
 } from './entity-crud';
 
 /** Categories: the other half of the classification vocabulary. Same ownership. */
-export const productCategoryRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/product-category', listRoute(ProductCategory)),
-  HttpRouter.get('/api/product-category/:id', byIdRoute(ProductCategory)),
+export const productCategoryRoutes = HttpRouter.addAll([
+  HttpRouter.route('GET', '/api/product-category', listRoute(ProductCategory)),
+  HttpRouter.route(
+    'GET',
+    '/api/product-category/:id',
+    byIdRoute(ProductCategory),
+  ),
   // A literal path, and it must stay literal: `/api/:entity/$metadata` would be
   // shadowed by the by-id route above and never run.
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-category/$metadata',
     entityMetadataRoute(ProductCategory),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-category',
     guardedWrite(
       ProductCategory,
@@ -33,7 +39,8 @@ export const productCategoryRoutes = HttpRouter.empty.pipe(
       saveRoute(ProductCategory, { fromParams: false }),
     ),
   ),
-  HttpRouter.put(
+  HttpRouter.route(
+    'PUT',
     '/api/product-category/:id',
     guardedWrite(
       ProductCategory,
@@ -41,7 +48,8 @@ export const productCategoryRoutes = HttpRouter.empty.pipe(
       saveRoute(ProductCategory, { fromParams: true }),
     ),
   ),
-  HttpRouter.del(
+  HttpRouter.route(
+    'DELETE',
     '/api/product-category/:id',
     guardedWrite(ProductCategory, 'delete', deleteRoute(ProductCategory)),
   ),
@@ -52,18 +60,20 @@ export const productCategoryRoutes = HttpRouter.empty.pipe(
   // record, and the endpoint is a verb rather than an edit to one resource.
   // Guarded by the permission the use case derives — `retire` is not a shape
   // of `write`, which is the whole point of ADR 0026.
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-category/retire',
     guardedUseCase(
       RETIRE_PRODUCT_CATEGORY,
       retireRoute(ProductCategory, { retired: true }),
     ),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-category/restore',
     guardedUseCase(
       RETIRE_PRODUCT_CATEGORY,
       retireRoute(ProductCategory, { retired: false }),
     ),
   ),
-);
+]);

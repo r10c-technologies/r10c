@@ -1,9 +1,9 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import {
   CommissionEntry,
   VendorPayout,
 } from '@r10c/business-ts-settlement-management';
+import { HttpRouter } from 'effect/http';
 
 import {
   byIdRoute,
@@ -33,8 +33,9 @@ import {
  * ⚠️ **`$metadata` before `/:id`** on both, for the routing reason named on the
  * agreement routes.
  */
-export const vendorPayoutRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const vendorPayoutRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/vendor-payout',
     guarded(VendorPayout, 'read', principal => {
       const scope = settlementScopeFor(principal);
@@ -43,11 +44,13 @@ export const vendorPayoutRoutes = HttpRouter.empty.pipe(
         : listRoute(VendorPayout, settlementScopeFilter<VendorPayout>(scope));
     }),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/vendor-payout/$metadata',
     entityMetadataRoute(VendorPayout),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/vendor-payout/:id',
     guarded(VendorPayout, 'read', principal => {
       const scope = settlementScopeFor(principal);
@@ -56,10 +59,11 @@ export const vendorPayoutRoutes = HttpRouter.empty.pipe(
         : byIdRoute(VendorPayout, payout => settlementInScope(scope, payout));
     }),
   ),
-);
+]);
 
-export const commissionEntryRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const commissionEntryRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/commission-entry',
     guarded(CommissionEntry, 'read', principal => {
       const scope = settlementScopeFor(principal);
@@ -71,11 +75,13 @@ export const commissionEntryRoutes = HttpRouter.empty.pipe(
           );
     }),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/commission-entry/$metadata',
     entityMetadataRoute(CommissionEntry),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/commission-entry/:id',
     guarded(CommissionEntry, 'read', principal => {
       const scope = settlementScopeFor(principal);
@@ -84,4 +90,4 @@ export const commissionEntryRoutes = HttpRouter.empty.pipe(
         : byIdRoute(CommissionEntry, entry => settlementInScope(scope, entry));
     }),
   ),
-);
+]);

@@ -386,7 +386,7 @@ export const contributeToSale = (
   }).pipe(
     // The duplicate arm above leaves the "error" channel carrying an outcome,
     // so lift it back: a redelivery must ack, never nack.
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       error instanceof EntifixConnError
         ? Effect.fail(error)
         : Effect.succeed(error),

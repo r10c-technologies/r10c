@@ -50,8 +50,8 @@ updates:
       # updates). `0.x` breaks on the minor, so minors are not excluded here.
       entifix:
         patterns: ['@entifix/*']
-      # `@effect/sql*` must stay aligned with the pinned `@effect/platform`, so
-      # the family moves as one PR or not at all.
+      # Every `@effect/*` package is released alongside, and peers on, the
+      # matching `effect`, so the family moves as one PR or not at all.
       effect:
         patterns: ['effect', '@effect/*']
       react:

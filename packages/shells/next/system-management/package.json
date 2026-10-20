@@ -52,7 +52,7 @@
     "@entifix/rest": "catalog:",
     "@entifix/next-shell": "catalog:",
     "@swc/helpers": "0.5.23",
-    "effect": "3.22.2"
+    "effect": "4.0.5"
   },
   "devDependencies": {
     "@r10c/business-ts-authz-grants": "workspace:*",

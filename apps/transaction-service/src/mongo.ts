@@ -77,7 +77,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  * announces (ADR 0028) — so it belongs to the catalog's writer and stayed
  * there.
  */
-export const AppLayer = Layer.unwrapEffect(
+export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
     const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
     const store = new ConfigurationClientInMemory(plain);
@@ -179,7 +179,7 @@ export const AppLayer = Layer.unwrapEffect(
         // by the whole process: one bus subscription feeds every browser rather
         // than a broker queue per open tab, which would be a broker resource a
         // client controls.
-        Layer.scoped(TransactionStreamHubTag, makeTransactionStreamHubEffect),
+        Layer.effect(TransactionStreamHubTag, makeTransactionStreamHubEffect),
       ),
       connections,
     );

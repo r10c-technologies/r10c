@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 
-import { SqlClient } from '@effect/sql';
 import { PgClient } from '@effect/sql-pg';
 import {
   makeStaticPolicyDecision,
@@ -24,6 +23,7 @@ import {
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
 import { Config, Effect, Layer, Redacted } from 'effect';
+import { SqlClient } from 'effect/sql';
 
 /**
  * This service's key in its own `configuration` table — the plain name, matching
@@ -1413,7 +1413,7 @@ const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
 
 /** Postgres client layer; `CONFIG_PG_URL` is the bootstrap connection string. */
 const PgClientLive = PgClient.layerConfig({
-  url: Config.redacted('CONFIG_PG_URL').pipe(
+  url: Config.Redacted('CONFIG_PG_URL').pipe(
     Config.withDefault(Redacted.make(DEFAULT_PG_URL)),
   ),
 });
@@ -1556,7 +1556,7 @@ export { SqlHealthProbeLayer as PostgresHealthProbeLayer };
  * every request because it silently failed to load its key would look like an
  * authorization bug from every caller's side.
  */
-const AuthLive = Layer.unwrapEffect(
+const AuthLive = Layer.unwrap(
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
 

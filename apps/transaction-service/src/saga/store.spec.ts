@@ -104,7 +104,7 @@ describe('makeMongoTransactionStore.countByState', () => {
 
   it('reports a failure rather than an all-zero tally', async () => {
     const outcome = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         withCollection({
           aggregate: () => ({
             toArray: async () => {
@@ -117,6 +117,6 @@ describe('makeMongoTransactionStore.countByState', () => {
 
     // All zeroes would read as "the fleet is idle", which is the opposite of
     // what an unqueryable store means.
-    expect(outcome._tag).toBe('Left');
+    expect(outcome._tag).toBe('Failure');
   });
 });

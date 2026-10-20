@@ -1,9 +1,4 @@
 import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
-import {
   EntifixConnError,
   EntifixLogicError,
   envelopeEntityName,
@@ -18,6 +13,7 @@ import {
   ProductOrder,
 } from '@r10c/business-ts-order-management';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import {
   type CancelRefusal,
@@ -150,7 +146,7 @@ const startCancellation = (order: StoredOrder) =>
     const payload = yield* Effect.tryPromise({
       try: () => response.json() as Promise<unknown>,
       catch: error => error,
-    }).pipe(Effect.catchAll(() => Effect.succeed(undefined)));
+    }).pipe(Effect.catch(() => Effect.succeed(undefined)));
 
     if (response.status === 201) {
       // The order as it now stands, read back rather than assumed: the flow's
@@ -243,7 +239,7 @@ export const cancelOrderRoute = (principal: RequestPrincipal) =>
       },
       catch: error => error,
     }).pipe(
-      Effect.catchAll(error =>
+      Effect.catch(error =>
         Effect.succeed(
           error instanceof EntifixLogicError
             ? ((error.details as { code?: string } | undefined)?.code ??
@@ -268,7 +264,7 @@ export const cancelOrderRoute = (principal: RequestPrincipal) =>
     }
 
     return yield* startCancellation(order);
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /**
  * A buyer cancelling their own order, with the nonce from their receipt.
@@ -295,7 +291,7 @@ export const buyerCancelOrderRoute = Effect.gen(function* () {
   const request = yield* HttpServerRequest.HttpServerRequest;
 
   const body = yield* request.json.pipe(
-    Effect.catchAll(() => Effect.succeed(undefined)),
+    Effect.catch(() => Effect.succeed(undefined)),
   );
   const nonce = (body as { cancelNonce?: unknown } | undefined)?.cancelNonce;
 
@@ -336,4 +332,4 @@ export const buyerCancelOrderRoute = Effect.gen(function* () {
   }
 
   return yield* startCancellation(order);
-}).pipe(Effect.catchAll(serverError));
+}).pipe(Effect.catch(serverError));

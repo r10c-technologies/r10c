@@ -131,7 +131,7 @@ boundary rule; the rest are review:
   why no query can leak by omission. A discriminator column makes every missing
   filter a silent breach.
 - **The tenant handle is request-level, never a `Layer`.** `MongoClientLayer`'s
-  boot-time `Layer.scoped` _is_ the connection pool; the per-organization handle
+  boot-time scoped `Layer.effect` _is_ the connection pool; the per-organization handle
   is `client.db(...)` resolved inside the request from the session's
   `activeOrganizationId`. A `Layer` per request rebuilds the pool per request.
   A slice whose handles are **all** per-request must open `MongoClientLayer`, not

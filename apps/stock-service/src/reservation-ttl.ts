@@ -14,6 +14,7 @@ import { Context } from 'effect';
  * vendor's stock indefinitely, which is a denial of sale rather than a
  * reservation.
  */
-export class ReservationTtlSecondsTag extends Context.Tag(
-  'ReservationTtlSecondsTag',
-)<ReservationTtlSecondsTag, number>() {}
+export class ReservationTtlSecondsTag extends Context.Service<
+  ReservationTtlSecondsTag,
+  number
+>()('ReservationTtlSecondsTag') {}

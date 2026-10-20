@@ -134,7 +134,7 @@ export interface AccountRepository {
 }
 
 /** DI tag the composition root binds to a concrete {@link AccountRepository}. */
-export class AccountRepositoryTag extends Context.Tag('AccountRepositoryTag')<
+export class AccountRepositoryTag extends Context.Service<
   AccountRepositoryTag,
   AccountRepository
->() {}
+>()('AccountRepositoryTag') {}

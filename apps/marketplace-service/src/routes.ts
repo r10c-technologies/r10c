@@ -1,4 +1,5 @@
-import { HttpRouter } from '@effect/platform';
+import { Layer } from 'effect';
+import { HttpRouter } from 'effect/http';
 
 import { configIntrospectionRoute } from './routes/config.routes';
 import { dictionaryTermRoutes } from './routes/dictionary-term.routes';
@@ -26,10 +27,12 @@ import { publishedOfferingRoutes } from './routes/published-offering.routes';
  * decline to register a route (the projection registers no writes) but cannot
  * silently replace another's.
  */
-export const router = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/config', configIntrospectionRoute),
-  HttpRouter.concat(publishedOfferingRoutes),
-  HttpRouter.concat(productBrandRoutes),
-  HttpRouter.concat(productCategoryRoutes),
-  HttpRouter.concat(dictionaryTermRoutes),
+export const router = Layer.mergeAll(
+  HttpRouter.addAll([
+    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
+  ]),
+  publishedOfferingRoutes,
+  productBrandRoutes,
+  productCategoryRoutes,
+  dictionaryTermRoutes,
 );

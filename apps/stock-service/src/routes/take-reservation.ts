@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 
-import { HttpServerRequest, HttpServerResponse } from '@effect/platform';
 import {
   EntifixBuildError,
   EntifixConnError,
@@ -15,6 +14,7 @@ import {
   Reservation,
 } from '@r10c/business-ts-stock-management';
 import { Effect } from 'effect';
+import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import {
   claimCommand,
@@ -259,7 +259,7 @@ export const takeReservationRoute = Effect.gen(function* () {
     { status: 201 },
   );
 }).pipe(
-  Effect.catchAll(error =>
+  Effect.catch(error =>
     // A malformed envelope is the client's fault. `EntifixError`s are plain
     // `Error`s carrying a `_tag` field rather than `Data.TaggedError`s, so they
     // are discriminated with `instanceof` — `Effect.catchTag` would not match.

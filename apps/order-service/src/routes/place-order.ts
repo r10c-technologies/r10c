@@ -1,11 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
 import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
-import {
   EntifixBuildError,
   EntifixConnError,
   envelopeEntityName,
@@ -16,6 +11,7 @@ import {
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import { CancelWindowSeconds } from '../cancel-capability';
 import {
@@ -167,7 +163,7 @@ export const placeOrderRoute = Effect.gen(function* () {
     { status: 201 },
   );
 }).pipe(
-  Effect.catchAll(error =>
+  Effect.catch(error =>
     error instanceof EntifixBuildError
       ? HttpServerResponse.json(
           {
@@ -211,4 +207,4 @@ export const deleteOrderRoute = Effect.gen(function* () {
     id: params.id,
     outcome: outcome.deletedCount > 0 ? 'deleted' : 'not-found',
   });
-}).pipe(Effect.catchAll(serverError));
+}).pipe(Effect.catch(serverError));

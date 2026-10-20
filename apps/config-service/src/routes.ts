@@ -1,8 +1,8 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
-import { SqlClient, SqlError } from '@effect/sql';
 import { ConfigurationPlain } from '@entifix/core';
 import { redactValue, requireServiceToken } from '@entifix/service-shell';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
+import { SqlClient, SqlError } from 'effect/sql';
 
 import { configurationRoutes } from './configuration-routes';
 import { ConfigurationRow } from './db';
@@ -88,9 +88,18 @@ const lookupRoute = Effect.gen(function* () {
   return yield* HttpServerResponse.json(toConfigurationPlain(rows));
 }).pipe(Effect.catchTag('SqlError', onSqlError));
 
-export const router = configurationRoutes(
-  HttpRouter.empty.pipe(
-    HttpRouter.get('/api/config', requireServiceToken(introspectionRoute)),
-    HttpRouter.get('/api/config/:service', requireServiceToken(lookupRoute)),
-  ),
+export const router = Layer.mergeAll(
+  HttpRouter.addAll([
+    HttpRouter.route(
+      'GET',
+      '/api/config',
+      requireServiceToken(introspectionRoute),
+    ),
+    HttpRouter.route(
+      'GET',
+      '/api/config/:service',
+      requireServiceToken(lookupRoute),
+    ),
+  ]),
+  configurationRoutes,
 );

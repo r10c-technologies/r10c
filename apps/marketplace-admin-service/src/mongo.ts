@@ -56,11 +56,11 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  * provides the configuration store + loaded config for introspection, and seeds
  * the catalog collections once.
  *
- * `Layer.unwrapEffect` defers the boot-time config fetch into the layer graph so
+ * `Layer.unwrap` defers the boot-time config fetch into the layer graph so
  * `makeService`'s `Layer.launch` owns startup and graceful shutdown. Any boot
  * failure (config unreachable, missing keys) crashes the service (`orDie`).
  */
-export const AppLayer = Layer.unwrapEffect(
+export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
     const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
     const store = new ConfigurationClientInMemory(plain);

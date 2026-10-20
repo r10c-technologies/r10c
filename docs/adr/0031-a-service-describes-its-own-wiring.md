@@ -4,6 +4,7 @@
 - Date: 2026-09-01
 - Area: platform
 - Read when: adding a datastore, a queue binding or an upstream to a service — `/api/$service` diffs what a service does against what the register declares
+- Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `withHealthRoutes` became the `healthRoutes` route layer, and this route the `serviceDescriptionRoute` one; the decision is unchanged.
 
 ## Context
 
@@ -35,7 +36,7 @@ It simply does not say what any of them **are**.
 
 ### `GET /api/$service`, on the effect-service shell
 
-Mounted the way `withHealthRoutes` is, so a service gains it by composition. It
+Mounted the way `healthRoutes` is, so a service gains it by composition. It
 is a **sibling** of `/api/config`, never part of it: config serves the _inputs_ a
 service was given (values, redacted); this serves its _shape_ (wiring).
 

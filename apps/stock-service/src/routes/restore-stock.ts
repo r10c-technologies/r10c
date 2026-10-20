@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 
-import { HttpServerRequest, HttpServerResponse } from '@effect/platform';
 import {
   EntifixBuildError,
   EntifixConnError,
@@ -15,6 +14,7 @@ import {
   StockMovement,
 } from '@r10c/business-ts-stock-management';
 import { Effect } from 'effect';
+import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import {
   claimCommand,
@@ -195,7 +195,7 @@ export const restoreStockRoute = Effect.gen(function* () {
     { status: 201 },
   );
 }).pipe(
-  Effect.catchAll(error =>
+  Effect.catch(error =>
     error instanceof EntifixBuildError
       ? HttpServerResponse.json(
           {

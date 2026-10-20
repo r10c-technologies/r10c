@@ -63,7 +63,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  * `1` against a broker that is merely slow, while the health ladder green-lights
  * a fleet that is still coming up.
  */
-export const AppLayer = Layer.unwrapEffect(
+export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
     const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
     const store = new ConfigurationClientInMemory(plain);

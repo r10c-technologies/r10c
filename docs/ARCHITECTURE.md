@@ -59,12 +59,12 @@ transport is injected at the composition root.
 ## The use-case + adapter mechanism
 
 The core idea is **environment-agnostic use-cases**, wired with the
-[Effect](https://effect.website) library's dependency injection (`Context.Tag` +
+[Effect](https://effect.website) library's dependency injection (`Context.Service` +
 `Layer`).
 
 1. **Contract** — `EntityRepository` (in `@entifix/business`) declares
    `get` / `load` / `save` / `delete`, each returning `Effect<T, EntifixError, …>`.
-   It is exposed as a `Context.Tag` — `EntityRepositoryTag`.
+   It is exposed as a `Context.Service` — `EntityRepositoryTag`.
 
 2. **Use-case** — all four are factories (`loadUCFactory<T>()`, `getUCFactory<T>()`,
    `saveUCFactory<T>()`, `deleteUCFactory<T>()`) returning an `Effect.gen` that
@@ -130,7 +130,7 @@ Foreign-key vs embedded relations are handled transparently by the shared
 
 ## Backends: Effect-native services
 
-Backends compose `@entifix/service-shell` (`@effect/platform` HTTP server,
+Backends compose `@entifix/service-shell` (`effect/http` HTTP server,
 `/api/health`, `Layer` DI, graceful shutdown) and compile stage-3 decorators like
 entifix, so they import entity classes natively. There is **no Nest**: DI is
 Effect Layers.
@@ -347,7 +347,7 @@ swappable seam — Grafana Cloud in production (via an OpenTelemetry Collector),
   the `LogSink` interface for anything else. `/tracking` holds the `Tracker`
   interface (product analytics — a _separate_ concern from logs, backed by
   PostHog via `@entifix/posthog`, never routed into Loki/OTel).
-- **Do not wrap OpenTelemetry in a `Context.Tag`** — it is cross-cutting and
+- **Do not wrap OpenTelemetry in a `Context.Service`** — it is cross-cutting and
   already vendor-neutral. The product-analytics SDK _is_ wrapped (a real vendor).
 - **Composition** happens at the existing roots, never in the shared packages: a
   service merges an observability layer into its `AppLayer` (replaces Effect's
@@ -387,17 +387,20 @@ Outbox** is at `:30000`, re-read on every pod boot including the restarts that
 wipe the data behind it.
 
 **The Effect→tooling logger bridge had two silent faults, and both are the kind
-that pass every test.** Effect's `LogLevel.label` is **upper case** (`"ERROR"`,
-`"WARN"`, `"DEBUG"`) and the mapper switched on `'Error'`/`'Warning'`/`'Debug'`,
-so no case ever matched and every log in every service was emitted at `info` — an
+that pass every test.** Under Effect 3 the level's `label` was **upper case**
+(`"ERROR"`, `"WARN"`, `"DEBUG"`) and the mapper switched on
+`'Error'`/`'Warning'`/`'Debug'`, so no case ever matched and every log in every service was emitted at `info` — an
 `Effect.logError` reached Loki as `severity_text: INFO`, invisible to any
 level-based alert while still present in the log, which reads as "the service has
 no errors". And `annotations` was destructured away and never forwarded, so every
 `Effect.annotateLogs` was discarded, the outbox relay's tenant and event id among
 them. Both were found by querying Loki on a live pass, not by a test: the e2e's
 assertion was `expect(['debug','info','warn','error']).toContain(record.level)`,
-which every record satisfied _because_ every record was `info`.
-`observability.spec.ts` now pins each level to its own `severityNumber` and
+which every record satisfied _because_ every record was `info`. Effect 4's
+`LogLevel` is the string union itself (`'Error'`, `'Warn'`, `'Debug'`), and the
+mapper is now typed against it, so a misspelt case no longer compiles; the
+annotations live on the fiber (`References.CurrentLogAnnotations`) rather than
+in the logger's arguments. `observability.spec.ts` now pins each level to its own `severityNumber` and
 asserts annotations arrive as attributes. Two related traps: the logger's `error`
 takes `(message, error?, attributes?)`, so passing attributes positionally as the
 second argument files them as the cause and loses them again; and Effect's own
@@ -410,9 +413,9 @@ addresses a different series that is permanently zero — the metric objects are
 exported and every spec imports them rather than re-declaring. A dimensionless
 gauge arrives with a `_ratio` suffix (the OTel convention for unit `1`), so
 `outbox_pending_entries` is queried as `outbox_pending_entries_ratio`; counters
-are unaffected, and a real unit is set by **tagging**
-(`Metric.tagged(m, 'unit', 's')`), which is the only form `@effect/opentelemetry`
-accepts and which also adds a constant label. An **absent series is not a zero**:
+are unaffected, and a real unit is set as a **`unit` attribute**
+(`Metric.withAttributes({ unit: 's' })`), which is the only form
+`@effect/opentelemetry` reads and which also adds a constant label. An **absent series is not a zero**:
 an empty outbox reports an age of `0` and `countByState` fills every state
 including the ones at none, because a series that stops being reported reads on
 most dashboards as "no data" — indistinguishable from a broken exporter at
@@ -423,9 +426,9 @@ labels.
 Two Effect/OTel gotchas the reference wiring handles: `@effect/opentelemetry`
 does not register an OTel context manager (the service registers
 `AsyncLocalStorageContextManager` so the active span is visible to the logger),
-and `NodeRuntime.runMain` swaps the default logger for the pretty logger before
-the app layer runs (`makeService` passes `disablePrettyLogger: true` so a
-`Logger.replace(defaultLogger, …)` still applies).
+and the tooling logger must **replace** Effect's loggers rather than join them
+(`Logger.layer([…])` sets the fiber's current loggers outright), or every record
+would be written twice.
 
 ## Auth: sessions + tokens
 
@@ -704,7 +707,7 @@ The path from cookie to collection has four steps, each in a different layer:
 Two invariants hold the design up:
 
 - **The handle is request-level, never a `Layer`.** `MongoDatabaseLayer`'s
-  boot-time `Layer.scoped` _is_ the connection pool; `client.db(name)` returns a
+  boot-time scoped `Layer.effect` _is_ the connection pool; `client.db(name)` returns a
   handle, not a connection, so N organizations share one pool and one socket set.
   A `Layer` per request would rebuild the pool per request. The resolver is built
   at the composition root (`apps/marketplace-admin-service/src/mongo.ts`), the
@@ -946,7 +949,7 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
   the `TenantDatabaseResolver` adapter that gives each organization its own
   database off the shared client (see [Tenancy](#tenancy-resolving-the-organizations-storage)).
 - `@entifix/sql` — PostgreSQL `EntityRepository` adapter (backend) over
-  `@effect/sql`. An accessor's `alias` **is** its column, so a scalar entity's
+  `effect/sql`. An accessor's `alias` **is** its column, so a scalar entity's
   serialized form already is a table row; the filter translator emits only
   parameterized fragments and validates every identifier against the entity's
   `filterable`/`sortable` allowlist before interpolation.

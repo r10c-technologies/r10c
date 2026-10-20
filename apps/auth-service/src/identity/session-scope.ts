@@ -65,9 +65,10 @@ export interface SessionScopeResolver {
   readonly forUser: (userId: string) => Effect.Effect<SessionScope>;
 }
 
-export class SessionScopeResolverTag extends Context.Tag(
-  'SessionScopeResolverTag',
-)<SessionScopeResolverTag, SessionScopeResolver>() {}
+export class SessionScopeResolverTag extends Context.Service<
+  SessionScopeResolverTag,
+  SessionScopeResolver
+>()('SessionScopeResolverTag') {}
 
 /**
  * An account with no party record at all — a self-registered sign-up, which has

@@ -50,7 +50,7 @@
     "@entifix/core": "catalog:",
     "@entifix/rest": "catalog:",
     "@entifix/next-shell": "catalog:",
-    "effect": "3.22.2"
+    "effect": "4.0.5"
   },
   "devDependencies": {
     "@r10c/business-ts-i18n": "workspace:*",

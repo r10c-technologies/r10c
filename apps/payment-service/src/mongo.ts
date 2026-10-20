@@ -75,7 +75,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  * is a unique index on a claimed command id, which is stronger than a lock and
  * needs no second datastore.
  */
-export const AppLayer = Layer.unwrapEffect(
+export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
     const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
     const store = new ConfigurationClientInMemory(plain);
@@ -160,7 +160,7 @@ export const AppLayer = Layer.unwrapEffect(
     const indexed = Layer.provideMerge(
       Layer.effectDiscard(
         Effect.flatMap(MongoDatabaseTag, database =>
-          Effect.zipRight(
+          Effect.andThen(
             ensureOutboxIndexes(database),
             ensurePaymentIndexes(database),
           ),

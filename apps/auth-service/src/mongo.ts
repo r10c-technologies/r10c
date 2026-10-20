@@ -180,7 +180,7 @@ export const seedIdentityProvider = Effect.gen(function* () {
           `could not provision ${email} in Zitadel: ${String(error)}`,
         ),
       ),
-      Effect.catchAll(() => Effect.void),
+      Effect.catch(() => Effect.void),
     );
   }
 });
@@ -231,7 +231,7 @@ const IdentityProviderLayer = Layer.effect(
  * Nothing here hashes or compares a password, and there is no layer that could:
  * the credential half of authentication left this service entirely.
  */
-export const AppLayer = Layer.unwrapEffect(
+export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
     const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
     const store = new ConfigurationClientInMemory(plain);

@@ -4,7 +4,7 @@ import type {
   TransactionRecord,
   TransactionStore,
 } from '@entifix/transactions';
-import { Effect, HashMap, Logger } from 'effect';
+import { Effect, Logger, References } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
@@ -68,16 +68,17 @@ const runSweep = async (store: TransactionStore) => {
   await Effect.runPromise(
     sweepStale(store, STALE_TIMEOUT_MS).pipe(
       Effect.provide(
-        Logger.replace(
-          Logger.defaultLogger,
-          Logger.make(({ logLevel, message, annotations }) => {
+        Logger.layer([
+          Logger.make(({ logLevel, message, fiber }) => {
             logs.push({
               message: String(message),
-              level: logLevel.label,
-              annotations: Object.fromEntries(HashMap.toEntries(annotations)),
+              level: logLevel,
+              annotations: {
+                ...fiber.getRef(References.CurrentLogAnnotations),
+              },
             });
           }),
-        ),
+        ]),
       ),
     ),
   );
@@ -115,11 +116,11 @@ describe('sweepStale', () => {
 
     expect(logs).toHaveLength(1);
     expect(logs[0]?.message).toBe('saga recovery sweep failed');
-    // The level matters as much as the message. Effect's own label is upper
-    // case, and the service's logger bridge keys its mapping off exactly this
-    // value — a sweep failure arriving as INFO is invisible to any level-based
-    // alert while still being present in the log.
-    expect(logs[0]?.level).toBe('ERROR');
+    // The level matters as much as the message. The service's logger bridge
+    // keys its mapping off exactly this value — Effect's own `LogLevel` — and a
+    // sweep failure arriving as INFO is invisible to any level-based alert while
+    // still being present in the log.
+    expect(logs[0]?.level).toBe('Error');
     // Structured, not interpolated: the reason has to be queryable rather than
     // parsed back out of a rendered string.
     expect(logs[0]?.annotations['error']).toContain('connection closed');
@@ -127,10 +128,10 @@ describe('sweepStale', () => {
 
   it('never fails, so the daemon that repeats it cannot die', async () => {
     const outcome = await Effect.runPromise(
-      Effect.either(sweepStale(failingStore('connection closed'), 1)),
+      Effect.result(sweepStale(failingStore('connection closed'), 1)),
     );
 
-    expect(outcome._tag).toBe('Right');
+    expect(outcome._tag).toBe('Success');
   });
 });
 
@@ -323,7 +324,7 @@ describe('foldClaimed', () => {
     } as unknown as MongoClient;
 
     const outcome = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         foldClaimed(
           client,
           fakeMongo().db,
@@ -334,12 +335,12 @@ describe('foldClaimed', () => {
       ),
     );
 
-    expect(outcome._tag).toBe('Left');
-    if (outcome._tag === 'Left') {
-      expect(outcome.left.message).toContain(
+    expect(outcome._tag).toBe('Failure');
+    if (outcome._tag === 'Failure') {
+      expect(outcome.failure.message).toContain(
         'Failed to fold transaction event',
       );
-      expect(outcome.left.details).toMatchObject({
+      expect(outcome.failure.details).toMatchObject({
         consumer: CONSUMER,
         eventId: 'tx-6:completed',
       });

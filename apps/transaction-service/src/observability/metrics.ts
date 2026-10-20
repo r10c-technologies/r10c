@@ -37,7 +37,10 @@ export const recordTransactionStates = (
   Effect.forEach(
     Object.entries(counts),
     ([state, count]) =>
-      Metric.set(Metric.tagged(transactionsByState, 'state', state), count),
+      Metric.update(
+        Metric.withAttributes(transactionsByState, { state }),
+        count,
+      ),
     { discard: true },
   );
 
@@ -68,8 +71,8 @@ export const sagaResumes = Metric.counter('saga_resumes_total', {
 
 /** Count how many instances one pass found stuck. */
 export const recordStaleSagas = (count: number) =>
-  Metric.set(sagaStaleInstances, count);
+  Metric.update(sagaStaleInstances, count);
 
 /** Count one resumed instance under the state it settled into. */
 export const recordSagaResume = (state: string) =>
-  Metric.increment(Metric.tagged(sagaResumes, 'state', state));
+  Metric.update(Metric.withAttributes(sagaResumes, { state }), 1);

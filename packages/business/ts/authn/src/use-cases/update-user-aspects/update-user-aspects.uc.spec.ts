@@ -1,6 +1,6 @@
 import type { Role } from '@entifix/authz';
 import { EntifixLogicError } from '@entifix/core';
-import { Effect, Exit } from 'effect';
+import { Cause, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -70,8 +70,8 @@ const runUpdate = (
 
 const failedWith = (exit: Exit.Exit<unknown, unknown>, tag: string) => {
   expect(Exit.isFailure(exit)).toBe(true);
-  if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
-    expect((exit.cause.error as { _tag: string })._tag).toBe(tag);
+  if (Exit.isFailure(exit) && Cause.hasFails(exit.cause)) {
+    expect((Option.getOrThrow(Cause.findErrorOption(exit.cause)) as { _tag: string })._tag).toBe(tag);
   }
 };
 

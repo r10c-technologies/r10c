@@ -258,7 +258,7 @@ A form that genuinely needs a custom rebuild simply does not call it.
 ## 3. Effect makes the use-case agnostic
 
 This is the crux. A use-case never receives a repository or a resolver as an
-argument or an import — it **yields a `Context.Tag`**, and Effect tracks that
+argument or an import — it **yields a `Context.Service`**, and Effect tracks that
 requirement in the type. `@entifix/business` defines the tags
 (`EntityRepositoryTag`, `EntityLoadRequestTag`, `EntityIdTag`,
 `EntityLinkResolverTag`) and the factories:
@@ -391,7 +391,7 @@ interface EntityRepository {
   embedded links and `linkCollection` have no single-column form.
 
   `sql-filter-translator` mirrors `filter-translator` but emits **parameterized**
-  `@effect/sql` fragments — column identifiers go through `sql(name)`, which the
+  `effect/sql` fragments — column identifiers go through `sql(name)`, which the
   compiler quotes, and are validated against the entity's own
   `filterable`/`sortable` allowlist (`allowedDescriptors`) **before** interpolation.
   Two dialect assumptions, stated so a future MySQL/SQLite adapter knows what to

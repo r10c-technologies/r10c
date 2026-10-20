@@ -5,10 +5,11 @@
 - Area: data
 - Read when: a service needs tenant data for a party it did not pick — one named path, a service token _plus_ a route permission, no fallback and no operator branch
 - Revised: 2026-09-08 — built (#73). The mechanism is two guards rather than a
-  `Context.Tag`, and the crossing carries `x-crossing-token` +
+  `Context.Service`, and the crossing carries `x-crossing-token` +
   `x-organization-id`; the decision is unchanged.
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): the framework file named in Context lived in the in-tree copy, now
   entifix's `@entifix/business`.
+- Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): the token is a `Context.Service` rather than a `Context.Tag`; the decision is unchanged.
 
 ## Trigger
 

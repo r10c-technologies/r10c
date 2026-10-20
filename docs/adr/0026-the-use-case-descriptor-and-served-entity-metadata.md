@@ -20,6 +20,7 @@
   action-segment wildcard **uphold** this record's rather than changing them.
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): framework paths name the `@entifix/*` package rather than
   `packages/entifix`, and `business:policy` no longer lists `layer:entifix`.
+- Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): the shell's `withHealthRoutes` wrapper became the `healthRoutes` route layer; the decision is unchanged.
 
 ## Context
 
@@ -243,7 +244,7 @@ runs**: the by-id handler wins with `id === "$metadata"`, misses, and answers it
 own `404` — an endpoint that appears mounted and silently reads as "this entity
 has no metadata". Measured both ways. So `@entifix/service-shell` exports
 `entityMetadataRoute(Ctor)` and each service registers it for each of its own
-entities; it cannot be a `withHealthRoutes`-style wrapper.
+entities; it cannot be a `healthRoutes`-style route layer the shell adds for every service.
 
 **Divergence from OData, named.** OData's `$metadata` is one CSDL document per
 _service_, describing every entity set. Ours is per entity, because

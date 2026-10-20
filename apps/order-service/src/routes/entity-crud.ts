@@ -1,9 +1,4 @@
 import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
-import {
   type Action,
   type Permission,
   permissionForEntity,
@@ -35,6 +30,7 @@ import {
   requirePermission,
 } from '@entifix/service-shell';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 /**
  * The generic reads every route module in this service composes.
@@ -163,7 +159,7 @@ export const listRoute = <T extends Entity>(
         collectionLinks(envelopeEntityName(entityConstructor)),
       ),
     );
-  }).pipe(Effect.catchAll(readError));
+  }).pipe(Effect.catch(readError));
 
 /**
  * An empty page, answered without reading anything.
@@ -189,7 +185,7 @@ export const emptyPageRoute = <T extends Entity>(
         collectionLinks(envelopeEntityName(entityConstructor)),
       ),
     );
-  }).pipe(Effect.catchAll(readError));
+  }).pipe(Effect.catch(readError));
 
 /**
  * Generic single-record route by `:id`.
@@ -229,7 +225,7 @@ export const byIdRoute = <T extends Entity>(
     // The entity's own key, not a hardcoded English name passed at the call
     // site: the client translates `errors:notFound` and already knows how to
     // render that entity's label from its metadata.
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       HttpServerResponse.json(
         {
           message: 'not found',

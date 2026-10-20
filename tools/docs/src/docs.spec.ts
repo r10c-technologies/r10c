@@ -802,7 +802,7 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   // doc comment writes `Metric.counter('bus_events_published_total')` out again,
   // so a bare matcher finds five counters where the module declares four. The
   // optional type group is for `outboxOldestPendingAge`, which carries a
-  // `: Metric.Metric.Gauge<number>` annotation between the name and the `=`.
+  // `: Metric.Gauge<number>` annotation between the name and the `=`.
   const DECLARATION =
     /export const \w+(?::[^=]+)?\s*=\s*Metric\.(counter|gauge)\(\s*'([a-z0-9_]+)'/g;
   const UNIT_TAG = /Metric\.tagged\(\s*'unit',\s*'([a-z]+)'\s*\)/;
@@ -844,7 +844,7 @@ describe('The dashboard charts the metrics the fleet declares', () => {
       const text = read(source);
       // Unit is attributed per declaration, not per file: the block runs from
       // the end of this declaration to the next `export const`, which keeps
-      // `Metric.tagged(metric, 'database', database)` in a helper further down
+      // `Metric.withAttributes(metric, { database })` in a helper further down
       // from being read as the gauge's own unit. Slicing from `match.index`
       // instead would start the block *at* `export const` and split it to
       // nothing, silently making every gauge read as dimensionless.

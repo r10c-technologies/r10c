@@ -1,6 +1,6 @@
 import { DEFAULT_ROLE, type Role } from '@entifix/authz';
 import { EntifixLogicError } from '@entifix/core';
-import { Effect, Exit } from 'effect';
+import { Cause, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { IdentifierType } from '../../entities/entity-identifier/index.js';
@@ -97,8 +97,8 @@ describe('registerUserUCFactory', () => {
     const exit = await runRegister(stubAccounts(), []);
 
     expect(Exit.isFailure(exit)).toBe(true);
-    if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
-      expect(exit.cause.error._tag).toBe('AuthnError');
+    if (Exit.isFailure(exit) && Cause.hasFails(exit.cause)) {
+      expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('AuthnError');
     }
   });
 
@@ -156,9 +156,9 @@ describe('registerUserUCFactory', () => {
       });
 
       expect(Exit.isFailure(exit)).toBe(true);
-      if (Exit.isFailure(exit) && exit.cause._tag === 'Fail') {
+      if (Exit.isFailure(exit) && Cause.hasFails(exit.cause)) {
         // Not an AuthnError: the request is fine, the caller is not allowed.
-        expect(exit.cause.error._tag).toBe('ForbiddenError');
+        expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('ForbiddenError');
       }
     });
 
