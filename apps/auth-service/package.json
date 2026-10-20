@@ -81,6 +81,7 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@entifix/authz": "catalog:",
     "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/business-ts-i18n": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",

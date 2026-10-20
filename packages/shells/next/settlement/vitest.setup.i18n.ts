@@ -17,6 +17,9 @@
  * expected app router to be mounted`. It does not need to: the Next shell
  * registers its own `shell` namespace the moment a spec imports it.
  */
+// The host's declaration: these specs assert the Spanish default.
+import '@r10c/business-ts-i18n/locales';
+
 import { registerFallbackCatalog } from '@entifix/react-controls';
 import { r10cCatalogs } from '@r10c/business-ts-i18n';
 

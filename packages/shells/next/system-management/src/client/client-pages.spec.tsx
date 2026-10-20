@@ -158,7 +158,7 @@ describe('ConfigurationSingleViewClientPage', () => {
     );
 
     // Prefixed: the page navigates through `useLocaleHref`, and with no i18n
-    // provider around the render that resolves to `DEFAULT_LOCALE`.
+    // provider around the render that resolves to the default r10c declares.
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith('/es/system/configuration'),
     );

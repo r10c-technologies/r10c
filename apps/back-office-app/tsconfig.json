@@ -72,6 +72,9 @@
       "path": "../../packages/shells/next/i18n-catalog"
     },
     {
+      "path": "../../packages/business/ts/i18n"
+    },
+    {
       "path": "../../packages/business/ts/authz-grants"
     },
     {
