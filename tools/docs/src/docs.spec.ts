@@ -26,6 +26,15 @@ import {
   REPO_ROOT,
 } from './corpus.js';
 
+/** The one entifix version the catalog pins, e.g. `0.2.0`. */
+const catalogEntifixVersion = (): string => {
+  const pinned = read('pnpm-workspace.yaml').match(
+    /'@entifix\/core':\s*([0-9][^\s]*)/,
+  )?.[1];
+  if (!pinned) throw new Error('pnpm-workspace.yaml pins no @entifix/core');
+  return pinned;
+};
+
 /**
  * The `dist` of every entifix package this checkout installs, one per package.
  *
@@ -33,12 +42,20 @@ import {
  * depends on are linked at the top of `node_modules`. pnpm keeps one directory
  * per resolved peer set; they hold the same files, so the first one found for a
  * name is enough.
+ *
+ * ⚠️ **Only the catalog's version.** The store keeps the directories of earlier
+ * installs — every release this checkout ever resolved, and every `file:` copy
+ * a swap left behind — and they sort before the current one. Reading the first
+ * match for a name read entifix 0.1.3's Effect 3 build on a checkout already on
+ * 0.2.0, and passed locally while the same check failed in CI.
  */
 const installedEntifixDists = (): string[] => {
   const store = join(REPO_ROOT, 'node_modules', '.pnpm');
+  const version = catalogEntifixVersion();
   const byName = new Map<string, string>();
   for (const entry of readdirSync(store).sort()) {
-    if (!entry.startsWith('@entifix+')) continue;
+    if (!/^@entifix\+[a-z0-9-]+@/.test(entry)) continue;
+    if (!entry.split('_')[0].endsWith(`@${version}`)) continue;
     const scope = join(store, entry, 'node_modules', '@entifix');
     if (!existsSync(scope)) continue;
     for (const name of readdirSync(scope)) {
@@ -805,7 +822,9 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   // `: Metric.Gauge<number>` annotation between the name and the `=`.
   const DECLARATION =
     /export const \w+(?::[^=]+)?\s*=\s*Metric\.(counter|gauge)\(\s*'([a-z0-9_]+)'/g;
-  const UNIT_TAG = /Metric\.tagged\(\s*'unit',\s*'([a-z]+)'\s*\)/;
+  // Effect 4 sets a unit as an attribute, `Metric.withAttributes({ unit: 's' })`;
+  // the Effect 3 spelling was `Metric.tagged('unit', 's')`.
+  const UNIT_TAG = /Metric\.withAttributes\(\s*\{\s*unit:\s*'([a-z]+)'\s*\}\s*\)/;
 
   /** The suffix the OTLP→Prometheus exporter appends, by declared unit. */
   const UNIT_SUFFIX: Record<string, string> = {
