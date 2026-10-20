@@ -130,7 +130,7 @@
     "@entifix/tooling": "catalog:",
     "@entifix/service-shell": "catalog:",
     "dotenv": "^18.0.7",
-    "effect": "3.22.2",
+    "effect": "4.0.5",
     "tslib": "2.8.1"
   }
 }

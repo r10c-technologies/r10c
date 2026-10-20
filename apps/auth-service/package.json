@@ -92,7 +92,7 @@
     "@entifix/tooling": "catalog:",
     "@entifix/zitadel": "catalog:",
     "@entifix/service-shell": "catalog:",
-    "effect": "3.22.2",
+    "effect": "4.0.5",
     "ioredis": "6.0.0",
     "jose": "6.2.12",
     "mongodb": "7.7.0",
