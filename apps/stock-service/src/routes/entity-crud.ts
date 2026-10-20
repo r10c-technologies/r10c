@@ -1,9 +1,4 @@
 import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
-import {
   type Action,
   type Permission,
   permissionForEntity,
@@ -35,6 +30,7 @@ import {
   requireServiceCrossing,
 } from '@entifix/service-shell';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import type { Db } from 'mongodb';
 
 /**
@@ -139,7 +135,7 @@ export const listRoute = <T extends Entity>(
         collectionLinks(envelopeEntityName(entityConstructor)),
       ),
     );
-  }).pipe(Effect.catchAll(readError));
+  }).pipe(Effect.catch(readError));
 
 /** Generic single-record route by `:id`. */
 export const byIdRoute = <T extends Entity>(
@@ -167,7 +163,7 @@ export const byIdRoute = <T extends Entity>(
     // The entity's own key, not a hardcoded English name passed at the call
     // site: the client translates `errors:notFound` and already knows how to
     // render that entity's label from its metadata.
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       HttpServerResponse.json(
         {
           message: 'not found',
@@ -202,7 +198,7 @@ const withTenantDatabase = <A, E, R>(
   }).pipe(
     // Each route already maps its own failures; what can still fail here is
     // resolving the tenant handle.
-    Effect.catchAll(serverError),
+    Effect.catch(serverError),
   );
 
 /**

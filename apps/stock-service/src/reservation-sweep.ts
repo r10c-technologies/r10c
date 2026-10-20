@@ -15,10 +15,10 @@ const SWEEP_INTERVAL = Duration.seconds(30);
 const BATCH = 100;
 
 /** The `stock_` prefix tenant databases are named with, from config-service. */
-export class StockDatabasePrefix extends Context.Tag('StockDatabasePrefix')<
+export class StockDatabasePrefix extends Context.Service<
   StockDatabasePrefix,
   string
->() {}
+>()('StockDatabasePrefix') {}
 
 /** Every `stock_<organizationId>` this cluster holds. */
 const tenantDatabases = (client: MongoClient, prefix: string) =>
@@ -58,7 +58,7 @@ export const sweepTenantReservations = (client: MongoClient, name: string) =>
     }>) {
       yield* transitionReservation(client, db, id, 'released').pipe(
         // Per hold, so one row's failure does not abandon every row after it.
-        Effect.catchAll(error =>
+        Effect.catch(error =>
           Effect.logError('expiring a reservation failed').pipe(
             Effect.annotateLogs({
               database: name,
@@ -87,7 +87,7 @@ export const sweepReservations = (client: MongoClient, prefix: string) =>
     const names = yield* tenantDatabases(client, prefix);
     for (const name of names) {
       yield* sweepTenantReservations(client, name).pipe(
-        Effect.catchAll(error =>
+        Effect.catch(error =>
           Effect.logError('sweeping a tenant reservation set failed').pipe(
             Effect.annotateLogs({ database: name, error: String(error) }),
           ),
@@ -99,7 +99,7 @@ export const sweepReservations = (client: MongoClient, prefix: string) =>
     // is still expired. It is *logged*, though: swallowing it is how a reaper
     // stays dead while every probe stays green, and a dead reaper is stock
     // promised to checkouts nobody finished.
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.logError('reservation sweep failed').pipe(
         Effect.annotateLogs({ error: String(error) }),
       ),
@@ -121,7 +121,7 @@ export const startReservationSweep = Effect.gen(function* () {
 
   const sweepOnce = sweepReservations(client, prefix);
 
-  const daemon = yield* Effect.forkDaemon(
+  const daemon = yield* Effect.forkDetach(
     sweepOnce.pipe(Effect.delay(SWEEP_INTERVAL), Effect.forever),
   );
 

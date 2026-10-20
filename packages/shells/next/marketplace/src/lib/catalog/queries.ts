@@ -149,7 +149,7 @@ const loadPage = <TEntity extends Entity>(
           Context.make(EntityLoadRequestTag, request),
         ),
       ),
-      Effect.catchAllCause(cause =>
+      Effect.catchCause(cause =>
         Effect.sync(() => {
           console.error(
             `The storefront could not read ${entityConstructor.name}: ${Cause.pretty(cause)}`,

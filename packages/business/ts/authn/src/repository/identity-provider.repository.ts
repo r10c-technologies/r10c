@@ -27,29 +27,26 @@ export interface IdentityProvider {
 }
 
 /** DI tag the composition root binds to a concrete {@link IdentityProvider}. */
-export class IdentityProviderTag extends Context.Tag('IdentityProviderTag')<
+export class IdentityProviderTag extends Context.Service<
   IdentityProviderTag,
   IdentityProvider
->() {}
+>()('IdentityProviderTag') {}
 
 /** Input tag: the opaque session id a use-case operates on, provided per call. */
-export class SessionIdTag extends Context.Tag('SessionIdTag')<
-  SessionIdTag,
-  string
->() {}
+export class SessionIdTag extends Context.Service<SessionIdTag, string>()(
+  'SessionIdTag',
+) {}
 
 /** Input tag: a canonical user id, provided per call. */
-export class UserIdTag extends Context.Tag('UserIdTag')<
-  UserIdTag,
-  EntityId
->() {}
+export class UserIdTag extends Context.Service<UserIdTag, EntityId>()(
+  'UserIdTag',
+) {}
 
 /**
  * Request-scoped tag carrying the {@link Principal} a request was authenticated
  * as. A service's auth middleware verifies the access token and provides it;
  * downstream handlers yield it instead of re-parsing the token.
  */
-export class PrincipalTag extends Context.Tag('PrincipalTag')<
-  PrincipalTag,
-  Principal
->() {}
+export class PrincipalTag extends Context.Service<PrincipalTag, Principal>()(
+  'PrincipalTag',
+) {}

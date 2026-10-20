@@ -1,10 +1,3 @@
-import {
-  Headers,
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-  UrlParams,
-} from '@effect/platform';
 import { isRole, permissionForEntity, type Role } from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,
@@ -77,7 +70,14 @@ import {
   UserIdentity,
   UserStatus,
 } from '@r10c/business-ts-authn';
-import { Effect, Option } from 'effect';
+import { Effect, Layer, Option } from 'effect';
+import {
+  Headers,
+  HttpRouter,
+  HttpServerRequest,
+  HttpServerResponse,
+  UrlParams,
+} from 'effect/http';
 
 import { IdTokenStoreTag } from './identity/id-token-store';
 import { describeIdentityModel } from './identity/identity-showcase';
@@ -169,7 +169,7 @@ const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
         collectionLinks(envelopeEntityName(entityConstructor)),
       ),
     );
-  }).pipe(Effect.catchAll(readError));
+  }).pipe(Effect.catch(readError));
 
 /** Generic single-record route by `:id`. */
 const byIdRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
@@ -190,7 +190,7 @@ const byIdRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
     // The entity's own key, not a hardcoded English name passed at the call
     // site: the client translates `errors:notFound` and already knows how to
     // render that entity's label from its metadata.
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       HttpServerResponse.json(
         {
           message: 'not found',
@@ -223,7 +223,7 @@ const jwksRoute = Effect.gen(function* () {
   return yield* HttpServerResponse.json(
     yield* Effect.promise(() => publicJwks(publicKeyPem, keyId)),
   );
-}).pipe(Effect.catchAll(serverError));
+}).pipe(Effect.catch(serverError));
 
 /** `GET /api/config` — this service's loaded parameters (credentials redacted). */
 const configIntrospectionRoute = Effect.gen(function* () {
@@ -384,7 +384,7 @@ const establishSession = (
               )
             : Effect.void,
         ),
-        Effect.catchAll(() => Effect.void),
+        Effect.catch(() => Effect.void),
       );
     }
 
@@ -533,7 +533,7 @@ const oidcStartRoute = Effect.gen(function* () {
   });
 
   return yield* HttpServerResponse.json({ authorizationUrl });
-}).pipe(Effect.catchAll(respondAuthError));
+}).pipe(Effect.catch(respondAuthError));
 
 /** Namespace for the pending-authorization tokens; see {@link oidcStartRoute}. */
 const OIDC_STATE_PURPOSE = 'oidc-state';
@@ -567,7 +567,7 @@ const oidcCallbackRoute = Effect.gen(function* () {
 
   const pending = yield* tokens.consume(OIDC_STATE_PURPOSE, state).pipe(
     Effect.map(raw => JSON.parse(raw) as PendingAuthorization),
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       Effect.fail(
         new UnauthenticatedError(
           'the authorization state is unknown or spent',
@@ -604,7 +604,7 @@ const oidcCallbackRoute = Effect.gen(function* () {
     { ...result, redirect: pending.redirect },
     { status: 200 },
   );
-}).pipe(Effect.catchAll(respondAuthError));
+}).pipe(Effect.catch(respondAuthError));
 
 /**
  * `POST /api/auth/logout` — revoke the session so every service sees it gone,
@@ -632,7 +632,7 @@ const logoutRoute = Effect.gen(function* () {
 }).pipe(
   // A provider that cannot be reached must not keep someone signed in: the
   // local revocation above has already happened by then.
-  Effect.catchAll(() => HttpServerResponse.json({ ok: true })),
+  Effect.catch(() => HttpServerResponse.json({ ok: true })),
 );
 
 /**
@@ -715,7 +715,7 @@ const backChannelLogoutRoute = Effect.gen(function* () {
     },
   );
 }).pipe(
-  Effect.catchAll(() =>
+  Effect.catch(() =>
     HttpServerResponse.json(
       { error: 'invalid logout token', code: 'invalidRequest' },
       { status: 400 },
@@ -790,7 +790,7 @@ const providerEventRoute = Effect.gen(function* () {
     },
   );
 }).pipe(
-  Effect.catchAll(() =>
+  Effect.catch(() =>
     HttpServerResponse.json(
       { error: 'invalid provider event', code: 'invalidRequest' },
       { status: 400 },
@@ -870,7 +870,7 @@ const refreshRoute = Effect.gen(function* () {
     } satisfies Principal,
   });
 }).pipe(
-  Effect.catchAll(() =>
+  Effect.catch(() =>
     HttpServerResponse.json(
       { error: 'session expired', code: 'sessionExpired' },
       { status: 401 },
@@ -907,7 +907,7 @@ const devOutboxRoute = Effect.gen(function* () {
   const to = new URL(req.url, 'http://localhost').searchParams.get('to');
   const items = yield* readOutbox(db, to ?? undefined);
   return yield* HttpServerResponse.json({ items });
-}).pipe(Effect.catchAllCause(serverError));
+}).pipe(Effect.catchCause(serverError));
 
 // #endregion development
 
@@ -945,7 +945,7 @@ const mySessionsRoute = requirePrincipal(principal =>
       principal.sessionId,
     );
     return yield* HttpServerResponse.json({ items });
-  }).pipe(Effect.catchAll(serverError)),
+  }).pipe(Effect.catch(serverError)),
 );
 
 /**
@@ -979,7 +979,7 @@ const revokeMySessionRoute = requirePrincipal(principal =>
       signedOut: target === principal.sessionId,
     });
   }).pipe(
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       HttpServerResponse.json(
         { error: 'not found', code: 'notFound' },
         { status: 404 },
@@ -1010,7 +1010,7 @@ const revokeOtherSessionsRoute = requirePermission(SIGN_OUT_OTHERS)(principal =>
       }),
     );
     return yield* HttpServerResponse.json({ ok: true });
-  }).pipe(Effect.catchAll(serverError)),
+  }).pipe(Effect.catch(serverError)),
 );
 
 /** `GET /api/auth/devices` — the caller's remembered browsers. */
@@ -1024,7 +1024,7 @@ const myDevicesRoute = requirePrincipal(principal =>
     // `catchAllCause`, not `catchAll`: a bad value in a stored document throws
     // rather than failing, and a defect would otherwise escape as an empty 500
     // with nothing in the body to debug from.
-  }).pipe(Effect.catchAllCause(serverError)),
+  }).pipe(Effect.catchCause(serverError)),
 );
 
 // #endregion sessions
@@ -1051,7 +1051,7 @@ const userSessionsRoute = requirePermission(DEVICE_READ)(principal =>
     const params = yield* HttpRouter.params;
     const items = yield* listSessions(params.id ?? '', principal.sessionId);
     return yield* HttpServerResponse.json({ items });
-  }).pipe(Effect.catchAll(serverError)),
+  }).pipe(Effect.catch(serverError)),
 );
 
 /**
@@ -1070,7 +1070,7 @@ const revokeUserSessionsRoute = requirePermission(REVOKE_SESSIONS)(() =>
       }),
     );
     return yield* HttpServerResponse.json({ ok: true });
-  }).pipe(Effect.catchAll(serverError)),
+  }).pipe(Effect.catch(serverError)),
 );
 
 /** Read the requested role from a body, rejecting an unrecognised one. */
@@ -1133,7 +1133,7 @@ const createUserRoute = requirePermission(USER_WRITE)(principal =>
     });
 
     return yield* HttpServerResponse.json(subject, { status: 201 });
-  }).pipe(Effect.catchAll(respondAuthError)),
+  }).pipe(Effect.catch(respondAuthError)),
 );
 
 /**
@@ -1182,7 +1182,7 @@ const updateUserRoute = requirePermission(UPDATE_ASPECTS)(principal =>
     return yield* HttpServerResponse.json(
       serializeEntity(UserIdentity, updated),
     );
-  }).pipe(Effect.catchAll(respondAuthError)),
+  }).pipe(Effect.catch(respondAuthError)),
 );
 
 // #endregion user management
@@ -1194,34 +1194,47 @@ const updateUserRoute = requirePermission(UPDATE_ASPECTS)(principal =>
  * arguments and this surface outgrew it — the seam is "your own identity" vs
  * "administering someone else's", which is the same line the permissions draw.
  */
-const identityRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/config', configIntrospectionRoute),
-  HttpRouter.get('/.well-known/jwks.json', jwksRoute),
+const identityRoutes = HttpRouter.addAll([
+  HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
+  HttpRouter.route('GET', '/.well-known/jwks.json', jwksRoute),
   // Sign-in flow. There is no `register` or `login` here any more and there
   // cannot be: this service holds no credential to check, so the only way in is
   // a round trip through the provider's hosted UI.
-  HttpRouter.post('/api/auth/oidc/start', oidcStartRoute),
-  HttpRouter.post('/api/auth/oidc/callback', oidcCallbackRoute),
-  HttpRouter.post('/api/auth/logout', logoutRoute),
+  HttpRouter.route('POST', '/api/auth/oidc/start', oidcStartRoute),
+  HttpRouter.route('POST', '/api/auth/oidc/callback', oidcCallbackRoute),
+  HttpRouter.route('POST', '/api/auth/logout', logoutRoute),
   // The other half of sign-out, called by Zitadel rather than by a browser.
-  HttpRouter.post('/api/auth/backchannel-logout', backChannelLogoutRoute),
+  HttpRouter.route(
+    'POST',
+    '/api/auth/backchannel-logout',
+    backChannelLogoutRoute,
+  ),
   // And the half a logout token never covers: the provider ending a user, not a
   // session. Also called by Zitadel, over Actions v2 rather than over OIDC.
-  HttpRouter.post('/api/auth/provider-events', providerEventRoute),
-  HttpRouter.post('/api/auth/refresh', refreshRoute),
+  HttpRouter.route('POST', '/api/auth/provider-events', providerEventRoute),
+  HttpRouter.route('POST', '/api/auth/refresh', refreshRoute),
   // Session self-service. Every one of these resolves the caller from the
   // verified token and checks ownership — an id in the URL is never authority.
-  HttpRouter.get('/api/auth/sessions', mySessionsRoute),
-  HttpRouter.post('/api/auth/sessions/revoke-others', revokeOtherSessionsRoute),
-  HttpRouter.del('/api/auth/sessions/:sessionId', revokeMySessionRoute),
-  HttpRouter.get('/api/auth/devices', myDevicesRoute),
+  HttpRouter.route('GET', '/api/auth/sessions', mySessionsRoute),
+  HttpRouter.route(
+    'POST',
+    '/api/auth/sessions/revoke-others',
+    revokeOtherSessionsRoute,
+  ),
+  HttpRouter.route(
+    'DELETE',
+    '/api/auth/sessions/:sessionId',
+    revokeMySessionRoute,
+  ),
+  HttpRouter.route('GET', '/api/auth/devices', myDevicesRoute),
   // No password routes. Changing a password, enrolling a second factor and
   // recovering an account are all Zitadel self-service now; the account page
   // links out to it rather than proxying an endpoint we would have to secure.
   // Development only — 404s in production. See `devOutboxRoute`.
-  HttpRouter.get('/api/dev/outbox', devOutboxRoute),
+  HttpRouter.route('GET', '/api/dev/outbox', devOutboxRoute),
   // Resolve an opaque session id → principal via the framework-free use-case.
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/auth/session/:sessionId',
     Effect.gen(function* () {
       const params = yield* HttpRouter.params;
@@ -1232,7 +1245,7 @@ const identityRoutes = HttpRouter.empty.pipe(
       return yield* HttpServerResponse.json(principal);
     }).pipe(
       // Authn failures collapse to 401 at the perimeter; cause is not leaked.
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         HttpServerResponse.json(
           { error: 'session could not be resolved', code: 'sessionUnresolved' },
           { status: 401 },
@@ -1242,18 +1255,20 @@ const identityRoutes = HttpRouter.empty.pipe(
   ),
   // The caller's own verified identity — what a Next server layout reads to
   // decide whether to render the back-office and which nav items to show.
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/me',
     requirePrincipal(principal => HttpServerResponse.json(principal)),
   ),
-);
+]);
 
 /** Administering other people's accounts. Every route here is permission-gated. */
-const userManagementRoutes = HttpRouter.empty.pipe(
+const userManagementRoutes = HttpRouter.addAll([
   // Canonical user records, backed by MongoDB. Every one of these is behind a
   // permission: this is the authorization boundary, and the UI hiding a menu
   // entry protects nothing on its own.
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/user-identity',
     requirePermission(USER_READ)(() => listRoute(UserIdentity)),
   ),
@@ -1261,43 +1276,53 @@ const userManagementRoutes = HttpRouter.empty.pipe(
   // verified principal. A literal path, and it has to stay one: a parametric
   // `/api/:entity/$metadata` is shadowed by the `/api/user-identity/:id` route
   // below and would never run (ADR 0026).
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/user-identity/$metadata',
     entityMetadataRoute(UserIdentity),
   ),
-  HttpRouter.post('/api/user-identity', createUserRoute),
-  HttpRouter.get(
+  HttpRouter.route('POST', '/api/user-identity', createUserRoute),
+  HttpRouter.route(
+    'GET',
     '/api/user-identity/:id',
     requirePermission(USER_READ)(() => byIdRoute(UserIdentity)),
   ),
-  HttpRouter.patch('/api/user-identity/:id', updateUserRoute),
+  HttpRouter.route('PATCH', '/api/user-identity/:id', updateUserRoute),
   // Administrative session control — incident response, permission-gated.
-  HttpRouter.get('/api/user-identity/:id/sessions', userSessionsRoute),
-  HttpRouter.del('/api/user-identity/:id/sessions', revokeUserSessionsRoute),
-  HttpRouter.get(
+  HttpRouter.route('GET', '/api/user-identity/:id/sessions', userSessionsRoute),
+  HttpRouter.route(
+    'DELETE',
+    '/api/user-identity/:id/sessions',
+    revokeUserSessionsRoute,
+  ),
+  HttpRouter.route(
+    'GET',
     '/api/entity-identifier',
     requirePermission(IDENTIFIER_READ)(() => listRoute(EntityIdentifier)),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/entity-identifier/$metadata',
     entityMetadataRoute(EntityIdentifier),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/entity-identifier/:id',
     requirePermission(IDENTIFIER_READ)(() => byIdRoute(EntityIdentifier)),
   ),
   // Native-entity proof: construct entity classes + read stage-3 metadata.
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/identity/demo',
     Effect.sync(describeIdentityModel).pipe(
       Effect.flatMap(model => HttpServerResponse.json(model)),
     ),
   ),
-);
+]);
 
 /**
  * auth-service routes. `/api/health` is added by the service base. The auth
  * endpoints return JSON (tokens + principal); the Next app owns turning that
  * into httpOnly cookies, so this service needs no cookie/CORS handling.
  */
-export const router = HttpRouter.concat(identityRoutes, userManagementRoutes);
+export const router = Layer.mergeAll(identityRoutes, userManagementRoutes);

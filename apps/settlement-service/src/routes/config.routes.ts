@@ -1,9 +1,9 @@
-import { HttpServerResponse } from '@effect/platform';
 import {
   LoadedConfigurationTag,
   redactConfiguration,
 } from '@entifix/service-shell';
 import { Effect } from 'effect';
+import { HttpServerResponse } from 'effect/http';
 
 /** `GET /api/config` — this service's loaded parameters (credentials redacted). */
 export const configIntrospectionRoute = Effect.gen(function* () {

@@ -17,10 +17,10 @@ import { Context } from 'effect';
  * failure mode "the row was missing" at request time, where the composition root
  * makes it "the process did not boot".
  */
-export class CancelWindowSeconds extends Context.Tag('CancelWindowSeconds')<
+export class CancelWindowSeconds extends Context.Service<
   CancelWindowSeconds,
   number
->() {}
+>()('CancelWindowSeconds') {}
 
 /**
  * What is stored for a nonce the browser holds.

@@ -1,4 +1,3 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import {
   EntifixConnError,
   envelopeEntityName,
@@ -11,6 +10,7 @@ import {
   ProductOrder,
 } from '@r10c/business-ts-order-management';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 import { ORDER_COLLECTION } from '../outbox';
 import { serverError } from './entity-crud';
@@ -167,4 +167,4 @@ export const fulfilOrderRoute = (principal: RequestPrincipal) =>
         { rel: 'list', href: `/api/${key}`, method: 'GET' },
       ]),
     );
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));

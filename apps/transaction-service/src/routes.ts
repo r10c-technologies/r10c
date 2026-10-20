@@ -1,5 +1,6 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { requirePrincipal } from '@entifix/service-shell';
+import { Layer } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 import { configIntrospectionRoute } from './routes/config.routes';
 import { sagaInstanceRoutes } from './saga/instance-routes';
@@ -26,16 +27,16 @@ import { sagaRunRoutes } from './saga/run-routes';
  * the coordinator became resumable (#233). Session-guarded and scoped to the
  * organizations the flow's own calls named.
  */
-export const router = sagaInstanceRoutes(
-  sagaRunRoutes(
-    sagaRoutes(
-      HttpRouter.empty.pipe(
-        HttpRouter.get('/api/config', configIntrospectionRoute),
-        HttpRouter.get(
-          '/api/me',
-          requirePrincipal(principal => HttpServerResponse.json(principal)),
-        ),
-      ),
+export const router = Layer.mergeAll(
+  HttpRouter.addAll([
+    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
+    HttpRouter.route(
+      'GET',
+      '/api/me',
+      requirePrincipal(principal => HttpServerResponse.json(principal)),
     ),
-  ),
+  ]),
+  sagaRoutes,
+  sagaRunRoutes,
+  sagaInstanceRoutes,
 );

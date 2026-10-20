@@ -12,9 +12,10 @@ import { LifecycleCursorTag } from './lifecycle-cursor';
 const BATCH = 200;
 
 /** How often the reconciler asks what it missed. */
-export class LifecycleSweepIntervalMs extends Context.Tag(
-  'LifecycleSweepIntervalMs',
-)<LifecycleSweepIntervalMs, number>() {}
+export class LifecycleSweepIntervalMs extends Context.Service<
+  LifecycleSweepIntervalMs,
+  number
+>()('LifecycleSweepIntervalMs') {}
 
 /**
  * Revoke the r10c sessions of every user named by a lifecycle event since the
@@ -88,7 +89,7 @@ export const startLifecycleReconciler = Effect.gen(function* () {
   const shutdown = yield* ShutdownRegistryTag;
 
   const pass = reconcileOnce.pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.logError(
         `provider lifecycle reconciliation failed: ${String(error)}`,
       ).pipe(Effect.as(0)),
@@ -100,7 +101,7 @@ export const startLifecycleReconciler = Effect.gen(function* () {
   // before looking would leave it open for exactly as long as it matters most.
   yield* pass;
 
-  const daemon = yield* Effect.forkDaemon(
+  const daemon = yield* Effect.forkDetach(
     pass.pipe(Effect.delay(Duration.millis(intervalMs)), Effect.forever),
   );
 

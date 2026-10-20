@@ -1,8 +1,8 @@
-import { HttpRouter } from '@effect/platform';
 import { EntifixBuildError } from '@entifix/core';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import { SalesChannelTypes } from '@r10c/business-ts-sales-vocabulary';
 import { Agreement } from '@r10c/business-ts-settlement-management';
+import { HttpRouter } from 'effect/http';
 
 import {
   byIdRoute,
@@ -90,8 +90,9 @@ export const validateAgreement = (
  * static route is declared — registered after, `$metadata` is swallowed by
  * `/:id` and answers a `404` for an entity named `$metadata`.
  */
-export const agreementRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const agreementRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/agreement',
     guarded(Agreement, 'read', principal => {
       const scope = settlementScopeFor(principal);
@@ -100,8 +101,13 @@ export const agreementRoutes = HttpRouter.empty.pipe(
         : listRoute(Agreement, settlementScopeFilter<Agreement>(scope));
     }),
   ),
-  HttpRouter.get('/api/agreement/$metadata', entityMetadataRoute(Agreement)),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
+    '/api/agreement/$metadata',
+    entityMetadataRoute(Agreement),
+  ),
+  HttpRouter.route(
+    'GET',
     '/api/agreement/:id',
     guarded(Agreement, 'read', principal => {
       const scope = settlementScopeFor(principal);
@@ -114,16 +120,18 @@ export const agreementRoutes = HttpRouter.empty.pipe(
           );
     }),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/agreement',
     guarded(Agreement, 'write', () =>
       saveRoute(Agreement, { fromParams: false, validate: validateAgreement }),
     ),
   ),
-  HttpRouter.put(
+  HttpRouter.route(
+    'PUT',
     '/api/agreement/:id',
     guarded(Agreement, 'write', () =>
       saveRoute(Agreement, { fromParams: true, validate: validateAgreement }),
     ),
   ),
-);
+]);

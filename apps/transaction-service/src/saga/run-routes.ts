@@ -1,10 +1,5 @@
 import { randomUUID } from 'node:crypto';
 
-import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
 import type { Permission } from '@entifix/authz';
 import { makeEnvelope } from '@entifix/core';
 import { requireCrossing } from '@entifix/service-shell';
@@ -14,6 +9,7 @@ import {
   type SagaStepInput,
 } from '@entifix/transactions';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import { SAGAS } from '../sagas';
 
@@ -131,9 +127,10 @@ const runRoute = Effect.gen(function* () {
   return yield* requireCrossing(definition.permission as Permission)(
     runDefinition(definition),
   );
-}).pipe(Effect.catchAll(serverError));
+}).pipe(Effect.catch(serverError));
 
-export const sagaRunRoutes = <E, R>(router: HttpRouter.HttpRouter<E, R>) =>
-  router.pipe(HttpRouter.post('/api/saga/:definition', runRoute));
+export const sagaRunRoutes = HttpRouter.addAll([
+  HttpRouter.route('POST', '/api/saga/:definition', runRoute),
+]);
 
 export { readInputs };

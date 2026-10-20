@@ -194,10 +194,10 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
  * turned out to be stock-service and order-service, and this file moved without
  * a line of its logic changing (#229).
  */
-export class SagaDatabaseName extends Context.Tag('SagaDatabaseName')<
+export class SagaDatabaseName extends Context.Service<
   SagaDatabaseName,
   string
->() {}
+>()('SagaDatabaseName') {}
 
 /**
  * Provides {@link TransactionStoreTag} from the connection pool

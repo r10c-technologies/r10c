@@ -42,10 +42,10 @@ export interface LifecycleCursor {
   write(at: string): Effect.Effect<void>;
 }
 
-export class LifecycleCursorTag extends Context.Tag('LifecycleCursorTag')<
+export class LifecycleCursorTag extends Context.Service<
   LifecycleCursorTag,
   LifecycleCursor
->() {}
+>()('LifecycleCursorTag') {}
 
 /**
  * The reconciler's place in the provider's event stream.
@@ -63,13 +63,13 @@ export class LifecycleCursorTag extends Context.Tag('LifecycleCursorTag')<
  */
 export const makeRedisLifecycleCursor = (redis: Redis): LifecycleCursor => ({
   read: Effect.promise(() => redis.get(KEY)).pipe(
-    Effect.catchAllDefect(() => Effect.succeed(null)),
+    Effect.catchDefect(() => Effect.succeed(null)),
     Effect.map(stored =>
       typeof stored === 'string' && stored !== ''
         ? new Date(Date.parse(stored) - OVERLAP_MS).toISOString()
         : new Date(Date.now() - COLD_START_LOOKBACK_MS).toISOString(),
     ),
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       Effect.succeed(
         new Date(Date.now() - COLD_START_LOOKBACK_MS).toISOString(),
       ),
@@ -77,7 +77,7 @@ export const makeRedisLifecycleCursor = (redis: Redis): LifecycleCursor => ({
   ),
   write: (at: string) =>
     Effect.promise(() => redis.set(KEY, at)).pipe(
-      Effect.catchAllDefect(() => Effect.void),
+      Effect.catchDefect(() => Effect.void),
       Effect.asVoid,
     ),
 });

@@ -221,7 +221,7 @@ export const startPublicationRebuild = Effect.gen(function* () {
   const prefix = yield* TenantDatabasePrefix;
   const source = yield* EventSourceTag;
 
-  yield* Effect.forkDaemon(rebuildFleet(client, prefix, source));
+  yield* Effect.forkDetach(rebuildFleet(client, prefix, source));
 });
 
 const rebuildFleet = (client: MongoClient, prefix: string, source: string) =>
@@ -234,7 +234,7 @@ const rebuildFleet = (client: MongoClient, prefix: string, source: string) =>
         name.slice(prefix.length),
         source,
       ).pipe(
-        Effect.catchAll(error =>
+        Effect.catch(error =>
           Effect.logError('rebuilding a tenant catalog failed').pipe(
             Effect.annotateLogs({ database: name, error: String(error) }),
           ),
@@ -242,7 +242,7 @@ const rebuildFleet = (client: MongoClient, prefix: string, source: string) =>
       );
     }
   }).pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.logError('the catalog rebuild could not enumerate tenants').pipe(
         Effect.annotateLogs({ error: String(error) }),
       ),

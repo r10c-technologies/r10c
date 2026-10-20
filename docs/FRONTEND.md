@@ -681,7 +681,7 @@ client-only cache/orchestration jacket over `Effect.runPromise`.
   import neither, so layering holds). `QueryClientProvider` mounts at the shell root.
 - **The seam**: `queryFn`/`mutationFn` run the UC exactly as before —
   `Effect.runPromise(Effect.provide(uc, ctx.pipe(Context.add(EntityLoadRequestTag, loadRequest))))`.
-  Every `Context.Tag` DI (adapter, `EntityLoadRequestTag`, `EntityLinkResolverTag`) is provided
+  Every `Context.Service` DI (adapter, `EntityLoadRequestTag`, `EntityLinkResolverTag`) is provided
   as it is today. `EntifixError` surfaces through the promise rejection into `onError`.
 - **Query keys** reuse the RSQL codec:
   `entityQueryKey(Ctor, req) = [envelopeEntityName(Ctor), serializeLoadRequestParams(req).toString()]`.
@@ -885,7 +885,7 @@ entifix repository, whose CI does not run it yet).
 
 ## 7. Reactive updates (the reactive stream)
 
-A framework-free **`ReactiveChannel` port** (a `Context.Tag`, mirroring the entifix adapter
+A framework-free **`ReactiveChannel` port** (a `Context.Service`, mirroring the entifix adapter
 philosophy) emits entity-change events. Its transport is **server-sent events** on a plain `GET`
 through the app's own same-origin proxy, scoped per connection to the principal's organization
 ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)). Not a WebSocket:

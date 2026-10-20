@@ -45,9 +45,10 @@ export interface TransitionOfferingInput {
   readonly at: Date;
 }
 
-export class TransitionOfferingInputTag extends Context.Tag(
-  'TransitionOfferingInputTag',
-)<TransitionOfferingInputTag, TransitionOfferingInput>() {}
+export class TransitionOfferingInputTag extends Context.Service<
+  TransitionOfferingInputTag,
+  TransitionOfferingInput
+>()('TransitionOfferingInputTag') {}
 
 /**
  * The offering's prices, as a second repository.
@@ -58,9 +59,10 @@ export class TransitionOfferingInputTag extends Context.Tag(
  * for `ProductOffering` answering a price query returns documents that
  * deserialize into the wrong class rather than failing.
  */
-export class OfferingPriceRepositoryTag extends Context.Tag(
-  'OfferingPriceRepositoryTag',
-)<OfferingPriceRepositoryTag, EntityRepositoryTag['Type']>() {}
+export class OfferingPriceRepositoryTag extends Context.Service<
+  OfferingPriceRepositoryTag,
+  EntityRepositoryTag['Service']
+>()('OfferingPriceRepositoryTag') {}
 
 /**
  * The offering's pinned specification, as a third repository — a separate tag
@@ -71,9 +73,10 @@ export class OfferingPriceRepositoryTag extends Context.Tag(
  * snapshot has to copy them at publication or they never reach the platform
  * plane at all (ADR 0009).
  */
-export class OfferingSpecificationRepositoryTag extends Context.Tag(
-  'OfferingSpecificationRepositoryTag',
-)<OfferingSpecificationRepositoryTag, EntityRepositoryTag['Type']>() {}
+export class OfferingSpecificationRepositoryTag extends Context.Service<
+  OfferingSpecificationRepositoryTag,
+  EntityRepositoryTag['Service']
+>()('OfferingSpecificationRepositoryTag') {}
 
 /**
  * The code a route renders when the move is not allowed.

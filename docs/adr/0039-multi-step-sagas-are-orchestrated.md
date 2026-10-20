@@ -11,6 +11,7 @@
   them marketplace-admin-service.
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): framework paths name `@entifix/transactions` rather than
   `packages/entifix/ts/transactions`.
+- Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): ports are `Context.Service`s rather than `Context.Tag`s; the decision is unchanged.
 
 ## Context
 
@@ -262,7 +263,7 @@ already building a workflow engine_. We have all three.
 
 Rejected now for three reasons that are about this repository rather than about
 the tools. It is a **second programming model beside Effect**, in a codebase
-whose entire dependency story is `Context.Tag` + `Layer`. It is a **cluster the
+whose entire dependency story is `Context.Service` + `Layer`. It is a **cluster the
 health ladder has to learn** — `infra/local/ensure.sh` would gain a rung, a
 readiness probe and a seed, for a capability nothing yet calls. And it
 **displaces ADR 0028's outbox** rather than extending it, discarding the one

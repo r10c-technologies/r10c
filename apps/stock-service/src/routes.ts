@@ -1,5 +1,6 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { requirePrincipal } from '@entifix/service-shell';
+import { Layer } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 import { configIntrospectionRoute } from './routes/config.routes';
 import { reservationRoutes } from './routes/reservation.routes';
@@ -34,17 +35,18 @@ import { stockMovementRoutes } from './routes/stock-movement.routes';
  * like everything else here; see `reservation.routes.ts` for why that is not the
  * two-credentials mistake.
  */
-export const router = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/config', configIntrospectionRoute),
-
-  // Token-verified backend integration: returns the caller's principal, proving
-  // a downstream service trusts the access token auth-service minted.
-  HttpRouter.get(
-    '/api/me',
-    requirePrincipal(principal => HttpServerResponse.json(principal)),
-  ),
-
-  HttpRouter.concat(stockItemRoutes),
-  HttpRouter.concat(reservationRoutes),
-  HttpRouter.concat(stockMovementRoutes),
+export const router = Layer.mergeAll(
+  HttpRouter.addAll([
+    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
+    // Token-verified backend integration: returns the caller's principal, proving
+    // a downstream service trusts the access token auth-service minted.
+    HttpRouter.route(
+      'GET',
+      '/api/me',
+      requirePrincipal(principal => HttpServerResponse.json(principal)),
+    ),
+  ]),
+  stockItemRoutes,
+  reservationRoutes,
+  stockMovementRoutes,
 );

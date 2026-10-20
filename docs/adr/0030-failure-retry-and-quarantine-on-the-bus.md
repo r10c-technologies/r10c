@@ -24,6 +24,7 @@
   this record called backlogged is done. It also never ran "the 3.13 broker": the
   tag was floating, which is the reason a claim about broker behaviour could not
   be checked. Corrected in place below.
+- Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `Effect.catchAll` is `Effect.catch`; the decision is unchanged.
 
 ## Context
 
@@ -56,7 +57,7 @@ attempt count, no delay. One failure is terminal.
 **The publisher side has the same hole, in the opposite direction.**
 `drainOutbox` stops at the first failure — correct, it keeps `accepted` ahead of
 the terminal event — and the sweep wraps everything in
-`Effect.catchAll(() => Effect.void)`. An entry that can never publish therefore
+`Effect.catch(() => Effect.void)` (Effect 3's `catchAll`). An entry that can never publish therefore
 blocks that tenant's outbox head-of-line **forever**, with no attempt count, no
 ceiling and no surface. Nothing in the repository names this case.
 

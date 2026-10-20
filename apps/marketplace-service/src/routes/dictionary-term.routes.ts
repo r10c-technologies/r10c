@@ -1,6 +1,6 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import { DictionaryTerm } from '@r10c/business-ts-catalog-reference';
+import { HttpRouter } from 'effect/http';
 
 import {
   byIdRoute,
@@ -15,16 +15,22 @@ import {
  * may resolve a characteristic to, which is what makes two vendors' offerings
  * comparable at all (ADR 0014).
  */
-export const dictionaryTermRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/dictionary-term', listRoute(DictionaryTerm)),
-  HttpRouter.get('/api/dictionary-term/:id', byIdRoute(DictionaryTerm)),
+export const dictionaryTermRoutes = HttpRouter.addAll([
+  HttpRouter.route('GET', '/api/dictionary-term', listRoute(DictionaryTerm)),
+  HttpRouter.route(
+    'GET',
+    '/api/dictionary-term/:id',
+    byIdRoute(DictionaryTerm),
+  ),
   // A literal path, and it must stay literal: `/api/:entity/$metadata` would be
   // shadowed by the by-id route above and never run.
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/dictionary-term/$metadata',
     entityMetadataRoute(DictionaryTerm),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/dictionary-term',
     guardedWrite(
       DictionaryTerm,
@@ -32,7 +38,8 @@ export const dictionaryTermRoutes = HttpRouter.empty.pipe(
       saveRoute(DictionaryTerm, { fromParams: false }),
     ),
   ),
-  HttpRouter.put(
+  HttpRouter.route(
+    'PUT',
     '/api/dictionary-term/:id',
     guardedWrite(
       DictionaryTerm,
@@ -40,8 +47,9 @@ export const dictionaryTermRoutes = HttpRouter.empty.pipe(
       saveRoute(DictionaryTerm, { fromParams: true }),
     ),
   ),
-  HttpRouter.del(
+  HttpRouter.route(
+    'DELETE',
     '/api/dictionary-term/:id',
     guardedWrite(DictionaryTerm, 'delete', deleteRoute(DictionaryTerm)),
   ),
-);
+]);

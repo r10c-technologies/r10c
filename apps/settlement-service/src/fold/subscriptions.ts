@@ -103,7 +103,7 @@ const logOutcome = (
             Effect.annotateLogs({ ...annotations, entries: outcome.reversed }),
           )
         : Effect.void;
-    return Effect.zipRight(sale, reversal);
+    return Effect.andThen(sale, reversal);
   }
   if (outcome.kind === 'duplicate') {
     return Effect.logDebug('skipped a redelivered settlement message').pipe(

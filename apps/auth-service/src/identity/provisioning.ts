@@ -71,7 +71,7 @@ export const resolveSignIn = (
     const refreshed = yield* accounts.findById(user.id);
     return authSubjectFromUser(refreshed ?? user);
   }).pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       error instanceof UnauthenticatedError
         ? Effect.fail(error)
         : Effect.fail(
@@ -182,7 +182,7 @@ export const provisionZitadelHuman = (
     yield* accounts.linkExternalSubject(input.userId, zitadelUserId, PROVIDER);
     return zitadelUserId;
   }).pipe(
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.fail(
         new AuthnError(
           `the identity provider could not be provisioned: ${String(error)}`,

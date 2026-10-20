@@ -1,5 +1,6 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { requirePrincipal } from '@entifix/service-shell';
+import { Layer } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 import { configIntrospectionRoute } from './routes/config.routes';
 import { productOrderRoutes } from './routes/product-order.routes';
@@ -14,11 +15,14 @@ import { productOrderRoutes } from './routes/product-order.routes';
  * one order can span several vendors, so it cannot live in any one of their
  * databases (`docs/_shared/planes.md`).
  */
-export const router = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/config', configIntrospectionRoute),
-  HttpRouter.get(
-    '/api/me',
-    requirePrincipal(principal => HttpServerResponse.json(principal)),
-  ),
-  HttpRouter.concat(productOrderRoutes),
+export const router = Layer.mergeAll(
+  HttpRouter.addAll([
+    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
+    HttpRouter.route(
+      'GET',
+      '/api/me',
+      requirePrincipal(principal => HttpServerResponse.json(principal)),
+    ),
+  ]),
+  productOrderRoutes,
 );

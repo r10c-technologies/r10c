@@ -1,8 +1,3 @@
-import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
 import { type Action, permissionForEntity } from '@entifix/authz';
 import {
   deleteUCFactory,
@@ -32,6 +27,7 @@ import {
 import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
 import { requireOrganization } from '@entifix/service-shell';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import type { Db } from 'mongodb';
 
 /**
@@ -138,7 +134,7 @@ export const listRoute = <T extends Entity>(
         collectionLinks(envelopeEntityName(entityConstructor)),
       ),
     );
-  }).pipe(Effect.catchAll(readError));
+  }).pipe(Effect.catch(readError));
 
 /** Generic single-record route by `:id`. */
 export const byIdRoute = <T extends Entity>(
@@ -163,7 +159,7 @@ export const byIdRoute = <T extends Entity>(
       ),
     );
   }).pipe(
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       HttpServerResponse.json(
         {
           message: 'not found',
@@ -234,7 +230,7 @@ export const saveRoute = <T extends Entity>(
     return yield* HttpServerResponse.json(
       makeEntityEnvelope(entityConstructor, saved, entityLinks(key, saved.id)),
     );
-  }).pipe(Effect.catchAll(writeError));
+  }).pipe(Effect.catch(writeError));
 
 /**
  * Generic delete route. Answers with an envelope rather than a bare `204`: the
@@ -261,7 +257,7 @@ export const deleteRoute = <T extends Entity>(
       meta: { type: 'entity', entity: key, links: collectionLinks(key) },
       data: { id: params.id },
     });
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /**
  * Resolve the organization's database and run the route against it.
@@ -281,7 +277,7 @@ export const withTenantDatabase = <A, E, R>(
     // the Mongo one, which is what the cast records.
     const db = (yield* resolver.forOrganization(organizationId)) as Db;
     return yield* route.pipe(Effect.provideService(MongoDatabaseTag, db));
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /**
  * Guard a tenant-plane route: check the permission the entity derives, then

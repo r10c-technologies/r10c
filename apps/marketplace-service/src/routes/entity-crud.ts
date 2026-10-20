@@ -1,9 +1,4 @@
 import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
-import {
   type Action,
   type Permission,
   permissionForEntity,
@@ -41,6 +36,7 @@ import {
   retireReferences,
 } from '@r10c/business-ts-catalog-reference';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 /**
  * The generic entity CRUD every route module in this service composes.
@@ -126,7 +122,7 @@ export const listRoute = <T extends Entity>(
         collectionLinks(envelopeEntityName(entityConstructor)),
       ),
     );
-  }).pipe(Effect.catchAll(readError));
+  }).pipe(Effect.catch(readError));
 
 export const byIdRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
@@ -150,7 +146,7 @@ export const byIdRoute = <T extends Entity>(
       ),
     );
   }).pipe(
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       HttpServerResponse.json(
         {
           message: 'not found',
@@ -189,7 +185,7 @@ export const saveRoute = <T extends Entity>(
     return yield* HttpServerResponse.json(
       makeEntityEnvelope(entityConstructor, saved, entityLinks(key, saved.id)),
     );
-  }).pipe(Effect.catchAll(writeError));
+  }).pipe(Effect.catch(writeError));
 
 export const deleteRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
@@ -211,7 +207,7 @@ export const deleteRoute = <T extends Entity>(
       meta: { type: 'entity', entity: key, links: collectionLinks(key) },
       data: { id: params.id },
     });
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /**
  * Guard a write with the permission the entity itself declares.
@@ -342,7 +338,7 @@ export const retireRoute = <T extends Entity>(
       },
       data: outcomes,
     });
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /**
  * Guard a declared verb with the permission that verb derives.

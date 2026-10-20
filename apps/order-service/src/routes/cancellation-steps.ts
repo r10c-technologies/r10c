@@ -1,9 +1,4 @@
 import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
-import {
   EntifixConnError,
   envelopeEntityName,
   makeEntityEnvelope,
@@ -11,6 +6,7 @@ import {
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import {
   claimCommand,
@@ -212,7 +208,7 @@ export const claimCancellationRoute = Effect.gen(function* () {
     },
     { status: 409 },
   );
-}).pipe(Effect.catchAll(serverError));
+}).pipe(Effect.catch(serverError));
 
 /**
  * Step 1's compensation — give the claim back.
@@ -252,7 +248,7 @@ export const releaseCancellationClaimRoute = Effect.gen(function* () {
     id: orderId,
     outcome: released ? 'released' : 'not-claimed',
   });
-}).pipe(Effect.catchAll(serverError));
+}).pipe(Effect.catch(serverError));
 
 /**
  * Step 4 — close the record and announce it.
@@ -345,4 +341,4 @@ export const settleCancellationRoute = Effect.gen(function* () {
   return yield* HttpServerResponse.json(envelopeFor(existing, orderId), {
     status: 200,
   });
-}).pipe(Effect.catchAll(serverError));
+}).pipe(Effect.catch(serverError));

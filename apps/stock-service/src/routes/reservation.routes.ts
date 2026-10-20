@@ -1,6 +1,6 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import { Reservation } from '@r10c/business-ts-stock-management';
+import { HttpRouter } from 'effect/http';
 
 import {
   convertReservationRoute,
@@ -43,23 +43,27 @@ import { takeReservationRoute } from './take-reservation';
  * fact been fully reversed. The body says which happened
  * ([ADR 0052](../../../../docs/adr/0052-the-checkout-saga.md)).
  */
-export const reservationRoutes = HttpRouter.empty.pipe(
-  HttpRouter.post(
+export const reservationRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'POST',
     '/api/reservation',
     crossed('stock-management:reservation:write', () => takeReservationRoute),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/reservation',
     guarded(Reservation, 'read', () => listRoute(Reservation)),
   ),
   // Literal path, registered before `:id`. As `/api/:entity/$metadata` it would
   // be shadowed by the by-id route and silently never run, which reads as "this
   // entity has no metadata" (ADR 0026).
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/reservation/$metadata',
     entityMetadataRoute(Reservation),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/reservation/:id',
     guarded(Reservation, 'read', () => byIdRoute(Reservation)),
   ),
@@ -68,18 +72,20 @@ export const reservationRoutes = HttpRouter.empty.pipe(
   // the organization comes from the header and the caller is proved by a
   // service token. Each is its own permission — a caller that may release a
   // hold is not thereby a caller that may consume the goods.
-  HttpRouter.del(
+  HttpRouter.route(
+    'DELETE',
     '/api/reservation/:id',
     crossed(
       'stock-management:reservation:release',
       () => releaseReservationRoute,
     ),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/reservation/:id/conversion',
     crossed(
       'stock-management:reservation:convert',
       () => convertReservationRoute,
     ),
   ),
-);
+]);

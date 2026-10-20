@@ -7,7 +7,7 @@ import {
   type SagaInstance,
   type SagaStore,
 } from '@entifix/transactions';
-import { Effect, HashMap, Layer, Logger } from 'effect';
+import { Effect, Layer, Logger, References } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { resumeStaleSagas } from './resume';
@@ -123,16 +123,17 @@ const runPass = async (
     resumeStaleSagas(store, SAGAS, STALE_AFTER_MS, MAX_RESUME_ATTEMPTS).pipe(
       Effect.provide(layer),
       Effect.provide(
-        Logger.replace(
-          Logger.defaultLogger,
-          Logger.make(({ logLevel, message, annotations }) => {
+        Logger.layer([
+          Logger.make(({ logLevel, message, fiber }) => {
             logs.push({
               message: String(message),
-              level: logLevel.label,
-              annotations: Object.fromEntries(HashMap.toEntries(annotations)),
+              level: logLevel,
+              annotations: {
+                ...fiber.getRef(References.CurrentLogAnnotations),
+              },
             });
           }),
-        ),
+        ]),
       ),
     ),
   );
@@ -194,7 +195,7 @@ describe('resumeStaleSagas', () => {
       logs.find(
         line => line.message === 'stale saga names an unknown definition',
       ),
-    ).toMatchObject({ level: 'ERROR', annotations: { definition: 'refund' } });
+    ).toMatchObject({ level: 'Error', annotations: { definition: 'refund' } });
   });
 
   /**
@@ -212,7 +213,7 @@ describe('resumeStaleSagas', () => {
 
     expect(
       logs.find(line => line.message === 'saga resume sweep failed'),
-    ).toMatchObject({ level: 'ERROR' });
+    ).toMatchObject({ level: 'Error' });
   });
 
   /** One instance that cannot be resumed must not abandon the ones behind it. */
@@ -235,7 +236,7 @@ describe('resumeStaleSagas', () => {
 
     expect(
       logs.find(line => line.message === 'resuming a saga instance failed'),
-    ).toMatchObject({ level: 'ERROR', annotations: { sagaId: 'saga-1' } });
+    ).toMatchObject({ level: 'Error', annotations: { sagaId: 'saga-1' } });
     // The second instance still ran every one of its steps.
     expect(dispatched.map(d => d.commandId)).toEqual([
       'saga-2:reserve:0',

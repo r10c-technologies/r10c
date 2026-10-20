@@ -1,6 +1,6 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import { HttpRouter } from 'effect/http';
 
 import {
   byIdRoute,
@@ -25,24 +25,28 @@ import {
  * The path must stay a literal: `/api/:entity/$metadata` would be shadowed by
  * the by-id route below and never run.
  */
-export const productSpecificationRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const productSpecificationRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/product-specification',
     guarded(ProductSpecification, 'read', () =>
       listRoute(ProductSpecification),
     ),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-specification/:id',
     guarded(ProductSpecification, 'read', () =>
       byIdRoute(ProductSpecification),
     ),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/product-specification/$metadata',
     entityMetadataRoute(ProductSpecification),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/product-specification',
     guarded(ProductSpecification, 'write', organizationId =>
       createTransactionRoute(
@@ -56,16 +60,18 @@ export const productSpecificationRoutes = HttpRouter.empty.pipe(
       ),
     ),
   ),
-  HttpRouter.put(
+  HttpRouter.route(
+    'PUT',
     '/api/product-specification/:id',
     guarded(ProductSpecification, 'write', () =>
       saveRoute(ProductSpecification, { fromParams: true }),
     ),
   ),
-  HttpRouter.del(
+  HttpRouter.route(
+    'DELETE',
     '/api/product-specification/:id',
     guarded(ProductSpecification, 'delete', () =>
       deleteRoute(ProductSpecification),
     ),
   ),
-);
+]);

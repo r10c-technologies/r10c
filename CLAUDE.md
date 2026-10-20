@@ -72,7 +72,7 @@ each is one link away in the decision index below.
   project needs `layer:`/`scope:` tags (and `business:`, `shell:` or `host:`
   where they apply). See
   [DEVELOPING.md → Module boundaries](docs/DEVELOPING.md#module-boundaries).
-- **Inject with Effect.** Wire dependencies as `Context.Tag` subclasses provided
+- **Inject with Effect.** Wire dependencies as `Context.Service` subclasses provided
   via `Layer`, not instances through constructors — a missing dep is a compile
   error.
 - **Entities describe themselves.** Private `#field` + `@accessor()` getter/setter

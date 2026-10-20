@@ -12,10 +12,10 @@ import { Context } from 'effect';
  */
 
 /** transaction-service's API root — `POST /api/saga/:definition` lives here. */
-export class CheckoutCoordinatorUrl extends Context.Tag('CheckoutCoordinatorUrl')<
+export class CheckoutCoordinatorUrl extends Context.Service<
   CheckoutCoordinatorUrl,
   string
->() {}
+>()('CheckoutCoordinatorUrl') {}
 
 /**
  * The coordinator's **inbound** crossing secret.
@@ -32,13 +32,13 @@ export class CheckoutCoordinatorUrl extends Context.Tag('CheckoutCoordinatorUrl'
  * `sales-management:sales-channel:sell` against it, and only then acts on the
  * seller's behalf (ADR 0056).
  */
-export class CheckoutCrossingToken extends Context.Tag('CheckoutCrossingToken')<
+export class CheckoutCrossingToken extends Context.Service<
   CheckoutCrossingToken,
   string
->() {}
+>()('CheckoutCrossingToken') {}
 
 /** marketplace-service's API root — the published projection is priced from it. */
-export class PublishedCatalogUrl extends Context.Tag('PublishedCatalogUrl')<
+export class PublishedCatalogUrl extends Context.Service<
   PublishedCatalogUrl,
   string
->() {}
+>()('PublishedCatalogUrl') {}

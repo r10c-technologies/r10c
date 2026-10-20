@@ -19,10 +19,10 @@ import { SAGAS } from '../sagas';
  * ceiling is: nothing about it is baked into a broker declaration or an index,
  * so an edit is adopted on the next boot.
  */
-export class SagaResumeIntervalMs extends Context.Tag('SagaResumeIntervalMs')<
+export class SagaResumeIntervalMs extends Context.Service<
   SagaResumeIntervalMs,
   number
->() {}
+>()('SagaResumeIntervalMs') {}
 
 /**
  * How long an instance may sit untouched before a sweep presumes its
@@ -35,10 +35,10 @@ export class SagaResumeIntervalMs extends Context.Tag('SagaResumeIntervalMs')<
  * it. Both would then dispatch, and only the participants' command inboxes
  * would stop that from being two side effects.
  */
-export class SagaStaleAfterMs extends Context.Tag('SagaStaleAfterMs')<
+export class SagaStaleAfterMs extends Context.Service<
   SagaStaleAfterMs,
   number
->() {}
+>()('SagaStaleAfterMs') {}
 
 /**
  * How many sweeps may pick one instance up before it is surfaced instead.
@@ -48,10 +48,10 @@ export class SagaStaleAfterMs extends Context.Tag('SagaStaleAfterMs')<
  * because a coordinator spinning on a permanent failure is how a customer's
  * money stays captured with nobody told.
  */
-export class SagaMaxResumeAttempts extends Context.Tag('SagaMaxResumeAttempts')<
+export class SagaMaxResumeAttempts extends Context.Service<
   SagaMaxResumeAttempts,
   number
->() {}
+>()('SagaMaxResumeAttempts') {}
 
 /**
  * Resume one claimed instance, reporting rather than propagating a failure.
@@ -84,7 +84,7 @@ const resumeOne = (
     Effect.asVoid,
     // Per instance, so one flow that cannot be resumed does not abandon every
     // flow behind it in the same pass.
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.logError('resuming a saga instance failed').pipe(
         Effect.annotateLogs({
           sagaId: instance.sagaId,
@@ -142,7 +142,7 @@ export const resumeStaleSagas = (
     // Around the whole pass as well as around each instance: a `findStale` that
     // cannot reach Mongo must not kill the daemon, or the fleet silently stops
     // resuming anything until someone restarts the process.
-    Effect.catchAll(error =>
+    Effect.catch(error =>
       Effect.logError('saga resume sweep failed').pipe(
         Effect.annotateLogs({ error: String(error) }),
       ),
@@ -173,7 +173,7 @@ export const startSagaResume = Effect.gen(function* () {
     maxResumeAttempts,
   ).pipe(Effect.provideService(SagaDispatcherTag, dispatcher));
 
-  const daemon = yield* Effect.forkDaemon(
+  const daemon = yield* Effect.forkDetach(
     sweepOnce.pipe(Effect.delay(Duration.millis(interval)), Effect.forever),
   );
 

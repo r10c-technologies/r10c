@@ -16,9 +16,10 @@ export interface RetireReferenceInput {
   readonly retired: boolean;
 }
 
-export class RetireReferenceInputTag extends Context.Tag(
-  'RetireReferenceInputTag',
-)<RetireReferenceInputTag, RetireReferenceInput>() {}
+export class RetireReferenceInputTag extends Context.Service<
+  RetireReferenceInputTag,
+  RetireReferenceInput
+>()('RetireReferenceInputTag') {}
 
 /**
  * The failure codes a single row can produce.
@@ -78,7 +79,7 @@ export const retireReferences = Effect.gen(function* () {
     }).pipe(
       // A row that could not be read at all — deleted between the listing and
       // the action, most often. One row's failure never ends the run.
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         Effect.succeed({
           id,
           ok: false,

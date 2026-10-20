@@ -1,6 +1,6 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute, requireCrossing } from '@entifix/service-shell';
 import { Payment, Refund } from '@r10c/business-ts-payment-management';
+import { HttpRouter } from 'effect/http';
 
 import { capturePaymentRoute } from './capture-payment';
 import { byIdRoute, guarded, listRoute } from './entity-crud';
@@ -34,31 +34,41 @@ import { refundPaymentRoute } from './refund-payment';
  * `/api/:entity/$metadata` it is shadowed by the by-id route and silently never
  * runs, which reads as "this entity has no metadata" (ADR 0026).
  */
-export const paymentRoutes = HttpRouter.empty.pipe(
-  HttpRouter.post(
+export const paymentRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'POST',
     '/api/payment',
     requireCrossing('payment-management:payment:write')(capturePaymentRoute),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/payment',
     guarded(Payment, 'read', () => listRoute(Payment)),
   ),
-  HttpRouter.get('/api/payment/$metadata', entityMetadataRoute(Payment)),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
+    '/api/payment/$metadata',
+    entityMetadataRoute(Payment),
+  ),
+  HttpRouter.route(
+    'GET',
     '/api/payment/:id',
     guarded(Payment, 'read', () => byIdRoute(Payment)),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/refund',
     requireCrossing('payment-management:refund:write')(refundPaymentRoute),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/refund',
     guarded(Refund, 'read', () => listRoute(Refund)),
   ),
-  HttpRouter.get('/api/refund/$metadata', entityMetadataRoute(Refund)),
-  HttpRouter.get(
+  HttpRouter.route('GET', '/api/refund/$metadata', entityMetadataRoute(Refund)),
+  HttpRouter.route(
+    'GET',
     '/api/refund/:id',
     guarded(Refund, 'read', () => byIdRoute(Refund)),
   ),
-);
+]);

@@ -1,6 +1,6 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import { StockMovement } from '@r10c/business-ts-stock-management';
+import { HttpRouter } from 'effect/http';
 
 import { byIdRoute, crossed, guarded, listRoute } from './entity-crud';
 import { recordMovementRoute } from './record-movement';
@@ -33,25 +33,30 @@ import { restoreStockRoute } from './restore-stock';
  * write a `receipt`, an `adjustment`, or a movement of any sign it likes
  * ([ADR 0058](../../../../docs/adr/0058-the-order-after-payment.md)).
  */
-export const stockMovementRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const stockMovementRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/stock-movement',
     guarded(StockMovement, 'read', () => listRoute(StockMovement)),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/stock-movement/$metadata',
     entityMetadataRoute(StockMovement),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/stock-movement/:id',
     guarded(StockMovement, 'read', () => byIdRoute(StockMovement)),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/stock-movement',
     guarded(StockMovement, 'write', () => recordMovementRoute),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/stock-restoration',
     crossed('stock-management:stock-movement:restore', () => restoreStockRoute),
   ),
-);
+]);

@@ -1,5 +1,6 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { requirePrincipal } from '@entifix/service-shell';
+import { Layer } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 import { configIntrospectionRoute } from './routes/config.routes';
 import { productOfferingRoutes } from './routes/product-offering.routes';
@@ -22,17 +23,18 @@ import { productSpecificationRoutes } from './routes/product-specification.route
  * duplicate `method + path`, so a module can decline to register a route but can
  * never silently replace another's.
  */
-export const router = HttpRouter.empty.pipe(
-  HttpRouter.get('/api/config', configIntrospectionRoute),
-
-  // Token-verified backend integration: returns the caller's principal, proving
-  // a downstream service trusts the access token auth-service minted.
-  HttpRouter.get(
-    '/api/me',
-    requirePrincipal(principal => HttpServerResponse.json(principal)),
-  ),
-
-  HttpRouter.concat(productSpecificationRoutes),
-  HttpRouter.concat(productOfferingRoutes),
-  HttpRouter.concat(productOfferingPriceRoutes),
+export const router = Layer.mergeAll(
+  HttpRouter.addAll([
+    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
+    // Token-verified backend integration: returns the caller's principal, proving
+    // a downstream service trusts the access token auth-service minted.
+    HttpRouter.route(
+      'GET',
+      '/api/me',
+      requirePrincipal(principal => HttpServerResponse.json(principal)),
+    ),
+  ]),
+  productSpecificationRoutes,
+  productOfferingRoutes,
+  productOfferingPriceRoutes,
 );

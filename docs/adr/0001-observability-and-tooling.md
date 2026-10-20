@@ -29,6 +29,7 @@
   both" instruction, with only one copy under a test project. Composition is
   unchanged — each service still merges the layer into its own `AppLayer`. No
   decision here is revised.
+- Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): the logger bridge is `Logger.layer`, annotations are read from the fiber, and `runMain` no longer swaps loggers; the `disablePrettyLogger` note is now history.
 
 ## Context
 
@@ -95,7 +96,7 @@ provider was left open during design and then settled.
 - **PostHog** (analytics + feature flags + experiments in one SDK; generous free
   tier). Adapter package **`@entifix/posthog`**
   (`posthog-node` + `posthog-js`/`browser`) implements the `Tracker` port,
-  provided per environment behind `TrackerTag` (Effect `Context.Tag`, business
+  provided per environment behind `TrackerTag` (Effect `Context.Service`, business
   layer) — the same adapter-per-environment shape as REST vs Mongo behind
   `EntityRepositoryTag`. **The browser runs Effect DI too**, so one seam serves
   both tiers. Product events are a **separate concern from logs** (opposite
@@ -138,9 +139,11 @@ Notable gotchas found and fixed:
 - `@effect/opentelemetry` doesn't register an OTel context manager, so the tooling
   logger's active-span lookup would be empty — the service registers
   `AsyncLocalStorageContextManager`.
-- `NodeRuntime.runMain` swaps `defaultLogger` for `prettyLoggerDefault` before the
-  app layer runs, so `Logger.replace(defaultLogger, …)` finds nothing; `makeService`
-  now passes `disablePrettyLogger: true`.
+- Under Effect 3, `NodeRuntime.runMain` swapped `defaultLogger` for
+  `prettyLoggerDefault` before the app layer ran, so `Logger.replace(defaultLogger,
+…)` found nothing and `makeService` passed `disablePrettyLogger: true`. Effect 4's
+  `runMain` installs no logger, and the bridge is `Logger.layer([…])`, which
+  replaces the current loggers outright.
 
 ## Metrics
 

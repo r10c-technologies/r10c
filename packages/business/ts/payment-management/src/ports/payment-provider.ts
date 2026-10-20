@@ -110,7 +110,7 @@ export interface PaymentProvider {
   ): Effect.Effect<RefundProviderOutcome, EntifixError>;
 }
 
-export class PaymentProviderTag extends Context.Tag('PaymentProviderTag')<
+export class PaymentProviderTag extends Context.Service<
   PaymentProviderTag,
   PaymentProvider
->() {}
+>()('PaymentProviderTag') {}

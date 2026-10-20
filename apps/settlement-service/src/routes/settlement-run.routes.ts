@@ -1,8 +1,8 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import { SettlementRun } from '@r10c/business-ts-settlement-management';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 import { settleOnce } from '../run/sweep';
 import { byIdRoute, guarded, listRoute, serverError } from './entity-crud';
@@ -31,7 +31,7 @@ const settleNowRoute = Effect.gen(function* () {
     meta: { type: 'settlementRun' },
     data: outcome,
   });
-}).pipe(Effect.catchAll(serverError));
+}).pipe(Effect.catch(serverError));
 
 /**
  * The periodic batch a payout belongs to.
@@ -57,21 +57,25 @@ const settleNowRoute = Effect.gen(function* () {
  * ⚠️ **`$metadata` before `/:id`**, for the routing reason named on the
  * agreement routes.
  */
-export const settlementRunRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const settlementRunRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/settlement-run',
     guarded(SettlementRun, 'read', () => listRoute(SettlementRun)),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/settlement-run/$metadata',
     entityMetadataRoute(SettlementRun),
   ),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
     '/api/settlement-run/:id',
     guarded(SettlementRun, 'read', () => byIdRoute(SettlementRun)),
   ),
-  HttpRouter.post(
+  HttpRouter.route(
+    'POST',
     '/api/settlement-run',
     guarded(SettlementRun, 'write', () => settleNowRoute),
   ),
-);
+]);

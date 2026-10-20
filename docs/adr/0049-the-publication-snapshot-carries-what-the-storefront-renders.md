@@ -4,6 +4,7 @@
 - Date: 2026-09-08
 - Area: business
 - Read when: adding a member to the publication snapshot — optional is a safety property, and an absent member is written absent, never `undefined`
+- Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `Effect.catchAll` is `Effect.catch` and ports are `Context.Service`s; the decision is unchanged.
 - Amends: [ADR 0048](0048-announcing-a-publication.md) — the announced payload is
   eleven members, not seven, and a publication now has a second precondition.
 
@@ -163,13 +164,13 @@ So mapping `get`'s failure to `OfferingHasNoSpecification` would answer
 `409 offeringHasNoSpecification` to every vendor in the fleet during a Mongo
 outage: a green service telling everyone their data is broken. `load` with a
 one-row filter makes absence `items[0] === undefined` and leaves a real failure
-in the error channel, where `Effect.catchAll(serverError)` answers `500`. It is
+in the error channel, where `Effect.catch(serverError)` answers `500`. It is
 also the shape the price lookup beside it already uses.
 
 Two notes on why this is safe. The repository applies no `filterable` allowlist —
 that gate is `coerce-rsql.ts`, at the HTTP layer — so filtering on `id`
 in-process is legal even though `id` is not a filterable column. And a third
-`Context.Tag` rather than a third use of `EntityRepositoryTag`, for the reason
+`Context.Service` rather than a third use of `EntityRepositoryTag`, for the reason
 the price tag already states: one tag resolves to one value, so the last
 provision would answer every read and a repository built for `ProductOffering`
 would deserialize a specification into the wrong class rather than failing.

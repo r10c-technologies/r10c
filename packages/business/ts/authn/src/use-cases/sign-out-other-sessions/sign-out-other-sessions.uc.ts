@@ -13,9 +13,10 @@ export interface SignOutOtherSessionsInput {
 }
 
 /** Input tag: the caller's own session, provided per call. */
-export class SignOutOtherSessionsInputTag extends Context.Tag(
-  'SignOutOtherSessionsInputTag',
-)<SignOutOtherSessionsInputTag, SignOutOtherSessionsInput>() {}
+export class SignOutOtherSessionsInputTag extends Context.Service<
+  SignOutOtherSessionsInputTag,
+  SignOutOtherSessionsInput
+>()('SignOutOtherSessionsInputTag') {}
 
 /**
  * End every session you hold except the one you are using.

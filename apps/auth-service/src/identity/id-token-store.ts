@@ -23,10 +23,10 @@ export interface IdTokenStore {
   take(sessionId: string): Effect.Effect<string | undefined>;
 }
 
-export class IdTokenStoreTag extends Context.Tag('IdTokenStoreTag')<
+export class IdTokenStoreTag extends Context.Service<
   IdTokenStoreTag,
   IdTokenStore
->() {}
+>()('IdTokenStoreTag') {}
 
 const key = (sessionId: string) => `oidc:id-token:${sessionId}`;
 
@@ -42,12 +42,12 @@ export const makeRedisIdTokenStore = (redis: Redis): IdTokenStore => ({
       redis.set(key(sessionId), idToken, 'EX', SESSION_ABSOLUTE_TTL_SECONDS),
     ).pipe(
       Effect.asVoid,
-      Effect.catchAll(() => Effect.void),
+      Effect.catch(() => Effect.void),
     ),
   take: sessionId =>
     Effect.tryPromise(() => redis.getdel(key(sessionId))).pipe(
       Effect.map(value => value ?? undefined),
-      Effect.catchAll(() => Effect.succeed(undefined)),
+      Effect.catch(() => Effect.succeed(undefined)),
     ),
 });
 

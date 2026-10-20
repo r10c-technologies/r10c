@@ -60,7 +60,7 @@ export interface NotificationPort {
 }
 
 /** DI tag the composition root binds to a concrete {@link NotificationPort}. */
-export class NotificationPortTag extends Context.Tag('NotificationPortTag')<
+export class NotificationPortTag extends Context.Service<
   NotificationPortTag,
   NotificationPort
->() {}
+>()('NotificationPortTag') {}

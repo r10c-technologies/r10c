@@ -1,6 +1,6 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 import { transitionReservation } from '../reservation-transition';
 import { serverError } from './entity-crud';
@@ -42,7 +42,7 @@ const endReservation = (to: 'released' | 'converted', reason?: 'sale') =>
       // arrived.
       outcome,
     });
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /** Give the claim back. `onHand` is untouched; the goods never left. */
 export const releaseReservationRoute = endReservation('released');

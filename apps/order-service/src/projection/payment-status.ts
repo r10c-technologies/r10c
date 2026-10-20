@@ -99,7 +99,7 @@ const advanceToPaid = (
     // lift it back: a redelivery must ack, never nack. Nacking would requeue it
     // against `x-delivery-limit` and eventually quarantine a message that was
     // in fact processed.
-    Effect.catchAll(outcome =>
+    Effect.catch(outcome =>
       outcome === 'duplicate'
         ? Effect.succeed('duplicate' as const)
         : Effect.fail(outcome),

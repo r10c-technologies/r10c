@@ -11,13 +11,14 @@ import { recordTransactionStates, transactionsByState } from './metrics.js';
  * again here would read a different series that is permanently zero.
  */
 const readGauge = (
-  metric: Metric.Metric.Gauge<number>,
+  metric: Metric.Gauge<number>,
   tags: Record<string, string>,
 ) =>
   Effect.runPromise(
     Metric.value(
       Object.entries(tags).reduce(
-        (tagged, [key, value]) => Metric.tagged(tagged, key, value),
+        (tagged, [key, value]) =>
+          Metric.withAttributes(tagged, { [key]: value }),
         metric,
       ),
     ).pipe(Effect.map(state => state.value)),

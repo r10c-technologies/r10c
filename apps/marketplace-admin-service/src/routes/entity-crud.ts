@@ -1,9 +1,4 @@
 import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
-import {
   type Action,
   type Permission,
   permissionForEntity,
@@ -67,6 +62,9 @@ import {
   TransactionOutboxTag,
 } from '@entifix/transactions';
 import {
+  IllegalOfferingTransition,
+  OfferingHasNoPrice,
+  OfferingHasNoSpecification,
   OfferingPriceRepositoryTag,
   OfferingSpecificationRepositoryTag,
   type OfferingTransition,
@@ -77,6 +75,7 @@ import {
   TransitionOfferingInputTag,
 } from '@r10c/business-ts-product-configuration-management';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import type { Db } from 'mongodb';
 
 import {
@@ -222,7 +221,7 @@ export const listRoute = <T extends Entity>(
         collectionLinks(envelopeEntityName(entityConstructor)),
       ),
     );
-  }).pipe(Effect.catchAll(readError));
+  }).pipe(Effect.catch(readError));
 
 /** Generic single-record route by `:id`. */
 export const byIdRoute = <T extends Entity>(
@@ -250,7 +249,7 @@ export const byIdRoute = <T extends Entity>(
     // The entity's own key, not a hardcoded English name passed at the call
     // site: the client translates `errors:notFound` and already knows how to
     // render that entity's label from its metadata.
-    Effect.catchAll(() =>
+    Effect.catch(() =>
       HttpServerResponse.json(
         {
           message: 'not found',
@@ -322,7 +321,7 @@ export const saveRoute = <T extends Entity>(
     return yield* HttpServerResponse.json(
       makeEntityEnvelope(entityConstructor, saved, entityLinks(key, saved.id)),
     );
-  }).pipe(Effect.catchAll(writeError));
+  }).pipe(Effect.catch(writeError));
 
 /**
  * Transactional create route (the CQRS write path). A `POST` is a *command*:
@@ -406,7 +405,7 @@ export const createTransactionRoute = <
             }),
           ),
         ),
-        Effect.forkDaemon,
+        Effect.forkDetach,
       );
     }
     // A duplicate claim is a *retry*, so it gets the first command's answer:
@@ -435,7 +434,7 @@ export const createTransactionRoute = <
       },
       { status: 202 },
     );
-  }).pipe(Effect.catchAll(acceptError));
+  }).pipe(Effect.catch(acceptError));
 
 /**
  * Generic delete route. Answers with an envelope rather than a bare `204`: the
@@ -462,7 +461,7 @@ export const deleteRoute = <T extends Entity>(
       meta: { type: 'entity', entity: key, links: collectionLinks(key) },
       data: { id: params.id },
     });
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /**
  * Guard a catalog route with the permission its own entity declares, **and**
@@ -504,7 +503,7 @@ export const guarded = <T extends Entity, A, E, R>(
       }).pipe(
         // Each route already maps its own failures; what can still fail here is
         // resolving the tenant handle.
-        Effect.catchAll(serverError),
+        Effect.catch(serverError),
       ),
   );
 
@@ -535,7 +534,7 @@ export const guardedUseCase = <A, E, R>(
       return yield* route(organizationId).pipe(
         Effect.provideService(MongoDatabaseTag, db),
       );
-    }).pipe(Effect.catchAll(serverError)),
+    }).pipe(Effect.catch(serverError)),
   );
 
 /**
@@ -669,7 +668,7 @@ export const transitionOneOffering = (
     // the bus with the latency it had before the outbox existed, and the sweep
     // only covers what this misses. Ignored, because the entry is already
     // durable — a failure here delays delivery, it does not lose it.
-    yield* Effect.forkDaemon(
+    yield* Effect.forkDetach(
       Effect.ignore(
         drainOutbox(outbox, bus, {
           maxAttempts,
@@ -777,7 +776,7 @@ export const bulkTransitionOfferingRoute = (
         // the domain's own — `offeringHasNoPrice`, `illegalOfferingTransition` —
         // and it is the same string the single-id route answers `409` with, so
         // one catalog entry serves both surfaces.
-        Effect.catchAll(failure =>
+        Effect.catch(failure =>
           Effect.succeed<BulkOutcome>({
             id: id as EntityId,
             ok: false,
@@ -798,7 +797,7 @@ export const bulkTransitionOfferingRoute = (
       },
       data: outcomes,
     });
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /**
  * `POST /api/product-offering/:id/<verb>` — one offering, one answer.
@@ -833,44 +832,53 @@ export const transitionOfferingRoute = (
       ),
     );
   }).pipe(
-    Effect.catchTag('IllegalOfferingTransition', failure =>
-      HttpServerResponse.json(
-        {
-          error: 'illegal offering transition',
-          code: failure.code,
-          detail: `An offering in '${failure.from}' cannot be ${failure.transition}ed.`,
-        },
-        { status: 409 },
-      ),
+    Effect.catchIf(
+      (error): error is IllegalOfferingTransition =>
+        error instanceof IllegalOfferingTransition,
+      failure =>
+        HttpServerResponse.json(
+          {
+            error: 'illegal offering transition',
+            code: failure.code,
+            detail: `An offering in '${failure.from}' cannot be ${failure.transition}ed.`,
+          },
+          { status: 409 },
+        ),
     ),
-    Effect.catchTag('OfferingHasNoPrice', failure =>
-      HttpServerResponse.json(
-        {
-          error: 'offering has no price',
-          code: failure.code,
-          detail:
-            'An offering needs a price before it can reach the storefront: ' +
-            'the published record carries an amount and a currency.',
-        },
-        { status: 409 },
-      ),
+    Effect.catchIf(
+      (error): error is OfferingHasNoPrice =>
+        error instanceof OfferingHasNoPrice,
+      failure =>
+        HttpServerResponse.json(
+          {
+            error: 'offering has no price',
+            code: failure.code,
+            detail:
+              'An offering needs a price before it can reach the storefront: ' +
+              'the published record carries an amount and a currency.',
+          },
+          { status: 409 },
+        ),
     ),
-    Effect.catchTag('OfferingHasNoSpecification', failure =>
-      HttpServerResponse.json(
-        {
-          error: 'offering has no specification',
-          code: failure.code,
-          // The dangling id, because nothing enforces the reference and the
-          // vendor cannot find it from the offering's own screen.
-          detail:
-            `This offering names specification '${failure.specificationId}', ` +
-            'which no longer exists. The published record copies its name, ' +
-            'description, brand and category.',
-        },
-        { status: 409 },
-      ),
+    Effect.catchIf(
+      (error): error is OfferingHasNoSpecification =>
+        error instanceof OfferingHasNoSpecification,
+      failure =>
+        HttpServerResponse.json(
+          {
+            error: 'offering has no specification',
+            code: failure.code,
+            // The dangling id, because nothing enforces the reference and the
+            // vendor cannot find it from the offering's own screen.
+            detail:
+              `This offering names specification '${failure.specificationId}', ` +
+              'which no longer exists. The published record copies its name, ' +
+              'description, brand and category.',
+          },
+          { status: 409 },
+        ),
     ),
-    Effect.catchAll(serverError),
+    Effect.catch(serverError),
   );
 
 /**

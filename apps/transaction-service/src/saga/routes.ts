@@ -1,4 +1,3 @@
-import { HttpRouter, HttpServerResponse } from '@effect/platform';
 import { makeEnvelope } from '@entifix/core';
 import {
   type RequestPrincipal,
@@ -10,6 +9,7 @@ import {
   TransactionStreamHubTag,
 } from '@entifix/transactions';
 import { Effect, Stream } from 'effect';
+import { HttpRouter, HttpServerResponse } from 'effect/http';
 
 const serverError = (error: unknown) =>
   HttpServerResponse.json(
@@ -61,7 +61,7 @@ const byIdRoute = requirePrincipal((principal: RequestPrincipal) =>
       makeEnvelope('transactionRecord', record.entity, record),
     );
   }),
-).pipe(Effect.catchAll(serverError));
+).pipe(Effect.catch(serverError));
 
 /**
  * `GET /api/transaction/events` — the same facts as the route above, pushed
@@ -87,7 +87,7 @@ const eventsRoute = requirePrincipal((principal: RequestPrincipal) =>
       { expiresAt: principal.expiresAt },
     );
   }),
-).pipe(Effect.catchAll(serverError));
+).pipe(Effect.catch(serverError));
 
 /**
  * The `transaction` slice's read surface, mounted by the host router.
@@ -113,8 +113,7 @@ const eventsRoute = requirePrincipal((principal: RequestPrincipal) =>
  * two `/api/config` routes in one router is the kind of duplication a merge is
  * supposed to remove rather than carry forward.
  */
-export const sagaRoutes = <E, R>(router: HttpRouter.HttpRouter<E, R>) =>
-  router.pipe(
-    HttpRouter.get('/api/transaction/events', eventsRoute),
-    HttpRouter.get('/api/transaction/:id', byIdRoute),
-  );
+export const sagaRoutes = HttpRouter.addAll([
+  HttpRouter.route('GET', '/api/transaction/events', eventsRoute),
+  HttpRouter.route('GET', '/api/transaction/:id', byIdRoute),
+]);

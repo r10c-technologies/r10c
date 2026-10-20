@@ -1,9 +1,3 @@
-import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
-import { SqlClient } from '@effect/sql';
 import { type Action, permissionForEntity } from '@entifix/authz';
 import {
   deleteUCFactory,
@@ -34,6 +28,8 @@ import {
 import { makeSqlRepository } from '@entifix/sql';
 import { Configuration } from '@r10c/business-ts-configuration';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
+import { SqlClient } from 'effect/sql';
 
 /** The entity's own key, which is also its table name and its route segment. */
 const KEY = envelopeEntityName(Configuration);
@@ -188,7 +184,7 @@ const listRoute = Effect.gen(function* () {
   return yield* HttpServerResponse.json(
     makeEntityPageEnvelope(Configuration, page, collectionLinks()),
   );
-}).pipe(Effect.catchAll(readError));
+}).pipe(Effect.catch(readError));
 
 /** `GET /api/configuration/:id`. */
 const byIdRoute = Effect.gen(function* () {
@@ -204,7 +200,7 @@ const byIdRoute = Effect.gen(function* () {
     makeEntityEnvelope(Configuration, row, entityLinks(params.id)),
   );
 }).pipe(
-  Effect.catchAll(() =>
+  Effect.catch(() =>
     HttpServerResponse.json(
       { message: 'not found', code: 'notFound', entity: KEY },
       { status: 404 },
@@ -299,7 +295,7 @@ const saveRoute = (
     return yield* HttpServerResponse.json(
       makeEntityEnvelope(Configuration, saved, entityLinks(saved.id)),
     );
-  }).pipe(Effect.catchAll(writeError));
+  }).pipe(Effect.catch(writeError));
 
 /**
  * Delete. The row is read first so the audit entry can name what was removed —
@@ -344,7 +340,7 @@ const deleteRoute = (principal: RequestPrincipal) =>
       meta: { type: 'entity', entity: KEY, links: collectionLinks() },
       data: { id: params.id },
     });
-  }).pipe(Effect.catchAll(serverError));
+  }).pipe(Effect.catch(serverError));
 
 /**
  * Guard a route with the permission the entity itself declares. Unlike the
@@ -364,36 +360,39 @@ const guarded = <A, E, R>(
  * a connection string wants a synchronous answer rather than a transaction id to
  * poll.
  */
-export const configurationRoutes = <E, R>(
-  router: HttpRouter.HttpRouter<E, R>,
-) =>
-  router.pipe(
-    HttpRouter.get(
-      `/api/${KEY}`,
-      guarded('read', () => listRoute),
-    ),
-    // What this caller may do with the entity, permission-filtered from the
-    // verified principal. `Configuration` declares no `@useCase()` verb, so the
-    // document is the CRUD subset and an empty verb list — which is the honest
-    // answer, not a missing one.
-    //
-    // The path stays a literal: a parametric `/api/:entity/$metadata` would be
-    // shadowed by the by-id route below and never run (ADR 0026). `$m` is not
-    // `${`, so it survives the template literal unescaped.
-    HttpRouter.get(`/api/${KEY}/$metadata`, entityMetadataRoute(Configuration)),
-    HttpRouter.get(
-      `/api/${KEY}/:id`,
-      guarded('read', () => byIdRoute),
-    ),
-    HttpRouter.post(
-      `/api/${KEY}`,
-      guarded('write', principal =>
-        saveRoute(principal, { fromParams: false }),
-      ),
-    ),
-    HttpRouter.put(
-      `/api/${KEY}/:id`,
-      guarded('write', principal => saveRoute(principal, { fromParams: true })),
-    ),
-    HttpRouter.del(`/api/${KEY}/:id`, guarded('delete', deleteRoute)),
-  );
+export const configurationRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
+    `/api/${KEY}`,
+    guarded('read', () => listRoute),
+  ),
+  // What this caller may do with the entity, permission-filtered from the
+  // verified principal. `Configuration` declares no `@useCase()` verb, so the
+  // document is the CRUD subset and an empty verb list — which is the honest
+  // answer, not a missing one.
+  //
+  // The path stays a literal: a parametric `/api/:entity/$metadata` would be
+  // shadowed by the by-id route below and never run (ADR 0026). `$m` is not
+  // `${`, so it survives the template literal unescaped.
+  HttpRouter.route(
+    'GET',
+    `/api/${KEY}/$metadata`,
+    entityMetadataRoute(Configuration),
+  ),
+  HttpRouter.route(
+    'GET',
+    `/api/${KEY}/:id`,
+    guarded('read', () => byIdRoute),
+  ),
+  HttpRouter.route(
+    'POST',
+    `/api/${KEY}`,
+    guarded('write', principal => saveRoute(principal, { fromParams: false })),
+  ),
+  HttpRouter.route(
+    'PUT',
+    `/api/${KEY}/:id`,
+    guarded('write', principal => saveRoute(principal, { fromParams: true })),
+  ),
+  HttpRouter.route('DELETE', `/api/${KEY}/:id`, guarded('delete', deleteRoute)),
+]);

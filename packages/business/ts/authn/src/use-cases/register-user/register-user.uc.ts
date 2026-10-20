@@ -36,10 +36,10 @@ export interface RegisterUserInput {
 }
 
 /** Input tag: the registration data, provided per call. */
-export class RegisterInputTag extends Context.Tag('RegisterInputTag')<
+export class RegisterInputTag extends Context.Service<
   RegisterInputTag,
   RegisterUserInput
->() {}
+>()('RegisterInputTag') {}
 
 /**
  * Provision a new account and return the {@link AuthSubject} to open a session

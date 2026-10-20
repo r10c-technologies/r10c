@@ -10,7 +10,7 @@ entity framework in [ENTIFIX.md](./ENTIFIX.md); the client side in
 ```
 apps/
   <domain>-app/            Next.js frontend (App Router, React 19, Tailwind)
-  <domain>-service/        Effect-native backend (@effect/platform)
+  <domain>-service/        Effect-native backend (effect/http)
   config-service/          Postgres-backed configuration service
   *-e2e/                   Playwright (Next apps) / Vitest (services)
 packages/
@@ -199,7 +199,7 @@ this repository's manifests or lockfile changes.
   (`--config.modules-cache-max-age=0`) before it starts.
 - **Never a `link:` or `file:` specifier.** A linked package resolves `effect`
   from entifix's own `node_modules`, and two copies of Effect break
-  `Context.Tag` identity without an error.
+  `Context.Service` identity without an error.
 
 Each app's `dev` also depends on the inferred `build-deps`, so `dist` is correct at
 boot — otherwise the first page load silently serves whatever the last build left
@@ -433,13 +433,13 @@ every app, because Nx forwards the unknown option to `next build` and
 1. **Dependencies point downward only.** `apps → shells → implementation → business → entifix → utils`.
    Never import upward (e.g. an `entifix` package importing from `business` or
    `shells`). The lint rule fails the build; if you feel the need to break it,
-   the design is wrong — pass the dependency in as an argument or a `Context.Tag`.
+   the design is wrong — pass the dependency in as an argument or a `Context.Service`.
 2. **Use-cases stay framework-free.** Anything in `business/ts/*` must import only
    contracts (`@entifix/business`) and Effect — never a transport, a React hook,
-   or `@effect/platform`. If a use-case needs something, it _yields a `Context.Tag`_;
+   or `effect/http`. If a use-case needs something, it _yields a `Context.Service`_;
    the composition root provides it.
 3. **Inject with Effect, don't pass instances.** Wire new dependencies as
-   `Context.Tag` subclasses and provide them via `Layer` / `Effect.provideService`.
+   `Context.Service` subclasses and provide them via `Layer` / `Effect.provideService`.
    A missing dependency should be a compile error, not a runtime one.
 4. **Adapters are generic.** An adapter derives everything from entity metadata
    (`extractMetaEntity(Ctor).key`, `extractMetaAccessors(Ctor)`) and the shared
@@ -551,10 +551,11 @@ backend is composition — cookies, proxying, RSC aggregation — never data acc
   `CONFIG_API_URL`, `CONFIG_PG_URL`).
 - Any secret in a diagnostic response must be run through `redactConfiguration` /
   `redactValue`.
-- Add native drivers (`mongodb`, `@effect/sql*`) to the service's
+- Add native drivers (`mongodb`, `@effect/sql-pg`) to the service's
   `webpack.config.js` `externalDependencies`, and externalize `tslib`.
-- Keep DB driver / `@effect/sql` versions aligned with the pinned
-  `@effect/platform` — mismatched peers break `pnpm install` (see [[backend-db-connectivity]]).
+- Keep a DB driver (`@effect/sql-pg`) on the same Effect release as `effect`
+  itself — every `@effect/*` package peers on the matching `effect`, and a
+  mismatch breaks `pnpm install` (see [[backend-db-connectivity]]).
 
 ## Testing
 
@@ -947,8 +948,8 @@ unreachable.
 groups (`update-types: ['minor', 'patch']`). A major therefore arrives as its own
 PR, where a red check names the package instead of hiding behind a group that
 cannot be bisected. Two families are grouped so they can never be split:
-`effect` + `@effect/*` (`@effect/sql*` must stay aligned with the pinned
-`@effect/platform`) and `react` + `react-dom` + their `@types`.
+`effect` + `@effect/*` (every `@effect/*` package is released alongside, and
+peers on, the matching `effect`) and `react` + `react-dom` + their `@types`.
 
 **Never merge a Dependabot lockfile as-is.** This is the rule that keeps the
 tree coherent, and there is no mechanism standing behind it — it rewrites
@@ -982,7 +983,7 @@ before merge like any other.
 **A datastore driver major is not something CI can clear.** The e2e job runs
 `E2E_PROFILE: mock`, which replaces Redis, Mongo, RabbitMQ and config-service at
 the transport boundary, so a green check says nothing about `ioredis`, `mongodb`,
-`amqplib` or `@effect/sql*`. Those need a `live` run — see
+`amqplib` or `@effect/sql-pg`. Those need a `live` run — see
 [E2E and `E2E_PROFILE`](#e2e-and-e2e_profile).
 
 ## Commits & PRs

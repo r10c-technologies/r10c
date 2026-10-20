@@ -28,11 +28,13 @@ import { Context } from 'effect';
  * failure mode "the row was missing" at request time, where the composition root
  * makes it "the process did not boot".
  */
-export class CancellationCoordinatorUrl extends Context.Tag(
-  'CancellationCoordinatorUrl',
-)<CancellationCoordinatorUrl, string>() {}
+export class CancellationCoordinatorUrl extends Context.Service<
+  CancellationCoordinatorUrl,
+  string
+>()('CancellationCoordinatorUrl') {}
 
 /** The coordinator's inbound crossing secret. See the note above. */
-export class CancellationCrossingToken extends Context.Tag(
-  'CancellationCrossingToken',
-)<CancellationCrossingToken, string>() {}
+export class CancellationCrossingToken extends Context.Service<
+  CancellationCrossingToken,
+  string
+>()('CancellationCrossingToken') {}

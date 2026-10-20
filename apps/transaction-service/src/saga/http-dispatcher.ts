@@ -29,10 +29,10 @@ export interface Participant {
  * — an RS256 service token minted by auth-service, giving the call an identity
  * rather than a password.
  */
-export class ParticipantsTag extends Context.Tag('ParticipantsTag')<
+export class ParticipantsTag extends Context.Service<
   ParticipantsTag,
   Readonly<Record<string, Participant>>
->() {}
+>()('ParticipantsTag') {}
 
 /**
  * Dispatch a saga step over HTTP.
@@ -117,7 +117,7 @@ export const makeHttpSagaDispatcher = (
         // step that succeeded must not be turned into a failure by an empty
         // one.
         catch: () => new EntifixConnError('unreadable participant body'),
-      }).pipe(Effect.catchAll(() => Effect.succeed(undefined)));
+      }).pipe(Effect.catch(() => Effect.succeed(undefined)));
 
       return { ok: response.ok, status: response.status, body };
     }),

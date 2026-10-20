@@ -11,6 +11,7 @@
   (an organization now has **two** tenant databases, not one) and
   [ADR 0023](0023-service-to-service-tenant-crossing.md) (the session is the only
   _user-facing_ tenant resolution, not the only one).
+- Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `Layer.scoped` is now a scoped `Layer.effect`; the decision is unchanged.
 
 ## Context
 
@@ -93,7 +94,7 @@ vendors keep two accounts.
 
 ### The tenant handle is a request-level Effect, never a `Layer`
 
-`MongoDatabaseLayer` keeps its boot-time `Layer.scoped` — that _is_ the
+`MongoDatabaseLayer` keeps its boot-time scoped `Layer.effect` — that _is_ the
 connection pool, acquired once and released on shutdown. The per-organization
 handle is resolved **inside the request**, from one `MongoClient`:
 `client.db(\`${prefix}${organizationId}\`)`. A `Db` handle is not a connection.

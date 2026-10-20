@@ -1,6 +1,6 @@
-import { HttpRouter } from '@effect/platform';
 import { entityMetadataRoute } from '@entifix/service-shell';
 import { StockItem } from '@r10c/business-ts-stock-management';
+import { HttpRouter } from 'effect/http';
 
 import { byIdRoute, guarded, listRoute } from './entity-crud';
 
@@ -24,14 +24,20 @@ import { byIdRoute, guarded, listRoute } from './entity-crud';
  * `/api/:entity/$metadata` it would be shadowed by the by-id route below and
  * silently never run, which reads as "this entity has no metadata".
  */
-export const stockItemRoutes = HttpRouter.empty.pipe(
-  HttpRouter.get(
+export const stockItemRoutes = HttpRouter.addAll([
+  HttpRouter.route(
+    'GET',
     '/api/stock-item',
     guarded(StockItem, 'read', () => listRoute(StockItem)),
   ),
-  HttpRouter.get('/api/stock-item/$metadata', entityMetadataRoute(StockItem)),
-  HttpRouter.get(
+  HttpRouter.route(
+    'GET',
+    '/api/stock-item/$metadata',
+    entityMetadataRoute(StockItem),
+  ),
+  HttpRouter.route(
+    'GET',
     '/api/stock-item/:id',
     guarded(StockItem, 'read', () => byIdRoute(StockItem)),
   ),
-);
+]);

@@ -1,8 +1,3 @@
-import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from '@effect/platform';
 import { type Action, permissionForEntity } from '@entifix/authz';
 import {
   EntityIdTag,
@@ -34,6 +29,7 @@ import {
   requirePermission,
 } from '@entifix/service-shell';
 import { Effect } from 'effect';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 /**
  * The generic reads and the one write every route module in this service
@@ -191,7 +187,7 @@ export const listRoute = <T extends Entity>(
         collectionLinks(envelopeEntityName(entityConstructor)),
       ),
     );
-  }).pipe(Effect.catchAll(readError));
+  }).pipe(Effect.catch(readError));
 
 /**
  * An empty page, answered without reading anything.
@@ -217,7 +213,7 @@ export const emptyPageRoute = <T extends Entity>(
         collectionLinks(envelopeEntityName(entityConstructor)),
       ),
     );
-  }).pipe(Effect.catchAll(readError));
+  }).pipe(Effect.catch(readError));
 
 /** The `404` a missing record and an out-of-scope one both answer with. */
 const notFound = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
@@ -268,7 +264,7 @@ export const byIdRoute = <T extends Entity>(
         entityLinks(key, params.id, updatable),
       ),
     );
-  }).pipe(Effect.catchAll(() => notFound(entityConstructor)));
+  }).pipe(Effect.catch(() => notFound(entityConstructor)));
 
 /** A by-id read for a caller who can own no record: the same `404`, no load. */
 export const notFoundRoute = <T extends Entity>(
@@ -334,7 +330,7 @@ export const saveRoute = <T extends Entity>(
         entityLinks(key, saved.id, true),
       ),
     );
-  }).pipe(Effect.catchAll(writeError));
+  }).pipe(Effect.catch(writeError));
 
 /**
  * Guard a control-plane route: check the permission the entity derives, and
