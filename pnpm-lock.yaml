@@ -123,9 +123,6 @@ importers:
       '@commitlint/config-nx-scopes':
         specifier: 21.2.3
         version: 21.2.3(nx@23.0.1(@swc-node/register@1.11.1(@swc/core@1.15.43(@swc/helpers@0.5.23))(@swc/types@0.1.27)(typescript@6.0.3))(@swc/core@1.15.43(@swc/helpers@0.5.23)))
-      '@effect/vitest':
-        specifier: ^0.30.0
-        version: 0.30.0(effect@3.22.2)(vitest@4.1.9)
       '@entifix/business':
         specifier: 'catalog:'
         version: 0.1.4(effect@3.22.2)
@@ -14343,7 +14340,8 @@ snapshots:
   '@effect/vitest@0.30.0(effect@3.22.2)(vitest@4.1.9)':
     dependencies:
       effect: 3.22.2
-      vitest: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(jsdom@30.1.3)(msw@2.15.0(@types/node@26.6.5)(typescript@6.0.3))(vite@8.1.0(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(jsdom@30.1.3)(msw@2.15.0(@types/node@26.6.5)(typescript@6.0.3))(vite@8.2.2(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.48.0)(yaml@2.9.1))
+    optional: true
 
   '@effect/workflow@0.18.2(@effect/experimental@0.60.0(@effect/platform@0.97.2(effect@3.22.2))(effect@3.22.2)(ioredis@5.11.1))(@effect/platform@0.97.2(effect@3.22.2))(@effect/rpc@0.75.1(@effect/platform@0.97.2(effect@3.22.2))(effect@3.22.2))(effect@3.22.2)':
     dependencies:

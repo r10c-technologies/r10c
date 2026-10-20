@@ -28,6 +28,18 @@ updates:
       - dependency-name: 'nx'
       - dependency-name: '@nx/*'
       - dependency-name: 'verdaccio'
+      # Effect majors arrive through entifix, never here first. Every @entifix/*
+      # package peers on `effect <4` and pins the @effect/* line it was built
+      # against, and Effect 4 is a migration rather than a bump: it folds
+      # @effect/platform and @effect/sql into `effect` and rewrites HttpRouter.
+      # #285, #290, #291 and #293 offered 4.0.5 and could not merge; r10c moves
+      # once entifix has released on Effect 4. The @effect/* packages are 0.x on
+      # the Effect 3 line, so 0.x -> 4.x reads as a major and is held too, while
+      # the line's patches and minors still come through.
+      - dependency-name: 'effect'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@effect/*'
+        update-types: ['version-update:semver-major']
     groups:
       # entifix releases on fixed versioning, so its 23 packages move as one PR
       # or not at all. Grouped first so no other group claims a member. It is
