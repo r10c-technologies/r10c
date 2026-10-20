@@ -43,6 +43,6 @@
   "dependencies": {
     "@entifix/core": "catalog:",
     "@swc/helpers": "0.5.23",
-    "effect": "3.22.2"
+    "effect": "3.22.3"
   }
 }

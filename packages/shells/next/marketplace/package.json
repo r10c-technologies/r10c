@@ -51,7 +51,7 @@
     "@entifix/i18n": "catalog:",
     "@entifix/rest": "catalog:",
     "@entifix/next-shell": "catalog:",
-    "effect": "3.22.2"
+    "effect": "3.22.3"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:"
