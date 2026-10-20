@@ -48,6 +48,6 @@
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@swc/helpers": "0.5.23",
-    "effect": "3.22.1"
+    "effect": "3.22.2"
   }
 }

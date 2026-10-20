@@ -105,19 +105,19 @@
     }
   },
   "dependencies": {
-    "@effect/opentelemetry": "0.64.0",
-    "@effect/platform": "0.97.1",
-    "@effect/platform-node": "0.108.1",
+    "@effect/opentelemetry": "0.64.1",
+    "@effect/platform": "0.97.2",
+    "@effect/platform-node": "0.108.2",
     "@effect/sql": "0.52.1",
     "@effect/sql-pg": "0.53.0",
     "@opentelemetry/api": "1.9.1",
-    "@opentelemetry/context-async-hooks": "2.10.0",
-    "@opentelemetry/exporter-metrics-otlp-http": "0.221.0",
-    "@opentelemetry/exporter-trace-otlp-http": "0.221.0",
-    "@opentelemetry/resources": "2.10.0",
-    "@opentelemetry/sdk-metrics": "2.10.0",
-    "@opentelemetry/sdk-trace-base": "2.10.0",
-    "@opentelemetry/sdk-trace-node": "2.10.0",
+    "@opentelemetry/context-async-hooks": "2.12.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.223.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.223.0",
+    "@opentelemetry/resources": "2.12.0",
+    "@opentelemetry/sdk-metrics": "2.12.0",
+    "@opentelemetry/sdk-trace-base": "2.12.0",
+    "@opentelemetry/sdk-trace-node": "2.12.0",
     "@opentelemetry/semantic-conventions": "1.43.0",
     "@r10c/business-ts-authn": "workspace:*",
     "@entifix/authz": "catalog:",
@@ -130,7 +130,7 @@
     "@entifix/tooling": "catalog:",
     "@entifix/service-shell": "catalog:",
     "dotenv": "^18.0.7",
-    "effect": "3.22.1",
+    "effect": "3.22.2",
     "tslib": "2.8.1"
   }
 }
