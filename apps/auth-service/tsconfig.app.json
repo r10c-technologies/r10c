@@ -14,7 +14,8 @@
     "experimentalDecorators": false,
     // Inline SWC/TS helpers instead of importing tslib — avoids the
     // `Cannot destructure '__extends'` runtime crash when bundling lib source.
-    "importHelpers": false
+    "importHelpers": false,
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "exclude": [

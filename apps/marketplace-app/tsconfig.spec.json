@@ -3,12 +3,9 @@
   "compilerOptions": {
     "outDir": "./out-tsc/vitest",
     "jsx": "preserve",
-    "types": [
-      "vitest/globals",
-      "vitest/importMeta",
-      "vite/client",
-      "node"
-    ]
+    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node"],
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
   },
   "include": [
     "src/**/*.test.ts",

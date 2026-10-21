@@ -81,3 +81,4 @@ graphify-out
 
 # This checkout's own entifix clone (tools/entifix → `pnpm run entifix:checkout`)
 /.entifix/
+.vitest

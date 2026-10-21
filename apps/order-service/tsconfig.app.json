@@ -7,7 +7,8 @@
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo",
     "target": "es2022",
     "experimentalDecorators": false,
-    "importHelpers": false
+    "importHelpers": false,
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "exclude": [

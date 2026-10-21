@@ -2,7 +2,7 @@ import { defineEntifixTest } from '../../../../vitest.shared.mjs';
 
 export default defineEntifixTest({
   name: '@r10c/shells-next-auth',
-  root: __dirname,
+  root: import.meta.dirname,
   environment: 'jsdom',
   // These files moved here from `apps/auth-app`, where the 100% gate does not
   // apply because an app is covered by its `*-e2e` project instead. Moving a

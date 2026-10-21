@@ -2,7 +2,7 @@ import { defineEntifixTest } from '../../../../vitest.shared.mjs';
 
 export default defineEntifixTest({
   name: '@r10c/shells-next-marketplace',
-  root: __dirname,
+  root: import.meta.dirname,
   environment: 'jsdom',
   // The storefront's components are React **server** components, most of them
   // `async`. This runner is plain jsdom + SWC with no RSC support, so rendering

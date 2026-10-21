@@ -18,7 +18,7 @@ const mock = (process.env['E2E_PROFILE'] ?? 'mock') === 'mock';
 
 export default defineEntifixTest({
   name: '@r10c/marketplace-admin-service-e2e',
-  root: __dirname,
+  root: import.meta.dirname,
   thresholds: false,
   exclude: mock ? ['**/*.live.spec.ts'] : ['**/*.mock.spec.ts'],
 });

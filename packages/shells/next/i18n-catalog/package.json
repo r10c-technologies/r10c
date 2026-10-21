@@ -49,11 +49,11 @@
     }
   },
   "dependencies": {
-    "@r10c/business-ts-i18n": "workspace:*",
-    "@entifix/react-controls": "catalog:",
     "@entifix/i18n": "catalog:",
     "@entifix/next-shell": "catalog:",
-    "i18next": "26.5.2"
+    "@entifix/react-controls": "catalog:",
+    "@r10c/business-ts-i18n": "workspace:*",
+    "i18next": "26.5.3"
   },
   "sideEffects": true
 }

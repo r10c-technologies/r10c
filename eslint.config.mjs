@@ -418,3 +418,32 @@ export default [
     rules: { 'r10c/no-foreign-app-namespace': 'error' },
   },
 ];
+
+/**
+ * Spread by each service e2e project's own `eslint.config.mjs`, after the base.
+ *
+ * A service's e2e project boots that service in-process for the `mock` profile
+ * (`src/support/mock-service.ts` builds its router and Layers), so it imports
+ * the service it tests — the one edge an e2e project exists for, and declared as
+ * its `implicitDependencies`. Nx 23.3 infers a service as an application, and
+ * the rule forbids importing an application whatever the tags say, so these
+ * projects name that one import as allowed. Nothing else is relaxed: the
+ * depConstraints are the spec ones, as for any test-only code.
+ *
+ * Exported rather than declared here with an `apps/*-e2e/**` glob, because a
+ * flat-config glob resolves against the config file that declares it, and a
+ * project lints itself through its own.
+ */
+export const serviceE2eConfig = {
+  files: ['**/*.ts'],
+  rules: {
+    '@nx/enforce-module-boundaries': [
+      'error',
+      {
+        enforceBuildableLibDependency: false,
+        allow: [...allowEslintConfig, '^@r10c/[a-z-]+-service$'],
+        depConstraints: specConstraints,
+      },
+    ],
+  },
+};
