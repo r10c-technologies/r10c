@@ -56,6 +56,12 @@ vi.mock('@entifix/rest', async () => {
 
 const { TransactionSettlement } = await import('./transaction-settlement.js');
 
+// The channel is built at module scope, so the import above is the one call
+// there will ever be. Captured here because Vitest clears every mock's recorded
+// calls before each test.
+const openedWith = makeChannel.mock.calls.map(([url]) => url);
+const openedChannel = makeChannel.mock.results[0]?.value;
+
 const renderIt = () =>
   render(
     <EntifixQueryProvider>
@@ -85,16 +91,16 @@ describe('TransactionSettlement', () => {
   it('opens the stream on the same-origin proxy path', () => {
     renderIt();
 
-    expect(makeChannel).toHaveBeenCalledWith('/api/transaction/events');
+    expect(openedWith).toEqual(['/api/transaction/events']);
   });
 
   it('wires both consumers to that one channel', () => {
     renderIt();
 
-    const channel = makeChannel.mock.results[0]?.value;
-    expect(useReactiveInvalidation).toHaveBeenCalledWith(channel);
+    expect(openedChannel).toBeDefined();
+    expect(useReactiveInvalidation).toHaveBeenCalledWith(openedChannel);
     expect(useTransactionSettlement).toHaveBeenCalledWith(
-      expect.objectContaining({ channel }),
+      expect.objectContaining({ channel: openedChannel }),
     );
   });
 

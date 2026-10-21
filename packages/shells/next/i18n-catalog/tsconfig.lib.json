@@ -16,7 +16,8 @@
       "@nx/next/typings/image.d.ts"
     ],
     "jsx": "react-jsx",
-    "lib": ["es2022", "decorators", "esnext.decorators", "dom", "dom.iterable"]
+    "lib": ["es2022", "decorators", "esnext.decorators", "dom", "dom.iterable"],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "references": [

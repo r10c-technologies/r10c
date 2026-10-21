@@ -81,3 +81,7 @@ graphify-out
 
 # This checkout's own entifix clone (tools/entifix → `pnpm run entifix:checkout`)
 /.entifix/
+.vitest
+
+# Written by `next dev` (Next 16.4+) on every run; tool output, not ours.
+apps/*/AGENTS.md

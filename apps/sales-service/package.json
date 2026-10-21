@@ -18,6 +18,7 @@
     "targets": {
       "build": {
         "executor": "nx:run-commands",
+        "dependsOn": [],
         "options": {
           "command": "webpack-cli build",
           "args": [
@@ -31,8 +32,7 @@
               "--config-node-env=development"
             ]
           }
-        },
-        "dependsOn": []
+        }
       },
       "prune-lockfile": {
         "dependsOn": [
@@ -42,11 +42,23 @@
         "executor": "@nx/js:prune-lockfile",
         "outputs": [
           "{workspaceRoot}/apps/sales-service/dist/package.json",
-          "{workspaceRoot}/apps/sales-service/dist/pnpm-lock.yaml"
+          "{workspaceRoot}/apps/sales-service/dist/pnpm-lock.yaml",
+          "{workspaceRoot}/apps/sales-service/dist/pnpm-workspace.yaml",
+          "{workspaceRoot}/apps/sales-service/dist/patches",
+          "{workspaceRoot}/apps/sales-service/dist/local_path_modules"
         ],
         "options": {
           "buildTarget": "build"
-        }
+        },
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/pnpm-workspace.yaml",
+          "{workspaceRoot}/package.json",
+          {
+            "runtime": "node -e \"try{console.log('pnpm major '+require('child_process').execSync('pnpm --version',{stdio:['ignore','pipe','ignore']}).toString().trim().split('.')[0])}catch{console.log('pnpm major unavailable')}\""
+          }
+        ]
       },
       "copy-workspace-modules": {
         "dependsOn": [

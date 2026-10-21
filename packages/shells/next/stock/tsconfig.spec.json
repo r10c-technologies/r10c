@@ -3,18 +3,16 @@
   "compilerOptions": {
     "outDir": "./out-tsc/vitest",
     "jsx": "react-jsx",
-    "lib": [
-      "es2022",
-      "dom",
-      "dom.iterable"
-    ],
+    "lib": ["es2022", "dom", "dom.iterable"],
     "types": [
       "vitest/globals",
-      "@testing-library/jest-dom",
+      "@testing-library/jest-dom/vitest",
       "vitest/importMeta",
       "vite/client",
       "node"
-    ]
+    ],
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
   },
   "include": [
     "src/**/*.test.ts",

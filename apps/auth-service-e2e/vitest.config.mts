@@ -15,7 +15,7 @@ const mock = (process.env['E2E_PROFILE'] ?? 'mock') === 'mock';
 
 export default defineEntifixTest({
   name: '@r10c/auth-service-e2e',
-  root: __dirname,
+  root: import.meta.dirname,
   thresholds: false,
   exclude: mock ? ['**/*.live.spec.ts'] : ['**/*.mock.spec.ts'],
   // Booting the service seeds credentials, which means a bcrypt hash — the

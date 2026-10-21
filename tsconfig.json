@@ -177,5 +177,8 @@
     {
       "path": "./tools/entifix"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  }
 }
