@@ -1,3 +1,6 @@
+// r10c's locales, declared before anything asks about one (entifix#35).
+import '@r10c/business-ts-i18n/locales';
+
 import { resolveLocale } from '@entifix/next-i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 

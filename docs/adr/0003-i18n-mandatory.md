@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-26
 - Area: platform
+- Revised: 2026-10-20 — entifix 0.3.0 dropped its fixed `LOCALES`/`DEFAULT_LOCALE` (entifix#35); r10c declares `es` and `en`, Spanish by default, in `@r10c/business-ts-i18n/locales`, and the follow-ups below are corrected in place
 - Read when: writing user-visible copy, adding an error `code`, or adding a locale binder — three build gates make i18n mandatory, and a code missing from the catalog reaches the user raw
 - Revised: 2026-09-17 — Next 16 renamed middleware to **proxy** (`src/proxy.ts`),
   and a proxy runs on Node rather than the edge (#282). The routing section keeps
@@ -199,11 +200,12 @@ a string literal inside JSX braces with the same suspicion as one outside them.
 
 ## Follow-ups (deliberately out of scope)
 
-- A third locale. The mechanism is a catalog file and one entry in `LOCALES`;
-  nothing else changes.
+- A third locale. The mechanism is a catalog file and one entry in r10c's own
+  declaration, `R10C_LOCALES` in `@r10c/business-ts-i18n/locales`; nothing else
+  changes.
 - Locale-aware sorting (`Intl.Collator`) in the Mongo adapter — server-side
   ordering is still byte-wise.
 - `locale.supported` is seeded in config-service but not yet read at runtime;
-  the supported set is currently the compile-time `LOCALES` constant.
+  the supported set is currently the compile-time `R10C_LOCALES` declaration.
 - Translating the design-system playground pages, which are deliberately
   excluded: the English there is the specimen.

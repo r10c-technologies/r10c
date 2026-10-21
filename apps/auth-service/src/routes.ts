@@ -1,3 +1,6 @@
+// r10c's locales, declared before anything asks about one (entifix#35).
+import '@r10c/business-ts-i18n/locales';
+
 import { isRole, permissionForEntity, type Role } from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,

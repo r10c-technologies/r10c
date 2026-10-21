@@ -14,6 +14,7 @@
     "@entifix/i18n": "catalog:",
     "@entifix/jwt": "catalog:",
     "@entifix/rest": "catalog:",
+    "@r10c/business-ts-i18n": "workspace:*",
     "@r10c/i18n-catalog": "workspace:*",
     "@r10c/shells-next-auth": "workspace:*",
     "@entifix/next-shell": "catalog:",

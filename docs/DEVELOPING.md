@@ -192,11 +192,11 @@ this repository's manifests or lockfile changes.
   and reinstalls without that shortcut.
 - **A new entifix dependency stops the sync.** A copy cannot install anything:
   release entifix, bump the catalog, `pnpm install`.
-- ⚠️ **After a catalog bump the previous release lingers.** pnpm keeps orphaned
-  store entries for `modulesCacheMaxAge` (seven days), the sync finds copies by
-  name, and an orphan's older dependency list stops it with a "never installed"
-  error that is about a package nothing uses. `entifix:local` prunes them
-  (`--config.modules-cache-max-age=0`) before it starts.
+- **After a catalog bump the previous release lingers, harmlessly.** pnpm keeps
+  orphaned store entries for `modulesCacheMaxAge` (seven days). Since entifix
+  0.3.0 the sync writes only the entries pnpm's lockfile says are linked, so it
+  neither touches nor stops on them
+  ([entifix#31](https://github.com/r10c-technologies/entifix/issues/31)).
 - **Never a `link:` or `file:` specifier.** A linked package resolves `effect`
   from entifix's own `node_modules`, and two copies of Effect break
   `Context.Service` identity without an error.

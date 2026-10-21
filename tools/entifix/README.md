@@ -65,10 +65,10 @@ another consumer — or into entifix — unchanged. The consumer supplies:
 ## Orphaned store entries
 
 After a catalog bump pnpm keeps the previous release's store entries for
-`modulesCacheMaxAge` (seven days). The sync finds copies by name, so it would
-write into those orphans and stop on the first whose older dependency list lacks
-something the new build needs. `local.sh` therefore installs with
-`--config.modules-cache-max-age=0` before it starts, and so does the restore.
+`modulesCacheMaxAge` (seven days). Since entifix 0.3.0 the sync writes only the
+entries pnpm's own lockfile (`node_modules/.pnpm/lock.yaml`) says are linked, so
+those orphans are left alone and nothing here has to prune them first
+([entifix#31](https://github.com/r10c-technologies/entifix/issues/31)).
 
 ## Why a copy and not pnpm's own mechanisms
 
