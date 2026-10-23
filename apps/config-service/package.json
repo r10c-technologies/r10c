@@ -91,7 +91,11 @@
         ],
         "options": {
           "buildTarget": "@r10c/config-service:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "port": 9190,
+          "runtimeArgs": [
+            "--disable-warning=DEP0205"
+          ]
         },
         "configurations": {
           "development": {
@@ -111,7 +115,7 @@
         "executor": "nx:run-commands",
         "cache": false,
         "options": {
-          "command": "bash tools/free-ports.sh 3190"
+          "command": "bash tools/free-ports.sh 3190 9190"
         }
       }
     }

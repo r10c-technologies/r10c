@@ -102,7 +102,11 @@
         ],
         "options": {
           "buildTarget": "@r10c/payment-service:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "port": 9106,
+          "runtimeArgs": [
+            "--disable-warning=DEP0205"
+          ]
         },
         "configurations": {
           "development": {
@@ -122,7 +126,7 @@
         "executor": "nx:run-commands",
         "cache": false,
         "options": {
-          "command": "bash tools/free-ports.sh 3106"
+          "command": "bash tools/free-ports.sh 3106 9106"
         }
       }
     }

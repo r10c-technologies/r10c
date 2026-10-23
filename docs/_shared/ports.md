@@ -18,6 +18,12 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | sales (9)               | —      | 3109⁹               |
 | — platform —            |        | config-service 3190 |
 
+A `-service`'s `dev` also opens the Node inspector at its service port **+ 6000**
+(`3100` → `9100`, `3190` → `9190`), set as the `@nx/js:node` `port` option. The
+executor's default is `9229` for every process, so a fleet of three services left
+only the first with a debugger and the other two logging `address already in use`.
+`@r10c/docs-check` fails a service that drops the option.
+
 **The index is per host, not per pair.** ADR 0008 allocated `300N`/`310N` to
 frontend/backend _pairs_, which stopped describing the fleet the moment one host
 began serving two domains. A domain still owns its `-service` index; what it no
