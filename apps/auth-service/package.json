@@ -38,7 +38,11 @@
         ],
         "options": {
           "buildTarget": "@r10c/auth-service:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "port": 9102,
+          "runtimeArgs": [
+            "--disable-warning=DEP0205"
+          ]
         },
         "configurations": {
           "development": {
@@ -61,7 +65,7 @@
         "executor": "nx:run-commands",
         "cache": false,
         "options": {
-          "command": "bash tools/free-ports.sh 3102"
+          "command": "bash tools/free-ports.sh 3102 9102"
         }
       }
     }

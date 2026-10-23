@@ -728,15 +728,52 @@ describe('Fleet ports agree in every place they are written', () => {
   });
 
   it('documents every port it frees', () => {
-    // 9229 is the Node inspector, not a fleet port; it has nothing to document.
-    const missing = allPorts()
-      .filter(port => port !== '9229')
-      .filter(port => !portsDoc.includes(port));
+    const missing = allPorts().filter(port => !portsDoc.includes(port));
 
     expect(
       missing,
       'these ports are in ALL_PORTS but the port table never mentions them:\n' +
         `  ${missing.join('\n  ')}`,
+    ).toEqual([]);
+  });
+
+  it("gives every service's inspector its own port, and frees it", () => {
+    const inspectPorts = new Set(
+      (freePorts.match(/^INSPECT_PORTS=\(([^)]*)\)/m)?.[1] ?? '')
+        .trim()
+        .split(/\s+/),
+    );
+    const apps = join(REPO_ROOT, 'apps');
+    const wrong: string[] = [];
+    let checked = 0;
+
+    for (const entry of readdirSync(apps, { withFileTypes: true })) {
+      const pkgPath = join(apps, entry.name, 'package.json');
+      if (!entry.isDirectory() || !existsSync(pkgPath)) continue;
+      const targets =
+        JSON.parse(readFileSync(pkgPath, 'utf8'))?.nx?.targets ?? {};
+      if (targets.dev?.executor !== '@nx/js:node') continue;
+      checked++;
+
+      // The executor defaults every process to 9229, so two services in one
+      // fleet collide unless each names a port: its service port + 6000.
+      const freed: string = targets['free-ports']?.options?.command ?? '';
+      const service = freed.match(/free-ports\.sh (\d{4})/)?.[1];
+      const expected = service && String(Number(service) + 6000);
+      const actual = String(targets.dev.options?.port ?? '9229');
+
+      if (actual !== expected)
+        wrong.push(`${entry.name}: port ${actual}, expected ${expected}`);
+      else if (!freed.includes(` ${expected}`))
+        wrong.push(`${entry.name}: free-ports skips ${expected}`);
+      else if (!inspectPorts.has(expected))
+        wrong.push(`${entry.name}: ${expected} not in INSPECT_PORTS`);
+    }
+
+    expect(checked).toBeGreaterThanOrEqual(4);
+    expect(
+      wrong,
+      `inspector ports out of convention:\n  ${wrong.join('\n  ')}`,
     ).toEqual([]);
   });
 });
@@ -824,7 +861,8 @@ describe('The dashboard charts the metrics the fleet declares', () => {
     /export const \w+(?::[^=]+)?\s*=\s*Metric\.(counter|gauge)\(\s*'([a-z0-9_]+)'/g;
   // Effect 4 sets a unit as an attribute, `Metric.withAttributes({ unit: 's' })`;
   // the Effect 3 spelling was `Metric.tagged('unit', 's')`.
-  const UNIT_TAG = /Metric\.withAttributes\(\s*\{\s*unit:\s*'([a-z]+)'\s*\}\s*\)/;
+  const UNIT_TAG =
+    /Metric\.withAttributes\(\s*\{\s*unit:\s*'([a-z]+)'\s*\}\s*\)/;
 
   /** The suffix the OTLP→Prometheus exporter appends, by declared unit. */
   const UNIT_SUFFIX: Record<string, string> = {
