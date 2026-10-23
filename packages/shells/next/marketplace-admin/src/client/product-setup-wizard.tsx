@@ -126,7 +126,6 @@ function pickersFor(
       getUc: getUCFactory(),
       ctx: mergeCrudContext(
         adapters,
-        'configurationStore',
         plan.repository,
         pending,
       ),
@@ -268,7 +267,6 @@ export function ProductSetupWizard({
 
   const ctx = mergeCrudContext(
     adapters,
-    'configurationStore',
     'productRest',
     pending,
   );

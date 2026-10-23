@@ -1,5 +1,4 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import {
@@ -16,6 +15,12 @@ import { Context } from 'effect';
 import type { SystemManagementAdapters } from '../client-types';
 
 /**
+ * Where every adapter below resolves its URL, bound when each is built — the
+ * host's `/api/config`, so the lookup is same-origin and carries the session.
+ */
+const configuration = new ConfigurationClientRestClient();
+
+/**
  * The configuration CRUD lives on config-service, so its own uri key is what the
  * adapters compose against — **not** the host app's domain service.
  *
@@ -26,6 +31,7 @@ import type { SystemManagementAdapters } from '../client-types';
  * browser sees it, so nothing here knows a proxy is involved.
  */
 const restOptions: BuildEntityRestOptions = {
+  configuration,
   uriConfig: {
     key: 'config-service-domain.[entity]',
     group: 'uri',
@@ -40,11 +46,6 @@ const configurationRest = Context.make(EntityRepositoryTag, {
   delete: buildEntityRestAdapterDelete(Configuration, restOptions),
 });
 
-const configurationStore = Context.make(
-  ConfigurationRepositoryTag,
-  new ConfigurationClientRestClient(),
-);
-
 export function createClientAdapters(): SystemManagementAdapters {
-  return { configurationRest, configurationStore };
+  return { configurationRest };
 }

@@ -5,11 +5,8 @@ import {
 } from '@entifix/authz';
 import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
-import {
-  LoadedConfigurationTag,
-  type RunningTestService,
-  serveTestService,
-} from '@entifix/service-shell';
+import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
+import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
@@ -32,6 +29,7 @@ import {
   seedSales,
   SERVICE_NAME,
 } from '@r10c/sales-service';
+import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
 import { E2E_ORGANIZATION_ID } from './tokens';
@@ -128,6 +126,7 @@ export const startMockService = (): Promise<RunningTestService> =>
     // The same slice the real process hosts, so `/api/$service` describes the
     // thing under test rather than a reduced version of it.
     slices: ['sales'],
+    description: fleetToken,
     router,
     appLayer: MockAppLayer,
   });

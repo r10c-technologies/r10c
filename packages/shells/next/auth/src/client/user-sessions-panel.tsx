@@ -35,7 +35,7 @@ const readUserSessions = async (
  * presentation: hiding it protects nothing, and the service is what refuses.
  */
 export function UserSessionsPanel({ userId }: { userId: string }) {
-  const t = useT('shell');
+  const t = useT('r10c');
   const { dateTime } = useFormatters();
   const [busy, setBusy] = useState(false);
 

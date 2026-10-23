@@ -46,7 +46,7 @@ export function OfferingCard({
   offering,
   brandName,
 }: OfferingCardProps) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
 
   return (
     <Card>

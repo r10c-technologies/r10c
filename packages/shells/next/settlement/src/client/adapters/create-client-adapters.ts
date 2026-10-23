@@ -1,5 +1,4 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import { Entity, EntityConstructor } from '@entifix/core';
@@ -23,6 +22,12 @@ import { Context } from 'effect';
 import type { SettlementAdapters } from '../client-types';
 
 /**
+ * Where every adapter below resolves its URL, bound when each is built — the
+ * host's `/api/config`, so the lookup is same-origin and carries the session.
+ */
+const configuration = new ConfigurationClientRestClient();
+
+/**
  * The one backend this shell reads, as a **symbolic domain key** rather than an
  * address.
  *
@@ -37,6 +42,7 @@ import type { SettlementAdapters } from '../client-types';
  * an agreement somebody is editing in a form.
  */
 const SETTLEMENT_SERVICE: BuildEntityRestOptions = {
+  configuration,
   uriConfig: {
     key: 'settlement-service-domain.[entity]',
     group: 'uri',
@@ -68,11 +74,6 @@ function createRestRepositoryContext<TEntity extends Entity>(
   });
 }
 
-const configurationStore = Context.make(
-  ConfigurationRepositoryTag,
-  new ConfigurationClientRestClient(),
-);
-
 const agreementRest = createRestRepositoryContext(Agreement);
 const commissionEntryRest = createRestRepositoryContext(CommissionEntry);
 const settlementRunRest = createRestRepositoryContext(SettlementRun);
@@ -97,7 +98,6 @@ export function createClientAdapters(): SettlementAdapters {
     commissionEntryRest,
     settlementRunRest,
     vendorPayoutRest,
-    configurationStore,
     metadata,
   };
 }

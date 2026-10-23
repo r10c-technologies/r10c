@@ -31,7 +31,7 @@ async function SearchResults({
   readonly locale: Locale;
   readonly term: string;
 }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
   const page = await runRead(
     PublishedOffering,
     loadOfferings({ search: term, pageSize: 12 }),
@@ -57,7 +57,7 @@ export function SearchPage({
   readonly locale: Locale;
   readonly term?: string;
 }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
   const trimmed = term?.trim();
 
   return (

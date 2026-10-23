@@ -23,6 +23,9 @@
   ],
   "references": [
     {
+      "path": "../../packages/utils/ts/fleet/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/product-configuration-management/tsconfig.lib.json"
     },
     {

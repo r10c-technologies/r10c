@@ -1,10 +1,8 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context } from 'effect';
@@ -29,10 +27,6 @@ const adapters: SettlementAdapters = {
   commissionEntryRest: repository(),
   settlementRunRest: repository(),
   vendorPayoutRest: repository(),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
-  ),
   metadata: real.metadata,
 };
 
@@ -68,12 +62,6 @@ describe('the settlement adapters context', () => {
     ).toBeDefined();
     expect(
       Context.get(result.current.vendorPayoutRest, EntityRepositoryTag),
-    ).toBeDefined();
-    expect(
-      Context.get(
-        result.current.configurationStore,
-        ConfigurationRepositoryTag,
-      ),
     ).toBeDefined();
   });
 

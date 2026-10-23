@@ -1,5 +1,4 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import { Entity, EntityConstructor } from '@entifix/core';
@@ -18,6 +17,12 @@ import { Context } from 'effect';
 import type { OrderAdapters } from '../client-types';
 
 /**
+ * Where every adapter below resolves its URL, bound when each is built — the
+ * host's `/api/config`, so the lookup is same-origin and carries the session.
+ */
+const configuration = new ConfigurationClientRestClient();
+
+/**
  * order-service, reached through the host's same-origin `/api/order` proxy.
  *
  * The address is composed from a configuration key rather than written here: the
@@ -25,6 +30,7 @@ import type { OrderAdapters } from '../client-types';
  * literal would be the one place still holding the real port.
  */
 const ORDER_SERVICE: BuildEntityRestOptions = {
+  configuration,
   uriConfig: {
     key: 'order-service-domain.[entity]',
     group: 'uri',
@@ -55,11 +61,6 @@ function createRestRepositoryContext<TEntity extends Entity>(
   });
 }
 
-const configurationStore = Context.make(
-  ConfigurationRepositoryTag,
-  new ConfigurationClientRestClient(),
-);
-
 const productOrderRest = createRestRepositoryContext(ProductOrder);
 
 /**
@@ -79,5 +80,5 @@ const metadata = makeEntityMetadataSource({
 });
 
 export function createClientAdapters(): OrderAdapters {
-  return { productOrderRest, configurationStore, metadata };
+  return { productOrderRest, metadata };
 }

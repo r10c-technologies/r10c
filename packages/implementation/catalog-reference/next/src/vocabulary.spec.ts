@@ -1,12 +1,6 @@
-import {
-  ConfigurationRepositoryTag,
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import type { Entity } from '@entifix/core';
-import {
-  makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
-} from '@entifix/testing-unit';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   ProductBrand,
   ProductCategory,
@@ -52,7 +46,7 @@ const run = <A>(
   read: Effect.Effect<
     A,
     unknown,
-    EntityRepositoryTag | ConfigurationRepositoryTag
+    EntityRepositoryTag
   >,
   seed: Entity[],
 ) => {
@@ -60,15 +54,7 @@ const run = <A>(
   const load = vi.spyOn(repository, 'load');
   const result = Effect.runPromise(
     read.pipe(
-      Effect.provide(
-        Context.merge(
-          Context.make(EntityRepositoryTag, repository),
-          Context.make(
-            ConfigurationRepositoryTag,
-            makeStubConfigurationClient(),
-          ),
-        ),
-      ),
+      Effect.provide(Context.make(EntityRepositoryTag, repository)),
     ) as Effect.Effect<A>,
   );
   return { result, load };

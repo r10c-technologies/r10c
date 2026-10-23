@@ -28,7 +28,7 @@ import { type FormEvent, type ReactNode, useState } from 'react';
  * caller's own, which is the check that counts.
  */
 export function NewUserPage() {
-  const t = useT('shell');
+  const t = useT('r10c');
   const errorT = useT('errors');
   const router = useRouter();
   // Every internal navigation carries the locale, or the proxy bounces it.

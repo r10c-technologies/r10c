@@ -1,4 +1,3 @@
-import type { ConfigurationRepositoryTag } from '@entifix/business';
 import {
   EntityLoadRequestTag,
   type EntityRepositoryTag,
@@ -14,15 +13,11 @@ import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Context, Effect } from 'effect';
 
 /**
- * What every read here requires: the `PublishedOffering` repository, and —
- * until the base port stops leaking it — the configuration it resolves URLs
- * through. Which transport answers is the caller's choice, made at composition.
+ * What every read here requires: the `PublishedOffering` repository, and
+ * nothing else. Which transport answers is the caller's choice, made at
+ * composition.
  */
-export type OfferingRead<A> = Effect.Effect<
-  A,
-  EntifixError,
-  EntityRepositoryTag | ConfigurationRepositoryTag
->;
+export type OfferingRead<A> = Effect.Effect<A, EntifixError, EntityRepositoryTag>;
 
 export interface OfferingQuery {
   /**

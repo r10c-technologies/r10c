@@ -49,6 +49,9 @@
   ],
   "references": [
     {
+      "path": "../../packages/utils/ts/fleet"
+    },
+    {
       "path": "../../packages/shells/next/marketplace"
     },
     {

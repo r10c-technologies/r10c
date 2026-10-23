@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-23
+- Revised: 2026-10-24 — entifix 0.5.0 split its mixed entry points, so the review-only line below is now a ban (#321)
 - Area: entities
 - Read when: adding a package under `packages/implementation/`, putting technology-bound code into a shell or an app, or a UI file imports an adapter — a cell depends on entities, use cases and ports and never on another cell or an adapter, UI and HTTP cells are keyed by domain and persistence cells by store
 
@@ -78,13 +79,12 @@ which allow one and order it.
 `@entifix/react-controls/i18next`, `@entifix/next-shell/server`, every datastore
 driver, `@tanstack/*` and redux.
 
-⚠️ **Three entry points are mixed until entifix 0.5.0.** The `.` entries of
-`@entifix/transactions`, `@entifix/service-shell` and `@entifix/react-integration`
-export contracts beside mechanisms (the saga engine, `makeService` and the
-telemetry wiring, the EventSource channel). A ban on the specifier would forbid
-the contract too, so until those split, the mechanism half is **review-only** —
-the one place this rule is stated rather than checked. #321 tightens the bans
-when the subpaths exist. The reasoning for why a mechanism must have a specifier
+**The mechanism halves of three entifix packages are composition-only too**:
+`@entifix/transactions/engine`, `@entifix/service-shell/{runtime,observability,testing}`
+and `@entifix/react-integration/event-source`. Until entifix 0.5.0 they shared
+the `.` entry with their contracts, so banning the specifier would have banned
+the contract with it and the rule was review-only there; 0.5.0 split them and
+#321 made the ban real. The reasoning for why a mechanism must have a specifier
 of its own is entifix's
 [ADR 0006](https://github.com/r10c-technologies/entifix/blob/main/docs/adr/0006-the-public-contract-is-entities-use-cases-and-ports.md),
 which this record narrows to r10c's layering rather than restating.
@@ -139,8 +139,6 @@ its three forbidden couplings are unchanged.
 - **A UI file importing an adapter becomes a build failure** once a cell holds
   it — the six metadata-source call sites stop needing review the moment they
   live in a cell.
-- **One review-only line remains** until entifix 0.5.0 splits the mixed entry
-  points.
 - **Two packages per domain are the expected steady state**, not a smell: a
   domain with a screen and a route set has a `react` or `next` cell and an
   `http` cell, plus one persistence cell per store it owns.

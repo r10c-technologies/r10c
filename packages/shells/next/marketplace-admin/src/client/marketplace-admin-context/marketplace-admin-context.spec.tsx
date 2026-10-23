@@ -1,11 +1,9 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import { EntifixBuildError } from '@entifix/core';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context } from 'effect';
@@ -31,10 +29,6 @@ const adapters: MarketplaceAdminAdapters = {
   productCategoryRest: repository(),
   productOfferingRest: repository(),
   productOfferingPriceRest: repository(),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
-  ),
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,
   transactionStatus: real.transactionStatus,

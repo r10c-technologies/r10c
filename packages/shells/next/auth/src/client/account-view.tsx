@@ -18,7 +18,7 @@ import type { Principal } from '../principal-types';
  * no design-system control is imported into the server tree.
  */
 export function AccountView({ principal }: { principal: Principal | null }) {
-  const t = useT('shell');
+  const t = useT('r10c');
 
   if (principal === null) {
     return (

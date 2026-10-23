@@ -1,5 +1,4 @@
 import type {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import type { Context } from 'effect';
@@ -13,5 +12,4 @@ import type { Context } from 'effect';
  */
 export interface SystemManagementAdapters {
   readonly configurationRest: Context.Context<EntityRepositoryTag>;
-  readonly configurationStore: Context.Context<ConfigurationRepositoryTag>;
 }

@@ -43,7 +43,7 @@ const readAccountUrl = async (): Promise<string | undefined> => {
  * hold a credential — exactly what ADR 0016 removed.
  */
 export function SecurityView() {
-  const t = useT('shell');
+  const t = useT('r10c');
   const accountUrl = useAsyncResource('account-url', readAccountUrl);
 
   return (

@@ -93,7 +93,6 @@ export const productBrandCrud = makeEntityCrud(ProductBrand, {
   basePath: PRODUCT_BRAND_SURFACE.basePath,
   catalogKey: PRODUCT_BRAND_SURFACE.entityKey,
   repository: 'productBrandRest',
-  configuration: 'configurationStore',
   // `code` is assigned by the create transaction. Hiding it keeps it out of the
   // form without keeping it out of the draft, so an update carries it back.
   hiddenFields: ['id', 'code'],
@@ -106,7 +105,6 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
   basePath: PRODUCT_CATEGORY_SURFACE.basePath,
   catalogKey: PRODUCT_CATEGORY_SURFACE.entityKey,
   repository: 'productCategoryRest',
-  configuration: 'configurationStore',
   hiddenFields: ['id'],
   metadata: 'referenceMetadata',
   runBulkUseCase: runReferenceBulk(PRODUCT_CATEGORY_SURFACE.entityKey),
@@ -139,7 +137,6 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   basePath: PRODUCT_SURFACE.basePath,
   catalogKey: PRODUCT_SURFACE.entityKey,
   repository: 'productRest',
-  configuration: 'configurationStore',
   // `code` is assigned by the create transaction, the same as `ProductBrand`'s.
   // Hiding it keeps it out of the form without keeping it out of the draft, so
   // an update carries it back — and the operator is not asked to type a value
@@ -287,7 +284,6 @@ export const productOfferingCrud = makeEntityCrud(ProductOffering, {
   basePath: PRODUCT_OFFERING_SURFACE.basePath,
   catalogKey: PRODUCT_OFFERING_SURFACE.entityKey,
   repository: 'productOfferingRest',
-  configuration: 'configurationStore',
   // Without these two the form renders `publish`/`unpublish` nowhere: absent
   // metadata keeps the pre-ADR-0026 behaviour, and a metadata source with no
   // handler renders buttons that do nothing.
@@ -334,7 +330,6 @@ export const productOfferingPriceCrud = makeEntityCrud(ProductOfferingPrice, {
   basePath: PRODUCT_OFFERING_PRICE_SURFACE.basePath,
   catalogKey: PRODUCT_OFFERING_PRICE_SURFACE.entityKey,
   repository: 'productOfferingPriceRest',
-  configuration: 'configurationStore',
   hiddenFields: ['id'],
   links: [
     {

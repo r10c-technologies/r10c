@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  type ConfigurationRepositoryTag,
   deleteUCFactory,
   type EntityRepositoryTag,
   getUCFactory,
@@ -11,14 +10,13 @@ import type { EntityCrudSingleViewProps } from '@entifix/next-shell';
 import { useLocaleHref } from '@entifix/next-shell';
 import { useEntityMutation, useEntityRecord } from '@entifix/react-integration';
 import { Agreement } from '@r10c/business-ts-settlement-management';
-import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 
 import { AGREEMENT_SURFACE } from '../settlement-surfaces';
 import { AgreementForm } from './agreement-form';
 import { useSettlementAdapters } from './settlement-context';
 
-type AgreementContext = EntityRepositoryTag | ConfigurationRepositoryTag;
+type AgreementContext = EntityRepositoryTag;
 
 /** What a routed page and a workspace tab both address a new record as. */
 const NEW_SLUG = 'new';
@@ -48,7 +46,7 @@ export function AgreementSingleViewClientPage({
   slug,
   onSaved,
 }: EntityCrudSingleViewProps = {}) {
-  const { agreementRest, configurationStore, metadata } =
+  const { agreementRest, metadata } =
     useSettlementAdapters();
   const router = useRouter();
   // Every internal navigation carries the locale. Unprefixed, each one is
@@ -58,7 +56,7 @@ export function AgreementSingleViewClientPage({
   const params = useParams<{ slug: string }>();
   const id = slugToEntityId(slug ?? params.slug);
 
-  const ctx = Context.merge(configurationStore, agreementRest);
+  const ctx = agreementRest;
 
   const {
     entity,

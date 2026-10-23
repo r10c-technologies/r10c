@@ -34,7 +34,6 @@ export const commissionEntryCrud: EntityCrud<CommissionEntry> = makeEntityCrud(
     basePath: COMMISSION_ENTRY_SURFACE.basePath,
     catalogKey: COMMISSION_ENTRY_SURFACE.entityKey,
     repository: 'commissionEntryRest',
-    configuration: 'configurationStore',
     hiddenFields: ['id'],
     metadata: 'metadata',
   },
@@ -47,7 +46,6 @@ export const settlementRunCrud: EntityCrud<SettlementRun> = makeEntityCrud(
     basePath: SETTLEMENT_RUN_SURFACE.basePath,
     catalogKey: SETTLEMENT_RUN_SURFACE.entityKey,
     repository: 'settlementRunRest',
-    configuration: 'configurationStore',
     hiddenFields: ['id'],
     metadata: 'metadata',
   },
@@ -60,7 +58,6 @@ export const vendorPayoutCrud: EntityCrud<VendorPayout> = makeEntityCrud(
     basePath: VENDOR_PAYOUT_SURFACE.basePath,
     catalogKey: VENDOR_PAYOUT_SURFACE.entityKey,
     repository: 'vendorPayoutRest',
-    configuration: 'configurationStore',
     hiddenFields: ['id'],
     metadata: 'metadata',
   },
@@ -81,7 +78,6 @@ const generatedAgreementCrud = makeEntityCrud(Agreement, {
   basePath: AGREEMENT_SURFACE.basePath,
   catalogKey: AGREEMENT_SURFACE.entityKey,
   repository: 'agreementRest',
-  configuration: 'configurationStore',
   // The rate map is a column the table renders as an object. Hiding it from the
   // list is cosmetic rather than load-bearing — unlike hiding it from the form,
   // which stops a save writing `NaN` over it.

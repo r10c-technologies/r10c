@@ -1,4 +1,5 @@
 import { createHealthRoutes } from '@entifix/next-shell/server';
+import { configSourceFor } from '@r10c/utils-ts-fleet';
 
 /**
  * Probe endpoints for this app, mirroring the backends' `/api/health*`.
@@ -10,8 +11,7 @@ import { createHealthRoutes } from '@entifix/next-shell/server';
  */
 const routes = createHealthRoutes({
   app: '@r10c/marketplace-app',
-  configApiUrl: process.env.CONFIG_API_URL ?? 'http://localhost:3190',
-  configKey: 'marketplace-app',
+  configuration: () => configSourceFor('marketplace-app'),
 });
 
 export function GET() {

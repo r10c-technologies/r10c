@@ -14,11 +14,8 @@ import {
   makeRedisOneTimeTokenStore,
   makeRedisSessionStore,
 } from '@entifix/redis';
-import {
-  LoadedConfigurationTag,
-  type RunningTestService,
-  serveTestService,
-} from '@entifix/service-shell';
+import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
+import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PRIVATE_KEY_PEM,
@@ -63,6 +60,7 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import {
@@ -237,6 +235,7 @@ export const startMockService = (): Promise<RunningTestService> =>
     name: SERVICE_NAME,
     port: 0,
     slices: ['auth'],
+    description: fleetToken,
     router,
     appLayer: MockAppLayer,
   });

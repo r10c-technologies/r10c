@@ -9,11 +9,8 @@ import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
 import { ConfigurationClientInMemory } from '@entifix/core';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoDatabaseLayer, MongoHealthProbeLayer } from '@entifix/mongo';
-import {
-  LoadedConfigurationTag,
-  loadRemoteConfiguration,
-  observabilityFromConfiguration,
-} from '@entifix/service-shell';
+import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
+import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
 import { EventSourceTag } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
@@ -23,6 +20,7 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { configSourceFor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import { startProjecting } from './projection/publish-catalog';
@@ -36,7 +34,6 @@ const SERVICE_NAME = 'marketplace-service';
  * is what keeps a future publish from being signed by nobody (ADR 0029).
  */
 const SLICE_NAME = 'marketplace';
-const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 
 /**
  * The marketplace-service composition root — the storefront's read host and the
@@ -65,7 +62,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  */
 export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
+    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
     const store = new ConfigurationClientInMemory(plain);
 
     const uri = yield* store.in('mongo').getString('uri');

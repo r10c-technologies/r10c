@@ -160,7 +160,8 @@
     "effect": "4.0.5",
     "jose": "6.2.12",
     "mongodb": "7.7.0",
-    "tslib": "2.8.1"
+    "tslib": "2.8.1",
+    "@r10c/utils-ts-fleet": "workspace:*"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:"

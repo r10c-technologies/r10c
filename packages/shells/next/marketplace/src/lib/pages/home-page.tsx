@@ -27,7 +27,7 @@ import { StoreShell } from './store-shell';
  * now a real request to marketplace-service, not a fixture lookup.
  */
 async function FeaturedOfferings({ locale }: { readonly locale: Locale }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
   const page = await runRead(
     PublishedOffering,
     loadOfferings({ pageSize: 6, sort: 'name' }),
@@ -44,7 +44,7 @@ async function FeaturedOfferings({ locale }: { readonly locale: Locale }) {
 }
 
 export function HomePage({ locale }: { readonly locale: Locale }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
 
   return (
     <StoreShell locale={locale}>

@@ -1,5 +1,4 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import { Entity, EntityConstructor } from '@entifix/core';
@@ -17,6 +16,12 @@ import { SalesChannel } from '@r10c/business-ts-sales-management';
 import { Context } from 'effect';
 
 import type { SalesAdapters } from '../client-types';
+
+/**
+ * Where every adapter below resolves its URL, bound when each is built — the
+ * host's `/api/config`, so the lookup is same-origin and carries the session.
+ */
+const configuration = new ConfigurationClientRestClient();
 
 /**
  * The two backends this shell reads, as **symbolic domain keys** rather than
@@ -41,6 +46,7 @@ import type { SalesAdapters } from '../client-types';
  * for nothing.
  */
 const SALES_SERVICE: BuildEntityRestOptions = {
+  configuration,
   uriConfig: {
     key: 'sales-service-domain.[entity]',
     group: 'uri',
@@ -49,6 +55,7 @@ const SALES_SERVICE: BuildEntityRestOptions = {
 };
 
 const MARKETPLACE_SERVICE: BuildEntityRestOptions = {
+  configuration,
   uriConfig: {
     key: 'marketplace-service-domain.[entity]',
     group: 'uri',
@@ -72,11 +79,6 @@ function createRestRepositoryContext<TEntity extends Entity>(
     delete: buildEntityRestAdapterDelete(entityConstructor, options),
   });
 }
-
-const configurationStore = Context.make(
-  ConfigurationRepositoryTag,
-  new ConfigurationClientRestClient(),
-);
 
 const salesChannelRest = createRestRepositoryContext(
   SalesChannel,
@@ -107,7 +109,6 @@ export function createClientAdapters(): SalesAdapters {
   return {
     salesChannelRest,
     publishedOfferingRest,
-    configurationStore,
     metadata,
   };
 }

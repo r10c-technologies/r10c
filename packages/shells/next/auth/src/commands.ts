@@ -24,7 +24,7 @@ export const AUTH_COMMANDS: GuardedCommand[] = [
     // hand-written rather than generated, so `UserIdentity` declares no
     // `form.newTitle` — and inventing one to satisfy a convention would leave
     // two names for the same heading, free to drift.
-    labelKey: 'shell:auth.users.newTitle',
+    labelKey: 'r10c:auth.users.newTitle',
     href: '/users/new',
     page: NEW_COMMAND_PAGE,
     permission: permissionForEntity(UserIdentity, 'write'),

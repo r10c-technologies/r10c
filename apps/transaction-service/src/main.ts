@@ -1,4 +1,5 @@
-import { makeService } from '@entifix/service-shell';
+import { makeService } from '@entifix/service-shell/runtime';
+import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
 import { AppLayer } from './mongo';
@@ -20,6 +21,7 @@ makeService({
   name: SERVICE_NAME,
   port: Number(process.env.PORT) || DEFAULT_PORT,
   slices: ['transaction'],
+  description: fleetToken,
   router,
   appLayer: AppLayer,
 });

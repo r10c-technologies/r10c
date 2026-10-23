@@ -1,5 +1,4 @@
 import type {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import type { EntityMetadataSource } from '@entifix/core';
@@ -12,7 +11,6 @@ export interface MarketplaceAdminAdapters {
   productRest: Context<EntityRepositoryTag>;
   productOfferingRest: Context<EntityRepositoryTag>;
   productOfferingPriceRest: Context<EntityRepositoryTag>;
-  configurationStore: Context<ConfigurationRepositoryTag>;
   /** The reference vocabulary's served affordances, through `/api/marketplace`. */
   referenceMetadata: EntityMetadataSource;
   /** The catalog service's served affordances, through `/api/admin`. */

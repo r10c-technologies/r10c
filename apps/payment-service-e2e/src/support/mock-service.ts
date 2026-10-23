@@ -5,12 +5,9 @@ import {
 } from '@entifix/authz';
 import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
-import {
-  LoadedConfigurationTag,
-  type RunningTestService,
-  serveTestService,
-  ServiceCrossingTokenTag,
-} from '@entifix/service-shell';
+import { ServiceCrossingTokenTag } from '@entifix/service-shell';
+import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
+import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
@@ -31,6 +28,7 @@ import {
   SERVICE_NAME,
   SimulatedPaymentProviderLayer,
 } from '@r10c/payment-service';
+import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
 import { E2E_CROSSING_TOKEN } from './tokens';
@@ -118,6 +116,7 @@ export const startMockService = (): Promise<RunningTestService> =>
     name: SERVICE_NAME,
     port: 0,
     slices: ['payment'],
+    description: fleetToken,
     router,
     appLayer: MockAppLayer,
   });

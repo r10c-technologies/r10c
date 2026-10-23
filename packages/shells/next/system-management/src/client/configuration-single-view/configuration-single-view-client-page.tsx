@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  type ConfigurationRepositoryTag,
   deleteUCFactory,
   type EntityRepositoryTag,
   getUCFactory,
@@ -10,7 +9,6 @@ import {
 import { useLocaleHref } from '@entifix/next-shell';
 import { useEntityMutation, useEntityRecord } from '@entifix/react-integration';
 import { Configuration } from '@r10c/business-ts-configuration';
-import { Context } from 'effect';
 import { useParams, useRouter } from 'next/navigation';
 
 import { ConfigurationForm } from '../configuration-form';
@@ -18,7 +16,7 @@ import { CONFIGURATION_LIST_HREF } from '../configuration-list/configuration-lis
 import { NEW_SLUG, slugToEntityId } from '../slug';
 import { useSystemManagementAdapters } from '../system-management-context';
 
-type ConfigurationContext = EntityRepositoryTag | ConfigurationRepositoryTag;
+type ConfigurationContext = EntityRepositoryTag;
 
 export interface ConfigurationSingleViewClientPageProps {
   /** Omit to read the slug from the route — a workspace tab passes it directly. */
@@ -38,7 +36,7 @@ export function ConfigurationSingleViewClientPage({
   onSaved,
   onDeleted,
 }: ConfigurationSingleViewClientPageProps = {}) {
-  const { configurationRest, configurationStore } =
+  const { configurationRest } =
     useSystemManagementAdapters();
   const router = useRouter();
   // Every internal navigation carries the locale. Unprefixed, each one is
@@ -48,7 +46,7 @@ export function ConfigurationSingleViewClientPage({
   const params = useParams<{ slug: string }>();
   const id = slugToEntityId(slug ?? params.slug);
 
-  const ctx = Context.merge(configurationStore, configurationRest);
+  const ctx = configurationRest;
 
   const {
     entity,

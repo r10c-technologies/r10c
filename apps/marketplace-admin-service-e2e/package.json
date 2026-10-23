@@ -34,7 +34,8 @@
     "@entifix/testing-e2e": "catalog:",
     "@entifix/tooling": "catalog:",
     "@r10c/marketplace-admin-service": "workspace:*",
-    "@entifix/service-shell": "catalog:"
+    "@entifix/service-shell": "catalog:",
+    "@r10c/utils-ts-fleet": "workspace:*"
   },
   "dependencies": {
     "@entifix/authz": "catalog:",

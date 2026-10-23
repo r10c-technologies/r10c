@@ -12,7 +12,7 @@ import {
   type ConfigurationPlain,
 } from '@entifix/core';
 import { makeJoseTokenService } from '@entifix/jwt';
-import { observabilityFromConfiguration } from '@entifix/service-shell';
+import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
 import { SqlHealthProbeLayer } from '@entifix/sql';
 import {
   AUTH_TOKEN_AUDIENCE,

@@ -57,7 +57,6 @@ export const productOrderCrud: EntityCrud<ProductOrder> = makeEntityCrud(
     basePath: PRODUCT_ORDER_SURFACE.basePath,
     catalogKey: PRODUCT_ORDER_SURFACE.entityKey,
     repository: 'productOrderRest',
-    configuration: 'configurationStore',
     // Server-owned: `place-order.ts` assigns it with `randomUUID()`, so a field
     // asking for one would be asking for a value the service overwrites.
     //

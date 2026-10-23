@@ -48,7 +48,7 @@ const readSessions = async (): Promise<SessionRow[]> => {
  * sign-in. Disabling that row would only have made people wonder why.
  */
 export function SessionsView() {
-  const t = useT('shell');
+  const t = useT('r10c');
   const { dateTime } = useFormatters();
   const [busy, setBusy] = useState<string | null>(null);
 

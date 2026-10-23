@@ -1,5 +1,4 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import { Entity, EntityConstructor } from '@entifix/core';
@@ -22,11 +21,18 @@ import {
   ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
-import { Context, Effect } from 'effect';
+import { Context } from 'effect';
 
 import type { MarketplaceAdminAdapters } from '../client-types';
 
+/**
+ * Where every adapter below resolves its URL, bound when each is built — the
+ * host's `/api/config`, so the lookup is same-origin and carries the session.
+ */
+const configuration = new ConfigurationClientRestClient();
+
 const restOptionsFor = (domainKey: string): BuildEntityRestOptions => ({
+  configuration,
   uriConfig: {
     key: `${domainKey}.[entity]`,
     group: 'uri',
@@ -95,12 +101,6 @@ function createRestRepositoryContext<TEntity extends Entity>(
   });
 }
 
-const configStore = new ConfigurationClientRestClient();
-const configurationStore = Context.make(
-  ConfigurationRepositoryTag,
-  configStore,
-);
-
 const productCategoryRest = createRestRepositoryContext(
   ProductCategory,
   REFERENCE_SERVICE,
@@ -151,18 +151,10 @@ const catalogMetadata = makeEntityMetadataSource({
 
 /**
  * The tracker's status read, built once here so the component that settles
- * optimistic writes holds a port rather than assembling the adapter, its
- * configuration and a runtime call inline.
- *
- * `runSync` is safe: building the reader only resolves the configuration store
- * it will read the URL from, and every request it makes is deferred to `read`.
+ * optimistic writes holds a port rather than assembling the adapter and its
+ * configuration inline.
  */
-const transactionStatus = Effect.runSync(
-  Effect.provide(
-    buildTransactionStatusReader(TRANSACTION_SERVICE),
-    configurationStore,
-  ),
-);
+const transactionStatus = buildTransactionStatusReader(TRANSACTION_SERVICE);
 
 export function createClientAdapters(): MarketplaceAdminAdapters {
   return {
@@ -171,7 +163,6 @@ export function createClientAdapters(): MarketplaceAdminAdapters {
     productRest,
     productOfferingRest,
     productOfferingPriceRest,
-    configurationStore,
     referenceMetadata,
     catalogMetadata,
     transactionStatus,

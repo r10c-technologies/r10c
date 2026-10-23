@@ -8,7 +8,7 @@ describe('AUTH_COMMANDS', () => {
     expect(AUTH_COMMANDS).toEqual([
       {
         key: 'new:user-identity',
-        labelKey: 'shell:auth.users.newTitle',
+        labelKey: 'r10c:auth.users.newTitle',
         href: '/users/new',
         page: NEW_COMMAND_PAGE,
         permission: 'authn:user-identity:write',

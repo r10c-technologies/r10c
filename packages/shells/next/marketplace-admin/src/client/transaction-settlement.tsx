@@ -1,11 +1,8 @@
 'use client';
 
 import { usePendingTransactions } from '@entifix/next-shell';
-import {
-  makeEventSourceReactiveChannel,
-  useReactiveInvalidation,
-  useTransactionSettlement,
-} from '@entifix/react-integration';
+import { useReactiveInvalidation, useTransactionSettlement } from '@entifix/react-integration';
+import { makeEventSourceReactiveChannel } from '@entifix/react-integration/event-source';
 
 import { createClientAdapters } from './adapters/create-client-adapters';
 

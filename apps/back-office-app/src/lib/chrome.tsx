@@ -74,13 +74,13 @@ export async function BackOfficeChrome({
     ),
     system: translateKey('shell:systemManagement.nav.section'),
     configuration: translateKey('shell:systemManagement.nav.configuration'),
-    users: translateKey('shell:auth.nav.users'),
+    users: translateKey('r10c:auth.nav.users'),
     // Generic on purpose: `/new` is every domain's create route, so a
     // domain-specific label here reads wrong on the other one's pages.
     new: translateKey('shell:breadcrumbs.new'),
-    account: translateKey('shell:auth.account.title'),
-    security: translateKey('shell:auth.security.title'),
-    sessions: translateKey('shell:auth.sessions.title'),
+    account: translateKey('r10c:auth.account.title'),
+    security: translateKey('r10c:auth.security.title'),
+    sessions: translateKey('r10c:auth.sessions.title'),
   };
 
   const nav = sidebarNav(principal, translateKey);
@@ -98,7 +98,7 @@ export async function BackOfficeChrome({
       }
       accountMenu={
         <AccountMenu
-          label={label ?? translateKey('shell:auth.account.menu')}
+          label={label ?? translateKey('r10c:auth.account.menu')}
           items={accountPaths(locale)}
         />
       }

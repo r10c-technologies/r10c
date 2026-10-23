@@ -1,7 +1,5 @@
-import {
-  LoadedConfigurationTag,
-  redactConfiguration,
-} from '@entifix/service-shell';
+import { redactConfiguration } from '@entifix/service-shell';
+import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import { Effect } from 'effect';
 import { HttpServerResponse } from 'effect/http';
 

@@ -1,5 +1,4 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import type { Entity } from '@entifix/core';
@@ -7,7 +6,6 @@ import { useDraftsState } from '@entifix/next-shell';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
@@ -71,10 +69,6 @@ const adapters = (): SalesAdapters => ({
   publishedOfferingRest: Context.make(
     EntityRepositoryTag,
     makeInMemoryEntityRepository([publishedOffering()] as Entity[]),
-  ),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
   ),
   metadata: real.metadata,
 });

@@ -1,4 +1,3 @@
-import type { ConfigurationRepositoryTag } from '@entifix/business';
 import {
   EntityLoadRequestTag,
   type EntityRepositoryTag,
@@ -17,19 +16,15 @@ import type {
 import { Context, Effect } from 'effect';
 
 /**
- * What every read here requires: **one entity's** repository, and — until the
- * base port stops leaking it — the configuration it resolves URLs through.
+ * What every read here requires: **one entity's** repository, and nothing
+ * else.
  *
  * Which repository is the caller's to provide, and each function below names
  * the entity whose repository it reads. The cell never chooses the transport:
  * the storefront binds REST, and nothing here would change if it bound
  * something else.
  */
-export type VocabularyRead<A> = Effect.Effect<
-  A,
-  EntifixError,
-  EntityRepositoryTag | ConfigurationRepositoryTag
->;
+export type VocabularyRead<A> = Effect.Effect<A, EntifixError, EntityRepositoryTag>;
 
 /**
  * How many brands or categories one read takes.
