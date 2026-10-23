@@ -9,6 +9,7 @@
  * that silently stops matching would otherwise turn the whole file green while
  * asserting nothing — the failure mode `slices.spec.ts` guards the same way.
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
@@ -176,6 +177,98 @@ describe('README.md agrees with the router', () => {
       ).toBe(true);
     }
   });
+});
+
+/**
+ * What is wrong with the links in CLAUDE.md's "entifix decisions r10c follows"
+ * section, given the entifix version the catalog installs.
+ *
+ * The records are not in any tarball, so "resolves" cannot be checked from
+ * `node_modules`, and a network fetch would make an unconditional CI job flaky.
+ * What is checked instead is that every link names the **tag** of the installed
+ * release: bumping the catalog without re-pinning the list fails, so the list
+ * cannot describe a framework other than the one the code runs on.
+ */
+const ENTIFIX_ADR_LINK =
+  /\]\((https:\/\/github\.com\/r10c-technologies\/entifix\/[^)\s]+)\)/g;
+
+const entifixAdrLinkProblems = (section: string, version: string): string[] => {
+  const expected = new RegExp(
+    `^https://github\\.com/r10c-technologies/entifix/blob/v${version.replaceAll('.', '\\.')}/docs/adr/\\d{4}-[a-z0-9-]+\\.md$`,
+  );
+  return [...section.matchAll(ENTIFIX_ADR_LINK)]
+    .map(match => match[1])
+    .filter(url => !expected.test(url));
+};
+
+const entifixAdrSection = (text: string): string => {
+  const start = text.indexOf('\n## entifix decisions r10c follows\n');
+  if (start === -1) return '';
+  const next = text.indexOf('\n## ', start + 1);
+  return text.slice(start, next === -1 ? undefined : next);
+};
+
+describe("CLAUDE.md's entifix decisions are pinned to the installed release", () => {
+  const section = entifixAdrSection(read('CLAUDE.md'));
+  const version = catalogEntifixVersion();
+  const urls = [...section.matchAll(ENTIFIX_ADR_LINK)].map(match => match[1]);
+
+  it('finds the records it is meant to check', () => {
+    expect(urls.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it(`links every record at the v${version} tag`, () => {
+    expect(
+      entifixAdrLinkProblems(section, version),
+      `these entifix ADR links do not name the installed tag v${version} — ` +
+        'adopting a release re-pins the whole list:',
+    ).toEqual([]);
+  });
+
+  it('rejects a link that floats on a branch or names another release', () => {
+    const base = 'https://github.com/r10c-technologies/entifix/blob';
+    const planted = [
+      `- [a](${base}/main/docs/adr/0001-the-tier-contract.md)`,
+      `- [b](${base}/v0.0.1/docs/adr/0001-the-tier-contract.md)`,
+      `- [c](${base}/v${version}/docs/adr/0001-the-tier-contract.md)`,
+    ].join('\n');
+
+    expect(entifixAdrLinkProblems(planted, version)).toHaveLength(2);
+  });
+
+  // A checkout with the swap kit's clone can prove the file exists at the tag;
+  // CI has no clone and stays offline, which is why the tag pin above is the
+  // check that always runs.
+  it.runIf(existsSync(join(REPO_ROOT, '.entifix', '.git')))(
+    'names files that exist at that tag in the local clone',
+    () => {
+      const missing = urls.filter(url => {
+        const path = url.split(`/blob/v${version}/`)[1];
+        try {
+          execFileSync(
+            'git',
+            [
+              '-C',
+              join(REPO_ROOT, '.entifix'),
+              'cat-file',
+              '-e',
+              `v${version}:${path}`,
+            ],
+            { stdio: 'ignore' },
+          );
+          return false;
+        } catch {
+          return true;
+        }
+      });
+
+      expect(
+        missing,
+        `these links name no file at v${version} in .entifix/ — a misspelt ` +
+          'record, or a clone that needs `git -C .entifix fetch --tags`:',
+      ).toEqual([]);
+    },
+  );
 });
 
 describe('ADR records are reachable and consistent', () => {

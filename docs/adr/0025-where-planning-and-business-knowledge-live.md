@@ -9,6 +9,10 @@
 - Revised: 2026-08-19 — records M0, which is a milestone that promotes no
   slice; the Backlog milestone and what an absent milestone now means; and
   the triage rule for work found while doing other work
+- Revised: 2026-10-23 — planning across two repositories (#308): every issue
+  lives here, entifix work included; an entifix issue closes on r10c's
+  adoption; ADRs split by concern; and the entifix records r10c follows are
+  listed in `CLAUDE.md`, pinned to the installed release
 
 ## Context
 
@@ -61,7 +65,7 @@ putting them in one place:
 | **Notion** — the `r10c` space                    | how the business actually works | nothing; that is fine    |
 | **ADR** — `docs/adr/`                            | what we decided, and why        | `@r10c/docs-check`       |
 | **`BUSINESS-ARCHITECTURE.md` + `tools/slices/`** | what the contract is            | `@r10c/slices`           |
-| **GitHub issue** under a **milestone**           | what is next, and is it done    | the milestone's own test |
+| **GitHub issue** under a **milestone**, in r10c  | what is next, and is it done    | the milestone's own test |
 
 A process question goes to Notion. When it forces a modelling call, that call
 becomes an ADR. The consequence lands in the register. The work becomes an issue
@@ -148,6 +152,10 @@ their own description rather than being inferred from an empty diff:
 | **M0 — Platform foundations** | M1 can be built without inventing a new control                                               |
 | **Backlog**                   | never; it is where triaged, not-in-v1 work waits                                              |
 
+The table is the set this record was written with, and it is not extended here:
+from M7 on, each milestone states its own completion test in its GitHub
+description, which is the one place that cannot drift from the milestone.
+
 A slice is promoted by the commit that writes its store and never earlier, and
 `@r10c/slices` fails the build in both directions. So the milestone's definition
 of done is a test that already exists.
@@ -206,6 +214,35 @@ Bugs jump the wave ordering by construction, because waves order _planned_ work
 and nothing else. Choosing between an unblocked issue in one milestone and an
 unblocked issue in another stays a human decision: it is a portfolio call, and
 no graph holds the reason.
+
+### Two repositories, one plan
+
+> **2026-10-23 (#308).** entifix left this repository
+> ([ADR 0059](0059-entifix-leaves-the-repo.md)) and its work did not leave the
+> plan. The four artifacts above still hold; what grew is where each one lives
+> when the work spans both repositories.
+
+- **Every milestone and every issue lives in r10c, entifix work included**, under
+  the label `entifix`. A milestone like M9 is one plan whose steps happen to land
+  in two repositories; splitting its issues across two trackers would split the
+  dependency graph that `blocked_by` exists to hold.
+- **An entifix-track issue closes on r10c's adoption pull request**, not on the
+  entifix merge. The issue is done when r10c runs on the change, and an entifix
+  release nobody has adopted is not that. So an entifix pull request says
+  `Refs r10c-technologies/r10c#N` and never `Closes`: GitHub fires a
+  cross-repository `Closes` on the entifix merge, which is the wrong moment.
+- **Decision records split by concern.** A decision about the framework is an
+  entifix ADR, stated without r10c — entifix never cites an r10c record, because
+  this repository turns private and the framework's reasoning must survive that.
+  A decision about this application is an r10c ADR. r10c may **narrow** an entifix
+  decision for itself, as [ADR 0060](0060-the-implementation-layer-cells.md)
+  narrows entifix's 0006 to this layering; it may never loosen one.
+- **Work another consumer drives is tracked by that consumer.** An entifix change
+  that myself-app needs is myself-app's issue, not this repository's.
+- **r10c lists the entifix records it follows** in a section of `CLAUDE.md`
+  beside the decision index. Each link is pinned to the tag of the entifix
+  release installed here, so the list states what the code actually runs on, and
+  `@r10c/docs-check` fails when the installed version moves and the links do not.
 
 ### What may be committed
 
