@@ -24,7 +24,11 @@ import { Context, Effect } from 'effect';
  * the storefront binds REST, and nothing here would change if it bound
  * something else.
  */
-export type VocabularyRead<A> = Effect.Effect<A, EntifixError, EntityRepositoryTag>;
+export type VocabularyRead<A> = Effect.Effect<
+  A,
+  EntifixError,
+  EntityRepositoryTag
+>;
 
 /**
  * How many brands or categories one read takes.
@@ -55,16 +59,37 @@ const load = <TEntity extends Entity>(
 
 const BY_NAME = [{ 0: { property: 'name', type: 'asc' } }] as never;
 
-/** Every category, for the nav strip and the category routes. Reads `ProductCategory`. */
+/**
+ * Only what is still offered for classification.
+ *
+ * ⚠️ **Retired is filtered where a buyer would browse into it, and nowhere
+ * else** (#327). A retired category must leave the nav strip and its `/c/` route,
+ * but an offering classified under it before it was retired still names it,
+ * and retiring exists precisely so that reference keeps resolving
+ * (`reference-status.ts`). So the readers that *name* an offering's reference
+ * ({@link loadBrands}, {@link getBrand}, {@link getCategory}) read the whole
+ * vocabulary, and only the browse readers narrow it.
+ */
+const ACTIVE = { property: 'status', operator: 'eq', value: 'active' } as const;
+
+/** Every active category, for the nav strip. Reads `ProductCategory`. */
 export const loadCategories = (): VocabularyRead<EntityPage<ProductCategory>> =>
+  load<ProductCategory>({
+    filtering: [ACTIVE] as never,
+    sorting: BY_NAME,
+    pageSize: VOCABULARY_PAGE_SIZE,
+  });
+
+/** Every category, retired ones included, for naming what an offering points at. */
+const loadEveryCategory = (): VocabularyRead<EntityPage<ProductCategory>> =>
   load<ProductCategory>({
     sorting: BY_NAME,
     pageSize: VOCABULARY_PAGE_SIZE,
   });
 
 /**
- * Every brand, so a grid can name each offering's without a request per card.
- * Reads `ProductBrand`.
+ * Every brand, retired ones included, so a grid can name each offering's
+ * without a request per card. Reads `ProductBrand`.
  */
 export const loadBrands = (): VocabularyRead<EntityPage<ProductBrand>> =>
   load<ProductBrand>({
@@ -73,7 +98,8 @@ export const loadBrands = (): VocabularyRead<EntityPage<ProductBrand>> =>
   });
 
 /**
- * The category a URL slug names. Reads `ProductCategory`.
+ * The active category a URL slug names, or `undefined` for a retired one, so
+ * its route 404s. Reads `ProductCategory`.
  *
  * `code` is `filterable` — a scalar member inherits both flags, which is also
  * the server-side RSQL allowlist — so this is one filtered read rather than the
@@ -83,7 +109,10 @@ export const getCategoryByCode = (
   code: string,
 ): VocabularyRead<ProductCategory | undefined> =>
   load<ProductCategory>({
-    filtering: [{ property: 'code', operator: 'eq', value: code }] as never,
+    filtering: [
+      { property: 'code', operator: 'eq', value: code },
+      ACTIVE,
+    ] as never,
     pageSize: 1,
   }).pipe(Effect.map(page => page.items[0]));
 
@@ -114,7 +143,7 @@ export const getCategory = (
 ): VocabularyRead<ProductCategory | undefined> =>
   id === undefined
     ? Effect.succeed(undefined)
-    : loadCategories().pipe(
+    : loadEveryCategory().pipe(
         Effect.map(page =>
           page.items.find(category => String(category.id) === id),
         ),
