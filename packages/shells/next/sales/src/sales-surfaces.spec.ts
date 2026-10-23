@@ -54,7 +54,7 @@ describe('the sales surfaces', () => {
         entityKey: 'sales-channel',
         basePath: '/sales/unnamed',
         icon: '?',
-        navLabelKey: 'shell:sales.nav.channels',
+        navLabelKey: 'r10c:sales.nav.channels',
         searchProperty: 'name',
         labelProperty: 'name',
       }),

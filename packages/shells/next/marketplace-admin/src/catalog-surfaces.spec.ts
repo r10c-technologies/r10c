@@ -75,10 +75,11 @@ describe('the catalog surfaces', () => {
     expect(PRODUCT_OFFERING_PRICE_SURFACE.searchProperty).toBe('offeringId');
   });
 
-  it('carries shell-namespaced nav copy', () => {
-    // `app:` keys are a lint error outside `apps/`, and this is a shell.
+  it('carries r10c-namespaced nav copy', () => {
+    // `app:` keys are a lint error outside `apps/`, and this is a shell; the
+    // framework's `shell:` namespace no longer carries r10c's copy.
     for (const surface of MARKETPLACE_ADMIN_CATALOG_SURFACES) {
-      expect(surface.navLabelKey.startsWith('shell:')).toBe(true);
+      expect(surface.navLabelKey.startsWith('r10c:')).toBe(true);
     }
   });
 });
@@ -106,7 +107,7 @@ describe('catalogSurface', () => {
         entityKey: 'product-category',
         basePath: '/catalog/product-category',
         icon: '⊞',
-        navLabelKey: 'shell:marketplaceAdmin.nav.categories',
+        navLabelKey: 'r10c:marketplaceAdmin.nav.categories',
         service: 'marketplace',
         searchProperty: 'name',
         labelProperty: 'name',

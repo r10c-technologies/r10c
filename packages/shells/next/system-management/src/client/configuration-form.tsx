@@ -49,7 +49,7 @@ export function ConfigurationForm({
   backHref,
 }: ConfigurationFormProps) {
   const et = useT('entity');
-  const st = useT('shell');
+  const st = useT('r10c');
   const isSecret = entity?.isSecret === true;
 
   const form = useEntityForm<Configuration>({

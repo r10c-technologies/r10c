@@ -94,7 +94,7 @@ export const SALES_CHANNEL_SURFACE = salesSurface(SalesChannel, {
   entityKey: 'sales-channel',
   basePath: '/sales/sales-channel',
   icon: '⌗',
-  navLabelKey: 'shell:sales.nav.channels',
+  navLabelKey: 'r10c:sales.nav.channels',
   searchProperty: 'name',
   labelProperty: 'name',
   sublabelProperty: 'type',
@@ -116,7 +116,7 @@ export const COUNTER_SALE_SURFACE = {
   key: 'counter-sale',
   basePath: '/sales/counter-sale',
   icon: '⌸',
-  navLabelKey: 'shell:sales.nav.counterSale',
+  navLabelKey: 'r10c:sales.nav.counterSale',
   /**
    * ⚠️ The **verb**, not `sales-channel:read`. Seeing which counters exist and
    * being allowed to take money through one are different authorities, which is

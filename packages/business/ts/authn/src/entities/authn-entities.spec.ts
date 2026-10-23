@@ -1,9 +1,10 @@
-import { DEFAULT_ROLE, permissionForEntity, Roles } from '@entifix/authz';
+import { permissionForEntity } from '@entifix/authz';
 import {
   describeEntityColumns,
   deserializeSingleEntity,
   serializeEntity,
 } from '@entifix/core';
+import { DEFAULT_ROLE, Roles } from '@r10c/business-ts-authz-grants';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 

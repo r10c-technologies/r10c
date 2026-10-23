@@ -1,5 +1,5 @@
-import { DEFAULT_ROLE, type Role } from '@entifix/authz';
 import { EntifixLogicError } from '@entifix/core';
+import { DEFAULT_ROLE, type Role } from '@r10c/business-ts-authz-grants';
 import { Cause, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 

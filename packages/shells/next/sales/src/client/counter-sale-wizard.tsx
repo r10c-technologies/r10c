@@ -56,25 +56,25 @@ export const COUNTER_SALE_WIZARD: WizardDefinition = {
     {
       id: 'channel',
       kind: 'custom',
-      labelKey: 'shell:sales.counterSale.steps.channel',
+      labelKey: 'r10c:sales.counterSale.steps.channel',
       to: ['lines'],
     },
     {
       id: 'lines',
       kind: 'custom',
-      labelKey: 'shell:sales.counterSale.steps.lines',
+      labelKey: 'r10c:sales.counterSale.steps.lines',
       to: ['payment'],
     },
     {
       id: 'payment',
       kind: 'custom',
-      labelKey: 'shell:sales.counterSale.steps.payment',
+      labelKey: 'r10c:sales.counterSale.steps.payment',
       to: ['summary'],
     },
     {
       id: 'summary',
       kind: 'summary',
-      labelKey: 'shell:sales.counterSale.steps.summary',
+      labelKey: 'r10c:sales.counterSale.steps.summary',
       to: [],
     },
   ],
@@ -319,8 +319,8 @@ export function CounterSaleWizard({
     return (
       <Card>
         <Stack>
-          <Text>{translateKey('shell:sales.counterSale.sold')}</Text>
-          <Text>{translateKey('shell:sales.counterSale.soldDetail')}</Text>
+          <Text>{translateKey('r10c:sales.counterSale.sold')}</Text>
+          <Text>{translateKey('r10c:sales.counterSale.soldDetail')}</Text>
           <Button
             onClick={() => {
               setReceiptId(undefined);
@@ -328,7 +328,7 @@ export function CounterSaleWizard({
               onFinished?.();
             }}
           >
-            {translateKey('shell:sales.counterSale.newSale')}
+            {translateKey('r10c:sales.counterSale.newSale')}
           </Button>
         </Stack>
       </Card>
@@ -368,7 +368,7 @@ export function CounterSaleWizard({
               : 'pending',
       }))}
       activeStep={activeStep}
-      title={translateKey('shell:sales.counterSale.title')}
+      title={translateKey('r10c:sales.counterSale.title')}
       canFinish={activeStep === 'summary'}
       canAdvance={canAdvance}
       isSubmitting={charging}
@@ -380,9 +380,9 @@ export function CounterSaleWizard({
     >
       {activeStep === 'channel' && (
         <Stack>
-          <Text>{translateKey('shell:sales.counterSale.channelHint')}</Text>
+          <Text>{translateKey('r10c:sales.counterSale.channelHint')}</Text>
           <Select
-            aria-label={translateKey('shell:sales.counterSale.steps.channel')}
+            aria-label={translateKey('r10c:sales.counterSale.steps.channel')}
             value={channelId ?? ''}
             onChange={event => setChannel(event.target.value)}
             disabled={channels.isLoading}
@@ -403,10 +403,10 @@ export function CounterSaleWizard({
 
       {activeStep === 'lines' && (
         <Stack>
-          <Text>{translateKey('shell:sales.counterSale.linesHint')}</Text>
+          <Text>{translateKey('r10c:sales.counterSale.linesHint')}</Text>
           <Cluster>
             <Select
-              aria-label={translateKey('shell:sales.counterSale.offering')}
+              aria-label={translateKey('r10c:sales.counterSale.offering')}
               value={pendingOffering}
               onChange={event => setPendingOffering(event.target.value)}
               disabled={offerings.isLoading}
@@ -419,14 +419,14 @@ export function CounterSaleWizard({
               ))}
             </Select>
             <TextInput
-              aria-label={translateKey('shell:sales.counterSale.quantity')}
+              aria-label={translateKey('r10c:sales.counterSale.quantity')}
               type="number"
               min={1}
               value={pendingQuantity}
               onChange={event => setPendingQuantity(event.target.value)}
             />
             <Button onClick={addLine}>
-              {translateKey('shell:sales.counterSale.addLine')}
+              {translateKey('r10c:sales.counterSale.addLine')}
             </Button>
           </Cluster>
           <Stack>
@@ -440,12 +440,12 @@ export function CounterSaleWizard({
                     setLines(lines.filter(other => other.key !== line.key))
                   }
                 >
-                  {translateKey('shell:sales.counterSale.removeLine')}
+                  {translateKey('r10c:sales.counterSale.removeLine')}
                 </Button>
               </Cluster>
             ))}
             {lines.length === 0 && (
-              <Text>{translateKey('shell:sales.counterSale.emptyLines')}</Text>
+              <Text>{translateKey('r10c:sales.counterSale.emptyLines')}</Text>
             )}
           </Stack>
         </Stack>
@@ -454,7 +454,7 @@ export function CounterSaleWizard({
       {activeStep === 'payment' && (
         <Stack>
           <Select
-            aria-label={translateKey('shell:sales.counterSale.paymentMethod')}
+            aria-label={translateKey('r10c:sales.counterSale.paymentMethod')}
             value={paymentMethod}
             onChange={event => setPaymentMethod(event.target.value)}
           >
@@ -476,7 +476,7 @@ export function CounterSaleWizard({
             </Text>
           ))}
           <Text>
-            {translateKey('shell:sales.counterSale.total')}: {totalOf(lines)}{' '}
+            {translateKey('r10c:sales.counterSale.total')}: {totalOf(lines)}{' '}
             {currencyOf(lines)}
           </Text>
           {failure !== undefined && (

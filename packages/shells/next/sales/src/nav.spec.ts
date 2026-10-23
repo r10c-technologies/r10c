@@ -17,7 +17,7 @@ describe('the sales navigation', () => {
 
     expect(channels?.items).toEqual([
       {
-        label: 'shell:sales.nav.channels',
+        label: 'r10c:sales.nav.channels',
         href: '/sales/sales-channel',
         icon: '⌗',
         workspace: 'master:sales-channel',

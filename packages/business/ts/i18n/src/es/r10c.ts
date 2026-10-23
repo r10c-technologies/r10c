@@ -165,4 +165,145 @@ export const r10c = {
       note: 'Catálogo de demostración. Ningún pedido es real.',
     },
   },
+  /**
+   * System management — the operator surface. Lives in the framework shell so
+   * a dedicated management app can mount the same screens later, which is why the
+   * copy is here rather than in an app catalog.
+   */
+  /**
+   * La superficie de existencias — las primeras pantallas de Operaciones del
+   * back office.
+   *
+   * El *nombre del nivel* ("Operaciones") sale de `nav.screenType.operation`;
+   * esto nombra el grupo dentro de él.
+   */
+  stock: {
+    nav: {
+      stock: 'Existencias',
+      items: 'Existencias en almacén',
+      movements: 'Libro de movimientos',
+      reservations: 'Reservas',
+    },
+  },
+  order: {
+    nav: {
+      orders: 'Pedidos',
+    },
+  },
+  settlement: {
+    nav: {
+      // El mismo nombre de grupo en las dos gradas: un acuerdo se redacta
+      // (Definiciones) y el resto lo produce un proceso (Operaciones). El
+      // encabezado de cada grada sale de `nav.screenType`.
+      settlement: 'Liquidaciones',
+      agreements: 'Acuerdos',
+      entries: 'Apuntes de comisión',
+      runs: 'Liquidaciones',
+      payouts: 'Pagos a vendedores',
+    },
+    agreement: {
+      channelRatesHint:
+        'Déjalo en blanco para cobrar la comisión por defecto en ese canal. Un 0 significa que no se cobra nada.',
+      channelRateDefault: 'Por defecto',
+      noChannelRates: 'Sin tarifas por canal',
+    },
+  },
+  sales: {
+    nav: {
+      sales: 'Ventas',
+      channels: 'Canales de venta',
+      guided: 'Ventas',
+      counterSale: 'Vender en mostrador',
+    },
+    counterSale: {
+      title: 'Venta en mostrador',
+      steps: {
+        channel: 'Canal',
+        lines: 'Productos',
+        payment: 'Cobro',
+        summary: 'Resumen',
+      },
+      channelHint: 'Elige el canal por el que se hace esta venta.',
+      linesHint: 'Agrega los productos publicados que estás vendiendo.',
+      addLine: 'Agregar producto',
+      removeLine: 'Quitar',
+      quantity: 'Cantidad',
+      offering: 'Producto',
+      total: 'Total',
+      paymentMethod: 'Forma de pago',
+      charge: 'Cobrar',
+      sold: 'Venta registrada',
+      soldDetail: 'La existencia ya se descontó y el pedido quedó registrado.',
+      newSale: 'Nueva venta',
+      emptyLines: 'Agrega al menos un producto para cobrar.',
+    },
+  },
+  marketplaceAdmin: {
+    nav: {
+      // Moved out of the `app:` catalog with the nav table itself: this copy
+      // belongs to the shell that owns the screens, so a second host mounting
+      // it does not re-translate them.
+      catalog: 'Catálogo',
+      products: 'Productos',
+      brands: 'Marcas',
+      categories: 'Categorías',
+      offerings: 'Ofertas comerciales',
+      offeringPrices: 'Precios de oferta',
+      // La sección Asistentes. El *nombre del nivel* ("Asistentes") sale de
+      // `nav.screenType.wizard`; esto nombra el grupo dentro de él.
+      guided: 'Catálogo',
+    },
+    /**
+     * El asistente de alta de producto. Los nombres de los pasos son de este
+     * dominio, no del control — por eso viven acá y no en `controls`.
+     */
+    wizard: {
+      productSetup: {
+        title: 'Nuevo producto',
+        launch: 'Nuevo producto guiado',
+        steps: {
+          start: 'Origen',
+          source: 'Producto base',
+          identity: 'Identificación',
+          classification: 'Clasificación',
+          summary: 'Resumen',
+        },
+        start: {
+          question: '¿Cómo querés empezar?',
+          blank: 'Desde cero',
+          blankHint: 'Cargar los datos a mano.',
+          duplicate: 'Duplicar uno existente',
+          duplicateHint:
+            'Partir de un producto ya cargado. El código no se copia: identifica al original.',
+        },
+        source: {
+          prompt: 'Elegí el producto del que querés partir.',
+          chosen: 'Producto base: {{name}}',
+          required: 'Elegí un producto para continuar.',
+        },
+        summary: {
+          prompt: 'Revisá lo cargado antes de crearlo.',
+          origin: 'Origen',
+          originBlank: 'Desde cero',
+          originDuplicate: 'Duplicado de {{name}}',
+          empty: 'Sin definir',
+        },
+        recap: 'Ya habías respondido:',
+      },
+    },
+  },
+  systemManagement: {
+    nav: {
+      section: 'Sistema',
+      configuration: 'Configuración',
+    },
+    configuration: {
+      title: 'Configuración de la plataforma',
+      description:
+        'Parámetros que cada servicio resuelve al arrancar. Editar un valor afecta al servicio en su próximo arranque.',
+      secretPlaceholder: '•••••• (sin cambios)',
+      secretHint:
+        'Dejar en blanco mantiene el valor guardado. Escribir uno nuevo lo reemplaza.',
+    },
+  },
 };

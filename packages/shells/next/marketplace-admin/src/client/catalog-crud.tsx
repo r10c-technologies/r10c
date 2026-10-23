@@ -127,7 +127,7 @@ function ProductSetupLink() {
       size="sm"
       href={withLocale(PRODUCT_SETUP_SURFACE.basePath)}
     >
-      {translateKey('shell:marketplaceAdmin.wizard.productSetup.launch')}
+      {translateKey('r10c:marketplaceAdmin.wizard.productSetup.launch')}
     </ButtonLink>
   );
 }

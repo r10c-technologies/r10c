@@ -19,6 +19,7 @@ export const errors = {
   invalidState: 'Ese enlace de acceso ya expiró. Vuelve a intentarlo.',
   accountInactive: 'Tu cuenta está suspendida.',
   providerUnavailable: 'No pudimos contactar al proveedor de identidad.',
+  upstreamUnavailable: 'Ese servicio no responde en este momento. Inténtalo de nuevo en un momento.',
   signInFailed: 'No se pudo completar el inicio de sesión.',
   noActiveOrganization: 'Selecciona una organización para continuar.',
   invalidRequest: 'La solicitud no es válida.',

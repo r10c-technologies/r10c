@@ -8,7 +8,7 @@ describe('ORDER_NAV', () => {
     // A host concatenates these rather than special-casing any of them, so a
     // fragment that carried a different shape would need an edit in the host.
     expect(ORDER_NAV).toHaveLength(1);
-    expect(ORDER_NAV[0].title).toBe('shell:order.nav.orders');
+    expect(ORDER_NAV[0].title).toBe('r10c:order.nav.orders');
   });
 
   /**

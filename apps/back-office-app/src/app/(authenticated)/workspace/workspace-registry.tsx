@@ -103,7 +103,7 @@ const masterScreens = (): EntityTabScreens => {
     lists: {
       ...derived.lists,
       configuration: {
-        titleKey: 'shell:systemManagement.nav.configuration',
+        titleKey: 'r10c:systemManagement.nav.configuration',
         render: () => <ConfigurationListClientPage />,
       },
       'user-identity': {

@@ -1,6 +1,7 @@
-import { can, permissionsOf, Roles } from '@entifix/authz';
+import { can, permissionsOf } from '@entifix/authz';
 import { describe, expect, it } from 'vitest';
 
+import { Roles } from './role-ladder.js';
 import { ROLE_PERMISSIONS } from './role-permissions.js';
 import {
   r10cServiceCrossingPolicy,

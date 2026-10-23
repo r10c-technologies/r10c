@@ -1,5 +1,6 @@
-import { canAssignRole, permissionForUseCase, type Role } from '@entifix/authz';
+import { permissionForUseCase } from '@entifix/authz';
 import { type EntityId, useCase } from '@entifix/core';
+import { canAssignRole, type Role } from '@r10c/business-ts-authz-grants';
 import { Context, Effect } from 'effect';
 
 import { UserIdentity, UserStatus } from '../../entities/user-identity';

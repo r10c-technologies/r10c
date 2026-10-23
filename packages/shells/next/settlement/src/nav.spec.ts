@@ -25,7 +25,7 @@ describe('SETTLEMENT_NAV', () => {
       'operation',
     ]);
     for (const section of SETTLEMENT_NAV) {
-      expect(section.title).toBe('shell:settlement.nav.settlement');
+      expect(section.title).toBe('r10c:settlement.nav.settlement');
     }
   });
 
@@ -78,7 +78,7 @@ describe('SETTLEMENT_NAV', () => {
     // `app:` keys are a lint error outside `apps/` — copy an app authors reaches
     // a shell as a resolved string, never as a key.
     for (const item of SETTLEMENT_NAV.flatMap(section => section.items)) {
-      expect(item.label.startsWith('shell:settlement.nav.')).toBe(true);
+      expect(item.label.startsWith('r10c:settlement.nav.')).toBe(true);
     }
   });
 });

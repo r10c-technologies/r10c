@@ -153,4 +153,127 @@ export const r10c: EsR10c = {
       note: 'Demo catalog. No order is real.',
     },
   },
+  /**
+   * The stock surface — the first Operaciones screens in the back office.
+   *
+   * The *tier* name ("Operaciones") comes from `nav.screenType.operation`; this
+   * names the group inside it.
+   */
+  stock: {
+    nav: {
+      stock: 'Stock',
+      items: 'Stock on hand',
+      movements: 'Movement ledger',
+      reservations: 'Reservations',
+    },
+  },
+  order: {
+    nav: {
+      orders: 'Orders',
+    },
+  },
+  settlement: {
+    nav: {
+      settlement: 'Settlement',
+      agreements: 'Agreements',
+      entries: 'Commission entries',
+      runs: 'Settlement runs',
+      payouts: 'Vendor payouts',
+    },
+    agreement: {
+      channelRatesHint:
+        'Leave blank to charge the default commission on that channel. A 0 means nothing is charged.',
+      channelRateDefault: 'Default',
+      noChannelRates: 'No per-channel rates',
+    },
+  },
+  sales: {
+    nav: {
+      sales: 'Sales',
+      channels: 'Sales channels',
+      guided: 'Sales',
+      counterSale: 'Sell at the counter',
+    },
+    counterSale: {
+      title: 'Counter sale',
+      steps: {
+        channel: 'Channel',
+        lines: 'Products',
+        payment: 'Payment',
+        summary: 'Summary',
+      },
+      channelHint: 'Pick the channel this sale goes through.',
+      linesHint: 'Add the published products you are selling.',
+      addLine: 'Add product',
+      removeLine: 'Remove',
+      quantity: 'Quantity',
+      offering: 'Product',
+      total: 'Total',
+      paymentMethod: 'Payment method',
+      charge: 'Charge',
+      sold: 'Sale recorded',
+      soldDetail: 'The stock is already drawn down and the order is written.',
+      newSale: 'New sale',
+      emptyLines: 'Add at least one product to charge for.',
+    },
+  },
+  marketplaceAdmin: {
+    nav: {
+      catalog: 'Catalog',
+      products: 'Products',
+      brands: 'Brands',
+      categories: 'Categories',
+      offerings: 'Product offerings',
+      offeringPrices: 'Offering prices',
+      guided: 'Catalog',
+    },
+    wizard: {
+      productSetup: {
+        title: 'New product',
+        launch: 'Guided new product',
+        steps: {
+          start: 'Source',
+          source: 'Base product',
+          identity: 'Identification',
+          classification: 'Classification',
+          summary: 'Summary',
+        },
+        start: {
+          question: 'How do you want to start?',
+          blank: 'From scratch',
+          blankHint: 'Enter the details by hand.',
+          duplicate: 'Duplicate an existing one',
+          duplicateHint:
+            'Start from a product already on file. The code is not copied: it identifies the original.',
+        },
+        source: {
+          prompt: 'Pick the product to start from.',
+          chosen: 'Base product: {{name}}',
+          required: 'Pick a product to continue.',
+        },
+        summary: {
+          prompt: 'Check what you entered before creating it.',
+          origin: 'Source',
+          originBlank: 'From scratch',
+          originDuplicate: 'Duplicated from {{name}}',
+          empty: 'Not set',
+        },
+        recap: 'You had already answered:',
+      },
+    },
+  },
+  systemManagement: {
+    nav: {
+      section: 'System',
+      configuration: 'Configuration',
+    },
+    configuration: {
+      title: 'Platform configuration',
+      description:
+        'Parameters every service resolves at boot. Editing a value affects that service on its next start.',
+      secretPlaceholder: '•••••• (unchanged)',
+      secretHint:
+        'Leaving this blank keeps the stored value. Typing a new one replaces it.',
+    },
+  },
 };

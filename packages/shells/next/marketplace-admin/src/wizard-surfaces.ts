@@ -65,7 +65,7 @@ export const PRODUCT_SETUP_SURFACE: WizardSurface<ProductSpecification> = {
   entityConstructor: ProductSpecification,
   basePath: '/wizards/product-setup',
   icon: '◍',
-  navLabelKey: 'shell:marketplaceAdmin.wizard.productSetup.title',
+  navLabelKey: 'r10c:marketplaceAdmin.wizard.productSetup.title',
   // The same provisioning gate the products catalog carries: the flow authors a
   // record in the one domain an organization is actually entitled to.
   entitled: true,

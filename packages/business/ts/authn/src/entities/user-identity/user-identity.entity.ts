@@ -1,6 +1,6 @@
-import { DEFAULT_ROLE, type Role, Roles } from '@entifix/authz';
 import type { Entity, EntityId } from '@entifix/core';
 import { accessor, entity, EntityCollectionLink } from '@entifix/core';
+import { DEFAULT_ROLE, type Role, Roles } from '@r10c/business-ts-authz-grants';
 
 import { EntityIdentifier } from '../entity-identifier';
 

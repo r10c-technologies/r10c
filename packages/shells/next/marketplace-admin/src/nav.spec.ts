@@ -68,14 +68,15 @@ describe('MARKETPLACE_ADMIN_NAV', () => {
     ]);
   });
 
-  it('names copy in the shared shell namespace', () => {
+  it("names copy in r10c's own namespace", () => {
     // An `app:` key is lint-restricted to `apps/`, so a shell binding one would
-    // fail the build — and a second host would have to re-translate.
+    // fail the build — and a second host would have to re-translate. Not
+    // `shell:` either: since entifix 0.6.0 the framework ships none of this copy.
     const keys = MARKETPLACE_ADMIN_NAV.flatMap(section => [
       section.title,
       ...section.items.map(item => item.label),
     ]);
 
-    expect(keys.every(key => key?.startsWith('shell:') === true)).toBe(true);
+    expect(keys.every(key => key?.startsWith('r10c:') === true)).toBe(true);
   });
 });

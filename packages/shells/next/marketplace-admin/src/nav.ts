@@ -62,7 +62,7 @@ const navItem = (
 
 export const MARKETPLACE_ADMIN_NAV: GuardedNavSection[] = [
   {
-    title: 'shell:marketplaceAdmin.nav.catalog',
+    title: 'r10c:marketplaceAdmin.nav.catalog',
     // Definiciones: the operator authors these, they have no lifecycle, and an
     // offering references them (ADR 0033). "Publish" arriving on a product is
     // an action on this screen, not grounds to promote it to Operaciones.
@@ -76,7 +76,7 @@ export const MARKETPLACE_ADMIN_NAV: GuardedNavSection[] = [
     ),
   },
   {
-    title: 'shell:marketplaceAdmin.nav.guided',
+    title: 'r10c:marketplaceAdmin.nav.guided',
     // Asistentes: guided, multi-step, and it ends (ADR 0033). The tier's own
     // heading comes from `SCREEN_TYPE_LABEL_KEYS`, so contributing this section
     // is the whole of what makes it appear — the sidebar needs no change.

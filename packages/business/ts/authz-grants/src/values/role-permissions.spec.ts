@@ -1,7 +1,7 @@
 import { permissionMatches } from '@entifix/authz';
-import { Roles } from '@entifix/authz';
 import { describe, expect, it } from 'vitest';
 
+import { Roles } from './role-ladder.js';
 import {
   AUTHN_DOMAIN,
   CATALOG_DOMAIN,

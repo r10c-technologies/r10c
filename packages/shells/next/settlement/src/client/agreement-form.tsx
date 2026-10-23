@@ -66,7 +66,7 @@ export function AgreementForm({
   backHref,
 }: AgreementFormProps) {
   const et = useT('entity');
-  const st = useT('shell');
+  const st = useT('r10c');
   const affordances = useEntityAffordances(Agreement, metadataSource);
 
   // Absent metadata keeps the pre-ADR-0026 behaviour, so a host that passes no

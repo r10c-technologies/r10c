@@ -4,6 +4,7 @@
 - Date: 2026-09-07
 - Area: frontend
 - Read when: building a multi-step screen — the step graph is data, Back pops a history stack, and a validation gate belongs to a step
+- Revised: 2026-10-23 — the wizard's own names moved from `shell:marketplaceAdmin.wizard.*` to `r10c:marketplaceAdmin.wizard.*` with entifix 0.6.0.
 - Amends: [ADR 0042](0042-the-workspace-address-is-the-taxonomy-serialized.md)
   (the third address segment gains a second meaning: a step, for `wizard:`).
 
@@ -257,8 +258,8 @@ implementation.
   step of its own and then showing it in a summary it would not keep. This is
   the rule `CLAUDE.md` already states for a server-owned, client-visible member,
   and the one `ProductBrand.code` was already following.
-- New copy: `controls.wizard.*` for the control, `shell:marketplaceAdmin.wizard.*`
-  for the first wizard's own names.
+- New copy: `controls.wizard.*` for the control, `r10c:marketplaceAdmin.wizard.*`
+  for the first wizard's own names (`shell:` until entifix 0.6.0).
 - The step graph is in **core**, framework-free, for `command-matching.ts`'s
   reason: `@entifix/react-controls` and `@entifix/react-integration` are both
   `entifix:react` and may not import each other, so anything both need meets

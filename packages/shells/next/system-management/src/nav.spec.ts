@@ -37,15 +37,16 @@ describe('SYSTEM_MANAGEMENT_NAV', () => {
     ]);
   });
 
-  it('keys its copy to the shared shell namespace, never an app catalog', () => {
+  it("keys its copy to r10c's own namespace, never an app catalog", () => {
     // An `app:` key would be lint-rejected outside `apps/`, and a second host
-    // must not have to re-translate these screens.
+    // must not have to re-translate these screens. Not `shell:` either: since
+    // entifix 0.6.0 the framework ships none of r10c's back-office copy.
     const keys = [
       ...SYSTEM_MANAGEMENT_NAV.map(section => section.title),
       ...items.map(item => item.label),
     ];
     for (const key of keys) {
-      expect(key).toMatch(/^shell:/);
+      expect(key).toMatch(/^r10c:/);
     }
   });
 });

@@ -23,7 +23,7 @@ import '@r10c/business-ts-i18n/locales';
 import { registerFallbackCatalog } from '@entifix/react-controls';
 import { r10cCatalogs } from '@r10c/business-ts-i18n';
 
-for (const namespace of ['entity', 'errors', 'app'] as const) {
+for (const namespace of ['entity', 'errors', 'app', 'r10c'] as const) {
   registerFallbackCatalog(namespace, {
     es: r10cCatalogs.es[namespace],
     en: r10cCatalogs.en[namespace],

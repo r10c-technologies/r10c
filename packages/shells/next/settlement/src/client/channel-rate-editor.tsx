@@ -54,7 +54,7 @@ export function ChannelRateEditor({
   disabled = false,
 }: ChannelRateEditorProps) {
   const et = useT('entity');
-  const st = useT('shell');
+  const st = useT('r10c');
 
   const setRate = (channelType: SalesChannelType, raw: string) => {
     const next: Record<string, number> = {};

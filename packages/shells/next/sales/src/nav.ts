@@ -35,7 +35,7 @@ const navItem = (surface: {
 
 export const SALES_NAV: GuardedNavSection[] = [
   {
-    title: 'shell:sales.nav.sales',
+    title: 'r10c:sales.nav.sales',
     type: 'master',
     items: SALES_SURFACES.map(surface => ({
       ...navItem(surface),
@@ -48,7 +48,7 @@ export const SALES_NAV: GuardedNavSection[] = [
     })),
   },
   {
-    title: 'shell:sales.nav.guided',
+    title: 'r10c:sales.nav.guided',
     type: 'wizard',
     items: [
       {

@@ -1,6 +1,4 @@
 'use client';
-
-import { Roles } from '@entifix/authz';
 import { useLocaleHref } from '@entifix/next-shell';
 import {
   Button,
@@ -10,6 +8,7 @@ import {
   TextInput,
   useT,
 } from '@entifix/react-controls';
+import { Roles } from '@r10c/business-ts-authz-grants';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, type ReactNode, useState } from 'react';
 
