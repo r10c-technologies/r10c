@@ -65,6 +65,14 @@ spec:
             - --keyFile
             - /etc/mongodb-keyfile/keyfile
             - --bind_ip_all
+            # Sized explicitly. mongod picks its default WiredTiger cache from
+            # the memory it can see rather than from the container's limit, and
+            # under the old 512Mi limit the pod was OOMKilled six times in 36
+            # days — once mid-boot, while the fleet seeded and the rebuild walk
+            # ran. A quarter of a gigabyte is ample for a lab's data set and
+            # leaves the rest of the limit for connections and the journal.
+            - --wiredTigerCacheSizeGB
+            - '0.25'
           ports:
             - containerPort: 27017
           envFrom:
@@ -99,7 +107,7 @@ spec:
               memory: '256Mi'
               cpu: '250m'
             limits:
-              memory: '512Mi'
+              memory: '1Gi'
               cpu: '500m'
       volumes:
         - name: mongodb-data

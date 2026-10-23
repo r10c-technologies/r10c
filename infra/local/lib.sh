@@ -56,12 +56,23 @@ MINIKUBE_PORTS="30017:30017,30379:30379,30672:30672,31672:31672,30432:30432,3008
 # redirects the browser there and serves nothing on that path itself.
 REQUIRED_HOST_PORTS=(30017 30379 30672 30432 30318 30080 30081 30825)
 
-# Written by the L7 seed rung, read by config-service's dev target. None of these
+# Written by the L6/L7 rungs, read by config-service's dev target. None of these
 # files are committed: all are regenerated from scratch on every reset, because
 # the instance they describe is too.
+#
+# ⚠️ They are a **cache**, and the cluster holds the originals. The files are
+# per checkout but the cluster is shared, so a reset run from a second checkout
+# or worktree recreates the instance and leaves this checkout's copies naming
+# one that no longer exists — which is how every Zitadel call came to answer
+# `Errors.Token.Invalid` behind a green L7 (#280). Each rung that mints one of
+# these also stores it in a Secret, and a copy Zitadel rejects is restored from
+# there. The Secrets live in the namespace, so a reset deletes them together
+# with the instance they describe.
 ZITADEL_PAT_FILE="$INFRA_DIR/zitadel/.pat"
 ZITADEL_LOGIN_PAT_FILE="$INFRA_DIR/zitadel/.login-client.pat"
 ZITADEL_GENERATED_ENV="$INFRA_DIR/zitadel/.generated.env"
+ZITADEL_SEED_PAT_SECRET=zitadel-seed-pat
+ZITADEL_GENERATED_SECRET=zitadel-generated-env
 
 # Serializes healing when several `ensure-infra` tasks race (a single app `dev`
 # fans out to 3-4 of them). Whoever wins heals; the rest wait and re-probe.
@@ -146,50 +157,114 @@ probed_labels() {
 # label policy, which is what the hosted login renders in.
 ZITADEL_SEED_REVISION=6
 
-# L7: has the Zitadel instance been given its project, app, policies, branding
-# and SMTP — by the version of the seed that is checked in right now?
+# Half of L7's probe: has the Zitadel instance been given its project, app,
+# policies, branding and SMTP — by the version of the seed that is checked in
+# right now? The other half, `zitadel_seeded` below, asks whether it was given
+# them for *this* instance.
 #
-# Still a file read, so the ladder's fast path pays nothing to ask. But it is a
+# A file read, so the ladder's fast path pays nothing to ask. But it is a
 # *cache key*, not a "has this ever run" flag: the guard used to be `-s` alone,
 # which meant a seed that gained a setting never reached any machine that was
 # already seeded. The fast path in `ensure.sh` exits before `seed_zitadel` is
 # even called, so the stale instance stayed stale and reported green. Stamping
 # the revision into the file is what makes a seed change reach everyone on their
 # next boot, without a reset and without walking the ladder.
-zitadel_seeded() {
+zitadel_seed_revision_current() {
   [[ -s "$ZITADEL_GENERATED_ENV" ]] &&
     grep -qx "ZITADEL_SEED_REVISION=$ZITADEL_SEED_REVISION" \
       "$ZITADEL_GENERATED_ENV"
 }
 
-# Copy one of the machine tokens Zitadel minted at first init out of the pod.
+# Does the running instance accept this token?
 #
-# Zitadel writes each exactly once, to an emptyDir, so a pod restart loses the
-# file while the instance itself survives in Postgres. That is why the host copy
-# is authoritative once taken: we only ever read from the pod when we have no
-# copy of our own, and if both are gone the instance is unreachable to us and
-# the only honest answer is a reset.
+# The question the revision stamp cannot answer: a stamp says which seed wrote
+# the file, not which *instance* it wrote it for. One local HTTP call, so the
+# fast path can afford it. The token goes to curl on stdin rather than as an
+# argument, so it never appears in a process listing.
+#
+# ⚠️ The `Host` header is not decoration. Zitadel routes on its external domain,
+# and the same call addressed to `127.0.0.1` answers `404` for every path —
+# which a check reading anything but an exact `200` would take for a verdict.
+zitadel_accepts_token() {
+  local token="$1" code
+  [[ -n "$token" ]] || return 1
+  has curl || return 0
+  code="$(printf 'Authorization: Bearer %s\n' "$token" |
+    curl -s -o /dev/null -w '%{http_code}' --max-time 3 -H @- \
+      -H 'Host: localhost:30080' \
+      "http://127.0.0.1:30080/auth/v1/users/me" 2>/dev/null || true)"
+  [[ "$code" == "200" ]]
+}
+
+# The token in a host file, accepted by the instance. `$(<file)` drops the
+# trailing newline a hand-edited file may carry.
+zitadel_accepts_file() {
+  [[ -s "$1" ]] && zitadel_accepts_token "$(<"$1")"
+}
+
+# L7's probe: seeded by the checked-in revision **and** for the instance that
+# is running. It checks the token inside `.generated.env` rather than `.pat`,
+# because that copy is the one config-service seeds the fleet's rows from.
+zitadel_seeded() {
+  zitadel_seed_revision_current &&
+    zitadel_accepts_token "$(sed -n 's/^ZITADEL_PAT=//p' "$ZITADEL_GENERATED_ENV")"
+}
+
+# Read one key of a namespace Secret into a host file. Fails, leaving the file
+# untouched, when the Secret or the key does not exist.
+cluster_secret_get() {
+  local secret="$1" key="$2" dest="$3" value
+  value="$(kubectl -n "$NS" get secret "$secret" \
+    -o "jsonpath={.data.${key//./\\.}}" 2>/dev/null || true)"
+  [[ -n "$value" ]] || return 1
+  printf '%s' "$value" | base64 -d > "$dest" 2>/dev/null || return 1
+  chmod 600 "$dest" 2>/dev/null || true
+  [[ -s "$dest" ]]
+}
+
+# Store a host file as the only key of a namespace Secret. The idempotent
+# `create --dry-run | apply` form, as `ensure_login_secret` uses.
+cluster_secret_put() {
+  local secret="$1" key="$2" file="$3"
+  kubectl -n "$NS" create secret generic "$secret" --from-file="$key=$file" \
+    --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+}
+
+# Make sure the host holds a machine token the running instance accepts.
+#
+# Zitadel writes each token exactly once, to an emptyDir, so a pod restart loses
+# the file while the instance survives in Postgres. So the first copy taken is
+# stored in a Secret, and the order of trust is: the host copy if Zitadel
+# accepts it, then the Secret, then the pod. Only when all three fail is the
+# instance unreachable to us, and the only honest answer is a reset.
 #
 # Args: <in-pod filename under /machinekey> <host destination> <what it is for>
+#       <Secret that holds the cluster's copy, under the in-pod filename>
 extract_machine_pat() {
-  local pod_file="$1" dest="$2" what="$3" pat
-  [[ -s "$dest" ]] && return 0
+  local pod_file="$1" dest="$2" what="$3" secret="$4" pat
+  zitadel_accepts_file "$dest" && return 0
+  if cluster_secret_get "$secret" "$pod_file" "$dest" && zitadel_accepts_file "$dest"; then
+    log_heal "zitadel: restored the $what token from the cluster (the host copy was missing or stale)"
+    return 0
+  fi
   # `-c pat-reader`: the zitadel container is distroless and has no `cat`.
   pat="$(kubectl -n "$NS" exec "deploy/zitadel" -c pat-reader -- cat "/machinekey/$pod_file" 2>/dev/null || true)"
   if [[ -z "$pat" ]]; then
-    log_err "Zitadel is up but its $what token is gone."
-    echo "  Either the pod restarted after first init, or this instance predates" >&2
-    echo "  the setting that mints the token — a FIRSTINSTANCE_* key only ever" >&2
-    echo "  fires when the instance is created. Either way, recreate both:" >&2
+    log_err "Zitadel is up but no copy of its $what token is accepted."
+    echo "  The host copy and the Secret '$secret' are missing or name another" >&2
+    echo "  instance, and the pod no longer has the file: it restarted after first" >&2
+    echo "  init, or the instance predates the setting that mints the token — a" >&2
+    echo "  FIRSTINSTANCE_* key only ever fires when the instance is created." >&2
+    echo "  Either way, recreate it:" >&2
     return 1
   fi
   printf '%s' "$pat" > "$dest"
   chmod 600 "$dest" 2>/dev/null || true
-  return 0
+  cluster_secret_put "$secret" "$pod_file" "$dest"
 }
 
 extract_zitadel_pat() {
-  extract_machine_pat seed.pat "$ZITADEL_PAT_FILE" seed
+  extract_machine_pat seed.pat "$ZITADEL_PAT_FILE" seed "$ZITADEL_SEED_PAT_SECRET"
 }
 
 # L6: hand the login container the IAM_LOGIN_CLIENT token it authenticates to
@@ -200,7 +275,7 @@ extract_zitadel_pat() {
 # posture everywhere else: L3 re-applies the manifests on every heal because a
 # resource existing says nothing about it matching what is checked in.
 ensure_login_secret() {
-  extract_machine_pat login-client.pat "$ZITADEL_LOGIN_PAT_FILE" "login client" || return 1
+  extract_machine_pat login-client.pat "$ZITADEL_LOGIN_PAT_FILE" "login client" "$LOGIN_SECRET" || return 1
   kubectl -n "$NS" create secret generic "$LOGIN_SECRET" \
     --from-file="login-client.pat=$ZITADEL_LOGIN_PAT_FILE" \
     --dry-run=client -o yaml | kubectl apply -f - >/dev/null
@@ -370,15 +445,40 @@ ensure_login() {
 # Idempotent — every step searches before it creates, and the OIDC app is
 # reconciled rather than skipped — so re-running against a seeded instance is
 # safe and is exactly what a revision bump asks for.
+#
+# The seed's output goes to the cluster as well as to the host, and it carries
+# more than ids: Zitadel serves an action target's signing key once, so the
+# file is the only place that key survives. Another checkout that finds its own
+# copy stale restores this one rather than re-seeding without it.
 seed_zitadel() {
-  zitadel_seeded && return 0
+  if zitadel_seeded; then
+    # Off the fast path only, so this costs a healthy boot nothing. It is what
+    # gives an instance seeded before the Secrets existed a cluster copy.
+    publish_zitadel_credentials
+    return 0
+  fi
   extract_zitadel_pat || return 1
+  if cluster_secret_get "$ZITADEL_GENERATED_SECRET" generated.env "$ZITADEL_GENERATED_ENV" &&
+    zitadel_seeded; then
+    log_heal "zitadel: restored the seed's output from the cluster (the host copy was missing or stale)"
+    return 0
+  fi
   log_heal "zitadel: seeding project, OIDC app, login v2, branding, actions, login policy and SMTP"
   ZITADEL_PAT_FILE="$ZITADEL_PAT_FILE" \
   ZITADEL_GENERATED_ENV="$ZITADEL_GENERATED_ENV" \
   ZITADEL_ISSUER="http://localhost:30080" \
   ZITADEL_SEED_REVISION="$ZITADEL_SEED_REVISION" \
-    node "$REPO_ROOT/tools/zitadel-seed.mjs"
+    node "$REPO_ROOT/tools/zitadel-seed.mjs" || return 1
+  cluster_secret_put "$ZITADEL_GENERATED_SECRET" generated.env "$ZITADEL_GENERATED_ENV"
+}
+
+# Store both host copies the seed depends on. Each file the cluster already
+# holds is rewritten with the same bytes, which `apply` reports as unchanged.
+publish_zitadel_credentials() {
+  if zitadel_accepts_file "$ZITADEL_PAT_FILE"; then
+    cluster_secret_put "$ZITADEL_SEED_PAT_SECRET" seed.pat "$ZITADEL_PAT_FILE"
+  fi
+  cluster_secret_put "$ZITADEL_GENERATED_SECRET" generated.env "$ZITADEL_GENERATED_ENV"
 }
 
 # minikube lifecycle state, normalised to Running / Drifted / Stopped /

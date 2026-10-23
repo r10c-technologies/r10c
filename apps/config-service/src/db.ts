@@ -78,6 +78,12 @@ const DEV_KEY_ID = 'dev-2026-08';
  * seed is `ON CONFLICT DO NOTHING`, so without that pairing an old client id
  * would outlive the instance it named and every sign-in would fail with a
  * mystery.
+ *
+ * ⚠️ The pairing holds only if the file names the running instance, and a reset
+ * made from another checkout breaks that: the file is per checkout, the
+ * instance is not. The ladder's L7 rung is what guarantees it before this boots
+ * — it asks Zitadel whether the file's token is accepted and restores a
+ * rejected copy from the cluster (#280).
  */
 const readGeneratedZitadelEnv = (): Record<string, string> => {
   const values: Record<string, string> = {};

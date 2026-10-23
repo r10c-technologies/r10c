@@ -122,6 +122,12 @@ if ! all_probes_green; then
   exit 1
 fi
 
+# ------------------------------------------------------- mongo replica set
+# The wipe took the replica-set config with the data, and a reset that stopped
+# before L5b left a lab that answers every probe and fails every transactional
+# write — green until the first catalog create.
+ensure_mongo_replica_set || exit 1
+
 # ------------------------------------------------------------- hosted login
 # The token this mounts is minted by the core at first init, which the wipe
 # above has just re-run — so this is the moment it exists. Before the seed, for
