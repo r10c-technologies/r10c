@@ -15,6 +15,9 @@
       "path": "../../packages/business/ts/authz-grants"
     },
     {
+      "path": "../../packages/utils/ts/fleet"
+    },
+    {
       "path": "../../packages/business/ts/authn"
     },
     {

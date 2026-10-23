@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 
-import { makeService } from '@entifix/service-shell';
+import { makeService } from '@entifix/service-shell/runtime';
+import { fleetToken } from '@r10c/utils-ts-fleet';
 import { config as loadEnv } from 'dotenv';
 
 import { AppLayer } from './db';
@@ -25,6 +26,7 @@ makeService({
   name: '@r10c/config-service',
   port: Number(process.env.PORT) || 3190,
   slices: ['config'],
+  description: fleetToken,
   router,
   appLayer: AppLayer,
 });

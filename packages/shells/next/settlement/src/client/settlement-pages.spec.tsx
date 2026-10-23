@@ -1,12 +1,10 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import { EntifixConnError, type Entity } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import {
   Agreement,
@@ -106,10 +104,6 @@ const adapters = (): SettlementAdapters => ({
   commissionEntryRest: Context.make(EntityRepositoryTag, repositories.entry),
   settlementRunRest: Context.make(EntityRepositoryTag, repositories.run),
   vendorPayoutRest: Context.make(EntityRepositoryTag, repositories.payout),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
-  ),
   metadata: real.metadata,
 });
 

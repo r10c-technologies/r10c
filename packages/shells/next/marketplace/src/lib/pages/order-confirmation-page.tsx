@@ -59,7 +59,7 @@ export async function OrderConfirmationPage({
   /** What a cancel attempt did, carried back on the query string. */
   readonly outcome?: CancelOutcome;
 }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
   const receipt = await readReceipt();
 
   if (!receipt) {

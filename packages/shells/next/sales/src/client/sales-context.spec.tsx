@@ -1,10 +1,8 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import { render, screen } from '@testing-library/react';
 import { Context } from 'effect';
@@ -26,10 +24,6 @@ const stubAdapters = (): SalesAdapters => ({
     EntityRepositoryTag,
     makeInMemoryEntityRepository([]),
   ),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
-  ),
   metadata: real.metadata,
 });
 
@@ -48,7 +42,7 @@ describe('SalesProvider', () => {
 
     expect(
       screen.getByText(
-        'salesChannelRest,publishedOfferingRest,configurationStore,metadata',
+        'salesChannelRest,publishedOfferingRest,metadata',
       ),
     ).toBeInTheDocument();
   });

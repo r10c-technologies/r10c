@@ -32,7 +32,6 @@ export const salesChannelCrud: EntityCrud<SalesChannel> = makeEntityCrud(
     basePath: SALES_CHANNEL_SURFACE.basePath,
     catalogKey: SALES_CHANNEL_SURFACE.entityKey,
     repository: 'salesChannelRest',
-    configuration: 'configurationStore',
     // Server-assigned by the Mongo adapter on create, so asking a vendor to
     // type one would be asking for a value the service overwrites.
     hiddenFields: ['id'],

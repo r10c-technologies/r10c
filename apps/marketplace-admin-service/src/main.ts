@@ -1,4 +1,5 @@
-import { makeService } from '@entifix/service-shell';
+import { makeService } from '@entifix/service-shell/runtime';
+import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
 import { AppLayer } from './mongo';
@@ -19,6 +20,7 @@ makeService({
   // ownership never moved, only the process did, so both are named rather than
   // one standing in for the other.
   slices: ['marketplace-admin', 'transaction'],
+  description: fleetToken,
   router,
   appLayer: AppLayer,
 });

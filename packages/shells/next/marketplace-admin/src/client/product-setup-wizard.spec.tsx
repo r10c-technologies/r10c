@@ -1,7 +1,6 @@
 import 'fake-indexeddb/auto';
 
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import {
@@ -13,7 +12,6 @@ import { useDraftsState } from '@entifix/next-shell';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import {
   ProductBrand,
@@ -97,10 +95,6 @@ const adapters = (): MarketplaceAdminAdapters => ({
   productOfferingPriceRest: Context.make(
     EntityRepositoryTag,
     repositories.product,
-  ),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
   ),
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,

@@ -31,7 +31,8 @@
     "@entifix/jwt": "catalog:",
     "@entifix/testing-e2e": "catalog:",
     "@entifix/service-shell": "catalog:",
-    "@r10c/transaction-service": "workspace:*"
+    "@r10c/transaction-service": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*"
   },
   "dependencies": {
     "@entifix/authz": "catalog:",

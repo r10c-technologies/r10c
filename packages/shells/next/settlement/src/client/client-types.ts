@@ -1,5 +1,4 @@
 import type {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import type { EntityMetadataSource } from '@entifix/core';
@@ -10,7 +9,6 @@ export interface SettlementAdapters {
   commissionEntryRest: Context<EntityRepositoryTag>;
   settlementRunRest: Context<EntityRepositoryTag>;
   vendorPayoutRest: Context<EntityRepositoryTag>;
-  configurationStore: Context<ConfigurationRepositoryTag>;
   /** The served affordance document, through the host's same-origin proxy. */
   metadata: EntityMetadataSource;
 }

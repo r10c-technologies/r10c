@@ -3,7 +3,7 @@ import { getServerTFor } from '@entifix/i18n';
 import { Caption } from '@entifix/react-controls/primitives';
 
 export function StoreFooter({ locale }: { readonly locale: Locale }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
 
   return (
     <footer className="mt-xl border-t border-border">

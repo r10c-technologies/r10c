@@ -694,7 +694,7 @@ the _real_ fleet while reporting on a hermetic run — and could fail, or pass, 
 reasons unrelated to the code. Reuse stays (turning it off costs a production
 build every time); the assumption is checked instead. `assertExpectedServer` runs
 as `globalSetup`, reads `mode` from `/api/health/live`, and fails the run before
-the first spec. `R10C_E2E_ALLOW_DEV_SERVER=1` opts out. `live` is exempt: it
+the first spec. `ENTIFIX_E2E_ALLOW_DEV_SERVER=1` opts out. `live` is exempt: it
 expects an already-running app and makes no hermeticity claim.
 
 **Both profiles run chromium**, and `E2E_BROWSERS=all` adds firefox and webkit

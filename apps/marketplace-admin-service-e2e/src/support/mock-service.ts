@@ -15,13 +15,9 @@ import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
 } from '@entifix/redis/transactions';
-import {
-  type InMemoryObservability,
-  LoadedConfigurationTag,
-  makeInMemoryObservabilityLayer,
-  type RunningTestService,
-  serveTestService,
-} from '@entifix/service-shell';
+import { type InMemoryObservability, makeInMemoryObservabilityLayer } from '@entifix/service-shell/observability';
+import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
+import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
@@ -44,6 +40,7 @@ import {
   seedCatalog,
   SERVICE_NAME,
 } from '@r10c/marketplace-admin-service';
+import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
 /**
@@ -195,6 +192,7 @@ export const startMockService = (): Promise<RunningTestService> =>
     // The same pair the real process hosts, so `/api/$service` describes the
     // thing under test rather than a reduced version of it.
     slices: ['marketplace-admin', 'transaction'],
+    description: fleetToken,
     router,
     appLayer: MockAppLayerWithObservability,
   });

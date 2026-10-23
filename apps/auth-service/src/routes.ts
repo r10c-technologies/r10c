@@ -31,13 +31,8 @@ import {
 import { isLocale } from '@entifix/core';
 import { publicJwks } from '@entifix/jwt';
 import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
-import {
-  entityMetadataRoute,
-  LoadedConfigurationTag,
-  redactConfiguration,
-  requirePermission,
-  requirePrincipal,
-} from '@entifix/service-shell';
+import { entityMetadataRoute, redactConfiguration, requirePermission, requirePrincipal } from '@entifix/service-shell';
+import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
   ACTION_SIGNATURE_HEADER,
   createOpaqueValue,

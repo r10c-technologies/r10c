@@ -9,16 +9,11 @@ import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
 import { ConfigurationClientInMemory } from '@entifix/core';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoClientLayer, MongoHealthProbeLayer } from '@entifix/mongo';
-import {
-  LoadedConfigurationTag,
-  loadRemoteConfiguration,
-  observabilityFromConfiguration,
-  ServiceCrossingTokenTag,
-} from '@entifix/service-shell';
-import {
-  makeTransactionStreamHubEffect,
-  TransactionStreamHubTag,
-} from '@entifix/transactions';
+import { ServiceCrossingTokenTag } from '@entifix/service-shell';
+import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
+import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
+import { TransactionStreamHubTag } from '@entifix/transactions';
+import { makeTransactionStreamHubEffect } from '@entifix/transactions/engine';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -27,6 +22,7 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { configSourceFor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import {
@@ -54,7 +50,6 @@ import {
 } from './sagas';
 
 const SERVICE_NAME = 'transaction-service';
-const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 
 /**
  * The transaction-service composition root — the `saga` store's only writer.
@@ -79,7 +74,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  */
 export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
+    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
     const store = new ConfigurationClientInMemory(plain);
 
     const uri = yield* store.in('mongo').getString('uri');

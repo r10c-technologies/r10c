@@ -1,12 +1,10 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import type { Entity } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import {
   Reservation,
@@ -79,10 +77,6 @@ const adapters = (): StockAdapters => ({
   stockItemRest: Context.make(EntityRepositoryTag, repositories.item),
   stockMovementRest: Context.make(EntityRepositoryTag, repositories.movement),
   reservationRest: Context.make(EntityRepositoryTag, repositories.reservation),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
-  ),
   metadata: real.metadata,
 });
 

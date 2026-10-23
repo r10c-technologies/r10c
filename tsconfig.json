@@ -182,6 +182,9 @@
     },
     {
       "path": "./packages/implementation/catalog-reference/next"
+    },
+    {
+      "path": "./packages/utils/ts/fleet"
     }
   ],
   "compilerOptions": {

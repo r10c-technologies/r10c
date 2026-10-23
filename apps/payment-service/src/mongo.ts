@@ -18,12 +18,9 @@ import {
   OutboxMaxAttempts,
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
-import {
-  LoadedConfigurationTag,
-  loadRemoteConfiguration,
-  observabilityFromConfiguration,
-  ServiceCrossingTokenTag,
-} from '@entifix/service-shell';
+import { ServiceCrossingTokenTag } from '@entifix/service-shell';
+import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
+import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
 import { EventSourceTag } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
@@ -33,6 +30,7 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { configSourceFor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import { PAYMENT_SLICE } from './outbox';
@@ -44,7 +42,6 @@ import {
 } from './providers/simulated';
 
 const SERVICE_NAME = 'payment-service';
-const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 
 /**
  * The payment-service composition root — the `payment` store's only writer.
@@ -77,7 +74,7 @@ const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
  */
 export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
+    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
     const store = new ConfigurationClientInMemory(plain);
 
     const uri = yield* store.in('mongo').getString('uri');

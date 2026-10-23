@@ -53,6 +53,7 @@ export const NAMESPACES = [
   'errors',
   'entity',
   'app',
+  'r10c',
 ] as const satisfies readonly Namespace[];
 
 export const DEFAULT_NS = 'controls' satisfies Namespace;
@@ -103,7 +104,7 @@ defineCatalogs({
  * fallback now knows only the copy the framework ships; registering r10c's here
  * keeps that failure mode the same one it always was.
  */
-for (const namespace of ['entity', 'errors', 'app'] as const) {
+for (const namespace of ['entity', 'errors', 'app', 'r10c'] as const) {
   registerFallbackCatalog(namespace, {
     es: r10cCatalogs.es[namespace],
     en: r10cCatalogs.en[namespace],

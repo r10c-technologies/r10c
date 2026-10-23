@@ -50,17 +50,8 @@ import {
   OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
 import { requireOrganization } from '@entifix/service-shell';
-import {
-  acceptTransaction,
-  CommandTag,
-  completeTransaction,
-  EventBusTag,
-  EventSourceTag,
-  readCommandEnvelope,
-  SequenceServiceTag,
-  TransactionHandlerTag,
-  TransactionOutboxTag,
-} from '@entifix/transactions';
+import { CommandTag, EventBusTag, EventSourceTag, readCommandEnvelope, SequenceServiceTag, TransactionHandlerTag, TransactionOutboxTag } from '@entifix/transactions';
+import { acceptTransaction, completeTransaction } from '@entifix/transactions/engine';
 import {
   IllegalOfferingTransition,
   OfferingHasNoPrice,

@@ -54,7 +54,7 @@ export function UserDetailPage({
   onSaved,
   draft,
 }: EntityCrudSingleViewProps = {}) {
-  const t = useT('shell');
+  const t = useT('r10c');
   const errorT = useT('errors');
   // The back link is a plain `<a>` inside `EntityForm`, so an unprefixed href
   // costs a full document load *and* the proxy's redirect.

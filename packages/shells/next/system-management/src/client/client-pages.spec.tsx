@@ -1,12 +1,10 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import { EntifixConnError, type Entity } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import { Configuration } from '@r10c/business-ts-configuration';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -50,10 +48,6 @@ let repository: ReturnType<typeof makeInMemoryEntityRepository>;
 
 const adapters = (): SystemManagementAdapters => ({
   configurationRest: Context.make(EntityRepositoryTag, repository),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
-  ),
 });
 
 const renderPage = (page: ReactElement) =>

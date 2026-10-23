@@ -1,12 +1,10 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import type { Entity } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import { OrderItem, ProductOrder } from '@r10c/business-ts-order-management';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -54,10 +52,6 @@ let repository: ReturnType<typeof makeInMemoryEntityRepository>;
 
 const adapters = (): OrderAdapters => ({
   productOrderRest: Context.make(EntityRepositoryTag, repository),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
-  ),
   metadata: real.metadata,
 });
 

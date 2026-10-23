@@ -1,5 +1,6 @@
 import { ConfigurationPlain } from '@entifix/core';
-import { redactValue, requireServiceToken } from '@entifix/service-shell';
+import { redactValue, requireSharedToken } from '@entifix/service-shell';
+import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 import { HttpRouter, HttpServerResponse } from 'effect/http';
 import { SqlClient, SqlError } from 'effect/sql';
@@ -93,12 +94,12 @@ export const router = Layer.mergeAll(
     HttpRouter.route(
       'GET',
       '/api/config',
-      requireServiceToken(introspectionRoute),
+      requireSharedToken(fleetToken)(introspectionRoute),
     ),
     HttpRouter.route(
       'GET',
       '/api/config/:service',
-      requireServiceToken(lookupRoute),
+      requireSharedToken(fleetToken)(lookupRoute),
     ),
   ]),
   configurationRoutes,

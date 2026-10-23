@@ -39,7 +39,7 @@ export async function CartPage({
   /** What a previous checkout attempt did, carried back on the query string. */
   readonly outcome?: CheckoutOutcome;
 }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
   const lines = await readCart();
 
   const items = await Promise.all(

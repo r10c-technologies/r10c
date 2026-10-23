@@ -257,6 +257,14 @@ const COMPOSITION_ONLY = [
   ...DRIVERS,
   '@entifix/react-controls/i18next',
   '@entifix/next-shell/server',
+  // The mechanism halves entifix 0.5.0 split out of its contract entries: the
+  // saga engine, the service runtime and its telemetry and test server, and
+  // the browser's EventSource transport.
+  '@entifix/transactions/engine',
+  '@entifix/service-shell/runtime',
+  '@entifix/service-shell/observability',
+  '@entifix/service-shell/testing',
+  '@entifix/react-integration/event-source',
   '@tanstack/*',
   ...both(['redux', 'react-redux', '@reduxjs/toolkit']),
 ];

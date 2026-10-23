@@ -46,6 +46,14 @@ describe('a next cell', () => {
       'the server half of the shell',
     ],
     ["import { useQuery } from '@tanstack/react-query';", 'a state mechanism'],
+    [
+      "import { runSaga } from '@entifix/transactions/engine';",
+      'the saga engine',
+    ],
+    [
+      "import { makeService } from '@entifix/service-shell/runtime';",
+      'the service runtime',
+    ],
   ])(
     'may not import %s (%s)',
     async source => {
@@ -59,6 +67,10 @@ describe('a next cell', () => {
   it.each([
     ["import { loadUCFactory } from '@entifix/business';", 'a use case'],
     ["import type { EntityPage } from '@entifix/core';", 'an entity contract'],
+    [
+      "import type { SagaStore } from '@entifix/transactions';",
+      'a transactions port',
+    ],
     [
       "import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';",
       'its own domain',

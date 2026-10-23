@@ -50,7 +50,7 @@ async function RelatedOfferings({
   readonly categoryId: string | undefined;
   readonly excludeOfferingId: string;
 }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
   if (!categoryId) return null;
 
   const page = await runRead(
@@ -83,7 +83,7 @@ export async function ProductPage({
   readonly locale: Locale;
   readonly offeringId: string;
 }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
   const offering = await runRead(
     PublishedOffering,
     getOffering(offeringId),

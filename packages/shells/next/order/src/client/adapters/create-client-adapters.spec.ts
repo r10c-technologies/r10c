@@ -1,5 +1,4 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import {
@@ -53,9 +52,6 @@ describe('createClientAdapters', () => {
     expect(
       Context.get(adapters.productOrderRest, EntityRepositoryTag),
     ).toBeDefined();
-    expect(
-      Context.get(adapters.configurationStore, ConfigurationRepositoryTag),
-    ).toBeDefined();
   });
 
   it('composes the service base URL with the entity key', async () => {
@@ -65,7 +61,7 @@ describe('createClientAdapters', () => {
     await Effect.runPromise(
       Context.get(adapters.productOrderRest, EntityRepositoryTag)
         .load({ filtering: [], pageSize: 10 } as never)
-        .pipe(Effect.provide(adapters.configurationStore)),
+        ,
     );
 
     expect(urls.some(url => url.startsWith(`${SERVICE}/product-order`))).toBe(

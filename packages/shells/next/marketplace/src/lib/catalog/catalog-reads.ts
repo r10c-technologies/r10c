@@ -1,18 +1,10 @@
-import {
-  ConfigurationRepositoryTag,
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import type {
   EntifixError,
   Entity,
   EntityConstructor,
   EntityPage,
 } from '@entifix/core';
-import {
-  configApiUrl,
-  SERVICE_TOKEN_HEADER,
-  serviceToken,
-} from '@entifix/next-shell/server';
 import {
   buildEntityRestAdapterDelete,
   buildEntityRestAdapterGet,
@@ -21,6 +13,7 @@ import {
   type BuildEntityRestOptions,
   ConfigurationClientRestClient,
 } from '@entifix/rest';
+import { configSourceFor } from '@r10c/utils-ts-fleet';
 import { Cause, Context, Effect } from 'effect';
 
 /**
@@ -47,7 +40,7 @@ import { Cause, Context, Effect } from 'effect';
  * difference is the value behind the key, which config-service supplies per
  * app.
  */
-const MARKETPLACE_SERVICE: BuildEntityRestOptions = {
+const MARKETPLACE_SERVICE: Omit<BuildEntityRestOptions, 'configuration'> = {
   uriConfig: {
     key: 'marketplace-service-domain.[entity]',
     group: 'uri',
@@ -66,15 +59,13 @@ const MARKETPLACE_SERVICE: BuildEntityRestOptions = {
  */
 const repositoryFor = <TEntity extends Entity>(
   entityConstructor: EntityConstructor<TEntity>,
+  options: BuildEntityRestOptions,
 ) =>
   Context.make(EntityRepositoryTag, {
-    get: buildEntityRestAdapterGet(entityConstructor, MARKETPLACE_SERVICE),
-    load: buildEntityRestAdapterLoad(entityConstructor, MARKETPLACE_SERVICE),
-    save: buildEntityRestAdapterSave(entityConstructor, MARKETPLACE_SERVICE),
-    delete: buildEntityRestAdapterDelete(
-      entityConstructor,
-      MARKETPLACE_SERVICE,
-    ),
+    get: buildEntityRestAdapterGet(entityConstructor, options),
+    load: buildEntityRestAdapterLoad(entityConstructor, options),
+    save: buildEntityRestAdapterSave(entityConstructor, options),
+    delete: buildEntityRestAdapterDelete(entityConstructor, options),
   });
 
 /** A page with nothing on it — what a failed list read renders. */
@@ -119,28 +110,21 @@ export const makeRunRead = () => {
    * One instance, so the lookup is memoized for the life of the process. A
    * changed URI therefore needs a restart, exactly as it does in the browser.
    */
-  const configuration = Context.make(
-    ConfigurationRepositoryTag,
-    new ConfigurationClientRestClient({
-      url: `${configApiUrl()}/api/config/marketplace-app`,
-      headers: { [SERVICE_TOKEN_HEADER]: serviceToken() },
-    }),
-  );
+  const options: BuildEntityRestOptions = {
+    ...MARKETPLACE_SERVICE,
+    configuration: new ConfigurationClientRestClient(
+      configSourceFor('marketplace-app'),
+    ),
+  };
 
   return <A, TEntity extends Entity>(
     entityConstructor: EntityConstructor<TEntity>,
-    read: Effect.Effect<
-      A,
-      EntifixError,
-      EntityRepositoryTag | ConfigurationRepositoryTag
-    >,
+    read: Effect.Effect<A, EntifixError, EntityRepositoryTag>,
     fallback: A,
   ): Promise<A> =>
     Effect.runPromise(
       read.pipe(
-        Effect.provide(
-          Context.merge(configuration, repositoryFor(entityConstructor)),
-        ),
+        Effect.provide(repositoryFor(entityConstructor, options)),
         Effect.catchCause(cause =>
           Effect.sync(() => {
             console.error(

@@ -45,7 +45,7 @@ async function CategoryOfferings({
   sort,
   page,
 }: CategoryPageProps & { readonly categoryId: string }) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
   const current = Math.max(1, Number(page) || 1);
   const result = await runRead(
     PublishedOffering,
@@ -101,7 +101,7 @@ async function CategoryOfferings({
 
 export async function CategoryPage(props: CategoryPageProps) {
   const { locale, code, sort } = props;
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
 
   // One filtered read rather than the whole vocabulary scanned in the page:
   // `code` is a scalar and therefore `filterable`, which is also the

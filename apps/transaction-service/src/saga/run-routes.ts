@@ -3,11 +3,8 @@ import { randomUUID } from 'node:crypto';
 import type { Permission } from '@entifix/authz';
 import { makeEnvelope } from '@entifix/core';
 import { requireCrossing } from '@entifix/service-shell';
-import {
-  runSaga,
-  type SagaInputs,
-  type SagaStepInput,
-} from '@entifix/transactions';
+import { type SagaInputs, type SagaStepInput } from '@entifix/transactions';
+import { runSaga } from '@entifix/transactions/engine';
 import { Effect } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 

@@ -1,5 +1,4 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import {
@@ -60,9 +59,6 @@ describe('createClientAdapters', () => {
     expect(
       Context.get(adapters.reservationRest, EntityRepositoryTag),
     ).toBeDefined();
-    expect(
-      Context.get(adapters.configurationStore, ConfigurationRepositoryTag),
-    ).toBeDefined();
   });
 
   // Each entity gets its own context under the *same* tag, so a page merges
@@ -81,10 +77,7 @@ describe('createClientAdapters', () => {
     const repository = Context.get(adapters.stockItemRest, EntityRepositoryTag);
 
     await Effect.runPromise(
-      Effect.provide(
-        repository.load<StockItem>({}),
-        adapters.configurationStore,
-      ),
+      repository.load<StockItem>({}),
     );
 
     expect(urls).toContain(`${SERVICE}/stock-item`);
@@ -101,10 +94,7 @@ describe('createClientAdapters', () => {
     );
 
     await Effect.runPromise(
-      Effect.provide(
-        repository.load<StockMovement>({}),
-        adapters.configurationStore,
-      ),
+      repository.load<StockMovement>({}),
     );
 
     expect(urls).toContain(`${SERVICE}/stock-movement`);

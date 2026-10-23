@@ -29,13 +29,13 @@ const ACCOUNT_ICONS: Record<string, string> = {
  */
 export const AUTH_NAV: GuardedNavSection[] = [
   {
-    title: 'shell:auth.nav.identity',
+    title: 'r10c:auth.nav.identity',
     // Definiciones: an operator authors the account, and a membership, a
     // session and an audit row all reference it (ADR 0033).
     type: 'master',
     items: [
       {
-        label: 'shell:auth.nav.users',
+        label: 'r10c:auth.nav.users',
         href: '/users',
         icon: '◉',
         // Definiciones, so the same `master:` grammar every other tab uses
@@ -52,7 +52,7 @@ export const AUTH_NAV: GuardedNavSection[] = [
     // No `type`, and this is the one section entitled to none (ADR 0033): it is
     // the signed-in person's own account rather than a group of administrative
     // screens, which is the same reason none of its items carries a permission.
-    title: 'shell:auth.nav.accountSection',
+    title: 'r10c:auth.nav.accountSection',
     items: ACCOUNT_DESTINATIONS.map(destination => ({
       label: `shell:${destination.labelKey}`,
       href: destination.path,

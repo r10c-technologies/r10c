@@ -53,7 +53,8 @@
     "@entifix/next-shell": "catalog:",
     "effect": "4.0.5",
     "@r10c/implementation-catalog-reference-next": "workspace:*",
-    "@r10c/implementation-marketplace-catalog-next": "workspace:*"
+    "@r10c/implementation-marketplace-catalog-next": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:"

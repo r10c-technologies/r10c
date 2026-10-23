@@ -27,7 +27,7 @@ describe('AUTH_NAV', () => {
     // section deliberately declares none (ADR 0033), so an address for it
     // cannot be constructed at all.
     const account = AUTH_NAV.find(
-      section => section.title === 'shell:auth.nav.accountSection',
+      section => section.title === 'r10c:auth.nav.accountSection',
     );
 
     expect(account?.items.every(item => item.workspace === undefined)).toBe(
@@ -39,7 +39,7 @@ describe('AUTH_NAV', () => {
     // Your own account is not an administrative screen. A plain `user` must
     // reach all three, which is why none of them carries a permission.
     const account = AUTH_NAV.find(
-      section => section.title === 'shell:auth.nav.accountSection',
+      section => section.title === 'r10c:auth.nav.accountSection',
     );
 
     expect(account?.items.map(item => item.href)).toEqual([
@@ -60,18 +60,28 @@ describe('AUTH_NAV', () => {
       AUTH_NAV.map(section => [section.title, section.type]),
     );
 
-    expect(byTitle.get('shell:auth.nav.identity')).toBe('master');
-    expect(byTitle.get('shell:auth.nav.accountSection')).toBeUndefined();
+    expect(byTitle.get('r10c:auth.nav.identity')).toBe('master');
+    expect(byTitle.get('r10c:auth.nav.accountSection')).toBeUndefined();
   });
 
-  it('names copy in the shared shell namespace', () => {
+  it("names copy in r10c's own screens namespace", () => {
     // An `app:` key is lint-restricted to `apps/`, so a shell binding one would
-    // fail the build — and a second host would have to re-translate.
+    // fail the build — and a second host would have to re-translate. And not
+    // entifix's `shell`: since 0.5.0 that holds only the copy entifix renders.
     const keys = AUTH_NAV.flatMap(section => [
       section.title,
       ...section.items.map(item => item.label),
     ]);
 
-    expect(keys.every(key => key?.startsWith('shell:') === true)).toBe(true);
+    // The account destinations are entifix's own, and so is their copy — the
+    // one `shell:account.*` exception, and nothing else of the framework's.
+    expect(
+      keys.every(
+        key =>
+          key?.startsWith('r10c:') === true ||
+          key?.startsWith('shell:account.') === true,
+      ),
+    ).toBe(true);
+    expect(keys.filter(key => key?.startsWith('r10c:'))).not.toEqual([]);
   });
 });

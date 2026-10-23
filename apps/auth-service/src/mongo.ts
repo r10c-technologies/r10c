@@ -21,11 +21,8 @@ import {
   RedisOneTimeTokenStoreLayer,
   RedisSessionStoreLayer,
 } from '@entifix/redis';
-import {
-  LoadedConfigurationTag,
-  loadRemoteConfiguration,
-  observabilityFromConfiguration,
-} from '@entifix/service-shell';
+import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
+import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
 import {
   ZitadelActionsLayer,
   ZitadelHealthProbeLayer,
@@ -43,6 +40,7 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { configSourceFor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import { makeMongoAccountRepository } from './identity/account-repository';
@@ -80,7 +78,6 @@ import {
 } from './identity/user-seed-data';
 
 const SERVICE_NAME = 'auth-service';
-const CONFIG_API_URL = process.env.CONFIG_API_URL ?? 'http://localhost:3190';
 
 /**
  * Reconciles seed docs one at a time: insert what is missing, and bring what is
@@ -233,7 +230,7 @@ const IdentityProviderLayer = Layer.effect(
  */
 export const AppLayer = Layer.unwrap(
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(CONFIG_API_URL, SERVICE_NAME);
+    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
     const store = new ConfigurationClientInMemory(plain);
 
     const uri = yield* store.in('mongo').getString('uri');

@@ -21,7 +21,7 @@ export interface StoreHeaderProps {
 }
 
 export function StoreHeader({ locale, categories }: StoreHeaderProps) {
-  const t = getServerTFor(locale, 'shell');
+  const t = getServerTFor(locale, 'r10c');
 
   return (
     <header className="border-b border-border bg-surface-elevated">

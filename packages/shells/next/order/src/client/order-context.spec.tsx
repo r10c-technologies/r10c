@@ -1,10 +1,8 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import {
   makeInMemoryEntityRepository,
-  makeStubConfigurationClient,
 } from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context } from 'effect';
@@ -23,10 +21,6 @@ const repository = () =>
 
 const adapters: OrderAdapters = {
   productOrderRest: repository(),
-  configurationStore: Context.make(
-    ConfigurationRepositoryTag,
-    makeStubConfigurationClient(),
-  ),
   metadata: real.metadata,
 };
 
@@ -57,12 +51,6 @@ describe('the order adapters context', () => {
 
     expect(
       Context.get(result.current.productOrderRest, EntityRepositoryTag),
-    ).toBeDefined();
-    expect(
-      Context.get(
-        result.current.configurationStore,
-        ConfigurationRepositoryTag,
-      ),
     ).toBeDefined();
   });
 

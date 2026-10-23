@@ -25,13 +25,16 @@ vi.mock('@entifix/react-integration', async () => {
   >('@entifix/react-integration');
   return {
     ...actual,
-    makeEventSourceReactiveChannel: (url: string) => makeChannel(url),
     useReactiveInvalidation: (channel: unknown) =>
       useReactiveInvalidation(channel),
     useTransactionSettlement: (options: unknown) =>
       useTransactionSettlement(options),
   };
 });
+
+vi.mock('@entifix/react-integration/event-source', () => ({
+  makeEventSourceReactiveChannel: (url: string) => makeChannel(url),
+}));
 
 const aRecord: TransactionRecord = {
   transactionId: 'tx-1',
@@ -53,7 +56,7 @@ vi.mock('@entifix/rest', async () => {
     await vi.importActual<typeof import('@entifix/rest')>('@entifix/rest');
   return {
     ...actual,
-    buildTransactionStatusReader: () => Effect.succeed({ read }),
+    buildTransactionStatusReader: () => ({ read }),
   };
 });
 

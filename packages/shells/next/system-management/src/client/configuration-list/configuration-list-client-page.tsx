@@ -6,7 +6,6 @@ import { useLocaleHref } from '@entifix/next-shell';
 import { EntityTable } from '@entifix/react-controls';
 import { useDataLoading } from '@entifix/react-integration';
 import { Configuration } from '@r10c/business-ts-configuration';
-import { Context } from 'effect';
 
 import { useSystemManagementAdapters } from '../system-management-context';
 
@@ -31,7 +30,7 @@ export interface ConfigurationListClientPageProps {
 export function ConfigurationListClientPage({
   hrefFor,
 }: ConfigurationListClientPageProps = {}) {
-  const { configurationRest, configurationStore } =
+  const { configurationRest } =
     useSystemManagementAdapters();
   // Only the *defaults* are prefixed: a caller that supplies its own `hrefFor`
   // (a workspace tab addressing itself) owns the shape of what it passes.
@@ -39,7 +38,7 @@ export function ConfigurationListClientPage({
 
   const pager = useDataLoading({
     uc: loadUCFactory<Configuration>(),
-    ctx: Context.merge(configurationStore, configurationRest),
+    ctx: configurationRest,
   });
 
   return (

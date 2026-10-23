@@ -1,4 +1,5 @@
 import { createConfigRoute } from '@entifix/next-shell/server';
+import { configSourceFor } from '@r10c/utils-ts-fleet';
 
 /**
  * This app's centralized configuration, fetched server-side from config-service
@@ -21,7 +22,7 @@ import { createConfigRoute } from '@entifix/next-shell/server';
  * cookies and so cannot be a generic pipe.
  */
 export const GET = createConfigRoute({
-  service: 'back-office-app',
+  source: () => configSourceFor('back-office-app'),
   proxies: {
     'marketplace-admin-service-domain': '/api/admin',
     'marketplace-service-domain': '/api/marketplace',

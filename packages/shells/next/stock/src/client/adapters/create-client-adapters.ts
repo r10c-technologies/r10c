@@ -1,5 +1,4 @@
 import {
-  ConfigurationRepositoryTag,
   EntityRepositoryTag,
 } from '@entifix/business';
 import { Entity, EntityConstructor } from '@entifix/core';
@@ -22,6 +21,12 @@ import { Context } from 'effect';
 import type { StockAdapters } from '../client-types';
 
 /**
+ * Where every adapter below resolves its URL, bound when each is built — the
+ * host's `/api/config`, so the lookup is same-origin and carries the session.
+ */
+const configuration = new ConfigurationClientRestClient();
+
+/**
  * The one backend this shell reads, as a **symbolic domain key** rather than an
  * address.
  *
@@ -39,6 +44,7 @@ import type { StockAdapters } from '../client-types';
  * buy a tracker record and an outbox row for nothing.
  */
 const STOCK_SERVICE: BuildEntityRestOptions = {
+  configuration,
   uriConfig: {
     key: 'stock-service-domain.[entity]',
     group: 'uri',
@@ -70,11 +76,6 @@ function createRestRepositoryContext<TEntity extends Entity>(
   });
 }
 
-const configurationStore = Context.make(
-  ConfigurationRepositoryTag,
-  new ConfigurationClientRestClient(),
-);
-
 const stockItemRest = createRestRepositoryContext(StockItem);
 const stockMovementRest = createRestRepositoryContext(StockMovement);
 const reservationRest = createRestRepositoryContext(Reservation);
@@ -93,7 +94,6 @@ export function createClientAdapters(): StockAdapters {
     stockItemRest,
     stockMovementRest,
     reservationRest,
-    configurationStore,
     metadata,
   };
 }
