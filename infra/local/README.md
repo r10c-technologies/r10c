@@ -53,18 +53,19 @@ All defaults are labelled **LOCAL DEV ONLY** — never reuse them.
 it runs 3-4 times per app boot. It walks a ladder and heals only the broken
 rung; a healthy cluster costs ~0.1s (five TCP probes plus one `get deploy`).
 
-| Rung            | Check                               | Heal                                   |
-| --------------- | ----------------------------------- | -------------------------------------- |
-| L0 tooling      | `minikube` / `kubectl` / `nc`       | — reports the `brew install` line      |
-| L1 cluster      | minikube `Running`                  | `minikube start --ports …`             |
-| L1b kubecontext | kubeconfig points at the apiserver  | `minikube update-context` (~2s)        |
-| L2 portmap      | NodePorts published to `127.0.0.1`  | — needs `reset.sh --hard`              |
-| L3 workloads    | deployments match the manifests     | `apply.sh` (always, off the fast path) |
-| L4 rollout      | each deployment has a Ready replica | delete the pod once, re-wait           |
-| L5 probes       | TCP + protocol handshake            | back to L4                             |
-| L6 hosted login | v2 login answering on `:30081`      | secret from the PAT + `apply -k`       |
-| L6b dashboards  | Grafana serves `r10c-bus-outbox`    | `apply.sh` (L3); warns if it did not   |
-| L7 zitadel seed | instance seeded at the current rev  | `tools/zitadel-seed.mjs`               |
+| Rung            | Check                                                    | Heal                                                    |
+| --------------- | -------------------------------------------------------- | ------------------------------------------------------- |
+| L0 tooling      | `minikube` / `kubectl` / `nc`                            | — reports the `brew install` line                       |
+| L1 cluster      | minikube `Running`                                       | `minikube start --ports …`                              |
+| L1b kubecontext | kubeconfig points at the apiserver                       | `minikube update-context` (~2s)                         |
+| L2 portmap      | NodePorts published to `127.0.0.1`                       | — needs `reset.sh --hard`                               |
+| L3 workloads    | deployments match the manifests                          | `apply.sh` (always, off the fast path)                  |
+| L4 rollout      | each deployment has a Ready replica                      | delete the pod once, re-wait                            |
+| L5 probes       | TCP + protocol handshake                                 | back to L4                                              |
+| L5b mongo rs    | the replica set has a primary                            | `rs.initiate()`                                         |
+| L6 hosted login | v2 login answering on `:30081`                           | secret from the PAT + `apply -k`                        |
+| L6b dashboards  | Grafana serves `r10c-bus-outbox`                         | `apply.sh` (L3); warns if it did not                    |
+| L7 zitadel seed | seeded at the current rev, and Zitadel accepts its token | restore from the cluster, else `tools/zitadel-seed.mjs` |
 
 Two things it does **not** do, on purpose: it never deletes data, and it never
 recreates the cluster. Both are `reset.sh`'s job, and it exits naming the exact
@@ -120,7 +121,14 @@ cluster keyFile and refuse to start without one, and a Secret's default
 root-owned `0644` projection is rejected — so it is mounted `defaultMode: 0400`
 under `fsGroup: 999`. Initiation is ladder rung **L5b**, never a
 `readinessProbe`: `rs.initiate()` needs a live pod while L4 waits for Ready, so a
-probe demanding a primary would deadlock against its own init.
+probe demanding a primary would deadlock against its own init. `reset.sh` runs
+the rung itself, so a reset on its own leaves a lab that can write, not one that
+answers every probe and fails its first transaction.
+
+Its WiredTiger cache is **sized explicitly** (`--wiredTigerCacheSizeGB 0.25`,
+under a `1Gi` limit). mongod sizes the default from the memory it can see, not
+from the container's limit, and under the old `512Mi` limit the pod was
+OOMKilled six times in 36 days — once mid-boot, while the fleet seeded.
 
 Parallel `ensure-infra` tasks serialise on `infra/local/.heal.lock`
 (git-ignored): the first heals, the rest wait and re-probe. The lock records its
@@ -228,9 +236,20 @@ page is on `#f7f9fc` with `#3b6ff5` controls and the light/dark switcher is gone
 `THEME_MODE_LIGHT` having settled the question. The API-level check that needs no
 browser is `GET /v2/settings/branding` with the seed's PAT.
 
-All three files are deleted by `reset.sh`, which is deliberate: the instance and
-the configuration naming it are recreated together, so a stale client id can
-never outlive the instance it pointed at.
+**The three files are a cache, and the cluster holds the originals.** Each one
+is written to a namespace Secret as it is minted — `zitadel-seed-pat`,
+`zitadel-login-secret` and `zitadel-generated-env` — because the files belong to
+one checkout and the cluster does not. A reset run from a second checkout or a
+worktree recreates the instance and leaves this checkout's copies naming one
+that no longer exists, and before the Secrets that read as a green L7 over a
+fleet where every Zitadel call answered `Errors.Token.Invalid` (#280). So L7 asks
+Zitadel whether it accepts the token in `.generated.env` — one local call, cheap
+enough for the fast path — and a copy it rejects is restored from the Secret
+rather than trusted. The doctor names that case on its own line.
+
+`reset.sh` deletes the files **and** the namespace, so the Secrets go with the
+instance they describe, and a stale client id cannot outlive it from either
+side.
 
 > **Both machine tokens come from first-instance init.** A `FIRSTINSTANCE_*` key
 > fires only when the instance is created, so an instance older than one of them

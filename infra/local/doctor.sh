@@ -108,8 +108,10 @@ fi
 # a green fleet cannot create a catalog record.
 if mongo_rs_ready; then
   ok "L5b mongo rs" "replica set $MONGO_REPLICA_SET has a primary"
+  rs_down=""
 else
   bad "L5b mongo rs" "replica set $MONGO_REPLICA_SET has no primary — transactional writes fail"
+  rs_down="1"
 fi
 
 # L6 -------------------------------------------------------------------------
@@ -131,22 +133,28 @@ if zitadel_seeded; then
   ok "L7 zitadel" "instance seeded (project, OIDC app, login v2, branding, actions, policy, SMTP)"
   unseeded=""
 else
-  # Two different states, one heal: never seeded (no OIDC app, so no sign-in),
-  # or seeded by an older revision of the script (the app exists but is missing
-  # whatever the newer seed configures).
-  bad "L7 zitadel" "instance not seeded at revision $ZITADEL_SEED_REVISION"
+  # Three different states, one heal: never seeded (no OIDC app, so no
+  # sign-in), seeded by an older revision of the script (the app exists but is
+  # missing whatever the newer seed configures), or seeded for an instance that
+  # no longer runs — the host copy outlived a reset made from another checkout,
+  # and every Zitadel call answers `Errors.Token.Invalid` (#280).
+  if zitadel_seed_revision_current; then
+    bad "L7 zitadel" "seeded, but Zitadel rejects the token in .generated.env — it names another instance"
+  else
+    bad "L7 zitadel" "instance not seeded at revision $ZITADEL_SEED_REVISION"
+  fi
   unseeded="1"
 fi
 
 echo
-if [[ -z "$missing_ports" && -z "$not_ready" && -z "$down" && -z "$login_down" && -z "$unseeded" && "$present" -eq "$total" ]]; then
+if [[ -z "$missing_ports" && -z "$not_ready" && -z "$down" && -z "$rs_down" && -z "$login_down" && -z "$unseeded" && "$present" -eq "$total" ]]; then
   echo "${C_GREEN}healthy${C_OFF} — pnpm run back-office:dev will start immediately."
   exit 0
 fi
 if [[ -n "$missing_ports" ]]; then
   echo "fix: bash infra/local/reset.sh --hard     # only a cluster recreate fixes the port mapping"
 else
-  echo "fix: pnpm run back-office:dev                # self-heals L3/L4/L5"
+  echo "fix: pnpm run back-office:dev                # self-heals L1 and L3-L7"
   echo "     pnpm run back-office:dev:reset          # if that fails twice (wipes local data)"
 fi
 exit 1
