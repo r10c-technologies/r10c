@@ -36,6 +36,22 @@ test.describe('browsing the catalog', () => {
     ).toBeVisible();
   });
 
+  /**
+   * #327: retiring takes a category out of browsing. The status code is not
+   * asserted, for the reason the live suite records: `notFound()` from a shell
+   * renders the not-found UI as a `200`, which #346 fixes.
+   */
+  test('a retired category is neither in the nav nor at its address', async ({
+    page,
+  }) => {
+    await page.goto('/es');
+    await expect(page.getByRole('link', { name: 'Lighting' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Archive' })).toHaveCount(0);
+
+    await page.goto('/es/c/archive');
+    await expect(page.locator('body')).not.toContainText('Archive');
+  });
+
   test('a category shows only its own products', async ({ page }) => {
     await page.goto('/es/c/lighting');
 

@@ -17,15 +17,41 @@
 const PUBLISHED_AT = '2026-01-01T00:00:00.000Z';
 
 export const BRAND_SEED = [
-  { id: 'brand-aurora', code: 'AUR', name: 'Aurora' },
-  { id: 'brand-terra', code: 'TER', name: 'Terra' },
-  { id: 'brand-nimbus', code: 'NIM', name: 'Nimbus' },
+  { id: 'brand-aurora', code: 'AUR', name: 'Aurora', status: 'active' },
+  { id: 'brand-terra', code: 'TER', name: 'Terra', status: 'active' },
+  { id: 'brand-nimbus', code: 'NIM', name: 'Nimbus', status: 'active' },
 ];
 
+/**
+ * ⚠️ `archive` is **retired**, and nothing is classified under it. It exists so
+ * the suite can show a retired category leaving the nav and its route (#327);
+ * with every row active, a reader that forgot the status filter would pass.
+ */
 export const CATEGORY_SEED = [
-  { id: 'category-lighting', code: 'lighting', name: 'Lighting' },
-  { id: 'category-tableware', code: 'tableware', name: 'Tableware' },
-  { id: 'category-textiles', code: 'textiles', name: 'Textiles' },
+  {
+    id: 'category-lighting',
+    code: 'lighting',
+    name: 'Lighting',
+    status: 'active',
+  },
+  {
+    id: 'category-tableware',
+    code: 'tableware',
+    name: 'Tableware',
+    status: 'active',
+  },
+  {
+    id: 'category-textiles',
+    code: 'textiles',
+    name: 'Textiles',
+    status: 'active',
+  },
+  {
+    id: 'category-archive',
+    code: 'archive',
+    name: 'Archive',
+    status: 'retired',
+  },
 ];
 
 /**
@@ -35,7 +61,15 @@ export const CATEGORY_SEED = [
  * offering's own id, so republishing replaces the record rather than adding
  * one. Prices are **minor units**, the projection's convention.
  */
-const offering = (slug, code, name, description, brandId, categoryId, amount) => ({
+const offering = (
+  slug,
+  code,
+  name,
+  description,
+  brandId,
+  categoryId,
+  amount,
+) => ({
   id: slug,
   offeringId: slug,
   vendorId: 'demo-organization',

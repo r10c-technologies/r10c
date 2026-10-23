@@ -37,17 +37,23 @@ const category = (id: string, code: string, name: string) => {
 };
 
 const BRANDS = [brand('brand-terra', 'Terra'), brand('brand-aurora', 'Aurora')];
+const retired = <T extends { status: string }>(one: T): T => {
+  one.status = 'retired';
+  return one;
+};
+
+const BRANDS_WITH_RETIRED = [...BRANDS, retired(brand('brand-old', 'Olden'))];
 const CATEGORIES = [
   category('category-tableware', 'vajilla', 'Vajilla'),
   category('category-lighting', 'iluminacion', 'Iluminación'),
 ];
+const CATEGORIES_WITH_RETIRED = [
+  ...CATEGORIES,
+  retired(category('category-old', 'antiguo', 'Antiguo')),
+];
 
 const run = <A>(
-  read: Effect.Effect<
-    A,
-    unknown,
-    EntityRepositoryTag
-  >,
+  read: Effect.Effect<A, unknown, EntityRepositoryTag>,
   seed: Entity[],
 ) => {
   const repository = makeInMemoryEntityRepository(seed);
@@ -74,6 +80,39 @@ describe('loadCategories', () => {
   });
 });
 
+describe('the retired vocabulary (#327)', () => {
+  it('leaves a retired category out of the nav', async () => {
+    const { result } = run(loadCategories(), CATEGORIES_WITH_RETIRED);
+
+    expect((await result).items.map(item => item.code)).not.toContain(
+      'antiguo',
+    );
+  });
+
+  it('does not resolve a retired category’s route', async () => {
+    const { result } = run(
+      getCategoryByCode('antiguo'),
+      CATEGORIES_WITH_RETIRED,
+    );
+
+    expect(await result).toBeUndefined();
+  });
+
+  /** Retiring keeps what already points at a record resolvable. */
+  it('still names a retired brand or category an offering points at', async () => {
+    expect(
+      (await run(getBrand('brand-old'), BRANDS_WITH_RETIRED).result)?.name,
+    ).toBe('Olden');
+    expect(
+      (await run(getCategory('category-old'), CATEGORIES_WITH_RETIRED).result)
+        ?.name,
+    ).toBe('Antiguo');
+    expect(
+      (await run(loadBrands(), BRANDS_WITH_RETIRED).result).items,
+    ).toHaveLength(3);
+  });
+});
+
 describe('loadBrands', () => {
   it('returns every brand sorted by name', async () => {
     const { result } = run(loadBrands(), BRANDS);
@@ -92,7 +131,10 @@ describe('getCategoryByCode', () => {
     expect((await result)?.id).toBe('category-tableware');
     expect(load).toHaveBeenCalledWith(
       expect.objectContaining({
-        filtering: [{ property: 'code', operator: 'eq', value: 'vajilla' }],
+        filtering: [
+          { property: 'code', operator: 'eq', value: 'vajilla' },
+          { property: 'status', operator: 'eq', value: 'active' },
+        ],
         pageSize: 1,
       }),
     );
