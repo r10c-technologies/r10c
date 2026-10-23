@@ -32,7 +32,7 @@ const navItem = (surface: {
 
 export const STOCK_NAV: GuardedNavSection[] = [
   {
-    title: 'shell:stock.nav.stock',
+    title: 'r10c:stock.nav.stock',
     // Operaciones: a *process* made every record here — a movement upserts the
     // item, and the checkout crossing writes the hold. The tier's own heading
     // comes from `SCREEN_TYPE_LABEL_KEYS`, so contributing this section is the

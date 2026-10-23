@@ -4,6 +4,7 @@
 - Date: 2026-08-01
 - Area: auth
 - Read when: granting a role or provisioning an organization — two ceilings, what a role may assign and what the organization was provisioned for
+- Revised: 2026-10-23 — the ladder is r10c's own since entifix 0.6.0: `ROLE_LADDER` in `@r10c/business-ts-authz-grants`, built with entifix's `defineRoleLadder`.
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   the entitlement vocabulary is the set of **tenant-facing** domains;
   `catalog-reference` is operator-owned and never grantable.
@@ -48,8 +49,10 @@ it into `roles` is what would let a string comparison decide a storage boundary.
 
 ### Rank and grants split
 
-`ROLE_RANK` keeps its single job: the assignment ceiling (`canAssignRole` — you
-may mint at or below your own tier). Grants stop moving with it.
+The ladder's rank keeps its single job: the assignment ceiling (`canAssignRole` —
+you may mint at or below your own tier). Since entifix 0.6.0 the rungs are
+r10c's `ROLE_LADDER` in `@r10c/business-ts-authz-grants`, and only the rule is
+the framework's. Grants stop moving with it.
 
 "Developer detail" becomes an explicit permission set —
 `platform:diagnostics:read`, `platform:trace:read`, and the config CRUD that

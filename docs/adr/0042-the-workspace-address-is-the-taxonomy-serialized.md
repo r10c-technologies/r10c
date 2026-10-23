@@ -4,6 +4,7 @@
 - Date: 2026-09-06
 - Area: frontend
 - Read when: addressing a workspace tab — `master:<key>[:<id>]` is one grammar, and both version constants bump when it changes
+- Revised: 2026-10-23 — entifix 0.6.0 stopped shipping r10c's back-office copy: the catalog nav keys are `r10c:marketplaceAdmin.nav.*` now, not `shell:`.
 - Revised: 2026-09-07 by [ADR 0045](0045-the-wizard-a-step-graph-and-a-submit-that-hands-off.md)
   — the third segment is the position within the screen: a record for `master`,
   a step for `wizard`.
@@ -92,8 +93,9 @@ rather than broken, and therefore easy to ship by accident.
   becomes concatenation. Its `CATALOG`/`CATALOG_REFERENCE` domain constants are
   deleted — `permissionForEntity` derives the same strings from `@entity()`.
 - The copy moves with it: `app:admin.nav.{catalog,products,brands,categories}`
-  become `shell:marketplaceAdmin.nav.*`, because an `app:` key is a lint error
-  outside `apps/`. `chrome.tsx`'s breadcrumb map follows.
+  become `r10c:marketplaceAdmin.nav.*` (they were `shell:` until entifix 0.6.0
+  stopped shipping r10c's copy), because an `app:` key is a lint error outside
+  `apps/`. `chrome.tsx`'s breadcrumb map follows.
 - `EntityCrud` carries `entityLabelKey` and `entityPluralKey`, read off
   `@entity({ labelKey, pluralKey })` rather than rebuilt from the key — a second
   place that knows how a catalog subtree is laid out is a second place to fix

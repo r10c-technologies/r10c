@@ -51,6 +51,7 @@
     "@entifix/i18n": "catalog:",
     "@entifix/rest": "catalog:",
     "@entifix/next-shell": "catalog:",
-    "@entifix/next-i18n": "catalog:"
+    "@entifix/next-i18n": "catalog:",
+    "@r10c/business-ts-authz-grants": "workspace:*"
   }
 }

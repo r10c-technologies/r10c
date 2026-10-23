@@ -35,6 +35,9 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../../../business/ts/authz-grants/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/authn/tsconfig.lib.json"
     }
   ]

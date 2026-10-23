@@ -20,14 +20,14 @@ import { CONFIGURATION_LIST_HREF } from './client/configuration-list/configurati
  */
 export const SYSTEM_MANAGEMENT_NAV: GuardedNavSection[] = [
   {
-    title: 'shell:systemManagement.nav.section',
+    title: 'r10c:systemManagement.nav.section',
     // Definiciones, with no exception made for it (ADR 0033): the operator
     // authors the row, it has no lifecycle, and every service references it.
     // That it is opened rarely is a fact about frequency, not about shape.
     type: 'master',
     items: [
       {
-        label: 'shell:systemManagement.nav.configuration',
+        label: 'r10c:systemManagement.nav.configuration',
         href: CONFIGURATION_LIST_HREF,
         icon: '⚙',
         // Definiciones like every other screen this shell serves, so the tab

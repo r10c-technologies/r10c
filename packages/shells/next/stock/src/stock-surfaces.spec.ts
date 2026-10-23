@@ -59,7 +59,7 @@ describe('the stock surfaces', () => {
   it('carries shell-namespaced nav copy', () => {
     // `app:` keys are a lint error outside `apps/`, and this is a shell.
     for (const surface of STOCK_SURFACES) {
-      expect(surface.navLabelKey.startsWith('shell:stock.nav.')).toBe(true);
+      expect(surface.navLabelKey.startsWith('r10c:stock.nav.')).toBe(true);
     }
   });
 });
@@ -87,7 +87,7 @@ describe('stockSurface', () => {
         entityKey: 'stock-item',
         basePath: '/stock/stock-item',
         icon: '▤',
-        navLabelKey: 'shell:stock.nav.items',
+        navLabelKey: 'r10c:stock.nav.items',
         searchProperty: 'offeringId',
         labelProperty: 'offeringId',
       }),

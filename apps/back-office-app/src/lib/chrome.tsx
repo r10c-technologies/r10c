@@ -57,23 +57,23 @@ export async function BackOfficeChrome({
     home: t('admin.nav.dashboard'),
     // Owned by the shells that render these screens, so the keys carry their
     // namespace rather than living in this app's catalog.
-    catalog: translateKey('shell:marketplaceAdmin.nav.catalog'),
-    product: translateKey('shell:marketplaceAdmin.nav.products'),
-    'product-brand': translateKey('shell:marketplaceAdmin.nav.brands'),
-    'product-category': translateKey('shell:marketplaceAdmin.nav.categories'),
-    'product-offering': translateKey('shell:marketplaceAdmin.nav.offerings'),
+    catalog: translateKey('r10c:marketplaceAdmin.nav.catalog'),
+    product: translateKey('r10c:marketplaceAdmin.nav.products'),
+    'product-brand': translateKey('r10c:marketplaceAdmin.nav.brands'),
+    'product-category': translateKey('r10c:marketplaceAdmin.nav.categories'),
+    'product-offering': translateKey('r10c:marketplaceAdmin.nav.offerings'),
     'product-offering-price': translateKey(
-      'shell:marketplaceAdmin.nav.offeringPrices',
+      'r10c:marketplaceAdmin.nav.offeringPrices',
     ),
     // The Asistentes tier's own word, so a wizard's trail reads the way the
     // sidebar does. `SCREEN_TYPE_LABEL_KEYS` is the one place the four screen
     // types are named, and this resolves through it rather than restating it.
     wizards: translateKey(SCREEN_TYPE_LABEL_KEYS.wizard),
     'product-setup': translateKey(
-      'shell:marketplaceAdmin.wizard.productSetup.title',
+      'r10c:marketplaceAdmin.wizard.productSetup.title',
     ),
-    system: translateKey('shell:systemManagement.nav.section'),
-    configuration: translateKey('shell:systemManagement.nav.configuration'),
+    system: translateKey('r10c:systemManagement.nav.section'),
+    configuration: translateKey('r10c:systemManagement.nav.configuration'),
     users: translateKey('r10c:auth.nav.users'),
     // Generic on purpose: `/new` is every domain's create route, so a
     // domain-specific label here reads wrong on the other one's pages.

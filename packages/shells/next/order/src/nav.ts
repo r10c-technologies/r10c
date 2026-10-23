@@ -32,7 +32,7 @@ const navItem = (surface: {
 
 export const ORDER_NAV: GuardedNavSection[] = [
   {
-    title: 'shell:order.nav.orders',
+    title: 'r10c:order.nav.orders',
     // Operaciones: a *process* made every record here — the checkout saga wrote
     // every order, and no person can write one. The tier's own heading
     // comes from `SCREEN_TYPE_LABEL_KEYS`, so contributing this section is the

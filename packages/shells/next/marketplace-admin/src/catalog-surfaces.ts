@@ -126,7 +126,7 @@ export const PRODUCT_SURFACE = catalogSurface(ProductSpecification, {
   // `product` registry key, which resolved to nothing at all.
   basePath: '/catalog/product',
   icon: '▦',
-  navLabelKey: 'shell:marketplaceAdmin.nav.products',
+  navLabelKey: 'r10c:marketplaceAdmin.nav.products',
   // The one surface an organization is actually provisioned for. Brands and
   // categories are `catalog-reference`, which ADR 0022 makes permanently
   // non-grantable — a marketplace has to merge taxonomy, so no vendor buys it
@@ -142,7 +142,7 @@ export const PRODUCT_OFFERING_SURFACE = catalogSurface(ProductOffering, {
   entityKey: 'product-offering',
   basePath: '/catalog/product-offering',
   icon: '◉',
-  navLabelKey: 'shell:marketplaceAdmin.nav.offerings',
+  navLabelKey: 'r10c:marketplaceAdmin.nav.offerings',
   // Tenant-plane and vendor-authored, exactly like the specification above, so
   // it carries the same ceiling: an organization provisioned for
   // `product-configuration-management` sees it and one provisioned for nothing
@@ -159,7 +159,7 @@ export const PRODUCT_OFFERING_PRICE_SURFACE = catalogSurface(
     entityKey: 'product-offering-price',
     basePath: '/catalog/product-offering-price',
     icon: '⊙',
-    navLabelKey: 'shell:marketplaceAdmin.nav.offeringPrices',
+    navLabelKey: 'r10c:marketplaceAdmin.nav.offeringPrices',
     entitled: true,
     service: 'marketplace-admin',
     // ⚠️ `offeringId`, not `amount` or `currency`, and not by preference:
@@ -177,7 +177,7 @@ export const PRODUCT_BRAND_SURFACE = catalogSurface(ProductBrand, {
   entityKey: 'product-brand',
   basePath: '/catalog/product-brand',
   icon: '◈',
-  navLabelKey: 'shell:marketplaceAdmin.nav.brands',
+  navLabelKey: 'r10c:marketplaceAdmin.nav.brands',
   service: 'marketplace',
   searchProperty: 'name',
   labelProperty: 'name',
@@ -188,7 +188,7 @@ export const PRODUCT_CATEGORY_SURFACE = catalogSurface(ProductCategory, {
   entityKey: 'product-category',
   basePath: '/catalog/product-category',
   icon: '⊞',
-  navLabelKey: 'shell:marketplaceAdmin.nav.categories',
+  navLabelKey: 'r10c:marketplaceAdmin.nav.categories',
   service: 'marketplace',
   searchProperty: 'name',
   labelProperty: 'name',

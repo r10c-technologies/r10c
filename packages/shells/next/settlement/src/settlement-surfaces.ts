@@ -123,7 +123,7 @@ export const AGREEMENT_SURFACE = settlementSurface(Agreement, {
   screenType: 'master',
   basePath: '/settlement/agreement',
   icon: '⚖',
-  navLabelKey: 'shell:settlement.nav.agreements',
+  navLabelKey: 'r10c:settlement.nav.agreements',
   searchProperty: 'vendorId',
   labelProperty: 'vendorId',
 });
@@ -133,7 +133,7 @@ export const COMMISSION_ENTRY_SURFACE = settlementSurface(CommissionEntry, {
   screenType: 'operation',
   basePath: '/settlement/commission-entry',
   icon: '≡',
-  navLabelKey: 'shell:settlement.nav.entries',
+  navLabelKey: 'r10c:settlement.nav.entries',
   searchProperty: 'vendorId',
   labelProperty: 'vendorId',
   sublabelProperty: 'currency',
@@ -144,7 +144,7 @@ export const SETTLEMENT_RUN_SURFACE = settlementSurface(SettlementRun, {
   screenType: 'operation',
   basePath: '/settlement/settlement-run',
   icon: '⏱',
-  navLabelKey: 'shell:settlement.nav.runs',
+  navLabelKey: 'r10c:settlement.nav.runs',
   // ⚠️ A run has **no** string member at all — a period, a period and a status.
   // `searchProperty` is declared for the surface's shape and this surface is
   // deliberately left out of `SETTLEMENT_SEARCH_SOURCES`: an entity with nothing
@@ -159,7 +159,7 @@ export const VENDOR_PAYOUT_SURFACE = settlementSurface(VendorPayout, {
   screenType: 'operation',
   basePath: '/settlement/vendor-payout',
   icon: '◧',
-  navLabelKey: 'shell:settlement.nav.payouts',
+  navLabelKey: 'r10c:settlement.nav.payouts',
   searchProperty: 'vendorId',
   labelProperty: 'vendorId',
   sublabelProperty: 'currency',

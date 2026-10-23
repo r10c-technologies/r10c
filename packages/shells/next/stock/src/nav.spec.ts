@@ -8,7 +8,7 @@ describe('STOCK_NAV', () => {
     // A host concatenates these rather than special-casing any of them, so a
     // fragment that carried a different shape would need an edit in the host.
     expect(STOCK_NAV).toHaveLength(1);
-    expect(STOCK_NAV[0].title).toBe('shell:stock.nav.stock');
+    expect(STOCK_NAV[0].title).toBe('r10c:stock.nav.stock');
   });
 
   /**

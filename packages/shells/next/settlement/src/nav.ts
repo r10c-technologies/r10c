@@ -53,14 +53,14 @@ const itemsFor = (surfaces: readonly SettlementSurface[]): GuardedNavItem[] =>
 
 export const SETTLEMENT_NAV: GuardedNavSection[] = [
   {
-    title: 'shell:settlement.nav.settlement',
+    title: 'r10c:settlement.nav.settlement',
     // Definiciones: somebody authors an agreement, and every settled sale then
     // references it.
     type: 'master',
     items: itemsFor(SETTLEMENT_MASTER_SURFACES),
   },
   {
-    title: 'shell:settlement.nav.settlement',
+    title: 'r10c:settlement.nav.settlement',
     // Operaciones: a process made every one of these. A captured sale writes
     // the entry, a sweep opens the run, the run folds the payout.
     type: 'operation',

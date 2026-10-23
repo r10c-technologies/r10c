@@ -49,7 +49,7 @@ describe('the order surfaces', () => {
   it('carries shell-namespaced nav copy', () => {
     // `app:` keys are a lint error outside `apps/`, and this is a shell.
     for (const surface of ORDER_SURFACES) {
-      expect(surface.navLabelKey.startsWith('shell:order.nav.')).toBe(true);
+      expect(surface.navLabelKey.startsWith('r10c:order.nav.')).toBe(true);
     }
   });
 });
@@ -77,7 +77,7 @@ describe('orderSurface', () => {
         entityKey: 'product-order',
         basePath: '/order/product-order',
         icon: '🧾',
-        navLabelKey: 'shell:order.nav.orders',
+        navLabelKey: 'r10c:order.nav.orders',
         searchProperty: 'buyerId',
         labelProperty: 'buyerId',
       }),

@@ -160,7 +160,7 @@ export const PRODUCT_SETUP_WIZARD: WizardDefinition = {
     {
       id: 'start',
       kind: 'choice',
-      labelKey: 'shell:marketplaceAdmin.wizard.productSetup.steps.start',
+      labelKey: 'r10c:marketplaceAdmin.wizard.productSetup.steps.start',
       options: ['blank', 'duplicate'],
       to: ['identity', 'source'],
       next: state =>
@@ -172,26 +172,26 @@ export const PRODUCT_SETUP_WIZARD: WizardDefinition = {
     {
       id: 'source',
       kind: 'selection',
-      labelKey: 'shell:marketplaceAdmin.wizard.productSetup.steps.source',
+      labelKey: 'r10c:marketplaceAdmin.wizard.productSetup.steps.source',
       to: ['identity'],
     },
     {
       id: 'identity',
       kind: 'form',
-      labelKey: 'shell:marketplaceAdmin.wizard.productSetup.steps.identity',
+      labelKey: 'r10c:marketplaceAdmin.wizard.productSetup.steps.identity',
       to: ['classification'],
     },
     {
       id: 'classification',
       kind: 'form',
       labelKey:
-        'shell:marketplaceAdmin.wizard.productSetup.steps.classification',
+        'r10c:marketplaceAdmin.wizard.productSetup.steps.classification',
       to: ['summary'],
     },
     {
       id: 'summary',
       kind: 'summary',
-      labelKey: 'shell:marketplaceAdmin.wizard.productSetup.steps.summary',
+      labelKey: 'r10c:marketplaceAdmin.wizard.productSetup.steps.summary',
       to: [],
     },
   ],
@@ -474,7 +474,7 @@ function StartStep({ wizard }: { wizard: ReturnType<typeof useWizard> }) {
   const translateKey = useTranslateKey();
   const chosen = readStepChoice(wizard.state, 'start') ?? 'blank';
   const key = (leaf: string) =>
-    `shell:marketplaceAdmin.wizard.productSetup.start.${leaf}`;
+    `r10c:marketplaceAdmin.wizard.productSetup.start.${leaf}`;
 
   return (
     <Card>
@@ -553,13 +553,13 @@ function SourceStep({
     <Stack gap="xs">
       <Text tone="muted">
         {translateKey(
-          'shell:marketplaceAdmin.wizard.productSetup.source.prompt',
+          'r10c:marketplaceAdmin.wizard.productSetup.source.prompt',
         )}
       </Text>
       {chosen !== undefined && (
         <Text step={-1} weight="medium">
           {translateKey(
-            'shell:marketplaceAdmin.wizard.productSetup.source.chosen',
+            'r10c:marketplaceAdmin.wizard.productSetup.source.chosen',
             { name: chosen },
           )}
         </Text>
@@ -665,7 +665,7 @@ function SummaryStep({
 }) {
   const translateKey = useTranslateKey();
   const key = (leaf: string) =>
-    `shell:marketplaceAdmin.wizard.productSetup.summary.${leaf}`;
+    `r10c:marketplaceAdmin.wizard.productSetup.summary.${leaf}`;
 
   const values: EntityDraft = {
     ...readStepDraft(wizard.state, 'identity'),
@@ -784,7 +784,7 @@ function Recap({
   return (
     <Stack gap="3xs">
       <Text step={-1} tone="muted">
-        {translateKey('shell:marketplaceAdmin.wizard.productSetup.recap')}
+        {translateKey('r10c:marketplaceAdmin.wizard.productSetup.recap')}
       </Text>
       {answered.map(({ field, value }) => (
         <RecapLine key={field} field={field} value={value} />

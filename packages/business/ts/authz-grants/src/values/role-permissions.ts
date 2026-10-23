@@ -1,4 +1,6 @@
-import { type Permission, type Role } from '@entifix/authz';
+import { type Permission } from '@entifix/authz';
+
+import { type Role } from './role-ladder';
 
 /**
  * Entity domains referenced by the grant table. They mirror the `domain` passed

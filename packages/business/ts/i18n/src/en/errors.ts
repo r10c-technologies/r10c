@@ -9,6 +9,7 @@ export const errors: EsErrors = {
   invalidState: 'That sign-in link has expired. Try again.',
   accountInactive: 'Your account is suspended.',
   providerUnavailable: 'We could not reach the identity provider.',
+  upstreamUnavailable: 'That service is not answering right now. Try again in a moment.',
   signInFailed: 'Sign-in could not be completed.',
   noActiveOrganization: 'Select an organization to continue.',
   invalidRequest: 'The request is not valid.',

@@ -4,6 +4,7 @@
 - Date: 2026-07-24
 - Area: auth
 - Read when: guarding a route, adding a permission, or deciding what a token may carry — grants come from `ROLE_PERMISSIONS`, never from the token, and hiding a nav item protects nothing
+- Revised: 2026-10-23 — `canAssignRole` and the rank it compares come from r10c's `ROLE_LADDER` (`@r10c/business-ts-authz-grants`) since entifix 0.6.0.
 - Revised: 2026-09-17 — layer 1 below is Next 16's **proxy** (`src/proxy.ts`),
   the renamed middleware, and it runs on Node rather than the edge (#282). Still
   cookie presence only, still not a check; the three layers are unchanged.
@@ -95,7 +96,8 @@ user-defined roles are deferred until something actually needs them.
 
 ### Escalation rule: assign at or below your own tier
 
-`canAssignRole(actorRoles, target)` compares `ROLE_RANK`. An Admin mints Users
+`canAssignRole(actorRoles, target)` compares ranks on r10c's `ROLE_LADDER`, in
+`@r10c/business-ts-authz-grants`. An Admin mints Users
 and Admins but never a Super-Admin; public signup passes no actor and is pinned
 to `user`, ignoring any caller-supplied role. Creating a user therefore goes
 through `registerUserUCFactory` (hashing + identifier uniqueness + this guard),

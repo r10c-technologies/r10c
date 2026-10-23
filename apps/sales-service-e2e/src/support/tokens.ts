@@ -1,4 +1,3 @@
-import type { Role } from '@entifix/authz';
 import { signAccessToken } from '@entifix/jwt';
 // From the package root, not `/playwright`: that subpath pulls in Playwright,
 // which has no business loading inside a vitest service suite.
@@ -12,6 +11,7 @@ import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
+import type { Role } from '@r10c/business-ts-authz-grants';
 import type { PartyRoleName } from '@r10c/business-ts-party-management';
 
 /**
