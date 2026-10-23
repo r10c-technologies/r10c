@@ -5,6 +5,8 @@ import {
 } from '@entifix/core';
 import { Effect } from 'effect';
 
+import { type MediaReferenceValue, readMedia } from './media-reference';
+
 /**
  * A vendor's offering reached the storefront. Routing key and register name.
  *
@@ -44,7 +46,7 @@ export type CatalogEventName = (typeof CATALOG_EVENTS)[number];
  * member the specification does not carry is absent from a publication and an
  * unpublication alike.
  *
- * ⚠️ **The four optional members are optional as a safety property, not as
+ * ⚠️ **The five optional members are optional as a safety property, not as
  * laxity.** {@link readCatalogPublication} rejecting a payload classifies the
  * message **poison**, which `AmqpEventBusLayer` quarantines with zero retries
  * (ADR 0030) — so requiring a member the source may legitimately lack makes that
@@ -113,6 +115,14 @@ export interface CatalogPublication {
    */
   readonly brandId?: string;
   readonly categoryId?: string;
+  /**
+   * The pinned specification's pictures, in the vendor's order — the first is
+   * the card image (ADR 0061). References, never bytes: a URL and its alt text.
+   *
+   * Absent rather than `[]` when there are none, for the reason `''` folds to
+   * absent: an empty gallery is a slot that claims to hold something.
+   */
+  readonly media?: readonly MediaReferenceValue[];
 }
 
 /**
@@ -255,5 +265,8 @@ export const readCatalogPublication = (
       description: optionalString(raw['description']),
       brandId: optionalString(raw['brandId']),
       categoryId: optionalString(raw['categoryId']),
+      // Never rejects either, and keeps only the entries the save would have
+      // accepted — a URL that is not `https` never reaches the projection.
+      media: readMedia(raw['media']),
     };
   });

@@ -4,6 +4,7 @@ import {
   type CatalogPublication,
   catalogPublishedEvent,
   catalogUnpublishedEvent,
+  readMedia,
 } from '@r10c/business-ts-catalog-contracts';
 import { Context, Data, Effect } from 'effect';
 
@@ -170,12 +171,20 @@ const MERCHANDISING = ['code', 'description', 'brandId', 'categoryId'] as const;
  */
 const merchandisingOf = (
   specification: ProductSpecification | undefined,
-): Partial<CatalogPublication> =>
-  Object.fromEntries(
-    MERCHANDISING.map(member => [member, specification?.[member]]).filter(
-      ([, value]) => value !== undefined && value !== '',
+): Partial<CatalogPublication> => {
+  const media = readMedia(specification?.media);
+  return {
+    ...Object.fromEntries(
+      MERCHANDISING.map(member => [member, specification?.[member]]).filter(
+        ([, value]) => value !== undefined && value !== '',
+      ),
     ),
-  );
+    // The same absent-not-`undefined` rule, for a collection: no pictures is
+    // no key, never `[]`. Read through `readMedia` so what is announced is
+    // plain `{ url, alt }` values the save already accepted (ADR 0061).
+    ...(media === undefined ? {} : { media }),
+  };
+};
 
 /** What one transition decided: the moved record, and what to announce. */
 export interface OfferingTransitionDecision {

@@ -176,6 +176,9 @@ export const applyPublication = (
       projected.description = publication.description;
       projected.brandId = publication.brandId;
       projected.categoryId = publication.categoryId;
+      // Plain `{ url, alt }` values off the payload, already filtered by
+      // `readMedia`: the projection never holds a URL the save would refuse.
+      projected.media = publication.media;
       // The offering's own id, so republishing an offering replaces its record
       // rather than accumulating one per publication.
       projected.id = publication.offeringId;

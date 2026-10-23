@@ -1,5 +1,8 @@
 import { entityMetadataRoute } from '@entifix/service-shell';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import {
+  ProductSpecification,
+  refuseSpecificationMedia,
+} from '@r10c/business-ts-product-configuration-management';
 import { HttpRouter } from 'effect/http';
 
 import {
@@ -55,6 +58,8 @@ export const productSpecificationRoutes = HttpRouter.addAll([
           key: 'product-specification',
           sequenceName: 'product-specification',
           codePrefix: 'product',
+          // The same rule the `PUT` runs below (ADR 0061).
+          refuse: refuseSpecificationMedia,
         },
         organizationId,
       ),
@@ -64,7 +69,10 @@ export const productSpecificationRoutes = HttpRouter.addAll([
     'PUT',
     '/api/product-specification/:id',
     guarded(ProductSpecification, 'write', () =>
-      saveRoute(ProductSpecification, { fromParams: true }),
+      saveRoute(ProductSpecification, {
+        fromParams: true,
+        prepare: refuseSpecificationMedia,
+      }),
     ),
   ),
   HttpRouter.route(

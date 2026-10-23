@@ -67,6 +67,7 @@ describe('PublishedOffering', () => {
         description: 'One widget.',
         brandId: 'product-brand-4',
         categoryId: 'product-category-8',
+        media: [{ url: 'https://cdn.example/red.jpg', alt: 'Red widget' }],
       }),
     );
 
@@ -76,6 +77,22 @@ describe('PublishedOffering', () => {
     expect(published?.description).toBe('One widget.');
     expect(published?.brandId).toBe('product-brand-4');
     expect(published?.categoryId).toBe('product-category-8');
+    // Children are rebuilt through `MediaReference`, in the order stored.
+    expect(published?.media?.map(({ url, alt }) => ({ url, alt }))).toEqual([
+      { url: 'https://cdn.example/red.jpg', alt: 'Red widget' },
+    ]);
+  });
+
+  it('holds its media as an owned collection, never a queryable member', () => {
+    // A `composition` is unqueryable by construction (ADR 0034): an embedded
+    // array compared as a scalar matches nothing.
+    const media = describeEntityColumns(PublishedOffering).find(
+      column => column.name === 'media',
+    );
+
+    expect(media?.type).toBe('composition');
+    expect(media?.filterable).toBe(false);
+    expect(media?.sortable).toBe(false);
   });
 
   it('defaults to unavailable, so a half-built projection oversells nothing', () => {
@@ -111,6 +128,7 @@ describe('PublishedOffering', () => {
     published.description = 'Green, boxed.';
     published.brandId = 'product-brand-5';
     published.categoryId = 'product-category-9';
+    published.media = [{ url: 'https://cdn.example/green.jpg', alt: 'Green' }];
 
     expect(published.offeringId).toBe('off-3');
     expect(published.vendorId).toBe('vendor-3');
@@ -125,6 +143,9 @@ describe('PublishedOffering', () => {
     expect(published.description).toBe('Green, boxed.');
     expect(published.brandId).toBe('product-brand-5');
     expect(published.categoryId).toBe('product-category-9');
+    expect(published.media).toEqual([
+      { url: 'https://cdn.example/green.jpg', alt: 'Green' },
+    ]);
   });
 
   it('lets a category route filter, and prose stay out of the allowlist', () => {

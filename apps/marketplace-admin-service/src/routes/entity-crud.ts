@@ -50,8 +50,19 @@ import {
   OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
 import { requireOrganization } from '@entifix/service-shell';
-import { CommandTag, EventBusTag, EventSourceTag, readCommandEnvelope, SequenceServiceTag, TransactionHandlerTag, TransactionOutboxTag } from '@entifix/transactions';
-import { acceptTransaction, completeTransaction } from '@entifix/transactions/engine';
+import {
+  CommandTag,
+  EventBusTag,
+  EventSourceTag,
+  readCommandEnvelope,
+  SequenceServiceTag,
+  TransactionHandlerTag,
+  TransactionOutboxTag,
+} from '@entifix/transactions';
+import {
+  acceptTransaction,
+  completeTransaction,
+} from '@entifix/transactions/engine';
 import {
   IllegalOfferingTransition,
   OfferingHasNoPrice,
@@ -122,12 +133,21 @@ const serverError = (error: unknown) =>
  * plain `Error`s carrying a `_tag` field rather than `Data.TaggedError`s, so
  * they are discriminated with `instanceof` — `Effect.catchTag` would not match.
  */
+/**
+ * The code a domain refusal carries for itself (`mediaNotHttps`), so the
+ * browser can say which rule failed rather than "invalid body". Only an
+ * `EntifixBuildError` is asked: it is already a `400`, and the code only
+ * narrows what the `400` says.
+ */
+const refusalCode = (error: EntifixBuildError): string | undefined =>
+  'code' in error && typeof error.code === 'string' ? error.code : undefined;
+
 const writeError = (error: unknown) =>
   error instanceof EntifixBuildError
     ? HttpServerResponse.json(
         {
           error: 'invalid request body',
-          code: 'invalidBody',
+          code: refusalCode(error) ?? 'invalidBody',
           detail: error.message,
         },
         { status: 400 },
@@ -167,7 +187,7 @@ const acceptError = (error: unknown) =>
       ? HttpServerResponse.json(
           {
             error: 'invalid command',
-            code: 'invalidCommand',
+            code: refusalCode(error) ?? 'invalidCommand',
             detail: error.message,
           },
           { status: 400 },
@@ -332,7 +352,7 @@ export const createTransactionRoute = <
   T extends Entity & { code?: string; name?: string },
 >(
   entityConstructor: EntityConstructor<T>,
-  options: CatalogHandlerOptions,
+  options: CatalogHandlerOptions<T>,
   organizationId: string,
 ) =>
   Effect.gen(function* () {

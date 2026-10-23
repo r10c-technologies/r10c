@@ -24,6 +24,7 @@ const PUBLICATION: CatalogPublication = {
   description: 'Stoneware, glazed by hand.',
   brandId: 'product-brand-3',
   categoryId: 'product-category-7',
+  media: [{ url: 'https://cdn.example/mug.jpg', alt: 'The mug, glazed blue' }],
 };
 
 /** The seven members every publication must carry to be readable at all. */
@@ -234,10 +235,9 @@ describe('readCatalogPublication', () => {
   it.each(['code', 'description', 'brandId', 'categoryId'])(
     'reads %s when the specification carried one',
     member => {
-      expect(Effect.runSync(readCatalogPublication(PUBLICATION))).toHaveProperty(
-        member,
-        PUBLICATION[member as keyof CatalogPublication],
-      );
+      expect(
+        Effect.runSync(readCatalogPublication(PUBLICATION)),
+      ).toHaveProperty(member, PUBLICATION[member as keyof CatalogPublication]);
     },
   );
 
@@ -286,12 +286,47 @@ describe('readCatalogPublication', () => {
     expect(publication).toEqual(REQUIRED);
   });
 
+  it('reads null or empty media as absent, never as a failure', () => {
+    // The fifth optional member, and optional for the same anti-poison reason:
+    // most specifications carry no pictures at all.
+    for (const media of [null, [], 'not an array']) {
+      const publication = Effect.runSync(
+        readCatalogPublication({ ...REQUIRED, media }),
+      );
+
+      expect(publication.media).toBeUndefined();
+    }
+  });
+
+  it('keeps only the media entries the save would have accepted', () => {
+    // A reader must not relax the https boundary (ADR 0061), and must not
+    // reject the whole offering over one picture either.
+    const publication = Effect.runSync(
+      readCatalogPublication({
+        ...REQUIRED,
+        media: [
+          { url: 'http://cdn.example/plain.jpg', alt: 'Mixed content' },
+          { url: 'https://cdn.example/kept.jpg', alt: 'Kept' },
+          { url: 'https://cdn.example/no-alt.jpg' },
+        ],
+      }),
+    );
+
+    expect(publication.media).toEqual([
+      { url: 'https://cdn.example/kept.jpg', alt: 'Kept' },
+    ]);
+  });
+
   it('keeps the message id out of the widening', () => {
     // The dedup key is `<offeringId>:<publishedAt>` and nothing else. A key that
     // moved with the payload would make every offering already projected look
     // like a first publication.
     expect(catalogEventId(PUBLICATION)).toBe(
-      catalogEventId({ ...PUBLICATION, description: 'edited', code: undefined }),
+      catalogEventId({
+        ...PUBLICATION,
+        description: 'edited',
+        code: undefined,
+      }),
     );
   });
 
