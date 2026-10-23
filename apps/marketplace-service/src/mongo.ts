@@ -10,7 +10,10 @@ import { ConfigurationClientInMemory } from '@entifix/core';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoDatabaseLayer, MongoHealthProbeLayer } from '@entifix/mongo';
 import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
+import {
+  LoadedConfigurationTag,
+  loadRemoteConfiguration,
+} from '@entifix/service-shell/runtime';
 import { EventSourceTag } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
@@ -24,6 +27,7 @@ import { configSourceFor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
 import { startProjecting } from './projection/publish-catalog';
+import { startProjectingVendors } from './projection/publish-vendor';
 import { seedCatalogReference } from './seed';
 
 const SERVICE_NAME = 'marketplace-service';
@@ -37,9 +41,11 @@ const SLICE_NAME = 'marketplace';
 
 /**
  * The marketplace-service composition root — the storefront's read host and the
- * owner of two platform-plane stores: `catalog-reference` (the operator-authored
- * brand, category and dictionary vocabulary) and `published-catalog` (the
- * projection of every vendor's approved offerings).
+ * owner of three platform-plane stores: `catalog-reference` (the operator-authored
+ * brand, category and dictionary vocabulary), `published-catalog` (the
+ * projection of every vendor's approved offerings) and `published-vendor` (each
+ * seller's display name, projected from the `auth` store's announcements —
+ * ADR 0061).
  *
  * **`MongoDatabaseLayer`, not `MongoClientLayer`** — the opposite of
  * marketplace-admin-service, and for the opposite reason. Both of this slice's
@@ -110,13 +116,18 @@ export const AppLayer = Layer.unwrap(
     const infra = Layer.provideMerge(AmqpEventBusLayer, connections);
 
     // Every connection contributes its own readiness probe. One Mongo database
-    // backs two platform-plane Stores — the operator's `catalog-reference`
-    // vocabulary and the `published-catalog` projection — and the broker is
+    // backs three platform-plane Stores — the operator's `catalog-reference`
+    // vocabulary and the `published-catalog` and `published-vendor`
+    // projections — and the broker is
     // named by the exchange it checks rather than by a Store, because a
     // transport is not a Store.
     const withProbes = Layer.provideMerge(
       Layer.mergeAll(
-        MongoHealthProbeLayer(['catalog-reference', 'published-catalog']),
+        MongoHealthProbeLayer([
+          'catalog-reference',
+          'published-catalog',
+          'published-vendor',
+        ]),
         AmqpHealthProbeLayer,
       ),
       infra,
@@ -129,6 +140,8 @@ export const AppLayer = Layer.unwrap(
           Layer.effectDiscard(seedCatalogReference),
           // Binds `catalog.*` and starts writing the projection.
           Layer.effectDiscard(startProjecting),
+          // Binds `organization.*` and writes each seller's display name.
+          Layer.effectDiscard(startProjectingVendors),
         ),
         withProbes,
       ),

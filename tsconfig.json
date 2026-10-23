@@ -185,6 +185,15 @@
     },
     {
       "path": "./packages/utils/ts/fleet"
+    },
+    {
+      "path": "./packages/business/ts/marketplace-vendor"
+    },
+    {
+      "path": "./packages/business/ts/party-contracts"
+    },
+    {
+      "path": "./packages/implementation/marketplace-vendor/next"
     }
   ],
   "compilerOptions": {

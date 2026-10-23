@@ -6,6 +6,7 @@ import { dictionaryTermRoutes } from './routes/dictionary-term.routes';
 import { productBrandRoutes } from './routes/product-brand.routes';
 import { productCategoryRoutes } from './routes/product-category.routes';
 import { publishedOfferingRoutes } from './routes/published-offering.routes';
+import { publishedVendorRoutes } from './routes/published-vendor.routes';
 
 /**
  * marketplace-service routes. `/api/health*` is added by the service base.
@@ -32,6 +33,7 @@ export const router = Layer.mergeAll(
     HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
   ]),
   publishedOfferingRoutes,
+  publishedVendorRoutes,
   productBrandRoutes,
   productCategoryRoutes,
   dictionaryTermRoutes,

@@ -54,6 +54,6 @@ export const authSlice: SliceDeclaration = {
     // redelivered — this is how the slice finds out what it missed.
     'POST /admin/v1/events/_search',
   ],
-  publishedEvents: [],
+  publishedEvents: ['organization.announced'],
   subscriptions: [],
 };

@@ -26,6 +26,12 @@
       "path": "../../packages/utils/ts/fleet/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/business/ts/party-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/business/ts/marketplace-vendor/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/marketplace-catalog/tsconfig.lib.json"
     },
     {

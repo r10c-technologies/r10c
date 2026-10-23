@@ -201,6 +201,7 @@ export const entity = {
       name: 'Nombre',
       slug: 'Identificador',
       status: 'Estado',
+      updatedAt: 'Última actualización',
     },
     values: {
       status: {
@@ -274,6 +275,16 @@ export const entity = {
       code: 'Código',
       values: 'Valores',
       unit: 'Unidad',
+    },
+  },
+  'published-vendor': {
+    label: 'Vendedor publicado',
+    plural: 'Vendedores publicados',
+    fields: {
+      id: 'ID',
+      vendorId: 'ID del vendedor',
+      displayName: 'Vendedor',
+      announcedAt: 'Anunciado el',
     },
   },
   'published-offering': {

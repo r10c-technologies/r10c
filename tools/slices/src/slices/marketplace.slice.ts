@@ -24,7 +24,7 @@ import type { SliceDeclaration } from '../types.js';
 export const marketplaceSlice: SliceDeclaration = {
   name: 'marketplace',
   status: 'active',
-  domains: ['catalog-reference', 'marketplace-catalog'],
+  domains: ['catalog-reference', 'marketplace-catalog', 'marketplace-vendor'],
   stores: [
     {
       name: 'catalog-reference',
@@ -43,6 +43,13 @@ export const marketplaceSlice: SliceDeclaration = {
       // its source in ways nothing detects.
       truth: 'projection-of:catalog',
     },
+    {
+      name: 'published-vendor',
+      plane: 'platform',
+      hosts: ['marketplace-vendor'],
+      partitioning: 'single',
+      truth: 'projection-of:auth',
+    },
   ],
   deployments: ['marketplace-service'],
   coDeployedWith: [],
@@ -53,6 +60,7 @@ export const marketplaceSlice: SliceDeclaration = {
   // would be the second writer `truth: projection-of:` forbids.
   exposedAPIs: [
     'GET /api/published-offering{,/:id}',
+    'GET /api/published-vendor{,/:id}',
     'GET /api/product-brand{,/:id}',
     'POST|PUT|DELETE /api/product-brand',
     'GET /api/product-category{,/:id}',
@@ -83,6 +91,18 @@ export const marketplaceSlice: SliceDeclaration = {
         'ignores anything older. Without that guard a redelivered ' +
         'unpublication could remove a listing a newer publication had just ' +
         'restored, permanently and with every probe green.',
+    },
+    {
+      event: 'organization.*',
+      mode: 'work',
+      maxAttempts: 5,
+      dedupe: 'natural',
+      dedupeReason:
+        'An announcement is a full-document replace keyed on the vendor id, so ' +
+        're-applying one writes the same document. It is NOT order-free — a ' +
+        'redelivered older name would overwrite a rename — so the projector ' +
+        'replaces only a record announced no later than the event, as one ' +
+        'conditional upsert against a unique index on vendorId (ADR 0061).',
     },
   ],
 };

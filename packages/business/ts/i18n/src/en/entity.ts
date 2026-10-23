@@ -167,6 +167,7 @@ export const entity: EsEntity = {
       name: 'Name',
       slug: 'Slug',
       status: 'Status',
+      updatedAt: 'Last updated',
     },
     values: {
       status: {
@@ -240,6 +241,16 @@ export const entity: EsEntity = {
       code: 'Code',
       values: 'Values',
       unit: 'Unit',
+    },
+  },
+  'published-vendor': {
+    label: 'Published vendor',
+    plural: 'Published vendors',
+    fields: {
+      id: 'ID',
+      vendorId: 'Vendor ID',
+      displayName: 'Seller',
+      announcedAt: 'Announced at',
     },
   },
   'published-offering': {
