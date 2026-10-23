@@ -146,6 +146,8 @@ export const r10c: EsR10c = {
       cancelledHeading: 'Order cancelled',
       cancelled:
         'We have cancelled your order and the refund is on its way. It can take a few days to appear on your statement.',
+      cancelPaymentPending:
+        'Your payment is still being confirmed, so the order cannot be cancelled yet. Try again in a moment.',
       cancelFailed:
         'The order could not be cancelled. The window may have closed, or it may already be on its way.',
     },

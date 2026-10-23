@@ -783,11 +783,15 @@ describe('the buyer’s own cancel', () => {
   });
 
   /**
-   * A valid capability against an order that is not `paid`. It is a `409` rather
-   * than the blanket `401` above, because the caller has proved they may ask —
-   * what they are being told is about the order, not about them.
+   * A valid capability against an order that is not `paid` yet. It is a `409`
+   * rather than the blanket `401` above, because the caller has proved they may
+   * ask — what they are being told is about the order, not about them.
+   *
+   * ⚠️ `paymentPending`, not `orderNotCancellable` (#387). A placed order is
+   * `pending` until `payment.captured` is consumed, and the buyer reaches this
+   * straight from the confirmation page, so "not yet" must not read as "never".
    */
-  it('refuses an order that is not paid, once the nonce checks out', async () => {
+  it('tells a buyer whose payment is still pending to retry', async () => {
     const id = await withCapability();
 
     const res = await service.client.post(
@@ -797,7 +801,7 @@ describe('the buyer’s own cancel', () => {
     );
 
     expect(res.status).toBe(409);
-    expect(res.data.code).toBe('orderNotCancellable');
+    expect(res.data.code).toBe('paymentPending');
   });
 });
 

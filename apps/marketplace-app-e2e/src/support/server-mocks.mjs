@@ -122,6 +122,18 @@ const BUYER_CANCEL_URL =
 const CANCEL_WINDOW_ENDS_AT = '2099-01-01T00:30:00.000Z';
 
 /**
+ * The basket whose cancel arrives before its payment was confirmed (#387).
+ *
+ * Checkout captures the money synchronously, but the order turns `paid` only
+ * once `payment.captured` is consumed off the bus, and until then order-service
+ * answers a buyer's cancel with `409 paymentPending`. Keyed on what is in the
+ * basket because the cancel is a server action: nothing the browser sends
+ * reaches this process except the cart it built.
+ */
+const PAYMENT_PENDING_OFFERING = 'offering-terra-ceramic-mug';
+const PAYMENT_PENDING_ORDER = 'e2e-order-payment-pending';
+
+/**
  * A buyer cancelling their own order.
  *
  * It checks the nonce is *present* and nothing more: what the digest comparison
@@ -130,26 +142,44 @@ const CANCEL_WINDOW_ENDS_AT = '2099-01-01T00:30:00.000Z';
  * show — that the button appears exactly when the receipt says it may, and that
  * the page afterwards says the order was cancelled.
  */
-const buyerCancelHandler = http.post(BUYER_CANCEL_URL, async ({ request }) => {
-  const body = await request.json().catch(() => undefined);
-  if (typeof body?.cancelNonce !== 'string' || body.cancelNonce === '') {
-    return HttpResponse.json(
-      {
-        error: 'the order cannot be cancelled from here',
-        code: 'cancelNotAuthorized',
-      },
-      { status: 401 },
-    );
-  }
-  return HttpResponse.json({
-    meta: { type: 'entity', entity: 'product-order' },
-    data: { id: 'e2e-order-1', status: 'cancelled' },
-  });
-});
+const buyerCancelHandler = http.post(
+  BUYER_CANCEL_URL,
+  async ({ request, params }) => {
+    const body = await request.json().catch(() => undefined);
+    if (typeof body?.cancelNonce !== 'string' || body.cancelNonce === '') {
+      return HttpResponse.json(
+        {
+          error: 'the order cannot be cancelled from here',
+          code: 'cancelNotAuthorized',
+        },
+        { status: 401 },
+      );
+    }
+    if (params.id === PAYMENT_PENDING_ORDER) {
+      return HttpResponse.json(
+        {
+          error: 'the payment is still being confirmed',
+          code: 'paymentPending',
+          orderId: PAYMENT_PENDING_ORDER,
+        },
+        { status: 409 },
+      );
+    }
+    return HttpResponse.json({
+      meta: { type: 'entity', entity: 'product-order' },
+      data: { id: 'e2e-order-1', status: 'cancelled' },
+    });
+  },
+);
 
 const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
   const body = await request.json();
   const items = body?.inputs?.['write-order']?.[0]?.body?.data?.items ?? [];
+  const orderId = items.some(
+    item => item?.offeringId === PAYMENT_PENDING_OFFERING,
+  )
+    ? PAYMENT_PENDING_ORDER
+    : 'e2e-order-1';
 
   return HttpResponse.json(
     {
@@ -175,7 +205,7 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
                 body: {
                   meta: { type: 'entity', entity: 'product-order' },
                   data: {
-                    id: 'e2e-order-1',
+                    id: orderId,
                     status: 'pending',
                     placedAt: '2026-09-09T00:00:00.000Z',
                     // ⚠️ Server-stamped, and only for an order that brought a

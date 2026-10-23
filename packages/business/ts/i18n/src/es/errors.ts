@@ -19,7 +19,8 @@ export const errors = {
   invalidState: 'Ese enlace de acceso ya expiró. Vuelve a intentarlo.',
   accountInactive: 'Tu cuenta está suspendida.',
   providerUnavailable: 'No pudimos contactar al proveedor de identidad.',
-  upstreamUnavailable: 'Ese servicio no responde en este momento. Inténtalo de nuevo en un momento.',
+  upstreamUnavailable:
+    'Ese servicio no responde en este momento. Inténtalo de nuevo en un momento.',
   signInFailed: 'No se pudo completar el inicio de sesión.',
   noActiveOrganization: 'Selecciona una organización para continuar.',
   invalidRequest: 'La solicitud no es válida.',
@@ -34,6 +35,8 @@ export const errors = {
     'Este pedido ya no se puede marcar como entregado. Puede que se haya cancelado.',
   orderNotCancellable:
     'Este pedido ya no se puede cancelar. Puede que ya vaya en camino o que la cancelación esté en curso.',
+  paymentPending:
+    'Tu pago todavía se está confirmando. Inténtalo de nuevo en un momento.',
   cancelNotAuthorized:
     'Este pedido no se puede cancelar desde aquí. Puede que el plazo de cancelación haya terminado.',
   invalidQuery: 'La consulta no es válida.',

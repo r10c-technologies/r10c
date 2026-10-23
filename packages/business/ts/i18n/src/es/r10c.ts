@@ -158,6 +158,8 @@ export const r10c = {
       cancelledHeading: 'Pedido cancelado',
       cancelled:
         'Cancelamos tu pedido y el reembolso ya va en camino. Puede tardar unos días en aparecer en tu estado de cuenta.',
+      cancelPaymentPending:
+        'Tu pago todavía se está confirmando, así que aún no se puede cancelar el pedido. Inténtalo de nuevo en un momento.',
       cancelFailed:
         'No se pudo cancelar el pedido. Puede que el plazo haya terminado o que ya vaya en camino.',
     },
