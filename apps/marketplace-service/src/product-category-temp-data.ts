@@ -4,6 +4,7 @@ export interface ProductCategoryRecord {
   name: string;
   description: string;
   status: 'active' | 'retired';
+  parentId?: string;
 }
 
 const baseNames = [
@@ -26,6 +27,13 @@ const baseNames = [
  * Every fifth row seeds **retired**, for the same reason the brands do: the
  * retire verb needs rows it will legitimately fail on, or the per-row report
  * has nothing to report. Changing this needs a `dev:reset`.
+ *
+ * **Two levels** (ADR 0062): the first ten rows are roots and every later row
+ * sits under the root its base name came from, so `Electronics 2` is a child of
+ * `Electronics 1`. The tree keeps its own invariants by construction: the
+ * retired rows are exactly the multiples of five, and every child of a retired
+ * root (5 or 10) is itself a multiple of five, so no active category sits under
+ * a retired one.
  */
 export const productCategoryTempData: ProductCategoryRecord[] = Array.from(
   { length: 50 },
@@ -38,6 +46,9 @@ export const productCategoryTempData: ProductCategoryRecord[] = Array.from(
       name: `${baseName} ${Math.floor(index / baseNames.length) + 1}`,
       status: number % 5 === 0 ? ('retired' as const) : ('active' as const),
       description: `Category for ${baseName.toLowerCase()} products (#${number})`,
+      ...(number > baseNames.length && {
+        parentId: `product-category-${(index % baseNames.length) + 1}`,
+      }),
     };
   },
 );

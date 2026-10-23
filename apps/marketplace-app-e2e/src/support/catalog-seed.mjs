@@ -46,6 +46,16 @@ export const CATEGORY_SEED = [
     name: 'Textiles',
     status: 'active',
   },
+  // A child of Lighting (ADR 0062). The desk lamp is classified here, so the
+  // Lighting page only shows it if a category page lists its whole subtree,
+  // and the nav only leaves it out if it shows the roots alone.
+  {
+    id: 'category-desk-lamps',
+    code: 'desk-lamps',
+    name: 'Desk Lamps',
+    status: 'active',
+    parentId: 'category-lighting',
+  },
   {
     id: 'category-archive',
     code: 'archive',
@@ -91,7 +101,7 @@ export const OFFERING_SEED = [
     'Aurora Desk Lamp',
     'Warm dimmable LED with a brushed aluminium arm.',
     'brand-aurora',
-    'category-lighting',
+    'category-desk-lamps',
     1999,
   ),
   offering(

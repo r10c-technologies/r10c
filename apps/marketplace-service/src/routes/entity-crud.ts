@@ -10,6 +10,7 @@ import {
   EntityRepositoryTag,
   EntityTag,
   getUCFactory,
+  loadAllUCFactory,
   loadUCFactory,
   saveUCFactory,
 } from '@entifix/business';
@@ -158,9 +159,39 @@ export const byIdRoute = <T extends Entity>(
     ),
   );
 
+/**
+ * Every record of one entity in this slice's stores.
+ *
+ * Only ever asked for the vocabulary, which is operator-authored and bounded
+ * by construction, so reading it whole is what a rule over the whole tree
+ * needs rather than a scan to be wary of.
+ */
+const loadEvery = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
+  Effect.gen(function* () {
+    const db = yield* MongoDatabaseTag;
+    return yield* loadAllUCFactory<T>().pipe(
+      Effect.provideService(
+        EntityRepositoryTag,
+        makeMongoRepository(db, entityConstructor),
+      ),
+      Effect.provideService(EntityLoadRequestTag, {}),
+    );
+  });
+
+export interface SaveRouteOptions<T extends Entity> {
+  readonly fromParams: boolean;
+  /**
+   * A rule over the whole store a save must pass, answering a code for a
+   * `409` or `undefined`. Given the record as it would be saved and every
+   * stored record, because the rules that need it (a category tree's) are
+   * about where the record sits among the others.
+   */
+  readonly refuse?: (entity: T, all: readonly T[]) => string | undefined;
+}
+
 export const saveRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
-  { fromParams }: { fromParams: boolean },
+  { fromParams, refuse }: SaveRouteOptions<T>,
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -171,6 +202,16 @@ export const saveRoute = <T extends Entity>(
     if (fromParams) {
       const params = yield* HttpRouter.params;
       entity.id = params.id;
+    }
+
+    if (refuse !== undefined) {
+      const refused = refuse(entity, yield* loadEvery(entityConstructor));
+      if (refused !== undefined) {
+        return yield* HttpServerResponse.json(
+          { error: 'the record cannot be saved here', code: refused },
+          { status: 409 },
+        );
+      }
     }
 
     const saved = yield* saveUCFactory<T>().pipe(
@@ -295,9 +336,23 @@ const BULK_SELECTION_CAP = 500;
  * entity for "the result of retiring some brands". A row that failed is `200`
  * data — the *request* succeeded, and only some of the rows did not.
  */
+export interface RetireRouteOptions<T extends Entity> {
+  readonly retired: boolean;
+  /**
+   * Builds the per-row rule a run applies, from every stored record and the
+   * ids selected. A category may not be retired under an active child nor
+   * restored under a retired parent; a brand passes none.
+   */
+  readonly guard?: (
+    all: readonly T[],
+    ids: readonly EntityId[],
+    retired: boolean,
+  ) => (record: T) => string | undefined;
+}
+
 export const retireRoute = <T extends Entity>(
   entityConstructor: EntityConstructor<T>,
-  { retired }: { retired: boolean },
+  { retired, guard }: RetireRouteOptions<T>,
 ) =>
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
@@ -322,13 +377,23 @@ export const retireRoute = <T extends Entity>(
     }
 
     const ids = yield* resolveSelection(entityConstructor, selection);
+    const refuse =
+      guard === undefined
+        ? undefined
+        : guard(yield* loadEvery(entityConstructor), ids, retired);
 
     const outcomes = yield* retireReferences.pipe(
       Effect.provideService(
         EntityRepositoryTag,
         makeMongoRepository(db, entityConstructor),
       ),
-      Effect.provideService(RetireReferenceInputTag, { ids, retired }),
+      Effect.provideService(RetireReferenceInputTag, {
+        ids,
+        retired,
+        // The use case types its rows as any retirable record; this route
+        // knows they are `T`, because it is the one that read them.
+        refuse: refuse as ((record: unknown) => string | undefined) | undefined,
+      }),
     );
 
     return yield* HttpServerResponse.json({

@@ -83,6 +83,7 @@ describe('ProductCategory', () => {
     category.code = 'OTHER';
     category.name = 'Renamed';
     category.description = 'A category';
+    category.parentId = 'c-0';
 
     expect(serializeEntity(ProductCategory, category)).toEqual({
       id: 'c-1',
@@ -90,13 +91,27 @@ describe('ProductCategory', () => {
       name: 'Renamed',
       description: 'A category',
       status: 'active',
+      parentId: 'c-0',
     });
   });
 
   it('describes its columns with declared types and labels', () => {
     expect(
       describeEntityColumns(ProductCategory).map(column => column.name),
-    ).toEqual(['id', 'code', 'name', 'description', 'status']);
+    ).toEqual(['id', 'code', 'name', 'description', 'status', 'parentId']);
+  });
+
+  /**
+   * ADR 0062: the parent travels. A `hidden` or `readonly` member is never
+   * serialized, so the tree would reach the storefront flat.
+   */
+  it('declares `parentId` as the parent, and keeps it on the wire', () => {
+    const parent = describeEntityColumns(ProductCategory).find(
+      column => column.name === 'parentId',
+    );
+
+    expect(parent?.parent).toBe(true);
+    expect(parent?.readonly).toBe(false);
   });
 
   /** Same contract, same silent failure. See the sibling on `ProductBrand`. */

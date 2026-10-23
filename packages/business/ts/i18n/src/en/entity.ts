@@ -75,6 +75,7 @@ export const entity: EsEntity = {
       name: 'Name',
       description: 'Description',
       status: 'Status',
+      parentId: 'Parent category',
     },
     useCases: {
       retire: 'Retire',

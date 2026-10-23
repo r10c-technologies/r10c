@@ -48,11 +48,16 @@ const repositoryOf = (...rows: ProductBrand[]) => {
   return { repository, saved };
 };
 
-const run = (rows: ProductBrand[], ids: EntityId[], retired = true) => {
+const run = (
+  rows: ProductBrand[],
+  ids: EntityId[],
+  retired = true,
+  refuse?: (record: { id?: EntityId }) => string | undefined,
+) => {
   const { repository, saved } = repositoryOf(...rows);
   const outcomes = Effect.runSync(
     retireReferences.pipe(
-      Effect.provideService(RetireReferenceInputTag, { ids, retired }),
+      Effect.provideService(RetireReferenceInputTag, { ids, retired, refuse }),
       // The repository's signature threads a configuration requirement it never
       // uses on this path; the cast keeps the double honest about the members
       // that are actually exercised.
@@ -141,5 +146,21 @@ describe('retireReferences', () => {
 
     expect(outcomes).toEqual([]);
     expect(saved).toEqual([]);
+  });
+
+  /** The rule a category brings; one refused row does not stop the run. */
+  it('reports a row its guard refuses, writes nothing for it, and goes on', () => {
+    const { outcomes, saved } = run(
+      [brand('1', 'active'), brand('2', 'active')],
+      ['1', '2'],
+      true,
+      record => (record.id === '1' ? 'categoryHasChildren' : undefined),
+    );
+
+    expect(outcomes).toEqual([
+      { id: '1', ok: false, code: 'categoryHasChildren' },
+      { id: '2', ok: true },
+    ]);
+    expect(saved.map(row => row.id)).toEqual(['2']);
   });
 });

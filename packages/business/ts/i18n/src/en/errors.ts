@@ -29,6 +29,14 @@ export const errors: EsErrors = {
     'This order can no longer be marked as delivered. It may have been cancelled.',
   orderNotCancellable:
     'This order can no longer be cancelled. It may already be on its way, or a cancellation may be in progress.',
+  categoryParentMissing: 'The parent category does not exist.',
+  categoryParentRetired:
+    'The parent category is retired. Restore it first, or choose another parent.',
+  categoryCycle:
+    'A category cannot sit under itself or under one of its own subcategories.',
+  categoryTooDeep: 'Categories can be at most five levels deep.',
+  categoryHasChildren:
+    'This category still has active subcategories. Retire or move them first.',
   paymentPending:
     'Your payment is still being confirmed. Try again in a moment.',
   // Every refusal of the buyer's own cancel capability answers with this one

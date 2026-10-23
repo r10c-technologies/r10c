@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-23
 - Area: business
+- Revised: 2026-10-23 — the back office's parent picker does not yet exclude the record's own subtree: the generated form cannot filter a link source per record (#400). The server's `categoryCycle` refusal is what holds the invariant meanwhile.
 - Read when: adding a category level, rendering breadcrumbs or category navigation, or retiring a category — any depth up to five, an offering may sit in any node, a category page lists its whole subtree, and a category with active children cannot be retired
 
 ## Context
@@ -93,9 +94,10 @@ a subtree it cannot enumerate.
 ## Consequences
 
 - Five new error codes, each in both locales, which `@r10c/i18n-check` enforces.
-- The back office edits the tree in entifix's tree table, with a parent picker
-  that excludes the record itself and its descendants. The cycle row above is
-  the server's guard; the picker only keeps it from being reached.
+- The back office edits the tree in entifix's tree table, with a parent picker.
+  The cycle row above is the server's guard. The picker is meant to keep it
+  from being reached by excluding the record and its descendants, which waits
+  on [#400](https://github.com/r10c-technologies/r10c/issues/400).
 - The seed gains a two-level tree, and a lab that already has categories needs a
   `dev:reset`, because the seed never rewrites an existing row.
 

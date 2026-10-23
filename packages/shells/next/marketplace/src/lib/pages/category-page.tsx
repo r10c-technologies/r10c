@@ -9,7 +9,10 @@ import {
 } from '@entifix/react-controls/primitives';
 import { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { getCategoryByCode } from '@r10c/implementation-catalog-reference-next';
+import {
+  getCategoryByCode,
+  loadCategorySubtree,
+} from '@r10c/implementation-catalog-reference-next';
 import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -49,10 +52,19 @@ async function CategoryOfferings({
 }: CategoryPageProps & { readonly categoryId: string }) {
   const t = getServerTFor(locale, 'r10c');
   const current = Math.max(1, Number(page) || 1);
+  // The whole subtree (ADR 0062): an offering classified under a child is in
+  // its parent's listing too. On a failed vocabulary read the category itself
+  // is still listed, so the page degrades to the flat answer rather than to
+  // nothing.
+  const categoryIds = await runRead(
+    ProductCategory,
+    loadCategorySubtree(categoryId),
+    [categoryId],
+  );
   const result = await runRead(
     PublishedOffering,
     loadOfferings({
-      categoryId,
+      categoryIds,
       sort: sort === 'code' ? 'code' : 'name',
       page: current,
       pageSize: PAGE_SIZE,

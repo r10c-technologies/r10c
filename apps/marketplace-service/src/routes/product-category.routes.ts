@@ -1,5 +1,7 @@
 import { entityMetadataRoute } from '@entifix/service-shell';
 import {
+  categoryPlacementRefusal,
+  categoryRetireGuard,
   ProductCategory,
   RETIRE_PRODUCT_CATEGORY,
 } from '@r10c/business-ts-catalog-reference';
@@ -15,7 +17,13 @@ import {
   saveRoute,
 } from './entity-crud';
 
-/** Categories: the other half of the classification vocabulary. Same ownership. */
+/**
+ * Categories: the other half of the classification vocabulary. Same ownership.
+ *
+ * Categories form a tree (ADR 0062), so a save and a retire each pass the
+ * tree's rules first: a parent that exists and is active, no loop, at most
+ * five levels, and no retiring a category out from under an active child.
+ */
 export const productCategoryRoutes = HttpRouter.addAll([
   HttpRouter.route('GET', '/api/product-category', listRoute(ProductCategory)),
   HttpRouter.route(
@@ -36,7 +44,10 @@ export const productCategoryRoutes = HttpRouter.addAll([
     guardedWrite(
       ProductCategory,
       'write',
-      saveRoute(ProductCategory, { fromParams: false }),
+      saveRoute(ProductCategory, {
+        fromParams: false,
+        refuse: (category, all) => categoryPlacementRefusal(all, category),
+      }),
     ),
   ),
   HttpRouter.route(
@@ -45,7 +56,10 @@ export const productCategoryRoutes = HttpRouter.addAll([
     guardedWrite(
       ProductCategory,
       'write',
-      saveRoute(ProductCategory, { fromParams: true }),
+      saveRoute(ProductCategory, {
+        fromParams: true,
+        refuse: (category, all) => categoryPlacementRefusal(all, category),
+      }),
     ),
   ),
   HttpRouter.route(
@@ -65,7 +79,10 @@ export const productCategoryRoutes = HttpRouter.addAll([
     '/api/product-category/retire',
     guardedUseCase(
       RETIRE_PRODUCT_CATEGORY,
-      retireRoute(ProductCategory, { retired: true }),
+      retireRoute(ProductCategory, {
+        retired: true,
+        guard: categoryRetireGuard,
+      }),
     ),
   ),
   HttpRouter.route(
@@ -73,7 +90,10 @@ export const productCategoryRoutes = HttpRouter.addAll([
     '/api/product-category/restore',
     guardedUseCase(
       RETIRE_PRODUCT_CATEGORY,
-      retireRoute(ProductCategory, { retired: false }),
+      retireRoute(ProductCategory, {
+        retired: false,
+        guard: categoryRetireGuard,
+      }),
     ),
   ),
 ]);
