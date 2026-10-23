@@ -3,14 +3,16 @@ import { HomePage } from '@r10c/shells-next-marketplace/server';
 import { type LocaleRouteProps, requireLocale } from './locale-param';
 
 /**
- * Prerendered, one copy per locale, refreshed every minute. Nothing here reads
- * the request, which is the only reason that is possible.
+ * Cached, one copy per locale, refreshed every minute. Nothing here reads the
+ * request, which is the only reason that is possible.
  *
- * ⚠️ It is prerendered at **build** time too, and the build has no fleet — so
- * the catalog read behind this page is deliberately fail-soft: it answers an
- * empty page and logs rather than throwing, and the first revalidation once the
- * fleet is up fills it in. A minute rather than an hour because that empty
- * window is the whole cost of the arrangement.
+ * ⚠️ **Rendered on the first request, not at build time.** `generateStaticParams`
+ * below returns no locales, so the build bakes nothing in. The first visit to
+ * each locale renders and caches the page, and `revalidate` refreshes it after
+ * that. The catalog read is still fail-soft: with the fleet down it answers an
+ * empty page and logs rather than throwing, and the next revalidation fills it
+ * in. A minute rather than an hour because that empty window is the whole cost
+ * of the arrangement.
  */
 export const revalidate = 60;
 

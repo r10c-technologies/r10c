@@ -24,10 +24,12 @@ import { StoreShell } from './store-shell';
  * A category listing, with sort and paging carried entirely in the URL.
  *
  * No client state and no client fetching: a sort control is a link, a page
- * control is a link, and the server renders the answer. That is what makes the
- * unfiltered case prerenderable — the moment a page reads `searchParams` Next
- * marks the route dynamic, so the plain `/c/lighting` is served from the static
- * copy and only a sorted or paged URL costs a render.
+ * control is a link, and the server renders the answer.
+ *
+ * ⚠️ **Every visit renders, the plain `/c/lighting` included.** The route reads
+ * `searchParams` for the sort and the page, and that alone makes it dynamic in
+ * Next, so there is no static copy of the unsorted listing. A static shell with
+ * the results streamed is #346's work (partial prerendering).
  */
 const PAGE_SIZE = 6;
 
