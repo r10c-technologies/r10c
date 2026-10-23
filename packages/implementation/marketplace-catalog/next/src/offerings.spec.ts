@@ -29,13 +29,7 @@ const OFFERINGS = [
   offering('offering-2', 'Taza Terra', 'category-tableware'),
 ];
 
-const run = <A>(
-  read: Effect.Effect<
-    A,
-    unknown,
-    EntityRepositoryTag
-  >,
-) => {
+const run = <A>(read: Effect.Effect<A, unknown, EntityRepositoryTag>) => {
   const repository = makeInMemoryEntityRepository(OFFERINGS);
   const load = vi.spyOn(repository, 'load');
   const result = Effect.runPromise(
@@ -56,12 +50,33 @@ describe('loadOfferings', () => {
     );
   });
 
-  it('filters on the categoryId it is handed', async () => {
-    const { result } = run(loadOfferings({ categoryId: 'category-lighting' }));
+  it('filters on the category ids it is handed', async () => {
+    const { result } = run(
+      loadOfferings({ categoryIds: ['category-lighting'] }),
+    );
 
     expect((await result).items.map(item => item.offeringId)).toEqual([
       'offering-1',
     ]);
+  });
+
+  /** ADR 0062: a category page asks for its whole subtree at once. */
+  it('matches an offering in any of the categories', async () => {
+    const { load } = run(
+      loadOfferings({ categoryIds: ['category-lighting', 'category-desk'] }),
+    );
+
+    expect(load).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filtering: [
+          {
+            property: 'categoryId',
+            operator: 'in',
+            values: ['category-lighting', 'category-desk'],
+          },
+        ],
+      }),
+    );
   });
 
   it('matches a search term against the name', async () => {

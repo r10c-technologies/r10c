@@ -1,9 +1,9 @@
 import type { Locale } from '@entifix/core';
 import { ProductCategory } from '@r10c/business-ts-catalog-reference';
-import { loadCategories } from '@r10c/implementation-catalog-reference-next';
+import { loadCategoryRoots } from '@r10c/implementation-catalog-reference-next';
 import type { ReactNode } from 'react';
 
-import { emptyPage, runRead } from '../catalog/catalog-reads';
+import { runRead } from '../catalog/catalog-reads';
 import { StoreFooter } from '../chrome/store-footer';
 import { StoreHeader } from '../chrome/store-header';
 
@@ -22,17 +22,15 @@ export async function StoreShell({
   readonly locale: Locale;
   readonly children: ReactNode;
 }) {
-  const categories = await runRead(
-    ProductCategory,
-    loadCategories(),
-    emptyPage<ProductCategory>(),
-  );
+  // The roots only (ADR 0062): a child is reached through its root, whose
+  // page lists the whole subtree. Breadcrumbs and deeper navigation are #338.
+  const categories = await runRead(ProductCategory, loadCategoryRoots(), []);
 
   return (
     <>
       <StoreHeader
         locale={locale}
-        categories={categories.items.map(category => ({
+        categories={categories.map(category => ({
           code: category.code,
           name: category.name,
         }))}

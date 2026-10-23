@@ -55,7 +55,7 @@ async function RelatedOfferings({
 
   const page = await runRead(
     PublishedOffering,
-    loadOfferings({ categoryId, pageSize: 4 }),
+    loadOfferings({ categoryIds: [categoryId], pageSize: 4 }),
     emptyPage<PublishedOffering>(),
   );
   const related = page.items.filter(

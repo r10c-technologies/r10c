@@ -108,6 +108,22 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
   hiddenFields: ['id'],
   metadata: 'referenceMetadata',
   runBulkUseCase: runReferenceBulk(PRODUCT_CATEGORY_SURFACE.entityKey),
+  // The parent is another category in the same store (ADR 0062), chosen with
+  // the same picker a specification's classification uses. The list renders
+  // as a tree on its own, because the entity declares `parentId` its parent.
+  //
+  // ⚠️ The picker still offers the category itself and its subtree: the
+  // generated form cannot filter a source per record yet (#400). The service
+  // refuses that save with `409 categoryCycle`, so the tree stays sound.
+  links: [
+    {
+      field: 'parentId',
+      entityConstructor: ProductCategory,
+      repository: 'productCategoryRest',
+      labelProperty: 'name',
+      searchProperty: 'name',
+    },
+  ],
 });
 
 /**

@@ -1,11 +1,7 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import { EntifixConnError, type Entity } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
-import {
-  makeInMemoryEntityRepository,
-} from '@entifix/testing-unit';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   ProductBrand,
   ProductCategory,
@@ -13,7 +9,7 @@ import {
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Context } from 'effect';
+import { Context, Effect } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -281,7 +277,12 @@ describe('the single-record pages', () => {
     slug = id;
     repositories.product.failNext(new EntifixConnError('unreachable'));
     repositories.brand.failNext(new EntifixConnError('unreachable'));
-    repositories.category.failNext(new EntifixConnError('unreachable'));
+    // Aimed at `get`, the record load under test, rather than "the next call":
+    // the category form also searches this repository for its parent picker
+    // (ADR 0062), and that query can arrive first.
+    vi.spyOn(repositories.category, 'get').mockReturnValueOnce(
+      Effect.fail(new EntifixConnError('unreachable')),
+    );
 
     renderPage(page);
 

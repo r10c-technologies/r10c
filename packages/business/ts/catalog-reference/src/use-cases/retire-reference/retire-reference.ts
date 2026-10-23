@@ -14,6 +14,13 @@ export interface RetireReferenceInput {
   readonly ids: readonly EntityId[];
   /** `false` puts the rows back into circulation. */
   readonly retired: boolean;
+  /**
+   * A rule a row must pass before it moves, answering a failure code or
+   * `undefined`. A category may not be retired under an active child, nor
+   * restored under a retired parent; a brand has no such rule and passes none.
+   * Per row like everything else here: one refused row does not stop the run.
+   */
+  readonly refuse?: (record: RetirableReference) => string | undefined;
 }
 
 export class RetireReferenceInputTag extends Context.Service<
@@ -55,7 +62,7 @@ export const RETIRE_NOT_FOUND = 'notFound';
  * whether it came from ticked boxes or from a filter the service resolved.
  */
 export const retireReferences = Effect.gen(function* () {
-  const { ids, retired } = yield* RetireReferenceInputTag;
+  const { ids, retired, refuse } = yield* RetireReferenceInputTag;
   const repository = yield* EntityRepositoryTag;
 
   const outcomes: BulkOutcome[] = [];
@@ -71,6 +78,11 @@ export const retireReferences = Effect.gen(function* () {
       // them. It is not an *error* — the run continues.
       if (record.status === target) {
         return { id, ok: false, code: RETIRE_ALREADY } satisfies BulkOutcome;
+      }
+
+      const refused = refuse?.(record);
+      if (refused !== undefined) {
+        return { id, ok: false, code: refused } satisfies BulkOutcome;
       }
 
       record.status = target;

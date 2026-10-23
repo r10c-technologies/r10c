@@ -9,9 +9,10 @@ import type {
   EntityLoadRequest,
   EntityPage,
 } from '@entifix/core';
-import type {
-  ProductBrand,
-  ProductCategory,
+import {
+  categorySubtree,
+  type ProductBrand,
+  type ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { Context, Effect } from 'effect';
 
@@ -79,6 +80,29 @@ export const loadCategories = (): VocabularyRead<EntityPage<ProductCategory>> =>
     sorting: BY_NAME,
     pageSize: VOCABULARY_PAGE_SIZE,
   });
+
+/**
+ * The top of the tree, for the nav strip: every active category with no parent
+ * (ADR 0062). A child's offerings are reached through its root, because a
+ * category page lists its whole subtree. Reads `ProductCategory`.
+ */
+export const loadCategoryRoots = (): VocabularyRead<ProductCategory[]> =>
+  loadCategories().pipe(
+    Effect.map(page =>
+      page.items.filter(
+        category => category.parentId === undefined || category.parentId === '',
+      ),
+    ),
+  );
+
+/**
+ * A category and every active category under it, as ids: what a category page
+ * hands the offering read as `categoryIds`. Built from the one vocabulary read
+ * rather than a recursive query, because the vocabulary is small and bounded.
+ * Reads `ProductCategory`.
+ */
+export const loadCategorySubtree = (id: string): VocabularyRead<string[]> =>
+  loadCategories().pipe(Effect.map(page => categorySubtree(page.items, id)));
 
 /** Every category, retired ones included, for naming what an offering points at. */
 const loadEveryCategory = (): VocabularyRead<EntityPage<ProductCategory>> =>

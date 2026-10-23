@@ -17,18 +17,24 @@ import { Context, Effect } from 'effect';
  * nothing else. Which transport answers is the caller's choice, made at
  * composition.
  */
-export type OfferingRead<A> = Effect.Effect<A, EntifixError, EntityRepositoryTag>;
+export type OfferingRead<A> = Effect.Effect<
+  A,
+  EntifixError,
+  EntityRepositoryTag
+>;
 
 export interface OfferingQuery {
   /**
-   * A category's **id**, as the projection stores it.
+   * Category **ids**, as the projection stores them: an offering in any of
+   * them matches. A category page passes its whole subtree (ADR 0062), a
+   * related-products strip passes one.
    *
-   * Not its `code`: a URL carries the code, and resolving it is a read of the
+   * Not codes: a URL carries the code, and resolving it is a read of the
    * reference vocabulary — another domain's store, so another cell. The caller
-   * resolves the slug and hands the id over, and an unknown slug never reaches
-   * this read at all.
+   * resolves the slug and the tree and hands the ids over, and an unknown slug
+   * never reaches this read at all.
    */
-  readonly categoryId?: string;
+  readonly categoryIds?: readonly string[];
   /** Free text, matched against the offering name. */
   readonly search?: string;
   readonly sort?: 'name' | 'code';
@@ -55,12 +61,12 @@ export const loadOfferings = (
   query: OfferingQuery = {},
 ): OfferingRead<EntityPage<PublishedOffering>> => {
   const filtering = [
-    ...(query.categoryId !== undefined
+    ...(query.categoryIds !== undefined
       ? [
           {
             property: 'categoryId',
-            operator: 'eq' as const,
-            value: query.categoryId,
+            operator: 'in' as const,
+            values: [...query.categoryIds],
           },
         ]
       : []),

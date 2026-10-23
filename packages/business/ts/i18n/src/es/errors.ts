@@ -35,6 +35,14 @@ export const errors = {
     'Este pedido ya no se puede marcar como entregado. Puede que se haya cancelado.',
   orderNotCancellable:
     'Este pedido ya no se puede cancelar. Puede que ya vaya en camino o que la cancelación esté en curso.',
+  categoryParentMissing: 'La categoría superior no existe.',
+  categoryParentRetired:
+    'La categoría superior está retirada. Restáurala primero o elige otra.',
+  categoryCycle:
+    'Una categoría no puede quedar dentro de sí misma ni de una de sus subcategorías.',
+  categoryTooDeep: 'Las categorías pueden tener como máximo cinco niveles.',
+  categoryHasChildren:
+    'Esta categoría todavía tiene subcategorías activas. Retíralas o muévelas primero.',
   paymentPending:
     'Tu pago todavía se está confirmando. Inténtalo de nuevo en un momento.',
   cancelNotAuthorized:

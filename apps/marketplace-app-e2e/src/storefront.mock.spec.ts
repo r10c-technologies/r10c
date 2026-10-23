@@ -59,6 +59,24 @@ test.describe('browsing the catalog', () => {
     await expect(page.getByText('Terra Ceramic Mug')).toHaveCount(0);
   });
 
+  /**
+   * ADR 0062: the desk lamp is classified under Desk Lamps, a child of
+   * Lighting. Lighting lists it (the whole subtree), Desk Lamps lists only its
+   * own, and the nav names the roots alone.
+   */
+  test('a category lists its subtree, and the nav its roots', async ({
+    page,
+  }) => {
+    await page.goto('/es/c/lighting');
+    await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
+    await expect(page.getByText('Aurora Floor Lamp')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Desk Lamps' })).toHaveCount(0);
+
+    await page.goto('/es/c/desk-lamps');
+    await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
+    await expect(page.getByText('Aurora Floor Lamp')).toHaveCount(0);
+  });
+
   // Sorting is a link, not client state — so the URL is the whole mechanism and
   // the server renders the answer.
   test('sorting travels in the URL', async ({ page }) => {

@@ -20,6 +20,7 @@ export class ProductCategory implements Entity {
   #name: string;
   #description?: string;
   #status: ReferenceStatus = DEFAULT_REFERENCE_STATUS;
+  #parentId?: string;
   //#endregion
 
   //#region constructors
@@ -34,10 +35,13 @@ export class ProductCategory implements Entity {
   //#endregion
 
   //#region accessors
+  // `filterable` so a parent picker can leave a category's own subtree out
+  // with `id=out=(…)`: member metadata is the server-side query allowlist.
   @accessor({
     type: 'id',
     label: 'ID',
     labelKey: 'entity:product-category.fields.id',
+    filterable: true,
   })
   get id(): EntityId {
     return this.#id;
@@ -107,6 +111,26 @@ export class ProductCategory implements Entity {
   }
   set status(value: ReferenceStatus) {
     this.#status = value;
+  }
+
+  // The category this one sits under, absent for a root
+  // ([ADR 0062](../../../../../../../docs/adr/0062-categories-form-a-tree.md)).
+  // A same-store id rather than a link: the tree is always built from the
+  // whole vocabulary, never by resolving one parent at a time. Not `hidden`
+  // and not `readonly`: either keeps it off the wire, and the tree would reach
+  // the storefront flat.
+  @accessor({
+    type: 'string',
+    label: 'Parent',
+    labelKey: 'entity:product-category.fields.parentId',
+    parent: true,
+    filterable: true,
+  })
+  get parentId(): string | undefined {
+    return this.#parentId;
+  }
+  set parentId(value: string | undefined) {
+    this.#parentId = value;
   }
   //#endregion
 }

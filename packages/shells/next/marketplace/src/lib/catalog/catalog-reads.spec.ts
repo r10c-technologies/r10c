@@ -210,16 +210,21 @@ describe('the offering reads, on the wire', () => {
     expect(result.items[0]?.amount).toBe(1999);
   });
 
-  it('sends a categoryId filter and a name match as RSQL', async () => {
+  it('sends a category subtree and a name match as RSQL', async () => {
     const { runRead, loadOfferings, emptyPage } = load();
 
     await runRead(
       PublishedOffering,
-      loadOfferings({ categoryId: 'category-lighting', search: 'lámpara' }),
+      loadOfferings({
+        categoryIds: ['category-lighting', 'category-desk'],
+        search: 'lámpara',
+      }),
       emptyPage(),
     );
 
-    expect(rsqlOf(OFFERING_URL)).toContain('categoryId==category-lighting');
+    expect(rsqlOf(OFFERING_URL)).toContain(
+      'categoryId=in=(category-lighting,category-desk)',
+    );
     expect(rsqlOf(OFFERING_URL)).toContain('name=like=lámpara');
   });
 

@@ -94,6 +94,7 @@ export const entity = {
       name: 'Nombre',
       description: 'Descripción',
       status: 'Estado',
+      parentId: 'Categoría superior',
     },
     useCases: {
       retire: 'Retirar',

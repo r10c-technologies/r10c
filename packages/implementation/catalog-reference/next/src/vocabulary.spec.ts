@@ -14,6 +14,8 @@ import {
   getCategoryByCode,
   loadBrands,
   loadCategories,
+  loadCategoryRoots,
+  loadCategorySubtree,
   VOCABULARY_PAGE_SIZE,
 } from './vocabulary.js';
 
@@ -172,5 +174,38 @@ describe('getBrand and getCategory', () => {
     expect(await categoryRead.result).toBeUndefined();
     expect(brandRead.load).not.toHaveBeenCalled();
     expect(categoryRead.load).not.toHaveBeenCalled();
+  });
+});
+
+describe('the category tree (ADR 0062)', () => {
+  const child = (id: string, code: string, parentId: string) => {
+    const one = category(id, code, code);
+    one.parentId = parentId;
+    return one;
+  };
+  const TREE = [
+    ...CATEGORIES,
+    child('category-desk', 'escritorio', 'category-lighting'),
+    child('category-lamp', 'lampara', 'category-desk'),
+    retired(child('category-old', 'viejo', 'category-lighting')),
+  ];
+
+  it('puts only the roots in the nav', async () => {
+    const { result } = run(loadCategoryRoots(), TREE);
+
+    expect((await result).map(item => item.id).sort()).toEqual([
+      'category-lighting',
+      'category-tableware',
+    ]);
+  });
+
+  it('lists a category with every active category under it', async () => {
+    const { result } = run(loadCategorySubtree('category-lighting'), TREE);
+
+    expect((await result).sort()).toEqual([
+      'category-desk',
+      'category-lamp',
+      'category-lighting',
+    ]);
   });
 });
