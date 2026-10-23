@@ -5,6 +5,7 @@
 - Area: business
 - Read when: adding a member to the publication snapshot — optional is a safety property, and an absent member is written absent, never `undefined`
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `Effect.catchAll` is `Effect.catch` and ports are `Context.Service`s; the decision is unchanged.
+- Revised: 2026-10-23 by [ADR 0061](0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md) — the snapshot gains an optional `media` member, and the vendor's name stays off it as a projection of its own.
 - Amends: [ADR 0048](0048-announcing-a-publication.md) — the announced payload is
   eleven members, not seven, and a publication now has a second precondition.
 

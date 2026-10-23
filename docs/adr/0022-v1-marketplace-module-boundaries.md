@@ -14,6 +14,10 @@
   with no membership and is restated where the rule was.
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): the quoted `business:domain` rule no longer lists
   `layer:entifix`; the framework is installed and carries no tag.
+- Revised: 2026-10-23 by [ADR 0061](0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md) —
+  one domain (`marketplace-vendor`), one entity (`PublishedVendor`) and one
+  platform-plane store (`published-vendor`, owned by `marketplace`) join the
+  inventory; slices and deployments are unchanged.
 
 ## Context
 
