@@ -26,13 +26,20 @@ interface Codeable extends Entity {
   name?: string;
 }
 
-export interface CatalogHandlerOptions {
+export interface CatalogHandlerOptions<T extends Entity = Codeable> {
   /** The entity `key` a command must target (`product`). */
   key: string;
   /** The Redis sequence drawn from (`product` -> `seq:product`). */
   sequenceName: string;
   /** The code prefix (`product` -> `product-001`). */
   codePrefix: string;
+  /**
+   * A domain rule the entity must pass before the command is accepted, the
+   * same one the `PUT` route runs as its `prepare` — so a create and an update
+   * refuse alike. Failing here is a `400` from the accept phase, before
+   * anything is claimed or locked.
+   */
+  refuse?: (entity: T) => Effect.Effect<void, EntifixBuildError>;
 }
 
 /**
@@ -58,7 +65,7 @@ export function makeCatalogTransactionHandler<T extends Codeable>(
   store: ConfigurationClient,
   sequence: SequenceService,
   entityConstructor: EntityConstructor<T>,
-  options: CatalogHandlerOptions,
+  options: CatalogHandlerOptions<T>,
   source: string,
 ): TransactionHandler {
   const repository = makeMongoRepository(db, entityConstructor);
@@ -95,6 +102,9 @@ export function makeCatalogTransactionHandler<T extends Codeable>(
           return yield* Effect.fail(
             new EntifixBuildError('entity "name" is required'),
           );
+        }
+        if (options.refuse) {
+          yield* options.refuse(entity);
         }
       }),
 

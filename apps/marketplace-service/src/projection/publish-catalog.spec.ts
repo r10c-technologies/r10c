@@ -38,6 +38,7 @@ const PUBLICATION: CatalogPublication = {
   description: 'Stoneware, glazed by hand.',
   brandId: 'product-brand-3',
   categoryId: 'product-category-7',
+  media: [{ url: 'https://cdn.example/mug.jpg', alt: 'The mug, glazed blue' }],
 };
 
 type Call = { readonly op: 'replace' | 'delete'; readonly document?: unknown };
@@ -157,6 +158,9 @@ describe('applying a publication', () => {
           description: 'Stoneware, glazed by hand.',
           brandId: 'product-brand-3',
           categoryId: 'product-category-7',
+          media: [
+            { url: 'https://cdn.example/mug.jpg', alt: 'The mug, glazed blue' },
+          ],
         },
       },
     ]);
@@ -491,6 +495,7 @@ describe('the payload and the record it is written into', () => {
       description: true,
       brandId: true,
       categoryId: true,
+      media: true,
     };
 
     for (const member of Object.keys(publication)) {
@@ -536,6 +541,7 @@ describe('the payload and the record it is written into', () => {
       description: undefined,
       brandId: undefined,
       categoryId: undefined,
+      media: undefined,
     });
 
     const document = calls[0]?.document as Record<string, unknown>;
@@ -544,6 +550,21 @@ describe('the payload and the record it is written into', () => {
     expect(Object.keys(document)).not.toContain('brandId');
     expect(Object.keys(document)).not.toContain('categoryId');
     expect(Object.keys(document)).not.toContain('code');
+    expect(Object.keys(document)).not.toContain('media');
+  });
+
+  it("projects the media as plain url and alt values, in the vendor's order", async () => {
+    const { db, calls } = dbHolding();
+    const media = [
+      { url: 'https://cdn.example/front.jpg', alt: 'Front' },
+      { url: 'https://cdn.example/back.jpg', alt: 'Back' },
+    ];
+
+    await apply(db, CATALOG_PUBLISHED, { ...PUBLICATION, media });
+
+    const document = calls[0]?.document as Record<string, unknown>;
+
+    expect(document['media']).toEqual(media);
   });
 
   it('drops a description the vendor cleared, because the record is replaced', async () => {

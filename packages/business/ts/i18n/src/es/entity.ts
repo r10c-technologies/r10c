@@ -46,6 +46,13 @@ export const entity = {
       description: 'Descripción',
       brand: 'Marca',
       category: 'Categoría',
+      media: 'Imágenes',
+    },
+  },
+  'media-reference': {
+    fields: {
+      url: 'URL de la imagen',
+      alt: 'Descripción de la imagen',
     },
   },
   /**
@@ -288,6 +295,7 @@ export const entity = {
       description: 'Descripción',
       brandId: 'ID de marca',
       categoryId: 'ID de categoría',
+      media: 'Imágenes',
     },
   },
   'product-order': {

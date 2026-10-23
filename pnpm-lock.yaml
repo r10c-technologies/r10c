@@ -1876,6 +1876,9 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.7.0(effect@4.0.5)
+      '@r10c/business-ts-catalog-contracts':
+        specifier: workspace:*
+        version: link:../catalog-contracts
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23

@@ -143,3 +143,77 @@ describe('the RSQL query protocol', () => {
     expect(res.status).toBe(400);
   });
 });
+
+/**
+ * A specification's pictures are references the vendor authored, and the
+ * `https` check is the security boundary (ADR 0061). It sits on **both** write
+ * paths, so the update cannot be the way round the create.
+ */
+describe('media on a product specification', () => {
+  const specification = (media: unknown) => ({
+    name: 'Pictured widget',
+    media,
+  });
+
+  const put = (media: unknown) =>
+    service.client.put('/api/product-specification/product-2', {
+      meta: { type: 'entity', entity: 'product-specification' },
+      data: { id: 'product-2', ...specification(media) },
+    });
+
+  const post = (media: unknown) =>
+    service.client.post('/api/product-specification', {
+      meta: { type: 'command', entity: 'product-specification' },
+      data: {
+        transactionId: crypto.randomUUID(),
+        type: 'create',
+        entity: 'product-specification',
+        payload: specification(media),
+      },
+    });
+
+  it.each([
+    [
+      'an http URL',
+      'mediaNotHttps',
+      [{ url: 'http://cdn.example/a.jpg', alt: 'Front' }],
+    ],
+    [
+      'a javascript URL',
+      'mediaNotHttps',
+      [{ url: 'javascript:alert(1)', alt: 'Front' }],
+    ],
+    [
+      'a blank alt text',
+      'mediaAltMissing',
+      [{ url: 'https://cdn.example/a.jpg', alt: ' ' }],
+    ],
+  ])('refuses %s on the PUT with %s', async (_label, code, media) => {
+    const res = await put(media);
+
+    expect(res.status).toBe(400);
+    expect(res.data.code).toBe(code);
+  });
+
+  it('refuses an http URL on the POST command too', async () => {
+    const res = await post([{ url: 'http://cdn.example/a.jpg', alt: 'Front' }]);
+
+    expect(res.status).toBe(400);
+    expect(res.data.code).toBe('mediaNotHttps');
+  });
+
+  it('saves https pictures and reads them back in order', async () => {
+    const media = [
+      { url: 'https://cdn.example/front.jpg', alt: 'Front' },
+      { url: 'https://cdn.example/back.jpg', alt: 'Back' },
+    ];
+
+    const saved = await put(media);
+    expect(saved.status).toBe(200);
+
+    const read = await service.client.get(
+      '/api/product-specification/product-2',
+    );
+    expect(read.data.data.media).toEqual(media);
+  });
+});

@@ -35,6 +35,13 @@ export const entity: EsEntity = {
       description: 'Description',
       brand: 'Brand',
       category: 'Category',
+      media: 'Images',
+    },
+  },
+  'media-reference': {
+    fields: {
+      url: 'Image URL',
+      alt: 'Image description',
     },
   },
   'reference-status': {
@@ -251,6 +258,7 @@ export const entity: EsEntity = {
       description: 'Description',
       brandId: 'Brand ID',
       categoryId: 'Category ID',
+      media: 'Images',
     },
   },
   'product-order': {

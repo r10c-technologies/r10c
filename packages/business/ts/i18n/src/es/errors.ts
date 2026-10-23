@@ -43,6 +43,8 @@ export const errors = {
   categoryTooDeep: 'Las categorías pueden tener como máximo cinco niveles.',
   categoryHasChildren:
     'Esta categoría todavía tiene subcategorías activas. Retíralas o muévelas primero.',
+  mediaNotHttps: 'Cada URL de imagen debe ser una dirección https:// completa.',
+  mediaAltMissing: 'Cada imagen necesita una descripción.',
   paymentPending:
     'Tu pago todavía se está confirmando. Inténtalo de nuevo en un momento.',
   cancelNotAuthorized:

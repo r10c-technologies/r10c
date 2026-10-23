@@ -24,6 +24,8 @@ export interface ProductSpecificationRecord {
   description: string;
   brandId: string;
   categoryId: string;
+  /** Absent on odd-numbered specifications — see {@link mediaOf}. */
+  media?: { url: string; alt: string }[];
 }
 
 /** Mirrors the pools marketplace-service seeds; see the note above. */
@@ -49,6 +51,28 @@ const FAMILIES = [
 ];
 
 /**
+ * Pictures for the even-numbered specifications, and **none** for the odd ones,
+ * so the storefront always has both a card with an image and one without to
+ * render ([ADR 0061](../../../docs/adr/0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md)).
+ *
+ * External `https` references, never uploads: the seed stores a URL exactly as
+ * a vendor would. `picsum.photos/seed/<key>` answers the same picture for the
+ * same key, so a reset lab shows the same catalog every time.
+ */
+const mediaOf = (
+  number: number,
+  name: string,
+): Pick<ProductSpecificationRecord, 'media'> =>
+  number % 2 === 0
+    ? {
+        media: [1, 2].map(view => ({
+          url: `https://picsum.photos/seed/product-${number}-${view}/800/800`,
+          alt: `${name}, view ${view}`,
+        })),
+      }
+    : {};
+
+/**
  * Temporary, in-memory mock dataset. 60 specifications, each naming a brand and
  * a category by id. Not a production source.
  */
@@ -67,6 +91,7 @@ export const productTempData: ProductSpecificationRecord[] = Array.from(
       description: `${family} #${withinFamily}`,
       brandId: `product-brand-${brandNumber}`,
       categoryId: `product-category-${categoryNumber}`,
+      ...mediaOf(number, `${family} ${withinFamily}`),
     };
   },
 );

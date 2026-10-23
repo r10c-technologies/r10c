@@ -1,5 +1,9 @@
 import { Entity, EntityId } from '@entifix/core';
 import { accessor, entity } from '@entifix/core';
+import {
+  MediaReference,
+  type MediaReferenceValue,
+} from '@r10c/business-ts-catalog-contracts';
 
 /**
  * What a thing **is** — the facts common to every instance of it. Definitional,
@@ -34,6 +38,7 @@ export class ProductSpecification implements Entity {
   #description?: string;
   #brandId?: string;
   #categoryId?: string;
+  #media?: readonly MediaReferenceValue[];
   // #endregion
 
   // #region constructors
@@ -165,6 +170,30 @@ export class ProductSpecification implements Entity {
   }
   set categoryId(value: string | undefined) {
     this.#categoryId = value;
+  }
+
+  /**
+   * The pictures of this thing, in the vendor's order — the first is the card
+   * image. **References the vendor authored, never bytes we store**: a URL and
+   * its alt text, nothing uploaded
+   * ([ADR 0061](../../../../../../docs/adr/0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md)).
+   *
+   * A `composition`, because an entry has no life outside this record and is
+   * never picked from existing ones — so the generic form edits it as a detail
+   * grid (ADR 0038). `https` and the alt text are checked by `mediaRefusal` on
+   * both write paths, the `POST` command and the `PUT`; the entity cannot say
+   * "absolute https URL", and `required` on the child only says "not empty".
+   */
+  @accessor({
+    type: 'composition',
+    childType: () => MediaReference,
+    labelKey: 'entity:product-specification.fields.media',
+  })
+  get media(): readonly MediaReferenceValue[] | undefined {
+    return this.#media;
+  }
+  set media(value: readonly MediaReferenceValue[] | undefined) {
+    this.#media = value;
   }
   // #endregion
 }

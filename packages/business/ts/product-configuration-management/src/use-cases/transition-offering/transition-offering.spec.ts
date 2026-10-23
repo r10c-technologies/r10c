@@ -59,6 +59,7 @@ const specification = (
     description: string | undefined;
     brandId: string | undefined;
     categoryId: string | undefined;
+    media: ProductSpecification['media'];
   }> = {},
 ) => {
   const one = new ProductSpecification(
@@ -71,6 +72,7 @@ const specification = (
   one.brandId = 'brandId' in overrides ? overrides.brandId : 'product-brand-3';
   one.categoryId =
     'categoryId' in overrides ? overrides.categoryId : 'product-category-7';
+  one.media = overrides.media;
   return one;
 };
 
@@ -569,9 +571,9 @@ describe('the specification the snapshot copies from', () => {
   });
 
   it('drops a blank code, which is what a PUT that omits it leaves behind', () => {
-    // `product-specification.routes.ts` registers `PUT` as a plain save with no
-    // `prepare` hook, so a body without `code` deserializes to the constructor
-    // default. An empty reference on the storefront renders as nothing while
+    // `product-specification.routes.ts` registers `PUT` as a plain save whose
+    // `prepare` only checks media, so a body without `code` deserializes to the
+    // constructor default. An empty reference on the storefront renders as nothing while
     // claiming to be one.
     const event = publicationOf(
       run(
@@ -584,5 +586,38 @@ describe('the specification the snapshot copies from', () => {
     );
 
     expect(Object.keys(event.data)).not.toContain('code');
+  });
+
+  it("copies the pictures, in the vendor's order, as plain values", () => {
+    const media = [
+      { url: 'https://cdn.example/front.jpg', alt: 'Front' },
+      { url: 'https://cdn.example/back.jpg', alt: 'Back' },
+    ];
+    const event = publicationOf(
+      run(
+        [offering('1', 'draft')],
+        '1',
+        'publish',
+        [price('1')],
+        [specification('spec-1', { media })],
+      ).exit,
+    );
+
+    expect(event.data.media).toEqual(media);
+  });
+
+  it('omits an empty gallery rather than announcing []', () => {
+    // An empty gallery is a slot that claims to hold something (ADR 0049).
+    const event = publicationOf(
+      run(
+        [offering('1', 'draft')],
+        '1',
+        'publish',
+        [price('1')],
+        [specification('spec-1', { media: [] })],
+      ).exit,
+    );
+
+    expect(Object.keys(event.data)).not.toContain('media');
   });
 });
