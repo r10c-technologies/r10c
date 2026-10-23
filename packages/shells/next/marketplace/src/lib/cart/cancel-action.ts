@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { cancelOutcomeOf } from './cancel-outcome';
 import { orderServiceUrl } from './checkout-config';
 import { readReceipt } from './receipt-cookie';
 import {
@@ -10,9 +11,6 @@ import {
   RECEIPT_TTL_SECONDS,
   serializeReceipt,
 } from './receipt-state';
-
-/** What the confirmation page is told happened, as a search param. */
-export type CancelOutcome = 'cancelled' | 'failed';
 
 /**
  * Cancel the order this browser holds a receipt for.
@@ -57,7 +55,16 @@ export async function cancelOrder(formData: FormData) {
     },
   ).catch(() => undefined);
 
-  if (response?.ok) {
+  const code: unknown =
+    response?.status === 409
+      ? (
+          (await response.json().catch(() => undefined)) as
+            { code?: unknown } | undefined
+        )?.code
+      : undefined;
+  const outcome = cancelOutcomeOf(response?.status, code);
+
+  if (outcome === 'cancelled') {
     const jar = await cookies();
     // The capability is spent, so it is dropped from the cookie: a nonce that
     // opens nothing is a Cancel button the page would have to explain. What
@@ -76,6 +83,9 @@ export async function cancelOrder(formData: FormData) {
     redirect(`/${locale}/order/confirmation?cancel=cancelled`);
   }
 
+  // `pending` keeps the receipt as it is: the nonce is unspent and the window
+  // still open, so the button stays and the next click is the retry.
+  //
   // `redirect` throws to unwind the action, so it comes last on every path.
-  redirect(`/${locale}/order/confirmation?cancel=failed`);
+  redirect(`/${locale}/order/confirmation?cancel=${outcome}`);
 }

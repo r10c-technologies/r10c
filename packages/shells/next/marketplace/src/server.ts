@@ -33,6 +33,7 @@ export * from './lib/routing/paths';
 export * from './lib/routing/store-link';
 
 // Cart state and its mutations.
+export * from './lib/cart/cancel-outcome';
 export * from './lib/cart/cart-actions';
 export * from './lib/cart/cart-cookie';
 export * from './lib/cart/cart-state';

@@ -9,7 +9,8 @@ export const errors: EsErrors = {
   invalidState: 'That sign-in link has expired. Try again.',
   accountInactive: 'Your account is suspended.',
   providerUnavailable: 'We could not reach the identity provider.',
-  upstreamUnavailable: 'That service is not answering right now. Try again in a moment.',
+  upstreamUnavailable:
+    'That service is not answering right now. Try again in a moment.',
   signInFailed: 'Sign-in could not be completed.',
   noActiveOrganization: 'Select an organization to continue.',
   invalidRequest: 'The request is not valid.',
@@ -28,6 +29,8 @@ export const errors: EsErrors = {
     'This order can no longer be marked as delivered. It may have been cancelled.',
   orderNotCancellable:
     'This order can no longer be cancelled. It may already be on its way, or a cancellation may be in progress.',
+  paymentPending:
+    'Your payment is still being confirmed. Try again in a moment.',
   // Every refusal of the buyer's own cancel capability answers with this one
   // code. The three-way distinction order-service draws — no capability, a bad
   // one, a closed window — is for the log: telling an unauthenticated caller

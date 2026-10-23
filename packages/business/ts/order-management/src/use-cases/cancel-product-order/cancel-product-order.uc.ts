@@ -20,6 +20,18 @@ export const MULTI_VENDOR_ORDER = 'multiVendorOrder';
 export const ORDER_NOT_CANCELLABLE = 'orderNotCancellable';
 
 /**
+ * The code a buyer's cancel renders while the order is still `pending`.
+ *
+ * Kept apart from {@link ORDER_NOT_CANCELLABLE} because the two ask for opposite
+ * things. That one is "never": the order moved past the point a cancel can
+ * reach. This one is "not yet": checkout captured the money, but the order turns
+ * `paid` only when `payment.captured` is consumed off the bus, so a buyer who
+ * clicks Cancel on the confirmation page can arrive first. Telling them it
+ * failed would tell them to stop trying.
+ */
+export const PAYMENT_PENDING = 'paymentPending';
+
+/**
  * Undo a paid order: refund the buyer, put the goods back, close the record.
  *
  * **A verb rather than a delete.** `DELETE /api/product-order/:id` already

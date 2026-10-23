@@ -177,6 +177,32 @@ test.describe('the cart', () => {
     await expect(page.getByTestId('order-id')).toContainText('e2e-order-1');
   });
 
+  /**
+   * #387: a cancel clicked before the order turned `paid` is "not yet", not
+   * "never". The buyer is told to retry, and the button stays, because the
+   * nonce was never spent.
+   */
+  test('a cancel that beats the payment confirmation asks the buyer to retry', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-terra-ceramic-mug');
+    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page.waitForURL(/\/es\/cart$/);
+    await page.getByTestId('checkout').click();
+    await page.waitForURL(/\/es\/order\/confirmation$/);
+
+    await page.getByRole('button', { name: 'Cancelar pedido' }).click();
+    await page.waitForURL(/cancel=pending/);
+
+    await expect(page.getByTestId('cancel-payment-pending')).toContainText(
+      'todavía se está confirmando',
+    );
+    await expect(page.getByTestId('cancel-failed')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: 'Cancelar pedido' }),
+    ).toBeVisible();
+  });
+
   test('a visitor with no receipt is told so rather than shown an error', async ({
     page,
   }) => {

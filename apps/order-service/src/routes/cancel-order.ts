@@ -10,6 +10,7 @@ import {
   CancelProductOrderUC,
   MULTI_VENDOR_ORDER,
   ORDER_NOT_CANCELLABLE,
+  PAYMENT_PENDING,
   ProductOrder,
 } from '@r10c/business-ts-order-management';
 import { Effect } from 'effect';
@@ -320,6 +321,22 @@ export const buyerCancelOrderRoute = Effect.gen(function* () {
   }
 
   // `order` is defined here: an absent one refuses above as `noCapability`.
+  //
+  // ⚠️ `pending` is "not yet", not "never": the buyer reaches this from the
+  // confirmation page, and the order turns `paid` only once `payment.captured`
+  // is consumed. Only the buyer's route draws the line — a vendor or operator
+  // never races their own checkout.
+  if (order.status === 'pending') {
+    return yield* HttpServerResponse.json(
+      {
+        error: 'the payment is still being confirmed',
+        code: PAYMENT_PENDING,
+        orderId: order.id,
+      },
+      { status: 409 },
+    );
+  }
+
   if (order.status !== 'paid') {
     return yield* HttpServerResponse.json(
       {

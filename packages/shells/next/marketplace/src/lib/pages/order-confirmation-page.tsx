@@ -12,7 +12,8 @@ import {
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 
-import { cancelOrder, type CancelOutcome } from '../cart/cancel-action';
+import { cancelOrder } from '../cart/cancel-action';
+import type { CancelOutcome } from '../cart/cancel-outcome';
 import { cancelWindowLabel } from '../cart/cancel-window';
 import { readReceipt } from '../cart/receipt-cookie';
 import { runRead } from '../catalog/catalog-reads';
@@ -130,6 +131,14 @@ export async function OrderConfirmationPage({
           <Card>
             <Text data-testid="cancel-failed">
               {t('storefront.order.cancelFailed')}
+            </Text>
+          </Card>
+        ) : undefined}
+
+        {outcome === 'pending' && !receipt.cancelled ? (
+          <Card>
+            <Text data-testid="cancel-payment-pending">
+              {t('storefront.order.cancelPaymentPending')}
             </Text>
           </Card>
         ) : undefined}

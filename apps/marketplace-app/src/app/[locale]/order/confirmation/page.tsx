@@ -1,4 +1,7 @@
-import { OrderConfirmationPage } from '@r10c/shells-next-marketplace/server';
+import {
+  isCancelOutcome,
+  OrderConfirmationPage,
+} from '@r10c/shells-next-marketplace/server';
 
 import { type LocaleRouteProps, requireLocale } from '../../locale-param';
 
@@ -38,9 +41,7 @@ export default async function OrderConfirmationRoute({
       // Narrowed against the closed set rather than passed through: the value
       // decides a translation key, and an arbitrary query param must not be
       // able to name one.
-      outcome={
-        outcome === 'cancelled' || outcome === 'failed' ? outcome : undefined
-      }
+      outcome={isCancelOutcome(outcome) ? outcome : undefined}
     />
   );
 }
