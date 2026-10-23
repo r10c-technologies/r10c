@@ -10,6 +10,7 @@ import {
   buildEntityRestAdapterSave,
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
+  makeEntityMetadataSource,
 } from '@entifix/rest';
 import {
   Agreement,
@@ -77,6 +78,19 @@ const commissionEntryRest = createRestRepositoryContext(CommissionEntry);
 const settlementRunRest = createRestRepositoryContext(SettlementRun);
 const vendorPayoutRest = createRestRepositoryContext(VendorPayout);
 
+/**
+ * Where each screen reads this caller's affordances (ADR 0026).
+ *
+ * The **proxy** path, not the service's own: the browser reaches settlement
+ * through the host's same-origin proxy, which is what carries the httpOnly
+ * session cookie upstream. Aimed at the backend directly it would answer `401`,
+ * and every screen would fall back to its pre-descriptor behaviour — offering
+ * Save on records no role may write.
+ */
+const metadata = makeEntityMetadataSource({
+  url: name => `/api/settlement/${name}/$metadata`,
+});
+
 export function createClientAdapters(): SettlementAdapters {
   return {
     agreementRest,
@@ -84,5 +98,6 @@ export function createClientAdapters(): SettlementAdapters {
     settlementRunRest,
     vendorPayoutRest,
     configurationStore,
+    metadata,
   };
 }

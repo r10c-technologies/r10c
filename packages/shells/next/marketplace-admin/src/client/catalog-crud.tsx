@@ -15,7 +15,6 @@ import {
   EntityTableToolbar,
   useTranslateKey,
 } from '@entifix/react-controls';
-import { makeEntityMetadataSource } from '@entifix/rest';
 import {
   ProductBrand,
   ProductCategory,
@@ -54,21 +53,6 @@ import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
  * (ADR 0022). Resolving an id therefore goes through the owning domain's own
  * read path, which is the only legal way across a store boundary — never a join.
  */
-/**
- * The reference vocabulary's affordances and bulk verbs, both through the
- * host's own `/api/marketplace` proxy.
- *
- * A hand-written path rather than the adapters' config-driven `compose` mode,
- * for the same reason the auth shell writes one: these are not entity CRUD
- * calls, so they do not go through `buildEntityRestAdapter*` and there is no
- * `uri` group for them to compose from. The proxy is what keeps a real backend
- * address out of the browser, and what carries the httpOnly cookie upstream —
- * a cross-origin call would answer `401`.
- */
-const REFERENCE_METADATA = makeEntityMetadataSource({
-  url: name => `/api/marketplace/${name}/$metadata`,
-});
-
 /**
  * Runs a `collection`-bound verb on the reference service.
  *
@@ -113,7 +97,7 @@ export const productBrandCrud = makeEntityCrud(ProductBrand, {
   // `code` is assigned by the create transaction. Hiding it keeps it out of the
   // form without keeping it out of the draft, so an update carries it back.
   hiddenFields: ['id', 'code'],
-  metadataSource: REFERENCE_METADATA,
+  metadata: 'referenceMetadata',
   runBulkUseCase: runReferenceBulk(PRODUCT_BRAND_SURFACE.entityKey),
 });
 
@@ -124,7 +108,7 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
   repository: 'productCategoryRest',
   configuration: 'configurationStore',
   hiddenFields: ['id'],
-  metadataSource: REFERENCE_METADATA,
+  metadata: 'referenceMetadata',
   runBulkUseCase: runReferenceBulk(PRODUCT_CATEGORY_SURFACE.entityKey),
 });
 
@@ -220,18 +204,6 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
 });
 
 /**
- * The catalog service's own affordances and entity-bound verbs, through the
- * host's `/api/admin` proxy.
- *
- * The tenant-plane sibling of {@link REFERENCE_METADATA}, and a separate
- * constant because the two services sit behind two different proxies — the same
- * split ADR 0022 forced on the adapters one file over.
- */
-export const CATALOG_METADATA = makeEntityMetadataSource({
-  url: name => `/api/admin/${name}/$metadata`,
-});
-
-/**
  * Runs an `entity`-bound verb on one record of the catalog service.
  *
  * `key` is also the route — `publish` posts to `…/<id>/publish` — which holds
@@ -319,7 +291,7 @@ export const productOfferingCrud = makeEntityCrud(ProductOffering, {
   // Without these two the form renders `publish`/`unpublish` nowhere: absent
   // metadata keeps the pre-ADR-0026 behaviour, and a metadata source with no
   // handler renders buttons that do nothing.
-  metadataSource: CATALOG_METADATA,
+  metadata: 'catalogMetadata',
   runUseCase: runCatalogUseCase(PRODUCT_OFFERING_SURFACE.entityKey),
   // The same two verbs over a selection (#216). The route is the verb key on
   // the collection rather than on a record — `/api/admin/product-offering/publish`

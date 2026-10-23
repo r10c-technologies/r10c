@@ -9,26 +9,16 @@ import type { EntityCrudSingleViewProps } from '@entifix/next-shell';
 import { useLocaleHref } from '@entifix/next-shell';
 import { EntityForm, useT } from '@entifix/react-controls';
 import { useEntityUseCases } from '@entifix/react-integration';
-import { makeEntityMetadataSource } from '@entifix/rest';
 import { UserIdentity } from '@r10c/business-ts-authn';
 import { Effect } from 'effect';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
+import { createClientAdapters } from './adapters/create-client-adapters';
 import { useAsyncResource } from './use-async-resource';
 import { UserSessionsPanel } from './user-sessions-panel';
 
-/**
- * Built once at module scope, not per render: it holds no state, and a new
- * object each render would change nothing but churn.
- *
- * A hand-written URL rather than the adapters' config-driven `compose` mode,
- * because this shell proxies auth-service through its host's own origin and has
- * no adapters context at all.
- */
-const metadataSource = makeEntityMetadataSource({
-  url: name => `/api/${name}/$metadata`,
-});
+const { metadata: metadataSource } = createClientAdapters();
 
 const readUser = async (id: string): Promise<UserIdentity> => {
   const res = await fetch(`/api/user-identity/${id}`, { cache: 'no-store' });

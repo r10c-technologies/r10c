@@ -19,6 +19,7 @@ import { Context } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createClientAdapters } from './adapters/create-client-adapters.js';
 import { AgreementSingleViewClientPage } from './agreement-single-view.js';
 import type { SettlementAdapters } from './client-types.js';
 import { SettlementProvider } from './settlement-context.js';
@@ -35,6 +36,9 @@ import {
   VendorPayoutListClientPage,
   VendorPayoutSingleViewClientPage,
 } from './settlement-crud.js';
+
+/** The transports the shell really composes, so metadata reads behave as in production. */
+const real = createClientAdapters();
 
 // Most of these pages are `makeEntityCrud` output, so what is worth asserting is
 // that the generator was handed the right facts — the adapter each screen reads,
@@ -106,6 +110,7 @@ const adapters = (): SettlementAdapters => ({
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
   ),
+  metadata: real.metadata,
 });
 
 const renderPage = (page: ReactElement) =>

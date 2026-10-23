@@ -10,6 +10,7 @@ import {
   buildEntityRestAdapterSave,
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
+  makeEntityMetadataSource,
 } from '@entifix/rest';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import { Context } from 'effect';
@@ -61,6 +62,22 @@ const configurationStore = Context.make(
 
 const productOrderRest = createRestRepositoryContext(ProductOrder);
 
+/**
+ * The served affordance document, through the host's same-origin proxy.
+ *
+ * ⚠️ It is what decides whether this screen shows a Save at all. No role holds
+ * `order-management:product-order:write`, so `$metadata` withholds the verb and
+ * the form renders read-only — without this shell asserting anything about it
+ * ([ADR 0026](../../../../../../../docs/adr/0026-the-use-case-descriptor-and-served-entity-metadata.md)).
+ *
+ * It is also what decides whether `fulfil` and `cancel` appear: the document is
+ * filtered by the caller's real grants, so a `user` sees neither and no
+ * client-side check is needed or wanted.
+ */
+const metadata = makeEntityMetadataSource({
+  url: name => `/api/order/${name}/$metadata`,
+});
+
 export function createClientAdapters(): OrderAdapters {
-  return { productOrderRest, configurationStore };
+  return { productOrderRest, configurationStore, metadata };
 }

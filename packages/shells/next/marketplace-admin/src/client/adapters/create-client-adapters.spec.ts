@@ -8,9 +8,12 @@ import {
   setupEntifixServer,
 } from '@entifix/testing-unit/http';
 import { ProductBrand } from '@r10c/business-ts-catalog-reference';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import {
+  ProductOffering,
+  ProductSpecification,
+} from '@r10c/business-ts-product-configuration-management';
 import { Context, Effect } from 'effect';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createClientAdapters } from './create-client-adapters.js';
 
@@ -120,5 +123,45 @@ describe('createClientAdapters', () => {
 
   it('returns a fresh adapter set per call', () => {
     expect(createClientAdapters()).not.toBe(createClientAdapters());
+  });
+});
+
+describe('the metadata sources', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const answering = () =>
+    vi.fn((..._args: Parameters<typeof fetch>) =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            meta: { type: 'entityMetadata', entity: 'product-offering' },
+            data: { actions: ['read'], useCases: [] },
+          }),
+        ),
+      ),
+    );
+
+  // Two services behind two proxies, so two sources: one aimed at the other's
+  // proxy answers for the wrong store.
+  it('asks the catalog proxy for a catalog entity', async () => {
+    const fetchMock = answering();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await createClientAdapters().catalogMetadata.fetchMetadata(ProductOffering);
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
+      '/api/admin/product-offering/$metadata',
+    );
+  });
+
+  it('asks the marketplace proxy for the reference vocabulary', async () => {
+    const fetchMock = answering();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await createClientAdapters().referenceMetadata.fetchMetadata(ProductBrand);
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
+      '/api/marketplace/product-brand/$metadata',
+    );
   });
 });

@@ -17,7 +17,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { AGREEMENT_SURFACE } from '../settlement-surfaces';
 import { AgreementForm } from './agreement-form';
 import { useSettlementAdapters } from './settlement-context';
-import { SETTLEMENT_METADATA } from './settlement-crud';
 
 type AgreementContext = EntityRepositoryTag | ConfigurationRepositoryTag;
 
@@ -49,7 +48,8 @@ export function AgreementSingleViewClientPage({
   slug,
   onSaved,
 }: EntityCrudSingleViewProps = {}) {
-  const { agreementRest, configurationStore } = useSettlementAdapters();
+  const { agreementRest, configurationStore, metadata } =
+    useSettlementAdapters();
   const router = useRouter();
   // Every internal navigation carries the locale. Unprefixed, each one is
   // bounced by the proxy — and the form's back link is a plain `<a>`, so
@@ -99,7 +99,7 @@ export function AgreementSingleViewClientPage({
       isLoading={isLoading}
       isSaving={isSaving}
       error={loadError ?? writeError}
-      metadataSource={SETTLEMENT_METADATA}
+      metadataSource={metadata}
       onSave={handleSave}
       backHref={withLocale(AGREEMENT_SURFACE.basePath)}
     />

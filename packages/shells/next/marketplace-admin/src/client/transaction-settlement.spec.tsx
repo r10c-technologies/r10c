@@ -1,5 +1,8 @@
 import { EntifixQueryProvider } from '@entifix/react-integration';
-import type { TransactionRecord } from '@entifix/transactions';
+import type {
+  TransactionRecord,
+  TransactionStatusReader,
+} from '@entifix/transactions';
 import { render } from '@testing-library/react';
 import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
@@ -39,7 +42,7 @@ const aRecord: TransactionRecord = {
 };
 
 // Stubbed so calling `read` exercises the real Effect composition — the
-// `runPromise`/`provide`/`flatMap` this component owns — without a network call.
+// composition the adapters own — without a network call.
 // Whether the adapter itself speaks HTTP correctly is its own spec's job.
 const read = vi.fn(() =>
   Effect.succeed<TransactionRecord | undefined>(aRecord),
@@ -119,12 +122,14 @@ describe('TransactionSettlement', () => {
     renderIt();
 
     const options = useTransactionSettlement.mock.calls.at(-1)?.[0] as {
-      read: (id: string) => Promise<TransactionRecord | undefined>;
+      reader: TransactionStatusReader;
       pending: unknown;
     };
 
     expect(options.pending).toBeDefined();
-    await expect(options.read('tx-1')).resolves.toEqual(aRecord);
+    await expect(
+      Effect.runPromise(options.reader.read('tx-1')),
+    ).resolves.toEqual(aRecord);
     expect(read).toHaveBeenCalledWith('tx-1');
   });
 });

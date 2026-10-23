@@ -10,6 +10,7 @@ import {
   buildEntityRestAdapterSave,
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
+  makeEntityMetadataSource,
 } from '@entifix/rest';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
@@ -93,6 +94,20 @@ const publishedOfferingRest = createRestRepositoryContext(
   MARKETPLACE_SERVICE,
 );
 
+/**
+ * The served affordance document, through the host's same-origin proxy, which
+ * carries the session cookie upstream so the descriptor is filtered by the
+ * verified principal (ADR 0026).
+ */
+const metadata = makeEntityMetadataSource({
+  url: name => `/api/sales/${name}/$metadata`,
+});
+
 export function createClientAdapters(): SalesAdapters {
-  return { salesChannelRest, publishedOfferingRest, configurationStore };
+  return {
+    salesChannelRest,
+    publishedOfferingRest,
+    configurationStore,
+    metadata,
+  };
 }

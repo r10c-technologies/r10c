@@ -11,8 +11,12 @@ import { Context } from 'effect';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it } from 'vitest';
 
+import { createClientAdapters } from './adapters/create-client-adapters.js';
 import type { StockAdapters } from './client-types.js';
 import { StockProvider, useStockAdapters } from './stock-context.js';
+
+/** The transports the shell really composes, so metadata reads behave as in production. */
+const real = createClientAdapters();
 
 const repository = () =>
   Context.make(EntityRepositoryTag, makeInMemoryEntityRepository([]));
@@ -25,6 +29,7 @@ const adapters: StockAdapters = {
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
   ),
+  metadata: real.metadata,
 };
 
 const wrapperWith = (supplied?: StockAdapters) =>

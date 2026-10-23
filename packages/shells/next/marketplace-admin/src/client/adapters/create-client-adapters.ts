@@ -9,7 +9,9 @@ import {
   buildEntityRestAdapterLoad,
   buildEntityRestAdapterSave,
   BuildEntityRestOptions,
+  buildTransactionStatusReader,
   ConfigurationClientRestClient,
+  makeEntityMetadataSource,
 } from '@entifix/rest';
 import {
   ProductBrand,
@@ -20,7 +22,7 @@ import {
   ProductOfferingPrice,
   ProductSpecification,
 } from '@r10c/business-ts-product-configuration-management';
-import { Context } from 'effect';
+import { Context, Effect } from 'effect';
 
 import type { MarketplaceAdminAdapters } from '../client-types';
 
@@ -72,7 +74,7 @@ const REFERENCE_SERVICE = restOptionsFor('marketplace-service-domain');
  * `/api/admin`, where nothing serves it any more — and the symptom is a write
  * that stays `PENDING` forever rather than an error anyone sees.
  */
-export const TRANSACTION_SERVICE = restOptionsFor('transaction-service-domain');
+const TRANSACTION_SERVICE = restOptionsFor('transaction-service-domain');
 
 /**
  * Builds the full CRUD adapter set for one entity, backed by REST, under the
@@ -120,6 +122,48 @@ const productOfferingPriceRest = createRestRepositoryContext(
   CATALOG_SERVICE_REST,
 );
 
+/**
+ * The reference vocabulary's affordances and bulk verbs, both through the
+ * host's own `/api/marketplace` proxy.
+ *
+ * A hand-written path rather than the adapters' config-driven `compose` mode,
+ * for the same reason the auth shell writes one: these are not entity CRUD
+ * calls, so they do not go through `buildEntityRestAdapter*` and there is no
+ * `uri` group for them to compose from. The proxy is what keeps a real backend
+ * address out of the browser, and what carries the httpOnly cookie upstream —
+ * a cross-origin call would answer `401`.
+ */
+const referenceMetadata = makeEntityMetadataSource({
+  url: name => `/api/marketplace/${name}/$metadata`,
+});
+
+/**
+ * The catalog service's own affordances and entity-bound verbs, through the
+ * host's `/api/admin` proxy.
+ *
+ * The tenant-plane sibling of {@link referenceMetadata}, and a separate
+ * constant because the two services sit behind two different proxies — the same
+ * split ADR 0022 forced on the adapters one file over.
+ */
+const catalogMetadata = makeEntityMetadataSource({
+  url: name => `/api/admin/${name}/$metadata`,
+});
+
+/**
+ * The tracker's status read, built once here so the component that settles
+ * optimistic writes holds a port rather than assembling the adapter, its
+ * configuration and a runtime call inline.
+ *
+ * `runSync` is safe: building the reader only resolves the configuration store
+ * it will read the URL from, and every request it makes is deferred to `read`.
+ */
+const transactionStatus = Effect.runSync(
+  Effect.provide(
+    buildTransactionStatusReader(TRANSACTION_SERVICE),
+    configurationStore,
+  ),
+);
+
 export function createClientAdapters(): MarketplaceAdminAdapters {
   return {
     productCategoryRest,
@@ -128,5 +172,8 @@ export function createClientAdapters(): MarketplaceAdminAdapters {
     productOfferingRest,
     productOfferingPriceRest,
     configurationStore,
+    referenceMetadata,
+    catalogMetadata,
+    transactionStatus,
   };
 }

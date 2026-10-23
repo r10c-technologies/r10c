@@ -2,7 +2,6 @@
 
 import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud } from '@entifix/next-shell';
-import { makeEntityMetadataSource } from '@entifix/rest';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 
 import { SALES_CHANNEL_SURFACE } from '../sales-surfaces';
@@ -16,9 +15,6 @@ import { useSalesAdapters } from './sales-context';
  * principal, so a `user` sees the list without a Save and an `admin` sees both
  * (ADR 0026).
  */
-const SALES_METADATA = makeEntityMetadataSource({
-  url: name => `/api/sales/${name}/$metadata`,
-});
 
 /**
  * A vendor's selling channels.
@@ -40,7 +36,7 @@ export const salesChannelCrud: EntityCrud<SalesChannel> = makeEntityCrud(
     // Server-assigned by the Mongo adapter on create, so asking a vendor to
     // type one would be asking for a value the service overwrites.
     hiddenFields: ['id'],
-    metadataSource: SALES_METADATA,
+    metadata: 'metadata',
   },
 );
 

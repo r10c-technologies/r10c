@@ -12,11 +12,15 @@ import { Context } from 'effect';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it } from 'vitest';
 
+import { createClientAdapters } from '../adapters/create-client-adapters.js';
 import type { MarketplaceAdminAdapters } from '../client-types.js';
 import {
   MarketplaceAdminAdaptersProvider,
   useMarketplaceAdminAdapters,
 } from './marketplace-admin-context.js';
+
+/** The transports the shell really composes, so metadata reads behave as in production. */
+const real = createClientAdapters();
 
 const repository = () =>
   Context.make(EntityRepositoryTag, makeInMemoryEntityRepository([]));
@@ -31,6 +35,9 @@ const adapters: MarketplaceAdminAdapters = {
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
   ),
+  referenceMetadata: real.referenceMetadata,
+  catalogMetadata: real.catalogMetadata,
+  transactionStatus: real.transactionStatus,
 };
 
 describe('the marketplace-admin adapters context', () => {

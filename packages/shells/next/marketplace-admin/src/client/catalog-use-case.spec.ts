@@ -1,7 +1,6 @@
-import { ProductOffering } from '@r10c/business-ts-product-configuration-management';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CATALOG_METADATA, runCatalogUseCase } from './catalog-crud.js';
+import { runCatalogUseCase } from './catalog-crud.js';
 
 /**
  * Typed as `fetch` itself so the recorded calls keep their argument tuple — a
@@ -78,21 +77,5 @@ describe('runCatalogUseCase', () => {
     await expect(
       runCatalogUseCase('product-offering')('publish', 'o-1'),
     ).rejects.toMatchObject({ details: { code: 'unexpected' } });
-  });
-});
-
-describe('CATALOG_METADATA', () => {
-  it('asks the catalog proxy, not the reference one', async () => {
-    const fetchMock = answering({
-      meta: { type: 'entityMetadata', entity: 'product-offering' },
-      data: { actions: ['read'], useCases: [] },
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
-    await CATALOG_METADATA.fetchMetadata(ProductOffering);
-
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
-      '/api/admin/product-offering/$metadata',
-    );
   });
 });

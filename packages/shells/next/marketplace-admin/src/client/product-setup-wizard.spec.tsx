@@ -25,6 +25,7 @@ import userEvent from '@testing-library/user-event';
 import { Context } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createClientAdapters } from './adapters/create-client-adapters.js';
 import type { MarketplaceAdminAdapters } from './client-types.js';
 import { MarketplaceAdminAdaptersProvider } from './marketplace-admin-context/marketplace-admin-context.js';
 import {
@@ -32,6 +33,9 @@ import {
   ProductSetupWizard,
   validatorFor,
 } from './product-setup-wizard.js';
+
+/** The transports the shell really composes, so metadata reads behave as in production. */
+const real = createClientAdapters();
 
 /**
  * A router that actually navigates.
@@ -98,6 +102,9 @@ const adapters = (): MarketplaceAdminAdapters => ({
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
   ),
+  referenceMetadata: real.referenceMetadata,
+  catalogMetadata: real.catalogMetadata,
+  transactionStatus: real.transactionStatus,
 });
 
 const renderWizard = (props: { step?: string; onFinished?: () => void } = {}) =>

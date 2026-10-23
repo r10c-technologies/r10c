@@ -18,6 +18,7 @@ import { Context } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createClientAdapters } from './adapters/create-client-adapters.js';
 import type { StockAdapters } from './client-types.js';
 import { StockProvider } from './stock-context.js';
 import {
@@ -31,6 +32,9 @@ import {
   StockMovementListClientPage,
   StockMovementSingleViewClientPage,
 } from './stock-crud.js';
+
+/** The transports the shell really composes, so metadata reads behave as in production. */
+const real = createClientAdapters();
 
 // These pages are `makeEntityCrud` output, so what is worth asserting is that
 // the generator was handed the right facts — the adapter each screen reads, the
@@ -79,6 +83,7 @@ const adapters = (): StockAdapters => ({
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
   ),
+  metadata: real.metadata,
 });
 
 const renderPage = (page: ReactElement) =>

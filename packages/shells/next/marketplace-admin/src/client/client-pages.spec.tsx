@@ -19,6 +19,7 @@ import { Context } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createClientAdapters } from './adapters/create-client-adapters.js';
 import {
   ProductBrandListClientPage,
   ProductBrandSingleViewClientPage,
@@ -29,6 +30,9 @@ import {
 } from './catalog-crud.js';
 import type { MarketplaceAdminAdapters } from './client-types.js';
 import { MarketplaceAdminAdaptersProvider } from './marketplace-admin-context/marketplace-admin-context.js';
+
+/** The transports the shell really composes, so metadata reads behave as in production. */
+const real = createClientAdapters();
 
 // These six pages are `makeEntityCrud` output, not hand-written modules — which
 // is exactly why the suite is unchanged from the one that covered the six
@@ -86,6 +90,9 @@ const adapters = (): MarketplaceAdminAdapters => ({
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
   ),
+  referenceMetadata: real.referenceMetadata,
+  catalogMetadata: real.catalogMetadata,
+  transactionStatus: real.transactionStatus,
 });
 
 const renderPage = (page: ReactElement) =>
