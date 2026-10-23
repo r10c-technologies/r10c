@@ -3,27 +3,10 @@
 import { EntifixLogicError, type EntityId } from '@entifix/core';
 import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud } from '@entifix/next-shell';
-import { makeEntityMetadataSource } from '@entifix/rest';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 
 import { PRODUCT_ORDER_SURFACE } from '../order-surfaces';
 import { useOrderAdapters } from './order-context';
-
-/**
- * The served affordance document, through the host's same-origin proxy.
- *
- * ⚠️ It is what decides whether this screen shows a Save at all. No role holds
- * `order-management:product-order:write`, so `$metadata` withholds the verb and
- * the form renders read-only — without this shell asserting anything about it
- * ([ADR 0026](../../../../../../docs/adr/0026-the-use-case-descriptor-and-served-entity-metadata.md)).
- *
- * It is also what decides whether `fulfil` and `cancel` appear: the document is
- * filtered by the caller's real grants, so a `user` sees neither and no
- * client-side check is needed or wanted.
- */
-const ORDER_METADATA = makeEntityMetadataSource({
-  url: name => `/api/order/${name}/$metadata`,
-});
 
 /**
  * Runs an `entity`-bound verb on one order.
@@ -95,7 +78,7 @@ export const productOrderCrud: EntityCrud<ProductOrder> = makeEntityCrud(
     // handler draws a declared, granted, served verb as nothing at all — and a
     // handler with no metadata source has nothing to draw. `catalog-crud.tsx`
     // carries the same note over the same pair.
-    metadataSource: ORDER_METADATA,
+    metadata: 'metadata',
     runUseCase: runOrderUseCase,
   },
 );

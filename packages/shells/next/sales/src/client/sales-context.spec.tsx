@@ -10,8 +10,12 @@ import { render, screen } from '@testing-library/react';
 import { Context } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import { createClientAdapters } from './adapters/create-client-adapters.js';
 import type { SalesAdapters } from './client-types.js';
 import { SalesProvider, useSalesAdapters } from './sales-context.js';
+
+/** The transports the shell really composes, so metadata reads behave as in production. */
+const real = createClientAdapters();
 
 const stubAdapters = (): SalesAdapters => ({
   salesChannelRest: Context.make(
@@ -26,6 +30,7 @@ const stubAdapters = (): SalesAdapters => ({
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
   ),
+  metadata: real.metadata,
 });
 
 function Reader() {
@@ -43,7 +48,7 @@ describe('SalesProvider', () => {
 
     expect(
       screen.getByText(
-        'salesChannelRest,publishedOfferingRest,configurationStore',
+        'salesChannelRest,publishedOfferingRest,configurationStore,metadata',
       ),
     ).toBeInTheDocument();
   });

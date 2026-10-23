@@ -14,6 +14,7 @@ import { Context } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createClientAdapters } from './adapters/create-client-adapters.js';
 import type { OrderAdapters } from './client-types.js';
 import { OrderProvider } from './order-context.js';
 import {
@@ -22,6 +23,9 @@ import {
   ProductOrderListClientPage,
   ProductOrderSingleViewClientPage,
 } from './order-crud.js';
+
+/** The transports the shell really composes, so metadata reads behave as in production. */
+const real = createClientAdapters();
 
 // These pages are `makeEntityCrud` output, so what is worth asserting is that
 // the generator was handed the right facts — the adapter the screen reads, the
@@ -54,6 +58,7 @@ const adapters = (): OrderAdapters => ({
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
   ),
+  metadata: real.metadata,
 });
 
 const renderPage = (page: ReactElement) =>

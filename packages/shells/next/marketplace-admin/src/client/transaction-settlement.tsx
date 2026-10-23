@@ -6,14 +6,8 @@ import {
   useReactiveInvalidation,
   useTransactionSettlement,
 } from '@entifix/react-integration';
-import { buildTransactionStatusReader } from '@entifix/rest';
-import { Effect } from 'effect';
-import { useCallback } from 'react';
 
-import {
-  createClientAdapters,
-  TRANSACTION_SERVICE,
-} from './adapters/create-client-adapters';
+import { createClientAdapters } from './adapters/create-client-adapters';
 
 /**
  * The reactive stream, reached **same-origin** through the `/api/admin` proxy:
@@ -31,6 +25,9 @@ const reactiveChannel = makeEventSourceReactiveChannel(
   '/api/transaction/events',
 );
 
+/** Built once at composition; a module-scope port, so its identity is stable. */
+const { transactionStatus } = createClientAdapters();
+
 /**
  * Mounts the stream for the whole authenticated area — invalidation and
  * settlement both.
@@ -47,22 +44,12 @@ const reactiveChannel = makeEventSourceReactiveChannel(
 export function TransactionSettlement() {
   const pending = usePendingTransactions();
 
-  const read = useCallback(
-    (transactionId: string) =>
-      Effect.runPromise(
-        Effect.provide(
-          Effect.flatMap(
-            buildTransactionStatusReader(TRANSACTION_SERVICE),
-            reader => reader.read(transactionId),
-          ),
-          createClientAdapters().configurationStore,
-        ),
-      ),
-    [],
-  );
-
   useReactiveInvalidation(reactiveChannel);
-  useTransactionSettlement({ channel: reactiveChannel, pending, read });
+  useTransactionSettlement({
+    channel: reactiveChannel,
+    pending,
+    reader: transactionStatus,
+  });
 
   return null;
 }

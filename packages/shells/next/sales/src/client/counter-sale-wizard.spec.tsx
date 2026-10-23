@@ -16,6 +16,7 @@ import userEvent from '@testing-library/user-event';
 import { Context } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createClientAdapters } from './adapters/create-client-adapters.js';
 import type { SalesAdapters } from './client-types.js';
 import {
   COUNTER_SALE_WIZARD,
@@ -24,6 +25,9 @@ import {
   readLines,
 } from './counter-sale-wizard.js';
 import { SalesProvider } from './sales-context.js';
+
+/** The transports the shell really composes, so metadata reads behave as in production. */
+const real = createClientAdapters();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -72,6 +76,7 @@ const adapters = (): SalesAdapters => ({
     ConfigurationRepositoryTag,
     makeStubConfigurationClient(),
   ),
+  metadata: real.metadata,
 });
 
 const renderTill = (props: { step?: string; onFinished?: () => void } = {}) =>

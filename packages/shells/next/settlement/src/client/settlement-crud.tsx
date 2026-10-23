@@ -2,7 +2,6 @@
 
 import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud } from '@entifix/next-shell';
-import { makeEntityMetadataSource } from '@entifix/rest';
 import {
   Agreement,
   CommissionEntry,
@@ -18,19 +17,6 @@ import {
 } from '../settlement-surfaces';
 import { AgreementSingleViewClientPage } from './agreement-single-view';
 import { useSettlementAdapters } from './settlement-context';
-
-/**
- * Where each screen reads this caller's affordances (ADR 0026).
- *
- * The **proxy** path, not the service's own: the browser reaches settlement
- * through the host's same-origin proxy, which is what carries the httpOnly
- * session cookie upstream. Aimed at the backend directly it would answer `401`,
- * and every screen would fall back to its pre-descriptor behaviour — offering
- * Save on records no role may write.
- */
-export const SETTLEMENT_METADATA = makeEntityMetadataSource({
-  url: name => `/api/settlement/${name}/$metadata`,
-});
 
 /**
  * The three generated screens.
@@ -50,7 +36,7 @@ export const commissionEntryCrud: EntityCrud<CommissionEntry> = makeEntityCrud(
     repository: 'commissionEntryRest',
     configuration: 'configurationStore',
     hiddenFields: ['id'],
-    metadataSource: SETTLEMENT_METADATA,
+    metadata: 'metadata',
   },
 );
 
@@ -63,7 +49,7 @@ export const settlementRunCrud: EntityCrud<SettlementRun> = makeEntityCrud(
     repository: 'settlementRunRest',
     configuration: 'configurationStore',
     hiddenFields: ['id'],
-    metadataSource: SETTLEMENT_METADATA,
+    metadata: 'metadata',
   },
 );
 
@@ -76,7 +62,7 @@ export const vendorPayoutCrud: EntityCrud<VendorPayout> = makeEntityCrud(
     repository: 'vendorPayoutRest',
     configuration: 'configurationStore',
     hiddenFields: ['id'],
-    metadataSource: SETTLEMENT_METADATA,
+    metadata: 'metadata',
   },
 );
 
@@ -100,7 +86,7 @@ const generatedAgreementCrud = makeEntityCrud(Agreement, {
   // list is cosmetic rather than load-bearing — unlike hiding it from the form,
   // which stops a save writing `NaN` over it.
   hiddenFields: ['id', 'channelCommissionBasisPoints'],
-  metadataSource: SETTLEMENT_METADATA,
+  metadata: 'metadata',
 });
 
 export const agreementCrud: EntityCrud<Agreement> = {

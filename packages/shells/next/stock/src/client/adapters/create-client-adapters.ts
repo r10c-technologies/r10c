@@ -10,6 +10,7 @@ import {
   buildEntityRestAdapterSave,
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
+  makeEntityMetadataSource,
 } from '@entifix/rest';
 import {
   Reservation,
@@ -78,11 +79,21 @@ const stockItemRest = createRestRepositoryContext(StockItem);
 const stockMovementRest = createRestRepositoryContext(StockMovement);
 const reservationRest = createRestRepositoryContext(Reservation);
 
+/**
+ * The served affordance document, through the host's same-origin proxy, which
+ * carries the session cookie upstream so the descriptor is filtered by the
+ * verified principal (ADR 0026).
+ */
+const metadata = makeEntityMetadataSource({
+  url: name => `/api/stock/${name}/$metadata`,
+});
+
 export function createClientAdapters(): StockAdapters {
   return {
     stockItemRest,
     stockMovementRest,
     reservationRest,
     configurationStore,
+    metadata,
   };
 }

@@ -2,7 +2,6 @@
 
 import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud } from '@entifix/next-shell';
-import { makeEntityMetadataSource } from '@entifix/rest';
 import {
   Reservation,
   StockItem,
@@ -29,7 +28,7 @@ import { useStockAdapters } from './stock-context';
  * that so.** Both are `type: 'number'` accessors, which is exactly what the
  * generator would otherwise turn into editable fields with a Save that `PUT`s
  * an absolute quantity — the read-modify-write
- * [ADR 0010](../../../../../docs/adr/0010-stock-ledger-reservations-and-concurrency.md)
+ * [ADR 0010](../../../../../../docs/adr/0010-stock-ledger-reservations-and-concurrency.md)
  * forbids. What prevents it is the **served descriptor**: no role holds
  * `stock-management:stock-item:write`, stock-service serves no save route, so
  * `$metadata` reports no Save affordance and the form renders read-only.
@@ -42,10 +41,6 @@ import { useStockAdapters } from './stock-context';
  *
  * The write surface is the movement below.
  */
-const STOCK_METADATA = makeEntityMetadataSource({
-  url: name => `/api/stock/${name}/$metadata`,
-});
-
 export const stockItemCrud: EntityCrud<StockItem> = makeEntityCrud(StockItem, {
   useAdapters: useStockAdapters,
   basePath: STOCK_ITEM_SURFACE.basePath,
@@ -56,7 +51,7 @@ export const stockItemCrud: EntityCrud<StockItem> = makeEntityCrud(StockItem, {
   // quantities would have nothing left to show — they are simply not editable,
   // and the metadata is what says so.
   hiddenFields: ['id'],
-  metadataSource: STOCK_METADATA,
+  metadata: 'metadata',
 });
 
 /**
@@ -84,7 +79,7 @@ export const stockMovementCrud: EntityCrud<StockMovement> = makeEntityCrud(
     // asking an operator to type one would be asking for a value the service
     // overwrites.
     hiddenFields: ['id'],
-    metadataSource: STOCK_METADATA,
+    metadata: 'metadata',
   },
 );
 
@@ -105,7 +100,7 @@ export const reservationCrud: EntityCrud<Reservation> = makeEntityCrud(
     repository: 'reservationRest',
     configuration: 'configurationStore',
     hiddenFields: ['id'],
-    metadataSource: STOCK_METADATA,
+    metadata: 'metadata',
   },
 );
 
