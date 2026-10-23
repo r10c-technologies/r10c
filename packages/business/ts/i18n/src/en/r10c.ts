@@ -113,7 +113,7 @@ export const r10c: EsR10c = {
       empty: 'Your cart is empty.',
       remove: 'Remove',
       units: 'Qty {{count}}',
-      total: 'Items in total',
+      total: 'Total',
       keepShopping: 'Keep shopping',
       checkout: 'Check out',
     },

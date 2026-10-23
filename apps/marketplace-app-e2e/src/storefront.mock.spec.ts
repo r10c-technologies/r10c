@@ -87,6 +87,20 @@ test.describe('the cart', () => {
     await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
   });
 
+  /** #328: the cart states money, per line and in total, before checkout. */
+  test('prices each line and totals the basket in money', async ({ page }) => {
+    for (let added = 0; added < 2; added += 1) {
+      await page.goto('/es/p/offering-aurora-desk-lamp');
+      await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+      await page.waitForURL(/\/es\/cart$/);
+    }
+
+    // 2 × 1999 minor units, in `es`'s separators. A count of units would read
+    // "2".
+    await expect(page.getByTestId('cart-line-price')).toContainText('39,98');
+    await expect(page.getByTestId('cart-total')).toContainText('39,98');
+  });
+
   test('the header badge fills in from the cookie', async ({ page }) => {
     await page.goto('/es/p/offering-terra-ceramic-mug');
     await page.getByRole('button', { name: 'Añadir al carrito' }).click();

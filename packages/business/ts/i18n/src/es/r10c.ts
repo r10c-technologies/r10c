@@ -125,7 +125,7 @@ export const r10c = {
       empty: 'Tu carrito está vacío.',
       remove: 'Quitar',
       units: 'Cant. {{count}}',
-      total: 'Artículos en total',
+      total: 'Total',
       keepShopping: 'Seguir comprando',
       checkout: 'Finalizar compra',
     },

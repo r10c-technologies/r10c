@@ -14,9 +14,9 @@ import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 
 import { removeFromCart } from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';
-import { cartCount } from '../cart/cart-state';
 import { checkout, type CheckoutOutcome } from '../cart/checkout-action';
 import { runRead } from '../catalog/catalog-reads';
+import { formatMoney, totalsByCurrency } from '../catalog/money';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -55,7 +55,18 @@ export async function CartPage({
   // A line whose offering is gone — unpublished since it was added — is
   // dropped from the view rather than rendered nameless. The cookie keeps it
   // until the next write, which costs nothing and avoids a mutation on a read.
-  const present = items.filter(entry => entry.offering !== undefined);
+  const present = items.flatMap(({ line, offering }) =>
+    offering === undefined ? [] : [{ line, offering }],
+  );
+  // Summed over what is shown, not over the cookie: a dropped line must not
+  // keep adding to a figure the buyer cannot trace back to a row.
+  const totals = totalsByCurrency(
+    present.map(({ line, offering }) => ({
+      amount: offering.amount,
+      currency: offering.currency,
+      quantity: line.quantity,
+    })),
+  );
 
   return (
     <StoreShell locale={locale}>
@@ -87,11 +98,19 @@ export async function CartPage({
               <Card key={line.offeringId}>
                 <Cluster justify="between" gap="s">
                   <Stack gap="3xs">
-                    <Text weight="semibold">{offering?.name}</Text>
+                    <Text weight="semibold">{offering.name}</Text>
                     <Text muted>
                       {t('storefront.cart.units', { count: line.quantity })}
                     </Text>
                   </Stack>
+
+                  <Text data-testid="cart-line-price">
+                    {formatMoney(
+                      locale,
+                      offering.amount * line.quantity,
+                      offering.currency,
+                    )}
+                  </Text>
 
                   <form action={removeFromCart}>
                     <input
@@ -108,11 +127,17 @@ export async function CartPage({
             ))}
 
             <Cluster justify="between" gap="s">
-              <Text weight="semibold" data-testid="cart-total">
-                {t('storefront.cart.total')}
-                {': '}
-                {cartCount(lines)}
-              </Text>
+              {/* One total per currency, summed the way the receipt sums it,
+                  so the figure before checkout is the figure after it. */}
+              <Stack gap="3xs" data-testid="cart-total">
+                {totals.map(total => (
+                  <Text key={total.currency} weight="semibold">
+                    {t('storefront.cart.total')}
+                    {': '}
+                    {formatMoney(locale, total.amount, total.currency)}
+                  </Text>
+                ))}
+              </Stack>
               <Cluster gap="s">
                 <ButtonLink
                   href={localeHref(locale, storePaths.home())}

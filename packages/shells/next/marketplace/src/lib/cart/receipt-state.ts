@@ -18,6 +18,8 @@
  * module that also read `next/headers` would drag a server-only API into the
  * browser bundle.
  */
+
+import { totalsByCurrency } from '../catalog/money';
 export const RECEIPT_COOKIE = 'r10c_receipt';
 
 /**
@@ -168,14 +170,6 @@ export const receiptFromOrder = (
     readonly cancelWindowEndsAt?: string;
   },
 ): Receipt => {
-  const byCurrency = new Map<string, number>();
-  for (const line of lines) {
-    byCurrency.set(
-      line.currency,
-      (byCurrency.get(line.currency) ?? 0) + line.amount * line.quantity,
-    );
-  }
-
   return {
     ...(lines.length > RECEIPT_LINE_CAP ? {} : { lines }),
     ...(placedAt === undefined ? {} : { placedAt }),
@@ -187,10 +181,7 @@ export const receiptFromOrder = (
       : { cancelWindowEndsAt: capability.cancelWindowEndsAt }),
     orderId,
     lineCount: lines.length,
-    totals: [...byCurrency].map(([currency, amount]) => ({
-      currency,
-      amount,
-    })),
+    totals: totalsByCurrency(lines),
   };
 };
 
