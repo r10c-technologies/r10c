@@ -186,6 +186,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 
 - [0026](docs/adr/0026-the-use-case-descriptor-and-served-entity-metadata.md) **The use-case descriptor, and entity metadata as a served document** — read when adding a verb to an entity, or reading affordances in the browser — the descriptor is served from `$metadata` filtered by the verified principal, and an inline descriptor makes every invariant pass vacuously.
 - [0034](docs/adr/0034-composition-metadata.md) **Composition metadata: an entity can declare that it owns a collection** — read when an entity member holds an array — `composition`, `linkCollection` and `scalarCollection` are three different relations, and a collection declared sortable throws.
+- [0060](docs/adr/0060-the-implementation-layer-cells.md) **The implementation layer: cells, their granularity, and the dependency rule** — read when adding a package under `packages/implementation/`, putting technology-bound code into a shell or an app, or a UI file imports an adapter — a cell depends on entities, use cases and ports and never on another cell or an adapter, UI and HTTP cells are keyed by domain and persistence cells by store.
 
 **Frontend, screens and the workspace**
 
@@ -239,3 +240,17 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0059](docs/adr/0059-entifix-leaves-the-repo.md) **entifix leaves the repo, and r10c becomes one of its consumers** — read when looking for the framework's source, changing entifix while r10c runs, or wondering why a framework file imports a cookie name from core instead of declaring its own — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported.
 
 <!-- docs:end adr-triggers -->
+
+## entifix decisions r10c follows
+
+The framework's own records, at the release installed here. r10c may narrow one
+of these for itself, never loosen it
+([ADR 0025](docs/adr/0025-where-planning-and-business-knowledge-live.md)). Every
+link names the tag of the installed version, and `@r10c/docs-check` fails when
+the catalog moves and the links do not — adopting a release re-pins this list.
+
+- [entifix 0001](https://github.com/r10c-technologies/entifix/blob/v0.4.1/docs/adr/0001-the-tier-contract-and-the-host-seam.md) **The tier contract, and the seam a host configures across** — read when an entifix import seems legal by direction but drags in a capability, or a host value seems to belong in the framework.
+- [entifix 0002](https://github.com/r10c-technologies/entifix/blob/v0.4.1/docs/adr/0002-entifix-is-mit.md) **entifix is MIT** — read when the framework's licence matters to something r10c ships.
+- [entifix 0003](https://github.com/r10c-technologies/entifix/blob/v0.4.1/docs/adr/0003-releasing-without-a-credential.md) **Releasing without a credential** — read when an entifix change merged and no version arrived to adopt.
+- [entifix 0004](https://github.com/r10c-technologies/entifix/blob/v0.4.1/docs/adr/0004-the-examples-are-the-composability-proof.md) **The examples are the composability proof** — read when an entity class has to compile inside a Next application.
+- [entifix 0005](https://github.com/r10c-technologies/entifix/blob/v0.4.1/docs/adr/0005-content-an-entity-describes.md) **Content an entity describes** — read when declaring locales, holding text in several languages, or publishing an entity narrower than it is stored.

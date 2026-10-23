@@ -21,6 +21,10 @@
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): `shell:base` and `runtime:datastore` are gone with the in-tree packages that
   carried them; `shell:domain` still forbids a sideways shell edge, and the
   `host:next` ban is now `bannedExternalImports` on the four datastore clients.
+- Revised: 2026-10-23 by [ADR 0060](0060-the-implementation-layer-cells.md) —
+  the implementation layer is populated with cells, adopting the alternative
+  rejected below for technology-bound domain code, and a domain shell is now a
+  host's composition rather than a domain's module.
 
 ## Context
 
@@ -117,6 +121,11 @@ Add `shell:base` ‹ `shell:domain`, mirroring the existing `entifix:*` and
 `business:*` intra-layer ordering. `@entifix/service-shell`,
 `@entifix/next-shell` and `@entifix/next-i18n` are `shell:base`; the domain shells
 are `shell:domain`.
+
+> **2026-10-23 ([ADR 0060](0060-the-implementation-layer-cells.md)).** The
+> rejection below still holds for the route and auth primitives it was about.
+> For a domain's technology-bound code — screens, route sets, persistence — the
+> outcome is now different, and ADR 0060 puts that code in implementation cells.
 
 Rejected: pushing domain modules down to `layer:implementation` and moving the
 route/auth primitives out of `@entifix/service-shell`. Purer layering, much larger
