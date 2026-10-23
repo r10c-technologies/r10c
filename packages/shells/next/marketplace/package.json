@@ -51,7 +51,9 @@
     "@entifix/i18n": "catalog:",
     "@entifix/rest": "catalog:",
     "@entifix/next-shell": "catalog:",
-    "effect": "4.0.5"
+    "effect": "4.0.5",
+    "@r10c/implementation-catalog-reference-next": "workspace:*",
+    "@r10c/implementation-marketplace-catalog-next": "workspace:*"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:"

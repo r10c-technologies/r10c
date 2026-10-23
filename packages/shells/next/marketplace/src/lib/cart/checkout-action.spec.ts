@@ -31,8 +31,14 @@ vi.mock('next/headers', () => ({
 vi.mock('next/navigation', () => ({
   redirect: (path: string) => redirect(path),
 }));
-vi.mock('../catalog/queries', () => ({
+// The cell read is stood in for by the mock's promise, and the runner hands it
+// straight back — so what the action receives is whatever `getOffering`
+// resolves, with no repository behind it.
+vi.mock('@r10c/implementation-marketplace-catalog-next', () => ({
   getOffering: (id: string) => getOffering(id),
+}));
+vi.mock('../catalog/catalog-reads', () => ({
+  runRead: (_entity: unknown, read: unknown) => read,
 }));
 vi.mock('./cart-cookie', () => ({ readCart: () => readCart() }));
 

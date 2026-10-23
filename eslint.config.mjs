@@ -22,6 +22,9 @@ import { r10cPlugin } from './tools/eslint/no-foreign-app-namespace.mjs';
 //              shells (installed); it never imports another domain shell
 //   host:*     what kind of runtime host an app is — `next` or `effect`. A Next
 //              app may not import entifix's datastore clients at all.
+//   tech:*     what an implementation cell is written in — react / next / http
+//              / mongo / redis / sql — and so which mechanisms it may not talk
+//              through (docs/adr/0060).
 //   type:*     testing/e2e helpers (relaxed — see specConstraints).
 //
 // The rule ANDs every constraint whose `sourceTag` a project carries, so the
@@ -218,6 +221,104 @@ const hostConstraints = [
   },
 ];
 
+// What an implementation cell is written in, and therefore what it may not talk
+// through (docs/adr/0060). A cell depends on entities, use cases and ports; the
+// mechanism behind a port is chosen at composition — a shell or an app — and
+// never imported by the cell. Cell→cell needs no rule here: `layer:implementation`
+// allows no same-layer edge.
+//
+// Bans on external imports, for the same reason as `host:*` above: entifix is
+// installed and carries no tags. Each package is named twice because a subpath
+// does not match the bare name.
+const both = names => names.flatMap(name => [name, `${name}/*`]);
+
+/** The adapters behind entifix's ports, plus the drivers they wrap. */
+const ADAPTERS = both([
+  '@entifix/rest',
+  '@entifix/static',
+  '@entifix/mongo',
+  '@entifix/sql',
+  '@entifix/redis',
+  '@entifix/amqp',
+  '@entifix/jwt',
+  '@entifix/zitadel',
+  '@entifix/posthog',
+]);
+const DRIVERS = both(['mongodb', 'ioredis', 'amqplib', 'pg', '@effect/sql-pg']);
+
+/**
+ * Banned in every cell that is not persistence. `next-shell/server` holds the
+ * config-service protocol and the service token; `react-controls/i18next` binds
+ * a translator a cell only needs the port of; TanStack and redux are state
+ * mechanisms the framework's hooks already sit in front of.
+ */
+const COMPOSITION_ONLY = [
+  ...ADAPTERS,
+  ...DRIVERS,
+  '@entifix/react-controls/i18next',
+  '@entifix/next-shell/server',
+  '@tanstack/*',
+  ...both(['redux', 'react-redux', '@reduxjs/toolkit']),
+];
+
+/** What a persistence cell is never written in. */
+const UI_AND_HTTP = both([
+  'react',
+  'react-dom',
+  'next',
+  '@entifix/react-controls',
+  '@entifix/react-integration',
+  '@entifix/next-shell',
+  '@entifix/next-i18n',
+  '@entifix/service-shell',
+  '@entifix/rest',
+  '@entifix/static',
+  '@entifix/jwt',
+  '@entifix/zitadel',
+  '@entifix/posthog',
+  '@tanstack/react-query',
+  '@tanstack/react-form',
+]);
+
+/** A persistence cell is its own engine's adapter, and no other engine's. */
+const ENGINES = {
+  mongo: both(['@entifix/mongo', 'mongodb']),
+  redis: both(['@entifix/redis', 'ioredis']),
+  sql: both(['@entifix/sql', 'pg', '@effect/sql-pg']),
+};
+const otherEngines = own => [
+  ...Object.entries(ENGINES)
+    .filter(([engine]) => engine !== own)
+    .flatMap(([, names]) => names),
+  ...both(['@entifix/amqp', 'amqplib']),
+];
+
+const techConstraints = [
+  // Plain React: no Next, so the same cell mounts in any React host.
+  {
+    sourceTag: 'tech:react',
+    bannedExternalImports: [...COMPOSITION_ONLY, ...both(['next'])],
+  },
+  { sourceTag: 'tech:next', bannedExternalImports: COMPOSITION_ONLY },
+  {
+    sourceTag: 'tech:http',
+    bannedExternalImports: [
+      ...COMPOSITION_ONLY,
+      ...both(['react', 'react-dom', 'next']),
+      ...both([
+        '@entifix/react-controls',
+        '@entifix/react-integration',
+        '@entifix/next-shell',
+        '@entifix/next-i18n',
+      ]),
+    ],
+  },
+  ...Object.keys(ENGINES).map(engine => ({
+    sourceTag: `tech:${engine}`,
+    bannedExternalImports: [...UI_AND_HTTP, ...otherEngines(engine)],
+  })),
+];
+
 // Strict constraints for source files. The trailing `*` catch-all lets any
 // untagged project (e.g. testing/e2e) and external deps still resolve.
 const sourceConstraints = [
@@ -226,6 +327,7 @@ const sourceConstraints = [
   ...businessConstraints,
   ...shellConstraints,
   ...hostConstraints,
+  ...techConstraints,
   { sourceTag: '*', onlyDependOnLibsWithTags: ['*'] },
 ];
 

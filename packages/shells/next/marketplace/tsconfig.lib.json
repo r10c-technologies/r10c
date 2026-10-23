@@ -35,6 +35,12 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../../../implementation/marketplace-catalog/next/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../implementation/catalog-reference/next/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/marketplace-catalog/tsconfig.lib.json"
     },
     {

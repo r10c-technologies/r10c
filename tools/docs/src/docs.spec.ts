@@ -763,6 +763,71 @@ describe('Tag dimensions are documented', () => {
   });
 });
 
+/**
+ * A cell's technology is what its import bans are keyed on, so a cell carrying
+ * none is a cell no ban reaches, and one carrying two is held to both lists at
+ * once. Its scope says which slice's domain it is — never the shared core
+ * (ADR 0060).
+ */
+describe('Implementation cells declare one technology and a domain scope', () => {
+  const cells = (): { name: string; tags: string[] }[] => {
+    const root = join(REPO_ROOT, 'packages', 'implementation');
+    if (!existsSync(root)) return [];
+    return readdirSync(root, { withFileTypes: true })
+      .filter(key => key.isDirectory())
+      .flatMap(key =>
+        readdirSync(join(root, key.name), { withFileTypes: true })
+          .filter(tech => tech.isDirectory())
+          .map(tech => join(root, key.name, tech.name, 'package.json'))
+          .filter(manifest => existsSync(manifest)),
+      )
+      .map(manifest => {
+        const pkg = JSON.parse(readFileSync(manifest, 'utf8'));
+        return { name: pkg.name as string, tags: pkg?.nx?.tags ?? [] };
+      });
+  };
+
+  it('finds the cells it is meant to check', () => {
+    expect(cells().length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('gives every cell exactly one tech:* tag', () => {
+    const wrong = cells().filter(
+      cell => cell.tags.filter(tag => tag.startsWith('tech:')).length !== 1,
+    );
+
+    expect(
+      wrong.map(cell => cell.name),
+      'these cells carry no tech:* tag, or more than one:',
+    ).toEqual([]);
+  });
+
+  it('gives every cell a domain scope, never the shared core', () => {
+    const wrong = cells().filter(
+      cell =>
+        cell.tags.filter(
+          tag => tag.startsWith('scope:') && tag !== 'scope:shared',
+        ).length !== 1 || cell.tags.includes('scope:shared'),
+    );
+
+    expect(
+      wrong.map(cell => cell.name),
+      'these cells carry no domain scope, more than one, or scope:shared:',
+    ).toEqual([]);
+  });
+
+  it('names every cell for its key and technology', () => {
+    const misnamed = cells().filter(
+      cell =>
+        !/^@r10c\/implementation-[a-z0-9-]+-(react|next|http|mongo|redis|sql)$/.test(
+          cell.name,
+        ),
+    );
+
+    expect(misnamed.map(cell => cell.name)).toEqual([]);
+  });
+});
+
 describe('Fleet ports agree in every place they are written', () => {
   const freePorts = read('tools/free-ports.sh');
   const portsDoc = read('docs/_shared/ports.md');

@@ -5,10 +5,12 @@ import {
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
+import { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { loadBrands } from '@r10c/implementation-catalog-reference-next';
 
+import { emptyPage, runRead } from './catalog-reads';
 import { OfferingCard } from './offering-card';
-import { loadBrands } from './queries';
 
 export interface OfferingGridProps {
   readonly locale: Locale;
@@ -34,7 +36,11 @@ export async function OfferingGrid({
     return <Text muted>{emptyLabel}</Text>;
   }
 
-  const brands = await loadBrands();
+  const brands = await runRead(
+    ProductBrand,
+    loadBrands(),
+    emptyPage<ProductBrand>(),
+  );
   const nameOf = new Map(
     brands.items.map(brand => [String(brand.id), brand.name]),
   );

@@ -9,12 +9,14 @@ import {
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 
 import { removeFromCart } from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';
 import { cartCount } from '../cart/cart-state';
 import { checkout, type CheckoutOutcome } from '../cart/checkout-action';
-import { getOffering } from '../catalog/queries';
+import { runRead } from '../catalog/catalog-reads';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -43,7 +45,11 @@ export async function CartPage({
   const items = await Promise.all(
     lines.map(async line => ({
       line,
-      offering: await getOffering(line.offeringId),
+      offering: await runRead(
+        PublishedOffering,
+        getOffering(line.offeringId),
+        undefined,
+      ),
     })),
   );
   // A line whose offering is gone — unpublished since it was added — is

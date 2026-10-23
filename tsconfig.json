@@ -176,6 +176,12 @@
     },
     {
       "path": "./tools/entifix"
+    },
+    {
+      "path": "./packages/implementation/marketplace-catalog/next"
+    },
+    {
+      "path": "./packages/implementation/catalog-reference/next"
     }
   ],
   "compilerOptions": {
