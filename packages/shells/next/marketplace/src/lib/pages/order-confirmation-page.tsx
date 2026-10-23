@@ -9,12 +9,14 @@ import {
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 
 import { cancelOrder, type CancelOutcome } from '../cart/cancel-action';
 import { cancelWindowLabel } from '../cart/cancel-window';
 import { readReceipt } from '../cart/receipt-cookie';
+import { runRead } from '../catalog/catalog-reads';
 import { formatMoney } from '../catalog/money';
-import { getOffering } from '../catalog/queries';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -96,7 +98,11 @@ export async function OrderConfirmationPage({
   const lines = await Promise.all(
     (receipt.lines ?? []).map(async line => ({
       line,
-      offering: await getOffering(line.offeringId),
+      offering: await runRead(
+        PublishedOffering,
+        getOffering(line.offeringId),
+        undefined,
+      ),
     })),
   );
 

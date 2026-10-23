@@ -32,10 +32,6 @@ export * from './lib/chrome/store-header';
 export * from './lib/routing/paths';
 export * from './lib/routing/store-link';
 
-// The read side: REST against marketplace-service, run inside the server
-// components themselves.
-export * from './lib/catalog/queries';
-
 // Cart state and its mutations.
 export * from './lib/cart/cart-actions';
 export * from './lib/cart/cart-cookie';

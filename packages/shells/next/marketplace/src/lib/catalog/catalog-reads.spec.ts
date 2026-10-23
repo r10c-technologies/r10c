@@ -13,18 +13,28 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import {
+  getBrand,
+  getCategoryByCode,
+  loadCategories,
+} from '@r10c/implementation-catalog-reference-next';
+import {
+  getOffering,
+  loadOfferings,
+} from '@r10c/implementation-marketplace-catalog-next';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { emptyPage, makeRunRead } from './catalog-reads.js';
+
 /**
- * These run the **real** generic load use-case over the **real** REST adapters,
- * against msw. So what is under test is the wiring the storefront actually
- * ships: the gated configuration lookup, the URL composed from it, the RSQL a
- * page's intent turns into, and what happens when none of it answers.
+ * These run the cells' reads through the storefront's **real** composition —
+ * the real generic load use case over the real REST adapters, against msw. So
+ * what is under test is the wiring the storefront actually ships: the gated
+ * configuration lookup, the URL composed from it, the RSQL each read turns into
+ * on the wire, and what happens when none of it answers. What each read asks
+ * for is the cells' own spec.
  *
- * ⚠️ Every case re-imports the module. The configuration client memoizes its
- * lookup for the life of its instance and the instance is created at module
- * load, so a second test would otherwise reuse the first test's configuration —
- * and the "config-service is down" case would pass against a cached success.
+ * Every case builds its own runner; see {@link load}.
  */
 
 const CONFIG_URL = 'http://localhost:3190/api/config/marketplace-app';
@@ -123,11 +133,21 @@ const server = setupEntifixServer(
   collection(CATEGORY_URL, ProductCategory, CATEGORIES),
 );
 
-/** A fresh module graph, so the memoized configuration client is fresh too. */
-const load = async () => {
-  vi.resetModules();
-  return import('./queries');
-};
+/**
+ * A fresh runner, so its configuration client — memoized for the life of the
+ * instance — starts empty in every case. Without it a second test would reuse
+ * the first test's configuration, and the "config-service is down" case would
+ * pass against a cached success.
+ */
+const load = () => ({
+  runRead: makeRunRead(),
+  emptyPage,
+  loadOfferings,
+  getOffering,
+  loadCategories,
+  getCategoryByCode,
+  getBrand,
+});
 
 const requestTo = (url: string) => seen.find(entry => entry.url === url);
 
@@ -157,27 +177,31 @@ describe('the configuration lookup', () => {
    * asserted rather than assumed.
    */
   it('carries the shared fleet token', async () => {
-    const { loadOfferings } = await load();
+    const { runRead, loadOfferings, emptyPage } = load();
 
-    await loadOfferings();
+    await runRead(PublishedOffering, loadOfferings(), emptyPage());
 
     expect(configHeaders?.get('x-service-token')).toBeTruthy();
   });
 
   it('composes the entity URL from the configured domain', async () => {
-    const { loadOfferings } = await load();
+    const { runRead, loadOfferings, emptyPage } = load();
 
-    await loadOfferings();
+    await runRead(PublishedOffering, loadOfferings(), emptyPage());
 
     expect(requestTo(OFFERING_URL)).toBeDefined();
   });
 });
 
-describe('loadOfferings', () => {
+describe('the offering reads, on the wire', () => {
   it('returns the projected offerings', async () => {
-    const { loadOfferings } = await load();
+    const { runRead, loadOfferings, emptyPage } = load();
 
-    const result = await loadOfferings();
+    const result = await runRead(
+      PublishedOffering,
+      loadOfferings(),
+      emptyPage<PublishedOffering>(),
+    );
 
     expect(result.items.map(item => item.name)).toEqual([
       'Lámpara Aurora',
@@ -186,48 +210,27 @@ describe('loadOfferings', () => {
     expect(result.items[0]?.amount).toBe(1999);
   });
 
-  it('resolves a category code to a categoryId filter', async () => {
-    const { loadOfferings } = await load();
+  it('sends a categoryId filter and a name match as RSQL', async () => {
+    const { runRead, loadOfferings, emptyPage } = load();
 
-    await loadOfferings({ category: 'lighting' });
+    await runRead(
+      PublishedOffering,
+      loadOfferings({ categoryId: 'category-lighting', search: 'lámpara' }),
+      emptyPage(),
+    );
 
-    expect(rsqlOf(CATEGORY_URL)).toContain('code==lighting');
     expect(rsqlOf(OFFERING_URL)).toContain('categoryId==category-lighting');
-  });
-
-  /**
-   * A code nobody authored must not become "no filter at all" — that answers
-   * with the whole catalog under a category heading it does not belong to.
-   */
-  it('is empty for a category that does not exist, without querying', async () => {
-    const { loadOfferings } = await load();
-
-    server.use(http.get(CATEGORY_URL, () => page(ProductCategory, [])));
-
-    const result = await loadOfferings({ category: 'nope' });
-
-    expect(result.items).toEqual([]);
-    expect(result.total).toBe(0);
-    expect(requestTo(OFFERING_URL)).toBeUndefined();
-  });
-
-  it('matches a search term against the name', async () => {
-    const { loadOfferings } = await load();
-
-    await loadOfferings({ search: 'lámpara' });
-
     expect(rsqlOf(OFFERING_URL)).toContain('name=like=lámpara');
   });
 
   it('sends the sort, the direction and the page', async () => {
-    const { loadOfferings } = await load();
+    const { runRead, loadOfferings, emptyPage } = load();
 
-    await loadOfferings({
-      sort: 'code',
-      direction: 'desc',
-      page: 2,
-      pageSize: 6,
-    });
+    await runRead(
+      PublishedOffering,
+      loadOfferings({ sort: 'code', direction: 'desc', page: 2, pageSize: 6 }),
+      emptyPage(),
+    );
 
     const search = requestTo(OFFERING_URL)?.search;
     expect(search?.get('page')).toBe('2');
@@ -237,75 +240,58 @@ describe('loadOfferings', () => {
 
   // The home page and the category page both sort without naming a direction.
   it('sorts ascending when no direction is named', async () => {
-    const { loadOfferings } = await load();
+    const { runRead, loadOfferings, emptyPage } = load();
 
-    await loadOfferings({ sort: 'name' });
+    await runRead(
+      PublishedOffering,
+      loadOfferings({ sort: 'name' }),
+      emptyPage(),
+    );
 
     expect(requestTo(OFFERING_URL)?.search.get('sort')).toBe('+name');
   });
-});
 
-describe('getOffering', () => {
   /**
    * ⚠️ A filtered `load`, never `get` (ADR 0049): `get` answers an absent row
    * with `EntifixConnError`, the same class a driver failure raises, so a 404
-   * page and a datastore outage would be one code path — every visitor told the
-   * product does not exist during an incident.
+   * page and a datastore outage would be one code path.
    */
-  it('filters on offeringId rather than fetching by id', async () => {
-    const { getOffering } = await load();
+  it('looks one offering up by an offeringId filter', async () => {
+    const { runRead, getOffering } = load();
 
-    const found = await getOffering('offering-1');
+    const found = await runRead(
+      PublishedOffering,
+      getOffering('offering-1'),
+      undefined,
+    );
 
     expect(found?.name).toBe('Lámpara Aurora');
     expect(rsqlOf(OFFERING_URL)).toContain('offeringId==offering-1');
   });
-
-  it('is undefined for an unknown id, so the route can 404', async () => {
-    const { getOffering } = await load();
-
-    server.use(http.get(OFFERING_URL, () => page(PublishedOffering, [])));
-
-    expect(await getOffering('nope')).toBeUndefined();
-  });
 });
 
-describe('the vocabulary lookups', () => {
-  it('resolves a brand an offering names', async () => {
-    const { getBrand } = await load();
+describe('the vocabulary reads, on the wire', () => {
+  it('resolves a category code with a code filter', async () => {
+    const { runRead, getCategoryByCode } = load();
 
-    expect((await getBrand('brand-aurora'))?.name).toBe('Aurora');
-  });
+    const found = await runRead(
+      ProductCategory,
+      getCategoryByCode('lighting'),
+      undefined,
+    );
 
-  it('resolves a category an offering names', async () => {
-    const { getCategory } = await load();
-
-    expect((await getCategory('category-lighting'))?.code).toBe('lighting');
-  });
-
-  /**
-   * Nothing enforces these references across the store boundary, so a dangling
-   * id is a display gap and every caller renders a fallback rather than failing.
-   */
-  it('is undefined for an id whose target is gone', async () => {
-    const { getBrand, getCategory } = await load();
-
-    expect(await getBrand('brand-deleted')).toBeUndefined();
-    expect(await getCategory('category-deleted')).toBeUndefined();
-  });
-
-  it('short-circuits an unclassified offering without querying', async () => {
-    const { getBrand, getCategory } = await load();
-
-    expect(await getBrand(undefined)).toBeUndefined();
-    expect(await getCategory(undefined)).toBeUndefined();
-    expect(seen).toEqual([]);
+    expect(found?.id).toBe('category-lighting');
+    expect(rsqlOf(CATEGORY_URL)).toContain('code==lighting');
   });
 
   it('returns every category sorted by name', async () => {
-    const { loadCategories } = await load();
+    const { runRead, loadCategories, emptyPage } = load();
 
-    const result = await loadCategories();
+    const result = await runRead(
+      ProductCategory,
+      loadCategories(),
+      emptyPage<ProductCategory>(),
+    );
 
     expect(result.items.map(item => item.code)).toEqual([
       'lighting',
@@ -314,20 +300,13 @@ describe('the vocabulary lookups', () => {
     expect(requestTo(CATEGORY_URL)?.search.get('sort')).toContain('name');
   });
 
-  it('returns every brand', async () => {
-    const { loadBrands } = await load();
+  it('resolves a brand an offering names', async () => {
+    const { runRead, getBrand } = load();
 
-    expect((await loadBrands()).items.map(item => item.name)).toEqual([
-      'Aurora',
-    ]);
-  });
-
-  it('answers undefined for a category code nobody authored', async () => {
-    const { getCategoryByCode } = await load();
-
-    server.use(http.get(CATEGORY_URL, () => page(ProductCategory, [])));
-
-    expect(await getCategoryByCode('nope')).toBeUndefined();
+    expect(
+      (await runRead(ProductBrand, getBrand('brand-aurora'), undefined))?.name,
+    ).toBe('Aurora');
+    expect(requestTo(BRAND_URL)).toBeDefined();
   });
 });
 
@@ -341,13 +320,17 @@ describe('the vocabulary lookups', () => {
  * and the log is the only thing that tells them apart.
  */
 describe('when the backend does not answer', () => {
-  it('answers an empty page instead of rejecting', async () => {
-    const { loadOfferings } = await load();
+  it('answers the fallback instead of rejecting', async () => {
+    const { runRead, loadOfferings, emptyPage } = load();
     const logged = vi.spyOn(console, 'error').mockImplementation(noop);
 
     server.use(http.get(OFFERING_URL, () => HttpResponse.error()));
 
-    const result = await loadOfferings();
+    const result = await runRead(
+      PublishedOffering,
+      loadOfferings(),
+      emptyPage<PublishedOffering>(),
+    );
 
     expect(result.items).toEqual([]);
     expect(result.total).toBe(0);
@@ -358,14 +341,16 @@ describe('when the backend does not answer', () => {
   });
 
   it('survives configuration itself being unreachable', async () => {
-    const { loadCategories } = await load();
+    const { runRead, loadCategories, emptyPage } = load();
     const logged = vi.spyOn(console, 'error').mockImplementation(noop);
 
     server.use(
       http.get(CONFIG_URL, () => new HttpResponse(null, { status: 503 })),
     );
 
-    expect((await loadCategories()).items).toEqual([]);
+    expect(
+      (await runRead(ProductCategory, loadCategories(), emptyPage())).items,
+    ).toEqual([]);
     expect(logged).toHaveBeenCalled();
     logged.mockRestore();
   });

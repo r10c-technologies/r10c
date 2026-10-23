@@ -2,10 +2,12 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { getOffering } from '../catalog/queries';
+import { runRead } from '../catalog/catalog-reads';
 import { storePaths } from '../routing/paths';
 import { readCart } from './cart-cookie';
 import { CART_COOKIE, type CartLine } from './cart-state';
@@ -64,7 +66,11 @@ export async function checkout(formData: FormData) {
   const priced = (
     await Promise.all(
       lines.map(async (line: CartLine): Promise<CheckoutLine | undefined> => {
-        const offering = await getOffering(line.offeringId);
+        const offering = await runRead(
+          PublishedOffering,
+          getOffering(line.offeringId),
+          undefined,
+        );
         if (!offering) return undefined;
         return {
           offeringId: line.offeringId,

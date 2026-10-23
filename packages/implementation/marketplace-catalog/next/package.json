@@ -1,0 +1,53 @@
+{
+  "name": "@r10c/implementation-marketplace-catalog-next",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:implementation",
+      "tech:next",
+      "scope:marketplace"
+    ],
+    "sourceRoot": "packages/implementation/marketplace-catalog/next/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/implementation/marketplace-catalog/next/dist",
+          "main": "packages/implementation/marketplace-catalog/next/src/index.ts",
+          "tsConfig": "packages/implementation/marketplace-catalog/next/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@r10c/business-ts-marketplace-catalog": "workspace:*",
+    "effect": "4.0.5",
+    "@swc/helpers": "0.5.23"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:"
+  }
+}

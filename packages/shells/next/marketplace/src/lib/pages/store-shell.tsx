@@ -1,7 +1,9 @@
 import type { Locale } from '@entifix/core';
+import { ProductCategory } from '@r10c/business-ts-catalog-reference';
+import { loadCategories } from '@r10c/implementation-catalog-reference-next';
 import type { ReactNode } from 'react';
 
-import { loadCategories } from '../catalog/queries';
+import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { StoreFooter } from '../chrome/store-footer';
 import { StoreHeader } from '../chrome/store-header';
 
@@ -20,7 +22,11 @@ export async function StoreShell({
   readonly locale: Locale;
   readonly children: ReactNode;
 }) {
-  const categories = await loadCategories();
+  const categories = await runRead(
+    ProductCategory,
+    loadCategories(),
+    emptyPage<ProductCategory>(),
+  );
 
   return (
     <>

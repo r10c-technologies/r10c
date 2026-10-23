@@ -455,7 +455,7 @@ every app, because Nx forwards the unknown option to `next build` and
 
 The golden rule above is **enforced**, not just reviewed. Every project declares
 `nx.tags` in its `package.json`, and `eslint.config.mjs` turns those tags into
-`@nx/enforce-module-boundaries` constraints across five dimensions:
+`@nx/enforce-module-boundaries` constraints across these dimensions:
 
 | Dimension    | Tags                                                                        | Rule                                                                                  |
 | ------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -464,6 +464,7 @@ The golden rule above is **enforced**, not just reviewed. Every project declares
 | **business** | `business:policy` ‹ `business:domain`                                       | a domain may use the shared vocabulary, never another domain                          |
 | **shell**    | `shell:domain`                                                              | a domain shell mounts onto the installed base shells, never onto another domain shell |
 | **host**     | `host:next`, `host:effect`                                                  | a `host:next` app may **not** import `@entifix/{mongo,sql,redis,amqp}` or a subpath   |
+| **tech**     | `tech:{react, next, http, mongo, redis, sql}`                               | a cell may not import what it would talk through — adapters, drivers, state libraries |
 | **type**     | `type:testing`, `type:e2e`                                                  | spec files may import `type:testing` libs; source files may not                       |
 
 `@entifix/*` is not in the table because it is not a project: it is installed
@@ -473,7 +474,9 @@ ordering is entifix's `tier:*` contract, checked in the entifix repository.
 The rule ANDs every constraint a project's tags match, so the dimensions compose.
 Consequence: **to make an edge legal, retag the project — never relax the rule.**
 Adding a new project without tags leaves it on the permissive `*` catch-all; give
-it the right `layer:`/`scope:` (plus `business:` under `packages/business`).
+it the right `layer:`/`scope:` (plus `business:` under `packages/business`, and
+exactly one `tech:` under `packages/implementation`, which `@r10c/docs-check`
+asserts).
 Verify with `pnpm nx run-many -t lint`.
 
 **Why `business:*` exists.** `@entifix/authz` holds the authorization
@@ -498,6 +501,18 @@ subpath of them — a build failure. ⚠️ It used to be a tag rule
 (`runtime:datastore` on the in-tree clients); an installed package carries no
 tags, so that form would have kept passing while matching nothing. A Next
 backend is composition — cookies, proxying, RSC aggregation — never data access.
+
+**Why `tech:*` exists.** An implementation cell depends on entities, use cases
+and ports, and the mechanism behind a port is chosen at composition
+([ADR 0060](adr/0060-the-implementation-layer-cells.md)). What the cell is
+_written in_ decides what it may not _talk through_: a `react`, `next` or `http`
+cell is banned from every adapter and driver, a persistence cell from UI, HTTP
+and every engine but its own. The rule is a list of specifiers, and a list fails
+silently, so `@r10c/conventions` lints a planted `@entifix/rest` import at a path
+inside a real cell and fails if the build would let it through. A new cell is
+`packages/implementation/<key>/<tech>`, named
+`@r10c/implementation-<key>-<tech>`, tagged `layer:implementation`, its `tech:`
+and the scope of the slice that owns its domain.
 
 ## Entities
 

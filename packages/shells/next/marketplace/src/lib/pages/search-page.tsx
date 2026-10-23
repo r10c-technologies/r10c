@@ -7,10 +7,12 @@ import {
   Text,
   TextInput,
 } from '@entifix/react-controls/primitives';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
 import { Suspense } from 'react';
 
+import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
-import { loadOfferings } from '../catalog/queries';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -30,7 +32,11 @@ async function SearchResults({
   readonly term: string;
 }) {
   const t = getServerTFor(locale, 'shell');
-  const page = await loadOfferings({ search: term, pageSize: 12 });
+  const page = await runRead(
+    PublishedOffering,
+    loadOfferings({ search: term, pageSize: 12 }),
+    emptyPage<PublishedOffering>(),
+  );
 
   return (
     <Stack gap="s">

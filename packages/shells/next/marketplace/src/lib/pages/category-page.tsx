@@ -7,11 +7,15 @@ import {
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
+import { ProductCategory } from '@r10c/business-ts-catalog-reference';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { getCategoryByCode } from '@r10c/implementation-catalog-reference-next';
+import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
+import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
-import { getCategoryByCode, loadOfferings } from '../catalog/queries';
 import { storePaths } from '../routing/paths';
 import { StoreLink } from '../routing/store-link';
 import { StoreShell } from './store-shell';
@@ -37,17 +41,22 @@ export interface CategoryPageProps {
 async function CategoryOfferings({
   locale,
   code,
+  categoryId,
   sort,
   page,
-}: CategoryPageProps) {
+}: CategoryPageProps & { readonly categoryId: string }) {
   const t = getServerTFor(locale, 'shell');
   const current = Math.max(1, Number(page) || 1);
-  const result = await loadOfferings({
-    category: code,
-    sort: sort === 'code' ? 'code' : 'name',
-    page: current,
-    pageSize: PAGE_SIZE,
-  });
+  const result = await runRead(
+    PublishedOffering,
+    loadOfferings({
+      categoryId,
+      sort: sort === 'code' ? 'code' : 'name',
+      page: current,
+      pageSize: PAGE_SIZE,
+    }),
+    emptyPage<PublishedOffering>(),
+  );
 
   const pages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
   const href = (target: number) =>
@@ -97,7 +106,11 @@ export async function CategoryPage(props: CategoryPageProps) {
   // One filtered read rather than the whole vocabulary scanned in the page:
   // `code` is a scalar and therefore `filterable`, which is also the
   // server-side RSQL allowlist marketplace-service checks before it answers.
-  const category = await getCategoryByCode(code);
+  const category = await runRead(
+    ProductCategory,
+    getCategoryByCode(code),
+    undefined,
+  );
   if (!category) notFound();
 
   const sortHref = (target: 'name' | 'code') =>
@@ -135,7 +148,7 @@ export async function CategoryPage(props: CategoryPageProps) {
         </Cluster>
 
         <Suspense fallback={<OfferingGridSkeleton count={PAGE_SIZE} />}>
-          <CategoryOfferings {...props} />
+          <CategoryOfferings {...props} categoryId={String(category.id)} />
         </Suspense>
       </Stack>
     </StoreShell>

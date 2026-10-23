@@ -970,9 +970,13 @@ register of stores is in [\_shared/planes.md](./_shared/planes.md).
 
 **Delivery** (`packages/implementation/*`, `packages/shells/*`):
 
-- `packages/implementation/*` holds no project today. It existed for entity-tight
-  React organisms, and `makeEntityCrud` derives those from entity metadata now;
-  the layer stays declared for the first component that cannot be derived.
+- `packages/implementation/<key>/<tech>` holds **cells** — one domain, or one
+  store, written in one technology, depending only on entities, use cases and
+  ports ([ADR 0060](adr/0060-the-implementation-layer-cells.md)). The first two
+  are the storefront's reads: `implementation-marketplace-catalog-next` over the
+  published projection and `implementation-catalog-reference-next` over the
+  browse vocabulary. Neither names a transport; `shells-next-marketplace`
+  binds REST and runs them.
 - `shells-next-marketplace`, `shells-next-marketplace-admin`, `shells-next-auth`,
   `shells-next-system-management` (`scope:shared`, so a second host can mount it
   with no moves), `@entifix/next-shell` and `@entifix/next-i18n` — Next pages +

@@ -10,18 +10,26 @@ import {
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
+import {
+  ProductBrand,
+  ProductCategory,
+} from '@r10c/business-ts-catalog-reference';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import {
+  getBrand,
+  getCategory,
+} from '@r10c/implementation-catalog-reference-next';
+import {
+  getOffering,
+  loadOfferings,
+} from '@r10c/implementation-marketplace-catalog-next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { addToCart } from '../cart/cart-actions';
+import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { formatMoney } from '../catalog/money';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
-import {
-  getBrand,
-  getCategory,
-  getOffering,
-  loadOfferings,
-} from '../catalog/queries';
 import { StoreShell } from './store-shell';
 
 /**
@@ -35,17 +43,21 @@ import { StoreShell } from './store-shell';
  */
 async function RelatedOfferings({
   locale,
-  categoryCode,
+  categoryId,
   excludeOfferingId,
 }: {
   readonly locale: Locale;
-  readonly categoryCode: string | undefined;
+  readonly categoryId: string | undefined;
   readonly excludeOfferingId: string;
 }) {
   const t = getServerTFor(locale, 'shell');
-  if (!categoryCode) return null;
+  if (!categoryId) return null;
 
-  const page = await loadOfferings({ category: categoryCode, pageSize: 4 });
+  const page = await runRead(
+    PublishedOffering,
+    loadOfferings({ categoryId, pageSize: 4 }),
+    emptyPage<PublishedOffering>(),
+  );
   const related = page.items.filter(
     item => item.offeringId !== excludeOfferingId,
   );
@@ -72,14 +84,18 @@ export async function ProductPage({
   readonly offeringId: string;
 }) {
   const t = getServerTFor(locale, 'shell');
-  const offering = await getOffering(offeringId);
+  const offering = await runRead(
+    PublishedOffering,
+    getOffering(offeringId),
+    undefined,
+  );
   if (!offering) notFound();
 
   // Resolved through the owning domain's read path, not a storage-layer join:
   // both ids point into `catalog-reference`, another slice's store (ADR 0022).
   const [brand, category] = await Promise.all([
-    getBrand(offering.brandId),
-    getCategory(offering.categoryId),
+    runRead(ProductBrand, getBrand(offering.brandId), undefined),
+    runRead(ProductCategory, getCategory(offering.categoryId), undefined),
   ]);
 
   return (
@@ -161,7 +177,7 @@ export async function ProductPage({
         <Suspense fallback={<OfferingGridSkeleton count={3} />}>
           <RelatedOfferings
             locale={locale}
-            categoryCode={category?.code}
+            categoryId={category ? String(category.id) : undefined}
             excludeOfferingId={offering.offeringId}
           />
         </Suspense>

@@ -8,10 +8,12 @@ import {
   Overline,
   Stack,
 } from '@entifix/react-controls/primitives';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
 import { Suspense } from 'react';
 
+import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
-import { loadOfferings } from '../catalog/queries';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -26,7 +28,11 @@ import { StoreShell } from './store-shell';
  */
 async function FeaturedOfferings({ locale }: { readonly locale: Locale }) {
   const t = getServerTFor(locale, 'shell');
-  const page = await loadOfferings({ pageSize: 6, sort: 'name' });
+  const page = await runRead(
+    PublishedOffering,
+    loadOfferings({ pageSize: 6, sort: 'name' }),
+    emptyPage<PublishedOffering>(),
+  );
 
   return (
     <OfferingGrid

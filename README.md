@@ -34,7 +34,7 @@ Full CRUD (`load`/`get`/`save`/`delete`) runs end-to-end over REST, Mongo and Po
 ```
 apps/                               ← runtime hosts (Next.js frontends / Effect-native services)
 packages/shells/next/*              ← per-domain shells: a domain mounted onto the framework's Next shell
-packages/implementation/<domain>/*  ← domain wired to a delivery mechanism (currently unpopulated)
+packages/implementation/<key>/<tech> ← cells: one domain (or store) written in one technology
 packages/business/ts/<domain>       ← pure domain entities & use-cases (no framework)
 packages/utils/ts/*                 ← generic TS helpers
 ```
