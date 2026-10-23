@@ -75,9 +75,10 @@ export function OfferingCard({
           {/*
             A hint, and the name says so: published data is eventually
             consistent on purpose and the checkout reservation is the truth
-            (ADR 0009). Nothing moves it yet — M2's stock slice is what gives it
-            a source — so today it reads `true` for everything the projector
-            wrote.
+            (ADR 0009). ⚠️ It is constant today: publishing stamps `true`
+            (`transition-offering.ts`), and nothing updates it afterwards —
+            stock-service announces no event and the projector has no other
+            writer — so every card reads "available" whatever stock says.
           */}
           <Text muted>
             {offering.availableHint
