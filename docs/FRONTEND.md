@@ -1039,7 +1039,11 @@ shell): a facet panel, a count, the sort, a page of cards and entifix's server
 codec and all written back as links. A category page is that listing with the
 category set in advance, so its facets, sort and pager are the search page's.
 The header's search box is a plain `GET` form carrying only the term, because a
-new question starts with no facets. The shell's own `src` is in the app's
+new question starts with no facets. A card's "Añadir al carrito" is a form posting to the
+same Server Action as the product page, with a plain `<button>` wearing
+entifix's `button` recipe: `Button` is `'use client'`, and one per tile would be
+a client boundary per tile. The cart's quantities are a form per line, so they
+change with no script either. The shell's own `src` is in the app's
 `global.css` `@source` list: before it was, every class only the shell used —
 the page frame's `max-w-5xl`, the product page's two columns — was silently
 never generated.

@@ -43,3 +43,42 @@ export function serializeCart(lines: readonly CartLine[]): string {
 export function cartCount(lines: readonly CartLine[]): number {
   return lines.reduce((total, line) => total + line.quantity, 0);
 }
+
+/**
+ * The most units one line may hold. The cookie is visitor-writable and the
+ * quantity box is a plain number field, so a figure past this is clamped
+ * rather than trusted: no buyer means 10⁹ lamps, and stock would refuse it
+ * at checkout anyway.
+ */
+export const MAX_QUANTITY = 99;
+
+/** One more unit of `offeringId`, as a new line when the cart has none. */
+export function withAdded(
+  lines: readonly CartLine[],
+  offeringId: string,
+): CartLine[] {
+  const existing = lines.find(line => line.offeringId === offeringId);
+  return existing
+    ? withQuantity(lines, offeringId, existing.quantity + 1)
+    : [...lines, { offeringId, quantity: 1 }];
+}
+
+/**
+ * The cart with `offeringId`'s line set to `quantity`: floored, clamped to
+ * {@link MAX_QUANTITY}, and removed at zero or below. A quantity that is not
+ * a number leaves the cart as it was, because a form that sent garbage did
+ * not ask for anything.
+ */
+export function withQuantity(
+  lines: readonly CartLine[],
+  offeringId: string,
+  quantity: number,
+): CartLine[] {
+  if (!Number.isFinite(quantity)) return [...lines];
+  const next = Math.min(Math.floor(quantity), MAX_QUANTITY);
+  return next < 1
+    ? lines.filter(line => line.offeringId !== offeringId)
+    : lines.map(line =>
+        line.offeringId === offeringId ? { ...line, quantity: next } : line,
+      );
+}

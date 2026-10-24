@@ -13,8 +13,9 @@ import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
 import { formatPrice } from '@r10c/utils-react-ui';
 
-import { removeFromCart } from '../cart/cart-actions';
+import { removeFromCart, setQuantity } from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';
+import { MAX_QUANTITY } from '../cart/cart-state';
 import { checkout, type CheckoutOutcome } from '../cart/checkout-action';
 import { runRead } from '../catalog/catalog-reads';
 import { totalsByCurrency } from '../catalog/money';
@@ -100,9 +101,34 @@ export async function CartPage({
                 <Cluster justify="between" gap="s">
                   <Stack gap="3xs">
                     <Text weight="semibold">{offering.name}</Text>
-                    <Text muted>
-                      {t('storefront.cart.units', { count: line.quantity })}
-                    </Text>
+                    {/* A form per line, so a quantity changes with no script:
+                        the server writes the cookie and renders the totals. */}
+                    <form
+                      action={setQuantity}
+                      className="flex items-end gap-2xs"
+                    >
+                      <input
+                        type="hidden"
+                        name="offeringId"
+                        value={line.offeringId}
+                      />
+                      <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
+                        {t('storefront.cart.quantity')}
+                        <input
+                          className="w-20 rounded-md border border-border bg-surface px-2xs py-3xs text-content"
+                          type="number"
+                          name="quantity"
+                          min="0"
+                          max={MAX_QUANTITY}
+                          step="1"
+                          inputMode="numeric"
+                          defaultValue={line.quantity}
+                        />
+                      </label>
+                      <Button type="submit" variant="secondary" size="sm">
+                        {t('storefront.cart.update')}
+                      </Button>
+                    </form>
                   </Stack>
 
                   <Text data-testid="cart-line-price">

@@ -9,6 +9,8 @@ import {
   type CartLine,
   parseCart,
   serializeCart,
+  withAdded,
+  withQuantity,
 } from './cart-state';
 
 /**
@@ -58,17 +60,8 @@ export async function addToCart(formData: FormData) {
   if (!offeringId) return;
 
   const store = await cookies();
-  const lines = parseCart(store.get(CART_COOKIE)?.value);
-  const existing = lines.find(line => line.offeringId === offeringId);
-
   await writeCart(
-    existing
-      ? lines.map(line =>
-          line.offeringId === offeringId
-            ? { ...line, quantity: line.quantity + 1 }
-            : line,
-        )
-      : [...lines, { offeringId, quantity: 1 }],
+    withAdded(parseCart(store.get(CART_COOKIE)?.value), offeringId),
   );
 
   // `redirect` throws to unwind the action, so it must come after the write.
@@ -83,4 +76,22 @@ export async function removeFromCart(formData: FormData) {
   const lines = parseCart(store.get(CART_COOKIE)?.value);
 
   await writeCart(lines.filter(line => line.offeringId !== offeringId));
+}
+
+/**
+ * Sets one line's quantity from the cart's own number field. Zero removes the
+ * line; the rules are `withQuantity`'s.
+ */
+export async function setQuantity(formData: FormData) {
+  const offeringId = String(formData.get('offeringId') ?? '');
+  if (!offeringId) return;
+
+  const store = await cookies();
+  await writeCart(
+    withQuantity(
+      parseCart(store.get(CART_COOKIE)?.value),
+      offeringId,
+      Number(formData.get('quantity') ?? Number.NaN),
+    ),
+  );
 }

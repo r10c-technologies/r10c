@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { cartCount, parseCart, serializeCart } from './cart-state';
+import {
+  cartCount,
+  MAX_QUANTITY,
+  parseCart,
+  serializeCart,
+  withAdded,
+  withQuantity,
+} from './cart-state';
 
 describe('parseCart', () => {
   it('reads `offeringId:qty` pairs', () => {
@@ -66,5 +73,67 @@ describe('cartCount', () => {
 
   it('is zero for an empty cart', () => {
     expect(cartCount([])).toBe(0);
+  });
+});
+
+describe('withAdded', () => {
+  it('starts a line at one unit', () => {
+    expect(withAdded([], 'offering-1')).toEqual([
+      { offeringId: 'offering-1', quantity: 1 },
+    ]);
+  });
+
+  it('adds a unit to the line already there, and leaves the others', () => {
+    expect(
+      withAdded(
+        [
+          { offeringId: 'offering-1', quantity: 2 },
+          { offeringId: 'offering-2', quantity: 1 },
+        ],
+        'offering-1',
+      ),
+    ).toEqual([
+      { offeringId: 'offering-1', quantity: 3 },
+      { offeringId: 'offering-2', quantity: 1 },
+    ]);
+  });
+
+  it('stops at the most a line may hold', () => {
+    expect(
+      withAdded(
+        [{ offeringId: 'offering-1', quantity: MAX_QUANTITY }],
+        'offering-1',
+      ),
+    ).toEqual([{ offeringId: 'offering-1', quantity: MAX_QUANTITY }]);
+  });
+});
+
+describe('withQuantity', () => {
+  const lines = [
+    { offeringId: 'offering-1', quantity: 2 },
+    { offeringId: 'offering-2', quantity: 1 },
+  ];
+
+  it('sets one line and leaves the others', () => {
+    expect(withQuantity(lines, 'offering-1', 5)).toEqual([
+      { offeringId: 'offering-1', quantity: 5 },
+      { offeringId: 'offering-2', quantity: 1 },
+    ]);
+  });
+
+  it('removes the line at zero, and below it', () => {
+    expect(withQuantity(lines, 'offering-1', 0)).toEqual([lines[1]]);
+    expect(withQuantity(lines, 'offering-1', -3)).toEqual([lines[1]]);
+  });
+
+  it('floors a fraction and clamps a figure past the most a line holds', () => {
+    expect(withQuantity(lines, 'offering-2', 2.7)[1]?.quantity).toBe(2);
+    expect(withQuantity(lines, 'offering-2', 1e9)[1]?.quantity).toBe(
+      MAX_QUANTITY,
+    );
+  });
+
+  it('leaves the cart alone for a quantity that is not a number', () => {
+    expect(withQuantity(lines, 'offering-1', Number.NaN)).toEqual(lines);
   });
 });

@@ -32,8 +32,31 @@ test.describe('browsing the catalog', () => {
     await page.waitForURL(/\/es\/p\//);
     await expect(page).toHaveURL(/\/es\/p\//);
     await expect(
-      page.getByRole('button', { name: 'Añadir al carrito' }),
+      page
+        .getByRole('form', { name: 'Comprar' })
+        .getByRole('button', { name: 'Añadir al carrito' }),
     ).toBeVisible();
+  });
+
+  test('home shows the category roots, the newest and the featured', async ({
+    page,
+  }) => {
+    await page.goto('/es');
+
+    const tiles = page.getByRole('region', { name: 'Categorías' });
+    await expect(tiles.getByRole('link', { name: /Lighting/ })).toBeVisible();
+    await expect(tiles.getByRole('link', { name: /Desk Lamps/ })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole('region', { name: 'Lo más nuevo' }).getByRole('article'),
+    ).toHaveCount(4);
+    // In stock only: the shop window leaves out what it cannot sell.
+    await expect(
+      page
+        .getByRole('region', { name: 'Destacados' })
+        .getByText('Sin existencias'),
+    ).toHaveCount(0);
   });
 
   /**
@@ -45,7 +68,11 @@ test.describe('browsing the catalog', () => {
     page,
   }) => {
     await page.goto('/es');
-    await expect(page.getByRole('link', { name: 'Lighting' })).toBeVisible();
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Catálogo' })
+        .getByRole('link', { name: 'Lighting' }),
+    ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Archive' })).toHaveCount(0);
 
     await page.goto('/es/c/archive');
@@ -200,7 +227,10 @@ test.describe('the cart', () => {
    */
   test('survives a reload because the server renders it', async ({ page }) => {
     await page.goto('/es/p/offering-aurora-desk-lamp');
-    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page
+      .getByRole('form', { name: 'Comprar' })
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
 
     // The action redirects here, which is the visitor's only feedback that it
     // worked — the header badge cannot update in place.
@@ -218,7 +248,10 @@ test.describe('the cart', () => {
   test('prices each line and totals the basket in money', async ({ page }) => {
     for (let added = 0; added < 2; added += 1) {
       await page.goto('/es/p/offering-aurora-desk-lamp');
-      await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+      await page
+        .getByRole('form', { name: 'Comprar' })
+        .getByRole('button', { name: 'Añadir al carrito' })
+        .click();
       await page.waitForURL(/\/es\/cart$/);
     }
 
@@ -228,9 +261,49 @@ test.describe('the cart', () => {
     await expect(page.getByTestId('cart-total')).toContainText('39,98');
   });
 
+  test('a card adds to the cart without opening the product', async ({
+    page,
+  }) => {
+    await page.goto('/es');
+    await page
+      .getByRole('region', { name: 'Destacados' })
+      .getByRole('article')
+      .first()
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
+
+    await page.waitForURL(/\/es\/cart$/);
+    await expect(page.getByTestId('cart-line-price')).toHaveCount(1);
+  });
+
+  test('a quantity is changed in the cart, and zero removes the line', async ({
+    page,
+  }) => {
+    await page.goto('/es/p/offering-aurora-desk-lamp');
+    await page
+      .getByRole('form', { name: 'Comprar' })
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
+    await page.waitForURL(/\/es\/cart$/);
+
+    await page.getByRole('spinbutton', { name: 'Cantidad' }).fill('3');
+    await page.getByRole('button', { name: 'Actualizar' }).click();
+
+    // 3 × 1999 minor units: the server re-rendered the line and the total.
+    await expect(page.getByTestId('cart-line-price')).toContainText('59,97');
+    await expect(page.getByTestId('cart-total')).toContainText('59,97');
+
+    await page.getByRole('spinbutton', { name: 'Cantidad' }).fill('0');
+    await page.getByRole('button', { name: 'Actualizar' }).click();
+    await expect(page.getByText('Tu carrito está vacío.')).toBeVisible();
+  });
+
   test('the header badge fills in from the cookie', async ({ page }) => {
     await page.goto('/es/p/offering-terra-ceramic-mug');
-    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page
+      .getByRole('form', { name: 'Comprar' })
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
     await page.waitForURL(/\/es\/cart$/);
     await expect(page).toHaveURL(/\/es\/cart$/);
 
@@ -251,7 +324,10 @@ test.describe('the cart', () => {
     page,
   }) => {
     await page.goto('/es/p/offering-aurora-desk-lamp');
-    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page
+      .getByRole('form', { name: 'Comprar' })
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
     await page.waitForURL(/\/es\/cart$/);
 
     await page.getByTestId('checkout').click();
@@ -269,7 +345,10 @@ test.describe('the cart', () => {
     page,
   }) => {
     await page.goto('/es/p/offering-aurora-desk-lamp');
-    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page
+      .getByRole('form', { name: 'Comprar' })
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
     await page.waitForURL(/\/es\/cart$/);
     await page.getByTestId('checkout').click();
     await page.waitForURL(/\/es\/order\/confirmation$/);
@@ -295,7 +374,10 @@ test.describe('the cart', () => {
     page,
   }) => {
     await page.goto('/es/p/offering-aurora-desk-lamp');
-    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page
+      .getByRole('form', { name: 'Comprar' })
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
     await page.waitForURL(/\/es\/cart$/);
     await page.getByTestId('checkout').click();
     await page.waitForURL(/\/es\/order\/confirmation$/);
@@ -327,7 +409,10 @@ test.describe('the cart', () => {
     page,
   }) => {
     await page.goto('/es/p/offering-terra-ceramic-mug');
-    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page
+      .getByRole('form', { name: 'Comprar' })
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
     await page.waitForURL(/\/es\/cart$/);
     await page.getByTestId('checkout').click();
     await page.waitForURL(/\/es\/order\/confirmation$/);
@@ -354,7 +439,10 @@ test.describe('the cart', () => {
 
   test('an item can be removed', async ({ page }) => {
     await page.goto('/es/p/offering-aurora-desk-lamp');
-    await page.getByRole('button', { name: 'Añadir al carrito' }).click();
+    await page
+      .getByRole('form', { name: 'Comprar' })
+      .getByRole('button', { name: 'Añadir al carrito' })
+      .click();
     await page.waitForURL(/\/es\/cart$/);
     await expect(page).toHaveURL(/\/es\/cart$/);
 

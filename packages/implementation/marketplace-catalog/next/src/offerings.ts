@@ -44,6 +44,12 @@ export interface OfferingQuery {
   /** Free text, matched against the offering name. */
   readonly search?: string;
   /**
+   * Only offerings the projection says are in stock — a hint, not a promise
+   * (ADR 0010). The home page's featured strip asks for it, because a shop
+   * window full of "Sin existencias" sells nothing.
+   */
+  readonly availableOnly?: boolean;
+  /**
    * A `sortable` member of `PublishedOffering`. The home page's newest strip
    * sorts on `publishedAt`, descending.
    */
@@ -82,6 +88,9 @@ export const loadOfferings = (
       : []),
     ...(query.search
       ? [{ property: 'name', operator: 'like' as const, value: query.search }]
+      : []),
+    ...(query.availableOnly
+      ? [{ property: 'availableHint', operator: 'eq' as const, value: true }]
       : []),
   ];
 
