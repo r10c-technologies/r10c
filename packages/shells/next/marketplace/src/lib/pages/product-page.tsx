@@ -18,16 +18,18 @@ import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import {
   getBrand,
   getCategory,
+  loadCategoryTrail,
 } from '@r10c/implementation-catalog-reference-next';
 import {
   getOffering,
   loadOfferings,
 } from '@r10c/implementation-marketplace-catalog-next';
-import { formatPrice } from '@r10c/utils-react-ui';
+import { Breadcrumbs, formatPrice, MediaGallery } from '@r10c/utils-react-ui';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { addToCart } from '../cart/cart-actions';
+import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
 import { StoreShell } from './store-shell';
@@ -93,23 +95,44 @@ export async function ProductPage({
 
   // Resolved through the owning domain's read path, not a storage-layer join:
   // both ids point into `catalog-reference`, another slice's store (ADR 0022).
-  const [brand, category] = await Promise.all([
+  const [brand, category, trail] = await Promise.all([
     runRead(ProductBrand, getBrand(offering.brandId), undefined),
     runRead(ProductCategory, getCategory(offering.categoryId), undefined),
+    runRead(ProductCategory, loadCategoryTrail(offering.categoryId), []),
   ]);
+  const media = offering.media ?? [];
 
   return (
     <StoreShell locale={locale}>
       <Stack gap="xl">
+        <Breadcrumbs
+          label={t('storefront.breadcrumbs.label')}
+          items={catalogCrumbs({
+            locale,
+            home: t('storefront.breadcrumbs.home'),
+            trail,
+            leaf: offering.name,
+          })}
+        />
+
         <div className="grid grid-cols-1 gap-l sm:grid-cols-2">
-          <div
-            className="flex aspect-square items-center justify-center rounded-xl bg-primary/10 text-primary"
-            aria-hidden="true"
-          >
-            <span className="text-step-4 font-semibold">
-              {offering.name.charAt(0)}
-            </span>
-          </div>
+          {media.length > 0 ? (
+            <MediaGallery
+              label={t('storefront.product.gallery')}
+              items={media}
+            />
+          ) : (
+            // No pictures: the same square, so the buy box sits where it
+            // would with them.
+            <div
+              className="flex aspect-square items-center justify-center rounded-xl bg-primary/10 text-primary"
+              aria-hidden="true"
+            >
+              <span className="text-step-4 font-semibold">
+                {offering.name.charAt(0)}
+              </span>
+            </div>
+          )}
 
           <Stack gap="s">
             <Stack gap="2xs">

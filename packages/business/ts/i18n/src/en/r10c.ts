@@ -72,6 +72,10 @@ export const r10c: EsR10c = {
     nav: {
       catalog: 'Catalog',
     },
+    breadcrumbs: {
+      label: 'Breadcrumb',
+      home: 'Home',
+    },
     home: {
       overline: 'Storefront',
       heading: 'r10c Marketplace',
@@ -88,6 +92,7 @@ export const r10c: EsR10c = {
       previous: 'Previous',
       next: 'Next',
       pageOf: 'Page {{page}} of {{pages}}',
+      children: 'Subcategories',
     },
     product: {
       addToCart: 'Add to cart',
@@ -98,6 +103,7 @@ export const r10c: EsR10c = {
       related: 'You might also like',
       available: 'Available',
       unavailable: 'Out of stock',
+      gallery: 'Product images',
     },
     search: {
       heading: 'Search',

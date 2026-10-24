@@ -78,6 +78,10 @@ export const r10c = {
     nav: {
       catalog: 'Catálogo',
     },
+    breadcrumbs: {
+      label: 'Ruta de navegación',
+      home: 'Inicio',
+    },
     home: {
       overline: 'Tienda',
       heading: 'Marketplace r10c',
@@ -94,6 +98,7 @@ export const r10c = {
       previous: 'Anterior',
       next: 'Siguiente',
       pageOf: 'Página {{page}} de {{pages}}',
+      children: 'Subcategorías',
     },
     product: {
       addToCart: 'Añadir al carrito',
@@ -110,6 +115,7 @@ export const r10c = {
        */
       available: 'Disponible',
       unavailable: 'Sin existencias',
+      gallery: 'Imágenes del producto',
     },
     search: {
       heading: 'Buscar',

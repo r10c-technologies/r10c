@@ -62,7 +62,8 @@ test.describe('browsing the catalog', () => {
   /**
    * ADR 0062: the desk lamp is classified under Desk Lamps, a child of
    * Lighting. Lighting lists it (the whole subtree), Desk Lamps lists only its
-   * own, and the nav names the roots alone.
+   * own, the header names the roots alone, and a category page offers its
+   * children.
    */
   test('a category lists its subtree, and the nav its roots', async ({
     page,
@@ -70,11 +71,62 @@ test.describe('browsing the catalog', () => {
     await page.goto('/es/c/lighting');
     await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
     await expect(page.getByText('Aurora Floor Lamp')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Desk Lamps' })).toHaveCount(0);
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Catálogo' })
+        .getByRole('link', { name: 'Desk Lamps' }),
+    ).toHaveCount(0);
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Subcategorías' })
+        .getByRole('link', { name: 'Desk Lamps' }),
+    ).toBeVisible();
 
     await page.goto('/es/c/desk-lamps');
     await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
     await expect(page.getByText('Aurora Floor Lamp')).toHaveCount(0);
+  });
+
+  /** #338: the trail runs home, then every ancestor, then the page itself. */
+  test('a category three levels down shows its whole trail', async ({
+    page,
+  }) => {
+    await page.goto('/es/c/task-lights');
+
+    const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
+    await expect(trail.getByRole('link', { name: 'Inicio' })).toHaveAttribute(
+      'href',
+      '/es',
+    );
+    await expect(trail.getByRole('link', { name: 'Lighting' })).toBeVisible();
+    await expect(trail.getByRole('link', { name: 'Desk Lamps' })).toBeVisible();
+    await expect(trail.getByText('Task Lights')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    // A leaf offers nothing to narrow into.
+    await expect(
+      page.getByRole('navigation', { name: 'Subcategorías' }),
+    ).toHaveCount(0);
+  });
+
+  /** #337: the product page shows the vendor's pictures, thumbnails linked. */
+  test('a product page shows its gallery and its trail', async ({ page }) => {
+    await page.goto('/es/p/offering-cobalto-arc-lamp');
+
+    const gallery = page.getByRole('region', {
+      name: 'Imágenes del producto',
+    });
+    await expect(gallery.getByRole('link')).toHaveCount(3);
+    await expect(
+      gallery.getByRole('link', { name: 'Cobalto Arc Lamp, marble foot' }),
+    ).toHaveAttribute('href', /^#/);
+    const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
+    await expect(trail.getByRole('link', { name: 'Lighting' })).toBeVisible();
+    await expect(trail.getByText('Cobalto Arc Lamp')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 
   // Sorting is a link, not client state — so the URL is the whole mechanism and
