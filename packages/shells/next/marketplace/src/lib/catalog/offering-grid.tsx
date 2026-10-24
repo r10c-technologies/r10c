@@ -1,5 +1,7 @@
-import type { Locale } from '@entifix/core';
+import { type Locale, localeHref } from '@entifix/core';
+import { getServerTFor } from '@entifix/i18n';
 import {
+  ButtonLink,
   Grid,
   Skeleton,
   Stack,
@@ -8,9 +10,10 @@ import {
 import { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { loadBrands } from '@r10c/implementation-catalog-reference-next';
+import { formatPrice, ProductCard } from '@r10c/utils-react-ui';
 
+import { storePaths } from '../routing/paths';
 import { emptyPage, runRead } from './catalog-reads';
-import { OfferingCard } from './offering-card';
 
 export interface OfferingGridProps {
   readonly locale: Locale;
@@ -24,8 +27,11 @@ export interface OfferingGridProps {
  * Per card it would be one request per tile for a value the vocabulary is small
  * enough to hold entirely — and the reads are sequential inside a server
  * component, so a nine-tile grid would be nine round trips before the first
- * byte. Resolving here also keeps `OfferingCard` free of any data access, which
- * is what lets it be asserted without a backend.
+ * byte. Resolving here also keeps the card free of any data access, which is
+ * what lets it be asserted without a backend.
+ *
+ * Each offering is mapped onto `ProductCard`'s roles right here. That mapping
+ * is the binding #339 moves into the catalog cell.
  */
 export async function OfferingGrid({
   locale,
@@ -45,17 +51,42 @@ export async function OfferingGrid({
     brands.items.map(brand => [String(brand.id), brand.name]),
   );
 
+  const t = getServerTFor(locale, 'r10c');
+
   return (
     <Grid min="18rem" gap="l">
       {offerings.map(offering => (
-        <OfferingCard
+        <ProductCard
           key={offering.offeringId}
-          locale={locale}
-          offering={offering}
-          brandName={
+          title={offering.name}
+          price={formatPrice(locale, offering.amount, offering.currency)}
+          brand={
             offering.brandId === undefined
               ? undefined
               : nameOf.get(offering.brandId)
+          }
+          description={offering.description}
+          media={offering.media?.[0]}
+          // A hint, and the name says so: published data is eventually
+          // consistent on purpose, and the checkout reservation is the truth
+          // (ADR 0009).
+          availability={
+            offering.availableHint
+              ? t('storefront.product.available')
+              : t('storefront.product.unavailable')
+          }
+          // A `ButtonLink`, not a `Button`: "View product" navigates, and a
+          // `Button` would put a client boundary around every tile.
+          cta={
+            <ButtonLink
+              href={localeHref(
+                locale,
+                storePaths.offering(offering.offeringId),
+              )}
+              variant="secondary"
+            >
+              {t('storefront.product.view')}
+            </ButtonLink>
           }
         />
       ))}

@@ -2253,6 +2253,9 @@ importers:
       '@r10c/implementation-marketplace-catalog-next':
         specifier: workspace:*
         version: link:../../../implementation/marketplace-catalog/next
+      '@r10c/utils-react-ui':
+        specifier: workspace:*
+        version: link:../../../utils/react/ui
       '@r10c/utils-ts-fleet':
         specifier: workspace:*
         version: link:../../../utils/ts/fleet

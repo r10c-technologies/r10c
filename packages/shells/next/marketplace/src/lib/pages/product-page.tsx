@@ -23,12 +23,12 @@ import {
   getOffering,
   loadOfferings,
 } from '@r10c/implementation-marketplace-catalog-next';
+import { formatPrice } from '@r10c/utils-react-ui';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { addToCart } from '../cart/cart-actions';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
-import { formatMoney } from '../catalog/money';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
 import { StoreShell } from './store-shell';
 
@@ -122,7 +122,7 @@ export async function ProductPage({
 
             <Cluster gap="s" justify="between">
               <Text weight="semibold" step={1}>
-                {formatMoney(locale, offering.amount, offering.currency)}
+                {formatPrice(locale, offering.amount, offering.currency)}
               </Text>
               <Text muted>
                 {offering.availableHint

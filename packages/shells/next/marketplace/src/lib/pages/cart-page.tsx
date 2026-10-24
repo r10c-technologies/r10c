@@ -11,12 +11,13 @@ import {
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
+import { formatPrice } from '@r10c/utils-react-ui';
 
 import { removeFromCart } from '../cart/cart-actions';
 import { readCart } from '../cart/cart-cookie';
 import { checkout, type CheckoutOutcome } from '../cart/checkout-action';
 import { runRead } from '../catalog/catalog-reads';
-import { formatMoney, totalsByCurrency } from '../catalog/money';
+import { totalsByCurrency } from '../catalog/money';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -105,7 +106,7 @@ export async function CartPage({
                   </Stack>
 
                   <Text data-testid="cart-line-price">
-                    {formatMoney(
+                    {formatPrice(
                       locale,
                       offering.amount * line.quantity,
                       offering.currency,
@@ -134,7 +135,7 @@ export async function CartPage({
                   <Text key={total.currency} weight="semibold">
                     {t('storefront.cart.total')}
                     {': '}
-                    {formatMoney(locale, total.amount, total.currency)}
+                    {formatPrice(locale, total.amount, total.currency)}
                   </Text>
                 ))}
               </Stack>
