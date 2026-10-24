@@ -1,0 +1,63 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Storefront/Control set" />
+
+# The storefront control set
+
+The storefront is built from generic controls. A binding maps an entity onto
+each one, and the control itself never sees the entity. The controls live in
+`@r10c/utils-react-ui` (`layer:utils`, `tech:react`). They are incubated here
+and move to entifix once a second consumer needs them (ADR 0060).
+
+## Rules every control follows
+
+- **Props in, markup out.** No data access, no locale, no copy. Text arrives
+  already translated and money already formatted, so the package has nothing
+  for `react/jsx-no-literals` to find.
+- **Server-renderable.** No state or effects, and no `'use client'`. A control
+  that changes the page (sort, facets, pagination) renders `<a href>` from an
+  `hrefFor` callback, so the URL is the state and no script runs.
+- **Absent is silent.** A role that is not given leaves no gap, no dash and no
+  placeholder text. The one exception is media: its box keeps its aspect ratio,
+  so the grid does not reflow.
+- **Tokens only.** Spacing, type steps and colour come from `@entifix/style`,
+  so the storefront's palette restyles every control.
+
+## The product card
+
+| Role           | Today                                                         |
+| -------------- | ------------------------------------------------------------- |
+| `title`        | Required. Plain text, names the article, clamps at two lines. |
+| `price`        | Required. A formatted price.                                  |
+| `brand`        | The brand's name, resolved from the reference vocabulary.     |
+| `description`  | Clamps at two lines.                                          |
+| `media`        | The first `{url, alt}` of the snapshot.                       |
+| `badges`       | Over the media, top left.                                     |
+| `chips`        | A row under the text.                                         |
+| `availability` | The availability hint.                                        |
+| `cta`          | A link or a form; the card does not decide which.             |
+| `unitPrice`    | Declared, never filled: the snapshot has no unit to price by. |
+| `rating`       | Declared, never filled: there are no reviews.                 |
+
+**States:** every role, a long title, no media, no brand, out of stock, and
+compact density. Each one is a story.
+
+**Density:** `comfortable` is the default, on the fluid scale. `compact`
+tightens the gaps for dense grids. Both use the same type steps.
+
+**Accessibility:** the card is an `article` labelled by its title heading. A
+picture's `alt` is the vendor's own text, which the save refuses to leave
+empty. Without a picture, the placeholder initial is `aria-hidden`. Badges and
+chips must carry their meaning in text, never in colour alone.
+
+## The rest of the set
+
+| Control             | Shape                                                        | Issue |
+| ------------------- | ------------------------------------------------------------ | ----- |
+| Price block         | `formatPrice` over `Intl.NumberFormat`, minor units in       | #334  |
+| Badges and chips    | A tone and a label each                                      | #334  |
+| Sort control        | Options and the current one, each option an `<a href>`       | #335  |
+| Facet panel         | `checkbox`, `range` or `toggle` definitions; counts optional | #336  |
+| Pagination          | entifix's `PaginationLinks`, unchanged                       | #341  |
+| Media gallery       | `{url, alt}[]`: main image plus thumbnail links, CSS only    | #337  |
+| Breadcrumbs and nav | An `ancestorsOf` chain; a node's roots or children           | #338  |

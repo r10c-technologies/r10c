@@ -197,6 +197,9 @@
     },
     {
       "path": "./packages/testing/catalog-fixtures"
+    },
+    {
+      "path": "./packages/utils/react/ui"
     }
   ],
   "compilerOptions": {

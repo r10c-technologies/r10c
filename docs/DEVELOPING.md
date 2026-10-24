@@ -465,7 +465,7 @@ The golden rule above is **enforced**, not just reviewed. Every project declares
 | **shell**    | `shell:domain`                                                              | a domain shell mounts onto the installed base shells, never onto another domain shell |
 | **host**     | `host:next`, `host:effect`                                                  | a `host:next` app may **not** import `@entifix/{mongo,sql,redis,amqp}` or a subpath   |
 | **tech**     | `tech:{react, next, http, mongo, redis, sql}`                               | a cell may not import what it would talk through — adapters, drivers, state libraries |
-| **type**     | `type:testing`, `type:e2e`                                                  | spec files may import `type:testing` libs; source files may not                       |
+| **type**     | `type:testing`, `type:e2e`, `type:storybook`                                | spec files may import `type:testing` libs; source files may not                       |
 
 `@entifix/*` is not in the table because it is not a project: it is installed
 from the registry, carries no tags, and any layer may import it. Its own

@@ -1,0 +1,29 @@
+/* A mirror of marketplace-app's global.css: the same Tailwind v4 pipeline, the
+   same tokens and the storefront's own palettes, so a story renders the way
+   the storefront does. */
+@import 'tailwindcss';
+
+@import '@entifix/style/tokens.css';
+@import '../../marketplace-app/src/app/themes.css';
+
+/* The classes the stories render: the incubated controls as source, the
+   installed entifix controls from their built `dist`. */
+@source '../src';
+@source '../../../packages/utils/react/ui/src';
+@source '../../../node_modules/@entifix/react-controls/dist';
+
+/* The faces are imported from `preview.ts`, not here. Tailwind inlines a CSS
+   `@import` without rebasing its relative `url(./files/…)`, so the fonts were
+   never emitted and every face 404'd. Next self-hosts them through
+   `next/font`; both paths end at these two variables, which the tokens read. */
+:root {
+  --font-inter: 'Inter Variable';
+  --font-jetbrains-mono: 'JetBrains Mono Variable';
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-content);
+  font-size: var(--text-step-0);
+  line-height: var(--text-step-0--line-height);
+}

@@ -2,6 +2,7 @@ packages:
   - 'apps/*'
   - 'packages/business/ts/*'
   - 'packages/utils/ts/*'
+  - 'packages/utils/react/*'
   # Implementation cells: `<key>/<tech>`, one domain or store wired to one
   # technology (docs/adr/0060).
   - 'packages/implementation/*/*'
