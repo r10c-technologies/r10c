@@ -43,6 +43,7 @@
   "dependencies": {
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
+    "@entifix/react-integration": "catalog:",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "effect": "4.0.5",
     "@swc/helpers": "0.5.23"
