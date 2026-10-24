@@ -1,12 +1,19 @@
 'use client';
 
+import { type EntityRepositoryTag, loadUCFactory } from '@entifix/business';
 import type {
   BulkOutcome,
   Entity,
   EntityId,
   EntitySelection,
+  FilterGroup,
 } from '@entifix/core';
-import { EntifixLogicError, toWireSelection } from '@entifix/core';
+import {
+  descendantsOf,
+  EntifixLogicError,
+  hierarchyOf,
+  toWireSelection,
+} from '@entifix/core';
 import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud, useLocaleHref } from '@entifix/next-shell';
 import {
@@ -15,6 +22,7 @@ import {
   EntityTableToolbar,
   useTranslateKey,
 } from '@entifix/react-controls';
+import { entityQueryScope, useDataLoading } from '@entifix/react-integration';
 import {
   ProductBrand,
   ProductCategory,
@@ -100,6 +108,50 @@ export const productBrandCrud = makeEntityCrud(ProductBrand, {
   runBulkUseCase: runReferenceBulk(PRODUCT_BRAND_SURFACE.entityKey),
 });
 
+/**
+ * How many categories one page of the list holds — and so how many the parent
+ * picker reads to find a category's subtree. ADR 0062 caps the tree at five
+ * levels, and a vocabulary past this size wants a server-side subtree query
+ * rather than a bigger page.
+ */
+const CATEGORY_PAGE_SIZE = 200;
+
+/** Read once: `ProductCategory` declares `parentId` its parent. */
+const categoryTree = hierarchyOf(ProductCategory);
+
+/**
+ * What a category's parent picker may not offer: the category itself and every
+ * category beneath it, either of which would make the tree a cycle.
+ *
+ * A hook because the subtree is other records. It reads the same page the list
+ * asks for, under the same query key, and restricts nothing until that page
+ * arrives, or on a create, which has no subtree yet. The service still refuses
+ * a cycle with `409 categoryCycle`; this keeps the picker from offering one.
+ */
+const useOutsideOwnSubtree = (
+  category: ProductCategory | undefined,
+): FilterGroup<ProductCategory> | undefined => {
+  const { items } = useDataLoading<ProductCategory, EntityRepositoryTag>({
+    uc: loadUCFactory<ProductCategory>(),
+    ctx: useMarketplaceAdminAdapters().productCategoryRest,
+    initialPageSize: CATEGORY_PAGE_SIZE,
+    queryKey: entityQueryScope(ProductCategory),
+    enabled: category?.id != null,
+  });
+  if (category?.id == null || categoryTree === undefined) return undefined;
+  const own = String(category.id);
+  return {
+    operator: 'and',
+    values: [
+      {
+        property: 'id',
+        operator: 'nin',
+        values: [own, ...descendantsOf(items, categoryTree, own)],
+      },
+    ],
+  };
+};
+
 export const productCategoryCrud = makeEntityCrud(ProductCategory, {
   useAdapters: useMarketplaceAdminAdapters,
   basePath: PRODUCT_CATEGORY_SURFACE.basePath,
@@ -108,13 +160,11 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
   hiddenFields: ['id'],
   metadata: 'referenceMetadata',
   runBulkUseCase: runReferenceBulk(PRODUCT_CATEGORY_SURFACE.entityKey),
+  // One page holds the whole tree, so the list renders every level of it.
+  pageSize: CATEGORY_PAGE_SIZE,
   // The parent is another category in the same store (ADR 0062), chosen with
   // the same picker a specification's classification uses. The list renders
   // as a tree on its own, because the entity declares `parentId` its parent.
-  //
-  // ⚠️ The picker still offers the category itself and its subtree: the
-  // generated form cannot filter a source per record yet (#400). The service
-  // refuses that save with `409 categoryCycle`, so the tree stays sound.
   links: [
     {
       field: 'parentId',
@@ -122,6 +172,7 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
       repository: 'productCategoryRest',
       labelProperty: 'name',
       searchProperty: 'name',
+      useBaseFiltering: useOutsideOwnSubtree,
     },
   ],
 });
