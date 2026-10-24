@@ -20,42 +20,11 @@ const SEED = { id: 'org-1', name: 'Demo Vendor', slug: 'demo-vendor' };
 const FIRST = new Date('2026-10-23T10:00:00.000Z');
 const LATER = new Date('2026-10-24T10:00:00.000Z');
 
-/**
- * The fake's `db`, with `$unset` dropped from an `updateOne`.
- *
- * `reviveQuarantined` clears the relay's failure note with `$unset`, which the
- * fake does not implement and throws on. Dropping it keeps the half this spec
- * asserts — the `$set` that puts the entry back in the queue — on the real fake
- * rather than on a hand-written one.
- */
-const withoutUnset = (db: Db): Db =>
-  new Proxy(db, {
-    get: (target, key) =>
-      key !== 'collection'
-        ? Reflect.get(target, key)
-        : (name: string) => {
-            const collection = target.collection(name);
-            return new Proxy(collection, {
-              get: (inner, member) =>
-                member !== 'updateOne'
-                  ? Reflect.get(inner, member)
-                  : (
-                      filter: Record<string, unknown>,
-                      update: Record<string, unknown>,
-                      options?: Record<string, unknown>,
-                    ) => {
-                      const { $unset: _dropped, ...kept } = update;
-                      return inner.updateOne(filter, kept, options);
-                    },
-            });
-          },
-  });
-
 const storeWith = async (
   seed: Record<string, Record<string, unknown>[]> = {},
 ) => {
   const fake = makeFakeMongoDb(seed);
-  const db = withoutUnset(fake.db as Db);
+  const db = fake.db as Db;
   await Effect.runPromise(ensureOutboxIndexes(db));
   const client = { startSession: () => fake.startSession() } as MongoClient;
   return { fake, db, client };
