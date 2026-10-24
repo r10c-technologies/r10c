@@ -131,7 +131,7 @@ Three things worth not re-deriving:
 - **`Definiciones`, not `Maestros`.** The ERP-standard word needs the ERP
   background to parse. `Catálogos` and `Referencias` are both out on collisions
   that already exist in this repo: "catálogo" is the product catalog, and
-  `shell:storefront.category.sortByCode` already renders "Referencia" for a
+  `shell:storefront.product.reference` already renders "Referencia" for a
   product's code.
 - **`type` is optional, and exactly one section may skip it.** The account
   surface is not a group of administrative screens, which is the same reason none
@@ -1030,8 +1030,19 @@ Home and every product page are cached per locale with ISR, revalidated every
 60s. `/cart` reads `cookies()` and `/search` reads `searchParams`, so both are
 dynamic — correctly, since neither has an answer until the request arrives.
 `/c/[category]` is dynamic too: reading `searchParams` opts out the **route**,
-not the request, so the intended "static unfiltered, dynamic when sorted" split
-is not expressible without Partial Prerendering.
+not the request, so the intended "static unfiltered, dynamic when filtered or
+sorted" split is not expressible without Partial Prerendering.
+
+**Search and every category page are one listing** (`OfferingListing` in the
+shell): a facet panel, a count, the sort, a page of cards and entifix's server
+`PaginationLinks`, all read from one address through the catalog cell's search
+codec and all written back as links. A category page is that listing with the
+category set in advance, so its facets, sort and pager are the search page's.
+The header's search box is a plain `GET` form carrying only the term, because a
+new question starts with no facets. The shell's own `src` is in the app's
+`global.css` `@source` list: before it was, every class only the shell used —
+the page frame's `max-w-5xl`, the product page's two columns — was silently
+never generated.
 
 ⚠️ **Nothing is generated at build time**, and that is deliberate rather than an
 omission: the home page and the offering page each declare an **empty**

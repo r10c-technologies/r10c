@@ -9,6 +9,10 @@
 /* The storefront's incubated controls (`@r10c/utils-react-ui`), scanned as
    source: a workspace package, so its classes are in its `src`. */
 @source '../../../../packages/utils/react/ui/src';
+/* The storefront shell's own markup: its pages and chrome are workspace source
+   too. Without this, every class only the shell uses was never generated — the
+   page's `max-w-5xl` frame and the product page's two columns among them. */
+@source '../../../../packages/shells/next/marketplace/src';
 
 html {
   -webkit-text-size-adjust: 100%;

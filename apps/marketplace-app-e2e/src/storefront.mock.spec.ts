@@ -133,11 +133,52 @@ test.describe('browsing the catalog', () => {
   // the server renders the answer.
   test('sorting travels in the URL', async ({ page }) => {
     await page.goto('/es/c/lighting');
-    await page.getByRole('link', { name: 'Referencia' }).click();
+    await page.getByRole('link', { name: 'Precio: mayor a menor' }).click();
 
-    await page.waitForURL(/sort=code/);
-    await expect(page).toHaveURL(/sort=code/);
+    await page.waitForURL(/sort=price-desc/);
+    await expect(page).toHaveURL(/sort=price-desc/);
+    await expect(
+      page.getByRole('link', { name: 'Precio: mayor a menor' }),
+    ).toHaveAttribute('aria-current', 'true');
     await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
+  });
+
+  // With no term, search lists the whole catalog (36 fixtures, 24 a page), so
+  // the 25th result by name is on page 2 and reachable by a link.
+  test('search pages through the whole catalog', async ({ page }) => {
+    await page.goto('/es/search');
+    await expect(page.getByText('36 productos')).toBeVisible();
+    await expect(page.getByText('Solano Reading Light')).toHaveCount(0);
+
+    await page
+      .getByRole('navigation', { name: 'Páginas' })
+      .getByRole('link', { name: '2', exact: true })
+      .click();
+
+    await page.waitForURL(/page=2/);
+    await expect(page.getByText('Solano Reading Light')).toBeVisible();
+  });
+
+  test('a facet is a link that narrows the results', async ({ page }) => {
+    await page.goto('/es/search');
+    await page
+      .getByRole('complementary', { name: 'Filtrar' })
+      .getByRole('link', { name: 'Terra' })
+      .click();
+
+    await page.waitForURL(/brand=brand-terra/);
+    await expect(page.getByText('6 productos')).toBeVisible();
+    await expect(page.getByText('Terra Ceramic Mug')).toBeVisible();
+    await expect(page.getByText('Aurora Desk Lamp')).toHaveCount(0);
+  });
+
+  test('the header searches from any page', async ({ page }) => {
+    await page.goto('/es/c/lighting');
+    await page.getByRole('searchbox').fill('mug');
+    await page.getByRole('button', { name: 'Buscar' }).click();
+
+    await page.waitForURL(/\/es\/search\?q=mug/);
+    await expect(page.getByText('Terra Ceramic Mug')).toBeVisible();
   });
 
   test('search renders its results on the server', async ({ page }) => {

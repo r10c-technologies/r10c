@@ -2256,12 +2256,18 @@ importers:
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-catalog
+      '@r10c/business-ts-marketplace-vendor':
+        specifier: workspace:*
+        version: link:../../../business/ts/marketplace-vendor
       '@r10c/implementation-catalog-reference-next':
         specifier: workspace:*
         version: link:../../../implementation/catalog-reference/next
       '@r10c/implementation-marketplace-catalog-next':
         specifier: workspace:*
         version: link:../../../implementation/marketplace-catalog/next
+      '@r10c/implementation-marketplace-vendor-next':
+        specifier: workspace:*
+        version: link:../../../implementation/marketplace-vendor/next
       '@r10c/utils-react-ui':
         specifier: workspace:*
         version: link:../../../utils/react/ui

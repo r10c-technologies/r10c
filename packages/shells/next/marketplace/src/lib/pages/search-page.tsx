@@ -1,94 +1,57 @@
 import type { Locale } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
+import { HeadingOne, Stack } from '@entifix/react-controls/primitives';
 import {
-  Button,
-  HeadingOne,
-  Stack,
-  Text,
-  TextInput,
-} from '@entifix/react-controls/primitives';
-import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
+  parseSearch,
+  type SearchParams,
+} from '@r10c/implementation-marketplace-catalog-next';
 import { Suspense } from 'react';
 
-import { emptyPage, runRead } from '../catalog/catalog-reads';
-import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import { OfferingGridSkeleton } from '../catalog/offering-grid';
+import { OfferingListing } from '../catalog/offering-listing';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
 /**
  * Search, rendered on the server from the query string.
  *
- * The form is a `GET` to this same route: submitting it changes the URL, the
- * server renders the results, and the page is shareable and back-buttonable for
- * free. No `onChange` handler, no debounce, no client-side fetch — the address
- * bar is the state.
+ * The box is the header's: a `GET` to this route, so submitting it changes the
+ * URL and the server renders the results. With no term the page lists the
+ * whole catalog, and the facets narrow it from there. The address bar is the
+ * state, so a search is shareable and back-buttonable with no client script.
  */
-async function SearchResults({
-  locale,
-  term,
-}: {
-  readonly locale: Locale;
-  readonly term: string;
-}) {
-  const t = getServerTFor(locale, 'r10c');
-  const page = await runRead(
-    PublishedOffering,
-    loadOfferings({ search: term, pageSize: 12 }),
-    emptyPage<PublishedOffering>(),
-  );
-
-  return (
-    <Stack gap="s">
-      <Text muted>{t('storefront.search.resultsFor', { term })}</Text>
-      <OfferingGrid
-        locale={locale}
-        offerings={page.items}
-        emptyLabel={t('storefront.search.empty', { term })}
-      />
-    </Stack>
-  );
-}
-
 export function SearchPage({
   locale,
-  term,
+  searchParams,
 }: {
   readonly locale: Locale;
-  readonly term?: string;
+  readonly searchParams: SearchParams;
 }) {
   const t = getServerTFor(locale, 'r10c');
-  const trimmed = term?.trim();
+  const state = parseSearch(searchParams);
+  const term = state.q[0]?.trim();
 
   return (
-    <StoreShell locale={locale}>
+    <StoreShell locale={locale} searchTerm={term}>
       <Stack gap="l">
-        <HeadingOne>{t('storefront.search.heading')}</HeadingOne>
+        <HeadingOne>
+          {term
+            ? t('storefront.search.resultsFor', { term })
+            : t('storefront.search.heading')}
+        </HeadingOne>
 
-        <form
-          action={`/${locale}${storePaths.search()}`}
-          method="get"
-          role="search"
-        >
-          <Stack direction="row" gap="s" align="center" wrap>
-            <TextInput
-              type="search"
-              name="q"
-              defaultValue={trimmed ?? ''}
-              aria-label={t('storefront.search.label')}
-              placeholder={t('storefront.search.placeholder')}
-            />
-            <Button type="submit">{t('storefront.search.submit')}</Button>
-          </Stack>
-        </form>
-
-        {trimmed ? (
-          <Suspense fallback={<OfferingGridSkeleton count={4} />}>
-            <SearchResults locale={locale} term={trimmed} />
-          </Suspense>
-        ) : (
-          <Text muted>{t('storefront.search.prompt')}</Text>
-        )}
+        <Suspense fallback={<OfferingGridSkeleton count={6} />}>
+          <OfferingListing
+            locale={locale}
+            path={storePaths.search()}
+            state={state}
+            emptyLabel={
+              term
+                ? t('storefront.search.empty', { term })
+                : t('storefront.listing.empty')
+            }
+          />
+        </Suspense>
       </Stack>
     </StoreShell>
   );

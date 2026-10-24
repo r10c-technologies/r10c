@@ -17,9 +17,12 @@ import { StoreHeader } from '../chrome/store-header';
  */
 export async function StoreShell({
   locale,
+  searchTerm,
   children,
 }: {
   readonly locale: Locale;
+  /** What the header's search box shows: the term a search page answers. */
+  readonly searchTerm?: string;
   readonly children: ReactNode;
 }) {
   // The roots only (ADR 0062): a child is reached through its root, whose
@@ -30,6 +33,7 @@ export async function StoreShell({
     <>
       <StoreHeader
         locale={locale}
+        searchTerm={searchTerm}
         categories={categories.map(category => ({
           code: category.code,
           name: category.name,

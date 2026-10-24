@@ -85,13 +85,6 @@ export const r10c: EsR10c = {
     category: {
       overline: 'Category',
       empty: 'Nothing in this category yet.',
-      sort: 'Sort',
-      sortByName: 'Name',
-      sortByCode: 'Reference',
-      results: '{{count}} products',
-      previous: 'Previous',
-      next: 'Next',
-      pageOf: 'Page {{page}} of {{pages}}',
       children: 'Subcategories',
     },
     product: {
@@ -105,6 +98,28 @@ export const r10c: EsR10c = {
       unavailable: 'Out of stock',
       gallery: 'Product images',
     },
+    listing: {
+      results: '{{count}} products',
+      empty: 'No product matches these filters.',
+      filters: 'Filter',
+      sort: 'Sort',
+      sorts: {
+        priceAsc: 'Price: low to high',
+        priceDesc: 'Price: high to low',
+        newest: 'Newest',
+        name: 'Name',
+      },
+      facets: {
+        category: 'Category',
+        brand: 'Brand',
+        seller: 'Seller',
+        price: 'Price',
+        available: 'In stock only',
+        min: 'From',
+        max: 'To',
+        apply: 'Apply',
+      },
+    },
     search: {
       heading: 'Search',
       label: 'Search products',
@@ -112,7 +127,6 @@ export const r10c: EsR10c = {
       submit: 'Search',
       resultsFor: 'Results for “{{term}}”',
       empty: 'Nothing matched “{{term}}”.',
-      prompt: 'Type something to start searching.',
     },
     cart: {
       heading: 'Cart',

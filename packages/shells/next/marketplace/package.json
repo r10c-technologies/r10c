@@ -45,6 +45,7 @@
   "dependencies": {
     "@r10c/business-ts-catalog-reference": "workspace:*",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
+    "@r10c/business-ts-marketplace-vendor": "workspace:*",
     "@entifix/react-controls": "catalog:",
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
@@ -53,6 +54,7 @@
     "effect": "4.0.5",
     "@r10c/implementation-catalog-reference-next": "workspace:*",
     "@r10c/implementation-marketplace-catalog-next": "workspace:*",
+    "@r10c/implementation-marketplace-vendor-next": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "@r10c/utils-react-ui": "workspace:*"
   },

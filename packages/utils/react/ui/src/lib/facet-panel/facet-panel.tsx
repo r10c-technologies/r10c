@@ -104,6 +104,20 @@ function ChoiceLink({
 function Facet({ facet }: { readonly facet: FacetDefinition }) {
   const headingId = useId();
 
+  // A toggle is its own label: a heading above it would say the same words
+  // twice. The section keeps the name, so it is still a named region.
+  if (facet.kind === 'toggle') {
+    return (
+      <section aria-label={facet.label}>
+        <ChoiceLink
+          label={facet.label}
+          href={facet.href}
+          selected={facet.selected}
+        />
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby={headingId}>
       <Stack gap="2xs">
@@ -118,13 +132,6 @@ function Facet({ facet }: { readonly facet: FacetDefinition }) {
               </li>
             ))}
           </ul>
-        ) : null}
-        {facet.kind === 'toggle' ? (
-          <ChoiceLink
-            label={facet.label}
-            href={facet.href}
-            selected={facet.selected}
-          />
         ) : null}
         {facet.kind === 'range' ? <RangeForm facet={facet} /> : null}
       </Stack>
@@ -149,7 +156,11 @@ function RangeForm({ facet }: { readonly facet: RangeFacet }) {
   );
 
   return (
-    <form method="get" action={facet.action} className="flex items-end gap-2xs">
+    <form
+      method="get"
+      action={facet.action}
+      className="flex flex-wrap items-end gap-2xs"
+    >
       {facet.hidden.map(([name, value]) => (
         <input
           key={`${name}=${value}`}
