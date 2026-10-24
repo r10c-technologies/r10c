@@ -3,13 +3,15 @@ import {
   type EntityRepositoryTag,
   loadUCFactory,
 } from '@entifix/business';
-import type {
-  EntifixError,
-  Entity,
-  EntityLoadRequest,
-  EntityPage,
+import {
+  ancestorsOf,
+  type EntifixError,
+  type Entity,
+  type EntityLoadRequest,
+  type EntityPage,
 } from '@entifix/core';
 import {
+  CATEGORY_KEYS,
   categorySubtree,
   type ProductBrand,
   type ProductCategory,
@@ -110,6 +112,41 @@ const loadEveryCategory = (): VocabularyRead<EntityPage<ProductCategory>> =>
     sorting: BY_NAME,
     pageSize: VOCABULARY_PAGE_SIZE,
   });
+
+/**
+ * A category and its ancestors, root first: the breadcrumb trail (ADR 0062).
+ * Empty for an id that names no category. Reads `ProductCategory`.
+ *
+ * Read over every category, retired ones included. A product classified
+ * before its category was retired still names that category, and the trail
+ * should name it too, as the product page's other references do.
+ */
+export const loadCategoryTrail = (
+  id: string | undefined,
+): VocabularyRead<ProductCategory[]> =>
+  id === undefined
+    ? Effect.succeed([])
+    : loadEveryCategory().pipe(
+        Effect.map(page => {
+          const self = page.items.find(item => CATEGORY_KEYS.idOf(item) === id);
+          return self === undefined
+            ? []
+            : [...ancestorsOf(page.items, CATEGORY_KEYS, id), self];
+        }),
+      );
+
+/**
+ * A category's active children, by name: what its page offers to narrow
+ * into. Empty for a leaf. Reads `ProductCategory`.
+ */
+export const loadCategoryChildren = (
+  id: string,
+): VocabularyRead<ProductCategory[]> =>
+  loadCategories().pipe(
+    Effect.map(page =>
+      page.items.filter(item => CATEGORY_KEYS.parentOf(item) === id),
+    ),
+  );
 
 /**
  * Every brand, retired ones included, so a grid can name each offering's

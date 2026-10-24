@@ -14,8 +14,10 @@ import {
   getCategoryByCode,
   loadBrands,
   loadCategories,
+  loadCategoryChildren,
   loadCategoryRoots,
   loadCategorySubtree,
+  loadCategoryTrail,
   VOCABULARY_PAGE_SIZE,
 } from './vocabulary.js';
 
@@ -207,5 +209,43 @@ describe('the category tree (ADR 0062)', () => {
       'category-lamp',
       'category-lighting',
     ]);
+  });
+
+  it('trails a category back to its root, root first', async () => {
+    const { result } = run(loadCategoryTrail('category-lamp'), TREE);
+
+    expect((await result).map(item => item.id)).toEqual([
+      'category-lighting',
+      'category-desk',
+      'category-lamp',
+    ]);
+  });
+
+  it('still trails through a retired category an offering names', async () => {
+    const { result } = run(loadCategoryTrail('category-old'), TREE);
+
+    expect((await result).map(item => item.id)).toEqual([
+      'category-lighting',
+      'category-old',
+    ]);
+  });
+
+  it('has no trail for an unclassified offering or an unknown id', async () => {
+    const unclassified = run(loadCategoryTrail(undefined), TREE);
+    expect(await unclassified.result).toEqual([]);
+    expect(unclassified.load).not.toHaveBeenCalled();
+
+    expect(await run(loadCategoryTrail('category-gone'), TREE).result).toEqual(
+      [],
+    );
+  });
+
+  it('offers a category’s active children, and none for a leaf', async () => {
+    const { result } = run(loadCategoryChildren('category-lighting'), TREE);
+    expect((await result).map(item => item.id)).toEqual(['category-desk']);
+
+    expect(
+      await run(loadCategoryChildren('category-lamp'), TREE).result,
+    ).toEqual([]);
   });
 });

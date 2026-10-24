@@ -11,13 +11,16 @@ import { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import {
   getCategoryByCode,
+  loadCategoryChildren,
   loadCategorySubtree,
+  loadCategoryTrail,
 } from '@r10c/implementation-catalog-reference-next';
 import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
-import { SortControl } from '@r10c/utils-react-ui';
+import { Breadcrumbs, CategoryNav, SortControl } from '@r10c/utils-react-ui';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
+import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
 import { storePaths } from '../routing/paths';
@@ -128,12 +131,29 @@ export async function CategoryPage(props: CategoryPageProps) {
   );
   if (!category) notFound();
 
+  // The trail and the children are one vocabulary read each, and on a failed
+  // read the page goes without them rather than without its products.
+  const id = String(category.id);
+  const [trail, children] = await Promise.all([
+    runRead(ProductCategory, loadCategoryTrail(id), []),
+    runRead(ProductCategory, loadCategoryChildren(id), []),
+  ]);
+
   const sortHref = (target: string) =>
     `${storePaths.category(code)}?sort=${target}`;
 
   return (
     <StoreShell locale={locale}>
       <Stack gap="l">
+        <Breadcrumbs
+          label={t('storefront.breadcrumbs.label')}
+          items={catalogCrumbs({
+            locale,
+            home: t('storefront.breadcrumbs.home'),
+            trail,
+          })}
+        />
+
         <Stack gap="2xs">
           <Overline>{t('storefront.category.overline')}</Overline>
           <HeadingOne>{category.name}</HeadingOne>
@@ -141,6 +161,15 @@ export async function CategoryPage(props: CategoryPageProps) {
             <Text muted>{category.description}</Text>
           ) : null}
         </Stack>
+
+        {/* The level below this one (ADR 0062); the header names the roots. */}
+        <CategoryNav
+          label={t('storefront.category.children')}
+          items={children.map(child => ({
+            label: child.name,
+            href: localeHref(locale, storePaths.category(child.code)),
+          }))}
+        />
 
         <SortControl
           label={t('storefront.category.sort')}
@@ -154,7 +183,7 @@ export async function CategoryPage(props: CategoryPageProps) {
         />
 
         <Suspense fallback={<OfferingGridSkeleton count={PAGE_SIZE} />}>
-          <CategoryOfferings {...props} categoryId={String(category.id)} />
+          <CategoryOfferings {...props} categoryId={id} />
         </Suspense>
       </Stack>
     </StoreShell>
