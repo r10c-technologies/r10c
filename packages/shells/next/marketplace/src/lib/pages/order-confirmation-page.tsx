@@ -11,13 +11,13 @@ import {
 } from '@entifix/react-controls/primitives';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
+import { formatPrice } from '@r10c/utils-react-ui';
 
 import { cancelOrder } from '../cart/cancel-action';
 import type { CancelOutcome } from '../cart/cancel-outcome';
 import { cancelWindowLabel } from '../cart/cancel-window';
 import { readReceipt } from '../cart/receipt-cookie';
 import { runRead } from '../catalog/catalog-reads';
-import { formatMoney } from '../catalog/money';
 import { storePaths } from '../routing/paths';
 import { StoreShell } from './store-shell';
 
@@ -166,7 +166,7 @@ export async function OrderConfirmationPage({
                     </Text>
                   </Stack>
                   <Text>
-                    {formatMoney(
+                    {formatPrice(
                       locale,
                       line.amount * line.quantity,
                       line.currency,
@@ -187,7 +187,7 @@ export async function OrderConfirmationPage({
               <Text key={total.currency} weight="semibold">
                 {t('storefront.order.total')}
                 {': '}
-                {formatMoney(locale, total.amount, total.currency)}
+                {formatPrice(locale, total.amount, total.currency)}
               </Text>
             ))}
           </Stack>

@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-23
 - Revised: 2026-10-24 — entifix 0.5.0 split its mixed entry points, so the review-only line below is now a ban (#321)
+- Revised: 2026-10-24 — `OfferingCard` is replaced by the generic `ProductCard` in `@r10c/utils-react-ui` (#334).
 - Area: entities
 - Read when: adding a package under `packages/implementation/`, putting technology-bound code into a shell or an app, or a UI file imports an adapter — a cell depends on entities, use cases and ports and never on another cell or an adapter, UI and HTTP cells are keyed by domain and persistence cells by store
 
@@ -118,9 +119,10 @@ through another domain's cell.
 
 A shell is **composition per host**: it provides the adapters, mounts the cells
 and owns the routes and pages that place them. Code moves out of shells into
-cells as each cell is created, not in one migration — `OfferingCard` and
-`OfferingGrid` stay in `shells-next-marketplace` until the storefront rebuilds
-them.
+cells as each cell is created, not in one migration. `OfferingGrid` stays in
+`shells-next-marketplace` until the storefront rebuilds it, and the shell's own
+`OfferingCard` is gone: the grid renders the generic `ProductCard` from
+`@r10c/utils-react-ui` (#334).
 
 ### This amends ADR 0008
 

@@ -1,4 +1,4 @@
-import { type Locale } from '@entifix/core';
+import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
   Cluster,
@@ -14,6 +14,7 @@ import {
   loadCategorySubtree,
 } from '@r10c/implementation-catalog-reference-next';
 import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
+import { SortControl } from '@r10c/utils-react-ui';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -127,7 +128,7 @@ export async function CategoryPage(props: CategoryPageProps) {
   );
   if (!category) notFound();
 
-  const sortHref = (target: 'name' | 'code') =>
+  const sortHref = (target: string) =>
     `${storePaths.category(code)}?sort=${target}`;
 
   return (
@@ -141,25 +142,16 @@ export async function CategoryPage(props: CategoryPageProps) {
           ) : null}
         </Stack>
 
-        <Cluster gap="s">
-          <Text muted>{t('storefront.category.sort')}</Text>
-          <StoreLink locale={locale} href={sortHref('name')}>
-            <Text
-              muted={sort === 'code'}
-              weight={sort === 'code' ? undefined : 'semibold'}
-            >
-              {t('storefront.category.sortByName')}
-            </Text>
-          </StoreLink>
-          <StoreLink locale={locale} href={sortHref('code')}>
-            <Text
-              muted={sort !== 'code'}
-              weight={sort === 'code' ? 'semibold' : undefined}
-            >
-              {t('storefront.category.sortByCode')}
-            </Text>
-          </StoreLink>
-        </Cluster>
+        <SortControl
+          label={t('storefront.category.sort')}
+          options={[
+            { value: 'name', label: t('storefront.category.sortByName') },
+            { value: 'code', label: t('storefront.category.sortByCode') },
+          ]}
+          // Name is the default order, so it is current with no `sort` at all.
+          current={sort === 'code' ? 'code' : 'name'}
+          hrefFor={target => localeHref(locale, sortHref(target))}
+        />
 
         <Suspense fallback={<OfferingGridSkeleton count={PAGE_SIZE} />}>
           <CategoryOfferings {...props} categoryId={String(category.id)} />

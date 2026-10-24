@@ -6,6 +6,9 @@
 /* Class detection for the entifix UI package, installed from the registry: its
    classes exist only in its built `dist`. */
 @source '../../node_modules/@entifix/react-controls/dist';
+/* The storefront's incubated controls (`@r10c/utils-react-ui`), scanned as
+   source: a workspace package, so its classes are in its `src`. */
+@source '../../../../packages/utils/react/ui/src';
 
 html {
   -webkit-text-size-adjust: 100%;

@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-09-08
 - Area: frontend
+- Revised: 2026-10-24 — the price formatter is now `formatPrice` in `@r10c/utils-react-ui`, which replaced the storefront shell's `formatMoney` (#334).
 - Read when: the storefront reads or renders catalog data — nothing is enumerated at build time, and a failed read renders an empty catalog and logs
 
 ## Context
@@ -196,8 +197,8 @@ reason the source condition must be off.
 
 Price and availability, which ADR 0049 put on the projection precisely so a card
 could be drawn without reading tenant storage, and which nothing had read.
-`amount` is in **minor units**, so the conversion lives in one `formatMoney`
-rather than at each render site, and `Intl` decides the symbol and the
+`amount` is in **minor units**, so the conversion lives in one function rather
+than at each render site (`formatPrice` in `@r10c/utils-react-ui` since #334), and `Intl` decides the symbol and the
 separators from the locale — `1999` GTQ is `19,99 GTQ` in Spanish and
 `GTQ 19.99` in English, neither of which belongs in a template literal. An
 unrecognised currency falls back to the bare amount rather than throwing inside a

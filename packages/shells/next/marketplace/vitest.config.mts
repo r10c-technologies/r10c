@@ -17,7 +17,6 @@ export default defineEntifixTest({
   coverageExclude: [
     '**/lib/pages/**',
     '**/lib/chrome/**',
-    '**/lib/catalog/offering-card.tsx',
     '**/lib/catalog/offering-grid.tsx',
     '**/lib/routing/store-link.tsx',
     '**/lib/cart/cart-cookie.ts',

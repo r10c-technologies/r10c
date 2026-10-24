@@ -22,7 +22,6 @@ export * from './lib/pages/storefront-skeleton';
 
 // Chrome and catalog pieces, for a host that wants to compose its own page.
 export * from './lib/catalog/money';
-export * from './lib/catalog/offering-card';
 export * from './lib/catalog/offering-grid';
 export * from './lib/chrome/store-footer';
 export * from './lib/chrome/store-header';
