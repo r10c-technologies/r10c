@@ -6,6 +6,9 @@ packages:
   # technology (docs/adr/0060).
   - 'packages/implementation/*/*'
   - 'packages/shells/next/*'
+  # Test data, never shipped: `type:testing`, so only specs, e2e and Storybook
+  # may import it.
+  - 'packages/testing/*'
   # Not shipped code: checks that run against the repository's own structure.
   # `slices` is the executable form of the ADR 0020 store register; `docs` holds
   # the documentation assertions, and reads the same entity scan.
@@ -42,6 +45,7 @@ catalog:
   '@entifix/rest': 0.7.1
   '@entifix/service-shell': 0.7.1
   '@entifix/sql': 0.7.1
+  '@entifix/static': 0.7.1
   '@entifix/style': 0.7.1
   '@entifix/testing-auth': 0.7.1
   '@entifix/testing-e2e': 0.7.1

@@ -1,0 +1,25 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/@r10c/testing-catalog-fixtures",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "vitest/globals", "vitest/importMeta"],
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "src/**/*.json"],
+  "references": [
+    {
+      "path": "../../business/ts/marketplace-vendor"
+    },
+    {
+      "path": "../../business/ts/marketplace-catalog"
+    },
+    {
+      "path": "../../business/ts/catalog-reference"
+    }
+  ]
+}

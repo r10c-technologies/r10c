@@ -1,0 +1,20 @@
+[
+  {
+    "id": "demo-organization",
+    "vendorId": "demo-organization",
+    "displayName": "Demo Vendor",
+    "announcedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "vendor-casa-solano",
+    "vendorId": "vendor-casa-solano",
+    "displayName": "Casa Solano",
+    "announcedAt": "2026-02-01T00:00:00.000Z"
+  },
+  {
+    "id": "vendor-cobalto-studio",
+    "vendorId": "vendor-cobalto-studio",
+    "displayName": "Cobalto Studio",
+    "announcedAt": "2026-03-01T00:00:00.000Z"
+  }
+]
