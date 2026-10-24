@@ -158,6 +158,67 @@ test.describe('browsing the catalog', () => {
 
   // Sorting is a link, not client state — so the URL is the whole mechanism and
   // the server renders the answer.
+  /** #343: the seller line and the details, from three domains' reads. */
+  test('a product page names its seller and its details', async ({ page }) => {
+    await page.goto('/es/p/offering-cobalto-arc-lamp');
+
+    await expect(page.getByTestId('seller')).toHaveText(
+      'Vendido por Cobalto Studio',
+    );
+    const details = page.getByRole('definition');
+    await expect(details).toContainText([
+      'Cobalto',
+      'Lighting',
+      'COB-ARC-01',
+      'Cobalto Studio',
+    ]);
+  });
+
+  /** #347: a title, a canonical, every locale as an alternate, and JSON-LD. */
+  test('a product page states its metadata', async ({ page }) => {
+    await page.goto('/es/p/offering-cobalto-arc-lamp');
+
+    await expect(page).toHaveTitle('Cobalto Arc Lamp · r10c · Marketplace');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      'http://localhost:3000/es/p/offering-cobalto-arc-lamp',
+    );
+    await expect(
+      page.locator('link[rel="alternate"][hreflang="en"]'),
+    ).toHaveAttribute(
+      'href',
+      'http://localhost:3000/en/p/offering-cobalto-arc-lamp',
+    );
+
+    const ld = JSON.parse(
+      (await page
+        .locator('script[type="application/ld+json"]')
+        .textContent()) ?? '{}',
+    );
+    expect(ld).toMatchObject({
+      '@type': 'Product',
+      name: 'Cobalto Arc Lamp',
+      sku: 'COB-ARC-01',
+      brand: { name: 'Cobalto' },
+      offers: {
+        price: '189.00',
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        seller: { name: 'Cobalto Studio' },
+      },
+    });
+  });
+
+  test('a listing is canonical without its filters', async ({ page }) => {
+    await page.goto('/es/c/lighting?sort=newest&page=2');
+
+    await expect(page).toHaveTitle('Lighting · r10c · Marketplace');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      'http://localhost:3000/es/c/lighting',
+    );
+  });
+
   test('sorting travels in the URL', async ({ page }) => {
     await page.goto('/es/c/lighting');
     await page.getByRole('link', { name: 'Precio: mayor a menor' }).click();
@@ -259,6 +320,24 @@ test.describe('the cart', () => {
     // "2".
     await expect(page.getByTestId('cart-line-price')).toContainText('39,98');
     await expect(page.getByTestId('cart-total')).toContainText('39,98');
+  });
+
+  test('the buy box adds the quantity it is given', async ({ page }) => {
+    await page.goto('/es/p/offering-aurora-desk-lamp');
+    const buy = page.getByRole('form', { name: 'Comprar' });
+    await buy.getByRole('spinbutton', { name: 'Cantidad' }).fill('2');
+    await buy.getByRole('button', { name: 'Añadir al carrito' }).click();
+
+    await page.waitForURL(/\/es\/cart$/);
+    await expect(page.getByTestId('cart-line-price')).toContainText('39,98');
+  });
+
+  test('a cart is kept out of search engines', async ({ page }) => {
+    await page.goto('/es/cart');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      /noindex/,
+    );
   });
 
   test('a card adds to the cart without opening the product', async ({

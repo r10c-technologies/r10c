@@ -1,4 +1,7 @@
-import { SearchPage } from '@r10c/shells-next-marketplace/server';
+import {
+  searchMetadata,
+  SearchPage,
+} from '@r10c/shells-next-marketplace/server';
 
 import { requireLocale } from '../locale-param';
 
@@ -6,6 +9,14 @@ import { requireLocale } from '../locale-param';
  * Dynamic, and correctly so: the answer is the query string — the term, the
  * facets, the sort and the page.
  */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  return searchMetadata(await requireLocale(params));
+}
+
 export default async function SearchRoute({
   params,
   searchParams,

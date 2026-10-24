@@ -1043,7 +1043,19 @@ new question starts with no facets. A card's "Añadir al carrito" is a form post
 same Server Action as the product page, with a plain `<button>` wearing
 entifix's `button` recipe: `Button` is `'use client'`, and one per tile would be
 a client boundary per tile. The cart's quantities are a form per line, so they
-change with no script either. The shell's own `src` is in the app's
+change with no script either.
+
+**Every route states its own metadata** through the shell's `*Metadata`
+functions, which the app's `generateMetadata` calls and adds nothing to: a title
+(the layout's template appends the store's name), a canonical URL and every
+locale as an `hreflang` alternate, with `x-default` on the default locale. The
+canonical is the path without its query, so a filtered or paged listing does not
+split into as many pages as it has filter combinations; the cart is `noindex`.
+Each one is resolved against `metadataBase`, read from `STOREFRONT_URL` (the dev
+port when unset). A product page also inlines schema.org `Product` JSON-LD,
+whose `<` is escaped because every string in it was authored by a vendor. Its
+reads are React-`cache`d (`readProduct`), so the page and its metadata share
+one request. The shell's own `src` is in the app's
 `global.css` `@source` list: before it was, every class only the shell used —
 the page frame's `max-w-5xl`, the product page's two columns — was silently
 never generated.

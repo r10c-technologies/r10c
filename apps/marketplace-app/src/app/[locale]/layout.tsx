@@ -7,6 +7,8 @@ import '@r10c/i18n-catalog';
 
 import { isLocale, type Locale } from '@entifix/core';
 import { getServerTFor } from '@entifix/next-i18n/server';
+import { storefrontOrigin } from '@r10c/shells-next-marketplace/server';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { fontVariables } from '../fonts';
@@ -56,11 +58,22 @@ function requireLocale(locale: string): Locale {
 /**
  * Title and description are per-locale: they are the first thing a visitor and
  * a crawler read, so leaving them in one language would undo the rest.
+ *
+ * The store's name is the default title and the template's tail, so a page
+ * that names itself reads "Lighting · r10c Marketplace" and one that does not
+ * reads the store's name alone. `metadataBase` is what each page's relative
+ * canonical and `hreflang` alternates resolve against.
  */
-export async function generateMetadata({ params }: LocaleParams) {
+export async function generateMetadata({
+  params,
+}: LocaleParams): Promise<Metadata> {
   const t = getServerTFor(requireLocale((await params).locale), 'app');
   return {
-    title: t('marketplace.title'),
+    metadataBase: new URL(storefrontOrigin()),
+    title: {
+      default: t('marketplace.title'),
+      template: `%s · ${t('marketplace.title')}`,
+    },
     description: t('marketplace.description'),
   };
 }

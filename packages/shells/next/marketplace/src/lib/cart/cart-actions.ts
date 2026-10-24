@@ -45,7 +45,8 @@ async function writeCart(lines: readonly CartLine[]) {
 }
 
 /**
- * Adds one unit, then sends the visitor to the cart.
+ * Adds the units asked for (one, unless the form says otherwise), then sends
+ * the visitor to the cart.
  *
  * The redirect is not a flourish, it is the feedback. The header badge is a
  * client island that reads the cookie when it *mounts*, and a Server Action
@@ -59,9 +60,13 @@ export async function addToCart(formData: FormData) {
   const locale = String(formData.get('locale') ?? '');
   if (!offeringId) return;
 
+  // The product page's buy box sends a quantity; a card's form sends none
+  // and adds one.
+  const quantity = Number(formData.get('quantity') ?? 1);
+
   const store = await cookies();
   await writeCart(
-    withAdded(parseCart(store.get(CART_COOKIE)?.value), offeringId),
+    withAdded(parseCart(store.get(CART_COOKIE)?.value), offeringId, quantity),
   );
 
   // `redirect` throws to unwind the action, so it must come after the write.

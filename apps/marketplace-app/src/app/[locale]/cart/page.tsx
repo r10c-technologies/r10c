@@ -1,4 +1,4 @@
-import { CartPage } from '@r10c/shells-next-marketplace/server';
+import { cartMetadata, CartPage } from '@r10c/shells-next-marketplace/server';
 
 import { type LocaleRouteProps, requireLocale } from '../locale-param';
 
@@ -14,6 +14,10 @@ export const dynamic = 'force-dynamic';
  * than a cookie or a flash message because the server action redirects here:
  * the result has to survive exactly one navigation and no longer.
  */
+export async function generateMetadata({ params }: LocaleRouteProps) {
+  return cartMetadata(await requireLocale(params));
+}
+
 export default async function CartRoute({
   params,
   searchParams,
