@@ -91,13 +91,6 @@ export const r10c = {
     category: {
       overline: 'Categoría',
       empty: 'No hay productos en esta categoría todavía.',
-      sort: 'Ordenar',
-      sortByName: 'Nombre',
-      sortByCode: 'Referencia',
-      results: '{{count}} productos',
-      previous: 'Anterior',
-      next: 'Siguiente',
-      pageOf: 'Página {{page}} de {{pages}}',
       children: 'Subcategorías',
     },
     product: {
@@ -117,6 +110,28 @@ export const r10c = {
       unavailable: 'Sin existencias',
       gallery: 'Imágenes del producto',
     },
+    listing: {
+      results: '{{count}} productos',
+      empty: 'Ningún producto coincide con estos filtros.',
+      filters: 'Filtrar',
+      sort: 'Ordenar',
+      sorts: {
+        priceAsc: 'Precio: menor a mayor',
+        priceDesc: 'Precio: mayor a menor',
+        newest: 'Más recientes',
+        name: 'Nombre',
+      },
+      facets: {
+        category: 'Categoría',
+        brand: 'Marca',
+        seller: 'Vendedor',
+        price: 'Precio',
+        available: 'Solo disponibles',
+        min: 'Desde',
+        max: 'Hasta',
+        apply: 'Aplicar',
+      },
+    },
     search: {
       heading: 'Buscar',
       label: 'Buscar productos',
@@ -124,7 +139,6 @@ export const r10c = {
       submit: 'Buscar',
       resultsFor: 'Resultados para «{{term}}»',
       empty: 'No encontramos nada para «{{term}}».',
-      prompt: 'Escribe algo para empezar a buscar.',
     },
     cart: {
       heading: 'Carrito',

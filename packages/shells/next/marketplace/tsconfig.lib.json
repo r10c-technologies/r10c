@@ -41,10 +41,16 @@
       "path": "../../../utils/ts/fleet/tsconfig.lib.json"
     },
     {
+      "path": "../../../implementation/marketplace-vendor/next/tsconfig.lib.json"
+    },
+    {
       "path": "../../../implementation/marketplace-catalog/next/tsconfig.lib.json"
     },
     {
       "path": "../../../implementation/catalog-reference/next/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/marketplace-vendor/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/marketplace-catalog/tsconfig.lib.json"

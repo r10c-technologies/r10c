@@ -1,124 +1,53 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
-  Cluster,
   HeadingOne,
   Overline,
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
 import { ProductCategory } from '@r10c/business-ts-catalog-reference';
-import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import {
   getCategoryByCode,
   loadCategoryChildren,
-  loadCategorySubtree,
   loadCategoryTrail,
 } from '@r10c/implementation-catalog-reference-next';
-import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
-import { Breadcrumbs, CategoryNav, SortControl } from '@r10c/utils-react-ui';
+import {
+  parseSearch,
+  type SearchParams,
+} from '@r10c/implementation-marketplace-catalog-next';
+import { Breadcrumbs, CategoryNav } from '@r10c/utils-react-ui';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
-import { emptyPage, runRead } from '../catalog/catalog-reads';
-import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import { runRead } from '../catalog/catalog-reads';
+import { OfferingGridSkeleton } from '../catalog/offering-grid';
+import { OfferingListing } from '../catalog/offering-listing';
 import { storePaths } from '../routing/paths';
-import { StoreLink } from '../routing/store-link';
 import { StoreShell } from './store-shell';
 
 /**
- * A category listing, with sort and paging carried entirely in the URL.
- *
- * No client state and no client fetching: a sort control is a link, a page
- * control is a link, and the server renders the answer.
+ * A category listing: the search composition with the category set in
+ * advance (#342). Facets, sort and paging are carried entirely in the URL,
+ * and the server renders the answer.
  *
  * ⚠️ **Every visit renders, the plain `/c/lighting` included.** The route reads
- * `searchParams` for the sort and the page, and that alone makes it dynamic in
- * Next, so there is no static copy of the unsorted listing. A static shell with
- * the results streamed is #346's work (partial prerendering).
+ * `searchParams`, and that alone makes it dynamic in Next, so there is no
+ * static copy of the unfiltered listing. A static shell with the results
+ * streamed is #346's work (partial prerendering).
  */
-const PAGE_SIZE = 6;
-
 export interface CategoryPageProps {
   readonly locale: Locale;
   readonly code: string;
-  readonly sort?: string;
-  readonly page?: string;
+  readonly searchParams: SearchParams;
 }
 
-async function CategoryOfferings({
+export async function CategoryPage({
   locale,
   code,
-  categoryId,
-  sort,
-  page,
-}: CategoryPageProps & { readonly categoryId: string }) {
-  const t = getServerTFor(locale, 'r10c');
-  const current = Math.max(1, Number(page) || 1);
-  // The whole subtree (ADR 0062): an offering classified under a child is in
-  // its parent's listing too. On a failed vocabulary read the category itself
-  // is still listed, so the page degrades to the flat answer rather than to
-  // nothing.
-  const categoryIds = await runRead(
-    ProductCategory,
-    loadCategorySubtree(categoryId),
-    [categoryId],
-  );
-  const result = await runRead(
-    PublishedOffering,
-    loadOfferings({
-      categoryIds,
-      sort: sort === 'code' ? 'code' : 'name',
-      page: current,
-      pageSize: PAGE_SIZE,
-    }),
-    emptyPage<PublishedOffering>(),
-  );
-
-  const pages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
-  const href = (target: number) =>
-    `${storePaths.category(code)}?page=${target}${sort ? `&sort=${sort}` : ''}`;
-
-  return (
-    <Stack gap="s">
-      <Text muted>
-        {t('storefront.category.results', { count: result.total })}
-      </Text>
-
-      <OfferingGrid
-        locale={locale}
-        offerings={result.items}
-        emptyLabel={t('storefront.category.empty')}
-      />
-
-      {pages > 1 ? (
-        <Cluster gap="s" justify="between">
-          {current > 1 ? (
-            <StoreLink locale={locale} href={href(current - 1)}>
-              <Text muted>{t('storefront.category.previous')}</Text>
-            </StoreLink>
-          ) : (
-            <span />
-          )}
-          <Text muted>
-            {t('storefront.category.pageOf', { page: current, pages })}
-          </Text>
-          {current < pages ? (
-            <StoreLink locale={locale} href={href(current + 1)}>
-              <Text muted>{t('storefront.category.next')}</Text>
-            </StoreLink>
-          ) : (
-            <span />
-          )}
-        </Cluster>
-      ) : null}
-    </Stack>
-  );
-}
-
-export async function CategoryPage(props: CategoryPageProps) {
-  const { locale, code, sort } = props;
+  searchParams,
+}: CategoryPageProps) {
   const t = getServerTFor(locale, 'r10c');
 
   // One filtered read rather than the whole vocabulary scanned in the page:
@@ -139,8 +68,8 @@ export async function CategoryPage(props: CategoryPageProps) {
     runRead(ProductCategory, loadCategoryChildren(id), []),
   ]);
 
-  const sortHref = (target: string) =>
-    `${storePaths.category(code)}?sort=${target}`;
+  // The path names the category, so a `?category=` on it is ignored.
+  const state = { ...parseSearch(searchParams), category: [] };
 
   return (
     <StoreShell locale={locale}>
@@ -171,19 +100,14 @@ export async function CategoryPage(props: CategoryPageProps) {
           }))}
         />
 
-        <SortControl
-          label={t('storefront.category.sort')}
-          options={[
-            { value: 'name', label: t('storefront.category.sortByName') },
-            { value: 'code', label: t('storefront.category.sortByCode') },
-          ]}
-          // Name is the default order, so it is current with no `sort` at all.
-          current={sort === 'code' ? 'code' : 'name'}
-          hrefFor={target => localeHref(locale, sortHref(target))}
-        />
-
-        <Suspense fallback={<OfferingGridSkeleton count={PAGE_SIZE} />}>
-          <CategoryOfferings {...props} categoryId={id} />
+        <Suspense fallback={<OfferingGridSkeleton count={6} />}>
+          <OfferingListing
+            locale={locale}
+            path={storePaths.category(code)}
+            state={state}
+            categoryId={id}
+            emptyLabel={t('storefront.category.empty')}
+          />
         </Suspense>
       </Stack>
     </StoreShell>

@@ -18,6 +18,10 @@ export default defineEntifixTest({
     '**/lib/pages/**',
     '**/lib/chrome/**',
     '**/lib/catalog/offering-grid.tsx',
+    // The search composition: an async server component like the grid. Its
+    // decisions are the codec's and the facets', covered at 100% in
+    // `marketplace-catalog/next`; this file wires them to the page.
+    '**/lib/catalog/offering-listing.tsx',
     '**/lib/routing/store-link.tsx',
     '**/lib/cart/cart-cookie.ts',
     '**/lib/cart/cart-actions.ts',
