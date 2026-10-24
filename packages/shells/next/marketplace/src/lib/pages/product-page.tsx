@@ -15,11 +15,13 @@ import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { loadCategoryTrail } from '@r10c/implementation-catalog-reference-next';
 import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
 import { Breadcrumbs, formatPrice, MediaGallery } from '@r10c/utils-react-ui';
+import { cacheLife } from 'next/cache';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { addToCart } from '../cart/cart-actions';
 import { MAX_QUANTITY } from '../cart/cart-state';
+import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
@@ -30,8 +32,8 @@ import { jsonLdScript, productJsonLd } from '../seo/product-json-ld';
 import { StoreShell } from './store-shell';
 
 /**
- * A product detail page — one published offering, revalidated on the interval
- * the route declares.
+ * A product detail page — one published offering, cached on the catalog's
+ * lifetime (`CATALOG_CACHE`).
  *
  * The buy box is a plain `<form>` posting to a Server Action. That is why
  * add-to-cart works on a **cached** page: the page itself carries no client
@@ -73,6 +75,23 @@ async function RelatedOfferings({
   );
 }
 
+/**
+ * Whether `offeringId` names a published offering: a plain boolean, so it can
+ * be a cache entry where the offering itself (a class instance) cannot.
+ */
+async function isPublished(offeringId: string): Promise<boolean> {
+  'use cache';
+  cacheLife(CATALOG_CACHE);
+  return (await readProduct(offeringId)) !== undefined;
+}
+
+/**
+ * The `404` for an unknown id is the proxy's (`catalogSlugExists`): under
+ * partial prerendering this route's static shell is sent before the page
+ * runs, and the status goes with it. The check here is what still renders
+ * the not-found page — with a `noindex` — when an offering is unpublished
+ * between the proxy's answer and this render.
+ */
 export async function ProductPage({
   locale,
   offeringId,
@@ -80,9 +99,24 @@ export async function ProductPage({
   readonly locale: Locale;
   readonly offeringId: string;
 }) {
+  if (!(await isPublished(offeringId))) notFound();
+  return <ProductContent locale={locale} offeringId={offeringId} />;
+}
+
+/** The page itself, cached per locale and offering. */
+async function ProductContent({
+  locale,
+  offeringId,
+}: {
+  readonly locale: Locale;
+  readonly offeringId: string;
+}) {
+  'use cache';
+  cacheLife(CATALOG_CACHE);
+
   const t = getServerTFor(locale, 'r10c');
-  // Cached per request: the route's `generateMetadata` made the same call.
   const product = await readProduct(offeringId);
+  // Unpublished between the check and this render: still a miss.
   if (!product) notFound();
   const { offering, brandName, sellerName } = product;
 

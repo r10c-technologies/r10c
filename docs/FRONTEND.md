@@ -1026,12 +1026,30 @@ justify itself.
 | CTA               | `Button`                            | `ButtonLink` where the click navigates     |
 | Mutations         | mutation hooks                      | `<form action={serverAction}>`             |
 
-Home and every product page are cached per locale with ISR, revalidated every
-60s. `/cart` reads `cookies()` and `/search` reads `searchParams`, so both are
-dynamic — correctly, since neither has an answer until the request arrives.
-`/c/[category]` is dynamic too: reading `searchParams` opts out the **route**,
-not the request, so the intended "static unfiltered, dynamic when filtered or
-sorted" split is not expressible without Partial Prerendering.
+**The storefront runs on Cache Components** (`cacheComponents: true`, #346):
+every route is a static shell prerendered per locale — header, headings,
+skeletons — with what reads the catalog, a cookie or the query streamed into
+it. The catalog is read in `'use cache'` components and functions on the
+shell's `CATALOG_CACHE` (fresh for 60s, dropped after 240s), and that short
+`expire` is deliberate: Next leaves it out of every prerender, so nothing from
+the catalog is baked in at build time (below), and past the first request each
+entry is reused. A cache entry may hold only plain data or rendered output,
+never an entity instance, which is why the cached pieces are components and
+functions returning plain values (`findCategory`, `isPublished`) rather than
+the cells' reads themselves. `/search`, `/cart` and `/order/confirmation` read
+the query or a cookie behind their own `loading.tsx`.
+
+⚠️ **A status is sent with the first byte, so no page decides a `404`.** The
+static shell goes out before the page runs. The proxy resolves `/p/<id>` and
+`/c/<code>` through the same cells first (`catalogSlugExists`, memoized for the
+catalog's lifetime, never remembering a failed read) and rewrites a miss onto
+`/[locale]/missing`, a static page whose only content is `notFound()`. A failed
+read passes through: an outage must not read as a missing product.
+
+⚠️ **A page navigated away from stays in the DOM**, hidden by React's
+`<Activity>`. A Playwright `getByText` finds the hidden copy too, so e2e looks
+text up inside a role query (`getByRole('main')`), which skips what is
+hidden.
 
 **Search and every category page are one listing** (`OfferingListing` in the
 shell): a facet panel, a count, the sort, a page of cards and entifix's server
@@ -1060,15 +1078,14 @@ one request. The shell's own `src` is in the app's
 the page frame's `max-w-5xl`, the product page's two columns — was silently
 never generated.
 
-⚠️ **Nothing is generated at build time**, and that is deliberate rather than an
-omission: the home page and the offering page each declare an **empty**
-`generateStaticParams`, and the `[locale]` layout declares none. The content
-comes from marketplace-service, a build machine has no fleet, and a page
-prerendered from data the builder could not read is an _empty catalog_ with a TTL
-rather than a warm cache. The empty declaration is what keeps an on-demand render
-**cached** rather than merely dynamic; putting one on the layout instead reaches
-`/search` and `/cart`, which read `searchParams` and `cookies()` and answer
-`500 DYNAMIC_SERVER_USAGE` as static candidates
+⚠️ **Nothing from the catalog is generated at build time**, and that is
+deliberate rather than an omission: the content comes from marketplace-service,
+a build machine has no fleet, and a page prerendered from data the builder could
+not read is an _empty catalog_ with a TTL rather than a warm cache. The layout's
+`generateStaticParams` lists only the locales, which need no fetch, and the
+catalog's short cache lifetime keeps every read out of the prerender. The build
+still _runs_ those reads once per locale — they fail soft and log, then are
+discarded — so a `could not read` line in the build log is expected
 ([ADR 0051](adr/0051-the-storefront-reads-the-projection.md)).
 
 ## Two rules that are easy to get wrong

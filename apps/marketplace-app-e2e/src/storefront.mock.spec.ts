@@ -60,9 +60,8 @@ test.describe('browsing the catalog', () => {
   });
 
   /**
-   * #327: retiring takes a category out of browsing. The status code is not
-   * asserted, for the reason the live suite records: `notFound()` from a shell
-   * renders the not-found UI as a `200`, which #346 fixes.
+   * #327: retiring takes a category out of browsing — and #346: its address
+   * answers a real `404`, decided by the proxy before the static shell is sent.
    */
   test('a retired category is neither in the nav nor at its address', async ({
     page,
@@ -75,8 +74,21 @@ test.describe('browsing the catalog', () => {
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Archive' })).toHaveCount(0);
 
-    await page.goto('/es/c/archive');
+    const response = await page.goto('/es/c/archive');
+    expect(response?.status()).toBe(404);
     await expect(page.locator('body')).not.toContainText('Archive');
+  });
+
+  /** #346: a miss is a real `404`, not the not-found page under a `200`. */
+  test('an unknown product or category answers 404', async ({ page }) => {
+    for (const path of ['/es/p/no-such-offering', '/en/c/no-such-category']) {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(404);
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        'content',
+        /noindex/,
+      );
+    }
   });
 
   test('a category shows only its own products', async ({ page }) => {
@@ -294,15 +306,22 @@ test.describe('the cart', () => {
       .click();
 
     // The action redirects here, which is the visitor's only feedback that it
-    // worked — the header badge cannot update in place.
+    // worked — the header badge cannot update in place. Text is looked up in
+    // the visible `main`: under Cache Components the product page navigated
+    // away from stays in the DOM, hidden by React's `<Activity>`, and a bare
+    // `getByText` finds it too. A role query skips what is hidden.
     await page.waitForURL(/\/es\/cart$/);
     await expect(page).toHaveURL(/\/es\/cart$/);
-    await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
+    await expect(
+      page.getByRole('main').getByText('Aurora Desk Lamp'),
+    ).toBeVisible();
 
     // The point of the cookie: a full reload still has it, because the server
     // rendered it — not because a client store rehydrated.
     await page.reload();
-    await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
+    await expect(
+      page.getByRole('main').getByText('Aurora Desk Lamp'),
+    ).toBeVisible();
   });
 
   /** #328: the cart states money, per line and in total, before checkout. */
@@ -416,7 +435,9 @@ test.describe('the cart', () => {
     // the receipt travels in an httpOnly cookie.
     await expect(page).toHaveURL(/\/es\/order\/confirmation$/);
     await expect(page.getByTestId('order-id')).toContainText('e2e-order-1');
-    await expect(page.getByText('Aurora Desk Lamp')).toBeVisible();
+    await expect(
+      page.getByRole('main').getByText('Aurora Desk Lamp'),
+    ).toBeVisible();
     await expect(page.getByTestId('order-total')).toBeVisible();
   });
 

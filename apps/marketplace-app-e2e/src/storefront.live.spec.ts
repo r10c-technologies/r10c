@@ -199,15 +199,14 @@ test.describe('what was never published', () => {
   test('a draft offering has no page, even at its own address', async ({
     page,
   }) => {
-    await page.goto(`/es/p/${UNPUBLISHED_OFFERING.offeringId}`);
+    const response = await page.goto(
+      `/es/p/${UNPUBLISHED_OFFERING.offeringId}`,
+    );
 
-    // ⚠️ The **absence of the product**, not the status code. ADR 0051 measured
-    // that `notFound()` raised from inside a `layer:shell` package renders the
-    // not-found UI without carrying its `404` — a real defect, recorded there
-    // and owned by whatever explains that asymmetry. Asserting `200` here would
-    // pin the bug in place; asserting `404` would fail for a page that behaves
-    // exactly as this record says it does. What must hold either way is that
-    // nothing unpublished is rendered.
+    // A real `404` since #346: the proxy finds no publication and answers
+    // before the route's static shell is sent. The 200 ADR 0051 measured was
+    // a `loading.tsx` streaming ahead of `notFound()`, not the shell layer.
+    expect(response?.status()).toBe(404);
     await expect(page.locator('body')).not.toContainText(
       UNPUBLISHED_OFFERING.name,
     );

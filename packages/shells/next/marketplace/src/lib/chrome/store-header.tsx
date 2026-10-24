@@ -3,10 +3,10 @@ import { getServerTFor } from '@entifix/i18n';
 import {
   Button,
   Cluster,
-  Text,
   TextInput,
   ThemeSwitcher,
 } from '@entifix/react-controls/primitives';
+import type { ReactNode } from 'react';
 
 import { CartBadge } from '../cart/cart-badge';
 import { storePaths } from '../routing/paths';
@@ -23,7 +23,8 @@ import { StoreLink } from '../routing/store-link';
  */
 export interface StoreHeaderProps {
   readonly locale: Locale;
-  readonly categories: ReadonlyArray<{ code: string; name: string }>;
+  /** The category links, streamed: see `CategoryStrip`. */
+  readonly categories: ReactNode;
   readonly searchTerm?: string;
 }
 
@@ -56,20 +57,7 @@ export function StoreHeader({
         </Cluster>
 
         <Cluster justify="between" gap="s">
-          <nav aria-label={t('storefront.nav.catalog')}>
-            <Cluster gap="s" as="ul" className="list-none p-0">
-              {categories.map(category => (
-                <li key={category.code}>
-                  <StoreLink
-                    locale={locale}
-                    href={storePaths.category(category.code)}
-                  >
-                    <Text muted>{category.name}</Text>
-                  </StoreLink>
-                </li>
-              ))}
-            </Cluster>
-          </nav>
+          <nav aria-label={t('storefront.nav.catalog')}>{categories}</nav>
 
           <form
             action={`/${locale}${storePaths.search()}`}

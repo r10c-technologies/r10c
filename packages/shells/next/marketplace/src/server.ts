@@ -32,6 +32,8 @@ export * from './lib/seo/route-metadata';
 
 // Routing. `StoreLink` is a server component; `storePaths` is the one place a
 // storefront URL is spelled out.
+export * from './lib/routing/catalog-slug';
+export * from './lib/routing/catalog-slug-exists';
 export * from './lib/routing/paths';
 export * from './lib/routing/store-link';
 

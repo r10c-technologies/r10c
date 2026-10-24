@@ -1,21 +1,19 @@
 import type { Locale } from '@entifix/core';
-import { ProductCategory } from '@r10c/business-ts-catalog-reference';
-import { loadCategoryRoots } from '@r10c/implementation-catalog-reference-next';
-import type { ReactNode } from 'react';
+import { type ReactNode, Suspense } from 'react';
 
-import { runRead } from '../catalog/catalog-reads';
+import { CategoryStrip } from '../chrome/category-strip';
 import { StoreFooter } from '../chrome/store-footer';
 import { StoreHeader } from '../chrome/store-header';
 
 /**
  * Header + footer around a page's own content.
  *
- * Composed per page rather than in a Next layout on purpose: the header needs
- * the category list, and a layout that awaited it would push that fetch above
- * every route — including `/cart`, which has nothing to do with categories.
- * Here each page decides, and the streaming boundary stays inside the page.
+ * Composed per page rather than in a Next layout, so each page decides what
+ * waits on what. It awaits nothing itself: the category links are a cached
+ * component behind their own boundary, so the header renders in the static
+ * shell and the links stream into it.
  */
-export async function StoreShell({
+export function StoreShell({
   locale,
   searchTerm,
   children,
@@ -25,19 +23,16 @@ export async function StoreShell({
   readonly searchTerm?: string;
   readonly children: ReactNode;
 }) {
-  // The roots only (ADR 0062): a child is reached through its root, whose
-  // page lists the whole subtree. Breadcrumbs and deeper navigation are #338.
-  const categories = await runRead(ProductCategory, loadCategoryRoots(), []);
-
   return (
     <>
       <StoreHeader
         locale={locale}
         searchTerm={searchTerm}
-        categories={categories.map(category => ({
-          code: category.code,
-          name: category.name,
-        }))}
+        categories={
+          <Suspense fallback={null}>
+            <CategoryStrip locale={locale} />
+          </Suspense>
+        }
       />
       <main
         id="content"

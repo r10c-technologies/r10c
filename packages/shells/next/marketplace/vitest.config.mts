@@ -28,6 +28,9 @@ export default defineEntifixTest({
     // reach the page is `marketplace-app-e2e`'s metadata journeys.
     '**/lib/catalog/product-read.ts',
     '**/lib/seo/route-metadata.ts',
+    // The proxy's lookup, composed the same way; its memo and its path parsing
+    // are `catalog-slug.ts`, covered here, and the 404 it produces is e2e's.
+    '**/lib/routing/catalog-slug-exists.ts',
     '**/lib/routing/store-link.tsx',
     '**/lib/cart/cart-cookie.ts',
     '**/lib/cart/cart-actions.ts',

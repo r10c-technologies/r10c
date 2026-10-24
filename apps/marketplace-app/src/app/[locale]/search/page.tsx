@@ -5,10 +5,6 @@ import {
 
 import { requireLocale } from '../locale-param';
 
-/**
- * Dynamic, and correctly so: the answer is the query string — the term, the
- * facets, the sort and the page.
- */
 export async function generateMetadata({
   params,
 }: {
@@ -17,6 +13,10 @@ export async function generateMetadata({
   return searchMetadata(await requireLocale(params));
 }
 
+/**
+ * Dynamic, and correctly so: the answer is the query string — the term, the
+ * facets, the sort and the page.
+ */
 export default async function SearchRoute({
   params,
   searchParams,

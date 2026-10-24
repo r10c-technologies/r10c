@@ -4,6 +4,7 @@
 - Date: 2026-09-08
 - Area: frontend
 - Revised: 2026-10-24 — the price formatter is now `formatPrice` in `@r10c/utils-react-ui`, which replaced the storefront shell's `formatMoney` (#334).
+- Revised: 2026-10-24 — under Cache Components (#346) the build-time rule is kept by a short cache lifetime rather than by `revalidate` and empty `generateStaticParams`, and a missing product or category now answers `404`, decided in the proxy; the `200` was a `loading.tsx` streaming ahead of `notFound()`, not the package boundary.
 - Read when: the storefront reads or renders catalog data — nothing is enumerated at build time, and a failed read renders an empty catalog and logs
 
 ## Context
@@ -117,6 +118,18 @@ that will actually assert real data.
 
 ### Nothing is enumerated at build time, and the home page stopped being either
 
+> **Revised 2026-10-24 (#346).** The rule below holds; its mechanism changed
+> when the storefront moved to Cache Components. The `[locale]` layout's
+> `generateStaticParams` is back and returns the **locales** — r10c's own list,
+> no fetch — so each locale's static shell is prerendered. Home and the
+> offering route declare none (an empty one is a build error now). Every
+> catalog read is a `'use cache'` component or function on the shell's
+> `CATALOG_CACHE` (`stale` 60s, `revalidate` 60s, `expire` 240s), and an
+> `expire` under five minutes is what Next leaves out of every prerender: the
+> reads are request-time holes in a static shell, cached once filled. The build
+> output is now `◐` for every catalog route, and the shell carries skeletons,
+> never an empty grid. The paragraphs below describe the arrangement before it.
+
 `generateStaticParams` returns `[]` on the offering route and on the home page.
 The `[locale]` layout's copy, which used to prerender `/es` and `/en`, is
 **deleted**.
@@ -223,7 +236,14 @@ hands each card a name; a dangling reference renders nothing.
   service round trip, once per locale per deploy, and the alternative was serving
   them a page built from data the builder could not read.
 - **A publication is visible within a minute**, not an hour.
-- ⚠️ **A missing product or category answers `200`, not `404`** — the not-found
+- ⚠️ **A missing product or category answered `200`, not `404`** — fixed by
+  #346, and the diagnosis below was wrong: the status is sent with a response's
+  first byte, and a `loading.tsx` above both routes started streaming before the
+  page reached `notFound()`. Under partial prerendering the route's static shell
+  goes first, so no page can decide a status at all; the storefront's proxy
+  now resolves `/p/<id>` and `/c/<code>` through the same cells, memoized for
+  the catalog's lifetime, and answers a miss with `404` before anything renders.
+  The original finding, as recorded: the not-found
   UI renders, but the status does not follow it. Found during this record's live
   pass and **not introduced by it**: `CategoryPage` awaited a lookup and called
   `notFound()` before this change too, on a route that is fully dynamic, and it
@@ -251,10 +271,8 @@ hands each card a name; a dangling reference renders nothing.
   asks marketplace-service directly whether `published-catalog` is filled before
   it opens a page, because the read path above never rejects and an empty
   projection is indistinguishable from a finished, quiet catalog. Its one
-  concession is to the `200` recorded three bullets up: an unpublished
-  offering's address is asserted for the **absence of the product**, never for a
-  status, since asserting `404` would fail a page behaving exactly as this
-  record says it does and asserting `200` would pin the defect in place.
+  concession was to the `200` recorded three bullets up, and #346 removed it:
+  an unpublished offering's address is now asserted to answer `404`.
 
 - **The register is untouched.** No new store, no new event, no new route, no
   slice promotion — marketplace-service already owned and served both stores;
