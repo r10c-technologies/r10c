@@ -112,7 +112,7 @@ export async function CartPage({
                         name="offeringId"
                         value={line.offeringId}
                       />
-                      <label className="flex flex-col gap-3xs text-step--1 text-content-muted">
+                      <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
                         {t('storefront.cart.quantity')}
                         <input
                           className="w-20 rounded-md border border-border bg-surface px-2xs py-3xs text-content"

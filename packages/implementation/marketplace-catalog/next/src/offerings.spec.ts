@@ -95,9 +95,7 @@ describe('loadOfferings', () => {
 
     expect(load).toHaveBeenCalledWith(
       expect.objectContaining({
-        filtering: [
-          { property: 'availableHint', operator: 'eq', value: true },
-        ],
+        filtering: [{ property: 'availableHint', operator: 'eq', value: true }],
       }),
     );
   });
