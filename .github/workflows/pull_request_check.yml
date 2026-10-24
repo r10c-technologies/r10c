@@ -32,6 +32,7 @@ jobs:
       test-chunks: ${{ steps.chunks.outputs.test-chunks }}
       build-chunks: ${{ steps.chunks.outputs.build-chunks }}
       e2e-projects: ${{ steps.chunks.outputs.e2e-projects }}
+      storybook-projects: ${{ steps.chunks.outputs.storybook-projects }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -73,6 +74,9 @@ jobs:
           # e2e is one job, not a matrix: there are only a handful of these
           # projects and each one pays for a browser download.
           echo "e2e-projects=$(affected e2e | jq -r 'join(",")')" >> "$GITHUB_OUTPUT"
+          # Stories are in no tsconfig project and no spec loads one, so building
+          # the Storybook is the only check that compiles them.
+          echo "storybook-projects=$(affected build-storybook | jq -r 'join(",")')" >> "$GITHUB_OUTPUT"
 
   # The cheap static checks, in one job: a separate runner for any of them would
   # spend ~35s of its 37s on checkout + install to run a 2s script.
@@ -312,12 +316,34 @@ jobs:
           path: apps/*-e2e/test-output/playwright
           retention-days: 7
 
+  storybook:
+    name: Storybook build
+    needs: initialize
+    if: needs.initialize.outputs.storybook-projects != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: nx run-many -t build-storybook
+        run: |
+          pnpm nx run-many -t build-storybook \
+            --projects="${{ needs.initialize.outputs.storybook-projects }}"
+
   # The single required check. A job absent from `needs` reports its own status
   # on the PR but cannot block a merge — the i18n catalog check spent its first
   # release in exactly that state, red and advisory. Every new job belongs here.
   ci-gate:
     name: CI Gate
-    needs: [lint, build, test, e2e]
+    needs: [lint, build, test, e2e, storybook]
     if: always()
     runs-on: ubuntu-latest
     steps:

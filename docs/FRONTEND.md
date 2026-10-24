@@ -469,6 +469,46 @@ error in a story and Vitest never loads one. `nx build-storybook` is therefore
 the only thing that compiles them. It ran in this repository's CI while the
 package lived here; entifix's CI does not run it yet.
 
+### The storefront's Storybook
+
+The storefront has a Storybook of its own, `apps/storefront-storybook`. It runs
+on the same Storybook 10 and React-Vite setup, with marketplace-app's palettes.
+
+```sh
+pnpm nx run @r10c/storefront-storybook:storybook        # dev server on :6006
+pnpm nx run @r10c/storefront-storybook:build-storybook  # static build, a CI job
+```
+
+It shows two kinds of story:
+
+- **The generic controls** in `@r10c/utils-react-ui` (`packages/utils/react/ui`,
+  `layer:utils`, `tech:react`), with literal props only. The package is in the
+  utils layer, so it cannot import an entity.
+- **Its own stories,** which render those controls over the shared catalog
+  fixtures (`@r10c/testing-catalog-fixtures`, read through `@entifix/static`).
+  The host is `type:storybook` and `scope:marketplace` with no layer, so it may
+  import both. It also holds the control-set design page,
+  _Storefront/Control set_.
+
+That split departs from #332, which asked for Storybook to be hosted on the
+UI package itself. Hosting it there would have meant either a utils package
+importing entities or a story importing a `type:testing` package from source.
+The boundary rule refuses both, and a separate host needs no exception.
+
+Three traps, each measured:
+
+- ⚠️ **Workspace packages resolve to their `dist`, not their source.** Vite 8's
+  transform leaves stage-3 decorators in place. With the `@r10c/source`
+  condition on, the bundle carried a raw `@entity()` that the browser cannot
+  parse, and the build passed while the catalog story rendered nothing.
+  `build-storybook` depends on `^build`, which is where swc lowers the
+  decorators. Run `storybook` beside `watch-libs` for edits to show.
+- ⚠️ **The fonts are imported from `preview.ts`, not `preview.css`.** Tailwind
+  inlines a CSS `@import` without rebasing its `url(./files/…)`, so no font file
+  was emitted and every face 404'd.
+- **The MDX lives in the host.** It imports `@storybook/addon-docs`, which the UI
+  package does not depend on, and an unresolvable import fails the build.
+
 ## Adding a new component — checklist
 
 1. Pick the layer: agnostic → `controls/src/ui/{atoms|molecules|layout|organisms}/<name>/`;
