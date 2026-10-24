@@ -5,7 +5,9 @@ import {
   defineUrlQuery,
   type UrlState,
 } from '@entifix/react-integration/url-query';
-import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+
+import { assertQueryable } from './allowlist.js';
 
 /** How many results one page of a search or a category shows. */
 export const SEARCH_PAGE_SIZE = 24;
@@ -31,6 +33,33 @@ const PRICE = /^\d+(\.\d{1,2})?$/;
 
 /** Major units in the URL, minor units in the projection (`amount`). */
 const toMinorUnits = (price: string): number => Math.round(Number(price) * 100);
+
+/**
+ * Every order a listing offers, and the member and direction it sorts by. The
+ * value is what the URL carries (`?sort=price-asc`).
+ */
+const SORTS = {
+  'price-asc': ['amount', 'asc'],
+  'price-desc': ['amount', 'desc'],
+  newest: ['publishedAt', 'desc'],
+  name: ['name', 'asc'],
+} as const satisfies Readonly<
+  Record<string, readonly [keyof PublishedOffering, 'asc' | 'desc']>
+>;
+
+export type SearchSort = keyof typeof SORTS;
+
+/** The orders a sort control offers, in the order it shows them. */
+export const SEARCH_SORTS = Object.keys(SORTS) as readonly SearchSort[];
+
+// Every member the codec below names, checked against the allowlist the
+// service applies. The facets check their own members the same way.
+assertQueryable(
+  PublishedOffering,
+  'sortable',
+  Object.values(SORTS).map(([member]) => member),
+);
+assertQueryable(PublishedOffering, 'filterable', ['name']);
 
 /**
  * The storefront's search address, one codec for every link that changes it.
@@ -96,12 +125,12 @@ export const searchQuery = defineUrlQuery<
       }),
     },
     sort: {
-      sorting: {
-        'price-asc': [{ 0: { property: 'amount', type: 'asc' } }],
-        'price-desc': [{ 0: { property: 'amount', type: 'desc' } }],
-        newest: [{ 0: { property: 'publishedAt', type: 'desc' } }],
-        name: [{ 0: { property: 'name', type: 'asc' } }],
-      },
+      sorting: Object.fromEntries(
+        Object.entries(SORTS).map(([value, [property, type]]) => [
+          value,
+          [{ 0: { property, type } }],
+        ]),
+      ),
     },
     page: { pageSize: SEARCH_PAGE_SIZE },
   },

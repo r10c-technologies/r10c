@@ -487,7 +487,11 @@ It shows two kinds of story:
 - **Its own stories,** which render those controls over the shared catalog
   fixtures (`@r10c/testing-catalog-fixtures`, read through `@entifix/static`).
   The host is `type:storybook` and `scope:marketplace` with no layer, so it may
-  import both. It also holds the control-set design page,
+  import both. They bind through the catalog cell
+  (`@r10c/implementation-marketplace-catalog-next`), the way the storefront does:
+  `offeringCard` maps an offering onto the card's roles, and `offeringFacets`
+  derives the facet panel, so a story shows the shipped binding rather than a
+  copy of it. It also holds the control-set design page,
   _Storefront/Control set_.
 
 That split departs from #332, which asked for Storybook to be hosted on the

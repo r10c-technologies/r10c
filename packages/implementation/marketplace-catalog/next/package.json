@@ -45,6 +45,7 @@
     "@entifix/core": "catalog:",
     "@entifix/react-integration": "catalog:",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
+    "@r10c/utils-react-ui": "workspace:*",
     "effect": "4.0.5",
     "@swc/helpers": "0.5.23"
   },
