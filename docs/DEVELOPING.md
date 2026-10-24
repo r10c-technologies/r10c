@@ -628,6 +628,26 @@ from them is a cycle. They keep local doubles.
 
 Elsewhere, add it as a `devDependency`, then `pnpm install` and `pnpm nx sync`.
 
+### One catalog for every storefront fixture
+
+`@r10c/testing-catalog-fixtures` (`packages/testing/catalog-fixtures`) is the
+storefront's test catalog: published offerings, brands, categories and vendors
+as JSON in the entity wire shape, sized for paging and facets. The storefront's
+`mock` e2e backend serves those files, and Storybook reads them through
+`catalogFixtures()`, which builds `@entifix/static` repositories. So both see
+one catalog. Its own spec validates every row against the entity metadata and
+the cross-references between sets, and it pins what the set is for: at least
+30 offerings, three vendors, two currencies, a three-level tree, and retired
+reference rows. A fixture edit that breaks any of those fails the build.
+
+It is `type:testing` and carries no `layer:` tag, which puts it under the
+catch-all and lets it import business entities. Only specs, e2e and Storybook
+may import it.
+
+⚠️ `like` does not fold accents, so `?q=jarron` misses "Marea Jarrón". The
+fixture keeps that row on purpose. A journey that searches must type the accent,
+and one that needs folding is asking for a feature the query protocol lacks.
+
 ### E2E and `E2E_PROFILE`
 
 E2E suites run in one of two profiles, selected by `E2E_PROFILE` and provided by

@@ -27,6 +27,12 @@
   ],
   "references": [
     {
+      "path": "../../packages/testing/catalog-fixtures"
+    },
+    {
+      "path": "../../packages/business/ts/marketplace-vendor"
+    },
+    {
       "path": "../../packages/business/ts/marketplace-catalog"
     },
     {

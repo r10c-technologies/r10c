@@ -1,0 +1,68 @@
+[
+  {
+    "id": "category-lighting",
+    "code": "lighting",
+    "name": "Lighting",
+    "status": "active"
+  },
+  {
+    "id": "category-tableware",
+    "code": "tableware",
+    "name": "Tableware",
+    "status": "active"
+  },
+  {
+    "id": "category-textiles",
+    "code": "textiles",
+    "name": "Textiles",
+    "status": "active"
+  },
+  {
+    "id": "category-kitchen",
+    "code": "kitchen",
+    "name": "Kitchen",
+    "description": "Tools and storage for cooking.",
+    "status": "active"
+  },
+  {
+    "id": "category-desk-lamps",
+    "code": "desk-lamps",
+    "name": "Desk Lamps",
+    "status": "active",
+    "parentId": "category-lighting"
+  },
+  {
+    "id": "category-task-lights",
+    "code": "task-lights",
+    "name": "Task Lights",
+    "status": "active",
+    "parentId": "category-desk-lamps"
+  },
+  {
+    "id": "category-ceiling-lights",
+    "code": "ceiling-lights",
+    "name": "Ceiling Lights",
+    "status": "active",
+    "parentId": "category-lighting"
+  },
+  {
+    "id": "category-drinkware",
+    "code": "drinkware",
+    "name": "Drinkware",
+    "status": "active",
+    "parentId": "category-tableware"
+  },
+  {
+    "id": "category-bedding",
+    "code": "bedding",
+    "name": "Bedding",
+    "status": "active",
+    "parentId": "category-textiles"
+  },
+  {
+    "id": "category-archive",
+    "code": "archive",
+    "name": "Archive",
+    "status": "retired"
+  }
+]

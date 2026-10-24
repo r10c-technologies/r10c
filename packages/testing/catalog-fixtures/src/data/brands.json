@@ -1,0 +1,45 @@
+[
+  {
+    "id": "brand-aurora",
+    "code": "AUR",
+    "name": "Aurora",
+    "status": "active"
+  },
+  {
+    "id": "brand-terra",
+    "code": "TER",
+    "name": "Terra",
+    "status": "active"
+  },
+  {
+    "id": "brand-nimbus",
+    "code": "NIM",
+    "name": "Nimbus",
+    "status": "active"
+  },
+  {
+    "id": "brand-solano",
+    "code": "SOL",
+    "name": "Solano",
+    "description": "Hand-thrown pieces from a family workshop.",
+    "website": "https://example.com/solano",
+    "status": "active"
+  },
+  {
+    "id": "brand-cobalto",
+    "code": "COB",
+    "name": "Cobalto",
+    "status": "active"
+  },
+  {
+    "id": "brand-marea",
+    "name": "Marea",
+    "status": "active"
+  },
+  {
+    "id": "brand-antigua",
+    "code": "ANT",
+    "name": "Antigua",
+    "status": "retired"
+  }
+]

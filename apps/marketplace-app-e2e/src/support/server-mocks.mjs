@@ -46,18 +46,37 @@ import { register } from 'node:module';
 
 register('./ts-loader.mjs', import.meta.url);
 
+/**
+ * The shared catalog fixtures (`@r10c/testing-catalog-fixtures`), read as the
+ * JSON they are rather than through the package's TypeScript entry: this file
+ * runs in plain Node, before anything could transpile it. Storybook and the
+ * fixtures' own spec read the same files, and that spec is what validates them.
+ */
+const fixture = name =>
+  import(`@r10c/testing-catalog-fixtures/data/${name}.json`, {
+    with: { type: 'json' },
+  }).then(module => module.default);
+
 const [
   { ProductBrand, ProductCategory },
   { PublishedOffering },
+  { PublishedVendor },
   { configurationHandler, entityBackendHandlers, http, HttpResponse },
   { setupServer },
-  { BRAND_SEED, CATEGORY_SEED, OFFERING_SEED },
+  offerings,
+  brands,
+  categories,
+  vendors,
 ] = await Promise.all([
   import('@r10c/business-ts-catalog-reference'),
   import('@r10c/business-ts-marketplace-catalog'),
+  import('@r10c/business-ts-marketplace-vendor'),
   import('@entifix/testing-e2e/fixtures'),
   import('msw/node'),
-  import('./catalog-seed.mjs'),
+  fixture('offerings'),
+  fixture('brands'),
+  fixture('categories'),
+  fixture('vendors'),
 ]);
 
 /** Where the storefront's server components look, and what they find. */
@@ -76,15 +95,19 @@ const CONFIGURATION = {
 const collections = [
   entityBackendHandlers(PublishedOffering, {
     baseUrl: `${SERVICE_URL}/published-offering`,
-    seed: OFFERING_SEED,
+    seed: offerings,
   }),
   entityBackendHandlers(ProductBrand, {
     baseUrl: `${SERVICE_URL}/product-brand`,
-    seed: BRAND_SEED,
+    seed: brands,
   }),
   entityBackendHandlers(ProductCategory, {
     baseUrl: `${SERVICE_URL}/product-category`,
-    seed: CATEGORY_SEED,
+    seed: categories,
+  }),
+  entityBackendHandlers(PublishedVendor, {
+    baseUrl: `${SERVICE_URL}/published-vendor`,
+    seed: vendors,
   }),
 ];
 

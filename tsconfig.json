@@ -194,6 +194,9 @@
     },
     {
       "path": "./packages/implementation/marketplace-vendor/next"
+    },
+    {
+      "path": "./packages/testing/catalog-fixtures"
     }
   ],
   "compilerOptions": {

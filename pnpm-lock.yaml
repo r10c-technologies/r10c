@@ -51,6 +51,9 @@ catalogs:
     '@entifix/sql':
       specifier: 0.7.1
       version: 0.7.1
+    '@entifix/static':
+      specifier: 0.7.1
+      version: 0.7.1
     '@entifix/style':
       specifier: 0.7.1
       version: 0.7.1
@@ -926,6 +929,12 @@ importers:
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../packages/business/ts/marketplace-catalog
+      '@r10c/business-ts-marketplace-vendor':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/marketplace-vendor
+      '@r10c/testing-catalog-fixtures':
+        specifier: workspace:*
+        version: link:../../packages/testing/catalog-fixtures
 
   apps/marketplace-service:
     dependencies:
@@ -2440,6 +2449,27 @@ importers:
         specifier: workspace:*
         version: link:../../../business/ts/i18n
 
+  packages/testing/catalog-fixtures:
+    dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.7.1(effect@4.0.5)
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.7.1(effect@4.0.5)
+      '@entifix/static':
+        specifier: 'catalog:'
+        version: 0.7.1(effect@4.0.5)
+      '@r10c/business-ts-catalog-reference':
+        specifier: workspace:*
+        version: link:../../business/ts/catalog-reference
+      '@r10c/business-ts-marketplace-catalog':
+        specifier: workspace:*
+        version: link:../../business/ts/marketplace-catalog
+      '@r10c/business-ts-marketplace-vendor':
+        specifier: workspace:*
+        version: link:../../business/ts/marketplace-vendor
+
   packages/utils/ts/array:
     dependencies:
       '@swc/helpers':
@@ -3665,6 +3695,11 @@ packages:
 
   '@entifix/sql@0.7.1':
     resolution: {integrity: sha512-rzU4hrVLV3KHEQ9n/tk1QbQLamSwkNu86cvZtV2dZ6ftn+KLVGwPL0K7DjqvBZ6PK+fwSuF08FEqSPHpF/XwIQ==}
+    peerDependencies:
+      effect: ^4.0.5
+
+  '@entifix/static@0.7.1':
+    resolution: {integrity: sha512-lua3Wt9MsSiS45EJLL86VzuCMk3woDM3/pEj2r60HNKrKcsfWd3IoBIEGFhzkEBPIKu984T9tbDIneDS7+e9ag==}
     peerDependencies:
       effect: ^4.0.5
 
@@ -14128,6 +14163,13 @@ snapshots:
       '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
 
   '@entifix/sql@0.7.1(effect@4.0.5)':
+    dependencies:
+      '@entifix/business': 0.7.1(effect@4.0.5)
+      '@entifix/core': 0.7.1(effect@4.0.5)
+      '@swc/helpers': 0.5.23
+      effect: 4.0.5
+
+  '@entifix/static@0.7.1(effect@4.0.5)':
     dependencies:
       '@entifix/business': 0.7.1(effect@4.0.5)
       '@entifix/core': 0.7.1(effect@4.0.5)

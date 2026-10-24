@@ -1,0 +1,29 @@
+{
+  "name": "@r10c/testing-catalog-fixtures",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./data/*.json": "./src/data/*.json"
+  },
+  "nx": {
+    "tags": [
+      "type:testing",
+      "scope:shared"
+    ],
+    "sourceRoot": "packages/testing/catalog-fixtures/src"
+  },
+  "dependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/static": "catalog:",
+    "@r10c/business-ts-catalog-reference": "workspace:*",
+    "@r10c/business-ts-marketplace-catalog": "workspace:*",
+    "@r10c/business-ts-marketplace-vendor": "workspace:*"
+  }
+}
