@@ -86,6 +86,8 @@ export const r10c = {
       overline: 'Tienda',
       heading: 'Marketplace r10c',
       lead: 'Objetos para la casa, elegidos de a poco.',
+      categories: 'Categorías',
+      newest: 'Lo más nuevo',
       featured: 'Destacados',
     },
     category: {
@@ -94,6 +96,7 @@ export const r10c = {
       children: 'Subcategorías',
     },
     product: {
+      buy: 'Comprar',
       addToCart: 'Añadir al carrito',
       view: 'Ver producto',
       brand: 'Marca',
@@ -144,7 +147,8 @@ export const r10c = {
       heading: 'Carrito',
       empty: 'Tu carrito está vacío.',
       remove: 'Quitar',
-      units: 'Cant. {{count}}',
+      quantity: 'Cantidad',
+      update: 'Actualizar',
       total: 'Total',
       keepShopping: 'Seguir comprando',
       checkout: 'Finalizar compra',

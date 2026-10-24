@@ -80,6 +80,8 @@ export const r10c: EsR10c = {
       overline: 'Storefront',
       heading: 'r10c Marketplace',
       lead: 'Things for the house, chosen slowly.',
+      categories: 'Categories',
+      newest: 'New in',
       featured: 'Featured',
     },
     category: {
@@ -88,6 +90,7 @@ export const r10c: EsR10c = {
       children: 'Subcategories',
     },
     product: {
+      buy: 'Buy',
       addToCart: 'Add to cart',
       view: 'View product',
       brand: 'Brand',
@@ -132,7 +135,8 @@ export const r10c: EsR10c = {
       heading: 'Cart',
       empty: 'Your cart is empty.',
       remove: 'Remove',
-      units: 'Qty {{count}}',
+      quantity: 'Quantity',
+      update: 'Update',
       total: 'Total',
       keepShopping: 'Keep shopping',
       checkout: 'Check out',

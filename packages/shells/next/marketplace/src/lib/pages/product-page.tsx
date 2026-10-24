@@ -183,7 +183,9 @@ export async function ProductPage({
               A real form, not an onClick. It submits without JavaScript, and on
               a cached page there is no other way to reach the server.
             */}
-            <form action={addToCart}>
+            {/* Named, so it is a `form` landmark a buyer — and a test — can
+                tell apart from the related cards' own add buttons below. */}
+            <form action={addToCart} aria-label={t('storefront.product.buy')}>
               <input
                 type="hidden"
                 name="offeringId"

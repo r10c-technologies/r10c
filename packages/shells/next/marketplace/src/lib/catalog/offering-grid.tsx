@@ -1,7 +1,9 @@
 import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
+  button,
   ButtonLink,
+  Cluster,
   Grid,
   Skeleton,
   Stack,
@@ -13,6 +15,7 @@ import { loadBrands } from '@r10c/implementation-catalog-reference-next';
 import { offeringCard } from '@r10c/implementation-marketplace-catalog-next';
 import { ProductCard } from '@r10c/utils-react-ui';
 
+import { addToCart } from '../cart/cart-actions';
 import { storePaths } from '../routing/paths';
 import { emptyPage, runRead } from './catalog-reads';
 
@@ -68,18 +71,38 @@ export async function OfferingGrid({
               unavailable: t('storefront.product.unavailable'),
             },
           })}
-          // A `ButtonLink`, not a `Button`: "View product" navigates, and a
-          // `Button` would put a client boundary around every tile.
+          // Two actions, and neither is a client component. "View product"
+          // navigates, so it is a `ButtonLink`. "Add to cart" is a form posting
+          // to the same Server Action the product page uses, with a plain
+          // `<button>` wearing the button recipe: entifix's `Button` is
+          // `'use client'`, and one per tile is a client boundary per tile.
           cta={
-            <ButtonLink
-              href={localeHref(
-                locale,
-                storePaths.offering(offering.offeringId),
-              )}
-              variant="secondary"
-            >
-              {t('storefront.product.view')}
-            </ButtonLink>
+            <Cluster gap="2xs">
+              <form action={addToCart}>
+                <input
+                  type="hidden"
+                  name="offeringId"
+                  value={offering.offeringId}
+                />
+                <input type="hidden" name="locale" value={locale} />
+                <button
+                  type="submit"
+                  className={button({ variant: 'primary', size: 'sm' })}
+                >
+                  {t('storefront.product.addToCart')}
+                </button>
+              </form>
+              <ButtonLink
+                href={localeHref(
+                  locale,
+                  storePaths.offering(offering.offeringId),
+                )}
+                variant="secondary"
+                size="sm"
+              >
+                {t('storefront.product.view')}
+              </ButtonLink>
+            </Cluster>
           }
         />
       ))}

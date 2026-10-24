@@ -212,7 +212,9 @@ test.describe('what was never published', () => {
       UNPUBLISHED_OFFERING.name,
     );
     await expect(
-      page.getByRole('button', { name: 'Añadir al carrito' }),
+      page
+        .getByRole('form', { name: 'Comprar' })
+        .getByRole('button', { name: 'Añadir al carrito' }),
     ).toHaveCount(0);
   });
 });

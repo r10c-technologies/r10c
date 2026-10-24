@@ -90,6 +90,18 @@ describe('loadOfferings', () => {
     );
   });
 
+  it('asks for in-stock offerings only when told to', async () => {
+    const { load } = run(loadOfferings({ availableOnly: true }));
+
+    expect(load).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filtering: [
+          { property: 'availableHint', operator: 'eq', value: true },
+        ],
+      }),
+    );
+  });
+
   it('sends the sort, the direction and the page', async () => {
     const { load } = run(
       loadOfferings({ sort: 'code', direction: 'desc', page: 2, pageSize: 6 }),
