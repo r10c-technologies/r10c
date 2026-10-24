@@ -43,6 +43,8 @@
     "@entifix/style": "catalog:",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "@r10c/business-ts-catalog-reference": "workspace:*",
+    "@r10c/business-ts-marketplace-vendor": "workspace:*",
+    "@r10c/implementation-marketplace-catalog-next": "workspace:*",
     "@r10c/testing-catalog-fixtures": "workspace:*",
     "@r10c/utils-react-ui": "workspace:*",
     "effect": "4.0.5",

@@ -12,6 +12,12 @@ import type {
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Context, Effect } from 'effect';
 
+import {
+  type SearchContext,
+  searchRequest,
+  type SearchState,
+} from './search-query.js';
+
 /**
  * What every read here requires: the `PublishedOffering` repository, and
  * nothing else. Which transport answers is the caller's choice, made at
@@ -37,7 +43,11 @@ export interface OfferingQuery {
   readonly categoryIds?: readonly string[];
   /** Free text, matched against the offering name. */
   readonly search?: string;
-  readonly sort?: 'name' | 'code';
+  /**
+   * A `sortable` member of `PublishedOffering`. The home page's newest strip
+   * sorts on `publishedAt`, descending.
+   */
+  readonly sort?: 'name' | 'code' | 'amount' | 'publishedAt';
   readonly direction?: 'asc' | 'desc';
   readonly page?: number;
   readonly pageSize?: number;
@@ -86,6 +96,17 @@ export const loadOfferings = (
     filtering: filtering.length > 0 ? (filtering as never) : undefined,
   });
 };
+
+/**
+ * One page of a search or a category listing, as its address states it: the
+ * request is the codec's (`searchRequest`), so the URL and the read can never
+ * disagree about what a parameter means.
+ */
+export const searchOfferings = (
+  state: SearchState,
+  context: SearchContext,
+): OfferingRead<EntityPage<PublishedOffering>> =>
+  load(searchRequest(state, context) as never);
 
 /**
  * One published offering by the id the URL slug carries.

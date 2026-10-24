@@ -4,7 +4,8 @@ import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Context, Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
-import { getOffering, loadOfferings } from './offerings.js';
+import { getOffering, loadOfferings, searchOfferings } from './offerings.js';
+import { parseSearch } from './search-query.js';
 
 /**
  * These run the generic load use case over an in-memory repository, so what is
@@ -133,5 +134,30 @@ describe('getOffering', () => {
     const { result } = run(getOffering('offering-gone'));
 
     expect(await result).toBeUndefined();
+  });
+});
+
+describe('searchOfferings', () => {
+  it('reads the page the search address states, through the codec', async () => {
+    const { result, load } = run(
+      searchOfferings(parseSearch({ category: 'category-lighting' }), {
+        subtreeOf: id => [id],
+      }),
+    );
+
+    expect((await result).items.map(item => item.offeringId)).toEqual([
+      'offering-1',
+    ]);
+    expect(load).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filtering: [
+          {
+            property: 'categoryId',
+            operator: 'in',
+            values: ['category-lighting'],
+          },
+        ],
+      }),
+    );
   });
 });

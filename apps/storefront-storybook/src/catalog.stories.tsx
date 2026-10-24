@@ -3,6 +3,7 @@ import type { Entity } from '@entifix/core';
 import { Grid } from '@entifix/react-controls/primitives';
 import type { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import { offeringCard } from '@r10c/implementation-marketplace-catalog-next';
 import { catalogFixtures } from '@r10c/testing-catalog-fixtures';
 import { ProductCard } from '@r10c/utils-react-ui';
 import type { Meta, StoryObj } from '@storybook/react-vite';
@@ -10,8 +11,8 @@ import { Effect } from 'effect';
 
 /**
  * The card over the shared fixtures, read through the same static
- * repositories e2e serves. The mapping below is the binding #339 moves into
- * the catalog cell; until then it lives here, in plain sight.
+ * repositories e2e serves, and bound by the catalog cell's `offeringCard`: the
+ * mapping the storefront ships, not a copy of it.
  */
 const fixtures = catalogFixtures();
 
@@ -25,25 +26,14 @@ const brandName = new Map(
   ]),
 );
 
-const price = (offering: PublishedOffering) =>
-  new Intl.NumberFormat('es-GT', {
-    style: 'currency',
-    currency: offering.currency,
-  }).format(offering.amount / 100);
-
 function OfferingTile({ offering }: { readonly offering: PublishedOffering }) {
   return (
     <ProductCard
-      title={offering.name}
-      price={price(offering)}
-      brand={
-        offering.brandId === undefined
-          ? undefined
-          : brandName.get(offering.brandId)
-      }
-      description={offering.description}
-      media={offering.media?.[0]}
-      availability={offering.availableHint ? 'Disponible' : 'Agotado'}
+      {...offeringCard(offering, {
+        locale: 'es',
+        brandName: id => brandName.get(id),
+        labels: { available: 'Disponible', unavailable: 'Agotado' },
+      })}
       cta={
         <a className="text-primary underline" href={`#${offering.offeringId}`}>
           Ver producto

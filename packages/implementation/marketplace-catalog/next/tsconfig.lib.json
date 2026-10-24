@@ -8,11 +8,15 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
     "types": ["node"],
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/**/*.ts"],
   "references": [
+    {
+      "path": "../../../utils/react/ui/tsconfig.lib.json"
+    },
     {
       "path": "../../../business/ts/marketplace-catalog/tsconfig.lib.json"
     }

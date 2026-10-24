@@ -10,7 +10,8 @@ import {
 import { ProductBrand } from '@r10c/business-ts-catalog-reference';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { loadBrands } from '@r10c/implementation-catalog-reference-next';
-import { formatPrice, ProductCard } from '@r10c/utils-react-ui';
+import { offeringCard } from '@r10c/implementation-marketplace-catalog-next';
+import { ProductCard } from '@r10c/utils-react-ui';
 
 import { storePaths } from '../routing/paths';
 import { emptyPage, runRead } from './catalog-reads';
@@ -30,8 +31,9 @@ export interface OfferingGridProps {
  * byte. Resolving here also keeps the card free of any data access, which is
  * what lets it be asserted without a backend.
  *
- * Each offering is mapped onto `ProductCard`'s roles right here. That mapping
- * is the binding #339 moves into the catalog cell.
+ * Each offering is mapped onto `ProductCard`'s roles by the catalog cell's
+ * `offeringCard`. What stays here is the call to action, because where a card
+ * leads is the page's decision.
  */
 export async function OfferingGrid({
   locale,
@@ -58,23 +60,14 @@ export async function OfferingGrid({
       {offerings.map(offering => (
         <ProductCard
           key={offering.offeringId}
-          title={offering.name}
-          price={formatPrice(locale, offering.amount, offering.currency)}
-          brand={
-            offering.brandId === undefined
-              ? undefined
-              : nameOf.get(offering.brandId)
-          }
-          description={offering.description}
-          media={offering.media?.[0]}
-          // A hint, and the name says so: published data is eventually
-          // consistent on purpose, and the checkout reservation is the truth
-          // (ADR 0009).
-          availability={
-            offering.availableHint
-              ? t('storefront.product.available')
-              : t('storefront.product.unavailable')
-          }
+          {...offeringCard(offering, {
+            locale,
+            brandName: id => nameOf.get(id),
+            labels: {
+              available: t('storefront.product.available'),
+              unavailable: t('storefront.product.unavailable'),
+            },
+          })}
           // A `ButtonLink`, not a `Button`: "View product" navigates, and a
           // `Button` would put a client boundary around every tile.
           cta={
