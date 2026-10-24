@@ -1,4 +1,7 @@
-import { CategoryPage } from '@r10c/shells-next-marketplace/server';
+import {
+  categoryMetadata,
+  CategoryPage,
+} from '@r10c/shells-next-marketplace/server';
 
 import { requireLocale } from '../../locale-param';
 
@@ -17,6 +20,15 @@ import { requireLocale } from '../../locale-param';
  * fetch, and the result is shareable. Only the cache tier differs. Home and the
  * product pages carry the prerendering.
  */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; category: string }>;
+}) {
+  const locale = await requireLocale(params);
+  return categoryMetadata(locale, (await params).category);
+}
+
 export default async function CategoryRoute({
   params,
   searchParams,

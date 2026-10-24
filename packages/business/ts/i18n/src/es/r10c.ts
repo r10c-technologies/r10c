@@ -97,6 +97,9 @@ export const r10c = {
     },
     product: {
       buy: 'Comprar',
+      soldBy: 'Vendido por {{seller}}',
+      details: 'Detalles',
+      seller: 'Vendedor',
       addToCart: 'Añadir al carrito',
       view: 'Ver producto',
       brand: 'Marca',

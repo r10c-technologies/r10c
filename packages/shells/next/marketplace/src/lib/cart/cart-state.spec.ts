@@ -98,6 +98,22 @@ describe('withAdded', () => {
     ]);
   });
 
+  it('adds as many units as it is asked for, floored', () => {
+    expect(withAdded([], 'offering-1', 3.6)).toEqual([
+      { offeringId: 'offering-1', quantity: 3 },
+    ]);
+    expect(
+      withAdded([{ offeringId: 'offering-1', quantity: 2 }], 'offering-1', 2),
+    ).toEqual([{ offeringId: 'offering-1', quantity: 4 }]);
+  });
+
+  it('adds nothing for a count that is not a positive number', () => {
+    const lines = [{ offeringId: 'offering-1', quantity: 2 }];
+    expect(withAdded(lines, 'offering-1', 0)).toEqual(lines);
+    expect(withAdded(lines, 'offering-1', Number.NaN)).toEqual(lines);
+    expect(withAdded([], 'offering-1', 0.5)).toEqual([]);
+  });
+
   it('stops at the most a line may hold', () => {
     expect(
       withAdded(

@@ -22,6 +22,12 @@ export default defineEntifixTest({
     // decisions are the codec's and the facets', covered at 100% in
     // `marketplace-catalog/next`; this file wires them to the page.
     '**/lib/catalog/offering-listing.tsx',
+    // A product page's reads and each route's metadata: compositions of cell
+    // reads through the module-level runner, like the pages. What they decide
+    // is pure and covered here (`page-metadata`, `product-json-ld`); that they
+    // reach the page is `marketplace-app-e2e`'s metadata journeys.
+    '**/lib/catalog/product-read.ts',
+    '**/lib/seo/route-metadata.ts',
     '**/lib/routing/store-link.tsx',
     '**/lib/cart/cart-cookie.ts',
     '**/lib/cart/cart-actions.ts',

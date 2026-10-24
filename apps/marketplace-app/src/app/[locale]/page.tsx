@@ -1,4 +1,4 @@
-import { HomePage } from '@r10c/shells-next-marketplace/server';
+import { homeMetadata, HomePage } from '@r10c/shells-next-marketplace/server';
 
 import { type LocaleRouteProps, requireLocale } from './locale-param';
 
@@ -34,6 +34,10 @@ export const revalidate = 60;
  */
 export function generateStaticParams() {
   return [];
+}
+
+export async function generateMetadata({ params }: LocaleRouteProps) {
+  return homeMetadata(await requireLocale(params));
 }
 
 export default async function Index({ params }: LocaleRouteProps) {

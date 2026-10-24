@@ -26,6 +26,10 @@ export * from './lib/catalog/offering-grid';
 export * from './lib/chrome/store-footer';
 export * from './lib/chrome/store-header';
 
+// Each route's `generateMetadata`, and the origin the layout resolves against.
+export * from './lib/seo/page-metadata';
+export * from './lib/seo/route-metadata';
+
 // Routing. `StoreLink` is a server component; `storePaths` is the one place a
 // storefront URL is spelled out.
 export * from './lib/routing/paths';

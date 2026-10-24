@@ -1,4 +1,4 @@
-import type { Locale } from '@entifix/core';
+import { type Locale, localeHref } from '@entifix/core';
 import { getServerTFor } from '@entifix/i18n';
 import {
   Button,
@@ -10,28 +10,23 @@ import {
   Stack,
   Text,
 } from '@entifix/react-controls/primitives';
-import {
-  ProductBrand,
-  ProductCategory,
-} from '@r10c/business-ts-catalog-reference';
+import { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import {
-  getBrand,
-  getCategory,
-  loadCategoryTrail,
-} from '@r10c/implementation-catalog-reference-next';
-import {
-  getOffering,
-  loadOfferings,
-} from '@r10c/implementation-marketplace-catalog-next';
+import { loadCategoryTrail } from '@r10c/implementation-catalog-reference-next';
+import { loadOfferings } from '@r10c/implementation-marketplace-catalog-next';
 import { Breadcrumbs, formatPrice, MediaGallery } from '@r10c/utils-react-ui';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { addToCart } from '../cart/cart-actions';
+import { MAX_QUANTITY } from '../cart/cart-state';
 import { catalogCrumbs } from '../catalog/catalog-crumbs';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
+import { readProduct } from '../catalog/product-read';
+import { storePaths } from '../routing/paths';
+import { storefrontOrigin } from '../seo/page-metadata';
+import { jsonLdScript, productJsonLd } from '../seo/product-json-ld';
 import { StoreShell } from './store-shell';
 
 /**
@@ -86,24 +81,33 @@ export async function ProductPage({
   readonly offeringId: string;
 }) {
   const t = getServerTFor(locale, 'r10c');
-  const offering = await runRead(
-    PublishedOffering,
-    getOffering(offeringId),
-    undefined,
-  );
-  if (!offering) notFound();
+  // Cached per request: the route's `generateMetadata` made the same call.
+  const product = await readProduct(offeringId);
+  if (!product) notFound();
+  const { offering, brandName, sellerName } = product;
 
-  // Resolved through the owning domain's read path, not a storage-layer join:
-  // both ids point into `catalog-reference`, another slice's store (ADR 0022).
-  const [brand, category, trail] = await Promise.all([
-    runRead(ProductBrand, getBrand(offering.brandId), undefined),
-    runRead(ProductCategory, getCategory(offering.categoryId), undefined),
-    runRead(ProductCategory, loadCategoryTrail(offering.categoryId), []),
-  ]);
+  // The trail ends at the offering's own category, so it is also the
+  // category line below: one vocabulary read, not two (ADR 0062).
+  const trail = await runRead(
+    ProductCategory,
+    loadCategoryTrail(offering.categoryId),
+    [],
+  );
+  const category = trail.at(-1);
   const media = offering.media ?? [];
+  const url = `${storefrontOrigin()}${localeHref(locale, storePaths.offering(offering.offeringId))}`;
 
   return (
     <StoreShell locale={locale}>
+      <script
+        type="application/ld+json"
+        // Escaped by `jsonLdScript`: every string in it is vendor-authored.
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript(
+            productJsonLd({ offering, url, brandName, sellerName }),
+          ),
+        }}
+      />
       <Stack gap="xl">
         <Breadcrumbs
           label={t('storefront.breadcrumbs.label')}
@@ -136,11 +140,19 @@ export async function ProductPage({
 
           <Stack gap="s">
             <Stack gap="2xs">
-              <Overline>
-                {brand?.name ?? t('storefront.product.brand')}
-              </Overline>
+              {brandName ? <Overline>{brandName}</Overline> : null}
               <HeadingOne>{offering.name}</HeadingOne>
-              <Text muted>{offering.description}</Text>
+              {/* The seller is a projection of their organization (ADR 0061).
+                  A miss leaves the line off: an absent line is honest, a raw
+                  organization id is not. */}
+              {sellerName ? (
+                <Text muted data-testid="seller">
+                  {t('storefront.product.soldBy', { seller: sellerName })}
+                </Text>
+              ) : null}
+              {offering.description ? (
+                <Text muted>{offering.description}</Text>
+              ) : null}
             </Stack>
 
             <Cluster gap="s" justify="between">
@@ -154,48 +166,88 @@ export async function ProductPage({
               </Text>
             </Cluster>
 
-            <Card>
-              <Stack gap="2xs">
-                {/*
-                  Still the vendor's own reference, and still worth showing —
-                  it is what a buyer quotes back. It is simply no longer the
-                  address: two vendors publishing against one specification
-                  share this string (ADR 0049).
-                */}
-                {offering.code ? (
-                  <Text muted>
-                    {t('storefront.product.reference')}
-                    {': '}
-                    {offering.code}
-                  </Text>
-                ) : null}
-                {category ? (
-                  <Text muted>
-                    {t('storefront.product.category')}
-                    {': '}
-                    {category.name}
-                  </Text>
-                ) : null}
-              </Stack>
-            </Card>
-
             {/*
               A real form, not an onClick. It submits without JavaScript, and on
-              a cached page there is no other way to reach the server.
+              a cached page there is no other way to reach the server. Named,
+              so it is a `form` landmark a buyer — and a test — can tell apart
+              from the related cards' own add buttons below.
             */}
-            {/* Named, so it is a `form` landmark a buyer — and a test — can
-                tell apart from the related cards' own add buttons below. */}
-            <form action={addToCart} aria-label={t('storefront.product.buy')}>
+            <form
+              action={addToCart}
+              aria-label={t('storefront.product.buy')}
+              className="flex flex-wrap items-end gap-s"
+            >
               <input
                 type="hidden"
                 name="offeringId"
                 value={offering.offeringId}
               />
               <input type="hidden" name="locale" value={locale} />
+              <label className="text-step--1 flex flex-col gap-3xs text-content-muted">
+                {t('storefront.cart.quantity')}
+                <input
+                  className="w-20 rounded-md border border-border bg-surface px-2xs py-xs text-content"
+                  type="number"
+                  name="quantity"
+                  min="1"
+                  max={MAX_QUANTITY}
+                  step="1"
+                  inputMode="numeric"
+                  defaultValue={1}
+                />
+              </label>
               <Button type="submit" variant="primary" size="lg">
                 {t('storefront.product.addToCart')}
               </Button>
             </form>
+
+            <Card>
+              <Stack gap="2xs">
+                <Text weight="semibold" as="h2">
+                  {t('storefront.product.details')}
+                </Text>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-s gap-y-3xs">
+                  {brandName ? (
+                    <>
+                      <dt className="text-content-muted">
+                        {t('storefront.product.brand')}
+                      </dt>
+                      <dd>{brandName}</dd>
+                    </>
+                  ) : null}
+                  {category ? (
+                    <>
+                      <dt className="text-content-muted">
+                        {t('storefront.product.category')}
+                      </dt>
+                      <dd>{category.name}</dd>
+                    </>
+                  ) : null}
+                  {/*
+                    Still the vendor's own reference, and still worth showing —
+                    it is what a buyer quotes back. It is simply no longer the
+                    address: two vendors publishing against one specification
+                    share this string (ADR 0049).
+                  */}
+                  {offering.code ? (
+                    <>
+                      <dt className="text-content-muted">
+                        {t('storefront.product.reference')}
+                      </dt>
+                      <dd>{offering.code}</dd>
+                    </>
+                  ) : null}
+                  {sellerName ? (
+                    <>
+                      <dt className="text-content-muted">
+                        {t('storefront.product.seller')}
+                      </dt>
+                      <dd>{sellerName}</dd>
+                    </>
+                  ) : null}
+                </dl>
+              </Stack>
+            </Card>
           </Stack>
         </div>
 

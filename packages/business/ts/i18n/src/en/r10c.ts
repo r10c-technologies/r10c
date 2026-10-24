@@ -91,6 +91,9 @@ export const r10c: EsR10c = {
     },
     product: {
       buy: 'Buy',
+      soldBy: 'Sold by {{seller}}',
+      details: 'Details',
+      seller: 'Seller',
       addToCart: 'Add to cart',
       view: 'View product',
       brand: 'Brand',

@@ -52,15 +52,25 @@ export function cartCount(lines: readonly CartLine[]): number {
  */
 export const MAX_QUANTITY = 99;
 
-/** One more unit of `offeringId`, as a new line when the cart has none. */
+/**
+ * `count` more units of `offeringId` (one by default), as a new line when the
+ * cart has none. The count goes through {@link withQuantity}'s rules, so the
+ * line is clamped and a count that is not a positive number adds nothing.
+ */
 export function withAdded(
   lines: readonly CartLine[],
   offeringId: string,
+  count = 1,
 ): CartLine[] {
+  if (!Number.isFinite(count) || count < 1) return [...lines];
   const existing = lines.find(line => line.offeringId === offeringId);
   return existing
-    ? withQuantity(lines, offeringId, existing.quantity + 1)
-    : [...lines, { offeringId, quantity: 1 }];
+    ? withQuantity(lines, offeringId, existing.quantity + Math.floor(count))
+    : withQuantity(
+        [...lines, { offeringId, quantity: 1 }],
+        offeringId,
+        Math.floor(count),
+      );
 }
 
 /**
