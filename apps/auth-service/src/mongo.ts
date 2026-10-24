@@ -1,3 +1,5 @@
+import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
+import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
 import {
   makeStaticPolicyDecision,
   PolicyDecisionTag,
@@ -16,13 +18,22 @@ import {
   MongoHealthProbeLayer,
 } from '@entifix/mongo';
 import {
+  ensureOutboxIndexes,
+  OutboxMaxAttempts,
+  startOutboxRelay,
+} from '@entifix/mongo/transactions';
+import {
   RedisHealthProbeLayer,
   RedisLayer,
   RedisOneTimeTokenStoreLayer,
   RedisSessionStoreLayer,
 } from '@entifix/redis';
 import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
+import {
+  LoadedConfigurationTag,
+  loadRemoteConfiguration,
+} from '@entifix/service-shell/runtime';
+import { EventSourceTag } from '@entifix/transactions';
 import {
   ZitadelActionsLayer,
   ZitadelHealthProbeLayer,
@@ -51,6 +62,10 @@ import {
   startLifecycleReconciler,
 } from './identity/lifecycle-reconciler';
 import { makeDevNotificationPort } from './identity/notifications';
+import {
+  seedOrganizations,
+  startOrganizationRebuild,
+} from './identity/organization-announcements';
 import { ProviderSessionIndexLayer } from './identity/provider-session-index';
 import { provisionZitadelHuman } from './identity/provisioning';
 import { makeRedisIdentityProvider } from './identity/redis-identity-provider';
@@ -78,6 +93,11 @@ import {
 } from './identity/user-seed-data';
 
 const SERVICE_NAME = 'auth-service';
+/**
+ * The **slice**, not the deployment — stamped onto every event this process
+ * announces (ADR 0029).
+ */
+export const AUTH_SLICE = 'auth';
 
 /**
  * Reconciles seed docs one at a time: insert what is missing, and bring what is
@@ -131,7 +151,9 @@ const seedUsers = Effect.all(
 const seedTenancy = (organizationId: string) =>
   Effect.all(
     [
-      seedCollection('organization', organizationSeedData(organizationId)),
+      // Through `writeOrganization`, never `seedCollection`: an organization's
+      // write and its announcement share one transaction (ADR 0061).
+      seedOrganizations(organizationSeedData(organizationId)),
       seedCollection('individual', individualSeedData),
       seedCollection('party-role', partyRoleSeedData(organizationId)),
       seedCollection('role', roleSeedData(organizationId)),
@@ -236,6 +258,13 @@ export const AppLayer = Layer.unwrap(
     const uri = yield* store.in('mongo').getString('uri');
     const dbName = yield* store.in('mongo').getString('db');
     const redisUri = yield* store.in('redis').getString('uri');
+    // The bus an organization's announcement leaves on (ADR 0061). ⚠️
+    // `getNumber`, never a cast: `'five'` would cast to `NaN` and nothing would
+    // ever be quarantined.
+    const amqpUri = yield* store.in('rabbitmq').getString('uri');
+    const outboxMaxAttempts = yield* store
+      .in('outbox')
+      .getNumber('maxAttempts');
     // auth-service is the fleet's only holder of the private key: it is the one
     // service that mints tokens. Everyone else gets `publicKey` alone.
     const jwtPrivateKey = yield* store.in('jwt').getString('privateKey');
@@ -275,6 +304,9 @@ export const AppLayer = Layer.unwrap(
     const infra = Layer.mergeAll(
       MongoDatabaseLayer({ uri, dbName }),
       RedisLayer({ uri: redisUri }),
+      AmqpLayer({ uri: amqpUri }),
+      Layer.succeed(EventSourceTag, AUTH_SLICE),
+      Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
       Layer.succeed(ConfigurationRepositoryTag, store),
       Layer.succeed(LoadedConfigurationTag, plain),
       Layer.succeed(
@@ -309,6 +341,11 @@ export const AppLayer = Layer.unwrap(
       Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     );
 
+    // The bus, built from the connection above and merged back so the outbox
+    // relay can reach it. It registers its own drain and records what it binds
+    // for `/api/$service` (ADR 0031).
+    const withBus = Layer.provideMerge(AmqpEventBusLayer, infra);
+
     // Session store + account/device repos build on the connections.
     const stores = Layer.provideMerge(
       Layer.mergeAll(
@@ -322,7 +359,7 @@ export const AppLayer = Layer.unwrap(
         UserDeviceRepositoryLayer,
         NotificationLayer,
       ),
-      infra,
+      withBus,
     );
 
     // The identity provider consumes the session store + account repo.
@@ -337,6 +374,7 @@ export const AppLayer = Layer.unwrap(
         // records; `session` is the Redis one beside it (ADR 0031).
         MongoHealthProbeLayer(['auth']),
         RedisHealthProbeLayer(['session']),
+        AmqpHealthProbeLayer,
         // A service that cannot reach its identity provider cannot sign anyone
         // in, so readiness has to say so — this is now as load-bearing as Mongo.
         ZitadelHealthProbeLayer(zitadelIssuer),
@@ -346,10 +384,21 @@ export const AppLayer = Layer.unwrap(
 
     // Seed users, the demo tenant, and the provider-side humans. The last runs
     // after `seedUsers`, because it links against records that must exist.
+    //
+    // The outbox's unique index comes first, because the organization seed
+    // writes into it. The rebuild walk is **chained** after the seed rather
+    // than merged beside it, so it re-states what the seed just wrote instead
+    // of racing it.
     const seed = Layer.effectDiscard(
-      Effect.all([seedUsers, seedTenancy(demoOrganizationId)], {
-        discard: true,
-      }).pipe(Effect.andThen(seedIdentityProvider)),
+      Effect.flatMap(MongoDatabaseTag, ensureOutboxIndexes).pipe(
+        Effect.andThen(
+          Effect.all([seedUsers, seedTenancy(demoOrganizationId)], {
+            discard: true,
+          }),
+        ),
+        Effect.andThen(seedIdentityProvider),
+        Effect.andThen(startOrganizationRebuild),
+      ),
     );
     // Replaces Effect's default logger with the tooling logger and stands up
     // the OTel tracer + meter, so sign-in, back-channel logout and the provider
@@ -363,10 +412,13 @@ export const AppLayer = Layer.unwrap(
     // started after the seed so its first pass runs against a populated store
     // (#65). Discarded like the seed: it provides nothing, it starts something.
     const reconciler = Layer.effectDiscard(startLifecycleReconciler);
+    // The slow half of the outbox: what was written but not yet on the bus is
+    // swept every interval, and once more at shutdown.
+    const relay = Layer.effectDiscard(startOutboxRelay());
 
     return Layer.merge(
       observability,
-      Layer.provideMerge(Layer.merge(seed, reconciler), withProbes),
+      Layer.provideMerge(Layer.mergeAll(seed, reconciler, relay), withProbes),
     );
   }).pipe(Effect.orDie),
 ).pipe(Layer.orDie);

@@ -34,7 +34,10 @@ pnpm nx run marketplace-app:dev            # :3000 (auto-starts marketplace-serv
                                            #        the storefront reads only the
                                            #        former, but what fills its
                                            #        projection on a fresh lab is
-                                           #        the rebuild walk in the latter)
+                                           #        the rebuild walk in the latter;
+                                           #        and auth-service, whose
+                                           #        announcements fill the
+                                           #        sellers' names)
 pnpm nx run back-office-app:dev            # :3001 (catalog + system management +
                                            #        users + account, one origin;
                                            #        auto-starts admin-service,

@@ -102,6 +102,7 @@ different things by "product".
 | **Refund**                | Money going back for an order. A **record of its own**, never a status on the `Payment` it reverses: the evidence that a customer was charged has to survive the money going back. One per capture — partial refunds are out of v1 scope.                                                                                                               | ours          |
 | **StockItem**             | Physical availability of an offering for a vendor. A **materialized total**, not the truth — `StockMovement` is.                                                                                                                                                                                                                                        | ours          |
 | **PublishedOffering**     | The storefront's **snapshot** of a vendor's offering, taken at publication. Copies price, vendor and the merchandising fields a card renders — reference, description, brand and category — rather than linking, because a platform-plane reader cannot dereference a tenant pointer.                                                                   | ours          |
+| **PublishedVendor**       | A seller as the storefront names it: an organization's id and display name, **projected** from `organization.announced` rather than copied into each offering's snapshot, so a rename reaches every listing at once ([ADR 0061](adr/0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md)).                                                | ours          |
 | **SalesChannel**          | A route a vendor sells through — the storefront, a counter in their own shop, a phone line. Per-vendor, so it never merges the way a brand or a category has to.                                                                                                                                                                                        | SID           |
 | **RelatedChannel**        | The channel copied onto a `ProductOrder`. TM Forum models an in-store sale as a channel on the same order rather than as a second kind of order, which is why a counter sale is a `ProductOrder` and no in-store equivalent exists.                                                                                                                     | SID           |
 | **OrderItem**             | One line of a `ProductOrder`, tagged with the vendor that owes it. A **value**, not an entity — no identity apart from its order.                                                                                                                                                                                                                       | SID           |
@@ -244,6 +245,7 @@ land on when asking _where does this entity go?_
 | `saga`              | control  | `transaction`       | —                                                     | single           | system-of-record        |
 | `catalog-reference` | platform | `marketplace`       | `catalog-reference`                                   | single           | system-of-record        |
 | `published-catalog` | platform | `marketplace`       | `marketplace-catalog`                                 | single           | `projection-of:catalog` |
+| `published-vendor`  | platform | `marketplace`       | `marketplace-vendor`                                  | single           | `projection-of:auth`    |
 | `stock`             | tenant   | `stock`             | `stock-management`                                    | per-organization | system-of-record        |
 | `sales`             | tenant   | `sales`             | `sales-management`                                    | per-organization | system-of-record        |
 | `order`             | platform | `order`             | `order-management`                                    | single           | system-of-record        |
@@ -261,7 +263,10 @@ Four rows worth their reasoning:
 - **`catalog-reference` and `published-catalog` are two stores in one plane,
   owned by one slice.** One is authored reference data, the other is derived. A
   store carries exactly one `truth`, which is what makes them two stores and
-  therefore two domains rather than one "catalog" module.
+  therefore two domains rather than one "catalog" module. `published-vendor` is
+  a third for the same reason: its truth is `projection-of:auth`, not
+  `projection-of:catalog`
+  ([ADR 0061](adr/0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md)).
 - **`catalog`, `stock` and `sales` are three tenant stores**, physically
   `tenant_<organizationId>`, `stock_<organizationId>` and
   `sales_<organizationId>`. Same plane, same partitioning, separate databases —
@@ -277,18 +282,18 @@ Four rows worth their reasoning:
 
 ### Slices
 
-| Slice               | Status | Stores                               | Deployment                        |
-| ------------------- | ------ | ------------------------------------ | --------------------------------- |
-| `config`            | active | configuration                        | config-service `:3190`            |
-| `auth`              | active | auth, session                        | auth-service `:3102`              |
-| `marketplace-admin` | active | catalog, saga-coordination           | marketplace-admin-service `:3101` |
-| `transaction`       | active | saga                                 | transaction-service `:3103`       |
-| `marketplace`       | active | catalog-reference, published-catalog | marketplace-service `:3100`       |
-| `stock`             | active | stock                                | stock-service `:3108`             |
-| `order`             | active | order                                | order-service `:3105`             |
-| `payment`           | active | payment                              | payment-service `:3106`           |
-| `settlement`        | active | settlement                           | settlement-service `:3107`        |
-| `sales`             | active | sales                                | sales-service `:3109`             |
+| Slice               | Status | Stores                                                 | Deployment                        |
+| ------------------- | ------ | ------------------------------------------------------ | --------------------------------- |
+| `config`            | active | configuration                                          | config-service `:3190`            |
+| `auth`              | active | auth, session                                          | auth-service `:3102`              |
+| `marketplace-admin` | active | catalog, saga-coordination                             | marketplace-admin-service `:3101` |
+| `transaction`       | active | saga                                                   | transaction-service `:3103`       |
+| `marketplace`       | active | catalog-reference, published-catalog, published-vendor | marketplace-service `:3100`       |
+| `stock`             | active | stock                                                  | stock-service `:3108`             |
+| `order`             | active | order                                                  | order-service `:3105`             |
+| `payment`           | active | payment                                                | payment-service `:3106`           |
+| `settlement`        | active | settlement                                             | settlement-service `:3107`        |
+| `sales`             | active | sales                                                  | sales-service `:3109`             |
 
 **Co-deployment is reversible; merging stores is not.** Two slices sharing a
 process keeps ownership where it was — splitting back out means pointing a
@@ -355,6 +360,7 @@ Then two rules that apply to the entity itself:
 | Product Configuration Mgmt | Product Catalog Mgmt (TMFC001), Product Configurator (TMFC027) | `business-ts-product-configuration-management` | tenant   | `catalog`           | in use   |
 | Catalog Reference          | Product Catalog Mgmt (TMFC001), classification half            | `business-ts-catalog-reference`                | platform | `catalog-reference` | entities |
 | Marketplace Catalog        | Product Catalog Mgmt, published view                           | `business-ts-marketplace-catalog`              | platform | `published-catalog` | entities |
+| Marketplace Vendor         | Party Management (TMFC028), published view                     | `business-ts-marketplace-vendor`               | platform | `published-vendor`  | entities |
 | Stock Management           | — (no ODA analog)                                              | `business-ts-stock-management`                 | tenant   | `stock`             | entities |
 | Order Management           | Product Order Capture & Validation (TMFC002)                   | `business-ts-order-management`                 | platform | `order`             | entities |
 | Payment Management         | Payment Management (TMFC029)                                   | `business-ts-payment-management`               | platform | `payment`           | entities |

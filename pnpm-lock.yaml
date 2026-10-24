@@ -387,6 +387,9 @@ importers:
       '@effect/platform-node':
         specifier: 4.0.5
         version: 4.0.5(effect@4.0.5)(redis@6.3.0(@node-rs/xxhash@1.7.8)(@opentelemetry/api@1.9.1))
+      '@entifix/amqp':
+        specifier: 'catalog:'
+        version: 0.7.0(@entifix/transactions@0.7.0(effect@4.0.5))(effect@4.0.5)
       '@entifix/authz':
         specifier: 'catalog:'
         version: 0.7.0(effect@4.0.5)
@@ -414,6 +417,9 @@ importers:
       '@entifix/tooling':
         specifier: 'catalog:'
         version: 0.7.0(@opentelemetry/api@1.9.1)
+      '@entifix/transactions':
+        specifier: 'catalog:'
+        version: 0.7.0(effect@4.0.5)
       '@entifix/zitadel':
         specifier: 'catalog:'
         version: 0.7.0(effect@4.0.5)
@@ -453,6 +459,9 @@ importers:
       '@r10c/business-ts-i18n':
         specifier: workspace:*
         version: link:../../packages/business/ts/i18n
+      '@r10c/business-ts-party-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/party-contracts
       '@r10c/business-ts-party-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/party-management
@@ -474,6 +483,10 @@ importers:
       tslib:
         specifier: 2.8.1
         version: 2.8.1
+    devDependencies:
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.7.0(@entifix/react-controls@0.7.0(@entifix/i18n@0.7.0(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3)))(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.0(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.5)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
 
   apps/auth-service-e2e:
     dependencies:
@@ -991,6 +1004,12 @@ importers:
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../packages/business/ts/marketplace-catalog
+      '@r10c/business-ts-marketplace-vendor':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/marketplace-vendor
+      '@r10c/business-ts-party-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/party-contracts
       '@r10c/utils-ts-fleet':
         specifier: workspace:*
         version: link:../../packages/utils/ts/fleet
@@ -1009,6 +1028,10 @@ importers:
       tslib:
         specifier: 2.8.1
         version: 2.8.1
+    devDependencies:
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.7.0(@entifix/react-controls@0.7.0(@entifix/i18n@0.7.0(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3)))(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.0(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.5)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
 
   apps/order-service:
     dependencies:
@@ -1883,6 +1906,15 @@ importers:
         specifier: 0.5.23
         version: 0.5.23
 
+  packages/business/ts/marketplace-vendor:
+    dependencies:
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.7.0(effect@4.0.5)
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+
   packages/business/ts/order-management:
     dependencies:
       '@entifix/authz':
@@ -1897,6 +1929,18 @@ importers:
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
+
+  packages/business/ts/party-contracts:
+    dependencies:
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.7.0(effect@4.0.5)
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.5
+        version: 4.0.5
 
   packages/business/ts/party-management:
     dependencies:
@@ -2035,6 +2079,28 @@ importers:
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-catalog
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.5
+        version: 4.0.5
+    devDependencies:
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.7.0(@entifix/react-controls@0.7.0(@entifix/i18n@0.7.0(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3)))(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.0(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.5)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+
+  packages/implementation/marketplace-vendor/next:
+    dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.7.0(effect@4.0.5)
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.7.0(effect@4.0.5)
+      '@r10c/business-ts-marketplace-vendor':
+        specifier: workspace:*
+        version: link:../../../business/ts/marketplace-vendor
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23

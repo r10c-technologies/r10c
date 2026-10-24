@@ -41,6 +41,7 @@ export class Organization implements Entity {
   #name: string;
   #slug: string;
   #status: OrganizationStatus = OrganizationStatus.Active;
+  #updatedAt?: Date;
   // #endregion
 
   // #region constructors
@@ -100,6 +101,31 @@ export class Organization implements Entity {
   }
   set status(value: OrganizationStatus) {
     this.#status = value;
+  }
+
+  /**
+   * When this record was last written, and the moment its announcement is
+   * stamped with (ADR 0061).
+   *
+   * ⚠️ **Server-owned, and writable anyway**, for the reason `CLAUDE.md`
+   * records: `readonly` would drop it from deserialization too. Every write
+   * path sets it, today only auth-service's seed, and the rebuild walk
+   * re-announces an organization at this moment rather than at `now`, so a
+   * re-statement can never outrank a rename that landed while it ran.
+   */
+  @accessor({
+    type: 'date',
+    labelKey: 'entity:organization.fields.updatedAt',
+    sortable: true,
+    // Declared rather than defaulted: member metadata is the query allowlist,
+    // and nothing needs to filter on a write stamp.
+    filterable: false,
+  })
+  get updatedAt(): Date | undefined {
+    return this.#updatedAt;
+  }
+  set updatedAt(value: Date | undefined) {
+    this.#updatedAt = value;
   }
   // #endregion
 }

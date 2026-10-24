@@ -56,7 +56,18 @@ describe('Organization', () => {
       ['name', 'string'],
       ['slug', 'string'],
       ['status', 'enum'],
+      ['updatedAt', 'date'],
     ]);
+  });
+
+  it('holds the moment of its last write, which its announcement is stamped with', () => {
+    const organization = new Organization('Demo Vendor', 'demo-vendor');
+    expect(organization.updatedAt).toBeUndefined();
+
+    organization.updatedAt = new Date('2026-10-23T10:00:00.000Z');
+    expect(organization.updatedAt.toISOString()).toBe(
+      '2026-10-23T10:00:00.000Z',
+    );
   });
 
   it('allows querying by name, slug and status', () => {

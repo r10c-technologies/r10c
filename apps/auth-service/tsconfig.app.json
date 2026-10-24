@@ -36,6 +36,9 @@
       "path": "../../packages/business/ts/party-management/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/business/ts/party-contracts/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/i18n/tsconfig.lib.json"
     },
     {

@@ -381,6 +381,22 @@ const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     is_secret: true,
   },
   { service: 'auth-service', group_name: 'mongo', key: 'db', value: 'auth' },
+  // The bus an organization's announcement leaves on, from the outbox in the
+  // `auth` store (ADR 0061). Same broker and same quarantine budget as every
+  // other publishing slice.
+  {
+    service: 'auth-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
+  {
+    service: 'auth-service',
+    group_name: 'outbox',
+    key: 'maxAttempts',
+    value: '5',
+  },
   // auth-service session store (Redis) — the single source of truth for live
   // sessions every service can read.
   {

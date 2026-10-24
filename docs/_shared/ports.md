@@ -63,6 +63,13 @@ projects into it, and what fills it on a fresh lab is ADR 0050's rebuild walk,
 which runs in marketplace-admin-service. A storefront fleet without that service
 comes up healthy, green on every probe, serving an empty catalog.
 
+**It starts auth-service too**, for the same reason one store over. The
+`published-vendor` projection holds each seller's display name, and what fills
+it is auth-service announcing its organizations: the seed's write, and a
+rebuild walk on every boot that re-states each one at its own stamp
+([ADR 0061](../adr/0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md)).
+Without auth-service a storefront renders every product with no seller line.
+
 The difference from the version that was deleted is exactly the thing ADR 0020
 made sayable: a deployment earns its existence by owning a store.
 
