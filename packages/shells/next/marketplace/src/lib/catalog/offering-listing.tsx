@@ -28,7 +28,9 @@ import {
 } from '@r10c/implementation-marketplace-catalog-next';
 import { loadVendors } from '@r10c/implementation-marketplace-vendor-next';
 import { FacetPanel, SortControl } from '@r10c/utils-react-ui';
+import { cacheLife } from 'next/cache';
 
+import { CATALOG_CACHE } from './catalog-cache';
 import { emptyPage, runRead } from './catalog-reads';
 import { OfferingGrid } from './offering-grid';
 
@@ -82,6 +84,11 @@ export async function OfferingListing({
   categoryId,
   emptyLabel,
 }: OfferingListingProps) {
+  // Keyed by every prop, the parsed search included: one entry per distinct
+  // listing, each reused for the catalog's lifetime.
+  'use cache';
+  cacheLife(CATALOG_CACHE);
+
   const t = getServerTFor(locale, 'r10c');
   const controls = getServerTFor(locale, 'controls');
 

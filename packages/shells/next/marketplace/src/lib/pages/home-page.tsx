@@ -16,8 +16,10 @@ import {
   loadOfferings,
   type OfferingQuery,
 } from '@r10c/implementation-marketplace-catalog-next';
+import { cacheLife } from 'next/cache';
 import { Suspense } from 'react';
 
+import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { emptyPage, runRead } from '../catalog/catalog-reads';
 import { OfferingGrid, OfferingGridSkeleton } from '../catalog/offering-grid';
 import { storePaths } from '../routing/paths';
@@ -27,13 +29,13 @@ import { StoreShell } from './store-shell';
 const STRIP_SIZE = 4;
 
 /**
- * The storefront's front page. Prerendered, one copy per locale, revalidated on
- * the interval the route declares.
+ * The storefront's front page: a static shell per locale (the hero, the
+ * headings, the skeletons) with each section's reads streamed into it.
  *
- * The hero is rendered directly and each section below sits behind its own
- * `Suspense`, so the first flush already carries the heading — the LCP element
- * — while the reads are still resolving, and a slow strip holds back nothing
- * but itself.
+ * Each section is a cached component behind its own `Suspense`, on the
+ * catalog's lifetime (`CATALOG_CACHE`), so the first flush already carries
+ * the heading — the LCP element — and a slow strip holds back nothing but
+ * itself.
  *
  * Three sections, each one read: the top of the category tree as tiles, the
  * newest publications, and a featured strip. "Featured" is in stock and by
@@ -48,6 +50,9 @@ async function OfferingStrip({
   readonly locale: Locale;
   readonly query: OfferingQuery;
 }) {
+  'use cache';
+  cacheLife(CATALOG_CACHE);
+
   const t = getServerTFor(locale, 'r10c');
   const page = await runRead(
     PublishedOffering,
@@ -66,6 +71,9 @@ async function OfferingStrip({
 
 /** The roots of the category tree (ADR 0062), one tile each. */
 async function CategoryTiles({ locale }: { readonly locale: Locale }) {
+  'use cache';
+  cacheLife(CATALOG_CACHE);
+
   const roots = await runRead(ProductCategory, loadCategoryRoots(), []);
   if (roots.length === 0) return null;
 

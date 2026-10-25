@@ -3,7 +3,9 @@ import { getServerTFor } from '@entifix/i18n';
 import { ProductCategory } from '@r10c/business-ts-catalog-reference';
 import { getCategoryByCode } from '@r10c/implementation-catalog-reference-next';
 import type { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 
+import { CATALOG_CACHE } from '../catalog/catalog-cache';
 import { runRead } from '../catalog/catalog-reads';
 import { readProduct } from '../catalog/product-read';
 import { storePaths } from '../routing/paths';
@@ -13,9 +15,9 @@ import { pageMetadata } from './page-metadata';
  * Each storefront route's `generateMetadata`, as the shell states it: the
  * app's route files call these and add nothing.
  *
- * The reads are the pages' own. The product read is React-`cache`d
- * (`readProduct`), so a product page and its metadata share one request; a
- * category resolves its code the way its page does.
+ * The two that read are `'use cache'`d on the catalog's lifetime: they take
+ * plain arguments and return plain objects, which is what a cache entry may
+ * hold. The others read nothing but the locale.
  */
 
 export const homeMetadata = (locale: Locale): Metadata =>
@@ -42,6 +44,8 @@ export async function categoryMetadata(
   locale: Locale,
   code: string,
 ): Promise<Metadata> {
+  'use cache';
+  cacheLife(CATALOG_CACHE);
   const category = await runRead(
     ProductCategory,
     getCategoryByCode(code),
@@ -59,6 +63,8 @@ export async function productMetadata(
   locale: Locale,
   offeringId: string,
 ): Promise<Metadata> {
+  'use cache';
+  cacheLife(CATALOG_CACHE);
   const product = await readProduct(offeringId);
   return pageMetadata({
     locale,

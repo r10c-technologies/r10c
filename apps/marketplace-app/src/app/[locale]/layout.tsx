@@ -5,7 +5,7 @@ import '../global.css';
 // separate bundles with separate module state.
 import '@r10c/i18n-catalog';
 
-import { isLocale, type Locale } from '@entifix/core';
+import { isLocale, type Locale, locales } from '@entifix/core';
 import { getServerTFor } from '@entifix/next-i18n/server';
 import { storefrontOrigin } from '@r10c/shells-next-marketplace/server';
 import type { Metadata } from 'next';
@@ -25,29 +25,24 @@ interface LocaleParams {
 }
 
 /**
- * ⚠️ **There is deliberately no `generateStaticParams` here.**
+ * Every locale, known without a fetch: they are r10c's own list, registered by
+ * `@r10c/i18n-catalog` above. So `[locale]` is a static segment and each
+ * locale's shell is prerendered at build time.
  *
- * It used to return both locales, which prerendered `/es` and `/en` at build
- * time. That stopped being right the moment the storefront's content came from
- * marketplace-service: a build machine has no fleet, so what it would bake into
- * the home page is an empty catalog — and `revalidate` would then serve that
- * empty page to the first visitor of each locale after every deploy. A page
- * rendered from data the builder could not read is not a warm cache, it is a
- * wrong answer with a long TTL.
+ * ⚠️ **What this must never do is enumerate catalog data.** A build machine
+ * has no fleet, so anything prerendered from the catalog is an empty catalog
+ * with a TTL (ADR 0051). Under Cache Components that is the shell's
+ * `CATALOG_CACHE` lifetime's job: too short to be prerendered, so every
+ * catalog read below this layout is a hole filled at request time.
  *
- * ⚠️ It is **removed**, not emptied. Returning `[]` from a *layout* keeps
- * `[locale]` a generated segment with nothing in it, and Next then treats every
- * descendant as a static candidate — including `/search` and `/cart`, which
- * read `searchParams` and `cookies()`. Both answered `500 DYNAMIC_SERVER_USAGE`
- * until this function was deleted rather than stubbed. The build output is the
- * tell: they must stay `ƒ`.
- *
- * Every locale now renders on its first request and is cached from there, the
- * same arrangement `/[locale]/p/[offeringId]` uses. What the `[locale]` segment
- * buys is unchanged and is not about the build: the locale is a route parameter
- * rather than a header, so these pages are cacheable at all — the header-based
- * scheme in the back offices forces every render to be dynamic.
+ * It used to be removed outright: without Cache Components a layout's
+ * `generateStaticParams` made `/search` and `/cart` static candidates, and
+ * they answered `500 DYNAMIC_SERVER_USAGE`. Now their request-time reads sit
+ * inside their own `loading.tsx` boundary and stream into the shell instead.
  */
+export function generateStaticParams() {
+  return locales().map(locale => ({ locale }));
+}
 
 /** A prefix the proxy never produces (`/de/...`, typed by hand) is a 404. */
 function requireLocale(locale: string): Locale {

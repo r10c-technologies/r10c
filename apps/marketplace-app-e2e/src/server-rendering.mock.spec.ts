@@ -73,34 +73,31 @@ test.describe('server rendering', () => {
   });
 
   /**
-   * The cached routes must be served from the cache on a repeat visit. Without
-   * this, everything above would still pass while every request silently
-   * re-rendered — the failure mode a route table alone cannot catch.
+   * The catalog routes must be served from a prerendered shell. Without this,
+   * everything above would still pass while every request rendered the whole
+   * page — the failure mode a route table alone cannot catch.
    *
-   * ⚠️ The first request is what *fills* that cache now. Nothing is enumerated
-   * at build time any more — that would make `next build` fetch a service no
-   * build machine has, and bake an empty catalog into the page — so every page
-   * is rendered on its first request and cached from there.
+   * Under Cache Components (#346) that is the shape a cached route has: a
+   * static shell prerendered at build time, sent at once, with the catalog's
+   * cached reads streamed into it (`x-nextjs-postponed`). It replaces the ISR
+   * `x-nextjs-cache: HIT` this asserted before. Nothing from the catalog is in
+   * the shell itself — a build machine has no fleet (ADR 0051) — which the
+   * catalog's short cache lifetime guarantees.
    */
-  test('serves the cached copy rather than re-rendering', async ({
+  test('serves each catalog route from its prerendered shell', async ({
     request,
   }) => {
-    const responses = [];
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      responses.push(await request.get('/es/p/offering-aurora-desk-lamp'));
+    for (const path of [
+      '/es',
+      '/es/p/offering-aurora-desk-lamp',
+      '/es/c/lighting',
+      '/es/search',
+    ]) {
+      const response = await request.get(path);
+      expect(response.status(), path).toBe(200);
+      expect(response.headers()['x-nextjs-prerender'], path).toBe('1');
+      expect(response.headers()['x-nextjs-postponed'], path).toBe('1');
     }
-
-    // ⚠️ Three requests, and only the last one is pinned. An on-demand entry
-    // fills in up to three steps — `MISS` renders it, `STALE` serves it while
-    // the background regeneration runs, `HIT` serves the settled copy — and
-    // where a given request lands depends on whether an earlier spec in the
-    // run already visited this URL. What must hold either way is that repeat
-    // visits are answered from the cache rather than re-rendered, so that is
-    // what this asserts.
-    expect(
-      responses.map(response => response.headers()['x-nextjs-cache']),
-    ).not.toContain('SKIP');
-    expect(responses.at(-1)?.headers()['x-nextjs-cache']).toBe('HIT');
   });
 
   // The badge is the one thing a prerendered page cannot know. It must ship the

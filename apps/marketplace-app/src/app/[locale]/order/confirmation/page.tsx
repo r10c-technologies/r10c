@@ -6,15 +6,6 @@ import {
 import { type LocaleRouteProps, requireLocale } from '../../locale-param';
 
 /**
- * Dynamic because the receipt is a cookie.
- *
- * There is nothing to prerender here anyway: the page is the buyer's own order,
- * and the address deliberately identifies no order at all — an order id in a URL
- * is a capability, and the storefront holds no session to check one against.
- */
-export const dynamic = 'force-dynamic';
-
-/**
  * `searchParams` carries what a cancel attempt did. A query param rather than a
  * cookie, for the reason the cart's does: the server action redirects here, and
  * the result has to survive exactly one navigation and no longer.

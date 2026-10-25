@@ -2,22 +2,15 @@ import { cartMetadata, CartPage } from '@r10c/shells-next-marketplace/server';
 
 import { type LocaleRouteProps, requireLocale } from '../locale-param';
 
-/**
- * Dynamic because it reads `cookies()` — which is exactly what lets the first
- * response already contain the visitor's items instead of an empty cart that
- * corrects itself after hydration.
- */
-export const dynamic = 'force-dynamic';
+export async function generateMetadata({ params }: LocaleRouteProps) {
+  return cartMetadata(await requireLocale(params));
+}
 
 /**
  * `searchParams` carries what a checkout attempt did. It is a query param rather
  * than a cookie or a flash message because the server action redirects here:
  * the result has to survive exactly one navigation and no longer.
  */
-export async function generateMetadata({ params }: LocaleRouteProps) {
-  return cartMetadata(await requireLocale(params));
-}
-
 export default async function CartRoute({
   params,
   searchParams,

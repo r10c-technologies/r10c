@@ -8,6 +8,12 @@
  *
  * @type {import('next').NextConfig}
  **/
-const nextConfig = {};
+const nextConfig = {
+  // Partial prerendering (#346): each route's static shell is prerendered and
+  // what reads the catalog, a cookie or the query streams into it. The
+  // catalog's cache lifetime is the shell's `CATALOG_CACHE`, short enough
+  // that no catalog read is baked in at build time (ADR 0051).
+  cacheComponents: true,
+};
 
 module.exports = nextConfig;
