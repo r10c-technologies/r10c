@@ -85,6 +85,8 @@ export interface SeededOffering {
   readonly categoryCode: string;
   /** The category's name, rendered as the category page's heading. */
   readonly categoryName: string;
+  /** The category's number in the seed (`product-category-<n>`). */
+  readonly categoryNumber: number;
   /** The brand's name, rendered on the card and in the product page's overline. */
   readonly brandName: string;
   readonly amount: number;
@@ -102,6 +104,7 @@ const offeringAt = (index: number): SeededOffering => {
     code: `P-${String(number).padStart(4, '0')}`,
     categoryCode: `PC-${String(categoryNumber).padStart(3, '0')}`,
     categoryName: cycled(CATEGORY_NAMES, categoryNumber - 1),
+    categoryNumber,
     brandName: cycled(BRAND_NAMES, brandNumber - 1),
     amount: 1999 + index * 500,
     currency: CURRENCIES[index % CURRENCIES.length],
@@ -119,6 +122,30 @@ export const PUBLISHED_OFFERINGS: readonly SeededOffering[] = indices
   .map(offeringAt);
 
 /**
+ * `product-category-temp-data.ts`: two levels (ADR 0062). The first ten
+ * categories are roots and every later one sits under the root its base name
+ * came from; the multiples of five are retired.
+ */
+const isActiveCategory = (number: number) => number % 5 !== 0;
+const rootOf = (number: number) => ((number - 1) % CATEGORY_NAMES.length) + 1;
+
+/**
+ * What `/c/<code>` lists: the offerings in that category and in every active
+ * category under it, because a category page lists its whole subtree.
+ */
+export const listedUnder = (
+  categoryNumber: number,
+): readonly SeededOffering[] =>
+  PUBLISHED_OFFERINGS.filter(
+    offering =>
+      offering.categoryNumber === categoryNumber ||
+      (categoryNumber <= CATEGORY_NAMES.length &&
+        offering.categoryNumber > CATEGORY_NAMES.length &&
+        rootOf(offering.categoryNumber) === categoryNumber &&
+        isActiveCategory(offering.categoryNumber)),
+  );
+
+/**
  * One offering the seed leaves `draft`.
  *
  * The storefront must not be able to reach it: `published-catalog` is a
@@ -128,17 +155,6 @@ export const PUBLISHED_OFFERINGS: readonly SeededOffering[] = indices
 export const UNPUBLISHED_OFFERING: SeededOffering = offeringAt(
   indices.find(index => STATUSES[index % STATUSES.length] === 'draft') ?? 0,
 );
-
-/** What the home page's featured grid shows: the first six by name, ascending. */
-export const FEATURED_OFFERINGS: readonly SeededOffering[] = [
-  ...PUBLISHED_OFFERINGS,
-]
-  // Plain byte order, not `localeCompare`: the ordering under test is the one
-  // marketplace-service applies, and Mongo's default collation is a binary
-  // comparison. A locale-aware sort here would agree today and disagree the
-  // first time a seed name carried an accent.
-  .sort((left, right) => (left.name < right.name ? -1 : 1))
-  .slice(0, 6);
 
 /**
  * A family the seed publishes more than once, and one it never publishes.

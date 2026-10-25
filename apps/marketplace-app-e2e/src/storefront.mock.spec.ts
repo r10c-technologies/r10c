@@ -272,6 +272,75 @@ test.describe('browsing the catalog', () => {
     await expect(page.getByText('Aurora Desk Lamp')).toHaveCount(0);
   });
 
+  /**
+   * #352: the price is the one facet a buyer types. It submits as a GET form,
+   * in major units, and keeps the rest of the search.
+   */
+  test('a price range narrows the results', async ({ page }) => {
+    await page.goto('/es/search?q=a');
+    const price = page
+      .getByRole('complementary', { name: 'Filtrar' })
+      .getByRole('region', { name: 'Precio' });
+    await price.getByRole('spinbutton', { name: 'Desde' }).fill('50');
+    await price.getByRole('spinbutton', { name: 'Hasta' }).fill('100');
+    await price.getByRole('button', { name: 'Aplicar' }).click();
+
+    await page.waitForURL(/min=50/);
+    await expect(page).toHaveURL(/q=a/);
+    await expect(page).toHaveURL(/max=100/);
+    // Every fixture between 50,00 and 100,00 in its own currency whose name
+    // has an "a" — the range compares minor units, so 5000 ≤ amount ≤ 10000.
+    await expect(page.getByRole('spinbutton', { name: 'Desde' })).toHaveValue(
+      '50',
+    );
+    const articles = await page.getByRole('main').getByRole('article').all();
+    // Not vacuous: the fixtures hold six offerings in range.
+    expect(articles.length).toBeGreaterThan(0);
+    for (const article of articles) {
+      const price = Number(
+        (
+          await article
+            .getByText(/\d+,\d{2}/)
+            .first()
+            .innerText()
+        )
+          .replace(/[^\d,]/g, '')
+          .replace(',', '.'),
+      );
+      expect(price).toBeGreaterThanOrEqual(50);
+      expect(price).toBeLessThanOrEqual(100);
+    }
+  });
+
+  test('the in-stock toggle leaves out what is sold out', async ({ page }) => {
+    await page.goto('/es/search');
+    await expect(page.getByText('36 productos')).toBeVisible();
+
+    await page
+      .getByRole('complementary', { name: 'Filtrar' })
+      .getByRole('link', { name: 'Solo disponibles' })
+      .click();
+
+    await page.waitForURL(/available=1/);
+    await expect(page.getByText('32 productos')).toBeVisible();
+  });
+
+  test('sorting by price and by newest reorders the results', async ({
+    page,
+  }) => {
+    const first = () =>
+      page.getByRole('main').getByRole('article').first().getByRole('heading');
+
+    await page.goto('/es/search');
+    await page.getByRole('link', { name: 'Precio: menor a mayor' }).click();
+    await page.waitForURL(/sort=price-asc/);
+    await expect(first()).toHaveText('Unbranded Kitchen Twine');
+
+    await page.getByRole('link', { name: 'Más recientes' }).click();
+    await page.waitForURL(/sort=newest/);
+    await expect(first()).toHaveText('Terra Pasta Bowl');
+  });
+
   test('the header searches from any page', async ({ page }) => {
     await page.goto('/es/c/lighting');
     await page.getByRole('searchbox').fill('mug');
