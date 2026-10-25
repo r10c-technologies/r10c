@@ -9,6 +9,7 @@ import {
   CATEGORY_TOO_DEEP,
   categoryPlacementRefusal,
   categoryRetireGuard,
+  categorySaveRefusal,
   categorySubtree,
 } from './category-tree.js';
 
@@ -146,6 +147,36 @@ describe('categoryRetireGuard', () => {
 
     expect(guard(category('garden', undefined, 'retired'))).toBeUndefined();
     expect(guard(category('x', 'gone', 'retired'))).toBeUndefined();
+  });
+});
+
+describe('categorySaveRefusal', () => {
+  it('refuses a save that retires a category with an active child', () => {
+    expect(
+      categorySaveRefusal(TREE, category('lighting', 'home', 'retired')),
+    ).toBe(CATEGORY_HAS_CHILDREN);
+  });
+
+  it('retires a leaf, and saves an active category, as before', () => {
+    expect(
+      categorySaveRefusal(TREE, category('desk', 'lighting', 'retired')),
+    ).toBeUndefined();
+    expect(
+      categorySaveRefusal(TREE, category('lighting', 'home')),
+    ).toBeUndefined();
+  });
+
+  it('refuses a placement first', () => {
+    expect(
+      categorySaveRefusal(TREE, category('lighting', 'gone', 'retired')),
+    ).toBe(CATEGORY_PARENT_MISSING);
+  });
+
+  it('has nothing to retire out from under on a new category', () => {
+    const fresh = new ProductCategory('new', 'New');
+    fresh.status = 'retired';
+
+    expect(categorySaveRefusal(TREE, fresh)).toBeUndefined();
   });
 });
 

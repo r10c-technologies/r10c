@@ -105,7 +105,9 @@ export const r10c: EsR10c = {
       gallery: 'Product images',
     },
     listing: {
-      results: '{{count}} products',
+      // i18next picks the form from `count` by the locale's plural rules.
+      results_one: '{{count}} product',
+      results_other: '{{count}} products',
       empty: 'No product matches these filters.',
       filters: 'Filter',
       sort: 'Sort',
