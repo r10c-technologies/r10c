@@ -4,6 +4,7 @@
 - Date: 2026-10-23
 - Revised: 2026-10-24 — entifix 0.5.0 split its mixed entry points, so the review-only line below is now a ban (#321)
 - Revised: 2026-10-24 — `OfferingCard` is replaced by the generic `ProductCard` in `@r10c/utils-react-ui` (#334).
+- Revised: 2026-10-25 — `makeEntityRoutes` went straight to entifix 0.7.2 rather than through r10c: nine hand-written copies and the framework's own example were already the second consumer (#358 superseded by #366)
 - Area: entities
 - Read when: adding a package under `packages/implementation/`, putting technology-bound code into a shell or an app, or a UI file imports an adapter — a cell depends on entities, use cases and ports and never on another cell or an adapter, UI and HTTP cells are keyed by domain and persistence cells by store
 
@@ -93,13 +94,19 @@ which this record narrows to r10c's layering rather than restating.
 ### Generic asset, then binding, then the escape hatch
 
 The default way to build a cell is to **bind a metadata-driven generic asset to
-an entity**, the way `makeEntityCrud` already derives a CRUD screen. The
-backend twin, `makeEntityRoutes`, does not exist yet; the seven hand-rolled
-`entity-crud.ts` files are what it replaces. A hand-written component or route
+an entity**, the way `makeEntityCrud` already derives a CRUD screen. Its backend
+twin is `makeEntityRoutes`, in `@entifix/service-shell` since 0.7.2; the seven
+hand-rolled `entity-crud.ts` files are what it replaced. A hand-written component or route
 stays first-class wherever the generic one does not fit.
 
 A new generic asset is **incubated in r10c and promoted to entifix when a second
-consumer needs it** — before that, nobody can tell which half is generic. An
+consumer needs it** — before that, nobody can tell which half is generic.
+
+> 2026-10-25: `makeEntityRoutes` skipped the incubation, and the rule is why it
+> could. The point of waiting for a second consumer is to see which half is
+> generic; nine copies of the same routes across the fleet, plus the
+> framework's own example service writing them a tenth time, had already shown
+> it. Promotion's condition was met before the asset existed. An
 incubated asset cannot sit in a shell, because a cell cannot import one, so it
 lives at `layer:utils, scope:shared`, one package per technology, and carries
 the same `tech:*` bans a cell of that technology does.
