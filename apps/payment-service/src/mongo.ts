@@ -1,36 +1,16 @@
-import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
-import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
-import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@entifix/authz';
-import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
-import { ConfigurationClientInMemory } from '@entifix/core';
-import { makeJoseTokenService } from '@entifix/jwt';
-import {
-  MongoDatabaseLayer,
-  MongoDatabaseTag,
-  MongoHealthProbeLayer,
-} from '@entifix/mongo';
+import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   ensureOutboxIndexes,
-  OutboxMaxAttempts,
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
-import { ServiceCrossingTokenTag } from '@entifix/service-shell';
-import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
-import { EventSourceTag } from '@entifix/transactions';
 import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { configSourceFor } from '@r10c/utils-ts-fleet';
+  crossingTokenLayer,
+  fleetBusLayer,
+  fleetOutboxLayer,
+  fleetSecurityLayer,
+  fleetSingleMongoLayer,
+  makeFleetServiceLayer,
+} from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
 import { PAYMENT_SLICE } from './outbox';
@@ -72,28 +52,9 @@ const SERVICE_NAME = 'payment-service';
  * is a unique index on a claimed command id, which is stronger than a lock and
  * needs no second datastore.
  */
-export const AppLayer = Layer.unwrap(
+export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
-    const store = new ConfigurationClientInMemory(plain);
-
-    const uri = yield* store.in('mongo').getString('uri');
-    const db = yield* store.in('mongo').getString('db');
-    const amqpUri = yield* store.in('rabbitmq').getString('uri');
-
-    // The public half only. This service verifies access tokens and never mints
-    // one, so it is configured with material that cannot sign.
-    const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
-    const jwtKeyId = yield* store.in('jwt').getString('keyId');
-
-    const crossingToken = yield* store.in('service').getString('token');
-
-    // ⚠️ `getNumber`, never a cast. A value of `'five'` casts to `NaN`, every
-    // comparison against it goes false, and nothing is ever quarantined — a
-    // relay that looks healthy while its head never moves.
-    const outboxMaxAttempts = yield* store
-      .in('outbox')
-      .getNumber('maxAttempts');
+    const { store } = configuration;
 
     // Configuration rather than a build flag, so a live pass can force a decline
     // without a rebuild — which is the only way to exercise the saga's
@@ -103,34 +64,12 @@ export const AppLayer = Layer.unwrap(
       .in('provider')
       .getString('declineReason');
 
-    const observability = yield* observabilityFromConfiguration(
-      store,
-      SERVICE_NAME,
-    );
-
     const connections = Layer.mergeAll(
-      MongoDatabaseLayer({ uri, dbName: db }),
-      AmqpLayer({ uri: amqpUri }),
-      Layer.succeed(
-        TokenServiceTag,
-        makeJoseTokenService({
-          publicKeyPem: jwtPublicKey,
-          keyId: jwtKeyId,
-          issuer: AUTH_TOKEN_ISSUER,
-          audience: AUTH_TOKEN_AUDIENCE,
-        }),
-      ),
-      Layer.succeed(ConfigurationRepositoryTag, store),
-      Layer.succeed(LoadedConfigurationTag, plain),
-      Layer.succeed(
-        PolicyDecisionTag,
-        makeStaticPolicyDecision(ROLE_PERMISSIONS),
-      ),
-      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
-      Layer.succeed(ServiceCrossingTokenTag, crossingToken),
-      // The **slice**, never the deployment and never the domain (ADR 0029).
-      Layer.succeed(EventSourceTag, PAYMENT_SLICE),
-      Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
+      yield* fleetSingleMongoLayer(configuration, ['payment']),
+      yield* fleetBusLayer(configuration),
+      yield* fleetSecurityLayer(configuration),
+      yield* crossingTokenLayer(configuration),
+      yield* fleetOutboxLayer(configuration, PAYMENT_SLICE),
       SimulatedPaymentProviderLayer({
         outcome: readSimulatedOutcome(providerOutcome),
         declineReason:
@@ -138,16 +77,6 @@ export const AppLayer = Layer.unwrap(
             ? DEFAULT_SIMULATED_SETTINGS.declineReason
             : declineReason,
       }),
-    );
-
-    const infra = Layer.provideMerge(AmqpEventBusLayer, connections);
-
-    // Named by the logical Store it backs rather than by the driver, so
-    // `/api/health/ready` describes this service in the register's vocabulary
-    // (ADR 0031).
-    const withProbes = Layer.provideMerge(
-      Layer.mergeAll(MongoHealthProbeLayer(['payment']), AmqpHealthProbeLayer),
-      infra,
     );
 
     // Before the first write, and here rather than per request: unlike a tenant
@@ -163,15 +92,9 @@ export const AppLayer = Layer.unwrap(
           ),
         ),
       ),
-      withProbes,
+      connections,
     );
 
-    return Layer.merge(
-      observability,
-      Layer.provideMerge(
-        Layer.merge(indexed, Layer.effectDiscard(startOutboxRelay())),
-        withProbes,
-      ),
-    );
-  }).pipe(Effect.orDie),
-).pipe(Layer.orDie);
+    return Layer.provideMerge(Layer.effectDiscard(startOutboxRelay()), indexed);
+  }),
+);

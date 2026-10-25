@@ -200,6 +200,9 @@
     },
     {
       "path": "./packages/utils/react/ui"
+    },
+    {
+      "path": "./packages/shells/effect/service"
     }
   ],
   "compilerOptions": {

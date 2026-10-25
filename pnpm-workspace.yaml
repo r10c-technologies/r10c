@@ -7,6 +7,9 @@ packages:
   # technology (docs/adr/0060).
   - 'packages/implementation/*/*'
   - 'packages/shells/next/*'
+  # The effect services' shared composition: r10c's grants, crossing and
+  # token issuer applied to the framework's service shell.
+  - 'packages/shells/effect/*'
   # Test data, never shipped: `type:testing`, so only specs, e2e and Storybook
   # may import it.
   - 'packages/testing/*'

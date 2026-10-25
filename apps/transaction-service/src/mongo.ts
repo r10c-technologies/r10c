@@ -1,28 +1,12 @@
-import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
-import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
-import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@entifix/authz';
-import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
-import { ConfigurationClientInMemory } from '@entifix/core';
-import { makeJoseTokenService } from '@entifix/jwt';
-import { MongoClientLayer, MongoHealthProbeLayer } from '@entifix/mongo';
-import { ServiceCrossingTokenTag } from '@entifix/service-shell';
-import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
 import { TransactionStreamHubTag } from '@entifix/transactions';
 import { makeTransactionStreamHubEffect } from '@entifix/transactions/engine';
 import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { configSourceFor } from '@r10c/utils-ts-fleet';
+  crossingTokenLayer,
+  fleetBusLayer,
+  fleetMongoPoolLayer,
+  fleetSecurityLayer,
+  makeFleetServiceLayer,
+} from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
 import {
@@ -72,13 +56,10 @@ const SERVICE_NAME = 'transaction-service';
  * announces (ADR 0028) — so it belongs to the catalog's writer and stayed
  * there.
  */
-export const AppLayer = Layer.unwrap(
+export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
-    const store = new ConfigurationClientInMemory(plain);
+    const { store } = configuration;
 
-    const uri = yield* store.in('mongo').getString('uri');
-    const amqpUri = yield* store.in('amqp').getString('uri');
     const sagaDbName = yield* store.in('saga').getString('db');
     const sagaStaleTimeoutMs = yield* store
       .in('saga')
@@ -95,18 +76,6 @@ export const AppLayer = Layer.unwrap(
     const sagaMaxResumeAttempts = yield* store
       .in('saga')
       .getNumber('maxResumeAttempts');
-
-    // The public half only. This service verifies access tokens and never mints
-    // one, so it is configured with material that cannot sign.
-    const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
-    const jwtKeyId = yield* store.in('jwt').getString('keyId');
-
-    // ⚠️ **This service's own *inbound* token — what a caller presents to run a
-    // saga — and it is a different secret from the outbound ones below. The
-    // coordinator is both a callee and a caller, and collapsing the two
-    // directions onto one value would mean anyone allowed to *start* a checkout
-    // held the key that *writes* a vendor's stock.
-    const inboundToken = yield* store.in('service').getString('token');
 
     // ⚠️ **A crossing token per participant, and each is that participant's
     // own.** Reusing one across services — or reusing the fleet's
@@ -129,43 +98,29 @@ export const AppLayer = Layer.unwrap(
       },
     };
 
-    const observability = yield* observabilityFromConfiguration(
-      store,
-      SERVICE_NAME,
-    );
-
     const connections = Layer.mergeAll(
-      MongoClientLayer({ uri }),
-      AmqpLayer({ uri: amqpUri }),
-      Layer.succeed(
-        TokenServiceTag,
-        makeJoseTokenService({
-          publicKeyPem: jwtPublicKey,
-          keyId: jwtKeyId,
-          issuer: AUTH_TOKEN_ISSUER,
-          audience: AUTH_TOKEN_AUDIENCE,
-        }),
-      ),
-      Layer.succeed(ConfigurationRepositoryTag, store),
-      Layer.succeed(LoadedConfigurationTag, plain),
-      Layer.succeed(
-        PolicyDecisionTag,
-        makeStaticPolicyDecision(ROLE_PERMISSIONS),
-      ),
-      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
+      // The pool: the `saga` store is a database this process names itself.
+      yield* fleetMongoPoolLayer(configuration, ['saga']),
+      // This slice's rows were named `amqp` before the rest of the fleet's.
+      yield* fleetBusLayer(configuration, 'amqp'),
+      yield* fleetSecurityLayer(configuration),
+      // ⚠️ **This service's own *inbound* token — what a caller presents to run
+      // a saga — and a different secret from the outbound ones above.** The
+      // coordinator is both a callee and a caller, and collapsing the two
+      // directions onto one value would mean anyone allowed to *start* a
+      // checkout held the key that *writes* a vendor's stock.
+      yield* crossingTokenLayer(configuration),
       Layer.succeed(SagaDatabaseName, sagaDbName),
       Layer.succeed(SagaStaleTimeoutMs, sagaStaleTimeoutMs),
       Layer.succeed(SagaRecoveryIntervalMs, sagaRecoveryIntervalMs),
       Layer.succeed(SagaResumeIntervalMs, sagaResumeIntervalMs),
       Layer.succeed(SagaStaleAfterMs, sagaStaleAfterMs),
       Layer.succeed(SagaMaxResumeAttempts, sagaMaxResumeAttempts),
-      Layer.succeed(ServiceCrossingTokenTag, inboundToken),
       Layer.succeed(ParticipantsTag, participants),
     );
 
     const infra = Layer.provideMerge(
       Layer.mergeAll(
-        AmqpEventBusLayer,
         MongoTransactionStoreLayer,
         MongoSagaStoreLayer,
         HttpSagaDispatcherLayer,
@@ -179,31 +134,20 @@ export const AppLayer = Layer.unwrap(
       connections,
     );
 
-    // The logical Stores each connection backs, by their register name in
-    // `tools/slices/` — one now, where the co-deployed process named two
-    // (ADR 0031).
-    const withProbes = Layer.provideMerge(
-      Layer.mergeAll(MongoHealthProbeLayer(['saga']), AmqpHealthProbeLayer),
+    // The tracker: it subscribes to the bus and forks the recovery sweep.
+    // Passive for a single-step write — it observes and recovers — while
+    // `POST /api/saga/:definition` beside it dispatches. Both read the same
+    // store, which is what makes "where did this stop, and what has been
+    // reversed" one query rather than a correlation across service logs.
+    const tracked = Layer.provideMerge(
+      Layer.effectDiscard(startTracking),
       infra,
     );
 
-    const tracked = Layer.provideMerge(
-      // The tracker: it subscribes to the bus and forks the recovery sweep.
-      // Passive for a single-step write — it observes and recovers — while
-      // `POST /api/saga/:definition` beside it dispatches. Both read the same
-      // store, which is what makes "where did this stop, and what has been
-      // reversed" one query rather than a correlation across service logs.
-      Layer.effectDiscard(startTracking),
-      withProbes,
-    );
-
-    return Layer.merge(
-      observability,
-      // ⚠️ Chained after the tracker rather than merged beside it, so the
-      // resume sweep is built on a context that already has the store and the
-      // dispatcher. Merged, the two forks would race for the same services at
-      // boot.
-      Layer.provideMerge(Layer.effectDiscard(startSagaResume), tracked),
-    );
-  }).pipe(Effect.orDie),
-).pipe(Layer.orDie);
+    // ⚠️ Chained after the tracker rather than merged beside it, so the
+    // resume sweep is built on a context that already has the store and the
+    // dispatcher. Merged, the two forks would race for the same services at
+    // boot.
+    return Layer.provideMerge(Layer.effectDiscard(startSagaResume), tracked);
+  }),
+);

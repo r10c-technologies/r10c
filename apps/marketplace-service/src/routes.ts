@@ -1,7 +1,6 @@
+import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-import { HttpRouter } from 'effect/http';
 
-import { configIntrospectionRoute } from './routes/config.routes';
 import { dictionaryTermRoutes } from './routes/dictionary-term.routes';
 import { productBrandRoutes } from './routes/product-brand.routes';
 import { productCategoryRoutes } from './routes/product-category.routes';
@@ -29,9 +28,10 @@ import { publishedVendorRoutes } from './routes/published-vendor.routes';
  * silently replace another's.
  */
 export const router = Layer.mergeAll(
-  HttpRouter.addAll([
-    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
-  ]),
+  // A literal, not `SERVICE_NAME`: `index.ts` re-exports this module, so
+  // importing it back would read the constant before it is initialised. It
+  // gains `GET /api/me` with it, which every other service already had.
+  serviceBaseRoutes({ service: '@r10c/marketplace-service', store: 'mongo' }),
   publishedOfferingRoutes,
   publishedVendorRoutes,
   productBrandRoutes,

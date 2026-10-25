@@ -1,32 +1,8 @@
 import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@entifix/authz';
-import {
-  ConfigurationRepositoryTag,
-  TenantDatabaseResolverTag,
-  TokenServiceTag,
-} from '@entifix/business';
-import { ConfigurationClientInMemory } from '@entifix/core';
-import { makeJoseTokenService } from '@entifix/jwt';
-import {
-  makeMongoTenantResolver,
-  MongoClientLayer,
-  MongoClientTag,
-  MongoHealthProbeLayer,
-} from '@entifix/mongo';
-import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
-import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { configSourceFor } from '@r10c/utils-ts-fleet';
+  fleetSecurityLayer,
+  fleetTenantMongoLayer,
+  makeFleetServiceLayer,
+} from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
 import {
@@ -57,16 +33,13 @@ const SERVICE_NAME = 'sales-service';
  * a member of the organization that owns it, so a verified session is the only
  * credential any route here accepts.
  */
-export const AppLayer = Layer.unwrap(
+export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
-    const store = new ConfigurationClientInMemory(plain);
+    const { store } = configuration;
 
-    const uri = yield* store.in('mongo').getString('uri');
     // Tenant storage: one Mongo database per organization, named from the
-    // organization id. Configuration rather than a constant, so the convention
-    // is stated once — in config-service — instead of in every service that
-    // follows it.
+    // organization id; the prefix is read by `fleetTenantMongoLayer` below, and again
+    // here for the seed's own database name.
     const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
 
     // The local demo vendor, whose channels this service seeds. The same id
@@ -74,11 +47,6 @@ export const AppLayer = Layer.unwrap(
     const demoOrganizationId = yield* store
       .in('tenant')
       .getString('demoOrganizationId');
-
-    // The public half only. This service verifies access tokens and never mints
-    // one, so it is configured with material that cannot sign.
-    const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
-    const jwtKeyId = yield* store.in('jwt').getString('keyId');
 
     // Where the checkout coordinator answers, and what this service presents to
     // start a flow. The token is an `is_secret` row — the security boundary
@@ -94,69 +62,24 @@ export const AppLayer = Layer.unwrap(
     // one offering however it sells (ADR 0056).
     const catalogUrl = yield* store.in('marketplace').getString('url');
 
-    const observability = yield* observabilityFromConfiguration(
-      store,
-      SERVICE_NAME,
-    );
-
     const connections = Layer.mergeAll(
-      MongoClientLayer({ uri }),
-      Layer.succeed(
-        TokenServiceTag,
-        makeJoseTokenService({
-          publicKeyPem: jwtPublicKey,
-          keyId: jwtKeyId,
-          issuer: AUTH_TOKEN_ISSUER,
-          audience: AUTH_TOKEN_AUDIENCE,
-        }),
-      ),
-      Layer.succeed(ConfigurationRepositoryTag, store),
-      Layer.succeed(LoadedConfigurationTag, plain),
-      // The authorization policy. Static role→permission table today; swapping
-      // in an attribute-aware engine is a change of this line alone.
-      Layer.succeed(
-        PolicyDecisionTag,
-        makeStaticPolicyDecision(ROLE_PERMISSIONS),
-      ),
-      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
+      yield* fleetTenantMongoLayer(configuration, ['sales']),
+      yield* fleetSecurityLayer(configuration),
       Layer.succeed(CheckoutCoordinatorUrl, coordinatorUrl),
       Layer.succeed(CheckoutCrossingToken, coordinatorToken),
       Layer.succeed(PublishedCatalogUrl, catalogUrl),
     );
 
-    // The connection contributes its own readiness probe, named by the logical
-    // Store it backs rather than by the driver, so `/api/health/ready`
-    // describes this service in the register's vocabulary (ADR 0031).
-    const withProbes = Layer.provideMerge(
-      MongoHealthProbeLayer(['sales']),
-      connections,
-    );
-
-    // The tenant resolver: one client, N database handles. It needs the pool
-    // rather than a shared `Db`, and it is built here — at the composition root
-    // — because only this file knows which driver backs the port.
-    const tenancy = Layer.provide(
-      Layer.effect(
-        TenantDatabaseResolverTag,
-        Effect.map(MongoClientTag, client =>
-          makeMongoTenantResolver(client, tenantPrefix),
-        ),
-      ),
-      withProbes,
-    );
-
     // The demo vendor's channels, written on first boot into `sales_<id>`.
     //
-    // ⚠️ **`Layer.provideMerge` over the tenancy layer, never a sibling in a
+    // ⚠️ **`Layer.provideMerge` over the connections, never a sibling in a
     // `Layer.mergeAll`.** `mergeAll` builds its members concurrently and Mongo
     // creates a tenant database on first write, so a sibling touching
     // `sales_<id>` would race the seed on a fresh `dev:reset` and see a store
     // that is empty, half-seeded or seeded depending on scheduling.
-    const seeded = Layer.provideMerge(
+    return Layer.provideMerge(
       Layer.effectDiscard(seedSales(`${tenantPrefix}${demoOrganizationId}`)),
-      tenancy,
+      connections,
     );
-
-    return Layer.merge(observability, Layer.provideMerge(seeded, withProbes));
-  }).pipe(Effect.orDie),
-).pipe(Layer.orDie);
+  }),
+);

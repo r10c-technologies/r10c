@@ -1,6 +1,6 @@
 import { MongoClientTag } from '@entifix/mongo';
+import { seedCollection } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
-import type { Db } from 'mongodb';
 
 import {
   ensureStockItemIndexes,
@@ -10,32 +10,6 @@ import { stockItemTempData, stockMovementTempData } from './stock-temp-data';
 
 /** The movement ledger's collection, matching `@entity({ key })`. */
 const STOCK_MOVEMENT_COLLECTION = 'stock-movement';
-
-/**
- * Inserts a seed dataset into a collection when it is empty.
- *
- * The same shape marketplace-admin-service's `seedCatalog` uses, and for the
- * same reasons: the temp-data records are already in the entity wire shape, so
- * they insert verbatim and read back through the entifix deserializer, and the
- * guard is per **collection** rather than per database — a store that gained a
- * second collection later should seed that one on the next boot rather than
- * staying empty because the first one has rows.
- */
-function seedCollection(
-  db: Db,
-  collectionName: string,
-  data: ReadonlyArray<Record<string, unknown>>,
-) {
-  return Effect.gen(function* () {
-    const collection = db.collection(collectionName);
-    const count = yield* Effect.promise(() => collection.countDocuments());
-    if (count === 0 && data.length > 0) {
-      yield* Effect.promise(() =>
-        collection.insertMany(data.map(item => ({ ...item }))),
-      );
-    }
-  });
-}
 
 const asRecords = (
   data: ReadonlyArray<object>,

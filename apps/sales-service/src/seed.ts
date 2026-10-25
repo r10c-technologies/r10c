@@ -1,33 +1,9 @@
 import { MongoClientTag } from '@entifix/mongo';
+import { seedCollection } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
-import type { Db } from 'mongodb';
 
 import { SALES_CHANNEL_COLLECTION } from './sales-channel-index';
 import { salesChannelTempData } from './sales-temp-data';
-
-/**
- * Inserts a seed dataset into a collection when it is empty.
- *
- * The guard is per **collection** rather than per database, the shape
- * `seedStock` and `seedCatalog` use: a store that gains a second collection
- * later should seed that one on the next boot rather than staying empty because
- * the first one has rows.
- */
-function seedCollection(
-  db: Db,
-  collectionName: string,
-  data: ReadonlyArray<Record<string, unknown>>,
-) {
-  return Effect.gen(function* () {
-    const collection = db.collection(collectionName);
-    const count = yield* Effect.promise(() => collection.countDocuments());
-    if (count === 0 && data.length > 0) {
-      yield* Effect.promise(() =>
-        collection.insertMany(data.map(item => ({ ...item }))),
-      );
-    }
-  });
-}
 
 const asRecords = (
   data: ReadonlyArray<object>,

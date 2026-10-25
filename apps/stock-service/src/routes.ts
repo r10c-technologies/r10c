@@ -1,8 +1,6 @@
-import { requirePrincipal } from '@entifix/service-shell';
+import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-import { HttpRouter, HttpServerResponse } from 'effect/http';
 
-import { configIntrospectionRoute } from './routes/config.routes';
 import { reservationRoutes } from './routes/reservation.routes';
 import { stockItemRoutes } from './routes/stock-item.routes';
 import { stockMovementRoutes } from './routes/stock-movement.routes';
@@ -36,16 +34,9 @@ import { stockMovementRoutes } from './routes/stock-movement.routes';
  * two-credentials mistake.
  */
 export const router = Layer.mergeAll(
-  HttpRouter.addAll([
-    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
-    // Token-verified backend integration: returns the caller's principal, proving
-    // a downstream service trusts the access token auth-service minted.
-    HttpRouter.route(
-      'GET',
-      '/api/me',
-      requirePrincipal(principal => HttpServerResponse.json(principal)),
-    ),
-  ]),
+  // A literal, not `SERVICE_NAME`: `index.ts` re-exports this module, so
+  // importing it back would read the constant before it is initialised.
+  serviceBaseRoutes({ service: '@r10c/stock-service', store: 'mongo' }),
   stockItemRoutes,
   reservationRoutes,
   stockMovementRoutes,

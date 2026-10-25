@@ -33,6 +33,9 @@
       "path": "../../packages/utils/ts/fleet/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/party-management/tsconfig.lib.json"
     },
     {

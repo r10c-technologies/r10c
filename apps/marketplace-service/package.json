@@ -159,6 +159,7 @@
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "@r10c/business-ts-marketplace-vendor": "workspace:*",
     "@r10c/business-ts-party-contracts": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "amqplib": "2.2.0",
     "effect": "4.0.5",

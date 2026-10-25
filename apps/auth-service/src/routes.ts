@@ -31,8 +31,11 @@ import {
 import { isLocale } from '@entifix/core';
 import { publicJwks } from '@entifix/jwt';
 import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
-import { entityMetadataRoute, redactConfiguration, requirePermission, requirePrincipal } from '@entifix/service-shell';
-import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
+import {
+  entityMetadataRoute,
+  requirePermission,
+  requirePrincipal,
+} from '@entifix/service-shell';
 import {
   ACTION_SIGNATURE_HEADER,
   createOpaqueValue,
@@ -69,6 +72,7 @@ import {
   UserStatus,
 } from '@r10c/business-ts-authn';
 import { isRole, type Role } from '@r10c/business-ts-authz-grants';
+import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Effect, Layer, Option } from 'effect';
 import {
   Headers,
@@ -223,16 +227,6 @@ const jwksRoute = Effect.gen(function* () {
     yield* Effect.promise(() => publicJwks(publicKeyPem, keyId)),
   );
 }).pipe(Effect.catch(serverError));
-
-/** `GET /api/config` — this service's loaded parameters (credentials redacted). */
-const configIntrospectionRoute = Effect.gen(function* () {
-  const plain = yield* LoadedConfigurationTag;
-  return yield* HttpServerResponse.json({
-    service: '@r10c/auth-service',
-    store: 'mongo',
-    configuration: redactConfiguration(plain),
-  });
-});
 
 // #region auth flow
 
@@ -1194,7 +1188,6 @@ const updateUserRoute = requirePermission(UPDATE_ASPECTS)(principal =>
  * "administering someone else's", which is the same line the permissions draw.
  */
 const identityRoutes = HttpRouter.addAll([
-  HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
   HttpRouter.route('GET', '/.well-known/jwks.json', jwksRoute),
   // Sign-in flow. There is no `register` or `login` here any more and there
   // cannot be: this service holds no credential to check, so the only way in is
@@ -1251,13 +1244,6 @@ const identityRoutes = HttpRouter.addAll([
         ),
       ),
     ),
-  ),
-  // The caller's own verified identity — what a Next server layout reads to
-  // decide whether to render the back-office and which nav items to show.
-  HttpRouter.route(
-    'GET',
-    '/api/me',
-    requirePrincipal(principal => HttpServerResponse.json(principal)),
   ),
 ]);
 
@@ -1324,4 +1310,11 @@ const userManagementRoutes = HttpRouter.addAll([
  * endpoints return JSON (tokens + principal); the Next app owns turning that
  * into httpOnly cookies, so this service needs no cookie/CORS handling.
  */
-export const router = Layer.mergeAll(identityRoutes, userManagementRoutes);
+export const router = Layer.mergeAll(
+  // `GET /api/config` and `GET /api/me` — the second being what a Next server
+  // layout reads to decide whether to render the back office and which nav
+  // items to show.
+  serviceBaseRoutes({ service: '@r10c/auth-service', store: 'mongo' }),
+  identityRoutes,
+  userManagementRoutes,
+);

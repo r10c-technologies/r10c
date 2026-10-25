@@ -1,8 +1,6 @@
-import { requirePrincipal } from '@entifix/service-shell';
+import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-import { HttpRouter, HttpServerResponse } from 'effect/http';
 
-import { configIntrospectionRoute } from './routes/config.routes';
 import { sagaInstanceRoutes } from './saga/instance-routes';
 import { sagaRoutes } from './saga/routes';
 import { sagaRunRoutes } from './saga/run-routes';
@@ -28,14 +26,9 @@ import { sagaRunRoutes } from './saga/run-routes';
  * organizations the flow's own calls named.
  */
 export const router = Layer.mergeAll(
-  HttpRouter.addAll([
-    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
-    HttpRouter.route(
-      'GET',
-      '/api/me',
-      requirePrincipal(principal => HttpServerResponse.json(principal)),
-    ),
-  ]),
+  // A literal, not `SERVICE_NAME`: `index.ts` re-exports this module, so
+  // importing it back would read the constant before it is initialised.
+  serviceBaseRoutes({ service: '@r10c/transaction-service', store: 'mongo' }),
   sagaRoutes,
   sagaRunRoutes,
   sagaInstanceRoutes,

@@ -1,36 +1,16 @@
-import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
-import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
-import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@entifix/authz';
-import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
-import { ConfigurationClientInMemory } from '@entifix/core';
-import { makeJoseTokenService } from '@entifix/jwt';
-import {
-  MongoDatabaseLayer,
-  MongoDatabaseTag,
-  MongoHealthProbeLayer,
-} from '@entifix/mongo';
+import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   ensureInboxIndexes,
   ensureOutboxIndexes,
-  OutboxMaxAttempts,
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
-import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
-import { EventSourceTag } from '@entifix/transactions';
 import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { configSourceFor } from '@r10c/utils-ts-fleet';
+  fleetBusLayer,
+  fleetOutboxLayer,
+  fleetSecurityLayer,
+  fleetSingleMongoLayer,
+  makeFleetServiceLayer,
+} from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
 import { startSettlementFold } from './fold/subscriptions';
@@ -75,19 +55,9 @@ const SERVICE_NAME = 'settlement-service';
  * already the durable claim, which is the argument ADR 0055 made for the saga
  * resume sweep and which holds here for the same reason.
  */
-export const AppLayer = Layer.unwrap(
+export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
-    const store = new ConfigurationClientInMemory(plain);
-
-    const uri = yield* store.in('mongo').getString('uri');
-    const db = yield* store.in('mongo').getString('db');
-    const amqpUri = yield* store.in('rabbitmq').getString('uri');
-
-    // The public half only. This service verifies access tokens and never mints
-    // one, so it is configured with material that cannot sign.
-    const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
-    const jwtKeyId = yield* store.in('jwt').getString('keyId');
+    const { store } = configuration;
 
     // The vendor whose agreement the lab seeds. The same id auth-service seeds
     // the `Organization` under and every other slice hangs its demo data off, so
@@ -95,13 +65,6 @@ export const AppLayer = Layer.unwrap(
     const demoOrganizationId = yield* store
       .in('tenant')
       .getString('demoOrganizationId');
-
-    // ⚠️ `getNumber`, never a cast. A value of `'five'` casts to `NaN`, every
-    // comparison against it goes false, and nothing is ever quarantined — a
-    // relay that looks healthy while its head never moves.
-    const outboxMaxAttempts = yield* store
-      .in('outbox')
-      .getNumber('maxAttempts');
 
     // How often the sweep looks for unsettled lines. A dial rather than a
     // constant because nothing about it is baked into a queue declaration or an
@@ -111,47 +74,12 @@ export const AppLayer = Layer.unwrap(
       .in('settlement')
       .getNumber('runIntervalMs');
 
-    const observability = yield* observabilityFromConfiguration(
-      store,
-      SERVICE_NAME,
-    );
-
     const connections = Layer.mergeAll(
-      MongoDatabaseLayer({ uri, dbName: db }),
-      AmqpLayer({ uri: amqpUri }),
-      Layer.succeed(
-        TokenServiceTag,
-        makeJoseTokenService({
-          publicKeyPem: jwtPublicKey,
-          keyId: jwtKeyId,
-          issuer: AUTH_TOKEN_ISSUER,
-          audience: AUTH_TOKEN_AUDIENCE,
-        }),
-      ),
-      Layer.succeed(ConfigurationRepositoryTag, store),
-      Layer.succeed(LoadedConfigurationTag, plain),
-      Layer.succeed(
-        PolicyDecisionTag,
-        makeStaticPolicyDecision(ROLE_PERMISSIONS),
-      ),
-      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
-      // The **slice**, never the deployment and never the domain (ADR 0029).
-      Layer.succeed(EventSourceTag, SETTLEMENT_SLICE),
-      Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
+      yield* fleetSingleMongoLayer(configuration, ['settlement']),
+      yield* fleetBusLayer(configuration),
+      yield* fleetSecurityLayer(configuration),
+      yield* fleetOutboxLayer(configuration, SETTLEMENT_SLICE),
       Layer.succeed(SettlementRunIntervalMs, runIntervalMs),
-    );
-
-    const infra = Layer.provideMerge(AmqpEventBusLayer, connections);
-
-    // Named by the logical Store it backs rather than by the driver, so
-    // `/api/health/ready` describes this service in the register's vocabulary
-    // (ADR 0031).
-    const withProbes = Layer.provideMerge(
-      Layer.mergeAll(
-        MongoHealthProbeLayer(['settlement']),
-        AmqpHealthProbeLayer,
-      ),
-      infra,
     );
 
     // Before the first write, and here rather than per request: unlike a tenant
@@ -169,7 +97,7 @@ export const AppLayer = Layer.unwrap(
           ]),
         ),
       ),
-      withProbes,
+      connections,
     );
 
     // ⚠️ **`Layer.provideMerge` over `indexed`, never a sibling in a
@@ -182,17 +110,13 @@ export const AppLayer = Layer.unwrap(
       indexed,
     );
 
-    return Layer.merge(
-      observability,
-      Layer.provideMerge(
-        Layer.mergeAll(
-          seeded,
-          Layer.effectDiscard(startOutboxRelay()),
-          Layer.effectDiscard(startSettlementFold),
-          Layer.effectDiscard(startSettlementSweep),
-        ),
-        withProbes,
+    return Layer.provideMerge(
+      Layer.mergeAll(
+        Layer.effectDiscard(startOutboxRelay()),
+        Layer.effectDiscard(startSettlementFold),
+        Layer.effectDiscard(startSettlementSweep),
       ),
+      seeded,
     );
-  }).pipe(Effect.orDie),
-).pipe(Layer.orDie);
+  }),
+);
