@@ -110,4 +110,31 @@ test.describe('server rendering', () => {
     expect(html).toContain('data-testid="cart-badge"');
     expect(html).not.toContain('data-testid="cart-count"');
   });
+
+  /**
+   * #352: the shell is the same for everyone, and the count is streamed into
+   * it. A visitor with three units in their cart gets the very shell an
+   * anonymous one does — so it is served from the prerender, not rendered for
+   * them — and the badge fills in once the client reads the cookie.
+   */
+  test('the badge is filled in over the shared static shell', async ({
+    page,
+    request,
+    baseURL,
+  }) => {
+    const cookie = 'r10c_cart=offering-aurora-desk-lamp:3';
+    const response = await request.get('/es', { headers: { cookie } });
+    expect(response.headers()['x-nextjs-prerender']).toBe('1');
+    expect(await response.text()).not.toContain('data-testid="cart-count"');
+
+    await page.context().addCookies([
+      {
+        name: 'r10c_cart',
+        value: 'offering-aurora-desk-lamp:3',
+        url: baseURL ?? 'http://localhost:3000',
+      },
+    ]);
+    await page.goto('/es');
+    await expect(page.getByTestId('cart-count')).toHaveText('3');
+  });
 });

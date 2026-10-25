@@ -5,7 +5,7 @@ import {
 } from '@entifix/testing-e2e/playwright';
 
 import {
-  FEATURED_OFFERINGS,
+  listedUnder,
   PUBLISHED_OFFERINGS,
   SEARCH_HIT,
   SEARCH_MISS,
@@ -79,24 +79,56 @@ test.describe('the seeded fleet', () => {
   });
 });
 
+/** The published offering a card names, by the name its heading shows. */
+const seededByName = (name: string) => {
+  const found = PUBLISHED_OFFERINGS.find(offering => offering.name === name);
+  if (found === undefined) {
+    throw new Error(`"${name}" is on the storefront but not in the live seed`);
+  }
+  return found;
+};
+
+/** A seller's display name, asked of the projection rather than restated. */
+const sellerOf = async (
+  request: import('@playwright/test').APIRequestContext,
+  offeringId: string,
+): Promise<string | undefined> => {
+  const offering = (await (
+    await request.get(
+      `${SERVICE_URL}/api/published-offering?rsql=${encodeURIComponent(`offeringId==${offeringId}`)}`,
+    )
+  ).json()) as { data: { items: Array<{ vendorId: string }> } };
+  const vendorId = offering.data.items[0]?.vendorId;
+  if (vendorId === undefined) return undefined;
+  const vendor = (await (
+    await request.get(
+      `${SERVICE_URL}/api/published-vendor?rsql=${encodeURIComponent(`vendorId==${vendorId}`)}`,
+    )
+  ).json()) as { data: { items: Array<{ displayName: string }> } };
+  return vendor.data.items[0]?.displayName;
+};
+
 test.describe('browsing the published catalog', () => {
-  test('home features the first six offerings by name', async ({ page }) => {
+  test('home shows the category roots, the newest and the featured', async ({
+    page,
+  }) => {
     await page.goto('/es');
 
     await expect(
       page.getByRole('heading', { name: 'Marketplace r10c' }),
     ).toBeVisible();
-
-    for (const offering of FEATURED_OFFERINGS) {
-      await expect(
-        page.getByRole('heading', { name: offering.name }),
-      ).toBeVisible();
-    }
-    // Six, because the page asks for six — so this is the real service's paging
+    await expect(
+      page.getByRole('region', { name: 'Categorías' }).getByRole('link'),
+    ).not.toHaveCount(0);
+    // Four, because each strip asks for four — the real service's paging
     // answering, not the whole projection rendered.
-    await expect(page.getByRole('link', { name: 'Ver producto' })).toHaveCount(
-      FEATURED_OFFERINGS.length,
-    );
+    await expect(
+      page.getByRole('region', { name: 'Lo más nuevo' }).getByRole('article'),
+    ).toHaveCount(4);
+    const featured = page.getByRole('region', { name: 'Destacados' });
+    await expect(featured.getByRole('article').first()).toBeVisible();
+    // In stock only: the shop window leaves out what it cannot sell.
+    await expect(featured.getByText('Sin existencias')).toHaveCount(0);
   });
 
   /**
@@ -104,58 +136,115 @@ test.describe('browsing the published catalog', () => {
    * page renders, not that anything links to it. A catalog whose products are
    * unreachable still passes every route test.
    */
-  test('a featured card leads to its offering, addressed by offering id', async ({
+  test('a featured card leads to its offering, with its details and seller', async ({
     page,
+    request,
   }) => {
-    const featured = FEATURED_OFFERINGS[0];
     await page.goto('/es');
+    const card = page
+      .getByRole('region', { name: 'Destacados' })
+      .getByRole('article')
+      .first();
+    const offering = seededByName(await card.getByRole('heading').innerText());
 
-    await page.getByRole('link', { name: 'Ver producto' }).first().click();
-    await page.waitForURL(`**/es/p/${featured.offeringId}`);
+    await card.getByRole('link', { name: 'Ver producto' }).click();
+    await page.waitForURL(`**/es/p/${offering.offeringId}`);
 
     await expect(
-      page.getByRole('heading', { name: featured.name }),
-    ).toBeVisible();
-    // ⚠️ `toContainText` on the document rather than `getByText` per value.
-    // The brand, the reference and the category are each rendered as a label
-    // and a value inside one `Text`, so a text locator can match the wrapper
-    // and the span both and fail strict mode for a page that is perfectly
-    // correct.
-    const body = page.locator('body');
-
+      page.getByRole('main').getByRole('heading', { level: 1 }),
+    ).toHaveText(offering.name);
     // The brand and the category are **names**, resolved out of
-    // `catalog-reference` — a different store, in a different plane, reached
-    // through its own read path. The snapshot carries only their ids, so a page
-    // rendering these proves both reads happened.
-    await expect(body).toContainText(featured.brandName);
-    await expect(body).toContainText(`Categoría: ${featured.categoryName}`);
-    // Merchandising copied off the pinned specification at publication time.
-    await expect(body).toContainText(`Referencia: ${featured.code}`);
-    // Minor units, rendered by `Intl` for this locale — `8499` USD reads
-    // `84,99` in Spanish, comma and all. The separator is the assertion: a page
-    // that skipped `formatMoney` would show `8499`.
-    await expect(body).toContainText(
-      (featured.amount / 100).toFixed(2).replace('.', ','),
+    // `catalog-reference` — a different store, reached through its own read
+    // path. The snapshot carries only their ids, so a page rendering these
+    // proves both reads happened.
+    await expect(page.getByRole('definition')).toContainText([
+      offering.brandName,
+      offering.categoryName,
+      offering.code,
+    ]);
+    // Minor units, rendered by `Intl` for this locale: the separator is the
+    // assertion, since a page that skipped the formatter would show `8499`.
+    await expect(page.getByRole('main')).toContainText(
+      (offering.amount / 100).toFixed(2).replace('.', ','),
+    );
+    // The seller's name is a projection of their organization (ADR 0061),
+    // announced by auth-service — asked of the service, not restated.
+    const seller = await sellerOf(request, offering.offeringId);
+    expect(seller, 'the seeded vendor was announced').toBeDefined();
+    await expect(page.getByTestId('seller')).toHaveText(
+      `Vendido por ${seller}`,
     );
   });
 
-  test('a category lists only what was published into it', async ({ page }) => {
-    const featured = FEATURED_OFFERINGS[0];
-    const siblings = PUBLISHED_OFFERINGS.filter(
-      offering => offering.categoryCode === featured.categoryCode,
+  test('a product page states its metadata', async ({ page }) => {
+    const offering = PUBLISHED_OFFERINGS[0];
+    await page.goto(`/es/p/${offering.offeringId}`);
+
+    await expect(page).toHaveTitle(`${offering.name} · r10c · Marketplace`);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      new RegExp(`/es/p/${offering.offeringId}$`),
     );
+    const ld = JSON.parse(
+      (await page
+        .locator('script[type="application/ld+json"]')
+        .textContent()) ?? '{}',
+    );
+    expect(ld).toMatchObject({
+      '@type': 'Product',
+      name: offering.name,
+      sku: offering.code,
+      offers: {
+        price: (offering.amount / 100).toFixed(2),
+        priceCurrency: offering.currency,
+      },
+    });
+  });
 
-    await page.goto(`/es/c/${featured.categoryCode}`);
+  test('a category lists only what was published into it', async ({ page }) => {
+    const offering = PUBLISHED_OFFERINGS[0];
+    // Its own category's offerings and its active children's (ADR 0062).
+    const siblings = listedUnder(offering.categoryNumber);
+
+    await page.goto(`/es/c/${offering.categoryCode}`);
 
     await expect(
-      page.getByRole('heading', { name: featured.categoryName }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: featured.name }),
-    ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Ver producto' })).toHaveCount(
+      page.getByRole('main').getByRole('heading', { level: 1 }),
+    ).toHaveText(offering.categoryName);
+    await expect(page.getByRole('main').getByRole('article')).toHaveCount(
       siblings.length,
     );
+  });
+
+  test('a brand facet narrows the results to that brand', async ({ page }) => {
+    const offering = PUBLISHED_OFFERINGS[0];
+    const sameBrand = PUBLISHED_OFFERINGS.filter(
+      each => each.brandName === offering.brandName,
+    );
+
+    await page.goto('/es/search');
+    await page
+      .getByRole('complementary', { name: 'Filtrar' })
+      .getByRole('link', { name: offering.brandName, exact: true })
+      .click();
+
+    await page.waitForURL(/brand=/);
+    await expect(page.getByRole('main').getByRole('article')).toHaveCount(
+      sameBrand.length,
+    );
+  });
+
+  test('sorting by price puts the cheapest publication first', async ({
+    page,
+  }) => {
+    const cheapest = [...PUBLISHED_OFFERINGS].sort(
+      (left, right) => left.amount - right.amount,
+    )[0];
+
+    await page.goto('/es/search?sort=price-asc');
+    await expect(
+      page.getByRole('main').getByRole('article').first().getByRole('heading'),
+    ).toHaveText(cheapest.name);
   });
 
   test('search finds every published offering a term names', async ({
@@ -169,11 +258,25 @@ test.describe('browsing the published catalog', () => {
 
     for (const offering of SEARCH_HIT.published) {
       await expect(
-        page.getByRole('heading', { name: offering.name }),
+        page.getByRole('main').getByRole('heading', { name: offering.name }),
       ).toBeVisible();
     }
-    await expect(page.getByRole('link', { name: 'Ver producto' })).toHaveCount(
+    await expect(page.getByRole('main').getByRole('article')).toHaveCount(
       SEARCH_HIT.published.length,
+    );
+  });
+
+  test('the buy box carries its quantity into the cart', async ({ page }) => {
+    const offering = PUBLISHED_OFFERINGS[0];
+    await page.goto(`/es/p/${offering.offeringId}`);
+
+    const buy = page.getByRole('form', { name: 'Comprar' });
+    await buy.getByRole('spinbutton', { name: 'Cantidad' }).fill('2');
+    await buy.getByRole('button', { name: 'Añadir al carrito' }).click();
+
+    await page.waitForURL(/\/es\/cart$/);
+    await expect(page.getByTestId('cart-line-price')).toContainText(
+      ((offering.amount * 2) / 100).toFixed(2).replace('.', ','),
     );
   });
 });
@@ -194,6 +297,11 @@ test.describe('what was never published', () => {
     await expect(
       page.getByText(`No encontramos nada para «${SEARCH_MISS.family}».`),
     ).toBeVisible();
+  });
+
+  test('an unknown category answers 404', async ({ page }) => {
+    const response = await page.goto('/es/c/no-such-category');
+    expect(response?.status()).toBe(404);
   });
 
   test('a draft offering has no page, even at its own address', async ({
