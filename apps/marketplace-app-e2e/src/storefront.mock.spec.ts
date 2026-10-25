@@ -551,3 +551,14 @@ test.describe('the cart', () => {
     await expect(page.getByText('Tu carrito está vacío')).toBeVisible();
   });
 });
+
+test.describe('copy that counts', () => {
+  // Found in the M10 live pass: a one-product listing read "1 productos".
+  test('a count of one is singular, in both locales', async ({ page }) => {
+    await page.goto('/es/search?q=Twine');
+    await expect(page.getByText('1 producto', { exact: true })).toBeVisible();
+
+    await page.goto('/en/search?q=Twine');
+    await expect(page.getByText('1 product', { exact: true })).toBeVisible();
+  });
+});

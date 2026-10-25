@@ -117,7 +117,9 @@ export const r10c = {
       gallery: 'Imágenes del producto',
     },
     listing: {
-      results: '{{count}} productos',
+      // i18next picks the form from `count` by the locale's plural rules.
+      results_one: '{{count}} producto',
+      results_other: '{{count}} productos',
       empty: 'Ningún producto coincide con estos filtros.',
       filters: 'Filtrar',
       sort: 'Ordenar',

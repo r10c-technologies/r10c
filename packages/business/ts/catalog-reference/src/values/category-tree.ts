@@ -141,6 +141,30 @@ export function categoryRetireGuard(
 }
 
 /**
+ * Why a save of `candidate` must be refused, or `undefined`: everything
+ * {@link categoryPlacementRefusal} checks, and — when the save retires the
+ * category — the rule the retire verb applies, that no active child is left
+ * under it.
+ *
+ * ⚠️ The edit form writes `status` as a plain field, so a save is a second way
+ * to retire. Guarding only the verb left that way open: the live pass on
+ * 2026-10-25 retired a root with two active children through a `PUT`.
+ */
+export function categorySaveRefusal(
+  all: readonly ProductCategory[],
+  candidate: ProductCategory,
+): CategoryPlacementRefusal | CategoryRetireRefusal | undefined {
+  const placement = categoryPlacementRefusal(all, candidate);
+  if (placement !== undefined || candidate.status !== 'retired') {
+    return placement;
+  }
+  const key = CATEGORY_KEYS.idOf(candidate);
+  return key === ''
+    ? undefined
+    : categoryRetireGuard(all, [key], true)(candidate);
+}
+
+/**
  * A category and every active category under it: what a category page lists
  * offerings from, as `categoryId in (…)`.
  */

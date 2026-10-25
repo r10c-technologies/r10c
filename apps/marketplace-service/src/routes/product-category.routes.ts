@@ -1,7 +1,7 @@
 import { entityMetadataRoute } from '@entifix/service-shell';
 import {
-  categoryPlacementRefusal,
   categoryRetireGuard,
+  categorySaveRefusal,
   ProductCategory,
   RETIRE_PRODUCT_CATEGORY,
 } from '@r10c/business-ts-catalog-reference';
@@ -22,7 +22,8 @@ import {
  *
  * Categories form a tree (ADR 0062), so a save and a retire each pass the
  * tree's rules first: a parent that exists and is active, no loop, at most
- * five levels, and no retiring a category out from under an active child.
+ * five levels, and no retiring a category out from under an active child —
+ * on a save too, since the edit form writes `status` as a field.
  */
 export const productCategoryRoutes = HttpRouter.addAll([
   HttpRouter.route('GET', '/api/product-category', listRoute(ProductCategory)),
@@ -46,7 +47,7 @@ export const productCategoryRoutes = HttpRouter.addAll([
       'write',
       saveRoute(ProductCategory, {
         fromParams: false,
-        refuse: (category, all) => categoryPlacementRefusal(all, category),
+        refuse: (category, all) => categorySaveRefusal(all, category),
       }),
     ),
   ),
@@ -58,7 +59,7 @@ export const productCategoryRoutes = HttpRouter.addAll([
       'write',
       saveRoute(ProductCategory, {
         fromParams: true,
-        refuse: (category, all) => categoryPlacementRefusal(all, category),
+        refuse: (category, all) => categorySaveRefusal(all, category),
       }),
     ),
   ),
