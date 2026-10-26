@@ -14,3 +14,4 @@
  */
 export * from './domain';
 export * from './entities/published-vendor';
+export * from './ports';

@@ -1,0 +1,54 @@
+{
+  "name": "@r10c/implementation-marketplace-catalog-http",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:implementation",
+      "tech:http",
+      "scope:marketplace"
+    ],
+    "sourceRoot": "packages/implementation/marketplace-catalog/http/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/implementation/marketplace-catalog/http/dist",
+          "main": "packages/implementation/marketplace-catalog/http/src/index.ts",
+          "tsConfig": "packages/implementation/marketplace-catalog/http/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/service-shell": "catalog:",
+    "@r10c/business-ts-marketplace-catalog": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:",
+    "@r10c/testing-http": "workspace:*"
+  }
+}

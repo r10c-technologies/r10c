@@ -1,11 +1,8 @@
+import { catalogReferenceRoutes } from '@r10c/implementation-catalog-reference-http';
+import { publishedOfferingRoutes } from '@r10c/implementation-marketplace-catalog-http';
+import { publishedVendorRoutes } from '@r10c/implementation-marketplace-vendor-http';
 import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-
-import { dictionaryTermRoutes } from './routes/dictionary-term.routes';
-import { productBrandRoutes } from './routes/product-brand.routes';
-import { productCategoryRoutes } from './routes/product-category.routes';
-import { publishedOfferingRoutes } from './routes/published-offering.routes';
-import { publishedVendorRoutes } from './routes/published-vendor.routes';
 
 /**
  * marketplace-service routes. `/api/health*` is added by the service base.
@@ -34,7 +31,5 @@ export const router = Layer.mergeAll(
   serviceBaseRoutes({ service: '@r10c/marketplace-service', store: 'mongo' }),
   publishedOfferingRoutes,
   publishedVendorRoutes,
-  productBrandRoutes,
-  productCategoryRoutes,
-  dictionaryTermRoutes,
+  catalogReferenceRoutes,
 );

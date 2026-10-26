@@ -42,6 +42,8 @@
   },
   "dependencies": {
     "@entifix/core": "catalog:",
-    "@swc/helpers": "0.5.23"
+    "@r10c/business-ts-party-contracts": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.5"
   }
 }

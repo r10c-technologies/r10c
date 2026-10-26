@@ -88,7 +88,7 @@ rather than merely lossy:
 - and it **overwrites the projection's ordering key**, so a genuine
   `catalog.unpublished` emitted a second earlier is then read as stale and
   ignored. The offering stays live on the storefront while the vendor's own screen
-  says it is not — which is the exact failure ADR 0048's tombstone was written to
+  says it is not — which is the exact failure ADR 0048's ordering stamp was written to
   stop, reintroduced by the tool meant to repair it.
 
 With the moment stored, the walk's idempotence is the same mechanism everything

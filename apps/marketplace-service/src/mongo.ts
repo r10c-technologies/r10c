@@ -1,4 +1,6 @@
 import { EventSourceTag } from '@entifix/transactions';
+import { MongoPublishedCatalogLayer } from '@r10c/implementation-published-catalog-mongo';
+import { MongoPublishedVendorsLayer } from '@r10c/implementation-published-vendor-mongo';
 import {
   fleetBusLayer,
   fleetSecurityLayer,
@@ -74,7 +76,12 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
         // Binds `organization.*` and writes each seller's display name.
         Layer.effectDiscard(startProjectingVendors),
       ),
-      connections,
+      // The two projections' writers, each ensuring its own indexes as it
+      // builds — before the subscriptions that feed them are bound.
+      Layer.provideMerge(
+        Layer.mergeAll(MongoPublishedCatalogLayer, MongoPublishedVendorsLayer),
+        connections,
+      ),
     );
   }),
 );

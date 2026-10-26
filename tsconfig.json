@@ -242,6 +242,21 @@
     },
     {
       "path": "./packages/implementation/sales-management/http"
+    },
+    {
+      "path": "./packages/implementation/published-catalog/mongo"
+    },
+    {
+      "path": "./packages/implementation/published-vendor/mongo"
+    },
+    {
+      "path": "./packages/implementation/marketplace-catalog/http"
+    },
+    {
+      "path": "./packages/implementation/marketplace-vendor/http"
+    },
+    {
+      "path": "./packages/implementation/catalog-reference/http"
     }
   ],
   "compilerOptions": {
