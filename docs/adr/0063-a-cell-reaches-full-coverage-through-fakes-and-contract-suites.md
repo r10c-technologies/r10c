@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-25
+- Revised: 2026-10-26 — the suites were written (#427): where a suite and its double live, what counts as a port, and the two limits the build found
 - Area: platform
 - Read when: writing the spec for a `mongo`, `sql`, `redis` or `http` cell, a package under `packages/implementation/` misses the 100% gate, or you are about to add `mongodb-memory-server` or a container to a unit test — the driver is faked one level below the adapter, every port implementation runs its shared contract suite, and a race is proven against the live lab or not at all
 
@@ -35,6 +36,36 @@ explicit transactions, with real rollback) and the `describe*Contract` suites in
   a more forgiving version of the port it implements. A port r10c declares
   itself gets its suite beside the port, in the business package, and the cell
   runs it.
+  - **Where it lives:** the business package's `./testing` subpath
+    (`src/testing/`), with `vitest` as an optional peer, the way
+    `@entifix/testing-unit` ships entifix's. The suite is spec-only code, so
+    it never reaches the package's `.` entry.
+  - **The double moves with its suite.** Each `./testing` subpath also exports
+    the port's in-memory (or scripted) double, and the business package's own
+    spec runs the suite against it. So the double an HTTP cell's spec uses is
+    held to the same rules as the store it stands in for, and the suite file
+    is covered where it is declared. An HTTP spec that scripts a race or a
+    failure the port cannot express keeps its stub; it is not standing in
+    for an implementation.
+  - **What a suite observes.** A port's own methods first. Where the port is
+    write-only (a projection's `apply`), the subject is made with a read of
+    its effect, such as whether an offering is listed. Where the port talks
+    to a peer over HTTP (the saga starter, the price reader, the identity
+    provider), the subject is made over a scripted peer.
+  - **What counts as a port.** A `Context.Service` whose implementation lives
+    outside the package that declares it. Not a port, so no suite: an input
+    tag (`*InputTag`), a configuration value (`CancelWindowSeconds`), a
+    request-scoped value (`SessionIdTag`, `PrincipalTag`), and a second name
+    for entifix's own port (`OfferingPriceRepositoryTag` is an
+    `EntityRepository`, held to entifix's repository suite). A port whose
+    only implementation is a composition in the same package, with its own
+    spec (`makeSessionIdentityProvider`), has nothing to hold to anything
+    else.
+  - **Two limits the build found.** The SQL driver fake scripts statements
+    rather than holding rows, so a SQL subject is made with at most one stored
+    row and the suite asks about one write at a time. The Mongo fakes can
+    model atomicity but never interleaving, so no suite asserts a race; each
+    says which race it leaves to the live pass.
 - **An HTTP cell is tested in process**, through `serveRoutes` from
   `@r10c/testing-http` — Effect's own web handler, with no port and no runtime
   — over in-memory doubles of its ports (`makeInMemoryUnitOfWork`, an in-memory

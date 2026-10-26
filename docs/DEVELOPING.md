@@ -576,6 +576,18 @@ and the scope of the slice that owns its domain.
 - A cell's spec reaches 100% over driver fakes and contract suites
   ([ADR 0063](adr/0063-a-cell-reaches-full-coverage-through-fakes-and-contract-suites.md)),
   never a real database; a race is proven against the live lab.
+- **A new port ships its suite and its double.** Declare the port in its
+  business package and add `describe<Port>Contract` plus an in-memory double
+  under `src/testing/`, exported at the package's `./testing` subpath with
+  `vitest` as an optional peer. The package's own spec runs the suite against
+  the double; every implementation's spec runs it against itself. HTTP specs
+  use the double rather than writing their own.
+- The helpers cell specs share are `@r10c/testing-cells`: `tokenClaims` and
+  `crossingCall` at `.`, `mongoCellWorld` and `failNth` at `./mongo`.
+- ⚠️ A route answering a coded error writes the `{ error, code }` pair inline.
+  `@r10c/i18n-check` finds codes by that pair, so a helper taking
+  `(error, code)` hides them from the catalog check and drops the scan below
+  its floor.
 - Resolve runtime config from config-service at boot (`loadRemoteConfiguration`),
   never from ad-hoc `process.env` beyond a single bootstrap value (e.g.
   `CONFIG_API_URL`, `CONFIG_PG_URL`).
