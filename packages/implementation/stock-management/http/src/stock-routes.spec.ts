@@ -18,64 +18,47 @@ import {
 } from '@entifix/service-shell';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
-  type Reservation,
   ReservationTtlSecondsTag,
   type StockLedger,
   StockLedgerTag,
-  type StockMovement,
+  StockMovement,
 } from '@r10c/business-ts-stock-management';
+import { makeInMemoryStockLedger } from '@r10c/business-ts-stock-management/testing';
 import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { stockRoutes } from './stock-routes.js';
 
-/** What the fake ledger was asked, and by whom. */
+/** What the ledger was asked, and by whom. */
 const calls: { op: string; organizationId: string; commandId?: string }[] = [];
-const holds = new Map<string, Reservation>();
-const restorations = new Map<string, StockMovement>();
 let storeDown = false;
 
 const down = () => Effect.fail(new EntifixConnError('store down'));
 
-/** Holds up to five of anything; remembers each command's first answer. */
+/**
+ * The shared in-memory ledger, with five of `o-1` on the crossing's shelf,
+ * wrapped only to record the calls and to fail on demand.
+ */
+const real = makeInMemoryStockLedger();
 const ledger: StockLedger = {
   take: (organizationId, reservation, commandId) => {
     calls.push({ op: 'take', organizationId, commandId });
-    if (storeDown) return down();
-    const first = commandId === undefined ? undefined : holds.get(commandId);
-    if (first !== undefined) {
-      return Effect.succeed({ _tag: 'replayed' as const, reservation: first });
-    }
-    if (reservation.quantity > 5) {
-      return Effect.succeed({ _tag: 'insufficient' as const });
-    }
-    if (commandId !== undefined) holds.set(commandId, reservation);
-    return Effect.succeed({ _tag: 'held' as const, reservation });
+    return storeDown ? down() : real.take(organizationId, reservation, commandId);
   },
-  end: (organizationId, reservationId) => {
+  end: (organizationId, reservationId, to) => {
     calls.push({ op: 'end', organizationId });
-    return Effect.succeed(
-      reservationId === 'gone'
-        ? ('not-held' as const)
-        : ('transitioned' as const),
-    );
+    return real.end(organizationId, reservationId, to);
   },
   record: (organizationId, movement) => {
     calls.push({ op: 'record', organizationId });
-    return Effect.succeed(movement);
+    return real.record(organizationId, movement);
   },
   restore: (organizationId, movement, commandId) => {
     calls.push({ op: 'restore', organizationId, commandId });
-    const first =
-      commandId === undefined ? undefined : restorations.get(commandId);
-    if (first !== undefined) {
-      return Effect.succeed({ _tag: 'replayed' as const, movement: first });
-    }
-    if (commandId !== undefined) restorations.set(commandId, movement);
-    return Effect.succeed({ _tag: 'restored' as const, movement });
+    return real.restore(organizationId, movement, commandId);
   },
-  releaseExpired: () => Effect.succeed(0),
+  releaseExpired: real.releaseExpired,
 };
 
 const vendor: TokenClaims = {
@@ -88,7 +71,13 @@ const vendor: TokenClaims = {
 
 let served: ServedRoutes;
 
-beforeAll(() => {
+beforeAll(async () => {
+  await Effect.runPromise(
+    real.record(
+      'org-9',
+      Object.assign(new StockMovement('o-1', 5, 'receipt'), { id: 'seed' }),
+    ),
+  );
   served = serveRoutes(
     stockRoutes,
     Layer.mergeAll(
@@ -221,17 +210,32 @@ describe('POST /api/reservation', () => {
 });
 
 describe('ending a hold', () => {
+  const take = async () =>
+    (
+      (await (await crossing('POST', '/api/reservation', hold(1))).json()) as {
+        data: { id: string };
+      }
+    ).data.id;
+
   it('releases and converts on the crossing, and says when the hold was already gone', async () => {
-    const released = await crossing('DELETE', '/api/reservation/r-1');
-    const converted = await crossing('POST', '/api/reservation/r-1/conversion');
-    const gone = await crossing('DELETE', '/api/reservation/gone');
+    const [one, two] = [await take(), await take()];
+
+    const released = await crossing('DELETE', `/api/reservation/${one}`);
+    const converted = await crossing(
+      'POST',
+      `/api/reservation/${two}/conversion`,
+    );
+    const gone = await crossing('DELETE', `/api/reservation/${one}`);
 
     expect(await released.json()).toEqual({
-      id: 'r-1',
+      id: one,
       status: 'released',
       outcome: 'transitioned',
     });
-    expect(await converted.json()).toMatchObject({ status: 'converted' });
+    expect(await converted.json()).toMatchObject({
+      status: 'converted',
+      outcome: 'transitioned',
+    });
     expect(gone.status).toBe(200);
     expect(await gone.json()).toMatchObject({ outcome: 'not-held' });
   });

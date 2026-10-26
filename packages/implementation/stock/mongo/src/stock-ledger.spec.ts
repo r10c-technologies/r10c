@@ -12,6 +12,10 @@ import {
   StockLedgerTag,
   StockMovement,
 } from '@r10c/business-ts-stock-management';
+import {
+  CONTRACT_ORGANIZATIONS,
+  describeStockLedgerContract,
+} from '@r10c/business-ts-stock-management/testing';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -65,6 +69,13 @@ const world = (stores: Record<string, Fake> = { org: makeFakeMongoDb() }) => {
     );
   return { run, stores };
 };
+
+describeStockLedgerContract('the Mongo ledger', () => {
+  const stores = Object.fromEntries(
+    CONTRACT_ORGANIZATIONS.map(org => [org, makeFakeMongoDb()]),
+  );
+  return world(stores).run(ledger => Effect.succeed(ledger));
+});
 
 const item = (offeringId: string, onHand: number, reserved = 0) => ({
   id: `item-${offeringId}`,
@@ -348,8 +359,8 @@ describe('recording and restoring', () => {
 });
 
 describe('releasing expired holds', () => {
-  const past = new Date(Date.now() - 60_000).toISOString();
-  const future = new Date(Date.now() + 60_000).toISOString();
+  const past = new Date(Date.now() - 60_000);
+  const future = new Date(Date.now() + 60_000);
 
   it('releases every expired hold in every organization, and leaves a fresh one', async () => {
     const one = makeFakeMongoDb({
