@@ -103,7 +103,7 @@
     "@r10c/implementation-session-redis": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
-    "effect": "4.0.5",
+    "effect": "4.0.6",
     "ioredis": "6.0.0",
     "jose": "6.2.12",
     "mongodb": "7.7.0",
