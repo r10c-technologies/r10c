@@ -35,10 +35,13 @@ explicit transactions, with real rollback) and the `describe*Contract` suites in
   a more forgiving version of the port it implements. A port r10c declares
   itself gets its suite beside the port, in the business package, and the cell
   runs it.
-- **An HTTP cell is tested in process**, through `serveTestService`, over
-  in-memory doubles of its ports (`makeInMemoryUnitOfWork`, an in-memory
-  repository factory). It never imports a persistence cell, in its spec any more
-  than in its source.
+- **An HTTP cell is tested in process**, through `serveRoutes` from
+  `@r10c/testing-http` — Effect's own web handler, with no port and no runtime
+  — over in-memory doubles of its ports (`makeInMemoryUnitOfWork`, an in-memory
+  repository factory). Not the framework's `serveTestService`: that boots a
+  whole service, and a cell's boundary rule bans the runtime half in specs as
+  in source, rightly, because a cell must not choose how it is hosted. It never
+  imports a persistence cell, in its spec any more than in its source.
 - **What is pure moves to business and is tested there**: commission
   arithmetic, an order's scope and its cancel capability, an offering's
   lifecycle guard. A rule that needs no store has no reason to be tested

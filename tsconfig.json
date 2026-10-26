@@ -206,6 +206,15 @@
     },
     {
       "path": "./packages/business/ts/saga-contracts"
+    },
+    {
+      "path": "./packages/implementation/configuration/sql"
+    },
+    {
+      "path": "./packages/implementation/configuration/http"
+    },
+    {
+      "path": "./packages/testing/http"
     }
   ],
   "compilerOptions": {

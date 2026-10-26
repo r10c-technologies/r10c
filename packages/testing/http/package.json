@@ -1,0 +1,23 @@
+{
+  "name": "@r10c/testing-http",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "nx": {
+    "tags": [
+      "type:testing",
+      "scope:shared"
+    ],
+    "sourceRoot": "packages/testing/http/src"
+  },
+  "dependencies": {
+    "effect": "4.0.5"
+  }
+}

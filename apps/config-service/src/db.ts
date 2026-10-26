@@ -22,6 +22,10 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import {
+  ConfigurationRepositoryFactoryLayer,
+  ConfigurationWriterLayer,
+} from '@r10c/implementation-configuration-sql';
 import { Config, Effect, Layer, Redacted } from 'effect';
 import { SqlClient } from 'effect/sql';
 
@@ -1663,6 +1667,13 @@ const AuthLive = Layer.unwrap(
  * readiness probe, and the auth services the guarded CRUD routes need.
  */
 export const AppLayer = Layer.provideMerge(
-  Layer.mergeAll(SqlHealthProbeLayer(['configuration']), AuthLive),
+  Layer.mergeAll(
+    SqlHealthProbeLayer(['configuration']),
+    AuthLive,
+    // The `configuration` store, through its cell: reads that blank every
+    // secret, and writes audited with the actor in the same transaction.
+    ConfigurationRepositoryFactoryLayer,
+    ConfigurationWriterLayer,
+  ),
   DbLive,
 ).pipe(Layer.orDie);
