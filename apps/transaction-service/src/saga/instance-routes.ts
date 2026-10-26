@@ -74,7 +74,7 @@ const byIdRoute = requirePrincipal((principal: RequestPrincipal) =>
   Effect.gen(function* () {
     const store = yield* SagaStoreTag;
     const params = yield* HttpRouter.params;
-    const instance = yield* store.get(params.id ?? '');
+    const instance = yield* store.get(params.id as string);
 
     if (
       instance === undefined ||

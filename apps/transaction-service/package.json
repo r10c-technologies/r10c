@@ -165,6 +165,7 @@
     "tslib": "2.8.1"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "catalog:"
+    "@entifix/testing-unit": "catalog:",
+    "@r10c/testing-http": "workspace:*"
   }
 }

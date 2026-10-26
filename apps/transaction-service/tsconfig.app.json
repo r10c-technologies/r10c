@@ -39,6 +39,9 @@
     },
     {
       "path": "../../packages/business/ts/authn/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/testing/http"
     }
   ]
 }
