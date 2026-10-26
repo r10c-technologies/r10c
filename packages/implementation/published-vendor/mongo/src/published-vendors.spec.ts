@@ -1,6 +1,7 @@
 import { MongoDatabaseTag } from '@entifix/mongo';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { PublishedVendorsTag } from '@r10c/business-ts-marketplace-vendor';
+import { describePublishedVendorsContract } from '@r10c/business-ts-marketplace-vendor/testing';
 import type { OrganizationAnnouncement } from '@r10c/business-ts-party-contracts';
 import { Effect } from 'effect';
 import { Layer } from 'effect';
@@ -42,6 +43,31 @@ const projection = async () => {
     fake.read(VENDOR_COLLECTION).map(vendor => vendor['displayName']);
   return { fake, apply, names };
 };
+
+describePublishedVendorsContract('the Mongo projection', async () => {
+  const fake = makeFakeMongoDb();
+  const vendors = await Effect.runPromise(
+    Effect.provide(
+      Effect.gen(function* () {
+        return yield* PublishedVendorsTag;
+      }),
+      MongoPublishedVendorsLayer.pipe(
+        Layer.provide(Layer.succeed(MongoDatabaseTag, fake.db as Db)),
+      ),
+    ),
+  );
+  return {
+    vendors,
+    displayNameOf: vendorId =>
+      Promise.resolve(
+        fake
+          .read(VENDOR_COLLECTION)
+          .find(vendor => vendor['vendorId'] === vendorId)?.[
+          'displayName'
+        ] as string | undefined,
+      ),
+  };
+});
 
 describe('applying an announcement', () => {
   it('writes the seller the storefront renders, keyed on the vendor', async () => {
