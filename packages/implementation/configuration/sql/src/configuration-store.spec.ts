@@ -7,6 +7,7 @@ import {
   ConfigurationWriteRefused,
   ConfigurationWriterTag,
 } from '@r10c/business-ts-configuration';
+import { describeConfigurationWriterContract } from '@r10c/business-ts-configuration/testing';
 import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/sql';
 import { describe, expect, it } from 'vitest';
@@ -62,6 +63,27 @@ const audits = (fake: ReturnType<typeof makeFakeSqlClient>) =>
   fake.executions.filter(execution =>
     execution.sql.includes('configuration_audit'),
   );
+
+describeConfigurationWriterContract('the SQL writer', stored => {
+  const { fake, layer } = sqlFake();
+  if (stored !== undefined) {
+    fake.respondTo('SELECT service, group_name', [
+      {
+        id: stored.id,
+        service: stored.service,
+        group_name: stored.groupName,
+        key: stored.key,
+        value: stored.value,
+        is_secret: stored.isSecret,
+      },
+    ]);
+  }
+  return Effect.runPromise(
+    Effect.gen(function* () {
+      return yield* ConfigurationWriterTag;
+    }).pipe(Effect.provide(layer)),
+  );
+});
 
 describe('ConfigurationRepositoryFactoryLayer', () => {
   it('blanks every secret it reads, by list and by id', async () => {
