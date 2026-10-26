@@ -1,11 +1,14 @@
+import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   ensureOutboxIndexes,
   OUTBOX_COLLECTION,
 } from '@entifix/mongo/transactions';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import type { EventBus } from '@entifix/transactions';
+import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import { ORGANIZATION_ANNOUNCED } from '@r10c/business-ts-party-contracts';
 import { Effect } from 'effect';
+import { Layer } from 'effect';
 import type { Db, MongoClient } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
@@ -13,6 +16,8 @@ import {
   announcementOf,
   ORGANIZATION_COLLECTION,
   rebuildOrganizationAnnouncements,
+  seedOrganizations,
+  startOrganizationRebuild,
   writeOrganization,
 } from './organization-announcements.js';
 
@@ -224,5 +229,41 @@ describe('rebuildOrganizationAnnouncements', () => {
     await expect(rebuild(store.db)).rejects.toThrow(
       'Failed to read the organizations',
     );
+  });
+});
+
+describe('seeding and the boot walk', () => {
+  const quietBus = { publish: () => Effect.void } as unknown as EventBus;
+  const services = (store: Awaited<ReturnType<typeof storeWith>>) =>
+    Layer.mergeAll(
+      Layer.succeed(MongoClientTag, store.client),
+      Layer.succeed(MongoDatabaseTag, store.db),
+      Layer.succeed(EventBusTag, quietBus),
+      Layer.succeed(EventSourceTag, 'auth'),
+    );
+
+  it('seeds each organization through the announcing write', async () => {
+    const store = await storeWith();
+
+    await Effect.runPromise(
+      seedOrganizations([SEED]).pipe(Effect.provide(services(store))),
+    );
+
+    expect(store.fake.read(ORGANIZATION_COLLECTION)).toHaveLength(1);
+    expect(store.fake.read(OUTBOX_COLLECTION)).toHaveLength(1);
+  });
+
+  it('forks the walk past boot, and logs a walk that fails rather than failing the boot', async () => {
+    const store = await storeWith();
+    store.fake.failOn('find', new Error('network down'));
+
+    await expect(
+      Effect.runPromise(
+        startOrganizationRebuild.pipe(
+          Effect.andThen(Effect.sleep('10 millis')),
+          Effect.provide(services(store)),
+        ),
+      ),
+    ).resolves.toBeUndefined();
   });
 });

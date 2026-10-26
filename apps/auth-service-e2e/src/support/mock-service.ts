@@ -9,13 +9,17 @@ import {
   TokenServiceTag,
 } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
+import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   makeRedisOneTimeTokenStore,
   makeRedisSessionStore,
 } from '@entifix/redis';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
+import {
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PRIVATE_KEY_PEM,
@@ -39,9 +43,9 @@ import {
   makeMongoAccountRepository,
   makeMongoSessionScopeResolver,
   makeMongoUserDeviceRepository,
-  makeRedisIdentityProvider,
   makeRedisIdTokenStore,
   makeRedisProviderSessionIndex,
+  makeSessionIdentityProvider,
   membershipSeedData,
   ProviderSessionIndexTag,
   router,
@@ -138,7 +142,7 @@ const IdentityProviderLayer = Layer.effect(
   Effect.gen(function* () {
     const sessionStore = yield* SessionStoreTag;
     const accounts = yield* AccountRepositoryTag;
-    return makeRedisIdentityProvider(sessionStore, accounts);
+    return makeSessionIdentityProvider(sessionStore, accounts);
   }),
 );
 
@@ -206,6 +210,8 @@ const withAccounts = Layer.provideMerge(
     SessionScopeResolverLayer,
     UserDeviceRepositoryLayer,
     NotificationLayer,
+    // What the generic user and identifier reads open their repository from.
+    MongoRepositoryFactoryLayer,
   ),
   base,
 );

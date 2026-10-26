@@ -1,20 +1,11 @@
 import type { SessionRecord, SessionStore } from '@entifix/business';
-import {
-  type AccountRepository,
-  type IdentityProvider,
-  type Principal,
-  UnauthenticatedError,
-} from '@r10c/business-ts-authn';
 import { Effect } from 'effect';
 
-/**
- * A stored session record becomes the {@link Principal} carried per request.
- *
- * The scope the session was opened in — its organization, its party role and
- * the party itself — travels with it. Dropping any of them would make a
- * principal resolved through this path quietly narrower than the same principal
- * rebuilt from an access token.
- */
+import { UnauthenticatedError } from '../errors';
+import type { Principal } from '../values';
+import type { AccountRepository } from './account.repository';
+import type { IdentityProvider } from './identity-provider.repository';
+
 const toPrincipal = (record: SessionRecord): Principal => ({
   userId: record.userId,
   subject: record.subject,
@@ -27,13 +18,12 @@ const toPrincipal = (record: SessionRecord): Principal => ({
 });
 
 /**
- * The real {@link IdentityProvider} that replaces the stub: sessions resolve
- * straight out of Redis (the single source of truth every service could read),
- * and identifier lookups go through the Mongo-backed account repository. A
- * missing session surfaces as the store's error, which the perimeter collapses
- * to `401`.
+ * The identity provider r10c answers from its own records: a session from
+ * the session store, an identifier from the accounts. Which engines back the
+ * two is the host's choice; this is only the composition (ADR 0016 — Zitadel
+ * authenticates, r10c resolves).
  */
-export const makeRedisIdentityProvider = (
+export const makeSessionIdentityProvider = (
   sessionStore: SessionStore,
   accounts: AccountRepository,
 ): IdentityProvider => ({

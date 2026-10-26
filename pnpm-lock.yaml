@@ -468,6 +468,12 @@ importers:
       '@r10c/business-ts-party-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/party-management
+      '@r10c/implementation-auth-mongo':
+        specifier: workspace:*
+        version: link:../../packages/implementation/auth/mongo
+      '@r10c/implementation-session-redis':
+        specifier: workspace:*
+        version: link:../../packages/implementation/session/redis
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -2316,6 +2322,43 @@ importers:
         specifier: 4.0.5
         version: 4.0.5
 
+  packages/implementation/auth/mongo:
+    dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
+      '@entifix/mongo':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/transactions@0.7.2(effect@4.0.5))(effect@4.0.5)
+      '@entifix/transactions':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
+      '@r10c/business-ts-authn':
+        specifier: workspace:*
+        version: link:../../../business/ts/authn
+      '@r10c/business-ts-party-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/party-contracts
+      '@r10c/business-ts-party-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/party-management
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.5
+        version: 4.0.5
+      mongodb:
+        specifier: 7.7.0
+        version: 7.7.0
+    devDependencies:
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3)))(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.0(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.5)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+
   packages/implementation/catalog-reference/http:
     dependencies:
       '@entifix/authz':
@@ -2809,6 +2852,28 @@ importers:
       '@r10c/testing-http':
         specifier: workspace:*
         version: link:../../../testing/http
+
+  packages/implementation/session/redis:
+    dependencies:
+      '@entifix/redis':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/transactions@0.7.2(effect@4.0.5))(effect@4.0.5)
+      '@r10c/business-ts-authn':
+        specifier: workspace:*
+        version: link:../../../business/ts/authn
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.5
+        version: 4.0.5
+      ioredis:
+        specifier: 6.0.0
+        version: 6.0.0
+    devDependencies:
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3)))(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.0(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.5)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
 
   packages/implementation/settlement-management/http:
     dependencies:

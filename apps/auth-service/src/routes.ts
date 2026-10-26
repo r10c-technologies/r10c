@@ -5,11 +5,6 @@ import { permissionForEntity } from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,
   type DeviceContext,
-  EntityIdTag,
-  EntityLoadRequestTag,
-  EntityRepositoryTag,
-  getUCFactory,
-  loadUCFactory,
   OneTimeTokenStoreTag,
   type SessionRecord,
   SessionStoreTag,
@@ -17,22 +12,14 @@ import {
 } from '@entifix/business';
 import {
   EntifixBuildError,
-  type EntifixEnvelopeLink,
-  Entity,
-  EntityConstructor,
-  EntityLoadRequest,
-  envelopeEntityName,
-  extractMetaEntity,
-  makeEntityPageEnvelope,
-  parseLoadRequestParams,
   serializeEntity,
   serializeEntityCollection,
 } from '@entifix/core';
 import { isLocale } from '@entifix/core';
 import { publicJwks } from '@entifix/jwt';
-import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
+import { MongoDatabaseTag } from '@entifix/mongo';
 import {
-  entityMetadataRoute,
+  makeEntityRoutes,
   requirePermission,
   requirePrincipal,
 } from '@entifix/service-shell';
@@ -49,9 +36,11 @@ import {
   type AuthSubject,
   EntityIdentifier,
   type IdentifierType,
+  IdTokenStoreTag,
   NotificationKind,
   NotificationPortTag,
   type Principal,
+  ProviderSessionIndexTag,
   RegisterInputTag,
   registerUserUCFactory,
   resolveSessionUCFactory,
@@ -59,6 +48,7 @@ import {
   RevokeUserSessionsInputTag,
   RevokeUserSessionsUC,
   SessionIdTag,
+  SessionScopeResolverTag,
   SIGN_OUT_OTHERS,
   SignOutOtherSessionsInputTag,
   SignOutOtherSessionsUC,
@@ -72,6 +62,7 @@ import {
   UserStatus,
 } from '@r10c/business-ts-authn';
 import { isRole, type Role } from '@r10c/business-ts-authz-grants';
+import { readOutbox } from '@r10c/implementation-auth-mongo';
 import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Effect, Layer, Option } from 'effect';
 import {
@@ -82,10 +73,6 @@ import {
   UrlParams,
 } from 'effect/http';
 
-import { IdTokenStoreTag } from './identity/id-token-store';
-import { describeIdentityModel } from './identity/identity-showcase';
-import { readOutbox } from './identity/notifications';
-import { ProviderSessionIndexTag } from './identity/provider-session-index';
 import { provisionZitadelHuman, resolveSignIn } from './identity/provisioning';
 import {
   ACCESS_TOKEN_TTL_SECONDS,
@@ -93,116 +80,11 @@ import {
   OIDC_STATE_TTL_SECONDS,
   SESSION_IDLE_TTL_SECONDS,
 } from './identity/session-policy';
-import { SessionScopeResolverTag } from './identity/session-scope';
-
-/**
- * Reads `rsql`/`sort`/`page`/`pageSize`, validated against the entity's own
- * metadata — the same protocol every other service in the fleet speaks.
- *
- * This used to read `page`/`pageSize` and nothing else, which was not a missing
- * feature but a silent wrong answer: a caller sending `rsql=displayName=like=Juan`
- * got the first page of *every* user back, presented as matches. A filter the
- * server drops is worse than one it rejects, because nothing on either end says
- * so — and `parseLoadRequestParams` is also where the `filterable`/`sortable`
- * allowlist lives, so before this there was no allowlist here at all.
- */
-const readLoadRequest = <T extends Entity>(
-  entityConstructor: EntityConstructor<T>,
-) =>
-  Effect.gen(function* () {
-    const req = yield* HttpServerRequest.HttpServerRequest;
-    const search = new URL(req.url, 'http://localhost').searchParams;
-    return yield* Effect.try({
-      try: () =>
-        parseLoadRequestParams(
-          entityConstructor,
-          search,
-        ) as unknown as EntityLoadRequest,
-      catch: error => error as EntifixBuildError,
-    });
-  });
 
 const serverError = (error: unknown) =>
   HttpServerResponse.json(
     { error: 'request failed', code: 'unexpected', detail: String(error) },
     { status: 500 },
-  );
-
-/**
- * A malformed query, an unknown member, or one the entity does not declare
- * `filterable` — the client sent something wrong, so it is a `400` and never a
- * `500`. Same shape and same code as the other three services.
- */
-const readError = (error: unknown) =>
-  error instanceof EntifixBuildError
-    ? HttpServerResponse.json(
-        { error: 'invalid query', code: 'invalidQuery', detail: error.message },
-        { status: 400 },
-      )
-    : serverError(error);
-
-const collectionLinks = (key: string): EntifixEnvelopeLink[] => [
-  { rel: 'self', href: `/api/${key}`, method: 'GET' },
-  { rel: 'create', href: `/api/${key}`, method: 'POST' },
-];
-
-/**
- * Generic list route backed by Mongo + the entifix load UC.
- *
- * Answers an `entityPage` **envelope**, like every other list in the fleet. It
- * used to answer a bare `{ items, total, request }` with no `meta`, which meant
- * `readEntityPageEnvelope` — the reader every client already has — could not
- * read it, and each caller hand-picked the fields instead.
- */
-const listRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
-  Effect.gen(function* () {
-    const db = yield* MongoDatabaseTag;
-    const request = yield* readLoadRequest(entityConstructor);
-    const page = yield* loadUCFactory<T>().pipe(
-      Effect.provideService(
-        EntityRepositoryTag,
-        makeMongoRepository(db, entityConstructor),
-      ),
-      Effect.provideService(EntityLoadRequestTag, request),
-    );
-    return yield* HttpServerResponse.json(
-      makeEntityPageEnvelope(
-        entityConstructor,
-        page,
-        collectionLinks(envelopeEntityName(entityConstructor)),
-      ),
-    );
-  }).pipe(Effect.catch(readError));
-
-/** Generic single-record route by `:id`. */
-const byIdRoute = <T extends Entity>(entityConstructor: EntityConstructor<T>) =>
-  Effect.gen(function* () {
-    const db = yield* MongoDatabaseTag;
-    const params = yield* HttpRouter.params;
-    const entity = yield* getUCFactory<T>().pipe(
-      Effect.provideService(
-        EntityRepositoryTag,
-        makeMongoRepository(db, entityConstructor),
-      ),
-      Effect.provideService(EntityIdTag, params.id),
-    );
-    return yield* HttpServerResponse.json(
-      serializeEntity(entityConstructor, entity),
-    );
-  }).pipe(
-    // The entity's own key, not a hardcoded English name passed at the call
-    // site: the client translates `errors:notFound` and already knows how to
-    // render that entity's label from its metadata.
-    Effect.catch(() =>
-      HttpServerResponse.json(
-        {
-          message: 'not found',
-          code: 'notFound',
-          entity: extractMetaEntity(entityConstructor).key,
-        },
-        { status: 404 },
-      ),
-    ),
   );
 
 /**
@@ -1025,9 +907,7 @@ const myDevicesRoute = requirePrincipal(principal =>
 // #region user management
 
 /** Every user-management route speaks this vocabulary, derived from the entity. */
-const USER_READ = permissionForEntity(UserIdentity, 'read');
 const USER_WRITE = permissionForEntity(UserIdentity, 'write');
-const IDENTIFIER_READ = permissionForEntity(EntityIdentifier, 'read');
 /** Looking at somebody else's sessions. Ending them is a verb of its own. */
 const DEVICE_READ = permissionForEntity(UserDevice, 'read');
 
@@ -1252,26 +1132,7 @@ const userManagementRoutes = HttpRouter.addAll([
   // Canonical user records, backed by MongoDB. Every one of these is behind a
   // permission: this is the authorization boundary, and the UI hiding a menu
   // entry protects nothing on its own.
-  HttpRouter.route(
-    'GET',
-    '/api/user-identity',
-    requirePermission(USER_READ)(() => listRoute(UserIdentity)),
-  ),
-  // What this caller may do with the entity, permission-filtered from the
-  // verified principal. A literal path, and it has to stay one: a parametric
-  // `/api/:entity/$metadata` is shadowed by the `/api/user-identity/:id` route
-  // below and would never run (ADR 0026).
-  HttpRouter.route(
-    'GET',
-    '/api/user-identity/$metadata',
-    entityMetadataRoute(UserIdentity),
-  ),
   HttpRouter.route('POST', '/api/user-identity', createUserRoute),
-  HttpRouter.route(
-    'GET',
-    '/api/user-identity/:id',
-    requirePermission(USER_READ)(() => byIdRoute(UserIdentity)),
-  ),
   HttpRouter.route('PATCH', '/api/user-identity/:id', updateUserRoute),
   // Administrative session control — incident response, permission-gated.
   HttpRouter.route('GET', '/api/user-identity/:id/sessions', userSessionsRoute),
@@ -1279,29 +1140,6 @@ const userManagementRoutes = HttpRouter.addAll([
     'DELETE',
     '/api/user-identity/:id/sessions',
     revokeUserSessionsRoute,
-  ),
-  HttpRouter.route(
-    'GET',
-    '/api/entity-identifier',
-    requirePermission(IDENTIFIER_READ)(() => listRoute(EntityIdentifier)),
-  ),
-  HttpRouter.route(
-    'GET',
-    '/api/entity-identifier/$metadata',
-    entityMetadataRoute(EntityIdentifier),
-  ),
-  HttpRouter.route(
-    'GET',
-    '/api/entity-identifier/:id',
-    requirePermission(IDENTIFIER_READ)(() => byIdRoute(EntityIdentifier)),
-  ),
-  // Native-entity proof: construct entity classes + read stage-3 metadata.
-  HttpRouter.route(
-    'GET',
-    '/api/identity/demo',
-    Effect.sync(describeIdentityModel).pipe(
-      Effect.flatMap(model => HttpServerResponse.json(model)),
-    ),
   ),
 ]);
 
@@ -1317,4 +1155,14 @@ export const router = Layer.mergeAll(
   serviceBaseRoutes({ service: '@r10c/auth-service', store: 'mongo' }),
   identityRoutes,
   userManagementRoutes,
+  // The canonical records, read behind their own permission — this is the
+  // authorization boundary, and a hidden menu entry protects nothing.
+  makeEntityRoutes(UserIdentity, {
+    verbs: ['list', 'get'],
+    guard: { kind: 'permission' },
+  }),
+  makeEntityRoutes(EntityIdentifier, {
+    verbs: ['list', 'get'],
+    guard: { kind: 'permission' },
+  }),
 );

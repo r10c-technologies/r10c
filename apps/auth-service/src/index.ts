@@ -4,37 +4,17 @@
  * `mock` profile launch the SAME router in-process against driver fakes, rather
  * than re-declaring a stand-in that could drift from the real route surface.
  */
-export { makeMongoAccountRepository } from './identity/account-repository';
-export {
-  IdTokenStoreLayer,
-  IdTokenStoreTag,
-  makeRedisIdTokenStore,
-} from './identity/id-token-store';
-export {
-  makeDevNotificationPort,
-  OUTBOX_COLLECTION,
-} from './identity/notifications';
-export {
-  makeRedisProviderSessionIndex,
-  ProviderSessionIndexLayer,
-  ProviderSessionIndexTag,
-} from './identity/provider-session-index';
 export {
   PROVIDER,
   provisionZitadelHuman,
   resolveSignIn,
 } from './identity/provisioning';
-export { makeRedisIdentityProvider } from './identity/redis-identity-provider';
 export {
   DEV_SEED_PASSWORD,
   JWT_AUDIENCE,
   JWT_ISSUER,
   OIDC_STATE_TTL_SECONDS,
 } from './identity/session-policy';
-export {
-  makeMongoSessionScopeResolver,
-  SessionScopeResolverTag,
-} from './identity/session-scope';
 export { makeStubIdentityProvider } from './identity/stub-identity-provider';
 export {
   individualSeedData,
@@ -42,15 +22,31 @@ export {
   partyRoleSeedData,
 } from './identity/tenancy-seed-data';
 export {
-  DEVICE_COLLECTION,
-  makeMongoUserDeviceRepository,
-} from './identity/user-device-repository';
-export {
   entityIdentifierSeedData,
   userIdentitySeedData,
 } from './identity/user-seed-data';
 export { AppLayer, seedIdentityProvider } from './mongo';
 export { router } from './routes';
+export {
+  IdTokenStoreTag,
+  makeSessionIdentityProvider,
+  ProviderSessionIndexTag,
+  SessionScopeResolverTag,
+} from '@r10c/business-ts-authn';
+export {
+  DEVICE_COLLECTION,
+  makeDevNotificationPort,
+  makeMongoAccountRepository,
+  makeMongoSessionScopeResolver,
+  makeMongoUserDeviceRepository,
+  OUTBOX_COLLECTION,
+} from '@r10c/implementation-auth-mongo';
+export {
+  IdTokenStoreLayer,
+  makeRedisIdTokenStore,
+  makeRedisProviderSessionIndex,
+  ProviderSessionIndexLayer,
+} from '@r10c/implementation-session-redis';
 
 export const SERVICE_NAME = '@r10c/auth-service';
 

@@ -1,74 +1,11 @@
+import {
+  type SessionScopeResolver,
+  SessionScopeResolverTag,
+} from '@r10c/business-ts-authn';
 import type { PartyRoleName } from '@r10c/business-ts-party-management';
 import { isPartyRoleName } from '@r10c/business-ts-party-management';
-import { Context, Effect, Layer } from 'effect';
+import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
-
-/**
- * What a sign-in resolves about the party behind an account, beyond its
- * credentials: which population they belong to, and which organization (if any)
- * their session acts for.
- *
- * The two travel together because they come from the same party lookup, and
- * because they are the two halves of one question — *what may this session
- * reach* — answered before any permission is evaluated.
- */
-export interface SessionScope {
-  /**
-   * The organization this session acts for, or `undefined` for a party holding
-   * no membership. A normal answer, not a failure: only tenant-plane routes
-   * care, and they answer `409 noActiveOrganization`.
-   */
-  readonly organizationId?: string;
-  /**
-   * Which population the party belongs to. Never inferred from the absence of
-   * an organization — a buyer and an operator both lack one, and their reach
-   * could hardly differ more.
-   */
-  readonly partyRole: PartyRoleName;
-  /**
-   * The `Individual` behind the account — the id every domain that records a
-   * *party* keys against, and the one a `ProductOrder.buyerId` holds.
-   *
-   * Resolved here rather than by the service that needs it, because this is the
-   * only place the user → party hop exists: the mapping lives in the `auth`
-   * store, and a service that had to ask for it would be reading another
-   * slice's collections.
-   *
-   * `undefined` for an account with no party record — the same self-registered
-   * sign-up {@link DEFAULT_PARTY_ROLE} exists for. Absent means *no party*, and
-   * a consumer scoping a read by it must answer nothing rather than everything.
-   */
-  readonly partyId?: string;
-  /**
-   * The business domains {@link SessionScope.organizationId} is provisioned for
-   * — ADR 0007's second assignment ceiling, resolved here because this is
-   * already the one place a session's organization is decided.
-   *
-   * Empty for a session with no organization, and the caller must not read that
-   * as "entitled to nothing": `organizationId` is what says whether the ceiling
-   * applies, and a party holding no membership is simply outside it.
-   */
-  readonly entitlements: readonly string[];
-}
-
-/**
- * Resolves the scope a sign-in should act in.
- *
- * The lookup is party → membership, not user → organization: a `UserIdentity`
- * is an account, an `Individual` is the person, and a `Membership` is that
- * person's participation in one organization. Keeping the hop explicit is what
- * lets an organization also be a party later without remodelling login.
- *
- * A party with several memberships resolves to the one flagged `isDefault`.
- */
-export interface SessionScopeResolver {
-  readonly forUser: (userId: string) => Effect.Effect<SessionScope>;
-}
-
-export class SessionScopeResolverTag extends Context.Service<
-  SessionScopeResolverTag,
-  SessionScopeResolver
->()('SessionScopeResolverTag') {}
 
 /**
  * An account with no party record at all — a self-registered sign-up, which has

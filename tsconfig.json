@@ -263,6 +263,12 @@
     },
     {
       "path": "./packages/implementation/product-configuration-management/http"
+    },
+    {
+      "path": "./packages/implementation/session/redis"
+    },
+    {
+      "path": "./packages/implementation/auth/mongo"
     }
   ],
   "compilerOptions": {

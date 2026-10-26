@@ -1,40 +1,11 @@
 import { RedisTag } from '@entifix/redis';
-import { Context, Effect, Layer } from 'effect';
-import type { Redis } from 'ioredis';
-
-import { SESSION_ABSOLUTE_TTL_SECONDS } from './session-policy';
-
-/**
- * Maps the provider's session id (`sid`) back to the r10c sessions it opened.
- *
- * Sign-out already propagates r10c → Zitadel. This is what makes the reverse
- * possible: a back-channel logout token names a session at the *provider*, and
- * our session id is our own, so without this index there is nothing for that
- * token to point at and the session survives to its 7-day ceiling.
- *
- * A **set**, not a single id, because one Zitadel session can open several r10c
- * sessions — the same browser signing in to more than one app, or signing in
- * again without the provider prompting. Ending it at the provider must end all
- * of them.
- *
- * Deliberately not folded into {@link IdTokenStore}, close as the two look: that
- * one holds a bearer credential with a single reader, read-and-forget; this one
- * holds our own ids, and its reader is a request arriving from outside.
- */
-export interface ProviderSessionIndex {
-  link(providerSessionId: string, sessionId: string): Effect.Effect<void>;
-  /**
-   * Read and forget: a provider that retries a logout token — and Zitadel will —
-   * must find nothing the second time rather than revoke a session reopened
-   * since.
-   */
-  take(providerSessionId: string): Effect.Effect<readonly string[]>;
-}
-
-export class ProviderSessionIndexTag extends Context.Service<
+import {
+  type ProviderSessionIndex,
   ProviderSessionIndexTag,
-  ProviderSessionIndex
->()('ProviderSessionIndexTag') {}
+  SESSION_ABSOLUTE_TTL_SECONDS,
+} from '@r10c/business-ts-authn';
+import { Effect, Layer } from 'effect';
+import type { Redis } from 'ioredis';
 
 const key = (providerSessionId: string) => `oidc:sid:${providerSessionId}`;
 

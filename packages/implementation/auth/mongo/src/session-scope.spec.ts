@@ -1,8 +1,12 @@
+import { SessionScopeResolverTag } from '@r10c/business-ts-authn';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
-import { makeMongoSessionScopeResolver } from './session-scope';
+import {
+  makeMongoSessionScopeResolver,
+  SessionScopeResolverLayer,
+} from './session-scope.js';
 
 type Doc = Record<string, unknown>;
 
@@ -218,5 +222,43 @@ describe('makeMongoSessionScopeResolver', () => {
     );
 
     expect(scope.entitlements).toEqual([]);
+  });
+
+  it('drops a malformed entry from an otherwise good list', async () => {
+    const scope = await resolve(
+      {
+        individual: [{ id: 'party-8', userId: 'user-8' }],
+        membership: [
+          { partyId: 'party-8', organizationId: ORG, isDefault: true },
+        ],
+        entitlement: [{ organizationId: ORG, domains: ['catalog', 7] }],
+      },
+      'user-8',
+    );
+
+    expect(scope.entitlements).toEqual(['catalog']);
+  });
+});
+
+describe('a party whose id is not a string', () => {
+  it('is no identity a read could be scoped by', async () => {
+    const scope = await resolve(
+      { individual: [{ id: 7, userId: 'user-9' }] },
+      'user-9',
+    );
+
+    expect(scope.partyId).toBeUndefined();
+  });
+});
+
+describe('SessionScopeResolverLayer', () => {
+  it('provides the resolver over the service’s own database', async () => {
+    const scope = await Effect.runPromise(
+      Effect.gen(function* () {
+        return yield* (yield* SessionScopeResolverTag).forUser('nobody');
+      }).pipe(Effect.provide(SessionScopeResolverLayer(fakeDb({})))),
+    );
+
+    expect(scope).toEqual({ partyRole: 'customer', entitlements: [] });
   });
 });

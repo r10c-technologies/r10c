@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import type { Redis } from 'ioredis';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { makeRedisLifecycleCursor } from './lifecycle-cursor';
+import { makeRedisLifecycleCursor } from './lifecycle-cursor.js';
 
 const NOW = Date.parse('2026-09-11T12:00:00.000Z');
 const DAY_MS = 24 * 60 * 60 * 1000;

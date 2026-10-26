@@ -1,5 +1,9 @@
 import { RedisTag } from '@entifix/redis';
-import { Context, Effect, Layer } from 'effect';
+import {
+  type LifecycleCursor,
+  LifecycleCursorTag,
+} from '@r10c/business-ts-authn';
+import { Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
 
 /**
@@ -35,18 +39,6 @@ const OVERLAP_MS = 60 * 1000;
 /** Where the cursor lives. Redis, beside the sessions the sweep revokes. */
 const KEY = 'oidc:lifecycle-cursor';
 
-export interface LifecycleCursor {
-  /** The timestamp a sweep should read from, overlap already applied. */
-  read: Effect.Effect<string>;
-  /** Record how far this sweep got. */
-  write(at: string): Effect.Effect<void>;
-}
-
-export class LifecycleCursorTag extends Context.Service<
-  LifecycleCursorTag,
-  LifecycleCursor
->()('LifecycleCursorTag') {}
-
 /**
  * The reconciler's place in the provider's event stream.
  *
@@ -68,11 +60,6 @@ export const makeRedisLifecycleCursor = (redis: Redis): LifecycleCursor => ({
       typeof stored === 'string' && stored !== ''
         ? new Date(Date.parse(stored) - OVERLAP_MS).toISOString()
         : new Date(Date.now() - COLD_START_LOOKBACK_MS).toISOString(),
-    ),
-    Effect.catch(() =>
-      Effect.succeed(
-        new Date(Date.now() - COLD_START_LOOKBACK_MS).toISOString(),
-      ),
     ),
   ),
   write: (at: string) =>

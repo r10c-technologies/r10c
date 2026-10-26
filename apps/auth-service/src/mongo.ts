@@ -21,9 +21,24 @@ import {
 import {
   AccountRepositoryTag,
   IdentityProviderTag,
+  makeSessionIdentityProvider,
   NotificationPortTag,
+  SessionScopeResolverTag,
   UserDeviceRepositoryTag,
 } from '@r10c/business-ts-authn';
+import {
+  makeDevNotificationPort,
+  makeMongoAccountRepository,
+  makeMongoSessionScopeResolver,
+  makeMongoUserDeviceRepository,
+  seedOrganizations,
+  startOrganizationRebuild,
+} from '@r10c/implementation-auth-mongo';
+import {
+  IdTokenStoreLayer,
+  LifecycleCursorLayer,
+  ProviderSessionIndexLayer,
+} from '@r10c/implementation-session-redis';
 import {
   fleetBusLayer,
   fleetOutboxLayer,
@@ -33,30 +48,16 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { makeMongoAccountRepository } from './identity/account-repository';
-import { IdTokenStoreLayer } from './identity/id-token-store';
-import { LifecycleCursorLayer } from './identity/lifecycle-cursor';
 import {
   LifecycleSweepIntervalMs,
   startLifecycleReconciler,
 } from './identity/lifecycle-reconciler';
-import { makeDevNotificationPort } from './identity/notifications';
-import {
-  seedOrganizations,
-  startOrganizationRebuild,
-} from './identity/organization-announcements';
-import { ProviderSessionIndexLayer } from './identity/provider-session-index';
 import { provisionZitadelHuman } from './identity/provisioning';
-import { makeRedisIdentityProvider } from './identity/redis-identity-provider';
 import {
   DEV_SEED_PASSWORD,
   JWT_AUDIENCE,
   JWT_ISSUER,
 } from './identity/session-policy';
-import {
-  makeMongoSessionScopeResolver,
-  SessionScopeResolverTag,
-} from './identity/session-scope';
 import {
   entitlementSeedData,
   individualSeedData,
@@ -65,7 +66,6 @@ import {
   partyRoleSeedData,
   roleSeedData,
 } from './identity/tenancy-seed-data';
-import { makeMongoUserDeviceRepository } from './identity/user-device-repository';
 import {
   entityIdentifierSeedData,
   userIdentitySeedData,
@@ -216,7 +216,7 @@ const IdentityProviderLayer = Layer.effect(
   Effect.gen(function* () {
     const sessionStore = yield* SessionStoreTag;
     const accounts = yield* AccountRepositoryTag;
-    return makeRedisIdentityProvider(sessionStore, accounts);
+    return makeSessionIdentityProvider(sessionStore, accounts);
   }),
 );
 

@@ -1,0 +1,58 @@
+{
+  "name": "@r10c/implementation-auth-mongo",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:implementation",
+      "tech:mongo",
+      "scope:auth"
+    ],
+    "sourceRoot": "packages/implementation/auth/mongo/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/implementation/auth/mongo/dist",
+          "main": "packages/implementation/auth/mongo/src/index.ts",
+          "tsConfig": "packages/implementation/auth/mongo/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/business-ts-party-contracts": "workspace:*",
+    "@r10c/business-ts-party-management": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.5",
+    "mongodb": "7.7.0"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:"
+  }
+}
