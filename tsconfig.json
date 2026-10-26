@@ -203,6 +203,9 @@
     },
     {
       "path": "./packages/shells/effect/service"
+    },
+    {
+      "path": "./packages/business/ts/saga-contracts"
     }
   ],
   "compilerOptions": {

@@ -14,13 +14,19 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../../business/ts/authn/tsconfig.lib.json"
+      "path": "../../../utils/ts/fleet/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/catalog-contracts/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/authz-grants/tsconfig.lib.json"
     },
     {
-      "path": "../../../utils/ts/fleet/tsconfig.lib.json"
+      "path": "../../../business/ts/authn/tsconfig.lib.json"
     }
   ],
   "exclude": [

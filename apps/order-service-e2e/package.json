@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@entifix/authz": "catalog:",
-    "@r10c/business-ts-authz-grants": "workspace:*"
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*"
   }
 }

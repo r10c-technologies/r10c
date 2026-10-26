@@ -9,15 +9,12 @@ import {
   fleetOutboxLayer,
   fleetSecurityLayer,
   fleetSingleMongoLayer,
+  httpSagaStarterLayer,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
 import { CancelWindowSeconds } from './cancel-capability';
-import {
-  CancellationCoordinatorUrl,
-  CancellationCrossingToken,
-} from './coordinator-config';
 import { ORDER_SLICE } from './outbox';
 import { ensureProductOrderIndexes } from './product-order-index';
 import { startPaymentStatusProjection } from './projection/payment-status';
@@ -97,8 +94,10 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
       yield* crossingTokenLayer(configuration),
       yield* fleetOutboxLayer(configuration, ORDER_SLICE),
       Layer.succeed(CancelWindowSeconds, cancelWindowSeconds),
-      Layer.succeed(CancellationCoordinatorUrl, coordinatorUrl),
-      Layer.succeed(CancellationCrossingToken, coordinatorToken),
+      httpSagaStarterLayer({
+        url: coordinatorUrl,
+        crossingToken: coordinatorToken,
+      }),
     );
 
     // Before the first write, and here rather than per request: unlike a tenant

@@ -43,20 +43,21 @@
     }
   },
   "dependencies": {
-    "@r10c/business-ts-catalog-reference": "workspace:*",
-    "@r10c/business-ts-marketplace-catalog": "workspace:*",
-    "@r10c/business-ts-marketplace-vendor": "workspace:*",
-    "@entifix/react-controls": "catalog:",
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@entifix/i18n": "catalog:",
+    "@entifix/react-controls": "catalog:",
     "@entifix/rest": "catalog:",
-    "effect": "4.0.5",
+    "@r10c/business-ts-catalog-reference": "workspace:*",
+    "@r10c/business-ts-marketplace-catalog": "workspace:*",
+    "@r10c/business-ts-marketplace-vendor": "workspace:*",
+    "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/implementation-catalog-reference-next": "workspace:*",
     "@r10c/implementation-marketplace-catalog-next": "workspace:*",
     "@r10c/implementation-marketplace-vendor-next": "workspace:*",
+    "@r10c/utils-react-ui": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
-    "@r10c/utils-react-ui": "workspace:*"
+    "effect": "4.0.5"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:"

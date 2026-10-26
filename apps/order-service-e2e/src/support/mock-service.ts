@@ -7,7 +7,10 @@ import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
+import {
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
@@ -22,13 +25,8 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
-import {
-  CancellationCoordinatorUrl,
-  CancellationCrossingToken,
-  CancelWindowSeconds,
-  router,
-  SERVICE_NAME,
-} from '@r10c/order-service';
+import { CancelWindowSeconds, router, SERVICE_NAME } from '@r10c/order-service';
+import { httpSagaStarterLayer } from '@r10c/shells-effect-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
@@ -109,8 +107,10 @@ const MockAppLayer = Layer.mergeAll(
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   Layer.succeed(ServiceCrossingTokenTag, E2E_CROSSING_TOKEN),
   Layer.succeed(CancelWindowSeconds, E2E_CANCEL_WINDOW_SECONDS),
-  Layer.succeed(CancellationCoordinatorUrl, COORDINATOR_URL),
-  Layer.succeed(CancellationCrossingToken, E2E_CROSSING_TOKEN),
+  httpSagaStarterLayer({
+    url: COORDINATOR_URL,
+    crossingToken: E2E_CROSSING_TOKEN,
+  }),
 ).pipe(Layer.orDie);
 
 /** Boots the service's real router in-process, on an ephemeral port. */

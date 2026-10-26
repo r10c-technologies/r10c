@@ -156,6 +156,7 @@
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-order-management": "workspace:*",
     "@r10c/business-ts-payment-contracts": "workspace:*",
+    "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "effect": "4.0.5",

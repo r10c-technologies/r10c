@@ -6,6 +6,12 @@ import {
 import { makeEnvelope } from '@entifix/core';
 import { makeMongoRepository, MongoDatabaseTag } from '@entifix/mongo';
 import { requireOrganization } from '@entifix/service-shell';
+import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
+import {
+  checkoutInputs,
+  type CheckoutLineInput,
+  SagaStarterTag,
+} from '@r10c/business-ts-saga-contracts';
 import {
   SalesChannel,
   SELL_AT_CHANNEL,
@@ -14,15 +20,7 @@ import {
 import { Effect } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
-import {
-  CheckoutCoordinatorUrl,
-  CheckoutCrossingToken,
-  PublishedCatalogUrl,
-} from '../counter-sale-config';
 import { serverError, withTenantDatabase } from './entity-crud';
-
-/** The crossing header the coordinator's own guard reads. */
-const CROSSING_TOKEN_HEADER = 'x-crossing-token';
 
 /** What a seller sends: a channel, some lines, and how the money arrived. */
 interface CounterSaleRequest {
@@ -35,13 +33,7 @@ interface CounterSaleRequest {
 }
 
 /** One line as the saga needs it, priced here rather than by the caller. */
-interface PricedLine {
-  readonly offeringId: string;
-  readonly vendorId: string;
-  readonly quantity: number;
-  readonly amount: number;
-  readonly currency: string;
-}
+type PricedLine = CheckoutLineInput;
 
 const badRequest = (detail: string) =>
   HttpServerResponse.json(
@@ -71,35 +63,6 @@ const readRequest = (body: unknown): CounterSaleRequest | undefined => {
     ? { channelId, lines: parsed as PricedLine[], paymentMethod }
     : undefined;
 };
-
-/**
- * The published offering a line names, read from the projection.
- *
- * ⚠️ **The price comes from here and never from the request.** A browser that
- * could send an amount could sell a vendor's goods for nothing, and this route
- * presents a crossing token on the caller's behalf — so the one input that must
- * not be caller-controlled is the money. It is the same rule the storefront
- * applies by pricing in a server action from what the buyer was shown; at a
- * counter what the buyer was shown is what the vendor published.
- *
- * The read is anonymous because the projection is: `published-catalog` is
- * platform plane and the storefront serves it to nobody in particular.
- */
-const publishedOffering = (baseUrl: string, offeringId: string) =>
-  Effect.tryPromise({
-    try: async () => {
-      const query = encodeURIComponent(`offeringId==${offeringId}`);
-      const response = await fetch(
-        `${baseUrl}/published-offering?rsql=${query}&pageSize=1`,
-      );
-      if (!response.ok) return undefined;
-      const payload = (await response.json()) as {
-        data?: { items?: ReadonlyArray<Record<string, unknown>> };
-      };
-      return payload.data?.items?.[0];
-    },
-    catch: error => error,
-  });
 
 /**
  * Ring up a sale at a vendor's own counter.
@@ -133,9 +96,11 @@ const publishedOffering = (baseUrl: string, offeringId: string) =>
  */
 const counterSaleRoute = (organizationId: string) =>
   Effect.gen(function* () {
-    const coordinatorUrl = yield* CheckoutCoordinatorUrl;
-    const crossingToken = yield* CheckoutCrossingToken;
-    const catalogUrl = yield* PublishedCatalogUrl;
+    // ⚠️ **Every price comes from the projection, never from the request**: this
+    // route presents a crossing token on the caller's behalf, so the one input
+    // that must not be caller-controlled is the money.
+    const prices = yield* PublishedPriceReaderTag;
+    const sagas = yield* SagaStarterTag;
     const db = yield* MongoDatabaseTag;
 
     const request = yield* HttpServerRequest.HttpServerRequest;
@@ -181,20 +146,13 @@ const counterSaleRoute = (organizationId: string) =>
 
     const priced: PricedLine[] = [];
     for (const line of sale.lines) {
-      const offering = yield* publishedOffering(catalogUrl, line.offeringId);
-      const vendorId = offering?.['vendorId'];
-      const amount = offering?.['amount'];
-      const currency = offering?.['currency'];
-      if (
-        typeof vendorId !== 'string' ||
-        typeof amount !== 'number' ||
-        typeof currency !== 'string'
-      ) {
+      const price = yield* prices.priceOf(line.offeringId);
+      if (price === undefined) {
         return yield* badRequest(
           `nothing published answers to the offering "${line.offeringId}"`,
         );
       }
-      if (vendorId !== organizationId) {
+      if (price.vendorId !== organizationId) {
         // A seller may sell their own goods and nobody else's. The check is
         // here rather than on the reserve, because by then this process has
         // already presented a token that can name any organization.
@@ -207,108 +165,44 @@ const counterSaleRoute = (organizationId: string) =>
           { status: 403 },
         );
       }
-      priced.push({
-        offeringId: line.offeringId,
-        vendorId,
-        quantity: line.quantity,
-        amount,
-        currency,
-      });
+      priced.push({ ...price, quantity: line.quantity });
     }
 
-    const total = priced.reduce(
-      (accumulated, line) => ({
-        amount: accumulated.amount + line.amount * line.quantity,
-        currency: line.currency,
+    const outcome = yield* sagas.start(
+      'checkout',
+      checkoutInputs({
+        lines: priced,
+        order: {
+          // ⚠️ No `buyerId`. A walk-in at a counter has no account, and an
+          // absent buyer is honest — `channel` is what explains it (ADR 0024).
+          channel: {
+            id: String(channel.id),
+            // Copied, never linked: the buyer reading this receipt holds no
+            // tenant handle and could not dereference a pointer into this store
+            // at all. The copy is taken now and never refreshed, so renaming a
+            // channel does not rewrite history.
+            name: channel.name,
+            type: channel.type,
+          },
+        },
+        payment: {
+          paymentMethod: sale.paymentMethod,
+          fallbackCurrency: 'GTQ',
+          // A bare id on the payment, unlike the order's copy: a payment is read
+          // by the vendor and by settlement, both of which can resolve the
+          // channel in the store that owns it.
+          channelId: String(channel.id),
+        },
       }),
-      { amount: 0, currency: priced[0]?.currency ?? 'GTQ' },
     );
 
-    const response = yield* Effect.tryPromise({
-      try: () =>
-        fetch(`${coordinatorUrl}/saga/checkout`, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            [CROSSING_TOKEN_HEADER]: crossingToken,
-          },
-          body: JSON.stringify({
-            inputs: {
-              reserve: priced.map(line => ({
-                organizationId: line.vendorId,
-                body: {
-                  meta: { type: 'entity', entity: 'reservation' },
-                  data: {
-                    offeringId: line.offeringId,
-                    quantity: line.quantity,
-                  },
-                },
-              })),
-              'write-order': [
-                {
-                  body: {
-                    meta: { type: 'entity', entity: 'product-order' },
-                    data: {
-                      items: priced,
-                      // ⚠️ No `buyerId`. A walk-in at a counter has no account,
-                      // and an absent buyer is honest — `channel` is what
-                      // explains it (ADR 0024).
-                      channel: {
-                        id: String(channel.id),
-                        // Copied, never linked: the buyer reading this receipt
-                        // holds no tenant handle and could not dereference a
-                        // pointer into this store at all. The copy is taken now
-                        // and never refreshed, so renaming a channel does not
-                        // rewrite history.
-                        name: channel.name,
-                        type: channel.type,
-                      },
-                    },
-                  },
-                },
-              ],
-              'capture-payment': [
-                {
-                  body: {
-                    meta: { type: 'entity', entity: 'payment' },
-                    data: {
-                      // ⚠️ A **template**, not a placeholder this code fills in:
-                      // order-service mints the id, so it does not exist yet.
-                      // The engine resolves it from the step's recorded outcome
-                      // before dispatching the capture.
-                      orderId: '{steps.write-order.data.id}',
-                      amount: total.amount,
-                      currency: total.currency,
-                      paymentMethod: sale.paymentMethod,
-                      // A bare id here, unlike the order's copy: a payment is
-                      // read by the vendor and by settlement, both of which can
-                      // resolve the channel in the store that owns it.
-                      channelId: String(channel.id),
-                    },
-                  },
-                },
-              ],
-              // `convert-reservation` deliberately takes no input: its
-              // cardinality and its addresses come from the holds `reserve`
-              // actually took.
-            },
-          }),
-        }),
-      catch: error => error,
-    });
-
-    const payload = yield* Effect.tryPromise({
-      try: () => response.json() as Promise<unknown>,
-      catch: error => error,
-    }).pipe(Effect.catch(() => Effect.succeed(undefined)));
-
-    if (response.status === 201) {
+    if (outcome._tag === 'completed') {
       return yield* HttpServerResponse.json(
-        makeEnvelope('sagaResult', 'counter-sale', payload),
+        makeEnvelope('sagaResult', 'counter-sale', outcome.result),
         { status: 201 },
       );
     }
-    if (response.status === 409) {
+    if (outcome._tag === 'compensated') {
       // The saga's own answer for "compensated": a line was refused and every
       // hold taken has been given back. A stock outcome the seller can act on,
       // not an error to apologise for.
@@ -322,7 +216,7 @@ const counterSaleRoute = (organizationId: string) =>
       );
     }
     return yield* serverError(
-      `the checkout coordinator answered ${response.status}`,
+      `the checkout coordinator answered ${outcome.status}`,
     );
   }).pipe(Effect.catch(serverError));
 

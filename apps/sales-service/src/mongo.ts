@@ -1,15 +1,12 @@
 import {
   fleetSecurityLayer,
   fleetTenantMongoLayer,
+  httpPublishedPriceReaderLayer,
+  httpSagaStarterLayer,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import {
-  CheckoutCoordinatorUrl,
-  CheckoutCrossingToken,
-  PublishedCatalogUrl,
-} from './counter-sale-config';
 import { seedSales } from './seed';
 
 const SERVICE_NAME = 'sales-service';
@@ -65,9 +62,11 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
     const connections = Layer.mergeAll(
       yield* fleetTenantMongoLayer(configuration, ['sales']),
       yield* fleetSecurityLayer(configuration),
-      Layer.succeed(CheckoutCoordinatorUrl, coordinatorUrl),
-      Layer.succeed(CheckoutCrossingToken, coordinatorToken),
-      Layer.succeed(PublishedCatalogUrl, catalogUrl),
+      httpSagaStarterLayer({
+        url: coordinatorUrl,
+        crossingToken: coordinatorToken,
+      }),
+      httpPublishedPriceReaderLayer(catalogUrl),
     );
 
     // The demo vendor's channels, written on first boot into `sales_<id>`.

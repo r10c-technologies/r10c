@@ -13,6 +13,7 @@ import {
   PAYMENT_PENDING,
   ProductOrder,
 } from '@r10c/business-ts-order-management';
+import { SagaStarterTag } from '@r10c/business-ts-saga-contracts';
 import { Effect } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
@@ -20,16 +21,9 @@ import {
   type CancelRefusal,
   verifyCancelCapability,
 } from '../cancel-capability';
-import {
-  CancellationCoordinatorUrl,
-  CancellationCrossingToken,
-} from '../coordinator-config';
 import { ORDER_COLLECTION } from '../outbox';
 import { serverError } from './entity-crud';
 import { orderScopeFor } from './order-scope';
-
-/** The crossing header the coordinator's own guard reads. */
-const CROSSING_TOKEN_HEADER = 'x-crossing-token';
 
 /** The flow this service starts, by the name `SAGAS` registers it under. */
 const CANCELLATION_SAGA = 'cancellation';
@@ -125,31 +119,10 @@ const refusalCode = (payload: unknown): string => {
  */
 const startCancellation = (order: StoredOrder) =>
   Effect.gen(function* () {
-    const coordinatorUrl = yield* CancellationCoordinatorUrl;
-    const crossingToken = yield* CancellationCrossingToken;
+    const sagas = yield* SagaStarterTag;
+    const outcome = yield* sagas.start(CANCELLATION_SAGA, inputsFor(order));
 
-    const response = yield* Effect.tryPromise({
-      try: () =>
-        fetch(`${coordinatorUrl}/saga/${CANCELLATION_SAGA}`, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            [CROSSING_TOKEN_HEADER]: crossingToken,
-          },
-          body: JSON.stringify({ inputs: inputsFor(order) }),
-        }),
-      catch: error =>
-        new EntifixConnError('Failed to reach the coordinator', error, {
-          orderId: order.id,
-        }),
-    });
-
-    const payload = yield* Effect.tryPromise({
-      try: () => response.json() as Promise<unknown>,
-      catch: error => error,
-    }).pipe(Effect.catch(() => Effect.succeed(undefined)));
-
-    if (response.status === 201) {
+    if (outcome._tag === 'completed') {
       // The order as it now stands, read back rather than assumed: the flow's
       // last step is the one that wrote `cancelled`, and echoing what this
       // route believed a moment ago would be a receipt that guesses.
@@ -163,12 +136,12 @@ const startCancellation = (order: StoredOrder) =>
       );
     }
 
-    if (response.status === 409) {
+    if (outcome._tag === 'compensated') {
       // Fully compensated: nothing moved, and the order is exactly as it was.
       return yield* HttpServerResponse.json(
         {
           error: 'the order was not cancelled',
-          code: refusalCode(payload),
+          code: refusalCode(outcome.result),
           orderId: order.id,
         },
         { status: 409 },
@@ -179,7 +152,7 @@ const startCancellation = (order: StoredOrder) =>
     // order is visibly `cancelling` rather than silently wrong, which is the
     // state a sweep or a person can act on.
     return yield* serverError(
-      `the cancellation coordinator answered ${String(response.status)}`,
+      `the cancellation coordinator answered ${String(outcome.status)}`,
     );
   });
 

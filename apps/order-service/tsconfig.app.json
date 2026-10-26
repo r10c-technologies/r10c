@@ -29,6 +29,9 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/business/ts/saga-contracts/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/payment-contracts/tsconfig.lib.json"
     },
     {

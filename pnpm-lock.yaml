@@ -1125,6 +1125,9 @@ importers:
       '@r10c/business-ts-payment-contracts':
         specifier: workspace:*
         version: link:../../packages/business/ts/payment-contracts
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/saga-contracts
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -1156,6 +1159,9 @@ importers:
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
+      '@r10c/shells-effect-service':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/service
     devDependencies:
       '@entifix/business':
         specifier: 'catalog:'
@@ -1381,6 +1387,12 @@ importers:
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
+      '@r10c/business-ts-catalog-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/catalog-contracts
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/saga-contracts
       '@r10c/business-ts-sales-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/sales-management
@@ -1411,6 +1423,9 @@ importers:
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
+      '@r10c/shells-effect-service':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/service
     devDependencies:
       '@entifix/business':
         specifier: 'catalog:'
@@ -2095,6 +2110,18 @@ importers:
         specifier: 'catalog:'
         version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3)))(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.0(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.5)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
 
+  packages/business/ts/saga-contracts:
+    dependencies:
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.5
+        version: 4.0.5
+
   packages/business/ts/sales-management:
     dependencies:
       '@entifix/authz':
@@ -2244,6 +2271,12 @@ importers:
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../../business/ts/authz-grants
+      '@r10c/business-ts-catalog-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/catalog-contracts
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/saga-contracts
       '@r10c/utils-ts-fleet':
         specifier: workspace:*
         version: link:../../../utils/ts/fleet
@@ -2338,6 +2371,9 @@ importers:
       '@r10c/business-ts-marketplace-vendor':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-vendor
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/saga-contracts
       '@r10c/implementation-catalog-reference-next':
         specifier: workspace:*
         version: link:../../../implementation/catalog-reference/next
