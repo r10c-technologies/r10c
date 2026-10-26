@@ -78,6 +78,13 @@ describe('the three event builders', () => {
     );
   });
 
+  it('deduplicates a refund apart from its capture even when both were decided in the same millisecond', () => {
+    const refunded: PaymentOutcome = { ...captured, refundId: 'ref-1' };
+
+    expect(paymentEventId(refunded)).toBe('pay-1:refund:ref-1');
+    expect(paymentEventId(refunded)).not.toBe(paymentEventId(captured));
+  });
+
   /** The order, not the payment — it is what ties the whole flow together. */
   it('correlates on the order', () => {
     expect(paymentCapturedEvent(captured, 'payment').correlationId).toBe(

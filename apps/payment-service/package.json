@@ -156,6 +156,8 @@
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-payment-contracts": "workspace:*",
     "@r10c/business-ts-payment-management": "workspace:*",
+    "@r10c/implementation-payment-management-http": "workspace:*",
+    "@r10c/implementation-payment-mongo": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "effect": "4.0.5",

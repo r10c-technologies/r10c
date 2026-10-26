@@ -29,6 +29,12 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/implementation/payment/mongo/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/payment-management/http/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/payment-management/tsconfig.lib.json"
     },
     {

@@ -3,6 +3,7 @@ import {
   ensureOutboxIndexes,
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
+import { MongoPaymentLedgerLayer } from '@r10c/implementation-payment-mongo';
 import {
   crossingTokenLayer,
   fleetBusLayer,
@@ -13,8 +14,6 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { PAYMENT_SLICE } from './outbox';
-import { ensurePaymentIndexes } from './payment-index';
 import {
   DEFAULT_SIMULATED_SETTINGS,
   readSimulatedOutcome,
@@ -22,6 +21,9 @@ import {
 } from './providers/simulated';
 
 const SERVICE_NAME = 'payment-service';
+
+/** The **slice** this service publishes as — never the deployment, never the domain (ADR 0029). */
+export const PAYMENT_SLICE = 'payment';
 
 /**
  * The payment-service composition root — the `payment` store's only writer.
@@ -79,22 +81,19 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
       }),
     );
 
-    // Before the first write, and here rather than per request: unlike a tenant
-    // database this one is named at boot, so there *is* a boot moment at which
-    // the index can be created — and an outbox whose `eventId` is not unique
-    // would let a redelivery enqueue a second copy of the same announcement.
-    const indexed = Layer.provideMerge(
-      Layer.effectDiscard(
-        Effect.flatMap(MongoDatabaseTag, database =>
-          Effect.andThen(
-            ensureOutboxIndexes(database),
-            ensurePaymentIndexes(database),
-          ),
+    // The outbox's indexes before the first write, and the ledger's own as it
+    // builds: an outbox whose `eventId` is not unique would let a redelivery
+    // enqueue a second copy of the same announcement.
+    const ledger = Layer.provideMerge(
+      MongoPaymentLedgerLayer,
+      Layer.provideMerge(
+        Layer.effectDiscard(
+          Effect.flatMap(MongoDatabaseTag, ensureOutboxIndexes),
         ),
+        connections,
       ),
-      connections,
     );
 
-    return Layer.provideMerge(Layer.effectDiscard(startOutboxRelay()), indexed);
+    return Layer.provideMerge(Layer.effectDiscard(startOutboxRelay()), ledger);
   }),
 );

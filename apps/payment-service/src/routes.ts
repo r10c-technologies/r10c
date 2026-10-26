@@ -1,7 +1,6 @@
+import { paymentRoutes } from '@r10c/implementation-payment-management-http';
 import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-
-import { paymentRoutes } from './routes/payment.routes';
 
 /**
  * payment-service routes. `/api/health*` and `/api/$service` are added by the

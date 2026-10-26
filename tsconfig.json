@@ -215,6 +215,12 @@
     },
     {
       "path": "./packages/testing/http"
+    },
+    {
+      "path": "./packages/implementation/payment/mongo"
+    },
+    {
+      "path": "./packages/implementation/payment-management/http"
     }
   ],
   "compilerOptions": {
