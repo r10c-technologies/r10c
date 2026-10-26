@@ -3,13 +3,12 @@ import {
   EntityRepositoryFactoryTag,
   EntityRepositoryTag,
   loadAllUCFactory,
-  loadUCFactory,
 } from '@entifix/business';
-import type {
-  EntityConstructor,
-  EntityId,
-  EntityLoadRequest,
-  EntitySelection,
+import {
+  type EntityConstructor,
+  type EntityId,
+  type EntitySelection,
+  loadRequestFor,
 } from '@entifix/core';
 import { Effect } from 'effect';
 
@@ -70,13 +69,11 @@ export const retireSelection = <T extends RetirableReference>(
       selection.mode === 'ids'
         ? Array.from(selection.ids)
         : yield* Effect.gen(function* () {
-            const page = yield* loadUCFactory<T>().pipe(
-              Effect.provideService(EntityRepositoryTag, repository),
-              Effect.provideService(EntityLoadRequestTag, {
-                filtering: selection.filtering,
+            const page = yield* repository.load<T>(
+              loadRequestFor(selection, {
                 page: 1,
                 pageSize: BULK_SELECTION_CAP,
-              } as unknown as EntityLoadRequest),
+              }),
             );
             const excluded = Array.from(selection.excluded).map(String);
             return page.items

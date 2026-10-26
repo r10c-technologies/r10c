@@ -240,7 +240,7 @@ export const stockRoutes = Layer.mergeAll(
     verbs: ['list', 'get'],
     guard: { kind: 'organization' },
   }),
-  makeEntityRoutes<Reservation, OverrideServices>(Reservation, {
+  makeEntityRoutes.for<OverrideServices>()(Reservation, {
     verbs: ['list', 'get', 'create'],
     guard: {
       read: { kind: 'organization' },
@@ -248,7 +248,7 @@ export const stockRoutes = Layer.mergeAll(
     },
     override: { create: take },
   }),
-  makeEntityRoutes<StockMovement, OverrideServices>(StockMovement, {
+  makeEntityRoutes.for<OverrideServices>()(StockMovement, {
     verbs: ['list', 'get', 'create'],
     guard: { kind: 'organization' },
     override: { create: record },

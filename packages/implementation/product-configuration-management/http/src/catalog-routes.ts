@@ -13,7 +13,6 @@ import {
 } from '@entifix/core';
 import {
   type EntityRouteContext,
-  type EntityRouteGuard,
   makeEntityRoutes,
   requireOrganization,
   routeFailure,
@@ -48,13 +47,6 @@ export type CatalogRouteServices =
   | EventSourceTag
   | TokenServiceTag
   | PolicyDecisionTag;
-
-/**
- * Every route here is a session bound to the caller's organization. Named, so
- * an explicitly typed binding does not widen to the crossing guard and ask the
- * host for a token it never holds.
- */
-type TenantGuard = Extract<EntityRouteGuard, { kind: 'organization' }>;
 
 /** The per-organization store refuses a scope with none; the guard always names one. */
 const organizationOf = (context: EntityRouteContext) =>
@@ -227,11 +219,9 @@ const transitionSelected =
  * the price and the specification, and announcing what it did.
  */
 export const catalogRoutes = Layer.mergeAll(
-  makeEntityRoutes<
-    ProductSpecification,
-    SpecificationCommandsTag | HttpServerRequest.HttpServerRequest,
-    TenantGuard
-  >(ProductSpecification, {
+  makeEntityRoutes.for<
+    SpecificationCommandsTag | HttpServerRequest.HttpServerRequest
+  >()(ProductSpecification, {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: { kind: 'organization' },
     // The update's half of the media rule; the create's is in the command.
@@ -239,7 +229,7 @@ export const catalogRoutes = Layer.mergeAll(
       Effect.as(refuseSpecificationMedia(specification), specification),
     override: { create: acceptSpecification },
   }),
-  makeEntityRoutes<ProductOffering, EntityRepositoryFactoryTag, TenantGuard>(
+  makeEntityRoutes.for<EntityRepositoryFactoryTag>()(
     ProductOffering,
     {
       verbs: ['list', 'get', 'create', 'update', 'delete'],

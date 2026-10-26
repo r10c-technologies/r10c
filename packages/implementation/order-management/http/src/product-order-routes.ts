@@ -254,13 +254,12 @@ const crossed = requireCrossing('order-management:product-order:write');
  * person reaches.
  */
 export const productOrderRoutes = Layer.mergeAll(
-  makeEntityRoutes<
-    ProductOrder,
+  makeEntityRoutes.for<
     | ProductOrderStoreTag
     | CancelWindowSeconds
     | HttpServerRequest.HttpServerRequest
     | HttpRouter.RouteContext
-  >(ProductOrder, {
+  >()(ProductOrder, {
     verbs: ['list', 'get', 'create', 'delete'],
     guard: {
       read: { kind: 'permission' },

@@ -1,15 +1,13 @@
 import {
-  EntityLoadRequestTag,
   EntityRepositoryFactoryTag,
   EntityRepositoryTag,
-  loadUCFactory,
   TenantDirectoryTag,
 } from '@entifix/business';
-import type {
-  BulkOutcome,
-  EntityId,
-  EntityLoadRequest,
-  EntitySelection,
+import {
+  type BulkOutcome,
+  type EntityId,
+  type EntitySelection,
+  loadRequestFor,
 } from '@entifix/core';
 import { Data, Effect } from 'effect';
 
@@ -118,18 +116,14 @@ export const transitionOfferingSelection = (input: {
         ? Array.from(selection.ids)
         : yield* Effect.gen(function* () {
             const factory = yield* EntityRepositoryFactoryTag;
-            const page = yield* loadUCFactory<ProductOffering>().pipe(
-              Effect.provideService(
-                EntityRepositoryTag,
-                yield* factory.for(ProductOffering, {
-                  organizationId: input.organizationId,
-                }),
-              ),
-              Effect.provideService(EntityLoadRequestTag, {
-                filtering: selection.filtering,
+            const offerings = yield* factory.for(ProductOffering, {
+              organizationId: input.organizationId,
+            });
+            const page = yield* offerings.load<ProductOffering>(
+              loadRequestFor(selection, {
                 page: 1,
                 pageSize: BULK_SELECTION_CAP,
-              } as unknown as EntityLoadRequest),
+              }),
             );
             const excluded = Array.from(selection.excluded).map(String);
             return page.items
@@ -221,7 +215,7 @@ export const rebuildPublications = (input: {
         sorting: [{ 0: { property: 'id', type: 'asc' } }],
         page,
         pageSize: REBUILD_PAGE_SIZE,
-      } as unknown as EntityLoadRequest<ProductOffering>);
+      });
 
       for (const offering of items) {
         const at = offering.statusChangedAt;
