@@ -39,6 +39,20 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@effect/*'
         update-types: ['version-update:semver-major']
+      # OpenTelemetry 3 is held until it can move as one set (#426). The 2.12
+      # SDK packages peer on `@opentelemetry/api` `<1.10.0`; `@effect/opentelemetry`
+      # 4.0.6 and entifix's service shell both peer on the 2.x SDK and on the
+      # 0.223 exporters; and `sdk-trace-base` 3 is not released. A bump into any
+      # of these passes CI only because pnpm does not fail an install on a peer
+      # mismatch, which is how #422-#425 and #436 arrived green. The override in
+      # `pnpm-workspace.yaml` pins the API for the same reason. Lift all three
+      # rules, and that override, in the PR that adopts OTel 3.
+      - dependency-name: '@opentelemetry/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@opentelemetry/api'
+        versions: ['>=1.10.0']
+      - dependency-name: '@opentelemetry/exporter-*'
+        versions: ['>=0.224.0']
     groups:
       # entifix releases on fixed versioning, so its 23 packages move as one PR
       # or not at all. Grouped first so no other group claims a member. It is

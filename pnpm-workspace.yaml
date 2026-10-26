@@ -77,7 +77,8 @@ overrides:
   # `autoInstallPeers` resolves an optional peer to the newest release, and
   # `@effect/opentelemetry` declares the API as one. 1.10 is outside every OTel
   # 2.12 SDK package's own range (`<1.10.0`), so it moves with the OTel 3 set
-  # (#426), not on its own.
+  # (#426), not on its own. `.github/dependabot.yml` holds the same line, and
+  # both are lifted together.
   '@opentelemetry/api': 1.9.1
 minimumReleaseAgeExclude:
   # Our own framework: a release is adopted the day it ships, and the age gate
