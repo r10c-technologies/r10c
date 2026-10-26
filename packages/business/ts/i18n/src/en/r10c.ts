@@ -110,6 +110,9 @@ export const r10c: EsR10c = {
       results_other: '{{count}} products',
       empty: 'No product matches these filters.',
       filters: 'Filter',
+      filtersSummary_zero: 'Filter',
+      filtersSummary_one: 'Filter (1)',
+      filtersSummary_other: 'Filter ({{count}})',
       sort: 'Sort',
       sorts: {
         priceAsc: 'Price: low to high',

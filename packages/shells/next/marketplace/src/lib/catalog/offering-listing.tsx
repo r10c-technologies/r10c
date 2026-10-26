@@ -153,9 +153,27 @@ export async function OfferingListing({
     },
   });
 
+  // What the folded panel's summary counts: each facet in force once, the
+  // price once whichever bounds it has, and no category on a category page,
+  // whose path chose it.
+  const activeFilters =
+    state.brand.length +
+    state.seller.length +
+    (categoryId === undefined ? state.category.length : 0) +
+    (state.min.length + state.max.length > 0 ? 1 : 0) +
+    state.available.length;
+
   return (
     <div className="grid grid-cols-1 gap-l sm:grid-cols-[14rem_minmax(0,1fr)]">
-      <FacetPanel label={t('storefront.listing.filters')} facets={facets} />
+      <FacetPanel
+        label={t('storefront.listing.filters')}
+        facets={facets}
+        collapsible={{
+          summary: t('storefront.listing.filtersSummary', {
+            count: activeFilters,
+          }),
+        }}
+      />
 
       <Stack gap="s">
         <Cluster gap="s" justify="between">
