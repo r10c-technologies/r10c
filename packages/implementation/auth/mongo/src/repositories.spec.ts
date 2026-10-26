@@ -12,6 +12,7 @@ import {
   describeNotificationPortContract,
   describeUserDeviceRepositoryContract,
 } from '@r10c/business-ts-authn/testing';
+import { failNth } from '@r10c/testing-cells/mongo';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -33,41 +34,7 @@ import {
   makeMongoUserDeviceRepository,
 } from './user-device-repository.js';
 
-type Fake = ReturnType<typeof makeFakeMongoDb>;
 type Seed = Record<string, Record<string, unknown>[]>;
-
-/**
- * Fail only the `nth` call of one operation on one collection. The
- * repositories capture their collections when they are built, so this wraps
- * the database before they are.
- */
-const failNth = (fake: Fake, collection: string, op: string, nth: number) => {
-  const db = fake.db as unknown as { collection: (name: string) => object };
-  const real = db.collection.bind(db);
-  let calls = 0;
-  db.collection = (name: string) => {
-    const handle = real(name) as Record<
-      string,
-      (...args: unknown[]) => unknown
-    >;
-    if (name !== collection) return handle;
-    return new Proxy(handle, {
-      get: (target, key) =>
-        key !== op
-          ? target[key as string]
-          : (...args: unknown[]) => {
-              calls += 1;
-              if (calls !== nth) {
-                return (target[op] as (...a: unknown[]) => unknown)(...args);
-              }
-              const failure = () =>
-                Promise.reject(new Error(`${op} #${nth} failed`));
-              // `find` answers a cursor; it is the cursor's read that fails.
-              return op === 'find' ? { toArray: failure } : failure();
-            },
-    });
-  };
-};
 
 const ALAN = {
   id: 'u-1',

@@ -21,6 +21,9 @@
     },
     {
       "path": "../../../testing/http"
+    },
+    {
+      "path": "../../../testing/cells"
     }
   ],
   "exclude": [

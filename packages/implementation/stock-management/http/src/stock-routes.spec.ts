@@ -6,14 +6,10 @@ import {
 } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
-  type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
 import { EntifixBuildError, EntifixConnError } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
-  CROSSING_TOKEN_HEADER,
-  ORGANIZATION_HEADER,
   ServiceCrossingTokenTag,
 } from '@entifix/service-shell';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
@@ -24,6 +20,7 @@ import {
   StockMovement,
 } from '@r10c/business-ts-stock-management';
 import { makeInMemoryStockLedger } from '@r10c/business-ts-stock-management/testing';
+import { crossingCall, tokenClaims } from '@r10c/testing-cells';
 import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -61,13 +58,7 @@ const ledger: StockLedger = {
   releaseExpired: real.releaseExpired,
 };
 
-const vendor: TokenClaims = {
-  userId: 'u-1',
-  subject: 'alan',
-  sessionId: 's-1',
-  roles: ['admin'],
-  activeOrganizationId: 'org-1',
-};
+const vendor = tokenClaims();
 
 let served: ServedRoutes;
 
@@ -128,15 +119,11 @@ const crossing = (
   body?: unknown,
   commandId?: string,
 ) =>
-  served.call(path, {
+  crossingCall(served, path, {
     method,
-    headers: {
-      'content-type': 'application/json',
-      [CROSSING_TOKEN_HEADER]: 'fleet',
-      [ORGANIZATION_HEADER]: 'org-9',
-      ...(commandId ? { [COMMAND_ID_HEADER]: commandId } : {}),
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    body,
+    commandId,
+    organizationId: 'org-9',
   });
 
 const asVendor = (method: string, path: string, body?: unknown) =>

@@ -1,15 +1,9 @@
 import { EntifixConnError } from '@entifix/core';
-import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   COMMAND_INBOX_COLLECTION,
-  makeMongoUnitOfWork,
-  MongoUnitOfWorkTag,
   OUTBOX_COLLECTION,
-  OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
-import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import {
   OrderItem,
   ProductOrder,
@@ -17,8 +11,8 @@ import {
   ProductOrderStoreTag,
 } from '@r10c/business-ts-order-management';
 import { describeProductOrderStoreContract } from '@r10c/business-ts-order-management/testing';
-import { Effect, Layer } from 'effect';
-import type { Db } from 'mongodb';
+import { mongoCellWorld } from '@r10c/testing-cells/mongo';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -42,29 +36,10 @@ const stored = (id: string, status: string) => ({
 });
 
 const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
-  const fake = makeFakeMongoDb(seed);
-  const bus = makeRecordingEventBus();
-  const layer = MongoProductOrderStoreLayer.pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        Layer.succeed(MongoDatabaseTag, fake.db as Db),
-        Layer.succeed(
-          MongoUnitOfWorkTag,
-          makeMongoUnitOfWork({ client: fake as never, db: fake.db as Db }),
-        ),
-        Layer.succeed(EventBusTag, bus),
-        Layer.succeed(OutboxMaxAttempts, 3),
-        Layer.succeed(EventSourceTag, 'order'),
-      ),
-    ),
-  );
+  const cell = mongoCellWorld(MongoProductOrderStoreLayer, { source: 'order', seed });
   const run = <A, E>(use: (store: ProductOrderStore) => Effect.Effect<A, E>) =>
-    Effect.runPromise(
-      Effect.gen(function* () {
-        return yield* use(yield* ProductOrderStoreTag);
-      }).pipe(Effect.provide(layer)),
-    );
-  return { fake, bus, run };
+    cell.run(Effect.flatMap(ProductOrderStoreTag, use));
+  return { fake: cell.fake, bus: cell.bus, run };
 };
 
 describeProductOrderStoreContract('the Mongo store', () =>

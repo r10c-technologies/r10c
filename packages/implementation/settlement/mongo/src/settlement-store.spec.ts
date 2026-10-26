@@ -1,13 +1,5 @@
 import { EntifixConnError, serializeEntity } from '@entifix/core';
-import { MongoDatabaseTag } from '@entifix/mongo';
-import {
-  makeMongoUnitOfWork,
-  MongoUnitOfWorkTag,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
-import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import {
   Agreement,
   type SaleHalf,
@@ -20,8 +12,8 @@ import {
   CONTRACT_AGREEMENTS,
   describeSettlementStoreContract,
 } from '@r10c/business-ts-settlement-management/testing';
-import { Effect, Layer } from 'effect';
-import type { Db } from 'mongodb';
+import { mongoCellWorld } from '@r10c/testing-cells/mongo';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -33,35 +25,24 @@ import {
 } from './settlement-store.js';
 
 const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
-  const fake = makeFakeMongoDb(seed);
-  const bus = makeRecordingEventBus();
-  const layer = MongoSettlementStoreLayer.pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        Layer.succeed(MongoDatabaseTag, fake.db as Db),
-        Layer.succeed(
-          MongoUnitOfWorkTag,
-          makeMongoUnitOfWork({ client: fake as never, db: fake.db as Db }),
-        ),
-        Layer.succeed(EventBusTag, bus),
-        Layer.succeed(OutboxMaxAttempts, 3),
-        Layer.succeed(EventSourceTag, 'settlement'),
-      ),
-    ),
-  );
+  const cell = mongoCellWorld(MongoSettlementStoreLayer, {
+    source: 'settlement',
+    seed,
+  });
+  const { fake, bus } = cell;
   const run = <A, E>(
     use: (ports: {
       join: SaleJoin;
       runs: SettlementRunStore;
     }) => Effect.Effect<A, E>,
   ) =>
-    Effect.runPromise(
+    cell.run(
       Effect.gen(function* () {
         return yield* use({
           join: yield* SaleJoinTag,
           runs: yield* SettlementRunStoreTag,
         });
-      }).pipe(Effect.provide(layer)),
+      }),
     );
   let next = 0;
   const contribute = (

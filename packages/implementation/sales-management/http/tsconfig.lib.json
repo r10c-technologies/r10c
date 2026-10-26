@@ -20,6 +20,9 @@
       "path": "../../../testing/http"
     },
     {
+      "path": "../../../testing/cells"
+    },
+    {
       "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
     },
     {

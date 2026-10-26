@@ -2451,6 +2451,9 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
 
   packages/implementation/authn/http:
     dependencies:
@@ -2765,6 +2768,9 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
       '@r10c/testing-http':
         specifier: workspace:*
         version: link:../../../testing/http
@@ -2796,6 +2802,9 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
 
   packages/implementation/payment-management/http:
     dependencies:
@@ -2824,6 +2833,9 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
       '@r10c/testing-http':
         specifier: workspace:*
         version: link:../../../testing/http
@@ -2858,6 +2870,9 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
 
   packages/implementation/product-configuration-management/http:
     dependencies:
@@ -2889,6 +2904,9 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
       '@r10c/testing-http':
         specifier: workspace:*
         version: link:../../../testing/http
@@ -3010,6 +3028,9 @@ importers:
       '@r10c/business-ts-saga-contracts':
         specifier: workspace:*
         version: link:../../../business/ts/saga-contracts
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
       '@r10c/testing-http':
         specifier: workspace:*
         version: link:../../../testing/http
@@ -3094,6 +3115,9 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
 
   packages/implementation/stock-management/http:
     dependencies:
@@ -3122,6 +3146,9 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/testing-cells':
+        specifier: workspace:*
+        version: link:../../../testing/cells
       '@r10c/testing-http':
         specifier: workspace:*
         version: link:../../../testing/http
@@ -3572,6 +3599,33 @@ importers:
       '@r10c/business-ts-marketplace-vendor':
         specifier: workspace:*
         version: link:../../business/ts/marketplace-vendor
+
+  packages/testing/cells:
+    dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.6)
+      '@entifix/mongo':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/transactions@0.7.2(effect@4.0.6))(effect@4.0.6)
+      '@entifix/service-shell':
+        specifier: 'catalog:'
+        version: 0.7.2(4e4e56863da70ff664b5a98fb0542f8f)
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.3(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@entifix/transactions':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.6)
+      '@r10c/testing-http':
+        specifier: workspace:*
+        version: link:../http
+      effect:
+        specifier: 4.0.6
+        version: 4.0.6
+      mongodb:
+        specifier: 7.7.0
+        version: 7.7.0
 
   packages/testing/http:
     dependencies:

@@ -11,8 +11,6 @@ import {
 } from '@entifix/business';
 import { EntifixBuildError, EntifixConnError } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
-  CROSSING_TOKEN_HEADER,
   ServiceCrossingTokenTag,
 } from '@entifix/service-shell';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
@@ -25,6 +23,7 @@ import {
   makeInMemoryPaymentLedger,
   makeScriptedPaymentProvider,
 } from '@r10c/business-ts-payment-management/testing';
+import { crossingCall } from '@r10c/testing-cells';
 import { type ServedRoutes,serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -98,15 +97,7 @@ afterAll(async () => {
 });
 
 const crossing = (path: string, body: unknown, commandId?: string) =>
-  served.call(path, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      [CROSSING_TOKEN_HEADER]: 'fleet',
-      ...(commandId ? { [COMMAND_ID_HEADER]: commandId } : {}),
-    },
-    body: JSON.stringify(body),
-  });
+  crossingCall(served, path, { body, commandId });
 
 const paymentBody = (orderId: string, amount = 40) => ({
   meta: { type: 'entity', entity: 'payment' },

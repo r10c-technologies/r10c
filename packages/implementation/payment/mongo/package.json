@@ -51,6 +51,7 @@
     "mongodb": "7.7.0"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "catalog:"
+    "@entifix/testing-unit": "catalog:",
+    "@r10c/testing-cells": "workspace:*"
   }
 }
