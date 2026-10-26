@@ -1057,7 +1057,31 @@ shell): a facet panel, a count, the sort, a page of cards and entifix's server
 codec and all written back as links. A category page is that listing with the
 category set in advance, so its facets, sort and pager are the search page's.
 The header's search box is a plain `GET` form carrying only the term, because a
-new question starts with no facets. A card's "Añadir al carrito" is a form posting to the
+new question starts with no facets.
+
+**The facets count, and the counts are disjunctive** (#350). Beside the page the
+listing reads `GET /api/published-offering/$facets` — entifix's facet counter,
+[entifix ADR 0012](https://github.com/r10c-technologies/entifix/blob/v0.9.0/docs/adr/0012-facet-counts-are-a-port-of-their-own.md)
+— in parallel, through the same `runRead`, so a failed count renders the panel
+without numbers and never the page without products. Each facet is counted under
+the search **minus its own choice** (`offeringFacetQueries`), so choosing one
+brand leaves every other brand its number. The category facet is counted per
+node and offered per root, each root summing its subtree (`rollUpFacet`). Only
+the checkbox facets count; a value nothing holds shows `0` rather than vanishing.
+
+**On a phone the panel folds away** (#417). Below `sm` the two columns stack, and
+an open panel put twenty lines of filters above the first product, so
+`FacetPanel`'s `collapsible` mode renders it inside a native `<details>` whose
+summary counts the filters in force ("Filtrar (2)"). From `sm` up it is forced
+open through `::details-content` and the summary is hidden — both behind
+`supports-[selector(::details-content)]`, so a browser without that selector
+shows the summary on every screen and a desktop panel that starts closed but
+opens, rather than one hidden for good. No script either way.
+
+**Search ignores accents** (#379): `cafe` finds `Café`, `jarron` finds
+`Jarrón`, because entifix's `like` folds accents and case in every engine
+([entifix ADR 0011](https://github.com/r10c-technologies/entifix/blob/v0.9.0/docs/adr/0011-like-ignores-accents.md)).
+Ranking by relevance is not part of it (#441). A card's "Añadir al carrito" is a form posting to the
 same Server Action as the product page, with a plain `<button>` wearing
 entifix's `button` recipe: `Button` is `'use client'`, and one per tile would be
 a client boundary per tile. The cart's quantities are a form per line, so they

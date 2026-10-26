@@ -5,6 +5,7 @@
 - Area: frontend
 - Revised: 2026-10-24 — the price formatter is now `formatPrice` in `@r10c/utils-react-ui`, which replaced the storefront shell's `formatMoney` (#334).
 - Revised: 2026-10-24 — under Cache Components (#346) the build-time rule is kept by a short cache lifetime rather than by `revalidate` and empty `generateStaticParams`, and a missing product or category now answers `404`, decided in the proxy; the `200` was a `loading.tsx` streaming ahead of `notFound()`, not the package boundary.
+- Revised: 2026-10-26 — a listing also reads its facet counts from `$facets`, in parallel with the page and through the same never-rejecting runner, so a failed count renders the panel without numbers rather than the page without products (#350).
 - Read when: the storefront reads or renders catalog data — nothing is enumerated at build time, and a failed read renders an empty catalog and logs
 
 ## Context
@@ -109,6 +110,10 @@ the second is the one that decided it: a storefront that answers `500` because
 one backend blinked is worse than one that renders its own "nothing here yet"
 copy over an intact page — and `next build` prerenders, so a throw would make the
 build depend on a running fleet.
+
+The listing's facet counts are a second read under the same rule (#350): a
+count that fails falls back to none, and the panel shows its choices without
+numbers — never a page without products because the counter blinked.
 
 ⚠️ **The cost is stated rather than hidden: empty and broken render
 identically.** The log is the only thing that separates them, which is why this
