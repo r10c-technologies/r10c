@@ -177,20 +177,41 @@ Effect Layers.
 - **auth-service** (`:3102`, Mongo + Redis) — serves `UserIdentity`/`EntityIdentifier`
   and owns the credential flow: `register`/`login`/`logout`/`refresh` (see
   [Auth: sessions + tokens](#auth-sessions--tokens)).
-- **the `transaction` slice** (co-deployed into marketplace-admin-service on
-  `:3101`; Mongo + RabbitMQ) — passive saga tracker: subscribes to the
-  transaction event bus, records each transaction's lifecycle, and flags stalls.
-  `GET /api/transaction/:id` is what a client polls, and
-  `GET /api/transaction/events` is the same facts pushed instead
-  ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)).
+- **transaction-service** (`:3103`; Mongo + RabbitMQ) — the `transaction`
+  slice: the saga coordinator (`POST /api/saga/:definition`) and the passive
+  tracker, which subscribes to the transaction event bus, records each
+  transaction's lifecycle, and flags stalls. `GET /api/transaction/:id` is what a
+  client polls, and `GET /api/transaction/events` is the same facts pushed
+  instead ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)).
   Both are behind `requirePrincipal` and scoped to the caller's organization; the
   unfiltered `GET /api/transaction` was deleted rather than filtered, because it
-  answered every organization's transactions to anyone. It owns the `saga` store and
-  is therefore a Slice in its own right; sharing a process with
-  `marketplace-admin` is a deployment fact, not an ownership one, and its code
-  lives together under `apps/marketplace-admin-service/src/saga/` so that
-  splitting it back out is a directory move. See
+  answered every organization's transactions to anyone. It was co-deployed into
+  marketplace-admin-service until #229 split it out, which was a `deployments`
+  edit because its store's handle was already named. See
   [Stores, slices & data planes](../docs/_shared/planes.md).
+
+### Where a service's code lives
+
+An app under `apps/*-service` is **composition**: `main.ts`, an `AppLayer`
+built with `@r10c/shells-effect-service` (`makeFleetServiceLayer` and the
+`fleet*Layer` helpers for config, security, the bus, the outbox and Mongo), its
+seed, and the daemons it starts. What it serves and stores is in cells
+([ADR 0060](adr/0060-the-implementation-layer-cells.md)):
+
+- `packages/implementation/<domain>/http` — the domain's routes. Entity CRUD is
+  `makeEntityRoutes(Entity, { verbs, guard, scope?, prepare?, override? })`
+  ([entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.7.2/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md)),
+  bound to storage through the `EntityRepositoryFactoryTag` the host provides;
+  a verb that is not CRUD is a hand route beside it.
+- `packages/implementation/<store>/{mongo,redis,sql}` — the store's
+  implementations of the ports its domain declares.
+- The rules themselves — a reservation's quantity check, a commission, an
+  offering's lifecycle — are use cases over those ports in
+  `packages/business/ts/<domain>`, which is why the same rule can be tested
+  without a driver.
+
+A slice that declares no domain (`transaction`) has no business package, so
+its cell carries the one service tag it implements.
 
 Every service also exposes `GET /api/config` returning its own loaded parameters
 (credentials redacted) for diagnostics. Boot order:
@@ -562,7 +583,7 @@ read or write a secret. What it keeps is the session (approach B — opaque sess
   _sessions_ (`NewDevice`, `SessionsRevoked`) — and still 404s in production.
 * Downstream services that need to authorize a request (e.g.
   marketplace-admin-service) never call auth-service or touch Redis on the hot
-  path: `requirePrincipal` (`apps/marketplace-admin-service/src/auth.ts`) reads
+  path: `requirePrincipal` (`@entifix/service-shell`) reads
   `entifix_at` (cookie or `Authorization: Bearer`) and verifies it statelessly via
   `TokenServiceTag` — a Mongo/Redis-free `401` check. A handler that needs the
   richer, volatile session `attributes` reads Redis directly by `sessionId`.
@@ -767,6 +788,17 @@ incremental `code` (`product-001`, `category-001`, `brand-001`) to the catalog
 entities; `INCR`'s atomicity is what guarantees uniqueness across service
 instances.
 
+**A write that announces itself is one unit of work**
+([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.7.2/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
+`UnitOfWork.run(body, { claim?, replay?, afterCommit? })` gives the body one
+transaction, records the events it `emit`s into the outbox in that transaction,
+and takes at most one claim — an event's (`consumer` + `eventId`, so a fold runs
+exactly once) or a command's (`x-command-id`, so a redelivered saga step answers
+what the first attempt decided). A body that fails with its own reason is
+`aborted` and wrote nothing; `afterCommit: drainOutboxNow(db)` publishes before
+the sweep would. Every outbox, inbox and command-claim site in the fleet runs on
+it — a driver session opened by hand for one of those is the copy it replaced.
+
 **A flow that spans slices is orchestrated instead, per flow**
 ([ADR 0039](adr/0039-multi-step-sagas-are-orchestrated.md)). Single-step writes
 are untouched; a multi-step flow declares a `SagaDefinition` — steps classified
@@ -779,11 +811,10 @@ Commands go out over HTTP on
 `400` is not a saga failure — and results come back over the bus, which is where
 durable at-least-once completion lives. Dispatch goes through the **outbox**,
 extending ADR 0028's persist-before-publish rule to commands. The coordinator
-lives in the `transaction` slice and its state in the `saga` store; splitting it
-out to `:3103` is deferred until a participant runs outside
-marketplace-admin-service. The multi-step engine is **not built** — what is in
-effect is the vocabulary and its constraints. The reactive stream, by contrast,
-is built. It is
+lives in the `transaction` slice, on `:3103`, and its state in the `saga` store
+([ADR 0052](adr/0052-the-checkout-saga.md),
+[ADR 0055](adr/0055-a-coordinator-resumes-from-its-own-record.md)). The reactive
+stream is built too. It is
 [ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md), it is
 server-sent rather than a WebSocket, and it is built: the tracker takes a
 **second** subscription to `transaction.*` in `mode: 'broadcast'` — the first in
