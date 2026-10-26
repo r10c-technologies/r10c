@@ -16,6 +16,7 @@ import {
   type ProductOrderStore,
   ProductOrderStoreTag,
 } from '@r10c/business-ts-order-management';
+import { describeProductOrderStoreContract } from '@r10c/business-ts-order-management/testing';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -65,6 +66,10 @@ const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
     );
   return { fake, bus, run };
 };
+
+describeProductOrderStoreContract('the Mongo store', () =>
+  world().run(store => Effect.succeed(store)),
+);
 
 const anOrder = (id: string) =>
   Object.assign(new ProductOrder('buyer-1'), {
