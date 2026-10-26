@@ -48,7 +48,7 @@
     "@r10c/business-ts-order-management": "workspace:*",
     "@r10c/business-ts-saga-contracts": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5"
+    "effect": "4.0.6"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",

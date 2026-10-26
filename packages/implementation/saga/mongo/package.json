@@ -45,7 +45,7 @@
     "@entifix/mongo": "catalog:",
     "@entifix/transactions": "catalog:",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5",
+    "effect": "4.0.6",
     "mongodb": "7.7.0"
   },
   "devDependencies": {

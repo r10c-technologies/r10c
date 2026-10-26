@@ -40,7 +40,7 @@
     }
   },
   "dependencies": {
-    "@effect/opentelemetry": "4.0.5",
+    "@effect/opentelemetry": "4.0.6",
     "@entifix/amqp": "catalog:",
     "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:",
@@ -49,13 +49,14 @@
     "@entifix/mongo": "catalog:",
     "@entifix/service-shell": "catalog:",
     "@entifix/transactions": "catalog:",
+    "@opentelemetry/sdk-trace-web": "2.12.0",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-catalog-contracts": "workspace:*",
     "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5",
+    "effect": "4.0.6",
     "mongodb": "7.7.0"
   },
   "devDependencies": {
