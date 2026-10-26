@@ -569,10 +569,14 @@ and the scope of the slice that owns its domain.
 - A write that emits an event, a fold that must run once, and a saga step that
   may be redelivered all run on the **unit of work** (entifix 0009) — never on a
   driver session opened by hand.
-- ⚠️ `makeEntityRoutes<T, R>` given explicit generics needs its guard type as
-  the third: left to default, the guard widens to every kind, the crossing tags
-  become requirements, and the host fails to typecheck for a token it never
-  holds.
+- A route set whose handlers need the host's services names them with
+  `makeEntityRoutes.for<R>()(Entity, options)`, which keeps the entity and the
+  guard inferred. A single call with explicit `<T, R>` is refused at its
+  `guard` since entifix 0.8.0, rather than widening it to every kind.
+- A server-side read narrowed to a line names the embedded path directly
+  (`'items.vendorId' satisfies EntityMemberPath<ProductOrder>`), and a bulk
+  selection is read with `repository.load(loadRequestFor(selection, page))`.
+  Neither needs a cast.
 - A cell's spec reaches 100% over driver fakes and contract suites
   ([ADR 0063](adr/0063-a-cell-reaches-full-coverage-through-fakes-and-contract-suites.md)),
   never a real database; a race is proven against the live lab.

@@ -1,4 +1,4 @@
-import type { FilterGroup } from '@entifix/core';
+import type { EntityMemberPath, FilterGroup } from '@entifix/core';
 
 import type { ProductOrder } from '../entities/product-order';
 
@@ -61,11 +61,10 @@ export type OrderScope =
  * an embedded path a client cannot. `translateFiltering` emits the property
  * verbatim, so Mongo matches array elements by its own semantics.
  *
- * The cast is the idiom already used for a server-authored filter naming a path
- * rather than a member (the storefront's catalog queries, and
- * marketplace-service's bulk selection).
+ * Typed, not cast: entifix's `EntityMemberPath` names one step into a member
+ * that holds an array of records, and types the value from the line.
  */
-const VENDOR_PATH = 'items.vendorId' as unknown as keyof ProductOrder;
+const VENDOR_PATH = 'items.vendorId' satisfies EntityMemberPath<ProductOrder>;
 
 /**
  * The two `partyRole` values that change the answer, as ADR 0015 named them.

@@ -8,6 +8,11 @@
   (#65). It is the backstop, not a replacement: the webhook still closes the
   measured hole, and this closes the window where the webhook cannot be
   delivered at all. The decision is unchanged.
+- Revised: 2026-10-26 — the reconciler revokes only the sessions an event
+  predates (#433). Its cursor re-reads a minute on every pass, and revoking
+  everything a user held _now_ ended the session of someone reactivated and
+  signed back in since. The webhook path still revokes all, because it acts at
+  the moment of the event.
 
 ## Context
 

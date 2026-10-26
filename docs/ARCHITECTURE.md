@@ -200,7 +200,7 @@ seed, and the daemons it starts. What it serves and stores is in cells
 
 - `packages/implementation/<domain>/http` — the domain's routes. Entity CRUD is
   `makeEntityRoutes(Entity, { verbs, guard, scope?, prepare?, override? })`
-  ([entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.7.2/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md)),
+  ([entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.8.0/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md)),
   bound to storage through the `EntityRepositoryFactoryTag` the host provides;
   a verb that is not CRUD is a hand route beside it.
 - `packages/implementation/<store>/{mongo,redis,sql}` — the store's
@@ -803,7 +803,7 @@ entities; `INCR`'s atomicity is what guarantees uniqueness across service
 instances.
 
 **A write that announces itself is one unit of work**
-([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.7.2/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
+([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.8.0/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
 `UnitOfWork.run(body, { claim?, replay?, afterCommit? })` gives the body one
 transaction, records the events it `emit`s into the outbox in that transaction,
 and takes at most one claim — an event's (`consumer` + `eventId`, so a fold runs

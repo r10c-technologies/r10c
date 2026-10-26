@@ -109,11 +109,7 @@ export const catalogReferenceRoutes = Layer.mergeAll(
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: vocabularyGuard(),
   }),
-  makeEntityRoutes<
-    ProductCategory,
-    EntityRepositoryFactoryTag,
-    VocabularyGuard
-  >(ProductCategory, {
+  makeEntityRoutes.for<EntityRepositoryFactoryTag>()(ProductCategory, {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: vocabularyGuard(),
     prepare: category =>
