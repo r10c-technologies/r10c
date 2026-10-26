@@ -1,31 +1,9 @@
 import { MongoClientTag } from '@entifix/mongo';
+import { seedCollection } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
-import type { Db } from 'mongodb';
 
 import { offeringPriceTempData, offeringTempData } from './offering-temp-data';
 import { productTempData } from './product-temp-data';
-
-/**
- * Inserts a seed dataset into a collection when it is empty. The temp-data
- * records are already in the entity wire shape — `brandId` and `categoryId` are
- * plain ids into `catalog-reference`, a store this service does not own — so
- * they insert verbatim and read back through the entifix deserializer.
- */
-function seedCollection(
-  db: Db,
-  collectionName: string,
-  data: ReadonlyArray<Record<string, unknown>>,
-) {
-  return Effect.gen(function* () {
-    const collection = db.collection(collectionName);
-    const count = yield* Effect.promise(() => collection.countDocuments());
-    if (count === 0 && data.length > 0) {
-      yield* Effect.promise(() =>
-        collection.insertMany(data.map(item => ({ ...item }))),
-      );
-    }
-  });
-}
 
 const asRecords = (
   data: ReadonlyArray<object>,

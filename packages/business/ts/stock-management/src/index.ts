@@ -27,4 +27,6 @@ export { STOCK_DOMAIN } from './domain';
 export * from './entities/reservation';
 export * from './entities/stock-item';
 export * from './entities/stock-movement';
+export * from './ports';
+export * from './use-cases';
 export * from './values';

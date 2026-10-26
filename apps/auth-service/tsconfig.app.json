@@ -33,6 +33,15 @@
       "path": "../../packages/utils/ts/fleet/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/session/redis/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/auth/mongo/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/party-management/tsconfig.lib.json"
     },
     {

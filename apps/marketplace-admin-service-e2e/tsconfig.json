@@ -21,6 +21,9 @@
       "path": "../marketplace-admin-service"
     },
     {
+      "path": "../../packages/implementation/catalog/mongo"
+    },
+    {
       "path": "../../packages/business/ts/party-management"
     },
     {

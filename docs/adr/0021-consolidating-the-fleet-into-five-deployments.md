@@ -7,6 +7,7 @@
 - Revised: 2026-08-12 by [ADR 0022](0022-v1-marketplace-module-boundaries.md) —
   the fleet runs six, not five: `marketplace-service` returns with two stores to
   justify it. The title is kept deliberately.
+- Revised: 2026-10-25 — the saga store's named handle is a layer argument rather than a `SagaDatabaseName` tag (#376).
 
 ## Context
 
@@ -100,8 +101,9 @@ and the spec fails if only one side records it.
 What made this safe was a fix that had to come first. `MongoDatabaseTag` is a
 single Tag, so two Mongo stores in one process would have meant whichever layer
 won the merge silently decided where the other one wrote. `MongoTransactionStoreLayer`
-now resolves its `Db` from the pool (`MongoClientTag`) plus an explicit
-`SagaDatabaseName`, so the saga store stops being "whatever the ambient database
+resolved its `Db` from the pool (`MongoClientTag`) plus an explicit
+`SagaDatabaseName` — since #376, `mongoTransactionStoreLayer({ database })` in the
+`saga/mongo` cell — so the saga store stops being "whatever the ambient database
 tag holds" and becomes a named handle that moves to another process unchanged.
 
 The router moved with it: `GET /api/transaction{,/:id}` is what the catalog's own

@@ -1,0 +1,55 @@
+{
+  "name": "@r10c/implementation-published-vendor-mongo",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:implementation",
+      "tech:mongo",
+      "scope:marketplace"
+    ],
+    "sourceRoot": "packages/implementation/published-vendor/mongo/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/implementation/published-vendor/mongo/dist",
+          "main": "packages/implementation/published-vendor/mongo/src/index.ts",
+          "tsConfig": "packages/implementation/published-vendor/mongo/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/core": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@r10c/business-ts-marketplace-vendor": "workspace:*",
+    "@r10c/business-ts-party-contracts": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.5",
+    "mongodb": "7.7.0"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:"
+  }
+}

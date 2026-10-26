@@ -33,4 +33,5 @@ export { PAYMENT_DOMAIN } from './domain';
 export * from './entities/payment';
 export * from './entities/refund';
 export * from './ports';
+export * from './use-cases/take-payment';
 export * from './values';

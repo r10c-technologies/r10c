@@ -37,6 +37,8 @@ export const errors: EsErrors = {
   categoryTooDeep: 'Categories can be at most five levels deep.',
   categoryHasChildren:
     'This category still has active subcategories. Retire or move them first.',
+  categoryTreeUnreadable:
+    'The category tree could not be checked right now. Try again in a moment.',
   mediaNotHttps: 'Every image URL must be a full https:// address.',
   mediaAltMissing: 'Every image needs a description.',
   paymentPending:
@@ -60,6 +62,10 @@ export const errors: EsErrors = {
   offeringHasNoPrice: 'Add a price before publishing this offering.',
   offeringHasNoSpecification:
     'This offering points at a specification that no longer exists.',
+  // Two changes raced on one offering and the other landed first; the vendor
+  // reloads and acts on what is there now (#371).
+  offeringChanged:
+    'This offering changed while you were working. Reload it and try again.',
   // A movement's quantity is signed, so a well-formed document can still
   // contradict its reason: a receipt of -50 says goods arrived and took stock
   // away. Refused in the domain.

@@ -26,6 +26,12 @@
       "path": "../../packages/utils/ts/fleet/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/saga/mongo/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/authz-grants/tsconfig.lib.json"
     },
     {

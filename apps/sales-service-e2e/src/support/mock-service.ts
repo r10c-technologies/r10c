@@ -5,8 +5,12 @@ import {
 } from '@entifix/authz';
 import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
+import { MongoTenantRepositoryFactoryLayer } from '@entifix/mongo';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
+import {
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
@@ -21,14 +25,11 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { router, seedSales, SERVICE_NAME } from '@r10c/sales-service';
 import {
-  CheckoutCoordinatorUrl,
-  CheckoutCrossingToken,
-  PublishedCatalogUrl,
-  router,
-  seedSales,
-  SERVICE_NAME,
-} from '@r10c/sales-service';
+  httpPublishedPriceReaderLayer,
+  httpSagaStarterLayer,
+} from '@r10c/shells-effect-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
@@ -100,20 +101,25 @@ const MockAppLayer = (() => {
     Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
-    // The shipped layer reads all three from config-service; here they are
-    // literals beside the other resolved values, and the matching entries in
-    // `CONFIGURATION` are what `GET /api/config` reports.
-    Layer.succeed(CheckoutCoordinatorUrl, 'http://mock-coordinator/api'),
-    Layer.succeed(CheckoutCrossingToken, E2E_CROSSING_TOKEN),
-    Layer.succeed(PublishedCatalogUrl, 'http://mock-catalog/api'),
+    // The shipped layer reads these addresses from config-service; here they
+    // are literals beside the other resolved values, and the matching entries
+    // in `CONFIGURATION` are what `GET /api/config` reports.
+    httpSagaStarterLayer({
+      url: 'http://mock-coordinator/api',
+      crossingToken: E2E_CROSSING_TOKEN,
+    }),
+    httpPublishedPriceReaderLayer('http://mock-catalog/api'),
   );
 
   // The REAL seed, so both profiles read the same channels and a shared journey
   // can name a seeded row. The fake resolves every organization to one
   // in-memory store, so the channels the specs read are the ones this wrote.
   return Layer.provideMerge(
-    Layer.effectDiscard(seedSales(`sales_${E2E_ORGANIZATION_ID}`)),
-    connections,
+    MongoTenantRepositoryFactoryLayer,
+    Layer.provideMerge(
+      Layer.effectDiscard(seedSales(`sales_${E2E_ORGANIZATION_ID}`)),
+      connections,
+    ),
   ).pipe(Layer.orDie);
 })();
 

@@ -3,7 +3,8 @@
 - Status: Accepted
 - Date: 2026-09-07
 - Area: messaging
-- Read when: emitting or consuming a publication — the projector orders on `publishedAt`, and an unpublication leaves a tombstone because a delete has nothing to be ordered by
+- Read when: emitting or consuming a publication — the projector orders on `publishedAt`, and every apply writes a per-offering stamp because a delete has nothing to be ordered by
+- Revised: 2026-10-25 — the tombstone became a stamp written by every apply, in one transaction with the record (#357, #372): a tombstone written only on unpublication let a concurrent publish and unpublish touch two different documents, both commit, and resurrect the offering.
 - Amends: [ADR 0009](0009-catalog-authoring-and-publication.md) — the projection
   runs on the outbox and the routed bus, not on the saga engine; the
   announcement it called missing now exists.
@@ -138,7 +139,7 @@ comes from the **publisher's** clock, carried in the payload: the receiving time
 would order messages by when the broker happened to deliver them, which is the
 thing being defended against.
 
-#### ⚠️ An unpublication leaves a tombstone, because a delete cannot be ordered
+#### ⚠️ Every apply writes a stamp, because a delete cannot be ordered
 
 Comparing against the stored record is only half the guard, and the missing half
 was found by exercising the running fleet rather than by reasoning:
@@ -150,20 +151,32 @@ was found by exercising the running fleet rather than by reasoning:
 > storefront went on showing an offering whose tenant-side record said
 > `unpublished`, with both requests answering `200` and every probe green.
 
-A delete has nothing to be ordered by. So an unpublication now writes a
-tombstone (`<projection>-tombstone`, keyed on `offeringId`, carrying the event's
-`publishedAt`) **before** removing the record, the guard compares against the
-record _or_ its tombstone, and a publication clears the tombstone it supersedes.
+A delete has nothing to be ordered by. So the projector keeps a **stamp** per
+offering (`<projection>-stamp`, unique on `offeringId`, carrying the latest
+`publishedAt` it has applied, whichever way that event moved the record), and an
+event older than the stamp changes nothing.
 
-Three consequences worth stating. The tombstone is written **first**, because
-between the two writes the offering must never look publishable again. It is a
-separate collection rather than a `deleted` flag on the record, because
-`published-catalog` is read through the entity's own collection by
-`makeMongoRepository` and a soft-deleted row would need every reader to remember
-to filter it — and because ADR 0009 says a `projection-of:` store must not keep
-rows its source no longer has. And the guard **orders rather than freezes**: a
-vendor who unpublishes and changes their mind still reaches the storefront,
-verified live.
+_As first built_ this was a tombstone written only on unpublication, before the
+delete, and cleared by the next publication. That order was right in sequence
+and wrong under concurrency, measured on 2026-10-25 (#357): the read, the
+comparison and the writes were separate operations, so two handlers racing on a
+fresh offering both read "nothing newer", and a publish and an unpublish touched
+two **different** documents — one inserting the record, the other the
+tombstone. Putting those writes in a transaction alone does not fix it, because
+two transactions only conflict when they write the same document.
+
+So the read, the comparison, the stamp and the record's write now run in **one
+unit of work**, and **every** apply writes the stamp. It is the one document
+both racers must write; the server aborts one with a write conflict, the unit of
+work retries it, and the retry reads the newer stamp and goes stale.
+
+Two consequences worth stating. The stamp is a separate collection rather than
+a `deleted` flag on the record, because `published-catalog` is read through the
+entity's own collection and a soft-deleted row would need every reader to
+remember to filter it — and because ADR 0009 says a `projection-of:` store must
+not keep rows its source no longer has; a stamp is ordering state, not a row.
+And the guard **orders rather than freezes**: a vendor who unpublishes and
+changes their mind still reaches the storefront.
 
 This was reasoned about while planning and written off as a rare redelivery
 edge. It is not an edge — two operator clicks a second apart reproduce it — and

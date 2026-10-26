@@ -12,6 +12,12 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../../packages/shells/effect/service"
+    },
+    {
+      "path": "../../packages/implementation/order/mongo"
+    },
+    {
       "path": "../../packages/business/ts/authz-grants"
     },
     {

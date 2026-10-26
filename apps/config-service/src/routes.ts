@@ -1,11 +1,11 @@
 import { ConfigurationPlain } from '@entifix/core';
 import { redactValue, requireSharedToken } from '@entifix/service-shell';
+import { configurationRoutes } from '@r10c/implementation-configuration-http';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 import { HttpRouter, HttpServerResponse } from 'effect/http';
 import { SqlClient, SqlError } from 'effect/sql';
 
-import { configurationRoutes } from './configuration-routes';
 import { ConfigurationRow } from './db';
 
 const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
@@ -52,7 +52,7 @@ const onSqlError = (error: SqlError.SqlError) =>
  * - `GET /api/config` — introspection: this service's own loaded parameters
  *   (redacted Postgres URL, row count, and the services present in the table).
  * - `/api/configuration…` — the operator-facing CRUD, behind
- *   `config:configuration:*`. See `configuration-routes`.
+ *   `config:configuration:*`. See `@r10c/implementation-configuration-http`.
  *
  * The two `config` routes carry credentials in the clear, by necessity: a booting
  * service needs the real connection strings. They are gated on `X-Service-Token`

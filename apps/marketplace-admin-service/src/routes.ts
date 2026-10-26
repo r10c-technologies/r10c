@@ -1,11 +1,6 @@
-import { requirePrincipal } from '@entifix/service-shell';
+import { catalogRoutes } from '@r10c/implementation-product-configuration-management-http';
+import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-import { HttpRouter, HttpServerResponse } from 'effect/http';
-
-import { configIntrospectionRoute } from './routes/config.routes';
-import { productOfferingRoutes } from './routes/product-offering.routes';
-import { productOfferingPriceRoutes } from './routes/product-offering-price.routes';
-import { productSpecificationRoutes } from './routes/product-specification.routes';
 
 /**
  * marketplace-admin-service routes: the catalog. `/api/health*` is added by the
@@ -24,17 +19,11 @@ import { productSpecificationRoutes } from './routes/product-specification.route
  * never silently replace another's.
  */
 export const router = Layer.mergeAll(
-  HttpRouter.addAll([
-    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
-    // Token-verified backend integration: returns the caller's principal, proving
-    // a downstream service trusts the access token auth-service minted.
-    HttpRouter.route(
-      'GET',
-      '/api/me',
-      requirePrincipal(principal => HttpServerResponse.json(principal)),
-    ),
-  ]),
-  productSpecificationRoutes,
-  productOfferingRoutes,
-  productOfferingPriceRoutes,
+  // A literal, not `SERVICE_NAME`: `index.ts` re-exports this module, so
+  // importing it back would read the constant before it is initialised.
+  serviceBaseRoutes({
+    service: '@r10c/marketplace-admin-service',
+    store: 'mongo',
+  }),
+  catalogRoutes,
 );

@@ -37,6 +37,10 @@
   },
   "dependencies": {
     "@entifix/authz": "catalog:",
-    "@r10c/business-ts-authz-grants": "workspace:*"
+    "@entifix/mongo": "catalog:",
+    "@entifix/testing-unit": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/implementation-settlement-mongo": "workspace:*"
   }
 }

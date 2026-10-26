@@ -43,6 +43,8 @@ export const errors = {
   categoryTooDeep: 'Las categorías pueden tener como máximo cinco niveles.',
   categoryHasChildren:
     'Esta categoría todavía tiene subcategorías activas. Retíralas o muévelas primero.',
+  categoryTreeUnreadable:
+    'No se pudo revisar el árbol de categorías en este momento. Inténtalo de nuevo en un momento.',
   mediaNotHttps: 'Cada URL de imagen debe ser una dirección https:// completa.',
   mediaAltMissing: 'Cada imagen necesita una descripción.',
   paymentPending:
@@ -68,6 +70,10 @@ export const errors = {
   // como datos que el vendedor tiene que arreglar. La baja sí se permite.
   offeringHasNoSpecification:
     'Esta oferta apunta a una especificación que ya no existe.',
+  // Dos cambios compitieron por una oferta y el otro llegó primero; el vendedor
+  // recarga y actúa sobre lo que hay ahora (#371).
+  offeringChanged:
+    'Esta oferta cambió mientras trabajabas. Recárgala e inténtalo de nuevo.',
   // La cantidad de un movimiento es con signo, así que un documento bien
   // formado todavía puede contradecir su motivo: una entrada de -50 dice que
   // llegó mercadería y que se restó existencia. Se rechaza en el dominio.

@@ -1,46 +1,24 @@
-import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
-import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
-import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@entifix/authz';
-import {
-  ConfigurationRepositoryTag,
-  TenantDatabaseResolverTag,
-  TokenServiceTag,
-} from '@entifix/business';
-import { ConfigurationClientInMemory } from '@entifix/core';
-import { makeJoseTokenService } from '@entifix/jwt';
-import {
-  makeMongoTenantResolver,
-  MongoClientLayer,
-  MongoClientTag,
-  MongoHealthProbeLayer,
-} from '@entifix/mongo';
-import { OutboxMaxAttempts } from '@entifix/mongo/transactions';
+import { startTenantOutboxRelay } from '@entifix/mongo/transactions';
 import { RedisHealthProbeLayer, RedisLayer } from '@entifix/redis';
 import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
 } from '@entifix/redis/transactions';
-import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
 import { EventSourceTag } from '@entifix/transactions';
+import { rebuildEveryPublication } from '@r10c/business-ts-product-configuration-management';
 import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
+  MongoOfferingCatalogLayer,
+  MongoSpecificationCommandsLayer,
+} from '@r10c/implementation-catalog-mongo';
 import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { configSourceFor } from '@r10c/utils-ts-fleet';
-import { Layer } from 'effect';
-import { Effect } from 'effect';
+  fleetBusLayer,
+  fleetOutboxLayer,
+  fleetSecurityLayer,
+  fleetTenantMongoLayer,
+  makeFleetServiceLayer,
+} from '@r10c/shells-effect-service';
+import { Effect, Layer } from 'effect';
 
-import { startOutboxRelay, TenantDatabasePrefix } from './outbox/relay';
-import { startPublicationRebuild } from './publication/rebuild';
 import { seedCatalog } from './seed';
 
 const SERVICE_NAME = 'marketplace-admin-service';
@@ -57,161 +35,69 @@ const SLICE_NAME = 'marketplace-admin';
  * `makeService`'s `Layer.launch` owns startup and graceful shutdown. Any boot
  * failure (config unreachable, missing keys) crashes the service (`orDie`).
  */
-export const AppLayer = Layer.unwrap(
+export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
-    const store = new ConfigurationClientInMemory(plain);
+    const { store } = configuration;
 
-    const uri = yield* store.in('mongo').getString('uri');
-    // Tenant storage: one Mongo database per organization, named from the
-    // organization id. Resolved from config-service like every other
-    // cross-service value, so the convention is not duplicated in code.
     const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
     const demoOrganizationId = yield* store
       .in('tenant')
       .getString('demoOrganizationId');
     const redisUri = yield* store.in('redis').getString('uri');
-    const amqpUri = yield* store.in('rabbitmq').getString('uri');
-    // Publish attempts before the relay quarantines an entry and moves the head
-    // of the line. `getNumber` rather than a cast: this is the one config value
-    // arithmetic is done on, and `'five'` would otherwise become `NaN` and make
-    // every comparison false — quarantining nothing, silently.
-    const outboxMaxAttempts = yield* store
-      .in('outbox')
-      .getNumber('maxAttempts');
-    // The public half only. This service verifies access tokens and never mints
-    // one, so it is configured with material that cannot sign.
-    const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
-    const jwtKeyId = yield* store.in('jwt').getString('keyId');
 
-    // Observability parameters (log level + sink, OTLP endpoint). The tooling
-    // logger replaces Effect's default logger and the OTel tracer exports spans,
-    // so every request logs through one trace-correlated pipeline. Which keys
-    // and which are optional is the shell's, so every service reads them the
-    // same way.
-    const observability = yield* observabilityFromConfiguration(
-      store,
-      SERVICE_NAME,
-    );
-
-    // Connections resolved from config-service: Mongo (catalog), Redis (locks +
-    // code sequences), RabbitMQ (transaction event bus). The token service
-    // verifies RS256 access tokens minted by auth-service.
     const connections = Layer.mergeAll(
       // The pool only. This service owns no single named database: every catalog
       // handle is `tenant_<organizationId>`, resolved per request. Connecting to
-      // a named one would put a database in Mongo that nothing ever writes —
-      // a phantom store (ADR 0020).
-      MongoClientLayer({ uri }),
-      RedisLayer({ uri: redisUri }),
-      AmqpLayer({ uri: amqpUri }),
-      Layer.succeed(
-        TokenServiceTag,
-        makeJoseTokenService({
-          publicKeyPem: jwtPublicKey,
-          keyId: jwtKeyId,
-          issuer: AUTH_TOKEN_ISSUER,
-          audience: AUTH_TOKEN_AUDIENCE,
-        }),
-      ),
-      Layer.succeed(ConfigurationRepositoryTag, store),
-      Layer.succeed(LoadedConfigurationTag, plain),
-      // Stamped onto every event this process publishes. The **slice**, not the
-      // deployment: the `transaction` slice is co-deployed here, and a source
-      // that named the process would relabel marketplace-admin's events the day
-      // the two split apart again.
-      Layer.succeed(EventSourceTag, SLICE_NAME),
-      // The outbox relay sweeps every `tenant_<organizationId>` database this
-      // slice owns, so it needs the prefix those handles are named with.
-      Layer.succeed(TenantDatabasePrefix, tenantPrefix),
-      Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
-      // The authorization policy. Static role→permission table today; swapping
-      // in an attribute-aware engine is a change of this line alone.
-      Layer.succeed(
-        PolicyDecisionTag,
-        makeStaticPolicyDecision(ROLE_PERMISSIONS),
-      ),
-      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
-    );
-
-    // Transaction ports built from those connections (lock/sequence over Redis,
-    // event bus over AMQP), merged back so the routes can use every service.
-    // `MongoTransactionStoreLayer` is the co-deployed `transaction` slice's
-    // store — the same topic exchange this process publishes to, consumed
-    // through the tracker's own exclusive queue bound to `transaction.*`.
-    const infra = Layer.provideMerge(
-      Layer.mergeAll(
-        RedisLockServiceLayer,
-        RedisSequenceServiceLayer,
-        AmqpEventBusLayer,
-      ),
-      connections,
-    );
-
-    // Every connection contributes its own readiness probe, so
-    // `/api/health/ready` describes this service without this file listing what
-    // "ready" means. `HealthRegistryTag` comes from `makeServerLayer`.
-    const withProbes = Layer.provideMerge(
-      Layer.mergeAll(
-        // The logical Stores each connection backs, by their register name in
-        // `tools/slices/`. Mongo carries one again: the `saga` store left with
-        // its slice when ADR 0039's `:3103` trigger fired (#229), so probing it
-        // here would claim a readiness this process no longer answers for
-        // (ADR 0031).
-        MongoHealthProbeLayer(['catalog']),
-        RedisHealthProbeLayer(['saga-coordination']),
-        AmqpHealthProbeLayer,
-      ),
-      infra,
-    );
-
-    // The tenant resolver: one client, N database handles. It needs the pool
-    // (`MongoClientTag`) rather than the shared `Db`, and it is built here — at
-    // the composition root — because only this file knows which driver backs
-    // the port.
-    const tenancy = Layer.provide(
-      Layer.effect(
-        TenantDatabaseResolverTag,
-        Effect.map(MongoClientTag, client =>
-          makeMongoTenantResolver(client, tenantPrefix),
-        ),
-      ),
-      withProbes,
-    );
-
-    // Seed depends on MongoClientTag from `infra`; provideMerge keeps the
-    // infra services in the output so the routes can use them. Observability
-    // (logger replacement + tracer) is merged so it is active for the server.
-    // The saga tracker's boot step used to run here. It left with the
-    // `transaction` slice for `:3103` (#229) — this process still *publishes*
-    // `transaction.*` through the outbox, and transaction-service consumes and
-    // folds it. Single-step writes are unchanged and stay choreography; what
-    // moved is the process, not the ownership (ADR 0021).
-    return Layer.merge(
-      observability,
+      // a named one would put a database in Mongo that nothing ever writes — a
+      // phantom store (ADR 0020). The `saga` store left with its slice when
+      // ADR 0039's `:3103` trigger fired (#229), so only `catalog` is probed.
+      yield* fleetTenantMongoLayer(configuration, ['catalog']),
+      // Locks and code sequences for the transactional create.
       Layer.provideMerge(
         Layer.mergeAll(
-          tenancy,
-          // ⚠️ **The rebuild is chained to the seed, not merged beside it.**
-          // `Layer.mergeAll` builds its members concurrently, so a sibling
-          // rebuild races the seed on a fresh `dev:reset`: Mongo creates a
-          // tenant database on its first write, `tenantDatabases` would list
-          // none, and the walk would announce nothing — leaving the storefront
-          // empty, intermittently, which is the failure this walk exists to
-          // remove.
-          Layer.effectDiscard(
-            seedCatalog(`${tenantPrefix}${demoOrganizationId}`).pipe(
-              Effect.andThen(startPublicationRebuild),
+          RedisLockServiceLayer,
+          RedisSequenceServiceLayer,
+          RedisHealthProbeLayer(['saga-coordination']),
+        ),
+        RedisLayer({ uri: redisUri }),
+      ),
+      yield* fleetBusLayer(configuration),
+      yield* fleetSecurityLayer(configuration),
+      // Stamped onto every event this process publishes. The **slice**, not the
+      // deployment: the `transaction` slice was co-deployed here, and a source
+      // that named the process would relabel marketplace-admin's events the day
+      // the two split apart.
+      yield* fleetOutboxLayer(configuration, SLICE_NAME),
+    );
+
+    return Layer.provideMerge(
+      Layer.mergeAll(
+        // ⚠️ **The rebuild is chained to the seed, not merged beside it.**
+        // `Layer.mergeAll` builds its members concurrently, so a sibling
+        // rebuild races the seed on a fresh `dev:reset`: Mongo creates a
+        // tenant database on its first write, `the directory would list
+        // none, and the walk would announce nothing — leaving the storefront
+        // empty, intermittently, which is the failure this walk exists to
+        // remove.
+        Layer.effectDiscard(
+          seedCatalog(`${tenantPrefix}${demoOrganizationId}`).pipe(
+            Effect.andThen(
+              Effect.flatMap(EventSourceTag, source =>
+                Effect.forkDetach(rebuildEveryPublication(source)),
+              ),
             ),
           ),
-          // The slow half of the outbox relay. The fast half runs inline in the
-          // create route, which already holds the tenant handle; this sweep is
-          // what carries an entry the process died before publishing, or one
-          // written while the broker was down.
-          Layer.effectDiscard(startOutboxRelay),
         ),
-        withProbes,
+        Layer.effectDiscard(startTenantOutboxRelay()),
+      ),
+      // The catalog store's two non-save writes, over the same connections.
+      Layer.provideMerge(
+        Layer.mergeAll(
+          MongoOfferingCatalogLayer,
+          MongoSpecificationCommandsLayer,
+        ),
+        connections,
       ),
     );
-  }).pipe(Effect.orDie),
-).pipe(Layer.orDie);
+  }),
+);

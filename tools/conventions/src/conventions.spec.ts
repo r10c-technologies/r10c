@@ -361,3 +361,50 @@ describe('a library build reports its declaration errors', () => {
     ).toEqual([]);
   });
 });
+
+/**
+ * ⚠️ **A library may not spread a `Set`, a `Map` or one of their iterators.**
+ *
+ * The packages compile through SWC with `loose: true`, whose array-spread
+ * helper treats its argument as an array-like rather than iterating it, so
+ * `[...new Set(xs)]` is an array holding one `Set` and `[...map.values()]` is
+ * empty. Measured on the settlement fold, which never once wrote a commission
+ * while every unit test stayed green, because the tests ran the source
+ * through a different compiler than the build. `Array.from` and `indexOf`
+ * say the same thing and survive the helper.
+ */
+describe('no library spreads a Set or a Map', () => {
+  const SPREAD = [
+    /\.\.\.new (?:Set|Map)\b/,
+    /\.\.\.[\w.]+\.(?:keys|values|entries)\(\)/,
+  ];
+  const sources = trackedTextFiles().filter(
+    path =>
+      path.startsWith('packages/') &&
+      /\/src\/.*\.tsx?$/.test(path) &&
+      !/\.(?:spec|test)\.tsx?$/.test(path),
+  );
+
+  it('reads the libraries it means to check', () => {
+    expect(sources.length).toBeGreaterThanOrEqual(300);
+  });
+
+  it('finds none outside a comment', () => {
+    const offending: string[] = [];
+    for (const file of sources) {
+      readFileSync(join(REPO_ROOT, file), 'utf8')
+        .split('\n')
+        .forEach((line, index) => {
+          const code = line.trim();
+          if (code.startsWith('*') || code.startsWith('//')) return;
+          if (SPREAD.some(pattern => pattern.test(code))) {
+            offending.push(`${file}:${index + 1}  ${code}`);
+          }
+        });
+    }
+    expect(
+      offending,
+      `a Set or Map spread, which SWC's loose helper miscompiles:\n  ${offending.join('\n  ')}`,
+    ).toEqual([]);
+  });
+});

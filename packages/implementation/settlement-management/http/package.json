@@ -1,0 +1,56 @@
+{
+  "name": "@r10c/implementation-settlement-management-http",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:implementation",
+      "tech:http",
+      "scope:settlement"
+    ],
+    "sourceRoot": "packages/implementation/settlement-management/http/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/implementation/settlement-management/http/dist",
+          "main": "packages/implementation/settlement-management/http/src/index.ts",
+          "tsConfig": "packages/implementation/settlement-management/http/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@r10c/business-ts-settlement-management": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.5"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:",
+    "@r10c/testing-http": "workspace:*"
+  }
+}

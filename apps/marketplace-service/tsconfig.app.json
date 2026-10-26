@@ -26,6 +26,24 @@
       "path": "../../packages/utils/ts/fleet/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/shells/effect/service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/published-vendor/mongo/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/published-catalog/mongo/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/marketplace-vendor/http/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/marketplace-catalog/http/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/catalog-reference/http/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/party-contracts/tsconfig.lib.json"
     },
     {

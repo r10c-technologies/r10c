@@ -1,27 +1,10 @@
 import { MongoDatabaseTag } from '@entifix/mongo';
+import { seedCollection } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
-import type { Db } from 'mongodb';
 
 import { dictionaryTermTempData } from './dictionary-term-temp-data';
 import { productBrandTempData } from './product-brand-temp-data';
 import { productCategoryTempData } from './product-category-temp-data';
-
-/** Inserts a seed dataset into a collection when it is empty. */
-function seedCollection(
-  db: Db,
-  collectionName: string,
-  data: ReadonlyArray<Record<string, unknown>>,
-) {
-  return Effect.gen(function* () {
-    const collection = db.collection(collectionName);
-    const count = yield* Effect.promise(() => collection.countDocuments());
-    if (count === 0 && data.length > 0) {
-      yield* Effect.promise(() =>
-        collection.insertMany(data.map(item => ({ ...item }))),
-      );
-    }
-  });
-}
 
 const asRecords = (
   data: ReadonlyArray<object>,

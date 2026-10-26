@@ -8,6 +8,9 @@
 - Amended by: [ADR 0054](0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md) — the pivot this record deferred to M4 landed where it said it would; what it did not anticipate is that `runSaga` ignored `kind` outside definition validation, so the planned pivot would have been decorative and a post-pivot failure would have deleted a paid order
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): the engine file is `@entifix/transactions`'s
   `src/engine/run-transaction.ts`.
+- Revised: 2026-10-25 — the hold moved onto the grid (#367): the server-owned id rule is `takeReservation` in
+  `@r10c/business-ts-stock-management`, not the deleted `take-reservation.ts` route; the AMQP relay it compares
+  against is entifix's `startTenantOutboxRelay` (#371).
 
 - Amended by: [ADR 0055](0055-a-coordinator-resumes-from-its-own-record.md) — the outbox-entry-plus-HTTP-relay dispatch is struck; the four ways this record said that relay would differ from the AMQP one turned out to be the evidence it was not an outbox
 
@@ -142,7 +145,7 @@ every step while the vendor's availability is quietly wrong. That is the class
 of bug the reservation design exists to make impossible, reintroduced above it.
 
 So the crossing routes take an idempotency key and claim it. This does **not**
-weaken the server-owned id rule that `take-reservation.ts` records: the caller
+weaken the server-owned id rule that `takeReservation` (`stock-management`) records: the caller
 still cannot choose the reservation's identity, and a session caller presents no
 key at all. What the key buys is that a repeat of the _same command_ returns the
 hold it already took, rather than taking another. It is ADR 0028's rule pointed
@@ -160,7 +163,8 @@ idempotency key — which the fleet already runs on.
 
 ADR 0039's rule, unchanged: persist the step transition, then dispatch it. What
 this record adds is how the HTTP relay differs from the AMQP one it sits beside
-(`apps/marketplace-admin-service/src/outbox/relay.ts`):
+(then `apps/marketplace-admin-service/src/outbox/relay.ts`, entifix's
+`startTenantOutboxRelay` since #371):
 
 - **It walks one database, not many.** The saga's entries live in the
   control-plane `saga` store, single-partitioned. The AMQP relay walks every

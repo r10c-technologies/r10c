@@ -1,0 +1,64 @@
+{
+  "name": "@r10c/shells-effect-service",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:shared"
+    ],
+    "sourceRoot": "packages/shells/effect/service/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/effect/service/dist",
+          "main": "packages/shells/effect/service/src/index.ts",
+          "tsConfig": "packages/shells/effect/service/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@effect/opentelemetry": "4.0.5",
+    "@entifix/amqp": "catalog:",
+    "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/business-ts-catalog-contracts": "workspace:*",
+    "@r10c/business-ts-saga-contracts": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.5",
+    "mongodb": "7.7.0"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:"
+  }
+}

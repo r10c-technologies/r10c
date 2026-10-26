@@ -549,8 +549,10 @@ and the scope of the slice that owns its domain.
    `shells/next/<shell>`; that is the exception, not the starting point.
 3. **Routes** — a `page.tsx` and a `[slug]/page.tsx` in the app, each a
    nine-line re-export. Next needs a module per path, so these stay.
-4. **Backend route** — in the `-service`, provide `makeMongoRepository(db, Ctor)`
-   for `EntityRepositoryTag` and serialize the result.
+4. **Backend route** — one `makeEntityRoutes(Ctor, { verbs, guard })` in the
+   domain's `packages/implementation/<domain>/http` cell, merged into the
+   service's router. Storage comes from the `EntityRepositoryFactoryTag` the
+   host's `fleet*MongoLayer` provides, so the route names no database.
 5. **Config** — if it introduces a new service/URL, add a seed row in
    `apps/config-service/src/db.ts`; never hardcode a URL or connection string.
 6. **Check the catalogs** — `node tools/check-i18n.mjs`. A key present in `es`
@@ -559,8 +561,21 @@ and the scope of the slice that owns its domain.
 
 ## Backends
 
-- Compose `@entifix/service-shell`; keep the service thin (routes + an
-  `AppLayer`). Health and shutdown come from the base.
+- Compose `@entifix/service-shell` through `@r10c/shells-effect-service`
+  (`makeFleetServiceLayer`, the `fleet*Layer` helpers, `serviceBaseRoutes`); keep
+  the service to composition — routes and persistence are cells, rules are use
+  cases (ARCHITECTURE → [Where a service's code lives](ARCHITECTURE.md#where-a-services-code-lives)).
+  Health and shutdown come from the base.
+- A write that emits an event, a fold that must run once, and a saga step that
+  may be redelivered all run on the **unit of work** (entifix 0009) — never on a
+  driver session opened by hand.
+- ⚠️ `makeEntityRoutes<T, R>` given explicit generics needs its guard type as
+  the third: left to default, the guard widens to every kind, the crossing tags
+  become requirements, and the host fails to typecheck for a token it never
+  holds.
+- A cell's spec reaches 100% over driver fakes and contract suites
+  ([ADR 0063](adr/0063-a-cell-reaches-full-coverage-through-fakes-and-contract-suites.md)),
+  never a real database; a race is proven against the live lab.
 - Resolve runtime config from config-service at boot (`loadRemoteConfiguration`),
   never from ad-hoc `process.env` beyond a single bootstrap value (e.g.
   `CONFIG_API_URL`, `CONFIG_PG_URL`).

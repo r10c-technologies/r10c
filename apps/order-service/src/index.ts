@@ -3,19 +3,7 @@
  * it — the same split every other backend makes, so an e2e `mock` profile can
  * launch the real router in-process against driver fakes.
  */
-export {
-  type CancellableOrder,
-  type CancelRefusal,
-  CancelWindowSeconds,
-  digestOf,
-  verifyCancelCapability,
-} from './cancel-capability';
-export {
-  CancellationCoordinatorUrl,
-  CancellationCrossingToken,
-} from './coordinator-config';
-export { AppLayer } from './mongo';
-export { ORDER_COLLECTION, ORDER_SLICE } from './outbox';
+export { AppLayer, ORDER_SLICE } from './mongo';
 export { router } from './routes';
 
 export const SERVICE_NAME = '@r10c/order-service';

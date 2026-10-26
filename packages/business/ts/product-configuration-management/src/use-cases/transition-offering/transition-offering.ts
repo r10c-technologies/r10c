@@ -189,6 +189,11 @@ const merchandisingOf = (
 /** What one transition decided: the moved record, and what to announce. */
 export interface OfferingTransitionDecision {
   readonly offering: ProductOffering;
+  /**
+   * The status the offering was read in. What a commit compares against, so
+   * two transitions racing on one offering cannot both land (#371).
+   */
+  readonly from: ProductOffering['status'];
   readonly event: DomainEvent<CatalogPublication>;
 }
 
@@ -228,7 +233,8 @@ export const transitionOffering = Effect.gen(function* () {
   const repository = yield* EntityRepositoryTag;
 
   const offering = yield* repository.get<ProductOffering>(id);
-  const next = offeringStatusAfter(offering.status, transition);
+  const from = offering.status;
+  const next = offeringStatusAfter(from, transition);
 
   if (next === undefined) {
     return yield* new IllegalOfferingTransition({
@@ -303,6 +309,7 @@ export const transitionOffering = Effect.gen(function* () {
 
   return {
     offering,
+    from,
     event:
       next === 'published'
         ? catalogPublishedEvent(publication, source)

@@ -27,3 +27,4 @@
  */
 export { MARKETPLACE_CATALOG_DOMAIN } from './domain';
 export * from './entities/published-offering';
+export * from './ports';

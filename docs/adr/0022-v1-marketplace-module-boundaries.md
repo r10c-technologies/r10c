@@ -18,6 +18,7 @@
   one domain (`marketplace-vendor`), one entity (`PublishedVendor`) and one
   platform-plane store (`published-vendor`, owned by `marketplace`) join the
   inventory; slices and deployments are unchanged.
+- Revised: 2026-10-25 — the session-scope resolver moved into the `auth/mongo` cell (#374); the path it names is corrected in place.
 
 ## Context
 
@@ -262,7 +263,8 @@ and BUSINESS-ARCHITECTURE already names the case: an organization that is a
 marketplace vendor _and_ a CRM customer.
 
 `Individual.partyRole` — a single column — cannot express that, and it is the
-live source today, read at `apps/auth-service/src/identity/session-scope.ts`.
+live source today, read at `apps/auth-service/src/identity/session-scope.ts`
+(since #374, `session-scope.ts` in `@r10c/implementation-auth-mongo`).
 
 The access-token claim is unchanged in every respect that matters: resolved once
 at sign-in, re-signed unchanged on refresh, routing context and never a grant

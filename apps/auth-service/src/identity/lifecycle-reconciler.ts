@@ -3,10 +3,11 @@ import {
   PROVIDER_USER_LIFECYCLE_EVENTS,
   ZitadelManagementTag,
 } from '@entifix/zitadel';
-import { AccountRepositoryTag } from '@r10c/business-ts-authn';
+import {
+  AccountRepositoryTag,
+  LifecycleCursorTag,
+} from '@r10c/business-ts-authn';
 import { Context, Duration, Effect, Fiber } from 'effect';
-
-import { LifecycleCursorTag } from './lifecycle-cursor';
 
 /** Events read per pass. A ceiling, not a target — this runs on an interval. */
 const BATCH = 200;

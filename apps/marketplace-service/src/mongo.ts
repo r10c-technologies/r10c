@@ -1,29 +1,12 @@
-import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
-import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
-import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@entifix/authz';
-import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
-import { ConfigurationClientInMemory } from '@entifix/core';
-import { makeJoseTokenService } from '@entifix/jwt';
-import { MongoDatabaseLayer, MongoHealthProbeLayer } from '@entifix/mongo';
-import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import {
-  LoadedConfigurationTag,
-  loadRemoteConfiguration,
-} from '@entifix/service-shell/runtime';
 import { EventSourceTag } from '@entifix/transactions';
+import { MongoPublishedCatalogLayer } from '@r10c/implementation-published-catalog-mongo';
+import { MongoPublishedVendorsLayer } from '@r10c/implementation-published-vendor-mongo';
 import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { configSourceFor } from '@r10c/utils-ts-fleet';
+  fleetBusLayer,
+  fleetSecurityLayer,
+  fleetSingleMongoLayer,
+  makeFleetServiceLayer,
+} from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
 import { startProjecting } from './projection/publish-catalog';
@@ -31,6 +14,7 @@ import { startProjectingVendors } from './projection/publish-vendor';
 import { seedCatalogReference } from './seed';
 
 const SERVICE_NAME = 'marketplace-service';
+
 /**
  * The **slice**, not the deployment. Stamped onto anything this process
  * publishes; it consumes today and publishes nothing, but `AmqpEventBusLayer`
@@ -66,85 +50,38 @@ const SLICE_NAME = 'marketplace';
  * `1` against a broker that is merely slow, while the health ladder green-lights
  * a fleet that is still coming up.
  */
-export const AppLayer = Layer.unwrap(
+export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
-    const store = new ConfigurationClientInMemory(plain);
-
-    const uri = yield* store.in('mongo').getString('uri');
-    const dbName = yield* store.in('mongo').getString('db');
-    const amqpUri = yield* store.in('rabbitmq').getString('uri');
-
-    // The public half only. This service verifies access tokens and never mints
-    // one, so it is configured with material that cannot sign.
-    const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
-    const jwtKeyId = yield* store.in('jwt').getString('keyId');
-
-    // Log level + sink and the OTLP endpoint, read from this service's own
-    // configuration. Which keys and which are optional is the shell's, so every
-    // service reads them the same way.
-    const observability = yield* observabilityFromConfiguration(
-      store,
-      SERVICE_NAME,
-    );
-
     const connections = Layer.mergeAll(
-      MongoDatabaseLayer({ uri, dbName }),
-      AmqpLayer({ uri: amqpUri }),
-      Layer.succeed(
-        TokenServiceTag,
-        makeJoseTokenService({
-          publicKeyPem: jwtPublicKey,
-          keyId: jwtKeyId,
-          issuer: AUTH_TOKEN_ISSUER,
-          audience: AUTH_TOKEN_AUDIENCE,
-        }),
-      ),
-      Layer.succeed(ConfigurationRepositoryTag, store),
-      Layer.succeed(LoadedConfigurationTag, plain),
-      Layer.succeed(
-        PolicyDecisionTag,
-        makeStaticPolicyDecision(ROLE_PERMISSIONS),
-      ),
-      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
+      // One Mongo database backs three platform-plane Stores — the operator's
+      // `catalog-reference` vocabulary and the `published-catalog` and
+      // `published-vendor` projections — so the probe names all three.
+      yield* fleetSingleMongoLayer(configuration, [
+        'catalog-reference',
+        'published-catalog',
+        'published-vendor',
+      ]),
+      // `AmqpEventBusLayer` registers its own `stop-intake` drain, which is why
+      // the projectors register no shutdown hook of their own.
+      yield* fleetBusLayer(configuration),
+      yield* fleetSecurityLayer(configuration),
       Layer.succeed(EventSourceTag, SLICE_NAME),
     );
 
-    // The bus, built from the connection above and merged back so the projector
-    // can reach it. `AmqpEventBusLayer` registers its own `stop-intake` drain,
-    // which is why the projector registers no shutdown hook of its own.
-    const infra = Layer.provideMerge(AmqpEventBusLayer, connections);
-
-    // Every connection contributes its own readiness probe. One Mongo database
-    // backs three platform-plane Stores — the operator's `catalog-reference`
-    // vocabulary and the `published-catalog` and `published-vendor`
-    // projections — and the broker is
-    // named by the exchange it checks rather than by a Store, because a
-    // transport is not a Store.
-    const withProbes = Layer.provideMerge(
+    return Layer.provideMerge(
       Layer.mergeAll(
-        MongoHealthProbeLayer([
-          'catalog-reference',
-          'published-catalog',
-          'published-vendor',
-        ]),
-        AmqpHealthProbeLayer,
+        Layer.effectDiscard(seedCatalogReference),
+        // Binds `catalog.*` and starts writing the projection.
+        Layer.effectDiscard(startProjecting),
+        // Binds `organization.*` and writes each seller's display name.
+        Layer.effectDiscard(startProjectingVendors),
       ),
-      infra,
-    );
-
-    return Layer.merge(
-      observability,
+      // The two projections' writers, each ensuring its own indexes as it
+      // builds — before the subscriptions that feed them are bound.
       Layer.provideMerge(
-        Layer.mergeAll(
-          Layer.effectDiscard(seedCatalogReference),
-          // Binds `catalog.*` and starts writing the projection.
-          Layer.effectDiscard(startProjecting),
-          // Binds `organization.*` and writes each seller's display name.
-          Layer.effectDiscard(startProjectingVendors),
-        ),
-        withProbes,
+        Layer.mergeAll(MongoPublishedCatalogLayer, MongoPublishedVendorsLayer),
+        connections,
       ),
     );
-  }).pipe(Effect.orDie),
-).pipe(Layer.orDie);
+  }),
+);

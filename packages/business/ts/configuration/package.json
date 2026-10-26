@@ -41,8 +41,9 @@
     }
   },
   "dependencies": {
+    "@entifix/core": "catalog:",
     "@swc/helpers": "0.5.23",
-    "@entifix/core": "catalog:"
+    "effect": "4.0.5"
   },
   "devDependencies": {
     "@entifix/authz": "catalog:",

@@ -24,18 +24,20 @@
     }
   },
   "devDependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/testing-e2e": "catalog:",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-party-management": "workspace:*",
     "@r10c/business-ts-sales-management": "workspace:*",
-    "@entifix/business": "catalog:",
-    "@entifix/jwt": "catalog:",
-    "@entifix/testing-e2e": "catalog:",
     "@r10c/sales-service": "workspace:*",
-    "@entifix/service-shell": "catalog:",
     "@r10c/utils-ts-fleet": "workspace:*"
   },
   "dependencies": {
     "@entifix/authz": "catalog:",
-    "@r10c/business-ts-authz-grants": "workspace:*"
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*"
   }
 }

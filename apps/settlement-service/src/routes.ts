@@ -1,14 +1,6 @@
-import { requirePrincipal } from '@entifix/service-shell';
+import { settlementRoutes } from '@r10c/implementation-settlement-management-http';
+import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-import { HttpRouter, HttpServerResponse } from 'effect/http';
-
-import { agreementRoutes } from './routes/agreement.routes';
-import { configIntrospectionRoute } from './routes/config.routes';
-import { settlementRunRoutes } from './routes/settlement-run.routes';
-import {
-  commissionEntryRoutes,
-  vendorPayoutRoutes,
-} from './routes/vendor-payout.routes';
 
 /**
  * Every route this service serves, plus `/api/health*` and `/api/$service`,
@@ -21,16 +13,8 @@ import {
  * ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
  */
 export const router = Layer.mergeAll(
-  HttpRouter.addAll([
-    HttpRouter.route('GET', '/api/config', configIntrospectionRoute),
-    HttpRouter.route(
-      'GET',
-      '/api/me',
-      requirePrincipal(principal => HttpServerResponse.json(principal)),
-    ),
-  ]),
-  agreementRoutes,
-  commissionEntryRoutes,
-  settlementRunRoutes,
-  vendorPayoutRoutes,
+  // A literal, not `SERVICE_NAME`: `index.ts` re-exports this module, so
+  // importing it back would read the constant before it is initialised.
+  serviceBaseRoutes({ service: '@r10c/settlement-service', store: 'mongo' }),
+  settlementRoutes,
 );

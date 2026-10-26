@@ -1,40 +1,14 @@
+import { ReservationTtlSecondsTag } from '@r10c/business-ts-stock-management';
+import { MongoStockLedgerLayer } from '@r10c/implementation-stock-mongo';
 import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@entifix/authz';
-import {
-  ConfigurationRepositoryTag,
-  TenantDatabaseResolverTag,
-  TokenServiceTag,
-} from '@entifix/business';
-import { ConfigurationClientInMemory } from '@entifix/core';
-import { makeJoseTokenService } from '@entifix/jwt';
-import {
-  makeMongoTenantResolver,
-  MongoClientLayer,
-  MongoClientTag,
-  MongoHealthProbeLayer,
-} from '@entifix/mongo';
-import { ServiceCrossingTokenTag } from '@entifix/service-shell';
-import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import { LoadedConfigurationTag, loadRemoteConfiguration } from '@entifix/service-shell/runtime';
-import {
-  AUTH_TOKEN_AUDIENCE,
-  AUTH_TOKEN_ISSUER,
-} from '@r10c/business-ts-authn';
-import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { configSourceFor } from '@r10c/utils-ts-fleet';
+  crossingTokenLayer,
+  fleetSecurityLayer,
+  fleetTenantMongoLayer,
+  makeFleetServiceLayer,
+} from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import {
-  startReservationSweep,
-  StockDatabasePrefix,
-} from './reservation-sweep';
-import { ReservationTtlSecondsTag } from './reservation-ttl';
+import { startReservationSweep } from './reservation-sweep';
 import { seedStock } from './seed';
 
 const SERVICE_NAME = 'stock-service';
@@ -60,16 +34,12 @@ const SERVICE_NAME = 'stock-service';
  * item through a single key — draws from no sequence, and declares no published
  * event, so there is no outbox to commit alongside a write.
  */
-export const AppLayer = Layer.unwrap(
+export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
-    const store = new ConfigurationClientInMemory(plain);
+    const { store } = configuration;
 
-    const uri = yield* store.in('mongo').getString('uri');
-    // Tenant storage: one Mongo database per organization, named from the
-    // organization id. Configuration rather than a constant for the reason the
-    // catalog's is — the convention is stated once, in config-service, instead
-    // of being duplicated across the services that follow it.
+    // `stock_`, read again here for the seed; `fleetTenantMongoLayer`
+    // builds the tenant resolver from the same row.
     const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
 
     // The local demo vendor, whose stock positions this service seeds. The same
@@ -80,116 +50,43 @@ export const AppLayer = Layer.unwrap(
       .in('tenant')
       .getString('demoOrganizationId');
 
-    // The public half only. This service verifies access tokens and never mints
-    // one, so it is configured with material that cannot sign.
-    const jwtPublicKey = yield* store.in('jwt').getString('publicKey');
-    const jwtKeyId = yield* store.in('jwt').getString('keyId');
-
-    // ⚠️ **This service's own crossing secret — not `CONFIG_SERVICE_TOKEN`.**
-    // The fleet already has a shared token gating config-service's lookup, and
-    // reusing it here would be one line of work and would turn a single leaked
-    // secret into a tenant-data *write* capability across every organization.
-    // The two grants are not comparable: one reads configuration, the other
-    // moves a vendor's stock. Separate secrets bound the blast radius of a
-    // rotation or a compromise
-    // ([ADR 0023](../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
-    //
-    // It is an `is_secret` row, which is the security boundary rather than a
-    // label: an unflagged row is served in full from the *unauthenticated*
-    // `GET /api/config` this service also mounts.
-    const crossingToken = yield* store.in('service').getString('token');
-
     // How long a hold survives. Configuration rather than a constant for the
-    // reason `tenant.dbPrefix` is — see `reservation-ttl.ts`.
+    // reason `tenant.dbPrefix` is — see `ReservationTtlSecondsTag`.
     const reservationTtlSeconds = yield* store
       .in('reservation')
       .getNumber('ttlSeconds');
 
-    // Log level + sink and the OTLP endpoint, read from this service's own
-    // configuration. Which keys and which are optional is the shell's, so every
-    // service reads them the same way.
-    const observability = yield* observabilityFromConfiguration(
-      store,
-      SERVICE_NAME,
-    );
-
     const connections = Layer.mergeAll(
-      MongoClientLayer({ uri }),
-      Layer.succeed(
-        TokenServiceTag,
-        makeJoseTokenService({
-          publicKeyPem: jwtPublicKey,
-          keyId: jwtKeyId,
-          issuer: AUTH_TOKEN_ISSUER,
-          audience: AUTH_TOKEN_AUDIENCE,
-        }),
-      ),
-      Layer.succeed(ConfigurationRepositoryTag, store),
-      Layer.succeed(LoadedConfigurationTag, plain),
-      // The authorization policy. Static role→permission table today; swapping
-      // in an attribute-aware engine is a change of this line alone.
-      Layer.succeed(
-        PolicyDecisionTag,
-        makeStaticPolicyDecision(ROLE_PERMISSIONS),
-      ),
-      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
-      Layer.succeed(ServiceCrossingTokenTag, crossingToken),
+      yield* fleetTenantMongoLayer(configuration, ['stock']),
+      yield* fleetSecurityLayer(configuration),
+      // ⚠️ **This service's own crossing secret — not `CONFIG_SERVICE_TOKEN`.**
+      // Reusing the fleet's shared token would turn one leaked secret into a
+      // tenant-data *write* capability across every organization (ADR 0023).
+      yield* crossingTokenLayer(configuration),
       Layer.succeed(ReservationTtlSecondsTag, reservationTtlSeconds),
-      // The reaper's prefix — the same `stock_` the tenant resolver is built
-      // with, because it enumerates the databases that resolver hands out.
-      Layer.succeed(StockDatabasePrefix, tenantPrefix),
-    );
-
-    // The connection contributes its own readiness probe, named by the logical
-    // Store it backs rather than by the driver, so `/api/health/ready`
-    // describes this service in the register's vocabulary (ADR 0031).
-    const withProbes = Layer.provideMerge(
-      MongoHealthProbeLayer(['stock']),
-      connections,
-    );
-
-    // The tenant resolver: one client, N database handles. It needs the pool
-    // (`MongoClientTag`) rather than a shared `Db`, and it is built here — at
-    // the composition root — because only this file knows which driver backs
-    // the port.
-    const tenancy = Layer.provide(
-      Layer.effect(
-        TenantDatabaseResolverTag,
-        Effect.map(MongoClientTag, client =>
-          makeMongoTenantResolver(client, tenantPrefix),
-        ),
-      ),
-      withProbes,
     );
 
     // The demo vendor's stock, written on first boot into `stock_<id>`.
     //
-    // ⚠️ **`Layer.provideMerge` over the tenancy layer, never a sibling in a
+    // ⚠️ **`Layer.provideMerge` over the connections, never a sibling in a
     // `Layer.mergeAll`.** `mergeAll` builds its members concurrently, and Mongo
     // creates a tenant database on first write — so a sibling that also touched
-    // `stock_<id>` would race the seed on a fresh `dev:reset` and see a store
-    // that is empty, half-seeded or seeded depending on scheduling.
-    // marketplace-admin-service chains its own follow-up work for exactly this
-    // reason.
+    // `stock_<id>` would race the seed on a fresh `dev:reset`.
     const seeded = Layer.provideMerge(
-      Layer.effectDiscard(seedStock(`${tenantPrefix}${demoOrganizationId}`)),
-      tenancy,
+      MongoStockLedgerLayer,
+      Layer.provideMerge(
+        Layer.effectDiscard(seedStock(`${tenantPrefix}${demoOrganizationId}`)),
+        connections,
+      ),
     );
 
     // ⚠️ **The reaper is chained after the seed, not merged beside it**, for the
-    // reason the seed itself is chained: `Layer.mergeAll` builds concurrently,
-    // and a sweep racing the seed on a fresh `dev:reset` would enumerate a
-    // tenant database that does not exist yet.
-    //
-    // Without this daemon `expiresAt` is a timestamp nothing reads: every
-    // abandoned basket promises a vendor's stock permanently, and the symptom is
-    // an offering that is quietly unbuyable while its ledger is perfectly
-    // correct (ADR 0010's reaper, #227).
-    const swept = Layer.provideMerge(
+    // reason the seed itself is chained. Without this daemon `expiresAt` is a
+    // timestamp nothing reads: every abandoned basket promises a vendor's stock
+    // permanently (ADR 0010's reaper, #227).
+    return Layer.provideMerge(
       Layer.effectDiscard(startReservationSweep),
       seeded,
     );
-
-    return Layer.merge(observability, Layer.provideMerge(swept, withProbes));
-  }).pipe(Effect.orDie),
-).pipe(Layer.orDie);
+  }),
+);

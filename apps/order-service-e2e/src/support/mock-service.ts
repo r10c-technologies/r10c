@@ -5,15 +5,25 @@ import {
 } from '@entifix/authz';
 import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
+import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
+import {
+  MongoUnitOfWorkLayer,
+  OutboxMaxAttempts,
+} from '@entifix/mongo/transactions';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
+import {
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
+import { makeRecordingEventBus } from '@entifix/testing-unit';
+import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -22,13 +32,10 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
-import {
-  CancellationCoordinatorUrl,
-  CancellationCrossingToken,
-  CancelWindowSeconds,
-  router,
-  SERVICE_NAME,
-} from '@r10c/order-service';
+import { CancelWindowSeconds } from '@r10c/business-ts-order-management';
+import { MongoProductOrderStoreLayer } from '@r10c/implementation-order-mongo';
+import { ORDER_SLICE, router, SERVICE_NAME } from '@r10c/order-service';
+import { httpSagaStarterLayer } from '@r10c/shells-effect-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
@@ -92,7 +99,7 @@ const E2E_CANCEL_WINDOW_SECONDS = 1800;
  * authorization assertion here vacuous — including the one that matters most,
  * that **no role** holds `order-management:product-order:write`.
  */
-const MockAppLayer = Layer.mergeAll(
+const connections = Layer.mergeAll(
   fakeMongoLayer().layer,
   Layer.succeed(
     TokenServiceTag,
@@ -109,8 +116,20 @@ const MockAppLayer = Layer.mergeAll(
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   Layer.succeed(ServiceCrossingTokenTag, E2E_CROSSING_TOKEN),
   Layer.succeed(CancelWindowSeconds, E2E_CANCEL_WINDOW_SECONDS),
-  Layer.succeed(CancellationCoordinatorUrl, COORDINATOR_URL),
-  Layer.succeed(CancellationCrossingToken, E2E_CROSSING_TOKEN),
+  httpSagaStarterLayer({
+    url: COORDINATOR_URL,
+    crossingToken: E2E_CROSSING_TOKEN,
+  }),
+  // Records what the store announces; under `mock` nothing consumes it.
+  Layer.succeed(EventBusTag, makeRecordingEventBus()),
+  Layer.succeed(OutboxMaxAttempts, 5),
+  Layer.succeed(EventSourceTag, ORDER_SLICE),
+);
+
+/** The store's own layers over the fake driver, as the shell composes them. */
+const MockAppLayer = Layer.provideMerge(
+  Layer.mergeAll(MongoProductOrderStoreLayer, MongoRepositoryFactoryLayer),
+  Layer.provideMerge(MongoUnitOfWorkLayer, connections),
 ).pipe(Layer.orDie);
 
 /** Boots the service's real router in-process, on an ephemeral port. */

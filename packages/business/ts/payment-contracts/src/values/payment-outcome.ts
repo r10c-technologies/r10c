@@ -135,9 +135,18 @@ export interface PaymentOutcome {
  * the capture look like a redelivery of the authorization and drop it — the same
  * rule `catalogEventId` follows, and the one `transactionEventId` follows for
  * `<transactionId>:<step>`.
+ *
+ * ⚠️ **A refund carries its own id in the key**, `<paymentId>:refund:<refundId>`.
+ * It names the capture it reverses as its `paymentId`, and a decision time is a
+ * millisecond: a capture and its refund decided in the same one — measured in
+ * the mock suite, and entirely possible for a saga that cancels at once — made
+ * one key, the outbox refused the refund's announcement as a redelivery, and
+ * the money went back with nobody told.
  */
 export const paymentEventId = (outcome: PaymentOutcome): string =>
-  `${outcome.paymentId}:${outcome.decidedAt}`;
+  outcome.refundId === undefined
+    ? `${outcome.paymentId}:${outcome.decidedAt}`
+    : `${outcome.paymentId}:refund:${outcome.refundId}`;
 
 /** Wraps an outcome as a routable message from `source`. */
 const message = (

@@ -200,6 +200,78 @@
     },
     {
       "path": "./packages/utils/react/ui"
+    },
+    {
+      "path": "./packages/shells/effect/service"
+    },
+    {
+      "path": "./packages/business/ts/saga-contracts"
+    },
+    {
+      "path": "./packages/implementation/configuration/sql"
+    },
+    {
+      "path": "./packages/implementation/configuration/http"
+    },
+    {
+      "path": "./packages/testing/http"
+    },
+    {
+      "path": "./packages/implementation/payment/mongo"
+    },
+    {
+      "path": "./packages/implementation/payment-management/http"
+    },
+    {
+      "path": "./packages/implementation/order/mongo"
+    },
+    {
+      "path": "./packages/implementation/order-management/http"
+    },
+    {
+      "path": "./packages/implementation/settlement/mongo"
+    },
+    {
+      "path": "./packages/implementation/settlement-management/http"
+    },
+    {
+      "path": "./packages/implementation/stock/mongo"
+    },
+    {
+      "path": "./packages/implementation/stock-management/http"
+    },
+    {
+      "path": "./packages/implementation/sales-management/http"
+    },
+    {
+      "path": "./packages/implementation/published-catalog/mongo"
+    },
+    {
+      "path": "./packages/implementation/published-vendor/mongo"
+    },
+    {
+      "path": "./packages/implementation/marketplace-catalog/http"
+    },
+    {
+      "path": "./packages/implementation/marketplace-vendor/http"
+    },
+    {
+      "path": "./packages/implementation/catalog-reference/http"
+    },
+    {
+      "path": "./packages/implementation/catalog/mongo"
+    },
+    {
+      "path": "./packages/implementation/product-configuration-management/http"
+    },
+    {
+      "path": "./packages/implementation/session/redis"
+    },
+    {
+      "path": "./packages/implementation/auth/mongo"
+    },
+    {
+      "path": "./packages/implementation/saga/mongo"
     }
   ],
   "compilerOptions": {

@@ -1,10 +1,10 @@
 import { SessionStoreTag } from '@entifix/business';
 import { ZitadelManagementTag } from '@entifix/zitadel';
 import { AccountRepositoryTag } from '@r10c/business-ts-authn';
+import { LifecycleCursorTag } from '@r10c/business-ts-authn';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
-import { LifecycleCursorTag } from './lifecycle-cursor';
 import { reconcileOnce } from './lifecycle-reconciler';
 
 interface Event {

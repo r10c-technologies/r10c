@@ -1,25 +1,8 @@
-import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
-import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
-import {
-  makeStaticPolicyDecision,
-  PolicyDecisionTag,
-  ServiceCrossingPolicyTag,
-} from '@entifix/authz';
-import {
-  ConfigurationRepositoryTag,
-  SessionStoreTag,
-  TokenServiceTag,
-} from '@entifix/business';
-import { ConfigurationClientInMemory } from '@entifix/core';
+import { SessionStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
-import {
-  MongoDatabaseLayer,
-  MongoDatabaseTag,
-  MongoHealthProbeLayer,
-} from '@entifix/mongo';
+import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   ensureOutboxIndexes,
-  OutboxMaxAttempts,
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
 import {
@@ -28,12 +11,6 @@ import {
   RedisOneTimeTokenStoreLayer,
   RedisSessionStoreLayer,
 } from '@entifix/redis';
-import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
-import {
-  LoadedConfigurationTag,
-  loadRemoteConfiguration,
-} from '@entifix/service-shell/runtime';
-import { EventSourceTag } from '@entifix/transactions';
 import {
   ZitadelActionsLayer,
   ZitadelHealthProbeLayer,
@@ -44,40 +21,43 @@ import {
 import {
   AccountRepositoryTag,
   IdentityProviderTag,
+  makeSessionIdentityProvider,
   NotificationPortTag,
+  SessionScopeResolverTag,
   UserDeviceRepositoryTag,
 } from '@r10c/business-ts-authn';
 import {
-  r10cServiceCrossingPolicy,
-  ROLE_PERMISSIONS,
-} from '@r10c/business-ts-authz-grants';
-import { configSourceFor } from '@r10c/utils-ts-fleet';
+  makeDevNotificationPort,
+  makeMongoAccountRepository,
+  makeMongoSessionScopeResolver,
+  makeMongoUserDeviceRepository,
+  seedOrganizations,
+  startOrganizationRebuild,
+} from '@r10c/implementation-auth-mongo';
+import {
+  IdTokenStoreLayer,
+  LifecycleCursorLayer,
+  ProviderSessionIndexLayer,
+} from '@r10c/implementation-session-redis';
+import {
+  fleetBusLayer,
+  fleetOutboxLayer,
+  fleetPolicyLayer,
+  fleetSingleMongoLayer,
+  makeFleetServiceLayer,
+} from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { makeMongoAccountRepository } from './identity/account-repository';
-import { IdTokenStoreLayer } from './identity/id-token-store';
-import { LifecycleCursorLayer } from './identity/lifecycle-cursor';
 import {
   LifecycleSweepIntervalMs,
   startLifecycleReconciler,
 } from './identity/lifecycle-reconciler';
-import { makeDevNotificationPort } from './identity/notifications';
-import {
-  seedOrganizations,
-  startOrganizationRebuild,
-} from './identity/organization-announcements';
-import { ProviderSessionIndexLayer } from './identity/provider-session-index';
 import { provisionZitadelHuman } from './identity/provisioning';
-import { makeRedisIdentityProvider } from './identity/redis-identity-provider';
 import {
   DEV_SEED_PASSWORD,
   JWT_AUDIENCE,
   JWT_ISSUER,
 } from './identity/session-policy';
-import {
-  makeMongoSessionScopeResolver,
-  SessionScopeResolverTag,
-} from './identity/session-scope';
 import {
   entitlementSeedData,
   individualSeedData,
@@ -86,7 +66,6 @@ import {
   partyRoleSeedData,
   roleSeedData,
 } from './identity/tenancy-seed-data';
-import { makeMongoUserDeviceRepository } from './identity/user-device-repository';
 import {
   entityIdentifierSeedData,
   userIdentitySeedData,
@@ -237,7 +216,7 @@ const IdentityProviderLayer = Layer.effect(
   Effect.gen(function* () {
     const sessionStore = yield* SessionStoreTag;
     const accounts = yield* AccountRepositoryTag;
-    return makeRedisIdentityProvider(sessionStore, accounts);
+    return makeSessionIdentityProvider(sessionStore, accounts);
   }),
 );
 
@@ -250,21 +229,14 @@ const IdentityProviderLayer = Layer.effect(
  * Nothing here hashes or compares a password, and there is no layer that could:
  * the credential half of authentication left this service entirely.
  */
-export const AppLayer = Layer.unwrap(
+export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
   Effect.gen(function* () {
-    const plain = yield* loadRemoteConfiguration(configSourceFor(SERVICE_NAME));
-    const store = new ConfigurationClientInMemory(plain);
+    const { store } = configuration;
 
-    const uri = yield* store.in('mongo').getString('uri');
-    const dbName = yield* store.in('mongo').getString('db');
     const redisUri = yield* store.in('redis').getString('uri');
     // The bus an organization's announcement leaves on (ADR 0061). ⚠️
     // `getNumber`, never a cast: `'five'` would cast to `NaN` and nothing would
     // ever be quarantined.
-    const amqpUri = yield* store.in('rabbitmq').getString('uri');
-    const outboxMaxAttempts = yield* store
-      .in('outbox')
-      .getNumber('maxAttempts');
     // auth-service is the fleet's only holder of the private key: it is the one
     // service that mints tokens. Everyone else gets `publicKey` alone.
     const jwtPrivateKey = yield* store.in('jwt').getString('privateKey');
@@ -302,13 +274,13 @@ export const AppLayer = Layer.unwrap(
       .getNumber('sweepIntervalMs');
 
     const infra = Layer.mergeAll(
-      MongoDatabaseLayer({ uri, dbName }),
+      yield* fleetSingleMongoLayer(configuration, ['auth']),
       RedisLayer({ uri: redisUri }),
-      AmqpLayer({ uri: amqpUri }),
-      Layer.succeed(EventSourceTag, AUTH_SLICE),
-      Layer.succeed(OutboxMaxAttempts, outboxMaxAttempts),
-      Layer.succeed(ConfigurationRepositoryTag, store),
-      Layer.succeed(LoadedConfigurationTag, plain),
+      yield* fleetBusLayer(configuration),
+      yield* fleetOutboxLayer(configuration, AUTH_SLICE),
+      // The grant table, the crossing policy and the configuration; the token
+      // service is this service's own below, because it is the one that signs.
+      fleetPolicyLayer(configuration),
       Layer.succeed(
         TokenServiceTag,
         makeJoseTokenService({
@@ -334,17 +306,7 @@ export const AppLayer = Layer.unwrap(
       // The authorization policy behind `requirePermission`. Static
       // role→permission table today; an attribute-aware engine would replace
       // this one line.
-      Layer.succeed(
-        PolicyDecisionTag,
-        makeStaticPolicyDecision(ROLE_PERMISSIONS),
-      ),
-      Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     );
-
-    // The bus, built from the connection above and merged back so the outbox
-    // relay can reach it. It registers its own drain and records what it binds
-    // for `/api/$service` (ADR 0031).
-    const withBus = Layer.provideMerge(AmqpEventBusLayer, infra);
 
     // Session store + account/device repos build on the connections.
     const stores = Layer.provideMerge(
@@ -359,7 +321,7 @@ export const AppLayer = Layer.unwrap(
         UserDeviceRepositoryLayer,
         NotificationLayer,
       ),
-      withBus,
+      infra,
     );
 
     // The identity provider consumes the session store + account repo.
@@ -372,9 +334,7 @@ export const AppLayer = Layer.unwrap(
       Layer.mergeAll(
         // `auth` is the control-plane store holding identity, party and access
         // records; `session` is the Redis one beside it (ADR 0031).
-        MongoHealthProbeLayer(['auth']),
         RedisHealthProbeLayer(['session']),
-        AmqpHealthProbeLayer,
         // A service that cannot reach its identity provider cannot sign anyone
         // in, so readiness has to say so — this is now as load-bearing as Mongo.
         ZitadelHealthProbeLayer(zitadelIssuer),
@@ -404,10 +364,6 @@ export const AppLayer = Layer.unwrap(
     // the OTel tracer + meter, so sign-in, back-channel logout and the provider
     // lifecycle webhook are traceable. Merged rather than provided: it supplies
     // no service anything here requires, it changes how the whole layer logs.
-    const observability = yield* observabilityFromConfiguration(
-      store,
-      SERVICE_NAME,
-    );
     // The backstop for lifecycle events the webhook could not be handed,
     // started after the seed so its first pass runs against a populated store
     // (#65). Discarded like the seed: it provides nothing, it starts something.
@@ -416,9 +372,9 @@ export const AppLayer = Layer.unwrap(
     // swept every interval, and once more at shutdown.
     const relay = Layer.effectDiscard(startOutboxRelay());
 
-    return Layer.merge(
-      observability,
-      Layer.provideMerge(Layer.mergeAll(seed, reconciler, relay), withProbes),
+    return Layer.provideMerge(
+      Layer.mergeAll(seed, reconciler, relay),
+      withProbes,
     );
-  }).pipe(Effect.orDie),
-).pipe(Layer.orDie);
+  }),
+);

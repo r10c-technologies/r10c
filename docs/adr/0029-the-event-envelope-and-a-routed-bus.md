@@ -4,6 +4,7 @@
 - Date: 2026-09-01
 - Area: messaging
 - Read when: publishing or subscribing to a bus message — `meta` describes the message and `data` the occurrence, and the dedup key is `event.id`
+- Revised: 2026-10-25 — `TenantDatabasePrefix` and `SagaDatabaseName` no longer exist (#371, #376); the sentence that named them is corrected in place.
 - Amended by: [ADR 0030](0030-failure-retry-and-quarantine-on-the-bus.md) — a
   subscriber's queue is no longer unconditionally exclusive. A `work`
   subscription binds a named, durable queue with a dead-letter exchange and a
@@ -95,7 +96,7 @@ several. The slice is ADR 0020's ownership noun and is already executable in
 `tools/slices/`, which is what lets the register be checked against the bus.
 
 It is provided as `EventSourceTag` at each composition root, beside
-`TenantDatabasePrefix` and `SagaDatabaseName`, so a service that forgets it fails
+the other values a composition root resolves, so a service that forgets it fails
 to build its layer rather than publishing events signed by nobody.
 
 **`source` is for routing, observability and audit — never a consumer branch.** A

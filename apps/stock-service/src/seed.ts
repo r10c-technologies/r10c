@@ -1,42 +1,15 @@
 import { MongoClientTag } from '@entifix/mongo';
-import { Effect } from 'effect';
-import type { Db } from 'mongodb';
-
 import {
   ensureStockItemIndexes,
+  MOVEMENT_COLLECTION,
   STOCK_ITEM_COLLECTION,
-} from './stock-item-index';
+} from '@r10c/implementation-stock-mongo';
+import { seedCollection } from '@r10c/shells-effect-service';
+import { Effect } from 'effect';
+
 import { stockItemTempData, stockMovementTempData } from './stock-temp-data';
 
 /** The movement ledger's collection, matching `@entity({ key })`. */
-const STOCK_MOVEMENT_COLLECTION = 'stock-movement';
-
-/**
- * Inserts a seed dataset into a collection when it is empty.
- *
- * The same shape marketplace-admin-service's `seedCatalog` uses, and for the
- * same reasons: the temp-data records are already in the entity wire shape, so
- * they insert verbatim and read back through the entifix deserializer, and the
- * guard is per **collection** rather than per database — a store that gained a
- * second collection later should seed that one on the next boot rather than
- * staying empty because the first one has rows.
- */
-function seedCollection(
-  db: Db,
-  collectionName: string,
-  data: ReadonlyArray<Record<string, unknown>>,
-) {
-  return Effect.gen(function* () {
-    const collection = db.collection(collectionName);
-    const count = yield* Effect.promise(() => collection.countDocuments());
-    if (count === 0 && data.length > 0) {
-      yield* Effect.promise(() =>
-        collection.insertMany(data.map(item => ({ ...item }))),
-      );
-    }
-  });
-}
-
 const asRecords = (
   data: ReadonlyArray<object>,
 ): ReadonlyArray<Record<string, unknown>> =>
@@ -73,7 +46,7 @@ export const seedStock = (tenantDbName: string) =>
     const db = client.db(tenantDbName);
 
     // ⚠️ **The index, before the rows.** `ensureStockItemIndexes` otherwise runs
-    // only inside `recordMovementRoute`, which is fine while a movement is the
+    // only inside the ledger's first write, which is fine while a movement is the
     // only thing that creates the collection — and stopped being true here.
     // Measured on the live lab: after a `dev:reset` the seeded
     // `stock_demo-organization` held 40 correct items and `stock-item` carried
@@ -87,7 +60,7 @@ export const seedStock = (tenantDbName: string) =>
 
     yield* seedCollection(
       db,
-      STOCK_MOVEMENT_COLLECTION,
+      MOVEMENT_COLLECTION,
       asRecords(stockMovementTempData),
     );
     yield* seedCollection(

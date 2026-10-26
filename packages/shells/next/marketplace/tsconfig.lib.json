@@ -35,10 +35,10 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../../utils/react/ui/tsconfig.lib.json"
+      "path": "../../../utils/ts/fleet/tsconfig.lib.json"
     },
     {
-      "path": "../../../utils/ts/fleet/tsconfig.lib.json"
+      "path": "../../../utils/react/ui/tsconfig.lib.json"
     },
     {
       "path": "../../../implementation/marketplace-vendor/next/tsconfig.lib.json"
@@ -48,6 +48,9 @@
     },
     {
       "path": "../../../implementation/catalog-reference/next/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/marketplace-vendor/tsconfig.lib.json"

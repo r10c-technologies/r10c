@@ -41,8 +41,10 @@
     }
   },
   "dependencies": {
-    "@r10c/business-ts-sales-vocabulary": "workspace:*",
     "@entifix/core": "catalog:",
-    "@swc/helpers": "0.5.23"
+    "@r10c/business-ts-payment-contracts": "workspace:*",
+    "@r10c/business-ts-sales-vocabulary": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.5"
   }
 }

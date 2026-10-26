@@ -5,15 +5,25 @@ import {
 } from '@entifix/authz';
 import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
+import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
+import {
+  MongoUnitOfWorkLayer,
+  OutboxMaxAttempts,
+} from '@entifix/mongo/transactions';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
+import {
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
+import { makeRecordingEventBus } from '@entifix/testing-unit';
+import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -22,8 +32,9 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { MongoPaymentLedgerLayer } from '@r10c/implementation-payment-mongo';
 import {
-  PaymentIndexesLayer,
+  PAYMENT_SLICE,
   router,
   SERVICE_NAME,
   SimulatedPaymentProviderLayer,
@@ -106,9 +117,23 @@ const connections = Layer.mergeAll(
   }),
 ).pipe(Layer.orDie);
 
-const MockAppLayer = Layer.provideMerge(PaymentIndexesLayer, connections).pipe(
-  Layer.orDie,
-);
+/**
+ * The store's own layers over the fake driver: the unit of work and the
+ * repository factory the real composition gets from the shell, and the
+ * payment ledger. The bus only records — under `mock` nothing consumes.
+ */
+const MockAppLayer = Layer.provideMerge(
+  Layer.mergeAll(MongoPaymentLedgerLayer, MongoRepositoryFactoryLayer),
+  Layer.provideMerge(
+    MongoUnitOfWorkLayer,
+    Layer.mergeAll(
+      connections,
+      Layer.succeed(EventBusTag, makeRecordingEventBus()),
+      Layer.succeed(OutboxMaxAttempts, 5),
+      Layer.succeed(EventSourceTag, PAYMENT_SLICE),
+    ),
+  ),
+).pipe(Layer.orDie);
 
 /** Boots the service's real router in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
