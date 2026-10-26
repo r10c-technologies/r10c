@@ -1,7 +1,6 @@
 {
   "name": "@r10c/business-ts-catalog-contracts",
   "version": "0.0.1",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -13,6 +12,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./testing": {
+      "@r10c/source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
     }
   },
   "nx": {
@@ -41,5 +46,17 @@
     "@swc/helpers": "0.5.23",
     "@entifix/core": "catalog:",
     "effect": "4.0.6"
-  }
+  },
+  "peerDependencies": {
+    "vitest": "5.0.5"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "vitest": "5.0.5"
+  },
+  "private": true
 }
