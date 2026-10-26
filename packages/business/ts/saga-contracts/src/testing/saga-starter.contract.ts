@@ -2,7 +2,7 @@ import { EntifixConnError } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import type { SagaInputs, SagaStarter } from '../saga-starter';
+import type { SagaInputs, SagaStarter } from '../saga-starter.js';
 
 /**
  * How the coordinator behind a subject answers: a status and a body for each

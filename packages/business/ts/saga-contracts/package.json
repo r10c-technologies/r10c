@@ -43,8 +43,9 @@
     }
   },
   "dependencies": {
-    "@swc/helpers": "0.5.23",
     "@entifix/core": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@swc/helpers": "0.5.23",
     "effect": "4.0.6"
   },
   "peerDependencies": {

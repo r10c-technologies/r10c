@@ -1,8 +1,8 @@
 import { EntifixConnError } from '@entifix/core';
 import { Effect } from 'effect';
 
-import { sagaOutcomeFor, type SagaStarter } from '../saga-starter';
-import type { CoordinatorScript } from './saga-starter.contract';
+import { sagaOutcomeFor, type SagaStarter } from '../saga-starter.js';
+import type { CoordinatorScript } from './saga-starter.contract.js';
 
 /**
  * A {@link SagaStarter} whose coordinator answers as `coordinator` says, for

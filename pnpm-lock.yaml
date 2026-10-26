@@ -1980,6 +1980,9 @@ importers:
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/saga-contracts
       '@r10c/implementation-saga-mongo':
         specifier: workspace:*
         version: link:../../packages/implementation/saga/mongo
@@ -2308,6 +2311,9 @@ importers:
   packages/business/ts/saga-contracts:
     dependencies:
       '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.6)
+      '@entifix/transactions':
         specifier: 'catalog:'
         version: 0.7.2(effect@4.0.6)
       '@swc/helpers':
@@ -2901,6 +2907,9 @@ importers:
       '@entifix/transactions':
         specifier: 'catalog:'
         version: 0.7.2(effect@4.0.6)
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/saga-contracts
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
