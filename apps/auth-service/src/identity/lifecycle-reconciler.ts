@@ -45,7 +45,19 @@ export const reconcileOnce = Effect.gen(function* () {
     // second way of ending a session is a second thing to keep correct.
     const user = yield* accounts.findByIdentifier(event.subject);
     if (user === null || user.id === undefined) continue;
-    yield* sessions.revokeAllForUser(String(user.id));
+    // Only the sessions the event predates. The cursor re-reads a minute of
+    // events on every pass, and a user may have been reactivated and signed
+    // in again since: ending everything they hold *now* would sign out a
+    // session the deactivation never applied to — and keep doing it for as
+    // long as the event stays inside the overlap (#433). A session cannot be
+    // opened while the account is deactivated, so anything newer than the
+    // event belongs to after it.
+    const deactivatedAt = Date.parse(event.createdAt);
+    for (const session of yield* sessions.listForUser(String(user.id))) {
+      if (Date.parse(session.createdAt) <= deactivatedAt) {
+        yield* sessions.revoke(session.sessionId);
+      }
+    }
   }
 
   // The newest event's own timestamp, not `now`. Stamping the clock would skip

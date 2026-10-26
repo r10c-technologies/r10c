@@ -25,9 +25,19 @@ const SINCE = '2026-09-11T00:00:00.000Z';
 const wiring = (options: {
   events: readonly Event[];
   accounts?: Record<string, string | null>;
+  /** Each user's live sessions, by id and the moment it opened. */
+  sessions?: Record<string, readonly { id: string; createdAt: string }[]>;
 }) => {
   const searchEvents = vi.fn(() => Effect.succeed(options.events));
-  const revokeAllForUser = vi.fn(() => Effect.void);
+  const listForUser = vi.fn((userId: string) =>
+    Effect.succeed(
+      (options.sessions?.[userId] ?? []).map(session => ({
+        sessionId: session.id,
+        createdAt: session.createdAt,
+      })),
+    ),
+  );
+  const revoke = vi.fn(() => Effect.void);
   const write = vi.fn(() => Effect.void);
   const findByIdentifier = vi.fn((subject: string) => {
     const id = options.accounts?.[subject];
@@ -43,14 +53,15 @@ const wiring = (options: {
       write,
     }),
     Layer.succeed(SessionStoreTag, {
-      revokeAllForUser,
+      listForUser,
+      revoke,
     } as unknown as typeof SessionStoreTag.Service),
     Layer.succeed(AccountRepositoryTag, {
       findByIdentifier,
     } as unknown as typeof AccountRepositoryTag.Service),
   );
 
-  return { layer, searchEvents, revokeAllForUser, write, findByIdentifier };
+  return { layer, searchEvents, revoke, write, findByIdentifier };
 };
 
 const run = (layer: Layer.Layer<never, never, never>) =>
@@ -65,16 +76,39 @@ const event = (subject: string, createdAt: string): Event => ({
 });
 
 describe('reconcileOnce', () => {
-  it('revokes the sessions of every user an event names', async () => {
+  it('revokes the sessions every user an event names held when it happened', async () => {
     const w = wiring({
       events: [event('sub-1', '2026-09-11T01:00:00.000Z')],
       accounts: { 'sub-1': 'user-1' },
+      sessions: {
+        'user-1': [
+          { id: 'before', createdAt: '2026-09-11T00:30:00.000Z' },
+          { id: 'same-moment', createdAt: '2026-09-11T01:00:00.000Z' },
+        ],
+      },
     });
 
     const handled = await run(w.layer as Layer.Layer<never, never, never>);
 
     expect(handled).toBe(1);
-    expect(w.revokeAllForUser).toHaveBeenCalledWith('user-1');
+    expect(w.revoke.mock.calls).toEqual([['before'], ['same-moment']]);
+  });
+
+  it('spares a session opened after the event, which a reactivation allowed (#433)', async () => {
+    // The cursor re-reads a minute of events on every pass, so the same
+    // deactivation arrives again after the user was reactivated and signed
+    // back in. That new session is not one the deactivation applied to.
+    const w = wiring({
+      events: [event('sub-1', '2026-09-11T01:00:00.000Z')],
+      accounts: { 'sub-1': 'user-1' },
+      sessions: {
+        'user-1': [{ id: 'after', createdAt: '2026-09-11T01:00:30.000Z' }],
+      },
+    });
+
+    await run(w.layer as Layer.Layer<never, never, never>);
+
+    expect(w.revoke).not.toHaveBeenCalled();
   });
 
   it('asks only for the lifecycle events, from the cursor', async () => {
@@ -113,7 +147,7 @@ describe('reconcileOnce', () => {
 
     expect(handled).toBe(0);
     expect(w.write).not.toHaveBeenCalled();
-    expect(w.revokeAllForUser).not.toHaveBeenCalled();
+    expect(w.revoke).not.toHaveBeenCalled();
   });
 
   it('skips a subject that maps to no account here', async () => {
@@ -126,7 +160,7 @@ describe('reconcileOnce', () => {
 
     await run(w.layer as Layer.Layer<never, never, never>);
 
-    expect(w.revokeAllForUser).not.toHaveBeenCalled();
+    expect(w.revoke).not.toHaveBeenCalled();
     expect(w.write).toHaveBeenCalledWith('2026-09-11T03:00:00.000Z');
   });
 });
