@@ -2,7 +2,9 @@ import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   ensureOutboxIndexes,
   OUTBOX_COLLECTION,
+  OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
+import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import type { EventBus } from '@entifix/transactions';
 import { EventBusTag, EventSourceTag } from '@entifix/transactions';
@@ -32,7 +34,7 @@ const storeWith = async (
   const db = fake.db as Db;
   await Effect.runPromise(ensureOutboxIndexes(db));
   const client = { startSession: () => fake.startSession() } as MongoClient;
-  return { fake, db, client };
+  return { fake, db, client, bus: makeRecordingEventBus() };
 };
 
 const write = (
@@ -41,7 +43,10 @@ const write = (
   now: Date,
 ) =>
   Effect.runPromise(
-    writeOrganization(store.client, store.db, row, 'auth', now),
+    writeOrganization(store.client, store.db, row, 'auth', now).pipe(
+      Effect.provideService(EventBusTag, store.bus),
+      Effect.provideService(OutboxMaxAttempts, 3),
+    ),
   );
 
 describe('announcementOf', () => {
@@ -87,6 +92,16 @@ describe('writeOrganization', () => {
         announcedAt: FIRST.toISOString(),
       },
     });
+  });
+
+  it('announces at commit rather than at the relay’s next sweep', async () => {
+    const store = await storeWith();
+
+    await write(store, SEED, FIRST);
+
+    expect(store.bus.published.map(event => event.id)).toEqual([
+      `org-1:${FIRST.toISOString()}`,
+    ]);
   });
 
   it('leaves an unchanged organization alone, stamp and outbox included', async () => {
@@ -136,11 +151,16 @@ describe('writeOrganization', () => {
     expect(store.fake.read(OUTBOX_COLLECTION)).toHaveLength(0);
   });
 
-  it('fails as a connection error when the store does', async () => {
-    const store = await storeWith();
-    store.fake.failWith(new Error('down'));
+  it('fails as a connection error when the read or the write does', async () => {
+    const unreadable = await storeWith();
+    unreadable.fake.failOn('findOne', new Error('down'));
+    const unwritable = await storeWith();
+    unwritable.fake.failOn('updateOne', new Error('down'));
 
-    await expect(write(store, SEED, FIRST)).rejects.toThrow(
+    await expect(write(unreadable, SEED, FIRST)).rejects.toThrow(
+      'Failed to read an organization',
+    );
+    await expect(write(unwritable, SEED, FIRST)).rejects.toThrow(
       'Failed to write an organization',
     );
   });
@@ -239,6 +259,7 @@ describe('seeding and the boot walk', () => {
       Layer.succeed(MongoClientTag, store.client),
       Layer.succeed(MongoDatabaseTag, store.db),
       Layer.succeed(EventBusTag, quietBus),
+      Layer.succeed(OutboxMaxAttempts, 3),
       Layer.succeed(EventSourceTag, 'auth'),
     );
 
