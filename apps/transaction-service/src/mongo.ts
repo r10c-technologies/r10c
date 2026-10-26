@@ -14,14 +14,13 @@ import {
   type Participant,
   ParticipantsTag,
 } from './saga/http-dispatcher';
-import { MongoSagaStoreLayer } from './saga/instance-store';
 import {
   SagaMaxResumeAttempts,
   SagaResumeIntervalMs,
   SagaStaleAfterMs,
   startSagaResume,
 } from './saga/resume';
-import { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
+import { sagaStoresLayer } from './saga/stores';
 import {
   SagaRecoveryIntervalMs,
   SagaStaleTimeoutMs,
@@ -38,12 +37,13 @@ const SERVICE_NAME = 'transaction-service';
 /**
  * The transaction-service composition root — the `saga` store's only writer.
  *
- * **`MongoClientLayer` plus an explicit `SagaDatabaseName`**, not
- * `MongoDatabaseLayer`. That shape was chosen while this store was co-deployed
- * inside marketplace-admin-service, which held two Mongo stores, and it is what
- * made the split cheap: the handle was already an explicit `client.db(name)`
- * rather than "whatever the ambient database tag holds", so `saga/store.ts`
- * moved without a line of its logic changing (#229).
+ * **The pool plus a database the slice names**, not `MongoDatabaseLayer`.
+ * That shape was chosen while this store was co-deployed inside
+ * marketplace-admin-service, which held two Mongo stores, and it is what made
+ * the split cheap: the handle was already an explicit `client.db(name)` rather
+ * than "whatever the ambient database tag holds", so the store moved without a
+ * line of its logic changing (#229) — and since #376 the name is handed to
+ * `sagaStoresLayer`, entifix's saga store and the `saga/mongo` cell alike.
  *
  * **No Redis, and that is a boundary rather than an omission.** The locks and
  * sequences live in the `saga-coordination` store, which
@@ -110,7 +110,6 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
       // directions onto one value would mean anyone allowed to *start* a
       // checkout held the key that *writes* a vendor's stock.
       yield* crossingTokenLayer(configuration),
-      Layer.succeed(SagaDatabaseName, sagaDbName),
       Layer.succeed(SagaStaleTimeoutMs, sagaStaleTimeoutMs),
       Layer.succeed(SagaRecoveryIntervalMs, sagaRecoveryIntervalMs),
       Layer.succeed(SagaResumeIntervalMs, sagaResumeIntervalMs),
@@ -121,8 +120,7 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
 
     const infra = Layer.provideMerge(
       Layer.mergeAll(
-        MongoTransactionStoreLayer,
-        MongoSagaStoreLayer,
+        sagaStoresLayer(sagaDbName),
         HttpSagaDispatcherLayer,
         // The in-process fan-out behind `GET /api/transaction/events`. Scoped,
         // so the connections it holds are released with the server, and shared

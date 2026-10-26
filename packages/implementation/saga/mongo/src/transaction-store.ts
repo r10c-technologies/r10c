@@ -8,7 +8,7 @@ import {
   type TransactionStore,
   TransactionStoreTag,
 } from '@entifix/transactions';
-import { Context, Effect, Layer } from 'effect';
+import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 
 /** The single collection the manager folds transaction events into. */
@@ -177,47 +177,26 @@ export const makeMongoTransactionStore = (db: Db): TransactionStore => {
 };
 
 /**
- * The database name backing the `saga` store, resolved from config-service.
- *
- * It is a tag rather than a `MongoDatabaseTag` because it was written while
- * this store was co-deployed inside marketplace-admin-service, which holds
- * more than one Mongo store: the catalog resolves a `tenant_<organizationId>`
- * handle per request, and the saga wanted its own single named one.
- * `MongoDatabaseTag` is a single Tag, so both stores reaching for it would have
- * meant whichever layer won the merge silently decided where the other wrote.
- *
- * ⚠️ **That naming is what made the split cheap, and this is the commit that
- * collected on it.** The prediction written here — "the saga store stops being
- * *whatever the ambient database tag holds* and becomes an explicit
- * `client.db(name)` that moves to another process unchanged" — is what
- * happened: ADR 0039's `:3103` trigger fired when checkout's participants
- * turned out to be stock-service and order-service, and this file moved without
- * a line of its logic changing (#229).
+ * The tracker's read model over a **named** database rather than a fixed
+ * handle: the `saga` store is one database the slice names, the same shape
+ * entifix's `mongoSagaStoreLayer` takes for the instances beside it.
  */
-export class SagaDatabaseName extends Context.Service<
-  SagaDatabaseName,
-  string
->()('SagaDatabaseName') {}
-
-/**
- * Provides {@link TransactionStoreTag} from the connection pool
- * ({@link MongoClientTag}) plus an explicit database name, ensuring a unique
- * index on `transactionId` first so concurrent upserts can never create
- * duplicate records for one transaction.
- */
-export const MongoTransactionStoreLayer = Layer.effect(
-  TransactionStoreTag,
-  Effect.gen(function* () {
-    const client = yield* MongoClientTag;
-    const db = client.db(yield* SagaDatabaseName);
-    yield* Effect.tryPromise({
-      try: () =>
-        db
-          .collection(COLLECTION)
-          .createIndex({ transactionId: 1 }, { unique: true }),
-      catch: error =>
-        new EntifixConnError('Failed to create transactions index', error),
-    });
-    return makeMongoTransactionStore(db);
-  }),
-);
+export const mongoTransactionStoreLayer = (options: {
+  readonly database: string;
+}) =>
+  Layer.effect(
+    TransactionStoreTag,
+    Effect.gen(function* () {
+      const client = yield* MongoClientTag;
+      const db = client.db(options.database);
+      yield* Effect.tryPromise({
+        try: () =>
+          db
+            .collection(COLLECTION)
+            .createIndex({ transactionId: 1 }, { unique: true }),
+        catch: error =>
+          new EntifixConnError('Failed to create transactions index', error),
+      });
+      return makeMongoTransactionStore(db);
+    }),
+  );

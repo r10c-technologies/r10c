@@ -7,7 +7,10 @@ import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
+import {
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
@@ -26,11 +29,9 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import {
   HttpSagaDispatcherLayer,
-  MongoSagaStoreLayer,
-  MongoTransactionStoreLayer,
   ParticipantsTag,
   router,
-  SagaDatabaseName,
+  sagaStoresLayer,
   SERVICE_NAME,
 } from '@r10c/transaction-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
@@ -114,8 +115,7 @@ const SEEDED_SAGAS = {
  */
 const MockAppLayer = Layer.provideMerge(
   Layer.mergeAll(
-    MongoTransactionStoreLayer,
-    MongoSagaStoreLayer,
+    sagaStoresLayer('transaction_manager'),
     Layer.effect(TransactionStreamHubTag, makeTransactionStreamHubEffect),
     // The dispatcher the run route resolves. Built over an empty participant
     // map: no spec here runs a saga — that needs two live participants — and a
@@ -141,7 +141,6 @@ const MockAppLayer = Layer.provideMerge(
     Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
     fakeConfigurationLayer(CONFIGURATION),
     Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
-    Layer.succeed(SagaDatabaseName, 'transaction_manager'),
     Layer.succeed(ServiceCrossingTokenTag, E2E_CROSSING_TOKEN),
     Layer.succeed(ParticipantsTag, {}),
   ),

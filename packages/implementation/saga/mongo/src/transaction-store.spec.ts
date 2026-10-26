@@ -1,8 +1,13 @@
+import { EntifixConnError } from '@entifix/core';
+import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
-import { makeMongoTransactionStore, transactionFold } from './store';
+import {
+  makeMongoTransactionStore,
+  transactionFold,
+} from './transaction-store.js';
 
 const withCollection = (collection: Record<string, unknown>) =>
   makeMongoTransactionStore({
@@ -118,5 +123,81 @@ describe('makeMongoTransactionStore.countByState', () => {
     // All zeroes would read as "the fleet is idle", which is the opposite of
     // what an unqueryable store means.
     expect(outcome._tag).toBe('Failure');
+  });
+});
+
+describe('makeMongoTransactionStore over the driver', () => {
+  const at = (minutesAgo: number) =>
+    new Date(Date.now() - minutesAgo * 60_000).toISOString();
+  const event = (
+    transactionId: string,
+    state: 'PENDING' | 'COMPLETED',
+    minutesAgo: number,
+  ) =>
+    ({
+      transactionId,
+      entity: 'product-specification',
+      state,
+      at: at(minutesAgo),
+    }) as never;
+
+  it('upserts from an event and reads the record back, and answers undefined for none', async () => {
+    const fake = makeFakeMongoDb();
+    const store = makeMongoTransactionStore(fake.db as Db);
+
+    const record = await Effect.runPromise(
+      store.upsertFromEvent(event('t-1', 'PENDING', 0)),
+    );
+    const missing = await Effect.runPromise(store.get('t-9'));
+
+    expect(record).toMatchObject({ transactionId: 't-1', state: 'PENDING' });
+    expect(missing).toBeUndefined();
+  });
+
+  it('finds what has been pending too long, and marks only a pending record stale', async () => {
+    const fake = makeFakeMongoDb();
+    const store = makeMongoTransactionStore(fake.db as Db);
+    for (const one of [
+      event('old', 'PENDING', 60),
+      event('fresh', 'PENDING', 0),
+      event('done', 'COMPLETED', 60),
+    ]) {
+      await Effect.runPromise(store.upsertFromEvent(one));
+    }
+
+    const stale = await Effect.runPromise(store.findStale(30 * 60_000));
+    await Effect.runPromise(store.markStale('old'));
+    await Effect.runPromise(store.markStale('done'));
+
+    expect(stale.map(one => one.transactionId)).toEqual(['old']);
+    expect((await Effect.runPromise(store.get('old')))?.state).toBe('STALE');
+    expect((await Effect.runPromise(store.get('done')))?.state).toBe(
+      'COMPLETED',
+    );
+  });
+
+  it('reports every driver failure as a store failure', async () => {
+    const cases: [
+      string,
+      (
+        store: ReturnType<typeof makeMongoTransactionStore>,
+      ) => Effect.Effect<unknown, unknown>,
+    ][] = [
+      ['updateOne', store => store.upsertFromEvent(event('t-1', 'PENDING', 0))],
+      ['findOne', store => store.upsertFromEvent(event('t-1', 'PENDING', 0))],
+      ['findOne', store => store.get('t-1')],
+      ['find', store => store.findStale(1)],
+      ['updateOne', store => store.markStale('t-1')],
+    ];
+    for (const [op, act] of cases) {
+      const fake = makeFakeMongoDb();
+      fake.failOn(op, new Error(`${op} failed`));
+
+      const error = await Effect.runPromise(
+        Effect.flip(act(makeMongoTransactionStore(fake.db as Db))),
+      );
+
+      expect(error).toBeInstanceOf(EntifixConnError);
+    }
   });
 });

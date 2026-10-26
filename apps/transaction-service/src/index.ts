@@ -11,8 +11,7 @@ export {
   HttpSagaDispatcherLayer,
   ParticipantsTag,
 } from './saga/http-dispatcher';
-export { MongoSagaStoreLayer } from './saga/instance-store';
-export { MongoTransactionStoreLayer, SagaDatabaseName } from './saga/store';
+export { sagaStoresLayer } from './saga/stores';
 export { cancellationSaga, checkoutSaga, SAGAS } from './sagas';
 
 export const SERVICE_NAME = '@r10c/transaction-service';

@@ -269,6 +269,9 @@
     },
     {
       "path": "./packages/implementation/auth/mongo"
+    },
+    {
+      "path": "./packages/implementation/saga/mongo"
     }
   ],
   "compilerOptions": {
