@@ -1,106 +1,19 @@
-import { ConfigurationPlain } from '@entifix/core';
-import { redactValue, requireSharedToken } from '@entifix/service-shell';
-import { configurationRoutes } from '@r10c/implementation-configuration-http';
-import { fleetToken } from '@r10c/utils-ts-fleet';
-import { Effect, Layer } from 'effect';
-import { HttpRouter, HttpServerResponse } from 'effect/http';
-import { SqlClient, SqlError } from 'effect/sql';
-
-import { ConfigurationRow } from './db';
-
-const DEFAULT_PG_URL = 'postgres://postgres:postgres@127.0.0.1:30432/postgres';
-
-/**
- * Turns flat `configuration` rows into the `ConfigurationPlain` contract.
- *
- * `is_secret` rides along as `isSecret`. This endpoint deliberately serves the
- * real value — a booting service needs the actual key — so the flag is how the
- * consumer knows which of the values it just received must never be echoed back
- * out of its own introspection route.
- */
-function toConfigurationPlain(
-  rows: ReadonlyArray<
-    Pick<ConfigurationRow, 'group_name' | 'key' | 'value' | 'is_secret'>
-  >,
-): ConfigurationPlain {
-  const plain: ConfigurationPlain = {};
-  for (const row of rows) {
-    (plain[row.group_name] ??= []).push({
-      key: row.key,
-      value: row.value,
-      ...(row.is_secret === true ? { isSecret: true } : {}),
-    });
-  }
-  return plain;
-}
-
-const onSqlError = (error: SqlError.SqlError) =>
-  HttpServerResponse.json(
-    {
-      error: 'configuration store unavailable',
-      code: 'configUnavailable',
-      detail: error.message,
-    },
-    { status: 500 },
-  );
+import {
+  configurationLookupRoutes,
+  configurationRoutes,
+} from '@r10c/implementation-configuration-http';
+import { Layer } from 'effect';
 
 /**
  * config-service routes. `/api/health` is added by the service base.
  *
- * - `GET /api/config/:service` — the consumer lookup: every configuration row
- *   for that service, grouped into `ConfigurationPlain` from Postgres.
- * - `GET /api/config` — introspection: this service's own loaded parameters
- *   (redacted Postgres URL, row count, and the services present in the table).
+ * - `/api/config…` — the fleet's lookup and the store's introspection, behind
+ *   the shared fleet token, with real values. See
+ *   `@r10c/implementation-configuration-http`'s `configurationLookupRoutes`.
  * - `/api/configuration…` — the operator-facing CRUD, behind
- *   `config:configuration:*`. See `@r10c/implementation-configuration-http`.
- *
- * The two `config` routes carry credentials in the clear, by necessity: a booting
- * service needs the real connection strings. They are gated on `X-Service-Token`
- * rather than redacted. The CRUD is gated on a *user* permission instead, and
- * blanks secrets — the two surfaces have different callers and different rules.
+ *   `config:configuration:*`, blanking secrets.
  */
-const introspectionRoute = Effect.gen(function* () {
-  const sql = yield* SqlClient.SqlClient;
-  const counts = yield* sql<{
-    count: number;
-  }>`SELECT COUNT(*)::int AS count FROM configuration`;
-  const services = yield* sql<{
-    service: string;
-  }>`SELECT DISTINCT service FROM configuration ORDER BY service`;
-
-  return yield* HttpServerResponse.json({
-    service: '@r10c/config-service',
-    store: 'postgres',
-    pgUrl: redactValue(process.env.CONFIG_PG_URL ?? DEFAULT_PG_URL),
-    rowCount: counts[0]?.count ?? 0,
-    services: services.map(row => row.service),
-  });
-}).pipe(Effect.catchTag('SqlError', onSqlError));
-
-const lookupRoute = Effect.gen(function* () {
-  const params = yield* HttpRouter.params;
-  const service = params.service ?? '';
-  const sql = yield* SqlClient.SqlClient;
-
-  const rows = yield* sql<
-    Pick<ConfigurationRow, 'group_name' | 'key' | 'value' | 'is_secret'>
-  >`SELECT group_name, key, value, is_secret FROM configuration WHERE service = ${service}`;
-
-  return yield* HttpServerResponse.json(toConfigurationPlain(rows));
-}).pipe(Effect.catchTag('SqlError', onSqlError));
-
 export const router = Layer.mergeAll(
-  HttpRouter.addAll([
-    HttpRouter.route(
-      'GET',
-      '/api/config',
-      requireSharedToken(fleetToken)(introspectionRoute),
-    ),
-    HttpRouter.route(
-      'GET',
-      '/api/config/:service',
-      requireSharedToken(fleetToken)(lookupRoute),
-    ),
-  ]),
+  configurationLookupRoutes,
   configurationRoutes,
 );

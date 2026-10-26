@@ -2550,6 +2550,9 @@ importers:
       '@r10c/business-ts-configuration':
         specifier: workspace:*
         version: link:../../../business/ts/configuration
+      '@r10c/utils-ts-fleet':
+        specifier: workspace:*
+        version: link:../../../utils/ts/fleet
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
