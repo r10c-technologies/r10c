@@ -380,6 +380,13 @@ test.describe('browsing the catalog', () => {
     await expect(page.getByText('Terra Ceramic Mug')).toBeVisible();
   });
 
+  // #379: a buyer types without the accent, or on a keyboard that lacks it.
+  test('search finds a name whatever its accents', async ({ page }) => {
+    await page.goto('/es/search?q=jarron');
+
+    await expect(page.getByText('Marea Jarrón')).toBeVisible();
+  });
+
   test('search renders its results on the server', async ({ page }) => {
     await page.goto('/es/search');
     await page.getByRole('searchbox').fill('mug');
