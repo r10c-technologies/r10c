@@ -15,7 +15,6 @@ export {
   JWT_ISSUER,
   OIDC_STATE_TTL_SECONDS,
 } from './identity/session-policy';
-export { makeStubIdentityProvider } from './identity/stub-identity-provider';
 export {
   individualSeedData,
   membershipSeedData,

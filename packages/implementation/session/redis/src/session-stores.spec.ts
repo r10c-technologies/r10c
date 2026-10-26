@@ -5,6 +5,11 @@ import {
   ProviderSessionIndexTag,
   SESSION_ABSOLUTE_TTL_SECONDS,
 } from '@r10c/business-ts-authn';
+import {
+  describeIdTokenStoreContract,
+  describeLifecycleCursorContract,
+  describeProviderSessionIndexContract,
+} from '@r10c/business-ts-authn/testing';
 import { Effect, Layer } from 'effect';
 import type { Redis } from 'ioredis';
 import { describe, expect, it } from 'vitest';
@@ -72,6 +77,19 @@ const stores = (redis: Redis) =>
       ),
     ),
   );
+
+describeIdTokenStoreContract(
+  'the Redis id-token store',
+  async () => (await stores(fakeRedis().redis)).tokens,
+);
+describeProviderSessionIndexContract(
+  'the Redis provider-session index',
+  async () => (await stores(fakeRedis().redis)).index,
+);
+describeLifecycleCursorContract(
+  'the Redis lifecycle cursor',
+  async () => (await stores(fakeRedis().redis)).cursor,
+);
 
 describe('the id-token store', () => {
   it('remembers a token for the session’s ceiling, and gives it up once', async () => {

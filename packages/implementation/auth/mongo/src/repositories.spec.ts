@@ -5,6 +5,11 @@ import {
   IdentifierType,
   UserIdentity,
 } from '@r10c/business-ts-authn';
+import {
+  describeAccountRepositoryContract,
+  describeNotificationPortContract,
+  describeUserDeviceRepositoryContract,
+} from '@r10c/business-ts-authn/testing';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -90,6 +95,21 @@ const accounts = (seed: Seed = seeded(), fail?: [string, string, number]) => {
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
 const flip = <A, E>(effect: Effect.Effect<A, E>) =>
   Effect.runPromise(Effect.flip(effect));
+
+describeAccountRepositoryContract('the Mongo accounts', () =>
+  makeMongoAccountRepository(makeFakeMongoDb().db as Db),
+);
+describeUserDeviceRepositoryContract('the Mongo devices', () =>
+  makeMongoUserDeviceRepository(makeFakeMongoDb().db as Db),
+);
+describeNotificationPortContract('the dev notification outbox', () => {
+  const db = makeFakeMongoDb().db as Db;
+  return {
+    port: makeDevNotificationPort(db),
+    deliveredTo: to =>
+      Effect.runPromise(readOutbox(db, to)) as never,
+  };
+});
 
 describe('the account repository', () => {
   it('finds a user by identifier and by id, and answers null for neither', async () => {

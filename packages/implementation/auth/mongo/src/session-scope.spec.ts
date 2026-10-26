@@ -1,4 +1,5 @@
 import { SessionScopeResolverTag } from '@r10c/business-ts-authn';
+import { describeSessionScopeResolverContract } from '@r10c/business-ts-authn/testing';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -57,6 +58,17 @@ const resolve = (collections: Record<string, readonly Doc[]>, userId: string) =>
   Effect.runPromise(
     makeMongoSessionScopeResolver(fakeDb(collections)).forUser(userId),
   );
+
+describeSessionScopeResolverContract('the Mongo resolver', world =>
+  makeMongoSessionScopeResolver(
+    fakeDb({
+      individual: world.individuals,
+      membership: world.memberships,
+      'party-role': world.roles,
+      entitlement: world.entitlements,
+    }),
+  ),
+);
 
 describe('makeMongoSessionScopeResolver', () => {
   it('opens as the role played in the organization the session opened under', async () => {
