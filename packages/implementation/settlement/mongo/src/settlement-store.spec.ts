@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { EntifixConnError, serializeEntity } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   makeMongoUnitOfWork,
@@ -9,12 +9,17 @@ import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import {
+  Agreement,
   type SaleHalf,
   type SaleJoin,
   SaleJoinTag,
   type SettlementRunStore,
   SettlementRunStoreTag,
 } from '@r10c/business-ts-settlement-management';
+import {
+  CONTRACT_AGREEMENTS,
+  describeSettlementStoreContract,
+} from '@r10c/business-ts-settlement-management/testing';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -85,6 +90,15 @@ const entriesOf = (fake: ReturnType<typeof makeFakeMongoDb>, kind: string) =>
   fake
     .read(COMMISSION_ENTRY_COLLECTION)
     .filter(entry => entry['kind'] === kind);
+
+describeSettlementStoreContract('the Mongo store', () =>
+  world({
+    [AGREEMENT_COLLECTION]: CONTRACT_AGREEMENTS.map(agreement => ({
+      ...serializeEntity(Agreement, agreement),
+      id: agreement.id,
+    })),
+  }).run(ports => Effect.succeed(ports)),
+);
 
 describe('the sale join', () => {
   it('holds a priced order until its capture arrives, then writes one entry per vendor', async () => {
