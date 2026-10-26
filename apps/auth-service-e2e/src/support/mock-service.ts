@@ -34,6 +34,7 @@ import {
   ZitadelOidcTag,
 } from '@entifix/zitadel';
 import {
+  AuthnHostLayer,
   entityIdentifierSeedData,
   IdTokenStoreTag,
   individualSeedData,
@@ -212,6 +213,10 @@ const withAccounts = Layer.provideMerge(
     NotificationLayer,
     // What the generic user and identifier reads open their repository from.
     MongoRepositoryFactoryLayer,
+    // The host's own bindings for the authn routes — the provider ports over
+    // the fake Zitadel above, the key set, the dev mailbox — so the mock runs
+    // the composition a real boot does rather than a second one.
+    AuthnHostLayer,
   ),
   base,
 );

@@ -23,16 +23,6 @@ export const JWT_ISSUER = AUTH_TOKEN_ISSUER;
 export const JWT_AUDIENCE = AUTH_TOKEN_AUDIENCE;
 
 /**
- * How long a started sign-in may sit unfinished.
- *
- * Short on purpose: this is the window in which a stored PKCE verifier and
- * nonce are live, and the only thing that has to fit inside it is a human
- * typing a password and possibly a second factor. Ten minutes is generous for
- * that and short enough that abandoned flows do not accumulate.
- */
-export const OIDC_STATE_TTL_SECONDS = 600;
-
-/**
  * Password the seeded dev users are created with **in Zitadel**, so local
  * sign-in works out of the box.
  *

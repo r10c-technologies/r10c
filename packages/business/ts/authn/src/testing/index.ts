@@ -4,7 +4,9 @@
  * Spec-only: it imports `vitest`.
  */
 export * from './account-repository.contract';
+export * from './identity-provider-ports.contract';
 export * from './in-memory-accounts';
+export * from './in-memory-provider';
 export * from './in-memory-session-scope-resolver';
 export * from './in-memory-session-stores';
 export * from './notification-port.contract';

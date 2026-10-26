@@ -52,6 +52,16 @@ export const CLIENT_IDLE_STOP_SECONDS = 60 * 15;
 /** How long before the absolute cap the UI warns that re-authentication is due. */
 export const SESSION_EXPIRY_WARNING_SECONDS = 60 * 5;
 
+/**
+ * How long a started sign-in may sit unfinished.
+ *
+ * Short on purpose: this is the window in which a stored PKCE verifier and
+ * nonce are live, and the only thing that has to fit inside it is a human
+ * typing a password and possibly a second factor. Ten minutes is generous for
+ * that and short enough that abandoned flows do not accumulate.
+ */
+export const OIDC_STATE_TTL_SECONDS = 600;
+
 /** The pair of durations a session is created with. */
 export interface SessionLifetime {
   /** Sliding window, renewed by {@link SESSION_IDLE_TTL_SECONDS} on refresh. */

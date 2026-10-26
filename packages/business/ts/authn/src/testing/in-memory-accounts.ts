@@ -7,7 +7,7 @@ import { UserDevice } from '../entities/user-device';
 import { UserIdentity, UserStatus } from '../entities/user-identity';
 import { AuthnError } from '../errors';
 import type { AccountRepository } from '../repository/account.repository';
-import type { Notification } from '../repository/notification.repository';
+import type { MailboxNotice } from '../repository/identity-provider-ports';
 import type { UserDeviceRepository } from '../repository/user-device.repository';
 import type { NotificationSubject } from './notification-port.contract';
 
@@ -148,19 +148,30 @@ export const makeInMemoryUserDeviceRepository = (): UserDeviceRepository => {
 };
 
 /**
- * A notification port that keeps what it delivers, for the specs of whatever
- * sends a notice. It runs `describeNotificationPortContract`.
+ * A notification port that keeps what it delivers, with the mailbox that
+ * reads it back, for the specs of whatever sends a notice. It runs
+ * `describeNotificationPortContract`.
  */
 export const makeInMemoryNotificationPort = (): NotificationSubject => {
-  const delivered: Notification[] = [];
+  const delivered: MailboxNotice[] = [];
   return {
     port: {
       send: notification =>
         Effect.sync(() => {
-          delivered.push(notification);
+          delivered.unshift({
+            kind: notification.kind,
+            to: notification.to,
+            userId: String(notification.userId),
+            data: notification.data ?? {},
+            sentAt: new Date().toISOString(),
+          });
         }),
     },
-    deliveredTo: address =>
-      Promise.resolve(delivered.filter(notice => notice.to === address)),
+    mailbox: {
+      read: to =>
+        Effect.sync(() =>
+          delivered.filter(notice => to === undefined || notice.to === to),
+        ),
+    },
   };
 };

@@ -272,6 +272,9 @@
     },
     {
       "path": "./packages/implementation/saga/mongo"
+    },
+    {
+      "path": "./packages/implementation/authn/http"
     }
   ],
   "compilerOptions": {

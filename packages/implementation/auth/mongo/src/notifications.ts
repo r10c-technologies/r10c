@@ -1,8 +1,15 @@
 import { randomUUID } from 'node:crypto';
 
 import { EntifixConnError } from '@entifix/core';
-import type { Notification, NotificationPort } from '@r10c/business-ts-authn';
-import { Effect } from 'effect';
+import { MongoDatabaseTag } from '@entifix/mongo';
+import {
+  type DevMailbox,
+  DevMailboxTag,
+  type MailboxNotice,
+  type Notification,
+  type NotificationPort,
+} from '@r10c/business-ts-authn';
+import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 
 /** Where development notifications are recorded so a test can read them back. */
@@ -57,21 +64,41 @@ export const makeDevNotificationPort = (db: Db): NotificationPort => {
   };
 };
 
-/** Read the most recent notifications, newest first. */
-export const readOutbox = (db: Db, to?: string) =>
-  Effect.tryPromise({
-    try: () =>
-      db
-        .collection(OUTBOX_COLLECTION)
-        .find(to === undefined ? {} : { to }, { projection: { _id: 0 } })
-        .toArray(),
-    catch: error => new EntifixConnError('Failed to read outbox', error),
-  }).pipe(
-    Effect.map(docs =>
-      [...docs]
-        .sort((left, right) =>
-          String(right['sentAt']).localeCompare(String(left['sentAt'])),
-        )
-        .slice(0, OUTBOX_PAGE_SIZE),
+/**
+ * The {@link DevMailbox} over this port's outbox: one address's notices or
+ * everyone's, newest first, one page at most.
+ */
+export const makeDevMailbox = (db: Db): DevMailbox => ({
+  read: to =>
+    Effect.tryPromise({
+      try: () =>
+        db
+          .collection(OUTBOX_COLLECTION)
+          .find(to === undefined ? {} : { to }, { projection: { _id: 0 } })
+          .toArray(),
+      catch: error => new EntifixConnError('Failed to read outbox', error),
+    }).pipe(
+      Effect.map(docs =>
+        [...docs]
+          .sort((left, right) =>
+            String(right['sentAt']).localeCompare(String(left['sentAt'])),
+          )
+          .slice(0, OUTBOX_PAGE_SIZE)
+          .map(
+            (doc): MailboxNotice => ({
+              kind: String(doc['kind']),
+              to: String(doc['to']),
+              userId: String(doc['userId']),
+              data: (doc['data'] ?? {}) as Record<string, string>,
+              sentAt: String(doc['sentAt']),
+            }),
+          ),
+      ),
     ),
-  );
+});
+
+/** Binds {@link DevMailboxTag} over the service's database. */
+export const DevMailboxLayer = Layer.effect(
+  DevMailboxTag,
+  Effect.map(MongoDatabaseTag, db => makeDevMailbox(db as Db)),
+);

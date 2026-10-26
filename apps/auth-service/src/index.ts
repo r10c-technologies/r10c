@@ -5,15 +5,9 @@
  * than re-declaring a stand-in that could drift from the real route surface.
  */
 export {
-  PROVIDER,
-  provisionZitadelHuman,
-  resolveSignIn,
-} from './identity/provisioning';
-export {
   DEV_SEED_PASSWORD,
   JWT_AUDIENCE,
   JWT_ISSUER,
-  OIDC_STATE_TTL_SECONDS,
 } from './identity/session-policy';
 export {
   individualSeedData,
@@ -24,6 +18,11 @@ export {
   entityIdentifierSeedData,
   userIdentitySeedData,
 } from './identity/user-seed-data';
+export {
+  AuthnHostLayer,
+  PROVIDER,
+  ZitadelProviderPortsLayer,
+} from './identity/zitadel-ports';
 export { AppLayer, seedIdentityProvider } from './mongo';
 export { router } from './routes';
 export {
