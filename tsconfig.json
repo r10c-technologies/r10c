@@ -257,6 +257,12 @@
     },
     {
       "path": "./packages/implementation/catalog-reference/http"
+    },
+    {
+      "path": "./packages/implementation/catalog/mongo"
+    },
+    {
+      "path": "./packages/implementation/product-configuration-management/http"
     }
   ],
   "compilerOptions": {

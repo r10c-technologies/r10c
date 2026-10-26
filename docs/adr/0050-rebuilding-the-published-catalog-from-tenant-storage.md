@@ -4,6 +4,7 @@
 - Date: 2026-09-08
 - Area: messaging
 - Read when: the storefront is empty after a reset, or a publication was lost — the rebuild walk re-emits from tenant storage and must never stamp `now`
+- Revised: 2026-10-25 — the tenant relay and the rebuild walk moved onto the grid (#371): the sweep is entifix's `startTenantOutboxRelay`, and the walk is `rebuildEveryPublication` in `@r10c/business-ts-product-configuration-management`.
 - Amends: [ADR 0048](0048-announcing-a-publication.md) — the fleet-wide rebuild
   it deferred is built, and the reason it gave for deferring is answered.
 
@@ -183,8 +184,9 @@ every tenant after it. Survivable there in theory because another sweep follows
 in 15s — except that the likeliest failure is the `IndexOptionsConflict`
 `ensureOutboxIndexes` documents, which recurs on **every** pass, so the tenants
 behind it would never drain again while the relay went on looking healthy. The
-pass is now an exported `sweepTenantOutboxes`, which is also what makes "one
-tenant's failure does not take the next tenant's" a test rather than a comment.
+pass became an exported `sweepTenantOutboxes`, which is also what made "one
+tenant's failure does not take the next tenant's" a test rather than a comment;
+since #371 it is entifix's `startTenantOutboxRelay`, which keeps that isolation.
 
 ## Consequences
 

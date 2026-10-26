@@ -9,11 +9,9 @@ export { AppLayer } from './mongo';
 // requires without opening its own edge onto `@entifix/transactions`. The
 // create route resolves both: the slice it stamps events with, and the relay's
 // ceiling.
-export { EventSourceTag } from '@entifix/transactions';
-// The relay's ceiling, exported for the same reason `SagaDatabaseName` is: the
-// mock profile composes the real router, and the create route now resolves it.
 export { router } from './routes';
 export { seedCatalog } from './seed';
+export { EventSourceTag } from '@entifix/transactions';
 
 export const SERVICE_NAME = '@r10c/marketplace-admin-service';
 

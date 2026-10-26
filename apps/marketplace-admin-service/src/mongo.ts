@@ -1,8 +1,15 @@
+import { startTenantOutboxRelay } from '@entifix/mongo/transactions';
 import { RedisHealthProbeLayer, RedisLayer } from '@entifix/redis';
 import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
 } from '@entifix/redis/transactions';
+import { EventSourceTag } from '@entifix/transactions';
+import { rebuildEveryPublication } from '@r10c/business-ts-product-configuration-management';
+import {
+  MongoOfferingCatalogLayer,
+  MongoSpecificationCommandsLayer,
+} from '@r10c/implementation-catalog-mongo';
 import {
   fleetBusLayer,
   fleetOutboxLayer,
@@ -12,8 +19,6 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { startOutboxRelay, TenantDatabasePrefix } from './outbox/relay';
-import { startPublicationRebuild } from './publication/rebuild';
 import { seedCatalog } from './seed';
 
 const SERVICE_NAME = 'marketplace-admin-service';
@@ -63,9 +68,6 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
       // that named the process would relabel marketplace-admin's events the day
       // the two split apart.
       yield* fleetOutboxLayer(configuration, SLICE_NAME),
-      // The outbox relay sweeps every `tenant_<organizationId>` database this
-      // slice owns, so it needs the prefix those handles are named with.
-      Layer.succeed(TenantDatabasePrefix, tenantPrefix),
     );
 
     return Layer.provideMerge(
@@ -73,18 +75,29 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
         // ⚠️ **The rebuild is chained to the seed, not merged beside it.**
         // `Layer.mergeAll` builds its members concurrently, so a sibling
         // rebuild races the seed on a fresh `dev:reset`: Mongo creates a
-        // tenant database on its first write, `tenantDatabases` would list
+        // tenant database on its first write, `the directory would list
         // none, and the walk would announce nothing — leaving the storefront
         // empty, intermittently, which is the failure this walk exists to
         // remove.
         Layer.effectDiscard(
           seedCatalog(`${tenantPrefix}${demoOrganizationId}`).pipe(
-            Effect.andThen(startPublicationRebuild),
+            Effect.andThen(
+              Effect.flatMap(EventSourceTag, source =>
+                Effect.forkDetach(rebuildEveryPublication(source)),
+              ),
+            ),
           ),
         ),
-        Layer.effectDiscard(startOutboxRelay),
+        Layer.effectDiscard(startTenantOutboxRelay()),
       ),
-      connections,
+      // The catalog store's two non-save writes, over the same connections.
+      Layer.provideMerge(
+        Layer.mergeAll(
+          MongoOfferingCatalogLayer,
+          MongoSpecificationCommandsLayer,
+        ),
+        connections,
+      ),
     );
   }),
 );

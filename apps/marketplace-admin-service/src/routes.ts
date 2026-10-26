@@ -1,9 +1,6 @@
+import { catalogRoutes } from '@r10c/implementation-product-configuration-management-http';
 import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-
-import { productOfferingRoutes } from './routes/product-offering.routes';
-import { productOfferingPriceRoutes } from './routes/product-offering-price.routes';
-import { productSpecificationRoutes } from './routes/product-specification.routes';
 
 /**
  * marketplace-admin-service routes: the catalog. `/api/health*` is added by the
@@ -28,7 +25,5 @@ export const router = Layer.mergeAll(
     service: '@r10c/marketplace-admin-service',
     store: 'mongo',
   }),
-  productSpecificationRoutes,
-  productOfferingRoutes,
-  productOfferingPriceRoutes,
+  catalogRoutes,
 );

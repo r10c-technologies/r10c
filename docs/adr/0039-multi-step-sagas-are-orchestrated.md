@@ -12,6 +12,7 @@
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): framework paths name `@entifix/transactions` rather than
   `packages/entifix/ts/transactions`.
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): ports are `Context.Service`s rather than `Context.Tag`s; the decision is unchanged.
+- Revised: 2026-10-25 — the single-step handler moved into `@r10c/implementation-catalog-mongo` (#371); its `rollback` still ignores the outcome.
 
 ## Context
 
@@ -55,7 +56,8 @@ migrations_ and has nothing to do with sagas. The record this amends is
 **`rollback` is structurally told nothing.** `completeTransaction` hardcodes
 `Effect.provideService(OutcomeTag, undefined)`, the port declares
 `outcome: TransactionOutcome | undefined`, and the only implementation
-(`catalog-transaction-handler.ts`) writes `rollback: command =>` and ignores the
+(then `catalog-transaction-handler.ts`, now the specification handler in
+`@r10c/implementation-catalog-mongo`) writes `rollback: command =>` and ignores the
 parameter. The doc comment says it "runs whether or not `execute` produced an
 `outcome`", implying the value is sometimes defined. It never is, and it cannot
 be while there is one step: `rollback` runs only on the failure arm, where
@@ -157,7 +159,7 @@ charged. ADR 0030 already built the mechanism shape for this (quarantine, and a
 log the sweep makes visible); this extends the same treatment to compensation.
 
 Immediately, and independent of any multi-step work: the single-step engine
-**logs** its rollback failure, matching `outbox/relay.ts`'s
+**logs** its rollback failure, matching the outbox relay's
 `Effect.logError('outbox entry quarantined')`. The `Effect.ignore` stays — the
 client must still receive a terminal state — but the error stops vanishing.
 

@@ -156,6 +156,8 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-product-configuration-management": "workspace:*",
+    "@r10c/implementation-catalog-mongo": "workspace:*",
+    "@r10c/implementation-product-configuration-management-http": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "amqplib": "2.2.0",

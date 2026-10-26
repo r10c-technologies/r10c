@@ -6,6 +6,7 @@ import {
 } from '@entifix/authz';
 import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
+import { MongoTenantRepositoryFactoryLayer } from '@entifix/mongo';
 // `OutboxMaxAttempts` lives in the shared mongo client, not in this app: the
 // outbox relay was lifted out of marketplace-admin-service into
 // `@entifix/mongo` when the payment slice was promoted (#237),
@@ -15,9 +16,15 @@ import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
 } from '@entifix/redis/transactions';
-import { type InMemoryObservability, makeInMemoryObservabilityLayer } from '@entifix/service-shell/observability';
+import {
+  type InMemoryObservability,
+  makeInMemoryObservabilityLayer,
+} from '@entifix/service-shell/observability';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
+import {
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
@@ -35,6 +42,10 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import {
+  MongoOfferingCatalogLayer,
+  MongoSpecificationCommandsLayer,
+} from '@r10c/implementation-catalog-mongo';
 import {
   router,
   seedCatalog,
@@ -134,9 +145,21 @@ const MockAppLayer = (() => {
   // `orDie` mirrors the shipped `AppLayer`: the saga store's index creation can
   // fail, and a service that cannot open its own store has nothing to serve, so
   // the failure belongs in the defect channel rather than in a caller's types.
+  // The real catalog cell and repository factory over the fakes, so the
+  // status compare-and-set, the transactional create and the save all run
+  // their own code.
+  const stored = Layer.provideMerge(
+    Layer.mergeAll(
+      MongoOfferingCatalogLayer,
+      MongoSpecificationCommandsLayer,
+      MongoTenantRepositoryFactoryLayer,
+    ),
+    infra,
+  );
+
   return Layer.provideMerge(
     Layer.effectDiscard(seedCatalog('tenant_e2e-organization')),
-    infra,
+    stored,
   ).pipe(Layer.orDie);
 })();
 
