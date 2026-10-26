@@ -21,6 +21,9 @@
       "path": "../stock-service"
     },
     {
+      "path": "../../packages/implementation/stock/mongo"
+    },
+    {
       "path": "../../packages/business/ts/stock-management"
     },
     {

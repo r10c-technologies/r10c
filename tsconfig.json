@@ -233,6 +233,12 @@
     },
     {
       "path": "./packages/implementation/settlement-management/http"
+    },
+    {
+      "path": "./packages/implementation/stock/mongo"
+    },
+    {
+      "path": "./packages/implementation/stock-management/http"
     }
   ],
   "compilerOptions": {

@@ -29,6 +29,12 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/implementation/stock/mongo/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/stock-management/http/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/stock-management/tsconfig.lib.json"
     },
     {

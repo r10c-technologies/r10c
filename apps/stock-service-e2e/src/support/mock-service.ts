@@ -3,11 +3,18 @@ import {
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import { TokenServiceTag } from '@entifix/business';
+import { TenantDirectoryTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
+import {
+  MongoDatabaseTag,
+  MongoTenantRepositoryFactoryLayer,
+} from '@entifix/mongo';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
+import {
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
@@ -22,6 +29,7 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { MongoStockLedgerLayer } from '@r10c/implementation-stock-mongo';
 import {
   ReservationTtlSecondsTag,
   router,
@@ -29,7 +37,7 @@ import {
   SERVICE_NAME,
 } from '@r10c/stock-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
-import { Layer } from 'effect';
+import { Effect, Layer } from 'effect';
 
 import { E2E_CROSSING_TOKEN, E2E_ORGANIZATION_ID } from './tokens';
 
@@ -104,9 +112,27 @@ const MockAppLayer = (() => {
   // The REAL seed, so both profiles read the same stock positions and a shared
   // journey can name a seeded row. The fake resolves every organization to one
   // in-memory store, so the positions the specs read are the ones this wrote.
+  // The directory the reaper walks: the fake's one store, as the demo
+  // organization's. The shipped one lists `stock_*` databases.
+  const directory = Layer.effect(
+    TenantDirectoryTag,
+    Effect.map(MongoDatabaseTag, handle => ({
+      list: () =>
+        Effect.succeed([{ organizationId: E2E_ORGANIZATION_ID, handle }]),
+    })),
+  );
+
+  // The real ledger and repository factory over the fake, so the cell's
+  // conditional hold, `$inc` fold and command claims all run their own code.
   return Layer.provideMerge(
-    Layer.effectDiscard(seedStock(`stock_${E2E_ORGANIZATION_ID}`)),
-    connections,
+    Layer.mergeAll(MongoStockLedgerLayer, MongoTenantRepositoryFactoryLayer),
+    Layer.provideMerge(
+      Layer.mergeAll(
+        Layer.effectDiscard(seedStock(`stock_${E2E_ORGANIZATION_ID}`)),
+        directory,
+      ),
+      connections,
+    ),
   ).pipe(Layer.orDie);
 })();
 

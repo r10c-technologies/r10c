@@ -1,3 +1,5 @@
+import { ReservationTtlSecondsTag } from '@r10c/business-ts-stock-management';
+import { MongoStockLedgerLayer } from '@r10c/implementation-stock-mongo';
 import {
   crossingTokenLayer,
   fleetSecurityLayer,
@@ -6,11 +8,7 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import {
-  startReservationSweep,
-  StockDatabasePrefix,
-} from './reservation-sweep';
-import { ReservationTtlSecondsTag } from './reservation-ttl';
+import { startReservationSweep } from './reservation-sweep';
 import { seedStock } from './seed';
 
 const SERVICE_NAME = 'stock-service';
@@ -40,7 +38,7 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
   Effect.gen(function* () {
     const { store } = configuration;
 
-    // `stock_`, read again here for the seed and the reaper; `fleetTenantMongoLayer`
+    // `stock_`, read again here for the seed; `fleetTenantMongoLayer`
     // builds the tenant resolver from the same row.
     const tenantPrefix = yield* store.in('tenant').getString('dbPrefix');
 
@@ -53,7 +51,7 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
       .getString('demoOrganizationId');
 
     // How long a hold survives. Configuration rather than a constant for the
-    // reason `tenant.dbPrefix` is — see `reservation-ttl.ts`.
+    // reason `tenant.dbPrefix` is — see `ReservationTtlSecondsTag`.
     const reservationTtlSeconds = yield* store
       .in('reservation')
       .getNumber('ttlSeconds');
@@ -66,9 +64,6 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
       // tenant-data *write* capability across every organization (ADR 0023).
       yield* crossingTokenLayer(configuration),
       Layer.succeed(ReservationTtlSecondsTag, reservationTtlSeconds),
-      // The reaper's prefix — the same `stock_` the tenant resolver is built
-      // with, because it enumerates the databases that resolver hands out.
-      Layer.succeed(StockDatabasePrefix, tenantPrefix),
     );
 
     // The demo vendor's stock, written on first boot into `stock_<id>`.
@@ -78,8 +73,11 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
     // creates a tenant database on first write — so a sibling that also touched
     // `stock_<id>` would race the seed on a fresh `dev:reset`.
     const seeded = Layer.provideMerge(
-      Layer.effectDiscard(seedStock(`${tenantPrefix}${demoOrganizationId}`)),
-      connections,
+      MongoStockLedgerLayer,
+      Layer.provideMerge(
+        Layer.effectDiscard(seedStock(`${tenantPrefix}${demoOrganizationId}`)),
+        connections,
+      ),
     );
 
     // ⚠️ **The reaper is chained after the seed, not merged beside it**, for the

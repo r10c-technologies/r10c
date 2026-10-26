@@ -1,16 +1,15 @@
 import { MongoClientTag } from '@entifix/mongo';
+import {
+  ensureStockItemIndexes,
+  MOVEMENT_COLLECTION,
+  STOCK_ITEM_COLLECTION,
+} from '@r10c/implementation-stock-mongo';
 import { seedCollection } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
-import {
-  ensureStockItemIndexes,
-  STOCK_ITEM_COLLECTION,
-} from './stock-item-index';
 import { stockItemTempData, stockMovementTempData } from './stock-temp-data';
 
 /** The movement ledger's collection, matching `@entity({ key })`. */
-const STOCK_MOVEMENT_COLLECTION = 'stock-movement';
-
 const asRecords = (
   data: ReadonlyArray<object>,
 ): ReadonlyArray<Record<string, unknown>> =>
@@ -47,7 +46,7 @@ export const seedStock = (tenantDbName: string) =>
     const db = client.db(tenantDbName);
 
     // ⚠️ **The index, before the rows.** `ensureStockItemIndexes` otherwise runs
-    // only inside `recordMovementRoute`, which is fine while a movement is the
+    // only inside the ledger's first write, which is fine while a movement is the
     // only thing that creates the collection — and stopped being true here.
     // Measured on the live lab: after a `dev:reset` the seeded
     // `stock_demo-organization` held 40 correct items and `stock-item` carried
@@ -61,7 +60,7 @@ export const seedStock = (tenantDbName: string) =>
 
     yield* seedCollection(
       db,
-      STOCK_MOVEMENT_COLLECTION,
+      MOVEMENT_COLLECTION,
       asRecords(stockMovementTempData),
     );
     yield* seedCollection(

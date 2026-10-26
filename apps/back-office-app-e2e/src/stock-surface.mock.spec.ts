@@ -121,7 +121,7 @@ test('records a movement, which is the only write in the domain', async ({
   await expect(page.getByLabel('Motivo')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Guardar' })).toBeVisible();
 
-  // `id` is server-owned — `record-movement.ts` mints it — so it is hidden
+  // `id` is server-owned — `recordMovement` mints it — so it is hidden
   // rather than offered as a field the service would overwrite.
   await expect(page.getByLabel('ID', { exact: true })).toHaveCount(0);
 });
