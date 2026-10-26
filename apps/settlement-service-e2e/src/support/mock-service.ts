@@ -5,14 +5,24 @@ import {
 } from '@entifix/authz';
 import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
+import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
+import {
+  MongoUnitOfWorkLayer,
+  OutboxMaxAttempts,
+} from '@entifix/mongo/transactions';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { type RunningTestService, serveTestService } from '@entifix/service-shell/testing';
+import {
+  type RunningTestService,
+  serveTestService,
+} from '@entifix/service-shell/testing';
 import {
   E2E_KEY_ID,
   E2E_PUBLIC_KEY_PEM,
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
+import { makeRecordingEventBus } from '@entifix/testing-unit';
+import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -21,7 +31,12 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
-import { router, SERVICE_NAME } from '@r10c/settlement-service';
+import { MongoSettlementStoreLayer } from '@r10c/implementation-settlement-mongo';
+import {
+  router,
+  SERVICE_NAME,
+  SETTLEMENT_SLICE,
+} from '@r10c/settlement-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
 
@@ -171,7 +186,7 @@ const SEED = {
  * that **no role** holds `settlement-management:agreement:write` or
  * `settlement-management:settlement-run:write`.
  */
-const MockAppLayer = Layer.mergeAll(
+const connections = Layer.mergeAll(
   fakeMongoLayer(SEED).layer,
   Layer.succeed(
     TokenServiceTag,
@@ -186,6 +201,16 @@ const MockAppLayer = Layer.mergeAll(
   Layer.succeed(ServiceCrossingPolicyTag, r10cServiceCrossingPolicy),
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
+  // Records what the store announces; under `mock` nothing consumes it.
+  Layer.succeed(EventBusTag, makeRecordingEventBus()),
+  Layer.succeed(OutboxMaxAttempts, 5),
+  Layer.succeed(EventSourceTag, SETTLEMENT_SLICE),
+);
+
+/** The store's own layers over the fake driver, as the shell composes them. */
+const MockAppLayer = Layer.provideMerge(
+  Layer.mergeAll(MongoSettlementStoreLayer, MongoRepositoryFactoryLayer),
+  Layer.provideMerge(MongoUnitOfWorkLayer, connections),
 ).pipe(Layer.orDie);
 
 /** Boots the service's real router in-process, on an ephemeral port. */

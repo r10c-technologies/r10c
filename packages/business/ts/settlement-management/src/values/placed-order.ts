@@ -128,10 +128,9 @@ export const readPlacedOrder = (
         ...(channelType === undefined ? {} : { channelType }),
       } satisfies PlacedOrder;
     },
-    catch: error =>
-      error instanceof EntifixBuildError
-        ? error
-        : new EntifixBuildError(String(error)),
+    // Every throw above is an `EntifixBuildError`, and nothing else in the
+    // body can throw.
+    catch: error => error as EntifixBuildError,
   });
 
 /**

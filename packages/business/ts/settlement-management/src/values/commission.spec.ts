@@ -1,9 +1,9 @@
 import { EntifixBuildError } from '@entifix/core';
-import { Agreement } from '@r10c/business-ts-settlement-management';
 import { describe, expect, it } from 'vitest';
 
-import { commissionsForOrder, payoutFor, reversalOf } from './commission';
-import type { PlacedOrderLine } from './placed-order';
+import { Agreement } from '../entities/agreement/index.js';
+import { commissionsForOrder, payoutFor, reversalOf } from './commission.js';
+import type { PlacedOrderLine } from './placed-order.js';
 
 const line = (
   vendorId: string,
@@ -279,5 +279,19 @@ describe('payoutFor', () => {
         { saleAmount: -1000, commissionAmount: -80, currency: 'GTQ' },
       ]),
     ).toEqual({ amount: -920, currency: 'GTQ' });
+  });
+});
+
+describe('reversalOf on a sale of nothing', () => {
+  it('negates a zero sale to zero, never to -0', () => {
+    const reversed = reversalOf({
+      vendorId: 'v-1',
+      saleAmount: 0,
+      commissionAmount: 0,
+      currency: 'GTQ',
+    });
+
+    expect(Object.is(reversed.saleAmount, 0)).toBe(true);
+    expect(Object.is(reversed.commissionAmount, 0)).toBe(true);
   });
 });

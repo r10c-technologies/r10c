@@ -1,8 +1,8 @@
 import { MongoDatabaseTag } from '@entifix/mongo';
+import { AGREEMENT_COLLECTION } from '@r10c/implementation-settlement-mongo';
 import { seedCollection } from '@r10c/shells-effect-service';
 import { Effect } from 'effect';
 
-import { AGREEMENT_COLLECTION } from './settlement-index';
 import { agreementTempData } from './settlement-temp-data';
 
 const asRecords = (

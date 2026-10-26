@@ -1,24 +1,8 @@
 import { EntifixBuildError } from '@entifix/core';
-import { entityMetadataRoute } from '@entifix/service-shell';
 import { SalesChannelTypes } from '@r10c/business-ts-sales-vocabulary';
-import { Agreement } from '@r10c/business-ts-settlement-management';
-import { HttpRouter } from 'effect/http';
 
-import {
-  byIdRoute,
-  emptyPageRoute,
-  guarded,
-  listRoute,
-  notFoundRoute,
-  saveRoute,
-} from './entity-crud';
-import {
-  settlementInScope,
-  settlementScopeFilter,
-  settlementScopeFor,
-} from './settlement-scope';
+import type { Agreement } from '../entities/agreement';
 
-/** Basis points, so 10000 is the whole sale. */
 const WHOLE_SALE_BASIS_POINTS = 10_000;
 
 /**
@@ -75,63 +59,3 @@ export const validateAgreement = (
 
   return undefined;
 };
-
-/**
- * The vendor's commercial terms.
- *
- * ⚠️ **Read is scoped, write is not granted to any role.** A vendor reads their
- * own agreement and nobody else's; authoring one is an operator act, reached
- * through `super-admin`'s wildcard rather than through a grant of its own,
- * because setting what the platform charges a vendor is not a thing the vendor's
- * own administrator does.
- *
- * ⚠️ **`$metadata` is registered before `/:id`.** `find-my-way-ts` prefers a
- * static segment over a parametric one and does not backtrack, but only when the
- * static route is declared — registered after, `$metadata` is swallowed by
- * `/:id` and answers a `404` for an entity named `$metadata`.
- */
-export const agreementRoutes = HttpRouter.addAll([
-  HttpRouter.route(
-    'GET',
-    '/api/agreement',
-    guarded(Agreement, 'read', principal => {
-      const scope = settlementScopeFor(principal);
-      return scope.kind === 'nothing'
-        ? emptyPageRoute(Agreement)
-        : listRoute(Agreement, settlementScopeFilter<Agreement>(scope));
-    }),
-  ),
-  HttpRouter.route(
-    'GET',
-    '/api/agreement/$metadata',
-    entityMetadataRoute(Agreement),
-  ),
-  HttpRouter.route(
-    'GET',
-    '/api/agreement/:id',
-    guarded(Agreement, 'read', principal => {
-      const scope = settlementScopeFor(principal);
-      return scope.kind === 'nothing'
-        ? notFoundRoute(Agreement)
-        : byIdRoute(
-            Agreement,
-            agreement => settlementInScope(scope, agreement),
-            true,
-          );
-    }),
-  ),
-  HttpRouter.route(
-    'POST',
-    '/api/agreement',
-    guarded(Agreement, 'write', () =>
-      saveRoute(Agreement, { fromParams: false, validate: validateAgreement }),
-    ),
-  ),
-  HttpRouter.route(
-    'PUT',
-    '/api/agreement/:id',
-    guarded(Agreement, 'write', () =>
-      saveRoute(Agreement, { fromParams: true, validate: validateAgreement }),
-    ),
-  ),
-]);

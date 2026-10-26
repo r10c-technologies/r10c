@@ -1,5 +1,4 @@
 import type { Entity, FilterGroup } from '@entifix/core';
-import type { RequestPrincipal } from '@entifix/service-shell';
 
 /**
  * Whose settlement records a caller may read.
@@ -77,8 +76,17 @@ const VENDOR = 'vendor';
  * nothing a buyer is party to, so the same fall-through would be a bug wearing
  * the shape of symmetry.
  */
+/**
+ * What the scope is decided from: the verified principal's routing context.
+ * Structural, so this domain names no HTTP framework.
+ */
+export interface SettlementCaller {
+  readonly partyRole?: string;
+  readonly organizationId?: string;
+}
+
 export const settlementScopeFor = (
-  principal: RequestPrincipal,
+  principal: SettlementCaller,
 ): SettlementScope => {
   if (principal.partyRole === OPERATOR) {
     return { kind: 'unscoped' };

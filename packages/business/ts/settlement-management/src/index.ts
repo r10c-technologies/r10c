@@ -32,4 +32,6 @@ export * from './entities/agreement';
 export * from './entities/commission-entry';
 export * from './entities/settlement-run';
 export * from './entities/vendor-payout';
+export * from './ports';
+export * from './use-cases';
 export * from './values';

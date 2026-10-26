@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "../sales-vocabulary/tsconfig.lib.json"
+    },
+    {
+      "path": "../payment-contracts/tsconfig.lib.json"
     }
   ],
   "exclude": [

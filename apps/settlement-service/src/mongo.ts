@@ -4,6 +4,7 @@ import {
   ensureOutboxIndexes,
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
+import { MongoSettlementStoreLayer } from '@r10c/implementation-settlement-mongo';
 import {
   fleetBusLayer,
   fleetOutboxLayer,
@@ -14,12 +15,13 @@ import {
 import { Effect, Layer } from 'effect';
 
 import { startSettlementFold } from './fold/subscriptions';
-import { SETTLEMENT_SLICE } from './outbox';
 import { SettlementRunIntervalMs, startSettlementSweep } from './run/sweep';
 import { seedSettlement } from './seed';
-import { ensureSettlementIndexes } from './settlement-index';
 
 const SERVICE_NAME = 'settlement-service';
+
+/** The **slice** this service publishes as — never the deployment, never the domain (ADR 0029). */
+export const SETTLEMENT_SLICE = 'settlement';
 
 /**
  * The settlement-service composition root — the `settlement` store's only
@@ -93,7 +95,6 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
           Effect.all([
             ensureOutboxIndexes(database),
             ensureInboxIndexes(database),
-            ensureSettlementIndexes(database),
           ]),
         ),
       ),
@@ -105,9 +106,11 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
     // seed writes the very collection whose unique index is being created beside
     // it — a sibling would race that index into existence *after* the row it is
     // meant to constrain.
+    // The store ensures the ledger's own indexes as it builds; the seed is
+    // chained after it, so the agreement it writes lands under them.
     const seeded = Layer.provideMerge(
       Layer.effectDiscard(seedSettlement(demoOrganizationId)),
-      indexed,
+      Layer.provideMerge(MongoSettlementStoreLayer, indexed),
     );
 
     return Layer.provideMerge(

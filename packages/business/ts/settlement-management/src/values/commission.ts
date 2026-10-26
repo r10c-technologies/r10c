@@ -1,6 +1,6 @@
 import { EntifixBuildError } from '@entifix/core';
-import type { Agreement } from '@r10c/business-ts-settlement-management';
 
+import type { Agreement } from '../entities/agreement';
 import type { PlacedOrderLine } from './placed-order';
 
 /** Basis points: 10000 is the whole sale, so 250 is 2.5%. */
@@ -53,12 +53,11 @@ const subtotalFor = (
   vendorId: string,
   lines: readonly PlacedOrderLine[],
 ): { amount: number; currency: string } => {
-  const [first, ...rest] = lines;
-  // Unreachable through `byVendor`, which only ever creates a key by pushing a
-  // line onto it. Stated so the non-null assertion the alternative needs is not.
-  if (first === undefined) {
-    throw new EntifixBuildError(`vendor ${vendorId} has no lines`);
-  }
+  // Never empty: `byVendor` only ever creates a key by pushing a line onto it.
+  const [first, ...rest] = lines as readonly [
+    PlacedOrderLine,
+    ...PlacedOrderLine[],
+  ];
   const currency = first.currency;
   let amount = first.amount * first.quantity;
   for (const line of rest) {

@@ -29,6 +29,12 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/implementation/settlement/mongo/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/settlement-management/http/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/settlement-management/tsconfig.lib.json"
     },
     {

@@ -157,6 +157,8 @@
     "@r10c/business-ts-payment-contracts": "workspace:*",
     "@r10c/business-ts-sales-vocabulary": "workspace:*",
     "@r10c/business-ts-settlement-management": "workspace:*",
+    "@r10c/implementation-settlement-management-http": "workspace:*",
+    "@r10c/implementation-settlement-mongo": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "effect": "4.0.5",

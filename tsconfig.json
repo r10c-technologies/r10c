@@ -227,6 +227,12 @@
     },
     {
       "path": "./packages/implementation/order-management/http"
+    },
+    {
+      "path": "./packages/implementation/settlement/mongo"
+    },
+    {
+      "path": "./packages/implementation/settlement-management/http"
     }
   ],
   "compilerOptions": {
