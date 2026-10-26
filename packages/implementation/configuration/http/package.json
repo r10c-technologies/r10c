@@ -41,13 +41,14 @@
     }
   },
   "dependencies": {
+    "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@entifix/service-shell": "catalog:",
     "@r10c/business-ts-configuration": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5",
-    "@entifix/authz": "catalog:",
-    "@entifix/business": "catalog:"
+    "effect": "4.0.6"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",

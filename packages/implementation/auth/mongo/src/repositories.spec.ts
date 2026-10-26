@@ -1,11 +1,19 @@
 import { EntifixConnError } from '@entifix/core';
+import { MongoDatabaseTag } from '@entifix/mongo';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import {
   AuthnError,
+  DevMailboxTag,
   IdentifierType,
   UserIdentity,
 } from '@r10c/business-ts-authn';
-import { Effect } from 'effect';
+import {
+  describeAccountRepositoryContract,
+  describeNotificationPortContract,
+  describeUserDeviceRepositoryContract,
+} from '@r10c/business-ts-authn/testing';
+import { failNth } from '@r10c/testing-cells/mongo';
+import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
 
@@ -15,51 +23,18 @@ import {
   USER_COLLECTION,
 } from './account-repository.js';
 import {
+  DevMailboxLayer,
+  makeDevMailbox,
   makeDevNotificationPort,
   OUTBOX_COLLECTION,
   OUTBOX_PAGE_SIZE,
-  readOutbox,
 } from './notifications.js';
 import {
   DEVICE_COLLECTION,
   makeMongoUserDeviceRepository,
 } from './user-device-repository.js';
 
-type Fake = ReturnType<typeof makeFakeMongoDb>;
 type Seed = Record<string, Record<string, unknown>[]>;
-
-/**
- * Fail only the `nth` call of one operation on one collection. The
- * repositories capture their collections when they are built, so this wraps
- * the database before they are.
- */
-const failNth = (fake: Fake, collection: string, op: string, nth: number) => {
-  const db = fake.db as unknown as { collection: (name: string) => object };
-  const real = db.collection.bind(db);
-  let calls = 0;
-  db.collection = (name: string) => {
-    const handle = real(name) as Record<
-      string,
-      (...args: unknown[]) => unknown
-    >;
-    if (name !== collection) return handle;
-    return new Proxy(handle, {
-      get: (target, key) =>
-        key !== op
-          ? target[key as string]
-          : (...args: unknown[]) => {
-              calls += 1;
-              if (calls !== nth) {
-                return (target[op] as (...a: unknown[]) => unknown)(...args);
-              }
-              const failure = () =>
-                Promise.reject(new Error(`${op} #${nth} failed`));
-              // `find` answers a cursor; it is the cursor's read that fails.
-              return op === 'find' ? { toArray: failure } : failure();
-            },
-    });
-  };
-};
 
 const ALAN = {
   id: 'u-1',
@@ -90,6 +65,17 @@ const accounts = (seed: Seed = seeded(), fail?: [string, string, number]) => {
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
 const flip = <A, E>(effect: Effect.Effect<A, E>) =>
   Effect.runPromise(Effect.flip(effect));
+
+describeAccountRepositoryContract('the Mongo accounts', () =>
+  makeMongoAccountRepository(makeFakeMongoDb().db as Db),
+);
+describeUserDeviceRepositoryContract('the Mongo devices', () =>
+  makeMongoUserDeviceRepository(makeFakeMongoDb().db as Db),
+);
+describeNotificationPortContract('the dev notification outbox', () => {
+  const db = makeFakeMongoDb().db as Db;
+  return { port: makeDevNotificationPort(db), mailbox: makeDevMailbox(db) };
+});
 
 describe('the account repository', () => {
   it('finds a user by identifier and by id, and answers null for neither', async () => {
@@ -452,13 +438,45 @@ describe('the dev notification outbox', () => {
         data: { code: 1 },
       } as never),
     );
-    const every = await run(readOutbox(fake.db as Db));
-    const alans = await run(readOutbox(fake.db as Db, 'alan@example.com'));
+    const every = await run(makeDevMailbox(fake.db as Db).read(undefined));
+    const alans = await run(
+      makeDevMailbox(fake.db as Db).read('alan@example.com'),
+    );
 
     expect(every).toHaveLength(2);
-    expect(alans.map(doc => doc['kind'])).toEqual(['welcome']);
+    expect(alans.map(notice => notice.kind)).toEqual(['welcome']);
     expect(OUTBOX_PAGE_SIZE).toBeGreaterThan(0);
     expect(fake.read(OUTBOX_COLLECTION)[0]?.['data']).toEqual({});
+  });
+
+  it('is bound over the service database, and reads a notice stored without data as having none', async () => {
+    const fake = makeFakeMongoDb({
+      [OUTBOX_COLLECTION]: [
+        { kind: 'k', to: 't@x', userId: 'u', sentAt: '2026-10-25T10:00:00Z' },
+      ],
+    });
+
+    const notices = await run(
+      Effect.gen(function* () {
+        return yield* (yield* DevMailboxTag).read('t@x');
+      }).pipe(
+        Effect.provide(
+          DevMailboxLayer.pipe(
+            Layer.provide(Layer.succeed(MongoDatabaseTag, fake.db as Db)),
+          ),
+        ),
+      ),
+    );
+
+    expect(notices).toEqual([
+      {
+        kind: 'k',
+        to: 't@x',
+        userId: 'u',
+        data: {},
+        sentAt: '2026-10-25T10:00:00Z',
+      },
+    ]);
   });
 
   it('reports a write or a read the driver failed as a store failure', async () => {
@@ -476,7 +494,9 @@ describe('the dev notification outbox', () => {
         } as never),
       ),
     ).toBeInstanceOf(EntifixConnError);
-    expect(await flip(readOutbox(reads.db as Db))).toBeInstanceOf(
+    expect(
+      await flip(makeDevMailbox(reads.db as Db).read(undefined)),
+    ).toBeInstanceOf(
       EntifixConnError,
     );
   });

@@ -57,7 +57,7 @@
     "@r10c/implementation-marketplace-vendor-next": "workspace:*",
     "@r10c/utils-react-ui": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
-    "effect": "4.0.5"
+    "effect": "4.0.6"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:"

@@ -106,7 +106,7 @@ const runDefinition = (definition: (typeof SAGAS)[string]) =>
 
 const runRoute = Effect.gen(function* () {
   const params = yield* HttpRouter.params;
-  const definition = SAGAS[params.definition ?? ''];
+  const definition = SAGAS[params.definition as string];
   if (!definition) {
     return yield* HttpServerResponse.json(
       { error: 'no such saga', code: 'notFound' },

@@ -46,10 +46,11 @@
     "@entifix/transactions": "catalog:",
     "@r10c/business-ts-order-management": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5",
+    "effect": "4.0.6",
     "mongodb": "7.7.0"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "catalog:"
+    "@entifix/testing-unit": "catalog:",
+    "@r10c/testing-cells": "workspace:*"
   }
 }

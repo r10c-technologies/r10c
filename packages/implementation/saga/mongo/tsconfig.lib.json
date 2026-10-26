@@ -8,15 +8,15 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "ignoreDeprecations": "6.0"
   },
-  "include": [
-    "src/**/*.ts"
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
+    }
   ],
-  "references": [],
   "exclude": [
     "jest.config.ts",
     "jest.config.cts",

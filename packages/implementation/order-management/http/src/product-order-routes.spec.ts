@@ -11,8 +11,6 @@ import {
 } from '@entifix/business';
 import { EntifixBuildError, EntifixConnError } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
-  CROSSING_TOKEN_HEADER,
   ServiceCrossingTokenTag,
 } from '@entifix/service-shell';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
@@ -28,6 +26,7 @@ import {
   SagaStarterTag,
   type SagaStartOutcome,
 } from '@r10c/business-ts-saga-contracts';
+import { crossingCall } from '@r10c/testing-cells';
 import { type ServedRoutes,serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -207,13 +206,10 @@ const as = (who: string, path: string, init: RequestInit = {}) =>
   });
 
 const crossing = (path: string, init: RequestInit = {}, commandId?: string) =>
-  served.call(path, {
-    ...init,
-    headers: {
-      [CROSSING_TOKEN_HEADER]: 'fleet',
-      'content-type': 'application/json',
-      ...(commandId ? { [COMMAND_ID_HEADER]: commandId } : {}),
-    },
+  crossingCall(served, path, {
+    method: init.method ?? 'GET',
+    body: init.body === undefined ? undefined : JSON.parse(String(init.body)),
+    commandId,
   });
 
 const totalFor = async (who: string) =>

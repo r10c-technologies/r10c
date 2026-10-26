@@ -15,7 +15,6 @@ import {
   ZitadelActionsLayer,
   ZitadelHealthProbeLayer,
   ZitadelManagementLayer,
-  ZitadelManagementTag,
   ZitadelOidcLayer,
 } from '@entifix/zitadel';
 import {
@@ -23,6 +22,8 @@ import {
   IdentityProviderTag,
   makeSessionIdentityProvider,
   NotificationPortTag,
+  ProviderDirectoryTag,
+  provisionProviderHuman,
   SessionScopeResolverTag,
   UserDeviceRepositoryTag,
 } from '@r10c/business-ts-authn';
@@ -52,7 +53,6 @@ import {
   LifecycleSweepIntervalMs,
   startLifecycleReconciler,
 } from './identity/lifecycle-reconciler';
-import { provisionZitadelHuman } from './identity/provisioning';
 import {
   DEV_SEED_PASSWORD,
   JWT_AUDIENCE,
@@ -70,6 +70,7 @@ import {
   entityIdentifierSeedData,
   userIdentitySeedData,
 } from './identity/user-seed-data';
+import { AuthnHostLayer } from './identity/zitadel-ports';
 
 const SERVICE_NAME = 'auth-service';
 /**
@@ -143,20 +144,21 @@ const seedTenancy = (organizationId: string) =>
   );
 
 /**
- * Give each seeded user a Zitadel human to sign in as, and link the two.
+ * Give each seeded user a human at the identity provider to sign in as, and
+ * link the two.
  *
- * This is the same `provisionZitadelHuman` the administrative create route
- * runs — deliberately, because a seeding path that wrote its own accounts is
- * a second provisioning implementation to keep correct, and it is exactly the
+ * This is the same `provisionProviderHuman` the administrative create route
+ * runs — deliberately, because a seeding path that wrote its own accounts is a
+ * second provisioning implementation to keep correct, and it is exactly the
  * kind that drifts unnoticed. Idempotent by lookup, so a boot against an
  * already-seeded instance adopts what is there and only repairs a missing link.
  *
- * Best-effort as a whole: a Zitadel that is not up yet must not stop the
+ * Best-effort as a whole: a provider that is not up yet must not stop the
  * service from booting. The seeded accounts simply cannot sign in until the
  * next boot repairs them, which is visible rather than silent.
  */
 export const seedIdentityProvider = Effect.gen(function* () {
-  const zitadel = yield* ZitadelManagementTag;
+  const directory = yield* ProviderDirectoryTag;
   const accounts = yield* AccountRepositoryTag;
 
   for (const user of userIdentitySeedData) {
@@ -167,7 +169,7 @@ export const seedIdentityProvider = Effect.gen(function* () {
     )?.['value'];
     if (typeof email !== 'string') continue;
 
-    yield* provisionZitadelHuman(accounts, zitadel, {
+    yield* provisionProviderHuman(accounts, directory, {
       userId,
       email,
       displayName: user['displayName'] as string | undefined,
@@ -175,7 +177,7 @@ export const seedIdentityProvider = Effect.gen(function* () {
     }).pipe(
       Effect.tapError(error =>
         Effect.logWarning(
-          `could not provision ${email} in Zitadel: ${String(error)}`,
+          `could not provision ${email} at the identity provider: ${String(error)}`,
         ),
       ),
       Effect.catch(() => Effect.void),
@@ -320,6 +322,9 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
         SessionScopeResolverLayer,
         UserDeviceRepositoryLayer,
         NotificationLayer,
+        // The provider ports over Zitadel, the published key set and the
+        // development mailbox: what the `authn/http` routes need from here.
+        AuthnHostLayer,
       ),
       infra,
     );

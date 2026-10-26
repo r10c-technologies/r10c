@@ -6,13 +6,12 @@ import {
   type TransactionEvent,
   TransactionStoreTag,
 } from '@entifix/transactions';
+import { TransactionFoldTag } from '@r10c/business-ts-saga-contracts';
+import { describeTransactionFoldContract } from '@r10c/business-ts-saga-contracts/testing';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import {
-  mongoTransactionFoldLayer,
-  TransactionFoldTag,
-} from './transaction-fold.js';
+import { mongoTransactionFoldLayer } from './transaction-fold.js';
 import { mongoTransactionStoreLayer } from './transaction-store.js';
 
 const event = (
@@ -50,6 +49,17 @@ const world = () => {
     );
   return { fake, run, fold };
 };
+
+describeTransactionFoldContract('the Mongo fold', async () => {
+  const { run } = world();
+  const [fold, store] = await run(
+    Effect.all([TransactionFoldTag, TransactionStoreTag]),
+  );
+  return {
+    fold,
+    recordOf: transactionId => Effect.runPromise(store.get(transactionId)),
+  };
+});
 
 describe('folding a transaction event', () => {
   it('claims and folds a first delivery, and folds a redelivery not at all', async () => {

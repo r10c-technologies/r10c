@@ -1,22 +1,20 @@
 import type { EntityId } from '@entifix/core';
-import type { ZitadelIdentity, ZitadelManagement } from '@entifix/zitadel';
+import { Effect } from 'effect';
+
+import { IdentifierType } from '../../entities/entity-identifier';
+import { UserStatus } from '../../entities/user-identity';
+import { AuthnError, UnauthenticatedError } from '../../errors';
 import {
   type AccountRepository,
   AccountRepositoryTag,
-  AuthnError,
-  type AuthSubject,
-  authSubjectFromUser,
-  IdentifierType,
   type NewIdentifierInput,
-  RegisterInputTag,
-  registerUserUCFactory,
-  UnauthenticatedError,
-  UserStatus,
-} from '@r10c/business-ts-authn';
-import { Effect } from 'effect';
-
-/** Stamped on identifier rows this provider owns, so their origin is readable. */
-export const PROVIDER = 'zitadel';
+} from '../../repository/account.repository';
+import type {
+  ProviderDirectory,
+  ProviderIdentity,
+} from '../../repository/identity-provider-ports';
+import { type AuthSubject, authSubjectFromUser } from '../../values';
+import { RegisterInputTag, registerUserUCFactory } from '../register-user';
 
 /**
  * Turn a verified sign-in into the subject a session is opened for.
@@ -29,20 +27,24 @@ export const PROVIDER = 'zitadel';
  *
  * The projection runs on **every** sign-in rather than only at provisioning.
  * That is what makes the local email and display name a mirror instead of a
- * second source of truth: a change made in Zitadel lands here the next time the
- * user appears, and nothing else ever writes those members.
+ * second source of truth: a change made at the provider lands here the next
+ * time the user appears, and nothing else ever writes those members.
+ *
+ * `provider` is the name stamped on the identifier rows the provider owns.
  */
 export const resolveSignIn = (
   accounts: AccountRepository,
-  identity: ZitadelIdentity,
+  provider: string,
+  identity: ProviderIdentity,
 ): Effect.Effect<AuthSubject, AuthnError | UnauthenticatedError> =>
   Effect.gen(function* () {
     const existing = yield* accounts.findByIdentifier(identity.subject);
-    const user = existing ?? (yield* provisionFromIdentity(accounts, identity));
+    const user =
+      existing ?? (yield* provisionFromIdentity(accounts, provider, identity));
 
-    // Checked here, not in the token verifier: Zitadel proved *who* this is,
-    // and whether they may still hold a session is r10c's question. A suspended
-    // user with a perfectly valid `id_token` gets nothing.
+    // Checked here, not in the token verifier: the provider proved *who* this
+    // is, and whether they may still hold a session is r10c's question. A
+    // suspended user with a perfectly valid `id_token` gets nothing.
     if (user.status !== UserStatus.Active) {
       return yield* Effect.fail(
         new UnauthenticatedError(
@@ -53,12 +55,13 @@ export const resolveSignIn = (
     }
 
     // The email is projected **only when the provider says it is verified**.
-    // Without that gate, anyone could set an unverified address in Zitadel and
-    // have it written onto their local identifier row — which would not let them
-    // sign in as the victim (the `sub` is what resolves an account), but would
-    // collide with the victim's identifier and send that person's device alerts
-    // to the attacker. It is the same rule `EntityIdentifier.verified` states
-    // and the same rule provisioning follows on first sight.
+    // Without that gate, anyone could set an unverified address at the
+    // provider and have it written onto their local identifier row — which
+    // would not let them sign in as the victim (the `sub` is what resolves an
+    // account), but would collide with the victim's identifier and send that
+    // person's device alerts to the attacker. It is the same rule
+    // `EntityIdentifier.verified` states and the same rule provisioning
+    // follows on first sight.
     yield* accounts.projectIdentity(user.id, {
       displayName: identity.displayName,
       email: identity.emailVerified ? identity.email : undefined,
@@ -91,13 +94,14 @@ export const resolveSignIn = (
  * enforces that, and going through it rather than writing the account directly
  * is what keeps identifier uniqueness and the tier rule in one place.
  *
- * The email is recorded only when Zitadel says it is verified. An unverified
- * address attached at provisioning would let someone claim an address they do
- * not control and have every later sign-in match on it.
+ * The email is recorded only when the provider says it is verified. An
+ * unverified address attached at provisioning would let someone claim an
+ * address they do not control and have every later sign-in match on it.
  */
 const provisionFromIdentity = (
   accounts: AccountRepository,
-  identity: ZitadelIdentity,
+  provider: string,
+  identity: ProviderIdentity,
 ) =>
   Effect.gen(function* () {
     const identifiers: NewIdentifierInput[] = [
@@ -105,7 +109,7 @@ const provisionFromIdentity = (
         type: IdentifierType.ExternalSubject,
         value: identity.subject,
         verified: true,
-        provider: PROVIDER,
+        provider,
       },
     ];
     if (identity.email !== undefined && identity.emailVerified) {
@@ -134,22 +138,22 @@ const provisionFromIdentity = (
   });
 
 /**
- * Ensure a Zitadel human exists for an already-created local account, then join
- * the two.
+ * Ensure the provider holds a human for an already-created local account, then
+ * join the two.
  *
  * This is the administrative and seeding path, and it is deliberately **not** a
  * saga. The local record is written first because it owns the role and the
  * party; if the provider write fails, what is left is an account with no
  * external subject — it cannot sign in, it is visible in the users list, and
  * running this again repairs it. One legible half-state beats a compensation
- * that can itself fail.
+ * that can itself fail (ADR 0016).
  *
  * Idempotent by lookup rather than by flag: an existing human with this address
  * is adopted instead of rejected, which is what makes a retry a repair.
  */
-export const provisionZitadelHuman = (
+export const provisionProviderHuman = (
   accounts: AccountRepository,
-  zitadel: ZitadelManagement,
+  directory: ProviderDirectory,
   input: {
     readonly userId: EntityId;
     readonly email: string;
@@ -159,14 +163,14 @@ export const provisionZitadelHuman = (
   },
 ): Effect.Effect<string, AuthnError> =>
   Effect.gen(function* () {
-    const existing = yield* zitadel.findUserByEmail(input.email);
+    const existing = yield* directory.findUserIdByEmail(input.email);
     const { givenName, familyName } = splitName(
       input.displayName ?? input.email,
     );
 
-    const zitadelUserId =
-      existing?.userId ??
-      (yield* zitadel.createHuman({
+    const providerUserId =
+      existing ??
+      (yield* directory.createHuman({
         username: input.username ?? input.email,
         email: input.email,
         // Dev-seeded and administratively created users start verified: the
@@ -176,11 +180,14 @@ export const provisionZitadelHuman = (
         familyName,
         displayName: input.displayName,
         password: input.password,
-        passwordChangeRequired: false,
       }));
 
-    yield* accounts.linkExternalSubject(input.userId, zitadelUserId, PROVIDER);
-    return zitadelUserId;
+    yield* accounts.linkExternalSubject(
+      input.userId,
+      providerUserId,
+      directory.name,
+    );
+    return providerUserId;
   }).pipe(
     Effect.catch(error =>
       Effect.fail(
@@ -194,11 +201,11 @@ export const provisionZitadelHuman = (
   );
 
 /**
- * Zitadel requires a given and a family name; r10c only holds a display name.
- * Splitting on the last space is a guess, and it is a safe one because nothing
- * reads these two back — the display name is projected whole.
+ * A provider may require a given and a family name; r10c only holds a display
+ * name. Splitting on the last space is a guess, and it is a safe one because
+ * nothing reads these two back — the display name is projected whole.
  */
-const splitName = (displayName: string) => {
+export const splitName = (displayName: string) => {
   const parts = displayName.trim().split(/\s+/);
   if (parts.length < 2) return { givenName: displayName, familyName: '·' };
   return {

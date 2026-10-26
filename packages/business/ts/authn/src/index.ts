@@ -3,6 +3,7 @@ export * from './entities/user-device';
 export * from './entities/user-identity';
 export * from './errors';
 export * from './repository';
+export * from './use-cases/provider-sign-in';
 export * from './use-cases/register-user';
 export * from './use-cases/resolve-session';
 export * from './use-cases/revoke-user-sessions';

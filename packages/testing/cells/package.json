@@ -1,0 +1,34 @@
+{
+  "name": "@r10c/testing-cells",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./mongo": {
+      "@r10c/source": "./src/mongo.ts",
+      "default": "./src/mongo.ts"
+    }
+  },
+  "nx": {
+    "tags": [
+      "type:testing",
+      "scope:shared"
+    ],
+    "sourceRoot": "packages/testing/cells/src"
+  },
+  "dependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/testing-unit": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/testing-http": "workspace:*",
+    "effect": "4.0.6",
+    "mongodb": "7.7.0"
+  }
+}

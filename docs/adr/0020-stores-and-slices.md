@@ -11,6 +11,7 @@
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): the `host:next` ✗ `runtime:datastore` rule restated below is now a
   `bannedExternalImports` ban on entifix's four datastore clients — the same
   rule, since an installed package carries no tag.
+- Revised: 2026-10-26 — the `auth` slice's routes are the `authn/http` cell and its provider sits behind ports (#430); the consequence that called it "not close" is marked no longer true where it stands.
 
 ## Context
 
@@ -344,7 +345,9 @@ nothing here yet needs that. `Slice` is the weaker, truer word for what exists.
   back-channel logout and provider events welded to `HttpRouter`, while
   `business-ts-authn` exports three use-cases and the adapters live in the app.
   A slice whose logic is not in its domain packages cannot be lifted; it can only
-  be copied.
+  be copied. ⚠️ No longer true as of #430: those routes are the `authn/http`
+  cell, sign-in resolution and provisioning are `business-ts-authn` use cases,
+  and the identity provider sits behind ports the app binds to Zitadel.
 - **The location rule this implies is the real follow-on work.** A slice's
   routes, adapters and handlers belong in its domain packages, leaving
   `apps/<slice>-service/` with config resolution, layer wiring and `main.ts`.

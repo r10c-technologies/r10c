@@ -1,15 +1,9 @@
 import { EntifixConnError } from '@entifix/core';
-import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   COMMAND_INBOX_COLLECTION,
-  makeMongoUnitOfWork,
-  MongoUnitOfWorkTag,
   OUTBOX_COLLECTION,
-  OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
-import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import type { PaymentOutcome } from '@r10c/business-ts-payment-contracts';
 import {
   Payment,
@@ -17,8 +11,9 @@ import {
   PaymentLedgerTag,
   Refund,
 } from '@r10c/business-ts-payment-management';
-import { Effect, Layer, Option } from 'effect';
-import type { Db } from 'mongodb';
+import { describePaymentLedgerContract } from '@r10c/business-ts-payment-management/testing';
+import { mongoCellWorld } from '@r10c/testing-cells/mongo';
+import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -30,30 +25,15 @@ import {
 type Fake = ReturnType<typeof makeFakeMongoDb>;
 
 const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
-  const fake = makeFakeMongoDb(seed);
-  const bus = makeRecordingEventBus();
-  const layer = MongoPaymentLedgerLayer.pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        Layer.succeed(MongoDatabaseTag, fake.db as Db),
-        Layer.succeed(
-          MongoUnitOfWorkTag,
-          makeMongoUnitOfWork({ client: fake as never, db: fake.db as Db }),
-        ),
-        Layer.succeed(EventBusTag, bus),
-        Layer.succeed(OutboxMaxAttempts, 3),
-        Layer.succeed(EventSourceTag, 'payment'),
-      ),
-    ),
-  );
+  const cell = mongoCellWorld(MongoPaymentLedgerLayer, { source: 'payment', seed });
   const run = <A, E>(use: (ledger: PaymentLedger) => Effect.Effect<A, E>) =>
-    Effect.runPromise(
-      Effect.gen(function* () {
-        return yield* use(yield* PaymentLedgerTag);
-      }).pipe(Effect.provide(layer)),
-    );
-  return { fake, bus, run };
+    cell.run(Effect.flatMap(PaymentLedgerTag, use));
+  return { fake: cell.fake, bus: cell.bus, run };
 };
+
+describePaymentLedgerContract('the Mongo ledger', () =>
+  world().run(ledger => Effect.succeed(ledger)),
+);
 
 const outcome = (orderId = 'order-1'): PaymentOutcome => ({
   paymentId: 'pay-1',

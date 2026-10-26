@@ -211,7 +211,21 @@ seed, and the daemons it starts. What it serves and stores is in cells
   without a driver.
 
 A slice that declares no domain (`transaction`) has no business package, so
-its cell carries the one service tag it implements.
+its cell carries the one service tag it implements. Its coordinator — the
+generic saga route and the dispatcher — is the one routing code that stays in
+its app, because it composes the transaction engine no cell may import; ADR
+0060 records the exception and what would lift it.
+
+**A host binds what a cell's routes cannot know.** auth-service's routes are
+the `authn/http` cell, written against ports for the identity provider
+(`OidcProviderTag`, `ProviderEventVerifierTag`, `ProviderDirectoryTag`), the
+published key set and the development mailbox. The app binds them to Zitadel's
+clients in `AuthnHostLayer`. Swapping the provider is a change to that binding,
+not to a route.
+
+Every port a business package declares ships a contract suite and a double at
+the package's `./testing` subpath, and each implementation runs that suite
+([ADR 0063](adr/0063-a-cell-reaches-full-coverage-through-fakes-and-contract-suites.md)).
 
 Every service also exposes `GET /api/config` returning its own loaded parameters
 (credentials redacted) for diagnostics. Boot order:

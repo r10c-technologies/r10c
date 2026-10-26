@@ -12,6 +12,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./testing": {
+      "@r10c/source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
     }
   },
   "files": [
@@ -42,13 +48,23 @@
   },
   "dependencies": {
     "@entifix/authz": "catalog:",
-    "@r10c/business-ts-catalog-contracts": "workspace:*",
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-catalog-contracts": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5"
+    "effect": "4.0.6"
+  },
+  "peerDependencies": {
+    "vitest": "5.0.5"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@entifix/testing-unit": "catalog:"
+    "@entifix/testing-unit": "catalog:",
+    "vitest": "5.0.5"
   }
 }

@@ -32,10 +32,16 @@
       "path": "../../packages/implementation/saga/mongo/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/business/ts/saga-contracts/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/authz-grants/tsconfig.lib.json"
     },
     {
       "path": "../../packages/business/ts/authn/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/testing/http"
     }
   ]
 }

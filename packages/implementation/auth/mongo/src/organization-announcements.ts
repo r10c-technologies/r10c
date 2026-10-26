@@ -1,9 +1,10 @@
 import { EntifixConnError, type EntifixError } from '@entifix/core';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
+  drainOutboxNow,
   makeMongoOutbox,
-  OUTBOX_COLLECTION,
-  outboxDocument,
+  makeMongoUnitsOfWork,
+  OutboxMaxAttempts,
   reviveQuarantined,
 } from '@entifix/mongo/transactions';
 import {
@@ -41,6 +42,11 @@ export const announcementOf = (
   };
 };
 
+/** The unit's abort when the stored row already says what the seed says. */
+class Unchanged {
+  readonly _tag = 'Unchanged';
+}
+
 /** Whether every member the seed states already holds the seed's value. */
 const holds = (stored: Document, row: Readonly<Record<string, unknown>>) =>
   Object.entries(row).every(([key, value]) => stored[key] === value);
@@ -66,52 +72,72 @@ export const writeOrganization = (
   row: Readonly<Record<string, unknown>>,
   source: string,
   now: Date,
-): Effect.Effect<'written' | 'unchanged', EntifixError> =>
-  Effect.tryPromise({
-    try: async () => {
-      const organizations = db.collection(ORGANIZATION_COLLECTION);
-      const session = client.startSession();
-      let outcome: 'written' | 'unchanged' = 'unchanged';
-      try {
-        await session.withTransaction(async () => {
-          outcome = 'unchanged';
-          const stored = await organizations.findOne(
-            { id: row['id'] },
-            { session },
-          );
-          if (stored !== null && holds(stored, row) && announcementOf(stored)) {
-            return;
-          }
+): Effect.Effect<
+  'written' | 'unchanged',
+  EntifixError,
+  EventBusTag | OutboxMaxAttempts
+> =>
+  Effect.gen(function* () {
+    const bus = yield* EventBusTag;
+    const maxAttempts = yield* OutboxMaxAttempts;
+    const context = { organizationId: row['id'] };
 
-          const written = { ...row, updatedAt: now };
-          await organizations.updateOne(
-            { id: row['id'] },
-            { $set: written },
-            { upsert: true, session },
-          );
-
-          const announcement = announcementOf(written);
-          if (announcement !== undefined) {
-            await db
-              .collection(OUTBOX_COLLECTION)
-              .insertOne(
-                outboxDocument(
-                  organizationAnnouncedEvent(announcement, source),
+    const outcome = yield* makeMongoUnitsOfWork(client)
+      .forDatabase(db)
+      .run(
+        unit =>
+          Effect.gen(function* () {
+            const { db: handle, session } = unit.handle;
+            const organizations = handle.collection(ORGANIZATION_COLLECTION);
+            const stored = yield* Effect.tryPromise({
+              try: () => organizations.findOne({ id: row['id'] }, { session }),
+              catch: error =>
+                new EntifixConnError(
+                  'Failed to read an organization',
+                  error,
+                  context,
                 ),
-                { session },
-              );
-          }
-          outcome = 'written';
-        });
-      } finally {
-        await session.endSession();
-      }
-      return outcome;
-    },
-    catch: error =>
-      new EntifixConnError('Failed to write an organization', error, {
-        organizationId: row['id'],
-      }),
+            });
+            if (
+              stored !== null &&
+              holds(stored, row) &&
+              announcementOf(stored) !== undefined
+            ) {
+              return yield* Effect.fail(new Unchanged());
+            }
+
+            const written = { ...row, updatedAt: now };
+            yield* Effect.tryPromise({
+              try: () =>
+                organizations.updateOne(
+                  { id: row['id'] },
+                  { $set: written },
+                  { upsert: true, session },
+                ),
+              catch: error =>
+                new EntifixConnError(
+                  'Failed to write an organization',
+                  error,
+                  context,
+                ),
+            });
+            const announcement = announcementOf(written);
+            if (announcement !== undefined) {
+              unit.emit(organizationAnnouncedEvent(announcement, source));
+            }
+          }),
+        {
+          // At commit, not at the relay's next sweep (#393's rule): a rename
+          // reaches the storefront's seller line as soon as it is written.
+          afterCommit: drainOutboxNow(db).pipe(
+            Effect.provideService(EventBusTag, bus),
+            Effect.provideService(OutboxMaxAttempts, maxAttempts),
+          ),
+        },
+      );
+    return outcome._tag === 'committed'
+      ? ('written' as const)
+      : ('unchanged' as const);
   });
 
 /** Seeds the organizations through {@link writeOrganization}, one at a time. */

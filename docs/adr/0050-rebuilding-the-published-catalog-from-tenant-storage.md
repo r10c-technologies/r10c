@@ -5,6 +5,7 @@
 - Area: messaging
 - Read when: the storefront is empty after a reset, or a publication was lost — the rebuild walk re-emits from tenant storage and must never stamp `now`
 - Revised: 2026-10-25 — the tenant relay and the rebuild walk moved onto the grid (#371): the sweep is entifix's `startTenantOutboxRelay`, and the walk is `rebuildEveryPublication` in `@r10c/business-ts-product-configuration-management`.
+- Revised: 2026-10-26 — auth-service's routes moved into the `authn/http` cell (#430); the claim about which route serves `Organization` is restated against it.
 - Amends: [ADR 0048](0048-announcing-a-publication.md) — the fleet-wide rebuild
   it deferred is built, and the reason it gave for deferring is answered.
 
@@ -44,8 +45,9 @@ per-tenant handles from ADR 0023's explicit-`organizationId` provider. Both were
 checked and both are absent.
 
 `Organization` lives in `party-management` and is seeded into auth-service's
-control-plane Mongo, but **no route serves it** — `auth-service/src/routes.ts`
-never imports the class, and nothing in the fleet requests `/api/organization`.
+control-plane Mongo, but **no route serves it** — auth-service's routes (in
+`apps/auth-service/src/routes.ts` then, the `authn/http` cell since #430) never
+import the class, and nothing in the fleet requests `/api/organization`.
 ADR 0023's second path was likewise design only when this was written: that
 record's own Trigger said "already fired in design, not yet in code", and
 `TenantContextTag` had exactly one reference in the repository — its own

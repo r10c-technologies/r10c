@@ -1,7 +1,6 @@
 {
   "name": "@r10c/business-ts-authn",
   "version": "0.0.1",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -19,6 +18,12 @@
       "types": "./dist/contracts.d.ts",
       "import": "./dist/contracts.js",
       "default": "./dist/contracts.js"
+    },
+    "./testing": {
+      "@r10c/source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
     }
   },
   "nx": {
@@ -48,7 +53,19 @@
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5",
+    "effect": "4.0.6",
     "@r10c/business-ts-authz-grants": "workspace:*"
-  }
+  },
+  "peerDependencies": {
+    "vitest": "5.0.5"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "vitest": "5.0.5"
+  },
+  "private": true
 }

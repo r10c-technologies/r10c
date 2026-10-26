@@ -1,22 +1,19 @@
-import { EntifixConnError } from '@entifix/core';
-import { MongoDatabaseTag } from '@entifix/mongo';
-import {
-  makeMongoUnitOfWork,
-  MongoUnitOfWorkTag,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
-import { makeRecordingEventBus } from '@entifix/testing-unit';
+import { EntifixConnError, serializeEntity } from '@entifix/core';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import {
+  Agreement,
   type SaleHalf,
   type SaleJoin,
   SaleJoinTag,
   type SettlementRunStore,
   SettlementRunStoreTag,
 } from '@r10c/business-ts-settlement-management';
-import { Effect, Layer } from 'effect';
-import type { Db } from 'mongodb';
+import {
+  CONTRACT_AGREEMENTS,
+  describeSettlementStoreContract,
+} from '@r10c/business-ts-settlement-management/testing';
+import { mongoCellWorld } from '@r10c/testing-cells/mongo';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -28,35 +25,24 @@ import {
 } from './settlement-store.js';
 
 const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
-  const fake = makeFakeMongoDb(seed);
-  const bus = makeRecordingEventBus();
-  const layer = MongoSettlementStoreLayer.pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        Layer.succeed(MongoDatabaseTag, fake.db as Db),
-        Layer.succeed(
-          MongoUnitOfWorkTag,
-          makeMongoUnitOfWork({ client: fake as never, db: fake.db as Db }),
-        ),
-        Layer.succeed(EventBusTag, bus),
-        Layer.succeed(OutboxMaxAttempts, 3),
-        Layer.succeed(EventSourceTag, 'settlement'),
-      ),
-    ),
-  );
+  const cell = mongoCellWorld(MongoSettlementStoreLayer, {
+    source: 'settlement',
+    seed,
+  });
+  const { fake, bus } = cell;
   const run = <A, E>(
     use: (ports: {
       join: SaleJoin;
       runs: SettlementRunStore;
     }) => Effect.Effect<A, E>,
   ) =>
-    Effect.runPromise(
+    cell.run(
       Effect.gen(function* () {
         return yield* use({
           join: yield* SaleJoinTag,
           runs: yield* SettlementRunStoreTag,
         });
-      }).pipe(Effect.provide(layer)),
+      }),
     );
   let next = 0;
   const contribute = (
@@ -85,6 +71,15 @@ const entriesOf = (fake: ReturnType<typeof makeFakeMongoDb>, kind: string) =>
   fake
     .read(COMMISSION_ENTRY_COLLECTION)
     .filter(entry => entry['kind'] === kind);
+
+describeSettlementStoreContract('the Mongo store', () =>
+  world({
+    [AGREEMENT_COLLECTION]: CONTRACT_AGREEMENTS.map(agreement => ({
+      ...serializeEntity(Agreement, agreement),
+      id: agreement.id,
+    })),
+  }).run(ports => Effect.succeed(ports)),
+);
 
 describe('the sale join', () => {
   it('holds a priced order until its capture arrives, then writes one entry per vendor', async () => {

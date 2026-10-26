@@ -48,7 +48,7 @@ const byIdRoute = requirePrincipal((principal: RequestPrincipal) =>
   Effect.gen(function* () {
     const store = yield* TransactionStoreTag;
     const params = yield* HttpRouter.params;
-    const record = yield* store.get(params.id ?? '');
+    const record = yield* store.get(params.id as string);
     // Fails closed on a record written before `organizationId` existed: it
     // belongs to nobody rather than to everybody.
     if (

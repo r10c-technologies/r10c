@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "../../../business/ts/settlement-management/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../testing/cells"
     }
   ],
   "exclude": [

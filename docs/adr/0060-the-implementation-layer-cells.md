@@ -5,6 +5,7 @@
 - Revised: 2026-10-24 — entifix 0.5.0 split its mixed entry points, so the review-only line below is now a ban (#321)
 - Revised: 2026-10-24 — `OfferingCard` is replaced by the generic `ProductCard` in `@r10c/utils-react-ui` (#334).
 - Revised: 2026-10-25 — `makeEntityRoutes` went straight to entifix 0.7.2 rather than through r10c: nine hand-written copies and the framework's own example were already the second consumer (#358 superseded by #366)
+- Revised: 2026-10-26 — transaction-service's saga coordinator is a named exception that stays in its app, with the condition that would move it (#431)
 - Area: entities
 - Read when: adding a package under `packages/implementation/`, putting technology-bound code into a shell or an app, or a UI file imports an adapter — a cell depends on entities, use cases and ports and never on another cell or an adapter, UI and HTTP cells are keyed by domain and persistence cells by store
 
@@ -130,6 +131,23 @@ cells as each cell is created, not in one migration. `OfferingGrid` stays in
 `shells-next-marketplace` until the storefront rebuilds it, and the shell's own
 `OfferingCard` is gone: the grid renders the generic `ProductCard` from
 `@r10c/utils-react-ui` (#334).
+
+### The one exception: the saga coordinator stays in its app
+
+transaction-service's coordinator — the `POST /api/saga/:definition` run
+route, the instance and tracker reads, the HTTP dispatcher and the resume and
+recovery sweeps — is not in a cell, deliberately. It is the composition of
+`@entifix/transactions/engine` (`runSaga`, `resumeSaga`), and `tech:http`
+bans that subpath for every cell, rightly: a cell must not choose the engine.
+The slice also declares no domain to key an HTTP cell by — that is why the
+route is generic rather than `/api/checkout`.
+
+So it stays composition, in the one host that coordinates, and its route files
+carry specs of their own even though app code sits outside the coverage gate.
+**The condition that changes this is a second coordinator host.** Two
+processes composing the same engine over the same routes would be the second
+consumer this record asks for before code is lifted, and the cell they share
+would be keyed by the `saga` store rather than by a domain.
 
 ### This amends ADR 0008
 

@@ -1,7 +1,6 @@
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
-  type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
 import { EntifixBuildError, EntifixConnError } from '@entifix/core';
@@ -12,6 +11,7 @@ import {
   type SagaStartOutcome,
 } from '@r10c/business-ts-saga-contracts';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
+import { tokenClaims } from '@r10c/testing-cells';
 import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -30,13 +30,7 @@ let outcome: Effect.Effect<SagaStartOutcome, EntifixConnError> = Effect.succeed(
   { _tag: 'completed', result: { orderId: 'o-1' } },
 );
 
-const vendor: TokenClaims = {
-  userId: 'u-1',
-  subject: 'alan',
-  sessionId: 's-1',
-  roles: ['admin'],
-  activeOrganizationId: 'org-1',
-};
+const vendor = tokenClaims();
 
 let served: ServedRoutes;
 

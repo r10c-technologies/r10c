@@ -389,10 +389,10 @@ export const MongoStockLedgerLayer = Layer.effect(
                 db
                   .collection(RESERVATION_COLLECTION)
                   .find(
-                    {
-                      status: 'held',
-                      expiresAt: { $lt: new Date().toISOString() },
-                    },
+                    // A Date, never its ISO string: `take` stores the
+                    // entity's `Date`, and Mongo never orders a string against
+                    // a date, so a string bound matched no hold at all.
+                    { status: 'held', expiresAt: { $lt: new Date() } },
                     { projection: { _id: 0, id: 1 }, limit: BATCH },
                   )
                   .toArray(),

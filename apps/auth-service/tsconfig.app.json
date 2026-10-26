@@ -39,6 +39,9 @@
       "path": "../../packages/implementation/session/redis/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/implementation/authn/http/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/implementation/auth/mongo/tsconfig.lib.json"
     },
     {

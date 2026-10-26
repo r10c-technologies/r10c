@@ -9,7 +9,7 @@ import {
   TransactionStoreTag,
   TransactionStreamHubTag,
 } from '@entifix/transactions';
-import { TransactionFoldTag } from '@r10c/implementation-saga-mongo';
+import { TransactionFoldTag } from '@r10c/business-ts-saga-contracts';
 import { Context, Duration, Effect, Fiber } from 'effect';
 
 import { recordTransactionStates } from '../observability/metrics';

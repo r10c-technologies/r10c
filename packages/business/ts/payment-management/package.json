@@ -12,6 +12,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./testing": {
+      "@r10c/source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
     }
   },
   "files": [
@@ -44,6 +50,17 @@
     "@entifix/core": "catalog:",
     "@r10c/business-ts-payment-contracts": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5"
+    "effect": "4.0.6"
+  },
+  "peerDependencies": {
+    "vitest": "5.0.5"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "vitest": "5.0.5"
   }
 }

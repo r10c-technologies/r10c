@@ -7,10 +7,7 @@ import {
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
 import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
-import {
-  ConfigurationClientInMemory,
-  type ConfigurationPlain,
-} from '@entifix/core';
+import { ConfigurationClientInMemory } from '@entifix/core';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
 import { SqlHealthProbeLayer } from '@entifix/sql';
@@ -22,7 +19,10 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import { ConfigurationLookupTag } from '@r10c/business-ts-configuration';
+import { ConfigurationStoreLocationTag } from '@r10c/implementation-configuration-http';
 import {
+  ConfigurationLookupLayer,
   ConfigurationRepositoryFactoryLayer,
   ConfigurationWriterLayer,
 } from '@r10c/implementation-configuration-sql';
@@ -1584,15 +1584,14 @@ export { SqlHealthProbeLayer as PostgresHealthProbeLayer };
  */
 const AuthLive = Layer.unwrap(
   Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-
-    const rows = yield* sql<{ readonly key: string; readonly value: string }>`
-      SELECT key, value FROM configuration
-      WHERE service = ${SERVICE_NAME}
-        AND group_name = 'jwt'
-        AND key IN ('publicKey', 'keyId')
-    `;
-    const jwt = new Map(rows.map(row => [row.key, row.value]));
+    // This service's own rows, read through the same lookup it serves every
+    // other service from.
+    const plain = yield* (yield* ConfigurationLookupTag).forService(
+      SERVICE_NAME,
+    );
+    const jwt = new Map(
+      (plain['jwt'] ?? []).map(entry => [entry.key, String(entry.value)]),
+    );
     const publicKeyPem = jwt.get('publicKey');
     const keyId = jwt.get('keyId');
     if (publicKeyPem === undefined || keyId === undefined) {
@@ -1610,23 +1609,6 @@ const AuthLive = Layer.unwrap(
     // endpoints through it — so even the SQL adapter, which never reads it, has
     // to be given one. Building it from this service's own rows rather than
     // handing over an empty store keeps it truthful.
-    const own = yield* sql<{
-      readonly group_name: string;
-      readonly key: string;
-      readonly value: string;
-      readonly is_secret: boolean;
-    }>`
-      SELECT group_name, key, value, is_secret FROM configuration WHERE service = ${SERVICE_NAME}
-    `;
-    const plain: ConfigurationPlain = {};
-    for (const row of own) {
-      (plain[row.group_name] ??= []).push({
-        key: row.key,
-        value: row.value,
-        ...(row.is_secret === true ? { isSecret: true } : {}),
-      });
-    }
-
     const store = new ConfigurationClientInMemory(plain);
     const observability = yield* observabilityFromConfiguration(
       store,
@@ -1674,6 +1656,12 @@ export const AppLayer = Layer.provideMerge(
     // secret, and writes audited with the actor in the same transaction.
     ConfigurationRepositoryFactoryLayer,
     ConfigurationWriterLayer,
+    // What the fleet's introspection names this store as, redacted on the way out.
+    Layer.succeed(
+      ConfigurationStoreLocationTag,
+      process.env['CONFIG_PG_URL'] ?? DEFAULT_PG_URL,
+    ),
   ),
-  DbLive,
+  // The lookup a booting service is served from, with real values.
+  Layer.provideMerge(ConfigurationLookupLayer, DbLive),
 ).pipe(Layer.orDie);

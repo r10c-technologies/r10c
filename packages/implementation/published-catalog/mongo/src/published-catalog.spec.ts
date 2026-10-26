@@ -14,6 +14,7 @@ import {
   PublishedCatalogTag,
   PublishedOffering,
 } from '@r10c/business-ts-marketplace-catalog';
+import { describePublishedCatalogContract } from '@r10c/business-ts-marketplace-catalog/testing';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -95,6 +96,38 @@ const stampAt = (iso: unknown) => ({
 });
 
 const at = (iso: string) => ({ publishedAt: iso });
+
+describePublishedCatalogContract('the Mongo projection', async () => {
+  const { fake } = world();
+  const db = fake.db as Db;
+  const catalog = await Effect.runPromise(
+    Effect.provide(
+      Effect.gen(function* () {
+        return yield* PublishedCatalogTag;
+      }),
+      MongoPublishedCatalogLayer.pipe(
+        Layer.provide(
+          Layer.mergeAll(
+            Layer.succeed(MongoDatabaseTag, db),
+            Layer.succeed(
+              MongoUnitOfWorkTag,
+              makeMongoUnitOfWork({ client: fake as never, db }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  return {
+    catalog,
+    isListed: offeringId =>
+      Promise.resolve(
+        fake
+          .read(PROJECTION_COLLECTION)
+          .some(record => record['offeringId'] === offeringId),
+      ),
+  };
+});
 
 describe('applying a publication', () => {
   it('writes the snapshot into an empty projection', async () => {

@@ -18,6 +18,9 @@
     },
     {
       "path": "../../../business/ts/payment-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../testing/cells"
     }
   ],
   "exclude": [

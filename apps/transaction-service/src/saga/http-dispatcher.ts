@@ -1,5 +1,6 @@
 import { EntifixConnError } from '@entifix/core';
 import {
+  COMMAND_ID_HEADER,
   CROSSING_TOKEN_HEADER,
   ORGANIZATION_HEADER,
 } from '@entifix/service-shell';
@@ -9,9 +10,6 @@ import {
   type SagaResponse,
 } from '@entifix/transactions';
 import { Context, Effect, Layer } from 'effect';
-
-/** The command id a participant claims, so a redelivery is not a second act. */
-export const COMMAND_ID_HEADER = 'x-command-id';
 
 /** One participant's address and the crossing token that reaches it. */
 export interface Participant {

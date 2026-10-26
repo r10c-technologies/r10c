@@ -1,7 +1,6 @@
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
-  type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
 import {
@@ -19,6 +18,7 @@ import {
   ProductSpecification,
   SpecificationCommandsTag,
 } from '@r10c/business-ts-product-configuration-management';
+import { tokenClaims } from '@r10c/testing-cells';
 import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -61,13 +61,7 @@ let storeDown = false;
 let accepted: Effect.Effect<{ transactionId: string }, EntifixError> =
   Effect.succeed({ transactionId: 't-1' });
 
-const vendor: TokenClaims = {
-  userId: 'u-1',
-  subject: 'alan',
-  sessionId: 's-1',
-  roles: ['admin'],
-  activeOrganizationId: 'acme',
-};
+const vendor = tokenClaims({ activeOrganizationId: 'acme' });
 
 let served: ServedRoutes;
 
