@@ -1,8 +1,6 @@
+import { salesRoutes } from '@r10c/implementation-sales-management-http';
 import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-
-import { counterSaleRoutes } from './routes/counter-sale';
-import { salesChannelRoutes } from './routes/sales-channel.routes';
 
 /**
  * sales-service routes. `/api/health*` and `/api/$service` are added by the
@@ -29,6 +27,5 @@ export const router = Layer.mergeAll(
   // A literal, not `SERVICE_NAME`: `index.ts` re-exports this module, so
   // importing it back would read the constant before it is initialised.
   serviceBaseRoutes({ service: '@r10c/sales-service', store: 'mongo' }),
-  salesChannelRoutes,
-  counterSaleRoutes,
+  salesRoutes,
 );

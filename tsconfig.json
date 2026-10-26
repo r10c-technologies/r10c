@@ -239,6 +239,9 @@
     },
     {
       "path": "./packages/implementation/stock-management/http"
+    },
+    {
+      "path": "./packages/implementation/sales-management/http"
     }
   ],
   "compilerOptions": {

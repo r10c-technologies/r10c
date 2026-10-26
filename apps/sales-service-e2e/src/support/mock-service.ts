@@ -5,6 +5,7 @@ import {
 } from '@entifix/authz';
 import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
+import { MongoTenantRepositoryFactoryLayer } from '@entifix/mongo';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
   type RunningTestService,
@@ -114,8 +115,11 @@ const MockAppLayer = (() => {
   // can name a seeded row. The fake resolves every organization to one
   // in-memory store, so the channels the specs read are the ones this wrote.
   return Layer.provideMerge(
-    Layer.effectDiscard(seedSales(`sales_${E2E_ORGANIZATION_ID}`)),
-    connections,
+    MongoTenantRepositoryFactoryLayer,
+    Layer.provideMerge(
+      Layer.effectDiscard(seedSales(`sales_${E2E_ORGANIZATION_ID}`)),
+      connections,
+    ),
   ).pipe(Layer.orDie);
 })();
 
