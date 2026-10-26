@@ -36,6 +36,32 @@ const FACETS: readonly FacetDefinition[] = [
 ];
 
 describe('FacetPanel', () => {
+  it('folds behind a closed disclosure when collapsible, the panel inside it', () => {
+    const { container } = render(
+      <FacetPanel
+        label="Filtrar"
+        facets={FACETS}
+        collapsible={{ summary: 'Filtrar (2)' }}
+      />,
+    );
+
+    const details = container.querySelector('details');
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute('open');
+    expect(details?.querySelector('summary')).toHaveTextContent('Filtrar (2)');
+    expect(
+      details?.querySelector('aside[aria-labelledby]'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders no disclosure unless asked to', () => {
+    const { container } = render(
+      <FacetPanel label="Filtrar" facets={FACETS} />,
+    );
+
+    expect(container.querySelector('details')).toBeNull();
+  });
+
   it('is a landmark named by its label, one section per facet', () => {
     render(<FacetPanel label="Filtrar" facets={FACETS} />);
 

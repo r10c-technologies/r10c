@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-04
+- Revised: 2026-10-26 — a `like` also ignores accents since entifix 0.9.0, so the regex it becomes is an accent-folded one; the scan it costs is unchanged (#379).
 - Area: frontend
 - Read when: searching records across services — no client-side index, ever, and a source's search member is validated at module load
 
@@ -151,8 +152,8 @@ and one timeout of wall clock, not four.
 
 ### A floor on the term
 
-Below two characters nothing is queried at all. A `like` becomes an unanchored,
-case-insensitive `$regex`, which no index can serve — **this endpoint is a
+Below two characters nothing is queried at all. A `like` becomes an unanchored
+`$regex` that ignores case and accents, which no index can serve — **this endpoint is a
 collection scan by construction**. One character matches most of every collection
 and is worth nothing to the person typing.
 

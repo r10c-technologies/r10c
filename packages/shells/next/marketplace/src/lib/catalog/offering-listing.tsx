@@ -18,7 +18,11 @@ import {
   loadCategories,
 } from '@r10c/implementation-catalog-reference-next';
 import {
+  type CountedFacet,
+  loadOfferingFacetCounts,
+  type OfferingFacetCounts,
   offeringFacets,
+  rollUpFacet,
   SEARCH_PAGE_SIZE,
   SEARCH_SORTS,
   searchHref,
@@ -99,20 +103,39 @@ export async function OfferingListing({
   ]);
 
   const sort = (state.sort[0] as SearchSort | undefined) ?? DEFAULT_SORT;
-  const result = await runRead(
-    PublishedOffering,
-    searchOfferings(
-      {
-        ...state,
-        sort: [sort],
-        category: categoryId === undefined ? state.category : [categoryId],
-      },
-      // On a failed category read the subtree is the category alone, so the
-      // listing degrades to its flat answer rather than to nothing.
-      { subtreeOf: id => categorySubtree(categories.items, id) },
+  const searched: SearchState = {
+    ...state,
+    sort: [sort],
+    category: categoryId === undefined ? state.category : [categoryId],
+  };
+  // On a failed category read the subtree is the category alone, so the
+  // listing degrades to its flat answer rather than to nothing.
+  const context = {
+    subtreeOf: (id: string) => categorySubtree(categories.items, id),
+  };
+  // A category page offers no category facet, so it counts none.
+  const counted: readonly CountedFacet[] =
+    categoryId === undefined
+      ? ['category', 'brand', 'seller']
+      : ['brand', 'seller'];
+
+  // Two reads in parallel: the page, and the counts beside its filters. A
+  // failed count renders the panel without numbers, never the page without
+  // products.
+  const [result, counts] = await Promise.all([
+    runRead(
+      PublishedOffering,
+      searchOfferings(searched, context),
+      emptyPage<PublishedOffering>(),
     ),
-    emptyPage<PublishedOffering>(),
-  );
+    runRead(
+      PublishedOffering,
+      loadOfferingFacetCounts(searched, context, counted),
+      {} as OfferingFacetCounts,
+    ),
+  ]);
+
+  const roots = categories.items.filter(category => !category.parentId);
 
   const href = localeHref(locale, path);
   const current = Number(state.page[0] ?? '1');
@@ -125,12 +148,10 @@ export async function OfferingListing({
       // is where its children are offered.
       ...(categoryId === undefined
         ? {
-            category: categories.items
-              .filter(category => !category.parentId)
-              .map(category => ({
-                id: String(category.id),
-                name: category.name,
-              })),
+            category: roots.map(category => ({
+              id: String(category.id),
+              name: category.name,
+            })),
           }
         : {}),
       brand: brands.items
@@ -140,6 +161,24 @@ export async function OfferingListing({
         id: vendor.vendorId,
         name: vendor.displayName,
       })),
+    },
+    counts: {
+      ...counts,
+      // Counted per node, offered per root: a root keeps what its whole
+      // subtree holds, as choosing it matches its whole subtree (ADR 0062).
+      ...(counts.category === undefined
+        ? {}
+        : {
+            category: rollUpFacet(
+              counts.category,
+              Object.fromEntries(
+                roots.map(root => [
+                  String(root.id),
+                  categorySubtree(categories.items, String(root.id)),
+                ]),
+              ),
+            ),
+          }),
     },
     labels: {
       category: t('storefront.listing.facets.category'),
@@ -153,9 +192,27 @@ export async function OfferingListing({
     },
   });
 
+  // What the folded panel's summary counts: each facet in force once, the
+  // price once whichever bounds it has, and no category on a category page,
+  // whose path chose it.
+  const activeFilters =
+    state.brand.length +
+    state.seller.length +
+    (categoryId === undefined ? state.category.length : 0) +
+    (state.min.length + state.max.length > 0 ? 1 : 0) +
+    state.available.length;
+
   return (
     <div className="grid grid-cols-1 gap-l sm:grid-cols-[14rem_minmax(0,1fr)]">
-      <FacetPanel label={t('storefront.listing.filters')} facets={facets} />
+      <FacetPanel
+        label={t('storefront.listing.filters')}
+        facets={facets}
+        collapsible={{
+          summary: t('storefront.listing.filtersSummary', {
+            count: activeFilters,
+          }),
+        }}
+      />
 
       <Stack gap="s">
         <Cluster gap="s" justify="between">

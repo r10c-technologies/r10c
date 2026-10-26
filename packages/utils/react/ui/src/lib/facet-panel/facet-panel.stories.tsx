@@ -58,7 +58,15 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Counts on the brands, none on the sellers: counts are optional (#323). */
+/** Counts on the brands, none on the sellers: a count is optional. */
 export const Default: Story = {};
+
+/**
+ * Folded away below `sm` behind "Filtrar (1)", open from `sm` up with no
+ * summary. Narrow the canvas below 640px to see it fold.
+ */
+export const Collapsible: Story = {
+  args: { collapsible: { summary: 'Filtrar (1)' } },
+};
 
 export const Empty: Story = { args: { facets: [] } };

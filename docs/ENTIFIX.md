@@ -395,7 +395,8 @@ interface EntityRepository {
   compiler quotes, and are validated against the entity's own
   `filterable`/`sortable` allowlist (`allowedDescriptors`) **before** interpolation.
   Two dialect assumptions, stated so a future MySQL/SQLite adapter knows what to
-  override: `ILIKE` for case-insensitive matching and `COUNT(*)::int` for the total.
+  override: `ILIKE` over `translate(column, …)` for matching that ignores case
+  and accents, and `COUNT(*)::int` for the total.
   The client must not be configured with `transformResultNames` — `alias` is
   already the mapping and a second one would fight it.
 
@@ -403,6 +404,16 @@ interface EntityRepository {
   driver. The shared `describeEntityRepositoryContract` needs a real engine, so it
   runs against real Postgres rather than in the unit gate — the same treatment the
   driver connection Layers get.
+
+**Counting is a port beside the repository, never a method on it.**
+`EntityFacetCounter.count(queries)` answers how many records hold each value of a
+member, each member under its own filtering, so a disjunctive filter panel is one
+call; `EntityFacetCounterFactoryTag` opens it per request as the repository
+factory does, and `makeEntityFacetRoutes` mounts `GET <entity>/$facets` only on a
+host that binds it. Only a `filterable` member may be counted. r10c's single-Mongo
+fleet layer binds the factory beside the repository factory, so any such service
+can count what it can load
+([entifix ADR 0012](https://github.com/r10c-technologies/entifix/blob/v0.9.0/docs/adr/0012-facet-counts-are-a-port-of-their-own.md)).
 
 Errors are always an `EntifixError` subclass — `EntifixConnError` (transport),
 `EntifixBuildError` (mapping/deserialization), `EntifixLogicError` (e.g. an
@@ -566,6 +577,10 @@ GET /api/product-brand?rsql=name%3Dlike%3DAcme%3Bstock%3Dgt%3D10&sort=%2Bname%2C
 | `lte`   | `=le=` | `nlike`     | `=nlike=`       |
 |         |        | `isNull`    | `=isnull=true`  |
 |         |        | `isNotNull` | `=isnull=false` |
+
+**`like` and `nlike` ignore accents as well as case**, in every engine, by one
+rule (NFD, drop the combining marks, lowercase — so `ñ` is `n`):
+[entifix ADR 0011](https://github.com/r10c-technologies/entifix/blob/v0.9.0/docs/adr/0011-like-ignores-accents.md).
 
 `;` is and, `,` is or (and binds tighter), `(…)` groups. The first six plus
 `=in=`/`=out=` are standard RSQL; the rest are entifix extensions written in the

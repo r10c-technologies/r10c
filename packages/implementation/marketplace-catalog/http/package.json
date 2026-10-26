@@ -41,11 +41,12 @@
     }
   },
   "dependencies": {
+    "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
     "@entifix/service-shell": "catalog:",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "@entifix/authz": "catalog:",
-    "@entifix/business": "catalog:"
+    "effect": "4.0.6"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",

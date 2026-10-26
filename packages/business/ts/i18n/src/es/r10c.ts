@@ -122,6 +122,11 @@ export const r10c = {
       results_other: '{{count}} productos',
       empty: 'Ningún producto coincide con estos filtros.',
       filters: 'Filtrar',
+      // The disclosure a phone shows in place of the panel; `count` is how
+      // many filters are in force, and none reads as the bare word.
+      filtersSummary_zero: 'Filtrar',
+      filtersSummary_one: 'Filtrar (1)',
+      filtersSummary_other: 'Filtrar ({{count}})',
       sort: 'Ordenar',
       sorts: {
         priceAsc: 'Precio: menor a mayor',

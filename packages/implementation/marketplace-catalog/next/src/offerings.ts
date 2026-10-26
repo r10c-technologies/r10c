@@ -1,16 +1,12 @@
-import {
-  EntityLoadRequestTag,
-  type EntityRepositoryTag,
-  loadUCFactory,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import type {
   EntifixError,
-  Entity,
+  EntityFilter,
   EntityLoadRequest,
   EntityPage,
 } from '@entifix/core';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { Context, Effect } from 'effect';
+import { Effect } from 'effect';
 
 import {
   type SearchContext,
@@ -60,37 +56,49 @@ export interface OfferingQuery {
 }
 
 /**
- * The cast is the one every read here needs: an `EntityLoadRequest` is
- * parameterized by the entity it filters, and a filter is a member *name*, so
- * two instantiations never overlap structurally even though the value is the
- * same.
+ * Every read here, straight through the repository: the load use case's tag
+ * carries no entity type, so going through it would need a cast that the
+ * typed `repository.load<PublishedOffering>` does not.
  */
 const load = (
-  request: EntityLoadRequest<Entity>,
+  request: EntityLoadRequest<PublishedOffering>,
 ): OfferingRead<EntityPage<PublishedOffering>> =>
-  loadUCFactory<PublishedOffering>().pipe(
-    Effect.provide(Context.make(EntityLoadRequestTag, request)),
-  ) as OfferingRead<EntityPage<PublishedOffering>>;
+  Effect.gen(function* () {
+    const repository = yield* EntityRepositoryTag;
+    return yield* repository.load<PublishedOffering>(request);
+  });
 
 /** The published catalog, filtered the way the query asks. */
 export const loadOfferings = (
   query: OfferingQuery = {},
 ): OfferingRead<EntityPage<PublishedOffering>> => {
-  const filtering = [
+  const filtering: EntityFilter<PublishedOffering>[] = [
     ...(query.categoryIds !== undefined
       ? [
           {
             property: 'categoryId',
-            operator: 'in' as const,
+            operator: 'in',
             values: [...query.categoryIds],
-          },
+          } satisfies EntityFilter<PublishedOffering>,
         ]
       : []),
     ...(query.search
-      ? [{ property: 'name', operator: 'like' as const, value: query.search }]
+      ? [
+          {
+            property: 'name',
+            operator: 'like',
+            value: query.search,
+          } satisfies EntityFilter<PublishedOffering>,
+        ]
       : []),
     ...(query.availableOnly
-      ? [{ property: 'availableHint', operator: 'eq' as const, value: true }]
+      ? [
+          {
+            property: 'availableHint',
+            operator: 'eq',
+            value: true,
+          } satisfies EntityFilter<PublishedOffering>,
+        ]
       : []),
   ];
 
@@ -98,11 +106,9 @@ export const loadOfferings = (
     page: query.page,
     pageSize: query.pageSize,
     sorting: query.sort
-      ? ([
-          { 0: { property: query.sort, type: query.direction ?? 'asc' } },
-        ] as never)
+      ? [{ 0: { property: query.sort, type: query.direction ?? 'asc' } }]
       : undefined,
-    filtering: filtering.length > 0 ? (filtering as never) : undefined,
+    filtering: filtering.length > 0 ? filtering : undefined,
   });
 };
 
@@ -115,7 +121,7 @@ export const searchOfferings = (
   state: SearchState,
   context: SearchContext,
 ): OfferingRead<EntityPage<PublishedOffering>> =>
-  load(searchRequest(state, context) as never);
+  load(searchRequest(state, context));
 
 /**
  * One published offering by the id the URL slug carries.
@@ -131,8 +137,6 @@ export const getOffering = (
   offeringId: string,
 ): OfferingRead<PublishedOffering | undefined> =>
   load({
-    filtering: [
-      { property: 'offeringId', operator: 'eq', value: offeringId },
-    ] as never,
+    filtering: [{ property: 'offeringId', operator: 'eq', value: offeringId }],
     pageSize: 1,
   }).pipe(Effect.map(page => page.items[0]));

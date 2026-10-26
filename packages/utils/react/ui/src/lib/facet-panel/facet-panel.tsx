@@ -7,7 +7,10 @@ export interface FacetOption {
   /** Where choosing it leads: the listing with this value toggled. */
   readonly href: string;
   readonly selected: boolean;
-  /** How many results carry it. Optional until counts are decided (#323). */
+  /**
+   * How many results carry it. Absent when the listing could not count, in
+   * which case the option shows no number rather than a wrong one.
+   */
   readonly count?: number;
 }
 
@@ -61,6 +64,12 @@ export interface FacetPanelProps {
   /** The panel's name, already translated ("Filtrar"). */
   readonly label: string;
   readonly facets: readonly FacetDefinition[];
+  /**
+   * Folds the panel away on a small screen behind a disclosure reading
+   * `summary` ("Filtrar (2)", already translated), so the results come first.
+   * Absent, the panel is always open.
+   */
+  readonly collapsible?: { readonly summary: string };
 }
 
 /** The box a checkbox or a toggle draws, so a link reads as a choice. */
@@ -191,10 +200,10 @@ function RangeForm({ facet }: { readonly facet: RangeFacet }) {
  * and this renders whatever it is handed. A facet fed later from the
  * characteristic dictionary is one more definition.
  */
-export function FacetPanel({ label, facets }: FacetPanelProps) {
+export function FacetPanel({ label, facets, collapsible }: FacetPanelProps) {
   const labelId = useId();
 
-  return (
+  const panel = (
     <aside aria-labelledby={labelId}>
       <Stack gap="m">
         <Text id={labelId} weight="semibold" as="h2">
@@ -205,5 +214,23 @@ export function FacetPanel({ label, facets }: FacetPanelProps) {
         ))}
       </Stack>
     </aside>
+  );
+
+  if (collapsible === undefined) return panel;
+
+  // A native disclosure, so folding the panel away needs no script either.
+  // From `sm` up the panel is forced open through `::details-content` and the
+  // summary is hidden — both only where the browser supports that selector.
+  // One that does not shows the summary on every screen, so the desktop panel
+  // starts closed but can still be opened, rather than being hidden for good.
+  return (
+    <details className="sm:supports-[selector(::details-content)]:[&::details-content]:[content-visibility:visible] sm:supports-[selector(::details-content)]:[&::details-content]:block">
+      <summary className="cursor-pointer rounded-md border border-border px-xs py-2xs font-semibold sm:supports-[selector(::details-content)]:hidden">
+        {collapsible.summary}
+      </summary>
+      <div className="pt-s sm:supports-[selector(::details-content)]:pt-0">
+        {panel}
+      </div>
+    </details>
   );
 }

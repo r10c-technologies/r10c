@@ -273,6 +273,36 @@ test.describe('browsing the catalog', () => {
   });
 
   /**
+   * #350: each option counts what choosing it would keep, and the counts are
+   * disjunctive — choosing a brand leaves the other brands their numbers.
+   */
+  test('a facet counts its options, and choosing one keeps the others', async ({
+    page,
+  }) => {
+    await page.goto('/es/search');
+    const brands = page
+      .getByRole('complementary', { name: 'Filtrar' })
+      .getByRole('region', { name: 'Marca' });
+
+    await expect(brands.getByRole('link', { name: 'Terra' })).toContainText(
+      '6',
+    );
+    const aurora = await brands
+      .getByRole('link', { name: 'Aurora' })
+      .textContent();
+
+    await brands.getByRole('link', { name: 'Terra' }).click();
+    await page.waitForURL(/brand=brand-terra/);
+
+    await expect(brands.getByRole('link', { name: 'Terra' })).toContainText(
+      '6',
+    );
+    await expect(brands.getByRole('link', { name: 'Aurora' })).toHaveText(
+      aurora ?? '',
+    );
+  });
+
+  /**
    * #352: the price is the one facet a buyer types. It submits as a GET form,
    * in major units, and keeps the rest of the search.
    */
@@ -350,6 +380,13 @@ test.describe('browsing the catalog', () => {
     await expect(page.getByText('Terra Ceramic Mug')).toBeVisible();
   });
 
+  // #379: a buyer types without the accent, or on a keyboard that lacks it.
+  test('search finds a name whatever its accents', async ({ page }) => {
+    await page.goto('/es/search?q=jarron');
+
+    await expect(page.getByText('Marea Jarrón')).toBeVisible();
+  });
+
   test('search renders its results on the server', async ({ page }) => {
     await page.goto('/es/search');
     await page.getByRole('searchbox').fill('mug');
@@ -359,6 +396,49 @@ test.describe('browsing the catalog', () => {
     await expect(page).toHaveURL(/q=mug/);
     await expect(page.getByText('Terra Ceramic Mug')).toBeVisible();
     await expect(page.getByText('Aurora Desk Lamp')).toHaveCount(0);
+  });
+});
+
+/**
+ * #417: below `sm` the listing stacks, and an open panel put twenty lines of
+ * filters above the first product. The panel folds behind a native disclosure
+ * there and is forced open from `sm` up, with no script either way.
+ */
+test.describe('a listing on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  for (const path of ['/es/search', '/es/c/lighting']) {
+    test(`${path} shows products first, the filters one tap away`, async ({
+      page,
+    }) => {
+      await page.goto(path);
+      const panel = page.getByRole('complementary', { name: 'Filtrar' });
+
+      await expect(
+        page.getByRole('main').getByRole('article').first(),
+      ).toBeInViewport();
+      await expect(panel).toBeHidden();
+
+      await page.locator('summary', { hasText: 'Filtrar' }).click();
+      await expect(panel).toBeVisible();
+    });
+  }
+
+  test('the disclosure counts the filters in force', async ({ page }) => {
+    await page.goto('/es/search?brand=brand-terra&available=1');
+
+    await expect(page.locator('summary')).toHaveText('Filtrar (2)');
+  });
+});
+
+test.describe('a listing on a wide screen', () => {
+  test('shows the panel open, with no disclosure to open', async ({ page }) => {
+    await page.goto('/es/search');
+
+    await expect(
+      page.getByRole('complementary', { name: 'Filtrar' }),
+    ).toBeVisible();
+    await expect(page.locator('summary')).toBeHidden();
   });
 });
 

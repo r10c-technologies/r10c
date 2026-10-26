@@ -186,3 +186,31 @@ describe('offeringFacets', () => {
     });
   });
 });
+
+describe('offeringFacets with counts', () => {
+  const choices: OfferingFacetContext['choices'] = {
+    brand: [
+      { id: 'brand-a', name: 'Aurora' },
+      { id: 'brand-t', name: 'Terra' },
+    ],
+    seller: [{ id: 'v-1', name: 'Casa' }],
+  };
+
+  it('puts a count on every option of a counted facet, 0 where nothing holds it', () => {
+    const panel = offeringFacets({
+      path: '/es/search',
+      state: parseSearch({}),
+      choices,
+      labels,
+      counts: { brand: [{ value: 'brand-a', count: 4 }] },
+    });
+
+    expect(
+      byId<CheckboxFacet>(panel, 'brand').options.map(option => option.count),
+    ).toEqual([4, 0]);
+    // A facet it was given no counts for shows no numbers at all.
+    expect(byId<CheckboxFacet>(panel, 'seller').options[0]).not.toHaveProperty(
+      'count',
+    );
+  });
+});
