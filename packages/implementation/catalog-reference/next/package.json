@@ -44,7 +44,7 @@
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@r10c/business-ts-catalog-reference": "workspace:*",
-    "effect": "4.0.5",
+    "effect": "4.0.6",
     "@swc/helpers": "0.5.23"
   },
   "devDependencies": {

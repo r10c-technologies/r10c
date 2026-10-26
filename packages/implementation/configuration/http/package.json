@@ -45,7 +45,7 @@
     "@entifix/service-shell": "catalog:",
     "@r10c/business-ts-configuration": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5",
+    "effect": "4.0.6",
     "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:"
   },

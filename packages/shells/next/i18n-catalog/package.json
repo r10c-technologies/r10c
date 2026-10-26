@@ -53,7 +53,7 @@
     "@entifix/next-shell": "catalog:",
     "@entifix/react-controls": "catalog:",
     "@r10c/business-ts-i18n": "workspace:*",
-    "i18next": "26.5.3"
+    "i18next": "26.5.6"
   },
   "sideEffects": true
 }

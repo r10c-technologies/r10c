@@ -47,7 +47,7 @@
     "@entifix/service-shell": "catalog:",
     "@r10c/business-ts-payment-management": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5"
+    "effect": "4.0.6"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",

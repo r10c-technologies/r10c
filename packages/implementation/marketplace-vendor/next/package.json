@@ -45,7 +45,7 @@
     "@entifix/core": "catalog:",
     "@r10c/business-ts-marketplace-vendor": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.5"
+    "effect": "4.0.6"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:"
