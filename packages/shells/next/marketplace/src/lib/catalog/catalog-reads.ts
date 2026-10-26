@@ -1,4 +1,4 @@
-import { EntityRepositoryTag } from '@entifix/business';
+import { EntityFacetCounterTag, EntityRepositoryTag } from '@entifix/business';
 import type {
   EntifixError,
   Entity,
@@ -7,6 +7,7 @@ import type {
 } from '@entifix/core';
 import {
   buildEntityRestAdapterDelete,
+  buildEntityRestAdapterFacets,
   buildEntityRestAdapterGet,
   buildEntityRestAdapterLoad,
   buildEntityRestAdapterSave,
@@ -49,7 +50,7 @@ const MARKETPLACE_SERVICE: Omit<BuildEntityRestOptions, 'configuration'> = {
 };
 
 /**
- * The full adapter set for one entity.
+ * The full adapter set for one entity, and its facet counter.
  *
  * `save` and `delete` are built even though the storefront never calls them:
  * `EntityRepositoryTag` is one tag with four members, and stubbing two of them
@@ -66,7 +67,15 @@ const repositoryFor = <TEntity extends Entity>(
     load: buildEntityRestAdapterLoad(entityConstructor, options),
     save: buildEntityRestAdapterSave(entityConstructor, options),
     delete: buildEntityRestAdapterDelete(entityConstructor, options),
-  });
+  }).pipe(
+    // Over the same base URL, `<entity>/$facets`. Bound for every entity
+    // because it is free until a read asks; an entity whose service mounts
+    // no facet route answers that read with a 404, which `runRead` turns
+    // into its fallback like any other failure.
+    Context.add(EntityFacetCounterTag, {
+      count: buildEntityRestAdapterFacets(entityConstructor, options),
+    }),
+  );
 
 /** A page with nothing on it — what a failed list read renders. */
 export const emptyPage = <TEntity extends Entity>(): EntityPage<TEntity> => ({
@@ -119,7 +128,11 @@ export const makeRunRead = () => {
 
   return <A, TEntity extends Entity>(
     entityConstructor: EntityConstructor<TEntity>,
-    read: Effect.Effect<A, EntifixError, EntityRepositoryTag>,
+    read: Effect.Effect<
+      A,
+      EntifixError,
+      EntityRepositoryTag | EntityFacetCounterTag
+    >,
     fallback: A,
   ): Promise<A> =>
     Effect.runPromise(

@@ -273,6 +273,36 @@ test.describe('browsing the catalog', () => {
   });
 
   /**
+   * #350: each option counts what choosing it would keep, and the counts are
+   * disjunctive — choosing a brand leaves the other brands their numbers.
+   */
+  test('a facet counts its options, and choosing one keeps the others', async ({
+    page,
+  }) => {
+    await page.goto('/es/search');
+    const brands = page
+      .getByRole('complementary', { name: 'Filtrar' })
+      .getByRole('region', { name: 'Marca' });
+
+    await expect(brands.getByRole('link', { name: 'Terra' })).toContainText(
+      '6',
+    );
+    const aurora = await brands
+      .getByRole('link', { name: 'Aurora' })
+      .textContent();
+
+    await brands.getByRole('link', { name: 'Terra' }).click();
+    await page.waitForURL(/brand=brand-terra/);
+
+    await expect(brands.getByRole('link', { name: 'Terra' })).toContainText(
+      '6',
+    );
+    await expect(brands.getByRole('link', { name: 'Aurora' })).toHaveText(
+      aurora ?? '',
+    );
+  });
+
+  /**
    * #352: the price is the one facet a buyer types. It submits as a GET form,
    * in major units, and keeps the rest of the search.
    */

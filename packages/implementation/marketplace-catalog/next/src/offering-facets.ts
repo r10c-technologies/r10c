@@ -1,4 +1,8 @@
-import type { Entity, EntityConstructor } from '@entifix/core';
+import type {
+  Entity,
+  EntityConstructor,
+  EntityFacetValue,
+} from '@entifix/core';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import type { FacetDefinition } from '@r10c/utils-react-ui';
 
@@ -97,6 +101,14 @@ export interface OfferingFacetContext {
     Readonly<Record<OfferingFacet, readonly FacetChoice[]>>
   >;
   readonly labels: OfferingFacetLabels;
+  /**
+   * How many results each choice would keep, per checkbox facet. A facet
+   * given counts shows one on every option, `0` for a value nothing holds; a
+   * facet given none shows no numbers, which is what a failed count renders.
+   */
+  readonly counts?: Partial<
+    Readonly<Record<OfferingFacet, readonly EntityFacetValue[]>>
+  >;
 }
 
 /** The category is one value at a time: a second one would be a second tree. */
@@ -124,6 +136,7 @@ export const offeringFacets = ({
   state,
   choices,
   labels,
+  counts = {},
 }: OfferingFacetContext): readonly FacetDefinition[] =>
   (Object.keys(OFFERING_FACET_MEMBERS) as OfferingFacet[]).flatMap(
     (facet): FacetDefinition[] => {
@@ -131,8 +144,16 @@ export const offeringFacets = ({
       switch (KINDS[facet]) {
         case 'checkbox': {
           const param = facet as SearchKey;
+          const counted = counts[facet];
+          const countOf =
+            counted === undefined
+              ? undefined
+              : new Map(counted.map(({ value, count }) => [value, count]));
           const options = (choices[facet] ?? []).map(choice => ({
             label: choice.name,
+            ...(countOf === undefined
+              ? {}
+              : { count: countOf.get(choice.id) ?? 0 }),
             href: searchHref(path, state, {
               [param]: toggled(state[param], choice.id, SINGLE.has(facet)),
             }),

@@ -8,6 +8,7 @@ import {
   MongoClientLayer,
   MongoClientTag,
   MongoDatabaseLayer,
+  MongoFacetCounterFactoryLayer,
   MongoHealthProbeLayer,
   MongoRepositoryFactoryLayer,
   MongoTenantRepositoryFactoryLayer,
@@ -31,8 +32,10 @@ import type { FleetConfiguration } from './fleet-service.js';
  */
 
 /**
- * One named database, its probe, and the repository factory and unit of work
- * over it.
+ * One named database, its probe, and the repository factory, the facet
+ * counter factory and the unit of work over it. The counter rides along
+ * because it costs nothing until a route asks for it: a service that can load
+ * an entity can count it.
  */
 export const fleetSingleMongoLayer = (
   { store }: FleetConfiguration,
@@ -45,6 +48,7 @@ export const fleetSingleMongoLayer = (
       Layer.mergeAll(
         MongoHealthProbeLayer(stores),
         MongoRepositoryFactoryLayer,
+        MongoFacetCounterFactoryLayer,
         MongoUnitOfWorkLayer,
       ),
       MongoDatabaseLayer({ uri, dbName }),
