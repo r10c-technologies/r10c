@@ -1,6 +1,17 @@
 import type { FilterGroup } from '@entifix/core';
-import type { RequestPrincipal } from '@entifix/service-shell';
-import type { ProductOrder } from '@r10c/business-ts-order-management';
+
+import type { ProductOrder } from '../entities/product-order';
+
+/**
+ * What the scope is decided from: the verified principal's routing context.
+ * Structural, so this domain names no HTTP framework — any principal with
+ * these members will do.
+ */
+export interface ScopedCaller {
+  readonly partyRole?: string;
+  readonly organizationId?: string;
+  readonly partyId?: string;
+}
 
 /**
  * Whose orders a caller may read.
@@ -79,7 +90,7 @@ const VENDOR = 'vendor';
  * is a caller whose own records cannot be identified, and `nothing` is the safe
  * direction to be wrong in — the same rule entitlements follow.
  */
-export const orderScopeFor = (principal: RequestPrincipal): OrderScope => {
+export const orderScopeFor = (principal: ScopedCaller): OrderScope => {
   if (principal.partyRole === OPERATOR) {
     return { kind: 'unscoped' };
   }

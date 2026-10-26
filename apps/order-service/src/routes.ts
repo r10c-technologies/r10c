@@ -1,7 +1,6 @@
+import { productOrderRoutes } from '@r10c/implementation-order-management-http';
 import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
-
-import { productOrderRoutes } from './routes/product-order.routes';
 
 /**
  * order-service routes. `/api/health*` and `/api/$service` are added by the

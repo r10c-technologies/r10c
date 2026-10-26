@@ -1,17 +1,15 @@
-import type { RequestPrincipal } from '@entifix/service-shell';
-import { OrderItem, ProductOrder } from '@r10c/business-ts-order-management';
 import { describe, expect, it } from 'vitest';
 
-import { orderInScope, orderScopeFilter, orderScopeFor } from './order-scope';
+import { ProductOrder } from '../entities/product-order/index.js';
+import { OrderItem } from './order-item.js';
+import {
+  orderInScope,
+  orderScopeFilter,
+  orderScopeFor,
+  type ScopedCaller,
+} from './order-scope.js';
 
-const principal = (
-  overrides: Partial<RequestPrincipal> = {},
-): RequestPrincipal => ({
-  userId: 'user-2',
-  subject: 'user-2',
-  sessionId: 'sess-1',
-  roles: ['user'],
-  attributes: {},
+const principal = (overrides: Partial<ScopedCaller> = {}): ScopedCaller => ({
   ...overrides,
 });
 

@@ -3,6 +3,8 @@ import {
   ensureOutboxIndexes,
   startOutboxRelay,
 } from '@entifix/mongo/transactions';
+import { CancelWindowSeconds } from '@r10c/business-ts-order-management';
+import { MongoProductOrderStoreLayer } from '@r10c/implementation-order-mongo';
 import {
   crossingTokenLayer,
   fleetBusLayer,
@@ -14,12 +16,12 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
-import { CancelWindowSeconds } from './cancel-capability';
-import { ORDER_SLICE } from './outbox';
-import { ensureProductOrderIndexes } from './product-order-index';
 import { startPaymentStatusProjection } from './projection/payment-status';
 
 const SERVICE_NAME = 'order-service';
+
+/** The **slice** this service publishes as — never the deployment, never the domain (ADR 0029). */
+export const ORDER_SLICE = 'order';
 
 /**
  * The order-service composition root — the `order` store's only writer.
@@ -100,23 +102,17 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
       }),
     );
 
-    // Before the first write, and here rather than per request: unlike a tenant
-    // database this one is named at boot, so there *is* a boot moment at which
-    // the index can be created — and an outbox whose `eventId` is not unique
-    // would let a redelivery enqueue a second copy of the same announcement.
-    // The order indexes ride along for a different reason: every read of this
-    // store is scoped by a predicate rather than by a handle, so without them
-    // the scope is a collection scan.
-    const indexed = Layer.provideMerge(
-      Layer.effectDiscard(
-        Effect.flatMap(MongoDatabaseTag, database =>
-          Effect.andThen(
-            ensureOutboxIndexes(database),
-            ensureProductOrderIndexes(database),
-          ),
+    // The outbox's indexes before the first write; the store ensures its own as
+    // it builds. An outbox whose `eventId` is not unique would let a redelivery
+    // enqueue a second copy of the same announcement.
+    const stored = Layer.provideMerge(
+      MongoProductOrderStoreLayer,
+      Layer.provideMerge(
+        Layer.effectDiscard(
+          Effect.flatMap(MongoDatabaseTag, ensureOutboxIndexes),
         ),
+        connections,
       ),
-      connections,
     );
 
     return Layer.provideMerge(
@@ -124,7 +120,7 @@ export const AppLayer = makeFleetServiceLayer(SERVICE_NAME, configuration =>
         Layer.effectDiscard(startOutboxRelay()),
         Layer.effectDiscard(startPaymentStatusProjection),
       ),
-      indexed,
+      stored,
     );
   }),
 );

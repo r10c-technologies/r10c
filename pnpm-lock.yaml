@@ -1134,6 +1134,12 @@ importers:
       '@r10c/business-ts-saga-contracts':
         specifier: workspace:*
         version: link:../../packages/business/ts/saga-contracts
+      '@r10c/implementation-order-management-http':
+        specifier: workspace:*
+        version: link:../../packages/implementation/order-management/http
+      '@r10c/implementation-order-mongo':
+        specifier: workspace:*
+        version: link:../../packages/implementation/order/mongo
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -1162,9 +1168,24 @@ importers:
       '@entifix/authz':
         specifier: 'catalog:'
         version: 0.7.2(effect@4.0.5)
+      '@entifix/mongo':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/transactions@0.7.2(effect@4.0.5))(effect@4.0.5)
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3)))(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.0(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.5)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@entifix/transactions':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../packages/business/ts/authz-grants
+      '@r10c/business-ts-order-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/order-management
+      '@r10c/implementation-order-mongo':
+        specifier: workspace:*
+        version: link:../../packages/implementation/order/mongo
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -1184,9 +1205,6 @@ importers:
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn
-      '@r10c/business-ts-order-management':
-        specifier: workspace:*
-        version: link:../../packages/business/ts/order-management
       '@r10c/business-ts-party-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/party-management
@@ -2056,12 +2074,18 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.7.2(effect@4.0.5)
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../saga-contracts
       '@r10c/business-ts-sales-vocabulary':
         specifier: workspace:*
         version: link:../sales-vocabulary
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
+      effect:
+        specifier: 4.0.5
+        version: 4.0.5
 
   packages/business/ts/party-contracts:
     dependencies:
@@ -2317,6 +2341,68 @@ importers:
       effect:
         specifier: 4.0.5
         version: 4.0.5
+    devDependencies:
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3)))(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.0(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.5)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+
+  packages/implementation/order-management/http:
+    dependencies:
+      '@entifix/authz':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
+      '@entifix/service-shell':
+        specifier: 'catalog:'
+        version: 0.7.2(777b13b1238672bf81bf77fe5b3b31e5)
+      '@r10c/business-ts-order-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/order-management
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/saga-contracts
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.5
+        version: 4.0.5
+    devDependencies:
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/react-controls@0.7.2(@entifix/i18n@0.7.2(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3)))(effect@4.0.5)(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.0(i18next@26.5.3(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.5)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/testing-http':
+        specifier: workspace:*
+        version: link:../../../testing/http
+
+  packages/implementation/order/mongo:
+    dependencies:
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
+      '@entifix/mongo':
+        specifier: 'catalog:'
+        version: 0.7.2(@entifix/transactions@0.7.2(effect@4.0.5))(effect@4.0.5)
+      '@entifix/transactions':
+        specifier: 'catalog:'
+        version: 0.7.2(effect@4.0.5)
+      '@r10c/business-ts-order-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/order-management
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.5
+        version: 4.0.5
+      mongodb:
+        specifier: 7.7.0
+        version: 7.7.0
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'

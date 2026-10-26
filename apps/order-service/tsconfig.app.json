@@ -29,6 +29,12 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/implementation/order/mongo/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/order-management/http/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/business/ts/saga-contracts/tsconfig.lib.json"
     },
     {
