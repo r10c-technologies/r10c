@@ -26,6 +26,11 @@ import {
   ProductOffering,
   SpecificationCommandsTag,
 } from '@r10c/business-ts-product-configuration-management';
+import {
+  CONTRACT_OFFERINGS,
+  describeOfferingCatalogContract,
+  describeSpecificationCommandsContract,
+} from '@r10c/business-ts-product-configuration-management/testing';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -41,21 +46,22 @@ import {
 
 type Seed = Record<string, Record<string, unknown>[]>;
 
-const world = (seed: Seed = {}) => {
-  const fake = makeFakeMongoDb(seed);
-  const db = Object.assign(fake.db as object, {
-    databaseName: 'tenant_acme',
-  }) as Db;
-  const bus = makeRecordingEventBus();
-  const layer = Layer.mergeAll(
+/** Both cells over one client, each organization resolving to its own fake. */
+const layerOver = (
+  client: ReturnType<typeof makeFakeMongoDb>,
+  databases: Readonly<Record<string, Db>>,
+  bus = makeRecordingEventBus(),
+) =>
+  Layer.mergeAll(
     MongoOfferingCatalogLayer,
     MongoSpecificationCommandsLayer,
   ).pipe(
     Layer.provide(
       Layer.mergeAll(
-        Layer.succeed(MongoClientTag, fake as never),
+        Layer.succeed(MongoClientTag, client as never),
         Layer.succeed(TenantDatabaseResolverTag, {
-          forOrganization: () => Effect.succeed(db),
+          forOrganization: (organizationId: string) =>
+            Effect.succeed(databases[organizationId] as Db),
         }),
         Layer.succeed(
           ConfigurationRepositoryTag,
@@ -69,11 +75,55 @@ const world = (seed: Seed = {}) => {
       ),
     ),
   );
+
+const named = (fake: ReturnType<typeof makeFakeMongoDb>, name: string) =>
+  Object.assign(fake.db as object, { databaseName: name }) as Db;
+
+const world = (seed: Seed = {}) => {
+  const fake = makeFakeMongoDb(seed);
+  const bus = makeRecordingEventBus();
+  const layer = layerOver(fake, { acme: named(fake, 'tenant_acme') }, bus);
   const run = <A, E>(
     effect: Effect.Effect<A, E, OfferingCatalogTag | SpecificationCommandsTag>,
   ) => Effect.runPromise(effect.pipe(Effect.provide(layer)));
   return { fake, bus, run };
 };
+
+/** Each contract organization in its own database, seeded as the suite says. */
+const contractPorts = () => {
+  const fakes = Object.entries(CONTRACT_OFFERINGS).map(
+    ([organizationId, offerings]) =>
+      [
+        organizationId,
+        makeFakeMongoDb({
+          [OFFERING_COLLECTION]: offerings.map(offering => ({ ...offering })),
+        }),
+      ] as const,
+  );
+  const layer = layerOver(
+    fakes[0]?.[1] as ReturnType<typeof makeFakeMongoDb>,
+    Object.fromEntries(
+      fakes.map(([organizationId, fake]) => [
+        organizationId,
+        named(fake, `tenant_${organizationId}`),
+      ]),
+    ),
+  );
+  return Effect.runPromise(
+    Effect.all([OfferingCatalogTag, SpecificationCommandsTag]).pipe(
+      Effect.provide(layer),
+    ),
+  );
+};
+
+describeOfferingCatalogContract('the Mongo catalog', async () => {
+  const [catalog] = await contractPorts();
+  return catalog;
+});
+describeSpecificationCommandsContract('the Mongo commands', async () => {
+  const [, commands] = await contractPorts();
+  return commands;
+});
 
 const offering = (status: ProductOffering['status']) =>
   Object.assign(new ProductOffering('A mug', 'spec-1'), { id: 'o-1', status });
