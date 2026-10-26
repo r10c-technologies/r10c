@@ -17,71 +17,38 @@ import {
 } from '@entifix/service-shell';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
-  Payment,
   type PaymentLedger,
   PaymentLedgerTag,
-  type PaymentProvider,
   PaymentProviderTag,
-  Refund,
 } from '@r10c/business-ts-payment-management';
+import {
+  makeInMemoryPaymentLedger,
+  makeScriptedPaymentProvider,
+} from '@r10c/business-ts-payment-management/testing';
 import { type ServedRoutes,serveRoutes } from '@r10c/testing-http';
-import { Effect, Layer, Option } from 'effect';
+import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { paymentRoutes } from './payment-routes.js';
 
-const decided = new Map<string, Payment | Refund>();
-const payments: Payment[] = [];
-const refunds: Refund[] = [];
 let storeDown = false;
 
+/** The shared in-memory ledger, failing its capture lookup on demand. */
+const real = makeInMemoryPaymentLedger();
 const ledger: PaymentLedger = {
-  decidedPayment: commandId =>
-    Effect.succeed(
-      Option.fromUndefinedOr(decided.get(commandId) as Payment | undefined),
-    ),
-  decidedRefund: commandId =>
-    Effect.succeed(
-      Option.fromUndefinedOr(decided.get(commandId) as Refund | undefined),
-    ),
+  ...real,
   captureFor: orderId =>
     storeDown
       ? Effect.fail(new EntifixConnError('store down'))
-      : Effect.succeed(
-          payments.find(p => p.orderId === orderId && p.status === 'captured'),
-        ),
-  refundFor: paymentId =>
-    Effect.succeed(refunds.find(r => r.paymentId === paymentId)),
-  recordCapture: (payment, _outcome, commandId) =>
-    Effect.sync(() => {
-      payments.push(payment);
-      if (commandId) decided.set(commandId, payment);
-      return { _tag: 'recorded' as const, record: payment };
-    }),
-  recordRefund: (refund, _outcome, commandId) =>
-    Effect.sync(() => {
-      refunds.push(refund);
-      if (commandId) decided.set(commandId, refund);
-      return { _tag: 'recorded' as const, record: refund };
-    }),
+      : real.captureFor(orderId),
 };
 
-/** Declines whatever is for the order named `declined`. */
-const provider: PaymentProvider = {
-  authorize: () => Effect.die('unused'),
-  capture: request =>
-    Effect.succeed(
-      request.orderId === 'declined'
-        ? { status: 'failed' as const }
-        : { status: 'captured' as const, providerReference: 'ref' },
-    ),
-  refund: request =>
-    Effect.succeed(
-      request.orderId === 'declined-refund'
-        ? { status: 'failed' as const }
-        : { status: 'refunded' as const },
-    ),
-};
+/** Declines the capture for the order named `declined`, and the refund for `declined-refund`. */
+const provider = makeScriptedPaymentProvider(
+  (request, step) =>
+    (step === 'capture' && request.orderId === 'declined') ||
+    (step === 'refund' && request.orderId === 'declined-refund'),
+);
 
 const claims: TokenClaims = {
   userId: 'u-1',
@@ -153,7 +120,9 @@ describe('POST /api/payment', () => {
 
     expect(first.status).toBe(201);
     expect(again.status).toBe(200);
-    expect(payments).toHaveLength(1);
+    expect(
+      await Effect.runPromise(real.captureFor('o-1')),
+    ).toMatchObject({ orderId: 'o-1' });
   });
 
   it('answers a declined capture, and its replay, with 402', async () => {

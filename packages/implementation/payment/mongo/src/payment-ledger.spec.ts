@@ -17,6 +17,7 @@ import {
   PaymentLedgerTag,
   Refund,
 } from '@r10c/business-ts-payment-management';
+import { describePaymentLedgerContract } from '@r10c/business-ts-payment-management/testing';
 import { Effect, Layer, Option } from 'effect';
 import type { Db } from 'mongodb';
 import { describe, expect, it } from 'vitest';
@@ -54,6 +55,10 @@ const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
     );
   return { fake, bus, run };
 };
+
+describePaymentLedgerContract('the Mongo ledger', () =>
+  world().run(ledger => Effect.succeed(ledger)),
+);
 
 const outcome = (orderId = 'order-1'): PaymentOutcome => ({
   paymentId: 'pay-1',

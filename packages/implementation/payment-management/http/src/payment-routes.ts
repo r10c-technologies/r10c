@@ -102,7 +102,8 @@ const capture = (_context: unknown, links: EntityRouteLinks) =>
           {
             error: 'the payment was not captured',
             code: 'paymentDeclined',
-            detail: result.reason ?? 'the provider declined the payment',
+            // A refusal names its reason: the PaymentProvider contract says so.
+            detail: result.reason,
             paymentId: String(result.payment.id),
           },
           { status: 402 },
@@ -154,7 +155,7 @@ const refund = (_context: unknown, links: EntityRouteLinks) =>
           {
             error: 'the refund was not made',
             code: 'refundDeclined',
-            detail: result.reason ?? 'the provider declined the refund',
+            detail: result.reason,
             refundId: String(result.refund.id),
           },
           { status: 402 },
