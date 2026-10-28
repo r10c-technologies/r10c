@@ -15,7 +15,7 @@ import { startReservationSweep } from './reservation-sweep.js';
 const SERVICE_NAME = 'stock-service';
 
 /**
- * The `stock` slice's composition, mounted by its service alone (ADR 0064) — — the `stock` store's only writer.
+ * The `stock` slice's composition, mounted by its service alone (ADR 0064) — the `stock` store's only writer.
  *
  * **`MongoClientLayer`, not `MongoDatabaseLayer`**, for the same reason
  * marketplace-admin-service uses it and marketplace-service does not: every

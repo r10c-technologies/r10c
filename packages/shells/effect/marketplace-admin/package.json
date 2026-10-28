@@ -1,0 +1,60 @@
+{
+  "name": "@r10c/shells-effect-marketplace-admin",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:marketplace-admin",
+      "shell:domain"
+    ],
+    "sourceRoot": "packages/shells/effect/marketplace-admin/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/effect/marketplace-admin/dist",
+          "main": "packages/shells/effect/marketplace-admin/src/index.ts",
+          "tsConfig": "packages/shells/effect/marketplace-admin/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/mongo": "catalog:",
+    "@entifix/redis": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-product-configuration-management": "workspace:*",
+    "@r10c/implementation-catalog-mongo": "workspace:*",
+    "@r10c/implementation-product-configuration-management-http": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.6"
+  },
+  "devDependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/testing-unit": "catalog:"
+  }
+}

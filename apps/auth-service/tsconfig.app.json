@@ -36,6 +36,9 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/shells/effect/auth/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/implementation/session/redis/tsconfig.lib.json"
     },
     {

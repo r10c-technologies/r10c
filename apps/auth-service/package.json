@@ -103,6 +103,7 @@
     "@r10c/implementation-auth-mongo": "workspace:*",
     "@r10c/implementation-authn-http": "workspace:*",
     "@r10c/implementation-session-redis": "workspace:*",
+    "@r10c/shells-effect-auth": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "effect": "4.0.6",

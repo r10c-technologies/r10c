@@ -200,9 +200,6 @@ export const rebuildOrganizationAnnouncements = (
     for (const row of rows) {
       const announcement = announcementOf(row);
       if (announcement === undefined) {
-        yield* Effect.logWarning('organization cannot be announced').pipe(
-          Effect.annotateLogs({ organizationId: String(row['id']) }),
-        );
         report.unannounceable += 1;
         continue;
       }
@@ -218,29 +215,5 @@ export const rebuildOrganizationAnnouncements = (
       }
     }
 
-    yield* Effect.logInfo('re-announced the organizations').pipe(
-      Effect.annotateLogs({ ...report }),
-    );
     return report;
   });
-
-/**
- * Forks the rebuild walk past boot, so a slow store delays nothing, and logs
- * rather than fails: a walk that cannot run leaves the projection as it was,
- * which the next boot repairs.
- */
-export const startOrganizationRebuild = Effect.gen(function* () {
-  const db = yield* MongoDatabaseTag;
-  const bus = yield* EventBusTag;
-  const source = yield* EventSourceTag;
-
-  yield* Effect.forkDetach(
-    rebuildOrganizationAnnouncements(db, bus, source).pipe(
-      Effect.catch(error =>
-        Effect.logError('re-announcing the organizations failed').pipe(
-          Effect.annotateLogs({ error: String(error) }),
-        ),
-      ),
-    ),
-  );
-});

@@ -249,33 +249,43 @@ export const rebuildPublications = (input: {
       if (items.length < REBUILD_PAGE_SIZE) break;
     }
 
-    yield* Effect.logInfo('rebuilt a tenant catalog').pipe(
-      Effect.annotateLogs({ organizationId: input.organizationId, ...report }),
-    );
     return report;
   });
 
+/** What one walk over every organization's store did. */
+export interface RebuildWalk {
+  readonly rebuilt: ReadonlyArray<{
+    readonly organizationId: string;
+    readonly report: RebuildReport;
+  }>;
+  readonly failed: ReadonlyArray<{
+    readonly organizationId: string;
+    readonly failure: unknown;
+  }>;
+}
+
 /**
  * The walk over every organization's store. One organization's failure is
- * logged and the walk goes on; a directory that cannot be read is logged too,
- * never fatal — the storefront stays empty and says why.
+ * **reported** and the walk goes on; a directory that cannot be read fails the
+ * walk. The slice shell that forks it logs both and never lets either fail the
+ * boot — the storefront stays empty and says why (ADR 0064).
  */
 export const rebuildEveryPublication = (source: string) =>
   Effect.gen(function* () {
     const directory = yield* TenantDirectoryTag;
+    const rebuilt: Array<RebuildWalk['rebuilt'][number]> = [];
+    const failed: Array<RebuildWalk['failed'][number]> = [];
     for (const { organizationId } of yield* directory.list()) {
       yield* rebuildPublications({ organizationId, source }).pipe(
-        Effect.catch(error =>
-          Effect.logError('rebuilding a tenant catalog failed').pipe(
-            Effect.annotateLogs({ organizationId, error: String(error) }),
-          ),
-        ),
+        Effect.match({
+          onFailure: failure => {
+            failed.push({ organizationId, failure });
+          },
+          onSuccess: report => {
+            rebuilt.push({ organizationId, report });
+          },
+        }),
       );
     }
-  }).pipe(
-    Effect.catch(error =>
-      Effect.logError('the catalog rebuild could not enumerate tenants').pipe(
-        Effect.annotateLogs({ error: String(error) }),
-      ),
-    ),
-  );
+    return { rebuilt, failed } as RebuildWalk;
+  });

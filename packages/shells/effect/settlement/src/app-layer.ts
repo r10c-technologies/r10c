@@ -26,7 +26,7 @@ const SERVICE_NAME = 'settlement-service';
 export const SETTLEMENT_SLICE = 'settlement';
 
 /**
- * The `settlement` slice's composition, mounted by its service alone (ADR 0064) — — the `settlement` store's only
+ * The `settlement` slice's composition, mounted by its service alone (ADR 0064) — the `settlement` store's only
  * writer.
  *
  * ⚠️ **`MongoDatabaseLayer`, not `MongoClientLayer`, and that is the plane

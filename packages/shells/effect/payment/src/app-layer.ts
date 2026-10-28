@@ -28,7 +28,7 @@ const SERVICE_NAME = 'payment-service';
 export const PAYMENT_SLICE = 'payment';
 
 /**
- * The `payment` slice's composition, mounted by its service alone (ADR 0064) — — the `payment` store's only writer.
+ * The `payment` slice's composition, mounted by its service alone (ADR 0064) — the `payment` store's only writer.
  *
  * ⚠️ **`MongoDatabaseLayer`, not `MongoClientLayer`, and that is the plane
  * rather than a preference.** stock-service and marketplace-admin-service take

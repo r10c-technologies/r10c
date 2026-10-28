@@ -1,9 +1,8 @@
 import { makeService } from '@entifix/service-shell/runtime';
+import { makeAppLayer, router } from '@r10c/shells-effect-transaction';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
-import { AppLayer } from './mongo';
-import { router } from './routes';
 
 /**
  * transaction-service — the saga coordinator (port 3103).
@@ -23,5 +22,5 @@ makeService({
   slices: ['transaction'],
   description: fleetToken,
   router,
-  appLayer: AppLayer,
+  appLayer: makeAppLayer(),
 });

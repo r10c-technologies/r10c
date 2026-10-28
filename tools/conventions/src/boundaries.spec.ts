@@ -156,3 +156,39 @@ describe('the shell kinds', () => {
     ).toEqual([]);
   }, 60_000);
 });
+
+/**
+ * Apps only mount (ADR 0064): a planted service file that wires routes or the
+ * saga engine itself, beside a legal twin that mounts its shell.
+ */
+const appImportErrors = async (code: string): Promise<string[]> => {
+  const eslint = new ESLint({ cwd: REPO_ROOT });
+  const [result] = await eslint.lintText(`${code}\nexport {};\n`, {
+    filePath: join(REPO_ROOT, 'apps/order-service/src/planted.ts'),
+  });
+  return (result?.messages ?? [])
+    .filter(message => message.ruleId === 'no-restricted-imports')
+    .map(message => message.message);
+};
+
+describe('a service app', () => {
+  it.each([
+    ["import { HttpRouter } from 'effect/http';", 'the router'],
+    ["import { HttpApi } from 'effect/http-api';", 'an HTTP API'],
+    ["import { runSaga } from '@entifix/transactions/engine';", 'the engine'],
+  ])(
+    'may not import %s (%s)',
+    async source => {
+      expect(await appImportErrors(source)).toHaveLength(1);
+    },
+    60_000,
+  );
+
+  it('may import its slice shell', async () => {
+    expect(
+      await appImportErrors(
+        "import { makeAppLayer } from '@r10c/shells-effect-order';",
+      ),
+    ).toEqual([]);
+  }, 60_000);
+});

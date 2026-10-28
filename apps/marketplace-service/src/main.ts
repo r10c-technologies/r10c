@@ -1,9 +1,9 @@
 import { makeService } from '@entifix/service-shell/runtime';
+import { makeAppLayer, router } from '@r10c/shells-effect-marketplace';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
-import { AppLayer } from './mongo';
-import { router } from './routes';
+import { seedCatalogReference } from './seed';
 
 /**
  * marketplace-service — the storefront's platform-plane read host (port 3100).
@@ -19,5 +19,5 @@ makeService({
   slices: ['marketplace'],
   description: fleetToken,
   router,
-  appLayer: AppLayer,
+  appLayer: makeAppLayer({ seed: seedCatalogReference }),
 });

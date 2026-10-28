@@ -1,0 +1,62 @@
+{
+  "name": "@r10c/shells-effect-marketplace",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:marketplace",
+      "shell:domain"
+    ],
+    "sourceRoot": "packages/shells/effect/marketplace/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/effect/marketplace/dist",
+          "main": "packages/shells/effect/marketplace/src/index.ts",
+          "tsConfig": "packages/shells/effect/marketplace/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/mongo": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-catalog-contracts": "workspace:*",
+    "@r10c/business-ts-marketplace-catalog": "workspace:*",
+    "@r10c/business-ts-marketplace-vendor": "workspace:*",
+    "@r10c/business-ts-party-contracts": "workspace:*",
+    "@r10c/implementation-catalog-reference-http": "workspace:*",
+    "@r10c/implementation-marketplace-catalog-http": "workspace:*",
+    "@r10c/implementation-marketplace-vendor-http": "workspace:*",
+    "@r10c/implementation-published-catalog-mongo": "workspace:*",
+    "@r10c/implementation-published-vendor-mongo": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.6"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:"
+  }
+}

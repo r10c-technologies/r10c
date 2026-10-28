@@ -1,9 +1,9 @@
 import { makeService } from '@entifix/service-shell/runtime';
+import { makeAppLayer, router } from '@r10c/shells-effect-marketplace-admin';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
-import { AppLayer } from './mongo';
-import { router } from './routes';
+import { seedCatalog } from './seed';
 
 /**
  * marketplace-admin-service — admin catalog backend, Effect-native (port 3101).
@@ -22,5 +22,5 @@ makeService({
   slices: ['marketplace-admin', 'transaction'],
   description: fleetToken,
   router,
-  appLayer: AppLayer,
+  appLayer: makeAppLayer({ seed: seedCatalog }),
 });

@@ -912,6 +912,98 @@ describe('Effect shells are the base or one slice’s own', () => {
   });
 });
 
+interface DeploymentImports {
+  readonly slice: string;
+  readonly deployment: string;
+  /** Every `@r10c/shells-effect-*` package its `src/` imports. */
+  readonly shells: readonly string[];
+}
+
+/**
+ * What is wrong with what each deployment mounts. An app only mounts
+ * (ADR 0064), so its source imports exactly one slice shell — its own — beside
+ * the base every shell builds on. A deployment importing two is composing
+ * across slices in the app; one importing none composes for itself.
+ */
+const deploymentShellProblems = (
+  deployments: readonly DeploymentImports[],
+): string[] =>
+  deployments.flatMap(({ slice, deployment, shells }) => {
+    const mounted = [...new Set(shells)].filter(
+      shell => shell !== '@r10c/shells-effect-service',
+    );
+    return mounted.length === 1 && mounted[0] === `@r10c/shells-effect-${slice}`
+      ? []
+      : [`${deployment}: mounts ${mounted.join(', ') || 'no shell'}`];
+  });
+
+describe('Each deployment mounts exactly its slice’s shell', () => {
+  const sourcesOf = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
+      entry.isDirectory()
+        ? sourcesOf(join(dir, entry.name))
+        : entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts')
+          ? [join(dir, entry.name)]
+          : [],
+    );
+  const deployments = (): DeploymentImports[] =>
+    SLICES.filter(slice => slice.status === 'active').flatMap(slice =>
+      slice.deployments
+        .map(deployment => join(REPO_ROOT, 'apps', deployment, 'src'))
+        .filter(src => existsSync(src))
+        .map(src => ({
+          slice: slice.name,
+          deployment: relative(REPO_ROOT, src),
+          shells: sourcesOf(src).flatMap(file =>
+            [
+              ...readFileSync(file, 'utf8').matchAll(
+                /from '(@r10c\/shells-effect-[a-z-]+)'/g,
+              ),
+            ].map(match => match[1] as string),
+          ),
+        })),
+    );
+
+  it('finds the deployments it is meant to check', () => {
+    expect(deployments().length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('mounts one shell per deployment, and it is the slice’s own', () => {
+    expect(deploymentShellProblems(deployments())).toEqual([]);
+  });
+
+  it('rejects an app that mounts two shells or none, and accepts its twin', () => {
+    expect(
+      deploymentShellProblems([
+        {
+          slice: 'order',
+          deployment: 'two',
+          shells: ['@r10c/shells-effect-order', '@r10c/shells-effect-stock'],
+        },
+        { slice: 'order', deployment: 'none', shells: [] },
+        {
+          slice: 'order',
+          deployment: 'other',
+          shells: ['@r10c/shells-effect-stock'],
+        },
+      ]),
+    ).toHaveLength(3);
+    expect(
+      deploymentShellProblems([
+        {
+          slice: 'order',
+          deployment: 'twin',
+          shells: [
+            '@r10c/shells-effect-order',
+            '@r10c/shells-effect-order',
+            '@r10c/shells-effect-service',
+          ],
+        },
+      ]),
+    ).toEqual([]);
+  });
+});
+
 describe('Fleet ports agree in every place they are written', () => {
   const freePorts = read('tools/free-ports.sh');
   const portsDoc = read('docs/_shared/ports.md');
@@ -1088,7 +1180,7 @@ describe('The dashboard charts the metrics the fleet declares', () => {
     // `transaction` slice took `:3103` (#229). A module missing from this list
     // is not a loud failure — the dashboard check would simply stop knowing the
     // metric is declared and call every panel querying it undeclared.
-    'apps/transaction-service/src/observability/metrics.ts',
+    'packages/shells/effect/transaction/src/observability/metrics.ts',
   ];
 
   /** The provisioning directory whose contents a mount must never replace. */

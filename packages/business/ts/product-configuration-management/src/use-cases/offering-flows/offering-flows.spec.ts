@@ -342,25 +342,36 @@ describe('rebuildPublications', () => {
 });
 
 describe('rebuildEveryPublication', () => {
-  it('walks every organization, and logs one that fails rather than stopping', async () => {
+  it('walks every organization, and reports one that fails rather than stopping', async () => {
     const w = world({
       offerings: [offering('o-1', 'published')],
       organizations: ['acme', 'globex'],
     });
 
-    await w.run(rebuildEveryPublication(SOURCE));
-    await world({ offeringsDown: true }).run(rebuildEveryPublication(SOURCE));
+    const walked = await w.run(rebuildEveryPublication(SOURCE));
+    const down = await world({ offeringsDown: true }).run(
+      rebuildEveryPublication(SOURCE),
+    );
 
     expect(w.announced).toHaveLength(2);
+    expect(walked.rebuilt.map(entry => entry.organizationId)).toEqual([
+      'acme',
+      'globex',
+    ]);
+    expect(walked.failed).toEqual([]);
+    expect(down.rebuilt).toEqual([]);
+    expect(down.failed).toEqual([
+      { organizationId: 'acme', failure: expect.any(Unavailable) },
+    ]);
   });
 
-  it('logs a directory it cannot read, never failing the boot', async () => {
+  it('fails on a directory it cannot read, for the shell to log', async () => {
     const failing = Layer.succeed(TenantDirectoryTag, {
       list: () => Effect.fail(new Unavailable({})),
     });
 
-    await expect(
-      Effect.runPromise(
+    const failure = await Effect.runPromise(
+      Effect.flip(
         rebuildEveryPublication(SOURCE).pipe(
           Effect.provide(failing),
           Effect.provide(
@@ -376,6 +387,8 @@ describe('rebuildEveryPublication', () => {
           ),
         ),
       ),
-    ).resolves.toBeUndefined();
+    );
+
+    expect(failure).toBeInstanceOf(Unavailable);
   });
 });

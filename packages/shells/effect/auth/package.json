@@ -1,0 +1,66 @@
+{
+  "name": "@r10c/shells-effect-auth",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:auth",
+      "shell:domain"
+    ],
+    "sourceRoot": "packages/shells/effect/auth/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/effect/auth/dist",
+          "main": "packages/shells/effect/auth/src/index.ts",
+          "tsConfig": "packages/shells/effect/auth/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@effect/opentelemetry": "4.0.6",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/redis": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@entifix/zitadel": "catalog:",
+    "@opentelemetry/sdk-trace-web": "2.12.0",
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/implementation-auth-mongo": "workspace:*",
+    "@r10c/implementation-authn-http": "workspace:*",
+    "@r10c/implementation-session-redis": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.6"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:",
+    "mongodb": "7.7.0"
+  }
+}

@@ -29,6 +29,9 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/shells/effect/marketplace/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/implementation/published-vendor/mongo/tsconfig.lib.json"
     },
     {

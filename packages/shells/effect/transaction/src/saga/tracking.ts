@@ -1,0 +1,218 @@
+import { queueNameFor } from '@entifix/amqp/transactions';
+import { ShutdownRegistryTag } from '@entifix/business';
+import { type DomainEvent } from '@entifix/core';
+import {
+  EventBusTag,
+  type Subscription,
+  type TransactionEvent,
+  type TransactionStore,
+  TransactionStoreTag,
+  TransactionStreamHubTag,
+} from '@entifix/transactions';
+import { TransactionFoldTag } from '@r10c/business-ts-saga-contracts';
+import { logSliceOutcome } from '@r10c/shells-effect-service';
+import { Context, Duration, Effect, Fiber } from 'effect';
+
+import { recordTransactionStates } from '../observability/metrics.js';
+
+/**
+ * The slice this consumer belongs to, and half of its queue's name.
+ *
+ * **Not** `marketplace-admin`, which is what this *process* publishes as: the
+ * tracker is the `transaction` slice, co-deployed here by ADR 0021. Naming its
+ * queue after the host would file it under whoever happens to share the
+ * process, and splitting the slice back out to `:3103` would then rename a
+ * durable queue — abandoning whatever was still in it.
+ *
+ * A literal because `tools/slices/` is a tools project and not importable from
+ * an app; the same duplication `ROLE_PERMISSIONS` carries, and the reason
+ * `@r10c/slices` checks the declaration rather than trusting it.
+ */
+const TRACKER_SLICE = 'transaction';
+
+/**
+ * Deliveries the broker allows before dead-lettering, mirroring
+ * `tools/slices/src/slices/transaction.slice.ts`.
+ *
+ * Deliberately **not** read from config-service, unlike the outbox relay's
+ * ceiling. This value becomes the queue's `x-delivery-limit`, which is
+ * immutable once the queue exists — an operator who edited it would change a
+ * number nothing adopts, and the redeclaration would fail
+ * `PRECONDITION_FAILED`. A tunable you cannot tune is worse than a constant.
+ */
+const MAX_ATTEMPTS = 5;
+
+/**
+ * How often the recovery sweep runs, from config-service.
+ *
+ * Configuration rather than a constant for the same reason the outbox relay's
+ * ceiling is, and for the exact reason {@link MAX_ATTEMPTS} above is not:
+ * nothing about this value is baked into a broker declaration, so an edit is
+ * adopted on the next boot instead of failing `PRECONDITION_FAILED` against a
+ * queue that already exists.
+ */
+export class SagaRecoveryIntervalMs extends Context.Service<
+  SagaRecoveryIntervalMs,
+  number
+>()('SagaRecoveryIntervalMs') {}
+
+/**
+ * How old a non-terminal transaction must be before the sweep presumes it stuck,
+ * from config-service.
+ *
+ * A separate dial from {@link SagaRecoveryIntervalMs} on purpose: the interval
+ * decides how soon a stuck transaction is noticed, this decides what counts as
+ * stuck. Kept well above the worst-case time a command spends queued behind the
+ * per-type resource lock, so a merely-slow transaction is not mistaken for a
+ * stalled one.
+ */
+export class SagaStaleTimeoutMs extends Context.Service<
+  SagaStaleTimeoutMs,
+  number
+>()('SagaStaleTimeoutMs') {}
+
+/**
+ * One pass of the recovery sweep: flag every non-terminal transaction older
+ * than `staleTimeoutMs` as `STALE`.
+ *
+ * Exported and separate from {@link startTracking} for the reason
+ * `drainOutbox` is separate from `startOutboxRelay` — a pass is assertable, a
+ * forked daemon on an interval is not.
+ *
+ * **It never fails.** A sweep failure must not kill the loop, so the error is
+ * caught here rather than by the caller; what changed is that it is now
+ * *reported*. The handler used to be `() => Effect.void` under a comment
+ * claiming "log-and-continue", so a `findStale` that could not run — a lost
+ * Mongo connection, an index conflict — produced no record anywhere and
+ * recovery silently stopped happening while the daemon went on looping. The
+ * outbox relay logs its equivalent, and that is what made its
+ * `IndexOptionsConflict` visible rather than silent.
+ *
+ * Annotations rather than message interpolation, matching the relay: they reach
+ * the sink as structured fields, so a sweep that has begun failing is queryable
+ * instead of being parsed out of a rendered string.
+ */
+export const sweepStale = (store: TransactionStore, staleTimeoutMs: number) =>
+  Effect.gen(function* () {
+    const stale = yield* store.findStale(staleTimeoutMs);
+    yield* Effect.forEach(
+      stale,
+      record => store.markStale(record.transactionId),
+      { discard: true },
+    );
+    // Sampled after the marking, so the gauge reflects the labels this pass
+    // just applied. This sweep is the only writer of `STALE`, and until it was
+    // counted that label reached no event, no stream and no operator — so a
+    // transaction going stale was discoverable only by polling its own id.
+    yield* recordTransactionStates(yield* store.countByState());
+  }).pipe(
+    Effect.catch(failure =>
+      logSliceOutcome('Error', 'saga recovery sweep failed', {}, failure),
+    ),
+  );
+
+/**
+ * The manager's passive role: subscribe to the bus and fold every event into
+ * the store, and run a recovery sweep that flags transactions stuck in a
+ * non-terminal state.
+ *
+ * It dispatches no work **today**, because every transaction in the fleet is a
+ * single-step write and those stay choreography: the service owns its
+ * transaction and emits events. ADR 0039 decides that a flow spanning slices is
+ * *orchestrated* instead, from a declarative `SagaDefinition`, and that the
+ * coordinator lives in this slice. So this becomes the orchestrator's host when
+ * the first multi-step flow lands; it is passive until then, and single-step
+ * writes stay passive after.
+ */
+export const startTracking = Effect.gen(function* () {
+  const store = yield* TransactionStoreTag;
+  const bus = yield* EventBusTag;
+  const hub = yield* TransactionStreamHubTag;
+  const shutdown = yield* ShutdownRegistryTag;
+  const recoveryInterval = yield* SagaRecoveryIntervalMs;
+  const staleTimeoutMs = yield* SagaStaleTimeoutMs;
+  // The exactly-once fold, its claim's unique index ensured as it was built:
+  // without it two concurrent first deliveries both insert and both fold.
+  const tracker = yield* TransactionFoldTag;
+
+  // Fold each observed event into the persisted record. The handler carries no
+  // requirements (store is closed over), so the bus can run it standalone.
+  // `transaction.*` and nothing else: the exchange is a topic, so this slice's
+  // interest is expressed to the broker rather than in the handler. It is the
+  // same string `tools/slices/transaction.slice.ts` declares, which is what
+  // keeps the register honest.
+  //
+  // `work`, not `broadcast`: the fold is an idempotent upsert that wants to
+  // reach exactly one replica, and — the half that actually bit — it must not
+  // lose an event published while this process is restarting. On the exclusive
+  // queue this used to bind, such an event was routed to zero queues and
+  // dropped by the broker, while the outbox had already recorded it sent
+  // (ADR 0030).
+  //
+  // `dedupe: 'inbox'` in the register, and the claim is what makes it true: the
+  // fold and its claim commit together, so a redelivery is recognised and
+  // skipped rather than re-applied. The fold *is* an idempotent upsert and so
+  // would survive one anyway — it is routed through the inbox regardless, so the
+  // mechanism has a live exerciser before the first consumer that genuinely
+  // cannot be natural (a stock decrement, a payment capture) depends on it.
+  const foldSubscription: Subscription = {
+    slice: TRACKER_SLICE,
+    pattern: 'transaction.*',
+    mode: 'work',
+    maxAttempts: MAX_ATTEMPTS,
+  };
+  // The consumer half of the claim key: the durable work-queue name this
+  // subscription binds. Derived rather than written out, so it cannot drift
+  // from the queue the broker actually delivers on — and durable, which an
+  // anonymous broadcast queue's server-generated name is not. That is why
+  // `dedupe: 'inbox'` is only legal on a `work` subscription.
+  const foldConsumer = queueNameFor(foldSubscription);
+
+  yield* bus.subscribe(foldSubscription, event =>
+    Effect.asVoid(
+      tracker.fold(foldConsumer, event.id, event.data as TransactionEvent),
+    ),
+  );
+
+  // The same events again, on a second subscription, feeding the connections
+  // held by `GET /api/transaction/events`.
+  //
+  // **`broadcast`, and it is not interchangeable with the fold above.** Every
+  // replica holds *different* browser connections, so every replica must receive
+  // every event; a `work` queue delivers each one to exactly one replica and the
+  // clients attached to the others silently never learn — which reads as
+  // flakiness rather than as a defect, because nothing errors. This is the
+  // consumer ADR 0030 named by number when it declined to make broadcast the
+  // default, and the first one in the register.
+  //
+  // Two subscriptions on one slice and one pattern do not collide: only a `work`
+  // queue is named (`queueNameFor`), and a broadcast queue is an anonymous
+  // exclusive one that dies with its connection — correct here, since a message
+  // published while a replica restarts has no audience anyway.
+  yield* bus.subscribe(
+    {
+      slice: TRACKER_SLICE,
+      pattern: 'transaction.*',
+      mode: 'broadcast',
+      maxAttempts: MAX_ATTEMPTS,
+    },
+    event => hub.publish(event as DomainEvent<TransactionEvent>),
+  );
+
+  // Recovery sweep as a detached daemon so it outlives the boot effect.
+  const daemon = yield* Effect.forkDetach(
+    sweepStale(store, staleTimeoutMs).pipe(
+      Effect.delay(Duration.millis(recoveryInterval)),
+      Effect.forever,
+    ),
+  );
+
+  // `stop-intake`: the sweep writes, so it must stop before the Mongo client
+  // does — a `markStale` issued into a closing pool fails for a reason that has
+  // nothing to do with the transaction it was about to describe.
+  yield* shutdown.register({
+    name: 'saga-recovery-sweep',
+    phase: 'stop-intake',
+    run: Fiber.interrupt(daemon).pipe(Effect.asVoid),
+  });
+});

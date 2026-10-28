@@ -20,7 +20,6 @@ import {
   ORGANIZATION_COLLECTION,
   rebuildOrganizationAnnouncements,
   seedOrganizations,
-  startOrganizationRebuild,
   writeOrganization,
 } from './organization-announcements.js';
 
@@ -271,19 +270,5 @@ describe('seeding and the boot walk', () => {
 
     expect(store.fake.read(ORGANIZATION_COLLECTION)).toHaveLength(1);
     expect(store.fake.read(OUTBOX_COLLECTION)).toHaveLength(1);
-  });
-
-  it('forks the walk past boot, and logs a walk that fails rather than failing the boot', async () => {
-    const store = await storeWith();
-    store.fake.failOn('find', new Error('network down'));
-
-    await expect(
-      Effect.runPromise(
-        startOrganizationRebuild.pipe(
-          Effect.andThen(Effect.sleep('10 millis')),
-          Effect.provide(services(store)),
-        ),
-      ),
-    ).resolves.toBeUndefined();
   });
 });

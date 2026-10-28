@@ -296,6 +296,18 @@
     },
     {
       "path": "./packages/shells/effect/config"
+    },
+    {
+      "path": "./packages/shells/effect/marketplace"
+    },
+    {
+      "path": "./packages/shells/effect/marketplace-admin"
+    },
+    {
+      "path": "./packages/shells/effect/auth"
+    },
+    {
+      "path": "./packages/shells/effect/transaction"
     }
   ],
   "compilerOptions": {

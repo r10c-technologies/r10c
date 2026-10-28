@@ -12,7 +12,7 @@ import { Effect, Layer } from 'effect';
 const SERVICE_NAME = 'sales-service';
 
 /**
- * The `sales` slice's composition, mounted by its service alone (ADR 0064) — — the `sales` store's only writer.
+ * The `sales` slice's composition, mounted by its service alone (ADR 0064) — the `sales` store's only writer.
  *
  * **`MongoClientLayer`, not `MongoDatabaseLayer`.** Every handle here is
  * `sales_<organizationId>`, resolved inside the request from the verified

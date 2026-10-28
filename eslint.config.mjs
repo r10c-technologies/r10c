@@ -204,7 +204,10 @@ const shellConstraints = [
       'layer:utils',
     ],
   },
-  { sourceTag: 'shell:domain', onlyDependOnLibsWithTags: SLICE_SHELL_MAY_IMPORT },
+  {
+    sourceTag: 'shell:domain',
+    onlyDependOnLibsWithTags: SLICE_SHELL_MAY_IMPORT,
+  },
   {
     sourceTag: 'shell:platform',
     onlyDependOnLibsWithTags: SLICE_SHELL_MAY_IMPORT,
@@ -379,6 +382,52 @@ const specConstraints = sourceConstraints.map(c =>
 
 const allowEslintConfig = ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'];
 
+/**
+ * What an Effect service's `src/` may not import (ADR 0064): apps only mount.
+ * Routes, an HTTP API and the saga engine are composition, and composition is
+ * the slice's shell's — a route or an engine wired in an app is a second place
+ * a reader has to look for what a failure means.
+ *
+ * Spread by each service's own `eslint.config.mjs`, for the reason
+ * `serviceE2eConfig` is: a flat-config glob resolves against the config that
+ * declares it. The root list carries the same rule at `apps/*-service/src`, so
+ * a lint run from the repository root — and `@r10c/conventions`' planted app
+ * file — reads it too.
+ */
+const SERVICE_APP_RESTRICTIONS = {
+  'no-restricted-imports': [
+    'error',
+    {
+      paths: [
+        {
+          name: 'effect/http',
+          importNames: ['HttpRouter'],
+          message:
+            'Routes are composed by the slice shell; a service only mounts it (ADR 0064).',
+        },
+        {
+          name: 'effect/http-api',
+          message:
+            'An HTTP API is composed by the slice shell; a service only mounts it (ADR 0064).',
+        },
+      ],
+      patterns: [
+        {
+          group: ['@entifix/*/engine'],
+          message:
+            'The engine is composed by the slice shell; a service only mounts it (ADR 0064).',
+        },
+      ],
+    },
+  ],
+};
+
+export const serviceAppConfig = {
+  files: ['src/**/*.ts'],
+  ignores: ['src/**/*.spec.ts'],
+  rules: SERVICE_APP_RESTRICTIONS,
+};
+
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
@@ -544,6 +593,11 @@ export default [
     ignores: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.stories.tsx'],
     plugins: { r10c: r10cPlugin },
     rules: { 'r10c/no-foreign-app-namespace': 'error' },
+  },
+  {
+    files: ['apps/*-service/src/**/*.ts'],
+    ignores: ['apps/*-service/src/**/*.spec.ts'],
+    rules: SERVICE_APP_RESTRICTIONS,
   },
 ];
 
