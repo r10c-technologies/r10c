@@ -1287,11 +1287,11 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   };
 
   it('finds the metrics it is meant to check', () => {
-    // Ten: four bus counters, three outbox gauges, one transaction gauge, and
-    // the saga sweep's gauge and counter. Pinned as a count rather than a Set
+    // Eleven: five bus counters, three outbox gauges, one transaction gauge,
+    // and the saga sweep's gauge and counter. Pinned as a count rather than a Set
     // size, so the doc-comment over-match the DECLARATION regex is written to
     // avoid cannot hide behind dedup.
-    expect(declared()).toHaveLength(10);
+    expect(declared()).toHaveLength(11);
     expect(new Set(queried()).size).toBeGreaterThanOrEqual(8);
   });
 

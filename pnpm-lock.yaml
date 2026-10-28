@@ -1565,6 +1565,9 @@ importers:
       '@entifix/testing-e2e':
         specifier: 'catalog:'
         version: 0.10.2(d3ccc5bdbcedfe4cbc51388667f9c68d)
+      '@entifix/transactions':
+        specifier: 'catalog:'
+        version: 0.10.2(effect@4.0.6)
       '@r10c/business-ts-authn':
         specifier: workspace:*
         version: link:../../packages/business/ts/authn

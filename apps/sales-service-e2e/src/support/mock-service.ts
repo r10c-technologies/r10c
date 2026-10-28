@@ -17,6 +17,7 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
+import { InMemoryRetryBudgetLayer } from '@entifix/transactions/engine';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -108,7 +109,11 @@ const MockAppLayer = (() => {
       url: 'http://mock-coordinator/api',
       crossingToken: E2E_CROSSING_TOKEN,
     }),
-    httpPublishedPriceReaderLayer('http://mock-catalog/api'),
+    // The shipped fleet provides the retry budget into the app
+    // (`makeFleetServiceLayer`); the price read retries under it.
+    httpPublishedPriceReaderLayer('http://mock-catalog/api').pipe(
+      Layer.provide(InMemoryRetryBudgetLayer()),
+    ),
   );
 
   // The REAL seed, so both profiles read the same channels and a shared journey
