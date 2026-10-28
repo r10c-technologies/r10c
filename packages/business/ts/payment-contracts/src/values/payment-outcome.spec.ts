@@ -1,3 +1,4 @@
+import { Invalid } from '@entifix/core';
 import { Effect, Result } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -114,7 +115,13 @@ describe('readPaymentOutcome', () => {
   it('names every member it is missing, rather than the first', () => {
     const outcome = read({ amount: 1 });
     expect(Result.isFailure(outcome)).toBe(true);
-    const message = Result.isFailure(outcome) ? outcome.failure.message : '';
+    const failure = Result.isFailure(outcome) ? outcome.failure : undefined;
+    // A typed `invalid` failure, so the bus quarantines it at once.
+    expect(failure).toBeInstanceOf(Invalid);
+    const message =
+      failure instanceof Invalid
+        ? failure.errors.map(error => error.detail).join(' ')
+        : '';
     expect(message).toContain('paymentId');
     expect(message).toContain('orderId');
     expect(message).toContain('currency');

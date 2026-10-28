@@ -1,5 +1,15 @@
-import { EntifixBuildError } from '@entifix/core';
+import { Invalid } from '@entifix/core';
 import { Effect } from 'effect';
+
+/**
+ * A payload this process cannot read, as a typed `invalid` failure. Business
+ * family, so the bus quarantines it at once rather than redelivering a message
+ * no retry will fix (ADR 0030, ADR 0064) — the legacy `EntifixBuildError` it
+ * replaces is not a typed failure, and since entifix 0.10.0 the adapter reads
+ * anything untyped as transient.
+ */
+const invalidPayload = (detail: string) =>
+  new Invalid({ errors: [{ pointer: '/data', detail, code: 'malformed' }] });
 
 /**
  * What settlement reads off an `order.placed` message.
@@ -56,24 +66,20 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const readLine = (value: unknown, index: number): PlacedOrderLine => {
   if (!isRecord(value)) {
-    throw new EntifixBuildError(`order.placed item ${index} is not an object`);
+    throw invalidPayload(`order.placed item ${index} is not an object`);
   }
   const { vendorId, amount, quantity, currency } = value;
   if (typeof vendorId !== 'string' || vendorId === '') {
-    throw new EntifixBuildError(`order.placed item ${index} has no vendorId`);
+    throw invalidPayload(`order.placed item ${index} has no vendorId`);
   }
   if (typeof amount !== 'number' || !Number.isFinite(amount)) {
-    throw new EntifixBuildError(
-      `order.placed item ${index} has no numeric amount`,
-    );
+    throw invalidPayload(`order.placed item ${index} has no numeric amount`);
   }
   if (typeof quantity !== 'number' || !Number.isFinite(quantity)) {
-    throw new EntifixBuildError(
-      `order.placed item ${index} has no numeric quantity`,
-    );
+    throw invalidPayload(`order.placed item ${index} has no numeric quantity`);
   }
   if (typeof currency !== 'string' || currency === '') {
-    throw new EntifixBuildError(`order.placed item ${index} has no currency`);
+    throw invalidPayload(`order.placed item ${index} has no currency`);
   }
   return { vendorId, amount, quantity, currency };
 };
@@ -95,18 +101,18 @@ const readLine = (value: unknown, index: number): PlacedOrderLine => {
  */
 export const readPlacedOrder = (
   data: unknown,
-): Effect.Effect<PlacedOrder, EntifixBuildError> =>
+): Effect.Effect<PlacedOrder, Invalid> =>
   Effect.try({
     try: () => {
       if (!isRecord(data)) {
-        throw new EntifixBuildError('order.placed payload is not an object');
+        throw invalidPayload('order.placed payload is not an object');
       }
       const { id, items, channel } = data;
       if (typeof id !== 'string' || id === '') {
-        throw new EntifixBuildError('order.placed payload has no id');
+        throw invalidPayload('order.placed payload has no id');
       }
       if (!Array.isArray(items) || items.length === 0) {
-        throw new EntifixBuildError('order.placed payload has no items');
+        throw invalidPayload('order.placed payload has no items');
       }
 
       // Absent is normal — a storefront sale comes through no channel at all —
@@ -117,7 +123,7 @@ export const readPlacedOrder = (
       let channelType: string | undefined;
       if (channel !== undefined && channel !== null) {
         if (!isRecord(channel) || typeof channel.type !== 'string') {
-          throw new EntifixBuildError('order.placed channel has no type');
+          throw invalidPayload('order.placed channel has no type');
         }
         channelType = channel.type;
       }
@@ -128,9 +134,9 @@ export const readPlacedOrder = (
         ...(channelType === undefined ? {} : { channelType }),
       } satisfies PlacedOrder;
     },
-    // Every throw above is an `EntifixBuildError`, and nothing else in the
+    // Every throw above is an `Invalid`, and nothing else in the
     // body can throw.
-    catch: error => error as EntifixBuildError,
+    catch: error => error as Invalid,
   });
 
 /**

@@ -1,4 +1,4 @@
-import { EntifixBuildError } from '@entifix/core';
+import { Invalid } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -48,7 +48,7 @@ describe('readPlacedOrder', () => {
     ];
 
     for (const payload of payloads) {
-      expect(await refused(payload)).toBeInstanceOf(EntifixBuildError);
+      expect(await refused(payload)).toBeInstanceOf(Invalid);
     }
   });
 });

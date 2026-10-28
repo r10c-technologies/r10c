@@ -1,9 +1,19 @@
 import {
   type DomainEvent,
-  EntifixBuildError,
+  Invalid,
   type TransitionalFailure,
 } from '@entifix/core';
 import { Effect } from 'effect';
+
+/**
+ * A payload this process cannot read, as a typed `invalid` failure. Business
+ * family, so the bus quarantines it at once rather than redelivering a message
+ * no retry will fix (ADR 0030, ADR 0064) — the legacy `EntifixBuildError` it
+ * replaces is not a typed failure, and since entifix 0.10.0 the adapter reads
+ * anything untyped as transient.
+ */
+const invalidPayload = (detail: string) =>
+  new Invalid({ errors: [{ pointer: '/data', detail, code: 'malformed' }] });
 
 /**
  * Money was taken for an order. Routing key and register name.
@@ -223,11 +233,7 @@ export const readPaymentOutcome = (
   Effect.gen(function* () {
     if (data === null || typeof data !== 'object') {
       return yield* Effect.fail(
-        new EntifixBuildError(
-          'payment outcome payload is not an object',
-          undefined,
-          { data },
-        ),
+        invalidPayload('payment outcome payload is not an object'),
       );
     }
 
@@ -245,10 +251,8 @@ export const readPaymentOutcome = (
 
     if (missing.length > 0) {
       return yield* Effect.fail(
-        new EntifixBuildError(
+        invalidPayload(
           `payment outcome payload is missing or malformed (${missing.join(', ')})`,
-          undefined,
-          { missing, data },
         ),
       );
     }
