@@ -96,3 +96,63 @@ describe('a next cell', () => {
     expect(errors.length).toBe(1);
   }, 60_000);
 });
+
+/**
+ * The shell ordering (ADR 0064), proved the same way: a planted edge through
+ * the real configuration, at a path inside a real shell, beside a legal twin.
+ *
+ * Each planted edge is one the **scope** rule would let through, so a failure
+ * here is the `shell:*` dimension's alone: the Next and Effect order shells
+ * share `scope:order`, and the base and the system-management shell are both
+ * `scope:shared`.
+ */
+const shellBoundaryErrors = async (
+  shell: string,
+  code: string,
+): Promise<string[]> => {
+  const eslint = new ESLint({ cwd: REPO_ROOT });
+  const [result] = await eslint.lintText(`${code}\nexport {};\n`, {
+    filePath: join(REPO_ROOT, 'packages/shells', shell, 'src/planted.ts'),
+  });
+  return (result?.messages ?? [])
+    .filter(message => message.ruleId === BOUNDARY_RULE)
+    .map(message => message.message);
+};
+
+describe('the shell kinds', () => {
+  it('stop a domain shell importing another domain shell', async () => {
+    expect(
+      await shellBoundaryErrors(
+        'effect/order',
+        "import { orderNav } from '@r10c/shells-next-order';",
+      ),
+    ).toHaveLength(1);
+  }, 60_000);
+
+  it('let a domain shell import the base', async () => {
+    expect(
+      await shellBoundaryErrors(
+        'effect/order',
+        "import { fleetFailurePolicy } from '@r10c/shells-effect-service';",
+      ),
+    ).toEqual([]);
+  }, 60_000);
+
+  it('stop the base importing a slice’s shell', async () => {
+    expect(
+      await shellBoundaryErrors(
+        'effect/service',
+        "import { systemNav } from '@r10c/shells-next-system-management';",
+      ),
+    ).toHaveLength(1);
+  }, 60_000);
+
+  it('let the base import the shared core', async () => {
+    expect(
+      await shellBoundaryErrors(
+        'effect/service',
+        "import { fleetToken } from '@r10c/utils-ts-fleet';",
+      ),
+    ).toEqual([]);
+  }, 60_000);
+});

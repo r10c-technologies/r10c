@@ -113,14 +113,15 @@ const movementsFor = (
  * row, and #223 exists because an assertion that passes against an empty store
  * proves nothing.
  */
-export const stockMovementTempData: readonly StockMovementRecord[] =
-  Array.from({ length: Math.min(STOCKED, SEEDED_OFFERINGS) }, (_, index) =>
+export const stockMovementTempData: readonly StockMovementRecord[] = Array.from(
+  { length: Math.min(STOCKED, SEEDED_OFFERINGS) },
+  (_, index) =>
     movementsFor(index).map((movement, position) => ({
       id: `stock-movement-${index + 1}-${position + 1}`,
       offeringId: offeringId(index),
       ...movement,
     })),
-  ).flat();
+).flat();
 
 /**
  * The fold of {@link stockMovementTempData}, computed rather than written.

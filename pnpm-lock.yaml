@@ -1191,6 +1191,9 @@ importers:
       '@r10c/implementation-order-mongo':
         specifier: workspace:*
         version: link:../../packages/implementation/order/mongo
+      '@r10c/shells-effect-order':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/order
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -1349,6 +1352,9 @@ importers:
       '@r10c/implementation-payment-mongo':
         specifier: workspace:*
         version: link:../../packages/implementation/payment/mongo
+      '@r10c/shells-effect-payment':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/payment
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -1498,6 +1504,9 @@ importers:
       '@r10c/implementation-sales-management-http':
         specifier: workspace:*
         version: link:../../packages/implementation/sales-management/http
+      '@r10c/shells-effect-sales':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/sales
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
@@ -1649,6 +1658,9 @@ importers:
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
+      '@r10c/shells-effect-settlement':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/settlement
       '@r10c/utils-ts-fleet':
         specifier: workspace:*
         version: link:../../packages/utils/ts/fleet
@@ -1798,6 +1810,9 @@ importers:
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
+      '@r10c/shells-effect-stock':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/stock
       '@r10c/utils-ts-fleet':
         specifier: workspace:*
         version: link:../../packages/utils/ts/fleet
@@ -3184,6 +3199,94 @@ importers:
         specifier: 'catalog:'
         version: 0.10.0(@entifix/react-controls@0.10.0(@entifix/i18n@0.10.0(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.4(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
 
+  packages/shells/effect/order:
+    dependencies:
+      '@entifix/amqp':
+        specifier: 'catalog:'
+        version: 0.10.0(@entifix/transactions@0.10.0(effect@4.0.6))(effect@4.0.6)
+      '@entifix/mongo':
+        specifier: 'catalog:'
+        version: 0.10.0(@entifix/transactions@0.10.0(effect@4.0.6))(effect@4.0.6)
+      '@entifix/service-shell':
+        specifier: 'catalog:'
+        version: 0.10.0(4e4e56863da70ff664b5a98fb0542f8f)
+      '@entifix/transactions':
+        specifier: 'catalog:'
+        version: 0.10.0(effect@4.0.6)
+      '@r10c/business-ts-order-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/order-management
+      '@r10c/business-ts-payment-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/payment-contracts
+      '@r10c/implementation-order-management-http':
+        specifier: workspace:*
+        version: link:../../../implementation/order-management/http
+      '@r10c/implementation-order-mongo':
+        specifier: workspace:*
+        version: link:../../../implementation/order/mongo
+      '@r10c/shells-effect-service':
+        specifier: workspace:*
+        version: link:../service
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.6
+        version: 4.0.6
+    devDependencies:
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.10.0(effect@4.0.6)
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.10.0(@entifix/react-controls@0.10.0(@entifix/i18n@0.10.0(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.4(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+
+  packages/shells/effect/payment:
+    dependencies:
+      '@entifix/mongo':
+        specifier: 'catalog:'
+        version: 0.10.0(@entifix/transactions@0.10.0(effect@4.0.6))(effect@4.0.6)
+      '@entifix/service-shell':
+        specifier: 'catalog:'
+        version: 0.10.0(4e4e56863da70ff664b5a98fb0542f8f)
+      '@r10c/business-ts-payment-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/payment-management
+      '@r10c/implementation-payment-management-http':
+        specifier: workspace:*
+        version: link:../../../implementation/payment-management/http
+      '@r10c/implementation-payment-mongo':
+        specifier: workspace:*
+        version: link:../../../implementation/payment/mongo
+      '@r10c/shells-effect-service':
+        specifier: workspace:*
+        version: link:../service
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.6
+        version: 4.0.6
+
+  packages/shells/effect/sales:
+    dependencies:
+      '@entifix/mongo':
+        specifier: 'catalog:'
+        version: 0.10.0(@entifix/transactions@0.10.0(effect@4.0.6))(effect@4.0.6)
+      '@r10c/implementation-sales-management-http':
+        specifier: workspace:*
+        version: link:../../../implementation/sales-management/http
+      '@r10c/shells-effect-service':
+        specifier: workspace:*
+        version: link:../service
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.6
+        version: 4.0.6
+
   packages/shells/effect/service:
     dependencies:
       '@effect/opentelemetry':
@@ -3244,6 +3347,86 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.10.0(@entifix/react-controls@0.10.0(@entifix/i18n@0.10.0(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.4(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+
+  packages/shells/effect/settlement:
+    dependencies:
+      '@entifix/amqp':
+        specifier: 'catalog:'
+        version: 0.10.0(@entifix/transactions@0.10.0(effect@4.0.6))(effect@4.0.6)
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.10.0(effect@4.0.6)
+      '@entifix/mongo':
+        specifier: 'catalog:'
+        version: 0.10.0(@entifix/transactions@0.10.0(effect@4.0.6))(effect@4.0.6)
+      '@entifix/service-shell':
+        specifier: 'catalog:'
+        version: 0.10.0(4e4e56863da70ff664b5a98fb0542f8f)
+      '@entifix/transactions':
+        specifier: 'catalog:'
+        version: 0.10.0(effect@4.0.6)
+      '@r10c/business-ts-payment-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/payment-contracts
+      '@r10c/business-ts-settlement-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/settlement-management
+      '@r10c/implementation-settlement-management-http':
+        specifier: workspace:*
+        version: link:../../../implementation/settlement-management/http
+      '@r10c/implementation-settlement-mongo':
+        specifier: workspace:*
+        version: link:../../../implementation/settlement/mongo
+      '@r10c/shells-effect-service':
+        specifier: workspace:*
+        version: link:../service
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.6
+        version: 4.0.6
+      mongodb:
+        specifier: 7.7.0
+        version: 7.7.0
+    devDependencies:
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.10.0(effect@4.0.6)
+      '@entifix/testing-unit':
+        specifier: 'catalog:'
+        version: 0.10.0(@entifix/react-controls@0.10.0(@entifix/i18n@0.10.0(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.4(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+
+  packages/shells/effect/stock:
+    dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.10.0(effect@4.0.6)
+      '@entifix/mongo':
+        specifier: 'catalog:'
+        version: 0.10.0(@entifix/transactions@0.10.0(effect@4.0.6))(effect@4.0.6)
+      '@r10c/business-ts-stock-management':
+        specifier: workspace:*
+        version: link:../../../business/ts/stock-management
+      '@r10c/implementation-stock-management-http':
+        specifier: workspace:*
+        version: link:../../../implementation/stock-management/http
+      '@r10c/implementation-stock-mongo':
+        specifier: workspace:*
+        version: link:../../../implementation/stock/mongo
+      '@r10c/shells-effect-service':
+        specifier: workspace:*
+        version: link:../service
+      '@swc/helpers':
+        specifier: 0.5.23
+        version: 0.5.23
+      effect:
+        specifier: 4.0.6
+        version: 4.0.6
+    devDependencies:
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.10.0(effect@4.0.6)
 
   packages/shells/next/auth:
     dependencies:

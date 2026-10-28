@@ -3,8 +3,12 @@
  * it — the same split every other backend makes, so an e2e `mock` profile can
  * launch the real router in-process against driver fakes.
  */
-export { AppLayer, ORDER_SLICE } from './mongo';
-export { router } from './routes';
+import { makeAppLayer } from '@r10c/shells-effect-order';
+
+export { ORDER_SLICE, router } from '@r10c/shells-effect-order';
+
+/** The slice's composition, as the service mounts it. */
+export const AppLayer = makeAppLayer();
 
 export const SERVICE_NAME = '@r10c/order-service';
 

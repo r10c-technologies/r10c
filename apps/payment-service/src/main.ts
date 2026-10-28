@@ -1,9 +1,8 @@
 import { makeService } from '@entifix/service-shell/runtime';
+import { makeAppLayer, router } from '@r10c/shells-effect-payment';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
-import { AppLayer } from './mongo';
-import { router } from './routes';
 
 /**
  * payment-service — taking money for an order (port 3106).
@@ -26,5 +25,5 @@ makeService({
   slices: ['payment'],
   description: fleetToken,
   router,
-  appLayer: AppLayer,
+  appLayer: makeAppLayer(),
 });

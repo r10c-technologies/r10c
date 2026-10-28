@@ -278,6 +278,21 @@
     },
     {
       "path": "./packages/testing/cells"
+    },
+    {
+      "path": "./packages/shells/effect/settlement"
+    },
+    {
+      "path": "./packages/shells/effect/payment"
+    },
+    {
+      "path": "./packages/shells/effect/order"
+    },
+    {
+      "path": "./packages/shells/effect/sales"
+    },
+    {
+      "path": "./packages/shells/effect/stock"
     }
   ],
   "compilerOptions": {

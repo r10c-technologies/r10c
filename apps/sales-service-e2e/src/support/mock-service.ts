@@ -71,7 +71,7 @@ const CONFIGURATION = {
 
 /**
  * The `mock` composition root: the same shape as the service's own `AppLayer`
- * (`apps/sales-service/src/mongo.ts`), with the Mongo *connection* replaced by
+ * (`packages/shells/effect/sales/src/app-layer.ts`), with the Mongo *connection* replaced by
  * a driver fake and the config-service fetch replaced by a literal.
  *
  * Everything above the connection is untouched — the routes, the tenant

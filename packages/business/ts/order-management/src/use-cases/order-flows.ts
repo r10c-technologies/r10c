@@ -270,9 +270,12 @@ export const cancelOrderAsBuyer = (input: {
         ? 'noCapability'
         : verifyCancelCapability(order, input.nonce, new Date());
     if (order === undefined || refusal !== undefined) {
-      yield* Effect.logInfo('a buyer cancellation was refused').pipe(
-        Effect.annotateLogs({ orderId: input.orderId, refusal }),
-      );
+      // On the trace rather than in a log: the outcome below is the answer,
+      // and only the slice shell logs (ADR 0064).
+      yield* Effect.annotateCurrentSpan({
+        'order.id': input.orderId,
+        'order.cancel.refusal': String(refusal),
+      });
       return { _tag: 'notAuthorized', refusal } as CancelResult;
     }
     // The payment is not confirmed yet: a state the buyer can wait out.

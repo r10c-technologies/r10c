@@ -19,6 +19,7 @@ import {
   type MongoUnit,
 } from '@entifix/mongo/transactions';
 import {
+  type ExpirySweep,
   type HoldOutcome,
   Reservation,
   type RestoreOutcome,
@@ -354,6 +355,7 @@ export const MongoStockLedgerLayer = Layer.effect(
       releaseExpired: () =>
         Effect.gen(function* () {
           let released = 0;
+          const failed: Array<ExpirySweep['failed'][number]> = [];
           for (const { handle: db } of yield* directory.list()) {
             const expired = yield* Effect.tryPromise({
               try: () =>
@@ -375,23 +377,19 @@ export const MongoStockLedgerLayer = Layer.effect(
               // Each hold on its own: one that fails must not keep the rest
               // promised forever.
               const outcome = yield* endHold(db, id, 'released').pipe(
-                Effect.catch(error =>
-                  Effect.as(
-                    Effect.logError('expiring a reservation failed').pipe(
-                      Effect.annotateLogs({
-                        database: db.databaseName,
-                        reservationId: id,
-                        error: String(error),
-                      }),
-                    ),
-                    'not-held' as const,
-                  ),
-                ),
+                Effect.catch(failure => {
+                  failed.push({
+                    database: db.databaseName,
+                    reservationId: id,
+                    failure,
+                  });
+                  return Effect.succeed('not-held' as const);
+                }),
               );
               if (outcome === 'transitioned') released += 1;
             }
           }
-          return released;
+          return { released, failed } as ExpirySweep;
         }),
     };
   }),

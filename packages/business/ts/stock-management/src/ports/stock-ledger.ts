@@ -56,8 +56,25 @@ export interface StockLedger {
    * Release every expired hold in every organization's store. Without it
    * `expiresAt` is a timestamp nothing reads, and an abandoned basket promises
    * a vendor's stock forever.
+   *
+   * Each hold is released on its own, so one that fails is **reported** and the
+   * walk goes on; the slice shell logs what was reported (ADR 0064).
    */
-  readonly releaseExpired: () => Effect.Effect<number, TransitionalFailure>;
+  readonly releaseExpired: () => Effect.Effect<
+    ExpirySweep,
+    TransitionalFailure
+  >;
+}
+
+/** What one pass over the expired holds did. */
+export interface ExpirySweep {
+  readonly released: number;
+  /** The holds a release failed for, each with the failure it failed with. */
+  readonly failed: ReadonlyArray<{
+    readonly database: string;
+    readonly reservationId: string;
+    readonly failure: unknown;
+  }>;
 }
 
 export class StockLedgerTag extends Context.Service<

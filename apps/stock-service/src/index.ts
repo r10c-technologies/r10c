@@ -4,15 +4,22 @@
  * launch the real router in-process against driver fakes rather than
  * re-declaring a stand-in that could drift.
  */
-export { AppLayer } from './mongo';
-export { router } from './routes';
+import { makeAppLayer } from '@r10c/shells-effect-stock';
+
+import { seedStock } from './seed';
+
+export { router } from '@r10c/shells-effect-stock';
+
+/** The slice's composition, as the service mounts it, with its seed. */
+export const AppLayer = makeAppLayer({ seed: seedStock });
+
 /**
  * Exported so the e2e `mock` profile boots the **real** seed rather than a
  * fixture of its own: both profiles then read the same stock positions, and a
  * shared journey can name a seeded row instead of asserting that some row
  * exists — which is the assertion that passes against an empty store.
  */
-export { seedStock } from './seed';
+export { seedStock };
 /**
  * The hold's lifetime, as a tag. Exported for the same reason the seed is: the
  * mock profile has to provide every value the shipped composition root reads

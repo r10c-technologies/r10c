@@ -166,7 +166,7 @@ export const describeStockLedgerContract = (
       const freed = await run(ledger.take('org-b', hold('r-2', 1), undefined));
       const stillHeld = await run(ledger.end('org-a', 'r-new', 'released'));
 
-      expect(released).toBe(2);
+      expect(released).toEqual({ released: 2, failed: [] });
       expect(freed._tag).toBe('held');
       expect(stillHeld).toBe('transitioned');
     });

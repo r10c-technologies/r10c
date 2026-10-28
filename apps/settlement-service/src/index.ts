@@ -1,5 +1,11 @@
-export { AppLayer, SETTLEMENT_SLICE } from './mongo';
-export { router } from './routes';
+import { makeAppLayer } from '@r10c/shells-effect-settlement';
+
+import { seedSettlement } from './seed';
+
+export { router, SETTLEMENT_SLICE } from '@r10c/shells-effect-settlement';
+
+/** The slice's composition, as the service mounts it, with its seed. */
+export const AppLayer = makeAppLayer({ seed: seedSettlement });
 
 export const SERVICE_NAME = '@r10c/settlement-service';
 

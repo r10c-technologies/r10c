@@ -119,7 +119,7 @@ export const makeInMemoryStockLedger = (): StockLedger => {
             }
           }
         }
-        return released;
+        return { released, failed: [] };
       }),
   };
 };

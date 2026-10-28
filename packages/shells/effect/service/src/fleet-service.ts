@@ -1,7 +1,7 @@
 import type { Resource } from '@effect/opentelemetry/Resource';
-import {
+import type {
   ConfigurationClientInMemory,
-  type ConfigurationPlain,
+  ConfigurationPlain,
 } from '@entifix/core';
 import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
 import { loadRemoteConfiguration } from '@entifix/service-shell/runtime';
@@ -9,6 +9,7 @@ import type { RetryBudgetTag } from '@entifix/transactions';
 import { configSourceFor } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 
+import { fleetConfigurationOf } from './fleet-configuration.js';
 import { fleetRetryBudgetLayer } from './fleet-retry-budget.js';
 
 /** One service's configuration, as config-service served it at boot. */
@@ -39,14 +40,16 @@ export const makeFleetServiceLayer = <A, E, R>(
 ): Layer.Layer<A | Resource | RetryBudgetTag, never, R> =>
   Layer.unwrap(
     Effect.gen(function* () {
-      const plain = yield* loadRemoteConfiguration(configSourceFor(service));
-      const store = new ConfigurationClientInMemory(plain);
+      const configuration = fleetConfigurationOf(
+        yield* loadRemoteConfiguration(configSourceFor(service)),
+      );
+      const { store } = configuration;
       const observability = yield* observabilityFromConfiguration(
         store,
         service,
       );
       const retryBudget = yield* fleetRetryBudgetLayer(store);
-      const app = yield* build({ plain, store });
+      const app = yield* build(configuration);
       return Layer.mergeAll(observability, retryBudget, app);
     }).pipe(Effect.orDie),
   ).pipe(Layer.orDie);

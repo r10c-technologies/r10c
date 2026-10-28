@@ -399,12 +399,12 @@ describe('releasing expired holds', () => {
       ledger.releaseExpired(),
     );
 
-    expect(released).toBe(2);
+    expect(released).toEqual({ released: 2, failed: [] });
     expect(counterOf(one)?.['reserved']).toBe(1);
     expect(counterOf(two)?.['reserved']).toBe(0);
   });
 
-  it('logs a hold it could not release and goes on, and reports a listing it could not read', async () => {
+  it('reports a hold it could not release and goes on, and fails on a listing it could not read', async () => {
     const fake = makeFakeMongoDb({
       [STOCK_ITEM_COLLECTION]: [item('o-1', 5, 1)],
       [RESERVATION_COLLECTION]: [
@@ -421,9 +421,14 @@ describe('releasing expired holds', () => {
     const unreadable = makeFakeMongoDb();
     unreadable.failOn('find', new Error('network down'));
 
-    expect(
-      await world({ org: fake }).run(ledger => ledger.releaseExpired()),
-    ).toBe(0);
+    const sweep = await world({ org: fake }).run(ledger =>
+      ledger.releaseExpired(),
+    );
+
+    expect(sweep.released).toBe(0);
+    expect(sweep.failed).toHaveLength(1);
+    expect(sweep.failed[0]).toMatchObject({ reservationId: 'r-old' });
+    expect(sweep.failed[0]?.failure).toSatisfy(isStoreFault);
     expect(
       await world({ org: unreadable }).run(ledger =>
         Effect.flip(ledger.releaseExpired()),

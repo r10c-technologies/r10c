@@ -178,18 +178,36 @@ const businessConstraints = [
   },
 ];
 
-// Internal ordering INSIDE the shell layer. The base shells a domain shell
-// mounts onto (`@entifix/service-shell`, `@entifix/next-shell`,
-// `@entifix/next-i18n`) are installed packages, so what is left to order is that
-// a domain shell never reaches sideways into another one.
+// Internal ordering INSIDE the shell layer (ADR 0064). Three kinds:
+//
+// - `shell:base` — r10c's fleet composition every Effect service shares
+//   (`@r10c/shells-effect-service`), beside the installed base shells
+//   (`@entifix/service-shell`, `@entifix/next-shell`, `@entifix/next-i18n`).
+// - `shell:domain` — one slice that owns a domain, mounted onto the base.
+// - `shell:platform` — one slice that declares no domain (`transaction`).
+//
+// A domain or platform shell may reach down to the base and never sideways
+// into another shell, of either kind; the base reaches neither, so it can
+// never come to depend on the slices composed onto it.
+const SLICE_SHELL_MAY_IMPORT = [
+  'shell:base',
+  'layer:implementation',
+  'layer:business',
+  'layer:utils',
+];
 const shellConstraints = [
   {
-    sourceTag: 'shell:domain',
+    sourceTag: 'shell:base',
     onlyDependOnLibsWithTags: [
       'layer:implementation',
       'layer:business',
       'layer:utils',
     ],
+  },
+  { sourceTag: 'shell:domain', onlyDependOnLibsWithTags: SLICE_SHELL_MAY_IMPORT },
+  {
+    sourceTag: 'shell:platform',
+    onlyDependOnLibsWithTags: SLICE_SHELL_MAY_IMPORT,
   },
 ];
 

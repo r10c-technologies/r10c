@@ -161,6 +161,7 @@
     "@r10c/implementation-settlement-management-http": "workspace:*",
     "@r10c/implementation-settlement-mongo": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
+    "@r10c/shells-effect-settlement": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "effect": "4.0.6",
     "jose": "6.2.13",
