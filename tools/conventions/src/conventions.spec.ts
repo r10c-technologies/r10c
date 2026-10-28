@@ -26,6 +26,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { ESLint } from 'eslint';
 import { describe, expect, it } from 'vitest';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -407,4 +408,64 @@ describe('no library spreads a Set or a Map', () => {
       `a Set or Map spread, which SWC's loose helper miscompiles:\n  ${offending.join('\n  ')}`,
     ).toEqual([]);
   });
+});
+
+/**
+ * Nobody below the slice shell logs (ADR 0064), proved against planted
+ * source: through the root configuration and through a package's own, which
+ * is the one `nx lint` loads — so the rule failing to reach either, or its glob
+ * no longer matching, fails here. The legal twin is the same call in a shell.
+ */
+describe('logging below the shell', () => {
+  const loggingErrors = async (
+    cwd: string,
+    filePath: string,
+    code: string,
+  ): Promise<number> => {
+    const eslint = new ESLint({ cwd });
+    const [result] = await eslint.lintText(
+      `import { Effect } from 'effect';\n${code}\nexport {};\n`,
+      { filePath },
+    );
+    return (result?.messages ?? []).filter(
+      message => message.ruleId === 'no-restricted-syntax',
+    ).length;
+  };
+  const BUSINESS = join(REPO_ROOT, 'packages/business/ts/authn');
+  const CELL = join(REPO_ROOT, 'packages/implementation/order/mongo');
+
+  it.each([
+    ["Effect.logInfo('x');", 'Effect.log*'],
+    ['Effect.void.pipe(Effect.annotateLogs({ a: 1 }));', 'annotateLogs'],
+    ["Effect.void.pipe(Effect.withLogSpan('x'));", 'withLogSpan'],
+    ["console.log('x');", 'console'],
+  ])(
+    'refuses %s in a business package and a cell (%s)',
+    async code => {
+      for (const root of [BUSINESS, CELL]) {
+        const file = join(root, 'src/planted.ts');
+        expect(await loggingErrors(REPO_ROOT, file, code)).toBe(1);
+        expect(await loggingErrors(root, file, code)).toBe(1);
+      }
+    },
+    120_000,
+  );
+
+  it('lets a shell log, and a spec', async () => {
+    const shell = join(REPO_ROOT, 'packages/shells/effect/order');
+    expect(
+      await loggingErrors(
+        shell,
+        join(shell, 'src/planted.ts'),
+        "Effect.logInfo('x');",
+      ),
+    ).toBe(0);
+    expect(
+      await loggingErrors(
+        BUSINESS,
+        join(BUSINESS, 'src/planted.spec.ts'),
+        "Effect.logInfo('x');",
+      ),
+    ).toBe(0);
+  }, 120_000);
 });

@@ -464,6 +464,45 @@ export const sliceShellConfig = {
   rules: CONSUMER_RETRY_RESTRICTIONS,
 };
 
+/**
+ * Nobody below the slice shell logs (ADR 0064). A use case or a cell returns an
+ * outcome — a report, a typed failure — and the shell that forks the work
+ * logs it with a code, a category and a trace id, never `String(error)`.
+ * Logging from below would decide a level and a sink in code that cannot see
+ * either, and is how a failure ends up logged twice or with its text.
+ *
+ * Spread by every business and implementation project's own config, and
+ * carried at the root too, for the reason `serviceAppConfig` is.
+ */
+const NO_LOGGING_BELOW_THE_SHELL = {
+  'no-restricted-syntax': [
+    'error',
+    {
+      selector:
+        "CallExpression[callee.object.name='Effect'][callee.property.name=/^log/]",
+      message:
+        'Only the slice shell logs: return an outcome instead (ADR 0064).',
+    },
+    {
+      selector:
+        "CallExpression[callee.object.name='Effect'][callee.property.name=/^(annotateLogs|withLogSpan)$/]",
+      message:
+        'Only the slice shell logs: return an outcome instead (ADR 0064).',
+    },
+    {
+      selector: "CallExpression[callee.object.name='console']",
+      message:
+        'Only the slice shell logs: return an outcome instead (ADR 0064).',
+    },
+  ],
+};
+
+export const silentLayerConfig = {
+  files: ['src/**/*.ts', 'src/**/*.tsx'],
+  ignores: ['src/**/*.spec.ts', 'src/**/*.spec.tsx', 'src/**/*.stories.tsx'],
+  rules: NO_LOGGING_BELOW_THE_SHELL,
+};
+
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
@@ -629,6 +668,14 @@ export default [
     ignores: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.stories.tsx'],
     plugins: { r10c: r10cPlugin },
     rules: { 'r10c/no-foreign-app-namespace': 'error' },
+  },
+  {
+    files: [
+      'packages/business/**/src/**/*.{ts,tsx}',
+      'packages/implementation/**/src/**/*.{ts,tsx}',
+    ],
+    ignores: ['**/*.spec.{ts,tsx}', '**/*.stories.tsx'],
+    rules: NO_LOGGING_BELOW_THE_SHELL,
   },
   {
     files: ['packages/shells/effect/*/src/**/*.ts'],

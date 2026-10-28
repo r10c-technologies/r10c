@@ -450,6 +450,27 @@ every app, because Nx forwards the unknown option to `next build` and
    regression. Bundling drops `"use client"`, inlines CommonJS, and collides with
    the `.d.ts` that `tsc --build` writes to the same `dist`. See
    [How a library is built](#how-a-library-is-built).
+6. **Only the slice shell logs, retries or answers a failure.** A use case or
+   a cell returns an outcome — a report, a typed failure with a permanent
+   `code` — and the slice's `@r10c/shells-effect-<slice>` logs it with that code,
+   its category and the trace id, never `String(error)`
+   ([ADR 0064](adr/0064-failures-reach-the-slice-shell.md)). Each part is a lint
+   rule with a planted violation in `@r10c/conventions`:
+   - `Effect.log*`, `Effect.annotateLogs`, `Effect.withLogSpan` and `console.*`
+     fail lint anywhere under `packages/business` or `packages/implementation`
+     (specs and stories excepted). Every one of those projects spreads
+     `silentLayerConfig` from the root `eslint.config.mjs`, because a flat-config
+     glob resolves against the config that declares it and `nx lint` loads the
+     project's own.
+   - An app under `apps/*-service/src` only mounts its shell:
+     `HttpRouter`, `effect/http-api` and `@entifix/*/engine` fail lint there
+     (`serviceAppConfig`), and `@r10c/docs-check` asserts each deployment imports
+     exactly its own slice's shell.
+   - A bus consumer never retries in process — redelivery is its retry — so an
+     `Effect.retry` or `On(…).retry` inside a `subscribe(…)` handler fails lint
+     in any Effect shell (`sliceShellConfig`), and the slices register holds
+     every subscription's `maxAttempts` to the fleet delivery budget of 5.
+     In-process retries are sized by each service's config-service `retry` rows.
 
 ## Module boundaries
 

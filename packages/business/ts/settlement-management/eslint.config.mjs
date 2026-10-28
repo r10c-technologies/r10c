@@ -1,7 +1,8 @@
-import baseConfig from '../../../../eslint.config.mjs';
+import baseConfig, { silentLayerConfig } from '../../../../eslint.config.mjs';
 
 export default [
   ...baseConfig,
+  silentLayerConfig,
   {
     files: ['**/*.json'],
     rules: {
