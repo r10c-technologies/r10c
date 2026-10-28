@@ -5,7 +5,7 @@ import {
 import { Layer } from 'effect';
 
 /**
- * config-service routes. `/api/health` is added by the service base.
+ * The `config` slice's routes. `/api/health` is added by the service runtime.
  *
  * - `/api/config…` — the fleet's lookup and the store's introspection, behind
  *   the shared fleet token, with real values. See

@@ -146,6 +146,7 @@
     "@r10c/business-ts-configuration": "workspace:*",
     "@r10c/implementation-configuration-http": "workspace:*",
     "@r10c/implementation-configuration-sql": "workspace:*",
+    "@r10c/shells-effect-config": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "dotenv": "^18.0.9",
     "effect": "4.0.6",
