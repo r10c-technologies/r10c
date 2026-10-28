@@ -1,9 +1,14 @@
 import { AmqpHealthProbeLayer, AmqpLayer } from '@entifix/amqp';
-import { AmqpEventBusLayer } from '@entifix/amqp/transactions';
+import {
+  AmqpEventBusLayer,
+  exponentialRedeliveryBackoff,
+  RedeliveryBackoffTag,
+} from '@entifix/amqp/transactions';
 import { OutboxMaxAttempts } from '@entifix/mongo/transactions';
 import { EventSourceTag } from '@entifix/transactions';
 import { Effect, Layer } from 'effect';
 
+import { readRetryDials } from './fleet-retry-budget.js';
 import type { FleetConfiguration } from './fleet-service.js';
 
 /**
@@ -17,13 +22,31 @@ import type { FleetConfiguration } from './fleet-service.js';
  * fleet, `amqp` for the one service whose rows were named that way first.
  */
 export const fleetBusLayer = (
-  { store }: FleetConfiguration,
+  configuration: FleetConfiguration,
   group: 'rabbitmq' | 'amqp' = 'rabbitmq',
 ) =>
-  Effect.map(store.in(group).getString('uri'), uri =>
-    Layer.provideMerge(
+  Effect.gen(function* () {
+    const uri = yield* configuration.store.in(group).getString('uri');
+    const backoff = yield* fleetRedeliveryBackoffLayer(configuration);
+    return Layer.provideMerge(
       Layer.mergeAll(AmqpEventBusLayer, AmqpHealthProbeLayer),
-      AmqpLayer({ uri }),
+      Layer.merge(AmqpLayer({ uri }), backoff),
+    );
+  });
+
+/**
+ * The wait between a transient failure's redeliveries: the same
+ * `backoffBaseMs` / `backoffCapMs` the in-process retries read, from this
+ * service's `retry` rows (ADR 0030, entifix ADR 0014).
+ */
+export const fleetRedeliveryBackoffLayer = ({ store }: FleetConfiguration) =>
+  Effect.map(readRetryDials(store), dials =>
+    Layer.succeed(
+      RedeliveryBackoffTag,
+      exponentialRedeliveryBackoff({
+        baseMs: dials.backoffBaseMs,
+        capMs: dials.backoffCapMs,
+      }),
     ),
   );
 

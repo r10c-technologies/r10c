@@ -176,7 +176,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Entries past the relay's retry ceiling. Nothing retries them and nothing deletes them, so this only goes up until a human acts \u2014 a step here is a permanent thing, not a rate. It is also the honest quarantine number: the broker moves a message to <queue>.quarantine on x-delivery-limit without telling the adapter, so there is no consumer-side count to compare it against.",
+      "description": "Entries past the relay's retry ceiling. Nothing retries them and nothing deletes them, so this only goes up until a human acts \u2014 a step here is a permanent thing, not a rate. The consumer side's quarantines are the 'Quarantined messages' stat in the Bus row.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -406,7 +406,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Grouped by slice and mode, deliberately not by queue: a broadcast subscription's queue is named amq.gen-\u2026 and is regenerated on every connection, so grouping by it produces a fresh legend entry per reconnect and no series that lasts a day. bus_events_failed_total has no series at all until the first nack, so an empty 'nacked' legend means nothing has failed \u2014 not that nothing is measured. See the counter beside this panel. This is also not a dead-letter count: x-delivery-limit moves a message to <queue>.quarantine without telling the adapter, so a transient failure on its fifth delivery is counted here exactly like its first.",
+      "description": "Grouped by slice and mode, deliberately not by queue: a broadcast subscription's queue is named amq.gen-\u2026 and is regenerated on every connection, so grouping by it produces a fresh legend entry per reconnect and no series that lasts a day. bus_events_failed_total has no series at all until the first nack, so an empty 'nacked' legend means nothing has failed \u2014 not that nothing is measured. See the counter beside this panel. This is not a dead-letter count: a transient failure on its fifth delivery is counted here exactly like its first. How many were given up on is the 'Quarantined messages' stat.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -477,7 +477,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
+        "w": 6,
         "x": 12,
         "y": 11
       },
@@ -552,8 +552,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 4,
-        "x": 20,
+        "w": 3,
+        "x": 18,
         "y": 11
       },
       "id": 7,
@@ -587,6 +587,74 @@
         }
       ],
       "title": "Nacked deliveries",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Messages the AMQP adapter moved to <queue>.quarantine: a poison message at once, a transient failure once it has spent its subscription's maxAttempts (entifix 0.10.1+, which counts attempts itself because the broker does not count a requeued nack). Cumulative and falling back to vector(0) for the same reasons as 'Nacked deliveries'. A redelivery the broker dead-letters after a consumer crash bypasses the adapter, so the quarantine queue's depth stays the confirmation.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 3,
+        "x": 21,
+        "y": 11
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(bus_events_quarantined_total{service_name=~\"$service_name\"}) or vector(0)",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Quarantined messages",
       "type": "stat"
     },
     {

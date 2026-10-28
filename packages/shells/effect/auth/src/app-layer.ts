@@ -43,6 +43,7 @@ import {
   fleetOutboxLayer,
   fleetPolicyLayer,
   fleetSingleMongoLayer,
+  logSliceOutcome,
   makeFleetServiceLayer,
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
@@ -115,9 +116,39 @@ export const IdentityProviderLayer = Layer.effect(
  * compiler still checks that the composition provides it.
  */
 export interface AuthShellOptions<R> {
-  /** Writes the lab's accounts and the named organization's tenancy. */
-  readonly seed: (organizationId: string) => Effect.Effect<void, unknown, R>;
+  /**
+   * Writes the lab's accounts and the named organization's tenancy, and answers
+   * what it could not provision. Best-effort by design — a provider that is not
+   * up yet must not stop the boot — so a shortfall is reported, not failed, and
+   * this shell is what logs it.
+   */
+  readonly seed: (
+    organizationId: string,
+  ) => Effect.Effect<ReadonlyArray<SeedShortfall>, unknown, R>;
 }
+
+/** One seeded record the seed could not provision, and why. */
+export interface SeedShortfall {
+  /** What identifies the record in a log line — never a secret. */
+  readonly record: Readonly<Record<string, unknown>>;
+  readonly failure: unknown;
+}
+
+/** Logs each shortfall a seed answered, at the fork site that ran it. */
+export const reportSeedShortfalls = (
+  shortfalls: ReadonlyArray<SeedShortfall>,
+) =>
+  Effect.forEach(
+    shortfalls,
+    ({ record, failure }) =>
+      logSliceOutcome(
+        'Warn',
+        'could not provision a seeded record at the identity provider',
+        record,
+        failure,
+      ),
+    { discard: true },
+  );
 
 export const authComposition =
   <R>(options: AuthShellOptions<R>) =>
@@ -247,6 +278,7 @@ export const authComposition =
       const seed = Layer.effectDiscard(
         Effect.flatMap(MongoDatabaseTag, ensureOutboxIndexes).pipe(
           Effect.andThen(options.seed(demoOrganizationId)),
+          Effect.flatMap(reportSeedShortfalls),
           Effect.andThen(startOrganizationRebuild),
         ),
       );

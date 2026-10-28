@@ -26,6 +26,7 @@
   be checked. Corrected in place below.
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `Effect.catchAll` is `Effect.catch`; the decision is unchanged.
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — the three classes become the category map: every business failure and `protocol` are poison, quarantined at once with `x-failure-code` and `x-failure-category`; the technical categories are transient; a consumer's only retry is redelivery, and every subscription's `maxAttempts` stays within the fleet delivery budget of 5
+- Revised: 2026-10-28 — the broker does not count a requeued nack, so the adapter counts attempts itself and quarantines at `maxAttempts` (entifix #130, 0.10.1); its backoff is sized from the `retry` dials, and every quarantine is counted
 
 ## Context
 
@@ -136,6 +137,19 @@ deliveries and dead-letters at the limit, so the retry policy is a queue argumen
 rather than logic every consumer reimplements. The adapter's nack splits
 accordingly: `requeue: true` for a transient handler failure, `requeue: false`
 for a poison message.
+
+> **Corrected 2026-10-28 (entifix #130).** The broker does **not** count a
+> requeued `basic.nack` toward a quorum queue's `x-delivery-limit` — measured on
+> the pinned 4.3.5, a queue limited to 2 delivered one message 8 times — so a
+> transient failure that never cleared was redelivered without a ceiling and
+> without a pause. Since entifix 0.10.1 the adapter holds the ceiling: it acks
+> the delivery, republishes a copy carrying `x-entifix-attempts` after a capped
+> exponential backoff, and quarantines at `maxAttempts` with `x-failure-code`
+> and `x-failure-category`. The backoff is sized from this service's `retry`
+> dials (`backoffBaseMs`, `backoffCapMs`), and each quarantine increments
+> `bus_events_quarantined_total`. `x-delivery-limit` stays declared and still
+> immutable, and now bounds only what the broker does count: redeliveries after
+> a consumer crashed holding the message.
 
 Quorum queues and `x-delivery-limit` exist on the 3.13 broker this was written
 against, so none of this waited on a version bump. RabbitMQ 4.3's separation of

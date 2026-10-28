@@ -200,7 +200,7 @@ seed, and the daemons it starts. What it serves and stores is in cells
 
 - `packages/implementation/<domain>/http` — the domain's routes. Entity CRUD is
   `makeEntityRoutes(Entity, { verbs, guard, scope?, prepare?, override? })`
-  ([entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.10.0/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md)),
+  ([entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.10.2/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md)),
   bound to storage through the `EntityRepositoryFactoryTag` the host provides;
   a verb that is not CRUD is a hand route beside it.
 - `packages/implementation/<store>/{mongo,redis,sql}` — the store's
@@ -411,10 +411,10 @@ builds: logs fall back to the stdout sink and neither exporter exists, because
 an unreachable telemetry destination must not take the service down. #185 built
 this and #186 the first metric set: bus published / publish-failed / consumed /
 failed, outbox depth, oldest-entry age and quarantine count per tenant database,
-and transactions by state. Two limits ADR 0001 records — a consumer-side failure
-carries no event name (a poison message has none), and there is no in-process
-dead-letter count, because `x-delivery-limit` moves a message to the quarantine
-queue without telling the adapter. #206 provisioned the dashboard those metrics
+and transactions by state. A consumer-side failure carries no event name (a
+poison message has none), which ADR 0001 records. Its second limit is gone: the
+adapter now quarantines every message itself, so `bus_events_quarantined_total`
+counts them by subscription and category (entifix 0.10.2). #206 provisioned the dashboard those metrics
 are for: `infra/local/otel-lgtm/dashboards/` is grafted into the image's own
 provisioning directory with `subPath` — a whole-directory mount there would
 shadow the dashboards and datasources the image ships — so **r10c — Bus &
@@ -804,7 +804,7 @@ entities; `INCR`'s atomicity is what guarantees uniqueness across service
 instances.
 
 **A write that announces itself is one unit of work**
-([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.10.0/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
+([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.10.2/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
 `UnitOfWork.run(body, { claim?, replay?, afterCommit? })` gives the body one
 transaction, records the events it `emit`s into the outbox in that transaction,
 and takes at most one claim — an event's (`consumer` + `eventId`, so a fold runs
@@ -907,9 +907,10 @@ connection, so anything published while it was down was dropped by the broker
 even though the outbox had recorded it sent — the durability chain ended one hop
 short of the consumer.
 
-0030 separates three failure classes: **transient**, requeued so the broker
-counts the redelivery against `x-delivery-limit` and dead-letters at the
-ceiling; **poison**, quarantined without a single retry, because a payload that
+0030 separates three failure classes: **transient**, republished by the
+adapter with its attempt count in `x-entifix-attempts` and quarantined at the
+subscription's `maxAttempts` (the broker does not count a requeued nack, so
+`x-delivery-limit` only bounds a crashed consumer's redeliveries); **poison**, quarantined without a single retry, because a payload that
 cannot be deserialized never becomes deserializable; and a **business failure**,
 which is not the bus's concern at all, having been processed successfully and
 produced its own event. A subscription declares its shape — `work`, a named

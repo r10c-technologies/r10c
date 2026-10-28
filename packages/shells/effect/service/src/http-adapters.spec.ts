@@ -1,9 +1,10 @@
 import { EntifixConnError } from '@entifix/core';
+import { InMemoryRetryBudgetLayer } from '@entifix/transactions/engine';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
 import { describePublishedPriceReaderContract } from '@r10c/business-ts-catalog-contracts/testing';
 import { SagaStarterTag } from '@r10c/business-ts-saga-contracts';
 import { describeSagaStarterContract } from '@r10c/business-ts-saga-contracts/testing';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -37,11 +38,21 @@ const start = () =>
     ),
   );
 
-const priceOf = (offeringId: string) =>
+/** The price reader over `fetch`, under a budget that never waits. */
+const priceReaderLayer = (budgetFloorPerSecond = 1) =>
+  httpPublishedPriceReaderLayer('http://catalog/api').pipe(
+    Layer.provide(
+      InMemoryRetryBudgetLayer({
+        dials: { backoffBaseMs: 0, backoffCapMs: 0, budgetFloorPerSecond },
+      }),
+    ),
+  );
+
+const priceOf = (offeringId: string, budgetFloorPerSecond?: number) =>
   Effect.gen(function* () {
     const reader = yield* PublishedPriceReaderTag;
     return yield* reader.priceOf(offeringId);
-  }).pipe(Effect.provide(httpPublishedPriceReaderLayer('http://catalog/api')));
+  }).pipe(Effect.provide(priceReaderLayer(budgetFloorPerSecond)));
 
 /** Serves `fetch` from a script: `undefined` is a peer that cannot be reached. */
 const serve = (
@@ -103,9 +114,7 @@ describePublishedPriceReaderContract('the HTTP price reader', catalog => {
   return Effect.runPromise(
     Effect.gen(function* () {
       return yield* PublishedPriceReaderTag;
-    }).pipe(
-      Effect.provide(httpPublishedPriceReaderLayer('http://catalog/api')),
-    ),
+    }).pipe(Effect.provide(priceReaderLayer())),
   );
 });
 
@@ -148,11 +157,70 @@ describe('httpPublishedPriceReaderLayer', () => {
     expect(await Effect.runPromise(priceOf('o-2'))).toBeUndefined();
   });
 
-  it('reports a projection it could not reach as a connection error', async () => {
+  it('reports a projection it could not reach as unavailable', async () => {
     vi.stubGlobal('fetch', () => Promise.reject(new Error('refused')));
 
     expect(
       await Effect.runPromise(priceOf('o-3').pipe(Effect.flip)),
-    ).toBeInstanceOf(EntifixConnError);
+    ).toMatchObject({ code: 'upstreamUnavailable', category: 'unavailable' });
+  });
+
+  it('retries a projection that failed, and reads the price it then answers', async () => {
+    let calls = 0;
+    serve(() => {
+      calls += 1;
+      return calls === 1
+        ? { status: 503 }
+        : {
+            status: 200,
+            body: {
+              data: {
+                items: [{ vendorId: 'v-1', amount: 7, currency: 'GTQ' }],
+              },
+            },
+          };
+    });
+
+    expect(await Effect.runPromise(priceOf('o-4'))).toMatchObject({
+      amount: 7,
+    });
+    expect(calls).toBe(2);
+  });
+
+  // One retry a second is the floor a quiet dependency gets; past it, the
+  // budget refuses, so a dependency that is down is not asked a third time.
+  it('stops retrying when the budget is spent', async () => {
+    let calls = 0;
+    serve(() => {
+      calls += 1;
+      return { status: 503 };
+    });
+
+    await Effect.runPromiseExit(priceOf('o-5'));
+
+    expect(calls).toBe(2);
+  });
+
+  it('stops retrying after the dialled attempts, whatever the budget', async () => {
+    let calls = 0;
+    serve(() => {
+      calls += 1;
+      return { status: 503 };
+    });
+
+    await Effect.runPromiseExit(priceOf('o-5', 100));
+
+    expect(calls).toBe(3);
+  });
+
+  it('never retries an answer', async () => {
+    let calls = 0;
+    serve(() => {
+      calls += 1;
+      return { status: 404 };
+    });
+
+    expect(await Effect.runPromise(priceOf('o-6'))).toBeUndefined();
+    expect(calls).toBe(1);
   });
 });

@@ -37,7 +37,11 @@ export const makeFleetServiceLayer = <A, E, R>(
   build: (
     configuration: FleetConfiguration,
   ) => Effect.Effect<Layer.Layer<A, E, R>, unknown>,
-): Layer.Layer<A | Resource | RetryBudgetTag, never, R> =>
+): Layer.Layer<
+  A | Resource | RetryBudgetTag,
+  never,
+  Exclude<R, RetryBudgetTag>
+> =>
   Layer.unwrap(
     Effect.gen(function* () {
       const configuration = fleetConfigurationOf(
@@ -50,6 +54,11 @@ export const makeFleetServiceLayer = <A, E, R>(
       );
       const retryBudget = yield* fleetRetryBudgetLayer(store);
       const app = yield* build(configuration);
-      return Layer.mergeAll(observability, retryBudget, app);
+      // Provided *into* the app as well as beside it: the layer above a
+      // failure is where a retry is legal, and that layer is in the app.
+      return Layer.mergeAll(
+        observability,
+        Layer.provideMerge(app, retryBudget),
+      );
     }).pipe(Effect.orDie),
   ).pipe(Layer.orDie);
