@@ -8,6 +8,7 @@
 - Revised: 2026-10-26 — transaction-service's saga coordinator is a named exception that stays in its app, with the condition that would move it (#431)
 - Area: entities
 - Read when: adding a package under `packages/implementation/`, putting technology-bound code into a shell or an app, or a UI file imports an adapter — a cell depends on entities, use cases and ports and never on another cell or an adapter, UI and HTTP cells are keyed by domain and persistence cells by store
+- Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — an http cell translates and never decides a status, a retry or a log line; composition moves out of the apps into one Effect shell per slice, and the coordinator exception below ends — it moves into `shells-effect-transaction` (#447)
 
 ## Context
 
@@ -133,6 +134,13 @@ cells as each cell is created, not in one migration. `OfferingGrid` stays in
 `@r10c/utils-react-ui` (#334).
 
 ### The one exception: the saga coordinator stays in its app
+
+> **2026-10-28 ([ADR 0064](0064-failures-reach-the-slice-shell.md)): this
+> exception has ended.** The coordinator is composition, and composition now
+> has a home that is neither a cell nor an app: the slice's Effect shell, which
+> may compose `@entifix/transactions/engine`. It moves into
+> `shells-effect-transaction`, a `shell:platform` because the slice declares no
+> domain. The reasoning below is kept as it was written.
 
 transaction-service's coordinator — the `POST /api/saga/:definition` run
 route, the instance and tracker reads, the HTTP dispatcher and the resume and

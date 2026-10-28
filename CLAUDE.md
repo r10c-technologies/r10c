@@ -72,6 +72,16 @@ each is one link away in the decision index below.
   project needs `layer:`/`scope:` tags (and `business:`, `shell:` or `host:`
   where they apply). See
   [DEVELOPING.md → Module boundaries](docs/DEVELOPING.md#module-boundaries).
+- **Failures travel typed to the slice shell, and only the shell logs.** A
+  business package declares its refusals as typed failures with a permanent
+  `code` that **is** the `errors` catalog key; a cell translates and never
+  decides a status, a retry or a log line; the slice's
+  `@r10c/shells-effect-<slice>` owns `respond`, the failure policy, the log
+  table and every daemon fork site, and an app only mounts it. Every service
+  answers `application/problem+json`. `Effect.log*` and `console.*` in
+  `packages/business/**` or `packages/implementation/**` fail lint, and a
+  consumer never retries in-process — redelivery is its retry.
+  [ADR 0064](docs/adr/0064-failures-reach-the-slice-shell.md).
 - **Inject with Effect.** Wire dependencies as `Context.Service` subclasses provided
   via `Layer`, not instances through constructors — a missing dep is a compile
   error.
@@ -241,6 +251,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0046](docs/adr/0046-conventions-are-checked-not-stated.md) **A convention that is only stated is a convention that gets skipped** — read when adding a working convention, or wondering why attribution trailers keep reappearing — a convention that is only stated is one that gets skipped.
 - [0059](docs/adr/0059-entifix-leaves-the-repo.md) **entifix leaves the repo, and r10c becomes one of its consumers** — read when looking for the framework's source, changing entifix while r10c runs, or wondering why a framework file imports a cookie name from core instead of declaring its own — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported.
 - [0063](docs/adr/0063-a-cell-reaches-full-coverage-through-fakes-and-contract-suites.md) **A cell reaches full coverage through fakes and contract suites** — read when writing the spec for a `mongo`, `sql`, `redis` or `http` cell, a package under `packages/implementation/` misses the 100% gate, or you are about to add `mongodb-memory-server` or a container to a unit test — the driver is faked one level below the adapter, every port implementation runs its shared contract suite, and a race is proven against the live lab or not at all.
+- [0064](docs/adr/0064-failures-reach-the-slice-shell.md) **Failures travel typed to the slice shell, answer one problem body, and are logged only there** — read when adding a refusal, a status mapping, an error body or a log call, composing a service, or about to write `Effect.retry` in a consumer — every `-service` answers `application/problem+json` and nothing else, `code` is the `errors` catalog key, business and implementation never log, and the slice's shell is the one place that decides status, retry and logging.
 
 <!-- docs:end adr-triggers -->
 
