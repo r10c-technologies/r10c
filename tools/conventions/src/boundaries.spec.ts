@@ -159,7 +159,7 @@ describe('the shell kinds', () => {
 
 /**
  * Apps only mount (ADR 0064): a planted service file that wires routes or the
- * saga engine itself, beside a legal twin that mounts its shell.
+ * saga engine itself, or logs, beside a legal twin that mounts its shell.
  */
 const appImportErrors = async (code: string): Promise<string[]> => {
   const eslint = new ESLint({ cwd: REPO_ROOT });
@@ -176,6 +176,10 @@ describe('a service app', () => {
     ["import { HttpRouter } from 'effect/http';", 'the router'],
     ["import { HttpApi } from 'effect/http-api';", 'an HTTP API'],
     ["import { runSaga } from '@entifix/transactions/engine';", 'the engine'],
+    [
+      "import { logSliceOutcome } from '@r10c/shells-effect-service';",
+      'the shell log',
+    ],
   ])(
     'may not import %s (%s)',
     async source => {

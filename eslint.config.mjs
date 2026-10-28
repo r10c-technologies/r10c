@@ -410,6 +410,12 @@ const SERVICE_APP_RESTRICTIONS = {
           message:
             'An HTTP API is composed by the slice shell; a service only mounts it (ADR 0064).',
         },
+        {
+          name: '@r10c/shells-effect-service',
+          importNames: ['logSliceOutcome'],
+          message:
+            'Only the slice shell logs; a service answers an outcome for its shell to log (ADR 0064).',
+        },
       ],
       patterns: [
         {

@@ -10,6 +10,8 @@ export {
   authComposition,
   type AuthShellOptions,
   makeAppLayer,
+  reportSeedShortfalls,
+  type SeedShortfall,
 } from './app-layer.js';
 export {
   LifecycleSweepIntervalMs,

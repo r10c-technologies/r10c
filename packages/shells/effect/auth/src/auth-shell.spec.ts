@@ -26,6 +26,7 @@ import {
   JWT_ISSUER,
   makeAppLayer,
   rebuildAndReport,
+  reportSeedShortfalls,
   router,
   startOrganizationRebuild,
 } from './index.js';
@@ -60,7 +61,7 @@ const CONFIGURATION = fleetConfigurationOf({
   lifecycle: configurationRows({ sweepIntervalMs: 60_000 }),
 });
 
-const seed = () => Effect.void;
+const seed = () => Effect.succeed([]);
 
 describe('the auth shell', () => {
   it('composes from its configuration without dialling anything', async () => {
@@ -204,5 +205,42 @@ describe('the organization rebuild, at its fork site', () => {
     );
 
     expect(finished).toBe(true);
+  });
+});
+
+describe('a seed shortfall, at the fork site that ran the seed', () => {
+  it('is logged as a warning naming the record, never the failure text', async () => {
+    const logged: Logged[] = [];
+    await Effect.runPromise(
+      reportSeedShortfalls([
+        {
+          record: { email: 'alan@example.test' },
+          failure: new Error('provider down'),
+        },
+      ]).pipe(
+        Effect.provide(
+          Logger.layer([
+            Logger.make(({ logLevel, message, fiber }) => {
+              logged.push({
+                level: logLevel,
+                message,
+                annotations: {
+                  ...fiber.getRef(References.CurrentLogAnnotations),
+                },
+              });
+            }),
+          ]),
+        ),
+        Effect.provideService(References.MinimumLogLevel, 'All'),
+      ),
+    );
+
+    expect(logged).toEqual([
+      expect.objectContaining({
+        level: 'Warn',
+        annotations: expect.objectContaining({ email: 'alan@example.test' }),
+      }),
+    ]);
+    expect(JSON.stringify(logged)).not.toContain('provider down');
   });
 });

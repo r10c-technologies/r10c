@@ -5,8 +5,10 @@ import {
   provisionProviderHuman,
 } from '@r10c/business-ts-authn';
 import { seedOrganizations } from '@r10c/implementation-auth-mongo';
-import { DEV_SEED_PASSWORD } from '@r10c/shells-effect-auth';
-import { logSliceOutcome } from '@r10c/shells-effect-service';
+import {
+  DEV_SEED_PASSWORD,
+  type SeedShortfall,
+} from '@r10c/shells-effect-auth';
 import { Effect } from 'effect';
 
 import {
@@ -98,11 +100,13 @@ const seedTenancy = (organizationId: string) =>
  *
  * Best-effort as a whole: a provider that is not up yet must not stop the
  * service from booting. The seeded accounts simply cannot sign in until the
- * next boot repairs them, which is visible rather than silent.
+ * next boot repairs them, which is visible rather than silent: each account it
+ * could not provision is answered as a shortfall, and the auth shell logs it.
  */
 export const seedIdentityProvider = Effect.gen(function* () {
   const directory = yield* ProviderDirectoryTag;
   const accounts = yield* AccountRepositoryTag;
+  const shortfalls: SeedShortfall[] = [];
 
   for (const user of userIdentitySeedData) {
     const userId = String(user['id']);
@@ -119,15 +123,13 @@ export const seedIdentityProvider = Effect.gen(function* () {
       password: DEV_SEED_PASSWORD,
     }).pipe(
       Effect.catch(failure =>
-        logSliceOutcome(
-          'Warn',
-          'could not provision a seeded user at the identity provider',
-          { email },
-          failure,
-        ),
+        Effect.sync(() => {
+          shortfalls.push({ record: { email }, failure });
+        }),
       ),
     );
   }
+  return shortfalls;
 });
 
 /**
