@@ -200,7 +200,7 @@ seed, and the daemons it starts. What it serves and stores is in cells
 
 - `packages/implementation/<domain>/http` — the domain's routes. Entity CRUD is
   `makeEntityRoutes(Entity, { verbs, guard, scope?, prepare?, override? })`
-  ([entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.9.0/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md)),
+  ([entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.10.0/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md)),
   bound to storage through the `EntityRepositoryFactoryTag` the host provides;
   a verb that is not CRUD is a hand route beside it.
 - `packages/implementation/<store>/{mongo,redis,sql}` — the store's
@@ -745,8 +745,9 @@ Two invariants hold the design up:
   boot-time scoped `Layer.effect` _is_ the connection pool; `client.db(name)` returns a
   handle, not a connection, so N organizations share one pool and one socket set.
   A `Layer` per request would rebuild the pool per request. The resolver is built
-  at the composition root (`apps/marketplace-admin-service/src/mongo.ts`), the
-  only file that knows which driver backs the port; `MongoClientTag` and
+  by `fleetTenantMongoLayer` in `@r10c/shells-effect-service` and composed by
+  each per-organization slice's shell, the only place that knows which driver
+  backs the port; `MongoClientTag` and
   `MongoDatabaseTag` come from **one** acquire via `Layer.scopedContext`, because
   two layers would mean two pools.
 - **The name derives from the organization id**, never from a mutable attribute
@@ -755,7 +756,7 @@ Two invariants hold the design up:
   control-plane record plus this naming convention, with no `CREATE DATABASE`
   step to fail halfway ([ADR 0011](./adr/0011-organization-provisioning-and-migrations.md)).
 
-**The payoff is the `guarded` helper in
+**The payoff was the `guarded` helper in what was then
 `apps/marketplace-admin-service/src/routes.ts`.** Every catalog route already
 resolved its database inside the request (`const db = yield* MongoDatabaseTag`),
 so re-providing that one tag with the organization's handle moved the whole
@@ -803,7 +804,7 @@ entities; `INCR`'s atomicity is what guarantees uniqueness across service
 instances.
 
 **A write that announces itself is one unit of work**
-([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.9.0/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
+([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.10.0/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
 `UnitOfWork.run(body, { claim?, replay?, afterCommit? })` gives the body one
 transaction, records the events it `emit`s into the outbox in that transaction,
 and takes at most one claim — an event's (`consumer` + `eventId`, so a fold runs

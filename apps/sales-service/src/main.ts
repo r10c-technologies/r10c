@@ -1,9 +1,9 @@
 import { makeService } from '@entifix/service-shell/runtime';
+import { makeAppLayer, router } from '@r10c/shells-effect-sales';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
-import { AppLayer } from './mongo';
-import { router } from './routes';
+import { seedSales } from './seed';
 
 /**
  * sales-service — how a vendor sells, per vendor (port 3109).
@@ -26,5 +26,5 @@ makeService({
   slices: ['sales'],
   description: fleetToken,
   router,
-  appLayer: AppLayer,
+  appLayer: makeAppLayer({ seed: seedSales }),
 });

@@ -8,6 +8,7 @@ import type {
 } from '@entifix/business';
 import {
   EntifixBuildError,
+  isFailure,
   makeEntityEnvelope,
   readEntityEnvelope,
 } from '@entifix/core';
@@ -59,7 +60,8 @@ const refusal = (error: PaymentRefused) =>
 const failed = (error: unknown) =>
   error instanceof PaymentRefused
     ? refusal(error)
-    : error instanceof EntifixBuildError
+    : error instanceof EntifixBuildError ||
+        (isFailure(error) && error.category === 'invalid')
       ? HttpServerResponse.json(
           {
             error: 'invalid request body',

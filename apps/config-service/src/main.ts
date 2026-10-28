@@ -1,11 +1,11 @@
 import { resolve } from 'node:path';
 
 import { makeService } from '@entifix/service-shell/runtime';
+import { makeAppLayer, router } from '@r10c/shells-effect-config';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { config as loadEnv } from 'dotenv';
 
-import { AppLayer } from './db';
-import { router } from './routes';
+import { SEED_ROWS } from './db';
 
 /**
  * config-service — centralized configuration (port 3190).
@@ -28,5 +28,5 @@ makeService({
   slices: ['config'],
   description: fleetToken,
   router,
-  appLayer: AppLayer,
+  appLayer: makeAppLayer({ seedRows: SEED_ROWS }),
 });

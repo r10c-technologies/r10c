@@ -1,8 +1,8 @@
 import {
   deserializeSingleEntity,
-  EntifixConnError,
   envelopeEntityName,
   serializeEntity,
+  Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
@@ -89,13 +89,10 @@ export const ensureSettlementIndexes = (db: Db) =>
         .collection(PENDING_SALE_COLLECTION)
         .createIndex({ orderId: 1 }, { unique: true, name: 'orderId_1' });
     },
-    catch: error =>
-      new EntifixConnError('Failed to ensure the settlement indexes', error),
+    catch: () => new Unavailable({ dependency: 'mongo' }),
   });
 
-const failed =
-  (message: string, details: Record<string, unknown>) => (error: unknown) =>
-    new EntifixConnError(message, error, details);
+const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
 const entryDocuments = (
   orderId: string,
@@ -140,26 +137,20 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
       Effect.provideService(OutboxMaxAttempts, maxAttempts),
     );
 
-    const promise = <A>(
-      run: () => Promise<A>,
-      message: string,
-      details: Record<string, unknown>,
-    ) => Effect.tryPromise({ try: run, catch: failed(message, details) });
+    const promise = <A>(run: () => Promise<A>) =>
+      Effect.tryPromise({ try: run, catch: storeUnavailable });
 
     const agreementsFor = (vendorIds: readonly string[]) =>
       Effect.gen(function* () {
-        const documents = yield* promise(
-          () =>
-            db
-              .collection(AGREEMENT_COLLECTION)
-              .find(
-                { vendorId: { $in: [...vendorIds] } },
-                { projection: { _id: 0 } },
-              )
-              .sort({ effectiveFrom: -1 })
-              .toArray(),
-          'Failed to read the agreements',
-          { vendorIds },
+        const documents = yield* promise(() =>
+          db
+            .collection(AGREEMENT_COLLECTION)
+            .find(
+              { vendorId: { $in: [...vendorIds] } },
+              { projection: { _id: 0 } },
+            )
+            .sort({ effectiveFrom: -1 })
+            .toArray(),
         );
         // Newest first, so the first one seen per vendor is the one in force.
         const agreements = new Map<string, Agreement>();
@@ -168,11 +159,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           const agreement = (yield* deserializeSingleEntity(
             Agreement,
             document,
-          ).pipe(
-            Effect.mapError(
-              failed('An agreement did not read back', { vendorIds }),
-            ),
-          )) as Agreement;
+          ).pipe(Effect.mapError(storeUnavailable))) as Agreement;
           if (!agreements.has(agreement.vendorId)) {
             agreements.set(agreement.vendorId, agreement);
           }
@@ -189,25 +176,21 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
       Effect.gen(function* () {
         const sales = db.collection<PendingSale>(PENDING_SALE_COLLECTION);
         const ledger = db.collection(COMMISSION_ENTRY_COLLECTION);
-        const context = { orderId };
 
-        const merged = (yield* promise(
-          () =>
-            sales.findOneAndUpdate(
-              { orderId },
-              {
-                $set: half,
-                $setOnInsert: { orderId, folded: false, reversed: false },
-              },
-              {
-                upsert: true,
-                returnDocument: 'after',
-                projection: { _id: 0 },
-                session,
-              },
-            ),
-          'Failed to join the sale',
-          context,
+        const merged = (yield* promise(() =>
+          sales.findOneAndUpdate(
+            { orderId },
+            {
+              $set: half,
+              $setOnInsert: { orderId, folded: false, reversed: false },
+            },
+            {
+              upsert: true,
+              returnDocument: 'after',
+              projection: { _id: 0 },
+              session,
+            },
+          ),
         )) as PendingSale;
 
         let folded = 0;
@@ -220,15 +203,12 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           merged.commissions !== undefined &&
           merged.decidedAt !== undefined
         ) {
-          yield* promise(
-            () =>
-              sales.updateOne(
-                { orderId },
-                { $set: { folded: true } },
-                { session },
-              ),
-            'Failed to mark the sale folded',
-            context,
+          yield* promise(() =>
+            sales.updateOne(
+              { orderId },
+              { $set: { folded: true } },
+              { session },
+            ),
           );
           saleFolded = true;
           const documents = entryDocuments(
@@ -238,11 +218,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             'sale',
           );
           if (documents.length > 0) {
-            yield* promise(
-              () => ledger.insertMany(documents, { session }),
-              'Failed to write the commission entries',
-              context,
-            );
+            yield* promise(() => ledger.insertMany(documents, { session }));
           }
           folded = documents.length;
         }
@@ -256,20 +232,15 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           merged.refundedAt !== undefined
         ) {
           const refundedAt = merged.refundedAt;
-          yield* promise(
-            () =>
-              sales.updateOne(
-                { orderId },
-                { $set: { reversed: true } },
-                { session },
-              ),
-            'Failed to mark the sale reversed',
-            context,
+          yield* promise(() =>
+            sales.updateOne(
+              { orderId },
+              { $set: { reversed: true } },
+              { session },
+            ),
           );
-          const lines = (yield* promise(
-            () => ledger.find({ orderId, kind: 'sale' }, { session }).toArray(),
-            'Failed to read the sale’s entries',
-            context,
+          const lines = (yield* promise(() =>
+            ledger.find({ orderId, kind: 'sale' }, { session }).toArray(),
           )) as unknown as LedgerLine[];
           const documents = entryDocuments(
             orderId,
@@ -278,11 +249,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             'reversal',
           );
           if (documents.length > 0) {
-            yield* promise(
-              () => ledger.insertMany(documents, { session }),
-              'Failed to write the reversing entries',
-              context,
-            );
+            yield* promise(() => ledger.insertMany(documents, { session }));
           }
           reversed = documents.length;
         }
@@ -302,7 +269,6 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
       Effect.gen(function* () {
         const runId = globalThis.crypto.randomUUID();
         const entries = db.collection<LedgerLine>(COMMISSION_ENTRY_COLLECTION);
-        const context = { runId };
         const runDocument = (status: 'calculated' | 'cancelled') => {
           const run = new SettlementRun(periodStart, periodEnd);
           run.id = runId;
@@ -310,37 +276,29 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           return { ...serializeEntity(SettlementRun, run), id: runId };
         };
 
-        const claimed = yield* promise(
-          () =>
-            entries.updateMany(
-              {
-                runId: { $exists: false },
-                occurredAt: { $gte: periodStart, $lte: periodEnd },
-              },
-              { $set: { runId } },
-              { session },
-            ),
-          'Failed to claim the unsettled lines',
-          context,
+        const claimed = yield* promise(() =>
+          entries.updateMany(
+            {
+              runId: { $exists: false },
+              occurredAt: { $gte: periodStart, $lte: periodEnd },
+            },
+            { $set: { runId } },
+            { session },
+          ),
         );
         if (claimed.modifiedCount === 0) {
           // A sibling sweep took them first: record the empty attempt rather
           // than leave it unexplained.
-          yield* promise(
-            () =>
-              db
-                .collection(SETTLEMENT_RUN_COLLECTION)
-                .insertOne(runDocument('cancelled'), { session }),
-            'Failed to record the run',
-            context,
+          yield* promise(() =>
+            db
+              .collection(SETTLEMENT_RUN_COLLECTION)
+              .insertOne(runDocument('cancelled'), { session }),
           );
           return undefined;
         }
 
-        const rows = yield* promise(
-          () => entries.find({ runId }, { session }).toArray(),
-          'Failed to read the claimed lines',
-          context,
+        const rows = yield* promise(() =>
+          entries.find({ runId }, { session }).toArray(),
         );
         const byVendor = new Map<string, LedgerLine[]>();
         for (const row of rows) {
@@ -363,21 +321,15 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             id: payout.id,
           });
         });
-        yield* promise(
-          () =>
-            db
-              .collection(VENDOR_PAYOUT_COLLECTION)
-              .insertMany(payouts, { session }),
-          'Failed to write the payouts',
-          context,
+        yield* promise(() =>
+          db
+            .collection(VENDOR_PAYOUT_COLLECTION)
+            .insertMany(payouts, { session }),
         );
-        yield* promise(
-          () =>
-            db
-              .collection(SETTLEMENT_RUN_COLLECTION)
-              .insertOne(runDocument('calculated'), { session }),
-          'Failed to record the run',
-          context,
+        yield* promise(() =>
+          db
+            .collection(SETTLEMENT_RUN_COLLECTION)
+            .insertOne(runDocument('calculated'), { session }),
         );
         return {
           kind: 'calculated',
@@ -414,16 +366,13 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
       Layer.succeed(SettlementRunStoreTag, {
         settleOnce: () =>
           Effect.gen(function* () {
-            const oldest = yield* promise(
-              () =>
-                db
-                  .collection<LedgerLine>(COMMISSION_ENTRY_COLLECTION)
-                  .find({ runId: { $exists: false } })
-                  .sort({ occurredAt: 1 })
-                  .limit(1)
-                  .toArray(),
-              'Failed to read the oldest unsettled line',
-              {},
+            const oldest = yield* promise(() =>
+              db
+                .collection<LedgerLine>(COMMISSION_ENTRY_COLLECTION)
+                .find({ runId: { $exists: false } })
+                .sort({ occurredAt: 1 })
+                .limit(1)
+                .toArray(),
             );
             const first = oldest[0];
             if (first === undefined) return { kind: 'idle' } as RunOutcome;

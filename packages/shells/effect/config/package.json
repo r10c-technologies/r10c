@@ -1,0 +1,64 @@
+{
+  "name": "@r10c/shells-effect-config",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:config",
+      "shell:domain"
+    ],
+    "sourceRoot": "packages/shells/effect/config/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/effect/config/dist",
+          "main": "packages/shells/effect/config/src/index.ts",
+          "tsConfig": "packages/shells/effect/config/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@effect/opentelemetry": "4.0.6",
+    "@effect/sql-pg": "4.0.6",
+    "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/sql": "catalog:",
+    "@opentelemetry/sdk-trace-web": "2.12.0",
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/business-ts-configuration": "workspace:*",
+    "@r10c/implementation-configuration-http": "workspace:*",
+    "@r10c/implementation-configuration-sql": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.6"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:"
+  }
+}

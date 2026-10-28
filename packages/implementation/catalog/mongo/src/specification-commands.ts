@@ -7,8 +7,12 @@ import {
   deserializeSingleEntity,
   EntifixBuildError,
   EntifixConnError,
+  type EntifixError,
   envelopeEntityName,
+  isFailure,
   serializeEntity,
+  type TransitionalFailure,
+  Unavailable,
 } from '@entifix/core';
 import { makeMongoRepository, MongoClientTag } from '@entifix/mongo';
 import {
@@ -42,6 +46,19 @@ import {
 } from '@r10c/business-ts-product-configuration-management';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
+
+/**
+ * The transaction engine's handler port still speaks the class tree, and it
+ * leaves with the engine. A business failure reaching it is the refusal the
+ * engine has always read as a build error; a technical one, the connection
+ * error it has always retried.
+ */
+const toEngineError = (failure: TransitionalFailure): EntifixError =>
+  !isFailure(failure)
+    ? failure
+    : failure.family === 'business'
+      ? new EntifixBuildError(`${failure._tag}: ${failure.code}`)
+      : new EntifixConnError(`${failure._tag}: ${failure.code}`);
 
 export const SPECIFICATION_COLLECTION =
   envelopeEntityName(ProductSpecification);
@@ -100,7 +117,7 @@ const specificationHandler = (
           );
         }
         yield* refuseSpecificationMedia(entity);
-      }),
+      }).pipe(Effect.mapError(toEngineError)),
 
     lockKeys: () => [`lock:code:${SEQUENCE}`],
 
@@ -127,12 +144,9 @@ const specificationHandler = (
                   upsert: true,
                   session: unit.handle.session,
                 }),
-            catch: error =>
-              new EntifixConnError(
-                'Failed to commit the entity and its event',
-                error,
-                { transactionId: command.transactionId },
-              ),
+            // A store fault, so the unit of work rolls back and surfaces it
+            // rather than reading it as the body's own abort.
+            catch: () => new Unavailable({ dependency: 'mongo' }),
           }).pipe(
             Effect.tap(() =>
               Effect.sync(() =>
@@ -142,7 +156,7 @@ const specificationHandler = (
           ),
         );
         return outcome;
-      }),
+      }).pipe(Effect.mapError(toEngineError)),
 
     rollback: command =>
       makeMongoRepository(db, ProductSpecification)
@@ -150,6 +164,7 @@ const specificationHandler = (
         .pipe(
           Effect.provideService(ConfigurationRepositoryTag, configuration),
           Effect.asVoid,
+          Effect.mapError(toEngineError),
         ),
   };
 };

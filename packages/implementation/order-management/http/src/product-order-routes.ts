@@ -9,6 +9,7 @@ import type {
 import {
   EntifixBuildError,
   envelopeEntityName,
+  isFailure,
   makeEntityEnvelope,
   readEntityEnvelope,
 } from '@entifix/core';
@@ -108,7 +109,9 @@ const place = (_context: EntityRouteContext, links: EntityRouteLinks) =>
     );
   }).pipe(
     Effect.catch(error =>
-      error instanceof OrderRefused || error instanceof EntifixBuildError
+      error instanceof OrderRefused ||
+      error instanceof EntifixBuildError ||
+      (isFailure(error) && error.category === 'invalid')
         ? HttpServerResponse.json(
             {
               error: 'invalid request body',

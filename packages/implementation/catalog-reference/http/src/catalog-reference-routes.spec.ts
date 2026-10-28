@@ -1,10 +1,11 @@
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  InvalidToken,
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   CATEGORY_HAS_CHILDREN,
@@ -52,7 +53,7 @@ beforeAll(() => {
       Layer.succeed(EntityRepositoryFactoryTag, {
         for: entity =>
           storeDown
-            ? Effect.fail(new EntifixConnError('store down'))
+            ? Effect.fail(new Unavailable({}))
             : Effect.succeed(
                 (entity as unknown) === ProductBrand
                   ? brands
@@ -66,7 +67,7 @@ beforeAll(() => {
         verify: token =>
           token === 'operator'
             ? Effect.succeed(operator)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(
         PolicyDecisionTag,

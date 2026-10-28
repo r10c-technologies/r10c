@@ -6,6 +6,7 @@ import type {
 import {
   EntifixBuildError,
   type EntifixEnvelopeLink,
+  isFailure,
   makeEntityEnvelope,
   readEntityEnvelope,
 } from '@entifix/core';
@@ -50,7 +51,7 @@ const refused = (error: ConfigurationWriteRefused) =>
     { status: 400 },
   );
 
-const invalidBody = (error: EntifixBuildError) =>
+const invalidBody = (error: { readonly message: string }) =>
   HttpServerResponse.json(
     {
       error: 'invalid request body',
@@ -85,7 +86,8 @@ const save =
       Effect.catch(error =>
         error instanceof ConfigurationWriteRefused
           ? refused(error)
-          : error instanceof EntifixBuildError
+          : error instanceof EntifixBuildError ||
+              (isFailure(error) && error.category === 'invalid')
             ? invalidBody(error)
             : routeFailure(error),
       ),

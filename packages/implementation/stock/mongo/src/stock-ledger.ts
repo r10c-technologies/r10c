@@ -6,11 +6,11 @@ import {
 } from '@entifix/business';
 import {
   deserializeSingleEntity,
-  EntifixConnError,
   type Entity,
   type EntityConstructor,
   envelopeEntityName,
   serializeEntity,
+  Unavailable,
 } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import {
@@ -19,6 +19,7 @@ import {
   type MongoUnit,
 } from '@entifix/mongo/transactions';
 import {
+  type ExpirySweep,
   type HoldOutcome,
   Reservation,
   type RestoreOutcome,
@@ -46,10 +47,7 @@ export const ensureStockItemIndexes = (db: Db) =>
       db
         .collection(STOCK_ITEM_COLLECTION)
         .createIndex({ offeringId: 1 }, { unique: true, name: 'offeringId_1' }),
-    catch: error =>
-      new EntifixConnError('Failed to ensure the stock indexes', error, {
-        database: db.databaseName,
-      }),
+    catch: () => new Unavailable({ dependency: 'mongo' }),
   });
 
 /** Not enough is free: the conditional take matched nothing. */
@@ -62,9 +60,7 @@ class FirstCounterRaced {
   readonly _tag = 'FirstCounterRaced';
 }
 
-const failed =
-  (message: string, details: Record<string, unknown>) => (error: unknown) =>
-    new EntifixConnError(message, error, details);
+const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
 /**
  * The `stock` store's ledger, one `stock_<organizationId>` database per call.
@@ -100,7 +96,7 @@ export const MongoStockLedgerLayer = Layer.effect(
     ) =>
       Effect.map(
         deserializeSingleEntity(entity, record).pipe(
-          Effect.mapError(failed('A stored record did not read back', {})),
+          Effect.mapError(storeUnavailable),
         ),
         found => found as T,
       );
@@ -122,9 +118,7 @@ export const MongoStockLedgerLayer = Layer.effect(
             { upsert: true, session: unit.session },
           ),
         catch: error =>
-          isDuplicateKey(error)
-            ? new FirstCounterRaced()
-            : failed('Failed to move the stock counter', { offeringId })(error),
+          isDuplicateKey(error) ? new FirstCounterRaced() : storeUnavailable(),
       });
 
     const appendMovement = (unit: MongoUnit, movement: StockMovement) =>
@@ -136,9 +130,7 @@ export const MongoStockLedgerLayer = Layer.effect(
               { ...serializeEntity(StockMovement, movement), id: movement.id },
               { session: unit.session },
             ),
-        catch: failed('Failed to append the movement', {
-          offeringId: movement.offeringId,
-        }),
+        catch: storeUnavailable,
       });
 
     /**
@@ -179,13 +171,7 @@ export const MongoStockLedgerLayer = Layer.effect(
           }),
           Effect.mapError(error =>
             error instanceof FirstCounterRaced
-              ? new EntifixConnError(
-                  'A first stock counter could not be created',
-                  undefined,
-                  {
-                    offeringId: movement.offeringId,
-                  },
-                )
+              ? new Unavailable({ dependency: 'mongo' })
               : error,
           ),
         );
@@ -198,13 +184,7 @@ export const MongoStockLedgerLayer = Layer.effect(
     ) =>
       Effect.flatMap(units.forDatabase(db).replay(commandId), earlier =>
         Option.isNone(earlier)
-          ? Effect.fail(
-              new EntifixConnError(
-                'A command was refused as a duplicate with no decision behind it',
-                undefined,
-                { commandId },
-              ),
-            )
+          ? Effect.fail(new Unavailable({ dependency: 'mongo' }))
           : revive(entity, (earlier.value as { record: unknown }).record),
       );
 
@@ -222,7 +202,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                 { id: reservationId, status: 'held' },
                 { projection: { _id: 0, id: 1, offeringId: 1, quantity: 1 } },
               ),
-          catch: failed('Failed to read the hold', { reservationId }),
+          catch: storeUnavailable,
         })) as { offeringId: string; quantity: number } | null;
         if (held === null) return 'not-held' as const;
 
@@ -239,7 +219,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                     { $set: { status: to } },
                     { session: unit.handle.session },
                   ),
-              catch: failed('Failed to end the hold', { reservationId }),
+              catch: storeUnavailable,
             });
             if (moved.matchedCount === 0) return 'not-held' as const;
 
@@ -252,9 +232,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                     { $inc: { reserved: -held.quantity } },
                     { session: unit.handle.session },
                   ),
-              catch: failed('Failed to free the held quantity', {
-                reservationId,
-              }),
+              catch: storeUnavailable,
             });
 
             if (to === 'converted') {
@@ -275,9 +253,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                       { $inc: { onHand: -held.quantity } },
                       { session: unit.handle.session },
                     ),
-                catch: failed('Failed to move the sold quantity', {
-                  reservationId,
-                }),
+                catch: storeUnavailable,
               });
             }
             return 'transitioned' as const;
@@ -310,9 +286,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                       { $inc: { reserved: reservation.quantity } },
                       { session: unit.handle.session },
                     ),
-                  catch: failed('Failed to take the hold', {
-                    offeringId: reservation.offeringId,
-                  }),
+                  catch: storeUnavailable,
                 });
                 if (taken.matchedCount === 0)
                   return yield* Effect.fail(new Insufficient());
@@ -325,9 +299,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                       },
                       { session: unit.handle.session },
                     ),
-                  catch: failed('Failed to record the hold', {
-                    offeringId: reservation.offeringId,
-                  }),
+                  catch: storeUnavailable,
                 });
                 return reservation;
               }),
@@ -383,6 +355,7 @@ export const MongoStockLedgerLayer = Layer.effect(
       releaseExpired: () =>
         Effect.gen(function* () {
           let released = 0;
+          const failed: Array<ExpirySweep['failed'][number]> = [];
           for (const { handle: db } of yield* directory.list()) {
             const expired = yield* Effect.tryPromise({
               try: () =>
@@ -396,9 +369,7 @@ export const MongoStockLedgerLayer = Layer.effect(
                     { projection: { _id: 0, id: 1 }, limit: BATCH },
                   )
                   .toArray(),
-              catch: failed('Failed to read the expired holds', {
-                database: db.databaseName,
-              }),
+              catch: storeUnavailable,
             });
             for (const { id } of expired as unknown as ReadonlyArray<{
               id: string;
@@ -406,23 +377,19 @@ export const MongoStockLedgerLayer = Layer.effect(
               // Each hold on its own: one that fails must not keep the rest
               // promised forever.
               const outcome = yield* endHold(db, id, 'released').pipe(
-                Effect.catch(error =>
-                  Effect.as(
-                    Effect.logError('expiring a reservation failed').pipe(
-                      Effect.annotateLogs({
-                        database: db.databaseName,
-                        reservationId: id,
-                        error: String(error),
-                      }),
-                    ),
-                    'not-held' as const,
-                  ),
-                ),
+                Effect.catch(failure => {
+                  failed.push({
+                    database: db.databaseName,
+                    reservationId: id,
+                    failure,
+                  });
+                  return Effect.succeed('not-held' as const);
+                }),
               );
               if (outcome === 'transitioned') released += 1;
             }
           }
-          return released;
+          return { released, failed } as ExpirySweep;
         }),
     };
   }),

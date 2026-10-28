@@ -1,7 +1,7 @@
 import {
-  EntifixConnError,
   envelopeEntityName,
   serializeEntity,
+  Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
@@ -31,8 +31,7 @@ export const ensureVendorIndexes = (db: Db) =>
         .collection(VENDOR_COLLECTION)
         .createIndex({ vendorId: 1 }, { unique: true });
     },
-    catch: error =>
-      new EntifixConnError('Failed to index the published vendors', error),
+    catch: () => new Unavailable({ dependency: 'mongo' }),
   });
 
 /**
@@ -67,10 +66,7 @@ const applyAnnouncement = (db: Db, announcement: OrganizationAnnouncement) =>
         throw error;
       }
     },
-    catch: error =>
-      new EntifixConnError('Failed to write the published vendor', error, {
-        vendorId: announcement.organizationId,
-      }),
+    catch: () => new Unavailable({ dependency: 'mongo' }),
   });
 
 export const MongoPublishedVendorsLayer = Layer.effect(

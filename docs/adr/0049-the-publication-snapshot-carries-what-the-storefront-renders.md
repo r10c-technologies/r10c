@@ -8,6 +8,7 @@
 - Revised: 2026-10-23 by [ADR 0061](0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md) — the snapshot gains an optional `media` member, and the vendor's name stays off it as a projection of its own.
 - Amends: [ADR 0048](0048-announcing-a-publication.md) — the announced payload is
   eleven members, not seven, and a publication now has a second precondition.
+- Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — a rejected publication payload is quarantined because its failure is in the business family or `protocol`, not because of its class; the zero-attempt quarantine is unchanged
 
 ## Context
 

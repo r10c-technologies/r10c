@@ -1,10 +1,11 @@
 import {
   deserializeSingleEntity,
-  EntifixConnError,
   type Entity,
   type EntityConstructor,
   envelopeEntityName,
   serializeEntity,
+  type TransitionalFailure,
+  Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
@@ -58,8 +59,7 @@ export const ensurePaymentIndexes = (db: Db) =>
         .collection(REFUND_COLLECTION)
         .createIndex({ paymentId: 1 }, { unique: true, name: 'paymentId_1' });
     },
-    catch: error =>
-      new EntifixConnError('Failed to ensure the payment indexes', error),
+    catch: () => new Unavailable({ dependency: 'mongo' }),
   });
 
 /**
@@ -94,11 +94,8 @@ export const MongoPaymentLedgerLayer = Layer.effect(
       document: unknown,
     ) =>
       deserializeSingleEntity(entity, document).pipe(
-        Effect.mapError(
-          error =>
-            new EntifixConnError('A stored record did not read back', error),
-        ),
-      ) as Effect.Effect<T, EntifixConnError>;
+        Effect.mapError(() => new Unavailable({ dependency: 'mongo' })),
+      ) as Effect.Effect<T, TransitionalFailure>;
 
     const findOne = <T extends Entity>(
       entity: EntityConstructor<T>,
@@ -107,10 +104,7 @@ export const MongoPaymentLedgerLayer = Layer.effect(
     ) =>
       Effect.tryPromise({
         try: () => db.collection(collection).findOne(filter, WITHOUT_ID),
-        catch: error =>
-          new EntifixConnError('Failed to read the payment store', error, {
-            collection,
-          }),
+        catch: () => new Unavailable({ dependency: 'mongo' }),
       }).pipe(
         Effect.flatMap(document =>
           document === null
@@ -151,13 +145,7 @@ export const MongoPaymentLedgerLayer = Layer.effect(
         earlier =>
           Option.isSome(earlier)
             ? Effect.succeed(earlier.value)
-            : Effect.fail(
-                new EntifixConnError(
-                  'A write was refused as a duplicate with no decision behind it',
-                  undefined,
-                  { commandId },
-                ),
-              ),
+            : Effect.fail(new Unavailable({ dependency: 'mongo' })),
       );
 
     /** A record's write, its event and the command's claim, as one unit. */
@@ -186,13 +174,7 @@ export const MongoPaymentLedgerLayer = Layer.effect(
                 catch: error =>
                   isDuplicateKey(error)
                     ? new RefundRaced()
-                    : new EntifixConnError(
-                        'Failed to record a decision',
-                        error,
-                        {
-                          collection,
-                        },
-                      ),
+                    : new Unavailable({ dependency: 'mongo' }),
               });
               if (event) unit.emit(eventFor(event, source));
               return item;

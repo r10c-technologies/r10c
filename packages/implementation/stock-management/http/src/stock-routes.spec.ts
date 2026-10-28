@@ -6,12 +6,11 @@ import {
 } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  InvalidToken,
   TokenServiceTag,
 } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
-import {
-  ServiceCrossingTokenTag,
-} from '@entifix/service-shell';
+import { Unavailable } from '@entifix/core';
+import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   ReservationTtlSecondsTag,
@@ -31,7 +30,7 @@ import { stockRoutes } from './stock-routes.js';
 const calls: { op: string; organizationId: string; commandId?: string }[] = [];
 let storeDown = false;
 
-const down = () => Effect.fail(new EntifixConnError('store down'));
+const down = () => Effect.fail(new Unavailable({}));
 
 /**
  * The shared in-memory ledger, with five of `o-1` on the crossing's shelf,
@@ -41,7 +40,9 @@ const real = makeInMemoryStockLedger();
 const ledger: StockLedger = {
   take: (organizationId, reservation, commandId) => {
     calls.push({ op: 'take', organizationId, commandId });
-    return storeDown ? down() : real.take(organizationId, reservation, commandId);
+    return storeDown
+      ? down()
+      : real.take(organizationId, reservation, commandId);
   },
   end: (organizationId, reservationId, to) => {
     calls.push({ op: 'end', organizationId });
@@ -82,7 +83,7 @@ beforeAll(async () => {
         verify: token =>
           token === 'vendor'
             ? Effect.succeed(vendor)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(
         PolicyDecisionTag,

@@ -98,7 +98,9 @@ describe('registerUserUCFactory', () => {
 
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit) && Cause.hasFails(exit.cause)) {
-      expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('AuthnError');
+      expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe(
+        'AuthnError',
+      );
     }
   });
 
@@ -158,7 +160,9 @@ describe('registerUserUCFactory', () => {
       expect(Exit.isFailure(exit)).toBe(true);
       if (Exit.isFailure(exit) && Cause.hasFails(exit.cause)) {
         // Not an AuthnError: the request is fine, the caller is not allowed.
-        expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe('ForbiddenError');
+        expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe(
+          'ForbiddenError',
+        );
       }
     });
 

@@ -1,4 +1,4 @@
-import type { EntifixError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 import type { PaymentMethod } from '../values/payment-method';
@@ -90,10 +90,10 @@ export interface RefundProviderOutcome extends Omit<
 export interface PaymentProvider {
   authorize(
     request: PaymentRequest,
-  ): Effect.Effect<PaymentProviderOutcome, EntifixError>;
+  ): Effect.Effect<PaymentProviderOutcome, TransitionalFailure>;
   capture(
     request: PaymentRequest,
-  ): Effect.Effect<PaymentProviderOutcome, EntifixError>;
+  ): Effect.Effect<PaymentProviderOutcome, TransitionalFailure>;
   /**
    * Money back for a capture that already happened.
    *
@@ -107,7 +107,7 @@ export interface PaymentProvider {
    */
   refund(
     request: PaymentRequest,
-  ): Effect.Effect<RefundProviderOutcome, EntifixError>;
+  ): Effect.Effect<RefundProviderOutcome, TransitionalFailure>;
 }
 
 export class PaymentProviderTag extends Context.Service<

@@ -6,13 +6,12 @@ import {
 } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  InvalidToken,
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
-import {
-  ServiceCrossingTokenTag,
-} from '@entifix/service-shell';
+import { Unavailable } from '@entifix/core';
+import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   CancelWindowSeconds,
@@ -27,7 +26,7 @@ import {
   type SagaStartOutcome,
 } from '@r10c/business-ts-saga-contracts';
 import { crossingCall } from '@r10c/testing-cells';
-import { type ServedRoutes,serveRoutes } from '@r10c/testing-http';
+import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -54,7 +53,7 @@ const commands = new Set<string>();
 let storeDown = false;
 let saga: SagaStartOutcome = { _tag: 'completed', result: {} };
 
-const down = () => Effect.fail(new EntifixConnError('store down'));
+const down = () => Effect.fail(new Unavailable({}));
 
 const store: ProductOrderStore = {
   get: id => (storeDown ? down() : Effect.succeed(orders.get(id))),
@@ -155,7 +154,7 @@ beforeAll(() => {
         verify: token =>
           sessions[token]
             ? Effect.succeed(sessions[token] as TokenClaims)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(
         PolicyDecisionTag,

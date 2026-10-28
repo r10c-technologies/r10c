@@ -1,11 +1,21 @@
 import {
   type DomainEvent,
-  EntifixBuildError,
-  type EntifixError,
+  Invalid,
+  type TransitionalFailure,
 } from '@entifix/core';
 import { Effect } from 'effect';
 
 import { type MediaReferenceValue, readMedia } from './media-reference';
+
+/**
+ * A payload this process cannot read, as a typed `invalid` failure. Business
+ * family, so the bus quarantines it at once rather than redelivering a message
+ * no retry will fix (ADR 0030, ADR 0064) — the legacy `EntifixBuildError` it
+ * replaces is not a typed failure, and since entifix 0.10.0 the adapter reads
+ * anything untyped as transient.
+ */
+const invalidPayload = (detail: string) =>
+  new Invalid({ errors: [{ pointer: '/data', detail, code: 'malformed' }] });
 
 /**
  * A vendor's offering reached the storefront. Routing key and register name.
@@ -211,17 +221,11 @@ const optionalString = (value: unknown): string | undefined =>
  */
 export const readCatalogPublication = (
   data: unknown,
-): Effect.Effect<CatalogPublication, EntifixError> =>
+): Effect.Effect<CatalogPublication, TransitionalFailure> =>
   Effect.gen(function* () {
     if (data === null || typeof data !== 'object') {
       return yield* Effect.fail(
-        new EntifixBuildError(
-          'catalog publication payload is not an object',
-          undefined,
-          {
-            data,
-          },
-        ),
+        invalidPayload('catalog publication payload is not an object'),
       );
     }
 
@@ -241,10 +245,8 @@ export const readCatalogPublication = (
 
     if (missing.length > 0) {
       return yield* Effect.fail(
-        new EntifixBuildError(
+        invalidPayload(
           `catalog publication payload is missing or malformed (${missing.join(', ')})`,
-          undefined,
-          { missing, data },
         ),
       );
     }

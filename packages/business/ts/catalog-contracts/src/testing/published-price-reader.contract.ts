@@ -65,7 +65,10 @@ export const describePublishedPriceReaderContract = (
       const answers = [
         { status: 200 },
         { status: 404 },
-        { status: 200, record: { vendorId: 'v-1', amount: '7', currency: 'GTQ' } },
+        {
+          status: 200,
+          record: { vendorId: 'v-1', amount: '7', currency: 'GTQ' },
+        },
       ];
 
       for (const answer of answers) {

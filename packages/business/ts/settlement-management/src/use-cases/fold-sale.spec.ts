@@ -69,13 +69,18 @@ describe('the four folds', () => {
       reversed: 0,
     });
 
-    await run(
+    const report = await run(
       foldPlacedOrder(
         'settlement.order.placed',
         eventOf('order.placed', order),
       ),
     );
 
+    expect(report).toMatchObject({
+      event: 'order.placed',
+      outcome: { kind: 'written', folded: 1 },
+      unpriced: ['v-2'],
+    });
     expect(contributed[0]?.half).toEqual({
       commissions: [
         {
@@ -140,13 +145,9 @@ describe('the four folds', () => {
       await duplicate.run(
         foldCapture('c', eventOf('payment.captured', payment)),
       ),
-    ).toEqual({
-      kind: 'duplicate',
-    });
+    ).toMatchObject({ outcome: { kind: 'duplicate' }, unpriced: [] });
     expect(
       await waiting.run(foldCapture('c', eventOf('payment.captured', payment))),
-    ).toEqual({
-      kind: 'waiting',
-    });
+    ).toMatchObject({ outcome: { kind: 'waiting' }, unpriced: [] });
   });
 });

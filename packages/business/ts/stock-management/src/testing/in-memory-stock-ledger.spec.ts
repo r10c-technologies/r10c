@@ -30,6 +30,6 @@ describe('the in-memory ledger beyond the contract', () => {
       }),
     );
 
-    expect(released).toBe(0);
+    expect(released).toEqual({ released: 0, failed: [] });
   });
 });

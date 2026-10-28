@@ -1,4 +1,4 @@
-import type { EntifixError, EntityId } from '@entifix/core';
+import type { EntityId, TransitionalFailure } from '@entifix/core';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
 
@@ -14,7 +14,7 @@ import type { Principal } from '../values';
  */
 export interface IdentityProvider {
   /** Resolve an opaque session id to the authenticated {@link Principal}. */
-  resolveSession(sessionId: string): Effect<Principal, EntifixError>;
+  resolveSession(sessionId: string): Effect<Principal, TransitionalFailure>;
 
   /**
    * Resolve a presented identifier (email / username / IdP subject) to its
@@ -23,7 +23,7 @@ export interface IdentityProvider {
   resolveIdentifier(
     type: string,
     value: string,
-  ): Effect<UserIdentity, EntifixError>;
+  ): Effect<UserIdentity, TransitionalFailure>;
 }
 
 /** DI tag the composition root binds to a concrete {@link IdentityProvider}. */

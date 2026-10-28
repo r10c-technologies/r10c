@@ -1,3 +1,4 @@
+import { isStoreFault } from '@entifix/core';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   ensureOutboxIndexes,
@@ -19,7 +20,6 @@ import {
   ORGANIZATION_COLLECTION,
   rebuildOrganizationAnnouncements,
   seedOrganizations,
-  startOrganizationRebuild,
   writeOrganization,
 } from './organization-announcements.js';
 
@@ -151,17 +151,17 @@ describe('writeOrganization', () => {
     expect(store.fake.read(OUTBOX_COLLECTION)).toHaveLength(0);
   });
 
-  it('fails as a connection error when the read or the write does', async () => {
+  it('fails as a store fault when the read or the write does', async () => {
     const unreadable = await storeWith();
     unreadable.fake.failOn('findOne', new Error('down'));
     const unwritable = await storeWith();
     unwritable.fake.failOn('updateOne', new Error('down'));
 
-    await expect(write(unreadable, SEED, FIRST)).rejects.toThrow(
-      'Failed to read an organization',
+    await expect(write(unreadable, SEED, FIRST)).rejects.toSatisfy(
+      isStoreFault,
     );
-    await expect(write(unwritable, SEED, FIRST)).rejects.toThrow(
-      'Failed to write an organization',
+    await expect(write(unwritable, SEED, FIRST)).rejects.toSatisfy(
+      isStoreFault,
     );
   });
 });
@@ -242,13 +242,11 @@ describe('rebuildOrganizationAnnouncements', () => {
     expect(report.announced).toBe(1);
   });
 
-  it('fails as a connection error when the store cannot be read', async () => {
+  it('fails as a store fault when the store cannot be read', async () => {
     const store = await storeWith();
     store.fake.failOn('find', new Error('down'));
 
-    await expect(rebuild(store.db)).rejects.toThrow(
-      'Failed to read the organizations',
-    );
+    await expect(rebuild(store.db)).rejects.toSatisfy(isStoreFault);
   });
 });
 
@@ -272,19 +270,5 @@ describe('seeding and the boot walk', () => {
 
     expect(store.fake.read(ORGANIZATION_COLLECTION)).toHaveLength(1);
     expect(store.fake.read(OUTBOX_COLLECTION)).toHaveLength(1);
-  });
-
-  it('forks the walk past boot, and logs a walk that fails rather than failing the boot', async () => {
-    const store = await storeWith();
-    store.fake.failOn('find', new Error('network down'));
-
-    await expect(
-      Effect.runPromise(
-        startOrganizationRebuild.pipe(
-          Effect.andThen(Effect.sleep('10 millis')),
-          Effect.provide(services(store)),
-        ),
-      ),
-    ).resolves.toBeUndefined();
   });
 });

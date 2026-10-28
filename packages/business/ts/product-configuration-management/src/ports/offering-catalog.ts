@@ -1,8 +1,4 @@
-import type {
-  DomainEvent,
-  EntifixConnError,
-  EntifixError,
-} from '@entifix/core';
+import type { DomainEvent, TransitionalFailure } from '@entifix/core';
 import type { CatalogPublication } from '@r10c/business-ts-catalog-contracts';
 import { Context, type Effect } from 'effect';
 
@@ -25,7 +21,7 @@ export interface OfferingCatalog {
     offering: ProductOffering,
     from: ProductOffering['status'],
     event: DomainEvent<CatalogPublication>,
-  ) => Effect.Effect<'committed' | 'changed', EntifixConnError>;
+  ) => Effect.Effect<'committed' | 'changed', TransitionalFailure>;
   /**
    * Put one publication back on the outbox for the rebuild walk (ADR 0050):
    * `alreadyAnnounced` when the outbox holds it, `revived` when it held it
@@ -36,7 +32,7 @@ export interface OfferingCatalog {
     event: DomainEvent<CatalogPublication>,
   ) => Effect.Effect<
     'announced' | 'revived' | 'alreadyAnnounced',
-    EntifixConnError
+    TransitionalFailure
   >;
 }
 
@@ -56,7 +52,7 @@ export interface SpecificationCommands {
   readonly accept: (
     organizationId: string,
     body: unknown,
-  ) => Effect.Effect<{ readonly transactionId: string }, EntifixError>;
+  ) => Effect.Effect<{ readonly transactionId: string }, TransitionalFailure>;
 }
 
 export class SpecificationCommandsTag extends Context.Service<

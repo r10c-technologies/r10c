@@ -1,7 +1,7 @@
 import {
-  EntifixConnError,
   envelopeEntityName,
   serializeEntity,
+  Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import { MongoUnitOfWorkTag } from '@entifix/mongo/transactions';
@@ -30,12 +30,7 @@ const momentOf = (stamp: { publishedAt?: unknown } | null): number =>
   // would yield `NaN`, false in every direction, and freeze the offering.
   stamp?.publishedAt instanceof Date ? stamp.publishedAt.getTime() : 0;
 
-const failed =
-  (publication: CatalogPublication, eventName: string) => (error: unknown) =>
-    new EntifixConnError('Failed to write the published catalog', error, {
-      offeringId: publication.offeringId,
-      eventName,
-    });
+const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
 /** What the storefront reads: the snapshot, keyed on the offering. */
 const recordOf = (publication: CatalogPublication, at: Date) => {
@@ -69,8 +64,7 @@ export const ensurePublishedCatalogIndexes = (db: Db) =>
       db
         .collection(STAMP_COLLECTION)
         .createIndex({ offeringId: 1 }, { unique: true }),
-    catch: error =>
-      new EntifixConnError('Failed to index the published catalog', error),
+    catch: () => new Unavailable({ dependency: 'mongo' }),
   });
 
 /**
@@ -102,7 +96,7 @@ export const MongoPublishedCatalogLayer = Layer.effect(
         Effect.gen(function* () {
           const at = new Date(publication.publishedAt);
           const key = { offeringId: publication.offeringId };
-          const fail = failed(publication, eventName);
+          const fail = storeUnavailable;
 
           const outcome = yield* units.run(unit =>
             Effect.tryPromise({

@@ -1,4 +1,4 @@
-import type { EntifixError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
@@ -53,18 +53,18 @@ export interface OidcProvider {
     readonly nonce: string;
     readonly codeChallenge: string;
     readonly uiLocales?: string;
-  }) => Effect.Effect<string, EntifixError>;
+  }) => Effect.Effect<string, TransitionalFailure>;
   readonly exchangeCode: (input: {
     readonly code: string;
     readonly codeVerifier: string;
     readonly nonce: string;
-  }) => Effect.Effect<ProviderIdentity, EntifixError>;
+  }) => Effect.Effect<ProviderIdentity, TransitionalFailure>;
   readonly endSessionUrl: (
     idToken: string | undefined,
-  ) => Effect.Effect<string, EntifixError>;
+  ) => Effect.Effect<string, TransitionalFailure>;
   readonly verifyLogoutToken: (
     logoutToken: string,
-  ) => Effect.Effect<ProviderLogout, EntifixError>;
+  ) => Effect.Effect<ProviderLogout, TransitionalFailure>;
 }
 
 export class OidcProviderTag extends Context.Service<
@@ -88,7 +88,7 @@ export interface ProviderEventVerifier {
   readonly verify: (
     rawBody: string,
     headers: Readonly<Record<string, string | undefined>>,
-  ) => Effect.Effect<ProviderEvent, EntifixError>;
+  ) => Effect.Effect<ProviderEvent, TransitionalFailure>;
 }
 
 export class ProviderEventVerifierTag extends Context.Service<
@@ -117,10 +117,10 @@ export interface ProviderDirectory {
   readonly name: string;
   readonly findUserIdByEmail: (
     email: string,
-  ) => Effect.Effect<string | undefined, EntifixError>;
+  ) => Effect.Effect<string | undefined, TransitionalFailure>;
   readonly createHuman: (
     human: ProviderHuman,
-  ) => Effect.Effect<string, EntifixError>;
+  ) => Effect.Effect<string, TransitionalFailure>;
 }
 
 export class ProviderDirectoryTag extends Context.Service<
@@ -138,7 +138,7 @@ export interface PublicKeySetDocument {
  * fleet configuration. Public by design; it must never carry a private member.
  */
 export interface PublicKeySet {
-  readonly jwks: () => Effect.Effect<PublicKeySetDocument, EntifixError>;
+  readonly jwks: () => Effect.Effect<PublicKeySetDocument, TransitionalFailure>;
 }
 
 export class PublicKeySetTag extends Context.Service<
@@ -163,10 +163,9 @@ export interface MailboxNotice {
 export interface DevMailbox {
   readonly read: (
     to: string | undefined,
-  ) => Effect.Effect<readonly MailboxNotice[], EntifixError>;
+  ) => Effect.Effect<readonly MailboxNotice[], TransitionalFailure>;
 }
 
-export class DevMailboxTag extends Context.Service<
-  DevMailboxTag,
-  DevMailbox
->()('DevMailboxTag') {}
+export class DevMailboxTag extends Context.Service<DevMailboxTag, DevMailbox>()(
+  'DevMailboxTag',
+) {}

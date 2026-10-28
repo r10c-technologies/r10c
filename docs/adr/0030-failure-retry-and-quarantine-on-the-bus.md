@@ -25,6 +25,7 @@
   tag was floating, which is the reason a claim about broker behaviour could not
   be checked. Corrected in place below.
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `Effect.catchAll` is `Effect.catch`; the decision is unchanged.
+- Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — the three classes become the category map: every business failure and `protocol` are poison, quarantined at once with `x-failure-code` and `x-failure-category`; the technical categories are transient; a consumer's only retry is redelivery, and every subscription's `maxAttempts` stays within the fleet delivery budget of 5
 
 ## Context
 
@@ -83,6 +84,12 @@ already on the milestone list.
   all.** That message was processed successfully and already produced a `failed`
   event. Conflating it with the first two is how a compensating flow turns into
   an infinite redelivery.
+
+> **2026-10-28 ([ADR 0064](0064-failures-reach-the-slice-shell.md)):** the bus
+> no longer reads classes. It decides by a failure's category — business and
+> `protocol` are poison, `unavailable`/`timeout`/`contention`/`exhausted` and
+> anything uncategorised are transient — and a quarantined message carries its
+> reason in `x-failure-code` and `x-failure-category`.
 
 ### A subscription is durable and named, and it declares a mode
 

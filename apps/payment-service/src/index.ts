@@ -1,10 +1,14 @@
-export { AppLayer } from './mongo';
-export { PAYMENT_SLICE } from './mongo';
+import { makeAppLayer } from '@r10c/shells-effect-payment';
+
 export {
   makeSimulatedPaymentProvider,
+  PAYMENT_SLICE,
+  router,
   SimulatedPaymentProviderLayer,
-} from './providers/simulated';
-export { router } from './routes';
+} from '@r10c/shells-effect-payment';
+
+/** The slice's composition, as the service mounts it. */
+export const AppLayer = makeAppLayer();
 
 export const SERVICE_NAME = '@r10c/payment-service';
 

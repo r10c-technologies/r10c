@@ -13,7 +13,11 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
-import { declaredEntityClasses, declaredEntityDomains } from '@r10c/slices';
+import {
+  declaredEntityClasses,
+  declaredEntityDomains,
+  SLICES,
+} from '@r10c/slices';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -828,6 +832,178 @@ describe('Implementation cells declare one technology and a domain scope', () =>
   });
 });
 
+interface ShellManifest {
+  readonly name: string;
+  readonly tags: readonly string[];
+}
+
+const SHELL_KINDS = ['shell:base', 'shell:domain', 'shell:platform'];
+
+/**
+ * What is wrong with an Effect shell's tags. A shell is `shell:base` — the
+ * fleet's shared composition, `scope:shared` — or the one shell of one slice,
+ * `shell:domain` or `shell:platform`, scoped to exactly that slice. A slice
+ * shell scoped `shared`, or to a name no slice declares, is a shell the scope
+ * rule cannot keep to its own slice (ADR 0064).
+ */
+const effectShellProblems = (
+  shells: readonly ShellManifest[],
+  sliceNames: ReadonlySet<string>,
+): string[] =>
+  shells.flatMap(shell => {
+    const kinds = shell.tags.filter(tag => SHELL_KINDS.includes(tag));
+    const scopes = shell.tags
+      .filter(tag => tag.startsWith('scope:'))
+      .map(tag => tag.slice('scope:'.length));
+    if (kinds.length !== 1)
+      return [`${shell.name}: carries ${kinds.length} shell:* kinds`];
+    if (kinds[0] === 'shell:base')
+      return scopes.length === 1 && scopes[0] === 'shared'
+        ? []
+        : [`${shell.name}: shell:base must be scope:shared alone`];
+    return scopes.length === 1 && sliceNames.has(scopes[0] ?? '')
+      ? []
+      : [`${shell.name}: must be scoped to exactly one declared slice`];
+  });
+
+describe('Effect shells are the base or one slice’s own', () => {
+  const shells = (): ShellManifest[] => {
+    const root = join(REPO_ROOT, 'packages', 'shells', 'effect');
+    if (!existsSync(root)) return [];
+    return readdirSync(root, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => join(root, entry.name, 'package.json'))
+      .filter(manifest => existsSync(manifest))
+      .map(manifest => {
+        const pkg = JSON.parse(readFileSync(manifest, 'utf8'));
+        return { name: pkg.name as string, tags: pkg?.nx?.tags ?? [] };
+      });
+  };
+  const sliceNames = new Set(SLICES.map(slice => slice.name));
+
+  it('finds the shells it is meant to check', () => {
+    expect(shells().length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('tags every shell as the base, or as one declared slice’s shell', () => {
+    expect(effectShellProblems(shells(), sliceNames)).toEqual([]);
+  });
+
+  it('rejects a mis-scoped shell, and accepts its legal twin', () => {
+    const planted: ShellManifest[] = [
+      { name: 'shared', tags: ['layer:shell', 'shell:domain', 'scope:shared'] },
+      { name: 'ghost', tags: ['layer:shell', 'shell:domain', 'scope:ghost'] },
+      {
+        name: 'two',
+        tags: ['layer:shell', 'shell:domain', 'scope:order', 'scope:stock'],
+      },
+      { name: 'kindless', tags: ['layer:shell', 'scope:order'] },
+      { name: 'base', tags: ['layer:shell', 'shell:base', 'scope:order'] },
+    ];
+    const legal: ShellManifest[] = [
+      { name: 'order', tags: ['layer:shell', 'shell:domain', 'scope:order'] },
+      { name: 'base', tags: ['layer:shell', 'shell:base', 'scope:shared'] },
+    ];
+
+    expect(effectShellProblems(planted, sliceNames)).toHaveLength(
+      planted.length,
+    );
+    expect(effectShellProblems(legal, sliceNames)).toEqual([]);
+  });
+});
+
+interface DeploymentImports {
+  readonly slice: string;
+  readonly deployment: string;
+  /** Every `@r10c/shells-effect-*` package its `src/` imports. */
+  readonly shells: readonly string[];
+}
+
+/**
+ * What is wrong with what each deployment mounts. An app only mounts
+ * (ADR 0064), so its source imports exactly one slice shell — its own — beside
+ * the base every shell builds on. A deployment importing two is composing
+ * across slices in the app; one importing none composes for itself.
+ */
+const deploymentShellProblems = (
+  deployments: readonly DeploymentImports[],
+): string[] =>
+  deployments.flatMap(({ slice, deployment, shells }) => {
+    const mounted = [...new Set(shells)].filter(
+      shell => shell !== '@r10c/shells-effect-service',
+    );
+    return mounted.length === 1 && mounted[0] === `@r10c/shells-effect-${slice}`
+      ? []
+      : [`${deployment}: mounts ${mounted.join(', ') || 'no shell'}`];
+  });
+
+describe('Each deployment mounts exactly its slice’s shell', () => {
+  const sourcesOf = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
+      entry.isDirectory()
+        ? sourcesOf(join(dir, entry.name))
+        : entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts')
+          ? [join(dir, entry.name)]
+          : [],
+    );
+  const deployments = (): DeploymentImports[] =>
+    SLICES.filter(slice => slice.status === 'active').flatMap(slice =>
+      slice.deployments
+        .map(deployment => join(REPO_ROOT, 'apps', deployment, 'src'))
+        .filter(src => existsSync(src))
+        .map(src => ({
+          slice: slice.name,
+          deployment: relative(REPO_ROOT, src),
+          shells: sourcesOf(src).flatMap(file =>
+            [
+              ...readFileSync(file, 'utf8').matchAll(
+                /from '(@r10c\/shells-effect-[a-z-]+)'/g,
+              ),
+            ].map(match => match[1] as string),
+          ),
+        })),
+    );
+
+  it('finds the deployments it is meant to check', () => {
+    expect(deployments().length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('mounts one shell per deployment, and it is the slice’s own', () => {
+    expect(deploymentShellProblems(deployments())).toEqual([]);
+  });
+
+  it('rejects an app that mounts two shells or none, and accepts its twin', () => {
+    expect(
+      deploymentShellProblems([
+        {
+          slice: 'order',
+          deployment: 'two',
+          shells: ['@r10c/shells-effect-order', '@r10c/shells-effect-stock'],
+        },
+        { slice: 'order', deployment: 'none', shells: [] },
+        {
+          slice: 'order',
+          deployment: 'other',
+          shells: ['@r10c/shells-effect-stock'],
+        },
+      ]),
+    ).toHaveLength(3);
+    expect(
+      deploymentShellProblems([
+        {
+          slice: 'order',
+          deployment: 'twin',
+          shells: [
+            '@r10c/shells-effect-order',
+            '@r10c/shells-effect-order',
+            '@r10c/shells-effect-service',
+          ],
+        },
+      ]),
+    ).toEqual([]);
+  });
+});
+
 describe('Fleet ports agree in every place they are written', () => {
   const freePorts = read('tools/free-ports.sh');
   const portsDoc = read('docs/_shared/ports.md');
@@ -1004,7 +1180,7 @@ describe('The dashboard charts the metrics the fleet declares', () => {
     // `transaction` slice took `:3103` (#229). A module missing from this list
     // is not a loud failure — the dashboard check would simply stop knowing the
     // metric is declared and call every panel querying it undeclared.
-    'apps/transaction-service/src/observability/metrics.ts',
+    'packages/shells/effect/transaction/src/observability/metrics.ts',
   ];
 
   /** The provisioning directory whose contents a mount must never replace. */

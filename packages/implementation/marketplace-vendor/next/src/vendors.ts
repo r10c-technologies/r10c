@@ -4,10 +4,10 @@ import {
   loadUCFactory,
 } from '@entifix/business';
 import type {
-  EntifixError,
   Entity,
   EntityLoadRequest,
   EntityPage,
+  TransitionalFailure,
 } from '@entifix/core';
 import type { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { Context, Effect } from 'effect';
@@ -16,7 +16,11 @@ import { Context, Effect } from 'effect';
  * What every read here requires: the `PublishedVendor` repository, and nothing
  * else. Which transport answers is the caller's choice, made at composition.
  */
-export type VendorRead<A> = Effect.Effect<A, EntifixError, EntityRepositoryTag>;
+export type VendorRead<A> = Effect.Effect<
+  A,
+  TransitionalFailure,
+  EntityRepositoryTag
+>;
 
 /**
  * The most sellers one read names. A results page holds a page of offerings,

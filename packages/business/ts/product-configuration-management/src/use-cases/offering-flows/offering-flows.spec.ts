@@ -2,7 +2,7 @@ import {
   EntityRepositoryFactoryTag,
   TenantDirectoryTag,
 } from '@entifix/business';
-import { type DomainEvent, EntifixConnError } from '@entifix/core';
+import { type DomainEvent, EntifixConnError, Unavailable } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import type { CatalogPublication } from '@r10c/business-ts-catalog-contracts';
 import { Effect, Layer } from 'effect';
@@ -53,7 +53,11 @@ interface Stores {
   readonly offerings?: ProductOffering[];
   readonly priced?: string[];
   readonly specifications?: ProductSpecification[];
-  readonly commit?: 'committed' | 'changed';
+  /**
+   * `legacy` fails with the class tree's code-less error, which the catalog
+   * port still admits until entifix #126 removes it.
+   */
+  readonly commit?: 'committed' | 'changed' | 'legacy';
   readonly reannounce?: 'announced' | 'revived' | 'alreadyAnnounced';
   readonly offeringsDown?: boolean;
   readonly organizations?: string[];
@@ -73,10 +77,12 @@ const world = (stores: Stores = {}) => {
   );
   const catalog: OfferingCatalog = {
     commitTransition: (organizationId, _offering, from) =>
-      Effect.sync(() => {
-        committed.push({ organizationId, from });
-        return stores.commit ?? 'committed';
-      }),
+      stores.commit === 'legacy'
+        ? Effect.fail(new EntifixConnError('store down'))
+        : (Effect.sync(() => {
+            committed.push({ organizationId, from });
+            return stores.commit ?? 'committed';
+          }) as Effect.Effect<'committed' | 'changed'>),
     reannounce: (_organizationId, event) =>
       Effect.sync(() => {
         announced.push(event);
@@ -88,7 +94,7 @@ const world = (stores: Stores = {}) => {
       for: entity =>
         (entity as unknown) === ProductOffering
           ? stores.offeringsDown
-            ? Effect.fail(new EntifixConnError('store down'))
+            ? Effect.fail(new Unavailable({}))
             : Effect.succeed(offerings)
           : Effect.succeed(
               (entity as unknown) === ProductOfferingPrice
@@ -179,7 +185,7 @@ describe('transitionOfferingSelection', () => {
     ]);
   });
 
-  it('transitions every matching row but the excluded ones, and names a failure without a code', async () => {
+  it('transitions every matching row but the excluded ones, and names a failure by its code', async () => {
     const w = world({
       offerings: [offering('o-1', 'draft'), offering('o-2', 'draft')],
     });
@@ -202,6 +208,22 @@ describe('transitionOfferingSelection', () => {
     );
 
     expect(outcomes).toEqual([{ id: 'o-1', ok: true }]);
+    expect(down).toEqual([{ id: 'o-9', ok: false, code: 'unavailable' }]);
+  });
+
+  it('names a failure that carries no code unexpected', async () => {
+    const down = await world({
+      offerings: [offering('o-9', 'draft')],
+      commit: 'legacy',
+    }).run(
+      transitionOfferingSelection({
+        organizationId: 'acme',
+        selection: { mode: 'ids', ids: new Set(['o-9']) },
+        transition: 'publish',
+        source: SOURCE,
+      }),
+    );
+
     expect(down).toEqual([{ id: 'o-9', ok: false, code: 'unexpected' }]);
   });
 });
@@ -320,25 +342,36 @@ describe('rebuildPublications', () => {
 });
 
 describe('rebuildEveryPublication', () => {
-  it('walks every organization, and logs one that fails rather than stopping', async () => {
+  it('walks every organization, and reports one that fails rather than stopping', async () => {
     const w = world({
       offerings: [offering('o-1', 'published')],
       organizations: ['acme', 'globex'],
     });
 
-    await w.run(rebuildEveryPublication(SOURCE));
-    await world({ offeringsDown: true }).run(rebuildEveryPublication(SOURCE));
+    const walked = await w.run(rebuildEveryPublication(SOURCE));
+    const down = await world({ offeringsDown: true }).run(
+      rebuildEveryPublication(SOURCE),
+    );
 
     expect(w.announced).toHaveLength(2);
+    expect(walked.rebuilt.map(entry => entry.organizationId)).toEqual([
+      'acme',
+      'globex',
+    ]);
+    expect(walked.failed).toEqual([]);
+    expect(down.rebuilt).toEqual([]);
+    expect(down.failed).toEqual([
+      { organizationId: 'acme', failure: expect.any(Unavailable) },
+    ]);
   });
 
-  it('logs a directory it cannot read, never failing the boot', async () => {
+  it('fails on a directory it cannot read, for the shell to log', async () => {
     const failing = Layer.succeed(TenantDirectoryTag, {
-      list: () => Effect.fail(new EntifixConnError('cannot list')),
+      list: () => Effect.fail(new Unavailable({})),
     });
 
-    await expect(
-      Effect.runPromise(
+    const failure = await Effect.runPromise(
+      Effect.flip(
         rebuildEveryPublication(SOURCE).pipe(
           Effect.provide(failing),
           Effect.provide(
@@ -354,6 +387,8 @@ describe('rebuildEveryPublication', () => {
           ),
         ),
       ),
-    ).resolves.toBeUndefined();
+    );
+
+    expect(failure).toBeInstanceOf(Unavailable);
   });
 });

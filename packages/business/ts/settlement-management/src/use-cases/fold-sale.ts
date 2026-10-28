@@ -6,30 +6,25 @@ import { type FoldOutcome, SaleJoinTag } from '../ports/settlement-ports';
 import { commissionsForOrder } from '../values/commission';
 import { readCancelledOrder, readPlacedOrder } from '../values/placed-order';
 
-const logOutcome = (event: string, orderId: string, outcome: FoldOutcome) => {
-  if (outcome.kind === 'written') {
-    const annotations = { event, orderId };
-    return Effect.andThen(
-      outcome.folded > 0
-        ? Effect.logInfo('folded a sale into commission entries').pipe(
-            Effect.annotateLogs({ ...annotations, entries: outcome.folded }),
-          )
-        : Effect.void,
-      outcome.reversed > 0
-        ? Effect.logInfo('reversed the commission entries for a sale').pipe(
-            Effect.annotateLogs({ ...annotations, entries: outcome.reversed }),
-          )
-        : Effect.void,
-    );
-  }
-  return outcome.kind === 'duplicate'
-    ? Effect.logDebug('skipped a redelivered settlement message').pipe(
-        Effect.annotateLogs({ event, orderId }),
-      )
-    : Effect.logDebug('holding a sale until its other half arrives').pipe(
-        Effect.annotateLogs({ event, orderId }),
-      );
-};
+/**
+ * What one fold did, for the slice shell to log at its consumer: the use case
+ * answers and never logs (ADR 0064). `unpriced` names the vendors a placed
+ * order sold for with no agreement on file — always empty for the other three
+ * messages.
+ */
+export interface FoldReport {
+  readonly event: string;
+  readonly orderId: string;
+  readonly outcome: FoldOutcome;
+  readonly unpriced: readonly string[];
+}
+
+const report = (
+  event: DomainEvent,
+  orderId: string,
+  outcome: FoldOutcome,
+  unpriced: readonly string[] = [],
+): FoldReport => ({ event: event.name, orderId, outcome, unpriced });
 
 /**
  * Each vendor once. ⚠️ `indexOf`, never `[...new Set(…)]`: the packages
@@ -45,8 +40,8 @@ const vendorsOf = (lines: readonly { readonly vendorId: string }[]) =>
 /**
  * `order.placed`: price each vendor's lines through the agreement in force.
  *
- * ⚠️ A vendor with no agreement is **logged, not priced**: guessing a default
- * rate would invent a commercial term nobody negotiated. The sale still joins,
+ * ⚠️ A vendor with no agreement is **reported, not priced**: guessing a
+ * default rate would invent a commercial term nobody negotiated. The sale still joins,
  * so a capture is not left waiting for a pricing that will never come.
  */
 export const foldPlacedOrder = (consumer: string, event: DomainEvent) =>
@@ -61,20 +56,12 @@ export const foldPlacedOrder = (consumer: string, event: DomainEvent) =>
         : { channelType: order.channelType }),
       agreements,
     });
-    if (unpriced.length > 0) {
-      yield* Effect.logError(
-        'sold for a vendor with no agreement on file',
-      ).pipe(
-        Effect.annotateLogs({ orderId: order.orderId, vendors: unpriced }),
-      );
-    }
     const outcome = yield* join.contribute(
       { consumer, eventId: event.id },
       order.orderId,
       { commissions, unpriced },
     );
-    yield* logOutcome(event.name, order.orderId, outcome);
-    return outcome;
+    return report(event, order.orderId, outcome, unpriced);
   });
 
 /** `payment.captured`: the money moved, so the sale is a sale. */
@@ -87,8 +74,7 @@ export const foldCapture = (consumer: string, event: DomainEvent) =>
       payment.orderId,
       { decidedAt: payment.decidedAt },
     );
-    yield* logOutcome(event.name, payment.orderId, outcome);
-    return outcome;
+    return report(event, payment.orderId, outcome);
   });
 
 /** `order.cancelled`: the sale is off — half of its reversal. */
@@ -101,8 +87,7 @@ export const foldCancellation = (consumer: string, event: DomainEvent) =>
       order.orderId,
       { cancelledAt: event.at },
     );
-    yield* logOutcome(event.name, order.orderId, outcome);
-    return outcome;
+    return report(event, order.orderId, outcome);
   });
 
 /**
@@ -119,6 +104,5 @@ export const foldRefund = (consumer: string, event: DomainEvent) =>
       payment.orderId,
       { refundedAt: payment.decidedAt },
     );
-    yield* logOutcome(event.name, payment.orderId, outcome);
-    return outcome;
+    return report(event, payment.orderId, outcome);
   });

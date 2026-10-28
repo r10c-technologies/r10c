@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { EntifixConnError } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   type DevMailbox,
@@ -19,12 +19,13 @@ export const OUTBOX_COLLECTION = 'notification-outbox';
 export const OUTBOX_PAGE_SIZE = 50;
 
 /**
- * The development {@link NotificationPort}: log it, and record it.
+ * The development {@link NotificationPort}: record it.
  *
- * The log line is for a developer watching the terminal. The outbox row is what
- * makes the flows testable — Playwright cannot read stdout, so without a
- * readable record the password-reset journey (the module's most
- * security-sensitive path) would have no end-to-end coverage at all.
+ * The outbox row is what makes the flows testable — Playwright cannot read
+ * stdout, so without a readable record the password-reset journey (the
+ * module's most security-sensitive path) would have no end-to-end coverage at
+ * all. It is also where a developer reads a reset link: a cell does not log
+ * (ADR 0064).
  *
  * A real transport replaces this one layer; nothing above it changes.
  */
@@ -34,17 +35,6 @@ export const makeDevNotificationPort = (db: Db): NotificationPort => {
   return {
     send: (notification: Notification) =>
       Effect.gen(function* () {
-        yield* Effect.logInfo('notification sent').pipe(
-          Effect.annotateLogs({
-            'notification.kind': notification.kind,
-            'notification.to': notification.to,
-            'notification.userId': String(notification.userId),
-            // The data carries reset links, so it is annotated for a developer
-            // reading their own terminal and never returned over HTTP.
-            'notification.data': JSON.stringify(notification.data ?? {}),
-          }),
-        );
-
         yield* Effect.tryPromise({
           try: () =>
             outbox.insertMany([
@@ -57,8 +47,7 @@ export const makeDevNotificationPort = (db: Db): NotificationPort => {
                 sentAt: new Date().toISOString(),
               },
             ]),
-          catch: error =>
-            new EntifixConnError('Failed to record notification', error),
+          catch: () => new Unavailable({ dependency: 'mongo' }),
         });
       }),
   };
@@ -76,7 +65,7 @@ export const makeDevMailbox = (db: Db): DevMailbox => ({
           .collection(OUTBOX_COLLECTION)
           .find(to === undefined ? {} : { to }, { projection: { _id: 0 } })
           .toArray(),
-      catch: error => new EntifixConnError('Failed to read outbox', error),
+      catch: () => new Unavailable({ dependency: 'mongo' }),
     }).pipe(
       Effect.map(docs =>
         [...docs]
@@ -84,15 +73,13 @@ export const makeDevMailbox = (db: Db): DevMailbox => ({
             String(right['sentAt']).localeCompare(String(left['sentAt'])),
           )
           .slice(0, OUTBOX_PAGE_SIZE)
-          .map(
-            (doc): MailboxNotice => ({
-              kind: String(doc['kind']),
-              to: String(doc['to']),
-              userId: String(doc['userId']),
-              data: (doc['data'] ?? {}) as Record<string, string>,
-              sentAt: String(doc['sentAt']),
-            }),
-          ),
+          .map((doc): MailboxNotice => ({
+            kind: String(doc['kind']),
+            to: String(doc['to']),
+            userId: String(doc['userId']),
+            data: (doc['data'] ?? {}) as Record<string, string>,
+            sentAt: String(doc['sentAt']),
+          })),
       ),
     ),
 });

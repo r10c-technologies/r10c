@@ -159,6 +159,7 @@
     "@r10c/business-ts-product-configuration-management": "workspace:*",
     "@r10c/implementation-catalog-mongo": "workspace:*",
     "@r10c/implementation-product-configuration-management-http": "workspace:*",
+    "@r10c/shells-effect-marketplace-admin": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "amqplib": "2.2.0",

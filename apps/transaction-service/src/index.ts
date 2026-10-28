@@ -3,16 +3,22 @@
  * it — the same split every other backend makes, so an e2e `mock` profile can
  * launch the real router in-process against driver fakes.
  */
-export { AppLayer } from './mongo';
+import { makeAppLayer } from '@r10c/shells-effect-transaction';
+
 // Exported so the e2e `mock` profile composes the same layers over a fake pool
 // rather than stubbing the routes the catalog's own `202` points at.
-export { router } from './routes';
 export {
+  cancellationSaga,
+  checkoutSaga,
   HttpSagaDispatcherLayer,
   ParticipantsTag,
-} from './saga/http-dispatcher';
-export { sagaStoresLayer } from './saga/stores';
-export { cancellationSaga, checkoutSaga, SAGAS } from './sagas';
+  router,
+  SAGAS,
+  sagaStoresLayer,
+} from '@r10c/shells-effect-transaction';
+
+/** The slice's composition, as the service mounts it. */
+export const AppLayer = makeAppLayer();
 
 export const SERVICE_NAME = '@r10c/transaction-service';
 

@@ -8,6 +8,8 @@ import {
   type EntifixEnvelopeLink,
   EntifixLockError,
   type EntityId,
+  isFailure,
+  isTag,
   makeEntityEnvelope,
   readWireSelection,
 } from '@entifix/core';
@@ -52,7 +54,7 @@ export type CatalogRouteServices =
 const organizationOf = (context: EntityRouteContext) =>
   context.organizationId as string;
 
-const refusalCode = (error: EntifixBuildError): string | undefined =>
+const refusalCode = (error: object): string | undefined =>
   'code' in error && typeof error.code === 'string' ? error.code : undefined;
 
 /**
@@ -88,7 +90,7 @@ const acceptSpecification = (context: EntityRouteContext) =>
     );
   }).pipe(
     Effect.catch(error =>
-      error instanceof EntifixLockError
+      error instanceof EntifixLockError || isTag('Contention')(error)
         ? HttpServerResponse.json(
             {
               error: 'resource busy, try again',
@@ -97,7 +99,8 @@ const acceptSpecification = (context: EntityRouteContext) =>
             },
             { status: 409 },
           )
-        : error instanceof EntifixBuildError
+        : error instanceof EntifixBuildError ||
+            (isFailure(error) && error.category === 'invalid')
           ? HttpServerResponse.json(
               {
                 error: 'invalid command',
@@ -229,18 +232,15 @@ export const catalogRoutes = Layer.mergeAll(
       Effect.as(refuseSpecificationMedia(specification), specification),
     override: { create: acceptSpecification },
   }),
-  makeEntityRoutes.for<EntityRepositoryFactoryTag>()(
-    ProductOffering,
-    {
-      verbs: ['list', 'get', 'create', 'update', 'delete'],
-      guard: { kind: 'organization' },
-      prepare: (offering, context) =>
-        // A store that cannot be opened is a 500, never a refusal of the body.
-        preserveOfferingLifecycle(offering, organizationOf(context)).pipe(
-          Effect.orDie,
-        ),
-    },
-  ),
+  makeEntityRoutes.for<EntityRepositoryFactoryTag>()(ProductOffering, {
+    verbs: ['list', 'get', 'create', 'update', 'delete'],
+    guard: { kind: 'organization' },
+    prepare: (offering, context) =>
+      // A store that cannot be opened is a 500, never a refusal of the body.
+      preserveOfferingLifecycle(offering, organizationOf(context)).pipe(
+        Effect.orDie,
+      ),
+  }),
   makeEntityRoutes(ProductOfferingPrice, {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: { kind: 'organization' },

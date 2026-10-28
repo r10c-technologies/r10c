@@ -1,4 +1,4 @@
-import type { EntifixConnError, EntityId } from '@entifix/core';
+import type { EntityId, TransitionalFailure } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 import type { Configuration } from '../entities/configuration';
@@ -30,13 +30,13 @@ export interface ConfigurationWriter {
     actor: ConfigurationActor,
   ) => Effect.Effect<
     Configuration,
-    ConfigurationWriteRefused | EntifixConnError
+    ConfigurationWriteRefused | TransitionalFailure
   >;
   /** Delete; answers `false` when there was no such row. */
   readonly delete: (
     id: EntityId,
     actor: ConfigurationActor,
-  ) => Effect.Effect<boolean, EntifixConnError>;
+  ) => Effect.Effect<boolean, TransitionalFailure>;
 }
 
 export class ConfigurationWriterTag extends Context.Service<

@@ -450,6 +450,27 @@ every app, because Nx forwards the unknown option to `next build` and
    regression. Bundling drops `"use client"`, inlines CommonJS, and collides with
    the `.d.ts` that `tsc --build` writes to the same `dist`. See
    [How a library is built](#how-a-library-is-built).
+6. **Only the slice shell logs, retries or answers a failure.** A use case or
+   a cell returns an outcome — a report, a typed failure with a permanent
+   `code` — and the slice's `@r10c/shells-effect-<slice>` logs it with that code,
+   its category and the trace id, never `String(error)`
+   ([ADR 0064](adr/0064-failures-reach-the-slice-shell.md)). Each part is a lint
+   rule with a planted violation in `@r10c/conventions`:
+   - `Effect.log*`, `Effect.annotateLogs`, `Effect.withLogSpan` and `console.*`
+     fail lint anywhere under `packages/business` or `packages/implementation`
+     (specs and stories excepted). Every one of those projects spreads
+     `silentLayerConfig` from the root `eslint.config.mjs`, because a flat-config
+     glob resolves against the config that declares it and `nx lint` loads the
+     project's own.
+   - An app under `apps/*-service/src` only mounts its shell:
+     `HttpRouter`, `effect/http-api` and `@entifix/*/engine` fail lint there
+     (`serviceAppConfig`), and `@r10c/docs-check` asserts each deployment imports
+     exactly its own slice's shell.
+   - A bus consumer never retries in process — redelivery is its retry — so an
+     `Effect.retry` or `On(…).retry` inside a `subscribe(…)` handler fails lint
+     in any Effect shell (`sliceShellConfig`), and the slices register holds
+     every subscription's `maxAttempts` to the fleet delivery budget of 5.
+     In-process retries are sized by each service's config-service `retry` rows.
 
 ## Module boundaries
 
@@ -462,7 +483,7 @@ The golden rule above is **enforced**, not just reviewed. Every project declares
 | **layer**    | `layer:app` › `shell` › `implementation` › `business` › `utils`             | depend only on layers **below** (`shell`/`business` also allow ordered same-layer)    |
 | **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}` | a domain may depend only on itself or `scope:shared` (the reusable core)              |
 | **business** | `business:policy` ‹ `business:domain`                                       | a domain may use the shared vocabulary, never another domain                          |
-| **shell**    | `shell:domain`                                                              | a domain shell mounts onto the installed base shells, never onto another domain shell |
+| **shell**    | `shell:base` ‹ `shell:{domain, platform}`                                   | a slice's shell mounts onto the base, never onto another slice's shell                |
 | **host**     | `host:next`, `host:effect`                                                  | a `host:next` app may **not** import `@entifix/{mongo,sql,redis,amqp}` or a subpath   |
 | **tech**     | `tech:{react, next, http, mongo, redis, sql}`                               | a cell may not import what it would talk through — adapters, drivers, state libraries |
 | **type**     | `type:testing`, `type:e2e`, `type:storybook`                                | spec files may import `type:testing` libs; source files may not                       |
@@ -487,9 +508,14 @@ business layer got one ordered dimension, `policy` ‹ `domain`. A domain packag
 to policy; it still cannot import a sibling domain.
 
 **Why `shell:*` exists.** Same story one layer up. `layer:shell` allows
-same-layer edges so that a domain shell could once reach the in-tree base shells;
-with those installed from the registry instead, `shell:domain` is what still
-stops one domain shell importing another.
+same-layer edges, and `shell:*` orders them. `shell:base` is
+`@r10c/shells-effect-service`, the fleet composition every Effect service shares;
+`shell:domain` is one slice that owns a domain (a Next shell, or a slice's
+Effect shell) and `shell:platform` one that declares none (`transaction`). A
+domain or platform shell may import the base and never another shell; the base
+imports neither, so it cannot come to depend on what is composed onto it
+([ADR 0064](adr/0064-failures-reach-the-slice-shell.md)). `@r10c/docs-check`
+asserts every Effect shell is the base or scoped to exactly one declared slice.
 
 **Why `host:*` exists.** Apps sit at the top layer, so nothing stopped a Next app
 from importing `makeMongoRepository` and writing a database directly — the one

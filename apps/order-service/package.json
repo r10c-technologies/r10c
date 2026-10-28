@@ -160,6 +160,7 @@
     "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/implementation-order-management-http": "workspace:*",
     "@r10c/implementation-order-mongo": "workspace:*",
+    "@r10c/shells-effect-order": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "effect": "4.0.6",

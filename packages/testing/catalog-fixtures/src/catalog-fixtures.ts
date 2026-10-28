@@ -64,7 +64,7 @@ const referencesIn =
 /**
  * The fixture catalog as static repositories, validated against each entity's
  * metadata and against one another, so a broken row throws a
- * `RecordValidationError` naming every problem before anything renders.
+ * `InvalidRecords` naming every problem before anything renders.
  *
  * `rows` defaults to the JSON beside this file; a spec passes its own to show
  * what a broken row does.

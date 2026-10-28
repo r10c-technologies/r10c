@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { isStoreFault } from '@entifix/core';
 import {
   COMMAND_INBOX_COLLECTION,
   OUTBOX_COLLECTION,
@@ -25,7 +25,10 @@ import {
 type Fake = ReturnType<typeof makeFakeMongoDb>;
 
 const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
-  const cell = mongoCellWorld(MongoPaymentLedgerLayer, { source: 'payment', seed });
+  const cell = mongoCellWorld(MongoPaymentLedgerLayer, {
+    source: 'payment',
+    seed,
+  });
   const run = <A, E>(use: (ledger: PaymentLedger) => Effect.Effect<A, E>) =>
     cell.run(Effect.flatMap(PaymentLedgerTag, use));
   return { fake: cell.fake, bus: cell.bus, run };
@@ -135,8 +138,8 @@ describe('recording a capture', () => {
       ),
     );
 
-    expect(claimed).toBeInstanceOf(EntifixConnError);
-    expect(collided).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(claimed)).toBe(true);
+    expect(isStoreFault(collided)).toBe(true);
     expect(fake.read(PAYMENT_COLLECTION)).toEqual([]);
   });
 
@@ -191,7 +194,7 @@ describe('reading the store', () => {
       Effect.flip(ledger.captureFor('order-1')),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 
   it('reports a remembered answer that will not read back as a store failure', async () => {
@@ -209,7 +212,7 @@ describe('reading the store', () => {
       Effect.flip(ledger.decidedPayment('cmd-bad')),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 });
 
@@ -257,7 +260,7 @@ describe('recording a refund', () => {
       Option.getOrUndefined(await run(ledger => ledger.decidedRefund('r-3')))
         ?.id,
     ).toBe('ref-3');
-    expect(empty).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(empty)).toBe(true);
   });
 
   it('answers a second command aimed at the same capture with the sibling’s refund', async () => {
@@ -306,7 +309,7 @@ describe('recording a refund', () => {
       Effect.flip(ledger.recordRefund(aRefund('ref-8'), outcome(), undefined)),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 });
 

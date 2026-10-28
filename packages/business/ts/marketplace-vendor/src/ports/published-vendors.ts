@@ -1,4 +1,4 @@
-import type { EntifixConnError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import type { OrganizationAnnouncement } from '@r10c/business-ts-party-contracts';
 import { Context, type Effect } from 'effect';
 
@@ -11,7 +11,7 @@ import { Context, type Effect } from 'effect';
 export interface PublishedVendors {
   readonly apply: (
     announcement: OrganizationAnnouncement,
-  ) => Effect.Effect<'applied' | 'stale', EntifixConnError>;
+  ) => Effect.Effect<'applied' | 'stale', TransitionalFailure>;
 }
 
 export class PublishedVendorsTag extends Context.Service<

@@ -3,9 +3,9 @@ import {
   facetCountsUCFactory,
 } from '@entifix/business';
 import type {
-  EntifixError,
   EntityFacetQuery,
   EntityFacetValue,
+  TransitionalFailure,
 } from '@entifix/core';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Effect } from 'effect';
@@ -66,7 +66,11 @@ export const loadOfferingFacetCounts = (
   state: SearchState,
   context: SearchContext,
   facets: readonly CountedFacet[] = COUNTED_FACETS,
-): Effect.Effect<OfferingFacetCounts, EntifixError, EntityFacetCounterTag> =>
+): Effect.Effect<
+  OfferingFacetCounts,
+  TransitionalFailure,
+  EntityFacetCounterTag
+> =>
   facetCountsUCFactory(offeringFacetQueries(state, context, facets)).pipe(
     Effect.map(counts =>
       Object.fromEntries(

@@ -103,7 +103,9 @@ describePublishedPriceReaderContract('the HTTP price reader', catalog => {
   return Effect.runPromise(
     Effect.gen(function* () {
       return yield* PublishedPriceReaderTag;
-    }).pipe(Effect.provide(httpPublishedPriceReaderLayer('http://catalog/api'))),
+    }).pipe(
+      Effect.provide(httpPublishedPriceReaderLayer('http://catalog/api')),
+    ),
   );
 });
 

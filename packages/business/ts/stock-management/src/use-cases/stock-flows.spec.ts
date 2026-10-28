@@ -20,7 +20,7 @@ const ledger: StockLedger = {
   end: () => Effect.succeed('transitioned'),
   record: (_org, movement) => Effect.succeed(movement),
   restore: (_org, movement) => Effect.succeed({ _tag: 'restored', movement }),
-  releaseExpired: () => Effect.succeed(0),
+  releaseExpired: () => Effect.succeed({ released: 0, failed: [] }),
 };
 
 const run = <A, E>(

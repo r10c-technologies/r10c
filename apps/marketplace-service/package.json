@@ -165,6 +165,7 @@
     "@r10c/implementation-marketplace-vendor-http": "workspace:*",
     "@r10c/implementation-published-catalog-mongo": "workspace:*",
     "@r10c/implementation-published-vendor-mongo": "workspace:*",
+    "@r10c/shells-effect-marketplace": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "amqplib": "2.2.0",

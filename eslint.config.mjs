@@ -178,18 +178,39 @@ const businessConstraints = [
   },
 ];
 
-// Internal ordering INSIDE the shell layer. The base shells a domain shell
-// mounts onto (`@entifix/service-shell`, `@entifix/next-shell`,
-// `@entifix/next-i18n`) are installed packages, so what is left to order is that
-// a domain shell never reaches sideways into another one.
+// Internal ordering INSIDE the shell layer (ADR 0064). Three kinds:
+//
+// - `shell:base` — r10c's fleet composition every Effect service shares
+//   (`@r10c/shells-effect-service`), beside the installed base shells
+//   (`@entifix/service-shell`, `@entifix/next-shell`, `@entifix/next-i18n`).
+// - `shell:domain` — one slice that owns a domain, mounted onto the base.
+// - `shell:platform` — one slice that declares no domain (`transaction`).
+//
+// A domain or platform shell may reach down to the base and never sideways
+// into another shell, of either kind; the base reaches neither, so it can
+// never come to depend on the slices composed onto it.
+const SLICE_SHELL_MAY_IMPORT = [
+  'shell:base',
+  'layer:implementation',
+  'layer:business',
+  'layer:utils',
+];
 const shellConstraints = [
   {
-    sourceTag: 'shell:domain',
+    sourceTag: 'shell:base',
     onlyDependOnLibsWithTags: [
       'layer:implementation',
       'layer:business',
       'layer:utils',
     ],
+  },
+  {
+    sourceTag: 'shell:domain',
+    onlyDependOnLibsWithTags: SLICE_SHELL_MAY_IMPORT,
+  },
+  {
+    sourceTag: 'shell:platform',
+    onlyDependOnLibsWithTags: SLICE_SHELL_MAY_IMPORT,
   },
 ];
 
@@ -361,6 +382,127 @@ const specConstraints = sourceConstraints.map(c =>
 
 const allowEslintConfig = ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'];
 
+/**
+ * What an Effect service's `src/` may not import (ADR 0064): apps only mount.
+ * Routes, an HTTP API and the saga engine are composition, and composition is
+ * the slice's shell's — a route or an engine wired in an app is a second place
+ * a reader has to look for what a failure means.
+ *
+ * Spread by each service's own `eslint.config.mjs`, for the reason
+ * `serviceE2eConfig` is: a flat-config glob resolves against the config that
+ * declares it. The root list carries the same rule at `apps/*-service/src`, so
+ * a lint run from the repository root — and `@r10c/conventions`' planted app
+ * file — reads it too.
+ */
+const SERVICE_APP_RESTRICTIONS = {
+  'no-restricted-imports': [
+    'error',
+    {
+      paths: [
+        {
+          name: 'effect/http',
+          importNames: ['HttpRouter'],
+          message:
+            'Routes are composed by the slice shell; a service only mounts it (ADR 0064).',
+        },
+        {
+          name: 'effect/http-api',
+          message:
+            'An HTTP API is composed by the slice shell; a service only mounts it (ADR 0064).',
+        },
+      ],
+      patterns: [
+        {
+          group: ['@entifix/*/engine'],
+          message:
+            'The engine is composed by the slice shell; a service only mounts it (ADR 0064).',
+        },
+      ],
+    },
+  ],
+};
+
+export const serviceAppConfig = {
+  files: ['src/**/*.ts'],
+  ignores: ['src/**/*.spec.ts'],
+  rules: SERVICE_APP_RESTRICTIONS,
+};
+
+/**
+ * A bus consumer never retries in process: redelivery is its only retry, and
+ * its ceiling is the subscription's `maxAttempts`, which the slices register
+ * holds to the fleet delivery budget (ADR 0064, entifix ADR 0014). An
+ * `Effect.retry` or `On(…).retry` inside a `subscribe(…)` handler would
+ * multiply that budget by its own attempts.
+ *
+ * Matched inside the call that registers the handler, so the rule is about
+ * consumers and not about the shell's other retries. Spread by each slice
+ * shell's own config and carried at the root too, for the reason
+ * `serviceAppConfig` is.
+ */
+const CONSUMER_RETRY_RESTRICTIONS = {
+  'no-restricted-syntax': [
+    'error',
+    {
+      selector:
+        "CallExpression[callee.property.name='subscribe'] CallExpression[callee.object.name='Effect'][callee.property.name='retry']",
+      message:
+        'A consumer handler never retries in process; redelivery is its retry (ADR 0064).',
+    },
+    {
+      selector:
+        "CallExpression[callee.property.name='subscribe'] CallExpression[callee.property.name='retry'][callee.object.callee.name='On']",
+      message:
+        'A consumer handler never retries in process; redelivery is its retry (ADR 0064).',
+    },
+  ],
+};
+
+export const sliceShellConfig = {
+  files: ['src/**/*.ts'],
+  ignores: ['src/**/*.spec.ts'],
+  rules: CONSUMER_RETRY_RESTRICTIONS,
+};
+
+/**
+ * Nobody below the slice shell logs (ADR 0064). A use case or a cell returns an
+ * outcome — a report, a typed failure — and the shell that forks the work
+ * logs it with a code, a category and a trace id, never `String(error)`.
+ * Logging from below would decide a level and a sink in code that cannot see
+ * either, and is how a failure ends up logged twice or with its text.
+ *
+ * Spread by every business and implementation project's own config, and
+ * carried at the root too, for the reason `serviceAppConfig` is.
+ */
+const NO_LOGGING_BELOW_THE_SHELL = {
+  'no-restricted-syntax': [
+    'error',
+    {
+      selector:
+        "CallExpression[callee.object.name='Effect'][callee.property.name=/^log/]",
+      message:
+        'Only the slice shell logs: return an outcome instead (ADR 0064).',
+    },
+    {
+      selector:
+        "CallExpression[callee.object.name='Effect'][callee.property.name=/^(annotateLogs|withLogSpan)$/]",
+      message:
+        'Only the slice shell logs: return an outcome instead (ADR 0064).',
+    },
+    {
+      selector: "CallExpression[callee.object.name='console']",
+      message:
+        'Only the slice shell logs: return an outcome instead (ADR 0064).',
+    },
+  ],
+};
+
+export const silentLayerConfig = {
+  files: ['src/**/*.ts', 'src/**/*.tsx'],
+  ignores: ['src/**/*.spec.ts', 'src/**/*.spec.tsx', 'src/**/*.stories.tsx'],
+  rules: NO_LOGGING_BELOW_THE_SHELL,
+};
+
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
@@ -526,6 +668,24 @@ export default [
     ignores: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.stories.tsx'],
     plugins: { r10c: r10cPlugin },
     rules: { 'r10c/no-foreign-app-namespace': 'error' },
+  },
+  {
+    files: [
+      'packages/business/**/src/**/*.{ts,tsx}',
+      'packages/implementation/**/src/**/*.{ts,tsx}',
+    ],
+    ignores: ['**/*.spec.{ts,tsx}', '**/*.stories.tsx'],
+    rules: NO_LOGGING_BELOW_THE_SHELL,
+  },
+  {
+    files: ['packages/shells/effect/*/src/**/*.ts'],
+    ignores: ['packages/shells/effect/*/src/**/*.spec.ts'],
+    rules: CONSUMER_RETRY_RESTRICTIONS,
+  },
+  {
+    files: ['apps/*-service/src/**/*.ts'],
+    ignores: ['apps/*-service/src/**/*.spec.ts'],
+    rules: SERVICE_APP_RESTRICTIONS,
   },
 ];
 

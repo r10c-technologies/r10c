@@ -157,6 +157,7 @@
     "@r10c/implementation-stock-management-http": "workspace:*",
     "@r10c/implementation-stock-mongo": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
+    "@r10c/shells-effect-stock": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "effect": "4.0.6",
     "jose": "6.2.13",

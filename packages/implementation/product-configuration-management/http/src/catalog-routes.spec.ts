@@ -1,13 +1,17 @@
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  InvalidToken,
   TokenServiceTag,
 } from '@entifix/business';
 import {
+  Contention,
   EntifixBuildError,
   EntifixConnError,
-  type EntifixError,
   EntifixLockError,
+  Invalid,
+  type TransitionalFailure,
+  Unavailable,
 } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { EventSourceTag } from '@entifix/transactions';
@@ -58,7 +62,7 @@ const specifications = makeInMemoryEntityRepository([
 ]);
 
 let storeDown = false;
-let accepted: Effect.Effect<{ transactionId: string }, EntifixError> =
+let accepted: Effect.Effect<{ transactionId: string }, TransitionalFailure> =
   Effect.succeed({ transactionId: 't-1' });
 
 const vendor = tokenClaims({ activeOrganizationId: 'acme' });
@@ -72,7 +76,7 @@ beforeAll(() => {
       Layer.succeed(EntityRepositoryFactoryTag, {
         for: entity =>
           storeDown
-            ? Effect.fail(new EntifixConnError('store down'))
+            ? Effect.fail(new Unavailable({}))
             : Effect.succeed(
                 (entity as unknown) === ProductOffering
                   ? offerings
@@ -98,7 +102,7 @@ beforeAll(() => {
         verify: token =>
           token === 'vendor'
             ? Effect.succeed(vendor)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(
         PolicyDecisionTag,
@@ -142,7 +146,11 @@ describe('POST /api/product-specification', () => {
   });
 
   it('answers a held lock with 409, a refused command with its rule, and a store failure with 500', async () => {
-    const answers: [Effect.Effect<never, EntifixError>, number, string?][] = [
+    const answers: [
+      Effect.Effect<never, TransitionalFailure>,
+      number,
+      string?,
+    ][] = [
       [Effect.fail(new EntifixLockError('held')), 409, 'resourceBusy'],
       [
         Effect.fail(
@@ -154,7 +162,19 @@ describe('POST /api/product-specification', () => {
         'mediaNotHttps',
       ],
       [Effect.fail(new EntifixBuildError('no name')), 400, 'invalidCommand'],
-      [Effect.fail(new EntifixConnError('down')), 500],
+      [Effect.fail(new Contention({})), 409, 'resourceBusy'],
+      [
+        Effect.fail(
+          new Invalid({
+            errors: [
+              { pointer: '/name', detail: 'required', code: 'required' },
+            ],
+          }),
+        ),
+        400,
+        'invalid',
+      ],
+      [Effect.fail(new EntifixConnError('store down')), 500],
     ];
     for (const [answer, status, code] of answers) {
       accepted = answer;

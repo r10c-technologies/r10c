@@ -134,7 +134,8 @@ describe('the RSQL query protocol', () => {
     const res = await list(query);
 
     expect(res.status).toBe(400);
-    expect(res.data.error).toBe('invalid query');
+    expect(res.headers['content-type']).toContain('application/problem+json');
+    expect(res.data).toMatchObject({ code: 'invalidQuery', status: 400 });
   });
 
   it('rejects a malformed expression with a 400', async () => {

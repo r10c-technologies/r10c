@@ -1,0 +1,56 @@
+{
+  "name": "@r10c/shells-effect-stock",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:stock",
+      "shell:domain"
+    ],
+    "sourceRoot": "packages/shells/effect/stock/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/effect/stock/dist",
+          "main": "packages/shells/effect/stock/src/index.ts",
+          "tsConfig": "packages/shells/effect/stock/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@r10c/business-ts-stock-management": "workspace:*",
+    "@r10c/implementation-stock-management-http": "workspace:*",
+    "@r10c/implementation-stock-mongo": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.6"
+  },
+  "devDependencies": {
+    "@entifix/core": "catalog:"
+  }
+}

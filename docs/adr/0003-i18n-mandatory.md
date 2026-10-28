@@ -16,6 +16,7 @@
 - Revised: 2026-08-13 — the two sections reasoning from rollup/Vite bundling are
   clarified in place: `packages/` builds per-file with `@nx/js:swc` and no bundler
   config remains. Both decisions stand. The i18n gates themselves are untouched.
+- Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — a failure carries its own `code` and answers as `application/problem+json`; `i18n-check` reads the failure registry instead of scanning for `{ error, code }` literals
 
 ## Context
 
@@ -126,6 +127,13 @@ allowed to assign that role" _was_ the UI copy, in every locale.
 **Rejected: a `code` on `EntifixError` itself.** ~60 construction sites, most of
 them developer-facing 400s from our own RSQL client. Those collapse to a single
 `invalidQuery` code with `detail` retained.
+
+> **2026-10-28 ([ADR 0064](0064-failures-reach-the-slice-shell.md)):** the
+> reasoning stands for the class tree it was written against; the class tree is
+> gone. entifix 0.10.0 gives every failure a permanent `code`, registered at
+> load, and the body is RFC 9457 with `code` at the top level. The catalog gate
+> reads that registry rather than regexes over `{ error, code }` literals, which
+> stay until the last hand-written body is gone (#491).
 
 ### The gate is a lint rule plus typed keys
 

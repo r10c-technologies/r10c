@@ -1,10 +1,11 @@
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  InvalidToken,
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
+import { EntifixConnError } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   Agreement,
@@ -75,7 +76,7 @@ beforeAll(() => {
         verify: token =>
           sessions[token]
             ? Effect.succeed(sessions[token] as TokenClaims)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(
         PolicyDecisionTag,

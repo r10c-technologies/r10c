@@ -1,4 +1,4 @@
-import type { EntifixConnError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 import type { Agreement } from '../entities/agreement';
@@ -41,12 +41,12 @@ export interface SaleJoin {
   /** Each vendor's agreement in force, newest first. */
   readonly agreementsFor: (
     vendorIds: readonly string[],
-  ) => Effect.Effect<ReadonlyMap<string, Agreement>, EntifixConnError>;
+  ) => Effect.Effect<ReadonlyMap<string, Agreement>, TransitionalFailure>;
   readonly contribute: (
     claim: { readonly consumer: string; readonly eventId: string },
     orderId: string,
     half: SaleHalf,
-  ) => Effect.Effect<FoldOutcome, EntifixConnError>;
+  ) => Effect.Effect<FoldOutcome, TransitionalFailure>;
 }
 
 export class SaleJoinTag extends Context.Service<SaleJoinTag, SaleJoin>()(
@@ -71,7 +71,7 @@ export type RunOutcome =
  * all in one unit.
  */
 export interface SettlementRunStore {
-  readonly settleOnce: () => Effect.Effect<RunOutcome, EntifixConnError>;
+  readonly settleOnce: () => Effect.Effect<RunOutcome, TransitionalFailure>;
 }
 
 export class SettlementRunStoreTag extends Context.Service<

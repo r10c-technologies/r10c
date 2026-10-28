@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 
 import {
   deserializeSingleEntity,
-  EntifixConnError,
   type EntityId,
+  Unavailable,
 } from '@entifix/core';
 import {
   type AccountRepository,
@@ -41,14 +41,13 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
   const users = db.collection(USER_COLLECTION);
   const identifiers = db.collection(IDENTIFIER_COLLECTION);
 
-  const fail = (message: string, error: unknown) =>
-    new EntifixConnError(message, error);
+  const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
   const findByIdentifier = (value: string) =>
     Effect.gen(function* () {
       const identifierDoc = yield* Effect.tryPromise({
         try: () => identifiers.findOne({ value }, WITHOUT_MONGO_ID),
-        catch: error => fail('Failed to read identifier from MongoDB', error),
+        catch: storeUnavailable,
       });
       if (identifierDoc === null) {
         return null;
@@ -56,7 +55,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       const userDoc = yield* Effect.tryPromise({
         try: () =>
           users.findOne({ id: identifierDoc['userId'] }, WITHOUT_MONGO_ID),
-        catch: error => fail('Failed to read user from MongoDB', error),
+        catch: storeUnavailable,
       });
       const user = yield* deserializeSingleEntity(UserIdentity, userDoc);
       return (user as UserIdentity | undefined) ?? null;
@@ -66,7 +65,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
     Effect.gen(function* () {
       const userDoc = yield* Effect.tryPromise({
         try: () => users.findOne({ id: userId }, WITHOUT_MONGO_ID),
-        catch: error => fail('Failed to read user from MongoDB', error),
+        catch: storeUnavailable,
       });
       const user = yield* deserializeSingleEntity(UserIdentity, userDoc);
       return (user as UserIdentity | undefined) ?? null;
@@ -86,7 +85,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
 
       yield* Effect.tryPromise({
         try: () => users.updateOne({ id: userId }, { $set: update }),
-        catch: error => fail('Failed to update user in MongoDB', error),
+        catch: storeUnavailable,
       });
 
       const updated = yield* findById(userId);
@@ -103,7 +102,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       const doc = yield* Effect.tryPromise({
         try: () =>
           identifiers.findOne({ userId, type: 'email' }, WITHOUT_MONGO_ID),
-        catch: error => fail('Failed to read identifier from MongoDB', error),
+        catch: storeUnavailable,
       });
       return (doc?.['value'] as string | undefined) ?? null;
     });
@@ -141,7 +140,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
             } as unknown as PushOperator<Document>,
           },
         ),
-      catch: error => fail('Failed to link identifier in MongoDB', error),
+      catch: storeUnavailable,
     }).pipe(Effect.asVoid);
 
   /**
@@ -157,7 +156,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       yield* Effect.tryPromise({
         try: () =>
           identifiers.insertMany([{ id: identifierId, userId, ...doc }]),
-        catch: error => fail('Failed to insert identifier into MongoDB', error),
+        catch: storeUnavailable,
       });
       yield* linkIdentifier(userId, identifierId);
     });
@@ -174,7 +173,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
             { userId, type: IdentifierType.ExternalSubject },
             WITHOUT_MONGO_ID,
           ),
-        catch: error => fail('Failed to read identifier from MongoDB', error),
+        catch: storeUnavailable,
       });
 
       // Re-linking is how provisioning repairs itself: a run that created the
@@ -188,7 +187,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
               { id: existing['id'] },
               { $set: { value: subject, provider, verified: true } },
             ),
-          catch: error => fail('Failed to update identifier in MongoDB', error),
+          catch: storeUnavailable,
         });
         // Re-asserted, not assumed: the boot seed's `$set` on `user-identity`
         // wipes the link array back to the seed literal, so the row would
@@ -214,7 +213,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
               { id: userId },
               { $set: { displayName: projection.displayName } },
             ),
-          catch: error => fail('Failed to update user in MongoDB', error),
+          catch: storeUnavailable,
         });
       }
 
@@ -226,7 +225,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
             { userId, type: IdentifierType.Email },
             WITHOUT_MONGO_ID,
           ),
-        catch: error => fail('Failed to read identifier from MongoDB', error),
+        catch: storeUnavailable,
       });
 
       if (current === null) {
@@ -249,7 +248,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
               },
             },
           ),
-        catch: error => fail('Failed to update identifier in MongoDB', error),
+        catch: storeUnavailable,
       });
     });
 
@@ -260,8 +259,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       for (const identifier of input.identifiers) {
         const existing = yield* Effect.tryPromise({
           try: () => identifiers.findOne({ value: identifier.value }),
-          catch: error =>
-            fail('Failed to check identifier uniqueness in MongoDB', error),
+          catch: storeUnavailable,
         });
         if (existing !== null) {
           return yield* Effect.fail(
@@ -297,13 +295,12 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
       // Mongo fake implements, so the same adapter runs in the hermetic e2e.
       yield* Effect.tryPromise({
         try: () => users.insertMany([{ ...userDoc }]),
-        catch: error => fail('Failed to insert user into MongoDB', error),
+        catch: storeUnavailable,
       });
       yield* Effect.tryPromise({
         try: () =>
           identifiers.insertMany(identifierDocs.map(doc => ({ ...doc }))),
-        catch: error =>
-          fail('Failed to insert identifiers into MongoDB', error),
+        catch: storeUnavailable,
       });
 
       const created = yield* deserializeSingleEntity(UserIdentity, userDoc);

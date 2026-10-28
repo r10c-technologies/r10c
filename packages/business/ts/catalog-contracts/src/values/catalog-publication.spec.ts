@@ -1,3 +1,4 @@
+import { Invalid } from '@entifix/core';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -45,7 +46,13 @@ const read = (data: unknown) =>
 const failureMessage = (data: unknown): string => {
   const exit = read(data);
   if (Exit.isSuccess(exit)) throw new Error('expected the decode to fail');
-  return String(exit.cause);
+  // A typed `invalid` failure, so the bus quarantines it at once; its detail
+  // names what was wrong.
+  const failure = Effect.runSync(Effect.flip(readCatalogPublication(data)));
+  if (!(failure instanceof Invalid)) {
+    throw new Error('expected a typed `invalid` failure');
+  }
+  return failure.errors.map(error => error.detail).join(' ');
 };
 
 describe('catalog event names', () => {

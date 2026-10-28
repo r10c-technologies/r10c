@@ -1,8 +1,10 @@
 import { SessionStoreTag } from '@entifix/business';
 import {
   describeEntityUseCases,
-  EntifixLogicError,
   type EntityId,
+  type NotFound,
+  type StoreFailure,
+  Unavailable,
 } from '@entifix/core';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -14,12 +16,13 @@ import {
   SignOutOtherSessionsUC,
 } from './sign-out-other-sessions.uc.js';
 
+// Fails loudly if a path the use case must not take is taken.
 const unused = (name: string) =>
-  Effect.fail(new EntifixLogicError(`${name} not used in sign-out-others`));
+  Effect.fail(new Unavailable({ dependency: `${name} is not used here` }));
 
 const stubSessions = (
   onRevoke: (userId: EntityId, keep: string) => void,
-  outcome: Effect.Effect<void, EntifixLogicError> = Effect.void,
+  outcome: Effect.Effect<void, StoreFailure | NotFound> = Effect.void,
 ) =>
   SessionStoreTag.of({
     create: () => unused('create'),
@@ -57,10 +60,7 @@ describe('SignOutOtherSessionsUC', () => {
 
   it('fails when the session store does', async () => {
     const exit = await run(
-      stubSessions(
-        () => undefined,
-        Effect.fail(new EntifixLogicError('redis is down')),
-      ),
+      stubSessions(() => undefined, Effect.fail(new Unavailable({}))),
     );
 
     expect(Exit.isFailure(exit)).toBe(true);

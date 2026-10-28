@@ -1,17 +1,18 @@
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  InvalidToken,
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   Configuration,
   ConfigurationWriteRefused,
   ConfigurationWriterTag,
 } from '@r10c/business-ts-configuration';
-import { type ServedRoutes,serveRoutes } from '@r10c/testing-http';
+import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -32,14 +33,14 @@ const writer = Layer.succeed(ConfigurationWriterTag, {
     incoming.key === 'refused'
       ? Effect.fail(new ConfigurationWriteRefused('secretRequiresValue'))
       : incoming.key === 'broken'
-        ? Effect.fail(new EntifixConnError('store down'))
+        ? Effect.fail(new Unavailable({}))
         : Effect.sync(() => {
             writes.push(`save ${String(incoming.id)} by ${actor.subject}`);
             return Object.assign(incoming, { id: incoming.id ?? 'cfg-new' });
           }),
   delete: (id, actor) =>
     id === 'broken'
-      ? Effect.fail(new EntifixConnError('store down'))
+      ? Effect.fail(new Unavailable({}))
       : Effect.sync(() => {
           writes.push(`delete ${String(id)} by ${actor.subject}`);
           return id !== 'missing';
@@ -74,7 +75,7 @@ beforeAll(async () => {
         verify: token =>
           token === 'operator'
             ? Effect.succeed(claims)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(
         PolicyDecisionTag,

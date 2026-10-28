@@ -9,6 +9,7 @@ import type {
 import {
   EntifixBuildError,
   type EntifixEnvelopeLink,
+  isFailure,
   makeEntityEnvelope,
   readEntityEnvelope,
 } from '@entifix/core';
@@ -71,7 +72,8 @@ const failed = (error: unknown) =>
         },
         { status: 400 },
       )
-    : error instanceof EntifixBuildError
+    : error instanceof EntifixBuildError ||
+        (isFailure(error) && error.category === 'invalid')
       ? HttpServerResponse.json(
           {
             error: 'invalid request body',

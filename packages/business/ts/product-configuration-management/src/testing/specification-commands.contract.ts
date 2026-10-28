@@ -1,4 +1,4 @@
-import { EntifixBuildError } from '@entifix/core';
+import { EntifixBuildError, isFailure } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -60,9 +60,13 @@ export const describeSpecificationCommandsContract = (
         ),
       );
 
-      expect(refusals.every(error => error instanceof EntifixBuildError)).toBe(
-        true,
-      );
+      expect(
+        refusals.every(
+          error =>
+            error instanceof EntifixBuildError ||
+            (isFailure(error) && error.family === 'business'),
+        ),
+      ).toBe(true);
     });
   });
 };

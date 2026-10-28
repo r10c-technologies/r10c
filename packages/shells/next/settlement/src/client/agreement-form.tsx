@@ -1,9 +1,9 @@
 'use client';
 
 import {
-  type EntifixError,
   type EntityMetadataSource,
   readDraftString,
+  type TransitionalFailure,
 } from '@entifix/core';
 import { useEntityAffordances } from '@entifix/next-shell';
 import { EntityField, EntityForm, useT } from '@entifix/react-controls';
@@ -21,7 +21,7 @@ export interface AgreementFormProps {
   isLoading?: boolean;
   isSaving?: boolean;
   isDeleting?: boolean;
-  error?: EntifixError;
+  error?: TransitionalFailure;
   /** Where this caller's affordances come from — the served descriptor. */
   metadataSource?: EntityMetadataSource;
   onSave: (entity: Agreement) => void;

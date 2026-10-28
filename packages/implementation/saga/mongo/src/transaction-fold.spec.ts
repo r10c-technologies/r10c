@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { isStoreFault } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import { INBOX_COLLECTION } from '@entifix/mongo/transactions';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
@@ -102,7 +102,7 @@ describe('folding a transaction event', () => {
       ),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 });
 

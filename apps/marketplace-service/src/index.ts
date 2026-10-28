@@ -4,9 +4,14 @@
  * can launch the real router in-process against driver fakes rather than
  * re-declaring a stand-in that could drift.
  */
-export { AppLayer } from './mongo';
-export { router } from './routes';
-export { seedCatalogReference } from './seed';
+import { makeAppLayer } from '@r10c/shells-effect-marketplace';
+
+import { seedCatalogReference } from './seed';
+
+/** The slice's composition, as the service mounts it, with its seed. */
+export const AppLayer = makeAppLayer({ seed: seedCatalogReference });
+export { router } from '@r10c/shells-effect-marketplace';
+export { seedCatalogReference };
 
 export const SERVICE_NAME = '@r10c/marketplace-service';
 

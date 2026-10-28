@@ -2,7 +2,7 @@ import {
   TenantDatabaseResolverTag,
   TenantDirectoryTag,
 } from '@entifix/business';
-import { EntifixConnError } from '@entifix/core';
+import { isStoreFault } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import { COMMAND_INBOX_COLLECTION } from '@entifix/mongo/transactions';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
@@ -148,7 +148,7 @@ describe('taking a hold', () => {
       run(ledger => Effect.flip(ledger.take('org', aHold('r-5', 1), 'c-bad'))),
     ]);
 
-    expect(errors.every(error => error instanceof EntifixConnError)).toBe(true);
+    expect(errors.every(isStoreFault)).toBe(true);
   });
 
   it('reports a take or a hold record the driver failed as store failures', async () => {
@@ -170,7 +170,7 @@ describe('taking a hold', () => {
       ),
     ]);
 
-    expect(errors.every(error => error instanceof EntifixConnError)).toBe(true);
+    expect(errors.every(isStoreFault)).toBe(true);
   });
 });
 
@@ -238,7 +238,7 @@ describe('ending a hold', () => {
       Effect.flip(ledger.end('org', 'r-1', 'released')),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 
   it('reports each step of an end the driver failed as a store failure', async () => {
@@ -251,7 +251,7 @@ describe('ending a hold', () => {
         Effect.flip(ledger.end('org', 'r-1', 'converted')),
       );
 
-      expect(error).toBeInstanceOf(EntifixConnError);
+      expect(isStoreFault(error)).toBe(true);
     }
     // The counter writes after the hold's own: fail only the second and third.
     for (const skip of [1, 2]) {
@@ -283,7 +283,7 @@ describe('ending a hold', () => {
         Effect.flip(ledger.end('org', 'r-1', 'converted')),
       );
 
-      expect(error).toBeInstanceOf(EntifixConnError);
+      expect(isStoreFault(error)).toBe(true);
     }
   });
 });
@@ -320,7 +320,7 @@ describe('recording and restoring', () => {
     );
 
     expect(counterOf(once)?.['onHand']).toBe(1);
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 
   it('reports a counter or a movement the driver failed as a store failure', async () => {
@@ -338,7 +338,7 @@ describe('recording and restoring', () => {
       ),
     ]);
 
-    expect(errors.every(error => error instanceof EntifixConnError)).toBe(true);
+    expect(errors.every(isStoreFault)).toBe(true);
   });
 
   it('restores once, and answers a redelivered command with its first restoration', async () => {
@@ -399,12 +399,12 @@ describe('releasing expired holds', () => {
       ledger.releaseExpired(),
     );
 
-    expect(released).toBe(2);
+    expect(released).toEqual({ released: 2, failed: [] });
     expect(counterOf(one)?.['reserved']).toBe(1);
     expect(counterOf(two)?.['reserved']).toBe(0);
   });
 
-  it('logs a hold it could not release and goes on, and reports a listing it could not read', async () => {
+  it('reports a hold it could not release and goes on, and fails on a listing it could not read', async () => {
     const fake = makeFakeMongoDb({
       [STOCK_ITEM_COLLECTION]: [item('o-1', 5, 1)],
       [RESERVATION_COLLECTION]: [
@@ -421,14 +421,19 @@ describe('releasing expired holds', () => {
     const unreadable = makeFakeMongoDb();
     unreadable.failOn('find', new Error('network down'));
 
-    expect(
-      await world({ org: fake }).run(ledger => ledger.releaseExpired()),
-    ).toBe(0);
+    const sweep = await world({ org: fake }).run(ledger =>
+      ledger.releaseExpired(),
+    );
+
+    expect(sweep.released).toBe(0);
+    expect(sweep.failed).toHaveLength(1);
+    expect(sweep.failed[0]).toMatchObject({ reservationId: 'r-old' });
+    expect(sweep.failed[0]?.failure).toSatisfy(isStoreFault);
     expect(
       await world({ org: unreadable }).run(ledger =>
         Effect.flip(ledger.releaseExpired()),
       ),
-    ).toBeInstanceOf(EntifixConnError);
+    ).toSatisfy(isStoreFault);
   });
 });
 
@@ -453,6 +458,6 @@ describe('MongoStockLedgerLayer', () => {
       Effect.flip(ledger.record('org', aMovement('m-9', 1))),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 });

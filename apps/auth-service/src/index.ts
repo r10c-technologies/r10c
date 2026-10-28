@@ -4,11 +4,10 @@
  * `mock` profile launch the SAME router in-process against driver fakes, rather
  * than re-declaring a stand-in that could drift from the real route surface.
  */
-export {
-  DEV_SEED_PASSWORD,
-  JWT_AUDIENCE,
-  JWT_ISSUER,
-} from './identity/session-policy';
+import { makeAppLayer } from '@r10c/shells-effect-auth';
+
+import { seedAuth } from './seed';
+
 export {
   individualSeedData,
   membershipSeedData,
@@ -18,13 +17,19 @@ export {
   entityIdentifierSeedData,
   userIdentitySeedData,
 } from './identity/user-seed-data';
+export { seedAuth, seedIdentityProvider } from './seed';
 export {
   AuthnHostLayer,
+  DEV_SEED_PASSWORD,
+  JWT_AUDIENCE,
+  JWT_ISSUER,
   PROVIDER,
+  router,
   ZitadelProviderPortsLayer,
-} from './identity/zitadel-ports';
-export { AppLayer, seedIdentityProvider } from './mongo';
-export { router } from './routes';
+} from '@r10c/shells-effect-auth';
+
+/** The slice's composition, as the service mounts it, with its seed. */
+export const AppLayer = makeAppLayer({ seed: seedAuth });
 export {
   IdTokenStoreTag,
   makeSessionIdentityProvider,

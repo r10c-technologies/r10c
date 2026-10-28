@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { isStoreFault } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import {
@@ -307,7 +307,7 @@ describe('the account repository', () => {
     for (const [fail, act] of cases) {
       const { repository } = accounts(seeded(), fail);
 
-      expect(await flip(act(repository))).toBeInstanceOf(EntifixConnError);
+      expect(await flip(act(repository))).toSatisfy(isStoreFault);
     }
   });
 });
@@ -413,7 +413,7 @@ describe('the device repository', () => {
       failNth(fake, DEVICE_COLLECTION, op, nth);
       const devices = makeMongoUserDeviceRepository(fake.db as Db);
 
-      expect(await flip(act(devices))).toBeInstanceOf(EntifixConnError);
+      expect(await flip(act(devices))).toSatisfy(isStoreFault);
     }
   });
 });
@@ -493,11 +493,9 @@ describe('the dev notification outbox', () => {
           userId: 'u',
         } as never),
       ),
-    ).toBeInstanceOf(EntifixConnError);
+    ).toSatisfy(isStoreFault);
     expect(
       await flip(makeDevMailbox(reads.db as Db).read(undefined)),
-    ).toBeInstanceOf(
-      EntifixConnError,
-    );
+    ).toSatisfy(isStoreFault);
   });
 });

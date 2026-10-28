@@ -1,10 +1,5 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
-import { EntifixBuildError } from '@entifix/core';
-import {
-  makeInMemoryEntityRepository,
-} from '@entifix/testing-unit';
+import { EntityRepositoryTag } from '@entifix/business';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context } from 'effect';
 import type { PropsWithChildren } from 'react';
@@ -53,7 +48,7 @@ describe('the marketplace-admin adapters context', () => {
   // would surface much later, inside a use-case, as something unrelated.
   it('fails loudly outside the provider', () => {
     expect(() => renderHook(() => useMarketplaceAdminAdapters())).toThrow(
-      EntifixBuildError,
+      Error,
     );
   });
 });

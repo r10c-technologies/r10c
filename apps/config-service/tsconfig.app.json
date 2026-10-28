@@ -26,6 +26,9 @@
       "path": "../../packages/utils/ts/fleet/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/shells/effect/config/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/implementation/configuration/sql/tsconfig.lib.json"
     },
     {

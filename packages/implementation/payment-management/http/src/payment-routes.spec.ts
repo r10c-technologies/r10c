@@ -6,13 +6,12 @@ import {
 } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  InvalidToken,
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
-import {
-  ServiceCrossingTokenTag,
-} from '@entifix/service-shell';
+import { Unavailable } from '@entifix/core';
+import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   type PaymentLedger,
@@ -24,7 +23,7 @@ import {
   makeScriptedPaymentProvider,
 } from '@r10c/business-ts-payment-management/testing';
 import { crossingCall } from '@r10c/testing-cells';
-import { type ServedRoutes,serveRoutes } from '@r10c/testing-http';
+import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -37,9 +36,7 @@ const real = makeInMemoryPaymentLedger();
 const ledger: PaymentLedger = {
   ...real,
   captureFor: orderId =>
-    storeDown
-      ? Effect.fail(new EntifixConnError('store down'))
-      : real.captureFor(orderId),
+    storeDown ? Effect.fail(new Unavailable({})) : real.captureFor(orderId),
 };
 
 /** Declines the capture for the order named `declined`, and the refund for `declined-refund`. */
@@ -72,7 +69,7 @@ beforeAll(() => {
         verify: token =>
           token === 'admin'
             ? Effect.succeed(claims)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(
         PolicyDecisionTag,
@@ -111,9 +108,9 @@ describe('POST /api/payment', () => {
 
     expect(first.status).toBe(201);
     expect(again.status).toBe(200);
-    expect(
-      await Effect.runPromise(real.captureFor('o-1')),
-    ).toMatchObject({ orderId: 'o-1' });
+    expect(await Effect.runPromise(real.captureFor('o-1'))).toMatchObject({
+      orderId: 'o-1',
+    });
   });
 
   it('answers a declined capture, and its replay, with 402', async () => {

@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { isStoreFault } from '@entifix/core';
 import {
   COMMAND_INBOX_COLLECTION,
   OUTBOX_COLLECTION,
@@ -36,7 +36,10 @@ const stored = (id: string, status: string) => ({
 });
 
 const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
-  const cell = mongoCellWorld(MongoProductOrderStoreLayer, { source: 'order', seed });
+  const cell = mongoCellWorld(MongoProductOrderStoreLayer, {
+    source: 'order',
+    seed,
+  });
   const run = <A, E>(use: (store: ProductOrderStore) => Effect.Effect<A, E>) =>
     cell.run(Effect.flatMap(ProductOrderStoreTag, use));
   return { fake: cell.fake, bus: cell.bus, run };
@@ -86,7 +89,7 @@ describe('placing an order', () => {
       Effect.flip(store.place(anOrder('ord-3'), 'c-3')),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 
   it('reports a write the driver failed as a store failure', async () => {
@@ -97,7 +100,7 @@ describe('placing an order', () => {
       Effect.flip(store.place(anOrder('ord-4'), undefined)),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 });
 
@@ -124,7 +127,7 @@ describe('reading and removing', () => {
     const failedRead = await broken.run(store =>
       Effect.flip(store.get('ord-x')),
     );
-    expect(failedRead).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(failedRead)).toBe(true);
 
     const corrupt = world({
       [COMMAND_INBOX_COLLECTION]: [
@@ -134,7 +137,7 @@ describe('reading and removing', () => {
     const unreadable = await corrupt.run(store =>
       Effect.flip(store.place(anOrder('ord-z'), 'c-bad')),
     );
-    expect(unreadable).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(unreadable)).toBe(true);
   });
 });
 
@@ -175,7 +178,7 @@ describe('fulfilling', () => {
       Effect.flip(store.fulfil('ord-8', [], 'paid')),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 });
 
@@ -244,7 +247,7 @@ describe('the cancellation transitions', () => {
       run(store => Effect.flip(store.claimCancellation('ord-13', undefined))),
     ]);
 
-    expect(errors.every(error => error instanceof EntifixConnError)).toBe(true);
+    expect(errors.every(isStoreFault)).toBe(true);
   });
 });
 
@@ -276,7 +279,7 @@ describe('folding a capture', () => {
       ),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 });
 
