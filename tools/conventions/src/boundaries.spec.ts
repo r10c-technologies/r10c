@@ -192,3 +192,51 @@ describe('a service app', () => {
     ).toEqual([]);
   }, 60_000);
 });
+
+/**
+ * A consumer never retries in process (ADR 0064): planted handlers that retry
+ * inside `subscribe(…)`, beside a legal twin that retries outside one.
+ */
+const consumerRetryErrors = async (body: string): Promise<string[]> => {
+  const eslint = new ESLint({ cwd: REPO_ROOT });
+  const code = [
+    "import { On } from '@entifix/transactions';",
+    "import { Effect } from 'effect';",
+    'declare const bus: { subscribe: (s: unknown, h: unknown) => unknown };',
+    body,
+    'export {};',
+  ].join('\n');
+  const [result] = await eslint.lintText(code, {
+    filePath: join(REPO_ROOT, 'packages/shells/effect/order/src/planted.ts'),
+  });
+  return (result?.messages ?? [])
+    .filter(message => message.ruleId === 'no-restricted-syntax')
+    .map(message => message.message);
+};
+
+describe('a slice shell consumer', () => {
+  it.each([
+    [
+      'Effect.retry',
+      'bus.subscribe({}, () => Effect.retry(Effect.void, { times: 2 }));',
+    ],
+    [
+      'On(…).retry',
+      "bus.subscribe({}, () => On(() => true).retry({ key: { dependency: 'x' }, idempotent: true })(Effect.void));",
+    ],
+  ])(
+    'may not retry inside its handler (%s)',
+    async (_label, body) => {
+      expect(await consumerRetryErrors(body)).toHaveLength(1);
+    },
+    60_000,
+  );
+
+  it('may retry outside a handler', async () => {
+    expect(
+      await consumerRetryErrors(
+        'export const call = Effect.retry(Effect.void, { times: 2 });',
+      ),
+    ).toEqual([]);
+  }, 60_000);
+});

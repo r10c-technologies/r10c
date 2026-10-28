@@ -1,7 +1,8 @@
-import baseConfig from '../../../../eslint.config.mjs';
+import baseConfig, { sliceShellConfig } from '../../../../eslint.config.mjs';
 
 export default [
   ...baseConfig,
+  sliceShellConfig,
   {
     files: ['**/*.json'],
     rules: {

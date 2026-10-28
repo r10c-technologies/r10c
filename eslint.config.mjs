@@ -428,6 +428,42 @@ export const serviceAppConfig = {
   rules: SERVICE_APP_RESTRICTIONS,
 };
 
+/**
+ * A bus consumer never retries in process: redelivery is its only retry, and
+ * its ceiling is the subscription's `maxAttempts`, which the slices register
+ * holds to the fleet delivery budget (ADR 0064, entifix ADR 0014). An
+ * `Effect.retry` or `On(…).retry` inside a `subscribe(…)` handler would
+ * multiply that budget by its own attempts.
+ *
+ * Matched inside the call that registers the handler, so the rule is about
+ * consumers and not about the shell's other retries. Spread by each slice
+ * shell's own config and carried at the root too, for the reason
+ * `serviceAppConfig` is.
+ */
+const CONSUMER_RETRY_RESTRICTIONS = {
+  'no-restricted-syntax': [
+    'error',
+    {
+      selector:
+        "CallExpression[callee.property.name='subscribe'] CallExpression[callee.object.name='Effect'][callee.property.name='retry']",
+      message:
+        'A consumer handler never retries in process; redelivery is its retry (ADR 0064).',
+    },
+    {
+      selector:
+        "CallExpression[callee.property.name='subscribe'] CallExpression[callee.property.name='retry'][callee.object.callee.name='On']",
+      message:
+        'A consumer handler never retries in process; redelivery is its retry (ADR 0064).',
+    },
+  ],
+};
+
+export const sliceShellConfig = {
+  files: ['src/**/*.ts'],
+  ignores: ['src/**/*.spec.ts'],
+  rules: CONSUMER_RETRY_RESTRICTIONS,
+};
+
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
@@ -593,6 +629,11 @@ export default [
     ignores: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.stories.tsx'],
     plugins: { r10c: r10cPlugin },
     rules: { 'r10c/no-foreign-app-namespace': 'error' },
+  },
+  {
+    files: ['packages/shells/effect/*/src/**/*.ts'],
+    ignores: ['packages/shells/effect/*/src/**/*.spec.ts'],
+    rules: CONSUMER_RETRY_RESTRICTIONS,
   },
   {
     files: ['apps/*-service/src/**/*.ts'],

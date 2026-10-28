@@ -109,6 +109,56 @@ A7+9n9qvFfOGzGP1dUXy291V+fzntwfBmkJJ7w1KOwW02My+tYzTkA4fyC1iNoV2
 const MONGO_URI =
   'mongodb://admin:password@127.0.0.1:30017/?directConnection=true';
 
+/**
+ * The services that boot through `makeFleetServiceLayer`, and so build a retry
+ * budget from their own `retry` rows. config-service is not one: it serves the
+ * rows and retries nothing.
+ */
+const FLEET_SERVICES = [
+  'auth-service',
+  'marketplace-service',
+  'marketplace-admin-service',
+  'transaction-service',
+  'order-service',
+  'payment-service',
+  'settlement-service',
+  'stock-service',
+  'sales-service',
+] as const;
+
+/**
+ * The in-process retry budget, ADR 0064 and entifix ADR 0014: three attempts
+ * at most, a tenth of the load as retries plus a floor so a quiet dependency
+ * can still retry once, full-jitter backoff, and client-side throttling past
+ * two requests per accept over two minutes. Rows rather than defaults so a live
+ * pass can tighten a dial without a rebuild; a missing row keeps entifix's
+ * default (`readRetryDials`).
+ *
+ * ⚠️ These size the shell's **in-process** retries only. A bus consumer never
+ * retries in process — redelivery is its retry — and its ceiling is the
+ * subscription's own `maxAttempts`, which the slices register holds to the
+ * fleet delivery budget of 5.
+ */
+const RETRY_DIALS: Readonly<Record<string, string>> = {
+  maxAttempts: '3',
+  budgetRatio: '0.1',
+  budgetFloorPerSecond: '1',
+  backoffBaseMs: '50',
+  backoffCapMs: '2000',
+  adaptiveThrottlingK: '2',
+  adaptiveThrottlingWindowMs: '120000',
+};
+
+const RETRY_ROWS: ReadonlyArray<ConfigurationRow> = FLEET_SERVICES.flatMap(
+  service =>
+    Object.entries(RETRY_DIALS).map(([key, value]) => ({
+      service,
+      group_name: 'retry',
+      key,
+      value,
+    })),
+);
+
 export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // Locale policy, per frontend. `default` is what an unprefixed URL negotiates
   // to when the visitor has no cookie and their `Accept-Language` names nothing
@@ -1380,4 +1430,5 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'metricIntervalMs',
     value: '60000',
   },
+  ...RETRY_ROWS,
 ];

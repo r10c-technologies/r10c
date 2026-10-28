@@ -14,11 +14,43 @@ import {
   declaredUseCases,
   sourceFiles,
 } from './source-scan.js';
-import { DEDUPE_STRATEGIES, SUBSCRIPTION_MODES } from './types.js';
+import {
+  DEDUPE_STRATEGIES,
+  type SliceDeclaration,
+  SUBSCRIPTION_MODES,
+} from './types.js';
 
 const allStores = SLICES.flatMap(slice =>
   slice.stores.map(store => ({ slice, store })),
 );
+
+/**
+ * Deliveries any one subscription may spend before its message is quarantined
+ * (ADR 0064). Today's value on every queue, so holding to it forces no queue
+ * to be redeclared — `x-delivery-limit` is immutable once a queue exists.
+ */
+const FLEET_DELIVERY_BUDGET = 5;
+
+/** Subscriptions whose `maxAttempts` is not a whole number within the budget. */
+const deliveryBudgetProblems = (
+  slices: readonly SliceDeclaration[],
+): string[] =>
+  slices.flatMap(slice =>
+    slice.subscriptions
+      .filter(
+        subscription =>
+          !Number.isInteger(subscription.maxAttempts) ||
+          subscription.maxAttempts < 1 ||
+          subscription.maxAttempts > FLEET_DELIVERY_BUDGET,
+      )
+      .map(
+        subscription =>
+          `slice '${slice.name}' subscribes '${subscription.event}' with ` +
+          `maxAttempts ${subscription.maxAttempts}; it is the queue's ` +
+          '`x-delivery-limit` and must be a whole number of deliveries ' +
+          `between 1 and ${FLEET_DELIVERY_BUDGET}.`,
+      ),
+  );
 
 describe('ADR 0020 — the store register is complete', () => {
   // A regex that silently stops matching would make every test below pass while
@@ -575,8 +607,10 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
    * (ADR 0030).
    *
    * `maxAttempts` is bounded on both sides on purpose: 0 would dead-letter a
-   * message the broker has not yet tried, and an unbounded ceiling is the
-   * infinite redelivery the record exists to stop.
+   * message the broker has not yet tried, and the ceiling is the **fleet
+   * delivery budget** (ADR 0064). A consumer handler never retries in process
+   * — redelivery is its only retry — so attempts × deliveries is the delivery
+   * limit itself, and no subscription may spend more than the budget.
    */
   it('gives every subscription a delivery policy', () => {
     for (const slice of SLICES) {
@@ -587,18 +621,24 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
             `'${subscription.mode}', which is not one of ` +
             `${SUBSCRIPTION_MODES.join(' | ')}.`,
         ).toBe(true);
-
-        expect(
-          Number.isInteger(subscription.maxAttempts) &&
-            subscription.maxAttempts >= 1 &&
-            subscription.maxAttempts <= 20,
-          `slice '${slice.name}' subscribes '${subscription.event}' with ` +
-            `maxAttempts ${subscription.maxAttempts}. It is the queue's ` +
-            '`x-delivery-limit`, so it must be a whole number of deliveries ' +
-            'between 1 and 20.',
-        ).toBe(true);
       }
     }
+    expect(deliveryBudgetProblems(SLICES)).toEqual([]);
+  });
+
+  it('refuses a subscription over the fleet delivery budget, or under one delivery', () => {
+    const planted = (maxAttempts: number) =>
+      ({
+        name: 'planted',
+        subscriptions: [{ event: 'order.placed', maxAttempts }],
+      }) as unknown as SliceDeclaration;
+
+    expect(
+      deliveryBudgetProblems([planted(6), planted(0), planted(2.5)]),
+    ).toHaveLength(3);
+    expect(
+      deliveryBudgetProblems([planted(FLEET_DELIVERY_BUDGET), planted(1)]),
+    ).toEqual([]);
   });
 
   // ADR 0030 built the vocabulary and withheld the field until #178 gave it a
