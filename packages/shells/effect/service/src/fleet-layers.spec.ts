@@ -1,5 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
 
+import { RedeliveryBackoffTag } from '@entifix/amqp/transactions';
 import { PolicyDecisionTag, ServiceCrossingPolicyTag } from '@entifix/authz';
 import {
   ConfigurationRepositoryTag,
@@ -17,10 +18,14 @@ import { OutboxMaxAttempts } from '@entifix/mongo/transactions';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import { EventSourceTag } from '@entifix/transactions';
-import { Effect, Layer } from 'effect';
+import { Duration, Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { fleetBusLayer, fleetOutboxLayer } from './fleet-bus.js';
+import {
+  fleetBusLayer,
+  fleetOutboxLayer,
+  fleetRedeliveryBackoffLayer,
+} from './fleet-bus.js';
 import {
   crossingTokenLayer,
   fleetPolicyLayer,
@@ -196,6 +201,32 @@ describe('fleetBusLayer', () => {
 
     expect(Layer.isLayer(byDefault)).toBe(true);
     expect(Layer.isLayer(named)).toBe(true);
+  });
+});
+
+describe('fleetRedeliveryBackoffLayer', () => {
+  it('sizes the redelivery wait from the `retry` dials', async () => {
+    const backoff = await Effect.runPromise(
+      Effect.flatMap(
+        fleetRedeliveryBackoffLayer(
+          configurationOf({
+            ...FLEET.plain,
+            retry: rows({ backoffBaseMs: 30, backoffCapMs: 100 }),
+          }),
+        ),
+        layer =>
+          Effect.provide(
+            Effect.gen(function* () {
+              return yield* RedeliveryBackoffTag;
+            }),
+            layer,
+          ),
+      ),
+    );
+
+    expect([1, 2, 3, 4].map(n => Duration.toMillis(backoff(n)))).toEqual([
+      30, 60, 100, 100,
+    ]);
   });
 });
 
