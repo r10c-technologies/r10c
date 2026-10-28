@@ -39,6 +39,39 @@ const forbidNativeDialogs = (page: Page) => {
   });
 };
 
+/**
+ * Every draft the workspace has written to IndexedDB, as one string.
+ *
+ * The dirty marker reads the in-memory store, and zustand's `persist` writes
+ * IndexedDB after it, asynchronously, so the marker can show before the draft
+ * is stored, and a discard can hide the tab before the draft is deleted. A
+ * reload or a navigation in that gap reads the store's previous state, which
+ * is the one-in-a-hundred failure this waits out. The database and store names
+ * are entifix's `WORKSPACE_DB` and drafts store; the key is scoped per
+ * principal, so every key is read.
+ */
+const STORED_DRAFTS = `new Promise((resolve, reject) => {
+  const opening = indexedDB.open('entifix-workspace');
+  opening.onerror = () => reject(opening.error);
+  opening.onsuccess = () => {
+    const db = opening.result;
+    if (!db.objectStoreNames.contains('stores')) {
+      db.close();
+      resolve('');
+      return;
+    }
+    const reading = db.transaction('stores', 'readonly').objectStore('stores').getAll();
+    reading.onerror = () => reject(reading.error);
+    reading.onsuccess = () => {
+      db.close();
+      resolve(reading.result.map(String).join('\\n'));
+    };
+  };
+})`;
+
+// A string, because this project compiles without the DOM lib.
+const storedDrafts = (page: Page) => page.evaluate<string>(STORED_DRAFTS);
+
 /** Opens the product editor in a tab and makes it dirty. */
 const openDirtyTab = async (page: Page) => {
   await page.goto(`/workspace?tab=${PRODUCT_TAB}`);
@@ -112,6 +145,7 @@ test('autosaves and guards a brand tab, not only the product one', async ({
   await expect(name).toHaveValue('Acme 1');
   await name.fill('Acme renamed');
   await expect(page.getByTestId('tab-indicator')).toBeVisible();
+  await expect.poll(() => storedDrafts(page)).toContain('Acme renamed');
 
   // The edit survives a reload, which is the whole feature: the form seeds from
   // the persisted draft rather than from the record.
@@ -123,6 +157,11 @@ test('autosaves and guards a brand tab, not only the product one', async ({
     .getByTestId('confirm-dialog')
     .getByRole('button', { name: 'Descartar' })
     .click();
+
+  await expect(
+    page.getByRole('tab', { name: /Marca #product-brand-1/ }),
+  ).toBeHidden();
+  await expect.poll(() => storedDrafts(page)).not.toContain('Acme renamed');
 
   await page.goto(`/workspace?tab=${BRAND_TAB}`);
   await expect(page.getByLabel('Nombre')).toHaveValue('Acme 1');
