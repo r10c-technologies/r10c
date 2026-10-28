@@ -8,8 +8,8 @@
 ## Context
 
 entifix 0.10.0 replaced its `EntifixError` class tree with typed failures
-([entifix ADR 0013](https://github.com/r10c-technologies/entifix/blob/v0.10.0/docs/adr/0013-failures-are-typed-values-decided-at-the-shell.md))
-and said who retries ([entifix ADR 0014](https://github.com/r10c-technologies/entifix/blob/v0.10.0/docs/adr/0014-retry-once-at-the-layer-above-under-a-budget.md)).
+([entifix ADR 0013](https://github.com/r10c-technologies/entifix/blob/v0.10.2/docs/adr/0013-failures-are-typed-values-decided-at-the-shell.md))
+and said who retries ([entifix ADR 0014](https://github.com/r10c-technologies/entifix/blob/v0.10.2/docs/adr/0014-retry-once-at-the-layer-above-under-a-budget.md)).
 r10c's own records still encoded the old model in five places:
 
 - [ADR 0003](0003-i18n-mandatory.md) rejected a `code` on the error itself and
