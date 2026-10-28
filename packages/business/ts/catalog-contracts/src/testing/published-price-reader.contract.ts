@@ -1,4 +1,3 @@
-import { EntifixConnError } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -21,7 +20,8 @@ export type CatalogScript = (offeringId: string) =>
  * reads back as its vendor, amount and currency, and anything that is not a
  * whole price — unlisted, refused, or a record missing a member — reads as no
  * price, so a sale is refused rather than priced at nothing. A catalog it
- * cannot reach is a connection error, not an absent price.
+ * cannot reach, or one answering `5xx`, is an `unavailable` failure, not an
+ * absent price.
  *
  * `make` returns a subject whose catalog answers as `catalog` says.
  */
@@ -78,10 +78,12 @@ export const describePublishedPriceReaderContract = (
       }
     });
 
-    it('reports a catalog it cannot reach as a connection error', async () => {
-      expect((await read(undefined)).result).toMatchObject({
-        failure: expect.any(EntifixConnError),
-      });
+    it('reports a catalog it cannot reach, or that fails, as unavailable', async () => {
+      for (const answer of [undefined, { status: 503 }]) {
+        expect((await read(answer)).result).toMatchObject({
+          failure: { category: 'unavailable', code: 'upstreamUnavailable' },
+        });
+      }
     });
   });
 };

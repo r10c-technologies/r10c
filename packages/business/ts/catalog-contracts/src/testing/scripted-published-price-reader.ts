@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { UpstreamUnavailable } from '@entifix/core';
 import { Effect } from 'effect';
 
 import {
@@ -19,11 +19,9 @@ export const makeScriptedPublishedPriceReader = (
   priceOf: offeringId =>
     Effect.suspend(() => {
       const answer = catalog(offeringId);
-      if (answer === undefined) {
+      if (answer === undefined || answer.status >= 500) {
         return Effect.fail(
-          new EntifixConnError('Failed to read a published price', undefined, {
-            offeringId,
-          }),
+          new UpstreamUnavailable({ upstream: 'marketplace-service' }),
         );
       }
       return Effect.succeed(
