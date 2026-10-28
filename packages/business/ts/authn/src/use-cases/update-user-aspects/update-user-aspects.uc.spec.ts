@@ -71,7 +71,10 @@ const runUpdate = (
 const failedWith = (exit: Exit.Exit<unknown, unknown>, tag: string) => {
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit) && Cause.hasFails(exit.cause)) {
-    expect((Option.getOrThrow(Cause.findErrorOption(exit.cause)) as { _tag: string })._tag).toBe(tag);
+    expect(
+      (Option.getOrThrow(Cause.findErrorOption(exit.cause)) as { _tag: string })
+        ._tag,
+    ).toBe(tag);
   }
 };
 

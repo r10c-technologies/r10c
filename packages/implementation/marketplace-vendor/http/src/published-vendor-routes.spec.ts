@@ -1,6 +1,9 @@
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
-import { EntityRepositoryFactoryTag, TokenServiceTag } from '@entifix/business';
-import { EntifixBuildError } from '@entifix/core';
+import {
+  EntityRepositoryFactoryTag,
+  InvalidToken,
+  TokenServiceTag,
+} from '@entifix/business';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
@@ -18,7 +21,7 @@ describe('publishedVendorRoutes', () => {
         }),
         Layer.succeed(TokenServiceTag, {
           sign: () => Effect.succeed('t'),
-          verify: () => Effect.fail(new EntifixBuildError('no session')),
+          verify: () => Effect.fail(new InvalidToken()),
         }),
         Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision({})),
       ),

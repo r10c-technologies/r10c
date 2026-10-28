@@ -28,9 +28,7 @@ const INPUTS: SagaInputs = {
  */
 export const describeSagaStarterContract = (
   name: string,
-  make: (
-    coordinator: CoordinatorScript,
-  ) => SagaStarter | Promise<SagaStarter>,
+  make: (coordinator: CoordinatorScript) => SagaStarter | Promise<SagaStarter>,
 ) => {
   describe(`${name} honours the SagaStarter contract`, () => {
     const startWith = async (answer: ReturnType<CoordinatorScript>) => {

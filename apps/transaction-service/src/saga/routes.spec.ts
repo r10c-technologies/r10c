@@ -2,8 +2,12 @@ import {
   makeStaticServiceCrossingPolicy,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import { type TokenClaims, TokenServiceTag } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
+import {
+  InvalidToken,
+  type TokenClaims,
+  TokenServiceTag,
+} from '@entifix/business';
+import { EntifixConnError, Unavailable } from '@entifix/core';
 import {
   CROSSING_TOKEN_HEADER,
   ServiceCrossingTokenTag,
@@ -60,7 +64,7 @@ const world = async (options: WorldOptions = {}) => {
   const records = new Map(
     (options.records ?? []).map(record => [record.transactionId, record]),
   );
-  const down = Effect.fail(new EntifixConnError('store down'));
+  const down = Effect.fail(new Unavailable({}));
 
   const routes = serveRoutes(
     Layer.mergeAll(sagaRunRoutes, sagaInstanceRoutes, sagaRoutes),
@@ -75,7 +79,7 @@ const world = async (options: WorldOptions = {}) => {
             options.answer?.(dispatched.call.path) ??
             ({ ok: true, status: 201, body: { data: { id: 'x-1' } } } as const);
           return answer === 'unreachable'
-            ? Effect.fail(new EntifixConnError('unreachable'))
+            ? Effect.fail(new EntifixConnError('participant down'))
             : Effect.succeed(answer);
         },
       }),
@@ -96,7 +100,7 @@ const world = async (options: WorldOptions = {}) => {
         verify: (token: string) =>
           token in CLAIMS
             ? Effect.succeed(CLAIMS[token] as TokenClaims)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
     ),
   );

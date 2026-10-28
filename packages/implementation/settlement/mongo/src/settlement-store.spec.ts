@@ -1,4 +1,4 @@
-import { EntifixConnError, serializeEntity } from '@entifix/core';
+import { isStoreFault, serializeEntity } from '@entifix/core';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import {
   Agreement,
@@ -245,7 +245,7 @@ describe('settleOnce', () => {
 
     const error = await run(({ runs }) => Effect.flip(runs.settleOnce()));
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 });
 
@@ -274,6 +274,6 @@ describe('MongoSettlementStoreLayer', () => {
       Effect.flip(join.agreementsFor(['v-1'])),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(isStoreFault(error)).toBe(true);
   });
 });

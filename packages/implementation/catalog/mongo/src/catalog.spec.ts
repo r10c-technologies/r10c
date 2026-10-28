@@ -2,7 +2,11 @@ import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
 } from '@entifix/business';
-import { ConfigurationClientInMemory, EntifixBuildError } from '@entifix/core';
+import {
+  ConfigurationClientInMemory,
+  EntifixBuildError,
+  isFailure,
+} from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import {
   OUTBOX_COLLECTION,
@@ -310,6 +314,8 @@ describe('accepting a specification', () => {
           data: { ...command({ name: 'x' }).data, entity: 'product-offering' },
         },
         command(undefined as never),
+        // A payload that cannot be read as the entity at all.
+        command('not a record' as never),
       ].map(body =>
         w.run(
           Effect.flip(
@@ -321,9 +327,13 @@ describe('accepting a specification', () => {
       ),
     );
 
-    expect(refusals.every(error => error instanceof EntifixBuildError)).toBe(
-      true,
-    );
+    expect(
+      refusals.every(
+        error =>
+          error instanceof EntifixBuildError ||
+          (isFailure(error) && error.family === 'business'),
+      ),
+    ).toBe(true);
   });
 
   it('rolls the record back when its write fails', async () => {
@@ -334,6 +344,24 @@ describe('accepting a specification', () => {
     await settled();
 
     expect(w.fake.read(SPECIFICATION_COLLECTION)).toEqual([]);
+    expect(w.bus.published.map(event => event.name)).toContain(
+      'transaction.failed',
+    );
+  });
+
+  it('still fails the transaction when its rollback is refused', async () => {
+    const w = world();
+    w.fake.failOn('replaceOne', new Error('disk full'));
+    // A duplicate key on the delete is the store answering no — a business
+    // failure, which the engine's port reads as a build error.
+    w.fake.failOn(
+      'deleteOne',
+      Object.assign(new Error('E11000 duplicate key'), { code: 11000 }),
+    );
+
+    await accept(w, command({ name: 'A widget' }, FAILING_TXN));
+    await settled();
+
     expect(w.bus.published.map(event => event.name)).toContain(
       'transaction.failed',
     );

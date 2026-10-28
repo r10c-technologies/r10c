@@ -1,14 +1,18 @@
 /**
- * The code vocabulary services answer with. A response carries
- * `{ error, code, detail }`; the app renders `t(code)` and keeps `detail` for the
- * console. Codes are stable identifiers — renaming one is a wire change.
+ * The code vocabulary services answer with. A refusal is an
+ * `application/problem+json` body whose top-level `code` is the key here; the
+ * app renders `t(code)`, interpolating the failure's own fields, and keeps
+ * `detail` for the console ([ADR 0064](../../../../../../docs/adr/0064-failures-reach-the-slice-shell.md)).
+ * Codes are permanent — renaming one is a new failure.
  *
  * Every code a service emits must have an entry here, and `@r10c/i18n-check`
  * fails the build when one does not: the render path goes through
  * `useTranslateKey`, whose cast discards the typed-key gate, so a missing entry
  * is invisible to the compiler and reaches the user as the identifier itself.
- * The reverse is not checked — `network`, `configUnavailable` and `unexpected`
- * are synthesized in the browser and have no emission site to find.
+ * The check runs both ways: a registered failure with no key fails it, and so
+ * does a key that neither a registered failure nor a route's hand-written
+ * refusal claims — except `network`, `configUnavailable` and `unexpected`,
+ * which are synthesized in the browser and have no emission site to find.
  */
 export const errors = {
   unauthenticated: 'Tu sesión no es válida. Inicia sesión de nuevo.',
@@ -86,7 +90,6 @@ export const errors = {
   // existencia que se había apartado volvió a quedar disponible. Es un
   // resultado de inventario sobre el que el vendedor puede actuar, no una
   // falla.
-  unavailable: 'No se pudo completar la venta. Revisa la existencia.',
   // Un canal retirado sigue siendo legible, porque cada pedido hecho por él
   // sigue nombrándolo — así que hay que rechazar la venta, no ocultar el canal.
   channelInactive: 'Ese canal de venta está inactivo.',
@@ -111,4 +114,24 @@ export const errors = {
   // las dos cosas pasó.
   timeout: 'El servicio tardó demasiado en responder.',
   unexpected: 'Algo salió mal.',
+  // The failures entifix and the fleet register (ADR 0064): a code is the
+  // failure's own, permanent, and the gate reads the registry for it.
+  stockUnavailable: 'No se pudo completar la venta. Revisa la existencia.',
+  unavailable:
+    'Un servicio no está disponible en este momento. Inténtalo de nuevo en un momento.',
+  invalid: 'Hay datos que no son válidos. Revisa el formulario.',
+  invalidEnvelope: 'El cuerpo de la solicitud no es válido.',
+  invalidRecords: 'Hay registros que no son válidos.',
+  duplicateKey: 'Ya existe un registro con ese valor.',
+  declined: 'La solicitud fue rechazada.',
+  contention: 'Otra operación se cruzó con esta. Inténtalo de nuevo.',
+  overloaded: 'El servicio está saturado. Inténtalo de nuevo en un momento.',
+  protocol: 'Un servicio respondió algo que no se pudo leer.',
+  internal: 'Algo falló de nuestro lado. Ya quedó registrado.',
+  idempotencyKeyMissing: 'A la solicitud le falta su clave de idempotencia.',
+  idempotencyKeyReused:
+    'Esa clave de idempotencia ya se usó con otra solicitud.',
+  idempotencyKeyInFlight: 'Esa solicitud todavía se está procesando.',
+  invalidToken: 'Tu sesión no es válida. Inicia sesión de nuevo.',
+  expiredToken: 'Tu sesión ha expirado. Inicia sesión de nuevo.',
 };

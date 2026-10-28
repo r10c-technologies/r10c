@@ -1,7 +1,13 @@
-import { redactConfiguration, requirePrincipal } from '@entifix/service-shell';
+import {
+  mountRoutes,
+  redactConfiguration,
+  requirePrincipal,
+} from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import { Effect } from 'effect';
 import { HttpRouter, HttpServerResponse } from 'effect/http';
+
+import { fleetFailurePolicy } from './fleet-failure-policy.js';
 
 /**
  * The two routes every r10c service serves beside its own:
@@ -18,22 +24,25 @@ export const serviceBaseRoutes = (options: {
   readonly service: string;
   readonly store: 'mongo' | 'sql';
 }) =>
-  HttpRouter.addAll([
-    HttpRouter.route(
-      'GET',
-      '/api/config',
-      Effect.gen(function* () {
-        const plain = yield* LoadedConfigurationTag;
-        return yield* HttpServerResponse.json({
-          service: options.service,
-          store: options.store,
-          configuration: redactConfiguration(plain),
-        });
-      }),
-    ),
-    HttpRouter.route(
-      'GET',
-      '/api/me',
-      requirePrincipal(principal => HttpServerResponse.json(principal)),
-    ),
-  ]);
+  mountRoutes(
+    [
+      HttpRouter.route(
+        'GET',
+        '/api/config',
+        Effect.gen(function* () {
+          const plain = yield* LoadedConfigurationTag;
+          return yield* HttpServerResponse.json({
+            service: options.service,
+            store: options.store,
+            configuration: redactConfiguration(plain),
+          });
+        }),
+      ),
+      HttpRouter.route(
+        'GET',
+        '/api/me',
+        requirePrincipal(principal => HttpServerResponse.json(principal)),
+      ),
+    ],
+    fleetFailurePolicy,
+  );

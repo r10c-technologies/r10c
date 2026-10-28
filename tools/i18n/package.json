@@ -31,6 +31,9 @@
     }
   },
   "devDependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/service-shell": "catalog:",
     "@r10c/i18n-catalog": "workspace:*",
     "@r10c/slices": "workspace:*"
   }

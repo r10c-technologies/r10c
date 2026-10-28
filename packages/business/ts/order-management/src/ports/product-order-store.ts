@@ -1,4 +1,4 @@
-import type { EntifixConnError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 import type { ProductOrder } from '../entities/product-order';
@@ -24,42 +24,42 @@ export type CancellationClaim =
 export interface ProductOrderStore {
   readonly get: (
     orderId: string,
-  ) => Effect.Effect<ProductOrder | undefined, EntifixConnError>;
+  ) => Effect.Effect<ProductOrder | undefined, TransitionalFailure>;
   /** Write a new order and announce `order.placed`, claimed on the command. */
   readonly place: (
     order: ProductOrder,
     commandId: string | undefined,
-  ) => Effect.Effect<OrderPlacement, EntifixConnError>;
+  ) => Effect.Effect<OrderPlacement, TransitionalFailure>;
   /** The checkout's compensation. Answers whether there was one to remove. */
   readonly remove: (
     orderId: string,
-  ) => Effect.Effect<boolean, EntifixConnError>;
+  ) => Effect.Effect<boolean, TransitionalFailure>;
   /** Stamp lines fulfilled, only while the order is `paid`. */
   readonly fulfil: (
     orderId: string,
     items: readonly OrderItem[],
     status: string,
-  ) => Effect.Effect<ProductOrder | undefined, EntifixConnError>;
+  ) => Effect.Effect<ProductOrder | undefined, TransitionalFailure>;
   /** `paid → cancelling`, the concurrency claim a cancellation takes first. */
   readonly claimCancellation: (
     orderId: string,
     commandId: string | undefined,
-  ) => Effect.Effect<CancellationClaim, EntifixConnError>;
+  ) => Effect.Effect<CancellationClaim, TransitionalFailure>;
   /** `cancelling → paid`, the claim's compensation. */
   readonly releaseCancellation: (
     orderId: string,
-  ) => Effect.Effect<boolean, EntifixConnError>;
+  ) => Effect.Effect<boolean, TransitionalFailure>;
   /** `cancelling → cancelled`, announcing `order.cancelled`. */
   readonly settleCancellation: (
     orderId: string,
     commandId: string | undefined,
-  ) => Effect.Effect<ProductOrder | undefined, EntifixConnError>;
+  ) => Effect.Effect<ProductOrder | undefined, TransitionalFailure>;
   /** `pending → paid`, folding one `payment.captured` exactly once. */
   readonly markPaid: (
     claim: { readonly consumer: string; readonly eventId: string },
     orderId: string,
     paidAt: string,
-  ) => Effect.Effect<'claimed' | 'duplicate', EntifixConnError>;
+  ) => Effect.Effect<'claimed' | 'duplicate', TransitionalFailure>;
 }
 
 export class ProductOrderStoreTag extends Context.Service<

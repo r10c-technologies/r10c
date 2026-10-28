@@ -1,4 +1,4 @@
-import type { EntifixConnError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
@@ -45,7 +45,7 @@ export interface SagaStarter {
   readonly start: (
     definition: string,
     inputs: SagaInputs,
-  ) => Effect.Effect<SagaStartOutcome, EntifixConnError>;
+  ) => Effect.Effect<SagaStartOutcome, TransitionalFailure>;
 }
 
 export class SagaStarterTag extends Context.Service<

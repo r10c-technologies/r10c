@@ -1,4 +1,4 @@
-import type { EntifixConnError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 import type { Reservation } from '../entities/reservation';
@@ -29,7 +29,7 @@ export interface StockLedger {
     organizationId: string,
     reservation: Reservation,
     commandId: string | undefined,
-  ) => Effect.Effect<HoldOutcome, EntifixConnError>;
+  ) => Effect.Effect<HoldOutcome, TransitionalFailure>;
   /**
    * End a hold: `released` gives the quantity back; `converted` turns it into
    * a sale, which also leaves the shelf. `not-held` when it had already ended
@@ -40,24 +40,24 @@ export interface StockLedger {
     organizationId: string,
     reservationId: string,
     to: 'released' | 'converted',
-  ) => Effect.Effect<'transitioned' | 'not-held', EntifixConnError>;
+  ) => Effect.Effect<'transitioned' | 'not-held', TransitionalFailure>;
   /** Append a vendor's own movement and move the counter with it. */
   readonly record: (
     organizationId: string,
     movement: StockMovement,
-  ) => Effect.Effect<StockMovement, EntifixConnError>;
+  ) => Effect.Effect<StockMovement, TransitionalFailure>;
   /** Put a cancelled order's goods back, claimed on the command. */
   readonly restore: (
     organizationId: string,
     movement: StockMovement,
     commandId: string | undefined,
-  ) => Effect.Effect<RestoreOutcome, EntifixConnError>;
+  ) => Effect.Effect<RestoreOutcome, TransitionalFailure>;
   /**
    * Release every expired hold in every organization's store. Without it
    * `expiresAt` is a timestamp nothing reads, and an abandoned basket promises
    * a vendor's stock forever.
    */
-  readonly releaseExpired: () => Effect.Effect<number, EntifixConnError>;
+  readonly releaseExpired: () => Effect.Effect<number, TransitionalFailure>;
 }
 
 export class StockLedgerTag extends Context.Service<

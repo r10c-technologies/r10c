@@ -1,4 +1,4 @@
-import type { EntifixConnError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
@@ -29,7 +29,7 @@ export interface PublishedPrice {
 export interface PublishedPriceReader {
   readonly priceOf: (
     offeringId: string,
-  ) => Effect.Effect<PublishedPrice | undefined, EntifixConnError>;
+  ) => Effect.Effect<PublishedPrice | undefined, TransitionalFailure>;
 }
 
 export class PublishedPriceReaderTag extends Context.Service<

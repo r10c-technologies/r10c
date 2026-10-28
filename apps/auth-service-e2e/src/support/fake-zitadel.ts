@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 
-import { EntifixLogicError } from '@entifix/core';
+import { InvalidToken } from '@entifix/business';
 import type {
   LogoutEvent,
   ZitadelEvent,
@@ -208,15 +208,11 @@ export const makeFakeZitadel = () => {
     verifyLogoutToken: logoutToken =>
       Effect.try({
         try: () => JSON.parse(logoutToken) as LogoutEvent,
-        catch: () => new EntifixLogicError('the logout_token did not parse'),
+        catch: () => new InvalidToken(),
       }).pipe(
         Effect.flatMap(event =>
           event.providerSessionId === undefined && event.subject === undefined
-            ? Effect.fail(
-                new EntifixLogicError(
-                  'the logout_token names neither sid nor sub',
-                ),
-              )
+            ? Effect.fail(new InvalidToken())
             : Effect.succeed(event),
         ),
       ),

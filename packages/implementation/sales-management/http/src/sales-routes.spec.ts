@@ -1,9 +1,10 @@
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  InvalidToken,
   TokenServiceTag,
 } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
+import { EntifixConnError } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
 import {
@@ -57,7 +58,7 @@ beforeAll(() => {
         verify: token =>
           token === 'vendor'
             ? Effect.succeed(vendor)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(
         PolicyDecisionTag,
@@ -124,7 +125,9 @@ describe('POST /api/counter-sale', () => {
     const failed = await post('/api/counter-sale', sale('c-open'));
 
     expect(unavailable.status).toBe(409);
-    expect(await unavailable.json()).toMatchObject({ code: 'unavailable' });
+    expect(await unavailable.json()).toMatchObject({
+      code: 'stockUnavailable',
+    });
     expect(failed.status).toBe(500);
   });
 });

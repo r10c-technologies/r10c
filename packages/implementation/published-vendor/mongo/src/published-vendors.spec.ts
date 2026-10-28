@@ -1,3 +1,4 @@
+import { isStoreFault } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { PublishedVendorsTag } from '@r10c/business-ts-marketplace-vendor';
@@ -62,9 +63,8 @@ describePublishedVendorsContract('the Mongo projection', async () => {
       Promise.resolve(
         fake
           .read(VENDOR_COLLECTION)
-          .find(vendor => vendor['vendorId'] === vendorId)?.[
-          'displayName'
-        ] as string | undefined,
+          .find(vendor => vendor['vendorId'] === vendorId)?.['displayName'] as
+          string | undefined,
       ),
   };
 });
@@ -129,21 +129,19 @@ describe('applying an announcement', () => {
     }
   });
 
-  it('fails as a connection error when the store does', async () => {
+  it('fails as a store fault when the store does', async () => {
     const { fake, apply } = await projection();
     fake.failWith(new Error('down'));
 
-    await expect(apply(NAMED)).rejects.toThrow(
-      'Failed to write the published vendor',
-    );
+    await expect(apply(NAMED)).rejects.toSatisfy(isStoreFault);
   });
 
-  it('fails as a connection error when the index cannot be built', async () => {
+  it('fails as a store fault when the index cannot be built', async () => {
     const fake = makeFakeMongoDb();
     fake.failWith(new Error('down'));
 
     await expect(
       Effect.runPromise(ensureVendorIndexes(fake.db as Db)),
-    ).rejects.toThrow('Failed to index the published vendors');
+    ).rejects.toSatisfy(isStoreFault);
   });
 });

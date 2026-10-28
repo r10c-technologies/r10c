@@ -1,4 +1,4 @@
-import type { EntifixConnError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import type { TransactionEvent } from '@entifix/transactions';
 import { Context, type Effect } from 'effect';
 
@@ -12,7 +12,7 @@ export interface TransactionFold {
     consumer: string,
     eventId: string,
     event: TransactionEvent,
-  ) => Effect.Effect<'claimed' | 'duplicate', EntifixConnError>;
+  ) => Effect.Effect<'claimed' | 'duplicate', TransitionalFailure>;
 }
 
 export class TransactionFoldTag extends Context.Service<

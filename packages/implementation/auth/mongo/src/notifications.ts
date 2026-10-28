@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { EntifixConnError } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   type DevMailbox,
@@ -57,8 +57,7 @@ export const makeDevNotificationPort = (db: Db): NotificationPort => {
                 sentAt: new Date().toISOString(),
               },
             ]),
-          catch: error =>
-            new EntifixConnError('Failed to record notification', error),
+          catch: () => new Unavailable({ dependency: 'mongo' }),
         });
       }),
   };
@@ -76,7 +75,7 @@ export const makeDevMailbox = (db: Db): DevMailbox => ({
           .collection(OUTBOX_COLLECTION)
           .find(to === undefined ? {} : { to }, { projection: { _id: 0 } })
           .toArray(),
-      catch: error => new EntifixConnError('Failed to read outbox', error),
+      catch: () => new Unavailable({ dependency: 'mongo' }),
     }).pipe(
       Effect.map(docs =>
         [...docs]
@@ -84,15 +83,13 @@ export const makeDevMailbox = (db: Db): DevMailbox => ({
             String(right['sentAt']).localeCompare(String(left['sentAt'])),
           )
           .slice(0, OUTBOX_PAGE_SIZE)
-          .map(
-            (doc): MailboxNotice => ({
-              kind: String(doc['kind']),
-              to: String(doc['to']),
-              userId: String(doc['userId']),
-              data: (doc['data'] ?? {}) as Record<string, string>,
-              sentAt: String(doc['sentAt']),
-            }),
-          ),
+          .map((doc): MailboxNotice => ({
+            kind: String(doc['kind']),
+            to: String(doc['to']),
+            userId: String(doc['userId']),
+            data: (doc['data'] ?? {}) as Record<string, string>,
+            sentAt: String(doc['sentAt']),
+          })),
       ),
     ),
 });

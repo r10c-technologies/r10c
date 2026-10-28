@@ -186,7 +186,10 @@ describe('the crossing guard', () => {
     });
 
     expect(res.status).toBe(400);
-    expect(res.data.code).toBe('invalidRequest');
+    expect(res.data).toMatchObject({
+      code: 'invalid',
+      errors: [{ code: 'organizationRequired' }],
+    });
   });
 
   it('answers 401 to a valid session with no crossing token', async () => {

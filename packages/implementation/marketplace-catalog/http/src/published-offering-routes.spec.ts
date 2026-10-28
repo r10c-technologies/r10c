@@ -2,9 +2,9 @@ import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   EntityFacetCounterFactoryTag,
   EntityRepositoryFactoryTag,
+  InvalidToken,
   TokenServiceTag,
 } from '@entifix/business';
-import { EntifixBuildError } from '@entifix/core';
 import {
   makeInMemoryEntityRepository,
   makeInMemoryFacetCounter,
@@ -28,7 +28,7 @@ const serve = (rows: PublishedOffering[] = []) =>
       }),
       Layer.succeed(TokenServiceTag, {
         sign: () => Effect.succeed('t'),
-        verify: () => Effect.fail(new EntifixBuildError('no session')),
+        verify: () => Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(PolicyDecisionTag, makeStaticPolicyDecision({})),
     ),

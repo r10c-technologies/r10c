@@ -1,7 +1,7 @@
 import {
   type DomainEvent,
   EntifixBuildError,
-  type EntifixError,
+  type TransitionalFailure,
 } from '@entifix/core';
 import { Effect } from 'effect';
 
@@ -75,7 +75,7 @@ const isNonEmptyString = (value: unknown): value is string =>
  */
 export const readOrganizationAnnouncement = (
   data: unknown,
-): Effect.Effect<OrganizationAnnouncement, EntifixError> =>
+): Effect.Effect<OrganizationAnnouncement, TransitionalFailure> =>
   Effect.gen(function* () {
     if (data === null || typeof data !== 'object') {
       return yield* Effect.fail(

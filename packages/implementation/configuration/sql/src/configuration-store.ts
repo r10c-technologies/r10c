@@ -205,9 +205,7 @@ const deleteConfiguration = (id: EntityId, actor: ConfigurationActor) =>
 
 /** A driver failure is a store failure, whatever statement raised it. */
 const asConnError = (error: unknown) =>
-  error instanceof EntifixConnError
-    ? error
-    : new EntifixConnError('The configuration store failed', error);
+  new EntifixConnError('The configuration store failed', error);
 
 /**
  * The audited {@link ConfigurationWriterTag} over the `configuration` store,

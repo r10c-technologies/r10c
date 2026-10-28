@@ -1,5 +1,5 @@
 import type { DeviceContext } from '@entifix/business';
-import type { EntifixError, EntityId } from '@entifix/core';
+import type { EntityId, TransitionalFailure } from '@entifix/core';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
 
@@ -33,9 +33,11 @@ export interface UserDeviceRepository {
   remember(
     userId: EntityId,
     device: DeviceContext,
-  ): Effect<RememberedDevice, EntifixError>;
+  ): Effect<RememberedDevice, TransitionalFailure>;
   /** Every device known for a user, most recently seen first. */
-  listForUser(userId: EntityId): Effect<readonly UserDevice[], EntifixError>;
+  listForUser(
+    userId: EntityId,
+  ): Effect<readonly UserDevice[], TransitionalFailure>;
 }
 
 /** DI tag the composition root binds to a concrete {@link UserDeviceRepository}. */

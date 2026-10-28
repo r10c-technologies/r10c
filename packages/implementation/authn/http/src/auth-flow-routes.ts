@@ -1,7 +1,11 @@
 // The fleet's locales, registered before `isLocale` is asked about a sign-in's.
 import '@r10c/business-ts-i18n/locales';
 
-import { OneTimeTokenStoreTag, SessionStoreTag, TokenServiceTag } from '@entifix/business';
+import {
+  OneTimeTokenStoreTag,
+  SessionStoreTag,
+  TokenServiceTag,
+} from '@entifix/business';
 import { isLocale } from '@entifix/core';
 import {
   ACCESS_TOKEN_TTL_SECONDS,

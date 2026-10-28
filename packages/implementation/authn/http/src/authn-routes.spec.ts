@@ -2,6 +2,7 @@ import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   type DeviceContext,
   EntityRepositoryFactoryTag,
+  InvalidToken,
   type OneTimeTokenStore,
   OneTimeTokenStoreTag,
   type SessionData,
@@ -11,7 +12,7 @@ import {
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
+import { EntifixBuildError, NotFound, Unavailable } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   type AccountRepository,
@@ -53,10 +54,7 @@ import { Effect, Layer } from 'effect';
 import { HttpRouter } from 'effect/http';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import {
-  readDevice,
-  respondAuthError,
-} from './auth-responses.js';
+import { readDevice, respondAuthError } from './auth-responses.js';
 import { authnRoutes } from './authn-routes.js';
 import { DevSurfaceEnabledTag } from './session-routes.js';
 
@@ -68,9 +66,7 @@ const makeSessions = () => {
   let next = 0;
   const state = { down: false };
   const guard = <A>(run: () => A) =>
-    state.down
-      ? Effect.fail(new EntifixConnError('session store down'))
-      : Effect.sync(run);
+    state.down ? Effect.fail(new Unavailable({})) : Effect.sync(run);
   const store: SessionStore = {
     create: (data: SessionData) =>
       guard(() => {
@@ -87,7 +83,7 @@ const makeSessions = () => {
       }),
     read: sessionId =>
       state.down || !records.has(sessionId)
-        ? Effect.fail(new EntifixConnError('no such session'))
+        ? Effect.fail(new NotFound({}))
         : Effect.succeed(records.get(sessionId) as SessionRecord),
     touch: () => guard(() => undefined),
     listForUser: userId =>
@@ -134,14 +130,16 @@ const makeOneTimeTokens = (): OneTimeTokenStore => {
             tokens.delete(token);
             return subject;
           })
-        : Effect.fail(new EntifixConnError('unknown token')),
+        : Effect.fail(new NotFound({})),
   };
 };
 
 // #endregion
 
 /** A provider identity the scripted provider answers for `code-…`. */
-const identity = (fields: Partial<ProviderIdentity> = {}): ProviderIdentity => ({
+const identity = (
+  fields: Partial<ProviderIdentity> = {},
+): ProviderIdentity => ({
   subject: 'sub-ada',
   email: 'ada@example.com',
   emailVerified: true,
@@ -211,7 +209,7 @@ const world = (options: WorldOptions = {}) => {
         verify: (token: string) =>
           claims.has(token)
             ? Effect.succeed(claims.get(token) as TokenClaims)
-            : Effect.fail(new EntifixBuildError('bad token')),
+            : Effect.fail(new InvalidToken()),
       }),
       Layer.succeed(
         PolicyDecisionTag,
@@ -226,7 +224,7 @@ const world = (options: WorldOptions = {}) => {
       Layer.succeed(
         DevMailboxTag,
         options.mailbox === 'failing'
-          ? { read: () => Effect.fail(new EntifixConnError('mailbox down')) }
+          ? { read: () => Effect.fail(new Unavailable({})) }
           : notices.mailbox,
       ),
       Layer.succeed(
@@ -249,7 +247,7 @@ const world = (options: WorldOptions = {}) => {
       Layer.succeed(
         PublicKeySetTag,
         options.publicKeys === 'failing'
-          ? { jwks: () => Effect.fail(new EntifixConnError('no key')) }
+          ? { jwks: () => Effect.fail(new Unavailable({})) }
           : makeStaticPublicKeySet(),
       ),
       Layer.succeed(
@@ -332,9 +330,7 @@ describe('respondAuthError', () => {
         'GET',
         '/error/:index',
         Effect.flatMap(HttpRouter.params, params =>
-          respondAuthError(
-            ERRORS[Number(params.index)] as { _tag?: string },
-          ),
+          respondAuthError(ERRORS[Number(params.index)] as { _tag?: string }),
         ),
       ),
     ]),
@@ -435,7 +431,12 @@ describe('POST /api/auth/oidc/callback', () => {
     const w = world();
 
     const response = await w.signIn('code-ada', {
-      device: { deviceId: 'd-1', browser: 'Firefox', os: 'Linux', ip: '1.2.3.4' },
+      device: {
+        deviceId: 'd-1',
+        browser: 'Firefox',
+        os: 'Linux',
+        ip: '1.2.3.4',
+      },
     });
     const body = await bodyOf(response);
     const sessionId = body['sessionId'] as string;
@@ -445,9 +446,9 @@ describe('POST /api/auth/oidc/callback', () => {
     expect(await Effect.runPromise(w.idTokens.take(sessionId))).toBe(
       'id-token-ada',
     );
-    expect(
-      await Effect.runPromise(w.providerSessions.take('sid-1')),
-    ).toEqual([sessionId]);
+    expect(await Effect.runPromise(w.providerSessions.take('sid-1'))).toEqual([
+      sessionId,
+    ]);
     expect(
       (await Effect.runPromise(w.notices.mailbox.read('ada@example.com')))[0],
     ).toMatchObject({
@@ -479,7 +480,7 @@ describe('POST /api/auth/oidc/callback', () => {
     const w = world({
       devices: {
         ...devices,
-        remember: () => Effect.fail(new EntifixConnError('down')),
+        remember: () => Effect.fail(new Unavailable({})),
       },
     });
 
@@ -501,9 +502,9 @@ describe('POST /api/auth/oidc/callback', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(
-      await Effect.runPromise(w.notices.mailbox.read(undefined)),
-    ).toEqual([]);
+    expect(await Effect.runPromise(w.notices.mailbox.read(undefined))).toEqual(
+      [],
+    );
   });
 
   it('refuses a callback missing its code, a spent state, and a code the provider never issued', async () => {
@@ -615,7 +616,11 @@ describe('POST /api/auth/backchannel-logout', () => {
 });
 
 describe('POST /api/auth/provider-events', () => {
-  const send = (w: ReturnType<typeof world>, subject: string, ends: boolean) => {
+  const send = (
+    w: ReturnType<typeof world>,
+    subject: string,
+    ends: boolean,
+  ) => {
     const body = w.events.eventFor(subject, ends);
     return w.routes.call('/api/auth/provider-events', {
       method: 'POST',
@@ -692,8 +697,7 @@ describe('POST /api/auth/refresh', () => {
 
     expect((await w.json('POST', '/api/auth/refresh', {})).status).toBe(400);
     expect(
-      (await w.json('POST', '/api/auth/refresh', { sessionId: 'gone' }))
-        .status,
+      (await w.json('POST', '/api/auth/refresh', { sessionId: 'gone' })).status,
     ).toBe(401);
   });
 });
@@ -900,7 +904,7 @@ describe('administering accounts', () => {
     const down = world({
       directory: {
         name: 'down',
-        findUserIdByEmail: () => Effect.fail(new EntifixConnError('down')),
+        findUserIdByEmail: () => Effect.fail(new Unavailable({})),
         createHuman: () => Effect.die('unused'),
       },
     });

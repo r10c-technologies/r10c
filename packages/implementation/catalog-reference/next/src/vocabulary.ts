@@ -5,10 +5,10 @@ import {
 } from '@entifix/business';
 import {
   ancestorsOf,
-  type EntifixError,
   type Entity,
   type EntityLoadRequest,
   type EntityPage,
+  type TransitionalFailure,
 } from '@entifix/core';
 import {
   CATEGORY_KEYS,
@@ -29,7 +29,7 @@ import { Context, Effect } from 'effect';
  */
 export type VocabularyRead<A> = Effect.Effect<
   A,
-  EntifixError,
+  TransitionalFailure,
   EntityRepositoryTag
 >;
 

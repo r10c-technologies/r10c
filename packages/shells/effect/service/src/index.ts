@@ -1,4 +1,6 @@
 export * from './fleet-bus.js';
+export * from './fleet-failure-policy.js';
+export * from './fleet-retry-budget.js';
 export * from './fleet-security.js';
 export * from './fleet-service.js';
 export * from './fleet-storage.js';

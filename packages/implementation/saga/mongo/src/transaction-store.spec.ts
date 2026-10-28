@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { EntifixConnError, isStoreFault } from '@entifix/core';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { Effect } from 'effect';
 import type { Db } from 'mongodb';
@@ -8,6 +8,14 @@ import {
   makeMongoTransactionStore,
   transactionFold,
 } from './transaction-store.js';
+
+/**
+ * A store failure, as this cell can surface one while the class tree and
+ * typed failures coexist: its own wrapper's `EntifixConnError`, or the unit of
+ * work's `StoreFault` passed through (ADR 0064).
+ */
+const storeFailed = (error: unknown): boolean =>
+  error instanceof EntifixConnError || isStoreFault(error);
 
 const withCollection = (collection: Record<string, unknown>) =>
   makeMongoTransactionStore({
@@ -197,7 +205,7 @@ describe('makeMongoTransactionStore over the driver', () => {
         Effect.flip(act(makeMongoTransactionStore(fake.db as Db))),
       );
 
-      expect(error).toBeInstanceOf(EntifixConnError);
+      expect(storeFailed(error)).toBe(true);
     }
   });
 });

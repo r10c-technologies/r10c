@@ -1,4 +1,4 @@
-import type { EntifixConnError } from '@entifix/core';
+import type { TransitionalFailure } from '@entifix/core';
 import type { PaymentOutcome } from '@r10c/business-ts-payment-contracts';
 import { Context, type Effect, type Option } from 'effect';
 
@@ -29,28 +29,28 @@ export interface PaymentLedger {
   /** What a command already decided, if anything did — read before any money moves. */
   readonly decidedPayment: (
     commandId: string,
-  ) => Effect.Effect<Option.Option<Payment>, EntifixConnError>;
+  ) => Effect.Effect<Option.Option<Payment>, TransitionalFailure>;
   readonly decidedRefund: (
     commandId: string,
-  ) => Effect.Effect<Option.Option<Refund>, EntifixConnError>;
+  ) => Effect.Effect<Option.Option<Refund>, TransitionalFailure>;
   /** The captured payment behind an order, if there is one. */
   readonly captureFor: (
     orderId: string,
-  ) => Effect.Effect<Payment | undefined, EntifixConnError>;
+  ) => Effect.Effect<Payment | undefined, TransitionalFailure>;
   /** The refund already made against a capture, if there is one. */
   readonly refundFor: (
     paymentId: string,
-  ) => Effect.Effect<Refund | undefined, EntifixConnError>;
+  ) => Effect.Effect<Refund | undefined, TransitionalFailure>;
   readonly recordCapture: (
     payment: Payment,
     outcome: PaymentOutcome,
     commandId: string | undefined,
-  ) => Effect.Effect<LedgerWrite<Payment>, EntifixConnError>;
+  ) => Effect.Effect<LedgerWrite<Payment>, TransitionalFailure>;
   readonly recordRefund: (
     refund: Refund,
     outcome: PaymentOutcome,
     commandId: string | undefined,
-  ) => Effect.Effect<LedgerWrite<Refund>, EntifixConnError>;
+  ) => Effect.Effect<LedgerWrite<Refund>, TransitionalFailure>;
 }
 
 export class PaymentLedgerTag extends Context.Service<

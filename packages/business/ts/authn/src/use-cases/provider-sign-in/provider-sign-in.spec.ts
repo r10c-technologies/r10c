@@ -18,7 +18,9 @@ import {
 
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
 
-const identity = (fields: Partial<ProviderIdentity> = {}): ProviderIdentity => ({
+const identity = (
+  fields: Partial<ProviderIdentity> = {},
+): ProviderIdentity => ({
   subject: 'sub-1',
   email: 'ada@example.com',
   emailVerified: true,
@@ -180,9 +182,9 @@ describe('provisionProviderHuman', () => {
         familyName: 'Lovelace',
       }),
     ]);
-    expect(await run(accounts.findByIdentifier('provider-new'))).toMatchObject(
-      { id },
-    );
+    expect(await run(accounts.findByIdentifier('provider-new'))).toMatchObject({
+      id,
+    });
   });
 
   it('adopts a human the provider already holds, which makes a retry a repair', async () => {

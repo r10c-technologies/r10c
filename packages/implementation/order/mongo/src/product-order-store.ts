@@ -1,9 +1,9 @@
 import {
   deserializeSingleEntity,
   type DomainEvent,
-  EntifixConnError,
   envelopeEntityName,
   serializeEntity,
+  Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import {
@@ -44,12 +44,10 @@ export const ensureProductOrderIndexes = (db: Db) =>
         { name: 'items.vendorId_1_placedAt_-1' },
       );
     },
-    catch: error =>
-      new EntifixConnError('Failed to ensure the order indexes', error),
+    catch: () => new Unavailable({ dependency: 'mongo' }),
   });
 
-const failed = (message: string, orderId: string) => (error: unknown) =>
-  new EntifixConnError(message, error, { orderId });
+const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
 /** An order did not move: its status was not the one the transition leaves. */
 class NotClaimable {
@@ -81,10 +79,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
 
     const revive = (document: unknown) =>
       deserializeSingleEntity(ProductOrder, document).pipe(
-        Effect.mapError(
-          error =>
-            new EntifixConnError('A stored order did not read back', error),
-        ),
+        Effect.mapError(() => new Unavailable({ dependency: 'mongo' })),
       );
 
     const reviveOrNone = (document: unknown) =>
@@ -115,7 +110,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
             { $set: { status: to } },
             { returnDocument: 'after', ...WITHOUT_ID, session },
           ),
-        catch: failed('Failed to move the order', orderId),
+        catch: storeUnavailable,
       });
 
     const claimFor = (commandId: string | undefined) =>
@@ -127,7 +122,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
       get: orderId =>
         Effect.tryPromise({
           try: () => orders.findOne({ id: orderId }, WITHOUT_ID),
-          catch: failed('Failed to read the order', orderId),
+          catch: storeUnavailable,
         }).pipe(Effect.flatMap(reviveOrNone)),
 
       place: (order, commandId) =>
@@ -149,7 +144,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
                   unit.handle.db
                     .collection(ORDER_COLLECTION)
                     .insertOne(document, { session: unit.handle.session }),
-                catch: failed('Failed to write the order', orderId),
+                catch: storeUnavailable,
               }).pipe(Effect.tap(() => Effect.sync(() => unit.emit(placed)))),
             {
               ...claimFor(commandId),
@@ -164,11 +159,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
           // Every claim this store takes remembers its order; a duplicate with
           // none is a collision, never a replay.
           if (Option.isNone(remembered)) {
-            return yield* Effect.fail(
-              new EntifixConnError(
-                'An order was refused as a duplicate with no record behind it',
-              ),
-            );
+            return yield* Effect.fail(new Unavailable({ dependency: 'mongo' }));
           }
           return {
             _tag: 'replayed',
@@ -181,7 +172,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
       remove: orderId =>
         Effect.tryPromise({
           try: () => orders.deleteOne({ id: orderId }),
-          catch: failed('Failed to delete the order', orderId),
+          catch: storeUnavailable,
         }).pipe(Effect.map(result => result.deletedCount > 0)),
 
       fulfil: (orderId, items, status) =>
@@ -202,7 +193,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
               },
               { returnDocument: 'after', ...WITHOUT_ID },
             ),
-          catch: failed('Failed to fulfil the order', orderId),
+          catch: storeUnavailable,
         }).pipe(Effect.flatMap(reviveOrNone)),
 
       claimCancellation: (orderId, commandId) =>
@@ -239,7 +230,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
               { $set: { status: 'paid' } },
               { returnDocument: 'after', ...WITHOUT_ID },
             ),
-          catch: failed('Failed to release the claim', orderId),
+          catch: storeUnavailable,
         }).pipe(Effect.map(released => released !== null)),
 
       settleCancellation: (orderId, commandId) =>
@@ -274,7 +265,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
                       { $set: { status: 'paid', paidAt } },
                       { session: unit.handle.session },
                     ),
-                catch: failed('Failed to advance the order', orderId),
+                catch: storeUnavailable,
               }),
             { claim: { kind: 'event', ...claim } },
           ),

@@ -1,7 +1,7 @@
 import {
   type DomainEvent,
   EntifixBuildError,
-  type EntifixError,
+  type TransitionalFailure,
 } from '@entifix/core';
 import { Effect } from 'effect';
 
@@ -219,7 +219,7 @@ const optionalString = (value: unknown): string | undefined =>
  */
 export const readPaymentOutcome = (
   data: unknown,
-): Effect.Effect<PaymentOutcome, EntifixError> =>
+): Effect.Effect<PaymentOutcome, TransitionalFailure> =>
   Effect.gen(function* () {
     if (data === null || typeof data !== 'object') {
       return yield* Effect.fail(

@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import {
   ensureInboxIndexes,
@@ -39,12 +39,7 @@ export const mongoTransactionFoldLayer = (options: {
                       { upsert: true, session: unit.handle.session },
                     );
                   },
-                  catch: error =>
-                    new EntifixConnError(
-                      'Failed to fold transaction event',
-                      error,
-                      { consumer, eventId },
-                    ),
+                  catch: () => new Unavailable({ dependency: 'mongo' }),
                 }),
               { claim: { kind: 'event', consumer, eventId } },
             ),

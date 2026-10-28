@@ -1,9 +1,9 @@
 import { EntityRepositoryTag } from '@entifix/business';
 import type {
-  EntifixError,
   EntityFilter,
   EntityLoadRequest,
   EntityPage,
+  TransitionalFailure,
 } from '@entifix/core';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Effect } from 'effect';
@@ -21,7 +21,7 @@ import {
  */
 export type OfferingRead<A> = Effect.Effect<
   A,
-  EntifixError,
+  TransitionalFailure,
   EntityRepositoryTag
 >;
 

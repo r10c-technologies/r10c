@@ -1,5 +1,10 @@
 import { SessionStoreTag } from '@entifix/business';
-import { EntifixLogicError } from '@entifix/core';
+import {
+  type NotFound,
+  type StoreFailure,
+  type TransitionalFailure,
+  Unavailable,
+} from '@entifix/core';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -13,8 +18,9 @@ import {
   RevokeUserSessionsUC,
 } from './revoke-user-sessions.uc.js';
 
+// Fails loudly if a path the use case must not take is taken.
 const unused = (name: string) =>
-  Effect.fail(new EntifixLogicError(`${name} not used in revoke`));
+  Effect.fail(new Unavailable({ dependency: `${name} is not used here` }));
 
 const stubAccounts = (contact: string | null) =>
   AccountRepositoryTag.of({
@@ -29,7 +35,7 @@ const stubAccounts = (contact: string | null) =>
 
 const stubSessions = (
   onRevoke: (userId: unknown) => void,
-  outcome: Effect.Effect<void, EntifixLogicError> = Effect.void,
+  outcome: Effect.Effect<void, StoreFailure | NotFound> = Effect.void,
 ) =>
   SessionStoreTag.of({
     create: () => unused('create'),
@@ -46,7 +52,7 @@ const stubSessions = (
 
 const stubNotifications = (
   onSend: (notification: Notification) => void,
-  outcome: Effect.Effect<void, EntifixLogicError> = Effect.void,
+  outcome: Effect.Effect<void, TransitionalFailure> = Effect.void,
 ) =>
   NotificationPortTag.of({
     send: notification => {
@@ -121,10 +127,7 @@ describe('RevokeUserSessionsUC', () => {
         revoked = true;
       }),
       stubAccounts('owner@example.com'),
-      stubNotifications(
-        () => undefined,
-        Effect.fail(new EntifixLogicError('smtp down')),
-      ),
+      stubNotifications(() => undefined, Effect.fail(new Unavailable({}))),
     );
 
     expect(Exit.isSuccess(exit)).toBe(true);
@@ -133,10 +136,7 @@ describe('RevokeUserSessionsUC', () => {
 
   it('fails when the session store does', async () => {
     const exit = await runRevoke(
-      stubSessions(
-        () => undefined,
-        Effect.fail(new EntifixLogicError('redis down')),
-      ),
+      stubSessions(() => undefined, Effect.fail(new Unavailable({}))),
       stubAccounts('owner@example.com'),
       stubNotifications(() => undefined),
     );

@@ -4,8 +4,8 @@ import type { DeviceContext } from '@entifix/business';
 import {
   deserializeEntityCollection,
   deserializeSingleEntity,
-  EntifixConnError,
   type EntityId,
+  Unavailable,
 } from '@entifix/core';
 import {
   type RememberedDevice,
@@ -47,8 +47,7 @@ const seenAtMillis = (device: UserDevice): number => {
 export const makeMongoUserDeviceRepository = (db: Db): UserDeviceRepository => {
   const devices = db.collection(DEVICE_COLLECTION);
 
-  const fail = (message: string, error: unknown) =>
-    new EntifixConnError(message, error);
+  const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
   const remember = (userId: EntityId, device: DeviceContext) =>
     Effect.gen(function* () {
@@ -58,7 +57,7 @@ export const makeMongoUserDeviceRepository = (db: Db): UserDeviceRepository => {
             { userId, deviceId: device.deviceId },
             WITHOUT_MONGO_ID,
           ),
-        catch: error => fail('Failed to read device from MongoDB', error),
+        catch: storeUnavailable,
       });
 
       const now = new Date();
@@ -82,7 +81,7 @@ export const makeMongoUserDeviceRepository = (db: Db): UserDeviceRepository => {
         // fake implements, so this adapter also runs in the hermetic e2e.
         yield* Effect.tryPromise({
           try: () => devices.insertMany([{ ...doc }]),
-          catch: error => fail('Failed to insert device into MongoDB', error),
+          catch: storeUnavailable,
         });
       } else {
         yield* Effect.tryPromise({
@@ -91,7 +90,7 @@ export const makeMongoUserDeviceRepository = (db: Db): UserDeviceRepository => {
               { userId, deviceId: device.deviceId },
               { $set: { lastSeenAt: doc.lastSeenAt, lastIp: doc.lastIp } },
             ),
-          catch: error => fail('Failed to update device in MongoDB', error),
+          catch: storeUnavailable,
         });
       }
 
@@ -106,7 +105,7 @@ export const makeMongoUserDeviceRepository = (db: Db): UserDeviceRepository => {
     Effect.gen(function* () {
       const docs = yield* Effect.tryPromise({
         try: () => devices.find({ userId }, WITHOUT_MONGO_ID).toArray(),
-        catch: error => fail('Failed to list devices from MongoDB', error),
+        catch: storeUnavailable,
       });
       // Same widening the shared Mongo repository does after a collection
       // deserialize (`make-mongo-repository.ts`).

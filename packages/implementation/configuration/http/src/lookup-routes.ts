@@ -15,8 +15,7 @@ export class ConfigurationStoreLocationTag extends Context.Service<
 
 /** What a host provides for {@link configurationLookupRoutes}. */
 export type ConfigurationLookupRouteServices =
-  | ConfigurationLookupTag
-  | ConfigurationStoreLocationTag;
+  ConfigurationLookupTag | ConfigurationStoreLocationTag;
 
 const unavailable = (error: { readonly message: string }) =>
   HttpServerResponse.json(

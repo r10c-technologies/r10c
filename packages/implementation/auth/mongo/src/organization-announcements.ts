@@ -1,4 +1,4 @@
-import { EntifixConnError, type EntifixError } from '@entifix/core';
+import { type TransitionalFailure, Unavailable } from '@entifix/core';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   drainOutboxNow,
@@ -74,13 +74,12 @@ export const writeOrganization = (
   now: Date,
 ): Effect.Effect<
   'written' | 'unchanged',
-  EntifixError,
+  TransitionalFailure,
   EventBusTag | OutboxMaxAttempts
 > =>
   Effect.gen(function* () {
     const bus = yield* EventBusTag;
     const maxAttempts = yield* OutboxMaxAttempts;
-    const context = { organizationId: row['id'] };
 
     const outcome = yield* makeMongoUnitsOfWork(client)
       .forDatabase(db)
@@ -91,12 +90,7 @@ export const writeOrganization = (
             const organizations = handle.collection(ORGANIZATION_COLLECTION);
             const stored = yield* Effect.tryPromise({
               try: () => organizations.findOne({ id: row['id'] }, { session }),
-              catch: error =>
-                new EntifixConnError(
-                  'Failed to read an organization',
-                  error,
-                  context,
-                ),
+              catch: () => new Unavailable({ dependency: 'mongo' }),
             });
             if (
               stored !== null &&
@@ -114,12 +108,7 @@ export const writeOrganization = (
                   { $set: written },
                   { upsert: true, session },
                 ),
-              catch: error =>
-                new EntifixConnError(
-                  'Failed to write an organization',
-                  error,
-                  context,
-                ),
+              catch: () => new Unavailable({ dependency: 'mongo' }),
             });
             const announcement = announcementOf(written);
             if (announcement !== undefined) {
@@ -193,7 +182,7 @@ export const rebuildOrganizationAnnouncements = (
   db: Db,
   bus: EventBus,
   source: string,
-): Effect.Effect<OrganizationRebuildReport, EntifixError> =>
+): Effect.Effect<OrganizationRebuildReport, TransitionalFailure> =>
   Effect.gen(function* () {
     const report: OrganizationRebuildReport = {
       announced: 0,
@@ -205,8 +194,7 @@ export const rebuildOrganizationAnnouncements = (
 
     const rows = yield* Effect.tryPromise({
       try: () => db.collection(ORGANIZATION_COLLECTION).find({}).toArray(),
-      catch: error =>
-        new EntifixConnError('Failed to read the organizations', error),
+      catch: () => new Unavailable({ dependency: 'mongo' }),
     });
 
     for (const row of rows) {

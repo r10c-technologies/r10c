@@ -1,6 +1,9 @@
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
-import { type TokenClaims, TokenServiceTag } from '@entifix/business';
-import { EntifixBuildError } from '@entifix/core';
+import {
+  InvalidToken,
+  type TokenClaims,
+  TokenServiceTag,
+} from '@entifix/business';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import { serveTestService } from '@entifix/service-shell/testing';
 import { Effect, Layer } from 'effect';
@@ -34,7 +37,7 @@ describe('serviceBaseRoutes', () => {
           verify: token =>
             token === 'good'
               ? Effect.succeed(claims)
-              : Effect.fail(new EntifixBuildError('bad token')),
+              : Effect.fail(new InvalidToken()),
         }),
         Layer.succeed(
           PolicyDecisionTag,

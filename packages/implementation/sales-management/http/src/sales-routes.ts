@@ -79,7 +79,7 @@ const counterSale = (organizationId: string) =>
         HttpServerResponse.json(
           {
             error: 'the sale could not be completed',
-            code: 'unavailable',
+            code: 'stockUnavailable',
             detail:
               'A line could not be held, and every hold taken was released',
           },

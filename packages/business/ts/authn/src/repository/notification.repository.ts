@@ -1,4 +1,4 @@
-import type { EntifixError, EntityId } from '@entifix/core';
+import type { EntityId, TransitionalFailure } from '@entifix/core';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
 
@@ -56,7 +56,7 @@ export interface Notification {
  * use-case changing.
  */
 export interface NotificationPort {
-  send(notification: Notification): Effect<void, EntifixError>;
+  send(notification: Notification): Effect<void, TransitionalFailure>;
 }
 
 /** DI tag the composition root binds to a concrete {@link NotificationPort}. */

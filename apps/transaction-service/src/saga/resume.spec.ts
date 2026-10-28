@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import {
   defineSaga,
   type SagaDefinition,
@@ -205,7 +205,7 @@ describe('resumeStaleSagas', () => {
   it('logs and survives a store that cannot be read', async () => {
     const failing: SagaStore = {
       ...recordingStore([]).store,
-      findStale: () => Effect.fail(new EntifixConnError('mongo is gone')),
+      findStale: () => Effect.fail(new Unavailable({})),
     };
     const { layer } = dispatcher(true);
 
@@ -226,9 +226,7 @@ describe('resumeStaleSagas', () => {
     const broken: SagaStore = {
       ...store,
       beginStep: sagaId =>
-        sagaId === 'saga-1'
-          ? Effect.fail(new EntifixConnError('write failed'))
-          : Effect.void,
+        sagaId === 'saga-1' ? Effect.fail(new Unavailable({})) : Effect.void,
     };
     const { layer, dispatched } = dispatcher(true);
 

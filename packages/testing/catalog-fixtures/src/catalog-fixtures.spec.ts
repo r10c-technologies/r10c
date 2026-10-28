@@ -1,4 +1,4 @@
-import { RecordValidationError } from '@entifix/core';
+import { InvalidRecords } from '@entifix/core';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -42,7 +42,7 @@ describe('catalogFixtures', () => {
 
     expect(() =>
       catalogFixtures({ ...CATALOG_ROWS, offerings: [broken] }),
-    ).toThrow(RecordValidationError);
+    ).toThrow(InvalidRecords);
   });
 
   it.each([

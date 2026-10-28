@@ -3,9 +3,9 @@ import {
   TenantDatabaseResolverTag,
 } from '@entifix/business';
 import {
-  EntifixConnError,
   envelopeEntityName,
   serializeEntity,
+  Unavailable,
 } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import {
@@ -85,12 +85,7 @@ export const MongoOfferingCatalogLayer = Layer.effect(
                       .replaceOne({ id: offering.id, status: from }, document, {
                         session: unit.handle.session,
                       }),
-                  catch: error =>
-                    new EntifixConnError(
-                      'Failed to commit the offering and its publication',
-                      error,
-                      { id: String(offering.id) },
-                    ),
+                  catch: () => new Unavailable({ dependency: 'mongo' }),
                 });
                 if (written.matchedCount === 0) {
                   return yield* Effect.fail(new OfferingMoved());

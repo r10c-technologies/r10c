@@ -74,7 +74,6 @@ export const errors: EsErrors = {
   // atomic write conditioned on it. Zero documents matched *is* the out-of-stock
   // answer, not a system error.
   insufficientStock: 'There is not enough stock to reserve.',
-  unavailable: 'The sale could not be completed. Check the stock on hand.',
   channelInactive: 'That sales channel is retired.',
   notYours: 'That offering belongs to another vendor.',
   resourceBusy: 'The resource is busy, try again.',
@@ -92,4 +91,23 @@ export const errors: EsErrors = {
   network: 'Network error. Check that the service is reachable.',
   timeout: 'The service took too long to respond.',
   unexpected: 'Something went wrong.',
+  // The failures entifix and the fleet register (ADR 0064): a code is the
+  // failure's own, permanent, and the gate reads the registry for it.
+  stockUnavailable: 'The sale could not be completed. Check the stock on hand.',
+  unavailable: 'A service is unavailable right now. Try again in a moment.',
+  invalid: 'Some of the data is not valid. Check the form.',
+  invalidEnvelope: 'The request body is not valid.',
+  invalidRecords: 'Some records are not valid.',
+  duplicateKey: 'A record with that value already exists.',
+  declined: 'The request was declined.',
+  contention: 'Another operation got there first. Try again.',
+  overloaded: 'The service is overloaded. Try again in a moment.',
+  protocol: 'A service answered something that could not be read.',
+  internal: 'Something failed on our side. It has been logged.',
+  idempotencyKeyMissing: 'The request is missing its idempotency key.',
+  idempotencyKeyReused:
+    'That idempotency key was already used for another request.',
+  idempotencyKeyInFlight: 'That request is still being processed.',
+  invalidToken: 'Your session is not valid. Sign in again.',
+  expiredToken: 'Your session has expired. Sign in again.',
 };
