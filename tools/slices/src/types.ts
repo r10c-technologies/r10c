@@ -120,8 +120,10 @@ export interface SubscriptionDeclaration {
   readonly event: string;
   readonly mode: SubscriptionMode;
   /**
-   * Deliveries the broker allows before dead-lettering the message. `work`
-   * queues carry it as `x-delivery-limit`; a `broadcast` queue has no
+   * Deliveries a message may spend before it is quarantined. The AMQP adapter
+   * counts them itself (`x-entifix-attempts`), because the broker does not
+   * count a requeued nack; `work` queues also carry it as `x-delivery-limit`,
+   * which bounds a crashed consumer's redeliveries. A `broadcast` queue has no
    * dead-letter path, so it is declared and unenforced there.
    */
   readonly maxAttempts: number;

@@ -415,9 +415,12 @@ fleet layer binds the factory beside the repository factory, so any such service
 can count what it can load
 ([entifix ADR 0012](https://github.com/r10c-technologies/entifix/blob/v0.10.0/docs/adr/0012-facet-counts-are-a-port-of-their-own.md)).
 
-Errors are always an `EntifixError` subclass — `EntifixConnError` (transport),
-`EntifixBuildError` (mapping/deserialization), `EntifixLogicError` (e.g. an
-unregistered resolver).
+Failures are typed values with a family, a category and a registered `code`
+([entifix ADR 0013](https://github.com/r10c-technologies/entifix/blob/v0.10.0/docs/adr/0013-failures-are-typed-values-decided-at-the-shell.md)):
+match them with `Failure.isCategory` / `isFamily` / `isTag`, never `instanceof`.
+The old `EntifixError` tree — `EntifixConnError`, `EntifixBuildError`,
+`EntifixLogicError` — still exists while entifix #126 removes it, and an
+`EntifixError` reaching a consumer is classified transient.
 
 ### The envelope is the message
 
