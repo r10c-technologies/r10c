@@ -18,7 +18,6 @@ import {
   capturedSubscription,
   makeAppLayer,
   orderComposition,
-  router,
 } from './index.js';
 import { startPaymentStatusProjection } from './payment-status.js';
 
@@ -64,7 +63,6 @@ describe('the order shell', () => {
 
   it('offers the booted composition and the routes as layers', () => {
     expect(Layer.isLayer(makeAppLayer())).toBe(true);
-    expect(Layer.isLayer(router)).toBe(true);
   });
 });
 

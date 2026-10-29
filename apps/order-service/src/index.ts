@@ -1,16 +1,11 @@
 /**
  * The service as a *composable definition*, separate from `main.ts` which boots
  * it — the same split every other backend makes, so an e2e `mock` profile can
- * launch the real router in-process against driver fakes.
+ * launch the real endpoints in-process against driver fakes.
  */
 import { makeAppLayer } from '@r10c/shells-effect-order';
 
-export {
-  endpoints,
-  ORDER_SLICE,
-  policy,
-  router,
-} from '@r10c/shells-effect-order';
+export { endpoints, ORDER_SLICE, policy } from '@r10c/shells-effect-order';
 
 /** The slice's composition, as the service mounts it. */
 export const AppLayer = makeAppLayer();

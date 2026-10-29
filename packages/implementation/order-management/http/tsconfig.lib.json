@@ -14,16 +14,22 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
+      "path": "../../../business/ts/payment-contracts/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/order-management/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/common/tsconfig.lib.json"
     },
     {
       "path": "../../../testing/http"
     },
     {
       "path": "../../../testing/cells"
+    },
+    {
+      "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
     }
   ],
   "exclude": [

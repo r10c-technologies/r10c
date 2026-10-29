@@ -61,7 +61,7 @@ export const orderSlice: SliceDeclaration = {
     'GET|DELETE /api/product-order/:id',
     'GET /api/product-order/$metadata',
     'POST /api/product-order/:id/fulfil',
-    'POST /api/product-order/:id/cancellation',
+    'POST /api/product-order/:id/cancel',
     'POST /api/product-order/:id/buyer-cancellation',
     'POST|DELETE /api/product-order/:id/cancelling',
     'POST /api/product-order/:id/cancelled',

@@ -141,7 +141,9 @@ describe('ProductOrder', () => {
     );
 
     expect(order?.paidAt).toEqual(paidAt);
-    expect(serializeEntity(ProductOrder, order!)).toMatchObject({ paidAt });
+    expect(serializeEntity(ProductOrder, order as ProductOrder)).toMatchObject({
+      paidAt,
+    });
   });
 
   it('answers queries about when money arrived', () => {

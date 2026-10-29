@@ -2277,6 +2277,12 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../common
+      '@r10c/business-ts-payment-contracts':
+        specifier: workspace:*
+        version: link:../payment-contracts
       '@r10c/business-ts-saga-contracts':
         specifier: workspace:*
         version: link:../saga-contracts
@@ -2812,24 +2818,21 @@ importers:
 
   packages/implementation/order-management/http:
     dependencies:
-      '@entifix/authz':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/business':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
-      '@entifix/service-shell':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../../../business/ts/common
       '@r10c/business-ts-order-management':
         specifier: workspace:*
         version: link:../../../business/ts/order-management
-      '@r10c/business-ts-saga-contracts':
+      '@r10c/business-ts-payment-contracts':
         specifier: workspace:*
-        version: link:../../../business/ts/saga-contracts
+        version: link:../../../business/ts/payment-contracts
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -2840,6 +2843,9 @@ importers:
       '@entifix/testing-unit':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(@entifix/react-controls@0.12.0-rc.4(@entifix/i18n@0.12.0-rc.4(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3)))(effect@4.0.6)(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react-i18next@17.1.4(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(react@19.3.1))(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@testing-library/user-event@14.6.8(@testing-library/dom@10.4.2))(effect@4.0.6)(msw@3.0.3(@types/node@26.6.5)(graphql@16.14.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.1)(jiti@2.7.0)(less@4.5.1)(sass-embedded@1.100.0)(sass@1.101.0)(terser@5.51.2)(yaml@2.9.1)))(react@19.3.1)(vitest@5.0.5)
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/saga-contracts
       '@r10c/testing-cells':
         specifier: workspace:*
         version: link:../../../testing/cells
@@ -2892,6 +2898,9 @@ importers:
       '@r10c/business-ts-common':
         specifier: workspace:*
         version: link:../../../business/ts/common
+      '@r10c/business-ts-payment-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/payment-contracts
       '@r10c/business-ts-payment-management':
         specifier: workspace:*
         version: link:../../../business/ts/payment-management
@@ -4195,6 +4204,12 @@ importers:
       '@r10c/business-ts-configuration':
         specifier: workspace:*
         version: link:../../packages/business/ts/configuration
+      '@r10c/business-ts-order-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/order-management
+      '@r10c/business-ts-payment-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/payment-contracts
       '@r10c/business-ts-payment-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/payment-management
@@ -4234,6 +4249,9 @@ importers:
       '@r10c/shells-effect-config':
         specifier: workspace:*
         version: link:../../packages/shells/effect/config
+      '@r10c/shells-effect-order':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/order
       '@r10c/shells-effect-payment':
         specifier: workspace:*
         version: link:../../packages/shells/effect/payment

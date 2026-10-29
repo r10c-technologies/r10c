@@ -1,4 +1,4 @@
-import type { TransitionalFailure } from '@entifix/core';
+import type { UpstreamUnavailable } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
@@ -46,12 +46,13 @@ export interface SagaStarter {
    * Starts `definition` under `idempotencyKey`: the coordinator answers a
    * repeated key with what the first start decided (ADR 0068), so a caller
    * whose start is retried — or a cancellation asked for twice — runs one flow.
+   * A coordinator that cannot be reached is `UpstreamUnavailable`.
    */
   readonly start: (
     definition: string,
     inputs: SagaInputs,
     idempotencyKey: string,
-  ) => Effect.Effect<SagaStartOutcome, TransitionalFailure>;
+  ) => Effect.Effect<SagaStartOutcome, UpstreamUnavailable>;
 }
 
 export class SagaStarterTag extends Context.Service<

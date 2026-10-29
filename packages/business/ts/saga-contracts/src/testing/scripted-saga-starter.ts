@@ -1,4 +1,4 @@
-import { EntifixConnError } from '@entifix/core';
+import { UpstreamUnavailable } from '@entifix/core';
 import { Effect } from 'effect';
 
 import { sagaOutcomeFor, type SagaStarter } from '../saga-starter.js';
@@ -17,11 +17,7 @@ export const makeScriptedSagaStarter = (
       const answer = coordinator(definition, inputs, idempotencyKey);
       return answer === undefined
         ? Effect.fail(
-            new EntifixConnError(
-              'Failed to reach the saga coordinator',
-              undefined,
-              { definition },
-            ),
+            new UpstreamUnavailable({ upstream: 'transaction-service' }),
           )
         : Effect.succeed(sagaOutcomeFor(answer.status, answer.body));
     }),

@@ -1,17 +1,20 @@
-import type { EntifixLogicError } from '@entifix/core';
+import { NotFound, UpstreamUnavailable } from '@entifix/core';
+import { InvalidBody } from '@r10c/business-ts-common';
+import { RefundDeclined } from '@r10c/business-ts-payment-contracts';
 import { SagaStarterTag } from '@r10c/business-ts-saga-contracts';
 import { Effect } from 'effect';
 
 import type { ProductOrder } from '../entities/product-order';
+import {
+  CancelNotAuthorized,
+  OrderNotCancellable,
+  OrderNotFulfillable,
+  PaymentPending,
+} from '../failures/order-failures';
 import { ProductOrderStoreTag } from '../ports/product-order-store';
 import { verifyCancelCapability } from '../values/cancel-capability';
 import type { OrderScope } from '../values/order-scope';
-import {
-  CancelProductOrderUC,
-  MULTI_VENDOR_ORDER,
-  ORDER_NOT_CANCELLABLE,
-  PAYMENT_PENDING,
-} from './cancel-product-order';
+import { CancelProductOrderUC } from './cancel-product-order';
 import { FulfilProductOrderUC } from './fulfil-product-order';
 
 const MILLISECONDS = 1000;
@@ -19,14 +22,30 @@ const MILLISECONDS = 1000;
 /** The flow a cancellation runs on the coordinator. */
 export const CANCELLATION_SAGA = 'cancellation';
 
-/** A request the domain refuses as it stands. */
-export class OrderRefused {
-  readonly _tag = 'OrderRefused';
-  constructor(
-    readonly code: string,
-    readonly detail: string,
-  ) {}
-}
+/**
+ * An order outside the caller's scope answers exactly as an absent one does:
+ * telling a vendor another vendor's order exists is a leak.
+ */
+const orderNotFound = new NotFound({ entity: 'product-order' });
+
+/** The order a staff verb acts on, when it is the caller's to act on. */
+const orderInScope = (orderId: string, scope: OrderScope) =>
+  Effect.gen(function* () {
+    if (scope.kind === 'buyer' || scope.kind === 'nothing') {
+      return yield* orderNotFound;
+    }
+    const store = yield* ProductOrderStoreTag;
+    const order = yield* store.get(orderId);
+    const vendor = scope.kind === 'vendor' ? scope.organizationId : undefined;
+    if (
+      order === undefined ||
+      (vendor !== undefined &&
+        !order.items.some(line => line.vendorId === vendor))
+    ) {
+      return yield* orderNotFound;
+    }
+    return { order, vendor };
+  });
 
 /**
  * Place an order — the checkout saga's `write-order` step.
@@ -43,12 +62,9 @@ export const placeOrder = (input: {
   Effect.gen(function* () {
     const { order } = input;
     if (order.items.length === 0) {
-      return yield* Effect.fail(
-        new OrderRefused(
-          'invalidBody',
-          'an order must carry at least one item',
-        ),
-      );
+      return yield* new InvalidBody({
+        reason: 'an order must carry at least one item',
+      });
     }
     order.id = globalThis.crypto.randomUUID();
     order.status = 'pending';
@@ -64,48 +80,22 @@ export const placeOrder = (input: {
     return yield* store.place(order, input.commandId);
   });
 
-/** How fulfilling went, for the route to answer. */
-export type FulfilResult =
-  | { readonly _tag: 'notFound' }
-  | { readonly _tag: 'notFulfillable'; readonly detail: string }
-  | { readonly _tag: 'fulfilled'; readonly order: ProductOrder };
-
 /**
  * Fulfil an order's lines — per line, because one vendor cannot state
- * something true about another's. An order outside the caller's scope answers
- * exactly as an absent one does.
+ * something true about another's.
  */
 export const fulfilOrder = (input: {
   readonly orderId: string;
   readonly scope: OrderScope;
 }) =>
   Effect.gen(function* () {
-    const { scope } = input;
-    if (scope.kind === 'buyer' || scope.kind === 'nothing') {
-      return { _tag: 'notFound' } as FulfilResult;
-    }
-    const store = yield* ProductOrderStoreTag;
-    const order = yield* store.get(input.orderId);
-    const vendor = scope.kind === 'vendor' ? scope.organizationId : undefined;
-    if (
-      order === undefined ||
-      (vendor !== undefined &&
-        !order.items.some(line => line.vendorId === vendor))
-    ) {
-      return { _tag: 'notFound' } as FulfilResult;
-    }
-    if (order.status !== 'paid') {
-      return {
-        _tag: 'notFulfillable',
-        detail: `an order in '${order.status}' cannot be fulfilled`,
-      } as FulfilResult;
-    }
+    const { order, vendor } = yield* orderInScope(input.orderId, input.scope);
 
     // ⚠️ **Decided over plain lines and stamped back onto the items.** The
     // decider stamps a line by spreading it, and an `OrderItem` holds its
     // members in private fields: a spread of one copies nothing, and the line
     // it returned would have lost its offering, its quantity and its price.
-    const decided = FulfilProductOrderUC.run(
+    const decided = yield* FulfilProductOrderUC.run(
       order,
       order.items.map(item => ({
         vendorId: item.vendorId,
@@ -118,19 +108,19 @@ export const fulfilOrder = (input: {
       item.fulfilledAt = decided.lines[index]?.fulfilledAt;
     });
     // Conditional on `paid` again: a cancellation claiming it in between wins.
+    const store = yield* ProductOrderStoreTag;
     const updated = yield* store.fulfil(
       input.orderId,
       order.items,
       decided.status,
     );
-    return (
-      updated === undefined
-        ? {
-            _tag: 'notFulfillable',
-            detail: 'the order changed while it was being fulfilled',
-          }
-        : { _tag: 'fulfilled', order: updated }
-    ) as FulfilResult;
+    if (updated === undefined) {
+      return yield* new OrderNotFulfillable({
+        orderId: input.orderId,
+        reason: 'the order changed while it was being fulfilled',
+      });
+    }
+    return updated;
   });
 
 /**
@@ -151,27 +141,26 @@ export const cancellationInputs = (order: ProductOrder) => ({
   settle: [{ body: { orderId: order.id } }],
 });
 
-/** How a cancellation went, for the route to answer. */
-export type CancelResult =
-  | { readonly _tag: 'notFound' }
-  | { readonly _tag: 'notAuthorized'; readonly refusal: string }
-  | { readonly _tag: 'refused'; readonly code: string }
-  | { readonly _tag: 'cancelled'; readonly order: ProductOrder }
-  | { readonly _tag: 'failed'; readonly status: number };
-
 /**
- * Which step refused, as a code the browser can render. A refused refund is a
- * different fact for the customer from an order past cancelling: the order is
- * still theirs and still paid for.
+ * Which step refused, as the failure the browser can render. A refused refund
+ * is a different fact for the customer from an order past cancelling: the
+ * order is still theirs and still paid for.
  */
-const refusalCode = (result: unknown): string => {
+const refusalOf = (order: ProductOrder, result: unknown) => {
+  const orderId = String(order.id);
   const outcomes = (result as { data?: { outcomes?: unknown } } | undefined)
     ?.data?.outcomes;
-  if (!Array.isArray(outcomes)) return ORDER_NOT_CANCELLABLE;
-  const failed = outcomes.find(
-    (outcome: { error?: unknown }) => outcome.error !== undefined,
-  ) as { stepId?: string } | undefined;
-  return failed?.stepId === 'refund' ? 'refundDeclined' : ORDER_NOT_CANCELLABLE;
+  const failed = Array.isArray(outcomes)
+    ? (outcomes.find(
+        (outcome: { error?: unknown }) => outcome.error !== undefined,
+      ) as { stepId?: string } | undefined)
+    : undefined;
+  return failed?.stepId === 'refund'
+    ? new RefundDeclined({ orderId })
+    : new OrderNotCancellable({
+        orderId,
+        reason: 'a step of the cancellation refused, and nothing moved',
+      });
 };
 
 /**
@@ -191,24 +180,22 @@ const startCancellation = (order: ProductOrder) =>
       cancellationInputs(order),
       `cancellation:${String(order.id)}`,
     );
-    if (outcome._tag === 'completed') {
-      // Read back rather than assumed: the flow's last step wrote `cancelled`,
-      // and echoing what this believed a moment ago would be a receipt that
-      // guesses.
-      const store = yield* ProductOrderStoreTag;
-      const settled = yield* store.get(String(order.id));
-      return { _tag: 'cancelled', order: settled ?? order } as CancelResult;
-    }
     if (outcome._tag === 'compensated') {
       // Fully compensated: nothing moved, and the order is exactly as it was.
-      return {
-        _tag: 'refused',
-        code: refusalCode(outcome.result),
-      } as CancelResult;
+      return yield* refusalOf(order, outcome.result);
     }
-    // Stranded past the pivot, or the coordinator itself failed. Either way the
-    // order is visibly `cancelling`, which a sweep or a person can act on.
-    return { _tag: 'failed', status: outcome.status } as CancelResult;
+    if (outcome._tag === 'failed') {
+      // Stranded past the pivot, or the coordinator itself failed. Either way
+      // the order is visibly `cancelling`, which a sweep or a person can act on.
+      return yield* new UpstreamUnavailable({
+        upstream: 'transaction-service',
+      });
+    }
+    // Read back rather than assumed: the flow's last step wrote `cancelled`,
+    // and echoing what this believed a moment ago would be a receipt that
+    // guesses.
+    const store = yield* ProductOrderStoreTag;
+    return (yield* store.get(String(order.id))) ?? order;
   });
 
 /**
@@ -220,41 +207,10 @@ export const cancelOrderAsStaff = (input: {
   readonly scope: OrderScope;
 }) =>
   Effect.gen(function* () {
-    const { scope } = input;
-    if (scope.kind === 'buyer' || scope.kind === 'nothing') {
-      return { _tag: 'notFound' } as CancelResult;
-    }
-    const store = yield* ProductOrderStoreTag;
-    const order = yield* store.get(input.orderId);
-    const vendor = scope.kind === 'vendor' ? scope.organizationId : undefined;
-    if (
-      order === undefined ||
-      (vendor !== undefined &&
-        !order.items.some(line => line.vendorId === vendor))
-    ) {
-      return { _tag: 'notFound' } as CancelResult;
-    }
-
-    const refused = yield* Effect.try({
-      try: () => CancelProductOrderUC.run(order, order.items, vendor),
-      // The decider names every refusal's code on the error it throws, and
-      // throws nothing else.
-      catch: error =>
-        (error as EntifixLogicError & { details: { code: string } }).details
-          .code,
-    }).pipe(
-      Effect.as(undefined),
-      Effect.catch(code => Effect.succeed(code)),
-    );
-    if (refused !== undefined) {
-      return { _tag: 'refused', code: refused } as CancelResult;
-    }
+    const { order, vendor } = yield* orderInScope(input.orderId, input.scope);
+    yield* CancelProductOrderUC.run(order, order.items, vendor);
     return yield* startCancellation(order);
   });
-
-/** The code a refusal names, for the multi-vendor case a vendor can act on. */
-export const isMultiVendorRefusal = (code: string) =>
-  code === MULTI_VENDOR_ORDER;
 
 /**
  * A buyer cancelling with the capability their receipt carried — no session
@@ -273,20 +229,23 @@ export const cancelOrderAsBuyer = (input: {
         ? 'noCapability'
         : verifyCancelCapability(order, input.nonce, new Date());
     if (order === undefined || refusal !== undefined) {
-      // On the trace rather than in a log: the outcome below is the answer,
-      // and only the slice shell logs (ADR 0064).
+      // On the trace rather than in a log: the failure is the answer, and only
+      // the slice shell logs (ADR 0064).
       yield* Effect.annotateCurrentSpan({
         'order.id': input.orderId,
         'order.cancel.refusal': String(refusal),
       });
-      return { _tag: 'notAuthorized', refusal } as CancelResult;
+      return yield* new CancelNotAuthorized();
     }
     // The payment is not confirmed yet: a state the buyer can wait out.
     if (order.status === 'pending') {
-      return { _tag: 'refused', code: PAYMENT_PENDING } as CancelResult;
+      return yield* new PaymentPending({ orderId: input.orderId });
     }
     if (order.status !== 'paid') {
-      return { _tag: 'refused', code: ORDER_NOT_CANCELLABLE } as CancelResult;
+      return yield* new OrderNotCancellable({
+        orderId: input.orderId,
+        reason: `an order in '${order.status}' cannot be cancelled`,
+      });
     }
     return yield* startCancellation(order);
   });

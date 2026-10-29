@@ -17,4 +17,5 @@
  * reach an entity, a use case or a repository. See
  * [ADR 0054](../../../../docs/adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md).
  */
+export * from './failures/refund-declined';
 export * from './values';

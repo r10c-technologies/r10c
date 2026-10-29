@@ -1,6 +1,9 @@
 import { Failure } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
-import type { PaymentOutcome } from '@r10c/business-ts-payment-contracts';
+import {
+  type PaymentOutcome,
+  RefundDeclined,
+} from '@r10c/business-ts-payment-contracts';
 import { Effect, Option, Schema } from 'effect';
 
 import type { Payment } from '../entities/payment';
@@ -35,14 +38,6 @@ export class PaymentDeclined extends Failure.declined<PaymentDeclined>()(
   { message: ({ reason }) => reason ?? 'the payment was not captured' },
 ) {}
 
-/** The provider refused to send the money back; recorded as the capture is. */
-export class RefundDeclined extends Failure.declined<RefundDeclined>()(
-  'RefundDeclined',
-  'refundDeclined',
-  { refundId: Schema.String, reason: Schema.optionalKey(Schema.String) },
-  { message: ({ reason }) => reason ?? 'the refund was not made' },
-) {}
-
 /** How taking money went. `replayed` answers what an earlier attempt decided. */
 export type CaptureResult =
   | { readonly _tag: 'captured'; readonly payment: Payment }
@@ -61,7 +56,7 @@ const declinedPayment = (payment: Payment, reason: string | undefined) =>
 
 const declinedRefund = (refund: Refund, reason: string | undefined) =>
   new RefundDeclined({
-    refundId: String(refund.id),
+    orderId: refund.orderId,
     ...(reason === undefined ? {} : { reason }),
   });
 

@@ -1,4 +1,3 @@
-import { EntifixConnError } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -81,11 +80,14 @@ export const describeSagaStarterContract = (
       });
     });
 
-    it('reports a coordinator it cannot reach as a connection error', async () => {
+    it('reports a coordinator it cannot reach as an unavailable upstream', async () => {
       const { outcome } = await startWith(undefined);
 
       expect(outcome).toMatchObject({
-        failure: expect.any(EntifixConnError),
+        failure: {
+          _tag: 'UpstreamUnavailable',
+          upstream: 'transaction-service',
+        },
       });
     });
   });

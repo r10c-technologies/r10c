@@ -21,6 +21,9 @@
       "path": "../../packages/shells/effect/payment"
     },
     {
+      "path": "../../packages/shells/effect/order"
+    },
+    {
       "path": "../../packages/shells/effect/config"
     },
     {

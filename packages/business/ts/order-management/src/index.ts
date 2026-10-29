@@ -32,6 +32,7 @@
  */
 export { ORDER_DOMAIN } from './domain';
 export * from './entities/product-order';
+export * from './failures/order-failures';
 export * from './ports';
 /**
  * ⚠️ **Load-bearing, not tidiness.** A `@useCase()` registers itself onto its

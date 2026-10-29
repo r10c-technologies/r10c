@@ -23,15 +23,12 @@ const catalogs = {
  * nothing behind it.
  */
 const LEGACY_UNSCANNED: ReadonlySet<string> = new Set([
-  'multiVendorOrder',
-  'orderNotCancellable',
   'categoryParentMissing',
   'categoryParentRetired',
   'categoryCycle',
   'categoryTooDeep',
   'categoryHasChildren',
   'categoryTreeUnreadable',
-  'paymentPending',
   'invalidCommand',
   'alreadyRetired',
   'channelInactive',

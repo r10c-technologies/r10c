@@ -24,6 +24,12 @@
       "path": "../../packages/business/ts/payment-management"
     },
     {
+      "path": "../../packages/business/ts/payment-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/order-management"
+    },
+    {
       "path": "../../packages/business/ts/configuration"
     },
     {

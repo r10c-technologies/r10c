@@ -18,8 +18,6 @@ import {
   cancelOrderAsBuyer,
   cancelOrderAsStaff,
   fulfilOrder,
-  isMultiVendorRefusal,
-  OrderRefused,
   placeOrder,
 } from './order-flows.js';
 
@@ -76,7 +74,11 @@ const world = (
   const run = <A, E>(
     effect: Effect.Effect<A, E, ProductOrderStoreTag | SagaStarterTag>,
   ) => Effect.runPromise(effect.pipe(Effect.provide(layer)));
-  return { run, started, byId };
+  /** The failure an effect ends in, for the refusals asserted below. */
+  const refusal = <A, E>(
+    effect: Effect.Effect<A, E, ProductOrderStoreTag | SagaStarterTag>,
+  ) => run(Effect.flip(effect));
+  return { run, refusal, started, byId };
 };
 
 const operator: OrderScope = { kind: 'unscoped' };
@@ -126,7 +128,10 @@ describe('placeOrder', () => {
       ),
     );
 
-    expect(refused).toBeInstanceOf(OrderRefused);
+    expect(refused).toMatchObject({
+      _tag: 'InvalidBody',
+      reason: 'an order must carry at least one item',
+    });
   });
 });
 
@@ -138,26 +143,27 @@ describe('fulfilOrder', () => {
       fulfilOrder({ orderId: 'o-1', scope: vendor('v-1') }),
     );
 
-    expect(result._tag).toBe('fulfilled');
+    expect(result.items[0]?.fulfilledAt).toBeInstanceOf(Date);
+    expect(result.items[1]?.fulfilledAt).toBeUndefined();
   });
 
   it('answers a buyer, a stranger and an absent order alike, as not found', async () => {
-    const { run } = world([orderOf('o-1', 'paid', ['v-1'])]);
+    const { refusal } = world([orderOf('o-1', 'paid', ['v-1'])]);
 
     const results = await Promise.all([
-      run(
+      refusal(
         fulfilOrder({ orderId: 'o-1', scope: { kind: 'buyer', partyId: 'p' } }),
       ),
-      run(fulfilOrder({ orderId: 'o-1', scope: { kind: 'nothing' } })),
-      run(fulfilOrder({ orderId: 'o-1', scope: vendor('v-9') })),
-      run(fulfilOrder({ orderId: 'o-404', scope: operator })),
+      refusal(fulfilOrder({ orderId: 'o-1', scope: { kind: 'nothing' } })),
+      refusal(fulfilOrder({ orderId: 'o-1', scope: vendor('v-9') })),
+      refusal(fulfilOrder({ orderId: 'o-404', scope: operator })),
     ]);
 
     expect(results.map(result => result._tag)).toEqual([
-      'notFound',
-      'notFound',
-      'notFound',
-      'notFound',
+      'NotFound',
+      'NotFound',
+      'NotFound',
+      'NotFound',
     ]);
   });
 
@@ -165,20 +171,22 @@ describe('fulfilOrder', () => {
     const pending = world([orderOf('o-1', 'pending')]);
     const raced = world([orderOf('o-2', 'paid')], undefined, true);
 
-    const notPaid = await pending.run(
+    const notPaid = await pending.refusal(
       fulfilOrder({ orderId: 'o-1', scope: operator }),
     );
-    const changed = await raced.run(
+    const changed = await raced.refusal(
       fulfilOrder({ orderId: 'o-2', scope: operator }),
     );
 
-    expect(notPaid).toEqual({
-      _tag: 'notFulfillable',
-      detail: "an order in 'pending' cannot be fulfilled",
+    expect(notPaid).toMatchObject({
+      _tag: 'OrderNotFulfillable',
+      orderId: 'o-1',
+      reason: "an order in 'pending' cannot be fulfilled",
     });
-    expect(changed).toEqual({
-      _tag: 'notFulfillable',
-      detail: 'the order changed while it was being fulfilled',
+    expect(changed).toMatchObject({
+      _tag: 'OrderNotFulfillable',
+      orderId: 'o-2',
+      reason: 'the order changed while it was being fulfilled',
     });
   });
 });
@@ -191,7 +199,7 @@ describe('cancelOrderAsStaff', () => {
       cancelOrderAsStaff({ orderId: 'o-1', scope: vendor('v-1') }),
     );
 
-    expect(result._tag).toBe('cancelled');
+    expect(result.id).toBe('o-1');
     expect(started[0]?.definition).toBe(CANCELLATION_SAGA);
     expect(started[0]?.inputs).toMatchObject({
       'restore-stock': [{ organizationId: 'v-1' }],
@@ -199,42 +207,41 @@ describe('cancelOrderAsStaff', () => {
   });
 
   it('refuses a vendor an order that names another vendor, and an order past cancelling', async () => {
-    const { run, started } = world([
+    const { refusal, started } = world([
       orderOf('o-1', 'paid', ['v-1', 'v-2']),
       orderOf('o-2', 'fulfilled', ['v-1']),
     ]);
 
-    const shared = await run(
+    const shared = await refusal(
       cancelOrderAsStaff({ orderId: 'o-1', scope: vendor('v-1') }),
     );
-    const late = await run(
+    const late = await refusal(
       cancelOrderAsStaff({ orderId: 'o-2', scope: operator }),
     );
 
-    expect(shared).toEqual({ _tag: 'refused', code: 'multiVendorOrder' });
-    expect(isMultiVendorRefusal('multiVendorOrder')).toBe(true);
-    expect(late).toEqual({ _tag: 'refused', code: 'orderNotCancellable' });
+    expect(shared).toMatchObject({ _tag: 'MultiVendorOrder', orderId: 'o-1' });
+    expect(late).toMatchObject({ _tag: 'OrderNotCancellable', orderId: 'o-2' });
     expect(started).toEqual([]);
   });
 
   it('answers a buyer, a stranger and an absent order as not found', async () => {
-    const { run } = world([orderOf('o-1', 'paid', ['v-1'])]);
+    const { refusal } = world([orderOf('o-1', 'paid', ['v-1'])]);
 
     const results = await Promise.all([
-      run(
+      refusal(
         cancelOrderAsStaff({
           orderId: 'o-1',
           scope: { kind: 'buyer', partyId: 'p' },
         }),
       ),
-      run(cancelOrderAsStaff({ orderId: 'o-1', scope: vendor('v-9') })),
-      run(cancelOrderAsStaff({ orderId: 'o-404', scope: operator })),
+      refusal(cancelOrderAsStaff({ orderId: 'o-1', scope: vendor('v-9') })),
+      refusal(cancelOrderAsStaff({ orderId: 'o-404', scope: operator })),
     ]);
 
     expect(results.map(result => result._tag)).toEqual([
-      'notFound',
-      'notFound',
-      'notFound',
+      'NotFound',
+      'NotFound',
+      'NotFound',
     ]);
   });
 
@@ -265,36 +272,27 @@ describe('cancelOrderAsStaff', () => {
     });
 
     expect(
-      await refundRefused.run(
+      await refundRefused.refusal(
         cancelOrderAsStaff({ orderId: 'o-1', scope: operator }),
       ),
-    ).toEqual({
-      _tag: 'refused',
-      code: 'refundDeclined',
-    });
+    ).toMatchObject({ _tag: 'RefundDeclined', orderId: 'o-1' });
     expect(
-      await otherRefused.run(
+      await otherRefused.refusal(
         cancelOrderAsStaff({ orderId: 'o-2', scope: operator }),
       ),
-    ).toEqual({
-      _tag: 'refused',
-      code: 'orderNotCancellable',
-    });
+    ).toMatchObject({ _tag: 'OrderNotCancellable', orderId: 'o-2' });
     expect(
-      await noOutcomes.run(
+      await noOutcomes.refusal(
         cancelOrderAsStaff({ orderId: 'o-3', scope: operator }),
       ),
-    ).toEqual({
-      _tag: 'refused',
-      code: 'orderNotCancellable',
-    });
+    ).toMatchObject({ _tag: 'OrderNotCancellable', orderId: 'o-3' });
     expect(
-      await stranded.run(
+      await stranded.refusal(
         cancelOrderAsStaff({ orderId: 'o-4', scope: operator }),
       ),
-    ).toEqual({
-      _tag: 'failed',
-      status: 502,
+    ).toMatchObject({
+      _tag: 'UpstreamUnavailable',
+      upstream: 'transaction-service',
     });
   });
 
@@ -311,7 +309,7 @@ describe('cancelOrderAsStaff', () => {
         return outcome;
       }),
     );
-    expect(result._tag).toBe('cancelled');
+    expect(result.id).toBe('o-1');
 
     const gone = world([order]);
     const flow = await gone.run(
@@ -335,7 +333,7 @@ describe('cancelOrderAsStaff', () => {
         );
       }),
     );
-    expect(flow).toEqual({ _tag: 'cancelled', order });
+    expect(flow).toBe(order);
   });
 });
 
@@ -351,34 +349,37 @@ describe('cancelOrderAsBuyer', () => {
 
     const result = await run(cancelOrderAsBuyer({ orderId: 'o-1', nonce }));
 
-    expect(result._tag).toBe('cancelled');
+    expect(result.id).toBe('o-1');
   });
 
   it('answers every capability failure alike, and an absent order the same', async () => {
-    const { run } = world([orderOf('o-1', 'paid', ['v-1'], open())]);
+    const { refusal } = world([orderOf('o-1', 'paid', ['v-1'], open())]);
 
-    const wrong = await run(
+    const wrong = await refusal(
       cancelOrderAsBuyer({ orderId: 'o-1', nonce: 'guess' }),
     );
-    const absent = await run(cancelOrderAsBuyer({ orderId: 'o-404', nonce }));
+    const absent = await refusal(
+      cancelOrderAsBuyer({ orderId: 'o-404', nonce }),
+    );
 
-    expect(wrong._tag).toBe('notAuthorized');
-    expect(absent._tag).toBe('notAuthorized');
+    expect(wrong).toEqual(absent);
+    expect(wrong).toMatchObject({ _tag: 'CancelNotAuthorized' });
   });
 
   it('tells a buyer the payment is still being confirmed, and refuses an order past cancelling', async () => {
-    const { run } = world([
+    const { refusal } = world([
       orderOf('o-1', 'pending', ['v-1'], open()),
       orderOf('o-2', 'fulfilled', ['v-1'], open()),
     ]);
 
-    expect(await run(cancelOrderAsBuyer({ orderId: 'o-1', nonce }))).toEqual({
-      _tag: 'refused',
-      code: 'paymentPending',
-    });
-    expect(await run(cancelOrderAsBuyer({ orderId: 'o-2', nonce }))).toEqual({
-      _tag: 'refused',
-      code: 'orderNotCancellable',
+    expect(
+      await refusal(cancelOrderAsBuyer({ orderId: 'o-1', nonce })),
+    ).toMatchObject({ _tag: 'PaymentPending', orderId: 'o-1' });
+    expect(
+      await refusal(cancelOrderAsBuyer({ orderId: 'o-2', nonce })),
+    ).toMatchObject({
+      _tag: 'OrderNotCancellable',
+      reason: "an order in 'fulfilled' cannot be cancelled",
     });
   });
 });

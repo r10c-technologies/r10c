@@ -1,4 +1,3 @@
-import { EntifixConnError } from '@entifix/core';
 import { InMemoryRetryBudgetLayer } from '@entifix/transactions/engine';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
 import { describePublishedPriceReaderContract } from '@r10c/business-ts-catalog-contracts/testing';
@@ -132,12 +131,13 @@ describe('httpSagaStarterLayer', () => {
     });
   });
 
-  it('reports a coordinator it could not reach as a connection error', async () => {
+  it('reports a coordinator it could not reach as an unavailable upstream', async () => {
     vi.stubGlobal('fetch', () => Promise.reject(new Error('refused')));
 
-    expect(await Effect.runPromise(start().pipe(Effect.flip))).toBeInstanceOf(
-      EntifixConnError,
-    );
+    expect(await Effect.runPromise(start().pipe(Effect.flip))).toMatchObject({
+      _tag: 'UpstreamUnavailable',
+      upstream: 'transaction-service',
+    });
   });
 });
 

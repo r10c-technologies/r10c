@@ -10,13 +10,13 @@ import {
   readEntityEnvelope,
 } from '@entifix/core';
 import { InvalidBody } from '@r10c/business-ts-common';
+import { RefundDeclined } from '@r10c/business-ts-payment-contracts';
 import {
   capturePayment,
   NothingToRefund,
   Payment,
   PaymentDeclined,
   Refund,
-  RefundDeclined,
   refundPayment,
 } from '@r10c/business-ts-payment-management';
 import { Effect, Option, Schema } from 'effect';

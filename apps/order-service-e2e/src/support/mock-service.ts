@@ -42,7 +42,6 @@ import {
   endpoints,
   ORDER_SLICE,
   policy,
-  router,
   SERVICE_NAME,
 } from '@r10c/order-service';
 import { httpSagaStarterLayer } from '@r10c/shells-effect-service';
@@ -147,7 +146,7 @@ const MockAppLayer = Layer.provideMerge(
   Layer.provideMerge(MongoUnitOfWorkLayer, connections),
 ).pipe(Layer.orDie);
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
@@ -156,6 +155,5 @@ export const startMockService = (): Promise<RunningTestService> =>
     description: fleetToken,
     endpoints,
     policy,
-    router,
     appLayer: MockAppLayer,
   });

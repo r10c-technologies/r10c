@@ -108,12 +108,6 @@ export const orderScopeFor = (principal: ScopedCaller): OrderScope => {
     : { kind: 'buyer', partyId: principal.partyId };
 };
 
-/**
- * The predicate for a scope, or `undefined` when there is nothing to narrow.
- *
- * `undefined` means *add no filter*, which is only ever the operator's case —
- * `nothing` never reaches here, because a route answers it without loading.
- */
 /** Which orders a caller may see: all, none, or the ones a filter keeps. */
 export type OrderNarrowing = 'unscoped' | 'nothing' | FilterGroup<ProductOrder>;
 

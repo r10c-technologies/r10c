@@ -1,27 +1,23 @@
-import { describeEntityUseCases, EntifixLogicError } from '@entifix/core';
+import { describeEntityUseCases } from '@entifix/core';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { ProductOrder } from '../../entities/product-order/index.js';
 import {
   CANCEL_PRODUCT_ORDER,
   CancelProductOrderUC,
-  MULTI_VENDOR_ORDER,
-  ORDER_NOT_CANCELLABLE,
 } from './cancel-product-order.uc.js';
 
 const line = (vendorId: string) => ({ vendorId });
 
-/** The `code` a route reads off the failure to render a translated message. */
-const codeOf = (run: () => void): string | undefined => {
-  try {
-    run();
-  } catch (error) {
-    return error instanceof EntifixLogicError
-      ? (error.details as { code?: string } | undefined)?.code
-      : undefined;
-  }
-  return undefined;
-};
+/** The refusal's `code`, or `undefined` when the decider allows it. */
+const codeOf = (...args: Parameters<typeof CancelProductOrderUC.run>) =>
+  Effect.runSync(
+    CancelProductOrderUC.run(...args).pipe(
+      Effect.as(undefined),
+      Effect.catch(refusal => Effect.succeed(refusal.code)),
+    ),
+  );
 
 describe('CancelProductOrderUC', () => {
   it('derives its permission from the entity and the verb', () => {
@@ -43,62 +39,64 @@ describe('CancelProductOrderUC', () => {
   });
 
   it('allows an operator to cancel any paid order', () => {
-    expect(() =>
-      CancelProductOrderUC.run(
-        { status: 'paid' },
+    expect(
+      codeOf(
+        { id: 'o-1', status: 'paid' },
         [line('alpha'), line('beta')],
         undefined,
       ),
-    ).not.toThrow();
+    ).toBeUndefined();
   });
 
   it('allows a vendor an order that is theirs alone', () => {
-    expect(() =>
-      CancelProductOrderUC.run(
-        { status: 'paid' },
+    expect(
+      codeOf(
+        { id: 'o-1', status: 'paid' },
         [line('alpha'), line('alpha')],
         'alpha',
       ),
-    ).not.toThrow();
+    ).toBeUndefined();
   });
 
   it('refuses a vendor an order that names somebody else', () => {
     expect(
-      codeOf(() =>
-        CancelProductOrderUC.run(
-          { status: 'paid' },
-          [line('alpha'), line('beta')],
-          'alpha',
-        ),
+      codeOf(
+        { id: 'o-1', status: 'paid' },
+        [line('alpha'), line('beta')],
+        'alpha',
       ),
-    ).toBe(MULTI_VENDOR_ORDER);
+    ).toBe('multiVendorOrder');
   });
 
   it('answers the vendor question before the status one', () => {
     // "Not cancellable right now" reads as a retry, and there is no moment at
     // which a vendor's cancel of a shared basket succeeds.
     expect(
-      codeOf(() =>
-        CancelProductOrderUC.run(
-          { status: 'pending' },
-          [line('alpha'), line('beta')],
-          'alpha',
-        ),
+      codeOf(
+        { id: 'o-1', status: 'pending' },
+        [line('alpha'), line('beta')],
+        'alpha',
       ),
-    ).toBe(MULTI_VENDOR_ORDER);
+    ).toBe('multiVendorOrder');
   });
 
-  it('refuses every state but paid', () => {
+  it('refuses every state but paid, naming the order and its status', () => {
     for (const status of ['pending', 'cancelling', 'cancelled', 'fulfilled']) {
-      expect(
-        codeOf(() =>
+      const refused = Effect.runSync(
+        Effect.flip(
           CancelProductOrderUC.run(
-            { status: status as never },
+            { id: 'o-1', status: status as never },
             [line('alpha')],
             undefined,
           ),
         ),
-      ).toBe(ORDER_NOT_CANCELLABLE);
+      );
+      expect(refused).toMatchObject({
+        _tag: 'OrderNotCancellable',
+        code: 'orderNotCancellable',
+        orderId: 'o-1',
+        reason: `an order in '${status}' cannot be cancelled`,
+      });
     }
   });
 });

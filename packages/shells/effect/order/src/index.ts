@@ -4,5 +4,5 @@
  * order-service only mounts it (ADR 0064).
  */
 export { makeAppLayer, ORDER_SLICE, orderComposition } from './app-layer.js';
+export { endpoints, policy } from './endpoints.js';
 export { capturedSubscription } from './payment-status.js';
-export { endpoints, policy, router } from './router.js';

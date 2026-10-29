@@ -3,7 +3,7 @@ import { openStruct } from '@entifix/core';
 import { participantRefusal } from '@r10c/business-ts-saga-contracts';
 import { Schema } from 'effect';
 
-import { ORDER_NOT_CANCELLABLE } from '../use-cases/cancel-product-order/cancel-product-order.uc';
+import { ORDER_NOT_CANCELLABLE } from '../failures/order-failures';
 
 /** The participant every order fragment calls. */
 const PARTICIPANT = 'order-service';
