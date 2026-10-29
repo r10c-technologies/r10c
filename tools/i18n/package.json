@@ -41,6 +41,7 @@
     "@r10c/business-ts-payment-contracts": "workspace:*",
     "@r10c/business-ts-payment-management": "workspace:*",
     "@r10c/business-ts-sales-management": "workspace:*",
+    "@r10c/business-ts-settlement-management": "workspace:*",
     "@r10c/business-ts-stock-management": "workspace:*",
     "@r10c/i18n-catalog": "workspace:*",
     "@r10c/slices": "workspace:*"

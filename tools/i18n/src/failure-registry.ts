@@ -17,6 +17,7 @@ import '@r10c/business-ts-order-management';
 import '@r10c/business-ts-payment-contracts';
 import '@r10c/business-ts-payment-management';
 import '@r10c/business-ts-sales-management';
+import '@r10c/business-ts-settlement-management';
 import '@r10c/business-ts-stock-management';
 
 import { registeredFailures } from '@entifix/core';

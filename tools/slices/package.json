@@ -43,6 +43,7 @@
     "@r10c/shells-effect-payment": "workspace:*",
     "@r10c/shells-effect-sales": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
+    "@r10c/shells-effect-settlement": "workspace:*",
     "@r10c/shells-effect-stock": "workspace:*"
   }
 }

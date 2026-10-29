@@ -1,5 +1,6 @@
-import { EntifixBuildError } from '@entifix/core';
+import { InvalidBody } from '@r10c/business-ts-common';
 import { SalesChannelTypes } from '@r10c/business-ts-sales-vocabulary';
+import { Effect } from 'effect';
 
 import type { Agreement } from '../entities/agreement';
 
@@ -27,35 +28,37 @@ const WHOLE_SALE_BASIS_POINTS = 10_000;
  */
 export const validateAgreement = (
   agreement: Agreement,
-): EntifixBuildError | undefined => {
+): Effect.Effect<Agreement, InvalidBody> => {
   const outOfRange = (basisPoints: number): boolean =>
     !Number.isInteger(basisPoints) ||
     basisPoints < 0 ||
     basisPoints > WHOLE_SALE_BASIS_POINTS;
 
+  const refused = (reason: string) => Effect.fail(new InvalidBody({ reason }));
+
   if (outOfRange(agreement.commissionBasisPoints)) {
-    return new EntifixBuildError(
+    return refused(
       `commissionBasisPoints must be a whole number between 0 and ${WHOLE_SALE_BASIS_POINTS}`,
     );
   }
 
   const rates = agreement.channelCommissionBasisPoints;
   if (rates === undefined) {
-    return undefined;
+    return Effect.succeed(agreement);
   }
 
   for (const [channelType, basisPoints] of Object.entries(rates)) {
     if (!(SalesChannelTypes as readonly string[]).includes(channelType)) {
-      return new EntifixBuildError(
+      return refused(
         `channelCommissionBasisPoints names "${channelType}", which is not a sales channel type`,
       );
     }
     if (basisPoints !== undefined && outOfRange(basisPoints)) {
-      return new EntifixBuildError(
+      return refused(
         `channelCommissionBasisPoints["${channelType}"] must be a whole number between 0 and ${WHOLE_SALE_BASIS_POINTS}`,
       );
     }
   }
 
-  return undefined;
+  return Effect.succeed(agreement);
 };

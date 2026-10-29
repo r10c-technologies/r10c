@@ -116,6 +116,8 @@ export const errors = {
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
   stockUnavailable: 'No se pudo completar la venta. Revisa la existencia.',
+  mixedCurrencies:
+    'Los montos de un mismo vendedor están en más de una moneda.',
   unavailable:
     'Un servicio no está disponible en este momento. Inténtalo de nuevo en un momento.',
   invalid: 'Hay datos que no son válidos. Revisa el formulario.',

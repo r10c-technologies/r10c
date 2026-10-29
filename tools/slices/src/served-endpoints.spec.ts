@@ -4,6 +4,7 @@ import { endpoints as orderEndpoints } from '@r10c/shells-effect-order';
 import { endpoints as paymentEndpoints } from '@r10c/shells-effect-payment';
 import { endpoints as salesEndpoints } from '@r10c/shells-effect-sales';
 import { serviceBaseGroup } from '@r10c/shells-effect-service';
+import { endpoints as settlementEndpoints } from '@r10c/shells-effect-settlement';
 import { endpoints as stockEndpoints } from '@r10c/shells-effect-stock';
 import { describe, expect, it } from 'vitest';
 
@@ -20,6 +21,7 @@ const SERVED: Readonly<Record<string, readonly AnyEndpointGroup[]>> = {
   order: orderEndpoints,
   payment: paymentEndpoints,
   sales: salesEndpoints,
+  settlement: settlementEndpoints,
   stock: stockEndpoints,
 };
 

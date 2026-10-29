@@ -7,7 +7,7 @@ import { bearerFor, operatorBearerFor, signTokenFor } from '../support/tokens';
  * What each route accepts, and what no role may do.
  *
  * ⚠️ **The grant table under this is the real one.** `makeStaticPolicyDecision`
- * is what `requirePermission` consults in the mock composition root, so these
+ * is what the permission guard consults in the mock composition root, so these
  * assertions are about the shipped policy rather than about a fixture.
  */
 const service = defineServiceE2e({
@@ -73,10 +73,12 @@ describe('writing an agreement', () => {
    * of a negotiation and the vendor's own administrator is the other half of it,
    * so it is an operator act reached through `super-admin`'s wildcard.
    */
-  it('is refused to an admin', async () => {
+  it('is refused to an admin, as a problem body', async () => {
     const res = await service.client.post('/api/agreement', agreementBody());
 
     expect(res.status).toBe(403);
+    expect(res.headers['content-type']).toContain('application/problem+json');
+    expect(res.data.code).toBe('forbidden');
   });
 
   it('is allowed to super-admin', async () => {

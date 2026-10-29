@@ -15,6 +15,9 @@
       "path": "../../packages/shells/effect/stock"
     },
     {
+      "path": "../../packages/shells/effect/settlement"
+    },
+    {
       "path": "../../packages/shells/effect/service"
     },
     {

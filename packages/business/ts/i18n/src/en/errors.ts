@@ -93,6 +93,7 @@ export const errors: EsErrors = {
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
   stockUnavailable: 'The sale could not be completed. Check the stock on hand.',
+  mixedCurrencies: 'One vendor’s amounts are in more than one currency.',
   unavailable: 'A service is unavailable right now. Try again in a moment.',
   invalid: 'Some of the data is not valid. Check the form.',
   invalidEnvelope: 'The request body is not valid.',

@@ -36,7 +36,6 @@ import { MongoSettlementStoreLayer } from '@r10c/implementation-settlement-mongo
 import {
   endpoints,
   policy,
-  router,
   SERVICE_NAME,
   SETTLEMENT_SLICE,
 } from '@r10c/settlement-service';
@@ -184,7 +183,7 @@ const SEED = {
  * `mock` run mean something.
  *
  * ⚠️ **`makeStaticPolicyDecision` is the real grant table, never a stub.** It is
- * what `requirePermission` consults, so replacing it would make every
+ * what the permission guard consults, so replacing it would make every
  * authorization assertion here vacuous — including the two that matter most,
  * that **no role** holds `settlement-management:agreement:write` or
  * `settlement-management:settlement-run:write`.
@@ -216,7 +215,7 @@ const MockAppLayer = Layer.provideMerge(
   Layer.provideMerge(MongoUnitOfWorkLayer, connections),
 ).pipe(Layer.orDie);
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
@@ -225,6 +224,5 @@ export const startMockService = (): Promise<RunningTestService> =>
     description: fleetToken,
     endpoints,
     policy,
-    router,
     appLayer: MockAppLayer,
   });

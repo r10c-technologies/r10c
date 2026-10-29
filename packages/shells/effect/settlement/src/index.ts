@@ -11,8 +11,8 @@ export {
   settlementComposition,
   type SettlementShellOptions,
 } from './app-layer.js';
+export { endpoints, policy } from './endpoints.js';
 export { logFoldReport, startSettlementFold } from './fold-subscriptions.js';
-export { endpoints, policy, router } from './router.js';
 export {
   SettlementRunIntervalMs,
   settleOncePass,

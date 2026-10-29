@@ -298,16 +298,22 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
         // against the vendor's next period, allowed rather than clamped.
         // ⚠️ `forEach`, never a spread of the `Map`: swc's `loose` spread turns
         // `[...map]` into the iterator's internals, and every run then failed.
+        const groups: Array<readonly [string, LedgerLine[]]> = [];
+        byVendor.forEach((lines, vendorId) => groups.push([vendorId, lines]));
         const payouts: Record<string, unknown>[] = [];
-        byVendor.forEach((lines, vendorId) => {
-          const { amount, currency } = payoutFor(vendorId, lines);
+        for (const [vendorId, lines] of groups) {
+          // Never empty: a vendor is grouped only by pushing a row onto it.
+          const { amount, currency } = yield* payoutFor(
+            vendorId,
+            lines as [LedgerLine, ...LedgerLine[]],
+          );
           const payout = new VendorPayout(runId, vendorId, amount, currency);
           payout.id = globalThis.crypto.randomUUID();
           payouts.push({
             ...serializeEntity(VendorPayout, payout),
             id: payout.id,
           });
-        });
+        }
         yield* promise(() =>
           db
             .collection(VENDOR_PAYOUT_COLLECTION)

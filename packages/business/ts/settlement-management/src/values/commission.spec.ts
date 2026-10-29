@@ -1,9 +1,15 @@
-import { EntifixBuildError } from '@entifix/core';
 import type { PlacedOrderLine } from '@r10c/business-ts-order-contracts';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { Agreement } from '../entities/agreement/index.js';
 import { commissionsForOrder, payoutFor, reversalOf } from './commission.js';
+
+const price = (input: Parameters<typeof commissionsForOrder>[0]) =>
+  Effect.runSync(commissionsForOrder(input));
+
+const payout = (...args: Parameters<typeof payoutFor>) =>
+  Effect.runSync(payoutFor(...args));
 
 const line = (
   vendorId: string,
@@ -29,7 +35,7 @@ const agreements = (...built: Agreement[]) =>
 
 describe('commissionsForOrder', () => {
   it('prices a vendor’s lines at the agreement’s default rate', () => {
-    const { commissions } = commissionsForOrder({
+    const { commissions } = price({
       lines: [line('acme', 1000, 2), line('acme', 500, 1)],
       agreements: agreements(agreementFor('acme', 800)),
     });
@@ -48,7 +54,7 @@ describe('commissionsForOrder', () => {
   it('multiplies the unit price by the quantity', () => {
     // `amount` on a line is per unit, which is the one thing about the payload
     // that reads wrong if you skim it: a line of 3 at 1000 is a 3000 sale.
-    const { commissions } = commissionsForOrder({
+    const { commissions } = price({
       lines: [line('acme', 1000, 3)],
       agreements: agreements(agreementFor('acme', 1000)),
     });
@@ -60,7 +66,7 @@ describe('commissionsForOrder', () => {
   it('takes nothing when the channel’s negotiated rate is zero', () => {
     // The whole reason per-channel rates exist, and the trap #94 was opened
     // for: `rates[type] || fallback` charges the full 8% here.
-    const { commissions } = commissionsForOrder({
+    const { commissions } = price({
       lines: [line('acme', 1000, 1)],
       channelType: 'counter',
       agreements: agreements(agreementFor('acme', 800, { counter: 0 })),
@@ -71,7 +77,7 @@ describe('commissionsForOrder', () => {
   });
 
   it('falls back to the default for a channel with no explicit rate', () => {
-    const { commissions } = commissionsForOrder({
+    const { commissions } = price({
       lines: [line('acme', 1000, 1)],
       channelType: 'storefront',
       agreements: agreements(agreementFor('acme', 800, { counter: 0 })),
@@ -82,7 +88,7 @@ describe('commissionsForOrder', () => {
 
   it('falls back to the default when the sale came through no channel', () => {
     // A storefront checkout carries no channel at all.
-    const { commissions } = commissionsForOrder({
+    const { commissions } = price({
       lines: [line('acme', 1000, 1)],
       agreements: agreements(agreementFor('acme', 800, { counter: 0 })),
     });
@@ -93,7 +99,7 @@ describe('commissionsForOrder', () => {
   it('gives each vendor on a shared basket their own entry', () => {
     // The multi-vendor case ADR 0022 embedded vendor-tagged lines for: one
     // receipt for the buyer, one commission entry per vendor.
-    const { commissions } = commissionsForOrder({
+    const { commissions } = price({
       lines: [line('acme', 1000, 1), line('globex', 2000, 1)],
       agreements: agreements(
         agreementFor('acme', 800),
@@ -121,7 +127,7 @@ describe('commissionsForOrder', () => {
     // Two lines of 333 at 2.5% round to 8 each — 16 — while their sum of 666
     // rounds to 17. The entry has to equal the invoice, so the subtotal is what
     // gets rounded.
-    const { commissions } = commissionsForOrder({
+    const { commissions } = price({
       lines: [line('acme', 333, 1), line('acme', 333, 1)],
       agreements: agreements(agreementFor('acme', 250)),
     });
@@ -132,7 +138,7 @@ describe('commissionsForOrder', () => {
   it('rounds to nearest rather than down', () => {
     // Flooring would leave the platform systematically short by up to a cent on
     // every sale in the ledger, which over a period is a real number.
-    const { commissions } = commissionsForOrder({
+    const { commissions } = price({
       lines: [line('acme', 999, 1)],
       agreements: agreements(agreementFor('acme', 500)),
     });
@@ -144,7 +150,7 @@ describe('commissionsForOrder', () => {
     // There is no default commission in this system — there is a default within
     // an agreement. Inventing one would put a term nobody negotiated into a
     // ledger built to be defensible.
-    const { commissions, unpriced } = commissionsForOrder({
+    const { commissions, unpriced } = price({
       lines: [line('acme', 1000, 1), line('globex', 2000, 1)],
       agreements: agreements(agreementFor('acme', 800)),
     });
@@ -156,16 +162,24 @@ describe('commissionsForOrder', () => {
   it('refuses one vendor’s lines in two currencies', () => {
     // 500 EUR plus 500 GBP is 1000 of nothing, and a commission taken from that
     // number would be charged to a real vendor.
-    expect(() =>
-      commissionsForOrder({
-        lines: [line('acme', 500, 1, 'EUR'), line('acme', 500, 1, 'GBP')],
-        agreements: agreements(agreementFor('acme', 800)),
-      }),
-    ).toThrow(EntifixBuildError);
+    expect(
+      Effect.runSync(
+        Effect.flip(
+          commissionsForOrder({
+            lines: [line('acme', 500, 1, 'EUR'), line('acme', 500, 1, 'GBP')],
+            agreements: agreements(agreementFor('acme', 800)),
+          }),
+        ),
+      ),
+    ).toMatchObject({
+      _tag: 'MixedCurrencies',
+      vendorId: 'acme',
+      currencies: ['EUR', 'GBP'],
+    });
   });
 
   it('allows two vendors on one order to use different currencies', () => {
-    const { commissions } = commissionsForOrder({
+    const { commissions } = price({
       lines: [line('acme', 1000, 1, 'EUR'), line('globex', 1000, 1, 'GBP')],
       agreements: agreements(
         agreementFor('acme', 800),
@@ -177,7 +191,7 @@ describe('commissionsForOrder', () => {
   });
 
   it('prices an empty order as nothing at all', () => {
-    const { commissions, unpriced } = commissionsForOrder({
+    const { commissions, unpriced } = price({
       lines: [],
       agreements: agreements(agreementFor('acme', 800)),
     });
@@ -230,7 +244,7 @@ describe('reversalOf', () => {
       currency: 'GTQ',
     };
 
-    expect(payoutFor('acme', [recorded, reversalOf(recorded)])).toEqual({
+    expect(payout('acme', [recorded, reversalOf(recorded)])).toEqual({
       amount: 0,
       currency: 'GTQ',
     });
@@ -241,7 +255,7 @@ describe('payoutFor', () => {
   it('pays the gross less the platform’s cut', () => {
     // Not the sum of the commissions, which is what the platform keeps.
     expect(
-      payoutFor('acme', [
+      payout('acme', [
         { saleAmount: 1000, commissionAmount: 80, currency: 'GTQ' },
         { saleAmount: 2500, commissionAmount: 200, currency: 'GTQ' },
       ]),
@@ -250,23 +264,23 @@ describe('payoutFor', () => {
 
   it('pays the whole sale when the channel takes no commission', () => {
     expect(
-      payoutFor('acme', [
+      payout('acme', [
         { saleAmount: 1000, commissionAmount: 0, currency: 'GTQ' },
       ]),
     ).toEqual({ amount: 1000, currency: 'GTQ' });
   });
 
   it('refuses to total one vendor’s entries in two currencies', () => {
-    expect(() =>
-      payoutFor('acme', [
-        { saleAmount: 1000, commissionAmount: 80, currency: 'EUR' },
-        { saleAmount: 1000, commissionAmount: 80, currency: 'GBP' },
-      ]),
-    ).toThrow(EntifixBuildError);
-  });
-
-  it('refuses to pay a vendor with no entries', () => {
-    expect(() => payoutFor('acme', [])).toThrow(EntifixBuildError);
+    expect(
+      Effect.runSync(
+        Effect.flip(
+          payoutFor('acme', [
+            { saleAmount: 1000, commissionAmount: 80, currency: 'EUR' },
+            { saleAmount: 1000, commissionAmount: 80, currency: 'GBP' },
+          ]),
+        ),
+      ),
+    ).toMatchObject({ _tag: 'MixedCurrencies', currencies: ['EUR', 'GBP'] });
   });
 
   it('totals a reversal picked up without the sale it reverses', () => {
@@ -275,7 +289,7 @@ describe('payoutFor', () => {
     // would silently forgive the money and leave the ledger disagreeing with
     // the payouts folded out of it.
     expect(
-      payoutFor('acme', [
+      payout('acme', [
         { saleAmount: -1000, commissionAmount: -80, currency: 'GTQ' },
       ]),
     ).toEqual({ amount: -920, currency: 'GTQ' });

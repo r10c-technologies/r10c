@@ -1,7 +1,8 @@
-import { EntifixBuildError } from '@entifix/core';
 import type { PlacedOrderLine } from '@r10c/business-ts-order-contracts';
+import { Effect } from 'effect';
 
 import type { Agreement } from '../entities/agreement';
+import { MixedCurrencies } from '../failures/settlement-failures';
 
 /** Basis points: 10000 is the whole sale, so 250 is 2.5%. */
 const WHOLE_SALE_BASIS_POINTS = 10_000;
@@ -52,7 +53,7 @@ const byVendor = (
 const subtotalFor = (
   vendorId: string,
   lines: readonly PlacedOrderLine[],
-): { amount: number; currency: string } => {
+): Effect.Effect<{ amount: number; currency: string }, MixedCurrencies> => {
   // Never empty: `byVendor` only ever creates a key by pushing a line onto it.
   const [first, ...rest] = lines as readonly [
     PlacedOrderLine,
@@ -62,13 +63,16 @@ const subtotalFor = (
   let amount = first.amount * first.quantity;
   for (const line of rest) {
     if (line.currency !== currency) {
-      throw new EntifixBuildError(
-        `vendor ${vendorId} has lines in ${currency} and ${line.currency} on one order`,
+      return Effect.fail(
+        new MixedCurrencies({
+          vendorId,
+          currencies: [currency, line.currency],
+        }),
       );
     }
     amount += line.amount * line.quantity;
   }
-  return { amount, currency };
+  return Effect.succeed({ amount, currency });
 };
 
 /**
@@ -103,36 +107,40 @@ export const commissionsForOrder = ({
   readonly channelType?: string;
   /** The agreement in force for each vendor, keyed by `vendorId`. */
   readonly agreements: ReadonlyMap<string, Agreement>;
-}): {
-  readonly commissions: readonly VendorCommission[];
-  /** Vendors on the order that no agreement covers. */
-  readonly unpriced: readonly string[];
-} => {
-  const commissions: VendorCommission[] = [];
-  const unpriced: string[] = [];
+}): Effect.Effect<
+  {
+    readonly commissions: readonly VendorCommission[];
+    /** Vendors on the order that no agreement covers. */
+    readonly unpriced: readonly string[];
+  },
+  MixedCurrencies
+> =>
+  Effect.gen(function* () {
+    const commissions: VendorCommission[] = [];
+    const unpriced: string[] = [];
 
-  for (const [vendorId, vendorLines] of byVendor(lines)) {
-    const agreement = agreements.get(vendorId);
-    if (agreement === undefined) {
-      unpriced.push(vendorId);
-      continue;
+    for (const [vendorId, vendorLines] of byVendor(lines)) {
+      const agreement = agreements.get(vendorId);
+      if (agreement === undefined) {
+        unpriced.push(vendorId);
+        continue;
+      }
+
+      const { amount, currency } = yield* subtotalFor(vendorId, vendorLines);
+      const basisPoints = agreement.commissionFor(channelType);
+
+      commissions.push({
+        vendorId,
+        saleAmount: amount,
+        commissionAmount: Math.round(
+          (amount * basisPoints) / WHOLE_SALE_BASIS_POINTS,
+        ),
+        currency,
+      });
     }
 
-    const { amount, currency } = subtotalFor(vendorId, vendorLines);
-    const basisPoints = agreement.commissionFor(channelType);
-
-    commissions.push({
-      vendorId,
-      saleAmount: amount,
-      commissionAmount: Math.round(
-        (amount * basisPoints) / WHOLE_SALE_BASIS_POINTS,
-      ),
-      currency,
-    });
-  }
-
-  return { commissions, unpriced };
-};
+    return { commissions, unpriced };
+  });
 
 /**
  * Turn one priced line into the line that reverses it.
@@ -160,6 +168,13 @@ export const reversalOf = (entry: VendorCommission): VendorCommission => ({
   currency: entry.currency,
 });
 
+/** One ledger line a payout sums. */
+interface PayoutEntry {
+  readonly saleAmount: number;
+  readonly commissionAmount: number;
+  readonly currency: string;
+}
+
 /**
  * What one vendor is owed for a set of ledger lines: the gross less the cut.
  *
@@ -181,25 +196,21 @@ export const reversalOf = (entry: VendorCommission): VendorCommission => ({
  */
 export const payoutFor = (
   vendorId: string,
-  entries: readonly {
-    readonly saleAmount: number;
-    readonly commissionAmount: number;
-    readonly currency: string;
-  }[],
-): { amount: number; currency: string } => {
+  entries: readonly [PayoutEntry, ...PayoutEntry[]],
+): Effect.Effect<{ amount: number; currency: string }, MixedCurrencies> => {
   const [first, ...rest] = entries;
-  if (first === undefined) {
-    throw new EntifixBuildError(`vendor ${vendorId} has no entries to pay`);
-  }
   const currency = first.currency;
   let amount = first.saleAmount - first.commissionAmount;
   for (const entry of rest) {
     if (entry.currency !== currency) {
-      throw new EntifixBuildError(
-        `vendor ${vendorId} has entries in ${currency} and ${entry.currency} in one run`,
+      return Effect.fail(
+        new MixedCurrencies({
+          vendorId,
+          currencies: [currency, entry.currency],
+        }),
       );
     }
     amount += entry.saleAmount - entry.commissionAmount;
   }
-  return { amount, currency };
+  return Effect.succeed({ amount, currency });
 };

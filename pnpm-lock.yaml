@@ -2460,6 +2460,9 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../common
       '@r10c/business-ts-order-contracts':
         specifier: workspace:*
         version: link:../order-contracts
@@ -3112,18 +3115,15 @@ importers:
 
   packages/implementation/settlement-management/http:
     dependencies:
-      '@entifix/authz':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/business':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
-      '@entifix/service-shell':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../../../business/ts/common
       '@r10c/business-ts-settlement-management':
         specifier: workspace:*
         version: link:../../../business/ts/settlement-management
@@ -3632,6 +3632,9 @@ importers:
       '@entifix/mongo':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(@entifix/transactions@0.12.0-rc.4(effect@4.0.6))(effect@4.0.6)
+      '@entifix/service-shell':
+        specifier: 'catalog:'
+        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
       '@entifix/transactions':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
@@ -4219,6 +4222,9 @@ importers:
       '@r10c/business-ts-sales-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/sales-management
+      '@r10c/business-ts-settlement-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/settlement-management
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/stock-management
@@ -4267,6 +4273,9 @@ importers:
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
+      '@r10c/shells-effect-settlement':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/settlement
       '@r10c/shells-effect-stock':
         specifier: workspace:*
         version: link:../../packages/shells/effect/stock

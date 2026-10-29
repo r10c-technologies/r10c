@@ -5,7 +5,6 @@ import { seedSettlement } from './seed';
 export {
   endpoints,
   policy,
-  router,
   SETTLEMENT_SLICE,
 } from '@r10c/shells-effect-settlement';
 

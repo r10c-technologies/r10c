@@ -1,7 +1,8 @@
-import type { TransitionalFailure } from '@entifix/core';
+import type { StoreFailure, StoreFault } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 import type { Agreement } from '../entities/agreement';
+import type { MixedCurrencies } from '../failures/settlement-failures';
 import type { VendorCommission } from '../values/commission';
 
 /**
@@ -41,12 +42,12 @@ export interface SaleJoin {
   /** Each vendor's agreement in force, newest first. */
   readonly agreementsFor: (
     vendorIds: readonly string[],
-  ) => Effect.Effect<ReadonlyMap<string, Agreement>, TransitionalFailure>;
+  ) => Effect.Effect<ReadonlyMap<string, Agreement>, StoreFault>;
   readonly contribute: (
     claim: { readonly consumer: string; readonly eventId: string },
     orderId: string,
     half: SaleHalf,
-  ) => Effect.Effect<FoldOutcome, TransitionalFailure>;
+  ) => Effect.Effect<FoldOutcome, StoreFailure>;
 }
 
 export class SaleJoinTag extends Context.Service<SaleJoinTag, SaleJoin>()(
@@ -71,7 +72,11 @@ export type RunOutcome =
  * nothing, since no slice subscribes to a completed run (ADR 0068).
  */
 export interface SettlementRunStore {
-  readonly settleOnce: () => Effect.Effect<RunOutcome, TransitionalFailure>;
+  /** Fails `MixedCurrencies` when one vendor's unsettled lines disagree. */
+  readonly settleOnce: () => Effect.Effect<
+    RunOutcome,
+    StoreFailure | MixedCurrencies
+  >;
 }
 
 export class SettlementRunStoreTag extends Context.Service<
