@@ -41,7 +41,9 @@ describe('mongoCellWorld', () => {
     expect(probe).toMatchObject({ source: 'order', hasUnit: true });
     expect(probe.db).toBe(world.db);
     expect(world.fake.read('orders')).toHaveLength(1);
-    expect(mongoCellWorld(ProbeLayer, { source: 's' }).fake.read('orders')).toEqual([]);
+    expect(
+      mongoCellWorld(ProbeLayer, { source: 's' }).fake.read('orders'),
+    ).toEqual([]);
   });
 });
 

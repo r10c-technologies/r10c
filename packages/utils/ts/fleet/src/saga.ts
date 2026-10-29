@@ -1,6 +1,9 @@
 /** The header a caller presents the saga coordinator's inbound crossing token in. */
 export const CROSSING_TOKEN_HEADER = 'x-crossing-token';
 
+/** The header a flow start is made idempotent on (ADR 0068). */
+export const IDEMPOTENCY_KEY_HEADER = 'idempotency-key';
+
 /** What the coordinator answered: its status, and its body when it had one. */
 export interface SagaResponse {
   readonly status: number;
@@ -25,6 +28,7 @@ export const postSaga = async (
   crossingToken: string,
   definition: string,
   inputs: unknown,
+  idempotencyKey: string,
   init: Omit<RequestInit, 'method' | 'headers' | 'body'> = {},
 ): Promise<SagaResponse> => {
   const response = await fetch(`${coordinatorUrl}/saga/${definition}`, {
@@ -33,6 +37,8 @@ export const postSaga = async (
     headers: {
       'content-type': 'application/json',
       [CROSSING_TOKEN_HEADER]: crossingToken,
+      // An RFC 9651 String: the key quoted, `\` and `"` escaped.
+      [IDEMPOTENCY_KEY_HEADER]: `"${idempotencyKey.replace(/[\\"]/g, char => `\\${char}`)}"`,
     },
     body: JSON.stringify({ inputs }),
   });

@@ -42,9 +42,15 @@ export type SagaStartOutcome =
  * decides is only which flow, with which inputs.
  */
 export interface SagaStarter {
+  /**
+   * Starts `definition` under `idempotencyKey`: the coordinator answers a
+   * repeated key with what the first start decided (ADR 0068), so a caller
+   * whose start is retried — or a cancellation asked for twice — runs one flow.
+   */
   readonly start: (
     definition: string,
     inputs: SagaInputs,
+    idempotencyKey: string,
   ) => Effect.Effect<SagaStartOutcome, TransitionalFailure>;
 }
 

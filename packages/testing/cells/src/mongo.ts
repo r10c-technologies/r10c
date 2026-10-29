@@ -21,7 +21,15 @@ type Fake = ReturnType<typeof makeFakeMongoDb>;
  * `world.run(Effect.flatMap(StoreTag, store => …))`.
  */
 export const mongoCellWorld = <A, E>(
-  layer: Layer.Layer<A, E, MongoDatabaseTag | MongoUnitOfWorkTag | EventBusTag | OutboxMaxAttempts | EventSourceTag>,
+  layer: Layer.Layer<
+    A,
+    E,
+    | MongoDatabaseTag
+    | MongoUnitOfWorkTag
+    | EventBusTag
+    | OutboxMaxAttempts
+    | EventSourceTag
+  >,
   options: {
     readonly source: string;
     readonly seed?: Record<string, Record<string, unknown>[]>;

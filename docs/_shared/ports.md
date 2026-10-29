@@ -257,7 +257,7 @@ and copying the amount off it rather than reading one from the request. A
 customer was charged, so a `'refunded'` status written over it would erase that
 evidence by another route ([ADR 0058](../adr/0058-the-order-after-payment.md)).
 Two guards stop a double refund and they answer different questions —
-`x-command-id` covers a redelivery of one command, a unique index on the refund's
+`Idempotency-Key` covers a redelivery of one command, a unique index on the refund's
 `paymentId` covers two different commands aimed at one capture.
 
 ⚠️ **`payment-management:refund:write` is therefore a _second_ unpaired crossing
@@ -356,7 +356,7 @@ is `stock-management:stock-movement:restore` rather than the `stock-movement:wri
 a vendor's own session holds, so a crossing token can write the one correction a
 cancellation makes and not that vendor's whole ledger
 ([ADR 0058](../adr/0058-the-order-after-payment.md)). `reason` is server-owned,
-and the route is idempotent on `x-command-id` because the cancellation saga
+and the route is idempotent on `Idempotency-Key` because the cancellation saga
 dispatches it **after** its pivot.
 
 Ending a hold is a **verb**, and there are two: `DELETE /api/reservation/:id`

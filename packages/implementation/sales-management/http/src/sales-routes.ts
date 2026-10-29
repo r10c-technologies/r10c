@@ -3,7 +3,11 @@ import type {
   EntityRepositoryFactoryTag,
   TokenServiceTag,
 } from '@entifix/business';
-import { makeEnvelope } from '@entifix/core';
+import {
+  IDEMPOTENCY_KEY_HEADER,
+  makeEnvelope,
+  parseIdempotencyKey,
+} from '@entifix/core';
 import {
   makeEntityRoutes,
   requireOrganization,
@@ -68,7 +72,16 @@ const counterSale = (organizationId: string) =>
         ),
       );
     }
-    const outcome = yield* sellAtCounter({ organizationId, sale });
+    // The till's own key when it sent one, so a sale it retries is one flow;
+    // a fresh one otherwise.
+    const idempotencyKey =
+      parseIdempotencyKey(request.headers[IDEMPOTENCY_KEY_HEADER]) ??
+      crypto.randomUUID();
+    const outcome = yield* sellAtCounter({
+      organizationId,
+      sale,
+      idempotencyKey,
+    });
     return yield* outcome._tag === 'sold'
       ? HttpServerResponse.json(
           makeEnvelope('sagaResult', 'counter-sale', outcome.result),

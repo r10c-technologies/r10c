@@ -54,10 +54,12 @@ export const orderAudience = (order: {
   ...(order.buyerId === undefined
     ? []
     : [{ kind: 'party' as const, id: order.buyerId }]),
-  ...[...new Set((order.items ?? []).map(item => item.vendorId))].map(id => ({
-    kind: 'organization' as const,
-    id,
-  })),
+  ...Array.from(new Set((order.items ?? []).map(item => item.vendorId))).map(
+    id => ({
+      kind: 'organization' as const,
+      id,
+    }),
+  ),
 ];
 
 export interface PlacedOrderLine {

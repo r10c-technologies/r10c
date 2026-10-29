@@ -261,6 +261,9 @@ const placeOrder = async (
         fallbackCurrency: STOREFRONT_CURRENCY,
       },
     }),
+    // One key per submission: a basket submitted twice is two checkouts, and
+    // the coordinator replays a start it is sent twice (ADR 0068).
+    crypto.randomUUID(),
     // Never cached: this is a write, and a cached checkout is a buyer told
     // their order succeeded because somebody else's did.
     { cache: 'no-store' },

@@ -659,6 +659,15 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // of its own — the pool and the bus were already that service's, and only the
   // database name was the slice's own. This block is what the split carried
   // with it, exactly as that row's note predicted.
+  // How long a crossing write's `Idempotency-Key` replays its first answer
+  // (ADR 0068): past it the key is free again. A day outlasts every redelivery
+  // and every coordinator retry.
+  {
+    service: 'transaction-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
   {
     service: 'transaction-service',
     group_name: 'mongo',
@@ -832,6 +841,15 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // at boot rather than resolving one per request. That is forced rather than
   // chosen: a basket can span several vendors, so one order cannot live in any
   // one of their tenant databases.
+  // How long a crossing write's `Idempotency-Key` replays its first answer
+  // (ADR 0068): past it the key is free again. A day outlasts every redelivery
+  // and every coordinator retry.
+  {
+    service: 'order-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
   {
     service: 'order-service',
     group_name: 'mongo',
@@ -967,6 +985,15 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // store rather than a corner of `order`, so "which slice writes a payment?"
   // has one answer and a future PSP-facing process can be lifted out without
   // touching orders (ADR 0022).
+  // How long a crossing write's `Idempotency-Key` replays its first answer
+  // (ADR 0068): past it the key is free again. A day outlasts every redelivery
+  // and every coordinator retry.
+  {
+    service: 'payment-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
   {
     service: 'payment-service',
     group_name: 'mongo',
@@ -1226,6 +1253,15 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // per-organization, so like marketplace-admin-service it resolves a database
   // handle inside the request and names none at boot: `mongo.db` is absent on
   // purpose, because a database named here is one nothing would ever write.
+  // How long a crossing write's `Idempotency-Key` replays its first answer
+  // (ADR 0068): past it the key is free again. A day outlasts every redelivery
+  // and every coordinator retry.
+  {
+    service: 'stock-service',
+    group_name: 'idempotency',
+    key: 'retentionMs',
+    value: '86400000',
+  },
   {
     service: 'stock-service',
     group_name: 'mongo',

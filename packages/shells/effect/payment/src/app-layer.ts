@@ -9,6 +9,7 @@ import {
   crossingTokenLayer,
   fleetBusLayer,
   type FleetConfiguration,
+  fleetIdempotencyLayer,
   fleetOutboxLayer,
   fleetSecurityLayer,
   fleetSingleMongoLayer,
@@ -86,11 +87,18 @@ export const paymentComposition = (configuration: FleetConfiguration) =>
     // The outbox's indexes before the first write, and the ledger's own as it
     // builds: an outbox whose `eventId` is not unique would let a redelivery
     // enqueue a second copy of the same announcement.
+    // The pivots' idempotency records live in the `payment` store's own
+    // database, beside the command claims their units of work take.
+    const idempotency = yield* fleetIdempotencyLayer(configuration);
+
     const ledger = Layer.provideMerge(
       MongoPaymentLedgerLayer,
       Layer.provideMerge(
-        Layer.effectDiscard(
-          Effect.flatMap(MongoDatabaseTag, ensureOutboxIndexes),
+        Layer.mergeAll(
+          Layer.effectDiscard(
+            Effect.flatMap(MongoDatabaseTag, ensureOutboxIndexes),
+          ),
+          idempotency,
         ),
         connections,
       ),

@@ -3,7 +3,7 @@ import {
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import { TokenServiceTag } from '@entifix/business';
+import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
 import {
@@ -22,7 +22,10 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
-import { makeRecordingEventBus } from '@entifix/testing-unit';
+import {
+  makeInMemoryIdempotencyStore,
+  makeRecordingEventBus,
+} from '@entifix/testing-unit';
 import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
@@ -115,6 +118,11 @@ const connections = Layer.mergeAll(
   fakeConfigurationLayer(CONFIGURATION),
   Layer.succeed(LoadedConfigurationTag, CONFIGURATION),
   Layer.succeed(ServiceCrossingTokenTag, E2E_CROSSING_TOKEN),
+  // The crossing routes' `Idempotency-Key` records, in memory (ADR 0068).
+  Layer.succeed(
+    IdempotencyStoreTag,
+    makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
+  ),
   Layer.succeed(CancelWindowSeconds, E2E_CANCEL_WINDOW_SECONDS),
   httpSagaStarterLayer({
     url: COORDINATOR_URL,

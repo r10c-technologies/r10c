@@ -469,3 +469,53 @@ describe('logging below the shell', () => {
     ).toBe(0);
   }, 120_000);
 });
+
+/**
+ * `Idempotency-Key` is the one idempotency header (ADR 0068): the saga-era
+ * command-id header must not come back in source, where a route reading it
+ * would accept a key no fingerprint guards. Spelled by parts below so this
+ * file does not name it.
+ */
+const OLD_HEADER = ['x', 'command', 'id'].join('-');
+
+const sourceFiles = (): string[] =>
+  execFileSync(
+    'git',
+    [
+      'ls-files',
+      '--cached',
+      '--others',
+      '--exclude-standard',
+      '--',
+      'apps',
+      'packages',
+      'tools',
+    ],
+    { cwd: REPO_ROOT, encoding: 'utf8' },
+  )
+    .split('\n')
+    .filter(file => /\.(ts|tsx|mjs)$/.test(file))
+    .filter(file => existsSync(join(REPO_ROOT, file)));
+
+const naming = (files: readonly string[], read: (file: string) => string) =>
+  files.filter(file => read(file).toLowerCase().includes(OLD_HEADER));
+
+describe('one idempotency header', () => {
+  it('finds the source it is meant to scan', () => {
+    expect(sourceFiles().length).toBeGreaterThan(1000);
+  });
+
+  it('names the old header nowhere in source', () => {
+    expect(
+      naming(sourceFiles(), file =>
+        readFileSync(join(REPO_ROOT, file), 'utf8'),
+      ),
+    ).toEqual([]);
+  });
+
+  it('catches a route that reads it (planted)', () => {
+    expect(
+      naming(['planted.ts'], () => `request.headers['${OLD_HEADER}']`),
+    ).toEqual(['planted.ts']);
+  });
+});

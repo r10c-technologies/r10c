@@ -4,20 +4,23 @@ import type {
 } from '@entifix/authz';
 import type {
   EntityRepositoryFactoryTag,
+  IdempotencyStoreTag,
   TokenServiceTag,
 } from '@entifix/business';
 import {
   EntifixBuildError,
   type EntifixEnvelopeLink,
+  IDEMPOTENCY_KEY_HEADER,
   isFailure,
   makeEntityEnvelope,
+  parseIdempotencyKey,
   readEntityEnvelope,
 } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
   type EntityRouteContext,
   type EntityRouteLinks,
   makeEntityRoutes,
+  requireIdempotencyKey,
   requireServiceCrossing,
   routeFailure,
   type ServiceCrossingTokenTag,
@@ -39,6 +42,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 /** What a host provides for {@link stockRoutes}. */
 export type StockRouteServices =
   | EntityRepositoryFactoryTag
+  | IdempotencyStoreTag
   | StockLedgerTag
   | ReservationTtlSecondsTag
   | TokenServiceTag
@@ -50,10 +54,21 @@ export type StockRouteServices =
 type OverrideServices =
   | StockLedgerTag
   | ReservationTtlSecondsTag
+  | IdempotencyStoreTag
   | HttpServerRequest.HttpServerRequest;
 
+/**
+ * The command a crossing write answers, by its `Idempotency-Key` (ADR 0068).
+ * Every crossing route is wrapped in `requireIdempotencyKey`, so a request
+ * without one never gets here; the unit of work claims the same key, which
+ * keeps the write exactly-once even when the edge's record is lost.
+ */
 const commandIdOf = (request: HttpServerRequest.HttpServerRequest) =>
-  request.headers[COMMAND_ID_HEADER]?.trim() || undefined;
+  parseIdempotencyKey(request.headers[IDEMPOTENCY_KEY_HEADER]);
+
+/** A crossing write is retried by its coordinator: one answer per key. */
+const idempotent = (route: string) =>
+  requireIdempotencyKey({ route, caller: 'crossing' });
 
 /** The per-organization store refuses a scope with none; the guards always name one. */
 const organizationOf = (context: EntityRouteContext) =>
@@ -248,7 +263,10 @@ export const stockRoutes = Layer.mergeAll(
       read: { kind: 'organization' },
       write: { kind: 'crossing', organization: true },
     },
-    override: { create: take },
+    override: {
+      create: (context, links) =>
+        idempotent('POST /api/reservation')(take(context, links)),
+    },
   }),
   makeEntityRoutes.for<OverrideServices>()(StockMovement, {
     verbs: ['list', 'get', 'create'],
@@ -260,21 +278,28 @@ export const stockRoutes = Layer.mergeAll(
       'DELETE',
       '/api/reservation/:id',
       requireServiceCrossing('stock-management:reservation:release')(
-        endHold('released'),
+        organizationId =>
+          idempotent('DELETE /api/reservation/:id')(
+            endHold('released')(organizationId),
+          ),
       ),
     ),
     HttpRouter.route(
       'POST',
       '/api/reservation/:id/conversion',
       requireServiceCrossing('stock-management:reservation:convert')(
-        endHold('converted'),
+        organizationId =>
+          idempotent('POST /api/reservation/:id/conversion')(
+            endHold('converted')(organizationId),
+          ),
       ),
     ),
     HttpRouter.route(
       'POST',
       '/api/stock-restoration',
       requireServiceCrossing('stock-management:stock-movement:restore')(
-        restore,
+        organizationId =>
+          idempotent('POST /api/stock-restoration')(restore(organizationId)),
       ),
     ),
   ]),

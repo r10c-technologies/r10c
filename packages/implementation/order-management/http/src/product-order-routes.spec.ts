@@ -6,13 +6,17 @@ import {
 } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  IdempotencyStoreTag,
   InvalidToken,
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
 import { Unavailable } from '@entifix/core';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
-import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
+import {
+  makeInMemoryEntityRepository,
+  makeInMemoryIdempotencyStore,
+} from '@entifix/testing-unit';
 import {
   CancelWindowSeconds,
   digestOf,
@@ -163,6 +167,7 @@ beforeAll(() => {
         }),
       ),
       Layer.succeed(ServiceCrossingTokenTag, 'fleet'),
+      Layer.succeed(IdempotencyStoreTag, edge),
       Layer.succeed(
         ServiceCrossingPolicyTag,
         makeStaticServiceCrossingPolicy([
@@ -218,6 +223,20 @@ const totalFor = async (who: string) =>
     }
   ).data.total;
 
+/**
+ * The edge's `Idempotency-Key` records, on a clock a case can move past their
+ * retention — the only way to reach the unit of work's own replay, which is
+ * what still answers once the edge has forgotten a key.
+ */
+let edgeNow = 0;
+const edge = makeInMemoryIdempotencyStore({
+  retentionMs: 60_000,
+  now: () => edgeNow,
+});
+const forgetAtTheEdge = () => {
+  edgeNow += 60_001;
+};
+
 describe('the scoped reads', () => {
   it('give an operator everything, a vendor and a buyer their own, and anybody else nothing', async () => {
     // The vendor's predicate names `items.vendorId`, a path into the lines that
@@ -263,6 +282,23 @@ describe('placing and compensating', () => {
     );
 
     expect(placed.status).toBe(201);
+    expect(again.status).toBe(201);
+  });
+
+  it('answers from the store once the edge has forgotten the key', async () => {
+    await crossing(
+      '/api/product-order',
+      { method: 'POST', body: body([line]) },
+      'c-forgot',
+    );
+    forgetAtTheEdge();
+    const again = await crossing(
+      '/api/product-order',
+      { method: 'POST', body: body([line]) },
+      'c-forgot',
+    );
+
+    // The unit of work's own claim, not the edge's replay.
     expect(again.status).toBe(200);
   });
 
@@ -469,13 +505,15 @@ describe('the cancellation saga’s steps', () => {
     const refused = await crossing('/api/product-order/pending/cancelling', {
       method: 'POST',
     });
-    const absent = await crossing('/api/product-order/absent/cancelling', {
-      method: 'POST',
-    });
+    const absent = await crossing(
+      '/api/product-order/absent/cancelling',
+      { method: 'POST' },
+      'k-absent',
+    );
     const replayedAbsent = await crossing(
       '/api/product-order/absent/cancelling',
       { method: 'POST' },
-      'k-1',
+      'k-absent',
     );
 
     expect(claimed.status).toBe(200);
@@ -486,6 +524,22 @@ describe('the cancellation saga’s steps', () => {
     });
     expect(absent.status).toBe(404);
     expect(replayedAbsent.status).toBe(404);
+  });
+
+  it('answers a claim from the store once the edge has forgotten the key', async () => {
+    await crossing(
+      '/api/product-order/mine/cancelling',
+      { method: 'POST' },
+      'k-forgot',
+    );
+    forgetAtTheEdge();
+    const again = await crossing(
+      '/api/product-order/mine/cancelling',
+      { method: 'POST' },
+      'k-forgot',
+    );
+
+    expect(again.status).toBe(200);
   });
 
   it('releases a claim, and answers 200 when there was none', async () => {

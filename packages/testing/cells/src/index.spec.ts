@@ -1,5 +1,5 @@
+import { IDEMPOTENCY_KEY_HEADER } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
   CROSSING_TOKEN_HEADER,
   ORGANIZATION_HEADER,
 } from '@entifix/service-shell';
@@ -48,7 +48,7 @@ describe('crossingCall', () => {
         headers: {
           'content-type': 'application/json',
           [CROSSING_TOKEN_HEADER]: CROSSING_TOKEN,
-          [COMMAND_ID_HEADER]: 'c-1',
+          [IDEMPOTENCY_KEY_HEADER]: '"c-1"',
           [ORGANIZATION_HEADER]: 'acme',
         },
         body: '{"x":1}',
@@ -59,6 +59,8 @@ describe('crossingCall', () => {
       headers: {
         'content-type': 'application/json',
         [CROSSING_TOKEN_HEADER]: CROSSING_TOKEN,
+        // No command named: a fresh key, so the route's guard still has one.
+        [IDEMPOTENCY_KEY_HEADER]: expect.stringMatching(/^"[0-9a-f-]{36}"$/),
       },
     });
   });

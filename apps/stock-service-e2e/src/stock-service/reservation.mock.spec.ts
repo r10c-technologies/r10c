@@ -39,6 +39,9 @@ const UNSTOCKED = 'product-offering-41';
 
 const crossing = (organizationId: string = E2E_ORGANIZATION_ID) => ({
   'x-crossing-token': E2E_CROSSING_TOKEN,
+  // Every crossing write is idempotent on its key: a fresh one per call
+  // unless a case names its own (ADR 0068).
+  'idempotency-key': `"${crypto.randomUUID()}"`,
   'x-organization-id': organizationId,
   // ⚠️ Deliberately no `Authorization`. `defineServiceE2e` sets a default
   // header on the client, and axios merges per-request headers over it — so a

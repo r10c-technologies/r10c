@@ -63,6 +63,7 @@ const world = (
     Effect.runPromise(
       sellAtCounter({
         organizationId: 'org-1',
+        idempotencyKey: 'sale-1',
         sale: {
           channelId,
           paymentMethod: 'cash',
@@ -78,6 +79,7 @@ const world = (
     Effect.runPromise(
       sellAtCounter({
         organizationId: 'org-1',
+        idempotencyKey: 'sale-1',
         sale: {
           channelId,
           paymentMethod: 'cash',

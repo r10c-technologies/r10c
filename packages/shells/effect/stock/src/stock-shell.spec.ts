@@ -38,6 +38,7 @@ const CONFIGURATION = fleetConfigurationOf({
     demoOrganizationId: 'demo',
   }),
   reservation: configurationRows({ ttlSeconds: 900 }),
+  idempotency: configurationRows({ retentionMs: 60_000 }),
 });
 
 const seed = () => Effect.void;

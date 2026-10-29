@@ -30,6 +30,9 @@ type Page = {
 
 const crossing = (extra: Record<string, string> = {}) => ({
   'x-crossing-token': E2E_CROSSING_TOKEN,
+  // Every crossing write is idempotent on its key: a fresh one per call
+  // unless a case names its own (ADR 0068).
+  'idempotency-key': `"${crypto.randomUUID()}"`,
   // ⚠️ Deliberately no `Authorization`: these routes take no session, and axios
   // merges per-request headers over the client default.
   Authorization: undefined,
@@ -355,17 +358,19 @@ describe('a redelivered command writes one order, not two', () => {
     const commandId = `saga-${String(Date.now())}:write-order`;
 
     const first = await place([line('offering-k')], {
-      'x-command-id': commandId,
+      'idempotency-key': `"${commandId}"`,
     });
     const second = await place([line('offering-k')], {
-      'x-command-id': commandId,
+      'idempotency-key': `"${commandId}"`,
     });
 
     expect(first.status).toBe(201);
     // `200`, not `409`: a coordinator that could not tell a duplicate from a
     // refusal would compensate an order it believes was never written, and
     // release holds that are still backing it.
-    expect(second.status).toBe(200);
+    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
+    expect(second.status).toBe(201);
+    expect(second.headers['idempotent-replayed']).toBe('true');
     expect(second.data.data.id).toBe(first.data.data.id);
 
     const after: Page = await service.client.get('/api/product-order');
@@ -682,7 +687,7 @@ describe('settling a cancellation', () => {
     const res = await service.client.post(
       `/api/product-order/${id}/cancelled`,
       {},
-      { headers: crossing({ 'x-command-id': 'cmd-settle-a' }) },
+      { headers: crossing({ 'idempotency-key': '"cmd-settle-a"' }) },
     );
 
     expect(res.status).toBe(200);
@@ -693,7 +698,7 @@ describe('settling a cancellation', () => {
     const res = await service.client.post(
       '/api/product-order/no-such-order/cancelled',
       {},
-      { headers: crossing({ 'x-command-id': 'cmd-settle-missing' }) },
+      { headers: crossing({ 'idempotency-key': '"cmd-settle-missing"' }) },
     );
 
     expect(res.status).toBe(404);

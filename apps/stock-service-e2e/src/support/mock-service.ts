@@ -3,7 +3,11 @@ import {
   PolicyDecisionTag,
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
-import { TenantDirectoryTag, TokenServiceTag } from '@entifix/business';
+import {
+  IdempotencyStoreTag,
+  TenantDirectoryTag,
+  TokenServiceTag,
+} from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import {
   MongoDatabaseTag,
@@ -21,6 +25,7 @@ import {
   fakeConfigurationLayer,
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
+import { makeInMemoryIdempotencyStore } from '@entifix/testing-unit';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -106,6 +111,11 @@ const MockAppLayer = (() => {
     // beside the other resolved values. The matching entries in
     // `CONFIGURATION` are what `GET /api/config` reports.
     Layer.succeed(ServiceCrossingTokenTag, E2E_CROSSING_TOKEN),
+    // The crossing routes' `Idempotency-Key` records, in memory (ADR 0068).
+    Layer.succeed(
+      IdempotencyStoreTag,
+      makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
+    ),
     Layer.succeed(ReservationTtlSecondsTag, RESERVATION_TTL_SECONDS),
   );
 

@@ -1,6 +1,6 @@
 import type { TokenClaims } from '@entifix/business';
+import { formatIdempotencyKey, IDEMPOTENCY_KEY_HEADER } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
   CROSSING_TOKEN_HEADER,
   ORGANIZATION_HEADER,
 } from '@entifix/service-shell';
@@ -13,7 +13,9 @@ import type { ServedRoutes } from '@r10c/testing-http';
  */
 
 /** The claims of a vendor's session: `admin` in `org-1`, unless told otherwise. */
-export const tokenClaims = (fields: Partial<TokenClaims> = {}): TokenClaims => ({
+export const tokenClaims = (
+  fields: Partial<TokenClaims> = {},
+): TokenClaims => ({
   userId: 'u-1',
   subject: 'alan',
   sessionId: 's-1',
@@ -44,12 +46,16 @@ export const crossingCall = (
     headers: {
       'content-type': 'application/json',
       [CROSSING_TOKEN_HEADER]: CROSSING_TOKEN,
-      ...(options.commandId === undefined
-        ? {}
-        : { [COMMAND_ID_HEADER]: options.commandId }),
+      // Every crossing write is idempotent on its key, so every call carries
+      // one: the command a spec names, or a fresh one per call.
+      [IDEMPOTENCY_KEY_HEADER]: formatIdempotencyKey(
+        options.commandId ?? crypto.randomUUID(),
+      ),
       ...(options.organizationId === undefined
         ? {}
         : { [ORGANIZATION_HEADER]: options.organizationId }),
     },
-    ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+    ...(options.body === undefined
+      ? {}
+      : { body: JSON.stringify(options.body) }),
   });

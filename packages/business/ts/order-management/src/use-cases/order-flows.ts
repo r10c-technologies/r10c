@@ -184,9 +184,12 @@ const refusalCode = (result: unknown): string => {
 const startCancellation = (order: ProductOrder) =>
   Effect.gen(function* () {
     const sagas = yield* SagaStarterTag;
+    // Keyed on the order: one order is cancelled once, so asking again is a
+    // replay of the first answer rather than a second flow.
     const outcome = yield* sagas.start(
       CANCELLATION_SAGA,
       cancellationInputs(order),
+      `cancellation:${String(order.id)}`,
     );
     if (outcome._tag === 'completed') {
       // Read back rather than assumed: the flow's last step wrote `cancelled`,

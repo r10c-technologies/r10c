@@ -6,12 +6,16 @@ import {
 } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  IdempotencyStoreTag,
   InvalidToken,
   TokenServiceTag,
 } from '@entifix/business';
 import { Unavailable } from '@entifix/core';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
-import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
+import {
+  makeInMemoryEntityRepository,
+  makeInMemoryIdempotencyStore,
+} from '@entifix/testing-unit';
 import {
   ReservationTtlSecondsTag,
   type StockLedger,
@@ -97,6 +101,7 @@ beforeAll(async () => {
         }),
       ),
       Layer.succeed(ServiceCrossingTokenTag, 'fleet'),
+      Layer.succeed(IdempotencyStoreTag, edge),
       Layer.succeed(
         ServiceCrossingPolicyTag,
         makeStaticServiceCrossingPolicy([
@@ -152,6 +157,20 @@ const relsOf = async (response: Response) =>
     (await response.json()) as { meta: { links: { rel: string }[] } }
   ).meta.links.map(link => link.rel);
 
+/**
+ * The edge's `Idempotency-Key` records, on a clock a case can move past their
+ * retention — the only way to reach the unit of work's own replay, which is
+ * what still answers once the edge has forgotten a key.
+ */
+let edgeNow = 0;
+const edge = makeInMemoryIdempotencyStore({
+  retentionMs: 60_000,
+  now: () => edgeNow,
+});
+const forgetAtTheEdge = () => {
+  edgeNow += 60_001;
+};
+
 describe('POST /api/reservation', () => {
   it('takes a hold for the organization the crossing names, and links it to its item', async () => {
     const response = await crossing('POST', '/api/reservation', hold(2));
@@ -167,7 +186,29 @@ describe('POST /api/reservation', () => {
     const first = await crossing('POST', '/api/reservation', hold(1), 'c-1');
     const again = await crossing('POST', '/api/reservation', hold(1), 'c-1');
 
-    expect([first.status, again.status]).toEqual([201, 200]);
+    expect([first.status, again.status]).toEqual([201, 201]);
+  });
+
+  it('answers from the ledger once the edge has forgotten the key', async () => {
+    const first = await crossing(
+      'POST',
+      '/api/reservation',
+      hold(1),
+      'c-forgot',
+    );
+    forgetAtTheEdge();
+    const again = await crossing(
+      'POST',
+      '/api/reservation',
+      hold(1),
+      'c-forgot',
+    );
+
+    // The ledger's own claim on the same key, not the edge's replay.
+    expect(again.status).toBe(200);
+    // Given back, so the cases after this one find the stock they expect.
+    const { data } = (await first.json()) as { data: { id: string } };
+    await crossing('DELETE', `/api/reservation/${data.id}`);
   });
 
   it('answers more than is free with 409, and a quantity that holds nothing with 400', async () => {
@@ -269,6 +310,24 @@ describe('POST /api/stock-movement', () => {
 });
 
 describe('POST /api/stock-restoration', () => {
+  it('restores from the ledger once the edge has forgotten the key', async () => {
+    await crossing(
+      'POST',
+      '/api/stock-restoration',
+      movement(2, 'receipt'),
+      'k-forgot',
+    );
+    forgetAtTheEdge();
+    const again = await crossing(
+      'POST',
+      '/api/stock-restoration',
+      movement(2, 'receipt'),
+      'k-forgot',
+    );
+
+    expect(again.status).toBe(200);
+  });
+
   it('restores once on the crossing, and answers a redelivery with 200', async () => {
     const first = await crossing(
       'POST',
@@ -283,7 +342,7 @@ describe('POST /api/stock-restoration', () => {
       'k-1',
     );
 
-    expect([first.status, again.status]).toEqual([201, 200]);
+    expect([first.status, again.status]).toEqual([201, 201]);
     expect(await relsOf(first)).toEqual(['self', 'list', 'stock-item']);
     expect(calls.at(-1)).toMatchObject({
       op: 'restore',

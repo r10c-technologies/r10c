@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { Permission } from '@entifix/authz';
 import { makeEnvelope } from '@entifix/core';
-import { requireCrossing } from '@entifix/service-shell';
+import { requireCrossing, requireIdempotencyKey } from '@entifix/service-shell';
 import { type SagaInputs, type SagaStepInput } from '@entifix/transactions';
 import { runSaga } from '@entifix/transactions/engine';
 import { Effect } from 'effect';
@@ -121,8 +121,15 @@ const runRoute = Effect.gen(function* () {
   // below `@entifix/authz` and may not name its type. This service is where
   // the two meet, so the narrowing happens here and `requireCrossing` still
   // resolves it against the closed list.
+  //
+  // Behind the guard, a start is idempotent on its `Idempotency-Key`: a
+  // starter whose request is retried — or a cancellation asked for twice — is
+  // answered what the first start decided, and runs one flow (ADR 0068).
   return yield* requireCrossing(definition.permission as Permission)(
-    runDefinition(definition),
+    requireIdempotencyKey({
+      route: `POST /api/saga/${definition.name}`,
+      caller: 'crossing',
+    })(runDefinition(definition)),
   );
 }).pipe(Effect.catch(serverError));
 
