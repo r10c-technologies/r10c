@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { UserIdentity } from '../entities/user-identity/index.js';
-import { UnauthenticatedError } from '../errors/index.js';
+import { InvalidCredentials } from '../errors/index.js';
 import type { AccountRepository } from './account.repository.js';
 import { makeSessionIdentityProvider } from './session-identity-provider.js';
 import { IdTokenStoreTag, SessionScopeResolverTag } from './session-stores.js';
@@ -55,7 +55,7 @@ describe('makeSessionIdentityProvider', () => {
       await Effect.runPromise(
         Effect.flip(provider.resolveIdentifier('email', 'nobody@example.com')),
       ),
-    ).toBeInstanceOf(UnauthenticatedError);
+    ).toBeInstanceOf(InvalidCredentials);
   });
 });
 

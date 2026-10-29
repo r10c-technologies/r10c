@@ -141,8 +141,8 @@ describe('provider user-lifecycle events', () => {
 
     const res = await postEvent(rawBody, undefined);
 
-    expect(res.status).toBe(400);
-    expect(res.data.code).toBe('invalidRequest');
+    expect(res.status).toBe(401);
+    expect(res.data.code).toBe('unauthenticated');
     expect((await refresh(session.sessionId)).status).toBe(200);
   });
 
@@ -159,7 +159,7 @@ describe('provider user-lifecycle events', () => {
       mockActionSignature(rawBody, 'not-the-signing-key'),
     );
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect((await refresh(session.sessionId)).status).toBe(200);
   });
 
@@ -181,7 +181,7 @@ describe('provider user-lifecycle events', () => {
 
     const res = await postEvent(tampered, mockActionSignature(signedBody));
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect((await refresh(session.sessionId)).status).toBe(200);
   });
 
@@ -201,13 +201,13 @@ describe('provider user-lifecycle events', () => {
       mockActionSignature(rawBody, MOCK_ACTION_SIGNING_KEY, longAgo),
     );
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     expect((await refresh(session.sessionId)).status).toBe(200);
   });
 
   it('refuses a signed body that is not a user event', async () => {
     const res = await postEvent('not-json', mockActionSignature('not-json'));
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
   });
 });

@@ -26,6 +26,9 @@
       "path": "../../../implementation/auth/mongo/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/common/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/authn/tsconfig.lib.json"
     }
   ],

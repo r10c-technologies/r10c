@@ -2,7 +2,6 @@ import { isStoreFault } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import {
-  AuthnError,
   DevMailboxTag,
   IdentifierType,
   UserIdentity,
@@ -129,7 +128,7 @@ describe('the account repository', () => {
       role: 'user',
       status: 'disabled',
     });
-    expect(gone).toBeInstanceOf(AuthnError);
+    expect(gone).toMatchObject({ _tag: 'UserNotFound' });
   });
 
   it('links an external subject once, re-pointing the identifier it already has', async () => {
@@ -205,7 +204,7 @@ describe('the account repository', () => {
 
     expect(created.displayName).toBe('Grace');
     expect(fake.read(IDENTIFIER_COLLECTION)).toHaveLength(3);
-    expect(taken).toBeInstanceOf(AuthnError);
+    expect(taken).toMatchObject({ _tag: 'IdentifierInUse' });
   });
 
   it('reports every driver failure as a store failure', async () => {

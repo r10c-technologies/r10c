@@ -1,10 +1,18 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { type EntityId, useCase } from '@entifix/core';
 import { canAssignRole, type Role } from '@r10c/business-ts-authz-grants';
-import { Context, Effect } from 'effect';
+import { Context, Effect, Schema } from 'effect';
 
 import { UserIdentity, UserStatus } from '../../entities/user-identity';
-import { AuthnError, ForbiddenError } from '../../errors';
+import {
+  NothingToUpdate,
+  RoleNotAllowed,
+  SelfRoleChange,
+  UnknownRole,
+  UnknownStatus,
+  UserNotAllowed,
+  UserNotFound,
+} from '../../errors';
 import { AccountRepositoryTag } from '../../repository';
 
 /** An administrative change to another account's authorization aspects. */
@@ -38,12 +46,32 @@ export class UpdateUserAspectsInputTag extends Context.Service<
  * changed is that revocation is now {@link RevokeUserSessionsUC}, a verb with a
  * permission of its own, rather than a nameless side effect of `write`.
  */
+/**
+ * What an administrator sends: a role, a status, or both. Read as text and
+ * checked against the vocabulary by the endpoint, so an unknown value answers
+ * its own code rather than a schema's.
+ */
+export const UpdateUserAspectsPayload = Schema.Struct({
+  role: Schema.optionalKey(Schema.String),
+  status: Schema.optionalKey(Schema.String),
+});
+
 @useCase({
   entity: UserIdentity,
   key: 'update-aspects',
   binding: 'entity',
   placement: 'determining',
   labelKey: 'entity:user-identity.useCases.updateAspects',
+  payload: UpdateUserAspectsPayload,
+  errors: [
+    UnknownRole,
+    UnknownStatus,
+    NothingToUpdate,
+    UserNotFound,
+    UserNotAllowed,
+    RoleNotAllowed,
+    SelfRoleChange,
+  ],
 })
 export class UpdateUserAspectsUC {
   static run() {
@@ -52,32 +80,17 @@ export class UpdateUserAspectsUC {
       const accounts = yield* AccountRepositoryTag;
 
       if (input.role === undefined && input.status === undefined) {
-        return yield* Effect.fail(
-          new AuthnError('nothing to update', 'nothingToUpdate'),
-        );
+        return yield* new NothingToUpdate();
       }
 
       const target = yield* accounts.findById(input.userId);
       if (target === null) {
-        return yield* Effect.fail(
-          new AuthnError('user not found', 'userNotFound', undefined, {
-            userId: input.userId,
-          }),
-        );
+        return yield* new UserNotFound({ userId: String(input.userId) });
       }
 
       // Authority over the account as it stands today.
       if (!canAssignRole(input.actorRoles, target.role)) {
-        return yield* Effect.fail(
-          new ForbiddenError(
-            'not allowed to modify that user',
-            'userNotAllowed',
-            undefined,
-            {
-              role: target.role,
-            },
-          ),
-        );
+        return yield* new UserNotAllowed({ role: String(target.role) });
       }
 
       // Authority over the account as it would become.
@@ -85,16 +98,7 @@ export class UpdateUserAspectsUC {
         input.role !== undefined &&
         !canAssignRole(input.actorRoles, input.role)
       ) {
-        return yield* Effect.fail(
-          new ForbiddenError(
-            'not allowed to assign that role',
-            'roleNotAllowed',
-            undefined,
-            {
-              role: input.role,
-            },
-          ),
-        );
+        return yield* new RoleNotAllowed({ role: String(input.role) });
       }
 
       if (input.actorUserId === input.userId) {
@@ -102,12 +106,7 @@ export class UpdateUserAspectsUC {
         const deactivating =
           input.status !== undefined && input.status !== UserStatus.Active;
         if (demoting || deactivating) {
-          return yield* Effect.fail(
-            new ForbiddenError(
-              'cannot change your own role or status',
-              'selfRoleChange',
-            ),
-          );
+          return yield* new SelfRoleChange();
         }
       }
 

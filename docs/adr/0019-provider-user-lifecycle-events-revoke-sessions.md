@@ -13,6 +13,7 @@
   everything a user held _now_ ended the session of someone reactivated and
   signed back in since. The webhook path still revokes all, because it acts at
   the moment of the event.
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — a payload that does not verify answers `401`, an unauthenticated problem, and the endpoint takes the raw body as a text payload declared on its descriptor
 
 ## Context
 
@@ -89,7 +90,7 @@ and the whole point of that pin is that no symmetric key is ever accepted there.
 
 ### Three shapes of answer, as next door
 
-A payload that does not verify is `400`, so a key mismatch is loud at Zitadel. A
+A payload that does not verify is `401`, so a key mismatch is loud at Zitadel. A
 verified event naming a subject we do not know is `200` — a `404` would make the
 endpoint an oracle for whether an account exists here. A verified event we do not
 act on is also `200`, so an execution can be added at the provider without a
@@ -204,7 +205,8 @@ the finding in ADR 0017.
   three seconds later. Locking a second user produced the same webhook call, so
   the three executions are wired and not just registered.
 - **The endpoint rejects what it should.** An unsigned POST and one carrying a
-  garbage signature both answer `400` and leave the session refreshing `200`.
+  garbage signature both answer `400` and leave the session refreshing `200`
+  (`401` since ADR 0071: an unverified signature is unauthenticated).
 - **Actions v2 needs no feature flag on v4.16.2.** `actions` is `reserved` in
   `feature/v2/instance.proto` — the flag existed while the API was beta and the
   API is now GA at `/v2/actions/*`.

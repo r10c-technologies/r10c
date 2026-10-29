@@ -1,4 +1,5 @@
 import { type AnyEndpointGroup, endpointsOf } from '@entifix/service-shell';
+import { endpoints as authEndpoints } from '@r10c/shells-effect-auth';
 import { endpoints as configEndpoints } from '@r10c/shells-effect-config';
 import { endpoints as marketplaceEndpoints } from '@r10c/shells-effect-marketplace';
 import { endpoints as orderEndpoints } from '@r10c/shells-effect-order';
@@ -18,6 +19,7 @@ import { endpointDrift, expandApis } from './served-endpoints.js';
  * moves the last cell makes this cover every active slice.
  */
 const SERVED: Readonly<Record<string, readonly AnyEndpointGroup[]>> = {
+  auth: authEndpoints,
   config: configEndpoints,
   marketplace: marketplaceEndpoints,
   order: orderEndpoints,

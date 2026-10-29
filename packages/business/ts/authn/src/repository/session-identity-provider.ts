@@ -1,7 +1,7 @@
 import type { SessionRecord, SessionStore } from '@entifix/business';
 import { Effect } from 'effect';
 
-import { UnauthenticatedError } from '../errors';
+import { InvalidCredentials } from '../errors';
 import type { Principal } from '../values';
 import type { AccountRepository } from './account.repository';
 import type { IdentityProvider } from './identity-provider.repository';
@@ -35,7 +35,7 @@ export const makeSessionIdentityProvider = (
       .pipe(
         Effect.flatMap(user =>
           user === null
-            ? Effect.fail(new UnauthenticatedError('unknown identifier'))
+            ? Effect.fail(new InvalidCredentials())
             : Effect.succeed(user),
         ),
       ),

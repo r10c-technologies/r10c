@@ -157,8 +157,9 @@ describe('session self-service', () => {
     const mine = await signIn(email, 'device-mine');
     const other = await signIn(email, 'device-other');
 
+    // The `sign-out-others` verb, derived from its use case.
     const res = await service.client.post(
-      '/api/auth/sessions/revoke-others',
+      '/api/user-identity/sign-out-others',
       {},
       asUser(mine.accessToken),
     );
@@ -216,8 +217,9 @@ describe('administrative session control', () => {
     expect(listed.status).toBe(200);
     expect(listed.data.items.length).toBeGreaterThanOrEqual(1);
 
-    const kicked = await service.client.delete(
-      `/api/user-identity/${targetUserId}/sessions`,
+    const kicked = await service.client.post(
+      `/api/user-identity/${targetUserId}/revoke-sessions`,
+      {},
       asUser(admin.data.accessToken),
     );
     expect(kicked.status).toBe(200);

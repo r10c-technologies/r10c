@@ -140,9 +140,10 @@ export const describeProviderEventVerifierContract = (
       expect(
         await run(verifier.verify(deactivated, sign(deactivated))),
       ).toEqual({ subject: 'sub-1', revokesSessions: true });
-      expect(
-        await run(verifier.verify(renamed, sign(renamed))),
-      ).toEqual({ subject: 'sub-1', revokesSessions: false });
+      expect(await run(verifier.verify(renamed, sign(renamed)))).toEqual({
+        subject: 'sub-1',
+        revokesSessions: false,
+      });
     });
 
     it('refuses an unsigned event, and one signed over other bytes', async () => {
@@ -150,9 +151,7 @@ export const describeProviderEventVerifierContract = (
       const body = eventFor('sub-1', true);
 
       expect(await refused(verifier.verify(body, {}))).toBe(true);
-      expect(
-        await refused(verifier.verify(`${body} `, sign(body))),
-      ).toBe(true);
+      expect(await refused(verifier.verify(`${body} `, sign(body)))).toBe(true);
     });
   });
 };

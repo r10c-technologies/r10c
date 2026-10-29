@@ -10,6 +10,7 @@
  */
 import '@entifix/business';
 import '@entifix/service-shell';
+import '@r10c/business-ts-authn';
 import '@r10c/business-ts-catalog-contracts';
 import '@r10c/business-ts-catalog-reference';
 import '@r10c/business-ts-common';

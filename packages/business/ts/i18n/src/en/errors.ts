@@ -78,6 +78,7 @@ export const errors: EsErrors = {
   emailRequired: 'An email identifier is required.',
   roleNotAllowed: 'You are not allowed to assign that role.',
   userNotFound: 'The user was not found.',
+  identifierInUse: 'Another account already uses that email or username.',
   userNotAllowed: 'You are not allowed to modify that user.',
   selfRoleChange: 'You cannot change your own role or status.',
   nothingToUpdate: 'There is nothing to update.',

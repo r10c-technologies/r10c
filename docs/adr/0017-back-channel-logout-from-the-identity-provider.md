@@ -12,6 +12,7 @@
   this record rejected as complementary is closed with it rather than built: a
   tab that refreshes reacts to the `401` already, which is what that half was
   for. The decision is unchanged.
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — deactivating a user here is the derived `update-aspects` verb, no longer `PATCH /api/user-identity/:id`
 
 ## Context
 
@@ -213,5 +214,6 @@ polling the provider still trades a fleet-wide dependency for it. It is tracked
 as issue #52 rather than closed with the wrong mechanism.
 
 What does close it today is the path that already exists: deactivating a user in
-r10c (`PATCH /api/user-identity/:id`) revokes every session immediately. The
+r10c (the `update-aspects` verb, `POST /api/user-identity/:id/update-aspects`)
+revokes every session immediately. The
 hole is specific to deactivating at the provider and not here.

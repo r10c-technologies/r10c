@@ -1,7 +1,8 @@
+import { NotFound } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { UnauthenticatedError } from '../../errors/authn-error.js';
+import { InvalidCredentials } from '../../errors/index.js';
 import {
   IdentityProviderTag,
   SessionIdTag,
@@ -14,9 +15,8 @@ const stubProvider = (principal: Principal) =>
     resolveSession: sessionId =>
       sessionId === principal.sessionId
         ? Effect.succeed(principal)
-        : Effect.fail(new UnauthenticatedError('unknown session')),
-    resolveIdentifier: () =>
-      Effect.fail(new UnauthenticatedError('not implemented in stub')),
+        : Effect.fail(new NotFound({ entity: 'session' })),
+    resolveIdentifier: () => Effect.fail(new InvalidCredentials()),
   });
 
 describe('resolveSessionUCFactory', () => {
@@ -39,7 +39,7 @@ describe('resolveSessionUCFactory', () => {
     expect(result).toEqual(principal);
   });
 
-  it('fails with UnauthenticatedError for an unknown session', async () => {
+  it('fails unauthenticated for an unknown session', async () => {
     const exit = await Effect.runPromiseExit(
       resolveSessionUCFactory().pipe(
         Effect.provideService(IdentityProviderTag, stubProvider(principal)),

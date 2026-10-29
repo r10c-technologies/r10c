@@ -30,6 +30,19 @@ import {
  */
 
 /**
+ * auth-service's answer, passed through as it came — body, status and content
+ * type — so a refusal reaches the browser as the problem body it was, not
+ * re-wrapped as plain JSON with its media type lost.
+ */
+const forward = async (res: Response) =>
+  new NextResponse(await res.text(), {
+    status: res.status,
+    headers: {
+      'content-type': res.headers.get('content-type') ?? 'application/json',
+    },
+  });
+
+/**
  * `GET /api/auth/oidc/start` — leave for the hosted login page.
  *
  * A redirect rather than JSON, so a signed-out visitor can be sent here by an
@@ -191,13 +204,14 @@ export async function sessionListRoute() {
     headers: await authorizationHeader(),
     cache: 'no-store',
   });
-  return NextResponse.json(await res.json(), { status: res.status });
+  return forward(res);
 }
 
 /** `POST /api/auth/sessions` — end every session but the caller's own. */
 export async function revokeOtherSessionsRoute() {
+  // The `sign-out-others` verb, derived from its use case.
   const res = await fetch(
-    `${AUTH_SERVICE_URL}/api/auth/sessions/revoke-others`,
+    `${AUTH_SERVICE_URL}/api/user-identity/sign-out-others`,
     {
       method: 'POST',
       headers: {
@@ -208,7 +222,7 @@ export async function revokeOtherSessionsRoute() {
       cache: 'no-store',
     },
   );
-  return NextResponse.json(await res.json(), { status: res.status });
+  return forward(res);
 }
 
 /**
@@ -232,19 +246,18 @@ export async function deleteSessionRoute(
       cache: 'no-store',
     },
   );
-  const data = await res.json();
-
-  if (res.ok && data.signedOut === true) {
+  const answer = await forward(res);
+  if (res.ok && (await answer.clone().json()).signedOut === true) {
     await clearSessionCookies();
   }
-  return NextResponse.json(data, { status: res.status });
+  return answer;
 }
 
 /**
  * Proxy the user collection through this app's own origin, forwarding the
  * httpOnly access cookie as a bearer token. Same reason the credential routes
  * do it: the browser never holds the token, and no cross-origin request means
- * no CORS. auth-service still applies `requirePermission`, so a 403 here is the
+ * no CORS. auth-service still applies the permission guard, so a 403 here is the
  * real decision, not a courtesy.
  */
 export async function userListRoute(request: Request) {
@@ -253,7 +266,7 @@ export async function userListRoute(request: Request) {
     headers: await authorizationHeader(),
     cache: 'no-store',
   });
-  return NextResponse.json(await res.json(), { status: res.status });
+  return forward(res);
 }
 
 /** Create a user. The role, if any, is vetted against the caller's tier upstream. */
@@ -267,7 +280,7 @@ export async function createUserRoute(request: Request) {
     body: JSON.stringify(await request.json()),
     cache: 'no-store',
   });
-  return NextResponse.json(await res.json(), { status: res.status });
+  return forward(res);
 }
 
 /**
@@ -320,7 +333,7 @@ export async function userByIdRoute(_request: Request, { params }: IdParams) {
     headers: await authorizationHeader(),
     cache: 'no-store',
   });
-  return NextResponse.json(await res.json(), { status: res.status });
+  return forward(res);
 }
 
 /**
@@ -330,22 +343,27 @@ export async function userByIdRoute(_request: Request, { params }: IdParams) {
  */
 export async function patchUserRoute(request: Request, { params }: IdParams) {
   const { id } = await params;
-  const res = await fetch(`${AUTH_SERVICE_URL}/api/user-identity/${id}`, {
-    method: 'PATCH',
-    headers: {
-      'content-type': 'application/json',
-      ...(await authorizationHeader()),
+  // The `update-aspects` verb, derived from its use case.
+  const res = await fetch(
+    `${AUTH_SERVICE_URL}/api/user-identity/${encodeURIComponent(id)}/update-aspects`,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(await authorizationHeader()),
+      },
+      body: JSON.stringify(await request.json()),
+      cache: 'no-store',
     },
-    body: JSON.stringify(await request.json()),
-    cache: 'no-store',
-  });
-  return NextResponse.json(await res.json(), { status: res.status });
+  );
+  return forward(res);
 }
 
 /**
  * Administrative session control, proxied same-origin.
  *
- * The permission check lives on auth-service (`authn:user-device:read|write`).
+ * The permission checks live on auth-service — `authn:user-device:read` to
+ * list, the `revoke-sessions` verb's own permission to end them.
  * These handlers only forward the caller's verified token — they decide nothing,
  * and a caller without the grant gets a 403 from the service, not from here.
  */
@@ -361,7 +379,7 @@ export async function userSessionListRoute(
     headers: await authorizationHeader(),
     cache: 'no-store',
   });
-  return NextResponse.json(await res.json(), { status: res.status });
+  return forward(res);
 }
 
 export async function revokeUserSessionsRoute(
@@ -369,10 +387,18 @@ export async function revokeUserSessionsRoute(
   { params }: IdParams,
 ) {
   const { id } = await params;
-  const res = await fetch(userSessionsUpstream(id), {
-    method: 'DELETE',
-    headers: await authorizationHeader(),
-    cache: 'no-store',
-  });
-  return NextResponse.json(await res.json(), { status: res.status });
+  // The `revoke-sessions` verb, derived from its use case.
+  const res = await fetch(
+    `${AUTH_SERVICE_URL}/api/user-identity/${encodeURIComponent(id)}/revoke-sessions`,
+    {
+      method: 'POST',
+      headers: {
+        ...(await authorizationHeader()),
+        'content-type': 'application/json',
+      },
+      body: '{}',
+      cache: 'no-store',
+    },
+  );
+  return forward(res);
 }

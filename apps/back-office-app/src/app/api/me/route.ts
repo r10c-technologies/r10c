@@ -1,3 +1,8 @@
+import {
+  PROBLEM_CONTENT_TYPE,
+  problemOf,
+  Unauthenticated,
+} from '@entifix/core';
 import { bearerHeader, sessionToken } from '@entifix/next-shell/server';
 import { MARKETPLACE_ADMIN_SERVICE_URL } from '@r10c/shells-next-marketplace-admin/server';
 import { NextResponse } from 'next/server';
@@ -12,9 +17,13 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   const token = await sessionToken();
   if (token === undefined) {
+    // The same problem body a service answers a missing session with.
     return NextResponse.json(
-      { error: 'unauthenticated', code: 'unauthenticated' },
-      { status: 401 },
+      problemOf(new Unauthenticated(), { status: 401 }),
+      {
+        status: 401,
+        headers: { 'content-type': PROBLEM_CONTENT_TYPE },
+      },
     );
   }
 
@@ -22,6 +31,10 @@ export async function GET() {
     headers: bearerHeader(token),
     cache: 'no-store',
   });
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  return new NextResponse(await res.text(), {
+    status: res.status,
+    headers: {
+      'content-type': res.headers.get('content-type') ?? 'application/json',
+    },
+  });
 }

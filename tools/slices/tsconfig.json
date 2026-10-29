@@ -36,6 +36,9 @@
       "path": "../../packages/shells/effect/config"
     },
     {
+      "path": "../../packages/shells/effect/auth"
+    },
+    {
       "path": "../../packages/business/ts/payment-contracts"
     },
     {

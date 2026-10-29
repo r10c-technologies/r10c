@@ -51,7 +51,6 @@ import {
   membershipSeedData,
   policy,
   ProviderSessionIndexTag,
-  router,
   seedIdentityProvider,
   SERVICE_NAME,
   SessionScopeResolverTag,
@@ -242,7 +241,7 @@ export const markEmailUnverified = (email: string): void => {
   fakeZitadel.unverified.add(email.toLowerCase());
 };
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
@@ -251,6 +250,5 @@ export const startMockService = (): Promise<RunningTestService> =>
     description: fleetToken,
     endpoints,
     policy,
-    router,
     appLayer: MockAppLayer,
   });

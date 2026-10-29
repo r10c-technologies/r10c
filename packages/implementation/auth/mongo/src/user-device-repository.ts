@@ -94,7 +94,10 @@ export const makeMongoUserDeviceRepository = (db: Db): UserDeviceRepository => {
         });
       }
 
-      const entity = yield* deserializeSingleEntity(UserDevice, doc);
+      const entity = yield* deserializeSingleEntity(UserDevice, doc).pipe(
+        // A stored document that will not revive is the store failing.
+        Effect.mapError(storeUnavailable),
+      );
       return {
         device: entity as UserDevice,
         isNew: existing === null,
@@ -112,7 +115,7 @@ export const makeMongoUserDeviceRepository = (db: Db): UserDeviceRepository => {
       const entities = (yield* deserializeEntityCollection(
         UserDevice,
         docs,
-      )) as unknown as UserDevice[];
+      ).pipe(Effect.mapError(storeUnavailable))) as unknown as UserDevice[];
       // Most recently seen first: the device you are reading this on should be
       // at the top of the list.
       return [...entities].sort(

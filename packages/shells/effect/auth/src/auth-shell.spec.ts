@@ -27,7 +27,6 @@ import {
   makeAppLayer,
   rebuildAndReport,
   reportSeedShortfalls,
-  router,
   startOrganizationRebuild,
 } from './index.js';
 
@@ -84,7 +83,6 @@ describe('the auth shell', () => {
 
   it('offers the booted composition as a layer', () => {
     expect(Layer.isLayer(makeAppLayer({ seed }))).toBe(true);
-    expect(Layer.isLayer(router)).toBe(true);
   });
 
   it('signs for the audience its own verifiers expect', () => {

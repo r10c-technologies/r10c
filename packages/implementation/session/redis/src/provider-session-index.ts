@@ -19,7 +19,7 @@ const key = (providerSessionId: string) => `oidc:sid:${providerSessionId}`;
  * which is exactly what a lost write looks like from there.
  *
  * **The set is append-only until `take`, deliberately.** Ids of sessions r10c
- * revoked itself (`logout`, revoke-others, the admin path, `provider-events`,
+ * revoked itself (`logout`, `sign-out-others`, the admin path, `provider-events`,
  * a role change) are left behind. Revoking an already-revoked session is a
  * no-op, and the key expires at the session absolute ceiling, so a set cannot
  * grow without bound.

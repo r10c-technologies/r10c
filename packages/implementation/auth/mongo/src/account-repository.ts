@@ -7,12 +7,13 @@ import {
 } from '@entifix/core';
 import {
   type AccountRepository,
-  AuthnError,
   type CreateAccountInput,
+  IdentifierInUse,
   IdentifierType,
   type IdentityProjection,
   type UpdateUserAspects,
   UserIdentity,
+  UserNotFound,
 } from '@r10c/business-ts-authn';
 import { Effect } from 'effect';
 import type { Db, Document, PushOperator } from 'mongodb';
@@ -57,7 +58,10 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
           users.findOne({ id: identifierDoc['userId'] }, WITHOUT_MONGO_ID),
         catch: storeUnavailable,
       });
-      const user = yield* deserializeSingleEntity(UserIdentity, userDoc);
+      const user = yield* deserializeSingleEntity(UserIdentity, userDoc).pipe(
+        // A stored document that will not revive is the store failing.
+        Effect.mapError(storeUnavailable),
+      );
       return (user as UserIdentity | undefined) ?? null;
     });
 
@@ -67,7 +71,10 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
         try: () => users.findOne({ id: userId }, WITHOUT_MONGO_ID),
         catch: storeUnavailable,
       });
-      const user = yield* deserializeSingleEntity(UserIdentity, userDoc);
+      const user = yield* deserializeSingleEntity(UserIdentity, userDoc).pipe(
+        // A stored document that will not revive is the store failing.
+        Effect.mapError(storeUnavailable),
+      );
       return (user as UserIdentity | undefined) ?? null;
     });
 
@@ -90,9 +97,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
 
       const updated = yield* findById(userId);
       if (updated === null) {
-        return yield* Effect.fail(
-          new AuthnError('user not found', undefined, { userId }),
-        );
+        return yield* new UserNotFound({ userId: String(userId) });
       }
       return updated;
     });
@@ -262,11 +267,7 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
           catch: storeUnavailable,
         });
         if (existing !== null) {
-          return yield* Effect.fail(
-            new AuthnError('identifier already in use', undefined, {
-              value: identifier.value,
-            }),
-          );
+          return yield* new IdentifierInUse();
         }
       }
 
@@ -303,7 +304,13 @@ export const makeMongoAccountRepository = (db: Db): AccountRepository => {
         catch: storeUnavailable,
       });
 
-      const created = yield* deserializeSingleEntity(UserIdentity, userDoc);
+      const created = yield* deserializeSingleEntity(
+        UserIdentity,
+        userDoc,
+      ).pipe(
+        // A stored document that will not revive is the store failing.
+        Effect.mapError(storeUnavailable),
+      );
       return created as UserIdentity;
     });
 

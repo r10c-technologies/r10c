@@ -96,6 +96,7 @@ export const errors = {
   emailRequired: 'Se requiere un identificador de correo electrónico.',
   roleNotAllowed: 'No puedes asignar ese rol.',
   userNotFound: 'No se encontró el usuario.',
+  identifierInUse: 'Otra cuenta ya usa ese correo o nombre de usuario.',
   userNotAllowed: 'No puedes modificar ese usuario.',
   selfRoleChange: 'No puedes cambiar tu propio rol ni tu estado.',
   nothingToUpdate: 'No hay nada que actualizar.',

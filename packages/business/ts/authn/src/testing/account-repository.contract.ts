@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import { IdentifierType } from '../entities/entity-identifier';
 import { UserStatus } from '../entities/user-identity';
-import { AuthnError } from '../errors';
 import type { AccountRepository } from '../repository/account.repository';
 
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
@@ -59,10 +58,12 @@ export const describeAccountRepositoryContract = (
       await run(accounts.createAccount(ada));
 
       const refused = await run(
-        Effect.flip(accounts.createAccount({ ...ada, displayName: 'Imposter' })),
+        Effect.flip(
+          accounts.createAccount({ ...ada, displayName: 'Imposter' }),
+        ),
       );
 
-      expect(refused).toBeInstanceOf(AuthnError);
+      expect(refused).toMatchObject({ _tag: 'IdentifierInUse' });
     });
 
     it('knows nobody it never made', async () => {
@@ -81,11 +82,9 @@ export const describeAccountRepositoryContract = (
       );
       expect(
         await run(
-          Effect.flip(
-            accounts.updateUserAspects('nobody', { role: ADMIN }),
-          ),
+          Effect.flip(accounts.updateUserAspects('nobody', { role: ADMIN })),
         ),
-      ).toBeInstanceOf(AuthnError);
+      ).toMatchObject({ _tag: 'UserNotFound', userId: 'nobody' });
     });
 
     it('reads back the aspects an administrator changed, and only those', async () => {

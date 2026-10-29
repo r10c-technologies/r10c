@@ -1,6 +1,9 @@
 import { isStoreFault } from '@entifix/core';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
-import { ensureOutboxIndexes, OUTBOX_COLLECTION } from '@entifix/mongo/transactions';
+import {
+  ensureOutboxIndexes,
+  OUTBOX_COLLECTION,
+} from '@entifix/mongo/transactions';
 import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import { type EventBus, OutboxMaxAttempts } from '@entifix/transactions';

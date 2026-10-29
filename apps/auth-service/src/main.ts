@@ -1,10 +1,5 @@
 import { makeService } from '@entifix/service-shell/runtime';
-import {
-  endpoints,
-  makeAppLayer,
-  policy,
-  router,
-} from '@r10c/shells-effect-auth';
+import { endpoints, makeAppLayer, policy } from '@r10c/shells-effect-auth';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
@@ -25,6 +20,5 @@ makeService({
   description: fleetToken,
   endpoints,
   policy,
-  router,
   appLayer: makeAppLayer({ seed: seedAuth }),
 });

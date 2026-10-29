@@ -44,7 +44,6 @@
     "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
-    "@entifix/service-shell": "catalog:",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-i18n": "workspace:*",

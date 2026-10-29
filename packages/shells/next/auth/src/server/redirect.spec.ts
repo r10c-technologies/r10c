@@ -38,6 +38,7 @@ describe('safeRedirect', () => {
 
   it('refuses a non-http scheme', () => {
     // These parse happily as URLs, which is exactly why the check is explicit.
+    // eslint-disable-next-line no-script-url -- the hostile input under test
     expect(safeRedirect('javascript:alert(1)', SELF)).toBe(ADMIN);
     expect(safeRedirect('data:text/html,<script>', SELF)).toBe(ADMIN);
   });
