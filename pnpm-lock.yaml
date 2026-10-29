@@ -5227,7 +5227,7 @@ packages:
     resolution: {integrity: sha512-ELEBe8PsLvvJ6QMr0zLt8ffvOHW/dc1m3CEzNMg7aJUv3bMaoDtw2TXyDAwkYBuroxxuHEwhRTLJSe5sya547g==}
 
   '@entifix/amqp@0.11.0':
-    resolution: {integrity: sha512-UouifRZXe55sZJt6J0o7icsLSLiMr4wtkKpovuoJljBPegnRqMopZu0qmZX0/b6YO7BcRZdKNuja3C4RqGb/cg==}
+    resolution: {integrity: sha512-/S6HQ0wjeq8zcK8poLLhG1Ql/va7uvUIAg+pNKYVbwxDu4O6cO4V+SmdUC1CkawfWeTFtTYzX2Q6/SiYmhKypg==}
     peerDependencies:
       '@entifix/transactions': 0.11.0
       effect: ^4.0.6
@@ -5236,32 +5236,32 @@ packages:
         optional: true
 
   '@entifix/authz@0.11.0':
-    resolution: {integrity: sha512-7vvnlUcZrJJ1i/MA9cp+CvQ5juvalKnMog3mnffwR1MMC4P/HQa+SaTeA81RyPEngY+EgGkfY2nUa4twESc/uQ==}
+    resolution: {integrity: sha512-gzxPl9gRiWE0+sEZvXCdAkoQYv9v5rte0BR0zQBpH+e6Zq6Uf3TgDAA75eh+6WDCkeYjHEAUiPcDNz9lrdF7nA==}
     peerDependencies:
       effect: ^4.0.6
 
   '@entifix/business@0.11.0':
-    resolution: {integrity: sha512-rQQpbLTpHlEQvwgKPG/nkQC7IaWnQE4dw+NnR7xbK/LLILHlTaZkdgUzElQzy049CdXO486WjxJ0ReMzSIiiVQ==}
+    resolution: {integrity: sha512-34ws8O6VQ94SNz7bkxgDjdQLI4ej1qXfPwBBi22IXY4/8pQNUMyBZh2bGeKyJ0vC782F/7oyJzMRh8gs77ZLng==}
     peerDependencies:
       effect: ^4.0.6
 
   '@entifix/core@0.11.0':
-    resolution: {integrity: sha512-qF/ypS5pgEz/z2hEZ+Bkri3eRyaPqd0Aozy0QG+JnE822qhgRVFKjSQtxKet174MyfA8wbtZt4N2GEGmlNTvUQ==}
+    resolution: {integrity: sha512-xIvtSTaUNR3XpKPZWv+ateNUYE5qOYl9VwezrB69LsxOs4cYsWx2bYeOh8TWlKIX0aT2pO+Py3bfU70JrVzv+Q==}
     peerDependencies:
       effect: ^4.0.6
 
   '@entifix/i18n@0.11.0':
-    resolution: {integrity: sha512-DQ0/Rt/VV4vXmW5IjaB+w/4r0hUPNrHOm/AYjqruLoABvuUxpLNgoUEmGdRGKKhh6Zf892LIpSLJ9EUQ+h05Lw==}
+    resolution: {integrity: sha512-V9lFWAjRafQm518Mvbv2UyF191zDwpqyLQUdwh2+WkJlMVfcHffxezilw58EmVffMYNDft9eeykiTLX6NhWsZg==}
     peerDependencies:
       i18next: '>=26 <27'
 
   '@entifix/jwt@0.11.0':
-    resolution: {integrity: sha512-2uJtHI2Qpw7o+WuWuhHL891wnrvIP76N/dX82G4DGKMkn169n+/9GdPU5OnZl40de9JsPmmbv2lvIrzvmzrsoA==}
+    resolution: {integrity: sha512-62+4AIWj99kiPQpEkHT8e8Mq023PJoxQathZjc3vSu4/ewFw+iPc3D/io1RW8srT1FyqzqQWwjQuU+fGH3Y0hg==}
     peerDependencies:
       effect: ^4.0.6
 
   '@entifix/mongo@0.11.0':
-    resolution: {integrity: sha512-CG53HWFTUB40r9FJUmBUjJQs2r0cbU7r+wHzT/sQ6aY2YssY4+TfToBX9IHVwgYlNTlBQfvDBVIU7VESia1lpQ==}
+    resolution: {integrity: sha512-vCu/b2oDabultdcpX6GPT6zb/+N8109Xjm7GoqIC6tK5Tp4JMm3IFY8sRouB5pxBHohHtQ4JtFT2b04zXAHatg==}
     peerDependencies:
       '@entifix/transactions': 0.11.0
       effect: ^4.0.6
@@ -5270,7 +5270,7 @@ packages:
         optional: true
 
   '@entifix/next-i18n@0.11.0':
-    resolution: {integrity: sha512-KuSRpWEfaey+JX6hLS0K4RV19vpvQRPuAklA5LyD9cCnAQcn6926SBxxIGwuVqyrjaXwAtyCOA19Vu7OSUOxhA==}
+    resolution: {integrity: sha512-4E+77fS9CNRMwctb8jLPithNMhUaKoGk/bnXIiFvVu2ZM61vKh2ilUFtClfZuzXzNo+O72MSxifI/xdUDRtVGA==}
     peerDependencies:
       i18next: '>=26 <27'
       next: '>=16'
@@ -5279,7 +5279,7 @@ packages:
         optional: true
 
   '@entifix/next-shell@0.11.0':
-    resolution: {integrity: sha512-H9HFRA/6oUVUsqSIqFWvEirB9MHj69yypw7KY3LcyeFv+RR98XgWsSZPJvcgEZ45Ou6X9rzM+awP1toZzOC/xQ==}
+    resolution: {integrity: sha512-u5bexaZ4nbCt/L30xA/IrlhSF6rTYYRm8QIra8/jJ6LNNpQoxidt2z6jG03S5kHP3Ws26NVtXP2jrqCWRLRZ3w==}
     peerDependencies:
       '@tanstack/react-query': '>=5.101 <6'
       effect: ^4.0.6
@@ -5293,7 +5293,7 @@ packages:
         optional: true
 
   '@entifix/react-controls@0.11.0':
-    resolution: {integrity: sha512-bn2nDCqAKTBj3tWRe+8NHvq+0y5iar405+U0YIII+md/gcqpkNf7lcOyF8Mp/fzs36h7MkMTE2tU1Pzhtiv1XA==}
+    resolution: {integrity: sha512-cvJBH0s/46ulDWVXHZcSbPbSBOIjBdyAl7zSeR7+XMdiJJJzpsP1FOOnOs3i36tIo/WkQ6APd5VwbRVvwh19/Q==}
     peerDependencies:
       '@entifix/i18n': 0.11.0
       effect: ^4.0.6
@@ -5309,7 +5309,7 @@ packages:
         optional: true
 
   '@entifix/react-integration@0.11.0':
-    resolution: {integrity: sha512-LHU9itsSYO6tZhZpEDJ79UzFaIQ9gCbvBUE28ZjP8FqC5+oc0J3EG2o29NbEmHeyxRWOD9AOcq/UUUQkSY3NiA==}
+    resolution: {integrity: sha512-ytd9UjXbpwUG/eQiK4bX16MNh+5a4EI6fNCDsAYDRNrJHZh4inOdBxxh0kHqLGEkunNjplZzHiDqL6nqUyLsXA==}
     peerDependencies:
       '@tanstack/react-form': '>=1.33 <2'
       '@tanstack/react-query': '>=5.101 <6'
@@ -5317,7 +5317,7 @@ packages:
       react: '>=19 <20'
 
   '@entifix/redis@0.11.0':
-    resolution: {integrity: sha512-t2LnW+pUICNdBC5ceIhQV7nawfKeD5B5+R0BROmuEfhglyvC9OaypL7KgKQ7CohNYXbVKd++MdDT3Zis0V47NA==}
+    resolution: {integrity: sha512-YBcFJkywnqE/BD0rER/OBvWfk1YU1r6oRO5r/fkDhT67IAu2ZTunFehTKgIXuiJ3K9vTlqNZkfMhmyCNPRQAHQ==}
     peerDependencies:
       '@entifix/transactions': 0.11.0
       effect: ^4.0.6
@@ -5326,12 +5326,12 @@ packages:
         optional: true
 
   '@entifix/rest@0.11.0':
-    resolution: {integrity: sha512-JkiB5+CAqdxIweRKVCNZ/vg5mF0HjkFmAbFvG6fqjvJtR6gyPH8vMGicv4CwG3SyuiK8AqaOXj1TmwiXPCQVfQ==}
+    resolution: {integrity: sha512-Hy+lQ89vsrkaUYIwCqjRj/xhODK6u4TfnqR95uhx1lwnAcHq6CnaCLqiXbWRNRWCydDECko/05dqFhCbxnq89g==}
     peerDependencies:
       effect: ^4.0.6
 
   '@entifix/service-shell@0.11.0':
-    resolution: {integrity: sha512-mp8gxAk1lgh8ldXZZn60gf7QIuJFXjHFWvXIFWO0xmJFoLD6xJUnd8FYpwwbU5TxekQgaosqvZbwWBN1imVQwA==}
+    resolution: {integrity: sha512-wfSgEZ6wtpkbs9GilOU6tt9MYAwRF3jlxSUJAiMcHHZx8wmmA0mge/FWIOBuo4A2XWj/1BfZSAbWdJGSUq9H9g==}
     peerDependencies:
       '@effect/opentelemetry': ^4.0.6
       '@effect/platform-node': ^4.0.6
@@ -5361,20 +5361,20 @@ packages:
         optional: true
 
   '@entifix/sql@0.11.0':
-    resolution: {integrity: sha512-W9lJRDBwg/sej5+YGeDlB08jkInQeJvBWsmJ4U88syF5O6abYKeR9VW0P/M8/lm6Hd3F9ux8c+Rki0kGnHTQtQ==}
+    resolution: {integrity: sha512-Xp3VtiSAHl9q4eJVTsd2zW9ZZyi0RrVRxdTVQjIemxg0IHjUIl6AWyAx3w8BENSU0rHUe74nVPCqEjkYy/Xnyw==}
     peerDependencies:
       effect: ^4.0.6
 
   '@entifix/static@0.11.0':
-    resolution: {integrity: sha512-lPKsFOW/YKk4hgVvBndPbJdX9agNiW/LyuGWnFFe1k3NpF/DvNaGe6+UmOtCUz5GUSAdo0eAiWwl5/DaV8Rk/Q==}
+    resolution: {integrity: sha512-kUINMSa4eWgeJ46Ia0tRpUuKxoLIYwO/4WueKTOYt4NteYM8nHtqHxlNJiKzmwts/5iQwMjcHrgKuc6/a3qTAw==}
     peerDependencies:
       effect: ^4.0.6
 
   '@entifix/style@0.11.0':
-    resolution: {integrity: sha512-N6aGtihbvsWK/c5uD6U6WLJ+XkNjAeEfBf73arZ7qjH+rUJiZVHiK9W5cIK5j/rf7ILk4vurnwh4GtaW1soUJw==}
+    resolution: {integrity: sha512-XSzgUk3mrmag/UFcuO0s4eIOYljAvO28jphYPZ0OVBvJLPQGZEtgrce9253jLOlwguqTH1YtYPI3pVVPbwUXqg==}
 
   '@entifix/testing-e2e@0.11.0':
-    resolution: {integrity: sha512-4TSCJygwrgk+vHhokGI/4FE09UfawqEC99PR1fmWTuFbqazHmAOxS/wYczYgmVX1OfMJJKu1p66brBNQRzjwEg==}
+    resolution: {integrity: sha512-VbBJBwMnIRoKdXgrF6o1szDbPWr2TECehZg4QnXjWeLIuJI8kSY9WggSpWZCXJ1OqptUZacziLTc/g5qEMmlrQ==}
     peerDependencies:
       '@entifix/amqp': 0.11.0
       '@entifix/mongo': 0.11.0
@@ -5410,7 +5410,7 @@ packages:
         optional: true
 
   '@entifix/testing-unit@0.11.0':
-    resolution: {integrity: sha512-fxx9ZY7dJC1QVoelfHhlpzUIxeVvBL0nUh8TqJMYgDWfX55WE5A+3i/Z0O9V6fVfIGBsjOOZFLu1JlYAAV4w9Q==}
+    resolution: {integrity: sha512-8Pb9fcXlj+OulcY0EBFNOVsTbLDfTzWpZHmkiWqdZzF5LcO8lrqMuG8RLjdfdy6y/UNcARaqhFUTH5sgwZA0Aw==}
     peerDependencies:
       '@entifix/react-controls': 0.11.0
       '@testing-library/react': '*'
@@ -5434,17 +5434,17 @@ packages:
         optional: true
 
   '@entifix/tooling@0.11.0':
-    resolution: {integrity: sha512-KdfX+DHHHEUKuo9TANLBkXCR4+qRxr+0OA71rrj1YgfTLzekHYtkaUazYSY3IR6a5MAi4+pqgSr7qW5cKUdM+g==}
+    resolution: {integrity: sha512-t+nWlp/vQIOBAy/u8D3h7ALH1CGxfLzUHV8gcmPyDLHB7T7SbSaQubDG2MKlky+b0f8yA8LZjJxLAkVvbL6A4A==}
     peerDependencies:
       '@opentelemetry/api': 1.9.1
 
   '@entifix/transactions@0.11.0':
-    resolution: {integrity: sha512-/xKAZ/6YNxHkCCPzAPIdoNWuLI9UgPLrGWNyY1sy0XfmpoHamb1rXmFcymElpI9KvWif36BDc9IKuGjMVb+6Pw==}
+    resolution: {integrity: sha512-C5vX8HIn8b5cDUrhJxyHgbrA0CDv3nBAuopQX58Yvmn4ihFR2pk9y+a4a9wRmYWldbbQwiDbF/gg4LvVxgfcSw==}
     peerDependencies:
       effect: ^4.0.6
 
   '@entifix/zitadel@0.11.0':
-    resolution: {integrity: sha512-NY1awnbwogiiV467FhjEAC+QqJ24JKNdih21cXg17dXHePaHCY2emS13uCLL+10iViFLSYOgWj7GpfyVvOA9Mg==}
+    resolution: {integrity: sha512-GY2vjQn+mAU6TnMqMty10n4RJoUAfNrTzA/+dRjJW+2dURhcIV6Q+wcYJpz9rU7/ZaD7+XQMZPIDu/YrSb2BfQ==}
     peerDependencies:
       effect: ^4.0.6
 
