@@ -8,6 +8,7 @@
   deferrals below are closed: emission exists, and publishing an offering with
   no price is now refused.
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — a specification create is a plain unit of work answering `200`, its code drawn from a Mongo `$inc` counter
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — `makeEntityCrud` follows the verb's link through a runner adapter rather than taking `runUseCase`, and the publish verbs are derived endpoints
 
 ## Context
 
@@ -187,7 +188,8 @@ catalog entry.
   pinned-count assertions in four specs failed on the way through, which is the
   mechanism working: each names the number of surfaces it expects.
 - **`makeEntityCrud` gained `runUseCase`, because ADR 0035's cell had a renderer
-  and no producer.** `EntityForm` has rendered form-header verbs since that
+  and no producer.** (Since [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) it
+  follows the verb's served link through a runner adapter instead.) `EntityForm` has rendered form-header verbs since that
   record and `EntityCrudForm` has accepted an `onUseCase` for as long — but the
   factory never passed one, so the first generated screen to declare an
   entity-bound verb showed a button that did nothing. Two further faults came

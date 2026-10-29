@@ -47,10 +47,8 @@ each is one link away in the decision index below.
   So **do not design for backward compatibility** — no dual-read windows, no
   legacy fallbacks, no migration shims, no compatibility flags — unless the user
   explicitly asks for a staged swap. Change the seed, change the shape, and
-  reset. A compatibility path written "just in case" is dead code that has to be
-  maintained and reasoned about at every later step, and some of them (a verifier
-  that branches on a token's `alg`, say) open a security surface a hard cut never
-  opens.
+  reset. A compatibility path written "just in case" is dead code, and some (a
+  verifier that branches on a token's `alg`) open a surface a hard cut never does.
 - **A working convention is a check, and attribution is the first one.** No
   AI/tool co-author trailer, no session trailer and no "generated with" line —
   on a commit, a pull-request body or a document. Enforced in three places
@@ -95,15 +93,14 @@ each is one link away in the decision index below.
 - **A server-owned but client-visible member must not be `@accessor({ readonly })`.**
   That flag drops the member from serialization **and** deserialization, so a
   read-only audit stamp would never reach the UI either. Leave it writable, have
-  the route overwrite it from the verified principal (the way a save route
-  already owns the id — `entity.id = params.id`), and hide the input with an
-  `<EntityField … hidden />` slot. The same applies to `required`: `hiddenFields`
+  the handler overwrite it from the verified principal (as a save owns the id),
+  and hide the input with an `<EntityField … hidden />` slot. The same applies to `required`: `hiddenFields`
   hides the input and **not its validation rule**, so a hidden required member
   fails validation with no field to show it on and Save does nothing and says
   nothing.
 - **A permission is `<domain>:<entityKey>:<action>`**, derived from the entity's
-  own `@entity({ domain, key })`. Guard a route with `requirePermission(...)` from
-  `@entifix/service-shell` — **hiding a nav item protects nothing** — and
+  own `@entity({ domain, key })`. Guard an endpoint with its descriptor's `guard`
+  — **hiding a nav item protects nothing** — and
   grants come from `ROLE_PERMISSIONS`, never from the token. `unverifiedClaims`
   reads the cookie **without checking its signature**: nav filtering only, never a
   decision.
@@ -122,11 +119,9 @@ each is one link away in the decision index below.
   from `infra/local/lib.sh`, `tools/slices/` and the ADR files. Edit the source,
   regenerate, stage — a hand-edit inside a fence fails `--check` in
   `.husky/pre-commit` and in CI. Everything else stays prose and is **asserted**
-  by `pnpm nx test @r10c/docs-check`: links and anchors resolve, the router tables
-  cover every doc, no business doc names an entity class the source does not
-  declare, every bound port is in `ALL_PORTS` and in the port table, every ADR
-  carries `- Area:` and `- Read when:`, and every ADR supersession is symmetric.
-  Both run **unconditionally** in CI. See
+  by `pnpm nx test @r10c/docs-check` (links, router coverage, entity names,
+  ports, ADR headers, symmetric supersession). Both run **unconditionally** in
+  CI. See
   [DEVELOPING.md → Keeping the documentation true](docs/DEVELOPING.md#keeping-the-documentation-true).
 - **ADRs are corrected in place when they go stale.** An ADR's _reasoning_ is
   immutable; its _factual claims_ are not. Fix a false statement where it stands,
@@ -141,9 +136,8 @@ each is one link away in the decision index below.
   server); _what we decided and why_ is an **ADR**; _the contract_ is
   `BUSINESS-ARCHITECTURE.md` + `tools/slices/`; _what is next and whether it is
   done_ is a **GitHub issue under a milestone**. Business processes are **not**
-  put in `docs/`: the corpus is `docs/*.md` flat files only, so a subdirectory
-  gets zero checks, and lifting a process document to the top level hits the check
-  that forbids naming what the source does not declare. And the repo is public now
+  put in `docs/`: a subdirectory gets zero checks, and a top-level process
+  document fails the check on undeclared names. And the repo is public now
   and private later, which does **not** run backwards — exposure is decided per
   commit, permanently: public law and our own mechanism are committable, our
   commission rates, named vendors and negotiated courier terms are Notion-only.
@@ -258,6 +252,7 @@ writing the record with both headers, then `node tools/sync-docs.mjs`.
 - [0059](docs/adr/0059-entifix-leaves-the-repo.md) **entifix leaves the repo, and r10c becomes one of its consumers** — read when looking for the framework's source or changing entifix while r10c runs — every r10c-specific value crosses a seam rather than being imported.
 - [0063](docs/adr/0063-a-cell-reaches-full-coverage-through-fakes-and-contract-suites.md) **A cell reaches full coverage through fakes and contract suites** — read when writing the spec for a `mongo`, `sql`, `redis` or `http` cell, or a cell misses the 100% gate — fake the driver one level below the adapter, run every port's contract suite, and prove a race against the live lab.
 - [0064](docs/adr/0064-failures-reach-the-slice-shell.md) **Failures travel typed to the slice shell, answer one problem body, and are logged only there** — read when adding a refusal, a status mapping, an error body or a log call, or about to write `Effect.retry` in a consumer — `code` is the `errors` key, business and implementation never log, and the slice shell decides status, retry and logging.
+- [0071](docs/adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) **Http cells hold descriptors, and the slice shell builds the API** — read when adding a route, a verb or a guard, or an `http` cell reaches for `effect/http` — a cell declares, the slice shell serves, and `exposedAPIs` is checked.
 
 <!-- docs:end adr-triggers -->
 

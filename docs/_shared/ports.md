@@ -293,10 +293,11 @@ credential, each way ([ADR 0052](../adr/0052-the-checkout-saga.md)).
 `DELETE /api/product-order/:id` is a **compensation**, not a customer-facing
 cancel: it undoes a step that should not have happened. A cancellation is a
 business event with its own record and its own money consequences, and it is
-`POST /api/product-order/:id/cancellation`.
+the derived verb `POST /api/product-order/:id/cancel`
+([ADR 0071](../adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)).
 
 ⚠️ **Three credentials on one surface, and each route still takes exactly one.**
-`fulfil` and `cancellation` are session-guarded by the permissions their own
+`fulfil` and `cancel` are session-guarded by the permissions their own
 `@useCase()` descriptors derive — there is still no `product-order:write` for any
 role, and these are verbs rather than saves. `buyer-cancellation` takes the nonce
 from a storefront receipt and **no session at all**: the order stores that
@@ -305,9 +306,9 @@ inert wherever else it travels. The saga's own `cancelling` and `cancelled` step
 take a crossing token
 ([ADR 0058](../adr/0058-the-order-after-payment.md)).
 
-⚠️ **`/cancelling` and `/cancellation` are one letter apart and are not the same
-thing.** The first takes the concurrency claim and is dispatched by the
-coordinator; the second is what a person reaches. A browser reaching the first
+⚠️ **`/cancelling` and `/cancel` look alike and are not the same thing.** The
+first takes the concurrency claim and is dispatched by the coordinator behind a
+crossing guard; the second is the verb a person reaches. A browser reaching the first
 would lock an order with no refund behind it.
 
 ⚠️ **Fulfilment is per line; cancellation is per order.** `OrderItem` carries
@@ -391,7 +392,8 @@ order-service — the same order the storefront produces, which is what keeps a
 vendor's takings one query rather than two
 ([ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)).
 
-`POST /api/counter-sale` is the till's one write, and it persists nothing here.
+`POST /api/sales-channel/:id/sell`, the derived `sell` verb, is the till's one
+write, and it persists nothing here.
 It takes a **session and no token**, checks
 `sales-management:sales-channel:sell`, loads the channel from the caller's own
 tenant handle, re-prices every line from the published projection, and only then

@@ -5,6 +5,7 @@
 - Area: platform
 - Read when: adding a datastore, a queue binding or an upstream to a service — `/api/$service` diffs what a service does against what the register declares
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `withHealthRoutes` became the `healthRoutes` route layer, and this route the `serviceDescriptionRoute` one; the decision is unchanged.
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — `$service` and `GET /api/$openapi` are built from the service's `HttpApi`, and `@r10c/slices` now diffs `exposedAPIs` against the served endpoints in CI rather than only live
 
 ## Context
 
@@ -36,7 +37,7 @@ It simply does not say what any of them **are**.
 
 ### `GET /api/$service`, on the effect-service shell
 
-Mounted the way `healthRoutes` is, so a service gains it by composition. It
+Served from the service's `HttpApi`, beside health and `GET /api/$openapi`, so a service gains it by composition ([ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)). It
 is a **sibling** of `/api/config`, never part of it: config serves the _inputs_ a
 service was given (values, redacted); this serves its _shape_ (wiring).
 

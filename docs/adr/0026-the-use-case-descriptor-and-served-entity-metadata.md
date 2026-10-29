@@ -22,6 +22,7 @@
   `packages/entifix`, and `business:policy` no longer lists `layer:entifix`.
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): the shell's `withHealthRoutes` wrapper became the `healthRoutes` route layer; the decision is unchanged.
 - Revised: 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md) — a served descriptor carries `composition` (the variant and recipe it resolves to for the caller), and a verb the caller resolves to nothing is omitted
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — a descriptor drives the verb's endpoint and its link too: the route, the guard's permission and the `rel`/`href` an envelope carries come from one declaration, and entifix 0.12.0 builds them
 
 ## Context
 

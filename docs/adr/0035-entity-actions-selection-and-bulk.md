@@ -11,6 +11,7 @@
 - Revised: 2026-09-11 — a verb may name more than one cell (#216). The map and
   the rule that made it are unchanged; the arity is not. Recorded on decision 1,
   with the cost.
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — brand and category gained a `restore` verb beside `retire`, and both are derived endpoints rather than hand routes
 
 ## Context
 
