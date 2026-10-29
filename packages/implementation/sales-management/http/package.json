@@ -41,10 +41,8 @@
     }
   },
   "dependencies": {
-    "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
-    "@entifix/service-shell": "catalog:",
     "@r10c/business-ts-sales-management": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.6"

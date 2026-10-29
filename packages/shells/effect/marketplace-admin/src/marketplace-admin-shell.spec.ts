@@ -53,7 +53,7 @@ describe('the marketplace-admin shell', () => {
     expect(Layer.isLayer(layer)).toBe(true);
   });
 
-  it('offers the booted composition and the routes as layers', () => {
+  it('offers the booted composition as a layer', () => {
     expect(Layer.isLayer(makeAppLayer({ seed }))).toBe(true);
     expect(Layer.isLayer(router)).toBe(true);
   });

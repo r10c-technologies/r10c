@@ -1,4 +1,4 @@
-import type { TransitionalFailure } from '@entifix/core';
+import type { Overloaded, UpstreamUnavailable } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
@@ -24,12 +24,16 @@ export interface PublishedPrice {
  *
  * A port, because the projection is another slice's store: the reader reaches
  * it through its anonymous read route, and which address that is belongs to
- * composition.
+ * composition. A projection that cannot be read is `UpstreamUnavailable`,
+ * and `Overloaded` once the retry budget for reading it is spent.
  */
 export interface PublishedPriceReader {
   readonly priceOf: (
     offeringId: string,
-  ) => Effect.Effect<PublishedPrice | undefined, TransitionalFailure>;
+  ) => Effect.Effect<
+    PublishedPrice | undefined,
+    UpstreamUnavailable | Overloaded
+  >;
 }
 
 export class PublishedPriceReaderTag extends Context.Service<

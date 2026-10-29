@@ -7,7 +7,7 @@ import {
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeAppLayer, router, salesComposition } from './index.js';
+import { makeAppLayer, salesComposition } from './index.js';
 
 const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 
@@ -51,8 +51,7 @@ describe('the sales shell', () => {
     expect(exit._tag).toBe('Failure');
   });
 
-  it('offers the booted composition and the routes as layers', () => {
+  it('offers the booted composition as a layer', () => {
     expect(Layer.isLayer(makeAppLayer({ seed }))).toBe(true);
-    expect(Layer.isLayer(router)).toBe(true);
   });
 });

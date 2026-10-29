@@ -9,4 +9,4 @@ export {
   salesComposition,
   type SalesShellOptions,
 } from './app-layer.js';
-export { endpoints, policy, router } from './router.js';
+export { endpoints, policy } from './endpoints.js';

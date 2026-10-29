@@ -1,7 +1,7 @@
 /**
  * The service as a *composable definition*, separate from `main.ts` which boots
  * it — the split every backend here makes, so an e2e `mock` profile can launch
- * the real router in-process against driver fakes rather than re-declaring a
+ * the real endpoints in-process against driver fakes rather than re-declaring a
  * stand-in that could drift.
  */
 import { makeAppLayer } from '@r10c/shells-effect-sales';
@@ -17,7 +17,7 @@ export const AppLayer = makeAppLayer({ seed: seedSales });
  */
 export { SALES_CHANNEL_COLLECTION } from './sales-channel-index';
 export { salesChannelTempData } from './sales-temp-data';
-export { endpoints, policy, router } from '@r10c/shells-effect-sales';
+export { endpoints, policy } from '@r10c/shells-effect-sales';
 /**
  * Exported so the e2e `mock` profile boots the **real** seed rather than a
  * fixture of its own: both profiles then read the same channels, and a shared

@@ -180,7 +180,7 @@ describe('the till', () => {
 
   it('sends offering ids and quantities, never prices', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
-      status: 201,
+      status: 200,
       json: async () => ({ data: {} }),
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -192,18 +192,52 @@ describe('the till', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('/api/sales/counter-sale');
+    // The channel's own `sell` verb: the channel is the record it is bound to.
+    expect(url).toBe('/api/sales/sales-channel/sales-channel-counter/sell');
     expect(JSON.parse(String(init.body))).toEqual({
-      channelId: 'sales-channel-counter',
       paymentMethod: 'cash',
       lines: [{ offeringId: 'product-offering-1', quantity: 2 }],
     });
   });
 
+  it('charges again under the same key only when the first never arrived', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({
+        status: 409,
+        json: async () => ({ code: 'stockUnavailable' }),
+      })
+      .mockResolvedValue({ status: 200, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    renderTill();
+
+    await ringUp(user);
+    const finish = screen.getByRole('button', { name: /Finalizar/i });
+    await user.click(finish);
+    await screen.findByText('Algo salió mal.');
+    await user.click(finish);
+    await screen.findByText(/No se pudo completar la venta/);
+    await user.click(finish);
+    await screen.findByText('Venta registrada');
+
+    const keys = fetchMock.mock.calls.map(
+      ([, init]) =>
+        (init as RequestInit & { headers: Record<string, string> }).headers[
+          'idempotency-key'
+        ],
+    );
+    // Lost in transit: the retry is the same checkout. Answered: the sale was
+    // decided, and the next charge is a new one.
+    expect(keys[1]).toBe(keys[0]);
+    expect(keys[2]).not.toBe(keys[1]);
+  });
+
   it('tells the seller the sale landed, and offers the next one', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({ status: 201, json: async () => ({}) }),
+      vi.fn().mockResolvedValue({ status: 200, json: async () => ({}) }),
     );
     const user = userEvent.setup();
     renderTill();
@@ -385,7 +419,7 @@ describe('charging', () => {
   it('sends the payment method the seller picked', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValue({ status: 201, json: async () => ({}) });
+      .mockResolvedValue({ status: 200, json: async () => ({}) });
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     renderTill();
@@ -436,7 +470,7 @@ describe('charging', () => {
     const onFinished = vi.fn();
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({ status: 201, json: async () => ({}) }),
+      vi.fn().mockResolvedValue({ status: 200, json: async () => ({}) }),
     );
     const user = userEvent.setup();
     renderTill({ onFinished });

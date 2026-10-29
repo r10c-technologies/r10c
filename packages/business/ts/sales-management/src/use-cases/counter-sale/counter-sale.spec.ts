@@ -1,5 +1,4 @@
 import { EntityRepositoryFactoryTag } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   type PublishedPrice,
@@ -14,12 +13,7 @@ import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { SalesChannel } from '../../entities/sales-channel/index.js';
-import {
-  CounterSaleRefused,
-  readCounterSale,
-  sellAtCounter,
-  validateSalesChannel,
-} from './counter-sale.js';
+import { sellAtCounter, validateSalesChannel } from './counter-sale.js';
 
 const channelOf = (id: string, status: string, type = 'counter') =>
   Object.assign(new SalesChannel(), { id, name: `Till ${id}`, type, status });
@@ -59,85 +53,34 @@ const world = (
         }),
     }),
   );
+  const sale = (channelId: string, offeringId = 'mine') =>
+    sellAtCounter({
+      organizationId: 'org-1',
+      channelId,
+      idempotencyKey: 'sale-1',
+      sale: { paymentMethod: 'cash', lines: [{ offeringId, quantity: 2 }] },
+    }).pipe(Effect.provide(layer));
+  /** The failure a sale ends in. */
   const sell = (channelId: string, offeringId = 'mine') =>
-    Effect.runPromise(
-      sellAtCounter({
-        organizationId: 'org-1',
-        idempotencyKey: 'sale-1',
-        sale: {
-          channelId,
-          paymentMethod: 'cash',
-          lines: [{ offeringId, quantity: 2 }],
-        },
-      }).pipe(
-        Effect.flip,
-        Effect.orElseSucceed(() => 'succeeded' as const),
-        Effect.provide(layer),
-      ),
-    );
-  const sold = (channelId: string) =>
-    Effect.runPromise(
-      sellAtCounter({
-        organizationId: 'org-1',
-        idempotencyKey: 'sale-1',
-        sale: {
-          channelId,
-          paymentMethod: 'cash',
-          lines: [{ offeringId: 'mine', quantity: 2 }],
-        },
-      }).pipe(Effect.provide(layer)),
-    );
+    Effect.runPromise(Effect.flip(sale(channelId, offeringId)));
+  const sold = (channelId: string) => Effect.runPromise(sale(channelId));
   return { sell, sold, started };
 };
 
-describe('readCounterSale', () => {
-  it('reads a channel, a payment method and lines of positive whole quantities', () => {
-    expect(
-      readCounterSale({
-        channelId: 'c',
-        paymentMethod: 'cash',
-        lines: [{ offeringId: 'o', quantity: 1, amount: 1 }],
-      }),
-    ).toEqual({
-      channelId: 'c',
-      paymentMethod: 'cash',
-      lines: [{ offeringId: 'o', quantity: 1 }],
-    });
-  });
-
-  it('refuses anything else', () => {
-    const line = { offeringId: 'o', quantity: 1 };
-    const bodies: unknown[] = [
-      null,
-      'sale',
-      { paymentMethod: 'cash', lines: [line] },
-      { channelId: 'c', lines: [line] },
-      { channelId: 'c', paymentMethod: 'cash', lines: [] },
-      { channelId: 'c', paymentMethod: 'cash', lines: 'many' },
-      { channelId: 'c', paymentMethod: 'cash', lines: [null] },
-      {
-        channelId: 'c',
-        paymentMethod: 'cash',
-        lines: [{ offeringId: 'o', quantity: 1.5 }],
-      },
-      { channelId: 'c', paymentMethod: 'cash', lines: [{ quantity: 1 }] },
-    ];
-
-    expect(bodies.map(readCounterSale).every(read => read === undefined)).toBe(
-      true,
-    );
-  });
-});
-
 describe('validateSalesChannel', () => {
   it('passes a declared type and status, and names whichever is wrong', () => {
-    expect(validateSalesChannel(channelOf('c', 'active'))).toBeUndefined();
-    expect(
-      validateSalesChannel(channelOf('c', 'active', 'kiosk')),
-    ).toBeInstanceOf(EntifixBuildError);
-    expect(validateSalesChannel(channelOf('c', 'paused'))).toBeInstanceOf(
-      EntifixBuildError,
-    );
+    const open = channelOf('c', 'active');
+    const check = (channel: SalesChannel) =>
+      Effect.runSync(
+        validateSalesChannel(channel).pipe(
+          Effect.as(undefined),
+          Effect.catch(refusal => Effect.succeed(refusal.reason)),
+        ),
+      );
+
+    expect(Effect.runSync(validateSalesChannel(open))).toBe(open);
+    expect(check(channelOf('c', 'active', 'kiosk'))).toContain('"kiosk"');
+    expect(check(channelOf('c', 'paused'))).toContain('"paused"');
   });
 });
 
@@ -145,7 +88,7 @@ describe('sellAtCounter', () => {
   it('starts the checkout at published prices, with the channel copied onto the order', async () => {
     const { sold, started } = world();
 
-    expect(await sold('c-open')).toEqual({ _tag: 'sold', result: 'r' });
+    expect(await sold('c-open')).toBe('r');
     expect(started[0]?.['reserve']).toEqual([
       {
         organizationId: 'org-1',
@@ -170,20 +113,24 @@ describe('sellAtCounter', () => {
       sell('c-open', 'theirs'),
     ]);
 
-    expect(
-      refusals.map(refusal => (refusal as CounterSaleRefused).code),
-    ).toEqual(['notFound', 'channelInactive', 'invalidBody', 'notYours']);
+    expect(refusals.map(refusal => refusal.code)).toEqual([
+      'notFound',
+      'channelInactive',
+      'invalidBody',
+      'notYours',
+    ]);
     expect(started).toEqual([]);
   });
 
-  it('answers a compensated flow as unavailable, and a failed one as a store failure', async () => {
+  it('answers a compensated flow as unavailable stock, and a failed one as the coordinator unavailable', async () => {
     expect(
-      await world({ _tag: 'compensated', result: {} }).sold('c-open'),
-    ).toEqual({
-      _tag: 'unavailable',
-    });
+      await world({ _tag: 'compensated', result: {} }).sell('c-open'),
+    ).toMatchObject({ _tag: 'StockUnavailable', channelId: 'c-open' });
     expect(
       await world({ _tag: 'failed', status: 502, result: {} }).sell('c-open'),
-    ).toBeInstanceOf(EntifixConnError);
+    ).toMatchObject({
+      _tag: 'UpstreamUnavailable',
+      upstream: 'transaction-service',
+    });
   });
 });

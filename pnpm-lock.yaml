@@ -650,6 +650,9 @@ importers:
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../packages/business/ts/catalog-reference
+      '@r10c/business-ts-marketplace-catalog':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/marketplace-catalog
       '@r10c/business-ts-sales-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/sales-management
@@ -2423,6 +2426,9 @@ importers:
       '@r10c/business-ts-catalog-contracts':
         specifier: workspace:*
         version: link:../catalog-contracts
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../common
       '@r10c/business-ts-saga-contracts':
         specifier: workspace:*
         version: link:../saga-contracts
@@ -3050,18 +3056,12 @@ importers:
 
   packages/implementation/sales-management/http:
     dependencies:
-      '@entifix/authz':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/business':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
-      '@entifix/service-shell':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
       '@r10c/business-ts-sales-management':
         specifier: workspace:*
         version: link:../../../business/ts/sales-management
@@ -3541,6 +3541,9 @@ importers:
       '@entifix/mongo':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(@entifix/transactions@0.12.0-rc.4(effect@4.0.6))(effect@4.0.6)
+      '@entifix/service-shell':
+        specifier: 'catalog:'
+        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
       '@r10c/implementation-sales-management-http':
         specifier: workspace:*
         version: link:../../../implementation/sales-management/http
@@ -4213,6 +4216,9 @@ importers:
       '@r10c/business-ts-payment-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/payment-management
+      '@r10c/business-ts-sales-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/sales-management
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/stock-management
@@ -4255,6 +4261,9 @@ importers:
       '@r10c/shells-effect-payment':
         specifier: workspace:*
         version: link:../../packages/shells/effect/payment
+      '@r10c/shells-effect-sales':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/sales
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service

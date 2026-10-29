@@ -1,4 +1,4 @@
-import { expect, test } from './support/fixtures';
+import { expect, ringUps, test } from './support/fixtures';
 
 /**
  * The selling surface: the channels a vendor authors, and the till they sell at.
@@ -9,7 +9,7 @@ import { expect, test } from './support/fixtures';
  * verbatim in `fixtures.ts`. The service's half is `sales-service-e2e`, and the
  * sale itself is a live journey — a saga dispatched at a stubbed coordinator
  * would assert that a request can be composed and nothing about whether a sale
- * happened.
+ * happened. What this file asserts of the till is which endpoint it reaches.
  */
 
 test('files the channels under Definiciones and the till under Asistentes', async ({
@@ -80,4 +80,33 @@ test('addresses the till as a wizard', async ({ page }) => {
   await page.goto('/workspace?tab=wizard:counter-sale');
 
   await expect(page.getByRole('combobox', { name: 'Canal' })).toBeVisible();
+});
+
+test('rings up a sale through the channel’s own sell verb', async ({
+  page,
+}) => {
+  await page.goto('/sales/counter-sale');
+
+  await page
+    .getByRole('combobox', { name: 'Canal' })
+    .selectOption('sales-channel-counter');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page
+    .getByRole('combobox', { name: 'Producto' })
+    .selectOption('product-offering-1');
+  await page.getByRole('button', { name: 'Agregar producto' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: /Finalizar/ }).click();
+
+  await expect(page.getByText('Venta registrada')).toBeVisible();
+  // The verb bound to the channel, under a key so a retried charge is one
+  // checkout — and a body with no price in it, because the service re-prices.
+  const sale = ringUps.at(-1);
+  expect(sale?.url).toBe('/api/sales/sales-channel/sales-channel-counter/sell');
+  expect(sale?.idempotencyKey).toMatch(/^".+"$/);
+  expect(sale?.body).toEqual({
+    paymentMethod: 'cash',
+    lines: [{ offeringId: 'product-offering-1', quantity: 1 }],
+  });
 });

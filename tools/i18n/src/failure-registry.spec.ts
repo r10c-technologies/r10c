@@ -31,8 +31,6 @@ const LEGACY_UNSCANNED: ReadonlySet<string> = new Set([
   'categoryTreeUnreadable',
   'invalidCommand',
   'alreadyRetired',
-  'channelInactive',
-  'notYours',
 ]);
 
 describe('Every registered failure is cataloged', () => {

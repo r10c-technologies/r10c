@@ -63,7 +63,7 @@ describe('the marketplace shell', () => {
     expect(exit._tag).toBe('Failure');
   });
 
-  it('offers the booted composition and the routes as layers', () => {
+  it('offers the booted composition as a layer', () => {
     expect(Layer.isLayer(makeAppLayer({ seed }))).toBe(true);
     expect(Layer.isLayer(router)).toBe(true);
   });

@@ -12,6 +12,7 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 import {
@@ -27,7 +28,7 @@ import {
 } from '@r10c/business-ts-stock-management';
 
 import { brandSeed, categorySeed, productSeed } from './catalog-seed';
-import { salesChannelSeed } from './sales-seed';
+import { publishedOfferingSeed, salesChannelSeed } from './sales-seed';
 import {
   agreementSeed,
   commissionEntrySeed,
@@ -160,16 +161,6 @@ const stockMetadataHandlers = (
   ),
 );
 
-/**
- * The channel screens' affordance document, served from the **app's own**
- * `/api/sales/...` proxy path for the reason the stock ones are: the metadata
- * source is app-relative so the browser never holds a backend address, and
- * stubbing the backend path would leave these unstubbed and every screen
- * pre-ADR-0026.
- *
- * `["read","write","delete"]`, unlike stock's: a vendor authors their own
- * channels, so the generated form really does offer Save.
- */
 const agreements = entityBackendHandlers(Agreement, {
   baseUrl: `${SETTLEMENT_SERVICE_URL}/agreement`,
   seed: agreementSeed,
@@ -217,12 +208,57 @@ const settlementMetadataHandlers = (
   ),
 );
 
+/**
+ * The channel screens' affordance document, served from the **app's own**
+ * `/api/sales/...` proxy path for the reason the stock ones are: the metadata
+ * source is app-relative so the browser never holds a backend address, and
+ * stubbing the backend path would leave these unstubbed and every screen
+ * pre-ADR-0026.
+ *
+ * `["read","write","delete"]`, unlike stock's: a vendor authors their own
+ * channels, so the generated form really does offer Save.
+ */
 const salesMetadataHandlers = [
   http.get(`${APP_URL}/api/sales/sales-channel/$metadata`, () =>
     HttpResponse.json({
       meta: { type: 'entityMetadata', entity: 'sales-channel' },
       data: { actions: ['read', 'write', 'delete'], useCases: [] },
     }),
+  ),
+];
+
+const publishedOfferings = entityBackendHandlers(PublishedOffering, {
+  baseUrl: `${REFERENCE_SERVICE_URL}/published-offering`,
+  seed: publishedOfferingSeed,
+});
+
+/** Every sale the till rang up in this run, as the proxy received it. */
+export const ringUps: Array<{
+  readonly url: string;
+  readonly idempotencyKey: string | null;
+  readonly body: unknown;
+}> = [];
+
+/**
+ * The till's write, the channel's derived `sell` verb, on the app's own
+ * proxy path. It answers as sales-service does once the checkout completed;
+ * whether a sale happens is the live journey's question, and this one is
+ * which endpoint the till reaches and what it sends.
+ */
+const sellHandlers = [
+  http.post(
+    `${APP_URL}/api/sales/sales-channel/:id/sell`,
+    async ({ request }) => {
+      ringUps.push({
+        url: new URL(request.url).pathname,
+        idempotencyKey: request.headers.get('idempotency-key'),
+        body: await request.json(),
+      });
+      return HttpResponse.json({
+        meta: { type: 'sagaResult', entity: 'counter-sale' },
+        data: {},
+      });
+    },
   ),
 ];
 
@@ -280,6 +316,8 @@ const base = defineEntifixE2eTest({
     ...settlementMetadataHandlers,
     ...stockMetadataHandlers,
     ...salesMetadataHandlers,
+    ...publishedOfferings.handlers,
+    ...sellHandlers,
     ...createHandlers,
   ],
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;

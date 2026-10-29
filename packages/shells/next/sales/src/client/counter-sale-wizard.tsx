@@ -279,24 +279,36 @@ export function CounterSaleWizard({
     setPendingQuantity('1');
   };
 
+  // One key per sale, kept across a charge that never reached the service so
+  // that pressing Finalizar again starts the same checkout rather than a second
+  // one; dropped once the service has answered, because that sale is decided.
+  const saleKey = useRef<string | undefined>(undefined);
+
   const charge = async () => {
     setCharging(true);
     setFailure(undefined);
-    const response = await fetch('/api/sales/counter-sale', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        channelId,
-        paymentMethod,
-        lines: lines.map(line => ({
-          offeringId: line.offeringId,
-          quantity: line.quantity,
-        })),
-      }),
-    }).catch(() => undefined);
+    saleKey.current ??= globalThis.crypto.randomUUID();
+    const response = await fetch(
+      `/api/sales/sales-channel/${encodeURIComponent(String(channelId))}/sell`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'idempotency-key': `"${saleKey.current}"`,
+        },
+        body: JSON.stringify({
+          paymentMethod,
+          lines: lines.map(line => ({
+            offeringId: line.offeringId,
+            quantity: line.quantity,
+          })),
+        }),
+      },
+    ).catch(() => undefined);
     setCharging(false);
+    if (response !== undefined) saleKey.current = undefined;
 
-    if (response?.status === 201) {
+    if (response?.status === 200) {
       // The draft is cleared only once the sale is written: a till emptied
       // before the answer loses a basket the seller would otherwise retry.
       draft.clear();

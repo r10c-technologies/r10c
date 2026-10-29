@@ -22,7 +22,7 @@ const asRecords = (
  * lazily on this first write.
  *
  * ⚠️ **A lab with no channel cannot ring up a sale at all**, because the till
- * asks for one and `POST /api/counter-sale` refuses without it. That is the
+ * asks for one and `POST /api/sales-channel/:id/sell` refuses without it. That is the
  * difference between this seed and stock's: stock's makes the lab *useful*,
  * this one makes a whole screen reachable.
  */

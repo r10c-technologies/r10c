@@ -1343,7 +1343,7 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
   // The same demo vendor the catalog and the stock positions are seeded under.
   // ⚠️ A lab with no channel cannot ring up a counter sale at all: the till asks
-  // for one and `POST /api/counter-sale` refuses without it.
+  // for one and `POST /api/sales-channel/:id/sell` refuses without it.
   {
     service: 'sales-service',
     group_name: 'tenant',

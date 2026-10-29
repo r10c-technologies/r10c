@@ -4,7 +4,7 @@ import { startMockService } from '../support/mock-service';
 import { bearerFor, signTokenFor } from '../support/tokens';
 
 /**
- * What `POST /api/counter-sale` refuses **before** it presents the coordinator's
+ * What `POST /api/sales-channel/:id/sell` refuses **before** it presents the coordinator's
  * crossing token.
  *
  * `mock`-only, and the boundary is exactly where the value is. Everything
@@ -20,17 +20,23 @@ const service = defineServiceE2e({
   startMock: startMockService,
 });
 
+const COUNTER = 'sales-channel-counter';
+
 const sell = async (
   body: unknown,
   authorization?: string,
+  channelId = COUNTER,
+  /** `null` sends no key at all. */
+  key: string | null = crypto.randomUUID(),
 ): Promise<{ status: number; data: Record<string, unknown> }> =>
-  service.client.post('/api/counter-sale', body, {
-    headers:
-      authorization === undefined ? {} : { Authorization: authorization },
+  service.client.post(`/api/sales-channel/${channelId}/sell`, body, {
+    headers: {
+      ...(authorization === undefined ? {} : { Authorization: authorization }),
+      ...(key === null ? {} : { 'idempotency-key': `"${key}"` }),
+    },
   });
 
 const ONE_LINE = {
-  channelId: 'sales-channel-counter',
   paymentMethod: 'cash',
   lines: [{ offeringId: 'product-offering-1', quantity: 1 }],
 };
@@ -59,16 +65,19 @@ describe('the till`s one write', () => {
     expect(res.data['code']).toBe('noActiveOrganization');
   });
 
+  it('is refused 400 without the key that makes a retried sale one checkout', async () => {
+    const res = await sell(ONE_LINE, await bearerFor(['admin']), COUNTER, null);
+
+    expect(res.status).toBe(400);
+    expect(res.data['code']).toBe('idempotencyKeyMissing');
+  });
+
   it.each([
-    ['no channel', { paymentMethod: 'cash', lines: ONE_LINE.lines }],
-    [
-      'no lines',
-      { channelId: 'sales-channel-counter', paymentMethod: 'cash', lines: [] },
-    ],
+    ['no payment method', { lines: ONE_LINE.lines }],
+    ['no lines', { paymentMethod: 'cash', lines: [] }],
     [
       'a fractional quantity',
       {
-        channelId: 'sales-channel-counter',
         paymentMethod: 'cash',
         lines: [{ offeringId: 'product-offering-1', quantity: 1.5 }],
       },
@@ -76,7 +85,6 @@ describe('the till`s one write', () => {
     [
       'a quantity of zero',
       {
-        channelId: 'sales-channel-counter',
         paymentMethod: 'cash',
         lines: [{ offeringId: 'product-offering-1', quantity: 0 }],
       },
@@ -84,16 +92,18 @@ describe('the till`s one write', () => {
   ])('is refused 400 for a sale with %s', async (_shape, body) => {
     const res = await sell(body, await bearerFor(['admin']));
 
+    // Refused by the verb's declared payload, before the use case runs.
     expect(res.status).toBe(400);
-    expect(res.data['code']).toBe('invalidBody');
+    expect(res.data['code']).toBe('invalid');
   });
 
   it('is refused 404 for a channel this organization does not have', async () => {
     // Not 403: the id is the store's primary key, and a 403 would make the route
     // an oracle for which channels exist in other vendors' stores.
     const res = await sell(
-      { ...ONE_LINE, channelId: 'sales-channel-somebody-elses' },
+      ONE_LINE,
       await bearerFor(['admin']),
+      'sales-channel-somebody-elses',
     );
 
     expect(res.status).toBe(404);
@@ -119,8 +129,9 @@ describe('the till`s one write', () => {
       );
 
     const res = await sell(
-      { ...ONE_LINE, channelId: created.data.data['id'] as string },
+      ONE_LINE,
       await bearerFor(['admin']),
+      created.data.data['id'] as string,
     );
 
     expect(res.status).toBe(409);

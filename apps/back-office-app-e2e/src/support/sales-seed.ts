@@ -23,3 +23,21 @@ export const salesChannelSeed = [
     status: 'active',
   },
 ];
+
+/**
+ * What the till can ring up: one offering the demo vendor publishes, priced
+ * as the projection carries it. The price is display only — sales-service
+ * re-prices every line from the projection — which is why the sale's body
+ * the journey asserts carries none.
+ */
+export const publishedOfferingSeed = [
+  {
+    id: 'published-offering-1',
+    offeringId: 'product-offering-1',
+    vendorId: 'e2e-organization',
+    name: 'Taza de cerámica',
+    amount: 25,
+    currency: 'GTQ',
+    availableHint: true,
+  },
+];
