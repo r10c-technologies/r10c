@@ -13,7 +13,9 @@ describe('AUTH_SEARCH_SOURCES', () => {
     expect(AUTH_SEARCH_SOURCES.map(source => source.key)).toEqual([
       'user-identity',
     ]);
-    expect(AUTH_SEARCH_SOURCES[0]?.labelKey).toBe('entity:user-identity.plural');
+    expect(AUTH_SEARCH_SOURCES[0]?.labelKey).toBe(
+      'entity:user-identity.plural',
+    );
   });
 
   it('searches auth-service by display name, sorted by it', () => {

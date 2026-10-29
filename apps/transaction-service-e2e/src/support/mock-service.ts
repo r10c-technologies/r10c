@@ -18,8 +18,6 @@ import {
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
 import { makeInMemoryIdempotencyStore } from '@entifix/testing-unit';
-import { TransactionStreamHubTag } from '@entifix/transactions';
-import { makeTransactionStreamHubEffect } from '@entifix/transactions/engine';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -29,8 +27,10 @@ import {
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
 import {
+  endpoints,
   HttpSagaDispatcherLayer,
   ParticipantsTag,
+  policy,
   router,
   sagaStoresLayer,
   SERVICE_NAME,
@@ -50,11 +50,7 @@ import { E2E_CROSSING_TOKEN } from './tokens';
 const CONFIGURATION = {
   mongo: [{ key: 'uri', value: 'mongodb://mock/saga' }],
   amqp: [{ key: 'uri', value: 'amqp://mock' }],
-  saga: [
-    { key: 'db', value: 'transaction_manager' },
-    { key: 'staleTimeoutMs', value: '60000' },
-    { key: 'recoveryIntervalMs', value: '10000' },
-  ],
+  saga: [{ key: 'db', value: 'transaction_manager' }],
   jwt: [
     { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
     { key: 'keyId', value: E2E_KEY_ID },
@@ -117,7 +113,6 @@ const SEEDED_SAGAS = {
 const MockAppLayer = Layer.provideMerge(
   Layer.mergeAll(
     sagaStoresLayer('transaction_manager'),
-    Layer.effect(TransactionStreamHubTag, makeTransactionStreamHubEffect),
     // The dispatcher the run route resolves. Built over an empty participant
     // map: no spec here runs a saga — that needs two live participants — and a
     // definition naming a participant this map lacks fails the *effect* rather
@@ -159,6 +154,8 @@ export const startMockService = (): Promise<RunningTestService> =>
     port: 0,
     slices: ['transaction'],
     description: fleetToken,
+    endpoints,
+    policy,
     router,
     appLayer: MockAppLayer,
   });

@@ -12,10 +12,6 @@ import { MongoTenantRepositoryFactoryLayer } from '@entifix/mongo';
 // `@entifix/mongo` when the payment slice was promoted (#237),
 // and every service that drains an outbox reads the tag from there.
 import {
-  RedisLockServiceLayer,
-  RedisSequenceServiceLayer,
-} from '@entifix/redis/transactions';
-import {
   type InMemoryObservability,
   makeInMemoryObservabilityLayer,
 } from '@entifix/service-shell/observability';
@@ -30,7 +26,6 @@ import {
   fakeAmqpLayer,
   fakeConfigurationLayer,
   fakeMongoLayer,
-  fakeRedisLayer,
 } from '@entifix/testing-e2e/fixtures';
 import { EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
 import {
@@ -46,6 +41,8 @@ import {
   MongoSpecificationCommandsLayer,
 } from '@r10c/implementation-catalog-mongo';
 import {
+  endpoints,
+  policy,
   router,
   seedCatalog,
   SERVICE_NAME,
@@ -81,18 +78,17 @@ const CONFIGURATION = {
 
 /**
  * The `mock` composition root: the same shape as the service's own `AppLayer`
- * (`apps/marketplace-admin-service/src/mongo.ts`), with the three *connections*
+ * (`@r10c/shells-effect-marketplace-admin`'s composition), with the two *connections*
  * replaced by driver fakes and the config-service fetch replaced by a literal.
  *
- * Everything above the connections is untouched — the Mongo repository, the
- * Redis lock and sequence services, the AMQP event bus and the catalog seed all
+ * Everything above the connections is untouched — the Mongo repository and
+ * the specification counter, the AMQP event bus and the catalog seed all
  * run their real code. That is what makes a green `mock` run mean something:
  * the routes, use-cases and query translation under test are the shipped ones.
  */
 const MockAppLayer = (() => {
   const connections = Layer.mergeAll(
     fakeMongoLayer().layer,
-    fakeRedisLayer().layer,
     fakeAmqpLayer().layer,
     Layer.succeed(
       TokenServiceTag,
@@ -123,18 +119,7 @@ const MockAppLayer = (() => {
     Layer.succeed(EventSourceTag, 'marketplace-admin'),
   );
 
-  const infra = Layer.provideMerge(
-    Layer.mergeAll(
-      RedisLockServiceLayer,
-      RedisSequenceServiceLayer,
-      AmqpEventBusLayer,
-      // The saga store and the reactive stream's fan-out used to be composed
-      // here too. Both left with the `transaction` slice for `:3103` (#229):
-      // this router no longer serves `/api/transaction`, so providing them
-      // would build layers nothing resolves.
-    ),
-    connections,
-  );
+  const infra = Layer.provideMerge(AmqpEventBusLayer, connections);
 
   // The REAL seed, so both profiles serve the same catalog and the shared
   // journeys can assert the same brand names. It writes into the tenant
@@ -211,10 +196,12 @@ export const startMockService = (): Promise<RunningTestService> =>
     name: SERVICE_NAME,
     // Overridden by `serveTestService`, which binds an ephemeral port.
     port: 0,
-    // The same pair the real process hosts, so `/api/$service` describes the
+    // The same slice the real process hosts, so `/api/$service` describes the
     // thing under test rather than a reduced version of it.
-    slices: ['marketplace-admin', 'transaction'],
+    slices: ['marketplace-admin'],
     description: fleetToken,
+    endpoints,
+    policy,
     router,
     appLayer: MockAppLayerWithObservability,
   });

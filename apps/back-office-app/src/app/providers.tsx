@@ -18,7 +18,6 @@ import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
   createClientAdapters,
   MarketplaceAdminAdaptersProvider,
-  TransactionSettlement,
 } from '@r10c/shells-next-marketplace-admin';
 import { OrderProvider } from '@r10c/shells-next-order';
 import { SalesProvider } from '@r10c/shells-next-sales';
@@ -81,14 +80,10 @@ function ThemedProviders({
       >
         <UiPreferencesProvider store={uiPreferencesStore}>
           <MarketplaceAdminAdaptersProvider adapters={adapters}>
-            {/* Above every route, not inside the workspace: a transactional
-                create happens at `/<basePath>/new` on the plain route, so a
-                pending set mounted in `WorkspaceShell` would never see the only
-                kind of write that is asynchronous (ADR 0043). */}
+            {/* Above every route, not inside the workspace: the wizard hands
+                its write off to this pending set at `/<basePath>/new` on the
+                plain route, which no `WorkspaceShell` encloses (ADR 0045). */}
             <PendingTransactionsProvider scope={scope}>
-              {/* Renders nothing; it holds the SSE connection that settles
-                  those writes and invalidates on any reactive change. */}
-              <TransactionSettlement />
               {/* Each shell builds its own adapters against its own backend —
                   config-service here, stock-service below — so they are
                   provided beside the catalog's rather than through it. Three

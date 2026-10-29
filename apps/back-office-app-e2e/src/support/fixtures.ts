@@ -239,69 +239,22 @@ export const categoryBackend = categories.backend;
 export const productBackend = products.backend;
 
 /**
- * What the tracker currently says about a transaction, and what the command
- * endpoint answers.
+ * A specification's create, answered as the service does: the record as
+ * stored, under the code it drew.
  *
- * ⚠️ These are hand-written rather than served by `entityBackendHandlers`,
- * because that backend is **read-only** — it exposes `list` and `get` and no
- * write at all, which is why no browser-side create has ever been exercised
- * (ADR 0028 records the create bug that fact hid). Widening the shared fixture
- * is a bigger change than this journey needs.
+ * ⚠️ Hand-written rather than served by `entityBackendHandlers`, because that
+ * backend is **read-only** — it exposes `list` and `get` and no write at all.
  */
-export const transactionState: {
-  record: Record<string, unknown> | undefined;
-  status: number;
-} = { record: undefined, status: 404 };
-
-/** Points the tracker at a state, the way the real one would move. */
-export function trackTransaction(
-  state: 'PENDING' | 'COMPLETED' | 'FAILED',
-  error?: string,
-) {
-  transactionState.status = 200;
-  transactionState.record = {
-    entity: 'product-specification',
-    state,
-    error,
-    createdAt: '2026-09-06T00:00:00.000Z',
-    updatedAt: '2026-09-06T00:00:00.000Z',
-  };
-}
-
-/** Back to "the tracker has never heard of it" — the broker-down case. */
-export function untrackTransactions() {
-  transactionState.status = 404;
-  transactionState.record = undefined;
-}
-
-const transactionHandlers = [
-  // The command endpoint: a `202` describing a transaction, never an entity.
+const createHandlers = [
   http.post(PRODUCT_URL, async ({ request }) => {
     const body = (await request.json()) as {
-      data: { transactionId: string };
+      data: Record<string, unknown>;
     };
-    return HttpResponse.json(
-      {
-        meta: { type: 'transactionAccepted', entity: 'product-specification' },
-        data: { transactionId: body.data.transactionId, state: 'PENDING' },
-      },
-      { status: 202 },
-    );
+    return HttpResponse.json({
+      meta: { type: 'entity', entity: 'product-specification' },
+      data: { ...body.data, id: 'spec-created', code: 'product-901' },
+    });
   }),
-  http.get(`${SERVICE_URL}/transaction/:id`, ({ params }) =>
-    transactionState.status === 404
-      ? HttpResponse.json(
-          { error: 'transaction not found', code: 'notFound' },
-          { status: 404 },
-        )
-      : HttpResponse.json({
-          meta: { type: 'transactionRecord', entity: 'product-specification' },
-          data: { ...transactionState.record, transactionId: params['id'] },
-        }),
-  ),
-  // The stream itself is not stubbed: `EventSource` against an unstubbed path
-  // simply never opens, which is exactly the "outcome missed" state the
-  // reconcile-on-connect path exists for, and the one this journey drives.
 ];
 
 /**
@@ -327,7 +280,7 @@ const base = defineEntifixE2eTest({
     ...settlementMetadataHandlers,
     ...stockMetadataHandlers,
     ...salesMetadataHandlers,
-    ...transactionHandlers,
+    ...createHandlers,
   ],
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;
   // only unstubbed *service* traffic should fail a test.

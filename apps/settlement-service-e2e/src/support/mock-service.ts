@@ -19,7 +19,11 @@ import {
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
 import { makeRecordingEventBus } from '@entifix/testing-unit';
-import { EventBusTag, EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -30,6 +34,8 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import { MongoSettlementStoreLayer } from '@r10c/implementation-settlement-mongo';
 import {
+  endpoints,
+  policy,
   router,
   SERVICE_NAME,
   SETTLEMENT_SLICE,
@@ -217,6 +223,8 @@ export const startMockService = (): Promise<RunningTestService> =>
     port: 0,
     slices: ['settlement'],
     description: fleetToken,
+    endpoints,
+    policy,
     router,
     appLayer: MockAppLayer,
   });

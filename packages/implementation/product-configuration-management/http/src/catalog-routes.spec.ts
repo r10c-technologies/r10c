@@ -5,11 +5,6 @@ import {
   TokenServiceTag,
 } from '@entifix/business';
 import {
-  Contention,
-  EntifixBuildError,
-  EntifixConnError,
-  EntifixLockError,
-  Invalid,
   type TransitionalFailure,
   Unavailable,
 } from '@entifix/core';
@@ -62,8 +57,19 @@ const specifications = makeInMemoryEntityRepository([
 ]);
 
 let storeDown = false;
-let accepted: Effect.Effect<{ transactionId: string }, TransitionalFailure> =
-  Effect.succeed({ transactionId: 't-1' });
+let creating: (
+  specification: ProductSpecification,
+  key: string | undefined,
+) => Effect.Effect<ProductSpecification, TransitionalFailure> = (
+  specification,
+  key,
+) =>
+  Effect.succeed(
+    Object.assign(specification, {
+      id: key ?? 'spec-new',
+      code: 'product-001',
+    }),
+  );
 
 const vendor = tokenClaims({ activeOrganizationId: 'acme' });
 
@@ -95,7 +101,10 @@ beforeAll(() => {
           ),
         reannounce: () => Effect.succeed('announced' as const),
       }),
-      Layer.succeed(SpecificationCommandsTag, { accept: () => accepted }),
+      Layer.succeed(SpecificationCommandsTag, {
+        create: (_organizationId, specification, key) =>
+          creating(specification, key),
+      }),
       Layer.succeed(EventSourceTag, 'marketplace-admin'),
       Layer.succeed(TokenServiceTag, {
         sign: () => Effect.succeed('t'),
@@ -132,58 +141,49 @@ const codeOf = async (response: Response) =>
   ((await response.json()) as { code?: string }).code;
 
 describe('POST /api/product-specification', () => {
-  it('accepts the command with 202 and a status link to watch', async () => {
-    const response = await send('POST', '/api/product-specification', {});
+  const envelope = (data: Record<string, unknown>) => ({
+    meta: { type: 'entity', entity: 'product-specification' },
+    data,
+  });
 
-    expect(response.status).toBe(202);
-    expect(await response.json()).toMatchObject({
-      meta: {
-        type: 'transactionAccepted',
-        links: [{ rel: 'status', href: '/api/transaction/t-1' }],
+  it('answers the record as stored, under the code the create drew', async () => {
+    const response = await served.call('/api/product-specification', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer vendor',
+        'idempotency-key': '"key-1"',
       },
-      data: { transactionId: 't-1', state: 'PENDING' },
+      body: JSON.stringify(envelope({ name: 'A mug' })),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      meta: { type: 'entity', entity: 'product-specification' },
+      data: { id: 'key-1', name: 'A mug', code: 'product-001' },
     });
   });
 
-  it('answers a held lock with 409, a refused command with its rule, and a store failure with 500', async () => {
-    const answers: [
-      Effect.Effect<never, TransitionalFailure>,
-      number,
-      string?,
-    ][] = [
-      [Effect.fail(new EntifixLockError('held')), 409, 'resourceBusy'],
-      [
-        Effect.fail(
-          Object.assign(new EntifixBuildError('media refused'), {
-            code: 'mediaNotHttps',
-          }),
-        ),
-        400,
-        'mediaNotHttps',
-      ],
-      [Effect.fail(new EntifixBuildError('no name')), 400, 'invalidCommand'],
-      [Effect.fail(new Contention({})), 409, 'resourceBusy'],
-      [
-        Effect.fail(
-          new Invalid({
-            errors: [
-              { pointer: '/name', detail: 'required', code: 'required' },
-            ],
-          }),
-        ),
-        400,
-        'invalid',
-      ],
-      [Effect.fail(new EntifixConnError('store down')), 500],
-    ];
-    for (const [answer, status, code] of answers) {
-      accepted = answer;
-      const response = await send('POST', '/api/product-specification', {});
+  it('refuses unsafe media before writing, and answers a store failure', async () => {
+    const unsafe = await send(
+      'POST',
+      '/api/product-specification',
+      envelope({
+        name: 'x',
+        media: [{ url: 'http://cdn.example/a.jpg', alt: 'A' }],
+      }),
+    );
+    creating = () => Effect.fail(new Unavailable({}));
+    const down = await send(
+      'POST',
+      '/api/product-specification',
+      envelope({ name: 'A mug' }),
+    );
 
-      expect(response.status).toBe(status);
-      if (code !== undefined) expect(await codeOf(response)).toBe(code);
-    }
-    accepted = Effect.succeed({ transactionId: 't-1' });
+    console.log('UNSAFE', unsafe.status, await unsafe.clone().text());
+    expect(unsafe.status).toBe(400);
+    expect(await codeOf(unsafe)).toBe('mediaNotHttps');
+    expect(down.status).toBe(503);
   });
 
   it('refuses unsafe media on the update too', async () => {

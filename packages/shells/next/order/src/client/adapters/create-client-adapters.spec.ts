@@ -1,6 +1,4 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import {
   http,
   HttpResponse,
@@ -59,9 +57,10 @@ describe('createClientAdapters', () => {
     const adapters = createClientAdapters();
 
     await Effect.runPromise(
-      Context.get(adapters.productOrderRest, EntityRepositoryTag)
-        .load({ filtering: [], pageSize: 10 } as never)
-        ,
+      Context.get(adapters.productOrderRest, EntityRepositoryTag).load({
+        filtering: [],
+        pageSize: 10,
+      } as never),
     );
 
     expect(urls.some(url => url.startsWith(`${SERVICE}/product-order`))).toBe(

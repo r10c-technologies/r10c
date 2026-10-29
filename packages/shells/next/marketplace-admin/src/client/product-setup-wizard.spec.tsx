@@ -1,8 +1,6 @@
 import 'fake-indexeddb/auto';
 
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import {
   assertWizardDefinition,
   EntifixConnError,
@@ -10,9 +8,7 @@ import {
 } from '@entifix/core';
 import { useDraftsState } from '@entifix/next-shell';
 import { EntifixQueryProvider } from '@entifix/react-integration';
-import {
-  makeInMemoryEntityRepository,
-} from '@entifix/testing-unit';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   ProductBrand,
   ProductCategory,
@@ -101,7 +97,6 @@ const adapters = (): MarketplaceAdminAdapters => ({
   productBrandUseCases: real.productBrandUseCases,
   productCategoryUseCases: real.productCategoryUseCases,
   productOfferingUseCases: real.productOfferingUseCases,
-  transactionStatus: real.transactionStatus,
 });
 
 const renderWizard = (props: { step?: string; onFinished?: () => void } = {}) =>
@@ -167,7 +162,7 @@ describe('the blank path', () => {
     await click('Continuar');
 
     // `name` is required and this is the step that owns it. `code` is not asked
-    // for at all — the create transaction assigns it.
+    // for at all — the create draws it.
     expect(await screen.findByLabelText(/Nombre/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Código/)).not.toBeInTheDocument();
     await click('Continuar');

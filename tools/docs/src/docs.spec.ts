@@ -1177,7 +1177,7 @@ describe('The dashboard charts the metrics the fleet declares', () => {
       'engine',
       'outbox-metrics.js',
     ),
-    // `transactions_by_state` left with the `saga` store's owner when the
+    // The saga sweep's metrics, with the `saga` store's owner since the
     // `transaction` slice took `:3103` (#229). A module missing from this list
     // is not a loud failure — the dashboard check would simply stop knowing the
     // metric is declared and call every panel querying it undeclared.
@@ -1288,11 +1288,10 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   };
 
   it('finds the metrics it is meant to check', () => {
-    // Twelve: five bus counters and the paused-consumer gauge, three outbox
-    // gauges, one transaction gauge, and the saga sweep's gauge and counter.
-    // Pinned as a count rather than a Set size, so the doc-comment over-match
+    // Eleven: five bus counters and the paused-consumer gauge, three outbox
+    // gauges, and the saga sweep's gauge and counter. Pinned as a count rather than a Set size, so the doc-comment over-match
     // the DECLARATION regex is written to avoid cannot hide behind dedup.
-    expect(declared()).toHaveLength(12);
+    expect(declared()).toHaveLength(11);
     expect(new Set(queried()).size).toBeGreaterThanOrEqual(8);
   });
 

@@ -235,18 +235,6 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'marketplace-admin-service-domain',
     value: 'http://localhost:3101/api',
   },
-  // transaction-service, which a catalog `202` hands the browser off to. It was
-  // reachable through the admin domain above while the `transaction` slice was
-  // co-deployed there; it took `:3103` when ADR 0039's trigger fired (#229), so
-  // it needs a domain key — and therefore a proxy path — of its own. The app
-  // rewrites this to `/api/transaction` before the browser sees it, which is
-  // what keeps the reactive stream same-origin (ADR 0036).
-  {
-    service: 'back-office-app',
-    group_name: 'uri',
-    key: 'transaction-service-domain',
-    value: 'http://localhost:3103/api',
-  },
   // The second catalog backend. ADR 0022 moved brand, category and the
   // characteristic dictionary to the platform-plane `catalog-reference` store,
   // which marketplace-service owns — a marketplace has to merge a browse tree
@@ -603,15 +591,7 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'metricIntervalMs',
     value: '60000',
   },
-  // Transaction event bus (Redis locks/sequences + RabbitMQ) for the admin
-  // service's transactional writes.
-  {
-    service: 'marketplace-admin-service',
-    group_name: 'redis',
-    key: 'uri',
-    value: 'redis://:localdev@127.0.0.1:30379',
-    is_secret: true,
-  },
+  // The bus marketplace-admin-service announces its catalog on.
   {
     service: 'marketplace-admin-service',
     group_name: 'rabbitmq',
@@ -688,31 +668,10 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'db',
     value: 'transaction_manager',
   },
-  // How long a transaction may sit in a non-terminal state before the recovery
-  // sweep presumes it stuck and marks it `STALE`. A genuine operational dial:
-  // raise it while a slow participant settles, and the next sweep reads the new
-  // value.
-  {
-    service: 'transaction-service',
-    group_name: 'saga',
-    key: 'staleTimeoutMs',
-    value: '60000',
-  },
-  // How often that sweep runs. Deliberately *not* the same dial as the timeout
-  // above: shortening the interval makes a stuck transaction visible sooner,
-  // shortening the timeout changes what counts as stuck. Tuning one by moving
-  // the other is how a fleet ends up flagging healthy work.
-  {
-    service: 'transaction-service',
-    group_name: 'saga',
-    key: 'recoveryIntervalMs',
-    value: '10000',
-  },
   // How long a *saga instance* may sit untouched before a sweep presumes its
   // coordinator is gone and finishes the flow itself (#233).
   //
-  // ⚠️ A different window from `staleTimeoutMs` above, which is about
-  // single-step transaction records. `updatedAt` is re-stamped before every
+  // ⚠️ `updatedAt` is re-stamped before every
   // dispatch, so this must stay above the longest a step legitimately takes —
   // below it, a resume runs underneath a coordinator still waiting on a slow
   // participant, and both dispatch.

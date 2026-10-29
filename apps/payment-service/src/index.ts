@@ -1,8 +1,10 @@
 import { makeAppLayer } from '@r10c/shells-effect-payment';
 
 export {
+  endpoints,
   makeSimulatedPaymentProvider,
   PAYMENT_SLICE,
+  policy,
   router,
   SimulatedPaymentProviderLayer,
 } from '@r10c/shells-effect-payment';

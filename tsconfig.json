@@ -271,9 +271,6 @@
       "path": "./packages/implementation/auth/mongo"
     },
     {
-      "path": "./packages/implementation/saga/mongo"
-    },
-    {
       "path": "./packages/implementation/authn/http"
     },
     {

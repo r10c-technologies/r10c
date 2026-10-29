@@ -13,11 +13,7 @@ import { workspaceRegistry } from './workspace-registry';
  *
  * `scope` is resolved by the server page from the session; it keys the persisted
  * tabs and drafts so two accounts on one browser profile never share them.
- *
- * The reactive stream used to be mounted here. It is not any more: settlement
- * needs it outside the workspace too, because a transactional create happens on
- * the plain catalog route, so `TransactionSettlement` holds it above every
- * authenticated page instead (ADR 0043).
+
  */
 export function WorkspaceView({ scope }: { scope: string }) {
   const t = useT('app');

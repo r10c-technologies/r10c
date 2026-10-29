@@ -35,6 +35,7 @@ import {
 } from '@entifix/zitadel';
 import {
   AuthnHostLayer,
+  endpoints,
   entityIdentifierSeedData,
   IdTokenStoreTag,
   individualSeedData,
@@ -48,6 +49,7 @@ import {
   makeRedisProviderSessionIndex,
   makeSessionIdentityProvider,
   membershipSeedData,
+  policy,
   ProviderSessionIndexTag,
   router,
   seedIdentityProvider,
@@ -247,6 +249,8 @@ export const startMockService = (): Promise<RunningTestService> =>
     port: 0,
     slices: ['auth'],
     description: fleetToken,
+    endpoints,
+    policy,
     router,
     appLayer: MockAppLayer,
   });

@@ -1,5 +1,3 @@
-import { TransactionStreamHubTag } from '@entifix/transactions';
-import { makeTransactionStreamHubEffect } from '@entifix/transactions/engine';
 import {
   crossingTokenLayer,
   fleetBusLayer,
@@ -24,11 +22,6 @@ import {
 } from './saga/resume.js';
 import { sagaStoresLayer } from './saga/stores.js';
 import {
-  SagaRecoveryIntervalMs,
-  SagaStaleTimeoutMs,
-  startTracking,
-} from './saga/tracking.js';
-import {
   ORDER_PARTICIPANT,
   PAYMENT_PARTICIPANT,
   STOCK_PARTICIPANT,
@@ -47,12 +40,6 @@ const SERVICE_NAME = 'transaction-service';
  * line of its logic changing (#229) — and since #376 the name is handed to
  * `sagaStoresLayer`, entifix's saga store and the `saga/mongo` cell alike.
  *
- * **No Redis, and that is a boundary rather than an omission.** The locks and
- * sequences live in the `saga-coordination` store, which
- * `docs/_shared/planes.md` gives to the **marketplace-admin** slice — a similar
- * name for a different store with a different writer. Opening a Redis handle
- * here would put two slices on one store.
- *
  * **No outbox either.** An outbox entry is a `catalog` collection, one per
  * `tenant_<id>` database, written in the same Mongo transaction as the entity it
  * announces (ADR 0028) — so it belongs to the catalog's writer and stayed
@@ -63,12 +50,6 @@ export const transactionComposition = (configuration: FleetConfiguration) =>
     const { store } = configuration;
 
     const sagaDbName = yield* store.in('saga').getString('db');
-    const sagaStaleTimeoutMs = yield* store
-      .in('saga')
-      .getNumber('staleTimeoutMs');
-    const sagaRecoveryIntervalMs = yield* store
-      .in('saga')
-      .getNumber('recoveryIntervalMs');
     const sagaResumeIntervalMs = yield* store
       .in('saga')
       .getNumber('resumeIntervalMs');
@@ -112,8 +93,6 @@ export const transactionComposition = (configuration: FleetConfiguration) =>
       // directions onto one value would mean anyone allowed to *start* a
       // checkout held the key that *writes* a vendor's stock.
       yield* crossingTokenLayer(configuration),
-      Layer.succeed(SagaStaleTimeoutMs, sagaStaleTimeoutMs),
-      Layer.succeed(SagaRecoveryIntervalMs, sagaRecoveryIntervalMs),
       Layer.succeed(SagaResumeIntervalMs, sagaResumeIntervalMs),
       Layer.succeed(SagaStaleAfterMs, sagaStaleAfterMs),
       Layer.succeed(SagaMaxResumeAttempts, sagaMaxResumeAttempts),
@@ -128,31 +107,14 @@ export const transactionComposition = (configuration: FleetConfiguration) =>
         idempotency,
         sagaStoresLayer(sagaDbName),
         HttpSagaDispatcherLayer,
-        // The in-process fan-out behind `GET /api/transaction/events`. Scoped,
-        // so the connections it holds are released with the server, and shared
-        // by the whole process: one bus subscription feeds every browser rather
-        // than a broker queue per open tab, which would be a broker resource a
-        // client controls.
-        Layer.effect(TransactionStreamHubTag, makeTransactionStreamHubEffect),
       ),
       connections,
     );
 
-    // The tracker: it subscribes to the bus and forks the recovery sweep.
-    // Passive for a single-step write — it observes and recovers — while
-    // `POST /api/saga/:definition` beside it dispatches. Both read the same
-    // store, which is what makes "where did this stop, and what has been
-    // reversed" one query rather than a correlation across service logs.
-    const tracked = Layer.provideMerge(
-      Layer.effectDiscard(startTracking),
-      infra,
-    );
-
-    // ⚠️ Chained after the tracker rather than merged beside it, so the
+    // ⚠️ Chained after the stores rather than merged beside them, so the
     // resume sweep is built on a context that already has the store and the
-    // dispatcher. Merged, the two forks would race for the same services at
-    // boot.
-    return Layer.provideMerge(Layer.effectDiscard(startSagaResume), tracked);
+    // dispatcher.
+    return Layer.provideMerge(Layer.effectDiscard(startSagaResume), infra);
   });
 
 /** The composition, booted against the configuration config-service serves. */

@@ -37,7 +37,6 @@ const CONFIGURATION = fleetConfigurationOf({
     dbPrefix: 'tenant_',
     demoOrganizationId: 'demo',
   }),
-  redis: configurationRows({ uri: 'redis://127.0.0.1:1' }),
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   outbox: configurationRows({ maxAttempts: 4 }),
@@ -52,16 +51,6 @@ describe('the marketplace-admin shell', () => {
     );
 
     expect(Layer.isLayer(layer)).toBe(true);
-  });
-
-  it('refuses a configuration with no lock store, at boot', async () => {
-    const exit = await Effect.runPromiseExit(
-      marketplaceAdminComposition({ seed })(
-        fleetConfigurationOf({ ...CONFIGURATION.plain, redis: [] }),
-      ),
-    );
-
-    expect(exit._tag).toBe('Failure');
   });
 
   it('offers the booted composition and the routes as layers', () => {

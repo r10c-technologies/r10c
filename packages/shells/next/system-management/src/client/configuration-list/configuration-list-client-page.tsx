@@ -30,8 +30,7 @@ export interface ConfigurationListClientPageProps {
 export function ConfigurationListClientPage({
   hrefFor,
 }: ConfigurationListClientPageProps = {}) {
-  const { configurationRest } =
-    useSystemManagementAdapters();
+  const { configurationRest } = useSystemManagementAdapters();
   // Only the *defaults* are prefixed: a caller that supplies its own `hrefFor`
   // (a workspace tab addressing itself) owns the shape of what it passes.
   const withLocale = useLocaleHref();

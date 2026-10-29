@@ -54,7 +54,6 @@ declaration as `bindingReason`.
 | `payment`           | platform | `payment`           | active       | —                | `payment-management`                                          | single           | system-of-record        |
 | `published-catalog` | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog` |
 | `published-vendor`  | platform | `marketplace`       | active       | —                | `marketplace-vendor`                                          | single           | `projection-of:auth`    |
-| `saga-coordination` | control  | `marketplace-admin` | active       | —                | —                                                             | single           | system-of-record        |
 | `saga`              | control  | `transaction`       | active       | —                | —                                                             | single           | system-of-record        |
 | `sales`             | tenant   | `sales`             | active       | —                | `sales-management`                                            | per-organization | system-of-record        |
 | `session`           | control  | `auth`              | active       | —                | —                                                             | single           | system-of-record        |

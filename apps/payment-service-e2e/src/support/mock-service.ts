@@ -23,7 +23,11 @@ import {
   makeInMemoryIdempotencyStore,
   makeRecordingEventBus,
 } from '@entifix/testing-unit';
-import { EventBusTag, EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -34,7 +38,9 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import { MongoPaymentLedgerLayer } from '@r10c/implementation-payment-mongo';
 import {
+  endpoints,
   PAYMENT_SLICE,
+  policy,
   router,
   SERVICE_NAME,
   SimulatedPaymentProviderLayer,
@@ -147,6 +153,8 @@ export const startMockService = (): Promise<RunningTestService> =>
     port: 0,
     slices: ['payment'],
     description: fleetToken,
+    endpoints,
+    policy,
     router,
     appLayer: MockAppLayer,
   });

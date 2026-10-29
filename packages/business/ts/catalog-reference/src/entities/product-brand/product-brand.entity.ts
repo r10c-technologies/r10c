@@ -45,8 +45,8 @@ export class ProductBrand implements Entity {
     this.#id = value;
   }
 
-  // Assigned by the create transaction (`brand-001`, `brand-002`, …); optional
-  // because a raw payload arrives without one.
+  // The vocabulary's own code (`brand-001`, `brand-002`, …); optional because a
+  // raw payload arrives without one.
   @accessor({
     type: 'string',
     label: 'Code',

@@ -164,13 +164,8 @@ describe('media on a product specification', () => {
 
   const post = (media: unknown) =>
     service.client.post('/api/product-specification', {
-      meta: { type: 'command', entity: 'product-specification' },
-      data: {
-        transactionId: crypto.randomUUID(),
-        type: 'create',
-        entity: 'product-specification',
-        payload: specification(media),
-      },
+      meta: { type: 'entity', entity: 'product-specification' },
+      data: specification(media),
     });
 
   it.each([
@@ -196,7 +191,7 @@ describe('media on a product specification', () => {
     expect(res.data.code).toBe(code);
   });
 
-  it('refuses an http URL on the POST command too', async () => {
+  it('refuses an http URL on the POST create too', async () => {
     const res = await post([{ url: 'http://cdn.example/a.jpg', alt: 'Front' }]);
 
     expect(res.status).toBe(400);

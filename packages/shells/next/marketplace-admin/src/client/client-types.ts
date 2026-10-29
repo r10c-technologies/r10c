@@ -1,11 +1,5 @@
-import type {
-  EntityRepositoryTag,
-} from '@entifix/business';
-import type {
-  EntityMetadataSource,
-  EntityUseCaseRunner,
-} from '@entifix/core';
-import type { TransactionStatusReader } from '@entifix/transactions';
+import type { EntityRepositoryTag } from '@entifix/business';
+import type { EntityMetadataSource, EntityUseCaseRunner } from '@entifix/core';
 import type { Context } from 'effect/Context';
 
 export interface MarketplaceAdminAdapters {
@@ -22,6 +16,4 @@ export interface MarketplaceAdminAdapters {
   productBrandUseCases: EntityUseCaseRunner;
   productCategoryUseCases: EntityUseCaseRunner;
   productOfferingUseCases: EntityUseCaseRunner;
-  /** Reads one transaction's record, for settling an optimistic write. */
-  transactionStatus: TransactionStatusReader;
 }

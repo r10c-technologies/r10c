@@ -2,24 +2,21 @@ import {
   ConfigurationRepositoryTag,
   TenantDatabaseResolverTag,
 } from '@entifix/business';
-import {
-  ConfigurationClientInMemory,
-  EntifixBuildError,
-  isFailure,
-} from '@entifix/core';
+import { ConfigurationClientInMemory } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
 import { OUTBOX_COLLECTION } from '@entifix/mongo/transactions';
-import {
-  makeInMemoryLockService,
-  makeInMemorySequenceService,
-  makeRecordingEventBus,
-} from '@entifix/testing-unit';
+import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
-import { EventBusTag, EventSourceTag, LockServiceTag, OutboxMaxAttempts,SequenceServiceTag } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import { catalogPublishedEvent } from '@r10c/business-ts-catalog-contracts';
 import {
   OfferingCatalogTag,
   ProductOffering,
+  ProductSpecification,
   SpecificationCommandsTag,
 } from '@r10c/business-ts-product-configuration-management';
 import {
@@ -36,6 +33,7 @@ import {
   OFFERING_COLLECTION,
 } from './offering-catalog.js';
 import {
+  COUNTERS_COLLECTION,
   MongoSpecificationCommandsLayer,
   SPECIFICATION_COLLECTION,
 } from './specification-commands.js';
@@ -63,8 +61,6 @@ const layerOver = (
           ConfigurationRepositoryTag,
           new ConfigurationClientInMemory({}),
         ),
-        Layer.succeed(SequenceServiceTag, makeInMemorySequenceService()),
-        Layer.succeed(LockServiceTag, makeInMemoryLockService()),
         Layer.succeed(EventBusTag, bus),
         Layer.succeed(OutboxMaxAttempts, 3),
         Layer.succeed(EventSourceTag, 'marketplace-admin'),
@@ -137,9 +133,6 @@ const publicationEvent = (at = '2026-10-25T10:00:00.000Z') =>
     },
     'marketplace-admin',
   );
-
-const TXN = '0b9a7c1e-4a1f-4c8e-9d1e-1f2a3b4c5d6e';
-const FAILING_TXN = '7d6c5b4a-3f2e-4d1c-8b0a-9f8e7d6c5b4a';
 
 const settled = () => new Promise(resolve => setTimeout(resolve, 20));
 
@@ -243,119 +236,61 @@ describe('re-announcing', () => {
   });
 });
 
-describe('accepting a specification', () => {
-  const command = (
-    payload: Record<string, unknown>,
-    transactionId: string = TXN,
-  ) => ({
-    meta: { type: 'command', entity: 'product-specification' },
-    data: {
-      transactionId,
-      type: 'create',
-      entity: 'product-specification',
-      payload,
-    },
-  });
+describe('creating a specification', () => {
+  const named = (name: string) =>
+    Object.assign(new ProductSpecification(), { name });
 
-  const accept = (w: ReturnType<typeof world>, body: unknown) =>
+  const create = (
+    w: ReturnType<typeof world>,
+    name: string,
+    key: string | undefined,
+  ) =>
     w.run(
       Effect.flatMap(SpecificationCommandsTag, commands =>
-        commands.accept('acme', body),
+        commands.create('acme', named(name), key),
       ),
     );
 
-  it('accepts now, then writes the record under a sequenced code with its completion', async () => {
+  it('writes the record under the next code, with the counter, in one unit', async () => {
     const w = world();
 
-    const accepted = await accept(w, command({ name: 'A widget' }));
-    await settled();
+    const first = await create(w, 'A widget', undefined);
+    const second = await create(w, 'A gadget', undefined);
 
-    expect(accepted).toEqual({ transactionId: TXN });
-    expect(w.fake.read(SPECIFICATION_COLLECTION)[0]).toMatchObject({
-      id: TXN,
-      name: 'A widget',
-      code: 'product-001',
-    });
-    expect(w.bus.published.map(event => event.name)).toContain(
-      'transaction.completed',
-    );
+    expect([first.code, second.code]).toEqual(['product-001', 'product-002']);
+    expect(w.fake.read(SPECIFICATION_COLLECTION)).toEqual([
+      expect.objectContaining({ id: first.id, name: 'A widget' }),
+      expect.objectContaining({ id: second.id, name: 'A gadget' }),
+    ]);
+    expect(w.fake.read(COUNTERS_COLLECTION)).toEqual([
+      expect.objectContaining({ _id: 'specification-code', value: 2 }),
+    ]);
   });
 
-  it('accepts a replayed command again rather than writing it twice', async () => {
+  it('answers a repeated key with the record it wrote, spending no code', async () => {
     const w = world();
 
-    await accept(w, command({ name: 'A widget' }));
-    await settled();
-    await accept(w, command({ name: 'A widget' }));
-    await settled();
+    const first = await create(w, 'A widget', 'key-1');
+    const again = await create(w, 'A widget', 'key-1');
 
+    expect(again).toBeInstanceOf(ProductSpecification);
+    expect(again).toMatchObject({ id: first.id, code: 'product-001' });
     expect(w.fake.read(SPECIFICATION_COLLECTION)).toHaveLength(1);
   });
 
-  it('refuses a nameless specification, unsafe media, and a command for another entity', async () => {
+  it('writes nothing and spends no code when the record cannot be written', async () => {
     const w = world();
-    const refusals = await Promise.all(
-      [
-        command({}),
-        command({
-          name: 'x',
-          media: [{ url: 'http://cdn.example/a.jpg', alt: 'A' }],
-        }),
-        {
-          ...command({ name: 'x' }),
-          data: { ...command({ name: 'x' }).data, entity: 'product-offering' },
-        },
-        command(undefined as never),
-        // A payload that cannot be read as the entity at all.
-        command('not a record' as never),
-      ].map(body =>
-        w.run(
-          Effect.flip(
-            Effect.flatMap(SpecificationCommandsTag, commands =>
-              commands.accept('acme', body),
-            ),
-          ),
+    w.fake.failOn('insertOne', new Error('disk full'));
+
+    const failure = await w.run(
+      Effect.flip(
+        Effect.flatMap(SpecificationCommandsTag, commands =>
+          commands.create('acme', named('A widget'), undefined),
         ),
       ),
     );
 
-    expect(
-      refusals.every(
-        error =>
-          error instanceof EntifixBuildError ||
-          (isFailure(error) && error.family === 'business'),
-      ),
-    ).toBe(true);
-  });
-
-  it('rolls the record back when its write fails', async () => {
-    const w = world();
-    w.fake.failOn('replaceOne', new Error('disk full'));
-
-    await accept(w, command({ name: 'A widget' }, FAILING_TXN));
-    await settled();
-
+    expect(failure).toMatchObject({ _tag: 'Unavailable' });
     expect(w.fake.read(SPECIFICATION_COLLECTION)).toEqual([]);
-    expect(w.bus.published.map(event => event.name)).toContain(
-      'transaction.failed',
-    );
-  });
-
-  it('still fails the transaction when its rollback is refused', async () => {
-    const w = world();
-    w.fake.failOn('replaceOne', new Error('disk full'));
-    // A duplicate key on the delete is the store answering no — a business
-    // failure, which the engine's port reads as a build error.
-    w.fake.failOn(
-      'deleteOne',
-      Object.assign(new Error('E11000 duplicate key'), { code: 11000 }),
-    );
-
-    await accept(w, command({ name: 'A widget' }, FAILING_TXN));
-    await settled();
-
-    expect(w.bus.published.map(event => event.name)).toContain(
-      'transaction.failed',
-    );
   });
 });

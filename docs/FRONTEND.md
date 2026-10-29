@@ -945,7 +945,11 @@ dropped rather than thrown: `onmessage` runs in the browser's event loop, where 
 no caller and would take the rest of that delivery's listeners with it. `makeInMemoryReactiveChannel`
 survives, but only as spec material — it is no longer what the workspace runs on.
 
-The workspace mounts it at `/api/admin/transaction/events`. Events feed the query client:
+> **No back-office surface mounts it today.** Its only feed was the single-step tracker, which
+> left with the specification create's `202` (#463); the mechanism below is the contract the
+> push of flow outcomes returns to ([ADR 0066](adr/0066-flows-run-on-a-durable-workflow-engine.md)).
+
+Mounted, events feed the query client:
 
 ```
 create → save UC → 202 (the client already minted the id)

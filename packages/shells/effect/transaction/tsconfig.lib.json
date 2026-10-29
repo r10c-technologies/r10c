@@ -17,12 +17,6 @@
       "path": "../service/tsconfig.lib.json"
     },
     {
-      "path": "../../../implementation/saga/mongo/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
-    },
-    {
       "path": "../../../testing/http"
     },
     {

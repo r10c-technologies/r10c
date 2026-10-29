@@ -7,6 +7,7 @@
 - Revised: 2026-10-23 — the wizard's own names moved from `shell:marketplaceAdmin.wizard.*` to `r10c:marketplaceAdmin.wizard.*` with entifix 0.6.0.
 - Amends: [ADR 0042](0042-the-workspace-address-is-the-taxonomy-serialized.md)
   (the third address segment gains a second meaning: a step, for `wizard:`).
+- Revised: 2026-10-29 — the product-setup wizard's create answers its record synchronously since #463, so its hand-off leaves nothing pending
 
 ## Context
 

@@ -2,12 +2,7 @@ import type { NetworkFixture } from '@entifix/testing-e2e/playwright';
 import type { Page } from '@playwright/test';
 import { http, HttpResponse } from 'msw';
 
-import {
-  expect,
-  PRODUCT_URL,
-  test,
-  untrackTransactions,
-} from './support/fixtures';
+import { expect, PRODUCT_URL, test } from './support/fixtures';
 
 /**
  * The guided alta of a product — the first `wizard:` screen in the fleet
@@ -22,55 +17,34 @@ import {
  *   validation and not a page turn;
  * - the draft lives **above** the forms, so Back and a mid-flow refresh both
  *   return what was typed even though the step component unmounted;
- * - the ending is a **hand-off**: one command envelope carrying the merged
- *   draft, and a pending notice rather than a resolved spinner.
+ * - the ending is a **hand-off**: one create carrying the merged draft, and
+ *   the operator returned to the list it lands in.
  *
  * ⚠️ Mock-only, and for `catalog-classification`'s reason: observing the request
- * body means choosing the response. The stream is deliberately unstubbed — the
- * write stays in flight, which is exactly the state the ending has to survive.
+ * body means choosing the response.
  */
 
 const WIZARD = '/wizards/product-setup';
 const PRODUCT_LIST = '/catalog/product';
 
-/** Captures the command the wizard puts on the wire, and answers as the service does. */
+/** Captures the record the wizard puts on the wire, and answers as the service does. */
 const captureCreate = (
   network: NetworkFixture,
-): { payload?: Record<string, unknown>; transactionId?: string } => {
-  const captured: {
-    payload?: Record<string, unknown>;
-    transactionId?: string;
-  } = {};
+): { record?: Record<string, unknown> } => {
+  const captured: { record?: Record<string, unknown> } = {};
 
   network.use(
     http.post(PRODUCT_URL, async ({ request }) => {
       const envelope = (await request.json()) as {
         meta: { entity: string };
-        data: { transactionId: string; payload: Record<string, unknown> };
+        data: Record<string, unknown>;
       };
-      captured.payload = envelope.data.payload;
-      captured.transactionId = envelope.data.transactionId;
+      captured.record = envelope.data;
 
-      return HttpResponse.json(
-        {
-          meta: {
-            type: 'transactionAccepted',
-            entity: envelope.meta.entity,
-            links: [
-              {
-                rel: 'status',
-                href: `/api/transaction/${envelope.data.transactionId}`,
-                method: 'GET',
-              },
-            ],
-          },
-          data: {
-            transactionId: envelope.data.transactionId,
-            state: 'PENDING',
-          },
-        },
-        { status: 202 },
-      );
+      return HttpResponse.json({
+        meta: { type: 'entity', entity: envelope.meta.entity },
+        data: { ...envelope.data, id: 'spec-created', code: 'product-901' },
+      });
     }),
   );
 
@@ -85,20 +59,14 @@ const steps = (page: Page) => page.getByRole('list', { name: 'Pasos' });
 
 /**
  * The identity step asks for a name and a description, and **not for a code**:
- * the create transaction assigns that from a sequence, so a field for it would
+ * the create draws that from the organization's counter, so a field for it would
  * be asking the operator to type a value the service overwrites.
  */
 const fillIdentity = async (page: Page, name: string) => {
   await page.getByLabel(/nombre/i).fill(name);
 };
 
-test.beforeEach(() => {
-  // The broker-down state: the tracker has never heard of the transaction, so
-  // the write stays pending rather than being rolled back.
-  untrackTransactions();
-});
-
-test('walks the blank path and hands one command off', async ({
+test('walks the blank path and hands one create off', async ({
   page,
   network,
 }) => {
@@ -137,18 +105,13 @@ test('walks the blank path and hands one command off', async ({
   await page.getByTestId('wizard-next').click();
   await page.waitForURL(url => url.pathname.endsWith(PRODUCT_LIST));
 
-  // One command, carrying the two steps' drafts merged — and no `code`, which
-  // the service assigns.
-  expect(captured.payload).toMatchObject({ name: 'Café de altura' });
-  expect(captured.payload).not.toHaveProperty('code');
-  expect(captured.transactionId).toMatch(/^[0-9a-f-]{36}$/);
+  // One create, carrying the two steps' drafts merged — and no `code`, which
+  // the service draws.
+  expect(captured.record).toMatchObject({ name: 'Café de altura' });
+  expect(captured.record).not.toHaveProperty('code');
 
-  // And the operator is told the write is not finished, rather than being left
-  // to read a row on screen as a row in the database.
-  await expect(page.getByTestId('pending-notice')).toContainText(/guardando/i);
-  await expect(page.getByTestId('pending-notice')).not.toContainText(
-    /no se pudo/i,
-  );
+  // The write answered with the record, so nothing is left pending.
+  await expect(page.getByTestId('pending-notice')).toHaveCount(0);
 });
 
 test('re-shapes the stepper and seeds the forms from the product it duplicates', async ({

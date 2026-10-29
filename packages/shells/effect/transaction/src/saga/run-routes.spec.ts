@@ -22,17 +22,12 @@ import {
   type SagaInstance,
   type SagaResponse,
   SagaStoreTag,
-  type TransactionRecord,
-  TransactionStoreTag,
-  TransactionStreamHubTag,
 } from '@entifix/transactions';
-import { makeTransactionStreamHubEffect } from '@entifix/transactions/engine';
 import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { sagaInstanceRoutes } from './instance-routes.js';
-import { sagaRoutes } from './routes.js';
 import { sagaRunRoutes } from './run-routes.js';
 
 const served: ServedRoutes[] = [];
@@ -55,7 +50,6 @@ interface WorldOptions {
   /** How every step a dispatch reaches answers, by step id. */
   readonly answer?: (path: string) => SagaResponse | 'unreachable';
   readonly instances?: readonly SagaInstance[];
-  readonly records?: readonly TransactionRecord[];
   readonly storeDown?: boolean;
 }
 
@@ -64,14 +58,10 @@ const world = async (options: WorldOptions = {}) => {
   for (const instance of options.instances ?? []) {
     await Effect.runPromise(sagas.start(instance));
   }
-  const hub = await Effect.runPromise(makeTransactionStreamHubEffect);
-  const records = new Map(
-    (options.records ?? []).map(record => [record.transactionId, record]),
-  );
   const down = Effect.fail(new Unavailable({}));
 
   const routes = serveRoutes(
-    Layer.mergeAll(sagaRunRoutes, sagaInstanceRoutes, sagaRoutes),
+    Layer.mergeAll(sagaRunRoutes, sagaInstanceRoutes),
     Layer.mergeAll(
       Layer.succeed(
         SagaStoreTag,
@@ -87,11 +77,6 @@ const world = async (options: WorldOptions = {}) => {
             : Effect.succeed(answer);
         },
       }),
-      Layer.succeed(TransactionStoreTag, {
-        get: (id: string) =>
-          options.storeDown === true ? down : Effect.succeed(records.get(id)),
-      } as never),
-      Layer.succeed(TransactionStreamHubTag, hub),
       Layer.succeed(ServiceCrossingTokenTag, 'fleet'),
       Layer.succeed(
         IdempotencyStoreTag,
@@ -240,54 +225,5 @@ describe('GET /api/saga/:id', () => {
 
     expect((await read(unscopedFlow, 'acme')).status).toBe(404);
     expect((await read(broken, 'acme')).status).toBe(500);
-  });
-});
-
-describe('the transaction tracker', () => {
-  const record = (organizationId?: string): TransactionRecord =>
-    ({
-      transactionId: 't-1',
-      entity: 'product-specification',
-      state: 'COMPLETED',
-      createdAt: '2026-10-25T10:00:00.000Z',
-      updatedAt: '2026-10-25T10:00:01.000Z',
-      ...(organizationId === undefined ? {} : { organizationId }),
-    }) as TransactionRecord;
-
-  const get = (routes: ServedRoutes, token: string, path: string) =>
-    routes.call(path, { headers: { authorization: `Bearer ${token}` } });
-
-  it('serves a record to its own organization, and 404s it to any other', async () => {
-    const routes = await world({ records: [record('acme')] });
-
-    expect((await get(routes, 'acme', '/api/transaction/t-1')).status).toBe(
-      200,
-    );
-    expect((await get(routes, 'nobody', '/api/transaction/t-1')).status).toBe(
-      404,
-    );
-    expect((await get(routes, 'acme', '/api/transaction/t-9')).status).toBe(
-      404,
-    );
-  });
-
-  it('answers 500 when the store fails', async () => {
-    const routes = await world({ storeDown: true });
-
-    expect((await get(routes, 'acme', '/api/transaction/t-1')).status).toBe(
-      500,
-    );
-  });
-
-  it('opens the event stream for a scoped session, and an empty one otherwise', async () => {
-    const routes = await world();
-
-    const scoped = await get(routes, 'acme', '/api/transaction/events');
-    const unscoped = await get(routes, 'nobody', '/api/transaction/events');
-
-    expect(scoped.headers.get('content-type')).toContain('text/event-stream');
-    expect(unscoped.status).toBe(200);
-    await scoped.body?.cancel();
-    await unscoped.body?.cancel();
   });
 });

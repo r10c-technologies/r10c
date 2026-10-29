@@ -1,6 +1,4 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import { Entity, EntityConstructor } from '@entifix/core';
 import {
   buildEntityRestAdapterDelete,
@@ -40,10 +38,7 @@ const configuration = new ConfigurationClientRestClient();
  * would need a second price-selection rule nobody has written
  * ([ADR 0056](../../../../../docs/adr/0056-the-counter-sale-is-the-checkout-saga.md)).
  *
- * ⚠️ Plain REST, deliberately not `create: 'command'`: a channel has no
- * server-assigned member anyone waits for, this service runs no transaction
- * engine and its slice publishes no event, so a `202` would buy a tracker record
- * for nothing.
+ * Plain REST: a channel has no server-assigned member anyone waits for.
  */
 const SALES_SERVICE: BuildEntityRestOptions = {
   configuration,

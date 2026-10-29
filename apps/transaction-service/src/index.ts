@@ -10,8 +10,10 @@ import { makeAppLayer } from '@r10c/shells-effect-transaction';
 export {
   cancellationSaga,
   checkoutSaga,
+  endpoints,
   HttpSagaDispatcherLayer,
   ParticipantsTag,
+  policy,
   router,
   SAGAS,
   sagaStoresLayer,

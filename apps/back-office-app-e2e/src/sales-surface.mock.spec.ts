@@ -60,9 +60,7 @@ test('offers Save on a channel, because a vendor authors it', async ({
 test('opens the till at its first step', async ({ page }) => {
   await page.goto('/sales/counter-sale');
 
-  await expect(
-    page.getByRole('combobox', { name: 'Canal' }),
-  ).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Canal' })).toBeVisible();
   // The flow may not advance until a channel is picked: the route refuses a
   // sale without one, so offering Continuar would be offering a dead end.
   await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();

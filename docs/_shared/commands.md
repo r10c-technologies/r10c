@@ -46,10 +46,8 @@ pnpm nx run back-office-app:dev            # :3001 (catalog + system management 
                                            #        settlement- and
                                            #        transaction-service)
 pnpm nx run config-service:dev             # :3190 (Postgres; runs ensure-infra first)
-pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo + Redis + RabbitMQ;
-                                           #        also runs the co-deployed
-                                           #        `transaction` slice's saga
-                                           #        tracker; +config-service)
+pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo + RabbitMQ;
+                                           #        +config-service)
 pnpm nx run auth-service:dev               # :3102 (Mongo; +config-service)
 
 # A library edit reloads by itself while any app/service runs: every app `dev`

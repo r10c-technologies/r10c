@@ -9,6 +9,7 @@
   `ReactiveChannel` gains an `onConnect` signal (which replays for a listener
   registered while the stream is already open) to drive it. Declining replay, and
   every other decision here, stands.
+- Revised: 2026-10-29 — `/api/transaction/events` left with the tracker that fed it (#463); the decision stands for the push of flow outcomes ADR 0066 builds
 
 ## Context
 

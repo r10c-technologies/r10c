@@ -1,11 +1,7 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import type { Entity } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
-import {
-  makeInMemoryEntityRepository,
-} from '@entifix/testing-unit';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 import { render, screen, waitFor } from '@testing-library/react';

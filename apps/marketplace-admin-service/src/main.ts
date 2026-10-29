@@ -21,10 +21,8 @@ import { seedCatalog } from './seed';
 makeService({
   name: SERVICE_NAME,
   port: Number(process.env.PORT) || DEFAULT_PORT,
-  // Two slices in one process. `transaction` is co-deployed here (ADR 0021):
-  // ownership never moved, only the process did, so both are named rather than
-  // one standing in for the other.
-  slices: ['marketplace-admin', 'transaction'],
+  // One slice: `transaction` was co-deployed here until it took `:3103` (#229).
+  slices: ['marketplace-admin'],
   description: fleetToken,
   endpoints,
   policy,

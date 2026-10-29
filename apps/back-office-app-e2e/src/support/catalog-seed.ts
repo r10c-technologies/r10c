@@ -85,8 +85,7 @@ export const brandSeed = Array.from({ length: 20 }, (_, index) => {
 
   return {
     id: `product-brand-${number}`,
-    // The service assigns codes through the create transaction; the seeded
-    // rows carry none, so neither do these.
+    // The seeded rows carry no code, so neither do these.
     name: `${baseName} ${Math.floor(index / BASE_NAMES.length) + 1}`,
     description: `Products manufactured by ${baseName} (#${number})`,
     website: `https://www.${slug}.example.com`,

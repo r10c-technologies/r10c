@@ -29,7 +29,6 @@ const adapters: MarketplaceAdminAdapters = {
   productBrandUseCases: real.productBrandUseCases,
   productCategoryUseCases: real.productCategoryUseCases,
   productOfferingUseCases: real.productOfferingUseCases,
-  transactionStatus: real.transactionStatus,
 };
 
 describe('the marketplace-admin adapters context', () => {

@@ -76,7 +76,6 @@ export const errors: EsErrors = {
   insufficientStock: 'There is not enough stock to reserve.',
   channelInactive: 'That sales channel is retired.',
   notYours: 'That offering belongs to another vendor.',
-  resourceBusy: 'The resource is busy, try again.',
   identifierRequired: 'An account needs at least one identifier.',
   emailRequired: 'An email identifier is required.',
   roleNotAllowed: 'You are not allowed to assign that role.',

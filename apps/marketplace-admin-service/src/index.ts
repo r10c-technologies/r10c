@@ -14,7 +14,11 @@ export const AppLayer = makeAppLayer({ seed: seedCatalog });
 // requires without opening its own edge onto `@entifix/transactions`. The
 // create route resolves both: the slice it stamps events with, and the relay's
 // ceiling.
-export { router } from '@r10c/shells-effect-marketplace-admin';
+export {
+  endpoints,
+  policy,
+  router,
+} from '@r10c/shells-effect-marketplace-admin';
 export { seedCatalog };
 export { EventSourceTag } from '@entifix/transactions';
 

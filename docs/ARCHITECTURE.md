@@ -172,22 +172,18 @@ Effect Layers.
   second copy of the signing key for nothing.
 
 - **marketplace-admin-service** (`:3101`, Mongo) — serves the product catalog
-  through the entifix use-cases. Writes (`POST`) run as transactions (see
-  [Transactions](#transactions-cqrs-writes)); reads/`PUT`/`DELETE` are unchanged.
+  through the entifix use-cases. A specification's create draws its `code` from
+  a per-organization counter in the same unit of work as the record (see
+  [Transactions](#transactions-cqrs-writes)).
 - **auth-service** (`:3102`, Mongo + Redis) — serves `UserIdentity`/`EntityIdentifier`
   and owns the credential flow: `register`/`login`/`logout`/`refresh` (see
   [Auth: sessions + tokens](#auth-sessions--tokens)).
-- **transaction-service** (`:3103`; Mongo + RabbitMQ) — the `transaction`
-  slice: the saga coordinator (`POST /api/saga/:definition`) and the passive
-  tracker, which subscribes to the transaction event bus, records each
-  transaction's lifecycle, and flags stalls. `GET /api/transaction/:id` is what a
-  client polls, and `GET /api/transaction/events` is the same facts pushed
-  instead ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)).
-  Both are behind `requirePrincipal` and scoped to the caller's organization; the
-  unfiltered `GET /api/transaction` was deleted rather than filtered, because it
-  answered every organization's transactions to anyone. It was co-deployed into
-  marketplace-admin-service until #229 split it out, which was a `deployments`
-  edit because its store's handle was already named. See
+- **transaction-service** (`:3103`; Mongo) — the `transaction` slice: the
+  saga coordinator (`POST /api/saga/:definition`), its instance read and its
+  resume sweep. The single-step tracker that once ran beside it left with its
+  only producer (#463). It was co-deployed into marketplace-admin-service until
+  #229 split it out, which was a `deployments` edit because its store's handle
+  was already named. See
   [Stores, slices & data planes](../docs/_shared/planes.md).
 
 ### Where a service's code lives
@@ -782,26 +778,13 @@ port table is the single source in [_shared/ports.md](_shared/ports.md).
 
 ## Transactions (CQRS writes)
 
-Reads stay direct; **writes become transactions**. A `POST` is a _command_: the
-service runs a five-step facade — validate → lock → execute → rollback → free —
-over it. `@entifix/transactions` holds the facade (each step a `*UCFactory`
-in the entity-use-case style), the `runTransaction` engine, and the ports
-(`LockService`, `SequenceService`, `EventBus`, `TransactionStore`,
-`TransactionHandler`). Adapters mirror the entity ones: `@entifix/redis`
-(lock via `SET NX`, sequences via atomic `INCR`) and `@entifix/amqp`
-(RabbitMQ topic event bus — `entifix.events`, routed by the event's own name
-since [ADR 0029](adr/0029-the-event-envelope-and-a-routed-bus.md)).
-
-The engine splits at the `202` boundary: **accept** (validate + claim + lock) is
-synchronous — its failure is the client's `400`/`409`; **execute** (assign the
-result, persist, free — or roll back and free) is forked past the `202`. A
-single-step write is **choreography** — the service owns its transaction and
-emits events, and the saga tracker only observes and recovers (passive). The
-client polls the tracker for the outcome, through the relative `rel: 'status'`
-link the `202` carries. The first concrete transaction assigns a unique
-incremental `code` (`product-001`, `category-001`, `brand-001`) to the catalog
-entities; `INCR`'s atomicity is what guarantees uniqueness across service
-instances.
+Reads and writes are direct. `@entifix/transactions` also holds a single-step
+`202` engine — validate, lock, execute, roll back — with its `LockService`,
+`SequenceService` and a passive tracker the client polled. One write in this
+fleet ever used it, the specification create, for a unique `code`; #463 made
+that a plain unit of work drawing the code from a per-organization counter, and
+the tracker, `/api/transaction/*` and the Redis lock and sequence went with it
+([ADR 0066](adr/0066-flows-run-on-a-durable-workflow-engine.md)).
 
 **A write that announces itself is one unit of work**
 ([entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.10.2/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md)).
@@ -829,49 +812,26 @@ extending ADR 0028's persist-before-publish rule to commands. The coordinator
 lives in the `transaction` slice, on `:3103`, and its state in the `saga` store
 ([ADR 0052](adr/0052-the-checkout-saga.md),
 [ADR 0055](adr/0055-a-coordinator-resumes-from-its-own-record.md)). The reactive
-stream is built too. It is
-[ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md), it is
-server-sent rather than a WebSocket, and it is built: the tracker takes a
-**second** subscription to `transaction.*` in `mode: 'broadcast'` — the first in
-the register, and the consumer ADR 0030 built the mode for, since every replica
-holds different browser connections — feeding an in-process hub that each
-connection reads a filtered view of. A `TransactionEvent` therefore carries
-`organizationId`, stamped by the route from the verified token, and the filter
-**fails closed**: an event carrying none reaches no tenant-scoped connection.
+stream ([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md))
+carried the tracker's events to the back office; it left with the tracker
+(#463) and returns as the push of flow outcomes (ADR 0066).
 
-**The client mints the transaction id, and the event ships with the write**
+**An event ships with the write**
 ([ADR 0028](adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).
-Two things follow from that one record.
-
-The `POST` body is a **`command` envelope** carrying a client-generated UUID,
-not an entity envelope the service turns into a command. The id is also the
-stored entity's id, so the browser can address the record before the response
-arrives — and it is the **idempotency key**: a repeated id is a retry, answered
-`202` with the same status link and executed exactly once. There is no
-server-side fallback that mints one; a command without a valid UUID is `400`.
-
-The engine **never publishes**. Every event goes to a `TransactionOutbox`, and a
-relay carries the outbox to RabbitMQ. `accepted` and `failed` are written by the
-engine; `completed` is written by the **handler**, in the same Mongo transaction
-as the entity — because only the handler holds a session, and a session may not
-enter the framework-free `EntityRepository` or `TransactionOutbox` ports. The
-engine's success path therefore records nothing, which a spec asserts. The outbox
+Nothing publishes directly. Every event goes to the outbox in the same
+transaction as the entity, and a relay carries it to RabbitMQ. The outbox
 collection lives in the **tenant** database beside the entity: same database
 keeps the transaction single-shard, and an outbox holds event payloads, so a
 control-plane one would move a whole offering out of the tenant plane the day
 `catalog.published` rides it. Delivery is **at-least-once** — a consumer that
-must not fold twice dedupes on the message's own `event.id`, never on
-`transactionId`: one transaction emits up to three messages, so keying on the
-correlation id would treat `completed` as a redelivery of `accepted` and drop the
-outcome. The tracker needs nothing, because `upsertFromEvent` is an idempotent
-upsert rather than a dedupe.
+must not fold twice dedupes on the message's own `event.id`.
 
 This needs a replica set, so local Mongo runs as a single-node one; production is
 three nodes. Dev has no elections and no lag, so two rules are in the code rather
 than left to production: drive every transaction with `session.withTransaction`
 (an election aborts with a `TransientTransactionError` the _application_ must
-retry), and keep the Redis sequence draw **outside** that retried callback or a
-retry burns a code. `directConnection=true` on the local URI is local only —
+retry), and draw a counter with `$inc` **inside** the unit, so a retried unit
+draws again rather than burning a code. `directConnection=true` on the local URI is local only —
 against a hosted set it would defeat failover.
 
 **Every bus message is an `event` envelope, and the exchange routes**
@@ -944,10 +904,10 @@ The marketplace-admin frontend has a **browser-like tab workspace** backed by a
 client data layer where **TanStack Query wraps the Entifix use-cases** (it caches
 and orchestrates; the Effect UC/adapter pattern is untouched). Client state lives
 in Zustand + IndexedDB, server state in the query cache, and a framework-free
-`ReactiveChannel` port carries the reactive stream — server-sent, same-origin and
-scoped per connection, reached at `/api/admin/transaction/events` through the
-app's own proxy
-([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)). Full
+`ReactiveChannel` port carries a reactive stream — server-sent, same-origin and
+scoped per connection
+([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)); the
+back office mounts none since the tracker it read left (#463). Full
 design: [FRONTEND.md → Workspace tabs](./FRONTEND.md#part-2--workspace-tabs--the-client-data-layer).
 
 ## Current domain structure

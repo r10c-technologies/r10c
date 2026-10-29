@@ -55,8 +55,9 @@ export const productBrandCrud = makeEntityCrud(ProductBrand, {
   basePath: PRODUCT_BRAND_SURFACE.basePath,
   catalogKey: PRODUCT_BRAND_SURFACE.entityKey,
   repository: 'productBrandRest',
-  // `code` is assigned by the create transaction. Hiding it keeps it out of the
-  // form without keeping it out of the draft, so an update carries it back.
+  // `code` is the seed's vocabulary, not the operator's to type. Hiding it keeps
+  // it out of the form without keeping it out of the draft, so an update
+  // carries it back.
   hiddenFields: ['id', 'code'],
   metadata: 'referenceMetadata',
   useCases: 'productBrandUseCases',
@@ -158,7 +159,7 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   basePath: PRODUCT_SURFACE.basePath,
   catalogKey: PRODUCT_SURFACE.entityKey,
   repository: 'productRest',
-  // `code` is assigned by the create transaction, the same as `ProductBrand`'s.
+  // `code` is drawn by the create from the organization's counter.
   // Hiding it keeps it out of the form without keeping it out of the draft, so
   // an update carries it back — and the operator is not asked to type a value
   // the service overwrites.

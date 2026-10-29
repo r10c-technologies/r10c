@@ -4,17 +4,18 @@ import type {
   TokenServiceTag,
 } from '@entifix/business';
 import {
-  EntifixBuildError,
   type EntifixEnvelopeLink,
-  EntifixLockError,
   type EntityId,
-  isFailure,
-  isTag,
+  IDEMPOTENCY_KEY_HEADER,
   makeEntityEnvelope,
+  parseIdempotencyKey,
+  readEntityEnvelope,
   readWireSelection,
 } from '@entifix/core';
 import {
   type EntityRouteContext,
+  type EntityRouteLinks,
+  EntityRouteRefusal,
   makeEntityRoutes,
   requireOrganization,
   routeFailure,
@@ -54,64 +55,37 @@ export type CatalogRouteServices =
 const organizationOf = (context: EntityRouteContext) =>
   context.organizationId as string;
 
-const refusalCode = (error: object): string | undefined =>
-  'code' in error && typeof error.code === 'string' ? error.code : undefined;
-
 /**
- * `POST /api/product-specification` — a **command**, answered `202` before
- * the write is done (ADR 0028). The browser follows the `status` link and
- * reconciles over the stream (ADR 0043). A held code lock is `409` — try
- * again — and an invalid command `400` with the rule that refused it.
+ * `POST /api/product-specification` — a create whose `code` is the next of the
+ * organization's counter, drawn in the same unit of work as the record, and
+ * answered with the record as stored. The media rule runs before anything is
+ * written, as it does on update.
  */
-const acceptSpecification = (context: EntityRouteContext) =>
+const createSpecification = (
+  context: EntityRouteContext,
+  links: EntityRouteLinks,
+) =>
   Effect.gen(function* () {
     const request = yield* HttpServerRequest.HttpServerRequest;
-    const commands = yield* SpecificationCommandsTag;
-    const { transactionId } = yield* commands.accept(
-      organizationOf(context),
+    const specification = yield* readEntityEnvelope(
+      ProductSpecification,
       yield* request.json,
     );
-    return yield* HttpServerResponse.json(
-      {
-        meta: {
-          type: 'transactionAccepted',
-          entity: 'product-specification',
-          links: [
-            {
-              rel: 'status',
-              href: `/api/transaction/${transactionId}`,
-              method: 'GET',
-            },
-          ],
-        },
-        data: { transactionId, state: 'PENDING' },
-      },
-      { status: 202 },
+    yield* refuseSpecificationMedia(specification);
+    const commands = yield* SpecificationCommandsTag;
+    const created = yield* commands.create(
+      organizationOf(context),
+      specification,
+      parseIdempotencyKey(request.headers[IDEMPOTENCY_KEY_HEADER]),
     );
-  }).pipe(
-    Effect.catch(error =>
-      error instanceof EntifixLockError || isTag('Contention')(error)
-        ? HttpServerResponse.json(
-            {
-              error: 'resource busy, try again',
-              code: 'resourceBusy',
-              detail: error.message,
-            },
-            { status: 409 },
-          )
-        : error instanceof EntifixBuildError ||
-            (isFailure(error) && error.category === 'invalid')
-          ? HttpServerResponse.json(
-              {
-                error: 'invalid command',
-                code: refusalCode(error) ?? 'invalidCommand',
-                detail: error.message,
-              },
-              { status: 400 },
-            )
-          : routeFailure(error),
-    ),
-  );
+    return yield* HttpServerResponse.json(
+      makeEntityEnvelope(
+        ProductSpecification,
+        created,
+        links.record(created.id),
+      ),
+    );
+  });
 
 const offeringLinks = (id: EntityId): EntifixEnvelopeLink[] => [
   { rel: 'self', href: `/api/product-offering/${String(id)}`, method: 'GET' },
@@ -227,10 +201,14 @@ export const catalogRoutes = Layer.mergeAll(
   >()(ProductSpecification, {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: { kind: 'organization' },
-    // The update's half of the media rule; the create's is in the command.
+    // The update's half of the media rule; the create runs it itself.
     prepare: specification =>
-      Effect.as(refuseSpecificationMedia(specification), specification),
-    override: { create: acceptSpecification },
+      Effect.as(refuseSpecificationMedia(specification), specification).pipe(
+        Effect.mapError(
+          refused => new EntityRouteRefusal(400, refused.code, refused.message),
+        ),
+      ),
+    override: { create: createSpecification },
   }),
   makeEntityRoutes.for<EntityRepositoryFactoryTag>()(ProductOffering, {
     verbs: ['list', 'get', 'create', 'update', 'delete'],

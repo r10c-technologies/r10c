@@ -18,21 +18,12 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     {
       name: 'catalog',
       plane: 'tenant',
-      // Also carries the transaction outbox — not an `@entity()` class, so it
-      // adds no host. It lives here rather than in a control-plane store so the
-      // entity write and the event announcing it are one single-database
-      // transaction (ADR 0028).
+      // Also carries the outbox and the specification code counter — neither an
+      // `@entity()` class, so they add no host. They live here rather than in a
+      // control-plane store so the entity write, the code it draws and the event
+      // announcing it are one single-database transaction (ADR 0028).
       hosts: ['product-configuration-management'],
       partitioning: 'per-organization',
-      truth: 'system-of-record',
-    },
-    {
-      name: 'saga-coordination',
-      plane: 'control',
-      // Locks and code sequences over Redis — no entities, and deliberately not
-      // the saga's own record, which is the `saga` store below.
-      hosts: [],
-      partitioning: 'single',
       truth: 'system-of-record',
     },
   ],
@@ -67,10 +58,6 @@ export const marketplaceAdminSlice: SliceDeclaration = {
   // therefore one delivery order. Two subscriptions would be two queues, two
   // independent orders, and a redelivered unpublication free to overtake a
   // newer publication.
-  publishedEvents: [
-    'transaction.*',
-    'catalog.published',
-    'catalog.unpublished',
-  ],
+  publishedEvents: ['catalog.published', 'catalog.unpublished'],
   subscriptions: [],
 };

@@ -763,169 +763,8 @@
       },
       "id": 8,
       "panels": [],
-      "title": "Transactions",
+      "title": "Sagas",
       "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "countByState fills every state, including the ones sitting at none — so a missing line here is the exporter, not an empty state. A series that stops being reported reads on most dashboards as 'no data', which is indistinguishable from a broken exporter at exactly the moment a healthy fleet looks idle.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "records",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 30,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 18,
-        "x": 0,
-        "y": 28
-      },
-      "id": 9,
-      "options": {
-        "legend": {
-          "calcs": ["lastNotNull"],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "max by (state) (transactions_by_state_ratio{service_name=~\"$service_name\"})",
-          "legendFormat": "{{state}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Transactions by state",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "The recovery sweep's entire action is to apply this label, and it emits no event. Until it was counted, STALE reached no event, no stream and no operator — it was discoverable only by polling a transaction id you already suspected. This panel is where it lands.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 1
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 28
-      },
-      "id": 10,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "13.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "max(transactions_by_state_ratio{service_name=~\"$service_name\", state=\"STALE\"}) or vector(0)",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "STALE transactions",
-      "type": "stat"
     },
     {
       "datasource": {
@@ -960,7 +799,7 @@
         "h": 8,
         "w": 6,
         "x": 0,
-        "y": 36
+        "y": 28
       },
       "id": 11,
       "options": {
@@ -1056,7 +895,7 @@
         "h": 8,
         "w": 12,
         "x": 6,
-        "y": 36
+        "y": 28
       },
       "id": 12,
       "options": {
@@ -1105,7 +944,7 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(transactions_by_state_ratio, service_name)",
+        "definition": "label_values(outbox_pending_entries_ratio, service_name)",
         "includeAll": true,
         "label": "service",
         "multi": true,
@@ -1113,7 +952,7 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(transactions_by_state_ratio, service_name)",
+          "query": "label_values(outbox_pending_entries_ratio, service_name)",
           "refId": "r10c-service-name"
         },
         "refresh": 2,
@@ -1121,7 +960,7 @@
         "skipUrlSync": false,
         "sort": 1,
         "type": "query",
-        "description": "Sourced from transactions_by_state_ratio, not from a bus counter: the recovery sweep emits it on an interval regardless of traffic, while bus_events_published_total has no series at all until a real write publishes one — so a picker built on that is empty on a lab nobody has written to yet. includeAll with allValue '.*' is what keeps an empty list harmless: without it the variable interpolates to service_name=~\"\", which matches nothing and blanks every panel on the dashboard."
+        "description": "Sourced from outbox_pending_entries_ratio, not from a bus counter: every relay samples it on an interval regardless of traffic, while bus_events_published_total has no series at all until a real write publishes one — so a picker built on that is empty on a lab nobody has written to yet. includeAll with allValue '.*' is what keeps an empty list harmless: without it the variable interpolates to service_name=~\"\", which matches nothing and blanks every panel on the dashboard."
       }
     ]
   },

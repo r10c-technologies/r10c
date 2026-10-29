@@ -81,7 +81,9 @@ claim it was reserved on.**
 > Everything below describes the saga runner, which keeps running until wave 4
 > replaces it: flows on Effect Workflow over a Postgres `workflow` store, two
 > runner processes on `34103` and `35103`, a start answering `202 { flowId }`,
-> and the tracker, the `saga` store and `GET /api/saga/:id` deleted.
+> and the `saga` store and `GET /api/saga/:id` deleted. The single-step
+> tracker is gone already: its only producer, the specification create, became
+> a plain unit of work (#463).
 
 The `transaction` slice was **co-deployed** into
 marketplace-admin-service, and the note here said that ownership had not moved,
@@ -95,10 +97,7 @@ stock-service (`:3108`) and order-service (`:3105`). The trigger fired; the
 `saga` store's handle was already an explicit `client.db(name)`, so the module
 moved unchanged and no data moved at all.
 
-It serves `/api/transaction/:id` and `/api/transaction/events` — both
-authenticated and organization-scoped since
-[ADR 0036](../adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md) —
-plus `POST /api/saga/:definition`, the coordinator that walks a declarative flow
+It serves `POST /api/saga/:definition`, the coordinator that walks a declarative flow
 ([ADR 0052](../adr/0052-the-checkout-saga.md)). That route is generic rather than
 `/api/checkout` because this slice declares **no domain**, and a business verb
 here would put a domain name in a permission namespace nothing is provisioned
@@ -119,27 +118,13 @@ member on the record, because a basket spanning two vendors belongs to both — 
 for the same reason it carries no permission of its own
 ([ADR 0055](../adr/0055-a-coordinator-resumes-from-its-own-record.md)).
 
-It also runs a **second** sweep beside the tracker's. The recovery sweep labels
-stuck single-step transaction records `STALE`; the resume sweep finishes
-multi-step flows whose coordinator died, claiming each instance with a
-conditional write so two replicas cannot walk one flow together. Both are
-config-service dials and they are deliberately separate ones.
+It also runs the resume sweep, which finishes multi-step flows whose
+coordinator died, claiming each instance with a conditional write so two
+replicas cannot walk one flow together.
 
-⚠️ **The browser's path did not change, and could not.** Those two reads move
-from `:3101` to `:3103` behind the back office's own same-origin proxy, which
-gains a `transaction-service-domain` config row and an `/api/transaction`
-rewrite. The stream is same-origin by _necessity_ — the session cookie is
-`httpOnly` and an `EventSource` aimed at the service directly carries no
-credential — and the catalog's `202` link is relative, so no caller ever encoded
-either arrangement.
-
-⚠️ **`back-office:dev` starts it**, because that proxy is on every workspace
-load: the stream opens as the workspace mounts, and the optimistic-mutation
-contract ([ADR 0043](../adr/0043-the-optimistic-mutation-contract.md)) reconciles
-over it. Left unstarted, every back-office page logged a `500` from
-`/api/transaction/events` and the stream never connected (#283). It does **not**
-start order-service or payment-service, so a live checkout still needs those two
-by hand.
+⚠️ **`back-office:dev` starts it**, because the till's counter sale starts its
+checkout here through sales-service. It does **not** start order-service or
+payment-service, so a live checkout still needs those two by hand.
 
 It holds a **crossing token per participant**, which is the concentration
 ADR 0023 recorded a residual for and ADR 0039 restated: one process that can

@@ -1,10 +1,5 @@
 import type { MongoClientTag } from '@entifix/mongo';
 import { startTenantOutboxRelay } from '@entifix/mongo/transactions';
-import { RedisHealthProbeLayer, RedisLayer } from '@entifix/redis';
-import {
-  RedisLockServiceLayer,
-  RedisSequenceServiceLayer,
-} from '@entifix/redis/transactions';
 import { logMechanismOutcome } from '@entifix/service-shell';
 import {
   MongoOfferingCatalogLayer,
@@ -57,7 +52,6 @@ export const marketplaceAdminComposition =
       const demoOrganizationId = yield* store
         .in('tenant')
         .getString('demoOrganizationId');
-      const redisUri = yield* store.in('redis').getString('uri');
 
       const connections = Layer.mergeAll(
         // The pool only. This service owns no single named database: every catalog
@@ -66,15 +60,6 @@ export const marketplaceAdminComposition =
         // phantom store (ADR 0020). The `saga` store left with its slice when
         // ADR 0039's `:3103` trigger fired (#229), so only `catalog` is probed.
         yield* fleetTenantMongoLayer(configuration, ['catalog']),
-        // Locks and code sequences for the transactional create.
-        Layer.provideMerge(
-          Layer.mergeAll(
-            RedisLockServiceLayer,
-            RedisSequenceServiceLayer,
-            RedisHealthProbeLayer(['saga-coordination']),
-          ),
-          RedisLayer({ uri: redisUri }),
-        ),
         yield* fleetBusLayer(configuration),
         yield* fleetSecurityLayer(configuration),
         // Stamped onto every event this process publishes. The **slice**, not the

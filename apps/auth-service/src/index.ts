@@ -21,8 +21,10 @@ export { seedAuth, seedIdentityProvider } from './seed';
 export {
   AuthnHostLayer,
   DEV_SEED_PASSWORD,
+  endpoints,
   JWT_AUDIENCE,
   JWT_ISSUER,
+  policy,
   PROVIDER,
   router,
   ZitadelProviderPortsLayer,

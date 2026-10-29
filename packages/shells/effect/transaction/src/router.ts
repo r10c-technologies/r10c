@@ -5,7 +5,6 @@ import {
 import { Layer } from 'effect';
 
 import { sagaInstanceRoutes } from './saga/instance-routes.js';
-import { sagaRoutes } from './saga/routes.js';
 import { sagaRunRoutes } from './saga/run-routes.js';
 
 /**
@@ -28,11 +27,7 @@ import { sagaRunRoutes } from './saga/run-routes.js';
  * the coordinator became resumable (#233). Session-guarded and scoped to the
  * organizations the flow's own calls named.
  */
-export const router = Layer.mergeAll(
-  sagaRoutes,
-  sagaRunRoutes,
-  sagaInstanceRoutes,
-);
+export const router = Layer.mergeAll(sagaRunRoutes, sagaInstanceRoutes);
 
 /** The `transaction` slice's endpoints, served as one `HttpApi` by `makeService`. */
 export const endpoints = [

@@ -1,11 +1,7 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import type { Entity } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
-import {
-  makeInMemoryEntityRepository,
-} from '@entifix/testing-unit';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { OrderItem, ProductOrder } from '@r10c/business-ts-order-management';
 import { render, screen, waitFor } from '@testing-library/react';
 import { Context } from 'effect';

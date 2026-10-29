@@ -46,8 +46,7 @@ export function AgreementSingleViewClientPage({
   slug,
   onSaved,
 }: EntityCrudSingleViewProps = {}) {
-  const { agreementRest, metadata } =
-    useSettlementAdapters();
+  const { agreementRest, metadata } = useSettlementAdapters();
   const router = useRouter();
   // Every internal navigation carries the locale. Unprefixed, each one is
   // bounced by the proxy — and the form's back link is a plain `<a>`, so

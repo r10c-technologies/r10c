@@ -17,8 +17,7 @@ const serverError = (error: unknown) =>
  *
  * `403` would make the endpoint an oracle: a saga id is a `randomUUID`, and a
  * caller able to tell "not yours" from "no such flow" can confirm that a given
- * checkout happened. The sibling `GET /api/transaction/:id` answers the same
- * way for the same reason.
+ * checkout happened.
  */
 const notFound = HttpServerResponse.json(
   { error: 'saga not found', code: 'notFound' },
@@ -95,8 +94,7 @@ const byIdRoute = requirePrincipal((principal: RequestPrincipal) =>
  * shape, different verb, and no collision because `find-my-way-ts` routes on
  * the method first. There is deliberately no list: the `saga` store is
  * control-plane and single-partition, so an unfiltered index is every
- * organization's flows, which is the surface #194 deleted
- * `GET /api/transaction` for.
+ * organization's flows.
  */
 export const sagaInstanceRoutes = HttpRouter.addAll([
   HttpRouter.route('GET', '/api/saga/:id', byIdRoute),

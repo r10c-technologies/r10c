@@ -23,7 +23,11 @@ import {
   makeInMemoryIdempotencyStore,
   makeRecordingEventBus,
 } from '@entifix/testing-unit';
-import { EventBusTag, EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -34,7 +38,13 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import { CancelWindowSeconds } from '@r10c/business-ts-order-management';
 import { MongoProductOrderStoreLayer } from '@r10c/implementation-order-mongo';
-import { ORDER_SLICE, router, SERVICE_NAME } from '@r10c/order-service';
+import {
+  endpoints,
+  ORDER_SLICE,
+  policy,
+  router,
+  SERVICE_NAME,
+} from '@r10c/order-service';
 import { httpSagaStarterLayer } from '@r10c/shells-effect-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
@@ -144,6 +154,8 @@ export const startMockService = (): Promise<RunningTestService> =>
     port: 0,
     slices: ['order'],
     description: fleetToken,
+    endpoints,
+    policy,
     router,
     appLayer: MockAppLayer,
   });

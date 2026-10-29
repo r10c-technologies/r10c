@@ -5,7 +5,12 @@
  */
 import { makeAppLayer } from '@r10c/shells-effect-order';
 
-export { ORDER_SLICE, router } from '@r10c/shells-effect-order';
+export {
+  endpoints,
+  ORDER_SLICE,
+  policy,
+  router,
+} from '@r10c/shells-effect-order';
 
 /** The slice's composition, as the service mounts it. */
 export const AppLayer = makeAppLayer();

@@ -1,4 +1,4 @@
-import { describeEntityColumns, EntifixBuildError } from '@entifix/core';
+import { describeEntityColumns } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,7 +7,7 @@ import {
   MEDIA_NOT_HTTPS,
   MediaReference,
   mediaRefusal,
-  MediaRefusedError,
+  mediaRefused,
   readMedia,
 } from './media-reference.js';
 
@@ -71,13 +71,22 @@ describe('mediaRefusal', () => {
   });
 });
 
-describe('MediaRefusedError', () => {
-  it('is a build error carrying the code the route answers with', () => {
-    const error = new MediaRefusedError(MEDIA_NOT_HTTPS);
-
-    expect(error).toBeInstanceOf(EntifixBuildError);
-    expect(error.code).toBe(MEDIA_NOT_HTTPS);
-  });
+describe('mediaRefused', () => {
+  it.each([
+    [MEDIA_NOT_HTTPS, 'MediaNotHttps'],
+    [MEDIA_ALT_MISSING, 'MediaAltMissing'],
+  ] as const)(
+    'answers %s as an invalid request carrying that code',
+    (code, tag) => {
+      expect(mediaRefused(code)).toMatchObject({
+        _tag: tag,
+        code,
+        category: 'invalid',
+        family: 'business',
+      });
+      expect(mediaRefused(code).message).toMatch(/^every image /);
+    },
+  );
 });
 
 describe('readMedia', () => {

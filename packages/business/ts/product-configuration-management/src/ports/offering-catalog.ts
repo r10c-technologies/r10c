@@ -3,6 +3,7 @@ import type { CatalogEvent } from '@r10c/business-ts-catalog-contracts';
 import { Context, type Effect } from 'effect';
 
 import type { ProductOffering } from '../entities/product-offering';
+import type { ProductSpecification } from '../entities/product-specification';
 
 /**
  * The `catalog` store's writes that are not a plain save: an offering's
@@ -42,17 +43,18 @@ export class OfferingCatalogTag extends Context.Service<
 >()('OfferingCatalogTag') {}
 
 /**
- * A specification's create is a **transaction** rather than a save (ADR
- * 0028): the client mints the id, the code comes from a sequence under a
- * lock, and the write answers `202` before it is done. `accept` takes the
- * command body as sent and answers the transaction the browser goes on to
- * watch; a replayed command is accepted again, not refused.
+ * A specification's create is not a plain save: its `code` is the next of a
+ * per-organization counter, drawn in the same unit of work that writes the
+ * record, so two creates never share a code and a failed write spends none.
+ * It answers the record as stored. A repeated `Idempotency-Key` answers the
+ * record the first create wrote instead of drawing another code.
  */
 export interface SpecificationCommands {
-  readonly accept: (
+  readonly create: (
     organizationId: string,
-    body: unknown,
-  ) => Effect.Effect<{ readonly transactionId: string }, TransitionalFailure>;
+    specification: ProductSpecification,
+    idempotencyKey: string | undefined,
+  ) => Effect.Effect<ProductSpecification, TransitionalFailure>;
 }
 
 export class SpecificationCommandsTag extends Context.Service<

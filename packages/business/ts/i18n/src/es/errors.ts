@@ -94,7 +94,6 @@ export const errors = {
   // sigue nombrándolo — así que hay que rechazar la venta, no ocultar el canal.
   channelInactive: 'Ese canal de venta está inactivo.',
   notYours: 'Esa oferta pertenece a otro vendedor.',
-  resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
   emailRequired: 'Se requiere un identificador de correo electrónico.',
   roleNotAllowed: 'No puedes asignar ese rol.',
