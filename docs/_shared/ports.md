@@ -74,7 +74,15 @@ The difference from the version that was deleted is exactly the thing ADR 0020
 made sayable: a deployment earns its existence by owning a store.
 
 ³ **transaction-service, bound — and this index is the one that proves the
-claim it was reserved on.** The `transaction` slice was **co-deployed** into
+claim it was reserved on.**
+
+> **Decided, not yet built ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).**
+> Everything below describes the saga runner, which keeps running until wave 4
+> replaces it: flows on Effect Workflow over a Postgres `workflow` store, two
+> runner processes on `34103` and `35103`, a start answering `202 { flowId }`,
+> and the tracker, the `saga` store and `GET /api/saga/:id` deleted.
+
+The `transaction` slice was **co-deployed** into
 marketplace-admin-service, and the note here said that ownership had not moved,
 only the process, so splitting it back out would mean pointing its declaration
 in `tools/slices/` at a new app rather than untangling a database.

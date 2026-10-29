@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-28
 - Area: messaging
-- Read when: adding a step to a flow, a variant to a use case, or a narrowing to a read — a domain declares its own fragments and references another's by `id@n` string, the catalog and recipes live in one shell, and CI enumerates every combination a recipe can produce
+- Read when: adding a step to a flow, a variant to a use case, or a narrowing to a read — a domain declares its own fragments, and CI enumerates every combination a recipe can produce
 
 ## Context
 

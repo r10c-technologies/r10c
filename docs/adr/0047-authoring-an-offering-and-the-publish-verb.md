@@ -7,6 +7,7 @@
 - Revised: 2026-09-07 by [ADR 0048](0048-announcing-a-publication.md) — the two
   deferrals below are closed: emission exists, and publishing an offering with
   no price is now refused.
+- Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — a specification create is a plain unit of work answering `200`, its code drawn from a Mongo `$inc` counter
 
 ## Context
 

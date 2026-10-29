@@ -27,6 +27,9 @@
   persist-before-publish rule extends from events to command dispatch. The
   single-step engine this record describes is unchanged, and every decision here
   stands.
+- Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — the tracker sections are superseded: `TransactionRecord`, `GET /api/transaction/:id` and the single-step engine go; the client-minted id and the event shipping with its write stand
+
+> **Partly superseded 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md).** The tracker and the single-step engine below are replaced by plain units of work and flows that answer `202 { flowId }`; the client-minted id and the outbox write stand.
 
 ## Context
 

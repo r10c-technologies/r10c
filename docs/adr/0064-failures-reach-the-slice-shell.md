@@ -103,8 +103,7 @@ Each rule is a check, not a sentence
 ## Consequences
 
 - A refusal a service writes by hand — `{ error, code }` — decodes in the browser
-  as a protocol failure and shows generic copy until its slice migrates in wave
-  3. Accepted for the length of the migration rather than shipping a second
+  as a protocol failure and shows generic copy until its slice migrates in wave 3. Accepted for the length of the migration rather than shipping a second
   decoder.
 - The shells are ten new packages, each held to the coverage gate. The apps
   shrink to their entry points, which is the point: the place a reader looks for

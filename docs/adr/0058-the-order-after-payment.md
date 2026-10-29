@@ -5,6 +5,7 @@
 - Area: business
 - Read when: a paid order has to move again, or an anonymous buyer has to be authorized for a write — the cancel is a saga whose pivot is a refund, and the buyer's capability is a digest at rest because the order write is itself a saga step
 - Revised: 2026-09-11 by the commit that built §9 — the reversing amounts are mirrored from the recorded ledger rows rather than re-priced, and the join lives on ADR 0057's existing record rather than beside it
+- Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — §7: cancellation is a composed slip on the workflow engine, not a second `defineSaga` definition
 
 ## Context
 

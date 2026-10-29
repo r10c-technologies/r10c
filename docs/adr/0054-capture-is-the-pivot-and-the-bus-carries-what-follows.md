@@ -5,6 +5,7 @@
 - Area: messaging
 - Read when: money has to be taken inside a flow, or a saga step fails after the point of no return — capture is a dispatched step and never a subscription, and a post-pivot failure rolls forward or strands, never back
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the refund it deferred exists, and the unpaired crossing permission gains a sibling
+- Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — the pivot is the slip's commit point, enforced by the validator rather than by the runner's ordering
 
 ## Context
 

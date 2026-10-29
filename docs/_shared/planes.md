@@ -114,6 +114,9 @@ flight, not state at rest; the saga's `transactions` collection _is_ a store, th
 exchange is not), and a **foreign system** (Zitadel's Postgres — it has an owner,
 and the owner is not us).
 
+The saga runner's stores are replaced by a Postgres `workflow` store when flows
+move to the durable engine ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).
+
 ## The rules that follow
 
 The first three are enforced by `pnpm nx test @r10c/slices`, the last by the

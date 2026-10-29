@@ -27,6 +27,7 @@
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): `Effect.catchAll` is `Effect.catch`; the decision is unchanged.
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — the three classes become the category map: every business failure and `protocol` are poison, quarantined at once with `x-failure-code` and `x-failure-category`; the technical categories are transient; a consumer's only retry is redelivery, and every subscription's `maxAttempts` stays within the fleet delivery budget of 5
 - Revised: 2026-10-28 — the broker does not count a requeued nack, so the adapter counts attempts itself and quarantines at `maxAttempts` (entifix #130, 0.10.1); its backoff is sized from the `retry` dials, and every quarantine is counted
+- Revised: 2026-10-28 by [ADR 0067](0067-a-breaker-and-bulkhead-per-participant.md) — a consumer pauses its prefetch while the breaker of a participant its handler calls is open
 
 ## Context
 

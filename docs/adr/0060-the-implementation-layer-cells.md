@@ -109,9 +109,9 @@ consumer needs it** — before that, nobody can tell which half is generic.
 > generic; nine copies of the same routes across the fleet, plus the
 > framework's own example service writing them a tenth time, had already shown
 > it. Promotion's condition was met before the asset existed. An
-incubated asset cannot sit in a shell, because a cell cannot import one, so it
-lives at `layer:utils, scope:shared`, one package per technology, and carries
-the same `tech:*` bans a cell of that technology does.
+> incubated asset cannot sit in a shell, because a cell cannot import one, so it
+> lives at `layer:utils, scope:shared`, one package per technology, and carries
+> the same `tech:*` bans a cell of that technology does.
 
 ### Scope: a cell belongs to its domain
 
