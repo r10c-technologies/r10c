@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-23
 - Area: business
-- Read when: rendering a product image or a seller's name on the storefront, or adding vendor data the storefront needs — media is a reference the vendor authored, never bytes we store, and a vendor's name reaches the platform plane as its own projection, never copied into an offering's snapshot
+- Read when: rendering a product image or a seller's name on the storefront — media is a reference the vendor authored, and a vendor's name is its own projection
 - Amends: [ADR 0049](0049-the-publication-snapshot-carries-what-the-storefront-renders.md) — the snapshot gains an optional `media` member.
 - Amends: [ADR 0022](0022-v1-marketplace-module-boundaries.md) — one domain (`marketplace-vendor`), one entity (`PublishedVendor`) and one store (`published-vendor`) join the inventory; slices and deployments are unchanged.
 

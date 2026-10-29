@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-09-14
 - Area: platform
-- Read when: looking for the framework's source, changing entifix while r10c runs, or wondering why a framework file imports a cookie name from core instead of declaring its own — the boundary is wide but composable, and every r10c-specific value crosses a seam rather than being imported
+- Read when: looking for the framework's source or changing entifix while r10c runs — every r10c-specific value crosses a seam rather than being imported
 - Revised: 2026-09-16 — built on r10c's side (#273, #278). `packages/entifix`
   and `tools/tiers` are deleted; the 23 packages install from the registry at one
   version, written once in the `pnpm-workspace.yaml` catalog. The local loop the

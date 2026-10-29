@@ -5,6 +5,7 @@
 - Area: business
 - Read when: pricing a vendor's commission, or a consumer needs data that no single event on the bus carries — the fold joins two messages on the order id, and a payout is the gross less the cut rather than the sum of the cuts
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the unique index backstopping the fold gains `kind` as a third key
+- Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — `settlement.run.completed` is not published, since nothing subscribes to it
 
 ## Context
 

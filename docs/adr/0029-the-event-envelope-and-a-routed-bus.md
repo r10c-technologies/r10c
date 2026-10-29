@@ -11,6 +11,7 @@
   delivery limit; `broadcast` keeps the exclusive queue described below. The
   envelope, the topic exchange, the routing key and the single deduplication key
   all stand.
+- Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — the closed list of envelope types is an open registry, and `version`, `aggregate` and `audience` join `meta`
 
 ## Context
 

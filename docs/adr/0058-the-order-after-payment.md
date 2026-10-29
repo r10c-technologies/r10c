@@ -6,6 +6,7 @@
 - Read when: a paid order has to move again, or an anonymous buyer has to be authorized for a write — the cancel is a saga whose pivot is a refund, and the buyer's capability is a digest at rest because the order write is itself a saga step
 - Revised: 2026-09-11 by the commit that built §9 — the reversing amounts are mirrored from the recorded ledger rows rather than re-priced, and the join lives on ADR 0057's existing record rather than beside it
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — §7: cancellation is a composed slip on the workflow engine, not a second `defineSaga` definition
+- Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — participant writes are idempotent on `Idempotency-Key`, not `x-command-id`
 
 ## Context
 
@@ -210,7 +211,7 @@ never seen a payment — and resolves the capture itself. The amount is copied o
 that capture and never read from the request: a body that can name its own amount
 can refund more than was ever charged.
 
-Two guards, answering different questions. `x-command-id` claimed in the
+Two guards, answering different questions. `Idempotency-Key` claimed in the
 transaction covers a **redelivery** of one command; a unique index on the
 refund's `paymentId` covers two **different** commands aimed at one capture. A
 read before the provider call is what keeps the second case from moving money at

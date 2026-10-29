@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-28
 - Area: platform
-- Read when: adding a refusal, a status mapping, an error body or a log call, composing a service, or about to write `Effect.retry` in a consumer — every `-service` answers `application/problem+json` and nothing else, `code` is the `errors` catalog key, business and implementation never log, and the slice's shell is the one place that decides status, retry and logging
+- Read when: adding a refusal, a status mapping, an error body or a log call, or about to write `Effect.retry` in a consumer — `code` is the `errors` key, business and implementation never log, and the slice shell decides status, retry and logging
 
 ## Context
 

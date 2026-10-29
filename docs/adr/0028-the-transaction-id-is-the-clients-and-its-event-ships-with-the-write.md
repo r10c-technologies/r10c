@@ -31,6 +31,8 @@
 
 > **Partly superseded 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md).** The tracker and the single-step engine below are replaced by plain units of work and flows that answer `202 { flowId }`; the client-minted id and the outbox write stand.
 
+- Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — the client-minted id travels as `Idempotency-Key`, with a fingerprinted claim answering 400/422/409 or a replay
+
 ## Context
 
 Three defects sit in one seam, and each of the first two is the reason the third

@@ -20,6 +20,8 @@ written ahead of the code because it modifies a rule the rest of the system
 depends on, and discovering that mid-checkout is how the wrong fix gets made
 under time pressure.
 
+- Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — a crossing write is idempotent on `Idempotency-Key`, not `x-command-id`
+
 ## Context
 
 [ADR 0022](0022-v1-marketplace-module-boundaries.md) puts `order-management` in

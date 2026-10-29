@@ -19,6 +19,7 @@
   — the fleet-wide rebuild is built, and the cross-tenant surface this record
   said it needed turned out not to be one.
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): `business:policy` no longer lists `layer:entifix`.
+- Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — the projector orders on the event's `version`, and the per-offering stamp records it, delete included
 
 ## Context
 
