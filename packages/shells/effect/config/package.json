@@ -55,10 +55,12 @@
     "@r10c/business-ts-configuration": "workspace:*",
     "@r10c/implementation-configuration-http": "workspace:*",
     "@r10c/implementation-configuration-sql": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.6"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "catalog:"
+    "@entifix/testing-unit": "catalog:",
+    "@r10c/utils-ts-fleet": "workspace:*"
   }
 }

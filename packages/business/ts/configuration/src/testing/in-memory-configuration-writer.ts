@@ -28,7 +28,7 @@ export const makeInMemoryConfigurationWriter = (
         const id = String(incoming.id ?? globalThis.crypto.randomUUID());
         const decision = decideSecretWrite(rows.get(id), incoming);
         if (decision._tag === 'refuse') {
-          return Effect.fail(new ConfigurationWriteRefused(decision.code));
+          return Effect.fail(new ConfigurationWriteRefused());
         }
         const isSecret = incoming.isSecret === true;
         rows.set(id, { isSecret, value: decision.value ?? '' });

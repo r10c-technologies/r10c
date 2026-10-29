@@ -1,4 +1,5 @@
-import { EntifixConnError } from '@entifix/core';
+import type { StoreFault } from '@entifix/core';
+import { translateSqlError } from '@entifix/sql';
 import {
   ConfigurationLookupTag,
   toConfigurationPlain,
@@ -13,8 +14,12 @@ interface LookupRow {
   readonly is_secret: boolean;
 }
 
+/**
+ * A driver failure, as the store failure it is — `unavailable`, mostly. Both
+ * statements are reads, which raise no unique violation, so it is a fault.
+ */
 const unavailable = (error: unknown) =>
-  new EntifixConnError('The configuration store failed', error);
+  translateSqlError(error, 'configuration') as StoreFault;
 
 /**
  * The lookup a booting service is served from, straight off the
@@ -45,7 +50,9 @@ export const ConfigurationLookupLayer = Layer.effect(
         ),
       stats: () =>
         Effect.all([
-          sql<{ count: number }>`SELECT COUNT(*)::int AS count FROM configuration`,
+          sql<{
+            count: number;
+          }>`SELECT COUNT(*)::int AS count FROM configuration`,
           sql<{
             service: string;
           }>`SELECT DISTINCT service FROM configuration ORDER BY service`,

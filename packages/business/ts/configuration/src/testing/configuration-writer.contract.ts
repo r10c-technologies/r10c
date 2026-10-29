@@ -2,10 +2,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { Configuration } from '../entities/configuration';
-import {
-  type ConfigurationWriter,
-  ConfigurationWriteRefused,
-} from '../rules/configuration-writer';
+import type { ConfigurationWriter } from '../rules/configuration-writer';
 
 /** The one row a subject may be made holding. */
 export interface StoredConfiguration {
@@ -93,7 +90,10 @@ export const describeConfigurationWriterContract = (
       );
 
       expect(refused).toMatchObject({
-        failure: new ConfigurationWriteRefused('secretRequiresValue'),
+        failure: {
+          _tag: 'ConfigurationWriteRefused',
+          code: 'secretRequiresValue',
+        },
       });
       expect(replaced).toMatchObject({ success: { value: 'public' } });
     });

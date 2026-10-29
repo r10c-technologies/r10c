@@ -111,14 +111,14 @@ describe('Every emitted error code is cataloged', () => {
   it('still finds the emission sites it is meant to check', () => {
     const found = emissions();
 
-    // 51 sites across 13 files once the tagged-error matcher landed — 48 and 12
-    // before it, which is how much the scan had been missing. Pinned as a floor:
-    // the number climbs as the fleet grows, and a drop means a matcher stopped
-    // matching rather than that the fleet stopped failing.
-    expect(found.length).toBeGreaterThanOrEqual(51);
+    // Pinned to the sites still written by hand. The count falls as each slice
+    // moves its refusals into failure classes, which `failure-registry.spec.ts`
+    // checks instead (ADR 0071) — so each migration lowers this to what it
+    // left, and a drop it did not make means a matcher stopped matching.
+    expect(found.length).toBeGreaterThanOrEqual(50);
     expect(
       new Set(found.map(emission => emission.file)).size,
-    ).toBeGreaterThanOrEqual(13);
+    ).toBeGreaterThanOrEqual(12);
   });
 
   it('has a sentence for every code a service answers with', () => {

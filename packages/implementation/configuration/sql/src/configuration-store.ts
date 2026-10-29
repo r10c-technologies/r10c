@@ -2,8 +2,13 @@ import {
   type EntityRepository,
   EntityRepositoryFactoryTag,
 } from '@entifix/business';
-import { EntifixConnError, type Entity, type EntityId } from '@entifix/core';
-import { makeSqlRepository } from '@entifix/sql';
+import {
+  type Entity,
+  type EntityId,
+  isFailure,
+  type StoreFailure,
+} from '@entifix/core';
+import { makeSqlRepository, translateSqlError } from '@entifix/sql';
 import {
   Configuration,
   type ConfigurationActor,
@@ -144,7 +149,7 @@ const saveConfiguration = (
       { isSecret: incoming.isSecret, value: incoming.value },
     );
     if (decision._tag === 'refuse') {
-      return yield* Effect.fail(new ConfigurationWriteRefused(decision.code));
+      return yield* Effect.fail(new ConfigurationWriteRefused());
     }
     incoming.value = decision.value;
     incoming.updatedAt = new Date();
@@ -203,9 +208,15 @@ const deleteConfiguration = (id: EntityId, actor: ConfigurationActor) =>
     return true;
   });
 
-/** A driver failure is a store failure, whatever statement raised it. */
-const asConnError = (error: unknown) =>
-  new EntifixConnError('The configuration store failed', error);
+/**
+ * A driver failure is a store failure, whatever statement raised it; the
+ * repository's own are typed already.
+ */
+const asStoreFailure = (error: unknown): StoreFailure =>
+  // The repository raises nothing but store failures already.
+  isFailure(error)
+    ? (error as StoreFailure)
+    : translateSqlError(error, 'configuration');
 
 /**
  * The audited {@link ConfigurationWriterTag} over the `configuration` store,
@@ -222,13 +233,13 @@ export const ConfigurationWriterLayer = Layer.effect(
           Effect.mapError(error =>
             error instanceof ConfigurationWriteRefused
               ? error
-              : asConnError(error),
+              : asStoreFailure(error),
           ),
         ),
       delete: (id, actor) =>
         deleteConfiguration(id, actor).pipe(
           Effect.provideService(SqlClient.SqlClient, sql),
-          Effect.mapError(asConnError),
+          Effect.mapError(asStoreFailure),
         ),
     };
   }),

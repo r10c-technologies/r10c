@@ -33,31 +33,31 @@ packages:
 # place a version is written. To see an unreleased entifix change here, use
 # `pnpm run entifix:local` (tools/entifix) — never a link or a file: specifier.
 catalog:
-  '@entifix/amqp': 0.12.0-rc.2
-  '@entifix/authz': 0.12.0-rc.2
-  '@entifix/business': 0.12.0-rc.2
-  '@entifix/core': 0.12.0-rc.2
-  '@entifix/i18n': 0.12.0-rc.2
-  '@entifix/jwt': 0.12.0-rc.2
-  '@entifix/mongo': 0.12.0-rc.2
-  '@entifix/next-i18n': 0.12.0-rc.2
-  '@entifix/next-shell': 0.12.0-rc.2
-  '@entifix/posthog': 0.12.0-rc.2
-  '@entifix/react-controls': 0.12.0-rc.2
-  '@entifix/react-integration': 0.12.0-rc.2
-  '@entifix/redis': 0.12.0-rc.2
-  '@entifix/rest': 0.12.0-rc.2
-  '@entifix/service-shell': 0.12.0-rc.2
-  '@entifix/sql': 0.12.0-rc.2
-  '@entifix/static': 0.12.0-rc.2
-  '@entifix/style': 0.12.0-rc.2
-  '@entifix/testing-auth': 0.12.0-rc.2
-  '@entifix/testing-e2e': 0.12.0-rc.2
-  '@entifix/testing-unit': 0.12.0-rc.2
-  '@entifix/tooling': 0.12.0-rc.2
-  '@entifix/transactions': 0.12.0-rc.2
-  '@entifix/workflow': 0.12.0-rc.2
-  '@entifix/zitadel': 0.12.0-rc.2
+  '@entifix/amqp': 0.12.0-rc.4
+  '@entifix/authz': 0.12.0-rc.4
+  '@entifix/business': 0.12.0-rc.4
+  '@entifix/core': 0.12.0-rc.4
+  '@entifix/i18n': 0.12.0-rc.4
+  '@entifix/jwt': 0.12.0-rc.4
+  '@entifix/mongo': 0.12.0-rc.4
+  '@entifix/next-i18n': 0.12.0-rc.4
+  '@entifix/next-shell': 0.12.0-rc.4
+  '@entifix/posthog': 0.12.0-rc.4
+  '@entifix/react-controls': 0.12.0-rc.4
+  '@entifix/react-integration': 0.12.0-rc.4
+  '@entifix/redis': 0.12.0-rc.4
+  '@entifix/rest': 0.12.0-rc.4
+  '@entifix/service-shell': 0.12.0-rc.4
+  '@entifix/sql': 0.12.0-rc.4
+  '@entifix/static': 0.12.0-rc.4
+  '@entifix/style': 0.12.0-rc.4
+  '@entifix/testing-auth': 0.12.0-rc.4
+  '@entifix/testing-e2e': 0.12.0-rc.4
+  '@entifix/testing-unit': 0.12.0-rc.4
+  '@entifix/tooling': 0.12.0-rc.4
+  '@entifix/transactions': 0.12.0-rc.4
+  '@entifix/workflow': 0.12.0-rc.4
+  '@entifix/zitadel': 0.12.0-rc.4
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false

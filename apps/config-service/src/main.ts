@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
 import { makeService } from '@entifix/service-shell/runtime';
-import { makeAppLayer, router } from '@r10c/shells-effect-config';
+import { endpoints, makeAppLayer, policy } from '@r10c/shells-effect-config';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { config as loadEnv } from 'dotenv';
 
@@ -27,6 +27,7 @@ makeService({
   port: Number(process.env.PORT) || 3190,
   slices: ['config'],
   description: fleetToken,
-  router,
+  endpoints,
+  policy,
   appLayer: makeAppLayer({ seedRows: SEED_ROWS }),
 });

@@ -7,6 +7,7 @@ import {
 import { ConfigurationRepositoryTag, TokenServiceTag } from '@entifix/business';
 import { ConfigurationClientInMemory } from '@entifix/core';
 import { makeJoseTokenService } from '@entifix/jwt';
+import { redactValue } from '@entifix/service-shell';
 import { observabilityFromConfiguration } from '@entifix/service-shell/observability';
 import { SqlHealthProbeLayer } from '@entifix/sql';
 import {
@@ -276,10 +277,11 @@ export const makeAppLayer = (options: ConfigShellOptions) =>
       // secret, and writes audited with the actor in the same transaction.
       ConfigurationRepositoryFactoryLayer,
       ConfigurationWriterLayer,
-      // What the fleet's introspection names this store as, redacted on the way out.
+      // What the fleet's introspection names this store as, redacted here so
+      // the endpoint never holds the credential.
       Layer.succeed(
         ConfigurationStoreLocationTag,
-        process.env['CONFIG_PG_URL'] ?? DEFAULT_PG_URL,
+        String(redactValue(process.env['CONFIG_PG_URL'] ?? DEFAULT_PG_URL)),
       ),
     ),
     // The lookup a booting service is served from, with real values.

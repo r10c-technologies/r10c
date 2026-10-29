@@ -1,4 +1,4 @@
-import type { EntityId, TransitionalFailure } from '@entifix/core';
+import { type EntityId, Failure, type StoreFailure } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 import type { Configuration } from '../entities/configuration';
@@ -9,11 +9,17 @@ export interface ConfigurationActor {
   readonly subject: string;
 }
 
-/** A save refused by the write-only rule, with the code a client translates. */
-export class ConfigurationWriteRefused {
-  readonly _tag = 'ConfigurationWriteRefused';
-  constructor(readonly code: string) {}
-}
+/**
+ * A save refused by the write-only rule: clearing `isSecret` without a new
+ * value would make the next read answer the plaintext. The request is missing
+ * something, so it is `invalid`.
+ */
+export class ConfigurationWriteRefused extends Failure.invalid<ConfigurationWriteRefused>()(
+  'ConfigurationWriteRefused',
+  'secretRequiresValue',
+  {},
+  { message: () => 'clearing the secret flag requires a new value' },
+) {}
 
 /**
  * Every write to the `configuration` store, audited.
@@ -28,15 +34,12 @@ export interface ConfigurationWriter {
   readonly save: (
     incoming: Configuration,
     actor: ConfigurationActor,
-  ) => Effect.Effect<
-    Configuration,
-    ConfigurationWriteRefused | TransitionalFailure
-  >;
+  ) => Effect.Effect<Configuration, ConfigurationWriteRefused | StoreFailure>;
   /** Delete; answers `false` when there was no such row. */
   readonly delete: (
     id: EntityId,
     actor: ConfigurationActor,
-  ) => Effect.Effect<boolean, TransitionalFailure>;
+  ) => Effect.Effect<boolean, StoreFailure>;
 }
 
 export class ConfigurationWriterTag extends Context.Service<

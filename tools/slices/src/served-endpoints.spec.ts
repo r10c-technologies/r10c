@@ -1,4 +1,5 @@
 import { type AnyEndpointGroup, endpointsOf } from '@entifix/service-shell';
+import { endpoints as configEndpoints } from '@r10c/shells-effect-config';
 import { serviceBaseGroup } from '@r10c/shells-effect-service';
 import { describe, expect, it } from 'vitest';
 
@@ -10,15 +11,24 @@ import { endpointDrift, expandApis } from './served-endpoints.js';
  * serves (ADR 0071). Each slice's migration adds its entry; the commit that
  * moves the last cell makes this cover every active slice.
  */
-const SERVED: Readonly<Record<string, readonly AnyEndpointGroup[]>> = {};
+const SERVED: Readonly<Record<string, readonly AnyEndpointGroup[]>> = {
+  config: configEndpoints,
+};
 
-/** What every service serves beside its own, and no slice declares. */
-const FLEET_ENDPOINTS = new Set(
-  endpointsOf([serviceBaseGroup({ service: 'any', store: 'mongo' })]),
-);
-
+/**
+ * What a slice's shell serves of its own: every group but the fleet's —
+ * `/api/config` and `/api/me`, which every service serves and no slice
+ * declares. By group rather than by path, because config-service's own
+ * `GET /api/config` is a different endpoint at the same path.
+ */
 const servedBy = (groups: readonly AnyEndpointGroup[]) =>
-  endpointsOf(groups).filter(endpoint => !FLEET_ENDPOINTS.has(endpoint));
+  endpointsOf(
+    groups.filter(
+      group =>
+        group.name !==
+        serviceBaseGroup({ service: 'any', store: 'mongo' }).name,
+    ),
+  );
 
 describe('the endpoints a slice declares', () => {
   it.each(Object.entries(SERVED))(
