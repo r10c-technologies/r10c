@@ -6,6 +6,7 @@
 - Read when: a read has to be narrowed to whoever is asking, or an anonymous buyer has to be shown something that is theirs — the scope is conjoined onto the load request and never expressed as a query, and a receipt is carried rather than read back
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the receipt gains a capability, and the rejected "receipt token on the order" is corrected as being about a read
 - Revised: 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md) — the scope is a resolver narrowing over the verified context, and the by-id read is a narrowed load rather than an in-memory `includes`
+- Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — the receipt is the checkout group, and a flow capability is a third nonce credential
 
 ## Context
 

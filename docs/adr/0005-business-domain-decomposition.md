@@ -8,6 +8,7 @@
   the `Product` split is done rather than deferred, `catalog-reference` joins the
   capability map, and the Context paragraph describing a three-entity business is
   marked as of its date.
+- Revised: 2026-10-28 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — a new domain, `shipping-order-management`, in a new `fulfilment` slice
 
 ## Context
 

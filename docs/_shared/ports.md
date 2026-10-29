@@ -16,6 +16,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | settlement (7)          | —      | 3107⁵               |
 | stock (8)               | —      | 3108⁶               |
 | sales (9)               | —      | 3109⁹               |
+| fulfilment (10)         | —      | 3110¹⁰ reserved     |
 | — platform —            |        | config-service 3190 |
 
 A `-service`'s `dev` also opens the Node inspector at its service port **+ 6000**
@@ -398,6 +399,10 @@ presents the coordinator's inbound crossing token to
 secret, beside the storefront — which holds it for the opposite reason, having no
 session to check at all
 ([ADR 0056](../adr/0056-the-counter-sale-is-the-checkout-saga.md)).
+
+¹⁰ **Reserved for fulfilment-service** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)),
+inspector `9110`. The `fulfilment` slice is declared `planned`, so nothing binds
+the port until the commit that writes its store promotes it (#483).
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

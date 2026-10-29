@@ -4,6 +4,7 @@
 - Date: 2026-09-10
 - Area: business
 - Read when: a vendor sells somewhere other than the storefront, or a browser surface needs to start a flow that writes another slice's store — the sale is the same saga with a channel on it, and the decision is made where a session can actually be verified
+- Revised: 2026-10-28 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — the counter sale answers `202 { flowId }` with a flow capability, as the storefront does
 
 ## Context
 

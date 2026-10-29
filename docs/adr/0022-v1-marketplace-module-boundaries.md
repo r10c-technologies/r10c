@@ -19,6 +19,7 @@
   platform-plane store (`published-vendor`, owned by `marketplace`) join the
   inventory; slices and deployments are unchanged.
 - Revised: 2026-10-25 — the session-scope resolver moved into the `auth/mongo` cell (#374); the path it names is corrected in place.
+- Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — §5: a checkout writes a group and one order per vendor, not one order with vendor-tagged lines
 
 ## Context
 

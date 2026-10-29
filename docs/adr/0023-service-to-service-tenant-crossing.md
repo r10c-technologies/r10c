@@ -21,6 +21,7 @@ depends on, and discovering that mid-checkout is how the wrong fix gets made
 under time pressure.
 
 - Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — a crossing write is idempotent on `Idempotency-Key`, not `x-command-id`
+- Revised: 2026-10-28 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — the fulfilment crossings are named one by one
 
 ## Context
 

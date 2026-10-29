@@ -7,6 +7,7 @@
 - Revised: 2026-09-11 by the commit that built §9 — the reversing amounts are mirrored from the recorded ledger rows rather than re-priced, and the join lives on ADR 0057's existing record rather than beside it
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — §7: cancellation is a composed slip on the workflow engine, not a second `defineSaga` definition
 - Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — participant writes are idempotent on `Idempotency-Key`, not `x-command-id`
+- Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — cancel and refund act on one vendor order; `multiVendorOrder` is deleted
 
 ## Context
 
