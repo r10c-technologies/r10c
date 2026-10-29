@@ -5,6 +5,7 @@
 - Revised: 2026-09-10 by [ADR 0056](0056-the-counter-sale-is-the-checkout-saga.md) — the follow-ups are built: the slice is active on `:3109`, the counter sale is the checkout saga with a channel on its order, and the duplicated `SalesChannelTypes` this record left in place moved to a `business:policy` package
 - Area: business
 - Read when: an in-store or non-marketplace sale — it is a channel on the same `ProductOrder`, never a second order, and commission resolves through `commissionFor`
+- Revised: 2026-10-28 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — the counter and the storefront are resolutions of one composed checkout
 
 ## Context
 

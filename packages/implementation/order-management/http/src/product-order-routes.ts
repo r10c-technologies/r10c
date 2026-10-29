@@ -4,22 +4,25 @@ import type {
 } from '@entifix/authz';
 import type {
   EntityRepositoryFactoryTag,
+  IdempotencyStoreTag,
   TokenServiceTag,
 } from '@entifix/business';
 import {
   EntifixBuildError,
   envelopeEntityName,
+  IDEMPOTENCY_KEY_HEADER,
   isFailure,
   makeEntityEnvelope,
+  parseIdempotencyKey,
   readEntityEnvelope,
 } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
   type EntityRouteContext,
   type EntityRouteLinks,
   makeEntityRoutes,
-  type RequestPrincipal,
+  type MetadataCompositions,
   requireCrossing,
+  requireIdempotencyKey,
   requirePermission,
   routeFailure,
   type ServiceCrossingTokenTag,
@@ -34,9 +37,8 @@ import {
   fulfilOrder,
   isMultiVendorRefusal,
   ORDER_NOT_CANCELLABLE,
-  orderInScope,
+  orderNarrowing,
   OrderRefused,
-  orderScopeFilter,
   orderScopeFor,
   PAYMENT_PENDING,
   placeOrder,
@@ -50,6 +52,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
 /** What a host provides for {@link productOrderRoutes}. */
 export type ProductOrderRouteServices =
   | EntityRepositoryFactoryTag
+  | IdempotencyStoreTag
   | ProductOrderStoreTag
   | SagaStarterTag
   | CancelWindowSeconds
@@ -69,8 +72,18 @@ const recordLinks = (orderId: string) => [
 const envelopeOf = (order: ProductOrder) =>
   makeEntityEnvelope(ProductOrder, order, recordLinks(String(order.id)));
 
+/**
+ * The command a crossing write answers, by its `Idempotency-Key` (ADR 0068).
+ * Every crossing route is wrapped in `requireIdempotencyKey`, so a request
+ * without one never gets here; the unit of work claims the same key, which
+ * keeps the write exactly-once even when the edge's record is lost.
+ */
 const commandIdOf = (request: HttpServerRequest.HttpServerRequest) =>
-  request.headers[COMMAND_ID_HEADER]?.trim() || undefined;
+  parseIdempotencyKey(request.headers[IDEMPOTENCY_KEY_HEADER]);
+
+/** A crossing write is retried by its coordinator: one answer per key. */
+const idempotent = (route: string) =>
+  requireIdempotencyKey({ route, caller: 'crossing' });
 
 const notFound = (orderId?: string) =>
   HttpServerResponse.json(
@@ -256,9 +269,11 @@ const crossed = requireCrossing('order-management:product-order:write');
  * same thing: the first is the coordinator's claim, the second is what a
  * person reaches.
  */
-export const productOrderRoutes = Layer.mergeAll(
+export const productOrderRoutes = (compositions: MetadataCompositions) =>
+  Layer.mergeAll(
   makeEntityRoutes.for<
     | ProductOrderStoreTag
+    | IdempotencyStoreTag
     | CancelWindowSeconds
     | HttpServerRequest.HttpServerRequest
     | HttpRouter.RouteContext
@@ -268,19 +283,13 @@ export const productOrderRoutes = Layer.mergeAll(
       read: { kind: 'permission' },
       write: { kind: 'crossing', organization: false },
     },
-    scope: ({ principal }) =>
-      Effect.sync(() => {
-        const scope = orderScopeFor(principal as RequestPrincipal);
-        if (scope.kind === 'nothing') return 'none' as const;
-        const filter = orderScopeFilter(scope);
-        return filter === undefined
-          ? ('all' as const)
-          : {
-              filter,
-              includes: (order: ProductOrder) => orderInScope(scope, order),
-            };
-      }),
-    override: { create: place, delete: compensate },
+    narrowing: orderNarrowing,
+    compositions,
+    override: {
+      create: (context, links) =>
+        idempotent(`POST ${BASE}`)(place(context, links)),
+      delete: () => idempotent(`DELETE ${BASE}/:id`)(compensate()),
+    },
   }),
   HttpRouter.addAll([
     HttpRouter.route(
@@ -344,17 +353,17 @@ export const productOrderRoutes = Layer.mergeAll(
     HttpRouter.route(
       'POST',
       `${BASE}/:id/cancelling`,
-      crossed(claimCancellation),
+      crossed(idempotent(`POST ${BASE}/:id/cancelling`)(claimCancellation)),
     ),
     HttpRouter.route(
       'DELETE',
       `${BASE}/:id/cancelling`,
-      crossed(releaseCancellation),
+      crossed(idempotent(`DELETE ${BASE}/:id/cancelling`)(releaseCancellation)),
     ),
     HttpRouter.route(
       'POST',
       `${BASE}/:id/cancelled`,
-      crossed(settleCancellation),
+      crossed(idempotent(`POST ${BASE}/:id/cancelled`)(settleCancellation)),
     ),
   ]),
 );

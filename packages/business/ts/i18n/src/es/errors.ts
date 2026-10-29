@@ -132,6 +132,10 @@ export const errors = {
   idempotencyKeyReused:
     'Esa clave de idempotencia ya se usó con otra solicitud.',
   idempotencyKeyInFlight: 'Esa solicitud todavía se está procesando.',
+  flowNotComposable: 'Esa operación no se puede armar para esta solicitud.',
+  variantUnavailable: 'Esa operación no está disponible para usted.',
+  flowNotFound: 'No se encontró esa operación.',
+  flowSignalRejected: 'Esa operación no está esperando este paso.',
   invalidToken: 'Tu sesión no es válida. Inicia sesión de nuevo.',
   expiredToken: 'Tu sesión ha expirado. Inicia sesión de nuevo.',
 };

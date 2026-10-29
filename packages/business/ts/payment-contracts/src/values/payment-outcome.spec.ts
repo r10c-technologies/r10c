@@ -4,11 +4,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   PAYMENT_CAPTURED,
-  PAYMENT_FAILED,
   PAYMENT_REFUNDED,
   paymentCapturedEvent,
   paymentEventId,
-  paymentFailedEvent,
   type PaymentOutcome,
   paymentRefundedEvent,
   readPaymentOutcome,
@@ -39,7 +37,7 @@ describe('paymentEventId', () => {
   });
 });
 
-describe('the three event builders', () => {
+describe('the two event builders', () => {
   it('names the event and signs it with the emitting slice', () => {
     expect(paymentCapturedEvent(captured, 'payment')).toMatchObject({
       name: PAYMENT_CAPTURED,
@@ -47,19 +45,9 @@ describe('the three event builders', () => {
       at: captured.decidedAt,
       data: captured,
     });
-    expect(paymentFailedEvent(captured, 'payment').name).toBe(PAYMENT_FAILED);
     expect(paymentRefundedEvent(captured, 'payment').name).toBe(
       PAYMENT_REFUNDED,
     );
-  });
-
-  /**
-   * ⚠️ A refund is not a failed capture. A refusal has nothing to settle and
-   * nothing to un-settle; a refund has something that was settled and now must
-   * be undone, so a consumer must be able to tell them apart by name alone.
-   */
-  it('keeps a refund distinct from a refusal', () => {
-    expect(PAYMENT_REFUNDED).not.toBe(PAYMENT_FAILED);
   });
 
   /**

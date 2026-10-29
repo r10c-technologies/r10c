@@ -469,9 +469,12 @@ differently. Everything about the **message** goes to `meta.event` — `name`
 slice), `at`, and an optional `correlationId`; everything about the
 **occurrence** stays in `data`. So a consumer never digs into metadata to find
 its own domain object, and never digs into the payload to find the routing key.
-`readEventEnvelope` validates that block rather than defaulting it: a message
+`decodeEnvelope` validates that block rather than defaulting it: a message
 with no `name` cannot be routed and one with no `id` cannot be deduplicated, so
-both fail loudly the way a half-populated entity does.
+both fail loudly the way a half-populated entity does. It also decodes `data`
+against the Schema its contracts package registered for that name, so a
+consumer reads a typed payload rather than casting one
+([ADR 0068](adr/0068-one-outbox-ordered-per-aggregate.md)).
 
 Two envelope arms, one contract. The HTTP arm is unchanged by any of this. It
 used to carry a wart — one `transactionEvent` discriminant over the `202` body,

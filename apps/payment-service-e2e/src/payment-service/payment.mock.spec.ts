@@ -19,6 +19,9 @@ const service = defineServiceE2e({
 
 const crossing = (extra: Record<string, string> = {}) => ({
   'x-crossing-token': E2E_CROSSING_TOKEN,
+  // Every crossing write is idempotent on its key: a fresh one per call
+  // unless a case names its own (ADR 0068).
+  'idempotency-key': `"${crypto.randomUUID()}"`,
   // ⚠️ Deliberately no `Authorization`: this route takes no session, and axios
   // merges per-request headers over the client default.
   Authorization: undefined,
@@ -122,13 +125,15 @@ describe('a redelivered command', () => {
   it('answers the first decision rather than taking the money again', async () => {
     const commandId = `cmd-${String(Date.now())}`;
 
-    const first = await capture({}, { 'x-command-id': commandId });
-    const second = await capture({}, { 'x-command-id': commandId });
+    const first = await capture({}, { 'idempotency-key': `"${commandId}"` });
+    const second = await capture({}, { 'idempotency-key': `"${commandId}"` });
 
     expect(first.status).toBe(201);
     // `200`, not `409`: a coordinator that could not tell a duplicate from a
     // refusal would compensate a flow whose payment did in fact succeed.
-    expect(second.status).toBe(200);
+    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
+    expect(second.status).toBe(201);
+    expect(second.headers['idempotent-replayed']).toBe('true');
     expect(second.data.data.id).toBe(first.data.data.id);
   });
 });
@@ -304,11 +309,19 @@ describe('refunding a payment', () => {
     await capture({ orderId });
     const commandId = `cmd-refund-${String(Date.now())}`;
 
-    const first = await refund({ orderId }, { 'x-command-id': commandId });
-    const second = await refund({ orderId }, { 'x-command-id': commandId });
+    const first = await refund(
+      { orderId },
+      { 'idempotency-key': `"${commandId}"` },
+    );
+    const second = await refund(
+      { orderId },
+      { 'idempotency-key': `"${commandId}"` },
+    );
 
     expect(first.status).toBe(201);
-    expect(second.status).toBe(200);
+    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
+    expect(second.status).toBe(201);
+    expect(second.headers['idempotent-replayed']).toBe('true');
     expect(second.data.data.id).toBe(first.data.data.id);
   });
 
@@ -322,8 +335,8 @@ describe('refunding a payment', () => {
     const orderId = `order-twice-${String(Date.now())}`;
     await capture({ orderId });
 
-    const first = await refund({ orderId }, { 'x-command-id': 'cmd-a' });
-    const second = await refund({ orderId }, { 'x-command-id': 'cmd-b' });
+    const first = await refund({ orderId }, { 'idempotency-key': '"cmd-a"' });
+    const second = await refund({ orderId }, { 'idempotency-key': '"cmd-b"' });
 
     expect(first.status).toBe(201);
     expect(second.status).toBe(200);

@@ -44,7 +44,6 @@
     "@entifix/amqp": "catalog:",
     "@entifix/business": "catalog:",
     "@entifix/mongo": "catalog:",
-    "@entifix/service-shell": "catalog:",
     "@entifix/transactions": "catalog:",
     "@r10c/business-ts-payment-contracts": "workspace:*",
     "@r10c/business-ts-settlement-management": "workspace:*",

@@ -10,6 +10,7 @@ import {
   crossingTokenLayer,
   fleetBusLayer,
   type FleetConfiguration,
+  fleetIdempotencyLayer,
   fleetOutboxLayer,
   fleetSecurityLayer,
   fleetSingleMongoLayer,
@@ -108,11 +109,18 @@ export const orderComposition = (configuration: FleetConfiguration) =>
     // The outbox's indexes before the first write; the store ensures its own as
     // it builds. An outbox whose `eventId` is not unique would let a redelivery
     // enqueue a second copy of the same announcement.
+    // The participant routes' idempotency records live in the `order` store's
+    // own database, beside the command claims their units of work take.
+    const idempotency = yield* fleetIdempotencyLayer(configuration);
+
     const stored = Layer.provideMerge(
       MongoProductOrderStoreLayer,
       Layer.provideMerge(
-        Layer.effectDiscard(
-          Effect.flatMap(MongoDatabaseTag, ensureOutboxIndexes),
+        Layer.mergeAll(
+          Layer.effectDiscard(
+            Effect.flatMap(MongoDatabaseTag, ensureOutboxIndexes),
+          ),
+          idempotency,
         ),
         connections,
       ),

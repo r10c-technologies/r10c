@@ -366,7 +366,7 @@ Then two rules that apply to the entity itself:
 | Payment Management         | Payment Management (TMFC029)                                   | `business-ts-payment-management`               | platform | `payment`           | entities |
 | Settlement Management      | Agreement Mgmt (TMFC039), partner revenue                      | `business-ts-settlement-management`            | control  | `settlement`        | entities |
 | Sales Management           | — (no ODA analog); SID Market/Sales, Sales Channel ABE         | `business-ts-sales-management`                 | tenant   | `sales`             | entities |
-| Fulfillment                | Shipping & Logistics                                           | _not yet_                                      | —        | —                   | —        |
+| Fulfillment                | Shipping & Logistics (TMF700 Shipping Order)                   | `shipping-order-management` (planned)          | tenant   | `fulfilment`        | planned  |
 
 `entities` means the domain's entity skeletons and its store are declared, with
 use-cases and adapters still to come. Every capability above owns exactly one

@@ -6,13 +6,18 @@ import {
 } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  IdempotencyStoreTag,
   InvalidToken,
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
+import { defineCatalog, flowCommit } from '@entifix/business/flow';
 import { Unavailable } from '@entifix/core';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
-import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
+import {
+  makeInMemoryEntityRepository,
+  makeInMemoryIdempotencyStore,
+} from '@entifix/testing-unit';
 import {
   CancelWindowSeconds,
   digestOf,
@@ -27,7 +32,7 @@ import {
 } from '@r10c/business-ts-saga-contracts';
 import { crossingCall } from '@r10c/testing-cells';
 import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, Schema } from 'effect';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { productOrderRoutes } from './product-order-routes.js';
@@ -136,11 +141,27 @@ const sessions: Record<string, TokenClaims> = {
   nobody: { userId: 'u-n', subject: 'n', sessionId: 's', roles: ['staff'] },
 };
 
+/**
+ * The smallest recipe `cancel` can name: the cell only reports what its shell
+ * resolves, and the real cancellation is the flow catalog's to enumerate.
+ */
+const compositions = {
+  catalog: defineCatalog([flowCommit]),
+  recipes: {
+    cancellation: {
+      name: 'cancellation',
+      input: Schema.Struct({}),
+      requiresCommitPoint: true,
+      stages: [{ name: 'commit', steps: [{ ref: 'flow.commit@1' }] }],
+    },
+  },
+};
+
 let served: ServedRoutes;
 
 beforeAll(() => {
   served = serveRoutes(
-    productOrderRoutes,
+    productOrderRoutes(compositions),
     Layer.mergeAll(
       Layer.succeed(ProductOrderStoreTag, store),
       Layer.succeed(CancelWindowSeconds, 600),
@@ -163,6 +184,7 @@ beforeAll(() => {
         }),
       ),
       Layer.succeed(ServiceCrossingTokenTag, 'fleet'),
+      Layer.succeed(IdempotencyStoreTag, edge),
       Layer.succeed(
         ServiceCrossingPolicyTag,
         makeStaticServiceCrossingPolicy([
@@ -204,11 +226,15 @@ const as = (who: string, path: string, init: RequestInit = {}) =>
     },
   });
 
-const crossing = (path: string, init: RequestInit = {}, commandId?: string) =>
+const crossing = (
+  path: string,
+  init: RequestInit = {},
+  idempotencyKey?: string,
+) =>
   crossingCall(served, path, {
     method: init.method ?? 'GET',
     body: init.body === undefined ? undefined : JSON.parse(String(init.body)),
-    commandId,
+    idempotencyKey,
   });
 
 const totalFor = async (who: string) =>
@@ -217,6 +243,39 @@ const totalFor = async (who: string) =>
       data: { total: number };
     }
   ).data.total;
+
+/**
+ * The edge's `Idempotency-Key` records, on a clock a case can move past their
+ * retention — the only way to reach the unit of work's own replay, which is
+ * what still answers once the edge has forgotten a key.
+ */
+let edgeNow = 0;
+const edge = makeInMemoryIdempotencyStore({
+  retentionMs: 60_000,
+  now: () => edgeNow,
+});
+const forgetAtTheEdge = () => {
+  edgeNow += 60_001;
+};
+
+describe('GET /api/product-order/$metadata', () => {
+  it('reports the flow `cancel` starts', async () => {
+    const response = await as('operator', '/api/product-order/$metadata');
+
+    expect(response.status).toBe(200);
+    const { data } = (await response.json()) as {
+      data: { useCases: { key: string; composition?: unknown }[] };
+    };
+    expect(data.useCases.find(useCase => useCase.key === 'cancel')).toMatchObject(
+      {
+        composition: {
+          recipe: 'cancellation',
+          fragments: ['flow.commit@1'],
+        },
+      },
+    );
+  });
+});
 
 describe('the scoped reads', () => {
   it('give an operator everything, a vendor and a buyer their own, and anybody else nothing', async () => {
@@ -263,6 +322,23 @@ describe('placing and compensating', () => {
     );
 
     expect(placed.status).toBe(201);
+    expect(again.status).toBe(201);
+  });
+
+  it('answers from the store once the edge has forgotten the key', async () => {
+    await crossing(
+      '/api/product-order',
+      { method: 'POST', body: body([line]) },
+      'c-forgot',
+    );
+    forgetAtTheEdge();
+    const again = await crossing(
+      '/api/product-order',
+      { method: 'POST', body: body([line]) },
+      'c-forgot',
+    );
+
+    // The unit of work's own claim, not the edge's replay.
     expect(again.status).toBe(200);
   });
 
@@ -469,13 +545,15 @@ describe('the cancellation saga’s steps', () => {
     const refused = await crossing('/api/product-order/pending/cancelling', {
       method: 'POST',
     });
-    const absent = await crossing('/api/product-order/absent/cancelling', {
-      method: 'POST',
-    });
+    const absent = await crossing(
+      '/api/product-order/absent/cancelling',
+      { method: 'POST' },
+      'k-absent',
+    );
     const replayedAbsent = await crossing(
       '/api/product-order/absent/cancelling',
       { method: 'POST' },
-      'k-1',
+      'k-absent',
     );
 
     expect(claimed.status).toBe(200);
@@ -486,6 +564,22 @@ describe('the cancellation saga’s steps', () => {
     });
     expect(absent.status).toBe(404);
     expect(replayedAbsent.status).toBe(404);
+  });
+
+  it('answers a claim from the store once the edge has forgotten the key', async () => {
+    await crossing(
+      '/api/product-order/mine/cancelling',
+      { method: 'POST' },
+      'k-forgot',
+    );
+    forgetAtTheEdge();
+    const again = await crossing(
+      '/api/product-order/mine/cancelling',
+      { method: 'POST' },
+      'k-forgot',
+    );
+
+    expect(again.status).toBe(200);
   });
 
   it('releases a claim, and answers 200 when there was none', async () => {

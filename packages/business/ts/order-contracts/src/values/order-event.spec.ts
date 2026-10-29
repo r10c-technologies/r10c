@@ -2,7 +2,11 @@ import { Invalid } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { readCancelledOrder, readPlacedOrder } from './placed-order.js';
+import {
+  orderAudience,
+  readCancelledOrder,
+  readPlacedOrder,
+} from './order-event.js';
 
 const line = { vendorId: 'v-1', amount: 10, quantity: 2, currency: 'GTQ' };
 
@@ -50,5 +54,27 @@ describe('readPlacedOrder', () => {
     for (const payload of payloads) {
       expect(await refused(payload)).toBeInstanceOf(Invalid);
     }
+  });
+});
+
+describe('orderAudience', () => {
+  it('addresses the buyer and every vendor on the order, once each', () => {
+    expect(
+      orderAudience({
+        buyerId: 'p-1',
+        items: [{ vendorId: 'v-1' }, { vendorId: 'v-2' }, { vendorId: 'v-1' }],
+      }),
+    ).toEqual([
+      { kind: 'party', id: 'p-1' },
+      { kind: 'organization', id: 'v-1' },
+      { kind: 'organization', id: 'v-2' },
+    ]);
+  });
+
+  it('addresses only the vendors of an anonymous buyer, and nobody for no lines', () => {
+    expect(orderAudience({ items: [{ vendorId: 'v-1' }] })).toEqual([
+      { kind: 'organization', id: 'v-1' },
+    ]);
+    expect(orderAudience({})).toEqual([]);
   });
 });

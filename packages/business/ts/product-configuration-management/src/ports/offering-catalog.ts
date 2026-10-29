@@ -1,5 +1,5 @@
-import type { DomainEvent, TransitionalFailure } from '@entifix/core';
-import type { CatalogPublication } from '@r10c/business-ts-catalog-contracts';
+import type { TransitionalFailure } from '@entifix/core';
+import type { CatalogEvent } from '@r10c/business-ts-catalog-contracts';
 import { Context, type Effect } from 'effect';
 
 import type { ProductOffering } from '../entities/product-offering';
@@ -20,7 +20,7 @@ export interface OfferingCatalog {
     organizationId: string,
     offering: ProductOffering,
     from: ProductOffering['status'],
-    event: DomainEvent<CatalogPublication>,
+    event: CatalogEvent,
   ) => Effect.Effect<'committed' | 'changed', TransitionalFailure>;
   /**
    * Put one publication back on the outbox for the rebuild walk (ADR 0050):
@@ -29,7 +29,7 @@ export interface OfferingCatalog {
    */
   readonly reannounce: (
     organizationId: string,
-    event: DomainEvent<CatalogPublication>,
+    event: CatalogEvent,
   ) => Effect.Effect<
     'announced' | 'revived' | 'alreadyAnnounced',
     TransitionalFailure

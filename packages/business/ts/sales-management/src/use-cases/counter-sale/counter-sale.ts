@@ -103,9 +103,11 @@ export const validateSalesChannel = (
 export const sellAtCounter = (input: {
   readonly organizationId: string;
   readonly sale: CounterSaleRequest;
+  /** The checkout start's key: a repeated sale under it runs one flow. */
+  readonly idempotencyKey: string;
 }) =>
   Effect.gen(function* () {
-    const { organizationId, sale } = input;
+    const { organizationId, sale, idempotencyKey } = input;
     const factory = yield* EntityRepositoryFactoryTag;
     const repository = yield* factory.for(SalesChannel, { organizationId });
 
@@ -174,6 +176,7 @@ export const sellAtCounter = (input: {
           channelId: String(channel.id),
         },
       }),
+      idempotencyKey,
     );
 
     switch (outcome._tag) {

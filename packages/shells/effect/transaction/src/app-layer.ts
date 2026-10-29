@@ -4,6 +4,7 @@ import {
   crossingTokenLayer,
   fleetBusLayer,
   type FleetConfiguration,
+  fleetIdempotencyLayer,
   fleetMongoPoolLayer,
   fleetSecurityLayer,
   makeFleetServiceLayer,
@@ -119,8 +120,12 @@ export const transactionComposition = (configuration: FleetConfiguration) =>
       Layer.succeed(ParticipantsTag, participants),
     );
 
+    // A start's idempotency records live in the `saga` store's database.
+    const idempotency = yield* fleetIdempotencyLayer(configuration, sagaDbName);
+
     const infra = Layer.provideMerge(
       Layer.mergeAll(
+        idempotency,
         sagaStoresLayer(sagaDbName),
         HttpSagaDispatcherLayer,
         // The in-process fan-out behind `GET /api/transaction/events`. Scoped,

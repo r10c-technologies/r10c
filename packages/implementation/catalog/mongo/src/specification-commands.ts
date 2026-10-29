@@ -28,12 +28,12 @@ import {
   EventBusTag,
   EventSourceTag,
   LockServiceTag,
+  OutboxTag,
   readCommandEnvelope,
   SequenceServiceTag,
   type TransactionCommand,
   type TransactionHandler,
   TransactionHandlerTag,
-  TransactionOutboxTag,
 } from '@entifix/transactions';
 import {
   acceptTransaction,
@@ -210,7 +210,7 @@ export const MongoSpecificationCommandsLayer = Layer.effect(
             effect.pipe(
               Effect.provideService(CommandTag, command),
               Effect.provideService(TransactionHandlerTag, handler),
-              Effect.provideService(TransactionOutboxTag, outbox),
+              Effect.provideService(OutboxTag, outbox),
               Effect.provideService(LockServiceTag, locks),
               Effect.provideService(EventSourceTag, source),
             );

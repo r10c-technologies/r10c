@@ -28,7 +28,7 @@ const respond = (status: number, body?: unknown) =>
 const start = () =>
   Effect.gen(function* () {
     const starter = yield* SagaStarterTag;
-    return yield* starter.start('checkout', {});
+    return yield* starter.start('checkout', {}, 'k');
   }).pipe(
     Effect.provide(
       httpSagaStarterLayer({
@@ -59,12 +59,14 @@ const serve = (
   answer: (
     url: URL,
     body: unknown,
+    headers: Record<string, string>,
   ) => { status: number; body?: unknown } | undefined,
 ) =>
   vi.stubGlobal('fetch', (input: string, init?: RequestInit) => {
     const answered = answer(
       new URL(input),
       init?.body === undefined ? undefined : JSON.parse(String(init.body)),
+      (init?.headers ?? {}) as Record<string, string>,
     );
     return answered === undefined
       ? Promise.reject(new Error('refused'))
@@ -77,10 +79,12 @@ const serve = (
   });
 
 describeSagaStarterContract('the HTTP saga starter', coordinator => {
-  serve((url, body) =>
+  serve((url, body, headers) =>
     coordinator(
       url.pathname.replace('/api/saga/', ''),
       (body as { inputs: never }).inputs,
+      // Sent as an RFC 9651 String; the script sees the key itself.
+      (headers['idempotency-key'] ?? '').replace(/^"|"$/g, ''),
     ),
   );
   return Effect.runPromise(

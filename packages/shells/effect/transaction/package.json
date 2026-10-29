@@ -56,6 +56,7 @@
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",
+    "@r10c/shells-effect-flow-catalog": "workspace:*",
     "@r10c/testing-http": "workspace:*"
   }
 }

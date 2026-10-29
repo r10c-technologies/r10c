@@ -10,5 +10,18 @@
     "rootDir": "."
   },
   "include": ["src/**/*.ts"],
-  "references": []
+  "references": [
+    {
+      "path": "../../packages/business/ts/payment-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/party-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/order-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/catalog-contracts"
+    }
+  ]
 }

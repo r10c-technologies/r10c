@@ -8,6 +8,7 @@
 - Revised: 2026-10-26 — auth-service's routes moved into the `authn/http` cell (#430); the claim about which route serves `Organization` is restated against it.
 - Amends: [ADR 0048](0048-announcing-a-publication.md) — the fleet-wide rebuild
   it deferred is built, and the reason it gave for deferring is answered.
+- Revised: 2026-10-28 by [ADR 0068](0068-one-outbox-ordered-per-aggregate.md) — the rebuild walk re-emits each offering at its stored version
 
 ## Context
 

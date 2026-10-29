@@ -1,5 +1,6 @@
 import { authSlice } from './slices/auth.slice.js';
 import { configSlice } from './slices/config.slice.js';
+import { fulfilmentSlice } from './slices/fulfilment.slice.js';
 import { marketplaceSlice } from './slices/marketplace.slice.js';
 import { marketplaceAdminSlice } from './slices/marketplace-admin.slice.js';
 import { orderSlice } from './slices/order.slice.js';
@@ -23,6 +24,7 @@ import type { SliceDeclaration } from './types.js';
 export const SLICES: readonly SliceDeclaration[] = [
   authSlice,
   configSlice,
+  fulfilmentSlice,
   marketplaceSlice,
   marketplaceAdminSlice,
   orderSlice,

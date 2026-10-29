@@ -4,6 +4,7 @@ import {
   InvalidToken,
   TokenServiceTag,
 } from '@entifix/business';
+import { defineCatalog, flowCommit } from '@entifix/business/flow';
 import { EntifixConnError } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
@@ -14,7 +15,7 @@ import {
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 import { tokenClaims } from '@r10c/testing-cells';
 import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, Schema } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { salesRoutes } from './sales-routes.js';
@@ -33,11 +34,27 @@ let outcome: Effect.Effect<SagaStartOutcome, EntifixConnError> = Effect.succeed(
 
 const vendor = tokenClaims();
 
+/**
+ * The smallest recipe `sell` can name: the cell only reports what its shell
+ * resolves, and the real checkout is the flow catalog's to enumerate.
+ */
+const compositions = {
+  catalog: defineCatalog([flowCommit]),
+  recipes: {
+    checkout: {
+      name: 'checkout',
+      input: Schema.Struct({}),
+      requiresCommitPoint: true,
+      stages: [{ name: 'commit', steps: [{ ref: 'flow.commit@1' }] }],
+    },
+  },
+};
+
 let served: ServedRoutes;
 
 beforeAll(() => {
   served = serveRoutes(
-    salesRoutes,
+    salesRoutes(compositions),
     Layer.mergeAll(
       Layer.succeed(EntityRepositoryFactoryTag, {
         for: () => Effect.succeed(repository),
@@ -86,6 +103,26 @@ const sale = (channelId: string, offeringId = 'mine') => ({
   channelId,
   paymentMethod: 'cash',
   lines: [{ offeringId, quantity: 1 }],
+});
+
+describe('GET /api/sales-channel/$metadata', () => {
+  it('reports the flow `sell` starts', async () => {
+    const response = await served.call('/api/sales-channel/$metadata', {
+      headers: { authorization: 'Bearer vendor' },
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: {
+        useCases: [
+          {
+            key: 'sell',
+            composition: { recipe: 'checkout', fragments: ['flow.commit@1'] },
+          },
+        ],
+      },
+    });
+  });
 });
 
 describe('POST /api/counter-sale', () => {

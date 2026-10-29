@@ -1,10 +1,10 @@
 # 39. Multi-step sagas are orchestrated, per flow, from a declarative definition
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-04
 - Area: messaging
 - Amended by: [ADR 0055](0055-a-coordinator-resumes-from-its-own-record.md) — the HTTP-dispatching outbox relay this record sized as "the one genuinely new mechanism" is struck rather than built: the saga instance is already the durable record of intent, and an entry beside it would be a second copy of the same fact
-- Read when: a flow spans slices — orchestrated per flow, commands over HTTP and results over the bus, with a stated condition for adopting a workflow engine instead
+- Read when: only for its reasoning — superseded by ADR 0066
 - Revised: 2026-09-08 by [ADR 0052](0052-the-checkout-saga.md) — the deferred
   pieces below are designed there, and this record's own `:3103` trigger has
   fired: checkout's participants are stock-service and order-service, neither of
@@ -13,6 +13,9 @@
   `packages/entifix/ts/transactions`.
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): ports are `Context.Service`s rather than `Context.Tag`s; the decision is unchanged.
 - Revised: 2026-10-25 — the single-step handler moved into `@r10c/implementation-catalog-mongo` (#371); its `rollback` still ignores the outcome.
+- Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — superseded: orchestration moves to Effect Workflow interpreting a pinned slip; the per-flow definition and its runner are deleted
+
+> **Superseded 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md).** Kept for its reasoning; the mechanism below is replaced, and is deleted when the engine lands (#490).
 
 ## Context
 

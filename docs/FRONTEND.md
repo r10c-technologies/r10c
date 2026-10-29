@@ -938,7 +938,7 @@ need a second class of bearer token in client JavaScript — and a duplex frame 
 anyway.
 
 `makeEventSourceReactiveChannel(url)` is the browser end. It opens **one** `EventSource` on the
-first subscriber and closes it with the last, parses each frame with `readEventEnvelope`, and
+first subscriber and closes it with the last, decodes each frame with `decodeEnvelope`, and
 hands listeners the whole `DomainEvent<EntityChangeEvent>` — the correlation id, timestamp and
 sequence live on `meta.event`, not duplicated onto the payload. A frame it cannot read is
 dropped rather than thrown: `onmessage` runs in the browser's event loop, where a throw reaches

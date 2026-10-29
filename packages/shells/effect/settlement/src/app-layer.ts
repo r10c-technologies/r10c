@@ -1,15 +1,9 @@
 import { MongoDatabaseTag } from '@entifix/mongo';
-import {
-  ensureInboxIndexes,
-  ensureOutboxIndexes,
-  startOutboxRelay,
-} from '@entifix/mongo/transactions';
-import { logMechanismOutcome } from '@entifix/service-shell';
+import { ensureInboxIndexes } from '@entifix/mongo/transactions';
 import { MongoSettlementStoreLayer } from '@r10c/implementation-settlement-mongo';
 import {
   fleetBusLayer,
   type FleetConfiguration,
-  fleetOutboxLayer,
   fleetSecurityLayer,
   fleetSingleMongoLayer,
   makeFleetServiceLayer,
@@ -50,8 +44,9 @@ export const SETTLEMENT_SLICE = 'settlement';
  * connection eagerly and registers no probe exits `1` against a merely slow
  * broker while the health ladder green-lights a booting fleet — the trap
  * marketplace-service hit. `AmqpHealthProbeLayer` sits in the probe tier above
- * the bus for exactly that reason. It earns its place twice here: the relay
- * publishes `settlement.run.completed`, and **two** subscriptions feed the fold.
+ * the bus for exactly that reason: **two** subscriptions feed the fold. Nothing
+ * is published — no slice subscribes to a completed run (ADR 0068) — so the
+ * slice runs no outbox relay.
  *
  * No Redis: this slice takes no lock and draws from no sequence. A settlement
  * run is the coarse batch a distributed lock is usually reached for, and it uses
@@ -59,9 +54,8 @@ export const SETTLEMENT_SLICE = 'settlement';
  * already the durable claim, which is the argument ADR 0055 made for the saga
  * resume sweep and which holds here for the same reason.
  */
-/** The outbox's and the inbox's indexes, before the first write to either. */
-export const ensureBusIndexes = (database: Db) =>
-  Effect.all([ensureOutboxIndexes(database), ensureInboxIndexes(database)]);
+/** The inbox's indexes, before the fold's first claim. */
+export const ensureBusIndexes = (database: Db) => ensureInboxIndexes(database);
 
 /**
  * What the service brings to its slice's composition: the demo seed is the
@@ -98,7 +92,6 @@ export const settlementComposition =
         yield* fleetSingleMongoLayer(configuration, ['settlement']),
         yield* fleetBusLayer(configuration),
         yield* fleetSecurityLayer(configuration),
-        yield* fleetOutboxLayer(configuration, SETTLEMENT_SLICE),
         Layer.succeed(SettlementRunIntervalMs, runIntervalMs),
       );
 
@@ -126,9 +119,6 @@ export const settlementComposition =
 
       return Layer.provideMerge(
         Layer.mergeAll(
-          Layer.effectDiscard(
-            startOutboxRelay({ onOutcome: logMechanismOutcome }),
-          ),
           Layer.effectDiscard(startSettlementFold),
           Layer.effectDiscard(startSettlementSweep),
         ),

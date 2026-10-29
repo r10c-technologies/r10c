@@ -8,6 +8,7 @@
   the fleet runs six, not five: `marketplace-service` returns with two stores to
   justify it. The title is kept deliberately.
 - Revised: 2026-10-25 — the saga store's named handle is a layer argument rather than a `SagaDatabaseName` tag (#376).
+- Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — transaction-service runs two workflow runners (ports `34103`, `35103`), only replica 0 binding HTTP
 
 ## Context
 

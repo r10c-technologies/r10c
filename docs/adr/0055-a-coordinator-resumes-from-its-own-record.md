@@ -1,9 +1,12 @@
 # 55. A coordinator resumes from its own record, and a dispatch needs no outbox
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-09
 - Area: messaging
-- Read when: a saga has to survive its coordinator dying, or you are about to build the command outbox two earlier records specify — the instance is already the durable record of intent, and where to resume is derived from the outcomes rather than stored beside them
+- Read when: only for its reasoning — superseded by ADR 0066
+- Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — superseded: a flow resumes from the engine's journal; the instance record, the resume sweep and the `saga` store go
+
+> **Superseded 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md).** Kept for its reasoning; the mechanism below is replaced, and is deleted when the engine lands (#490).
 
 ## Context
 

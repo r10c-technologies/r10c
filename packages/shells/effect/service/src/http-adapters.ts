@@ -21,7 +21,7 @@ export const httpSagaStarterLayer = (coordinator: {
   readonly crossingToken: string;
 }) =>
   Layer.succeed(SagaStarterTag, {
-    start: (definition, inputs) =>
+    start: (definition, inputs, idempotencyKey) =>
       Effect.tryPromise({
         try: () =>
           postSaga(
@@ -29,6 +29,7 @@ export const httpSagaStarterLayer = (coordinator: {
             coordinator.crossingToken,
             definition,
             inputs,
+            idempotencyKey,
           ),
         catch: error =>
           new EntifixConnError('Failed to reach the saga coordinator', error, {

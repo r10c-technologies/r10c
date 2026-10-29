@@ -209,9 +209,8 @@ describe('settleOnce', () => {
     expect(fake.read(SETTLEMENT_RUN_COLLECTION)[0]?.['status']).toBe(
       'calculated',
     );
-    expect(bus.published.map(event => event.name)).toEqual([
-      'settlement.run.completed',
-    ]);
+    // A completed run announces nothing: no slice subscribes to it.
+    expect(bus.published).toEqual([]);
   });
 
   it('records an empty attempt when a sibling sweep took the lines first', async () => {

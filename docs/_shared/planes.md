@@ -49,6 +49,7 @@ declaration as `bindingReason`.
 | `catalog-reference` | platform | `marketplace`       | active       | —                | `catalog-reference`                                           | single           | system-of-record        |
 | `catalog`           | tenant   | `marketplace-admin` | active       | —                | `product-configuration-management`                            | per-organization | system-of-record        |
 | `configuration`     | control  | `config`            | active       | —                | `config`                                                      | single           | system-of-record        |
+| `fulfilment`        | tenant   | `fulfilment`        | **planned**  | —                | —                                                             | per-organization | system-of-record        |
 | `order`             | platform | `order`             | active       | —                | `order-management`                                            | single           | system-of-record        |
 | `payment`           | platform | `payment`           | active       | —                | `payment-management`                                          | single           | system-of-record        |
 | `published-catalog` | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog` |
@@ -58,6 +59,7 @@ declaration as `bindingReason`.
 | `sales`             | tenant   | `sales`             | active       | —                | `sales-management`                                            | per-organization | system-of-record        |
 | `session`           | control  | `auth`              | active       | —                | —                                                             | single           | system-of-record        |
 | `settlement`        | control  | `settlement`        | active       | —                | `settlement-management`                                       | single           | system-of-record        |
+| `stock-idempotency` | control  | `stock`             | active       | —                | —                                                             | single           | system-of-record        |
 | `stock`             | tenant   | `stock`             | active       | —                | `stock-management`                                            | per-organization | system-of-record        |
 
 <!-- docs:end store-register -->
@@ -113,6 +115,9 @@ A **cache** (derivable and droppable), a **transport** (RabbitMQ — messages in
 flight, not state at rest; the saga's `transactions` collection _is_ a store, the
 exchange is not), and a **foreign system** (Zitadel's Postgres — it has an owner,
 and the owner is not us).
+
+The saga runner's stores are replaced by a Postgres `workflow` store when flows
+move to the durable engine ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).
 
 ## The rules that follow
 

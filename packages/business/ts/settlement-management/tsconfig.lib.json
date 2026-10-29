@@ -18,6 +18,9 @@
     },
     {
       "path": "../payment-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../order-contracts/tsconfig.lib.json"
     }
   ],
   "exclude": [

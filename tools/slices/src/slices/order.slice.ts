@@ -82,7 +82,8 @@ export const orderSlice: SliceDeclaration = {
     // `inbox`: advancing an order's state on a capture is not a rewrite of the
     // same value, so a redelivery must be recognised rather than survived.
     //
-    // ⚠️ **`payment.failed` is deliberately not here any more.** A capture that
+    // ⚠️ **A refused capture is not consumed, and since ADR 0068 not published
+    // either.** A capture that
     // refuses is the checkout saga's pivot refusing, which compensates the flow
     // synchronously — and the compensation *deletes* the order. A consumer
     // setting `status = 'cancelled'` on that same order would be racing its own

@@ -44,6 +44,7 @@ const CONFIGURATION = fleetConfigurationOf({
   }),
   amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
   rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
+  idempotency: configurationRows({ retentionMs: 60_000 }),
   saga: configurationRows({
     db: 'saga',
     staleTimeoutMs: 60_000,

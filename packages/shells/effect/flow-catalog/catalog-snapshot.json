@@ -1,0 +1,891 @@
+{
+  "fragments": [
+    {
+      "ref": "flow.commit@1",
+      "id": "flow.commit",
+      "version": 1,
+      "module": "flow",
+      "kind": "pivot",
+      "cardinality": "one",
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "none",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {},
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {},
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {}
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "0f76b9eb1662e5"
+    },
+    {
+      "ref": "order.claim-cancel@1",
+      "id": "order.claim-cancel",
+      "version": 1,
+      "module": "order-management",
+      "kind": "compensatable",
+      "cardinality": "one",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order/:id/cancelling"
+      },
+      "compensation": {
+        "method": "DELETE",
+        "path": "/api/product-order/:id/cancelling"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "semanticLock",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "notFound",
+                  "orderNotCancellable"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "10257f025035a0"
+    },
+    {
+      "ref": "order.close-cancelled@1",
+      "id": "order.close-cancelled",
+      "version": 1,
+      "module": "order-management",
+      "kind": "retriable",
+      "cardinality": "one",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order/:id/cancelled"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "notFound"
+                    ]
+                  }
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "188c59be0aa7a2"
+    },
+    {
+      "ref": "order.write@1",
+      "id": "order.write",
+      "version": 1,
+      "module": "order-management",
+      "kind": "compensatable",
+      "cardinality": "one",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order"
+      },
+      "compensation": {
+        "method": "DELETE",
+        "path": "/api/product-order/:id"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "none",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array"
+              }
+            },
+            "required": [
+              "items"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "invalidBody"
+                    ]
+                  }
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "1ff1170df6da40"
+    },
+    {
+      "ref": "payment.capture@1",
+      "id": "payment.capture",
+      "version": 1,
+      "module": "payment-management",
+      "kind": "pivot",
+      "cardinality": "one",
+      "participant": "payment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/payment"
+      },
+      "readOnly": false,
+      "irreversible": true,
+      "isolation": "none",
+      "requires": {},
+      "excludedFrom": {
+        "paymentMethod": [
+          "cashOnDelivery"
+        ]
+      },
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "orderId",
+              "amount",
+              "currency"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "paymentDeclined"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "0f2082c625224a"
+    },
+    {
+      "ref": "payment.refund@1",
+      "id": "payment.refund",
+      "version": 1,
+      "module": "payment-management",
+      "kind": "pivot",
+      "cardinality": "one",
+      "participant": "payment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/refund"
+      },
+      "readOnly": false,
+      "irreversible": true,
+      "isolation": "none",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "orderId": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "orderId"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "noCapturedPayment",
+                  "refundDeclined"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "18dbccc9efb120"
+    },
+    {
+      "ref": "stock.convert@1",
+      "id": "stock.convert",
+      "version": 1,
+      "module": "stock-management",
+      "kind": "retriable",
+      "cardinality": "perLine",
+      "participant": "stock-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/reservation/:id/conversion"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "commutative",
+      "requires": {
+        "entitlements": [
+          "stock-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {
+        "reservationId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "not": {}
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "09d8088a8946da"
+    },
+    {
+      "ref": "stock.reserve@1",
+      "id": "stock.reserve",
+      "version": 1,
+      "module": "stock-management",
+      "kind": "compensatable",
+      "cardinality": "perLine",
+      "participant": "stock-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/reservation"
+      },
+      "compensation": {
+        "method": "DELETE",
+        "path": "/api/reservation/:id"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "commutative",
+      "requires": {
+        "entitlements": [
+          "stock-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {
+        "reservationId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "offeringId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "quantity": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "offeringId",
+              "quantity"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "insufficientStock"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "1bb2ba0ee1a7c5"
+    },
+    {
+      "ref": "stock.restore@1",
+      "id": "stock.restore",
+      "version": 1,
+      "module": "stock-management",
+      "kind": "retriable",
+      "cardinality": "perLine",
+      "participant": "stock-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/stock-restoration"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "commutative",
+      "requires": {
+        "entitlements": [
+          "stock-management"
+        ]
+      },
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "offeringId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "quantity": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "offeringId",
+              "quantity"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalidBody",
+                  "inconsistentMovement"
+                ]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "category"
+            ],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "053fae4707be81"
+    }
+  ]
+}

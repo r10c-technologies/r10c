@@ -1,9 +1,9 @@
 # 52. The checkout saga: a definition that is data, and a compensation that is told what it undid
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-08
 - Area: messaging
-- Read when: a flow spans two services and one of them may have to be undone — the definition is data, a fan-out step compensates only the calls that succeeded, and a participant the saga may retry must be idempotent on the command id
+- Read when: only for its reasoning — superseded by ADR 0066
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — its reopen condition for a step-graph grammar fired, and the grammar held
 - Amended by: [ADR 0054](0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md) — the pivot this record deferred to M4 landed where it said it would; what it did not anticipate is that `runSaga` ignored `kind` outside definition validation, so the planned pivot would have been decorative and a post-pivot failure would have deleted a paid order
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): the engine file is `@entifix/transactions`'s
@@ -13,6 +13,9 @@
   against is entifix's `startTenantOutboxRelay` (#371).
 
 - Amended by: [ADR 0055](0055-a-coordinator-resumes-from-its-own-record.md) — the outbox-entry-plus-HTTP-relay dispatch is struck; the four ways this record said that relay would differ from the AMQP one turned out to be the evidence it was not an outbox
+- Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — superseded: checkout is a composed slip on the workflow engine and answers `202`; `defineSaga` and the synchronous answer go
+
+> **Superseded 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md).** Kept for its reasoning; the mechanism below is replaced, and is deleted when the engine lands (#490).
 
 ## Context
 

@@ -31,6 +31,7 @@ import { SalesChannel } from '../../entities/sales-channel';
   binding: 'entity',
   placement: 'context-independent',
   labelKey: 'entity:sales-channel.useCases.sell',
+  recipe: 'checkout',
 })
 export class SellAtChannelUC {
   /**

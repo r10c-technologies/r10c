@@ -20,6 +20,7 @@ describe('postSaga', () => {
       'token',
       'checkout',
       { reserve: [] },
+      'key-"1"',
       { cache: 'no-store' },
     );
 
@@ -32,6 +33,7 @@ describe('postSaga', () => {
         headers: {
           'content-type': 'application/json',
           [CROSSING_TOKEN_HEADER]: 'token',
+          'idempotency-key': '"key-\\"1\\""',
         },
         body: JSON.stringify({ inputs: { reserve: [] } }),
       },
@@ -43,7 +45,7 @@ describe('postSaga', () => {
       Promise.resolve(new Response('not json', { status: 500 })),
     );
 
-    expect(await postSaga('http://c', 't', 'cancellation', {})).toEqual({
+    expect(await postSaga('http://c', 't', 'cancellation', {}, 'k')).toEqual({
       status: 500,
       payload: undefined,
     });

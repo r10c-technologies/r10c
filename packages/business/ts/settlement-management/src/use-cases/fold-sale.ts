@@ -1,10 +1,13 @@
 import type { DomainEvent } from '@entifix/core';
+import {
+  readCancelledOrder,
+  readPlacedOrder,
+} from '@r10c/business-ts-order-contracts';
 import { readPaymentOutcome } from '@r10c/business-ts-payment-contracts';
 import { Effect } from 'effect';
 
 import { type FoldOutcome, SaleJoinTag } from '../ports/settlement-ports';
 import { commissionsForOrder } from '../values/commission';
-import { readCancelledOrder, readPlacedOrder } from '../values/placed-order';
 
 /**
  * What one fold did, for the slice shell to log at its consumer: the use case

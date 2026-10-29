@@ -6,13 +6,17 @@ import {
 } from '@entifix/authz';
 import {
   EntityRepositoryFactoryTag,
+  IdempotencyStoreTag,
   InvalidToken,
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
 import { Unavailable } from '@entifix/core';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
-import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
+import {
+  makeInMemoryEntityRepository,
+  makeInMemoryIdempotencyStore,
+} from '@entifix/testing-unit';
 import {
   type PaymentLedger,
   PaymentLedgerTag,
@@ -43,7 +47,7 @@ const ledger: PaymentLedger = {
 const provider = makeScriptedPaymentProvider(
   (request, step) =>
     (step === 'capture' && request.orderId === 'declined') ||
-    (step === 'refund' && request.orderId === 'declined-refund'),
+    (step === 'refund' && request.orderId.startsWith('declined-refund')),
 );
 
 const claims: TokenClaims = {
@@ -78,6 +82,7 @@ beforeAll(() => {
         }),
       ),
       Layer.succeed(ServiceCrossingTokenTag, 'fleet'),
+      Layer.succeed(IdempotencyStoreTag, edge),
       Layer.succeed(
         ServiceCrossingPolicyTag,
         makeStaticServiceCrossingPolicy([
@@ -93,13 +98,27 @@ afterAll(async () => {
   await served.dispose();
 });
 
-const crossing = (path: string, body: unknown, commandId?: string) =>
-  crossingCall(served, path, { body, commandId });
+const crossing = (path: string, body: unknown, idempotencyKey?: string) =>
+  crossingCall(served, path, { body, idempotencyKey });
 
 const paymentBody = (orderId: string, amount = 40) => ({
   meta: { type: 'entity', entity: 'payment' },
   data: { orderId, amount, currency: 'GTQ', paymentMethod: 'card' },
 });
+
+/**
+ * The edge's `Idempotency-Key` records, on a clock a case can move past their
+ * retention — the only way to reach the unit of work's own replay, which is
+ * what still answers once the edge has forgotten a key.
+ */
+let edgeNow = 0;
+const edge = makeInMemoryIdempotencyStore({
+  retentionMs: 60_000,
+  now: () => edgeNow,
+});
+const forgetAtTheEdge = () => {
+  edgeNow += 60_001;
+};
 
 describe('POST /api/payment', () => {
   it('captures, and answers a redelivery with the same decision', async () => {
@@ -107,10 +126,43 @@ describe('POST /api/payment', () => {
     const again = await crossing('/api/payment', paymentBody('o-1'), 'c-1');
 
     expect(first.status).toBe(201);
-    expect(again.status).toBe(200);
+    expect(again.status).toBe(201);
+    // The edge replays the first answer, marked (ADR 0068).
+    expect(again.headers.get('idempotent-replayed')).toBe('true');
     expect(await Effect.runPromise(real.captureFor('o-1'))).toMatchObject({
       orderId: 'o-1',
     });
+  });
+
+  it('answers from the ledger once the edge has forgotten the key', async () => {
+    const first = await crossing(
+      '/api/payment',
+      paymentBody('o-forgot'),
+      'c-9',
+    );
+    const declined = await crossing(
+      '/api/payment',
+      paymentBody('declined'),
+      'c-10',
+    );
+    forgetAtTheEdge();
+    const again = await crossing(
+      '/api/payment',
+      paymentBody('o-forgot'),
+      'c-9',
+    );
+    const declinedAgain = await crossing(
+      '/api/payment',
+      paymentBody('declined'),
+      'c-10',
+    );
+
+    expect(first.status).toBe(201);
+    expect(declined.status).toBe(402);
+    // Not the edge's replay: the ledger's own claim on the same key.
+    expect(again.status).toBe(200);
+    expect(again.headers.get('idempotent-replayed')).toBeNull();
+    expect(declinedAgain.status).toBe(402);
   });
 
   it('answers a declined capture, and its replay, with 402', async () => {
@@ -162,7 +214,37 @@ describe('POST /api/refund', () => {
     const again = await crossing('/api/refund', { orderId: 'o-10' }, 'r-1');
 
     expect(first.status).toBe(201);
+    expect(again.status).toBe(201);
+  });
+
+  it('answers a refund from the ledger once the edge has forgotten the key', async () => {
+    await crossing('/api/payment', paymentBody('o-r-forgot'));
+    await crossing('/api/payment', paymentBody('declined-refund-forgot'));
+    const first = await crossing(
+      '/api/refund',
+      { orderId: 'o-r-forgot' },
+      'r-9',
+    );
+    const declined = await crossing(
+      '/api/refund',
+      { orderId: 'declined-refund-forgot' },
+      'r-10',
+    );
+    forgetAtTheEdge();
+    const again = await crossing(
+      '/api/refund',
+      { orderId: 'o-r-forgot' },
+      'r-9',
+    );
+    const declinedAgain = await crossing(
+      '/api/refund',
+      { orderId: 'declined-refund-forgot' },
+      'r-10',
+    );
+
+    expect(first.status).toBe(201);
     expect(again.status).toBe(200);
+    expect([declined.status, declinedAgain.status]).toEqual([402, 402]);
   });
 
   it('answers a declined refund, and its replay, with 402', async () => {

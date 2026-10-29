@@ -48,6 +48,16 @@ export const stockSlice: SliceDeclaration = {
       partitioning: 'per-organization',
       truth: 'system-of-record',
     },
+    // The crossing routes' `Idempotency-Key` records (ADR 0068). One database,
+    // not one per tenant: a key names no organization, and the tenant handle is
+    // resolved only after the guard has run. Not entity records, so no hosts.
+    {
+      name: 'stock-idempotency',
+      plane: 'control',
+      hosts: [],
+      partitioning: 'single',
+      truth: 'system-of-record',
+    },
   ],
   deployments: ['stock-service'],
   coDeployedWith: [],

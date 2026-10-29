@@ -4,6 +4,7 @@ import { MongoStockLedgerLayer } from '@r10c/implementation-stock-mongo';
 import {
   crossingTokenLayer,
   type FleetConfiguration,
+  fleetIdempotencyLayer,
   fleetSecurityLayer,
   fleetTenantMongoLayer,
   makeFleetServiceLayer,
@@ -46,6 +47,9 @@ export interface StockShellOptions {
   ) => Effect.Effect<void, unknown, MongoClientTag>;
 }
 
+/** The database the crossing routes' idempotency records live in. */
+export const STOCK_IDEMPOTENCY_DB = 'stock-idempotency';
+
 export const stockComposition =
   (options: StockShellOptions) => (configuration: FleetConfiguration) =>
     Effect.gen(function* () {
@@ -85,8 +89,17 @@ export const stockComposition =
       // `Layer.mergeAll`.** `mergeAll` builds its members concurrently, and Mongo
       // creates a tenant database on first write — so a sibling that also touched
       // `stock_<id>` would race the seed on a fresh `dev:reset`.
+      // The crossing routes' idempotency records. A tenant handle is resolved
+      // per request and the key names no organization, so they live in one
+      // database of their own, `stock-idempotency` — a name the tenant
+      // directory's `stock_` prefix never matches.
+      const idempotency = yield* fleetIdempotencyLayer(
+        configuration,
+        STOCK_IDEMPOTENCY_DB,
+      );
+
       const seeded = Layer.provideMerge(
-        MongoStockLedgerLayer,
+        Layer.mergeAll(MongoStockLedgerLayer, idempotency),
         Layer.provideMerge(
           Layer.effectDiscard(
             options.seed(`${tenantPrefix}${demoOrganizationId}`),

@@ -1,9 +1,9 @@
 import { EntifixBuildError } from '@entifix/core';
+import type { PlacedOrderLine } from '@r10c/business-ts-order-contracts';
 import { describe, expect, it } from 'vitest';
 
 import { Agreement } from '../entities/agreement/index.js';
 import { commissionsForOrder, payoutFor, reversalOf } from './commission.js';
-import type { PlacedOrderLine } from './placed-order.js';
 
 const line = (
   vendorId: string,

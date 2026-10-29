@@ -1,3 +1,8 @@
+import {
+  type ResolutionRule,
+  type VerifiedContext,
+  When,
+} from '@entifix/business';
 import type { EntityMemberPath, FilterGroup } from '@entifix/core';
 
 import type { ProductOrder } from '../entities/product-order';
@@ -109,51 +114,53 @@ export const orderScopeFor = (principal: ScopedCaller): OrderScope => {
  * `undefined` means *add no filter*, which is only ever the operator's case —
  * `nothing` never reaches here, because a route answers it without loading.
  */
-export const orderScopeFilter = (
-  scope: OrderScope,
-): FilterGroup<ProductOrder> | undefined => {
-  switch (scope.kind) {
-    case 'vendor':
-      return {
-        operator: 'and',
-        values: [
-          {
-            property: VENDOR_PATH,
-            operator: 'eq',
-            value: scope.organizationId as never,
-          },
-        ],
-      };
-    case 'buyer':
-      return {
-        operator: 'and',
-        values: [{ property: 'buyerId', operator: 'eq', value: scope.partyId }],
-      };
-    default:
-      return undefined;
-  }
-};
+/** Which orders a caller may see: all, none, or the ones a filter keeps. */
+export type OrderNarrowing = 'unscoped' | 'nothing' | FilterGroup<ProductOrder>;
 
 /**
- * Whether one loaded order falls inside a scope.
- *
- * `id` is the single member that is neither sortable nor filterable, so a by-id
- * read cannot be expressed as a filtered load and the record is tested after it
- * is read. A caller outside the scope gets the route's existing `404` — **not**
- * a `403`, which would confirm the order exists to somebody who may not see it.
+ * Every order read narrowed to its caller (ADR 0053, as a resolver since ADR
+ * 0065), the reads' twin of {@link orderScopeFor}: platform staff unscoped, a
+ * vendor to the orders that owe them a line, a buyer to the orders they placed,
+ * and anybody matching no rule — a vendor session with no organization, an
+ * account with no party record — to nothing. The by-id read is a load of the
+ * same narrowing, so the list and the read cannot disagree.
  */
-export const orderInScope = (
-  scope: OrderScope,
-  order: ProductOrder,
-): boolean => {
-  switch (scope.kind) {
-    case 'unscoped':
-      return true;
-    case 'vendor':
-      return order.items.some(item => item.vendorId === scope.organizationId);
-    case 'buyer':
-      return order.buyerId === scope.partyId;
-    default:
-      return false;
-  }
-};
+export const orderNarrowing: readonly ResolutionRule<
+  (context: VerifiedContext) => OrderNarrowing
+>[] = [
+  When(context => context.partyRole === OPERATOR).use({
+    name: 'operator',
+    impl: () => 'unscoped',
+  }),
+  When(
+    context =>
+      context.partyRole === VENDOR && context.organizationId !== undefined,
+  ).use({
+    name: 'vendor',
+    impl: context => ({
+      operator: 'and',
+      values: [
+        {
+          property: VENDOR_PATH,
+          operator: 'eq',
+          value: context.organizationId as never,
+        },
+      ],
+    }),
+  }),
+  When(
+    context => context.partyRole !== VENDOR && context.partyId !== undefined,
+  ).use({
+    name: 'buyer',
+    impl: context => ({
+      operator: 'and',
+      values: [
+        {
+          property: 'buyerId',
+          operator: 'eq',
+          value: context.partyId as string,
+        },
+      ],
+    }),
+  }),
+];

@@ -2,9 +2,9 @@ import {
   EntityRepositoryFactoryTag,
   TenantDirectoryTag,
 } from '@entifix/business';
-import { type DomainEvent, EntifixConnError, Unavailable } from '@entifix/core';
+import { EntifixConnError, Unavailable } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
-import type { CatalogPublication } from '@r10c/business-ts-catalog-contracts';
+import type { CatalogEvent } from '@r10c/business-ts-catalog-contracts';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -65,7 +65,7 @@ interface Stores {
 
 const world = (stores: Stores = {}) => {
   const committed: { organizationId: string; from: string }[] = [];
-  const announced: DomainEvent<CatalogPublication>[] = [];
+  const announced: CatalogEvent[] = [];
   const offerings = makeInMemoryEntityRepository(stores.offerings ?? []);
   const prices = makeInMemoryEntityRepository(
     (stores.priced ?? (stores.offerings ?? []).map(one => String(one.id))).map(

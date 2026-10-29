@@ -808,7 +808,7 @@ instances.
 `UnitOfWork.run(body, { claim?, replay?, afterCommit? })` gives the body one
 transaction, records the events it `emit`s into the outbox in that transaction,
 and takes at most one claim — an event's (`consumer` + `eventId`, so a fold runs
-exactly once) or a command's (`x-command-id`, so a redelivered saga step answers
+exactly once) or a command's (`Idempotency-Key`, so a redelivered saga step answers
 what the first attempt decided). A body that fails with its own reason is
 `aborted` and wrote nothing; `afterCommit: drainOutboxNow(db)` publishes before
 the sweep would. Every outbox, inbox and command-claim site in the fleet runs on

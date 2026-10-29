@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-28
 - Area: platform
-- Read when: adding a refusal, a status mapping, an error body or a log call, composing a service, or about to write `Effect.retry` in a consumer — every `-service` answers `application/problem+json` and nothing else, `code` is the `errors` catalog key, business and implementation never log, and the slice's shell is the one place that decides status, retry and logging
+- Read when: adding a refusal, a status mapping, an error body or a log call, or about to write `Effect.retry` in a consumer — `code` is the `errors` key, business and implementation never log, and the slice shell decides status, retry and logging
 
 ## Context
 
@@ -103,8 +103,7 @@ Each rule is a check, not a sentence
 ## Consequences
 
 - A refusal a service writes by hand — `{ error, code }` — decodes in the browser
-  as a protocol failure and shows generic copy until its slice migrates in wave
-  3. Accepted for the length of the migration rather than shipping a second
+  as a protocol failure and shows generic copy until its slice migrates in wave 3. Accepted for the length of the migration rather than shipping a second
   decoder.
 - The shells are ten new packages, each held to the coverage gate. The apps
   shrink to their entry points, which is the point: the place a reader looks for

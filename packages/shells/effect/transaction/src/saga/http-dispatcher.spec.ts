@@ -1,6 +1,5 @@
-import { EntifixConnError } from '@entifix/core';
+import { EntifixConnError, IDEMPOTENCY_KEY_HEADER } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
   CROSSING_TOKEN_HEADER,
   ORGANIZATION_HEADER,
 } from '@entifix/service-shell';
@@ -57,7 +56,7 @@ describe('the HTTP saga dispatcher', () => {
     expect(sent[0]?.url).toBe('http://stock/api/reservation');
     expect(sent[0]?.init.headers).toMatchObject({
       [CROSSING_TOKEN_HEADER]: 'stock-token',
-      [COMMAND_ID_HEADER]: 'cmd-1',
+      [IDEMPOTENCY_KEY_HEADER]: '"cmd-1"',
       [ORGANIZATION_HEADER]: 'acme',
     });
     expect(sent[0]?.init.body).toBe('{"offeringId":"o-1"}');

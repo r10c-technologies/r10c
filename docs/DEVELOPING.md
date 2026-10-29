@@ -854,6 +854,38 @@ from `nx.json`. Vitest applies that condition itself, but Playwright resolves
 specs with plain Node and would otherwise land on a package's `dist/` — which
 works on a machine with a stale build and fails on a clean checkout.
 
+## Flows, fragments and the checks that hold them
+
+A step a flow takes is a **fragment**, declared by the domain that owns it in
+`src/fragments/` and exported from its barrel; a **recipe** references
+fragments by `id@n` string, and the catalog and recipes live in
+`@r10c/shells-effect-flow-catalog`
+([ADR 0065](adr/0065-use-case-resolution-and-the-routing-slip.md)). Six
+checks keep them honest, and each fails the build:
+
+- **Every combination composes.** `catalog.spec.ts` runs
+  `enumerateCompositions` over each recipe × entitlement set × payment method ×
+  one and two vendors; a refusal for anything but an unmet entitlement fails.
+- **A contract change bumps its version.** `catalog-snapshot.json` holds each
+  fragment's contract and fingerprint; a change without a new `id@n` fails the
+  snapshot (`pnpm nx test @r10c/shells-effect-flow-catalog -- -u` rewrites it
+  once the version is bumped).
+- **Every call is declared on both ends.** `@r10c/slices` reads that snapshot
+  and fails a fragment whose call or compensation is not in its participant's
+  `exposedAPIs` and in the transaction slice's `dependantAPIs`.
+- **Every variant runs its suite.** `@r10c/conventions` fails a
+  `defineVariants(` with no spec beside it calling `forEachVariant(`.
+- **A variant is chosen from verified facts.** `@r10c/conventions` fails a
+  `When(` predicate that names the request, its body, params, query or input.
+- **A recipe is the saga it describes.** Until the flow engine retires
+  `sagas/*.saga.ts` (#486, #487), `recipes.spec.ts` in
+  `@r10c/shells-effect-transaction` fails a recipe whose card path calls,
+  compensates or classifies a step differently from the saga that actually runs.
+
+A verb that starts a flow names its recipe on its `@useCase()`, and the cell's
+route builder takes the shell's `MetadataCompositions`, so `$metadata` reports
+the flow per caller and omits a verb the caller cannot reach.
+
 ## Code style
 
 - Match the surrounding code: comment density, naming, and idiom. Comments

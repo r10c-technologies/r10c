@@ -3,9 +3,14 @@ import type {
   EntityRepositoryFactoryTag,
   TokenServiceTag,
 } from '@entifix/business';
-import { makeEnvelope } from '@entifix/core';
+import {
+  IDEMPOTENCY_KEY_HEADER,
+  makeEnvelope,
+  parseIdempotencyKey,
+} from '@entifix/core';
 import {
   makeEntityRoutes,
+  type MetadataCompositions,
   requireOrganization,
   routeFailure,
 } from '@entifix/service-shell';
@@ -68,7 +73,16 @@ const counterSale = (organizationId: string) =>
         ),
       );
     }
-    const outcome = yield* sellAtCounter({ organizationId, sale });
+    // The till's own key when it sent one, so a sale it retries is one flow;
+    // a fresh one otherwise.
+    const idempotencyKey =
+      parseIdempotencyKey(request.headers[IDEMPOTENCY_KEY_HEADER]) ??
+      crypto.randomUUID();
+    const outcome = yield* sellAtCounter({
+      organizationId,
+      sale,
+      idempotencyKey,
+    });
     return yield* outcome._tag === 'sold'
       ? HttpServerResponse.json(
           makeEnvelope('sagaResult', 'counter-sale', outcome.result),
@@ -92,10 +106,12 @@ const counterSale = (organizationId: string) =>
  * organization that owns them — a session bound to that organization is the
  * only credential any route here accepts — and the counter sale.
  */
-export const salesRoutes = Layer.mergeAll(
+export const salesRoutes = (compositions: MetadataCompositions) =>
+  Layer.mergeAll(
   makeEntityRoutes(SalesChannel, {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: { kind: 'organization' },
+    compositions,
     prepare: channel => {
       const invalid = validateSalesChannel(channel);
       return invalid === undefined

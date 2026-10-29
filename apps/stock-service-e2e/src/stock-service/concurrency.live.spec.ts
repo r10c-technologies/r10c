@@ -40,12 +40,14 @@ type Page = {
 /** Wide enough that a lost update or a split fold is unmistakable in the count. */
 const BURST = 20;
 
-const crossingHeaders = {
+/** A fresh `Idempotency-Key` per call, so a burst is that many holds. */
+const crossingHeaders = () => ({
   'x-crossing-token': E2E_CROSSING_TOKEN,
   'x-organization-id': E2E_ORGANIZATION_ID,
   // The route accepts no session; the suite's default bearer must not ride along.
   Authorization: undefined,
-};
+  'idempotency-key': `"${crypto.randomUUID()}"`,
+});
 
 /**
  * An offering nothing else in the suite touches, and a fresh one per run.
@@ -78,7 +80,7 @@ const takeHold = (offeringId: string, quantity: number) =>
       meta: { type: 'entity', entity: 'reservation' },
       data: { offeringId, quantity },
     },
-    { headers: crossingHeaders },
+    { headers: crossingHeaders() },
   );
 
 describe('concurrent receipts', () => {

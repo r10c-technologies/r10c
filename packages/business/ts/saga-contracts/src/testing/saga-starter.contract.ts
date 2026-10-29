@@ -11,6 +11,7 @@ import type { SagaInputs, SagaStarter } from '../saga-starter.js';
 export type CoordinatorScript = (
   definition: string,
   inputs: SagaInputs,
+  idempotencyKey: string,
 ) => { readonly status: number; readonly body: unknown } | undefined;
 
 const INPUTS: SagaInputs = {
@@ -32,13 +33,17 @@ export const describeSagaStarterContract = (
 ) => {
   describe(`${name} honours the SagaStarter contract`, () => {
     const startWith = async (answer: ReturnType<CoordinatorScript>) => {
-      const seen: { definition: string; inputs: SagaInputs }[] = [];
-      const starter = await make((definition, inputs) => {
-        seen.push({ definition, inputs });
+      const seen: {
+        definition: string;
+        inputs: SagaInputs;
+        idempotencyKey: string;
+      }[] = [];
+      const starter = await make((definition, inputs, idempotencyKey) => {
+        seen.push({ definition, inputs, idempotencyKey });
         return answer;
       });
       const outcome = await Effect.runPromise(
-        Effect.result(starter.start('checkout', INPUTS)),
+        Effect.result(starter.start('checkout', INPUTS, 'start-1')),
       );
       return { outcome, seen };
     };
@@ -49,7 +54,9 @@ export const describeSagaStarterContract = (
         body: { orderId: 'ord-1' },
       });
 
-      expect(seen).toEqual([{ definition: 'checkout', inputs: INPUTS }]);
+      expect(seen).toEqual([
+        { definition: 'checkout', inputs: INPUTS, idempotencyKey: 'start-1' },
+      ]);
       expect(outcome).toMatchObject({
         success: { _tag: 'completed', result: { orderId: 'ord-1' } },
       });

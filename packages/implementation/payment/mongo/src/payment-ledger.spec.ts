@@ -85,14 +85,14 @@ describe('recording a capture', () => {
     ]);
   });
 
-  it('announces a declined capture as payment.failed', async () => {
+  it('records a declined capture and announces it to nobody', async () => {
     const { fake, run } = world();
 
     await run(ledger =>
       ledger.recordCapture(aPayment('pay-2', 'failed'), outcome(), undefined),
     );
 
-    expect(eventNames(fake)).toEqual(['payment.failed']);
+    expect(eventNames(fake)).toEqual([]);
   });
 
   it('answers a redelivered command with what it first decided', async () => {

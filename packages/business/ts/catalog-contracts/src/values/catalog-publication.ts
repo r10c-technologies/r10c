@@ -1,9 +1,13 @@
 import {
+  type AggregateRef,
+  type AudienceEntry,
   type DomainEvent,
   Invalid,
+  openStruct,
+  registerEvent,
   type TransitionalFailure,
 } from '@entifix/core';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 
 import { type MediaReferenceValue, readMedia } from './media-reference';
 
@@ -148,17 +152,34 @@ export interface CatalogPublication {
 export const catalogEventId = (publication: CatalogPublication): string =>
   `${publication.offeringId}:${publication.publishedAt}`;
 
-/** Wraps a publication as a routable message from `source`. */
+/** A publication event: about one offering, at the version its stamp names. */
+export type CatalogEvent = DomainEvent<CatalogPublication> & {
+  aggregate: AggregateRef;
+  version: number;
+  audience: readonly AudienceEntry[];
+};
+
+/**
+ * Wraps a publication as a routable message from `source`. The offering is
+ * the aggregate, and `publishedAt` as epoch milliseconds is its version — the
+ * same order the projector already applied (ADR 0048), now carried on the
+ * message where a consumer can discard a stale one by it.
+ */
 const message = (
   name: CatalogEventName,
   source: string,
   data: CatalogPublication,
-): DomainEvent<CatalogPublication> => ({
+): CatalogEvent => ({
   name,
   id: catalogEventId(data),
   source,
   at: data.publishedAt,
   correlationId: data.offeringId,
+  aggregate: { type: 'product-offering', id: data.offeringId },
+  version: Date.parse(data.publishedAt),
+  // The vendor whose catalog it is: their back office watches its own
+  // publications.
+  audience: [{ kind: 'organization', id: data.vendorId }],
   data,
 });
 
@@ -171,104 +192,74 @@ const message = (
 export const catalogPublishedEvent = (
   publication: CatalogPublication,
   source: string,
-): DomainEvent<CatalogPublication> =>
-  message(CATALOG_PUBLISHED, source, publication);
+): CatalogEvent => message(CATALOG_PUBLISHED, source, publication);
 
 export const catalogUnpublishedEvent = (
   publication: CatalogPublication,
   source: string,
-): DomainEvent<CatalogPublication> =>
-  message(CATALOG_UNPUBLISHED, source, publication);
-
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === 'string' && value !== '';
+): CatalogEvent => message(CATALOG_UNPUBLISHED, source, publication);
 
 /**
- * Reads an optional member, normalizing every way it can be missing to
- * `undefined`. It **never rejects**, which is the whole point — see the warning
- * on {@link CatalogPublication}.
+ * What a publication's `data` must hold to be read at all — the members a
+ * storefront row cannot be built without. Every optional member is accepted as
+ * anything here and normalized by {@link readCatalogPublication}, which is the
+ * laxity the warning on {@link CatalogPublication} explains.
  *
- * ⚠️ The `null` arm is load-bearing rather than defensive. `MongoClientLayer`
- * does not set `ignoreUndefined`, so the driver's default writes `undefined` as
- * BSON `null`; the outbox stores the whole event document, so a member built as
- * `undefined` on the emitting side arrives here as `null` after the round trip.
- * A reader that accepted only `string | undefined` would quarantine a message it
- * had itself produced.
- *
- * `''` folds to `undefined` too: an empty description is not a description, and
- * a blank `code` is what a `PUT` that omits it leaves behind — a form's absent
- * value should not become a storefront's empty label.
+ * Registered for both event names, so the bus decodes a publication before any
+ * handler runs (ADR 0068): a payload missing a required member is poison at the
+ * edge of the consumer.
  */
+export const CatalogPublicationSchema = openStruct({
+  offeringId: Schema.NonEmptyString,
+  vendorId: Schema.NonEmptyString,
+  name: Schema.NonEmptyString,
+  // Finite, not merely a number: a NaN amount reaches Mongo and renders as a
+  // price.
+  amount: Schema.Finite,
+  currency: Schema.NonEmptyString,
+  availableHint: Schema.Boolean,
+  publishedAt: Schema.NonEmptyString,
+});
+
+for (const name of CATALOG_EVENTS)
+  registerEvent(name, CatalogPublicationSchema, {
+    versioned: true,
+    audience: 'required',
+  });
+
 const optionalString = (value: unknown): string | undefined =>
-  isNonEmptyString(value) ? value : undefined;
+  typeof value === 'string' && value !== '' ? value : undefined;
 
 /**
- * Reads a bus payload back into a {@link CatalogPublication}.
- *
- * This exists **here** rather than in the transport for the reason
- * `readEventEnvelope` states about itself: it validates `meta` and deliberately
- * not `data`, because "the transport has no idea what a `catalog.published`
- * payload should look like, and inventing an opinion here is how the bus would
- * start knowing about domains". This package is where that opinion is allowed
- * to live, and it is the one place both the emitter and the consumer can see.
- *
- * ⚠️ **It rejects rather than coerces**, and that decides the message's fate:
- * `AmqpEventBusLayer` classifies a rejected payload as **poison** and
- * quarantines it with zero retries, while a lenient cast would turn a payload
- * that can never parse into a handler failure — requeued, counted against
- * `x-delivery-limit`, and spending the budget of every message behind it
- * (ADR 0030).
+ * Reads a bus payload back into a {@link CatalogPublication}: the registered
+ * schema decides whether it is one, and the optional members are folded —
+ * `''` to absent, media to the entries a save would have accepted.
  */
 export const readCatalogPublication = (
   data: unknown,
 ): Effect.Effect<CatalogPublication, TransitionalFailure> =>
-  Effect.gen(function* () {
-    if (data === null || typeof data !== 'object') {
-      return yield* Effect.fail(
-        invalidPayload('catalog publication payload is not an object'),
-      );
-    }
-
-    const raw = data as Record<string, unknown>;
-    const missing: string[] = [];
-
-    if (!isNonEmptyString(raw['offeringId'])) missing.push('offeringId');
-    if (!isNonEmptyString(raw['vendorId'])) missing.push('vendorId');
-    if (!isNonEmptyString(raw['name'])) missing.push('name');
-    if (!isNonEmptyString(raw['currency'])) missing.push('currency');
-    if (!isNonEmptyString(raw['publishedAt'])) missing.push('publishedAt');
-    // `Number.isFinite` and not `typeof === 'number'`: `NaN` is a number, and a
-    // NaN amount reaches Mongo, stores, and renders as a price.
-    if (!Number.isFinite(raw['amount'])) missing.push('amount');
-    if (typeof raw['availableHint'] !== 'boolean')
-      missing.push('availableHint');
-
-    if (missing.length > 0) {
-      return yield* Effect.fail(
+  Effect.map(
+    Schema.decodeUnknownEffect(CatalogPublicationSchema)(data, {
+      errors: 'all',
+    }).pipe(
+      Effect.mapError(error =>
         invalidPayload(
-          `catalog publication payload is missing or malformed (${missing.join(', ')})`,
+          `catalog publication payload is malformed: ${error.message}`,
         ),
-      );
-    }
-
-    return {
-      offeringId: raw['offeringId'] as string,
-      vendorId: raw['vendorId'] as string,
-      name: raw['name'] as string,
-      amount: raw['amount'] as number,
-      currency: raw['currency'] as string,
-      availableHint: raw['availableHint'] as boolean,
-      publishedAt: raw['publishedAt'] as string,
-      // Read through `optionalString`, and deliberately never pushed onto
-      // `missing`: a specification legitimately carries no description, no
-      // brand and no category, and a `PUT` that omits `code` blanks it. See the
-      // warning on `CatalogPublication` for what rejecting one would cost.
+      ),
+    ),
+    raw => ({
+      offeringId: raw.offeringId,
+      vendorId: raw.vendorId,
+      name: raw.name,
+      amount: raw.amount,
+      currency: raw.currency,
+      availableHint: raw.availableHint,
+      publishedAt: raw.publishedAt,
       code: optionalString(raw['code']),
       description: optionalString(raw['description']),
       brandId: optionalString(raw['brandId']),
       categoryId: optionalString(raw['categoryId']),
-      // Never rejects either, and keeps only the entries the save would have
-      // accepted — a URL that is not `https` never reaches the projection.
       media: readMedia(raw['media']),
-    };
-  });
+    }),
+  );

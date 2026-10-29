@@ -3,6 +3,7 @@ import {
   ServiceCrossingPolicyTag,
 } from '@entifix/authz';
 import {
+  IdempotencyStoreTag,
   InvalidToken,
   type TokenClaims,
   TokenServiceTag,
@@ -12,7 +13,10 @@ import {
   CROSSING_TOKEN_HEADER,
   ServiceCrossingTokenTag,
 } from '@entifix/service-shell';
-import { makeInMemorySagaStore } from '@entifix/testing-unit';
+import {
+  makeInMemoryIdempotencyStore,
+  makeInMemorySagaStore,
+} from '@entifix/testing-unit';
 import {
   SagaDispatcherTag,
   type SagaInstance,
@@ -90,6 +94,10 @@ const world = async (options: WorldOptions = {}) => {
       Layer.succeed(TransactionStreamHubTag, hub),
       Layer.succeed(ServiceCrossingTokenTag, 'fleet'),
       Layer.succeed(
+        IdempotencyStoreTag,
+        makeInMemoryIdempotencyStore({ retentionMs: 60_000 }),
+      ),
+      Layer.succeed(
         ServiceCrossingPolicyTag,
         makeStaticServiceCrossingPolicy([
           'order-management:product-order:write',
@@ -114,6 +122,8 @@ const run = (routes: ServedRoutes, definition: string, body: unknown) =>
     headers: {
       'content-type': 'application/json',
       [CROSSING_TOKEN_HEADER]: 'fleet',
+      // A start is idempotent on its key: a fresh one per run (ADR 0068).
+      'idempotency-key': `"${crypto.randomUUID()}"`,
     },
     body: JSON.stringify(body),
   });

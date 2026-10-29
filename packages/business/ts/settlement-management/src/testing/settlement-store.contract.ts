@@ -66,8 +66,7 @@ export const describeSettlementStoreContract = (
       orderId: string,
       half: SaleHalf,
       eventId = `e-${(next += 1)}`,
-    ) =>
-      run(join.contribute({ consumer: 'contract', eventId }, orderId, half));
+    ) => run(join.contribute({ consumer: 'contract', eventId }, orderId, half));
 
     it("reads each vendor's latest agreement, and nobody else's", async () => {
       const { join } = await make();

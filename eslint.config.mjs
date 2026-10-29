@@ -268,12 +268,20 @@ const ADAPTERS = both([
 const DRIVERS = both(['mongodb', 'ioredis', 'amqplib', 'pg', '@effect/sql-pg']);
 
 /**
+ * Only a shell composes a flow or builds a verified context (ADR 0065): a cell
+ * or a business package that imported these could build a slip the engine
+ * would run, or forge the context a resolver trusts.
+ */
+const SHELL_ONLY = ['@entifix/business/compose', '@entifix/business/verified'];
+
+/**
  * Banned in every cell that is not persistence. `next-shell/server` holds the
  * config-service protocol and the service token; `react-controls/i18next` binds
  * a translator a cell only needs the port of; TanStack and redux are state
  * mechanisms the framework's hooks already sit in front of.
  */
 const COMPOSITION_ONLY = [
+  ...SHELL_ONLY,
   ...ADAPTERS,
   ...DRIVERS,
   '@entifix/react-controls/i18next',
@@ -344,8 +352,14 @@ const techConstraints = [
   },
   ...Object.keys(ENGINES).map(engine => ({
     sourceTag: `tech:${engine}`,
-    bannedExternalImports: [...UI_AND_HTTP, ...otherEngines(engine)],
+    bannedExternalImports: [
+      ...SHELL_ONLY,
+      ...UI_AND_HTTP,
+      ...otherEngines(engine),
+    ],
   })),
+  // A business package declares fragments with `/flow` and never composes.
+  { sourceTag: 'layer:business', bannedExternalImports: SHELL_ONLY },
 ];
 
 // Strict constraints for source files. The trailing `*` catch-all lets any
@@ -369,15 +383,27 @@ const sourceConstraints = [
 // allow-list to widen and passes through unchanged: relaxing it for specs would
 // let a Next app reach a database driver through a test file, which is exactly
 // the edge it exists to forbid.
+//
+// The one deny-list entry a spec drops is `@entifix/business/verified`: a spec
+// stands in for the guard that builds a verified context, so it builds one the
+// way the guard would. Source files stay banned from forging one.
+const SPEC_MAY_BUILD = '@entifix/business/verified';
 const specConstraints = sourceConstraints.map(c =>
-  c.sourceTag === '*' || c.onlyDependOnLibsWithTags === undefined
+  c.sourceTag === '*'
     ? c
-    : {
-        ...c,
-        onlyDependOnLibsWithTags: [
-          ...new Set([...c.onlyDependOnLibsWithTags, 'type:testing']),
-        ],
-      },
+    : c.onlyDependOnLibsWithTags === undefined
+      ? {
+          ...c,
+          bannedExternalImports: c.bannedExternalImports.filter(
+            name => name !== SPEC_MAY_BUILD,
+          ),
+        }
+      : {
+          ...c,
+          onlyDependOnLibsWithTags: [
+            ...new Set([...c.onlyDependOnLibsWithTags, 'type:testing']),
+          ],
+        },
 );
 
 const allowEslintConfig = ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'];

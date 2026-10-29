@@ -62,6 +62,7 @@ export const PAYMENT_PENDING = 'paymentPending';
   binding: 'entity',
   placement: 'context-independent',
   labelKey: 'entity:product-order.useCases.cancel',
+  recipe: 'cancellation',
   confirm: {
     tone: 'destructive',
     messageKey: 'entity:product-order.useCases.cancelConfirm',

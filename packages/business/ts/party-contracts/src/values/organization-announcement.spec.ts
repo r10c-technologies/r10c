@@ -63,6 +63,8 @@ describe('organizationAnnouncedEvent', () => {
       source: 'auth',
       at: ANNOUNCEMENT.announcedAt,
       correlationId: 'demo-organization',
+      aggregate: { type: 'organization', id: 'demo-organization' },
+      version: Date.parse(ANNOUNCEMENT.announcedAt),
       data: ANNOUNCEMENT,
     });
   });
@@ -78,7 +80,7 @@ describe('readOrganizationAnnouncement', () => {
   });
 
   it.each([null, 'text', 7])('rejects %s, which is not an object', value => {
-    expect(failureOf(value)).toContain('not an object');
+    expect(failureOf(value)).toContain('Expected object');
   });
 
   it('names every missing or blank member at once', () => {

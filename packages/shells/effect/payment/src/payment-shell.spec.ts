@@ -25,6 +25,7 @@ const configurationWith = (provider: Record<string, unknown>) =>
     rabbitmq: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
     amqp: configurationRows({ uri: 'amqp://127.0.0.1:1' }),
     outbox: configurationRows({ maxAttempts: 4 }),
+    idempotency: configurationRows({ retentionMs: 60_000 }),
     provider: configurationRows(provider),
   });
 

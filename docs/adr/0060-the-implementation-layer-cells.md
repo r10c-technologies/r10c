@@ -7,7 +7,7 @@
 - Revised: 2026-10-25 — `makeEntityRoutes` went straight to entifix 0.7.2 rather than through r10c: nine hand-written copies and the framework's own example were already the second consumer (#358 superseded by #366)
 - Revised: 2026-10-26 — transaction-service's saga coordinator is a named exception that stays in its app, with the condition that would move it (#431)
 - Area: entities
-- Read when: adding a package under `packages/implementation/`, putting technology-bound code into a shell or an app, or a UI file imports an adapter — a cell depends on entities, use cases and ports and never on another cell or an adapter, UI and HTTP cells are keyed by domain and persistence cells by store
+- Read when: adding a package under `packages/implementation/`, or a UI file imports an adapter — a cell depends on entities, use cases and ports, never on another cell or an adapter
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — an http cell translates and never decides a status, a retry or a log line; composition moves out of the apps into one Effect shell per slice, and the coordinator exception below ends — it moves into `shells-effect-transaction` (#447)
 
 ## Context
@@ -109,9 +109,9 @@ consumer needs it** — before that, nobody can tell which half is generic.
 > generic; nine copies of the same routes across the fleet, plus the
 > framework's own example service writing them a tenth time, had already shown
 > it. Promotion's condition was met before the asset existed. An
-incubated asset cannot sit in a shell, because a cell cannot import one, so it
-lives at `layer:utils, scope:shared`, one package per technology, and carries
-the same `tech:*` bans a cell of that technology does.
+> incubated asset cannot sit in a shell, because a cell cannot import one, so it
+> lives at `layer:utils, scope:shared`, one package per technology, and carries
+> the same `tech:*` bans a cell of that technology does.
 
 ### Scope: a cell belongs to its domain
 

@@ -34,6 +34,9 @@ const OFFERING = 'product-offering-6';
 
 const crossing = (extra: Record<string, string> = {}) => ({
   'x-crossing-token': E2E_CROSSING_TOKEN,
+  // Every crossing write is idempotent on its key: a fresh one per call
+  // unless a case names its own (ADR 0068).
+  'idempotency-key': `"${crypto.randomUUID()}"`,
   'x-organization-id': E2E_ORGANIZATION_ID,
   // ⚠️ Deliberately no `Authorization`: this route takes no session.
   Authorization: undefined,
@@ -160,7 +163,7 @@ describe('restoring stock after a cancellation', () => {
           meta: { type: 'entity', entity: 'stock-movement' },
           data: { offeringId, quantity: 4 },
         },
-        { headers: crossing({ 'x-command-id': commandId }) },
+        { headers: crossing({ 'idempotency-key': `"${commandId}"` }) },
       );
 
     const first = await send();
@@ -169,7 +172,9 @@ describe('restoring stock after a cancellation', () => {
     expect(first.status).toBe(201);
     // `200`, not `409`: a coordinator that could not tell a redelivery from a
     // refusal would strand a flow whose stock did in fact go back.
-    expect(second.status).toBe(200);
+    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
+    expect(second.status).toBe(201);
+    expect(second.headers['idempotent-replayed']).toBe('true');
     expect(second.data.data.id).toBe(first.data.data.id);
 
     expect((await itemFor(offeringId))['onHand']).toBe(4);

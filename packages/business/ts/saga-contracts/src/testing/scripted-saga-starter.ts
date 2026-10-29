@@ -12,9 +12,9 @@ import type { CoordinatorScript } from './saga-starter.contract.js';
 export const makeScriptedSagaStarter = (
   coordinator: CoordinatorScript,
 ): SagaStarter => ({
-  start: (definition, inputs) =>
+  start: (definition, inputs, idempotencyKey) =>
     Effect.suspend(() => {
-      const answer = coordinator(definition, inputs);
+      const answer = coordinator(definition, inputs, idempotencyKey);
       return answer === undefined
         ? Effect.fail(
             new EntifixConnError(

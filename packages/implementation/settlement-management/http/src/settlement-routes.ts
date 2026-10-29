@@ -4,21 +4,13 @@ import type {
   TokenServiceTag,
 } from '@entifix/business';
 import type { Entity, EntityConstructor } from '@entifix/core';
-import {
-  type EntityReadScope,
-  type EntityRouteContext,
-  makeEntityRoutes,
-  type RequestPrincipal,
-  routeFailure,
-} from '@entifix/service-shell';
+import { makeEntityRoutes, routeFailure } from '@entifix/service-shell';
 import {
   Agreement,
   CommissionEntry,
-  settlementInScope,
+  settlementNarrowing,
   SettlementRun,
   SettlementRunStoreTag,
-  settlementScopeFilter,
-  settlementScopeFor,
   validateAgreement,
   VendorPayout,
   type VendorScoped,
@@ -33,29 +25,15 @@ export type SettlementRouteServices =
   | TokenServiceTag
   | PolicyDecisionTag;
 
-/**
- * Every read here narrowed to its caller: an operator reads across vendors, a
- * vendor their own terms, ledger lines and payouts, anybody else nothing.
- */
-const vendorScope =
-  <T extends Entity & VendorScoped>() =>
-  ({ principal }: EntityRouteContext) =>
-    Effect.sync((): EntityReadScope<T> => {
-      const scope = settlementScopeFor(principal as RequestPrincipal);
-      if (scope.kind === 'nothing') return 'none';
-      const filter = settlementScopeFilter<T>(scope);
-      return filter === undefined
-        ? 'all'
-        : { filter, includes: (record: T) => settlementInScope(scope, record) };
-    });
-
 const scopedReads = <T extends Entity & VendorScoped>(
   entity: EntityConstructor<T>,
 ) =>
   makeEntityRoutes(entity, {
     verbs: ['list', 'get'],
     guard: { kind: 'permission' },
-    scope: vendorScope<T>(),
+    // An operator reads across vendors, a vendor their own terms, ledger lines
+    // and payouts, anybody else nothing (ADR 0053).
+    narrowing: settlementNarrowing<T>(),
   });
 
 /**
@@ -82,7 +60,7 @@ export const settlementRoutes = Layer.mergeAll(
   makeEntityRoutes(Agreement, {
     verbs: ['list', 'get', 'create', 'update'],
     guard: { kind: 'permission' },
-    scope: vendorScope<Agreement>(),
+    narrowing: settlementNarrowing<Agreement>(),
     prepare: agreement => {
       const invalid = validateAgreement(agreement);
       return invalid === undefined

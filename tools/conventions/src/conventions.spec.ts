@@ -469,3 +469,118 @@ describe('logging below the shell', () => {
     ).toBe(0);
   }, 120_000);
 });
+
+/**
+ * `Idempotency-Key` is the one idempotency header (ADR 0068): the saga-era
+ * command-id header must not come back in source, where a route reading it
+ * would accept a key no fingerprint guards. Spelled by parts below so this
+ * file does not name it.
+ */
+const OLD_HEADER = ['x', 'command', 'id'].join('-');
+
+const sourceFiles = (): string[] =>
+  execFileSync(
+    'git',
+    [
+      'ls-files',
+      '--cached',
+      '--others',
+      '--exclude-standard',
+      '--',
+      'apps',
+      'packages',
+      'tools',
+    ],
+    { cwd: REPO_ROOT, encoding: 'utf8' },
+  )
+    .split('\n')
+    .filter(file => /\.(ts|tsx|mjs)$/.test(file))
+    .filter(file => existsSync(join(REPO_ROOT, file)));
+
+const naming = (files: readonly string[], read: (file: string) => string) =>
+  files.filter(file => read(file).toLowerCase().includes(OLD_HEADER));
+
+describe('one idempotency header', () => {
+  it('finds the source it is meant to scan', () => {
+    expect(sourceFiles().length).toBeGreaterThan(1000);
+  });
+
+  it('names the old header nowhere in source', () => {
+    expect(
+      naming(sourceFiles(), file =>
+        readFileSync(join(REPO_ROOT, file), 'utf8'),
+      ),
+    ).toEqual([]);
+  });
+
+  it('catches a route that reads it (planted)', () => {
+    expect(
+      naming(['planted.ts'], () => `request.headers['${OLD_HEADER}']`),
+    ).toEqual(['planted.ts']);
+  });
+});
+
+/**
+ * A variant is an implementation of its use case, so it runs that use case's
+ * contract suite (ADR 0065): a source file calling `defineVariants(` needs a
+ * spec beside it calling `forEachVariant(`.
+ */
+const variantsWithoutSuite = (
+  files: readonly string[],
+  read: (file: string) => string,
+) =>
+  files
+    .filter(file => !/\.spec\.tsx?$/.test(file))
+    .filter(file => read(file).includes('defineVariants('))
+    .filter(file => {
+      const spec = file.replace(/\.tsx?$/, '.spec.ts');
+      return !(files.includes(spec) && read(spec).includes('forEachVariant('));
+    });
+
+/**
+ * A variant is chosen from verified facts only (ADR 0065): a `When(` whose
+ * predicate names the request, its body, params or query lets the caller pick
+ * their own implementation.
+ */
+const REQUEST_INPUT =
+  /When\(\s*(?:\([^)]*\)|\w+)\s*=>[^\n]*\b(request|body|params|query|input)\b/;
+const predicatesOnInput = (
+  files: readonly string[],
+  read: (file: string) => string,
+) =>
+  files
+    .filter(file => !/\.spec\.tsx?$/.test(file))
+    .filter(file => REQUEST_INPUT.test(read(file)));
+
+describe('variants are chosen from verified facts, and each runs its suite', () => {
+  const read = (file: string) => readFileSync(join(REPO_ROOT, file), 'utf8');
+
+  it('finds every defineVariants with a forEachVariant spec beside it', () => {
+    expect(variantsWithoutSuite(sourceFiles(), read)).toEqual([]);
+  });
+
+  it('catches variants with no suite (planted)', () => {
+    const planted: Record<string, string> = {
+      'sell.ts': 'export const v = defineVariants(SellTag, rules);',
+      'sell.spec.ts': "it('sells', () => {});",
+    };
+    expect(
+      variantsWithoutSuite(Object.keys(planted), f => planted[f] ?? ''),
+    ).toEqual(['sell.ts']);
+  });
+
+  it('finds no predicate reading request input', () => {
+    expect(predicatesOnInput(sourceFiles(), read)).toEqual([]);
+  });
+
+  it('catches a predicate on the body (planted)', () => {
+    const planted = 'When(context => body.channel === "counter").use(counter)';
+    expect(predicatesOnInput(['p.ts'], () => planted)).toEqual(['p.ts']);
+    expect(
+      predicatesOnInput(
+        ['ok.ts'],
+        () => 'When(context => context.channel === "x")',
+      ),
+    ).toEqual([]);
+  });
+});

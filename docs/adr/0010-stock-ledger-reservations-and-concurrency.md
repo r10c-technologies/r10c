@@ -105,6 +105,7 @@ Two things this record could not name when it was written, now settled:
   [ADR 0023](0023-service-to-service-tenant-crossing.md): an explicit
   `organizationId` authorized by a service token plus
   `stock-management:reservation:write`, never by the absence of a check.
+- Revised: 2026-10-28 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — stock converts after the slip's commit point, and a restoration can be a return
 
 ## Context
 

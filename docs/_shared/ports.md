@@ -16,6 +16,7 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | settlement (7)          | —      | 3107⁵               |
 | stock (8)               | —      | 3108⁶               |
 | sales (9)               | —      | 3109⁹               |
+| fulfilment (10)         | —      | 3110¹⁰ reserved     |
 | — platform —            |        | config-service 3190 |
 
 A `-service`'s `dev` also opens the Node inspector at its service port **+ 6000**
@@ -74,7 +75,15 @@ The difference from the version that was deleted is exactly the thing ADR 0020
 made sayable: a deployment earns its existence by owning a store.
 
 ³ **transaction-service, bound — and this index is the one that proves the
-claim it was reserved on.** The `transaction` slice was **co-deployed** into
+claim it was reserved on.**
+
+> **Decided, not yet built ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).**
+> Everything below describes the saga runner, which keeps running until wave 4
+> replaces it: flows on Effect Workflow over a Postgres `workflow` store, two
+> runner processes on `34103` and `35103`, a start answering `202 { flowId }`,
+> and the tracker, the `saga` store and `GET /api/saga/:id` deleted.
+
+The `transaction` slice was **co-deployed** into
 marketplace-admin-service, and the note here said that ownership had not moved,
 only the process, so splitting it back out would mean pointing its declaration
 in `tools/slices/` at a new app rather than untangling a database.
@@ -185,14 +194,15 @@ mirrors, and a placement that arrives after its order was already cancelled and
 refunded writes the sale and its mirror in a single transaction. A separate
 reversal record would have written neither.
 
-⚠️ **`payment.failed` is still not consumed, and a refused refund emits
-nothing.** A capture that refused is the checkout saga's pivot refusing, which
-compensates the flow and deletes the order — nothing to settle and nothing to
-un-settle. Reusing that name for a refund that was declined would hand every
-consumer a second meaning it never reasoned about, so there is no third case.
+⚠️ **A refused capture and a refused refund announce nothing.** A capture
+that refused is the checkout saga's pivot refusing, which compensates the flow
+and deletes the order — nothing to settle and nothing to un-settle — and an
+event no slice subscribes to is not published
+([ADR 0068](../adr/0068-one-outbox-ordered-per-aggregate.md)).
 
-It publishes `settlement.run.completed` from an outbox in its own store. Nothing
-consumes it yet — a payouts process is what would, and that is not built.
+It publishes nothing. A completed run was announced on the bus until [ADR 0068](../adr/0068-one-outbox-ordered-per-aggregate.md)
+ruled that an event is published only when a slice subscribes to it; a payouts
+process is what would, and that is not built.
 
 ⚠️ **It holds no crossing token and accepts none.** Every one of its inputs
 arrives on the bus, so nothing dispatches into it, and every route it serves is
@@ -247,7 +257,7 @@ and copying the amount off it rather than reading one from the request. A
 customer was charged, so a `'refunded'` status written over it would erase that
 evidence by another route ([ADR 0058](../adr/0058-the-order-after-payment.md)).
 Two guards stop a double refund and they answer different questions —
-`x-command-id` covers a redelivery of one command, a unique index on the refund's
+`Idempotency-Key` covers a redelivery of one command, a unique index on the refund's
 `paymentId` covers two different commands aimed at one capture.
 
 ⚠️ **`payment-management:refund:write` is therefore a _second_ unpaired crossing
@@ -255,7 +265,7 @@ permission, not the pairing the note above says `payment:write` lacks.** Filing
 it as one would be backwards: it is a new money movement whose own reversal
 question has the same answer, because un-refunding is charging a customer again.
 
-It publishes `payment.captured`, `payment.failed` and `payment.refunded` from an
+It publishes `payment.captured` and `payment.refunded` from an
 outbox in its own store. The capture _decision_ never arrives as a message — the saga dispatches
 it — so what the bus carries is the consequence: order-service advances an order
 to `paid`, and settlement will fold a commission entry in M6.
@@ -346,7 +356,7 @@ is `stock-management:stock-movement:restore` rather than the `stock-movement:wri
 a vendor's own session holds, so a crossing token can write the one correction a
 cancellation makes and not that vendor's whole ledger
 ([ADR 0058](../adr/0058-the-order-after-payment.md)). `reason` is server-owned,
-and the route is idempotent on `x-command-id` because the cancellation saga
+and the route is idempotent on `Idempotency-Key` because the cancellation saga
 dispatches it **after** its pivot.
 
 Ending a hold is a **verb**, and there are two: `DELETE /api/reservation/:id`
@@ -390,6 +400,10 @@ presents the coordinator's inbound crossing token to
 secret, beside the storefront — which holds it for the opposite reason, having no
 session to check at all
 ([ADR 0056](../adr/0056-the-counter-sale-is-the-checkout-saga.md)).
+
+¹⁰ **Reserved for fulfilment-service** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)),
+inspector `9110`. The `fulfilment` slice is declared `planned`, so nothing binds
+the port until the commit that writes its store promotes it (#483).
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

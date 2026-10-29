@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
     "@entifix/mongo": "catalog:",
     "@entifix/service-shell": "catalog:",
     "@entifix/testing-unit": "catalog:",

@@ -1,6 +1,9 @@
-import { EntifixConnError } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
+  EntifixConnError,
+  formatIdempotencyKey,
+  IDEMPOTENCY_KEY_HEADER,
+} from '@entifix/core';
+import {
   CROSSING_TOKEN_HEADER,
   ORGANIZATION_HEADER,
 } from '@entifix/service-shell';
@@ -43,7 +46,7 @@ export class ParticipantsTag extends Context.Service<
  * out-of-stock line forever or permanently fails a checkout because a pod was
  * restarting ([ADR 0052](../../../../../../docs/adr/0052-the-checkout-saga.md)).
  *
- * ⚠️ **`x-command-id` is not decoration.** The participant claims it in the same
+ * ⚠️ **The `Idempotency-Key` is not decoration.** The participant claims it in the same
  * storage transaction as its side effect, so a redelivered command returns the
  * hold it already took rather than taking another. Without it an at-least-once
  * dispatch against `POST /api/reservation` oversells: stock held by nobody, the
@@ -74,7 +77,7 @@ export const makeHttpSagaDispatcher = (
       const headers: Record<string, string> = {
         'content-type': 'application/json',
         [CROSSING_TOKEN_HEADER]: participant.crossingToken,
-        [COMMAND_ID_HEADER]: dispatch.commandId,
+        [IDEMPOTENCY_KEY_HEADER]: formatIdempotencyKey(dispatch.commandId),
       };
       if (dispatch.organizationId !== undefined) {
         headers[ORGANIZATION_HEADER] = dispatch.organizationId;

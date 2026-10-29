@@ -1,9 +1,12 @@
 import {
+  type AggregateRef,
   type DomainEvent,
   Invalid,
+  openStruct,
+  registerEvent,
   type TransitionalFailure,
 } from '@entifix/core';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 
 /**
  * A payload this process cannot read, as a typed `invalid` failure. Business
@@ -63,60 +66,64 @@ export const organizationEventId = (
 export const organizationAnnouncedEvent = (
   announcement: OrganizationAnnouncement,
   source: string,
-): DomainEvent<OrganizationAnnouncement> => ({
+): DomainEvent<OrganizationAnnouncement> & {
+  aggregate: AggregateRef;
+  version: number;
+} => ({
   name: ORGANIZATION_ANNOUNCED,
   id: organizationEventId(announcement),
   source,
   at: announcement.announcedAt,
   correlationId: announcement.organizationId,
+  // The organization is the aggregate and its announcement stamp the version,
+  // so a rebuild re-stating it at its own stamp is the same version, not a
+  // newer one.
+  aggregate: { type: 'organization', id: announcement.organizationId },
+  version: Date.parse(announcement.announcedAt),
   data: announcement,
 });
 
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === 'string' && value.trim() !== '';
+/** A string with something in it besides whitespace. */
+const Filled = Schema.String.check(Schema.isPattern(/\S/));
 
 /**
- * Reads a bus payload back into an {@link OrganizationAnnouncement}.
- *
- * ⚠️ **It rejects rather than coerces**, which classifies the message poison
- * (ADR 0030). Every member is required here, unlike a publication's optional
- * merchandising: an announcement with no name says nothing, and one with no
- * stamp cannot be ordered against the next.
+ * What an announcement's `data` must hold. A stamp that does not parse cannot
+ * be compared, and a guard comparing `NaN` lets every message through, so the
+ * stamp must parse as a date.
  */
+export const OrganizationAnnouncementSchema = openStruct({
+  organizationId: Filled,
+  displayName: Filled,
+  announcedAt: Filled.check(
+    Schema.makeFilter(value => !Number.isNaN(Date.parse(value))),
+  ),
+});
+
+// Audience-free: an announcement is folded into the published-vendor
+// projection, which any storefront visitor may read, and no person is ever
+// sent it.
+registerEvent(ORGANIZATION_ANNOUNCED, OrganizationAnnouncementSchema, {
+  versioned: true,
+  audience: 'none',
+});
+
+/** Reads an announcement's `data` through the registered schema. */
 export const readOrganizationAnnouncement = (
   data: unknown,
 ): Effect.Effect<OrganizationAnnouncement, TransitionalFailure> =>
-  Effect.gen(function* () {
-    if (data === null || typeof data !== 'object') {
-      return yield* Effect.fail(
-        invalidPayload('organization announcement payload is not an object'),
-      );
-    }
-
-    const raw = data as Record<string, unknown>;
-    const missing = ['organizationId', 'displayName', 'announcedAt'].filter(
-      member => !isNonEmptyString(raw[member]),
-    );
-    // A stamp that does not parse cannot be compared, and a guard comparing
-    // `NaN` lets every message through.
-    if (
-      !missing.includes('announcedAt') &&
-      Number.isNaN(Date.parse(raw['announcedAt'] as string))
-    ) {
-      missing.push('announcedAt');
-    }
-
-    if (missing.length > 0) {
-      return yield* Effect.fail(
+  Effect.map(
+    Schema.decodeUnknownEffect(OrganizationAnnouncementSchema)(data, {
+      errors: 'all',
+    }).pipe(
+      Effect.mapError(error =>
         invalidPayload(
-          `organization announcement payload is missing or malformed (${missing.join(', ')})`,
+          `organization announcement payload is malformed: ${error.message}`,
         ),
-      );
-    }
-
-    return {
-      organizationId: raw['organizationId'] as string,
-      displayName: raw['displayName'] as string,
-      announcedAt: raw['announcedAt'] as string,
-    };
-  });
+      ),
+    ),
+    ({ organizationId, displayName, announcedAt }) => ({
+      organizationId,
+      displayName,
+      announcedAt,
+    }),
+  );

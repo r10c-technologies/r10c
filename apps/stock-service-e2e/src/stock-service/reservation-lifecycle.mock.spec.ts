@@ -32,6 +32,9 @@ const OFFERING = 'product-offering-5';
 
 const crossing = (extra: Record<string, string> = {}) => ({
   'x-crossing-token': E2E_CROSSING_TOKEN,
+  // Every crossing write is idempotent on its key: a fresh one per call
+  // unless a case names its own (ADR 0068).
+  'idempotency-key': `"${crypto.randomUUID()}"`,
   'x-organization-id': E2E_ORGANIZATION_ID,
   // ⚠️ Deliberately no `Authorization`: these routes take no session, and axios
   // merges per-request headers over the client default.
@@ -185,13 +188,15 @@ describe('a redelivered command takes one hold, not two', () => {
     const before = await itemFor();
     const commandId = `saga-e2e-${String(Date.now())}:reserve:0`;
 
-    const first = await takeHold(3, { 'x-command-id': commandId });
-    const second = await takeHold(3, { 'x-command-id': commandId });
+    const first = await takeHold(3, { 'idempotency-key': `"${commandId}"` });
+    const second = await takeHold(3, { 'idempotency-key': `"${commandId}"` });
 
     expect(first.status).toBe(201);
     // `200`, not `409`: a dispatcher that could not tell a duplicate from an
     // out-of-stock refusal would compensate a hold it believes was never taken.
-    expect(second.status).toBe(200);
+    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
+    expect(second.status).toBe(201);
+    expect(second.headers['idempotent-replayed']).toBe('true');
     expect(second.data.data.id).toBe(first.data.data.id);
 
     const after = await itemFor();
@@ -202,8 +207,8 @@ describe('a redelivered command takes one hold, not two', () => {
     const before = await itemFor();
     const stamp = String(Date.now());
 
-    await takeHold(1, { 'x-command-id': `saga-${stamp}:reserve:0` });
-    await takeHold(1, { 'x-command-id': `saga-${stamp}:reserve:1` });
+    await takeHold(1, { 'idempotency-key': `"saga-${stamp}:reserve:0"` });
+    await takeHold(1, { 'idempotency-key': `"saga-${stamp}:reserve:1"` });
 
     // Two lines of one cart are two side effects and each is claimed on its
     // own — one key for the whole step would drop the second line silently.

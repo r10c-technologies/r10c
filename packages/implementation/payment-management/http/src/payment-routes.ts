@@ -4,18 +4,21 @@ import type {
 } from '@entifix/authz';
 import type {
   EntityRepositoryFactoryTag,
+  IdempotencyStoreTag,
   TokenServiceTag,
 } from '@entifix/business';
 import {
   EntifixBuildError,
+  IDEMPOTENCY_KEY_HEADER,
   isFailure,
   makeEntityEnvelope,
+  parseIdempotencyKey,
   readEntityEnvelope,
 } from '@entifix/core';
 import {
-  COMMAND_ID_HEADER,
   type EntityRouteLinks,
   makeEntityRoutes,
+  requireIdempotencyKey,
   routeFailure,
   type ServiceCrossingTokenTag,
 } from '@entifix/service-shell';
@@ -34,6 +37,7 @@ import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 /** What a host provides for {@link paymentRoutes}. */
 export type PaymentRouteServices =
   | EntityRepositoryFactoryTag
+  | IdempotencyStoreTag
   | PaymentLedgerTag
   | PaymentProviderTag
   | TokenServiceTag
@@ -41,8 +45,18 @@ export type PaymentRouteServices =
   | ServiceCrossingTokenTag
   | ServiceCrossingPolicyTag;
 
+/**
+ * The command a pivot answers, by its `Idempotency-Key` (ADR 0068). The route
+ * is wrapped in `requireIdempotencyKey`, so a request without one never gets
+ * here; the ledger's unit of work claims the same key, which is what keeps the
+ * money movement exactly-once even when the edge's record is lost.
+ */
 const commandIdOf = (request: HttpServerRequest.HttpServerRequest) =>
-  request.headers[COMMAND_ID_HEADER]?.trim() || undefined;
+  parseIdempotencyKey(request.headers[IDEMPOTENCY_KEY_HEADER]);
+
+/** A pivot is retried by its coordinator: one answer per key. */
+const idempotent = (route: string) =>
+  requireIdempotencyKey({ route, caller: 'crossing' });
 
 const refusal = (error: PaymentRefused) =>
   HttpServerResponse.json(
@@ -179,7 +193,10 @@ export const paymentRoutes = Layer.mergeAll(
       read: { kind: 'permission' },
       write: { kind: 'crossing', organization: false },
     },
-    override: { create: capture },
+    override: {
+      create: (context, links) =>
+        idempotent('POST /api/payment')(capture(context, links)),
+    },
   }),
   makeEntityRoutes(Refund, {
     verbs: ['list', 'get', 'create'],
@@ -187,6 +204,9 @@ export const paymentRoutes = Layer.mergeAll(
       read: { kind: 'permission' },
       write: { kind: 'crossing', organization: false },
     },
-    override: { create: refund },
+    override: {
+      create: (context, links) =>
+        idempotent('POST /api/refund')(refund(context, links)),
+    },
   }),
 );

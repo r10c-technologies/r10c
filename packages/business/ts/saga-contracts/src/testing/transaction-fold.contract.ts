@@ -1,4 +1,7 @@
-import type { TransactionEvent, TransactionRecord } from '@entifix/transactions';
+import type {
+  TransactionEvent,
+  TransactionRecord,
+} from '@entifix/transactions';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
