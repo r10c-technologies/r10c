@@ -4,7 +4,6 @@ import {
   type EntityConstructor,
   envelopeEntityName,
   serializeEntity,
-  type TransitionalFailure,
   Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
@@ -97,7 +96,7 @@ export const MongoPaymentLedgerLayer = Layer.effect(
     ) =>
       deserializeSingleEntity(entity, document).pipe(
         Effect.mapError(() => new Unavailable({ dependency: 'mongo' })),
-      ) as Effect.Effect<T, TransitionalFailure>;
+      ) as Effect.Effect<T, Unavailable>;
 
     const findOne = <T extends Entity>(
       entity: EntityConstructor<T>,

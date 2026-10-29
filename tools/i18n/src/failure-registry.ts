@@ -11,7 +11,9 @@
 import '@entifix/business';
 import '@entifix/service-shell';
 import '@r10c/business-ts-catalog-contracts';
+import '@r10c/business-ts-common';
 import '@r10c/business-ts-configuration';
+import '@r10c/business-ts-payment-management';
 import '@r10c/business-ts-stock-management';
 
 import { registeredFailures } from '@entifix/core';

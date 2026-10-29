@@ -1,4 +1,5 @@
 import { Failure } from '@entifix/core';
+import { InvalidBody } from '@r10c/business-ts-common';
 import { Effect, Schema } from 'effect';
 
 import type { Reservation } from '../entities/reservation';
@@ -12,14 +13,6 @@ import { isMovementReason } from '../values/movement-reason';
 import { isReservableQuantity } from '../values/reservable-quantity';
 
 const MILLISECONDS = 1_000;
-
-/** A quantity or a reason the domain does not recognise. */
-export class StockRequestInvalid extends Failure.invalid<StockRequestInvalid>()(
-  'StockRequestInvalid',
-  'invalidBody',
-  { reason: Schema.String },
-  { message: ({ reason }) => reason },
-) {}
 
 /** A movement whose sign contradicts its reason — a receipt that takes away. */
 export class InconsistentMovement extends Failure.invalid<InconsistentMovement>()(
@@ -42,7 +35,7 @@ export const takeReservation = (input: {
     const { reservation } = input;
     if (!isReservableQuantity(reservation.quantity)) {
       return yield* Effect.fail(
-        new StockRequestInvalid({
+        new InvalidBody({
           reason: `${String(reservation.quantity)} is not a reservable quantity`,
         }),
       );
@@ -69,7 +62,7 @@ export const recordMovement = (input: {
     const { movement } = input;
     if (!isMovementReason(movement.reason)) {
       return yield* Effect.fail(
-        new StockRequestInvalid({
+        new InvalidBody({
           reason: `"${String(movement.reason)}" is not a movement reason`,
         }),
       );

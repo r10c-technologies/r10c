@@ -120,9 +120,7 @@ export const describePaymentLedgerContract = (
       expect(Option.isNone(await run(ledger.decidedPayment('nope')))).toBe(
         true,
       );
-      expect(Option.isNone(await run(ledger.decidedRefund('nope')))).toBe(
-        true,
-      );
+      expect(Option.isNone(await run(ledger.decidedRefund('nope')))).toBe(true);
       expect(await run(ledger.captureFor('nope'))).toBeUndefined();
       expect(await run(ledger.refundFor('nope'))).toBeUndefined();
     });

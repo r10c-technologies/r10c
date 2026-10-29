@@ -41,7 +41,6 @@ import {
   endpoints,
   PAYMENT_SLICE,
   policy,
-  router,
   SERVICE_NAME,
   SimulatedPaymentProviderLayer,
 } from '@r10c/payment-service';
@@ -146,7 +145,7 @@ const MockAppLayer = Layer.provideMerge(
   ),
 ).pipe(Layer.orDie);
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
@@ -155,6 +154,5 @@ export const startMockService = (): Promise<RunningTestService> =>
     description: fleetToken,
     endpoints,
     policy,
-    router,
     appLayer: MockAppLayer,
   });

@@ -5,7 +5,6 @@ export {
   makeSimulatedPaymentProvider,
   PAYMENT_SLICE,
   policy,
-  router,
   SimulatedPaymentProviderLayer,
 } from '@r10c/shells-effect-payment';
 

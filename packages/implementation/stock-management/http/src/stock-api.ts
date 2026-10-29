@@ -17,6 +17,7 @@ import {
   makeEntityEnvelope,
   readEntityEnvelope,
 } from '@entifix/core';
+import { InvalidBody } from '@r10c/business-ts-common';
 import {
   InconsistentMovement,
   InsufficientStock,
@@ -26,7 +27,6 @@ import {
   StockItem,
   StockLedgerTag,
   StockMovement,
-  StockRequestInvalid,
   takeReservation,
 } from '@r10c/business-ts-stock-management';
 import { Effect, Option, Schema } from 'effect';
@@ -83,7 +83,7 @@ export const stockMovementApi = defineEntityApi(
     guard: { kind: 'organization' },
     override: {
       create: {
-        errors: [StockRequestInvalid, InconsistentMovement, Invalid],
+        errors: [InvalidBody, InconsistentMovement, Invalid],
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
             const movement = yield* readEntityEnvelope(
@@ -126,7 +126,7 @@ export const reservationApi = defineEntityApi(
     override: {
       create: {
         idempotent: 'unit',
-        errors: [StockRequestInvalid, InsufficientStock, Invalid],
+        errors: [InvalidBody, InsufficientStock, Invalid],
         handler: (request: EntityApiRequest, context: EntityApiContext) =>
           Effect.gen(function* () {
             const reservation = yield* readEntityEnvelope(

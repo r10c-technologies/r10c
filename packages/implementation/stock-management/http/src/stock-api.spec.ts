@@ -123,7 +123,9 @@ describe('the crossing endpoints', () => {
   it('end a hold, and answer an ended one not-held rather than an error', async () => {
     const { run } = world();
     await run(record({ payload: receipt(4) }, context));
-    const held = (await run(take({ payload: hold(2) }, context))) as unknown as {
+    const held = (await run(
+      take({ payload: hold(2) }, context),
+    )) as unknown as {
       data: { id: string };
     };
 

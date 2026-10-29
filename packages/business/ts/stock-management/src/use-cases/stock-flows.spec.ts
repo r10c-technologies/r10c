@@ -75,7 +75,7 @@ describe('takeReservation', () => {
     );
 
     expect(refused).toMatchObject({
-      _tag: 'StockRequestInvalid',
+      _tag: 'InvalidBody',
       code: 'invalidBody',
       category: 'invalid',
       message: '0 is not a reservable quantity',

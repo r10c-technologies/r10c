@@ -7,7 +7,7 @@ import {
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeAppLayer, paymentComposition, router } from './index.js';
+import { makeAppLayer, paymentComposition } from './index.js';
 
 const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 
@@ -57,6 +57,5 @@ describe('the payment shell', () => {
 
   it('offers the booted composition and the routes as layers', () => {
     expect(Layer.isLayer(makeAppLayer())).toBe(true);
-    expect(Layer.isLayer(router)).toBe(true);
   });
 });

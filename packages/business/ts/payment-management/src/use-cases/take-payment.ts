@@ -1,39 +1,69 @@
+import { Failure } from '@entifix/core';
+import { InvalidBody } from '@r10c/business-ts-common';
 import type { PaymentOutcome } from '@r10c/business-ts-payment-contracts';
-import { Effect, Option } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 
 import type { Payment } from '../entities/payment';
 import { Refund } from '../entities/refund';
 import { PaymentLedgerTag } from '../ports/payment-ledger';
 import { PaymentProviderTag } from '../ports/payment-provider';
 
-/** A capture or refund the domain refuses before any money moves. */
-export class PaymentRefused {
-  readonly _tag = 'PaymentRefused';
-  constructor(
-    readonly code: 'invalidBody' | 'noCapturedPayment',
-    readonly detail: string,
-  ) {}
-}
+/**
+ * An order with no captured payment, so nothing to send back. A refusal
+ * rather than a fault: the coordinator reads it as "this step refused" and
+ * compensates the claim before it.
+ */
+export class NothingToRefund extends Failure.notFound<NothingToRefund>()(
+  'NothingToRefund',
+  'noCapturedPayment',
+  { orderId: Schema.String },
+  {
+    message: ({ orderId }) =>
+      `nothing was captured for order ${orderId}, so nothing can go back`,
+  },
+) {}
+
+/**
+ * The provider refused to take the money. The attempt is still recorded — the
+ * record that it happened is what support and reconciliation both need — and
+ * a redelivery answers this same refusal, never success.
+ */
+export class PaymentDeclined extends Failure.declined<PaymentDeclined>()(
+  'PaymentDeclined',
+  'paymentDeclined',
+  { paymentId: Schema.String, reason: Schema.optionalKey(Schema.String) },
+  { message: ({ reason }) => reason ?? 'the payment was not captured' },
+) {}
+
+/** The provider refused to send the money back; recorded as the capture is. */
+export class RefundDeclined extends Failure.declined<RefundDeclined>()(
+  'RefundDeclined',
+  'refundDeclined',
+  { refundId: Schema.String, reason: Schema.optionalKey(Schema.String) },
+  { message: ({ reason }) => reason ?? 'the refund was not made' },
+) {}
 
 /** How taking money went. `replayed` answers what an earlier attempt decided. */
 export type CaptureResult =
   | { readonly _tag: 'captured'; readonly payment: Payment }
-  | {
-      readonly _tag: 'declined';
-      readonly payment: Payment;
-      readonly reason: string | undefined;
-    }
   | { readonly _tag: 'replayed'; readonly payment: Payment };
 
 /** How sending money back went. */
 export type RefundResult =
   | { readonly _tag: 'refunded'; readonly refund: Refund }
-  | {
-      readonly _tag: 'declined';
-      readonly refund: Refund;
-      readonly reason: string | undefined;
-    }
   | { readonly _tag: 'replayed'; readonly refund: Refund };
+
+const declinedPayment = (payment: Payment, reason: string | undefined) =>
+  new PaymentDeclined({
+    paymentId: String(payment.id),
+    ...(reason === undefined ? {} : { reason }),
+  });
+
+const declinedRefund = (refund: Refund, reason: string | undefined) =>
+  new RefundDeclined({
+    refundId: String(refund.id),
+    ...(reason === undefined ? {} : { reason }),
+  });
 
 /**
  * Take the money for an order — the checkout saga's **pivot**, the one write
@@ -59,10 +89,9 @@ export const capturePayment = (input: {
       // A payment for nothing would settle to nothing and convert a
       // reservation for free, so it is refused where it is cheapest.
       return yield* Effect.fail(
-        new PaymentRefused(
-          'invalidBody',
-          'a payment must carry a positive amount',
-        ),
+        new InvalidBody({
+          reason: 'a payment must carry a positive amount',
+        }),
       );
     }
 
@@ -70,7 +99,9 @@ export const capturePayment = (input: {
     if (commandId !== undefined) {
       const earlier = yield* ledger.decidedPayment(commandId);
       if (Option.isSome(earlier)) {
-        return { _tag: 'replayed', payment: earlier.value } as CaptureResult;
+        return earlier.value.status === 'captured'
+          ? ({ _tag: 'replayed', payment: earlier.value } as CaptureResult)
+          : yield* Effect.fail(declinedPayment(earlier.value, undefined));
       }
     }
 
@@ -104,18 +135,17 @@ export const capturePayment = (input: {
       announcement,
       commandId,
     );
-    if (written._tag === 'replayed') {
-      return { _tag: 'replayed', payment: written.record } as CaptureResult;
-    }
-    return (
-      outcome.status === 'captured'
-        ? { _tag: 'captured', payment: written.record }
-        : {
-            _tag: 'declined',
-            payment: written.record,
-            reason: outcome.failureReason,
-          }
-    ) as CaptureResult;
+    if (written.record.status !== 'captured')
+      return yield* Effect.fail(
+        declinedPayment(
+          written.record,
+          written._tag === 'replayed' ? undefined : outcome.failureReason,
+        ),
+      );
+    return {
+      _tag: written._tag === 'replayed' ? 'replayed' : 'captured',
+      payment: written.record,
+    } as CaptureResult;
   });
 
 /**
@@ -142,7 +172,9 @@ export const refundPayment = (input: {
     if (commandId !== undefined) {
       const earlier = yield* ledger.decidedRefund(commandId);
       if (Option.isSome(earlier)) {
-        return { _tag: 'replayed', refund: earlier.value } as RefundResult;
+        return earlier.value.status === 'refunded'
+          ? ({ _tag: 'replayed', refund: earlier.value } as RefundResult)
+          : yield* Effect.fail(declinedRefund(earlier.value, undefined));
       }
     }
 
@@ -151,17 +183,14 @@ export const refundPayment = (input: {
       // A business refusal rather than a fault: an order nobody paid for has
       // nothing to send back, and the coordinator reads a 4xx as "this step
       // refused" and compensates the claim before it.
-      return yield* Effect.fail(
-        new PaymentRefused(
-          'noCapturedPayment',
-          'nothing was captured for this order, so nothing can go back',
-        ),
-      );
+      return yield* Effect.fail(new NothingToRefund({ orderId }));
     }
 
     const existing = yield* ledger.refundFor(String(capture.id));
     if (existing !== undefined) {
-      return { _tag: 'replayed', refund: existing } as RefundResult;
+      return existing.status === 'refunded'
+        ? ({ _tag: 'replayed', refund: existing } as RefundResult)
+        : yield* Effect.fail(declinedRefund(existing, undefined));
     }
 
     const provider = yield* PaymentProviderTag;
@@ -206,16 +235,15 @@ export const refundPayment = (input: {
     };
 
     const written = yield* ledger.recordRefund(refund, announcement, commandId);
-    if (written._tag === 'replayed') {
-      return { _tag: 'replayed', refund: written.record } as RefundResult;
-    }
-    return (
-      outcome.status === 'refunded'
-        ? { _tag: 'refunded', refund: written.record }
-        : {
-            _tag: 'declined',
-            refund: written.record,
-            reason: outcome.failureReason,
-          }
-    ) as RefundResult;
+    if (written.record.status !== 'refunded')
+      return yield* Effect.fail(
+        declinedRefund(
+          written.record,
+          written._tag === 'replayed' ? undefined : outcome.failureReason,
+        ),
+      );
+    return {
+      _tag: written._tag === 'replayed' ? 'replayed' : 'refunded',
+      refund: written.record,
+    } as RefundResult;
   });
