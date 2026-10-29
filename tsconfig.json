@@ -311,6 +311,9 @@
     },
     {
       "path": "./packages/business/ts/order-contracts"
+    },
+    {
+      "path": "./packages/shells/effect/flow-catalog"
     }
   ],
   "compilerOptions": {

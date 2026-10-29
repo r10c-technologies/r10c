@@ -52,12 +52,19 @@ export const transactionSlice: SliceDeclaration = {
   ],
   dependantAPIs: [
     'GET /api/config/:service',
-    // The steps checkout dispatches, each behind ADR 0023's crossing with that
-    // participant's own token. Named here because a split needs to know them.
+    // Every call a flow's fragments make, each behind ADR 0023's crossing with
+    // that participant's own token. Checked against the fragment catalog's
+    // snapshot, so a flow cannot dispatch to a route this list omits (ADR 0065).
     'POST /api/reservation',
     'DELETE /api/reservation/:id',
+    'POST /api/reservation/:id/conversion',
+    'POST /api/stock-restoration',
     'POST /api/product-order',
     'DELETE /api/product-order/:id',
+    'POST|DELETE /api/product-order/:id/cancelling',
+    'POST /api/product-order/:id/cancelled',
+    'POST /api/payment',
+    'POST /api/refund',
   ],
   publishedEvents: [],
   subscriptions: [
