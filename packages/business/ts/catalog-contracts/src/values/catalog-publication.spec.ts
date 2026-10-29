@@ -151,7 +151,7 @@ describe('readCatalogPublication', () => {
     ['a string', 'catalog.published'],
     ['a number', 7],
   ])('rejects %s rather than coercing it', (_label, data) => {
-    expect(failureMessage(data)).toContain('is not an object');
+    expect(failureMessage(data)).toContain('Expected object');
   });
 
   it.each([

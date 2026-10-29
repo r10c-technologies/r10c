@@ -2,9 +2,11 @@ import {
   type AggregateRef,
   type DomainEvent,
   Invalid,
+  openStruct,
+  registerEvent,
   type TransitionalFailure,
 } from '@entifix/core';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 
 /**
  * A payload this process cannot read, as a typed `invalid` failure. Business
@@ -225,61 +227,54 @@ const optionalString = (value: unknown): string | undefined =>
   isNonEmptyString(value) ? value : undefined;
 
 /**
- * Reads a bus payload back into a {@link PaymentOutcome}.
- *
- * This exists **here** rather than in the transport for the reason
- * `readEventEnvelope` states about itself: it validates `meta` and deliberately
- * not `data`, because the bus has no idea what a `payment.captured` payload
- * should look like and inventing an opinion there is how a transport starts
- * knowing about domains.
- *
- * ⚠️ **It rejects rather than coerces**, and that decides the message's fate:
- * `AmqpEventBusLayer` classifies a rejected payload as **poison** and
- * quarantines it with zero retries, while a lenient cast would turn a payload
- * that can never parse into a handler failure — requeued, counted against
- * `x-delivery-limit`, and spending the budget of every message behind it
- * (ADR 0030).
+ * What a payment event's `data` must hold. `amount` is finite, not merely a
+ * number: a NaN amount reaches Mongo and settles as an amount owed.
+ */
+export const PaymentOutcomeSchema = openStruct({
+  paymentId: Schema.NonEmptyString,
+  orderId: Schema.NonEmptyString,
+  amount: Schema.Finite,
+  currency: Schema.NonEmptyString,
+  paymentMethod: Schema.NonEmptyString,
+  decidedAt: Schema.NonEmptyString,
+});
+
+// Audience-free: a payment event is folded by order-service and settlement,
+// and no person is ever sent it — the buyer learns how a payment went from the
+// flow that took it.
+for (const name of PAYMENT_EVENTS)
+  registerEvent(name, PaymentOutcomeSchema, {
+    versioned: true,
+    audience: 'none',
+  });
+
+/**
+ * Reads a payment event's `data` through the registered schema, folding the
+ * optional members `''` to absent.
  */
 export const readPaymentOutcome = (
   data: unknown,
 ): Effect.Effect<PaymentOutcome, TransitionalFailure> =>
-  Effect.gen(function* () {
-    if (data === null || typeof data !== 'object') {
-      return yield* Effect.fail(
-        invalidPayload('payment outcome payload is not an object'),
-      );
-    }
-
-    const raw = data as Record<string, unknown>;
-    const missing: string[] = [];
-
-    if (!isNonEmptyString(raw['paymentId'])) missing.push('paymentId');
-    if (!isNonEmptyString(raw['orderId'])) missing.push('orderId');
-    if (!isNonEmptyString(raw['currency'])) missing.push('currency');
-    if (!isNonEmptyString(raw['paymentMethod'])) missing.push('paymentMethod');
-    if (!isNonEmptyString(raw['decidedAt'])) missing.push('decidedAt');
-    // `Number.isFinite` and not `typeof === 'number'`: `NaN` is a number, and a
-    // NaN amount reaches Mongo, stores, and settles as an amount owed.
-    if (!Number.isFinite(raw['amount'])) missing.push('amount');
-
-    if (missing.length > 0) {
-      return yield* Effect.fail(
+  Effect.map(
+    Schema.decodeUnknownEffect(PaymentOutcomeSchema)(data, {
+      errors: 'all',
+    }).pipe(
+      Effect.mapError(error =>
         invalidPayload(
-          `payment outcome payload is missing or malformed (${missing.join(', ')})`,
+          `payment outcome payload is malformed: ${error.message}`,
         ),
-      );
-    }
-
-    return {
-      paymentId: raw['paymentId'] as string,
-      orderId: raw['orderId'] as string,
-      amount: raw['amount'] as number,
-      currency: raw['currency'] as string,
-      paymentMethod: raw['paymentMethod'] as string,
-      decidedAt: raw['decidedAt'] as string,
+      ),
+    ),
+    raw => ({
+      paymentId: raw.paymentId,
+      orderId: raw.orderId,
+      amount: raw.amount,
+      currency: raw.currency,
+      paymentMethod: raw.paymentMethod,
+      decidedAt: raw.decidedAt,
       channelId: optionalString(raw['channelId']),
       providerReference: optionalString(raw['providerReference']),
       failureReason: optionalString(raw['failureReason']),
       refundId: optionalString(raw['refundId']),
-    };
-  });
+    }),
+  );

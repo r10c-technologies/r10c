@@ -30,5 +30,12 @@
       }
     }
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@entifix/core": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-catalog-contracts": "workspace:*",
+    "@r10c/business-ts-order-contracts": "workspace:*",
+    "@r10c/business-ts-party-contracts": "workspace:*",
+    "@r10c/business-ts-payment-contracts": "workspace:*"
+  }
 }

@@ -54,6 +54,11 @@ describe('a next cell', () => {
       "import { makeService } from '@entifix/service-shell/runtime';",
       'the service runtime',
     ],
+    ["import { compose } from '@entifix/business/compose';", 'the composer'],
+    [
+      "import { verifiedContext } from '@entifix/business/verified';",
+      'the context constructor',
+    ],
   ])(
     'may not import %s (%s)',
     async source => {
@@ -240,6 +245,49 @@ describe('a slice shell consumer', () => {
     expect(
       await consumerRetryErrors(
         'export const call = Effect.retry(Effect.void, { times: 2 });',
+      ),
+    ).toEqual([]);
+  }, 60_000);
+});
+
+/** The composer and the context constructor stay out of persistence cells and business. */
+describe('below the shell', () => {
+  const errorsAt = async (path: string, code: string) => {
+    const eslint = new ESLint({ cwd: REPO_ROOT });
+    const [result] = await eslint.lintText(`${code}\nexport {};\n`, {
+      filePath: join(REPO_ROOT, path),
+    });
+    return (result?.messages ?? []).filter(
+      message => message.ruleId === BOUNDARY_RULE,
+    );
+  };
+
+  it.each([
+    [
+      'a persistence cell',
+      'packages/implementation/order/mongo/src/planted.ts',
+    ],
+    [
+      'a business package',
+      'packages/business/ts/stock-management/src/planted.ts',
+    ],
+  ])(
+    'may not compose a flow in %s',
+    async (_label, path) => {
+      for (const source of [
+        "import { compose } from '@entifix/business/compose';",
+        "import { verifiedContext } from '@entifix/business/verified';",
+      ])
+        expect(await errorsAt(path, source), source).toHaveLength(1);
+    },
+    60_000,
+  );
+
+  it('may declare fragments in a business package', async () => {
+    expect(
+      await errorsAt(
+        'packages/business/ts/stock-management/src/planted.ts',
+        "import { defineFragment } from '@entifix/business/flow';",
       ),
     ).toEqual([]);
   }, 60_000);

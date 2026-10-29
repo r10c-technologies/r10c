@@ -31,7 +31,9 @@ export const makeInMemoryTransactionFold = (): TransactionFoldSubject => {
               ? {}
               : { organizationId: event.organizationId }),
             ...(event.code === undefined ? {} : { code: event.code }),
-            ...(event.entityId === undefined ? {} : { entityId: event.entityId }),
+            ...(event.entityId === undefined
+              ? {}
+              : { entityId: event.entityId }),
             ...(event.error === undefined ? {} : { error: event.error }),
           });
           return 'claimed';

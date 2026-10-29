@@ -308,6 +308,9 @@
     },
     {
       "path": "./packages/shells/effect/transaction"
+    },
+    {
+      "path": "./packages/business/ts/order-contracts"
     }
   ],
   "compilerOptions": {

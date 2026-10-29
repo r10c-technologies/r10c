@@ -16,6 +16,11 @@ import {
   type OutboxEvent,
 } from '@entifix/transactions';
 import {
+  ORDER_CANCELLED,
+  ORDER_PLACED,
+  orderAudience,
+} from '@r10c/business-ts-order-contracts';
+import {
   type CancellationClaim,
   type OrderItem,
   type OrderPlacement,
@@ -26,6 +31,12 @@ import { Effect, Layer, Option } from 'effect';
 import type { ClientSession, Db } from 'mongodb';
 
 export const ORDER_COLLECTION = envelopeEntityName(ProductOrder);
+
+/** The members of a serialized order an event's audience is read from. */
+type SerializedOrder = Record<string, unknown> & {
+  readonly buyerId?: string;
+  readonly items?: readonly { readonly vendorId: string }[];
+};
 
 const WITHOUT_ID = { projection: { _id: 0 } } as const;
 
@@ -92,18 +103,26 @@ export const MongoProductOrderStoreLayer = Layer.effect(
 
     // An order's announced lifecycle is linear — placed, then possibly
     // cancelled — so each event is a fixed version of its order.
-    const VERSION: Record<string, number> = {
-      'order.placed': 1,
-      'order.cancelled': 2,
+    const VERSION: Record<
+      typeof ORDER_PLACED | typeof ORDER_CANCELLED,
+      number
+    > = {
+      [ORDER_PLACED]: 1,
+      [ORDER_CANCELLED]: 2,
     };
-    const event = (name: string, id: string, data: unknown): OutboxEvent => ({
+    const event = (
+      name: typeof ORDER_PLACED | typeof ORDER_CANCELLED,
+      id: string,
+      data: SerializedOrder,
+    ): OutboxEvent => ({
       name,
       id: `${id}:${name.split('.')[1] as string}`,
       source,
       at: new Date().toISOString(),
       correlationId: id,
       aggregate: { type: 'product-order', id },
-      version: VERSION[name] ?? 1,
+      version: VERSION[name],
+      audience: orderAudience(data),
       data,
     });
 
@@ -144,7 +163,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
             id: orderId,
           };
           const placed = event(
-            'order.placed',
+            ORDER_PLACED,
             orderId,
             serializeEntity(ProductOrder, order),
           );
@@ -252,7 +271,7 @@ export const MongoProductOrderStoreLayer = Layer.effect(
                 move(unit.handle.session, orderId, 'cancelling', 'cancelled'),
                 updated => {
                   if (updated === null) return Effect.fail(new NotClaimable());
-                  unit.emit(event('order.cancelled', orderId, updated));
+                  unit.emit(event(ORDER_CANCELLED, orderId, updated));
                   return Effect.succeed(updated);
                 },
               ),

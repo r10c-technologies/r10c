@@ -80,7 +80,7 @@ describe('readOrganizationAnnouncement', () => {
   });
 
   it.each([null, 'text', 7])('rejects %s, which is not an object', value => {
-    expect(failureOf(value)).toContain('not an object');
+    expect(failureOf(value)).toContain('Expected object');
   });
 
   it('names every missing or blank member at once', () => {

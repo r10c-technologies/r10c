@@ -200,8 +200,9 @@ compensates the flow and deletes the order — nothing to settle and nothing to
 un-settle. Reusing that name for a refund that was declined would hand every
 consumer a second meaning it never reasoned about, so there is no third case.
 
-It publishes `settlement.run.completed` from an outbox in its own store. Nothing
-consumes it yet — a payouts process is what would, and that is not built.
+It publishes nothing. A completed run was announced on the bus until [ADR 0068](../adr/0068-one-outbox-ordered-per-aggregate.md)
+ruled that an event is published only when a slice subscribes to it; a payouts
+process is what would, and that is not built.
 
 ⚠️ **It holds no crossing token and accepts none.** Every one of its inputs
 arrives on the bus, so nothing dispatches into it, and every route it serves is

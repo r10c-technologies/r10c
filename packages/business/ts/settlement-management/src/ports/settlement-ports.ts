@@ -67,8 +67,8 @@ export type RunOutcome =
 
 /**
  * Settles what the ledger holds unsettled: one run, a payout per vendor — the
- * gross less the cut, and possibly negative — and `settlement.run.completed`,
- * all in one unit.
+ * gross less the cut, and possibly negative — all in one unit. It announces
+ * nothing, since no slice subscribes to a completed run (ADR 0068).
  */
 export interface SettlementRunStore {
   readonly settleOnce: () => Effect.Effect<RunOutcome, TransitionalFailure>;

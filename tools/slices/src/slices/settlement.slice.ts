@@ -74,7 +74,7 @@ export const settlementSlice: SliceDeclaration = {
     'GET /api/vendor-payout/$metadata',
   ],
   dependantAPIs: ['GET /api/config/:service'],
-  publishedEvents: ['settlement.run.completed'],
+  publishedEvents: [],
   // `inbox` on all four: a settlement run accumulates, so folding one sale twice
   // overpays a vendor by its amount and reversing it twice claws back money
   // nobody took. A claim guards a *message*, and there are four of them — one

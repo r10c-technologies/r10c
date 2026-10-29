@@ -43,7 +43,6 @@
   "dependencies": {
     "@entifix/core": "catalog:",
     "@entifix/mongo": "catalog:",
-    "@entifix/transactions": "catalog:",
     "@r10c/business-ts-settlement-management": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.6",

@@ -1080,22 +1080,16 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'db',
     value: 'settlement',
   },
-  // The broker earns its place twice over here: the relay publishes
-  // `settlement.run.completed`, and **two** subscriptions feed the fold —
-  // `order.placed` for the vendor-tagged lines and the channel, and
-  // `payment.captured` for the money and its timestamp (ADR 0057).
+  // The broker earns its place here because **two** subscriptions feed the
+  // fold — `order.placed` for the vendor-tagged lines and the channel, and
+  // `payment.captured` for the money and its timestamp (ADR 0057). Nothing is
+  // published, so there is no outbox dial.
   {
     service: 'settlement-service',
     group_name: 'rabbitmq',
     key: 'uri',
     value: 'amqp://admin:password@127.0.0.1:30672',
     is_secret: true,
-  },
-  {
-    service: 'settlement-service',
-    group_name: 'outbox',
-    key: 'maxAttempts',
-    value: '5',
   },
   {
     service: 'settlement-service',

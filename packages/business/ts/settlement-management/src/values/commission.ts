@@ -1,7 +1,7 @@
 import { EntifixBuildError } from '@entifix/core';
+import type { PlacedOrderLine } from '@r10c/business-ts-order-contracts';
 
 import type { Agreement } from '../entities/agreement';
-import type { PlacedOrderLine } from './placed-order';
 
 /** Basis points: 10000 is the whole sale, so 250 is 2.5%. */
 const WHOLE_SALE_BASIS_POINTS = 10_000;

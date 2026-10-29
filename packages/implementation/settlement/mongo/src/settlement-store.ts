@@ -5,12 +5,7 @@ import {
   Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
-import {
-  drainOutboxNow,
-  MongoUnitOfWorkTag,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
+import { MongoUnitOfWorkTag } from '@entifix/mongo/transactions';
 import {
   Agreement,
   CommissionEntry,
@@ -119,23 +114,15 @@ const entryDocuments = (
  *
  * Each message's half lands on the order's join record in one unit with the
  * message's claim; whichever completes a pair writes its entries there too.
- * A run claims every unsettled line, writes the payouts and the run, and
- * announces `settlement.run.completed` in one unit, drained at commit.
+ * A run claims every unsettled line and writes the payouts and the run in one
+ * unit. It announces nothing: no slice subscribes to a completed run (ADR 0068).
  */
 export const MongoSettlementStoreLayer = Layer.unwrap(
   Effect.gen(function* () {
     const db = yield* MongoDatabaseTag;
     const units = yield* MongoUnitOfWorkTag;
-    const bus = yield* EventBusTag;
-    const maxAttempts = yield* OutboxMaxAttempts;
-    const source = yield* EventSourceTag;
 
     yield* ensureSettlementIndexes(db);
-
-    const afterCommit = drainOutboxNow(db).pipe(
-      Effect.provideService(EventBusTag, bus),
-      Effect.provideService(OutboxMaxAttempts, maxAttempts),
-    );
 
     const promise = <A>(run: () => Promise<A>) =>
       Effect.tryPromise({ try: run, catch: storeUnavailable });
@@ -377,33 +364,8 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             const first = oldest[0];
             if (first === undefined) return { kind: 'idle' } as RunOutcome;
 
-            const outcome = yield* units.run(
-              unit =>
-                Effect.tap(
-                  settle(unit.handle.session, first.occurredAt, new Date()),
-                  run =>
-                    Effect.sync(() => {
-                      if (run === undefined) return;
-                      const completed = {
-                        runId: run.runId,
-                        periodStart: run.periodStart,
-                        periodEnd: run.periodEnd,
-                        payouts: run.payouts,
-                        completedAt: new Date().toISOString(),
-                      };
-                      unit.emit({
-                        name: 'settlement.run.completed',
-                        id: `${run.runId}:completed`,
-                        source,
-                        at: completed.completedAt,
-                        correlationId: run.runId,
-                        aggregate: { type: 'settlement-run', id: run.runId },
-                        version: 1,
-                        data: completed,
-                      });
-                    }),
-                ),
-              { afterCommit },
+            const outcome = yield* units.run(unit =>
+              settle(unit.handle.session, first.occurredAt, new Date()),
             );
             // A unit with no claim can only commit or fail.
             const run = (outcome as { readonly value: RunOutcome | undefined })
