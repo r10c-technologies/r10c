@@ -2265,6 +2265,9 @@ importers:
       '@entifix/authz':
         specifier: 'catalog:'
         version: 0.11.0(effect@4.0.6)
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.11.0(effect@4.0.6)
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.11.0(effect@4.0.6)
@@ -2324,12 +2327,18 @@ importers:
 
   packages/business/ts/payment-management:
     dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.11.0(effect@4.0.6)
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.11.0(effect@4.0.6)
       '@r10c/business-ts-payment-contracts':
         specifier: workspace:*
         version: link:../payment-contracts
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../saga-contracts
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -2455,9 +2464,15 @@ importers:
 
   packages/business/ts/stock-management:
     dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.11.0(effect@4.0.6)
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.11.0(effect@4.0.6)
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../saga-contracts
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23

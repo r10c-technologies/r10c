@@ -47,7 +47,9 @@
     }
   },
   "dependencies": {
+    "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
+    "@r10c/business-ts-saga-contracts": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.6"
   },

@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/business-ts-sales-vocabulary": "workspace:*",

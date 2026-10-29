@@ -40,5 +40,6 @@ export * from './ports';
  * actions here" rather than as a wiring fault. `@r10c/slices` asserts this
  * barrel reaches every declaration.
  */
+export * from './fragments';
 export * from './use-cases';
 export * from './values';
