@@ -34,6 +34,9 @@
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@entifix/service-shell": "catalog:",
+    "@r10c/business-ts-catalog-contracts": "workspace:*",
+    "@r10c/business-ts-configuration": "workspace:*",
+    "@r10c/business-ts-stock-management": "workspace:*",
     "@r10c/i18n-catalog": "workspace:*",
     "@r10c/slices": "workspace:*"
   }

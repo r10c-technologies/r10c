@@ -1,4 +1,5 @@
-import { Effect } from 'effect';
+import { Failure } from '@entifix/core';
+import { Effect, Schema } from 'effect';
 
 import type { Reservation } from '../entities/reservation';
 import type { StockMovement } from '../entities/stock-movement';
@@ -12,14 +13,21 @@ import { isReservableQuantity } from '../values/reservable-quantity';
 
 const MILLISECONDS = 1_000;
 
-/** A request the domain refuses as it stands. */
-export class StockRefused {
-  readonly _tag = 'StockRefused';
-  constructor(
-    readonly code: 'invalidBody' | 'inconsistentMovement',
-    readonly detail: string,
-  ) {}
-}
+/** A quantity or a reason the domain does not recognise. */
+export class StockRequestInvalid extends Failure.invalid<StockRequestInvalid>()(
+  'StockRequestInvalid',
+  'invalidBody',
+  { reason: Schema.String },
+  { message: ({ reason }) => reason },
+) {}
+
+/** A movement whose sign contradicts its reason — a receipt that takes away. */
+export class InconsistentMovement extends Failure.invalid<InconsistentMovement>()(
+  'InconsistentMovement',
+  'inconsistentMovement',
+  { reason: Schema.String },
+  { message: ({ reason }) => reason },
+) {}
 
 /**
  * Take a hold — the checkout saga's `reserve` step, for the organization the
@@ -34,10 +42,9 @@ export const takeReservation = (input: {
     const { reservation } = input;
     if (!isReservableQuantity(reservation.quantity)) {
       return yield* Effect.fail(
-        new StockRefused(
-          'invalidBody',
-          `${String(reservation.quantity)} is not a reservable quantity`,
-        ),
+        new StockRequestInvalid({
+          reason: `${String(reservation.quantity)} is not a reservable quantity`,
+        }),
       );
     }
     const ttlSeconds = yield* ReservationTtlSecondsTag;
@@ -62,18 +69,16 @@ export const recordMovement = (input: {
     const { movement } = input;
     if (!isMovementReason(movement.reason)) {
       return yield* Effect.fail(
-        new StockRefused(
-          'invalidBody',
-          `"${String(movement.reason)}" is not a movement reason`,
-        ),
+        new StockRequestInvalid({
+          reason: `"${String(movement.reason)}" is not a movement reason`,
+        }),
       );
     }
     if (!isConsistentMovement(movement.reason, movement.quantity)) {
       return yield* Effect.fail(
-        new StockRefused(
-          'inconsistentMovement',
-          `a movement of ${String(movement.quantity)} cannot be a ${movement.reason}`,
-        ),
+        new InconsistentMovement({
+          reason: `a movement of ${String(movement.quantity)} cannot be a ${movement.reason}`,
+        }),
       );
     }
     movement.id = globalThis.crypto.randomUUID();
@@ -98,10 +103,9 @@ export const restoreStock = (input: {
     movement.reason = 'cancellation';
     if (!isConsistentMovement(movement.reason, movement.quantity)) {
       return yield* Effect.fail(
-        new StockRefused(
-          'inconsistentMovement',
-          `a restoration of ${String(movement.quantity)} is not a quantity going back`,
-        ),
+        new InconsistentMovement({
+          reason: `a restoration of ${String(movement.quantity)} is not a quantity going back`,
+        }),
       );
     }
     movement.id = globalThis.crypto.randomUUID();

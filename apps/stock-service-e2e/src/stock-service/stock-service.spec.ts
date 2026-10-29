@@ -193,7 +193,7 @@ describe('recording a movement', () => {
 
     const first = await recordMovement(offeringId, 3, 'receipt');
 
-    expect(first.status).toBe(201);
+    expect(first.status).toBe(200);
     expect(first.data.data.quantity).toBe(3);
     // Server-owned: the client does not choose it, and a body that named one
     // would have it overwritten.
@@ -205,7 +205,7 @@ describe('recording a movement', () => {
     expect(created['onHand']).toBe(3);
     expect(created['reserved']).toBe(0);
 
-    expect((await recordMovement(offeringId, 5, 'receipt')).status).toBe(201);
+    expect((await recordMovement(offeringId, 5, 'receipt')).status).toBe(200);
 
     const after = await itemFor(offeringId);
     expect(after['onHand']).toBe(8);
@@ -216,7 +216,7 @@ describe('recording a movement', () => {
   it('links the movement back to the item it folded into', async () => {
     const res = await recordMovement(freshOffering('links'), 1, 'receipt');
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     const links = res.data.meta.links as Array<{ rel: string; href: string }>;
     expect(links.map(link => link.rel)).toEqual(
       expect.arrayContaining(['self', 'list', 'stock-item']),
@@ -229,7 +229,7 @@ describe('recording a movement', () => {
 
     const res = await recordMovement(offeringId, -2, 'sale');
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect((await itemFor(offeringId))['onHand']).toBe(8);
   });
 
@@ -259,7 +259,7 @@ describe('recording a movement', () => {
     const up = await recordMovement(offeringId, 2, 'adjustment');
     const down = await recordMovement(offeringId, -2, 'adjustment');
 
-    expect([up.status, down.status]).toEqual([201, 201]);
+    expect([up.status, down.status]).toEqual([200, 200]);
     expect((await itemFor(offeringId))['onHand']).toBe(10);
   });
 

@@ -3153,18 +3153,12 @@ importers:
 
   packages/implementation/stock-management/http:
     dependencies:
-      '@entifix/authz':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/business':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
-      '@entifix/service-shell':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../../business/ts/stock-management
@@ -3657,6 +3651,9 @@ importers:
       '@entifix/mongo':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(@entifix/transactions@0.12.0-rc.4(effect@4.0.6))(effect@4.0.6)
+      '@entifix/service-shell':
+        specifier: 'catalog:'
+        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../../business/ts/stock-management
@@ -4177,6 +4174,15 @@ importers:
       '@entifix/service-shell':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
+      '@r10c/business-ts-catalog-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/catalog-contracts
+      '@r10c/business-ts-configuration':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/configuration
+      '@r10c/business-ts-stock-management':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/stock-management
       '@r10c/i18n-catalog':
         specifier: workspace:*
         version: link:../../packages/shells/next/i18n-catalog
@@ -4213,6 +4219,9 @@ importers:
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../../packages/shells/effect/service
+      '@r10c/shells-effect-stock':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/stock
 
 packages:
 

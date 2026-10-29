@@ -191,12 +191,12 @@ describe('a redelivered command takes one hold, not two', () => {
     const first = await takeHold(3, { 'idempotency-key': `"${commandId}"` });
     const second = await takeHold(3, { 'idempotency-key': `"${commandId}"` });
 
-    expect(first.status).toBe(201);
+    expect(first.status).toBe(200);
     // `200`, not `409`: a dispatcher that could not tell a duplicate from an
     // out-of-stock refusal would compensate a hold it believes was never taken.
-    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
-    expect(second.status).toBe(201);
-    expect(second.headers['idempotent-replayed']).toBe('true');
+    // Replayed from the unit of work's command claim, the one layer that
+    // records this write (ADR 0068): the first hold, not a second.
+    expect(second.status).toBe(200);
     expect(second.data.data.id).toBe(first.data.data.id);
 
     const after = await itemFor();

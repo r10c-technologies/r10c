@@ -1,19 +1,44 @@
-import type { TransitionalFailure } from '@entifix/core';
-import { Context, type Effect } from 'effect';
+import { Failure, type Invalid, type StoreFailure } from '@entifix/core';
+import { Context, type Effect, Schema } from 'effect';
 
 import type { Reservation } from '../entities/reservation';
 import type { StockMovement } from '../entities/stock-movement';
 
-/** How taking a hold went. */
+/** How taking a hold went: a new hold, or the one a repeated command took. */
 export type HoldOutcome =
   | { readonly _tag: 'held'; readonly reservation: Reservation }
-  | { readonly _tag: 'replayed'; readonly reservation: Reservation }
-  | { readonly _tag: 'insufficient' };
+  | { readonly _tag: 'replayed'; readonly reservation: Reservation };
+
+/**
+ * Less is free than a hold asked for. A conflict with the stock as it stands,
+ * not a malformed request: the same hold succeeds once a delivery lands.
+ * `available` is what was free when the hold was refused — a hint, since the
+ * next hold may already have moved it.
+ */
+export class InsufficientStock extends Failure.conflict<InsufficientStock>()(
+  'InsufficientStock',
+  'insufficientStock',
+  {
+    offeringId: Schema.String,
+    requested: Schema.Number,
+    available: Schema.Number,
+  },
+  {
+    message: ({ offeringId, requested, available }) =>
+      `${String(requested)} of ${offeringId} asked for, ${String(available)} free`,
+  },
+) {}
 
 /** How a restoration went. */
 export type RestoreOutcome =
   | { readonly _tag: 'restored'; readonly movement: StockMovement }
   | { readonly _tag: 'replayed'; readonly movement: StockMovement };
+
+/**
+ * What reaching an organization's store can fail with: the store, or an
+ * organization id the tenant resolver refuses.
+ */
+export type StockStoreFailure = StoreFailure | Invalid;
 
 /**
  * The `stock` store, one organization's database at a time.
@@ -29,7 +54,7 @@ export interface StockLedger {
     organizationId: string,
     reservation: Reservation,
     commandId: string | undefined,
-  ) => Effect.Effect<HoldOutcome, TransitionalFailure>;
+  ) => Effect.Effect<HoldOutcome, InsufficientStock | StockStoreFailure>;
   /**
    * End a hold: `released` gives the quantity back; `converted` turns it into
    * a sale, which also leaves the shelf. `not-held` when it had already ended
@@ -40,18 +65,18 @@ export interface StockLedger {
     organizationId: string,
     reservationId: string,
     to: 'released' | 'converted',
-  ) => Effect.Effect<'transitioned' | 'not-held', TransitionalFailure>;
+  ) => Effect.Effect<'transitioned' | 'not-held', StockStoreFailure>;
   /** Append a vendor's own movement and move the counter with it. */
   readonly record: (
     organizationId: string,
     movement: StockMovement,
-  ) => Effect.Effect<StockMovement, TransitionalFailure>;
+  ) => Effect.Effect<StockMovement, StockStoreFailure>;
   /** Put a cancelled order's goods back, claimed on the command. */
   readonly restore: (
     organizationId: string,
     movement: StockMovement,
     commandId: string | undefined,
-  ) => Effect.Effect<RestoreOutcome, TransitionalFailure>;
+  ) => Effect.Effect<RestoreOutcome, StockStoreFailure>;
   /**
    * Release every expired hold in every organization's store. Without it
    * `expiresAt` is a timestamp nothing reads, and an abandoned basket promises
@@ -60,10 +85,7 @@ export interface StockLedger {
    * Each hold is released on its own, so one that fails is **reported** and the
    * walk goes on; the slice shell logs what was reported (ADR 0064).
    */
-  readonly releaseExpired: () => Effect.Effect<
-    ExpirySweep,
-    TransitionalFailure
-  >;
+  readonly releaseExpired: () => Effect.Effect<ExpirySweep, StockStoreFailure>;
 }
 
 /** What one pass over the expired holds did. */

@@ -84,7 +84,7 @@ describe('taking a hold', () => {
 
     const res = await takeHold(OFFERING, 2);
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     const after = await itemFor(OFFERING);
     expect(after['reserved']).toBe((before['reserved'] as number) + 2);
     // ⚠️ A purchase reserves rather than decrements. `onHand` is what the
@@ -95,7 +95,7 @@ describe('taking a hold', () => {
   it('owns the status and the expiry, whatever the body says', async () => {
     const res = await takeHold(OFFERING, 1);
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.data.data.status).toBe('held');
     expect(typeof res.data.data.expiresAt).toBe('string');
     expect(typeof res.data.data.id).toBe('string');

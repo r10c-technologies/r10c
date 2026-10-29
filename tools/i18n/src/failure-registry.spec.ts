@@ -32,15 +32,11 @@ const LEGACY_UNSCANNED: ReadonlySet<string> = new Set([
   'categoryTooDeep',
   'categoryHasChildren',
   'categoryTreeUnreadable',
-  'mediaNotHttps',
-  'mediaAltMissing',
   'paymentPending',
   'invalidCommand',
   'alreadyRetired',
-  'inconsistentMovement',
   'channelInactive',
   'notYours',
-  'secretRequiresValue',
 ]);
 
 describe('Every registered failure is cataloged', () => {

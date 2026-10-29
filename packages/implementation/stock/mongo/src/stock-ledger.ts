@@ -21,6 +21,7 @@ import {
 import {
   type ExpirySweep,
   type HoldOutcome,
+  InsufficientStock,
   Reservation,
   type RestoreOutcome,
   StockItem,
@@ -315,8 +316,28 @@ export const MongoStockLedgerLayer = Layer.effect(
           if (outcome._tag === 'committed') {
             return { _tag: 'held', reservation } as HoldOutcome;
           }
-          if (outcome._tag === 'aborted')
-            return { _tag: 'insufficient' } as HoldOutcome;
+          if (outcome._tag === 'aborted') {
+            // What is free now, read after the refusal: a hint for the caller,
+            // which the next hold may already have moved.
+            const item = yield* Effect.tryPromise({
+              try: () =>
+                db
+                  .collection(STOCK_ITEM_COLLECTION)
+                  .findOne({ offeringId: reservation.offeringId }),
+              catch: storeUnavailable,
+            });
+            return yield* Effect.fail(
+              new InsufficientStock({
+                offeringId: reservation.offeringId,
+                requested: reservation.quantity,
+                available: Math.max(
+                  0,
+                  Number(item?.['onHand'] ?? 0) -
+                    Number(item?.['reserved'] ?? 0),
+                ),
+              }),
+            );
+          }
           return {
             _tag: 'replayed',
             reservation: yield* remembered(

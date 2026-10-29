@@ -1,6 +1,7 @@
 import { type AnyEndpointGroup, endpointsOf } from '@entifix/service-shell';
 import { endpoints as configEndpoints } from '@r10c/shells-effect-config';
 import { serviceBaseGroup } from '@r10c/shells-effect-service';
+import { endpoints as stockEndpoints } from '@r10c/shells-effect-stock';
 import { describe, expect, it } from 'vitest';
 
 import { SLICES } from './registry.js';
@@ -13,6 +14,7 @@ import { endpointDrift, expandApis } from './served-endpoints.js';
  */
 const SERVED: Readonly<Record<string, readonly AnyEndpointGroup[]>> = {
   config: configEndpoints,
+  stock: stockEndpoints,
 };
 
 /**

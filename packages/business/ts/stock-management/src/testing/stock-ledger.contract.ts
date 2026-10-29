@@ -9,6 +9,8 @@ import type { StockLedger } from '../ports/stock-ledger';
 export const CONTRACT_ORGANIZATIONS = ['org-a', 'org-b'] as const;
 
 const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect);
+const refusal = <A, E>(effect: Effect.Effect<A, E>) =>
+  Effect.runPromise(Effect.flip(effect));
 
 const hold = (
   id: string,
@@ -48,13 +50,19 @@ export const describeStockLedgerContract = (
       await run(ledger.record('org-a', movement('m-1', 5)));
 
       const held = await run(ledger.take('org-a', hold('r-1', 3), undefined));
-      const refused = await run(
+      const refused = await refusal(
         ledger.take('org-a', hold('r-2', 3), undefined),
       );
       const rest = await run(ledger.take('org-a', hold('r-3', 2), undefined));
 
       expect(held).toMatchObject({ _tag: 'held', reservation: { id: 'r-1' } });
-      expect(refused).toEqual({ _tag: 'insufficient' });
+      expect(refused).toMatchObject({
+        _tag: 'InsufficientStock',
+        code: 'insufficientStock',
+        offeringId: 'o-1',
+        requested: 3,
+        available: 2,
+      });
       expect(rest._tag).toBe('held');
     });
 
@@ -94,13 +102,13 @@ export const describeStockLedgerContract = (
       await run(ledger.take('org-a', hold('r-1', 2), undefined));
 
       const converted = await run(ledger.end('org-a', 'r-1', 'converted'));
-      const afterSale = await run(
+      const afterSale = await refusal(
         ledger.take('org-a', hold('r-2', 1), undefined),
       );
       const released = await run(ledger.end('org-a', 'r-1', 'released'));
 
       expect(converted).toBe('transitioned');
-      expect(afterSale).toEqual({ _tag: 'insufficient' });
+      expect(afterSale).toMatchObject({ requested: 1, available: 0 });
       expect(released).toBe('not-held');
     });
 
@@ -121,7 +129,9 @@ export const describeStockLedgerContract = (
         ledger.restore('org-a', movement('m-2', 2, 'cancellation'), 'c-1'),
       );
       const all = await run(ledger.take('org-a', hold('r-1', 2), undefined));
-      const more = await run(ledger.take('org-a', hold('r-2', 1), undefined));
+      const more = await refusal(
+        ledger.take('org-a', hold('r-2', 1), undefined),
+      );
 
       expect(restored).toMatchObject({
         _tag: 'restored',
@@ -132,7 +142,7 @@ export const describeStockLedgerContract = (
         movement: { id: 'm-1', quantity: 2 },
       });
       expect(all._tag).toBe('held');
-      expect(more).toEqual({ _tag: 'insufficient' });
+      expect(more).toMatchObject({ available: 0 });
     });
 
     it('restores every time when no command names the restoration', async () => {
@@ -176,8 +186,8 @@ export const describeStockLedgerContract = (
       await run(ledger.record('org-a', movement('m-1', 5)));
 
       expect(
-        await run(ledger.take('org-b', hold('r-1', 1), undefined)),
-      ).toEqual({ _tag: 'insufficient' });
+        await refusal(ledger.take('org-b', hold('r-1', 1), undefined)),
+      ).toMatchObject({ _tag: 'InsufficientStock', available: 0 });
     });
   });
 };

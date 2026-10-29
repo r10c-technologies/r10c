@@ -112,14 +112,18 @@ describe('taking a hold', () => {
       ledger.take('org', aHold('r-1', 3), 'c-1'),
     );
     const refused = await run(ledger =>
-      ledger.take('org', aHold('r-2', 1), undefined),
+      Effect.flip(ledger.take('org', aHold('r-2', 1), undefined)),
     );
     const again = await run(ledger =>
       ledger.take('org', aHold('r-3', 1), 'c-1'),
     );
 
     expect(held._tag).toBe('held');
-    expect(refused).toEqual({ _tag: 'insufficient' });
+    expect(refused).toMatchObject({
+      _tag: 'InsufficientStock',
+      requested: 1,
+      available: 0,
+    });
     expect(again).toMatchObject({
       _tag: 'replayed',
       reservation: { id: 'r-1' },

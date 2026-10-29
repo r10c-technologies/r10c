@@ -16,6 +16,15 @@
     },
     {
       "path": "../../packages/shells/next/i18n-catalog"
+    },
+    {
+      "path": "../../packages/business/ts/stock-management"
+    },
+    {
+      "path": "../../packages/business/ts/configuration"
+    },
+    {
+      "path": "../../packages/business/ts/catalog-contracts"
     }
   ]
 }

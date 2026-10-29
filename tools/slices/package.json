@@ -39,6 +39,7 @@
     "@r10c/business-ts-party-contracts": "workspace:*",
     "@r10c/business-ts-payment-contracts": "workspace:*",
     "@r10c/shells-effect-config": "workspace:*",
-    "@r10c/shells-effect-service": "workspace:*"
+    "@r10c/shells-effect-service": "workspace:*",
+    "@r10c/shells-effect-stock": "workspace:*"
   }
 }

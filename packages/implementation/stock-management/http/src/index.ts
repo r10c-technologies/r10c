@@ -1,1 +1,1 @@
-export { stockRoutes, type StockRouteServices } from './stock-routes.js';
+export * from './stock-api.js';

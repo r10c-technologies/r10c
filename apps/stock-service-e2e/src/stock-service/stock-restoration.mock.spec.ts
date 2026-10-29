@@ -97,7 +97,7 @@ describe('restoring stock after a cancellation', () => {
 
     const res = await restore();
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     const after = await itemFor();
     expect(after['onHand']).toBe(before['onHand']);
   });
@@ -142,7 +142,7 @@ describe('restoring stock after a cancellation', () => {
       { headers: crossing() },
     );
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.data.data.reason).toBe('cancellation');
   });
 
@@ -169,12 +169,12 @@ describe('restoring stock after a cancellation', () => {
     const first = await send();
     const second = await send();
 
-    expect(first.status).toBe(201);
+    expect(first.status).toBe(200);
     // `200`, not `409`: a coordinator that could not tell a redelivery from a
     // refusal would strand a flow whose stock did in fact go back.
-    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
-    expect(second.status).toBe(201);
-    expect(second.headers['idempotent-replayed']).toBe('true');
+    // Replayed from the unit of work's command claim, the one layer that
+    // records this write (ADR 0068): the first hold, not a second.
+    expect(second.status).toBe(200);
     expect(second.data.data.id).toBe(first.data.data.id);
 
     expect((await itemFor(offeringId))['onHand']).toBe(4);
