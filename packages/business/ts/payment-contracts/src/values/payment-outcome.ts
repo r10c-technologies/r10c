@@ -27,14 +27,6 @@ const invalidPayload = (detail: string) =>
 export const PAYMENT_CAPTURED = 'payment.captured';
 
 /**
- * The attempt did not succeed. Emitted for the record and for a vendor's
- * reconciliation; the checkout saga does **not** consume it, because a capture
- * that refuses is answered by compensating the flow synchronously rather than
- * by waiting for a message about it.
- */
-export const PAYMENT_FAILED = 'payment.failed';
-
-/**
  * Money went back for an order.
  *
  * ⚠️ **Not the absence of a {@link PAYMENT_CAPTURED}, and not its correction.**
@@ -44,19 +36,14 @@ export const PAYMENT_FAILED = 'payment.failed';
  * subtracting one from the other
  * ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
  *
- * ⚠️ **Distinct from {@link PAYMENT_FAILED}, which is a capture that never
- * happened.** A refusal has nothing to settle and nothing to un-settle; a refund
- * has something that was settled and now must be undone. Different fact,
- * different message, and a consumer must not treat one as the other.
+ * ⚠️ **Distinct from a declined capture, which announces nothing.** A refusal
+ * has nothing to settle and nothing to un-settle, and no slice subscribes to one
+ * (ADR 0068); a refund has something that was settled and now must be undone.
  */
 export const PAYMENT_REFUNDED = 'payment.refunded';
 
 /** Every payment outcome the bus carries, as a routable name. */
-export const PAYMENT_EVENTS = [
-  PAYMENT_CAPTURED,
-  PAYMENT_FAILED,
-  PAYMENT_REFUNDED,
-] as const;
+export const PAYMENT_EVENTS = [PAYMENT_CAPTURED, PAYMENT_REFUNDED] as const;
 
 /** One of the payment outcome events. */
 export type PaymentEventName = (typeof PAYMENT_EVENTS)[number];
@@ -125,8 +112,8 @@ export interface PaymentOutcome {
    */
   readonly providerReference?: string;
   /**
-   * Why a `payment.failed` failed. Absent on a capture, and absent on a failure
-   * the adapter could not explain.
+   * Why a declined capture was declined, as the ledger records it. Absent on a
+   * capture, and absent on a failure the adapter could not explain.
    */
   readonly failureReason?: string;
   /**
@@ -199,11 +186,6 @@ export const paymentCapturedEvent = (
   outcome: PaymentOutcome,
   source: string,
 ): PaymentEvent => message(PAYMENT_CAPTURED, source, outcome);
-
-export const paymentFailedEvent = (
-  outcome: PaymentOutcome,
-  source: string,
-): PaymentEvent => message(PAYMENT_FAILED, source, outcome);
 
 export const paymentRefundedEvent = (
   outcome: PaymentOutcome,

@@ -41,6 +41,20 @@ for the resume-token store and the retention window it would add. The
 ([ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md)). Stock gains an
 outbox when its first consumer lands.
 
+### Where the version comes from
+
+An offering's version is its `publishedAt` and an organization's is its
+`announcedAt`, both in epoch milliseconds, so the published-catalog and
+published-vendor projectors' existing stamp guards — a stamp written in every
+apply, a delete included ([ADR 0048](0048-announcing-a-publication.md)), and a
+conditional upsert ([ADR 0061](0061-the-snapshot-carries-media-and-the-vendor-is-a-projection.md))
+— already order on the version and store it; nothing is stored twice. An order
+is versioned by its linear lifecycle (placed 1, cancelled 2) and a payment by
+its decision time. The settlement folds and order's `payment.captured` handler
+take no stale-version guard on purpose: they join halves that may arrive in
+either order ([ADR 0057](0057-settlement-joins-the-sale-to-its-payment.md)), and
+their inbox claim already drops a redelivery.
+
 ### `Idempotency-Key` is the one idempotency header
 
 The client-minted id travels as `Idempotency-Key`, an RFC 9651 String, from the
@@ -53,7 +67,9 @@ answers `400`, the key with another body `422`, a request still in flight
 ### An event is published only when a slice subscribes to it
 
 A `publishedEvents` entry with no matching subscription fails `@r10c/slices`.
-`settlement.run.completed` is dropped until a payouts process consumes it.
+`settlement.run.completed` is dropped until a payouts process consumes it, and
+`payment.failed` — a refused capture, which the saga answers by compensating —
+is no longer published either.
 
 ### Every message is registered
 

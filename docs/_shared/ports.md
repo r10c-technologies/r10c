@@ -194,11 +194,11 @@ mirrors, and a placement that arrives after its order was already cancelled and
 refunded writes the sale and its mirror in a single transaction. A separate
 reversal record would have written neither.
 
-⚠️ **`payment.failed` is still not consumed, and a refused refund emits
-nothing.** A capture that refused is the checkout saga's pivot refusing, which
-compensates the flow and deletes the order — nothing to settle and nothing to
-un-settle. Reusing that name for a refund that was declined would hand every
-consumer a second meaning it never reasoned about, so there is no third case.
+⚠️ **A refused capture and a refused refund announce nothing.** A capture
+that refused is the checkout saga's pivot refusing, which compensates the flow
+and deletes the order — nothing to settle and nothing to un-settle — and an
+event no slice subscribes to is not published
+([ADR 0068](../adr/0068-one-outbox-ordered-per-aggregate.md)).
 
 It publishes nothing. A completed run was announced on the bus until [ADR 0068](../adr/0068-one-outbox-ordered-per-aggregate.md)
 ruled that an event is published only when a slice subscribes to it; a payouts
@@ -265,7 +265,7 @@ permission, not the pairing the note above says `payment:write` lacks.** Filing
 it as one would be backwards: it is a new money movement whose own reversal
 question has the same answer, because un-refunding is charging a customer again.
 
-It publishes `payment.captured`, `payment.failed` and `payment.refunded` from an
+It publishes `payment.captured` and `payment.refunded` from an
 outbox in its own store. The capture _decision_ never arrives as a message — the saga dispatches
 it — so what the bus carries is the consequence: order-service advances an order
 to `paid`, and settlement will fold a commission entry in M6.

@@ -31,8 +31,8 @@ const subscription = (pattern: string): Subscription => ({
  * (`order.placed` + `payment.captured`) and its reversal (`order.cancelled`
  * + `payment.refunded`). No member of either pair is sufficient alone, which
  * is why the folds join on the order id rather than writing per message
- * (ADR 0057, 0058 §9). `payment.failed` is not consumed: a capture that
- * refused compensates the flow and deletes the order — nothing to settle.
+ * (ADR 0057, 0058 §9). A refused capture announces nothing: it compensates the
+ * flow and deletes the order, so there is nothing to settle (ADR 0068).
  */
 /**
  * What a fold did, logged at the consumer — the one fork site the fold runs

@@ -580,6 +580,43 @@ describe('ADR 0029 — declared events have a publisher and a legal name', () =>
     }
   });
 
+  /**
+   * The other direction (ADR 0068): an event published with no subscriber is
+   * written, relayed and delivered to no queue — work the fleet does for
+   * nobody, and a contract nobody holds the publisher to.
+   */
+  const unsubscribed = (slices: readonly SliceDeclaration[]) =>
+    slices.flatMap(slice =>
+      slice.publishedEvents
+        .filter(
+          offered =>
+            !slices.some(candidate =>
+              candidate.subscriptions.some(
+                ({ event: wanted }) =>
+                  matches(offered, wanted) || matches(wanted, offered),
+              ),
+            ),
+        )
+        .map(offered => `${slice.name} publishes ${offered}`),
+    );
+
+  it('gives every published event a slice that subscribes to it', () => {
+    expect(unsubscribed(SLICES)).toEqual([]);
+  });
+
+  it('catches a publication nobody subscribes to (planted)', () => {
+    const planted = {
+      ...(SLICES[0] as SliceDeclaration),
+      name: 'planted',
+      publishedEvents: ['planted.unheard'],
+      subscriptions: [],
+    };
+
+    expect(unsubscribed([...SLICES, planted])).toEqual([
+      'planted publishes planted.unheard',
+    ]);
+  });
+
   it('subscribes no slice to its own events', () => {
     for (const slice of SLICES) {
       for (const { event: wanted } of slice.subscriptions) {

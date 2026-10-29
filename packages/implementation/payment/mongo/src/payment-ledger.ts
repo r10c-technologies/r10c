@@ -17,7 +17,6 @@ import {
 import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import {
   paymentCapturedEvent,
-  paymentFailedEvent,
   paymentRefundedEvent,
 } from '@r10c/business-ts-payment-contracts';
 import {
@@ -201,14 +200,15 @@ export const MongoPaymentLedgerLayer = Layer.effect(
 
       recordCapture: (payment, outcome, commandId) =>
         Effect.gen(function* () {
+          // A declined capture is recorded and announced to nobody: no slice
+          // subscribes to a refusal, which the saga answers by compensating
+          // (ADR 0068).
           const written = yield* record(
             Payment,
             PAYMENT_COLLECTION,
             payment,
-            outcome,
-            payment.status === 'captured'
-              ? paymentCapturedEvent
-              : paymentFailedEvent,
+            payment.status === 'captured' ? outcome : undefined,
+            paymentCapturedEvent,
             commandId,
           );
           if (written._tag === 'committed') {
@@ -227,9 +227,8 @@ export const MongoPaymentLedgerLayer = Layer.effect(
 
       recordRefund: (refund, outcome, commandId) =>
         Effect.gen(function* () {
-          // A refused refund is recorded and announced to nobody: there is no
-          // third payment event, and reusing `payment.failed` would hand every
-          // consumer a second meaning it never reasoned about.
+          // A refused refund is recorded and announced to nobody, like a declined
+          // capture.
           const written = yield* record(
             Refund,
             REFUND_COLLECTION,

@@ -57,7 +57,7 @@ export const paymentSlice: SliceDeclaration = {
   // to reverse a commission entry. It is published now for ADR 0028's reason —
   // the announcement commits with the write it announces, and retrofitting an
   // outbox entry later is the dual write that rule exists to close.
-  publishedEvents: ['payment.captured', 'payment.failed', 'payment.refunded'],
+  publishedEvents: ['payment.captured', 'payment.refunded'],
   // ⚠️ **Nothing. It subscribed to `order.placed` and no longer does.**
   //
   // That declaration described an event-driven capture: the order lands, a

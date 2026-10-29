@@ -21,9 +21,8 @@ export type LedgerWrite<T> =
  * asked for it.
  *
  * ⚠️ **A decision is recorded even when the provider declined.** The record
- * that an attempt happened is what support and reconciliation both need; the
- * announcement is what differs (`payment.failed`, or nothing for a refused
- * refund).
+ * that an attempt happened is what support and reconciliation both need. Only
+ * a capture and a refund are announced; a refusal of either is not (ADR 0068).
  */
 export interface PaymentLedger {
   /** What a command already decided, if anything did — read before any money moves. */

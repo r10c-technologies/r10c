@@ -43,10 +43,10 @@ import type { SliceDeclaration } from '../types.js';
  * leave a pair that does not cancel
  * ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md) §9).
  *
- * ⚠️ **`payment.failed` is still not consumed, and that is not an omission.** A
- * capture that refused is the checkout saga's pivot refusing, which compensates
- * the flow and deletes the order — nothing to settle and nothing to un-settle. A
- * refused *refund* likewise emits nothing at all, so there is no third case.
+ * ⚠️ **A refused capture or refund announces nothing.** A capture that refused
+ * is the checkout saga's pivot refusing, which compensates the flow and deletes
+ * the order — nothing to settle and nothing to un-settle — and an event nobody
+ * subscribes to is not published (ADR 0068).
  */
 export const settlementSlice: SliceDeclaration = {
   name: 'settlement',
