@@ -6,6 +6,7 @@
 - Area: platform
 - Read when: writing the spec for a `mongo`, `sql`, `redis` or `http` cell, a package under `packages/implementation/` misses the 100% gate, or you are about to add `mongodb-memory-server` or a container to a unit test — the driver is faked one level below the adapter, every port implementation runs its shared contract suite, and a race is proven against the live lab or not at all
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — `describeFailureContract` from `@entifix/testing-unit` joins every cell's suite: each failure a package defines is registered, categorised, and round-trips through its problem body without a stack
+- Revised: 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md) — a use case with variants runs its contract suite once per variant through `forEachVariant`
 
 ## Context
 

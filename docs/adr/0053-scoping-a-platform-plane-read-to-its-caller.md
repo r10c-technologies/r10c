@@ -5,6 +5,7 @@
 - Area: auth
 - Read when: a read has to be narrowed to whoever is asking, or an anonymous buyer has to be shown something that is theirs — the scope is conjoined onto the load request and never expressed as a query, and a receipt is carried rather than read back
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the receipt gains a capability, and the rejected "receipt token on the order" is corrected as being about a read
+- Revised: 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md) — the scope is a resolver narrowing over the verified context, and the by-id read is a narrowed load rather than an in-memory `includes`
 
 ## Context
 
@@ -123,6 +124,8 @@ the grant and owning no records are different facts, and only the first is about
 authorization.
 
 ### The by-id read is scoped too, and answers `404`
+
+> **Revised 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md).** The three predicates are `NarrowingRules` over the verified context, and the by-id read is a load of the narrowing plus id equality — the `includes` closure is gone, so the list and the read cannot disagree.
 
 `id` is the one member that is neither sortable nor filterable, so a by-id read
 cannot be expressed as a filtered load: the record is fetched and then tested

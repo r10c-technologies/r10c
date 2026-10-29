@@ -21,6 +21,7 @@
 - Revised: 2026-09-16 — entifix is installed from the registry (#273): framework paths name the `@entifix/*` package rather than
   `packages/entifix`, and `business:policy` no longer lists `layer:entifix`.
 - Revised: 2026-10-20 — Effect 4 (entifix 0.2.0): the shell's `withHealthRoutes` wrapper became the `healthRoutes` route layer; the decision is unchanged.
+- Revised: 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md) — a served descriptor carries `composition` (the variant and recipe it resolves to for the caller), and a verb the caller resolves to nothing is omitted
 
 ## Context
 
@@ -216,6 +217,8 @@ role other than `super-admin` ever wildcards the action segment, reopen this
 decision.**
 
 ### Entity metadata is served, per entity, and it is authorization-shaped
+
+> **Revised 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md).** A descriptor may name `variants` and a `recipe`; the served document then carries `composition { useCase, variant, recipe, slipVersion, fragments }` computed for the caller, and omits a verb the caller resolves to no variant of. The ETag still hashes the computed document.
 
 `GET /api/<entity>/$metadata` answers a new envelope type:
 
