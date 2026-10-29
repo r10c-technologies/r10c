@@ -1,4 +1,5 @@
 import {
+  type AggregateRef,
   type DomainEvent,
   Invalid,
   type TransitionalFailure,
@@ -63,12 +64,20 @@ export const organizationEventId = (
 export const organizationAnnouncedEvent = (
   announcement: OrganizationAnnouncement,
   source: string,
-): DomainEvent<OrganizationAnnouncement> => ({
+): DomainEvent<OrganizationAnnouncement> & {
+  aggregate: AggregateRef;
+  version: number;
+} => ({
   name: ORGANIZATION_ANNOUNCED,
   id: organizationEventId(announcement),
   source,
   at: announcement.announcedAt,
   correlationId: announcement.organizationId,
+  // The organization is the aggregate and its announcement stamp the version,
+  // so a rebuild re-stating it at its own stamp is the same version, not a
+  // newer one.
+  aggregate: { type: 'organization', id: announcement.organizationId },
+  version: Date.parse(announcement.announcedAt),
   data: announcement,
 });
 

@@ -1,6 +1,5 @@
 import {
   deserializeSingleEntity,
-  type DomainEvent,
   envelopeEntityName,
   serializeEntity,
   Unavailable,
@@ -11,7 +10,11 @@ import {
   MongoUnitOfWorkTag,
   OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  type OutboxEvent,
+} from '@entifix/transactions';
 import {
   type CancellationClaim,
   type OrderItem,
@@ -87,12 +90,20 @@ export const MongoProductOrderStoreLayer = Layer.effect(
         ? Effect.succeed(undefined)
         : revive(document);
 
-    const event = (name: string, id: string, data: unknown): DomainEvent => ({
+    // An order's announced lifecycle is linear — placed, then possibly
+    // cancelled — so each event is a fixed version of its order.
+    const VERSION: Record<string, number> = {
+      'order.placed': 1,
+      'order.cancelled': 2,
+    };
+    const event = (name: string, id: string, data: unknown): OutboxEvent => ({
       name,
       id: `${id}:${name.split('.')[1] as string}`,
       source,
       at: new Date().toISOString(),
       correlationId: id,
+      aggregate: { type: 'product-order', id },
+      version: VERSION[name] ?? 1,
       data,
     });
 

@@ -108,6 +108,10 @@ export const errors: EsErrors = {
   idempotencyKeyReused:
     'That idempotency key was already used for another request.',
   idempotencyKeyInFlight: 'That request is still being processed.',
+  flowNotComposable: 'That operation cannot be put together for this request.',
+  variantUnavailable: 'That operation is not available to you.',
+  flowNotFound: 'That operation could not be found.',
+  flowSignalRejected: 'That operation is not waiting for this step.',
   invalidToken: 'Your session is not valid. Sign in again.',
   expiredToken: 'Your session has expired. Sign in again.',
 };

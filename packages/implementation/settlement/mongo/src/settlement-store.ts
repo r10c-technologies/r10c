@@ -397,6 +397,8 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
                         source,
                         at: completed.completedAt,
                         correlationId: run.runId,
+                        aggregate: { type: 'settlement-run', id: run.runId },
+                        version: 1,
                         data: completed,
                       });
                     }),

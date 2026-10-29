@@ -63,6 +63,8 @@ describe('organizationAnnouncedEvent', () => {
       source: 'auth',
       at: ANNOUNCEMENT.announcedAt,
       correlationId: 'demo-organization',
+      aggregate: { type: 'organization', id: 'demo-organization' },
+      version: Date.parse(ANNOUNCEMENT.announcedAt),
       data: ANNOUNCEMENT,
     });
   });

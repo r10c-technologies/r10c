@@ -1,9 +1,9 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import type { DomainEvent, Entity, EntityId } from '@entifix/core';
+import type { Entity, EntityId } from '@entifix/core';
 import {
   CATALOG_PUBLISHED,
   CATALOG_UNPUBLISHED,
-  type CatalogPublication,
+  type CatalogEvent,
 } from '@r10c/business-ts-catalog-contracts';
 import { Cause, Effect, Exit, Option } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
@@ -201,7 +201,7 @@ const failureOf = <TError>(exit: Exit.Exit<unknown, TError>): TError => {
 
 const publicationOf = (
   exit: Exit.Exit<OfferingTransitionDecision, unknown>,
-): DomainEvent<CatalogPublication> => decisionOf(exit).event;
+): CatalogEvent => decisionOf(exit).event;
 
 describe('transitionOffering', () => {
   it('moves a draft to published', () => {

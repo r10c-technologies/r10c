@@ -1,4 +1,5 @@
 import {
+  type AggregateRef,
   type DomainEvent,
   Invalid,
   type TransitionalFailure,
@@ -158,16 +159,28 @@ export const paymentEventId = (outcome: PaymentOutcome): string =>
     ? `${outcome.paymentId}:${outcome.decidedAt}`
     : `${outcome.paymentId}:refund:${outcome.refundId}`;
 
-/** Wraps an outcome as a routable message from `source`. */
+/** A payment event: about one payment, at the version its decision names. */
+export type PaymentEvent = DomainEvent<PaymentOutcome> & {
+  aggregate: AggregateRef;
+  version: number;
+};
+
+/**
+ * Wraps an outcome as a routable message from `source`. The payment is the
+ * aggregate and `decidedAt` as epoch milliseconds its version, so a refund —
+ * decided after the capture it reverses — is always the later version.
+ */
 const message = (
   name: PaymentEventName,
   source: string,
   data: PaymentOutcome,
-): DomainEvent<PaymentOutcome> => ({
+): PaymentEvent => ({
   name,
   id: paymentEventId(data),
   source,
   at: data.decidedAt,
+  aggregate: { type: 'payment', id: data.paymentId },
+  version: Date.parse(data.decidedAt),
   // The order, not the payment: it is what correlates this message with the
   // `order.placed` before it and the settlement entry after it.
   correlationId: data.orderId,
@@ -183,17 +196,17 @@ const message = (
 export const paymentCapturedEvent = (
   outcome: PaymentOutcome,
   source: string,
-): DomainEvent<PaymentOutcome> => message(PAYMENT_CAPTURED, source, outcome);
+): PaymentEvent => message(PAYMENT_CAPTURED, source, outcome);
 
 export const paymentFailedEvent = (
   outcome: PaymentOutcome,
   source: string,
-): DomainEvent<PaymentOutcome> => message(PAYMENT_FAILED, source, outcome);
+): PaymentEvent => message(PAYMENT_FAILED, source, outcome);
 
 export const paymentRefundedEvent = (
   outcome: PaymentOutcome,
   source: string,
-): DomainEvent<PaymentOutcome> => message(PAYMENT_REFUNDED, source, outcome);
+): PaymentEvent => message(PAYMENT_REFUNDED, source, outcome);
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value !== '';

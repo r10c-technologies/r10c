@@ -1,4 +1,5 @@
 import {
+  type AggregateRef,
   type DomainEvent,
   Invalid,
   type TransitionalFailure,
@@ -148,17 +149,30 @@ export interface CatalogPublication {
 export const catalogEventId = (publication: CatalogPublication): string =>
   `${publication.offeringId}:${publication.publishedAt}`;
 
-/** Wraps a publication as a routable message from `source`. */
+/** A publication event: about one offering, at the version its stamp names. */
+export type CatalogEvent = DomainEvent<CatalogPublication> & {
+  aggregate: AggregateRef;
+  version: number;
+};
+
+/**
+ * Wraps a publication as a routable message from `source`. The offering is
+ * the aggregate, and `publishedAt` as epoch milliseconds is its version — the
+ * same order the projector already applied (ADR 0048), now carried on the
+ * message where a consumer can discard a stale one by it.
+ */
 const message = (
   name: CatalogEventName,
   source: string,
   data: CatalogPublication,
-): DomainEvent<CatalogPublication> => ({
+): CatalogEvent => ({
   name,
   id: catalogEventId(data),
   source,
   at: data.publishedAt,
   correlationId: data.offeringId,
+  aggregate: { type: 'product-offering', id: data.offeringId },
+  version: Date.parse(data.publishedAt),
   data,
 });
 
@@ -171,14 +185,12 @@ const message = (
 export const catalogPublishedEvent = (
   publication: CatalogPublication,
   source: string,
-): DomainEvent<CatalogPublication> =>
-  message(CATALOG_PUBLISHED, source, publication);
+): CatalogEvent => message(CATALOG_PUBLISHED, source, publication);
 
 export const catalogUnpublishedEvent = (
   publication: CatalogPublication,
   source: string,
-): DomainEvent<CatalogPublication> =>
-  message(CATALOG_UNPUBLISHED, source, publication);
+): CatalogEvent => message(CATALOG_UNPUBLISHED, source, publication);
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value !== '';

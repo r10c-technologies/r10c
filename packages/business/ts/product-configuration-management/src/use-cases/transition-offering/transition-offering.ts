@@ -1,6 +1,7 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import type { DomainEvent, EntityId } from '@entifix/core';
+import type { EntityId } from '@entifix/core';
 import {
+  type CatalogEvent,
   type CatalogPublication,
   catalogPublishedEvent,
   catalogUnpublishedEvent,
@@ -194,7 +195,7 @@ export interface OfferingTransitionDecision {
    * two transitions racing on one offering cannot both land (#371).
    */
   readonly from: ProductOffering['status'];
-  readonly event: DomainEvent<CatalogPublication>;
+  readonly event: CatalogEvent;
 }
 
 /**
