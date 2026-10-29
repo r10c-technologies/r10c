@@ -1,6 +1,9 @@
 import { productOrderRoutes } from '@r10c/implementation-order-management-http';
 import { FLOW_RECIPES, flowCatalog } from '@r10c/shells-effect-flow-catalog';
-import { serviceBaseRoutes } from '@r10c/shells-effect-service';
+import {
+  fleetFailurePolicy,
+  serviceBaseGroup,
+} from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
 /**
@@ -14,6 +17,13 @@ import { Layer } from 'effect';
  * databases (`docs/_shared/planes.md`).
  */
 export const router = Layer.mergeAll(
-  serviceBaseRoutes({ service: '@r10c/order-service', store: 'mongo' }),
   productOrderRoutes({ recipes: FLOW_RECIPES, catalog: flowCatalog }),
 );
+
+/** The `order` slice's endpoints, served as one `HttpApi` by `makeService`. */
+export const endpoints = [
+  serviceBaseGroup({ service: '@r10c/order-service', store: 'mongo' }),
+] as const;
+
+/** How this slice's endpoints answer and log a failure (ADR 0064). */
+export const policy = fleetFailurePolicy;

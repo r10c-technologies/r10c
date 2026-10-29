@@ -11,6 +11,7 @@ import {
   buildTransactionStatusReader,
   ConfigurationClientRestClient,
   makeEntityMetadataSource,
+  makeEntityRestUseCaseRunner,
 } from '@entifix/rest';
 import {
   ProductBrand,
@@ -150,6 +151,25 @@ const catalogMetadata = makeEntityMetadataSource({
 });
 
 /**
+ * Each entity's verbs, through the same proxy and `uri` composition as its
+ * adapters: a record's verb is `POST <entity>/:id/<key>` and a collection's
+ * `POST <entity>/<key>`, the paths the service derives from each
+ * `@useCase()`, and a refusal arrives decoded from its problem body.
+ */
+const productBrandUseCases = makeEntityRestUseCaseRunner(
+  ProductBrand,
+  REFERENCE_SERVICE,
+);
+const productCategoryUseCases = makeEntityRestUseCaseRunner(
+  ProductCategory,
+  REFERENCE_SERVICE,
+);
+const productOfferingUseCases = makeEntityRestUseCaseRunner(
+  ProductOffering,
+  CATALOG_SERVICE_REST,
+);
+
+/**
  * The tracker's status read, built once here so the component that settles
  * optimistic writes holds a port rather than assembling the adapter and its
  * configuration inline.
@@ -165,6 +185,9 @@ export function createClientAdapters(): MarketplaceAdminAdapters {
     productOfferingPriceRest,
     referenceMetadata,
     catalogMetadata,
+    productBrandUseCases,
+    productCategoryUseCases,
+    productOfferingUseCases,
     transactionStatus,
   };
 }

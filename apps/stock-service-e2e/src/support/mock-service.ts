@@ -36,6 +36,8 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import { MongoStockLedgerLayer } from '@r10c/implementation-stock-mongo';
 import {
+  endpoints,
+  policy,
   ReservationTtlSecondsTag,
   router,
   seedStock,
@@ -156,6 +158,8 @@ export const startMockService = (): Promise<RunningTestService> =>
     // thing under test rather than a reduced version of it.
     slices: ['stock'],
     description: fleetToken,
+    endpoints,
+    policy,
     router,
     appLayer: MockAppLayer,
   });

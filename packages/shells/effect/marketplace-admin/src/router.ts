@@ -1,5 +1,8 @@
 import { catalogRoutes } from '@r10c/implementation-product-configuration-management-http';
-import { serviceBaseRoutes } from '@r10c/shells-effect-service';
+import {
+  fleetFailurePolicy,
+  serviceBaseGroup,
+} from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
 /**
@@ -18,10 +21,15 @@ import { Layer } from 'effect';
  * duplicate `method + path`, so a module can decline to register a route but can
  * never silently replace another's.
  */
-export const router = Layer.mergeAll(
-  serviceBaseRoutes({
+export const router = Layer.mergeAll(catalogRoutes);
+
+/** The `marketplace-admin` slice's endpoints, served as one `HttpApi` by `makeService`. */
+export const endpoints = [
+  serviceBaseGroup({
     service: '@r10c/marketplace-admin-service',
     store: 'mongo',
   }),
-  catalogRoutes,
-);
+] as const;
+
+/** How this slice's endpoints answer and log a failure (ADR 0064). */
+export const policy = fleetFailurePolicy;

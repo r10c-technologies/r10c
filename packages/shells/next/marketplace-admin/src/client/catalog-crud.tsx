@@ -1,19 +1,8 @@
 'use client';
 
 import { type EntityRepositoryTag, loadUCFactory } from '@entifix/business';
-import type {
-  BulkOutcome,
-  Entity,
-  EntityId,
-  EntitySelection,
-  FilterGroup,
-} from '@entifix/core';
-import {
-  descendantsOf,
-  EntifixLogicError,
-  hierarchyOf,
-  toWireSelection,
-} from '@entifix/core';
+import type { Entity, FilterGroup } from '@entifix/core';
+import { descendantsOf, hierarchyOf } from '@entifix/core';
 import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud, useLocaleHref } from '@entifix/next-shell';
 import {
@@ -61,41 +50,6 @@ import { useMarketplaceAdminAdapters } from './marketplace-admin-context';
  * (ADR 0022). Resolving an id therefore goes through the owning domain's own
  * read path, which is the only legal way across a store boundary — never a join.
  */
-/**
- * Runs a `collection`-bound verb on the reference service.
- *
- * The selection goes over the wire in its **array** form: a `Set` serializes to
- * `{}`, so a `matching` selection sent raw would arrive with its exclusions
- * silently gone and act on rows the operator had deliberately taken out.
- *
- * `key` is the verb's own key, which is also the route — `retire` posts to
- * `…/retire`. That holds only while a verb's key and its path agree, which is
- * the convention here and is asserted by nothing; a verb whose route differs
- * would need a map, and the honest place for it is this function.
- */
-export const runReferenceBulk =
-  (entityName: string) =>
-  async <TEntity extends Entity>(
-    key: string,
-    selection: EntitySelection<TEntity>,
-  ): Promise<readonly BulkOutcome[]> => {
-    const response = await fetch(`/api/marketplace/${entityName}/${key}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ selection: toWireSelection(selection) }),
-    });
-
-    if (!response.ok) {
-      // Thrown rather than returned as outcomes: the *request* failed, which is
-      // not something any individual row did. `useEntityBulk` catches it and
-      // attributes it across the selected rows.
-      throw new Error(`bulk ${key} failed with ${response.status}`);
-    }
-
-    const body = (await response.json()) as { data?: BulkOutcome[] };
-    return body.data ?? [];
-  };
-
 export const productBrandCrud = makeEntityCrud(ProductBrand, {
   useAdapters: useMarketplaceAdminAdapters,
   basePath: PRODUCT_BRAND_SURFACE.basePath,
@@ -105,7 +59,7 @@ export const productBrandCrud = makeEntityCrud(ProductBrand, {
   // form without keeping it out of the draft, so an update carries it back.
   hiddenFields: ['id', 'code'],
   metadata: 'referenceMetadata',
-  runBulkUseCase: runReferenceBulk(PRODUCT_BRAND_SURFACE.entityKey),
+  useCases: 'productBrandUseCases',
 });
 
 /**
@@ -159,7 +113,7 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
   repository: 'productCategoryRest',
   hiddenFields: ['id'],
   metadata: 'referenceMetadata',
-  runBulkUseCase: runReferenceBulk(PRODUCT_CATEGORY_SURFACE.entityKey),
+  useCases: 'productCategoryUseCases',
   // One page holds the whole tree, so the list renders every level of it.
   pageSize: CATEGORY_PAGE_SIZE,
   // The parent is another category in the same store (ADR 0062), chosen with
@@ -267,85 +221,6 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   ],
 });
 
-/**
- * Runs an `entity`-bound verb on one record of the catalog service.
- *
- * `key` is also the route — `publish` posts to `…/<id>/publish` — which holds
- * only while a verb's key and its path agree. That is the convention here and
- * nothing asserts it; a verb whose route differed would need a map, and this
- * function is the honest place for it.
- *
- * A failed request **throws**, so the form's error slot renders it: a `409`
- * from an illegal transition carries a `code` the shared `errors` catalog
- * resolves, and swallowing it would leave the operator looking at a button that
- * did nothing.
- */
-export const runCatalogUseCase =
-  (entityName: string) => async (key: string, id: EntityId) => {
-    // `String(id)`: `EntityId` admits a symbol, which interpolates to a
-    // runtime throw rather than a compile error in a template literal.
-    const response = await fetch(
-      `/api/admin/${entityName}/${String(id)}/${key}`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-      },
-    );
-
-    if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as {
-        code?: string;
-        error?: string;
-      };
-      // An `EntifixError` carrying the service's `code` in `details`, because
-      // that is exactly what `useErrorMessage` resolves through the shared
-      // `errors` catalog — a bare `Error` would render its own message, which is
-      // an English sentence nobody wrote for a user to read.
-      throw new EntifixLogicError(body.error ?? `${key} failed`, undefined, {
-        code: body.code ?? 'unexpected',
-      });
-    }
-  };
-
-/**
- * Runs a `collection`-bound catalog verb over a selection.
- *
- * The twin of {@link runCatalogUseCase}, one level up the path: a record's verb
- * is `/<entity>/<id>/<key>` and a collection's is `/<entity>/<key>`.
- *
- * ⚠️ **Throws on a non-2xx rather than returning outcomes**, which is what lets
- * `useEntityBulk` attribute a whole failed request across the ticked rows. A
- * per-row refusal is not that: it comes back `200` in `data`, because the
- * request succeeded and only some of the rows did not.
- */
-export const runCatalogBulk =
-  (entityName: string) =>
-  async <TEntity extends Entity>(
-    key: string,
-    selection: EntitySelection<TEntity>,
-  ): Promise<readonly BulkOutcome[]> => {
-    const response = await fetch(`/api/admin/${entityName}/${key}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ selection: toWireSelection(selection) }),
-    });
-    const body = (await response.json()) as {
-      data?: readonly BulkOutcome[];
-      error?: string;
-      code?: string;
-    };
-    if (!response.ok) {
-      throw new EntifixLogicError(
-        body.error ?? 'bulk request failed',
-        undefined,
-        {
-          code: body.code ?? 'unexpected',
-        },
-      );
-    }
-    return body.data ?? [];
-  };
-
 export const productOfferingCrud = makeEntityCrud(ProductOffering, {
   useAdapters: useMarketplaceAdminAdapters,
   basePath: PRODUCT_OFFERING_SURFACE.basePath,
@@ -355,12 +230,7 @@ export const productOfferingCrud = makeEntityCrud(ProductOffering, {
   // metadata keeps the pre-ADR-0026 behaviour, and a metadata source with no
   // handler renders buttons that do nothing.
   metadata: 'catalogMetadata',
-  runUseCase: runCatalogUseCase(PRODUCT_OFFERING_SURFACE.entityKey),
-  // The same two verbs over a selection (#216). The route is the verb key on
-  // the collection rather than on a record — `/api/admin/product-offering/publish`
-  // — which is the convention `runCatalogUseCase` above already follows one
-  // level down, and which nothing asserts.
-  runBulkUseCase: runCatalogBulk(PRODUCT_OFFERING_SURFACE.entityKey),
+  useCases: 'productOfferingUseCases',
   // ⚠️ `status` is hidden because it is **not the vendor's to write**. The two
   // verbs own it, the write path overwrites whatever the form sends
   // (`preserveOfferingLifecycle`), and asking the operator for it made a required

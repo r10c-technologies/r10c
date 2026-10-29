@@ -10,6 +10,7 @@ import {
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
   makeEntityMetadataSource,
+  makeEntityRestUseCaseRunner,
 } from '@entifix/rest';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 import { Context } from 'effect';
@@ -79,6 +80,17 @@ const metadata = makeEntityMetadataSource({
   url: name => `/api/order/${name}/$metadata`,
 });
 
+/**
+ * The order's verbs — `fulfil` and `cancel` — through the same proxy and `uri`
+ * composition as the repository: `POST product-order/:id/<key>`, the path the
+ * service derives from each `@useCase()`, with a refusal decoded from its
+ * problem body.
+ */
+const productOrderUseCases = makeEntityRestUseCaseRunner(
+  ProductOrder,
+  ORDER_SERVICE,
+);
+
 export function createClientAdapters(): OrderAdapters {
-  return { productOrderRest, metadata };
+  return { productOrderRest, metadata, productOrderUseCases };
 }

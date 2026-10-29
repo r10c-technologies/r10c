@@ -1,13 +1,9 @@
 import { isStoreFault } from '@entifix/core';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
-import {
-  ensureOutboxIndexes,
-  OUTBOX_COLLECTION,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
+import { ensureOutboxIndexes, OUTBOX_COLLECTION } from '@entifix/mongo/transactions';
 import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
-import type { EventBus } from '@entifix/transactions';
+import { type EventBus, OutboxMaxAttempts } from '@entifix/transactions';
 import { EventBusTag, EventSourceTag } from '@entifix/transactions';
 import { ORGANIZATION_ANNOUNCED } from '@r10c/business-ts-party-contracts';
 import { Effect } from 'effect';

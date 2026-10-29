@@ -1,9 +1,6 @@
+import { type RequestPrincipal } from '@entifix/business';
 import { makeEnvelope } from '@entifix/core';
-import {
-  type RequestPrincipal,
-  requirePrincipal,
-  sseResponse,
-} from '@entifix/service-shell';
+import { requirePrincipal, sseResponse } from '@entifix/service-shell';
 import {
   TransactionStoreTag,
   TransactionStreamHubTag,

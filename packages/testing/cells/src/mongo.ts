@@ -1,12 +1,8 @@
 import { MongoDatabaseTag } from '@entifix/mongo';
-import {
-  makeMongoUnitOfWork,
-  MongoUnitOfWorkTag,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
+import { makeMongoUnitOfWork, MongoUnitOfWorkTag } from '@entifix/mongo/transactions';
 import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
+import { EventBusTag, EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 

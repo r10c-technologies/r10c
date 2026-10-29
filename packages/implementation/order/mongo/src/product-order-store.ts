@@ -8,12 +8,12 @@ import { MongoDatabaseTag } from '@entifix/mongo';
 import {
   drainOutboxNow,
   MongoUnitOfWorkTag,
-  OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
 import {
   EventBusTag,
   EventSourceTag,
   type OutboxEvent,
+  OutboxMaxAttempts,
 } from '@entifix/transactions';
 import {
   ORDER_CANCELLED,

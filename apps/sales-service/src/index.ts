@@ -17,7 +17,7 @@ export const AppLayer = makeAppLayer({ seed: seedSales });
  */
 export { SALES_CHANNEL_COLLECTION } from './sales-channel-index';
 export { salesChannelTempData } from './sales-temp-data';
-export { router } from '@r10c/shells-effect-sales';
+export { endpoints, policy, router } from '@r10c/shells-effect-sales';
 /**
  * Exported so the e2e `mock` profile boots the **real** seed rather than a
  * fixture of its own: both profiles then read the same channels, and a shared

@@ -1168,13 +1168,14 @@ describe('The dashboard charts the metrics the fleet declares', () => {
       'bus-metrics.js',
     ),
     // The outbox gauges left marketplace-admin-service when a second and third
-    // slice grew an outbox (#152): they now sit beside the relay that samples
-    // them, because an Effect metric is keyed on its *description* and three
-    // hand-maintained copies are three series the moment one wording drifts.
+    // slice grew an outbox (#152), and left the Mongo relay for the relay every
+    // store shares in entifix 0.12.0: an Effect metric is keyed on its
+    // *description*, and three hand-maintained copies are three series the
+    // moment one wording drifts.
     join(
-      relative(REPO_ROOT, installedEntifixDist('mongo')),
-      'outbox',
-      'metrics.js',
+      relative(REPO_ROOT, installedEntifixDist('transactions')),
+      'engine',
+      'outbox-metrics.js',
     ),
     // `transactions_by_state` left with the `saga` store's owner when the
     // `transaction` slice took `:3103` (#229). A module missing from this list
@@ -1287,11 +1288,11 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   };
 
   it('finds the metrics it is meant to check', () => {
-    // Eleven: five bus counters, three outbox gauges, one transaction gauge,
-    // and the saga sweep's gauge and counter. Pinned as a count rather than a Set
-    // size, so the doc-comment over-match the DECLARATION regex is written to
-    // avoid cannot hide behind dedup.
-    expect(declared()).toHaveLength(11);
+    // Twelve: five bus counters and the paused-consumer gauge, three outbox
+    // gauges, one transaction gauge, and the saga sweep's gauge and counter.
+    // Pinned as a count rather than a Set size, so the doc-comment over-match
+    // the DECLARATION regex is written to avoid cannot hide behind dedup.
+    expect(declared()).toHaveLength(12);
     expect(new Set(queried()).size).toBeGreaterThanOrEqual(8);
   });
 

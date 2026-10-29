@@ -133,6 +133,13 @@ export const errors = {
     'Esa clave de idempotencia ya se usó con otra solicitud.',
   idempotencyKeyInFlight: 'Esa solicitud todavía se está procesando.',
   flowNotComposable: 'Esa operación no se puede armar para esta solicitud.',
+  breakerOpen:
+    'Ese servicio no está respondiendo ahora. Intente de nuevo en un momento.',
+  bulkheadFull:
+    'Ese servicio está ocupado ahora. Intente de nuevo en un momento.',
+  notReady: 'Ese servicio se está iniciando. Intente de nuevo en un momento.',
+  flowRequirementsUnmet:
+    'Su organización no está habilitada para esa operación.',
   variantUnavailable: 'Esa operación no está disponible para usted.',
   flowNotFound: 'No se encontró esa operación.',
   flowSignalRejected: 'Esa operación no está esperando este paso.',

@@ -238,6 +238,9 @@ const hostConstraints = [
       '@entifix/redis/*',
       '@entifix/amqp',
       '@entifix/amqp/*',
+      // A Next backend starts no flow; it calls the service that does.
+      '@entifix/workflow',
+      '@entifix/workflow/*',
     ],
   },
 ];
@@ -272,7 +275,14 @@ const DRIVERS = both(['mongodb', 'ioredis', 'amqplib', 'pg', '@effect/sql-pg']);
  * or a business package that imported these could build a slip the engine
  * would run, or forge the context a resolver trusts.
  */
-const SHELL_ONLY = ['@entifix/business/compose', '@entifix/business/verified'];
+const SHELL_ONLY = [
+  '@entifix/business/compose',
+  '@entifix/business/verified',
+  // The durable flow engine: `shells-effect-transaction` composes it, and
+  // nothing below a shell runs a workflow.
+  '@entifix/workflow',
+  '@entifix/workflow/*',
+];
 
 /**
  * Banned in every cell that is not persistence. `next-shell/server` holds the

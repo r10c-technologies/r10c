@@ -14,4 +14,4 @@ export {
   startProjectingVendors,
   vendorSubscription,
 } from './publish-vendor.js';
-export { router } from './router.js';
+export { endpoints, policy, router } from './router.js';

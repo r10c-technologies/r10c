@@ -9,7 +9,8 @@ import { serveTestService } from '@entifix/service-shell/testing';
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { serviceBaseRoutes } from './service-base-routes.js';
+import { fleetFailurePolicy } from './fleet-failure-policy.js';
+import { serviceBaseGroup } from './service-base-group.js';
 
 const claims: TokenClaims = {
   userId: 'u-1',
@@ -18,16 +19,16 @@ const claims: TokenClaims = {
   roles: ['user'],
 };
 
-describe('serviceBaseRoutes', () => {
+describe('serviceBaseGroup', () => {
   it('serves the redacted configuration and the caller’s principal', async () => {
     const service = await serveTestService({
       name: 'spec-base-routes',
       port: 0,
       slices: ['spec'],
-      router: serviceBaseRoutes({
-        service: '@r10c/spec-service',
-        store: 'mongo',
-      }),
+      endpoints: [
+        serviceBaseGroup({ service: '@r10c/spec-service', store: 'mongo' }),
+      ],
+      policy: fleetFailurePolicy,
       appLayer: Layer.mergeAll(
         Layer.succeed(LoadedConfigurationTag, {
           mongo: [{ key: 'password', value: 'secret', isSecret: true }],
@@ -57,12 +58,19 @@ describe('serviceBaseRoutes', () => {
         headers: { Authorization: 'Bearer good' },
       });
       const anonymous = await fetch(`${service.baseUrl}/api/me`);
+      const emptyCookie = await fetch(`${service.baseUrl}/api/me`, {
+        headers: { cookie: 'entifix_at=' },
+      });
 
       expect(config.service).toBe('@r10c/spec-service');
       expect(config.store).toBe('mongo');
       expect(JSON.stringify(config.configuration)).not.toContain('secret');
       expect(((await me.json()) as { userId: string }).userId).toBe('u-1');
       expect(anonymous.status).toBe(401);
+      expect(anonymous.headers.get('content-type')).toContain(
+        'application/problem+json',
+      );
+      expect(emptyCookie.status).toBe(401);
     } finally {
       await service.close();
     }

@@ -1,4 +1,7 @@
-import { serviceBaseRoutes } from '@r10c/shells-effect-service';
+import {
+  fleetFailurePolicy,
+  serviceBaseGroup,
+} from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
 import { sagaInstanceRoutes } from './saga/instance-routes.js';
@@ -26,8 +29,15 @@ import { sagaRunRoutes } from './saga/run-routes.js';
  * organizations the flow's own calls named.
  */
 export const router = Layer.mergeAll(
-  serviceBaseRoutes({ service: '@r10c/transaction-service', store: 'mongo' }),
   sagaRoutes,
   sagaRunRoutes,
   sagaInstanceRoutes,
 );
+
+/** The `transaction` slice's endpoints, served as one `HttpApi` by `makeService`. */
+export const endpoints = [
+  serviceBaseGroup({ service: '@r10c/transaction-service', store: 'mongo' }),
+] as const;
+
+/** How this slice's endpoints answer and log a failure (ADR 0064). */
+export const policy = fleetFailurePolicy;

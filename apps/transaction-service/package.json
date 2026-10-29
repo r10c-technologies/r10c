@@ -134,6 +134,7 @@
   "dependencies": {
     "@effect/opentelemetry": "4.0.6",
     "@effect/platform-node": "4.0.6",
+    "@effect/sql-pg": "4.0.6",
     "@entifix/amqp": "catalog:",
     "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:",
@@ -143,6 +144,7 @@
     "@entifix/service-shell": "catalog:",
     "@entifix/tooling": "catalog:",
     "@entifix/transactions": "catalog:",
+    "@entifix/workflow": "catalog:",
     "@opentelemetry/api": "1.9.1",
     "@opentelemetry/context-async-hooks": "2.12.0",
     "@opentelemetry/exporter-metrics-otlp-http": "0.223.0",

@@ -13,4 +13,4 @@ export {
   startReservationSweep,
   sweepExpiredHolds,
 } from './reservation-sweep.js';
-export { router } from './router.js';
+export { endpoints, policy, router } from './router.js';

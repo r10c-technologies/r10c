@@ -26,7 +26,13 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
-import { router, seedSales, SERVICE_NAME } from '@r10c/sales-service';
+import {
+  endpoints,
+  policy,
+  router,
+  seedSales,
+  SERVICE_NAME,
+} from '@r10c/sales-service';
 import {
   httpPublishedPriceReaderLayer,
   httpSagaStarterLayer,
@@ -138,6 +144,8 @@ export const startMockService = (): Promise<RunningTestService> =>
     // thing under test rather than a reduced version of it.
     slices: ['sales'],
     description: fleetToken,
+    endpoints,
+    policy,
     router,
     appLayer: MockAppLayer,
   });

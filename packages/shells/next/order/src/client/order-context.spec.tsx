@@ -22,6 +22,7 @@ const repository = () =>
 const adapters: OrderAdapters = {
   productOrderRest: repository(),
   metadata: real.metadata,
+  productOrderUseCases: real.productOrderUseCases,
 };
 
 const wrapperWith = (supplied?: OrderAdapters) =>

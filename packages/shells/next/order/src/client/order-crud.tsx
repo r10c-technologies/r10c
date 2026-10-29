@@ -1,54 +1,11 @@
 'use client';
 
-import { EntifixLogicError, type EntityId } from '@entifix/core';
 import type { EntityCrud } from '@entifix/next-shell';
 import { makeEntityCrud } from '@entifix/next-shell';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 
 import { PRODUCT_ORDER_SURFACE } from '../order-surfaces';
 import { useOrderAdapters } from './order-context';
-
-/**
- * Runs an `entity`-bound verb on one order.
- *
- * ⚠️ **The verb key *is* the route segment** — `fulfil` posts to
- * `…/<id>/fulfil` — which holds only while the two agree, and nothing asserts
- * it. That is the convention `runCatalogUseCase` already follows for publish,
- * and this is the honest place for a map if a verb ever needs one.
- *
- * ⚠️ `cancel` posts to `…/<id>/cancellation`, which is the one place the two
- * diverge. The service serves `/cancelling` as well and it is a *different*
- * route: that one is the saga's claim step behind a crossing token, and a
- * browser reaching it would be starting half a flow with no refund after it.
- *
- * A failed request **throws**, so the form's error slot renders it: a `409`
- * carries a `code` the shared `errors` catalog resolves, and swallowing it
- * would leave the vendor looking at a button that did nothing.
- */
-const ROUTE_FOR: Readonly<Record<string, string>> = { cancel: 'cancellation' };
-
-export const runOrderUseCase = async (key: string, id: EntityId) => {
-  // `String(id)`: `EntityId` admits a symbol, which interpolates to a runtime
-  // throw rather than a compile error in a template literal.
-  const response = await fetch(
-    `/api/order/product-order/${String(id)}/${ROUTE_FOR[key] ?? key}`,
-    { method: 'POST', headers: { 'content-type': 'application/json' } },
-  );
-
-  if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as {
-      code?: string;
-      error?: string;
-    };
-    // An `EntifixError` carrying the service's `code` in `details`, because that
-    // is exactly what `useErrorMessage` resolves through the shared `errors`
-    // catalog — a bare `Error` would render its own message, which is an English
-    // sentence nobody wrote for a user to read.
-    throw new EntifixLogicError(body.error ?? `${key} failed`, undefined, {
-      code: body.code ?? 'unexpected',
-    });
-  }
-};
 
 export const productOrderCrud: EntityCrud<ProductOrder> = makeEntityCrud(
   ProductOrder,
@@ -78,7 +35,7 @@ export const productOrderCrud: EntityCrud<ProductOrder> = makeEntityCrud(
     // handler with no metadata source has nothing to draw. `catalog-crud.tsx`
     // carries the same note over the same pair.
     metadata: 'metadata',
-    runUseCase: runOrderUseCase,
+    useCases: 'productOrderUseCases',
   },
 );
 

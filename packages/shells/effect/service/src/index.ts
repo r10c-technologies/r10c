@@ -8,5 +8,5 @@ export * from './fleet-service.js';
 export * from './fleet-storage.js';
 export * from './http-adapters.js';
 export * from './seed-collection.js';
-export * from './service-base-routes.js';
+export * from './service-base-group.js';
 export * from './slice-outcomes.js';

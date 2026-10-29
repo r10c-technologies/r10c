@@ -16,11 +16,9 @@ import {
 } from '@entifix/core';
 import { makeMongoRepository, MongoClientTag } from '@entifix/mongo';
 import {
-  drainOutbox,
   ensureOutboxIndexes,
   makeMongoOutbox,
   makeMongoUnitsOfWork,
-  OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
 import {
   CommandTag,
@@ -28,6 +26,7 @@ import {
   EventBusTag,
   EventSourceTag,
   LockServiceTag,
+  OutboxMaxAttempts,
   OutboxTag,
   readCommandEnvelope,
   SequenceServiceTag,
@@ -38,6 +37,7 @@ import {
 import {
   acceptTransaction,
   completeTransaction,
+  drainOutbox,
 } from '@entifix/transactions/engine';
 import {
   ProductSpecification,

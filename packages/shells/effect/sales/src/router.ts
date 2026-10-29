@@ -1,6 +1,9 @@
 import { salesRoutes } from '@r10c/implementation-sales-management-http';
 import { FLOW_RECIPES, flowCatalog } from '@r10c/shells-effect-flow-catalog';
-import { serviceBaseRoutes } from '@r10c/shells-effect-service';
+import {
+  fleetFailurePolicy,
+  serviceBaseGroup,
+} from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
 /**
@@ -25,6 +28,13 @@ import { Layer } from 'effect';
  * ([ADR 0056](../../../../../docs/adr/0056-the-counter-sale-is-the-checkout-saga.md)).
  */
 export const router = Layer.mergeAll(
-  serviceBaseRoutes({ service: '@r10c/sales-service', store: 'mongo' }),
   salesRoutes({ recipes: FLOW_RECIPES, catalog: flowCatalog }),
 );
+
+/** The `sales` slice's endpoints, served as one `HttpApi` by `makeService`. */
+export const endpoints = [
+  serviceBaseGroup({ service: '@r10c/sales-service', store: 'mongo' }),
+] as const;
+
+/** How this slice's endpoints answer and log a failure (ADR 0064). */
+export const policy = fleetFailurePolicy;

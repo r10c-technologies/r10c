@@ -1,5 +1,8 @@
 import { settlementRoutes } from '@r10c/implementation-settlement-management-http';
-import { serviceBaseRoutes } from '@r10c/shells-effect-service';
+import {
+  fleetFailurePolicy,
+  serviceBaseGroup,
+} from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
 /**
@@ -12,7 +15,12 @@ import { Layer } from 'effect';
  * credential that can name any organization
  * ([ADR 0023](../../../../../docs/adr/0023-service-to-service-tenant-crossing.md)).
  */
-export const router = Layer.mergeAll(
-  serviceBaseRoutes({ service: '@r10c/settlement-service', store: 'mongo' }),
-  settlementRoutes,
-);
+export const router = Layer.mergeAll(settlementRoutes);
+
+/** The `settlement` slice's endpoints, served as one `HttpApi` by `makeService`. */
+export const endpoints = [
+  serviceBaseGroup({ service: '@r10c/settlement-service', store: 'mongo' }),
+] as const;
+
+/** How this slice's endpoints answer and log a failure (ADR 0064). */
+export const policy = fleetFailurePolicy;

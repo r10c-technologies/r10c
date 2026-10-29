@@ -7,7 +7,7 @@
  * ends ADR 0060's app exception).
  */
 export { makeAppLayer, transactionComposition } from './app-layer.js';
-export { router } from './router.js';
+export { endpoints, policy, router } from './router.js';
 export {
   HttpSagaDispatcherLayer,
   ParticipantsTag,

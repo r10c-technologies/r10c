@@ -4,13 +4,13 @@ import {
   drainOutboxNow,
   makeMongoOutbox,
   makeMongoUnitsOfWork,
-  OutboxMaxAttempts,
   reviveQuarantined,
 } from '@entifix/mongo/transactions';
 import {
   type EventBus,
   EventBusTag,
   EventSourceTag,
+  OutboxMaxAttempts,
 } from '@entifix/transactions';
 import {
   organizationAnnouncedEvent,

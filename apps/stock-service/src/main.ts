@@ -1,5 +1,10 @@
 import { makeService } from '@entifix/service-shell/runtime';
-import { makeAppLayer, router } from '@r10c/shells-effect-stock';
+import {
+  endpoints,
+  makeAppLayer,
+  policy,
+  router,
+} from '@r10c/shells-effect-stock';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
@@ -23,6 +28,8 @@ makeService({
   port: Number(process.env.PORT) || DEFAULT_PORT,
   slices: ['stock'],
   description: fleetToken,
+  endpoints,
+  policy,
   router,
   appLayer: makeAppLayer({ seed: seedStock }),
 });

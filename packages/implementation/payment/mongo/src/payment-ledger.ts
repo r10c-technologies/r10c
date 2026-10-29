@@ -12,9 +12,12 @@ import {
   drainOutboxNow,
   isDuplicateKey,
   MongoUnitOfWorkTag,
-  OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   paymentCapturedEvent,
   paymentRefundedEvent,

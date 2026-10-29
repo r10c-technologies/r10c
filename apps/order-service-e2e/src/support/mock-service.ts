@@ -6,10 +6,7 @@ import {
 import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
-import {
-  MongoUnitOfWorkLayer,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
+import { MongoUnitOfWorkLayer } from '@entifix/mongo/transactions';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
@@ -26,7 +23,7 @@ import {
   makeInMemoryIdempotencyStore,
   makeRecordingEventBus,
 } from '@entifix/testing-unit';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
+import { EventBusTag, EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,

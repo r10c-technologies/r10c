@@ -53,6 +53,7 @@ let repository: ReturnType<typeof makeInMemoryEntityRepository>;
 const adapters = (): OrderAdapters => ({
   productOrderRest: Context.make(EntityRepositoryTag, repository),
   metadata: real.metadata,
+  productOrderUseCases: real.productOrderUseCases,
 });
 
 const renderPage = (page: ReactElement) =>

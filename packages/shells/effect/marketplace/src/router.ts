@@ -1,7 +1,10 @@
 import { catalogReferenceRoutes } from '@r10c/implementation-catalog-reference-http';
 import { publishedOfferingRoutes } from '@r10c/implementation-marketplace-catalog-http';
 import { publishedVendorRoutes } from '@r10c/implementation-marketplace-vendor-http';
-import { serviceBaseRoutes } from '@r10c/shells-effect-service';
+import {
+  fleetFailurePolicy,
+  serviceBaseGroup,
+} from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
 /**
@@ -28,8 +31,15 @@ export const router = Layer.mergeAll(
   // A literal, not `SERVICE_NAME`: `index.ts` re-exports this module, so
   // importing it back would read the constant before it is initialised. It
   // gains `GET /api/me` with it, which every other service already had.
-  serviceBaseRoutes({ service: '@r10c/marketplace-service', store: 'mongo' }),
   publishedOfferingRoutes,
   publishedVendorRoutes,
   catalogReferenceRoutes,
 );
+
+/** The `marketplace` slice's endpoints, served as one `HttpApi` by `makeService`. */
+export const endpoints = [
+  serviceBaseGroup({ service: '@r10c/marketplace-service', store: 'mongo' }),
+] as const;
+
+/** How this slice's endpoints answer and log a failure (ADR 0064). */
+export const policy = fleetFailurePolicy;

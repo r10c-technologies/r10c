@@ -11,7 +11,6 @@ import { MongoTenantRepositoryFactoryLayer } from '@entifix/mongo';
 // outbox relay was lifted out of marketplace-admin-service into
 // `@entifix/mongo` when the payment slice was promoted (#237),
 // and every service that drains an outbox reads the tag from there.
-import { OutboxMaxAttempts } from '@entifix/mongo/transactions';
 import {
   RedisLockServiceLayer,
   RedisSequenceServiceLayer,
@@ -33,7 +32,7 @@ import {
   fakeMongoLayer,
   fakeRedisLayer,
 } from '@entifix/testing-e2e/fixtures';
-import { EventSourceTag } from '@entifix/transactions';
+import { EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,

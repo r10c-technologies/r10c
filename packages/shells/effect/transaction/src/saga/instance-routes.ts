@@ -1,8 +1,6 @@
+import { type RequestPrincipal } from '@entifix/business';
 import { makeEnvelope } from '@entifix/core';
-import {
-  type RequestPrincipal,
-  requirePrincipal,
-} from '@entifix/service-shell';
+import { requirePrincipal } from '@entifix/service-shell';
 import { type SagaInstance, SagaStoreTag } from '@entifix/transactions';
 import { Effect } from 'effect';
 import { HttpRouter, HttpServerResponse } from 'effect/http';

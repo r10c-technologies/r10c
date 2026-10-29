@@ -59,6 +59,7 @@ describe('a next cell', () => {
       "import { verifiedContext } from '@entifix/business/verified';",
       'the context constructor',
     ],
+    ["import { FlowEngineLayer } from '@entifix/workflow';", 'the flow engine'],
   ])(
     'may not import %s (%s)',
     async source => {
@@ -291,4 +292,34 @@ describe('below the shell', () => {
       ),
     ).toEqual([]);
   }, 60_000);
+});
+
+/** A file that does not exist, placed where a Next app's source lives. */
+const IN_A_NEXT_APP = join(REPO_ROOT, 'apps/back-office-app/src/planted.ts');
+
+describe('a next app', () => {
+  it.each([
+    [
+      "import { MongoClientLayer } from '@entifix/mongo';",
+      'a datastore client',
+    ],
+    [
+      "import { SingleRunnerFlowEngineLayer } from '@entifix/workflow/postgres';",
+      'the flow engine',
+    ],
+  ])(
+    'may not import %s (%s)',
+    async source => {
+      const eslint = new ESLint({ cwd: REPO_ROOT });
+      const [result] = await eslint.lintText(`${source}\nexport {};\n`, {
+        filePath: IN_A_NEXT_APP,
+      });
+      const errors = (result?.messages ?? []).filter(
+        message => message.ruleId === BOUNDARY_RULE,
+      );
+
+      expect(errors.length).toBe(1);
+    },
+    60_000,
+  );
 });

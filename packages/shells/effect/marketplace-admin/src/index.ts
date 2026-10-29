@@ -10,4 +10,4 @@ export {
   type MarketplaceAdminShellOptions,
 } from './app-layer.js';
 export { rebuildAndReport, startRebuildWalk } from './rebuild-walk.js';
-export { router } from './router.js';
+export { endpoints, policy, router } from './router.js';

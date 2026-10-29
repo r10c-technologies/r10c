@@ -1,8 +1,5 @@
 import type { PolicyDecisionTag } from '@entifix/authz';
-import type {
-  EntityRepositoryFactoryTag,
-  TokenServiceTag,
-} from '@entifix/business';
+import { type EntityRepositoryFactoryTag, type RequestPrincipal,type TokenServiceTag } from '@entifix/business';
 import {
   EntifixBuildError,
   type EntifixEnvelopeLink,
@@ -10,13 +7,7 @@ import {
   makeEntityEnvelope,
   readEntityEnvelope,
 } from '@entifix/core';
-import {
-  type EntityRouteContext,
-  type EntityRouteLinks,
-  makeEntityRoutes,
-  type RequestPrincipal,
-  routeFailure,
-} from '@entifix/service-shell';
+import { type EntityRouteContext, type EntityRouteLinks, makeEntityRoutes, routeFailure } from '@entifix/service-shell';
 import {
   Configuration,
   ConfigurationWriteRefused,

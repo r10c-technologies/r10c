@@ -23,7 +23,7 @@ export {
   rebuildAndReport,
   startOrganizationRebuild,
 } from './organization-rebuild.js';
-export { router } from './router.js';
+export { endpoints, policy, router } from './router.js';
 export {
   DEV_SEED_PASSWORD,
   JWT_AUDIENCE,

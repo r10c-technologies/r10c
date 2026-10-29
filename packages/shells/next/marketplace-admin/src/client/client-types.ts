@@ -1,7 +1,10 @@
 import type {
   EntityRepositoryTag,
 } from '@entifix/business';
-import type { EntityMetadataSource } from '@entifix/core';
+import type {
+  EntityMetadataSource,
+  EntityUseCaseRunner,
+} from '@entifix/core';
 import type { TransactionStatusReader } from '@entifix/transactions';
 import type { Context } from 'effect/Context';
 
@@ -15,6 +18,10 @@ export interface MarketplaceAdminAdapters {
   referenceMetadata: EntityMetadataSource;
   /** The catalog service's served affordances, through `/api/admin`. */
   catalogMetadata: EntityMetadataSource;
+  /** Each entity's verbs, posted to the path its service derives from the key. */
+  productBrandUseCases: EntityUseCaseRunner;
+  productCategoryUseCases: EntityUseCaseRunner;
+  productOfferingUseCases: EntityUseCaseRunner;
   /** Reads one transaction's record, for settling an optimistic write. */
   transactionStatus: TransactionStatusReader;
 }

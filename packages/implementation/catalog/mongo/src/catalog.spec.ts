@@ -8,22 +8,14 @@ import {
   isFailure,
 } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
-import {
-  OUTBOX_COLLECTION,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
+import { OUTBOX_COLLECTION } from '@entifix/mongo/transactions';
 import {
   makeInMemoryLockService,
   makeInMemorySequenceService,
   makeRecordingEventBus,
 } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
-import {
-  EventBusTag,
-  EventSourceTag,
-  LockServiceTag,
-  SequenceServiceTag,
-} from '@entifix/transactions';
+import { EventBusTag, EventSourceTag, LockServiceTag, OutboxMaxAttempts,SequenceServiceTag } from '@entifix/transactions';
 import { catalogPublishedEvent } from '@r10c/business-ts-catalog-contracts';
 import {
   OfferingCatalogTag,

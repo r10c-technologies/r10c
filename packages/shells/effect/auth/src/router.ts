@@ -1,5 +1,8 @@
 import { authnRoutes } from '@r10c/implementation-authn-http';
-import { serviceBaseRoutes } from '@r10c/shells-effect-service';
+import {
+  fleetFailurePolicy,
+  serviceBaseGroup,
+} from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
 /**
@@ -15,6 +18,13 @@ export const router = Layer.mergeAll(
   // `GET /api/config` and `GET /api/me` — the second being what a Next server
   // layout reads to decide whether to render the back office and which nav
   // items to show.
-  serviceBaseRoutes({ service: '@r10c/auth-service', store: 'mongo' }),
   authnRoutes,
 );
+
+/** The `auth` slice's endpoints, served as one `HttpApi` by `makeService`. */
+export const endpoints = [
+  serviceBaseGroup({ service: '@r10c/auth-service', store: 'mongo' }),
+] as const;
+
+/** How this slice's endpoints answer and log a failure (ADR 0064). */
+export const policy = fleetFailurePolicy;

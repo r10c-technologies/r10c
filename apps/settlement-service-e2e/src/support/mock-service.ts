@@ -6,10 +6,7 @@ import {
 import { TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
-import {
-  MongoUnitOfWorkLayer,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
+import { MongoUnitOfWorkLayer } from '@entifix/mongo/transactions';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
   type RunningTestService,
@@ -22,7 +19,7 @@ import {
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
 import { makeRecordingEventBus } from '@entifix/testing-unit';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
+import { EventBusTag, EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
