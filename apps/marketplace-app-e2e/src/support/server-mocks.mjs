@@ -165,28 +165,39 @@ const PAYMENT_PENDING_ORDER = 'e2e-order-payment-pending';
  * show — that the button appears exactly when the receipt says it may, and that
  * the page afterwards says the order was cancelled.
  */
+/**
+ * A refusal as the fleet answers one: an `application/problem+json` body whose
+ * `code` is the `errors` catalog key (ADR 0064).
+ */
+const problem = (tag, code, category, status, fields = {}) =>
+  HttpResponse.json(
+    {
+      type: `urn:entifix:failure:${code}`,
+      title: tag,
+      status,
+      code,
+      category,
+      ...fields,
+    },
+    { status, headers: { 'content-type': 'application/problem+json' } },
+  );
+
 const buyerCancelHandler = http.post(
   BUYER_CANCEL_URL,
   async ({ request, params }) => {
     const body = await request.json().catch(() => undefined);
     if (typeof body?.cancelNonce !== 'string' || body.cancelNonce === '') {
-      return HttpResponse.json(
-        {
-          error: 'the order cannot be cancelled from here',
-          code: 'cancelNotAuthorized',
-        },
-        { status: 401 },
+      return problem(
+        'CancelNotAuthorized',
+        'cancelNotAuthorized',
+        'unauthenticated',
+        401,
       );
     }
     if (params.id === PAYMENT_PENDING_ORDER) {
-      return HttpResponse.json(
-        {
-          error: 'the payment is still being confirmed',
-          code: 'paymentPending',
-          orderId: PAYMENT_PENDING_ORDER,
-        },
-        { status: 409 },
-      );
+      return problem('PaymentPending', 'paymentPending', 'conflict', 409, {
+        orderId: PAYMENT_PENDING_ORDER,
+      });
     }
     return HttpResponse.json({
       meta: { type: 'entity', entity: 'product-order' },

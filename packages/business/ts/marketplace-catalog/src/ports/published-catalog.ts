@@ -1,4 +1,4 @@
-import type { TransitionalFailure } from '@entifix/core';
+import type { StoreFailure } from '@entifix/core';
 import type { CatalogPublication } from '@r10c/business-ts-catalog-contracts';
 import { Context, type Effect } from 'effect';
 
@@ -16,7 +16,7 @@ export interface PublishedCatalog {
   readonly apply: (
     eventName: string,
     publication: CatalogPublication,
-  ) => Effect.Effect<'applied' | 'stale', TransitionalFailure>;
+  ) => Effect.Effect<'applied' | 'stale', StoreFailure>;
 }
 
 export class PublishedCatalogTag extends Context.Service<

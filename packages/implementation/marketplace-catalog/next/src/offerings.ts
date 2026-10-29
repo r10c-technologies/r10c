@@ -1,10 +1,11 @@
 import { EntityRepositoryTag } from '@entifix/business';
 import type {
+  EntifixFailure,
   EntityFilter,
   EntityLoadRequest,
   EntityPage,
-  TransitionalFailure,
 } from '@entifix/core';
+import { categorised } from '@r10c/business-ts-common';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Effect } from 'effect';
 
@@ -21,7 +22,7 @@ import {
  */
 export type OfferingRead<A> = Effect.Effect<
   A,
-  TransitionalFailure,
+  EntifixFailure,
   EntityRepositoryTag
 >;
 
@@ -63,10 +64,12 @@ export interface OfferingQuery {
 const load = (
   request: EntityLoadRequest<PublishedOffering>,
 ): OfferingRead<EntityPage<PublishedOffering>> =>
-  Effect.gen(function* () {
-    const repository = yield* EntityRepositoryTag;
-    return yield* repository.load<PublishedOffering>(request);
-  });
+  categorised(
+    Effect.gen(function* () {
+      const repository = yield* EntityRepositoryTag;
+      return yield* repository.load<PublishedOffering>(request);
+    }),
+  );
 
 /** The published catalog, filtered the way the query asks. */
 export const loadOfferings = (
@@ -128,9 +131,8 @@ export const searchOfferings = (
  *
  * ⚠️ **`load` with a filter, never `get`** (ADR 0049). `PublishedOffering.id`
  * *is* the offering id — the projector assigns it — so a `get` would resolve;
- * it would also turn a 404 page and a datastore outage into the same
- * `EntifixConnError`, which is how every visitor gets told the product does not
- * exist during an incident. `offeringId` is declared `filterable` for exactly
+ * it would also make an absent offering a failure beside an outage's, where
+ * an empty page keeps "no such product" a value the page renders. `offeringId` is declared `filterable` for exactly
  * this read.
  */
 export const getOffering = (

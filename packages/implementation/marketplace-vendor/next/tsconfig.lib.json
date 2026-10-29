@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "../../../business/ts/marketplace-vendor/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/common/tsconfig.lib.json"
     }
   ],
   "exclude": [

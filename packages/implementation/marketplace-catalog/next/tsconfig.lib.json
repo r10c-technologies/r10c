@@ -19,6 +19,9 @@
     },
     {
       "path": "../../../business/ts/marketplace-catalog/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/common/tsconfig.lib.json"
     }
   ],
   "exclude": [

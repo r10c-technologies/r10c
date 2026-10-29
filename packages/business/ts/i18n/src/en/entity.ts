@@ -64,6 +64,7 @@ export const entity: EsEntity = {
       status: 'Status',
     },
     useCases: {
+      restore: 'Restore',
       retire: 'Retire',
       retireConfirm:
         'These brands will stop being offered when classifying products. Offerings already published under them are unchanged.',
@@ -85,6 +86,7 @@ export const entity: EsEntity = {
       parentId: 'Parent category',
     },
     useCases: {
+      restore: 'Restore',
       retire: 'Retire',
       retireConfirm:
         'These categories will stop being offered when classifying products and will leave the browse tree. Offerings already published under them are unchanged.',

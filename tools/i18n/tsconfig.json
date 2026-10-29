@@ -42,6 +42,9 @@
       "path": "../../packages/business/ts/common"
     },
     {
+      "path": "../../packages/business/ts/catalog-reference"
+    },
+    {
       "path": "../../packages/business/ts/catalog-contracts"
     }
   ]

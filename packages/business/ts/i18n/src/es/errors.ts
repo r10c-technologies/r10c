@@ -47,8 +47,6 @@ export const errors = {
   categoryTooDeep: 'Las categorías pueden tener como máximo cinco niveles.',
   categoryHasChildren:
     'Esta categoría todavía tiene subcategorías activas. Retíralas o muévelas primero.',
-  categoryTreeUnreadable:
-    'No se pudo revisar el árbol de categorías en este momento. Inténtalo de nuevo en un momento.',
   mediaNotHttps: 'Cada URL de imagen debe ser una dirección https:// completa.',
   mediaAltMissing: 'Cada imagen necesita una descripción.',
   paymentPending:

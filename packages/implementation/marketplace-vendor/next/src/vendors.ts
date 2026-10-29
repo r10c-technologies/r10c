@@ -4,11 +4,12 @@ import {
   loadUCFactory,
 } from '@entifix/business';
 import type {
+  EntifixFailure,
   Entity,
   EntityLoadRequest,
   EntityPage,
-  TransitionalFailure,
 } from '@entifix/core';
+import { categorised } from '@r10c/business-ts-common';
 import type { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { Context, Effect } from 'effect';
 
@@ -18,7 +19,7 @@ import { Context, Effect } from 'effect';
  */
 export type VendorRead<A> = Effect.Effect<
   A,
-  TransitionalFailure,
+  EntifixFailure,
   EntityRepositoryTag
 >;
 
@@ -34,8 +35,10 @@ export const VENDOR_PAGE_SIZE = 200;
 const load = (
   request: EntityLoadRequest<Entity>,
 ): VendorRead<EntityPage<PublishedVendor>> =>
-  loadUCFactory<PublishedVendor>().pipe(
-    Effect.provide(Context.make(EntityLoadRequestTag, request)),
+  categorised(
+    loadUCFactory<PublishedVendor>().pipe(
+      Effect.provide(Context.make(EntityLoadRequestTag, request)),
+    ),
   ) as VendorRead<EntityPage<PublishedVendor>>;
 
 /**

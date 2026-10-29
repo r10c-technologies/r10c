@@ -37,8 +37,6 @@ export const errors: EsErrors = {
   categoryTooDeep: 'Categories can be at most five levels deep.',
   categoryHasChildren:
     'This category still has active subcategories. Retire or move them first.',
-  categoryTreeUnreadable:
-    'The category tree could not be checked right now. Try again in a moment.',
   mediaNotHttps: 'Every image URL must be a full https:// address.',
   mediaAltMissing: 'Every image needs a description.',
   paymentPending:

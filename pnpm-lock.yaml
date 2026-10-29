@@ -2168,6 +2168,9 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../common
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -2587,21 +2590,18 @@ importers:
 
   packages/implementation/catalog-reference/http:
     dependencies:
-      '@entifix/authz':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/business':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
-      '@entifix/service-shell':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../../business/ts/catalog-reference
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../../../business/ts/common
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -2627,6 +2627,9 @@ importers:
       '@r10c/business-ts-catalog-reference':
         specifier: workspace:*
         version: link:../../../business/ts/catalog-reference
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../../../business/ts/common
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -2724,24 +2727,18 @@ importers:
 
   packages/implementation/marketplace-catalog/http:
     dependencies:
-      '@entifix/authz':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/business':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
-      '@entifix/service-shell':
+      '@entifix/core':
         specifier: 'catalog:'
-        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
+        version: 0.12.0-rc.4(effect@4.0.6)
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-catalog
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
-      effect:
-        specifier: 4.0.6
-        version: 4.0.6
     devDependencies:
       '@entifix/testing-unit':
         specifier: 'catalog:'
@@ -2761,6 +2758,9 @@ importers:
       '@entifix/react-integration':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(@tanstack/react-form@1.33.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@tanstack/react-query@5.104.5(@types/react@19.3.0)(react@19.3.1))(effect@4.0.6)(react@19.3.1)
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../../../business/ts/common
       '@r10c/business-ts-marketplace-catalog':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-catalog
@@ -2780,15 +2780,12 @@ importers:
 
   packages/implementation/marketplace-vendor/http:
     dependencies:
-      '@entifix/authz':
-        specifier: 'catalog:'
-        version: 0.12.0-rc.4(effect@4.0.6)
       '@entifix/business':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
-      '@entifix/service-shell':
+      '@entifix/core':
         specifier: 'catalog:'
-        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
+        version: 0.12.0-rc.4(effect@4.0.6)
       '@r10c/business-ts-marketplace-vendor':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-vendor
@@ -2811,6 +2808,9 @@ importers:
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../../../business/ts/common
       '@r10c/business-ts-marketplace-vendor':
         specifier: workspace:*
         version: link:../../../business/ts/marketplace-vendor
@@ -3379,6 +3379,9 @@ importers:
       '@entifix/mongo':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(@entifix/transactions@0.12.0-rc.4(effect@4.0.6))(effect@4.0.6)
+      '@entifix/service-shell':
+        specifier: 'catalog:'
+        version: 0.12.0-rc.4(4e4e56863da70ff664b5a98fb0542f8f)
       '@entifix/transactions':
         specifier: 'catalog:'
         version: 0.12.0-rc.4(effect@4.0.6)
@@ -4204,6 +4207,9 @@ importers:
       '@r10c/business-ts-catalog-contracts':
         specifier: workspace:*
         version: link:../../packages/business/ts/catalog-contracts
+      '@r10c/business-ts-catalog-reference':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/catalog-reference
       '@r10c/business-ts-common':
         specifier: workspace:*
         version: link:../../packages/business/ts/common
@@ -4261,6 +4267,9 @@ importers:
       '@r10c/shells-effect-config':
         specifier: workspace:*
         version: link:../../packages/shells/effect/config
+      '@r10c/shells-effect-marketplace':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/marketplace
       '@r10c/shells-effect-order':
         specifier: workspace:*
         version: link:../../packages/shells/effect/order

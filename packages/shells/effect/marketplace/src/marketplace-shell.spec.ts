@@ -22,7 +22,6 @@ import { describe, expect, it } from 'vitest';
 import {
   makeAppLayer,
   marketplaceComposition,
-  router,
   startProjecting,
   startProjectingVendors,
 } from './index.js';
@@ -65,7 +64,6 @@ describe('the marketplace shell', () => {
 
   it('offers the booted composition as a layer', () => {
     expect(Layer.isLayer(makeAppLayer({ seed }))).toBe(true);
-    expect(Layer.isLayer(router)).toBe(true);
   });
 });
 
