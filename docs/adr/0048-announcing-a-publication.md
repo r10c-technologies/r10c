@@ -295,10 +295,13 @@ of every message behind it, and a payload that fails the contract never becomes
 valid. `EntifixBuildError` already means "malformed input, the client's fault",
 so the adapter now reads it as poison and everything else stays transient — a
 Mongo blip must still be retried. The transport cannot make this call itself:
-`readEventEnvelope` validates `meta` and deliberately not `data`, because
+the envelope reader validated `meta` and deliberately not `data`, because
 "inventing an opinion here is how the bus would start knowing about domains", so
-the consumer's own decoder is the only thing that can tell a malformed payload
-from a bad afternoon at the database.
+the consumer's own decoder was the only thing that could tell a malformed payload
+from a bad afternoon at the database. Since entifix 0.11.0 that decoder is the
+Schema the contracts package registers, applied by `decodeEnvelope` — the bus
+still holds no opinion of its own, it applies the domain's
+([ADR 0068](0068-one-outbox-ordered-per-aggregate.md)).
 
 **`dedupe: 'inbox'` for the projector.** It is the stronger mechanism and it is
 already built. Rejected because the claim + side effect must commit in one

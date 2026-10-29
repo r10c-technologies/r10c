@@ -123,12 +123,12 @@ const crossing = (
   method: string,
   path: string,
   body?: unknown,
-  commandId?: string,
+  idempotencyKey?: string,
 ) =>
   crossingCall(served, path, {
     method,
     body,
-    commandId,
+    idempotencyKey,
     organizationId: 'org-9',
   });
 

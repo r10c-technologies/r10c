@@ -85,7 +85,8 @@ Every `defineVariants(` has a spec that runs its use case's contract through
   the enumeration and the register checks are #458, and the narrowings and
   `$metadata` are #459.
 - The coordinator's `sagas/*.saga.ts` stay until the flow engine replaces them
-  (#486, #487); until then the recipes reproduce them step for step.
+  (#486, #487); until then the recipes reproduce them step for step, and
+  the transaction shell's `recipes.spec.ts` fails the build when they part.
 - **Revises in place:** [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md)
   (`$metadata.composition`, and an unreachable verb is omitted),
   [ADR 0053](0053-scoping-a-platform-plane-read-to-its-caller.md) (the scope is

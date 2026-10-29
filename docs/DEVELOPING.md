@@ -860,7 +860,7 @@ A step a flow takes is a **fragment**, declared by the domain that owns it in
 `src/fragments/` and exported from its barrel; a **recipe** references
 fragments by `id@n` string, and the catalog and recipes live in
 `@r10c/shells-effect-flow-catalog`
-([ADR 0065](adr/0065-use-case-resolution-and-the-routing-slip.md)). Five
+([ADR 0065](adr/0065-use-case-resolution-and-the-routing-slip.md)). Six
 checks keep them honest, and each fails the build:
 
 - **Every combination composes.** `catalog.spec.ts` runs
@@ -877,6 +877,14 @@ checks keep them honest, and each fails the build:
   `defineVariants(` with no spec beside it calling `forEachVariant(`.
 - **A variant is chosen from verified facts.** `@r10c/conventions` fails a
   `When(` predicate that names the request, its body, params, query or input.
+- **A recipe is the saga it describes.** Until the flow engine retires
+  `sagas/*.saga.ts` (#486, #487), `recipes.spec.ts` in
+  `@r10c/shells-effect-transaction` fails a recipe whose card path calls,
+  compensates or classifies a step differently from the saga that actually runs.
+
+A verb that starts a flow names its recipe on its `@useCase()`, and the cell's
+route builder takes the shell's `MetadataCompositions`, so `$metadata` reports
+the flow per caller and omits a verb the caller cannot reach.
 
 ## Code style
 

@@ -226,11 +226,15 @@ const as = (who: string, path: string, init: RequestInit = {}) =>
     },
   });
 
-const crossing = (path: string, init: RequestInit = {}, commandId?: string) =>
+const crossing = (
+  path: string,
+  init: RequestInit = {},
+  idempotencyKey?: string,
+) =>
   crossingCall(served, path, {
     method: init.method ?? 'GET',
     body: init.body === undefined ? undefined : JSON.parse(String(init.body)),
-    commandId,
+    idempotencyKey,
   });
 
 const totalFor = async (who: string) =>

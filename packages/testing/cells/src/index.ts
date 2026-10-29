@@ -29,7 +29,7 @@ export const CROSSING_TOKEN = 'fleet';
 
 /**
  * Calls `path` the way a saga dispatches into a participant: the crossing
- * token, a JSON body, and — when given — the command id and the organization.
+ * token, a JSON body, and — when given — its `Idempotency-Key` and the organization.
  */
 export const crossingCall = (
   served: ServedRoutes,
@@ -37,7 +37,7 @@ export const crossingCall = (
   options: {
     readonly method?: string;
     readonly body?: unknown;
-    readonly commandId?: string;
+    readonly idempotencyKey?: string;
     readonly organizationId?: string;
   } = {},
 ): Promise<Response> =>
@@ -47,9 +47,9 @@ export const crossingCall = (
       'content-type': 'application/json',
       [CROSSING_TOKEN_HEADER]: CROSSING_TOKEN,
       // Every crossing write is idempotent on its key, so every call carries
-      // one: the command a spec names, or a fresh one per call.
+      // one: the key a spec names, or a fresh one per call.
       [IDEMPOTENCY_KEY_HEADER]: formatIdempotencyKey(
-        options.commandId ?? crypto.randomUUID(),
+        options.idempotencyKey ?? crypto.randomUUID(),
       ),
       ...(options.organizationId === undefined
         ? {}

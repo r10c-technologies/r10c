@@ -90,6 +90,8 @@ registered schema.
   (the closed list is the registry; `version`, `aggregate` and `audience` join
   `meta`), [ADR 0048](0048-announcing-a-publication.md) (the projector orders on
   `version`), [ADR 0050](0050-rebuilding-the-published-catalog-from-tenant-storage.md)
-  (the rebuild re-emits at the stored version) and
+  (the rebuild re-emits at the stored version),
+  [ADR 0054](0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)
+  (no `payment.failed`) and
   [ADR 0057](0057-settlement-joins-the-sale-to-its-payment.md) (no run-completed
   announcement).

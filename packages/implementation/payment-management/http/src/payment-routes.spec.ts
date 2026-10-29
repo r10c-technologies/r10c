@@ -98,8 +98,8 @@ afterAll(async () => {
   await served.dispose();
 });
 
-const crossing = (path: string, body: unknown, commandId?: string) =>
-  crossingCall(served, path, { body, commandId });
+const crossing = (path: string, body: unknown, idempotencyKey?: string) =>
+  crossingCall(served, path, { body, idempotencyKey });
 
 const paymentBody = (orderId: string, amount = 40) => ({
   meta: { type: 'entity', entity: 'payment' },

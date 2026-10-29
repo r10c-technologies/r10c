@@ -24,6 +24,9 @@
     },
     {
       "path": "../../../testing/http"
+    },
+    {
+      "path": "../flow-catalog/tsconfig.lib.json"
     }
   ],
   "exclude": [

@@ -72,8 +72,9 @@ interface EntifixEventMeta {
 
 Both live in `@entifix/core` beside the envelope, because core already owns the
 discriminant "so every artifact agrees on it". A `DomainEvent<TData>` is that
-metadata plus its payload, and `makeEventEnvelope`/`readEventEnvelope` are the
-bus's counterparts to the entity builders.
+metadata plus its payload, and `makeEventEnvelope`/`decodeEnvelope` are the
+bus's counterparts to the entity builders (`decodeEnvelope` replaced
+`readEventEnvelope` in entifix 0.11.0, decoding `data` through the registry).
 
 The dividing rule is worth stating because it settles every future field:
 **`meta` describes the message, `data` describes the occurrence.** So

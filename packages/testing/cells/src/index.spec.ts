@@ -36,7 +36,7 @@ describe('crossingCall', () => {
 
     await crossingCall(served, '/a', {
       body: { x: 1 },
-      commandId: 'c-1',
+      idempotencyKey: 'c-1',
       organizationId: 'acme',
     });
     await crossingCall(served, '/b', { method: 'DELETE' });
