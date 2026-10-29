@@ -5,7 +5,7 @@ import {
   ORDER_FRAGMENTS,
   orderClaimCancel,
   orderWrite,
-} from './order-fragments';
+} from './order-fragments.js';
 
 describe('order fragments', () => {
   it('are pinned at version 1 and owned by order-management', () => {

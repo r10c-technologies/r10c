@@ -1,10 +1,9 @@
+import { dryRun } from '@entifix/business';
+import { verifiedContext } from '@entifix/business/verified';
 import { describe, expect, it } from 'vitest';
 
-import { ProductOrder } from '../entities/product-order/index.js';
-import { OrderItem } from './order-item.js';
 import {
-  orderInScope,
-  orderScopeFilter,
+  orderNarrowing,
   orderScopeFor,
   type ScopedCaller,
 } from './order-scope.js';
@@ -12,16 +11,6 @@ import {
 const principal = (overrides: Partial<ScopedCaller> = {}): ScopedCaller => ({
   ...overrides,
 });
-
-const orderFor = (buyerId: string | undefined, vendorIds: string[]) => {
-  const order = new ProductOrder(buyerId);
-  order.items = vendorIds.map(vendorId => {
-    const item = new OrderItem();
-    item.vendorId = vendorId;
-    return item;
-  });
-  return order;
-};
 
 describe('the scope a principal reads orders in', () => {
   it('leaves an operator unscoped', () => {
@@ -70,82 +59,50 @@ describe('the scope a principal reads orders in', () => {
   });
 });
 
-describe('the predicate a scope becomes', () => {
-  it('names the embedded vendor path for a vendor', () => {
-    const filter = orderScopeFilter({
-      kind: 'vendor',
-      organizationId: 'org-1',
-    });
+const narrowingOf = (facts: {
+  partyRole?: string;
+  organizationId?: string;
+  partyId?: string;
+}) => {
+  const context = verifiedContext({
+    entitlements: [],
+    roles: [],
+    flags: [],
+    config: {},
+    ...facts,
+  });
+  const chosen = dryRun(orderNarrowing, context);
+  return chosen === undefined
+    ? 'nothing'
+    : orderNarrowing[chosen.rule]?.variant.impl(context);
+};
 
-    expect(filter).toEqual({
+describe('the narrowing a caller reads orders under', () => {
+  it('leaves platform staff unscoped', () => {
+    expect(narrowingOf({ partyRole: 'operator' })).toBe('unscoped');
+  });
+
+  it('narrows a vendor to the orders that owe them a line', () => {
+    expect(
+      narrowingOf({ partyRole: 'vendor', organizationId: 'org-2' }),
+    ).toEqual({
       operator: 'and',
-      values: [{ property: 'items.vendorId', operator: 'eq', value: 'org-1' }],
+      values: [{ property: 'items.vendorId', operator: 'eq', value: 'org-2' }],
     });
   });
 
-  it('names buyerId for a buyer', () => {
-    const filter = orderScopeFilter({ kind: 'buyer', partyId: 'party-1' });
-
-    expect(filter).toEqual({
+  it('narrows a buyer to the orders they placed', () => {
+    expect(narrowingOf({ partyRole: 'customer', partyId: 'party-1' })).toEqual({
       operator: 'and',
       values: [{ property: 'buyerId', operator: 'eq', value: 'party-1' }],
     });
   });
 
-  it('adds no predicate for an operator', () => {
-    expect(orderScopeFilter({ kind: 'unscoped' })).toBeUndefined();
-  });
-
-  it('adds no predicate for a caller who reads nothing', () => {
-    // The route answers an empty page before this is ever consulted; the
-    // `undefined` here is what makes a mistaken call harmless rather than an
-    // unscoped read.
-    expect(orderScopeFilter({ kind: 'nothing' })).toBeUndefined();
-  });
-});
-
-describe('testing one loaded order against a scope', () => {
-  const order = orderFor('party-user-2', ['org-1', 'org-2']);
-
-  it('admits anything for an operator', () => {
-    expect(orderInScope({ kind: 'unscoped' }, order)).toBe(true);
-  });
-
-  it('admits an order with a line for the vendor', () => {
-    expect(
-      orderInScope({ kind: 'vendor', organizationId: 'org-2' }, order),
-    ).toBe(true);
-  });
-
-  it('refuses an order with no line for the vendor', () => {
-    expect(
-      orderInScope({ kind: 'vendor', organizationId: 'org-3' }, order),
-    ).toBe(false);
-  });
-
-  it('admits the buyer their own order', () => {
-    expect(
-      orderInScope({ kind: 'buyer', partyId: 'party-user-2' }, order),
-    ).toBe(true);
-  });
-
-  it('refuses another buyer, whatever id they hold', () => {
-    expect(
-      orderInScope({ kind: 'buyer', partyId: 'party-user-1' }, order),
-    ).toBe(false);
-  });
-
-  it('refuses a counter sale with no buyer to a buyer', () => {
-    // `buyerId` is optional (ADR 0024), and `undefined === undefined` would
-    // otherwise hand every walk-in sale to any party with no id of its own.
-    const walkIn = orderFor(undefined, ['org-1']);
-
-    expect(
-      orderInScope({ kind: 'buyer', partyId: 'party-user-2' }, walkIn),
-    ).toBe(false);
-  });
-
-  it('refuses everything for a caller who reads nothing', () => {
-    expect(orderInScope({ kind: 'nothing' }, order)).toBe(false);
+  // A vendor session with no organization is not a buyer either.
+  it('shows nothing to a caller no rule fits', () => {
+    expect(narrowingOf({ partyRole: 'vendor', partyId: 'party-1' })).toBe(
+      'nothing',
+    );
+    expect(narrowingOf({})).toBe('nothing');
   });
 });

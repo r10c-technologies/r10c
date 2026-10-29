@@ -1,4 +1,5 @@
 import { productOrderRoutes } from '@r10c/implementation-order-management-http';
+import { FLOW_RECIPES, flowCatalog } from '@r10c/shells-effect-flow-catalog';
 import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
@@ -14,5 +15,5 @@ import { Layer } from 'effect';
  */
 export const router = Layer.mergeAll(
   serviceBaseRoutes({ service: '@r10c/order-service', store: 'mongo' }),
-  productOrderRoutes,
+  productOrderRoutes({ recipes: FLOW_RECIPES, catalog: flowCatalog }),
 );

@@ -49,6 +49,7 @@
     "@r10c/business-ts-payment-contracts": "workspace:*",
     "@r10c/implementation-order-management-http": "workspace:*",
     "@r10c/implementation-order-mongo": "workspace:*",
+    "@r10c/shells-effect-flow-catalog": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.6"

@@ -17,6 +17,9 @@
       "path": "../service/tsconfig.lib.json"
     },
     {
+      "path": "../flow-catalog/tsconfig.lib.json"
+    },
+    {
       "path": "../../../implementation/sales-management/http/tsconfig.lib.json"
     }
   ],

@@ -11,6 +11,7 @@ import {
   type TokenClaims,
   TokenServiceTag,
 } from '@entifix/business';
+import { defineCatalog, flowCommit } from '@entifix/business/flow';
 import { Unavailable } from '@entifix/core';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import {
@@ -31,7 +32,7 @@ import {
 } from '@r10c/business-ts-saga-contracts';
 import { crossingCall } from '@r10c/testing-cells';
 import { type ServedRoutes, serveRoutes } from '@r10c/testing-http';
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, Schema } from 'effect';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { productOrderRoutes } from './product-order-routes.js';
@@ -140,11 +141,27 @@ const sessions: Record<string, TokenClaims> = {
   nobody: { userId: 'u-n', subject: 'n', sessionId: 's', roles: ['staff'] },
 };
 
+/**
+ * The smallest recipe `cancel` can name: the cell only reports what its shell
+ * resolves, and the real cancellation is the flow catalog's to enumerate.
+ */
+const compositions = {
+  catalog: defineCatalog([flowCommit]),
+  recipes: {
+    cancellation: {
+      name: 'cancellation',
+      input: Schema.Struct({}),
+      requiresCommitPoint: true,
+      stages: [{ name: 'commit', steps: [{ ref: 'flow.commit@1' }] }],
+    },
+  },
+};
+
 let served: ServedRoutes;
 
 beforeAll(() => {
   served = serveRoutes(
-    productOrderRoutes,
+    productOrderRoutes(compositions),
     Layer.mergeAll(
       Layer.succeed(ProductOrderStoreTag, store),
       Layer.succeed(CancelWindowSeconds, 600),
@@ -236,6 +253,25 @@ const edge = makeInMemoryIdempotencyStore({
 const forgetAtTheEdge = () => {
   edgeNow += 60_001;
 };
+
+describe('GET /api/product-order/$metadata', () => {
+  it('reports the flow `cancel` starts', async () => {
+    const response = await as('operator', '/api/product-order/$metadata');
+
+    expect(response.status).toBe(200);
+    const { data } = (await response.json()) as {
+      data: { useCases: { key: string; composition?: unknown }[] };
+    };
+    expect(data.useCases.find(useCase => useCase.key === 'cancel')).toMatchObject(
+      {
+        composition: {
+          recipe: 'cancellation',
+          fragments: ['flow.commit@1'],
+        },
+      },
+    );
+  });
+});
 
 describe('the scoped reads', () => {
   it('give an operator everything, a vendor and a buyer their own, and anybody else nothing', async () => {

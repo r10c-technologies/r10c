@@ -383,15 +383,27 @@ const sourceConstraints = [
 // allow-list to widen and passes through unchanged: relaxing it for specs would
 // let a Next app reach a database driver through a test file, which is exactly
 // the edge it exists to forbid.
+//
+// The one deny-list entry a spec drops is `@entifix/business/verified`: a spec
+// stands in for the guard that builds a verified context, so it builds one the
+// way the guard would. Source files stay banned from forging one.
+const SPEC_MAY_BUILD = '@entifix/business/verified';
 const specConstraints = sourceConstraints.map(c =>
-  c.sourceTag === '*' || c.onlyDependOnLibsWithTags === undefined
+  c.sourceTag === '*'
     ? c
-    : {
-        ...c,
-        onlyDependOnLibsWithTags: [
-          ...new Set([...c.onlyDependOnLibsWithTags, 'type:testing']),
-        ],
-      },
+    : c.onlyDependOnLibsWithTags === undefined
+      ? {
+          ...c,
+          bannedExternalImports: c.bannedExternalImports.filter(
+            name => name !== SPEC_MAY_BUILD,
+          ),
+        }
+      : {
+          ...c,
+          onlyDependOnLibsWithTags: [
+            ...new Set([...c.onlyDependOnLibsWithTags, 'type:testing']),
+          ],
+        },
 );
 
 const allowEslintConfig = ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'];

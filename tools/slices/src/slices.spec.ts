@@ -110,6 +110,28 @@ describe("Invariant 1 — a domain's entities live in exactly one Store", () => 
   });
 });
 
+/**
+ * Slices that keep two projections of one source store. A second projection of
+ * the same source is a second consumer folding the same events into a second
+ * shape, and the two can disagree about what the source said; one projection
+ * per source, widened when a reader needs more, keeps a single answer.
+ */
+const duplicateProjections = (slices: readonly SliceDeclaration[]): string[] =>
+  slices.flatMap(slice => {
+    const bySource = new Map<string, string[]>();
+    for (const store of slice.stores) {
+      if (store.truth === 'system-of-record') continue;
+      const source = store.truth.slice('projection-of:'.length);
+      bySource.set(source, [...(bySource.get(source) ?? []), store.name]);
+    }
+    return Array.from(bySource)
+      .filter(([, stores]) => stores.length > 1)
+      .map(
+        ([source, stores]) =>
+          `slice '${slice.name}' projects '${source}' into [${stores.join(', ')}]`,
+      );
+  });
+
 describe('Invariant 2 — a Store has exactly one writing Slice', () => {
   it('declares each store name under exactly one slice', () => {
     const owners = new Map<string, string[]>();
@@ -136,6 +158,28 @@ describe('Invariant 2 — a Store has exactly one writing Slice', () => {
         `store '${store.name}' projects '${source}', which is not declared`,
       ).toBe(true);
     }
+  });
+
+  it('keeps at most one projection of a source store per slice', () => {
+    expect(duplicateProjections(SLICES)).toEqual([]);
+  });
+
+  it('catches a second projection of one source (planted)', () => {
+    const base = SLICES[0] as SliceDeclaration;
+    const projection = (name: string) => ({
+      ...(base.stores[0] as SliceDeclaration['stores'][number]),
+      name,
+      truth: 'projection-of:catalog' as const,
+    });
+    const planted = {
+      ...base,
+      name: 'planted',
+      stores: [projection('planted-one'), projection('planted-two')],
+    };
+
+    expect(duplicateProjections([...SLICES, planted])).toEqual([
+      "slice 'planted' projects 'catalog' into [planted-one, planted-two]",
+    ]);
   });
 });
 

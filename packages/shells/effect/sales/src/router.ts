@@ -1,4 +1,5 @@
 import { salesRoutes } from '@r10c/implementation-sales-management-http';
+import { FLOW_RECIPES, flowCatalog } from '@r10c/shells-effect-flow-catalog';
 import { serviceBaseRoutes } from '@r10c/shells-effect-service';
 import { Layer } from 'effect';
 
@@ -25,5 +26,5 @@ import { Layer } from 'effect';
  */
 export const router = Layer.mergeAll(
   serviceBaseRoutes({ service: '@r10c/sales-service', store: 'mongo' }),
-  salesRoutes,
+  salesRoutes({ recipes: FLOW_RECIPES, catalog: flowCatalog }),
 );

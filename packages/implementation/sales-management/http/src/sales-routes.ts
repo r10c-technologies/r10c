@@ -10,6 +10,7 @@ import {
 } from '@entifix/core';
 import {
   makeEntityRoutes,
+  type MetadataCompositions,
   requireOrganization,
   routeFailure,
 } from '@entifix/service-shell';
@@ -105,10 +106,12 @@ const counterSale = (organizationId: string) =>
  * organization that owns them — a session bound to that organization is the
  * only credential any route here accepts — and the counter sale.
  */
-export const salesRoutes = Layer.mergeAll(
+export const salesRoutes = (compositions: MetadataCompositions) =>
+  Layer.mergeAll(
   makeEntityRoutes(SalesChannel, {
     verbs: ['list', 'get', 'create', 'update', 'delete'],
     guard: { kind: 'organization' },
+    compositions,
     prepare: channel => {
       const invalid = validateSalesChannel(channel);
       return invalid === undefined

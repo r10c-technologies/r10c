@@ -20,7 +20,7 @@ import {
   type EntityRouteContext,
   type EntityRouteLinks,
   makeEntityRoutes,
-  type RequestPrincipal,
+  type MetadataCompositions,
   requireCrossing,
   requireIdempotencyKey,
   requirePermission,
@@ -37,9 +37,8 @@ import {
   fulfilOrder,
   isMultiVendorRefusal,
   ORDER_NOT_CANCELLABLE,
-  orderInScope,
+  orderNarrowing,
   OrderRefused,
-  orderScopeFilter,
   orderScopeFor,
   PAYMENT_PENDING,
   placeOrder,
@@ -270,7 +269,8 @@ const crossed = requireCrossing('order-management:product-order:write');
  * same thing: the first is the coordinator's claim, the second is what a
  * person reaches.
  */
-export const productOrderRoutes = Layer.mergeAll(
+export const productOrderRoutes = (compositions: MetadataCompositions) =>
+  Layer.mergeAll(
   makeEntityRoutes.for<
     | ProductOrderStoreTag
     | IdempotencyStoreTag
@@ -283,18 +283,8 @@ export const productOrderRoutes = Layer.mergeAll(
       read: { kind: 'permission' },
       write: { kind: 'crossing', organization: false },
     },
-    scope: ({ principal }) =>
-      Effect.sync(() => {
-        const scope = orderScopeFor(principal as RequestPrincipal);
-        if (scope.kind === 'nothing') return 'none' as const;
-        const filter = orderScopeFilter(scope);
-        return filter === undefined
-          ? ('all' as const)
-          : {
-              filter,
-              includes: (order: ProductOrder) => orderInScope(scope, order),
-            };
-      }),
+    narrowing: orderNarrowing,
+    compositions,
     override: {
       create: (context, links) =>
         idempotent(`POST ${BASE}`)(place(context, links)),

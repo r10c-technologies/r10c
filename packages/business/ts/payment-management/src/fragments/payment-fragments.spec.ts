@@ -6,7 +6,7 @@ import {
 } from '@entifix/business/flow';
 import { describe, expect, it } from 'vitest';
 
-import { PAYMENT_FRAGMENTS, paymentCapture } from './payment-fragments';
+import { PAYMENT_FRAGMENTS, paymentCapture } from './payment-fragments.js';
 
 const catalog = defineCatalog([...PAYMENT_FRAGMENTS]);
 

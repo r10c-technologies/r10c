@@ -7,7 +7,7 @@ import {
 } from '@entifix/business/flow';
 import { describe, expect, it } from 'vitest';
 
-import { STOCK_FRAGMENTS, stockConvert, stockReserve } from './stock-fragments';
+import { STOCK_FRAGMENTS, stockConvert, stockReserve } from './stock-fragments.js';
 
 const catalog = defineCatalog([...STOCK_FRAGMENTS, flowCommit]);
 

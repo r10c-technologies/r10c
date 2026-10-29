@@ -2439,6 +2439,9 @@ importers:
 
   packages/business/ts/settlement-management:
     dependencies:
+      '@entifix/business':
+        specifier: 'catalog:'
+        version: 0.11.0(effect@4.0.6)
       '@entifix/core':
         specifier: 'catalog:'
         version: 0.11.0(effect@4.0.6)
@@ -3511,6 +3514,9 @@ importers:
       '@r10c/implementation-order-mongo':
         specifier: workspace:*
         version: link:../../../implementation/order/mongo
+      '@r10c/shells-effect-flow-catalog':
+        specifier: workspace:*
+        version: link:../flow-catalog
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../service
@@ -3563,6 +3569,9 @@ importers:
       '@r10c/implementation-sales-management-http':
         specifier: workspace:*
         version: link:../../../implementation/sales-management/http
+      '@r10c/shells-effect-flow-catalog':
+        specifier: workspace:*
+        version: link:../flow-catalog
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../service
