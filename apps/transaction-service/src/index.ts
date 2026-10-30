@@ -18,9 +18,6 @@ export {
   sagaStoresLayer,
 } from '@r10c/shells-effect-transaction';
 
-/** The slice's composition, as the service mounts it. */
-export const AppLayer = makeAppLayer();
-
 export const SERVICE_NAME = '@r10c/transaction-service';
 
 /**
@@ -31,3 +28,6 @@ export const SERVICE_NAME = '@r10c/transaction-service';
  * trigger fired and this is the commit that binds it (#229).
  */
 export const DEFAULT_PORT = 3103;
+
+/** The slice's composition, as the service mounts it: replica 0. */
+export const AppLayer = makeAppLayer(DEFAULT_PORT);

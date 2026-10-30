@@ -22,6 +22,10 @@ ALL_PORTS=(3000 3001 3100 3101 3102 3103 3105 3106 3107 3108 3109 3190)
 # + 6000. One shared 9229 meant only the first service of a fleet got a debugger
 # and every other one logged "address already in use".
 INSPECT_PORTS=(9100 9101 9102 9103 9105 9106 9107 9108 9109 9190)
+# The flow engine's runners (ADR 0066): the service port + 31000 + 1000 × the
+# replica, so transaction-service's two land on 34103 and 35103 — clear of
+# every service port, inspector and minikube NodePort.
+RUNNER_PORTS=(34103 35103)
 
 if [[ -t 1 ]]; then
   C_DIM=$'\033[2m'; C_RED=$'\033[31m'; C_YELLOW=$'\033[33m'; C_OFF=$'\033[0m'
@@ -30,7 +34,7 @@ else
 fi
 
 PORTS=("$@")
-[[ ${#PORTS[@]} -eq 0 ]] && PORTS=("${ALL_PORTS[@]}" "${INSPECT_PORTS[@]}")
+[[ ${#PORTS[@]} -eq 0 ]] && PORTS=("${ALL_PORTS[@]}" "${INSPECT_PORTS[@]}" "${RUNNER_PORTS[@]}")
 
 if ! command -v lsof >/dev/null 2>&1; then
   echo "${C_YELLOW}==>${C_OFF} lsof not available — skipping port cleanup" >&2

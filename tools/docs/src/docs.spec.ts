@@ -1112,6 +1112,135 @@ describe('Fleet ports agree in every place they are written', () => {
   });
 });
 
+/**
+ * What is wrong with one service's runner ports (ADR 0066): each replica's
+ * port must be its service port + 31000 + 1000 × the replica, freed by the
+ * service's own `free-ports`, listed in `RUNNER_PORTS`, and in the port table.
+ */
+const runnerPortProblems = (input: {
+  readonly app: string;
+  readonly servicePort: number;
+  readonly replicas: readonly number[];
+  readonly runnerPorts: ReadonlySet<string>;
+  readonly freed: string;
+  readonly portsDoc: string;
+}): string[] =>
+  input.replicas.flatMap(replica => {
+    const port = String(input.servicePort + 31_000 + 1_000 * replica);
+    const where = `${input.app} replica ${String(replica)} (${port})`;
+    if (!input.runnerPorts.has(port)) return [`${where}: not in RUNNER_PORTS`];
+    if (!input.freed.includes(` ${port}`))
+      return [`${where}: free-ports skips it`];
+    if (!input.portsDoc.includes(`\`${port}\``))
+      return [`${where}: the port table never names it`];
+    return [];
+  });
+
+describe('Every flow-engine runner has the port its formula names', () => {
+  const freePorts = read('tools/free-ports.sh');
+  const portsDoc = read('docs/_shared/ports.md');
+  const runnerPorts = new Set(
+    (freePorts.match(/^RUNNER_PORTS=\(([^)]*)\)/m)?.[1] ?? '')
+      .trim()
+      .split(/\s+/),
+  );
+
+  /**
+   * Every app that runs the engine: replica 0 is the service itself, and each
+   * further replica is a dev target that starts `dist/runner.js` with its own
+   * `WORKFLOW_REPLICA`.
+   */
+  const runners = () => {
+    const apps = join(REPO_ROOT, 'apps');
+    return readdirSync(apps, { withFileTypes: true }).flatMap(entry => {
+      if (!existsSync(join(apps, entry.name, 'src/runner.ts'))) return [];
+      const targets =
+        JSON.parse(readFileSync(join(apps, entry.name, 'package.json'), 'utf8'))
+          ?.nx?.targets ?? {};
+      const index = readFileSync(
+        join(apps, entry.name, 'src/index.ts'),
+        'utf8',
+      );
+      const servicePort = Number(
+        index.match(/DEFAULT_PORT\s*=\s*(\d{4})/)?.[1],
+      );
+      const replicas = [
+        0,
+        ...Object.values(targets).flatMap(target => {
+          const options = (target as { options?: Record<string, unknown> })
+            .options;
+          return String(options?.['command'] ?? '').includes('dist/runner.js')
+            ? [
+                Number(
+                  (options?.['env'] as Record<string, string>)?.[
+                    'WORKFLOW_REPLICA'
+                  ],
+                ),
+              ]
+            : [];
+        }),
+      ];
+      return [
+        {
+          app: entry.name,
+          servicePort,
+          replicas,
+          freed: String(targets['free-ports']?.options?.command ?? ''),
+        },
+      ];
+    });
+  };
+
+  it('finds the runners it is meant to check', () => {
+    expect(runners().map(({ app, replicas }) => [app, replicas])).toEqual([
+      ['transaction-service', [0, 1]],
+    ]);
+  });
+
+  it('frees, lists and documents each runner at its formula port', () => {
+    const problems = runners().flatMap(runner =>
+      runnerPortProblems({ ...runner, runnerPorts, portsDoc }),
+    );
+
+    expect(
+      problems,
+      `runner ports out of convention:\n  ${problems.join('\n  ')}`,
+    ).toEqual([]);
+  });
+
+  /** The plant: a runner moved off its formula must fail the check above. */
+  it('fails a runner whose port is not the formula', () => {
+    const [runner] = runners();
+    if (runner === undefined) throw new Error('no runner to plant against');
+
+    expect(
+      runnerPortProblems({
+        ...runner,
+        servicePort: runner.servicePort + 1,
+        runnerPorts,
+        portsDoc,
+      }),
+    ).toEqual([
+      `${runner.app} replica 0 (34104): not in RUNNER_PORTS`,
+      `${runner.app} replica 1 (35104): not in RUNNER_PORTS`,
+    ]);
+    expect(
+      runnerPortProblems({
+        ...runner,
+        freed: 'bash tools/free-ports.sh 3103 9103',
+        runnerPorts,
+        portsDoc,
+      }),
+    ).toEqual([
+      `${runner.app} replica 0 (34103): free-ports skips it`,
+      `${runner.app} replica 1 (35103): free-ports skips it`,
+    ]);
+    expect(
+      runnerPortProblems({ ...runner, runnerPorts, portsDoc: '' }),
+    ).toHaveLength(2);
+  });
+});
+
 describe('The Zitadel core and its hosted login are one tag', () => {
   // Nothing substitutes a version into these manifests — `apply.sh` is a plain
   // `kubectl apply -k` and no kustomization declares an `images:` transformer —
@@ -1176,6 +1305,22 @@ describe('The dashboard charts the metrics the fleet declares', () => {
       relative(REPO_ROOT, installedEntifixDist('transactions')),
       'engine',
       'outbox-metrics.js',
+    ),
+    // Each participant's breaker and bulkhead (ADR 0067), the retry budget
+    // every fleet service draws its in-process retries from (ADR 0064), and
+    // the states the flow engine journals (ADR 0066) — declared beside their
+    // ports, so read from there.
+    ...['circuit-breaker', 'bulkhead', 'retry-budget'].map(port =>
+      join(
+        relative(REPO_ROOT, installedEntifixDist('transactions')),
+        'ports',
+        `${port}.js`,
+      ),
+    ),
+    join(
+      relative(REPO_ROOT, installedEntifixDist('workflow')),
+      'status',
+      'flow-status-store.js',
     ),
     // The saga sweep's metrics, with the `saga` store's owner since the
     // `transaction` slice took `:3103` (#229). A module missing from this list
@@ -1288,10 +1433,13 @@ describe('The dashboard charts the metrics the fleet declares', () => {
   };
 
   it('finds the metrics it is meant to check', () => {
-    // Eleven: five bus counters and the paused-consumer gauge, three outbox
-    // gauges, and the saga sweep's gauge and counter. Pinned as a count rather than a Set size, so the doc-comment over-match
-    // the DECLARATION regex is written to avoid cannot hide behind dedup.
-    expect(declared()).toHaveLength(11);
+    // Nineteen: five bus counters and the paused-consumer gauge, three outbox
+    // gauges, the breaker's gauge and two counters, the bulkhead's gauge, the
+    // retry budget's three counters, the flow engine's state counter, and the
+    // saga sweep's gauge and counter. Pinned as a count rather than a Set size,
+    // so the doc-comment over-match the DECLARATION regex is written to avoid
+    // cannot hide behind dedup.
+    expect(declared()).toHaveLength(19);
     expect(new Set(queried()).size).toBeGreaterThanOrEqual(8);
   });
 

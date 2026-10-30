@@ -34,6 +34,18 @@ export const transactionSlice: SliceDeclaration = {
       partitioning: 'single',
       truth: 'system-of-record',
     },
+    // The durable flow engine's (ADR 0066): every flow's journal, the runners'
+    // registrations and shard locks, each flow's status, and the outbox its
+    // announcements leave through — one Postgres database, written by this
+    // slice's runners alone. It runs beside `saga` until the saga runner is
+    // deleted (#490).
+    {
+      name: 'workflow',
+      plane: 'control',
+      hosts: [],
+      partitioning: 'single',
+      truth: 'system-of-record',
+    },
   ],
   deployments: ['transaction-service'],
   coDeployedWith: [],

@@ -33,31 +33,31 @@ packages:
 # place a version is written. To see an unreleased entifix change here, use
 # `pnpm run entifix:local` (tools/entifix) — never a link or a file: specifier.
 catalog:
-  '@entifix/amqp': 0.12.0-rc.10
-  '@entifix/authz': 0.12.0-rc.10
-  '@entifix/business': 0.12.0-rc.10
-  '@entifix/core': 0.12.0-rc.10
-  '@entifix/i18n': 0.12.0-rc.10
-  '@entifix/jwt': 0.12.0-rc.10
-  '@entifix/mongo': 0.12.0-rc.10
-  '@entifix/next-i18n': 0.12.0-rc.10
-  '@entifix/next-shell': 0.12.0-rc.10
-  '@entifix/posthog': 0.12.0-rc.10
-  '@entifix/react-controls': 0.12.0-rc.10
-  '@entifix/react-integration': 0.12.0-rc.10
-  '@entifix/redis': 0.12.0-rc.10
-  '@entifix/rest': 0.12.0-rc.10
-  '@entifix/service-shell': 0.12.0-rc.10
-  '@entifix/sql': 0.12.0-rc.10
-  '@entifix/static': 0.12.0-rc.10
-  '@entifix/style': 0.12.0-rc.10
-  '@entifix/testing-auth': 0.12.0-rc.10
-  '@entifix/testing-e2e': 0.12.0-rc.10
-  '@entifix/testing-unit': 0.12.0-rc.10
-  '@entifix/tooling': 0.12.0-rc.10
-  '@entifix/transactions': 0.12.0-rc.10
-  '@entifix/workflow': 0.12.0-rc.10
-  '@entifix/zitadel': 0.12.0-rc.10
+  '@entifix/amqp': 0.12.0-rc.13
+  '@entifix/authz': 0.12.0-rc.13
+  '@entifix/business': 0.12.0-rc.13
+  '@entifix/core': 0.12.0-rc.13
+  '@entifix/i18n': 0.12.0-rc.13
+  '@entifix/jwt': 0.12.0-rc.13
+  '@entifix/mongo': 0.12.0-rc.13
+  '@entifix/next-i18n': 0.12.0-rc.13
+  '@entifix/next-shell': 0.12.0-rc.13
+  '@entifix/posthog': 0.12.0-rc.13
+  '@entifix/react-controls': 0.12.0-rc.13
+  '@entifix/react-integration': 0.12.0-rc.13
+  '@entifix/redis': 0.12.0-rc.13
+  '@entifix/rest': 0.12.0-rc.13
+  '@entifix/service-shell': 0.12.0-rc.13
+  '@entifix/sql': 0.12.0-rc.13
+  '@entifix/static': 0.12.0-rc.13
+  '@entifix/style': 0.12.0-rc.13
+  '@entifix/testing-auth': 0.12.0-rc.13
+  '@entifix/testing-e2e': 0.12.0-rc.13
+  '@entifix/testing-unit': 0.12.0-rc.13
+  '@entifix/tooling': 0.12.0-rc.13
+  '@entifix/transactions': 0.12.0-rc.13
+  '@entifix/workflow': 0.12.0-rc.13
+  '@entifix/zitadel': 0.12.0-rc.13
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false

@@ -12,6 +12,7 @@
 #   L4 rollout      each deployment has a Ready replica  -> restart the pod once
 #   L5 probes       TCP + protocol handshake             -> back to L4
 #   L5b mongo rs    the replica set has a primary         -> rs.initiate()
+#   L5c pg dbs      the fleet's Postgres databases exist  -> create database
 #   L6 hosted login v2 login container up on :30081      -> secret + apply -k
 #   L7 zitadel seed instance has project/app/branding/actions/policy/SMTP,
 #                   and accepts the token the fleet holds      -> restore from the
@@ -59,8 +60,10 @@ wait_for_probes() {
 # question a committed dashboard never reaches a lab that is already healthy.
 # It degrades open — see lib.sh — so a Grafana that is merely slow costs nothing.
 # `mongo_rs_ready` is here for the same reason: an uninitiated replica set
-# answers every other probe and fails every transactional write.
-if all_probes_green && mongo_rs_ready && login_ready && dashboards_ready && zitadel_seeded; then
+# answers every other probe and fails every transactional write — and so is
+# `pg_databases_ready`: a Postgres without the `workflow` database answers every
+# probe and fails the flow engine at boot.
+if all_probes_green && mongo_rs_ready && pg_databases_ready && login_ready && dashboards_ready && zitadel_seeded; then
   log_ok "local infra healthy ($(probed_labels))"
   exit 0
 fi
@@ -69,7 +72,7 @@ require_tools || exit 1
 acquire_heal_lock || exit 1
 
 # Someone else may have healed while we queued on the lock.
-if all_probes_green && mongo_rs_ready && login_ready && dashboards_ready && zitadel_seeded; then
+if all_probes_green && mongo_rs_ready && pg_databases_ready && login_ready && dashboards_ready && zitadel_seeded; then
   log_ok "local infra healthy (healed by a parallel task)"
   exit 0
 fi
@@ -199,6 +202,13 @@ fi
 # Ready before anything can exec one, so a probe demanding a primary would wait
 # on an init that is waiting on the probe.
 if ! ensure_mongo_replica_set; then
+  reset_hint
+  exit 1
+fi
+
+# ------------------------------------------------------------- L5c postgres databases
+# After L5 because it needs Postgres answering, for the reason L5b does.
+if ! ensure_pg_databases; then
   reset_hint
   exit 1
 fi

@@ -60,6 +60,7 @@ declaration as `bindingReason`.
 | `settlement`        | control  | `settlement`        | active       | —                | `settlement-management`                                       | single           | system-of-record        |
 | `stock-idempotency` | control  | `stock`             | active       | —                | —                                                             | single           | system-of-record        |
 | `stock`             | tenant   | `stock`             | active       | —                | `stock-management`                                            | per-organization | system-of-record        |
+| `workflow`          | control  | `transaction`       | active       | —                | —                                                             | single           | system-of-record        |
 
 <!-- docs:end store-register -->
 
@@ -115,8 +116,14 @@ flight, not state at rest; the saga's `transactions` collection _is_ a store, th
 exchange is not), and a **foreign system** (Zitadel's Postgres — it has an owner,
 and the owner is not us).
 
-The saga runner's stores are replaced by a Postgres `workflow` store when flows
-move to the durable engine ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).
+The `transaction` slice owns two stores while it moves engines: the saga
+runner's Mongo `saga`, and the durable engine's Postgres `workflow` — every
+flow's journal, the runners' registrations and shard locks, each flow's status
+and the outbox its announcements leave through
+([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)). One slice,
+two engines, which `engine` not being part of a store's identity is what
+allows. `saga` is deleted when checkout and cancellation move onto the engine
+(#490).
 
 ## The rules that follow
 

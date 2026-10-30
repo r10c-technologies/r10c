@@ -19,13 +19,18 @@ import { DEFAULT_PORT, SERVICE_NAME } from './index';
  * domain name is simultaneously a package identity, a permission namespace and
  * an entitlement key — none of which anything would ever be provisioned for
  * here (ADR 0039).
+ *
+ * It is also replica 0 of the durable flow engine (ADR 0066), whose runner
+ * listens on `runnerPort(port, 0)`; `runner.ts` is the replica beside it.
  */
+const port = Number(process.env.PORT) || DEFAULT_PORT;
+
 makeService({
   name: SERVICE_NAME,
-  port: Number(process.env.PORT) || DEFAULT_PORT,
+  port,
   slices: ['transaction'],
   description: fleetToken,
   endpoints,
   policy,
-  appLayer: makeAppLayer(),
+  appLayer: makeAppLayer(port),
 });

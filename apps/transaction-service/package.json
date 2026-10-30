@@ -98,7 +98,8 @@
           {
             "projects": "@r10c/config-service",
             "target": "dev"
-          }
+          },
+          "dev-runner"
         ],
         "options": {
           "buildTarget": "@r10c/transaction-service:build",
@@ -117,6 +118,23 @@
           }
         }
       },
+      "dev-runner": {
+        "continuous": true,
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build",
+          {
+            "projects": "@r10c/config-service",
+            "target": "dev"
+          }
+        ],
+        "options": {
+          "command": "node --watch --disable-warning=DEP0205 apps/transaction-service/dist/runner.js",
+          "env": {
+            "WORKFLOW_REPLICA": "1"
+          }
+        }
+      },
       "test": {
         "options": {
           "passWithNoTests": true
@@ -126,7 +144,7 @@
         "executor": "nx:run-commands",
         "cache": false,
         "options": {
-          "command": "bash tools/free-ports.sh 3103 9103"
+          "command": "bash tools/free-ports.sh 3103 9103 34103 35103"
         }
       }
     }
@@ -141,7 +159,9 @@
     "@entifix/core": "catalog:",
     "@entifix/jwt": "catalog:",
     "@entifix/mongo": "catalog:",
+    "@entifix/rest": "catalog:",
     "@entifix/service-shell": "catalog:",
+    "@entifix/sql": "catalog:",
     "@entifix/tooling": "catalog:",
     "@entifix/transactions": "catalog:",
     "@entifix/workflow": "catalog:",
@@ -158,6 +178,7 @@
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-saga-contracts": "workspace:*",
+    "@r10c/shells-effect-flow-catalog": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/shells-effect-transaction": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",

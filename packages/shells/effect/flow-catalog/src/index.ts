@@ -8,3 +8,4 @@
  * shell, and this one imports no domain shell.
  */
 export * from './catalog.js';
+export * from './participant-dials.js';

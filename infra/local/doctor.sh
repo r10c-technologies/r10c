@@ -44,7 +44,7 @@ else
     bad "L1 cluster" "minikube $state"
   fi
   skip "L2 portmap" ""; skip "L3 workloads" ""; skip "L4 rollout" ""; skip "L5 probes" ""
-  skip "L5b mongo rs" ""; skip "L6 login" ""; skip "L7 zitadel" ""
+  skip "L5b mongo rs" ""; skip "L5c pg dbs" ""; skip "L6 login" ""; skip "L7 zitadel" ""
   echo
   if [[ "$state" == "Drifted" ]]; then
     echo "fix: minikube update-context    # instant; ensure.sh also does it for you"
@@ -114,6 +114,17 @@ else
   rs_down="1"
 fi
 
+# L5c ------------------------------------------------------------------------
+# A Postgres without the fleet's databases answers every probe above and fails
+# the flow engine at boot.
+if pg_databases_ready; then
+  ok "L5c pg dbs" "${PG_DATABASES[*]} present"
+  pg_down=""
+else
+  bad "L5c pg dbs" "missing one of: ${PG_DATABASES[*]} — the flow engine cannot boot"
+  pg_down="1"
+fi
+
 # L6 -------------------------------------------------------------------------
 # The other rung that fails at sign-in rather than at boot: the core serves
 # nothing under /ui/v2/login, so a missing login container is a 404 behind a
@@ -147,7 +158,7 @@ else
 fi
 
 echo
-if [[ -z "$missing_ports" && -z "$not_ready" && -z "$down" && -z "$rs_down" && -z "$login_down" && -z "$unseeded" && "$present" -eq "$total" ]]; then
+if [[ -z "$missing_ports" && -z "$not_ready" && -z "$down" && -z "$rs_down" && -z "$pg_down" && -z "$login_down" && -z "$unseeded" && "$present" -eq "$total" ]]; then
   echo "${C_GREEN}healthy${C_OFF} — pnpm run back-office:dev will start immediately."
   exit 0
 fi

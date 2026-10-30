@@ -159,6 +159,49 @@ const RETRY_ROWS: ReadonlyArray<ConfigurationRow> = FLEET_SERVICES.flatMap(
     })),
 );
 
+/**
+ * The participants the flow engine calls (ADR 0067), each with a breaker, a
+ * bulkhead and step bounds of its own — a payment provider and a stock ledger
+ * do not fail, or answer, on the same clock. `db.spec.ts` fails a seed missing
+ * a dial for any participant a registered fragment names.
+ */
+const FLOW_PARTICIPANTS = [
+  'stock-service',
+  'order-service',
+  'payment-service',
+] as const;
+
+/**
+ * ADR 0067's defaults. The two rates are percentages, as the ADR states them.
+ * `forcedState` is an operator's override applied at boot: `closed` leaves the
+ * breaker to its window, `forcedOpen` refuses every call, `disabled` lets every
+ * call through unrecorded.
+ */
+const PARTICIPANT_DIALS: Readonly<Record<string, string>> = {
+  windowType: 'count',
+  windowSize: '20',
+  minimumCalls: '5',
+  failureRateThreshold: '50',
+  slowCallThresholdMs: '2000',
+  slowCallRate: '80',
+  waitInOpenMs: '10000',
+  halfOpenPermits: '3',
+  forcedState: 'closed',
+  bulkheadPermits: '16',
+  attemptTimeoutMs: '5000',
+  stepBoundMs: '60000',
+};
+
+const PARTICIPANT_DIAL_ROWS: ReadonlyArray<ConfigurationRow> =
+  FLOW_PARTICIPANTS.flatMap(participant =>
+    Object.entries(PARTICIPANT_DIALS).map(([dial, value]) => ({
+      service: 'transaction-service',
+      group_name: 'breaker',
+      key: `${participant}.${dial}`,
+      value,
+    })),
+  );
+
 export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // Locale policy, per frontend. `default` is what an unprefixed URL negotiates
   // to when the visitor has no cookie and their `Accept-Language` names nothing
@@ -696,6 +739,42 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     group_name: 'saga',
     key: 'maxResumeAttempts',
     value: '3',
+  },
+  // The durable flow engine's store (ADR 0066): one Postgres database holding
+  // every flow's journal, the runners' registrations and shard locks, each
+  // flow's status and the outbox its announcements leave through. Created by
+  // the infra ladder's L5c rung, beside Zitadel's on the same instance.
+  {
+    service: 'transaction-service',
+    group_name: 'workflow',
+    key: 'url',
+    value: 'postgres://postgres:postgres@127.0.0.1:30432/workflow',
+    is_secret: true,
+  },
+  // Where the other runners reach this one. Each replica listens on its own
+  // port — the service port + 31000 + 1000 × its index — and registers this
+  // host with it.
+  {
+    service: 'transaction-service',
+    group_name: 'workflow',
+    key: 'runnerHost',
+    value: '127.0.0.1',
+  },
+  // How many segments of one stage a flow runs at once — a basket's per-vendor
+  // holds, before the shared pivot.
+  {
+    service: 'transaction-service',
+    group_name: 'flow',
+    key: 'concurrency',
+    value: '4',
+  },
+  // The flow engine's announcements leave through the workflow store's own
+  // outbox, under the same quarantine ceiling as every other relay.
+  {
+    service: 'transaction-service',
+    group_name: 'outbox',
+    key: 'maxAttempts',
+    value: '5',
   },
   // The public half only. This service verifies access tokens and never mints
   // one.
@@ -1420,4 +1499,5 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     value: '60000',
   },
   ...RETRY_ROWS,
+  ...PARTICIPANT_DIAL_ROWS,
 ];

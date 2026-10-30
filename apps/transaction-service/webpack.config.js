@@ -17,6 +17,10 @@ module.exports = {
       target: 'node',
       compiler: 'swc',
       main: './src/main.ts',
+      // The runner-only replica of the flow engine (ADR 0066), its own process.
+      additionalEntryPoints: [
+        { entryName: 'runner', entryPath: './src/runner.ts' },
+      ],
       tsConfig: './tsconfig.app.json',
       assets: ['./src/assets'],
       optimization: false,
@@ -28,6 +32,7 @@ module.exports = {
         '@effect/opentelemetry',
         '@effect/platform',
         '@effect/platform-node',
+        '@effect/sql-pg',
         '@opentelemetry/api',
         '@opentelemetry/context-async-hooks',
         '@opentelemetry/exporter-metrics-otlp-http',

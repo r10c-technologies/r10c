@@ -25,6 +25,15 @@ executor's default is `9229` for every process, so a fleet of three services lef
 only the first with a debugger and the other two logging `address already in use`.
 `@r10c/docs-check` fails a service that drops the option.
 
+A service that runs the durable flow engine also opens one **runner port per
+replica**, at its service port **+ 31000 + 1000 × the replica**
+([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)):
+transaction-service's replica 0, the process that serves HTTP, listens on
+`34103`, and its runner-only replica 1 (`dev-runner`, `WORKFLOW_REPLICA=1`) on
+`35103`. The offset clears every service port, inspector and NodePort above, and
+`@r10c/docs-check` fails a runner port that leaves the formula, `RUNNER_PORTS` in
+`tools/free-ports.sh`, or this table.
+
 **The index is per host, not per pair.** ADR 0008 allocated `300N`/`310N` to
 frontend/backend _pairs_, which stopped describing the fleet the moment one host
 began serving two domains. A domain still owns its `-service` index; what it no
@@ -77,13 +86,15 @@ made sayable: a deployment earns its existence by owning a store.
 ³ **transaction-service, bound — and this index is the one that proves the
 claim it was reserved on.**
 
-> **Decided, not yet built ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).**
-> Everything below describes the saga runner, which keeps running until wave 4
-> replaces it: flows on Effect Workflow over a Postgres `workflow` store, two
-> runner processes on `34103` and `35103`, a start answering `202 { flowId }`,
-> and the `saga` store and `GET /api/saga/:id` deleted. The single-step
-> tracker is gone already: its only producer, the specification create, became
-> a plain unit of work (#463).
+> **The engine runs; the flows have not moved to it yet ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).**
+> The durable flow engine is composed here over the Postgres `workflow` store,
+> on two runners at `34103` and `35103` with a breaker and a bulkhead per
+> participant (#462). Everything below describes the saga runner, which keeps
+> serving checkout and cancellation until wave 4 moves them onto the engine: a
+> start answering `202 { flowId }`, and the `saga` store and
+> `GET /api/saga/:id` deleted (#490). The single-step tracker is gone already:
+> its only producer, the specification create, became a plain unit of work
+> (#463).
 
 The `transaction` slice was **co-deployed** into
 marketplace-admin-service, and the note here said that ownership had not moved,
