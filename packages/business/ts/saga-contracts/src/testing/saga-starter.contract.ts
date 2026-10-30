@@ -20,7 +20,7 @@ const INPUTS: SagaInputs = {
 /**
  * What every {@link SagaStarter} must guarantee: it hands the coordinator the
  * definition and the inputs it was given, and reads the answer the same way
- * whichever caller started the flow — `201` completed, `409` compensated,
+ * whichever caller started the flow — `200` completed, `409` compensated,
  * anything else failed with its status, and a coordinator it cannot reach a
  * connection error rather than a failed flow.
  *
@@ -47,9 +47,9 @@ export const describeSagaStarterContract = (
       return { outcome, seen };
     };
 
-    it('hands the coordinator the definition and inputs, and reads 201 as completed', async () => {
+    it('hands the coordinator the definition and inputs, and reads 200 as completed', async () => {
       const { outcome, seen } = await startWith({
-        status: 201,
+        status: 200,
         body: { orderId: 'ord-1' },
       });
 

@@ -150,7 +150,7 @@ interface CheckoutResult {
  *
  * ⚠️ **The storefront mints it, and the order stores only its digest.** The
  * obvious design has order-service mint a signed token and hand it back in the
- * `201` — and that `201` *is* the saga's `write-order` outcome, persisted in the
+ * `200` — and that `200` *is* the saga's `write-order` outcome, persisted in the
  * `saga` store and served whole by `GET /api/saga/:id` to any principal whose
  * organization appears among the flow's calls, which is every vendor in this
  * basket. A bearer token there would let one vendor cancel a multi-vendor order
@@ -270,7 +270,7 @@ const placeOrder = async (
   ).catch(() => undefined);
 
   if (!response) return { outcome: 'failed' };
-  if (response.status === 201) {
+  if (response.status === 200) {
     // ⚠️ A body that will not parse does **not** fail the checkout. The order
     // is written by this point, and telling a buyer their purchase failed
     // because a response could not be read would be a lie with a receipt behind
@@ -279,7 +279,7 @@ const placeOrder = async (
     const receipt = orderFromSagaResult(response.payload, capability.nonce);
     return receipt ? { outcome: 'placed', receipt } : { outcome: 'placed' };
   }
-  // `409` is the saga's own answer for "compensated" — a line was refused and
+  // `409` is the saga's `sagaCompensated` problem — a line was refused and
   // every hold taken has been given back. That is a stock outcome the buyer can
   // act on, not an error to apologise for.
   if (response.status === 409) return { outcome: 'unavailable' };

@@ -80,16 +80,16 @@ const orderLine = (offeringId = 'o-1', quantity = 2) => ({
 });
 
 /**
- * The coordinator's `201`, shaped as it really is: one outcome per step, each
+ * The coordinator's `200`, shaped as it really is: one outcome per step, each
  * carrying the participant's own response body verbatim. The order the
  * confirmation page renders comes out of `write-order`'s, so a spec that
- * answered a bare `{ status: 201 }` would exercise the failure path instead.
+ * answered a bare `{ status: 200 }` would exercise the failure path instead.
  */
 const sagaResponse = (
   items: ReadonlyArray<ReturnType<typeof orderLine>> = [orderLine()],
   order: Record<string, unknown> = {},
 ) => ({
-  status: 201,
+  status: 200,
   json: () =>
     Promise.resolve({
       meta: { type: 'sagaResult', entity: 'checkout' },
@@ -420,7 +420,7 @@ describe('checkout', () => {
    */
   it('still reports a placed order when the body cannot be read', async () => {
     fetchMock.mockResolvedValue({
-      status: 201,
+      status: 200,
       json: () => Promise.reject(new Error('not json')),
     });
 
@@ -485,7 +485,7 @@ describe('checkout', () => {
     ],
   ])('still reports a placed order given %s', async (_name, payload) => {
     fetchMock.mockResolvedValue({
-      status: 201,
+      status: 200,
       json: () => Promise.resolve(payload),
     });
 

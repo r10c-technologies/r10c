@@ -255,7 +255,7 @@ const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
         ],
       },
     },
-    { status: 201 },
+    { status: 200 },
   );
 });
 

@@ -617,10 +617,9 @@ and the scope of the slice that owns its domain.
   use the double rather than writing their own.
 - The helpers cell specs share are `@r10c/testing-cells`: `tokenClaims` and
   `crossingCall` at `.`, `mongoCellWorld` and `failNth` at `./mongo`.
-- ⚠️ A route answering a coded error writes the `{ error, code }` pair inline.
-  `@r10c/i18n-check` finds codes by that pair, so a helper taking
-  `(error, code)` hides them from the catalog check and drops the scan below
-  its floor.
+- ⚠️ A refusal is a registered failure, never a hand-written `{ error, code }`
+  body: `@r10c/i18n-check` reads the codes from the failure registry, so a code
+  that is not a failure's is one no gate can see.
 - Resolve runtime config from config-service at boot (`loadRemoteConfiguration`),
   never from ad-hoc `process.env` beyond a single bootstrap value (e.g.
   `CONFIG_API_URL`, `CONFIG_PG_URL`).

@@ -9,7 +9,7 @@ import {
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeAppLayer, router, transactionComposition } from './index.js';
+import { makeAppLayer, transactionComposition } from './index.js';
 import {
   SagaMaxResumeAttempts,
   SagaResumeIntervalMs,
@@ -68,7 +68,6 @@ describe('the transaction shell', () => {
 
   it('offers the booted composition as a layer', () => {
     expect(Layer.isLayer(makeAppLayer())).toBe(true);
-    expect(Layer.isLayer(router)).toBe(true);
   });
 });
 

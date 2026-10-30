@@ -43,10 +43,12 @@ export const transactionSlice: SliceDeclaration = {
     // (#233). Scoped to the organizations the flow's own calls named, because a
     // flow spanning two vendors belongs to both.
     'GET /api/saga/:id',
-    // The coordinator. Generic rather than `/api/checkout`, because this slice
-    // declares no domain and a business verb here would put a domain name in a
-    // permission namespace (ADR 0039, ADR 0052).
-    'POST /api/saga/:definition',
+    // The coordinator: one start per registered flow, each behind its own
+    // crossing permission. Under `/api/saga/` rather than `/api/checkout`,
+    // because this slice declares no domain and a business verb here would put
+    // a domain name in a permission namespace (ADR 0039, ADR 0052).
+    'POST /api/saga/checkout',
+    'POST /api/saga/cancellation',
   ],
   dependantAPIs: [
     'GET /api/config/:service',

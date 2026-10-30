@@ -75,7 +75,7 @@ export const orderSlice: SliceDeclaration = {
     // order-service the third holder of that inbound secret beside the
     // storefront and sales-service
     // ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md) §6).
-    'POST /api/saga/:definition',
+    'POST /api/saga/cancellation',
   ],
   publishedEvents: ['order.placed', 'order.cancelled'],
   subscriptions: [

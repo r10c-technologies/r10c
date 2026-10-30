@@ -3730,6 +3730,12 @@ importers:
       '@entifix/transactions':
         specifier: 'catalog:'
         version: 0.12.0-rc.10(effect@4.0.6)
+      '@r10c/business-ts-common':
+        specifier: workspace:*
+        version: link:../../../business/ts/common
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/saga-contracts
       '@r10c/shells-effect-service':
         specifier: workspace:*
         version: link:../service
@@ -4234,6 +4240,9 @@ importers:
       '@r10c/business-ts-product-configuration-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/product-configuration-management
+      '@r10c/business-ts-saga-contracts':
+        specifier: workspace:*
+        version: link:../../packages/business/ts/saga-contracts
       '@r10c/business-ts-sales-management':
         specifier: workspace:*
         version: link:../../packages/business/ts/sales-management
@@ -4303,6 +4312,9 @@ importers:
       '@r10c/shells-effect-stock':
         specifier: workspace:*
         version: link:../../packages/shells/effect/stock
+      '@r10c/shells-effect-transaction':
+        specifier: workspace:*
+        version: link:../../packages/shells/effect/transaction
 
 packages:
 

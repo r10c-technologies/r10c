@@ -148,14 +148,9 @@ export const cancellationInputs = (order: ProductOrder) => ({
  */
 const refusalOf = (order: ProductOrder, result: unknown) => {
   const orderId = String(order.id);
-  const outcomes = (result as { data?: { outcomes?: unknown } } | undefined)
-    ?.data?.outcomes;
-  const failed = Array.isArray(outcomes)
-    ? (outcomes.find(
-        (outcome: { error?: unknown }) => outcome.error !== undefined,
-      ) as { stepId?: string } | undefined)
-    : undefined;
-  return failed?.stepId === 'refund'
+  const refusedStep = (result as { refusedStep?: unknown } | undefined)
+    ?.refusedStep;
+  return refusedStep === 'refund'
     ? new RefundDeclined({ orderId })
     : new OrderNotCancellable({
         orderId,

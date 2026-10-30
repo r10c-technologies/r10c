@@ -49,7 +49,6 @@ export const errors: EsErrors = {
     'This order cannot be cancelled from here. The cancellation window may have closed.',
   invalidBody: 'The request body is not valid.',
   invalidQuery: 'The query is not valid.',
-  invalidCommand: 'The command is not valid.',
   notFound: 'The record was not found.',
   alreadyRetired: 'It was already retired.',
   // The one genuinely illegal move in an offering's lifecycle: taking down
@@ -92,6 +91,8 @@ export const errors: EsErrors = {
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
   stockUnavailable: 'The sale could not be completed. Check the stock on hand.',
+  sagaCompensated: 'The operation could not be completed, and nothing was changed.',
+  sagaStranded: 'The operation stopped partway and is being reviewed.',
   mixedCurrencies: 'One vendor’s amounts are in more than one currency.',
   unavailable: 'A service is unavailable right now. Try again in a moment.',
   invalid: 'Some of the data is not valid. Check the form.',

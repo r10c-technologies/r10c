@@ -16,12 +16,14 @@ export type SagaInputs = Readonly<Record<string, readonly SagaCallInput[]>>;
 /**
  * How a flow the coordinator ran ended, as its starter needs to tell it.
  *
- * - `completed` — every step ran (`201`).
+ * - `completed` — every step ran (`200`, the flow's result envelope).
  * - `compensated` — a step was refused before the pivot and everything taken
- *   was given back (`409`). An outcome the caller can act on, not an error.
+ *   was given back (`409`, a `sagaCompensated` problem). An outcome the caller
+ *   can act on, not an error.
  * - `failed` — stranded past the pivot, or the coordinator itself failed.
  *
- * `result` is the coordinator's own answer, which names the step that refused.
+ * `result` is the coordinator's own answer: the result envelope, or the
+ * problem whose `refusedStep` names the step that refused.
  */
 export type SagaStartOutcome =
   | { readonly _tag: 'completed'; readonly result: unknown }
@@ -65,7 +67,7 @@ export const sagaOutcomeFor = (
   status: number,
   result: unknown,
 ): SagaStartOutcome =>
-  status === 201
+  status === 200
     ? { _tag: 'completed', result }
     : status === 409
       ? { _tag: 'compensated', result }

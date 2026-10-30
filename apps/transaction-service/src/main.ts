@@ -3,7 +3,6 @@ import {
   endpoints,
   makeAppLayer,
   policy,
-  router,
 } from '@r10c/shells-effect-transaction';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
@@ -28,6 +27,5 @@ makeService({
   description: fleetToken,
   endpoints,
   policy,
-  router,
   appLayer: makeAppLayer(),
 });

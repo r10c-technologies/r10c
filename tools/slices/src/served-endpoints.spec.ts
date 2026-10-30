@@ -9,6 +9,7 @@ import { endpoints as salesEndpoints } from '@r10c/shells-effect-sales';
 import { serviceBaseGroup } from '@r10c/shells-effect-service';
 import { endpoints as settlementEndpoints } from '@r10c/shells-effect-settlement';
 import { endpoints as stockEndpoints } from '@r10c/shells-effect-stock';
+import { endpoints as transactionEndpoints } from '@r10c/shells-effect-transaction';
 import { describe, expect, it } from 'vitest';
 
 import { SLICES } from './registry.js';
@@ -29,6 +30,7 @@ const SERVED: Readonly<Record<string, readonly AnyEndpointGroup[]>> = {
   sales: salesEndpoints,
   settlement: settlementEndpoints,
   stock: stockEndpoints,
+  transaction: transactionEndpoints,
 };
 
 /**

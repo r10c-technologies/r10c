@@ -248,18 +248,11 @@ describe('cancelOrderAsStaff', () => {
   it('names the refund as the refusal when the flow compensated there, and reports a stranded flow', async () => {
     const refundRefused = world([orderOf('o-1', 'paid')], {
       _tag: 'compensated',
-      result: {
-        data: {
-          outcomes: [
-            { stepId: 'claim' },
-            { stepId: 'refund', error: 'declined' },
-          ],
-        },
-      },
+      result: { code: 'sagaCompensated', refusedStep: 'refund' },
     });
     const otherRefused = world([orderOf('o-2', 'paid')], {
       _tag: 'compensated',
-      result: { data: { outcomes: [{ stepId: 'claim', error: 'conflict' }] } },
+      result: { code: 'sagaCompensated', refusedStep: 'claim' },
     });
     const noOutcomes = world([orderOf('o-3', 'paid')], {
       _tag: 'compensated',

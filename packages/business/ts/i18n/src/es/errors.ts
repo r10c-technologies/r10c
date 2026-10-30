@@ -54,7 +54,6 @@ export const errors = {
   cancelNotAuthorized:
     'Este pedido no se puede cancelar desde aquí. Puede que el plazo de cancelación haya terminado.',
   invalidQuery: 'La consulta no es válida.',
-  invalidCommand: 'El comando no es válido.',
   notFound: 'No se encontró el registro.',
   // Un fallo *por fila* de una acción masiva: el registro ya estaba en el
   // estado pedido, así que no se escribió nada. No es un error de la ejecución
@@ -115,6 +114,8 @@ export const errors = {
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
   stockUnavailable: 'No se pudo completar la venta. Revisa la existencia.',
+  sagaCompensated: 'No se pudo completar la operación y no se cambió nada.',
+  sagaStranded: 'La operación se detuvo a medias y se está revisando.',
   mixedCurrencies:
     'Los montos de un mismo vendedor están en más de una moneda.',
   unavailable:

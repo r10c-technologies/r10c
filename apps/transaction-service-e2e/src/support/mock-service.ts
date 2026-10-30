@@ -31,7 +31,6 @@ import {
   HttpSagaDispatcherLayer,
   ParticipantsTag,
   policy,
-  router,
   sagaStoresLayer,
   SERVICE_NAME,
 } from '@r10c/transaction-service';
@@ -104,7 +103,7 @@ const SEEDED_SAGAS = {
  * ⚠️ **No AMQP layer and no tracker.** `startTracking` subscribes to the bus and
  * forks a recovery sweep; neither is reachable through the routes this suite
  * exercises, and a fake broker would only assert that the fake works. What runs
- * here is the real router over a fake Mongo — the guards, the organization
+ * here are the real endpoints over a fake Mongo — the guards, the organization
  * scoping and the SSE handshake, which is exactly what #194 and ADR 0036 are
  * about.
  *
@@ -147,7 +146,7 @@ const MockAppLayer = Layer.provideMerge(
   ),
 ).pipe(Layer.orDie);
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
@@ -156,6 +155,5 @@ export const startMockService = (): Promise<RunningTestService> =>
     description: fleetToken,
     endpoints,
     policy,
-    router,
     appLayer: MockAppLayer,
   });
