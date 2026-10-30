@@ -4,7 +4,7 @@ import coreWebVitalsConfig from 'eslint-config-next/core-web-vitals';
 
 import baseConfig from '../../eslint.config.mjs';
 
-export default [
+const config = [
   ...nextConfig,
   ...coreWebVitalsConfig,
   ...baseConfig,
@@ -16,3 +16,5 @@ export default [
     ignores: ['.next/**/*', '**/out-tsc'],
   },
 ];
+
+export default config;

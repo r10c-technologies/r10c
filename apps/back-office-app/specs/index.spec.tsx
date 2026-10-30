@@ -1,5 +1,4 @@
 import { render } from '@testing-library/react';
-import React from 'react';
 import { vi } from 'vitest';
 
 // The page resolves its own copy on the server; the catalog is covered in

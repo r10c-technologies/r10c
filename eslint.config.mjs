@@ -347,10 +347,14 @@ const techConstraints = [
     bannedExternalImports: [...COMPOSITION_ONLY, ...both(['next'])],
   },
   { sourceTag: 'tech:next', bannedExternalImports: COMPOSITION_ONLY },
+  // An http cell holds descriptors and nothing that serves them (ADR 0071):
+  // the slice shell builds the API, so `effect/http*` and the service shell
+  // are its imports, never the cell's.
   {
     sourceTag: 'tech:http',
     bannedExternalImports: [
       ...COMPOSITION_ONLY,
+      ...both(['effect/http', 'effect/http-api', '@entifix/service-shell']),
       ...both(['react', 'react-dom', 'next']),
       ...both([
         '@entifix/react-controls',
