@@ -5,7 +5,6 @@ import {
   Invalid,
   openStruct,
   registerEvent,
-  type TransitionalFailure,
 } from '@entifix/core';
 import { Effect, Schema } from 'effect';
 
@@ -237,7 +236,7 @@ const optionalString = (value: unknown): string | undefined =>
  */
 export const readCatalogPublication = (
   data: unknown,
-): Effect.Effect<CatalogPublication, TransitionalFailure> =>
+): Effect.Effect<CatalogPublication, Invalid> =>
   Effect.map(
     Schema.decodeUnknownEffect(CatalogPublicationSchema)(data, {
       errors: 'all',

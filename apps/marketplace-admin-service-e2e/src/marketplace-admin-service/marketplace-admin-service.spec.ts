@@ -162,11 +162,16 @@ describe('media on a product specification', () => {
       data: { id: 'product-2', ...specification(media) },
     });
 
+  // A create is claimed on its key in the unit of work, so it carries one.
   const post = (media: unknown) =>
-    service.client.post('/api/product-specification', {
-      meta: { type: 'entity', entity: 'product-specification' },
-      data: specification(media),
-    });
+    service.client.post(
+      '/api/product-specification',
+      {
+        meta: { type: 'entity', entity: 'product-specification' },
+        data: specification(media),
+      },
+      { headers: { 'idempotency-key': `"${crypto.randomUUID()}"` } },
+    );
 
   it.each([
     [

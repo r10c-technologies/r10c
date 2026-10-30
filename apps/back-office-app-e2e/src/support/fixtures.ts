@@ -1,3 +1,4 @@
+import { describeEntityUseCases } from '@entifix/core';
 import {
   configurationHandler,
   entityBackendHandlers,
@@ -13,7 +14,10 @@ import {
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import {
+  ProductOffering,
+  ProductSpecification,
+} from '@r10c/business-ts-product-configuration-management';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 import {
   Agreement,
@@ -262,6 +266,61 @@ const sellHandlers = [
   ),
 ];
 
+/**
+ * Two draft offerings, one priced and one not: the pair a bulk publish needs
+ * to show it reports each row on its own.
+ */
+const offerings = entityBackendHandlers(ProductOffering, {
+  baseUrl: `${SERVICE_URL}/product-offering`,
+  seed: [
+    {
+      id: 'offering-priced',
+      name: 'Taza esmaltada',
+      specificationId: 'product-1',
+      status: 'draft',
+    },
+    {
+      id: 'offering-unpriced',
+      name: 'Plato hondo',
+      specificationId: 'product-1',
+      status: 'draft',
+    },
+  ],
+});
+
+/**
+ * The offering screen's affordance document, with the verbs the entity really
+ * declares — `publish` and `unpublish`, on a record and over a selection — so
+ * the bulk bar renders what the service would offer.
+ */
+const offeringMetadataHandlers = [
+  http.get(`${APP_URL}/api/admin/product-offering/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'product-offering' },
+      data: {
+        actions: ['read', 'write', 'delete'],
+        useCases: describeEntityUseCases(ProductOffering),
+      },
+    }),
+  ),
+];
+
+/**
+ * A bulk publish, answered as the service does: per row, the unpriced
+ * offering refused with the code the toast translates.
+ */
+const bulkPublishHandlers = [
+  http.post(`${SERVICE_URL}/product-offering/publish`, () =>
+    HttpResponse.json({
+      meta: { type: 'bulkOutcome', entity: 'product-offering' },
+      data: [
+        { id: 'offering-priced', ok: true },
+        { id: 'offering-unpriced', ok: false, code: 'offeringHasNoPrice' },
+      ],
+    }),
+  ),
+];
+
 /** The mock channel store, for reseeding or for breaking on purpose. */
 export const salesChannelBackend = salesChannels.backend;
 
@@ -317,6 +376,9 @@ const base = defineEntifixE2eTest({
     ...stockMetadataHandlers,
     ...salesMetadataHandlers,
     ...publishedOfferings.handlers,
+    ...offerings.handlers,
+    ...offeringMetadataHandlers,
+    ...bulkPublishHandlers,
     ...sellHandlers,
     ...createHandlers,
   ],

@@ -27,6 +27,9 @@
       "path": "../../packages/business/ts/sales-management"
     },
     {
+      "path": "../../packages/business/ts/product-configuration-management"
+    },
+    {
       "path": "../../packages/business/ts/payment-management"
     },
     {

@@ -33,8 +33,12 @@ export const marketplaceAdminSlice: SliceDeclaration = {
   // platform reference data, not per-vendor rows, so this slice stopped serving
   // them rather than becoming a second writer.
   exposedAPIs: [
-    'GET|POST|PUT|DELETE /api/product-specification',
-    'GET|POST|PUT|DELETE /api/product-offering',
+    'GET|POST /api/product-specification',
+    'GET|PUT|DELETE /api/product-specification/:id',
+    'GET /api/product-specification/$metadata',
+    'GET|POST /api/product-offering',
+    'GET|PUT|DELETE /api/product-offering/:id',
+    'GET /api/product-offering/$metadata',
     // The two declared verbs. They are their own routes rather than a status
     // field on the `PUT` above, because ADR 0026 gives each its own permission
     // segment — a route guarded by `write` would let anyone who can edit a
@@ -46,7 +50,9 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     // the other.
     'POST /api/product-offering/publish',
     'POST /api/product-offering/unpublish',
-    'GET|POST|PUT|DELETE /api/product-offering-price',
+    'GET|POST /api/product-offering-price',
+    'GET|PUT|DELETE /api/product-offering-price/:id',
+    'GET /api/product-offering-price/$metadata',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   // The `marketplace` slice consumes both to write the `published-catalog`

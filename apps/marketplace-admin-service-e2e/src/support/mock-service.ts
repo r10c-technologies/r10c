@@ -43,7 +43,6 @@ import {
 import {
   endpoints,
   policy,
-  router,
   seedCatalog,
   SERVICE_NAME,
 } from '@r10c/marketplace-admin-service';
@@ -190,7 +189,7 @@ const MockAppLayerWithObservability = Layer.merge(
   MockAppLayer,
 );
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
@@ -202,6 +201,5 @@ export const startMockService = (): Promise<RunningTestService> =>
     description: fleetToken,
     endpoints,
     policy,
-    router,
     appLayer: MockAppLayerWithObservability,
   });

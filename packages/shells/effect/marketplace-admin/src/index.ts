@@ -9,5 +9,5 @@ export {
   marketplaceAdminComposition,
   type MarketplaceAdminShellOptions,
 } from './app-layer.js';
+export { endpoints, policy } from './endpoints.js';
 export { rebuildAndReport, startRebuildWalk } from './rebuild-walk.js';
-export { endpoints, policy, router } from './router.js';

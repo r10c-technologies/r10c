@@ -1,4 +1,4 @@
-import type { TransitionalFailure } from '@entifix/core';
+import type { Invalid, StoreFailure } from '@entifix/core';
 import type { CatalogEvent } from '@r10c/business-ts-catalog-contracts';
 import { Context, type Effect } from 'effect';
 
@@ -22,7 +22,7 @@ export interface OfferingCatalog {
     offering: ProductOffering,
     from: ProductOffering['status'],
     event: CatalogEvent,
-  ) => Effect.Effect<'committed' | 'changed', TransitionalFailure>;
+  ) => Effect.Effect<'committed' | 'changed', StoreFailure | Invalid>;
   /**
    * Put one publication back on the outbox for the rebuild walk (ADR 0050):
    * `alreadyAnnounced` when the outbox holds it, `revived` when it held it
@@ -33,7 +33,7 @@ export interface OfferingCatalog {
     event: CatalogEvent,
   ) => Effect.Effect<
     'announced' | 'revived' | 'alreadyAnnounced',
-    TransitionalFailure
+    StoreFailure | Invalid
   >;
 }
 
@@ -54,7 +54,7 @@ export interface SpecificationCommands {
     organizationId: string,
     specification: ProductSpecification,
     idempotencyKey: string | undefined,
-  ) => Effect.Effect<ProductSpecification, TransitionalFailure>;
+  ) => Effect.Effect<ProductSpecification, StoreFailure | Invalid>;
 }
 
 export class SpecificationCommandsTag extends Context.Service<

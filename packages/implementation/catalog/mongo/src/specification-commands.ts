@@ -119,6 +119,9 @@ export const MongoSpecificationCommandsLayer = Layer.effect(
           return (yield* deserializeSingleEntity(
             ProductSpecification,
             replayed,
+          ).pipe(
+            // A stored answer that will not revive is the store failing.
+            Effect.mapError(() => new Unavailable({ dependency: 'mongo' })),
           )) as ProductSpecification;
         }),
     };

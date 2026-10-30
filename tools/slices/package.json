@@ -41,6 +41,7 @@
     "@r10c/shells-effect-auth": "workspace:*",
     "@r10c/shells-effect-config": "workspace:*",
     "@r10c/shells-effect-marketplace": "workspace:*",
+    "@r10c/shells-effect-marketplace-admin": "workspace:*",
     "@r10c/shells-effect-order": "workspace:*",
     "@r10c/shells-effect-payment": "workspace:*",
     "@r10c/shells-effect-sales": "workspace:*",

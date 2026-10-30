@@ -115,10 +115,10 @@ describe('Every emitted error code is cataloged', () => {
     // moves its refusals into failure classes, which `failure-registry.spec.ts`
     // checks instead (ADR 0071) — so each migration lowers this to what it
     // left, and a drop it did not make means a matcher stopped matching.
-    expect(found.length).toBeGreaterThanOrEqual(10);
+    expect(found.length).toBeGreaterThanOrEqual(5);
     expect(
       new Set(found.map(emission => emission.file)).size,
-    ).toBeGreaterThanOrEqual(5);
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it('has a sentence for every code a service answers with', () => {

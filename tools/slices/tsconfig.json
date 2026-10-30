@@ -30,6 +30,9 @@
       "path": "../../packages/shells/effect/order"
     },
     {
+      "path": "../../packages/shells/effect/marketplace-admin"
+    },
+    {
       "path": "../../packages/shells/effect/marketplace"
     },
     {

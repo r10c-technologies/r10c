@@ -19,7 +19,6 @@ import {
   makeAppLayer,
   marketplaceAdminComposition,
   rebuildAndReport,
-  router,
   startRebuildWalk,
 } from './index.js';
 
@@ -55,7 +54,6 @@ describe('the marketplace-admin shell', () => {
 
   it('offers the booted composition as a layer', () => {
     expect(Layer.isLayer(makeAppLayer({ seed }))).toBe(true);
-    expect(Layer.isLayer(router)).toBe(true);
   });
 });
 

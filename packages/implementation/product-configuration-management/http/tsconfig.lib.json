@@ -17,6 +17,12 @@
       "path": "../../../business/ts/product-configuration-management/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/common/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/catalog-contracts/tsconfig.lib.json"
+    },
+    {
       "path": "../../../testing/http"
     },
     {

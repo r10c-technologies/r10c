@@ -278,6 +278,29 @@ describe('creating a specification', () => {
     expect(w.fake.read(SPECIFICATION_COLLECTION)).toHaveLength(1);
   });
 
+  it('fails as the store when the answer it stored will not revive', async () => {
+    // A command already claimed, whose stored answer is not a record.
+    const w = world({
+      command_inbox: [
+        {
+          commandId: 'key-2',
+          claimedAt: new Date().toISOString(),
+          replay: 'not a record',
+        },
+      ],
+    });
+
+    const failure = await w.run(
+      Effect.flip(
+        Effect.flatMap(SpecificationCommandsTag, commands =>
+          commands.create('acme', named('A widget'), 'key-2'),
+        ),
+      ),
+    );
+
+    expect(failure).toMatchObject({ _tag: 'Unavailable', dependency: 'mongo' });
+  });
+
   it('writes nothing and spends no code when the record cannot be written', async () => {
     const w = world();
     w.fake.failOn('insertOne', new Error('disk full'));
