@@ -420,7 +420,17 @@ const specConstraints = sourceConstraints.map(c =>
         },
 );
 
-const allowEslintConfig = ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'];
+/**
+ * The root's own build configuration, which a project's config file reaches by
+ * relative path because the root is no package to import by name: the shared
+ * ESLint config, and the externals every service's webpack config is built
+ * with (`tools/webpack-externals.cjs`). Named files, so nothing else under the
+ * root becomes reachable through this.
+ */
+const allowRootConfig = [
+  '^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$',
+  '^.*/tools/webpack-externals\\.cjs$',
+];
 
 /**
  * What an Effect service's `src/` may not import (ADR 0064): apps only mount.
@@ -577,7 +587,7 @@ export default [
         'error',
         {
           enforceBuildableLibDependency: true,
-          allow: allowEslintConfig,
+          allow: allowRootConfig,
           depConstraints: sourceConstraints,
         },
       ],
@@ -593,7 +603,7 @@ export default [
         'error',
         {
           enforceBuildableLibDependency: false,
-          allow: allowEslintConfig,
+          allow: allowRootConfig,
           depConstraints: specConstraints,
         },
       ],
@@ -757,7 +767,7 @@ export const serviceE2eConfig = {
       'error',
       {
         enforceBuildableLibDependency: false,
-        allow: [...allowEslintConfig, '^@r10c/[a-z-]+-service$'],
+        allow: [...allowRootConfig, '^@r10c/[a-z-]+-service$'],
         depConstraints: specConstraints,
       },
     ],
