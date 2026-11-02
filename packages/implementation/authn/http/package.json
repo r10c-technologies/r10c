@@ -48,7 +48,7 @@
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-i18n": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.6"
+    "effect": "4.1.0"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",

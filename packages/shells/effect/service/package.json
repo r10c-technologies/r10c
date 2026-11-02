@@ -57,7 +57,7 @@
     "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.6",
+    "effect": "4.1.0",
     "mongodb": "7.7.0"
   },
   "devDependencies": {

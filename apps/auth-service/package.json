@@ -106,7 +106,7 @@
     "@r10c/shells-effect-auth": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
-    "effect": "4.0.6",
+    "effect": "4.1.0",
     "ioredis": "6.0.0",
     "jose": "6.2.13",
     "mongodb": "7.7.0",
