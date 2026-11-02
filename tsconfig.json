@@ -214,9 +214,6 @@
       "path": "./packages/implementation/configuration/http"
     },
     {
-      "path": "./packages/testing/http"
-    },
-    {
       "path": "./packages/implementation/payment/mongo"
     },
     {

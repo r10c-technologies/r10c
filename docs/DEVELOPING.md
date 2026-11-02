@@ -615,8 +615,8 @@ and the scope of the slice that owns its domain.
   `vitest` as an optional peer. The package's own spec runs the suite against
   the double; every implementation's spec runs it against itself. HTTP specs
   use the double rather than writing their own.
-- The helpers cell specs share are `@r10c/testing-cells`: `tokenClaims` and
-  `crossingCall` at `.`, `mongoCellWorld` and `failNth` at `./mongo`.
+- The helpers cell specs share are `@r10c/testing-cells/mongo`:
+  `mongoCellWorld` and `failNth`.
 - ⚠️ A refusal is a registered failure, never a hand-written `{ error, code }`
   body: `@r10c/i18n-check` reads the codes from the failure registry, so a code
   that is not a failure's is one no gate can see.

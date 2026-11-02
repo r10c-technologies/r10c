@@ -47,7 +47,6 @@
     "@swc/helpers": "0.5.23"
   },
   "devDependencies": {
-    "@entifix/testing-unit": "catalog:",
-    "@r10c/testing-http": "workspace:*"
+    "@entifix/testing-unit": "catalog:"
   }
 }

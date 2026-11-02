@@ -17,9 +17,6 @@
       "path": "../../../business/ts/sales-management/tsconfig.lib.json"
     },
     {
-      "path": "../../../testing/http"
-    },
-    {
       "path": "../../../testing/cells"
     },
     {

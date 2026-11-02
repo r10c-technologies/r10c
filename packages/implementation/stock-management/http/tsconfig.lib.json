@@ -20,9 +20,6 @@
       "path": "../../../business/ts/common/tsconfig.lib.json"
     },
     {
-      "path": "../../../testing/http"
-    },
-    {
       "path": "../../../testing/cells"
     }
   ],
