@@ -58,7 +58,7 @@ describe('the sales-channel declaration', () => {
         SagaStarterTag,
         makeScriptedSagaStarter((_definition, _inputs, key) => {
           keys.push(key);
-          return { status: 201, body: { flow: 'done' } };
+          return { status: 200, body: { flow: 'done' } };
         }),
       ),
       Layer.succeed(IdempotencyKeyTag, 'sale-key-1'),

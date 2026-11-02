@@ -46,7 +46,7 @@ const world = (orders: ProductOrder[] = []) => {
   for (const order of orders) Effect.runSync(store.place(order, undefined));
   const sagas = makeScriptedSagaStarter(definition => {
     if (definition !== 'cancellation') return undefined;
-    return { status: 201, body: {} };
+    return { status: 200, body: {} };
   });
   const layer = Layer.mergeAll(
     Layer.succeed(ProductOrderStoreTag, store),
