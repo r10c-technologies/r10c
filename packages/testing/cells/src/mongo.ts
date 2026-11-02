@@ -1,8 +1,15 @@
 import { MongoDatabaseTag } from '@entifix/mongo';
-import { makeMongoUnitOfWork, MongoUnitOfWorkTag } from '@entifix/mongo/transactions';
+import {
+  makeMongoUnitOfWork,
+  MongoUnitOfWorkTag,
+} from '@entifix/mongo/transactions';
 import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
-import { EventBusTag, EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import { Effect, Layer } from 'effect';
 import type { Db } from 'mongodb';
 
@@ -40,7 +47,14 @@ export const mongoCellWorld = <A, E>(
         Layer.succeed(MongoDatabaseTag, db),
         Layer.succeed(
           MongoUnitOfWorkTag,
-          makeMongoUnitOfWork({ client: fake as never, db }),
+          // The fake opens sessions with the transaction methods the unit
+          // calls, not a driver `ClientSession`, so it is asserted to be one.
+          makeMongoUnitOfWork({
+            client: fake as unknown as Parameters<
+              typeof makeMongoUnitOfWork
+            >[0]['client'],
+            db,
+          }),
         ),
         Layer.succeed(EventBusTag, bus),
         Layer.succeed(OutboxMaxAttempts, 3),

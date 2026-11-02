@@ -1,17 +1,12 @@
-import {
-  EntityLoadRequestTag,
-  type EntityRepositoryTag,
-  loadUCFactory,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import type {
   EntifixFailure,
-  Entity,
   EntityLoadRequest,
   EntityPage,
 } from '@entifix/core';
 import { categorised } from '@r10c/business-ts-common';
 import type { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
-import { Context, Effect } from 'effect';
+import { Effect } from 'effect';
 
 /**
  * What every read here requires: the `PublishedVendor` repository, and nothing
@@ -31,15 +26,19 @@ export type VendorRead<A> = Effect.Effect<
  */
 export const VENDOR_PAGE_SIZE = 200;
 
-/** The cast `offerings.ts` explains: a filter names a member of one entity. */
+/**
+ * Straight through the repository, typed by the entity, for the reason
+ * `offerings.ts` gives: the load use case's request tag carries no entity type.
+ */
 const load = (
-  request: EntityLoadRequest<Entity>,
+  request: EntityLoadRequest<PublishedVendor>,
 ): VendorRead<EntityPage<PublishedVendor>> =>
   categorised(
-    loadUCFactory<PublishedVendor>().pipe(
-      Effect.provide(Context.make(EntityLoadRequestTag, request)),
-    ),
-  ) as VendorRead<EntityPage<PublishedVendor>>;
+    Effect.gen(function* () {
+      const repository = yield* EntityRepositoryTag;
+      return yield* repository.load<PublishedVendor>(request);
+    }),
+  );
 
 /**
  * The sellers named by `vendorIds`, or every seller when none are given —
@@ -63,9 +62,9 @@ export const loadVendors = (
                   operator: 'in',
                   values: [...vendorIds],
                 },
-              ] as never,
+              ],
             }),
-        sorting: [{ 0: { property: 'displayName', type: 'asc' } }] as never,
+        sorting: [{ 0: { property: 'displayName', type: 'asc' } }],
         pageSize: VENDOR_PAGE_SIZE,
       }).pipe(Effect.map(page => page.items));
 
@@ -80,8 +79,6 @@ export const getVendor = (
   vendorId: string,
 ): VendorRead<PublishedVendor | undefined> =>
   load({
-    filtering: [
-      { property: 'vendorId', operator: 'eq', value: vendorId },
-    ] as never,
+    filtering: [{ property: 'vendorId', operator: 'eq', value: vendorId }],
     pageSize: 1,
   }).pipe(Effect.map(page => page.items[0]));

@@ -1,14 +1,12 @@
-import {
-  EntityLoadRequestTag,
-  type EntityRepositoryTag,
-  loadUCFactory,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import {
   ancestorsOf,
   type EntifixFailure,
   type Entity,
+  type EntityFilter,
   type EntityLoadRequest,
   type EntityPage,
+  type EntitySorting,
 } from '@entifix/core';
 import {
   CATEGORY_KEYS,
@@ -17,7 +15,7 @@ import {
   type ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
 import { categorised } from '@r10c/business-ts-common';
-import { Context, Effect } from 'effect';
+import { Effect } from 'effect';
 
 /**
  * What every read here requires: **one entity's** repository, and nothing
@@ -47,23 +45,27 @@ export type VocabularyRead<A> = Effect.Effect<
 export const VOCABULARY_PAGE_SIZE = 200;
 
 /**
- * The generic load use case over whatever repository the caller provided.
+ * One entity's read, straight through the repository the caller provided.
  *
- * The cast is the one every read here needs: an `EntityLoadRequest` is
- * parameterized by the entity it filters, and a filter is a member *name*, so
- * two instantiations never overlap structurally even though the value is the
- * same.
+ * Not through the load use case: its request tag carries no entity type, so
+ * every filter and sort here would need a cast that the typed
+ * `repository.load<TEntity>` does not — the same reason `offerings.ts` reads
+ * this way.
  */
 const load = <TEntity extends Entity>(
-  request: EntityLoadRequest<Entity>,
+  request: EntityLoadRequest<TEntity>,
 ): VocabularyRead<EntityPage<TEntity>> =>
   categorised(
-    loadUCFactory<TEntity>().pipe(
-      Effect.provide(Context.make(EntityLoadRequestTag, request)),
-    ),
-  ) as VocabularyRead<EntityPage<TEntity>>;
+    Effect.gen(function* () {
+      const repository = yield* EntityRepositoryTag;
+      return yield* repository.load<TEntity>(request);
+    }),
+  );
 
-const BY_NAME = [{ 0: { property: 'name', type: 'asc' } }] as never;
+/** Both vocabularies list by name. */
+const byName = <TEntity extends ProductBrand | ProductCategory>(): Array<
+  EntitySorting<TEntity>
+> => [{ 0: { property: 'name', type: 'asc' } }];
 
 /**
  * Only what is still offered for classification.
@@ -76,13 +78,17 @@ const BY_NAME = [{ 0: { property: 'name', type: 'asc' } }] as never;
  * ({@link loadBrands}, {@link getBrand}, {@link getCategory}) read the whole
  * vocabulary, and only the browse readers narrow it.
  */
-const ACTIVE = { property: 'status', operator: 'eq', value: 'active' } as const;
+const ACTIVE: EntityFilter<ProductCategory> = {
+  property: 'status',
+  operator: 'eq',
+  value: 'active',
+};
 
 /** Every active category, for the nav strip. Reads `ProductCategory`. */
 export const loadCategories = (): VocabularyRead<EntityPage<ProductCategory>> =>
   load<ProductCategory>({
-    filtering: [ACTIVE] as never,
-    sorting: BY_NAME,
+    filtering: [ACTIVE],
+    sorting: byName(),
     pageSize: VOCABULARY_PAGE_SIZE,
   });
 
@@ -112,7 +118,7 @@ export const loadCategorySubtree = (id: string): VocabularyRead<string[]> =>
 /** Every category, retired ones included, for naming what an offering points at. */
 const loadEveryCategory = (): VocabularyRead<EntityPage<ProductCategory>> =>
   load<ProductCategory>({
-    sorting: BY_NAME,
+    sorting: byName(),
     pageSize: VOCABULARY_PAGE_SIZE,
   });
 
@@ -157,7 +163,7 @@ export const loadCategoryChildren = (
  */
 export const loadBrands = (): VocabularyRead<EntityPage<ProductBrand>> =>
   load<ProductBrand>({
-    sorting: BY_NAME,
+    sorting: byName(),
     pageSize: VOCABULARY_PAGE_SIZE,
   });
 
@@ -173,10 +179,7 @@ export const getCategoryByCode = (
   code: string,
 ): VocabularyRead<ProductCategory | undefined> =>
   load<ProductCategory>({
-    filtering: [
-      { property: 'code', operator: 'eq', value: code },
-      ACTIVE,
-    ] as never,
+    filtering: [{ property: 'code', operator: 'eq', value: code }, ACTIVE],
     pageSize: 1,
   }).pipe(Effect.map(page => page.items[0]));
 

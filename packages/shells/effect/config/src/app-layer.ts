@@ -25,7 +25,7 @@ import {
   ConfigurationRepositoryFactoryLayer,
   ConfigurationWriterLayer,
 } from '@r10c/implementation-configuration-sql';
-import { Config, Effect, Layer, Redacted } from 'effect';
+import { Array as Arr, Config, Effect, Layer, Redacted } from 'effect';
 import { SqlClient } from 'effect/sql';
 
 /**
@@ -161,9 +161,11 @@ export const migrateAndSeed = (rows: ReadonlyArray<ConfigurationRow>) =>
       is_secret: row.is_secret ?? false,
     }));
 
-    yield* sql`INSERT INTO configuration ${sql.insert(
-      seed as unknown as Record<string, unknown>[],
-    )} ON CONFLICT (service, group_name, key) DO NOTHING`;
+    // `sql.insert` takes a non-empty array: an empty seed is no INSERT.
+    if (Arr.isArrayNonEmpty(seed))
+      yield* sql`INSERT INTO configuration ${sql.insert(
+        seed,
+      )} ON CONFLICT (service, group_name, key) DO NOTHING`;
   });
 
 /**

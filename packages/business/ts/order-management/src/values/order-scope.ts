@@ -126,21 +126,18 @@ export const orderNarrowing: readonly ResolutionRule<
     name: 'operator',
     impl: () => 'unscoped',
   }),
-  When(
-    context =>
-      context.partyRole === VENDOR && context.organizationId !== undefined,
-  ).use({
+  When(context => context.partyRole === VENDOR).use({
     name: 'vendor',
-    impl: context => ({
-      operator: 'and',
-      values: [
-        {
-          property: VENDOR_PATH,
-          operator: 'eq',
-          value: context.organizationId as never,
-        },
-      ],
-    }),
+    // A vendor session with no organization owns nothing to be shown.
+    impl: ({ organizationId }) =>
+      organizationId === undefined
+        ? 'nothing'
+        : {
+            operator: 'and',
+            values: [
+              { property: VENDOR_PATH, operator: 'eq', value: organizationId },
+            ],
+          },
   }),
   When(
     context => context.partyRole !== VENDOR && context.partyId !== undefined,

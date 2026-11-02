@@ -7,6 +7,7 @@
 - Read when: writing the spec for a `mongo`, `sql`, `redis` or `http` cell, or a cell misses the 100% gate — fake the driver one level below the adapter, run every port's contract suite, and prove a race against the live lab
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — `describeFailureContract` from `@entifix/testing-unit` joins every cell's suite: each failure a package defines is registered, categorised, and round-trips through its problem body without a stack
 - Revised: 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md) — a use case with variants runs its contract suite once per variant through `forEachVariant`
+- Revised: 2026-11-02 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — an HTTP cell's spec calls its handlers directly; `serveRoutes` and `@r10c/testing-http` are gone with the hand routers
 
 ## Context
 
@@ -68,13 +69,15 @@ explicit transactions, with real rollback) and the `describe*Contract` suites in
     row and the suite asks about one write at a time. The Mongo fakes can
     model atomicity but never interleaving, so no suite asserts a race; each
     says which race it leaves to the live pass.
-- **An HTTP cell is tested in process**, through `serveRoutes` from
-  `@r10c/testing-http` — Effect's own web handler, with no port and no runtime
-  — over in-memory doubles of its ports (`makeInMemoryUnitOfWork`, an in-memory
-  repository factory). Not the framework's `serveTestService`: that boots a
-  whole service, and a cell's boundary rule bans the runtime half in specs as
-  in source, rightly, because a cell must not choose how it is hosted. It never
-  imports a persistence cell, in its spec any more than in its source.
+- **An HTTP cell is tested by calling its handlers**: it holds descriptors and
+  the handlers that implement them, and serves nothing
+  ([ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)),
+  so its spec runs each handler directly over in-memory doubles of its ports
+  (`makeInMemoryUnitOfWork`, an in-memory repository factory). Serving — the
+  guards, the problem body, the status a failure answers — is the slice
+  shell's, and the shell's spec serves its API through `serveTestService`. A
+  cell never imports a persistence cell, in its spec any more than in its
+  source.
 - **What is pure moves to business and is tested there**: commission
   arithmetic, an order's scope and its cancel capability, an offering's
   lifecycle guard. A rule that needs no store has no reason to be tested

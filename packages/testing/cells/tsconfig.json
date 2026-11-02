@@ -10,9 +10,5 @@
     "rootDir": "."
   },
   "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../http"
-    }
-  ]
+  "references": []
 }

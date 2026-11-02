@@ -21,9 +21,6 @@
     },
     {
       "path": "../../../business/ts/authn/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../testing/http"
     }
   ],
   "exclude": [

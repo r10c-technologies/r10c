@@ -33,31 +33,31 @@ packages:
 # place a version is written. To see an unreleased entifix change here, use
 # `pnpm run entifix:local` (tools/entifix) — never a link or a file: specifier.
 catalog:
-  '@entifix/amqp': 0.12.1
-  '@entifix/authz': 0.12.1
-  '@entifix/business': 0.12.1
-  '@entifix/core': 0.12.1
-  '@entifix/i18n': 0.12.1
-  '@entifix/jwt': 0.12.1
-  '@entifix/mongo': 0.12.1
-  '@entifix/next-i18n': 0.12.1
-  '@entifix/next-shell': 0.12.1
-  '@entifix/posthog': 0.12.1
-  '@entifix/react-controls': 0.12.1
-  '@entifix/react-integration': 0.12.1
-  '@entifix/redis': 0.12.1
-  '@entifix/rest': 0.12.1
-  '@entifix/service-shell': 0.12.1
-  '@entifix/sql': 0.12.1
-  '@entifix/static': 0.12.1
-  '@entifix/style': 0.12.1
-  '@entifix/testing-auth': 0.12.1
-  '@entifix/testing-e2e': 0.12.1
-  '@entifix/testing-unit': 0.12.1
-  '@entifix/tooling': 0.12.1
-  '@entifix/transactions': 0.12.1
-  '@entifix/workflow': 0.12.1
-  '@entifix/zitadel': 0.12.1
+  '@entifix/amqp': 0.13.0
+  '@entifix/authz': 0.13.0
+  '@entifix/business': 0.13.0
+  '@entifix/core': 0.13.0
+  '@entifix/i18n': 0.13.0
+  '@entifix/jwt': 0.13.0
+  '@entifix/mongo': 0.13.0
+  '@entifix/next-i18n': 0.13.0
+  '@entifix/next-shell': 0.13.0
+  '@entifix/posthog': 0.13.0
+  '@entifix/react-controls': 0.13.0
+  '@entifix/react-integration': 0.13.0
+  '@entifix/redis': 0.13.0
+  '@entifix/rest': 0.13.0
+  '@entifix/service-shell': 0.13.0
+  '@entifix/sql': 0.13.0
+  '@entifix/static': 0.13.0
+  '@entifix/style': 0.13.0
+  '@entifix/testing-auth': 0.13.0
+  '@entifix/testing-e2e': 0.13.0
+  '@entifix/testing-unit': 0.13.0
+  '@entifix/tooling': 0.13.0
+  '@entifix/transactions': 0.13.0
+  '@entifix/workflow': 0.13.0
+  '@entifix/zitadel': 0.13.0
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false
@@ -81,6 +81,11 @@ overrides:
   # (#426), not on its own. `.github/dependabot.yml` holds the same line, and
   # both are lifted together.
   '@opentelemetry/api': 1.9.1
+  # The one @effect package r10c never names: @effect/platform-node asks for
+  # it on a caret range, which floats it onto 4.1 while entifix holds the
+  # family on 4.0.6 — and 4.1's build imports modules effect 4.0 does not
+  # have. Moves with the rest of the family.
+  '@effect/platform-node-shared': 4.0.6
 minimumReleaseAgeExclude:
   # Our own framework: a release is adopted the day it ships, and the age gate
   # exists for third-party supply chain, not for a scope this organization

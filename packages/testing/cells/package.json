@@ -5,10 +5,6 @@
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
-    ".": {
-      "@r10c/source": "./src/index.ts",
-      "default": "./src/index.ts"
-    },
     "./mongo": {
       "@r10c/source": "./src/mongo.ts",
       "default": "./src/mongo.ts"
@@ -22,14 +18,10 @@
     "sourceRoot": "packages/testing/cells/src"
   },
   "dependencies": {
-    "@entifix/business": "catalog:",
-    "@entifix/core": "catalog:",
     "@entifix/mongo": "catalog:",
-    "@entifix/service-shell": "catalog:",
     "@entifix/testing-unit": "catalog:",
     "@entifix/transactions": "catalog:",
-    "@r10c/testing-http": "workspace:*",
     "effect": "4.0.6",
-    "mongodb": "7.7.0"
+    "mongodb": "7.8.0"
   }
 }

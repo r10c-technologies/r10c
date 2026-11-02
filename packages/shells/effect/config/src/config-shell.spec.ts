@@ -66,6 +66,20 @@ describe('the configuration store migration', () => {
     expect(seed?.params).toContain(true);
     expect(seed?.params).toContain(false);
   });
+
+  it('migrates an empty seed and inserts nothing', async () => {
+    const fake = makeFakeSqlClient();
+
+    await Effect.runPromise(
+      migrateAndSeed([]).pipe(
+        Effect.provideService(SqlClient.SqlClient, fake.client as never),
+      ),
+    );
+
+    const statements = fake.executions.map(execution => execution.sql);
+    expect(statements[0]).toContain('CREATE TABLE IF NOT EXISTS configuration');
+    expect(statements.some(sql => sql.includes('INSERT INTO'))).toBe(false);
+  });
 });
 
 describe('the token verification config-service reads from its own rows', () => {

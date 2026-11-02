@@ -17,16 +17,13 @@
       "path": "../service/tsconfig.lib.json"
     },
     {
+      "path": "../flow-catalog/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/saga-contracts/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/common/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../testing/http"
-    },
-    {
-      "path": "../flow-catalog/tsconfig.lib.json"
     }
   ],
   "exclude": [

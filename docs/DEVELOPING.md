@@ -615,8 +615,8 @@ and the scope of the slice that owns its domain.
   `vitest` as an optional peer. The package's own spec runs the suite against
   the double; every implementation's spec runs it against itself. HTTP specs
   use the double rather than writing their own.
-- The helpers cell specs share are `@r10c/testing-cells`: `tokenClaims` and
-  `crossingCall` at `.`, `mongoCellWorld` and `failNth` at `./mongo`.
+- The helpers cell specs share are `@r10c/testing-cells/mongo`:
+  `mongoCellWorld` and `failNth`.
 - ⚠️ A refusal is a registered failure, never a hand-written `{ error, code }`
   body: `@r10c/i18n-check` reads the codes from the failure registry, so a code
   that is not a failure's is one no gate can see.
@@ -1100,11 +1100,19 @@ can break the build.
 
 **entifix moves by the catalog, as one group.** Every `@entifix/*` dependency
 is written `catalog:`, and the version lives once, in `pnpm-workspace.yaml`.
-Dependabot's `entifix` group bumps all 23 together, which matters beyond
+Dependabot's `entifix` group bumps all 25 together, which matters beyond
 tidiness: [dependabot-core#14339](https://github.com/dependabot/dependabot-core/issues/14339)
 drops the catalog entries an update does not touch from the lock it writes, and
 a group that touches every entry leaves none to drop. The lock is regenerated
 before merge like any other.
+
+**What entifix pins moves with entifix.** An `effect` minor or major, and the
+drivers entifix pins exactly (`mongodb`, `amqplib`, `jose`), are held out of
+Dependabot here: a second copy beside the one entifix was built against breaks
+the seam between them, at the type level for a driver and at run time for
+effect. They arrive in the PR that adopts the entifix release built on them —
+which for effect 4.1 has not happened: entifix holds 4.0.6 because 4.1's
+cluster engine resumes a signalled wait late (#496).
 
 **A datastore driver major is not something CI can clear.** The e2e job runs
 `E2E_PROFILE: mock`, which replaces Redis, Mongo, RabbitMQ and config-service at

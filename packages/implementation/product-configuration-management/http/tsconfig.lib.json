@@ -23,9 +23,6 @@
       "path": "../../../business/ts/catalog-contracts/tsconfig.lib.json"
     },
     {
-      "path": "../../../testing/http"
-    },
-    {
       "path": "../../../testing/cells"
     }
   ],
