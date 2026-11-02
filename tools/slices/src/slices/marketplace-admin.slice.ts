@@ -18,21 +18,12 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     {
       name: 'catalog',
       plane: 'tenant',
-      // Also carries the transaction outbox — not an `@entity()` class, so it
-      // adds no host. It lives here rather than in a control-plane store so the
-      // entity write and the event announcing it are one single-database
-      // transaction (ADR 0028).
+      // Also carries the outbox and the specification code counter — neither an
+      // `@entity()` class, so they add no host. They live here rather than in a
+      // control-plane store so the entity write, the code it draws and the event
+      // announcing it are one single-database transaction (ADR 0028).
       hosts: ['product-configuration-management'],
       partitioning: 'per-organization',
-      truth: 'system-of-record',
-    },
-    {
-      name: 'saga-coordination',
-      plane: 'control',
-      // Locks and code sequences over Redis — no entities, and deliberately not
-      // the saga's own record, which is the `saga` store below.
-      hosts: [],
-      partitioning: 'single',
       truth: 'system-of-record',
     },
   ],
@@ -42,8 +33,12 @@ export const marketplaceAdminSlice: SliceDeclaration = {
   // platform reference data, not per-vendor rows, so this slice stopped serving
   // them rather than becoming a second writer.
   exposedAPIs: [
-    'GET|POST|PUT|DELETE /api/product-specification',
-    'GET|POST|PUT|DELETE /api/product-offering',
+    'GET|POST /api/product-specification',
+    'GET|PUT|DELETE /api/product-specification/:id',
+    'GET /api/product-specification/$metadata',
+    'GET|POST /api/product-offering',
+    'GET|PUT|DELETE /api/product-offering/:id',
+    'GET /api/product-offering/$metadata',
     // The two declared verbs. They are their own routes rather than a status
     // field on the `PUT` above, because ADR 0026 gives each its own permission
     // segment — a route guarded by `write` would let anyone who can edit a
@@ -55,7 +50,9 @@ export const marketplaceAdminSlice: SliceDeclaration = {
     // the other.
     'POST /api/product-offering/publish',
     'POST /api/product-offering/unpublish',
-    'GET|POST|PUT|DELETE /api/product-offering-price',
+    'GET|POST /api/product-offering-price',
+    'GET|PUT|DELETE /api/product-offering-price/:id',
+    'GET /api/product-offering-price/$metadata',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   // The `marketplace` slice consumes both to write the `published-catalog`
@@ -67,10 +64,6 @@ export const marketplaceAdminSlice: SliceDeclaration = {
   // therefore one delivery order. Two subscriptions would be two queues, two
   // independent orders, and a redelivered unpublication free to overtake a
   // newer publication.
-  publishedEvents: [
-    'transaction.*',
-    'catalog.published',
-    'catalog.unpublished',
-  ],
+  publishedEvents: ['catalog.published', 'catalog.unpublished'],
   subscriptions: [],
 };

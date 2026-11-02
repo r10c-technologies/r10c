@@ -1,11 +1,7 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import { EntifixConnError, type Entity } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
-import {
-  makeInMemoryEntityRepository,
-} from '@entifix/testing-unit';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
   Agreement,
   CommissionEntry,

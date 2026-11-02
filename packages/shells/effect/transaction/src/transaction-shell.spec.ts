@@ -1,16 +1,12 @@
 import { generateKeyPairSync } from 'node:crypto';
 
 import { ShutdownRegistryTag } from '@entifix/business';
-import type { DomainEvent } from '@entifix/core';
-import { makeRecordingEventBus } from '@entifix/testing-unit';
+import { SagaDispatcherTag, SagaStoreTag } from '@entifix/transactions';
 import {
-  EventBusTag,
-  SagaDispatcherTag,
-  SagaStoreTag,
-  TransactionStoreTag,
-  TransactionStreamHubTag,
-} from '@entifix/transactions';
-import { TransactionFoldTag } from '@r10c/business-ts-saga-contracts';
+  flowParticipants,
+  PARTICIPANT_DIALS,
+  participantDialKey,
+} from '@r10c/shells-effect-flow-catalog';
 import {
   configurationRows,
   fleetConfigurationOf,
@@ -18,18 +14,18 @@ import {
 import { Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { makeAppLayer, router, transactionComposition } from './index.js';
+import {
+  makeAppLayer,
+  makeRunnerLayer,
+  runnerComposition,
+  transactionComposition,
+} from './index.js';
 import {
   SagaMaxResumeAttempts,
   SagaResumeIntervalMs,
   SagaStaleAfterMs,
   startSagaResume,
 } from './saga/resume.js';
-import {
-  SagaRecoveryIntervalMs,
-  SagaStaleTimeoutMs,
-  startTracking,
-} from './saga/tracking.js';
 
 const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 
@@ -47,8 +43,6 @@ const CONFIGURATION = fleetConfigurationOf({
   idempotency: configurationRows({ retentionMs: 60_000 }),
   saga: configurationRows({
     db: 'saga',
-    staleTimeoutMs: 60_000,
-    recoveryIntervalMs: 60_000,
     resumeIntervalMs: 60_000,
     resumeStaleAfterMs: 60_000,
     maxResumeAttempts: 3,
@@ -61,20 +55,65 @@ const CONFIGURATION = fleetConfigurationOf({
     paymentUrl: 'http://payment.invalid/api',
     paymentToken: 'payment-token',
   }),
+  workflow: configurationRows({
+    url: 'postgres://postgres:postgres@127.0.0.1:1/workflow',
+    runnerHost: '127.0.0.1',
+  }),
+  flow: configurationRows({ concurrency: 4 }),
+  outbox: configurationRows({ maxAttempts: 5 }),
+  breaker: flowParticipants().flatMap(participant =>
+    PARTICIPANT_DIALS.map(dial => ({
+      key: participantDialKey(participant, dial),
+      value:
+        dial === 'windowType'
+          ? 'count'
+          : dial === 'forcedState'
+            ? 'closed'
+            : '10',
+    })),
+  ),
 });
+
+const REPLICA_0 = { servicePort: 3103, replica: 0 };
+
+const failureOf = async (effect: Effect.Effect<unknown, unknown>) => {
+  const exit = await Effect.runPromiseExit(effect);
+  return exit._tag === 'Failure' ? String(exit.cause) : 'succeeded';
+};
 
 describe('the transaction shell', () => {
   it('composes from its configuration without dialling anything', async () => {
-    const layer = await Effect.runPromise(
-      transactionComposition(CONFIGURATION),
+    const replica0 = await Effect.runPromise(
+      transactionComposition(REPLICA_0)(CONFIGURATION),
+    );
+    const replica1 = await Effect.runPromise(
+      runnerComposition({ servicePort: 3103, replica: 1 })(CONFIGURATION),
     );
 
-    expect(Layer.isLayer(layer)).toBe(true);
+    expect(Layer.isLayer(replica0)).toBe(true);
+    expect(Layer.isLayer(replica1)).toBe(true);
+  });
+
+  /** A participant on entifix's defaults would be sized for nobody, silently. */
+  it('refuses, at boot, a participant missing a dial, naming the row', async () => {
+    const withoutOne = fleetConfigurationOf({
+      ...CONFIGURATION.plain,
+      breaker: (CONFIGURATION.plain['breaker'] ?? []).filter(
+        row => row.key !== 'payment-service.stepBoundMs',
+      ),
+    });
+
+    expect(
+      await failureOf(transactionComposition(REPLICA_0)(withoutOne)),
+    ).toContain('payment-service.stepBoundMs');
+    expect(await failureOf(runnerComposition(REPLICA_0)(withoutOne))).toContain(
+      'payment-service.stepBoundMs',
+    );
   });
 
   it('refuses a configuration that names no participant, at boot', async () => {
     const exit = await Effect.runPromiseExit(
-      transactionComposition(
+      transactionComposition(REPLICA_0)(
         fleetConfigurationOf({ ...CONFIGURATION.plain, participant: [] }),
       ),
     );
@@ -82,9 +121,11 @@ describe('the transaction shell', () => {
     expect(exit._tag).toBe('Failure');
   });
 
-  it('offers the booted composition and the routes as layers', () => {
-    expect(Layer.isLayer(makeAppLayer())).toBe(true);
-    expect(Layer.isLayer(router)).toBe(true);
+  it('offers the booted composition as a layer', () => {
+    expect(Layer.isLayer(makeAppLayer(3103))).toBe(true);
+    expect(Layer.isLayer(makeRunnerLayer({ ...REPLICA_0, replica: 1 }))).toBe(
+      true,
+    );
   });
 });
 
@@ -101,70 +142,6 @@ const shutdownRecording = (hooks: Hook[]) =>
         hooks.push(hook);
       }),
   } as never);
-
-describe('the tracker', () => {
-  it('folds each transaction event, streams it, and stops its sweep on shutdown', async () => {
-    const bus = makeRecordingEventBus();
-    const folded: string[] = [];
-    const streamed: string[] = [];
-    const hooks: Hook[] = [];
-    const event: DomainEvent = {
-      name: 'transaction.completed',
-      id: 'transaction.completed:1',
-      source: 'marketplace-admin',
-      at: '2026-10-25T12:00:00.000Z',
-      correlationId: 't-1',
-      data: { transactionId: 't-1' },
-    };
-
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        yield* startTracking;
-        // Lazily: the double picks its subscribers when `deliver` is called.
-        yield* Effect.suspend(() => bus.deliver(event));
-        for (const hook of hooks) yield* hook.run;
-      }).pipe(
-        Effect.provide(
-          Layer.mergeAll(
-            Layer.succeed(EventBusTag, bus),
-            Layer.succeed(TransactionStoreTag, {
-              findStale: () => Effect.succeed([]),
-              countByState: () =>
-                Effect.succeed({
-                  PENDING: 0,
-                  COMPLETED: 0,
-                  FAILED: 0,
-                  STALE: 0,
-                }),
-            } as never),
-            Layer.succeed(TransactionStreamHubTag, {
-              publish: (published: DomainEvent) =>
-                Effect.sync(() => {
-                  streamed.push(published.id);
-                }),
-            } as never),
-            Layer.succeed(TransactionFoldTag, {
-              fold: (_consumer: string, eventId: string) =>
-                Effect.sync(() => {
-                  folded.push(eventId);
-                  return 'folded';
-                }),
-            } as never),
-            Layer.succeed(SagaRecoveryIntervalMs, 60_000),
-            Layer.succeed(SagaStaleTimeoutMs, 60_000),
-            shutdownRecording(hooks),
-          ),
-        ),
-      ),
-    );
-
-    expect(folded).toEqual(['transaction.completed:1']);
-    expect(streamed).toEqual(['transaction.completed:1']);
-    expect(hooks.map(hook => [hook.name, hook.phase])).toEqual([
-      ['saga-recovery-sweep', 'stop-intake'],
-    ]);
-  });
-});
 
 describe('the resume daemon', () => {
   it('registers to stop before intake ends, and stops', async () => {

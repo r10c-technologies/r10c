@@ -2,7 +2,11 @@ import { Effect } from 'effect';
 
 import type { Reservation } from '../entities/reservation';
 import type { StockMovement } from '../entities/stock-movement';
-import type { StockLedger } from '../ports/stock-ledger';
+import {
+  type HoldOutcome,
+  InsufficientStock,
+  type StockLedger,
+} from '../ports/stock-ledger';
 
 interface Shelf {
   readonly counters: Map<string, { onHand: number; reserved: number }>;
@@ -60,19 +64,29 @@ export const makeInMemoryStockLedger = (): StockLedger => {
 
   return {
     take: (organizationId, reservation, commandId) =>
-      Effect.sync(() => {
+      Effect.suspend((): Effect.Effect<HoldOutcome, InsufficientStock> => {
         const key =
           commandId === undefined
             ? undefined
             : claimKey(organizationId, commandId);
         const first = key === undefined ? undefined : commands.get(key);
         if (first !== undefined) {
-          return { _tag: 'replayed', reservation: first as Reservation };
+          return Effect.succeed({
+            _tag: 'replayed' as const,
+            reservation: first as Reservation,
+          });
         }
         const shelf = shelfOf(organizationId);
         const counter = counterOf(shelf, reservation.offeringId);
-        if (counter.onHand - counter.reserved < reservation.quantity) {
-          return { _tag: 'insufficient' };
+        const available = counter.onHand - counter.reserved;
+        if (available < reservation.quantity) {
+          return Effect.fail(
+            new InsufficientStock({
+              offeringId: reservation.offeringId,
+              requested: reservation.quantity,
+              available,
+            }),
+          );
         }
         counter.reserved += reservation.quantity;
         shelf.holds.set(reservation.id as string, {
@@ -80,7 +94,7 @@ export const makeInMemoryStockLedger = (): StockLedger => {
           status: 'held',
         });
         if (key !== undefined) commands.set(key, reservation);
-        return { _tag: 'held', reservation };
+        return Effect.succeed({ _tag: 'held' as const, reservation });
       }),
     end: (organizationId, reservationId, to) =>
       Effect.sync(() => endHold(shelfOf(organizationId), reservationId, to)),

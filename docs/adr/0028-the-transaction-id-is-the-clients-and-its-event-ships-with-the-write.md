@@ -28,6 +28,7 @@
   single-step engine this record describes is unchanged, and every decision here
   stands.
 - Revised: 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md) — the tracker sections are superseded: `TransactionRecord`, `GET /api/transaction/:id` and the single-step engine go; the client-minted id and the event shipping with its write stand
+- Revised: 2026-10-29 — the specification create, the one write that ran through the transaction engine, is a plain unit of work drawing its code from a per-organization counter (#463); the event-ships-with-the-write rule stands for every outbox
 
 > **Partly superseded 2026-10-28 by [ADR 0066](0066-flows-run-on-a-durable-workflow-engine.md).** The tracker and the single-step engine below are replaced by plain units of work and flows that answer `202 { flowId }`; the client-minted id and the outbox write stand.
 

@@ -26,13 +26,19 @@ export const makeScriptedPaymentProvider = (
       Effect.succeed(
         declines(request, 'authorize')
           ? refused
-          : { status: 'authorized', providerReference: `ref_${request.paymentId}` },
+          : {
+              status: 'authorized',
+              providerReference: `ref_${request.paymentId}`,
+            },
       ),
     capture: request =>
       Effect.succeed(
         declines(request, 'capture')
           ? refused
-          : { status: 'captured', providerReference: `ref_${request.paymentId}` },
+          : {
+              status: 'captured',
+              providerReference: `ref_${request.paymentId}`,
+            },
       ),
     refund: request =>
       Effect.succeed(

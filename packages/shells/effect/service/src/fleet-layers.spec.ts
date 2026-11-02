@@ -14,10 +14,9 @@ import {
   type ConfigurationPlain,
 } from '@entifix/core';
 import { MongoClientTag } from '@entifix/mongo';
-import { OutboxMaxAttempts } from '@entifix/mongo/transactions';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
-import { EventSourceTag } from '@entifix/transactions';
+import { EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
 import { Duration, Effect, Layer } from 'effect';
 import { describe, expect, it } from 'vitest';
 

@@ -1,72 +1,64 @@
-import { EntifixBuildError, isFailure } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
+import { ProductSpecification } from '../entities/product-specification';
 import type { SpecificationCommands } from '../ports/offering-catalog';
 
-const TXN = '0b9a7c1e-4a1f-4c8e-9d1e-1f2a3b4c5d6e';
-
-const command = (
-  payload: Record<string, unknown> | undefined,
-  entity = 'product-specification',
-) => ({
-  meta: { type: 'command', entity },
-  data: { transactionId: TXN, type: 'create', entity, payload },
-});
+const named = (name: string) => {
+  const specification = new ProductSpecification();
+  specification.name = name;
+  return specification;
+};
 
 /**
  * What every {@link SpecificationCommands} must guarantee, through the port
- * alone: a well-formed create is accepted under the transaction id its client
- * minted (ADR 0028), the same command accepted twice answers the same id, and
- * what could never be written — no envelope, another entity, no name, media
- * that is not HTTPS — is refused before anything is accepted.
+ * alone: each create in an organization draws the next code of that
+ * organization's counter, a repeated `Idempotency-Key` answers the record the
+ * first create wrote without drawing another, and every record answered has
+ * the id it was stored under.
  *
- * `make` returns a fresh subject. Whether the accepted write then lands is the
- * transaction engine's to report, over the bus, and not this port's.
+ * `make` returns a fresh subject over the organizations `CONTRACT_OFFERINGS`
+ * names, each with its own store.
  */
 export const describeSpecificationCommandsContract = (
   name: string,
   make: () => SpecificationCommands | Promise<SpecificationCommands>,
 ) => {
   describe(`${name} honours the SpecificationCommands contract`, () => {
-    it('accepts a create under its own transaction id, twice alike', async () => {
-      const commands = await make();
-      const body = command({ name: 'A widget' });
-
-      const first = await Effect.runPromise(commands.accept('acme', body));
-      const again = await Effect.runPromise(commands.accept('acme', body));
-
-      expect([first, again]).toEqual([
-        { transactionId: TXN },
-        { transactionId: TXN },
-      ]);
-    });
-
-    it('refuses what could never be written', async () => {
+    it('draws consecutive codes per organization', async () => {
       const commands = await make();
 
-      const refusals = await Promise.all(
-        [
-          { not: 'an envelope' },
-          command({ name: 'x' }, 'product-offering'),
-          command({}),
-          command({
-            name: 'x',
-            media: [{ url: 'http://cdn.example/a.jpg', alt: 'A' }],
-          }),
-          command(undefined),
-        ].map(body =>
-          Effect.runPromise(Effect.flip(commands.accept('acme', body))),
-        ),
+      const created = await Effect.runPromise(
+        Effect.all([
+          commands.create('acme', named('A'), undefined),
+          commands.create('acme', named('B'), undefined),
+          commands.create('other', named('C'), undefined),
+        ]),
       );
 
-      expect(
-        refusals.every(
-          error =>
-            error instanceof EntifixBuildError ||
-            (isFailure(error) && error.family === 'business'),
-        ),
-      ).toBe(true);
+      expect(created.map(one => one.code)).toEqual([
+        'product-001',
+        'product-002',
+        'product-001',
+      ]);
+      expect(created.every(one => typeof one.id === 'string')).toBe(true);
+    });
+
+    it('answers a repeated key with the first record, drawing no code', async () => {
+      const commands = await make();
+
+      const first = await Effect.runPromise(
+        commands.create('acme', named('A'), 'key-1'),
+      );
+      const again = await Effect.runPromise(
+        commands.create('acme', named('A'), 'key-1'),
+      );
+      const next = await Effect.runPromise(
+        commands.create('acme', named('B'), 'key-2'),
+      );
+
+      expect(again).toMatchObject({ id: first.id, code: first.code });
+      expect(next.code).toBe('product-002');
     });
   });
 };

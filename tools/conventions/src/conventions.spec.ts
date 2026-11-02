@@ -17,7 +17,7 @@
  * text and that the other two surfaces are still wired to that same predicate.
  *
  * Every scan below **pins the number of things it expects to find**. That is the
- * house rule (`docs.spec.ts`, `slices.spec.ts`, `error-codes.spec.ts` all state
+ * house rule (`docs.spec.ts` and `slices.spec.ts` both state
  * it) and it is what stops a check like this from passing because its own file
  * walk quietly stopped finding files.
  */

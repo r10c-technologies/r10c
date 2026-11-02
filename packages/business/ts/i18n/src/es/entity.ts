@@ -83,6 +83,7 @@ export const entity = {
     // clasificadas con él siguen resolviendo — lo que cambia es que deja de
     // ofrecerse para clasificar nuevas.
     useCases: {
+      restore: 'Restaurar',
       retire: 'Retirar',
       retireConfirm:
         'Estas marcas dejarán de ofrecerse al clasificar productos. Las ofertas ya publicadas con ellas no cambian.',
@@ -104,6 +105,7 @@ export const entity = {
       parentId: 'Categoría superior',
     },
     useCases: {
+      restore: 'Restaurar',
       retire: 'Retirar',
       retireConfirm:
         'Estas categorías dejarán de ofrecerse al clasificar productos y desaparecerán del árbol de navegación. Las ofertas ya publicadas con ellas no cambian.',

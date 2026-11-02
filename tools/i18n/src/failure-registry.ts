@@ -10,6 +10,19 @@
  */
 import '@entifix/business';
 import '@entifix/service-shell';
+import '@r10c/business-ts-authn';
+import '@r10c/business-ts-catalog-contracts';
+import '@r10c/business-ts-catalog-reference';
+import '@r10c/business-ts-common';
+import '@r10c/business-ts-configuration';
+import '@r10c/business-ts-order-management';
+import '@r10c/business-ts-payment-contracts';
+import '@r10c/business-ts-payment-management';
+import '@r10c/business-ts-product-configuration-management';
+import '@r10c/business-ts-saga-contracts';
+import '@r10c/business-ts-sales-management';
+import '@r10c/business-ts-settlement-management';
+import '@r10c/business-ts-stock-management';
 
 import { registeredFailures } from '@entifix/core';
 

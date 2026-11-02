@@ -36,8 +36,9 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import { MongoStockLedgerLayer } from '@r10c/implementation-stock-mongo';
 import {
+  endpoints,
+  policy,
   ReservationTtlSecondsTag,
-  router,
   seedStock,
   SERVICE_NAME,
 } from '@r10c/stock-service';
@@ -146,7 +147,7 @@ const MockAppLayer = (() => {
   ).pipe(Layer.orDie);
 })();
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
@@ -156,6 +157,7 @@ export const startMockService = (): Promise<RunningTestService> =>
     // thing under test rather than a reduced version of it.
     slices: ['stock'],
     description: fleetToken,
-    router,
+    endpoints,
+    policy,
     appLayer: MockAppLayer,
   });

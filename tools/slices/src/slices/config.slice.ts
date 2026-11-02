@@ -22,8 +22,10 @@ export const configSlice: SliceDeclaration = {
   deployments: ['config-service'],
   coDeployedWith: [],
   exposedAPIs: [
-    'GET /api/config/:service',
-    'GET|POST|PUT|DELETE /api/configuration',
+    'GET /api/config{,/:service}',
+    'GET|POST /api/configuration',
+    'GET /api/configuration/$metadata',
+    'GET|PUT|DELETE /api/configuration/:id',
   ],
   dependantAPIs: [],
   publishedEvents: [],

@@ -1,3 +1,4 @@
+import { describeEntityUseCases } from '@entifix/core';
 import {
   configurationHandler,
   entityBackendHandlers,
@@ -12,7 +13,11 @@ import {
   ProductBrand,
   ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
-import { ProductSpecification } from '@r10c/business-ts-product-configuration-management';
+import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
+import {
+  ProductOffering,
+  ProductSpecification,
+} from '@r10c/business-ts-product-configuration-management';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 import {
   Agreement,
@@ -27,7 +32,7 @@ import {
 } from '@r10c/business-ts-stock-management';
 
 import { brandSeed, categorySeed, productSeed } from './catalog-seed';
-import { salesChannelSeed } from './sales-seed';
+import { publishedOfferingSeed, salesChannelSeed } from './sales-seed';
 import {
   agreementSeed,
   commissionEntrySeed,
@@ -160,16 +165,6 @@ const stockMetadataHandlers = (
   ),
 );
 
-/**
- * The channel screens' affordance document, served from the **app's own**
- * `/api/sales/...` proxy path for the reason the stock ones are: the metadata
- * source is app-relative so the browser never holds a backend address, and
- * stubbing the backend path would leave these unstubbed and every screen
- * pre-ADR-0026.
- *
- * `["read","write","delete"]`, unlike stock's: a vendor authors their own
- * channels, so the generated form really does offer Save.
- */
 const agreements = entityBackendHandlers(Agreement, {
   baseUrl: `${SETTLEMENT_SERVICE_URL}/agreement`,
   seed: agreementSeed,
@@ -217,11 +212,111 @@ const settlementMetadataHandlers = (
   ),
 );
 
+/**
+ * The channel screens' affordance document, served from the **app's own**
+ * `/api/sales/...` proxy path for the reason the stock ones are: the metadata
+ * source is app-relative so the browser never holds a backend address, and
+ * stubbing the backend path would leave these unstubbed and every screen
+ * pre-ADR-0026.
+ *
+ * `["read","write","delete"]`, unlike stock's: a vendor authors their own
+ * channels, so the generated form really does offer Save.
+ */
 const salesMetadataHandlers = [
   http.get(`${APP_URL}/api/sales/sales-channel/$metadata`, () =>
     HttpResponse.json({
       meta: { type: 'entityMetadata', entity: 'sales-channel' },
       data: { actions: ['read', 'write', 'delete'], useCases: [] },
+    }),
+  ),
+];
+
+const publishedOfferings = entityBackendHandlers(PublishedOffering, {
+  baseUrl: `${REFERENCE_SERVICE_URL}/published-offering`,
+  seed: publishedOfferingSeed,
+});
+
+/** Every sale the till rang up in this run, as the proxy received it. */
+export const ringUps: Array<{
+  readonly url: string;
+  readonly idempotencyKey: string | null;
+  readonly body: unknown;
+}> = [];
+
+/**
+ * The till's write, the channel's derived `sell` verb, on the app's own
+ * proxy path. It answers as sales-service does once the checkout completed;
+ * whether a sale happens is the live journey's question, and this one is
+ * which endpoint the till reaches and what it sends.
+ */
+const sellHandlers = [
+  http.post(
+    `${APP_URL}/api/sales/sales-channel/:id/sell`,
+    async ({ request }) => {
+      ringUps.push({
+        url: new URL(request.url).pathname,
+        idempotencyKey: request.headers.get('idempotency-key'),
+        body: await request.json(),
+      });
+      return HttpResponse.json({
+        meta: { type: 'sagaResult', entity: 'counter-sale' },
+        data: {},
+      });
+    },
+  ),
+];
+
+/**
+ * Two draft offerings, one priced and one not: the pair a bulk publish needs
+ * to show it reports each row on its own.
+ */
+const offerings = entityBackendHandlers(ProductOffering, {
+  baseUrl: `${SERVICE_URL}/product-offering`,
+  seed: [
+    {
+      id: 'offering-priced',
+      name: 'Taza esmaltada',
+      specificationId: 'product-1',
+      status: 'draft',
+    },
+    {
+      id: 'offering-unpriced',
+      name: 'Plato hondo',
+      specificationId: 'product-1',
+      status: 'draft',
+    },
+  ],
+});
+
+/**
+ * The offering screen's affordance document, with the verbs the entity really
+ * declares — `publish` and `unpublish`, on a record and over a selection — so
+ * the bulk bar renders what the service would offer.
+ */
+const offeringMetadataHandlers = [
+  http.get(`${APP_URL}/api/admin/product-offering/$metadata`, () =>
+    HttpResponse.json({
+      meta: { type: 'entityMetadata', entity: 'product-offering' },
+      data: {
+        actions: ['read', 'write', 'delete'],
+        useCases: describeEntityUseCases(ProductOffering),
+      },
+    }),
+  ),
+];
+
+/**
+ * A bulk publish, answered as the service does: per row, the unpriced
+ * offering refused with the code the toast translates.
+ */
+const bulkPublishHandlers = [
+  http.post(`${SERVICE_URL}/product-offering/publish`, () =>
+    HttpResponse.json({
+      meta: { type: 'bulkOutcome', entity: 'product-offering' },
+      data: [
+        { id: 'offering-priced', ok: true },
+        { id: 'offering-unpriced', ok: false, code: 'offeringHasNoPrice' },
+      ],
     }),
   ),
 ];
@@ -239,69 +334,22 @@ export const categoryBackend = categories.backend;
 export const productBackend = products.backend;
 
 /**
- * What the tracker currently says about a transaction, and what the command
- * endpoint answers.
+ * A specification's create, answered as the service does: the record as
+ * stored, under the code it drew.
  *
- * ⚠️ These are hand-written rather than served by `entityBackendHandlers`,
- * because that backend is **read-only** — it exposes `list` and `get` and no
- * write at all, which is why no browser-side create has ever been exercised
- * (ADR 0028 records the create bug that fact hid). Widening the shared fixture
- * is a bigger change than this journey needs.
+ * ⚠️ Hand-written rather than served by `entityBackendHandlers`, because that
+ * backend is **read-only** — it exposes `list` and `get` and no write at all.
  */
-export const transactionState: {
-  record: Record<string, unknown> | undefined;
-  status: number;
-} = { record: undefined, status: 404 };
-
-/** Points the tracker at a state, the way the real one would move. */
-export function trackTransaction(
-  state: 'PENDING' | 'COMPLETED' | 'FAILED',
-  error?: string,
-) {
-  transactionState.status = 200;
-  transactionState.record = {
-    entity: 'product-specification',
-    state,
-    error,
-    createdAt: '2026-09-06T00:00:00.000Z',
-    updatedAt: '2026-09-06T00:00:00.000Z',
-  };
-}
-
-/** Back to "the tracker has never heard of it" — the broker-down case. */
-export function untrackTransactions() {
-  transactionState.status = 404;
-  transactionState.record = undefined;
-}
-
-const transactionHandlers = [
-  // The command endpoint: a `202` describing a transaction, never an entity.
+const createHandlers = [
   http.post(PRODUCT_URL, async ({ request }) => {
     const body = (await request.json()) as {
-      data: { transactionId: string };
+      data: Record<string, unknown>;
     };
-    return HttpResponse.json(
-      {
-        meta: { type: 'transactionAccepted', entity: 'product-specification' },
-        data: { transactionId: body.data.transactionId, state: 'PENDING' },
-      },
-      { status: 202 },
-    );
+    return HttpResponse.json({
+      meta: { type: 'entity', entity: 'product-specification' },
+      data: { ...body.data, id: 'spec-created', code: 'product-901' },
+    });
   }),
-  http.get(`${SERVICE_URL}/transaction/:id`, ({ params }) =>
-    transactionState.status === 404
-      ? HttpResponse.json(
-          { error: 'transaction not found', code: 'notFound' },
-          { status: 404 },
-        )
-      : HttpResponse.json({
-          meta: { type: 'transactionRecord', entity: 'product-specification' },
-          data: { ...transactionState.record, transactionId: params['id'] },
-        }),
-  ),
-  // The stream itself is not stubbed: `EventSource` against an unstubbed path
-  // simply never opens, which is exactly the "outcome missed" state the
-  // reconcile-on-connect path exists for, and the one this journey drives.
 ];
 
 /**
@@ -327,7 +375,12 @@ const base = defineEntifixE2eTest({
     ...settlementMetadataHandlers,
     ...stockMetadataHandlers,
     ...salesMetadataHandlers,
-    ...transactionHandlers,
+    ...publishedOfferings.handlers,
+    ...offerings.handlers,
+    ...offeringMetadataHandlers,
+    ...bulkPublishHandlers,
+    ...sellHandlers,
+    ...createHandlers,
   ],
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;
   // only unstubbed *service* traffic should fail a test.

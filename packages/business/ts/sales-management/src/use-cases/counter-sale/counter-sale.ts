@@ -4,8 +4,9 @@ import {
   EntityRepositoryTag,
   getUCFactory,
 } from '@entifix/business';
-import { EntifixBuildError, EntifixConnError } from '@entifix/core';
+import { NotFound, UpstreamUnavailable } from '@entifix/core';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
+import { InvalidBody } from '@r10c/business-ts-common';
 import {
   checkoutInputs,
   type CheckoutLineInput,
@@ -14,62 +15,12 @@ import {
 import { Effect } from 'effect';
 
 import { SalesChannel } from '../../entities/sales-channel';
+import {
+  OfferingNotYours,
+  StockUnavailable,
+} from '../../failures/sales-failures';
 import { isSalesChannelStatus, isSalesChannelType } from '../../values';
-import { SellAtChannelUC } from '../sell-at-channel';
-
-/** What a till asks for: a channel, the goods, and how the buyer paid. */
-export interface CounterSaleRequest {
-  readonly channelId: string;
-  readonly lines: ReadonlyArray<{
-    readonly offeringId: string;
-    readonly quantity: number;
-  }>;
-  readonly paymentMethod: string;
-}
-
-/** Why a counter sale was refused before anything was dispatched. */
-export class CounterSaleRefused {
-  readonly _tag = 'CounterSaleRefused';
-  constructor(
-    readonly code: 'invalidBody' | 'notFound' | 'channelInactive' | 'notYours',
-    readonly detail: string,
-  ) {}
-}
-
-export type CounterSaleOutcome =
-  | { readonly _tag: 'sold'; readonly result: unknown }
-  /** A line could not be held, and every hold taken was given back. */
-  | { readonly _tag: 'unavailable' };
-
-const isPositiveWhole = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isInteger(value) && value > 0;
-
-/**
- * Read a till's body, or `undefined` when it is not one: a channel, a payment
- * method, and at least one line of a positive whole quantity. **No price is
- * read** — a price in the body would be the one input that must never be the
- * caller's.
- */
-export const readCounterSale = (
-  body: unknown,
-): CounterSaleRequest | undefined => {
-  if (typeof body !== 'object' || body === null) return undefined;
-  const { channelId, lines, paymentMethod } = body as Record<string, unknown>;
-  if (typeof channelId !== 'string' || channelId.length === 0) return undefined;
-  if (typeof paymentMethod !== 'string' || paymentMethod.length === 0) {
-    return undefined;
-  }
-  if (!Array.isArray(lines) || lines.length === 0) return undefined;
-  const parsed: { offeringId: string; quantity: number }[] = [];
-  for (const line of lines as unknown[]) {
-    const { offeringId, quantity } = (line ?? {}) as Record<string, unknown>;
-    if (typeof offeringId !== 'string' || !isPositiveWhole(quantity)) {
-      return undefined;
-    }
-    parsed.push({ offeringId, quantity });
-  }
-  return { channelId, lines: parsed, paymentMethod };
-};
+import { type CounterSalePayload, SellAtChannelUC } from '../sell-at-channel';
 
 /**
  * A channel's own rules, checked as it is saved: a type nobody priced would
@@ -78,16 +29,20 @@ export const readCounterSale = (
  */
 export const validateSalesChannel = (
   channel: SalesChannel,
-): EntifixBuildError | undefined =>
+): Effect.Effect<SalesChannel, InvalidBody> =>
   !isSalesChannelType(channel.type)
-    ? new EntifixBuildError(
-        `A sales channel type must be one of the declared types, not "${String(channel.type)}"`,
+    ? Effect.fail(
+        new InvalidBody({
+          reason: `a sales channel type must be one of the declared types, not "${String(channel.type)}"`,
+        }),
       )
     : !isSalesChannelStatus(channel.status)
-      ? new EntifixBuildError(
-          `A sales channel status must be active or inactive, not "${String(channel.status)}"`,
+      ? Effect.fail(
+          new InvalidBody({
+            reason: `a sales channel status must be active or inactive, not "${String(channel.status)}"`,
+          }),
         )
-      : undefined;
+      : Effect.succeed(channel);
 
 /**
  * Sell at the counter: **the same checkout saga the storefront starts**, with
@@ -102,55 +57,39 @@ export const validateSalesChannel = (
  */
 export const sellAtCounter = (input: {
   readonly organizationId: string;
-  readonly sale: CounterSaleRequest;
+  readonly channelId: string;
+  readonly sale: CounterSalePayload;
   /** The checkout start's key: a repeated sale under it runs one flow. */
   readonly idempotencyKey: string;
 }) =>
   Effect.gen(function* () {
-    const { organizationId, sale, idempotencyKey } = input;
+    const { organizationId, channelId, sale, idempotencyKey } = input;
     const factory = yield* EntityRepositoryFactoryTag;
     const repository = yield* factory.for(SalesChannel, { organizationId });
 
-    const channel = yield* getUCFactory<SalesChannel>().pipe(
+    const found = yield* getUCFactory<SalesChannel>().pipe(
       Effect.provideService(EntityRepositoryTag, repository),
-      Effect.provideService(EntityIdTag, sale.channelId),
+      Effect.provideService(EntityIdTag, channelId),
       Effect.catch(() => Effect.succeed(undefined)),
     );
-    if (channel === undefined) {
-      return yield* Effect.fail(
-        new CounterSaleRefused('notFound', 'no such sales channel'),
-      );
+    if (found === undefined) {
+      return yield* new NotFound({ entity: 'sales-channel' });
     }
-    yield* Effect.try({
-      try: () => SellAtChannelUC.run(channel),
-      catch: () =>
-        new CounterSaleRefused(
-          'channelInactive',
-          'A retired sales channel cannot take a sale',
-        ),
-    });
+    const channel = yield* SellAtChannelUC.run(found);
 
     const prices = yield* PublishedPriceReaderTag;
     const priced: CheckoutLineInput[] = [];
     for (const line of sale.lines) {
       const price = yield* prices.priceOf(line.offeringId);
       if (price === undefined) {
-        return yield* Effect.fail(
-          new CounterSaleRefused(
-            'invalidBody',
-            `nothing published answers to the offering "${line.offeringId}"`,
-          ),
-        );
+        return yield* new InvalidBody({
+          reason: `nothing published answers to the offering "${line.offeringId}"`,
+        });
       }
       // Here rather than at the reserve: by then this process has already
       // presented a token that can name any organization.
       if (price.vendorId !== organizationId) {
-        return yield* Effect.fail(
-          new CounterSaleRefused(
-            'notYours',
-            `The offering "${line.offeringId}" is not this organization's to sell`,
-          ),
-        );
+        return yield* new OfferingNotYours({ offeringId: line.offeringId });
       }
       priced.push({ ...price, quantity: line.quantity });
     }
@@ -181,14 +120,12 @@ export const sellAtCounter = (input: {
 
     switch (outcome._tag) {
       case 'completed':
-        return { _tag: 'sold', result: outcome.result } as CounterSaleOutcome;
+        return outcome.result;
       case 'compensated':
-        return { _tag: 'unavailable' } as CounterSaleOutcome;
+        return yield* new StockUnavailable({ channelId });
       case 'failed':
-        return yield* Effect.fail(
-          new EntifixConnError(
-            `the checkout coordinator answered ${outcome.status}`,
-          ),
-        );
+        return yield* new UpstreamUnavailable({
+          upstream: 'transaction-service',
+        });
     }
   });

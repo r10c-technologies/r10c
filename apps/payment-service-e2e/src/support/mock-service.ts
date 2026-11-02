@@ -6,10 +6,7 @@ import {
 import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
-import {
-  MongoUnitOfWorkLayer,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
+import { MongoUnitOfWorkLayer } from '@entifix/mongo/transactions';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
@@ -26,7 +23,11 @@ import {
   makeInMemoryIdempotencyStore,
   makeRecordingEventBus,
 } from '@entifix/testing-unit';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -37,8 +38,9 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import { MongoPaymentLedgerLayer } from '@r10c/implementation-payment-mongo';
 import {
+  endpoints,
   PAYMENT_SLICE,
-  router,
+  policy,
   SERVICE_NAME,
   SimulatedPaymentProviderLayer,
 } from '@r10c/payment-service';
@@ -143,13 +145,14 @@ const MockAppLayer = Layer.provideMerge(
   ),
 ).pipe(Layer.orDie);
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
     port: 0,
     slices: ['payment'],
     description: fleetToken,
-    router,
+    endpoints,
+    policy,
     appLayer: MockAppLayer,
   });

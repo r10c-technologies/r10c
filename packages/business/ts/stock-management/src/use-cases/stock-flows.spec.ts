@@ -4,14 +4,15 @@ import { describe, expect, it } from 'vitest';
 import { Reservation } from '../entities/reservation/index.js';
 import { StockMovement } from '../entities/stock-movement/index.js';
 import {
+  InsufficientStock,
   ReservationTtlSecondsTag,
   type StockLedger,
   StockLedgerTag,
 } from '../ports/stock-ledger.js';
 import {
+  InconsistentMovement,
   recordMovement,
   restoreStock,
-  StockRefused,
   takeReservation,
 } from './stock-flows.js';
 
@@ -73,7 +74,12 @@ describe('takeReservation', () => {
       ),
     );
 
-    expect(refused).toBeInstanceOf(StockRefused);
+    expect(refused).toMatchObject({
+      _tag: 'InvalidBody',
+      code: 'invalidBody',
+      category: 'invalid',
+      message: '0 is not a reservable quantity',
+    });
   });
 });
 
@@ -131,5 +137,17 @@ describe('restoreStock', () => {
       'cancellation',
     );
     expect(refused).toMatchObject({ code: 'inconsistentMovement' });
+  });
+});
+
+describe('the stock refusals', () => {
+  it('say what was refused', () => {
+    expect(
+      new InsufficientStock({ offeringId: 'o-1', requested: 3, available: 1 })
+        .message,
+    ).toBe('3 of o-1 asked for, 1 free');
+    expect(new InconsistentMovement({ reason: 'not a receipt' }).message).toBe(
+      'not a receipt',
+    );
   });
 });

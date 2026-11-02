@@ -5,7 +5,10 @@ import { describePaymentLedgerContract } from './payment-ledger.contract.js';
 import { describePaymentProviderContract } from './payment-provider.contract.js';
 import { makeScriptedPaymentProvider } from './scripted-payment-provider.js';
 
-describePaymentLedgerContract('the in-memory ledger', makeInMemoryPaymentLedger);
+describePaymentLedgerContract(
+  'the in-memory ledger',
+  makeInMemoryPaymentLedger,
+);
 
 describe('the scripted provider', () => {
   describePaymentProviderContract('accepting everything', () =>

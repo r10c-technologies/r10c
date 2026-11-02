@@ -1,6 +1,4 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import { Entity, EntityConstructor } from '@entifix/core';
 import {
   buildEntityRestAdapterDelete,
@@ -36,12 +34,7 @@ const configuration = new ConfigurationClientRestClient();
  * would answer `401`. back-office-app therefore composes stock URLs from a
  * *third* domain key, beside marketplace-admin's and marketplace's.
  *
- * ⚠️ **Plain REST, deliberately not `create: 'command'`.** A specification's
- * create goes through the transaction engine because a Redis sequence assigns
- * its `code` — a non-transactional side effect the saga coordinates. A movement
- * has no server-assigned member anyone waits for, this service runs no
- * transaction engine and its slice publishes no event, so a `202` here would
- * buy a tracker record and an outbox row for nothing.
+ * Plain REST: a movement has no server-assigned member anyone waits for.
  */
 const STOCK_SERVICE: BuildEntityRestOptions = {
   configuration,

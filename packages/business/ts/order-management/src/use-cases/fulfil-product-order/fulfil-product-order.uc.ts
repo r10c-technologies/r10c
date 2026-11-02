@@ -1,7 +1,9 @@
 import { permissionForUseCase } from '@entifix/authz';
-import { EntifixLogicError, useCase } from '@entifix/core';
+import { NotFound, useCase } from '@entifix/core';
+import { Effect } from 'effect';
 
 import { ProductOrder } from '../../entities/product-order';
+import { OrderNotFulfillable } from '../../failures/order-failures';
 import {
   type FulfillableLine,
   fulfilLines,
@@ -38,6 +40,7 @@ import {
   binding: 'entity',
   placement: 'context-independent',
   labelKey: 'entity:product-order.useCases.fulfil',
+  errors: [NotFound, OrderNotFulfillable],
 })
 export class FulfilProductOrderUC {
   /**
@@ -54,24 +57,28 @@ export class FulfilProductOrderUC {
    * read off a request body would let any vendor stamp another's lines.
    */
   static run<TLine extends FulfillableLine>(
-    order: Pick<ProductOrder, 'status'>,
+    order: Pick<ProductOrder, 'id' | 'status'>,
     lines: readonly TLine[],
     scope: FulfilmentScope,
     at: Date,
-  ): { readonly lines: readonly TLine[]; readonly status: string } {
+  ): Effect.Effect<
+    { readonly lines: readonly TLine[]; readonly status: string },
+    OrderNotFulfillable
+  > {
     if (orderStatusAfter(order.status, 'fulfil') === undefined) {
-      throw new EntifixLogicError(
-        'Only a paid order can be fulfilled',
-        undefined,
-        { status: order.status },
+      return Effect.fail(
+        new OrderNotFulfillable({
+          orderId: String(order.id),
+          reason: `an order in '${order.status}' cannot be fulfilled`,
+        }),
       );
     }
 
     const stamped = fulfilLines(lines, scope, at);
-    return {
+    return Effect.succeed({
       lines: stamped.lines,
       status: statusAfterFulfilling(stamped.lines),
-    };
+    });
   }
 }
 

@@ -1,9 +1,5 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
-import {
-  makeInMemoryEntityRepository,
-} from '@entifix/testing-unit';
+import { EntityRepositoryTag } from '@entifix/business';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context } from 'effect';
 import type { PropsWithChildren } from 'react';
@@ -22,6 +18,7 @@ const repository = () =>
 const adapters: OrderAdapters = {
   productOrderRest: repository(),
   metadata: real.metadata,
+  productOrderUseCases: real.productOrderUseCases,
 };
 
 const wrapperWith = (supplied?: OrderAdapters) =>

@@ -1,179 +1,97 @@
 import {
-  ConfigurationRepositoryTag,
   type TenantDatabaseResolver,
   TenantDatabaseResolverTag,
 } from '@entifix/business';
 import {
   deserializeSingleEntity,
-  EntifixBuildError,
-  EntifixConnError,
-  type EntifixError,
   envelopeEntityName,
-  isFailure,
   serializeEntity,
-  type TransitionalFailure,
   Unavailable,
 } from '@entifix/core';
-import { makeMongoRepository, MongoClientTag } from '@entifix/mongo';
-import {
-  drainOutbox,
-  ensureOutboxIndexes,
-  makeMongoOutbox,
-  makeMongoUnitsOfWork,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
-import {
-  CommandTag,
-  completedEvent,
-  EventBusTag,
-  EventSourceTag,
-  LockServiceTag,
-  OutboxTag,
-  readCommandEnvelope,
-  SequenceServiceTag,
-  type TransactionCommand,
-  type TransactionHandler,
-  TransactionHandlerTag,
-} from '@entifix/transactions';
-import {
-  acceptTransaction,
-  completeTransaction,
-} from '@entifix/transactions/engine';
+import { MongoClientTag } from '@entifix/mongo';
+import { makeMongoUnitsOfWork } from '@entifix/mongo/transactions';
 import {
   ProductSpecification,
-  refuseSpecificationMedia,
   SpecificationCommandsTag,
 } from '@r10c/business-ts-product-configuration-management';
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, Option } from 'effect';
 import type { Db } from 'mongodb';
-
-/**
- * The transaction engine's handler port still speaks the class tree, and it
- * leaves with the engine. A business failure reaching it is the refusal the
- * engine has always read as a build error; a technical one, the connection
- * error it has always retried.
- */
-const toEngineError = (failure: TransitionalFailure): EntifixError =>
-  !isFailure(failure)
-    ? failure
-    : failure.family === 'business'
-      ? new EntifixBuildError(`${failure._tag}: ${failure.code}`)
-      : new EntifixConnError(`${failure._tag}: ${failure.code}`);
 
 export const SPECIFICATION_COLLECTION =
   envelopeEntityName(ProductSpecification);
 
-/** The sequence a specification's code is drawn from, and its prefix. */
-const SEQUENCE = 'product-specification';
+/** Where each organization's counters live, beside the records they number. */
+export const COUNTERS_COLLECTION = 'counters';
+
+/** The counter a specification's code is drawn from, and the code's prefix. */
+const COUNTER = 'specification-code';
 const CODE_PREFIX = 'product';
 
+interface Counter {
+  readonly _id: string;
+  readonly value: number;
+}
+
+/** A driver call inside the unit, failing as the store fault it is. */
+const store = <A>(run: () => Promise<A>) =>
+  Effect.tryPromise({
+    try: run,
+    // A store fault, so the unit of work rolls back and surfaces it — or, for
+    // a write conflict, runs the unit again — rather than reading it as the
+    // body's own abort.
+    catch: () => new Unavailable({ dependency: 'mongo' }),
+  });
+
 /**
- * A specification create as the transaction engine's handler (ADR 0028):
- * validated before anything is locked, executed under the code-sequence lock,
- * and rolled back by id if the execute fails.
- *
- * ⚠️ **The record and its `completed` event are one unit.** A crash between
- * two separate writes would leave a specification the tracker reports as
- * still pending, or a completion for a record that never landed.
+ * Writes the specification with the next code of its organization's counter,
+ * in one unit of work: the `$inc` and the record commit together, so two
+ * creates racing on one counter conflict and one reruns, and a failed write
+ * spends no code.
  */
-const specificationHandler = (
+const createIn = (
   db: Db,
   units: ReturnType<typeof makeMongoUnitsOfWork>,
-  sequence: SequenceServiceTag['Service'],
-  configuration: ConfigurationRepositoryTag['Service'],
-  source: string,
-): TransactionHandler => {
-  const deserialize = (command: TransactionCommand) =>
-    deserializeSingleEntity(ProductSpecification, command.payload).pipe(
-      Effect.flatMap(entity =>
-        entity === undefined
-          ? Effect.fail(
-              new EntifixBuildError(
-                'command payload carried no entity',
-                undefined,
-                {
-                  key: SPECIFICATION_COLLECTION,
-                },
-              ),
-            )
-          : Effect.succeed(entity as ProductSpecification),
-      ),
-    );
-
-  return {
-    validate: command =>
+  specification: ProductSpecification,
+  idempotencyKey: string | undefined,
+) =>
+  units.forDatabase(db).run(
+    unit =>
       Effect.gen(function* () {
-        if (command.entity !== SPECIFICATION_COLLECTION) {
-          return yield* Effect.fail(
-            new EntifixBuildError(
-              `command entity "${command.entity}" does not match "${SPECIFICATION_COLLECTION}"`,
+        const { session } = unit.handle;
+        const counter = yield* store(() =>
+          unit.handle.db
+            .collection<Counter>(COUNTERS_COLLECTION)
+            .findOneAndUpdate(
+              { _id: COUNTER },
+              { $inc: { value: 1 } },
+              { upsert: true, returnDocument: 'after', session },
             ),
-          );
-        }
-        const entity = yield* deserialize(command);
-        if (!entity.name) {
-          return yield* Effect.fail(
-            new EntifixBuildError('entity "name" is required'),
-          );
-        }
-        yield* refuseSpecificationMedia(entity);
-      }).pipe(Effect.mapError(toEngineError)),
-
-    lockKeys: () => [`lock:code:${SEQUENCE}`],
-
-    execute: command =>
-      Effect.gen(function* () {
-        const entity = yield* deserialize(command);
-        const next = yield* sequence.next(SEQUENCE);
-        entity.code = `${CODE_PREFIX}-${String(next).padStart(3, '0')}`;
-        // The client's transaction id is the record's id: the idempotency key
-        // and the address the browser is already watching.
-        entity.id = command.transactionId;
-        const outcome = { code: entity.code, entityId: entity.id };
-        const document = {
-          ...serializeEntity(ProductSpecification, entity),
-          id: entity.id,
-        };
-
-        yield* units.forDatabase(db).run(unit =>
-          Effect.tryPromise({
-            try: () =>
-              unit.handle.db
-                .collection(SPECIFICATION_COLLECTION)
-                .replaceOne({ id: entity.id }, document, {
-                  upsert: true,
-                  session: unit.handle.session,
-                }),
-            // A store fault, so the unit of work rolls back and surfaces it
-            // rather than reading it as the body's own abort.
-            catch: () => new Unavailable({ dependency: 'mongo' }),
-          }).pipe(
-            Effect.tap(() =>
-              Effect.sync(() =>
-                unit.emit(completedEvent(command, outcome, source)),
-              ),
-            ),
-          ),
         );
-        return outcome;
-      }).pipe(Effect.mapError(toEngineError)),
-
-    rollback: command =>
-      makeMongoRepository(db, ProductSpecification)
-        .delete(command.transactionId)
-        .pipe(
-          Effect.provideService(ConfigurationRepositoryTag, configuration),
-          Effect.asVoid,
-          Effect.mapError(toEngineError),
-        ),
-  };
-};
+        // An upserting `findOneAndUpdate` answers the document it wrote.
+        const next = (counter as Counter).value;
+        specification.id ??= globalThis.crypto.randomUUID();
+        specification.code = `${CODE_PREFIX}-${String(next).padStart(3, '0')}`;
+        const document = serializeEntity(ProductSpecification, specification);
+        yield* store(() =>
+          unit.handle.db
+            .collection(SPECIFICATION_COLLECTION)
+            .insertOne({ ...document, id: specification.id }, { session }),
+        );
+        return specification;
+      }),
+    idempotencyKey === undefined
+      ? {}
+      : {
+          claim: { kind: 'command', commandId: idempotencyKey },
+          replay: created => serializeEntity(ProductSpecification, created),
+        },
+  );
 
 /**
- * The `202` create: accept the command now, finish it on a detached fiber,
- * and drain its announcement the moment it commits. A replayed command is
- * accepted again rather than refused — the client minted the id, so a retry
- * after a dropped response is the same request.
+ * A specification's create as a plain unit of work on the organization's own
+ * `tenant_<id>` database (ADR 0066 retired the single-step engine it ran
+ * through). A repeated `Idempotency-Key` answers the record the first create
+ * wrote, read back from the claim, and draws no code.
  */
 export const MongoSpecificationCommandsLayer = Layer.effect(
   SpecificationCommandsTag,
@@ -181,55 +99,30 @@ export const MongoSpecificationCommandsLayer = Layer.effect(
     const client = yield* MongoClientTag;
     const resolver =
       (yield* TenantDatabaseResolverTag) as TenantDatabaseResolver<Db>;
-    const configuration = yield* ConfigurationRepositoryTag;
-    const sequence = yield* SequenceServiceTag;
-    const locks = yield* LockServiceTag;
-    const bus = yield* EventBusTag;
-    const maxAttempts = yield* OutboxMaxAttempts;
-    const source = yield* EventSourceTag;
     const units = makeMongoUnitsOfWork(client);
 
     return {
-      accept: (organizationId, body) =>
+      create: (organizationId, specification, idempotencyKey) =>
         Effect.gen(function* () {
-          const command = {
-            ...(yield* readCommandEnvelope(body)),
-            organizationId,
-          };
           const db = yield* resolver.forOrganization(organizationId);
-          yield* ensureOutboxIndexes(db);
-          const outbox = makeMongoOutbox(db);
-          const handler = specificationHandler(
+          const outcome = yield* createIn(
             db,
             units,
-            sequence,
-            configuration,
-            source,
+            specification,
+            idempotencyKey,
           );
-          const provided = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-            effect.pipe(
-              Effect.provideService(CommandTag, command),
-              Effect.provideService(TransactionHandlerTag, handler),
-              Effect.provideService(OutboxTag, outbox),
-              Effect.provideService(LockServiceTag, locks),
-              Effect.provideService(EventSourceTag, source),
-            );
-
-          const accepted = yield* provided(acceptTransaction());
-          if (accepted.status === 'accepted') {
-            yield* provided(completeTransaction(accepted.handles)).pipe(
-              Effect.andThen(
-                Effect.ignore(
-                  drainOutbox(outbox, bus, {
-                    maxAttempts,
-                    database: db.databaseName,
-                  }),
-                ),
-              ),
-              Effect.forkDetach,
-            );
-          }
-          return { transactionId: command.transactionId };
+          if (outcome._tag === 'committed') return outcome.value;
+          // A unit whose body cannot abort ends `duplicate` or committed.
+          const replayed = Option.getOrUndefined(
+            (outcome as { readonly replay: Option.Option<unknown> }).replay,
+          );
+          return (yield* deserializeSingleEntity(
+            ProductSpecification,
+            replayed,
+          ).pipe(
+            // A stored answer that will not revive is the store failing.
+            Effect.mapError(() => new Unavailable({ dependency: 'mongo' })),
+          )) as ProductSpecification;
         }),
     };
   }),

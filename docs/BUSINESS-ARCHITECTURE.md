@@ -241,7 +241,6 @@ land on when asking _where does this entity go?_
 | `session`           | control  | `auth`              | — (session records, no entities)                      | single           | system-of-record        |
 | `configuration`     | control  | `config`            | `config`                                              | single           | system-of-record        |
 | `catalog`           | tenant   | `marketplace-admin` | `product-configuration-management`                    | per-organization | system-of-record        |
-| `saga-coordination` | control  | `marketplace-admin` | — (locks + sequences)                                 | single           | system-of-record        |
 | `saga`              | control  | `transaction`       | —                                                     | single           | system-of-record        |
 | `catalog-reference` | platform | `marketplace`       | `catalog-reference`                                   | single           | system-of-record        |
 | `published-catalog` | platform | `marketplace`       | `marketplace-catalog`                                 | single           | `projection-of:catalog` |
@@ -286,7 +285,7 @@ Four rows worth their reasoning:
 | ------------------- | ------ | ------------------------------------------------------ | --------------------------------- |
 | `config`            | active | configuration                                          | config-service `:3190`            |
 | `auth`              | active | auth, session                                          | auth-service `:3102`              |
-| `marketplace-admin` | active | catalog, saga-coordination                             | marketplace-admin-service `:3101` |
+| `marketplace-admin` | active | catalog                                                | marketplace-admin-service `:3101` |
 | `transaction`       | active | saga                                                   | transaction-service `:3103`       |
 | `marketplace`       | active | catalog-reference, published-catalog, published-vendor | marketplace-service `:3100`       |
 | `stock`             | active | stock                                                  | stock-service `:3108`             |
@@ -420,8 +419,8 @@ things:
 2. **Publishing** projects the approved subset into the platform-scope
    marketplace catalog the storefront queries.
 
-The projection runs on the existing saga engine (the `transaction` slice's
-tracker + `@entifix/transactions`). This buys approval and moderation, price snapshots taken
+The projection rides the bus: the authoring slice's outbox announces it, and
+the projecting slice consumes it. This buys approval and moderation, price snapshots taken
 at publish time, and a storefront whose read path cannot be slowed by a tenant's
 write load.
 

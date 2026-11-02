@@ -14,7 +14,7 @@ import { SALES_SERVICE_URL } from '@r10c/shells-next-sales/server';
  * ⚠️ **`POST` is here, and it is not the exception the order proxy refuses.**
  * order-service's writes take a crossing token and no session, so putting them
  * behind a browser-reachable proxy would mean forwarding a secret every
- * signed-in tab could then exercise. `POST /api/counter-sale` is the opposite:
+ * signed-in tab could then exercise. `POST /api/sales-channel/:id/sell` is the opposite:
  * it takes a **session** and no token, checks
  * `sales-management:sales-channel:sell` against it, and only then presents the
  * coordinator's token itself

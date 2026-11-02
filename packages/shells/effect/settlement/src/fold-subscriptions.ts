@@ -27,14 +27,6 @@ const subscription = (pattern: string): Subscription => ({
 });
 
 /**
- * The four messages the commission ledger folds, in two pairs: the sale
- * (`order.placed` + `payment.captured`) and its reversal (`order.cancelled`
- * + `payment.refunded`). No member of either pair is sufficient alone, which
- * is why the folds join on the order id rather than writing per message
- * (ADR 0057, 0058 §9). A refused capture announces nothing: it compensates the
- * flow and deletes the order, so there is nothing to settle (ADR 0068).
- */
-/**
  * What a fold did, logged at the consumer — the one fork site the fold runs
  * under (ADR 0064). A vendor sold for with no agreement is an error: a sale
  * nobody can price until someone writes the terms.
@@ -83,6 +75,14 @@ export const logFoldReport = (report: FoldReport): Effect.Effect<void> =>
     }
   });
 
+/**
+ * The four messages the commission ledger folds, in two pairs: the sale
+ * (`order.placed` + `payment.captured`) and its reversal (`order.cancelled`
+ * + `payment.refunded`). No member of either pair is sufficient alone, which
+ * is why the folds join on the order id rather than writing per message
+ * (ADR 0057, 0058 §9). A refused capture announces nothing: it compensates the
+ * flow and deletes the order, so there is nothing to settle (ADR 0068).
+ */
 export const startSettlementFold = Effect.gen(function* () {
   const bus = yield* EventBusTag;
   // Resolved once, at boot: a handler runs with nothing left to provide.

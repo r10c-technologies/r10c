@@ -196,7 +196,7 @@ describe('the Zitadel bindings beyond the contracts', () => {
     ]);
   });
 
-  it('reports a key set it cannot publish as a store failure', async () => {
+  it('reports a key set it cannot publish as an internal fault', async () => {
     const failed = await Effect.runPromise(
       Effect.flip(
         Effect.gen(function* () {
@@ -221,6 +221,8 @@ describe('the Zitadel bindings beyond the contracts', () => {
       ),
     );
 
-    expect(failed).toMatchObject({ message: 'Failed to publish the key set' });
+    // The PEM is configuration: one that will not export is a fault to fix,
+    // not an outage to wait out.
+    expect(failed).toMatchObject({ _tag: 'Internal' });
   });
 });

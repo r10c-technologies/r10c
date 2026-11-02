@@ -1,7 +1,7 @@
 /**
  * The service as a *composable definition*, separate from `main.ts` which boots
  * it — the same split every other backend makes, so an e2e `mock` profile can
- * launch the real router in-process against driver fakes.
+ * launch the real endpoints in-process against driver fakes.
  */
 import { makeAppLayer } from '@r10c/shells-effect-transaction';
 
@@ -10,15 +10,13 @@ import { makeAppLayer } from '@r10c/shells-effect-transaction';
 export {
   cancellationSaga,
   checkoutSaga,
+  endpoints,
   HttpSagaDispatcherLayer,
   ParticipantsTag,
-  router,
+  policy,
   SAGAS,
   sagaStoresLayer,
 } from '@r10c/shells-effect-transaction';
-
-/** The slice's composition, as the service mounts it. */
-export const AppLayer = makeAppLayer();
 
 export const SERVICE_NAME = '@r10c/transaction-service';
 
@@ -30,3 +28,6 @@ export const SERVICE_NAME = '@r10c/transaction-service';
  * trigger fired and this is the commit that binds it (#229).
  */
 export const DEFAULT_PORT = 3103;
+
+/** The slice's composition, as the service mounts it: replica 0. */
+export const AppLayer = makeAppLayer(DEFAULT_PORT);

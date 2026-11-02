@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — the route behind `sign-out-others` is the derived `POST /api/user-identity/sign-out-others`
 - Area: frontend
 - Read when: adding anything to the command palette — the sources filter and the control renders, and matching is accent-folded because the default locale is Spanish
 - Amends: [ADR 0035](0035-entity-actions-selection-and-bulk.md) (its `unbound`
@@ -120,7 +121,9 @@ most natural way to type most of its own copy.
 
 ### `sign-out-others`: a real unbound verb, not one invented to fill the cell
 
-`POST /api/auth/sessions/revoke-others` has existed since sessions were built,
+The route behind it — `POST /api/auth/sessions/revoke-others` when this was
+written, the derived `POST /api/user-identity/sign-out-others` since ADR 0071 —
+had existed since sessions were built,
 is proxied through this host, and **had no caller** — the account screen only
 revokes one row at a time. So the verb was already implemented and simply
 unreachable.

@@ -1,4 +1,4 @@
-import type { TransitionalFailure } from '@entifix/core';
+import type { UpstreamUnavailable } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /**
@@ -16,12 +16,14 @@ export type SagaInputs = Readonly<Record<string, readonly SagaCallInput[]>>;
 /**
  * How a flow the coordinator ran ended, as its starter needs to tell it.
  *
- * - `completed` — every step ran (`201`).
+ * - `completed` — every step ran (`200`, the flow's result envelope).
  * - `compensated` — a step was refused before the pivot and everything taken
- *   was given back (`409`). An outcome the caller can act on, not an error.
+ *   was given back (`409`, a `sagaCompensated` problem). An outcome the caller
+ *   can act on, not an error.
  * - `failed` — stranded past the pivot, or the coordinator itself failed.
  *
- * `result` is the coordinator's own answer, which names the step that refused.
+ * `result` is the coordinator's own answer: the result envelope, or the
+ * problem whose `refusedStep` names the step that refused.
  */
 export type SagaStartOutcome =
   | { readonly _tag: 'completed'; readonly result: unknown }
@@ -46,12 +48,13 @@ export interface SagaStarter {
    * Starts `definition` under `idempotencyKey`: the coordinator answers a
    * repeated key with what the first start decided (ADR 0068), so a caller
    * whose start is retried — or a cancellation asked for twice — runs one flow.
+   * A coordinator that cannot be reached is `UpstreamUnavailable`.
    */
   readonly start: (
     definition: string,
     inputs: SagaInputs,
     idempotencyKey: string,
-  ) => Effect.Effect<SagaStartOutcome, TransitionalFailure>;
+  ) => Effect.Effect<SagaStartOutcome, UpstreamUnavailable>;
 }
 
 export class SagaStarterTag extends Context.Service<
@@ -64,7 +67,7 @@ export const sagaOutcomeFor = (
   status: number,
   result: unknown,
 ): SagaStartOutcome =>
-  status === 201
+  status === 200
     ? { _tag: 'completed', result }
     : status === 409
       ? { _tag: 'compensated', result }

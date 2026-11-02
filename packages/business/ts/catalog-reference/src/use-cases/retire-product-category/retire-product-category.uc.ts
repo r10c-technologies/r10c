@@ -1,13 +1,14 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { useCase } from '@entifix/core';
+import { InvalidBody } from '@r10c/business-ts-common';
 
 import { ProductCategory } from '../../entities/product-category';
 import { retireReferences } from '../retire-reference';
 
 /**
- * Take a set of brands out of circulation — the marketplace has stopped
- * carrying them, but the offerings already classified under them must keep
- * resolving.
+ * Take a set of categories out of circulation — the marketplace has stopped
+ * browsing by them, but the offerings already classified under them must keep
+ * resolving. One with an active child is refused per row rather than cascaded.
  *
  * **`collection`-bound**, which is what makes it the bulk bar's rather than a
  * form's: its subject is a *set*. That distinction is not cosmetic — an
@@ -17,12 +18,12 @@ import { retireReferences } from '../retire-reference';
  *
  * **`context-dependent`**, because it needs something selected before it means
  * anything. A `context-independent` collection verb sits in the toolbar and
- * acts on the whole collection; retiring the entire brand vocabulary in one
+ * acts on the whole collection; retiring the entire category tree in one
  * click is not an affordance anybody wants.
  *
  * The confirmation is `destructive` even though nothing is deleted: what the
  * tone describes is the *consequence* — every picker across the marketplace
- * stops offering these brands — not the storage operation.
+ * stops offering these categories — not the storage operation.
  */
 @useCase({
   entity: ProductCategory,
@@ -34,6 +35,7 @@ import { retireReferences } from '../retire-reference';
     tone: 'destructive',
     messageKey: 'entity:product-category.useCases.retireConfirm',
   },
+  errors: [InvalidBody],
 })
 export class RetireProductCategoryUC {
   static run() {

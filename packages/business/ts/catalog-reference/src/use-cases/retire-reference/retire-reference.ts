@@ -1,5 +1,10 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import type { BulkOutcome, Entity, EntityId } from '@entifix/core';
+import {
+  type BulkOutcome,
+  type Entity,
+  type EntityId,
+  Failure,
+} from '@entifix/core';
 import { Context, Effect } from 'effect';
 
 import type { ReferenceStatus } from '../../values/reference-status';
@@ -40,6 +45,18 @@ export class RetireReferenceInputTag extends Context.Service<
  */
 export const RETIRE_ALREADY = 'alreadyRetired';
 export const RETIRE_NOT_FOUND = 'notFound';
+
+/**
+ * A row already in the state the run asked for, registered as a failure so
+ * its code is held to the `errors` catalog like any other a client renders.
+ * Reported per row, never raised: one such row never ends the run.
+ */
+export class AlreadyRetired extends Failure.conflict<AlreadyRetired>()(
+  'AlreadyRetired',
+  RETIRE_ALREADY,
+  {},
+  { message: () => 'the record is already in the state asked for' },
+) {}
 
 /**
  * Retire (or restore) a set of reference records, reporting **per row**.

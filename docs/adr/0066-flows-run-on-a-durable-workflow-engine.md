@@ -4,6 +4,7 @@
 - Date: 2026-10-28
 - Area: messaging
 - Read when: a flow spans slices, has to survive its coordinator dying, or answers `202` — flows run on Effect Workflow over Postgres, and the saga runner and tracker are deleted, not kept beside it
+- Revised: 2026-10-29 — the tracker and the single-step engine's only use went ahead of wave 4: the specification create is a unit of work (#463)
 
 ## Context
 

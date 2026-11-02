@@ -46,13 +46,13 @@ const EMPTY: PartyWorld = {
  */
 export const describeSessionScopeResolverContract = (
   name: string,
-  make: (world: PartyWorld) => SessionScopeResolver | Promise<SessionScopeResolver>,
+  make: (
+    world: PartyWorld,
+  ) => SessionScopeResolver | Promise<SessionScopeResolver>,
 ) => {
   describe(`${name} honours the SessionScopeResolver contract`, () => {
     const scopeOf = async (world: Partial<PartyWorld>, userId = 'u-1') =>
-      Effect.runPromise(
-        (await make({ ...EMPTY, ...world })).forUser(userId),
-      );
+      Effect.runPromise((await make({ ...EMPTY, ...world })).forUser(userId));
     const party = { individuals: [{ id: 'p-1', userId: 'u-1' }] };
 
     it('opens a user with no party as a customer of nothing', async () => {

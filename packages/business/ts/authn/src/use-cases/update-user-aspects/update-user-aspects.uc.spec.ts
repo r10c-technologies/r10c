@@ -1,4 +1,3 @@
-import { EntifixLogicError } from '@entifix/core';
 import type { Role } from '@r10c/business-ts-authz-grants';
 import { Cause, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -35,8 +34,7 @@ const stubAccounts = (
     linkExternalSubject: () => Effect.void,
     projectIdentity: () => Effect.void,
 
-    createAccount: () =>
-      Effect.fail(new EntifixLogicError('not used in update')),
+    createAccount: () => Effect.die('unused'),
     updateUserAspects: (_userId, changes) => {
       onUpdate(changes);
       const updated = userWith(changes.role ?? target?.role ?? 'user');
@@ -68,23 +66,29 @@ const runUpdate = (
     ),
   );
 
-const failedWith = (exit: Exit.Exit<unknown, unknown>, tag: string) => {
+const failedWith = (
+  exit: Exit.Exit<unknown, unknown>,
+  categories: readonly string[],
+) => {
   expect(Exit.isFailure(exit)).toBe(true);
   if (Exit.isFailure(exit) && Cause.hasFails(exit.cause)) {
-    expect(
-      (Option.getOrThrow(Cause.findErrorOption(exit.cause)) as { _tag: string })
-        ._tag,
-    ).toBe(tag);
+    expect(categories).toContain(
+      (
+        Option.getOrThrow(Cause.findErrorOption(exit.cause)) as {
+          category: string;
+        }
+      ).category,
+    );
   }
 };
 
 /** A refusal of the request itself — malformed, or about a user that is gone. */
 const failedWithAuthnError = (exit: Exit.Exit<unknown, unknown>) =>
-  failedWith(exit, 'AuthnError');
+  failedWith(exit, ['invalid', 'notFound']);
 
 /** A refusal of the *caller* — the tier rules. Distinct, and a 403 at the edge. */
 const failedWithForbidden = (exit: Exit.Exit<unknown, unknown>) =>
-  failedWith(exit, 'ForbiddenError');
+  failedWith(exit, ['forbidden']);
 
 describe('UpdateUserAspectsUC', () => {
   it('applies a role change within the actor’s tier', async () => {

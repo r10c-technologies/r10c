@@ -2,7 +2,11 @@ import { makeAppLayer } from '@r10c/shells-effect-settlement';
 
 import { seedSettlement } from './seed';
 
-export { router, SETTLEMENT_SLICE } from '@r10c/shells-effect-settlement';
+export {
+  endpoints,
+  policy,
+  SETTLEMENT_SLICE,
+} from '@r10c/shells-effect-settlement';
 
 /** The slice's composition, as the service mounts it, with its seed. */
 export const AppLayer = makeAppLayer({ seed: seedSettlement });

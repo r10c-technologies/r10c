@@ -1,1 +1,1 @@
-export { catalogRoutes, type CatalogRouteServices } from './catalog-routes.js';
+export * from './catalog-api.js';

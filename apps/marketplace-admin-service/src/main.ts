@@ -1,5 +1,9 @@
 import { makeService } from '@entifix/service-shell/runtime';
-import { makeAppLayer, router } from '@r10c/shells-effect-marketplace-admin';
+import {
+  endpoints,
+  makeAppLayer,
+  policy,
+} from '@r10c/shells-effect-marketplace-admin';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
@@ -16,11 +20,10 @@ import { seedCatalog } from './seed';
 makeService({
   name: SERVICE_NAME,
   port: Number(process.env.PORT) || DEFAULT_PORT,
-  // Two slices in one process. `transaction` is co-deployed here (ADR 0021):
-  // ownership never moved, only the process did, so both are named rather than
-  // one standing in for the other.
-  slices: ['marketplace-admin', 'transaction'],
+  // One slice: `transaction` was co-deployed here until it took `:3103` (#229).
+  slices: ['marketplace-admin'],
   description: fleetToken,
-  router,
+  endpoints,
+  policy,
   appLayer: makeAppLayer({ seed: seedCatalog }),
 });

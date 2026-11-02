@@ -94,7 +94,7 @@ describe('concurrent receipts', () => {
     );
 
     expect(responses.map(response => response.status)).toEqual(
-      Array.from({ length: BURST }, () => 201),
+      Array.from({ length: BURST }, () => 200),
     );
 
     // ⚠️ **One row, not "some rows summing correctly".** `updateOne` with
@@ -120,13 +120,13 @@ describe('concurrent holds against the last units', () => {
     const available = 10;
     expect(
       (await recordMovement(offeringId, available, 'receipt')).status,
-    ).toBe(201);
+    ).toBe(200);
 
     const responses = await Promise.all(
       Array.from({ length: BURST }, () => takeHold(offeringId, 1)),
     );
 
-    const created = responses.filter(response => response.status === 201);
+    const created = responses.filter(response => response.status === 200);
     const refused = responses.filter(response => response.status === 409);
 
     // No oversell, and no under-sell either: the conditional write is not a

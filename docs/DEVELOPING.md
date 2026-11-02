@@ -478,15 +478,15 @@ The golden rule above is **enforced**, not just reviewed. Every project declares
 `nx.tags` in its `package.json`, and `eslint.config.mjs` turns those tags into
 `@nx/enforce-module-boundaries` constraints across these dimensions:
 
-| Dimension    | Tags                                                                        | Rule                                                                                  |
-| ------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **layer**    | `layer:app` › `shell` › `implementation` › `business` › `utils`             | depend only on layers **below** (`shell`/`business` also allow ordered same-layer)    |
-| **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}` | a domain may depend only on itself or `scope:shared` (the reusable core)              |
-| **business** | `business:policy` ‹ `business:domain`                                       | a domain may use the shared vocabulary, never another domain                          |
-| **shell**    | `shell:base` ‹ `shell:{domain, platform}`                                   | a slice's shell mounts onto the base, never onto another slice's shell                |
-| **host**     | `host:next`, `host:effect`                                                  | a `host:next` app may **not** import `@entifix/{mongo,sql,redis,amqp}` or a subpath   |
-| **tech**     | `tech:{react, next, http, mongo, redis, sql}`                               | a cell may not import what it would talk through — adapters, drivers, state libraries |
-| **type**     | `type:testing`, `type:e2e`, `type:storybook`                                | spec files may import `type:testing` libs; source files may not                       |
+| Dimension    | Tags                                                                        | Rule                                                                                                                                                                 |
+| ------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **layer**    | `layer:app` › `shell` › `implementation` › `business` › `utils`             | depend only on layers **below** (`shell`/`business` also allow ordered same-layer)                                                                                   |
+| **scope**    | `scope:{marketplace, marketplace-admin, auth, transaction, config, shared}` | a domain may depend only on itself or `scope:shared` (the reusable core)                                                                                             |
+| **business** | `business:policy` ‹ `business:domain`                                       | a domain may use the shared vocabulary, never another domain                                                                                                         |
+| **shell**    | `shell:base` ‹ `shell:{domain, platform}`                                   | a slice's shell mounts onto the base, never onto another slice's shell                                                                                               |
+| **host**     | `host:next`, `host:effect`                                                  | a `host:next` app may **not** import `@entifix/{mongo,sql,redis,amqp,workflow}` or a subpath                                                                         |
+| **tech**     | `tech:{react, next, http, mongo, redis, sql}`                               | a cell may not import what it would talk through — adapters, drivers, state libraries; an `http` cell nothing that serves (`effect/http*`, `@entifix/service-shell`) |
+| **type**     | `type:testing`, `type:e2e`, `type:storybook`                                | spec files may import `type:testing` libs; source files may not                                                                                                      |
 
 `@entifix/*` is not in the table because it is not a project: it is installed
 from the registry, carries no tags, and any layer may import it. Its own
@@ -575,10 +575,13 @@ and the scope of the slice that owns its domain.
    `shells/next/<shell>`; that is the exception, not the starting point.
 3. **Routes** — a `page.tsx` and a `[slug]/page.tsx` in the app, each a
    nine-line re-export. Next needs a module per path, so these stay.
-4. **Backend route** — one `makeEntityRoutes(Ctor, { verbs, guard })` in the
-   domain's `packages/implementation/<domain>/http` cell, merged into the
-   service's router. Storage comes from the `EntityRepositoryFactoryTag` the
-   host's `fleet*MongoLayer` provides, so the route names no database.
+4. **Backend endpoints** — one `defineEntityApi(Ctor, key, { verbs, guard })`
+   declaration in the domain's `packages/implementation/<domain>/http` cell,
+   served by the slice shell with `entityApi(declaration)` and listed in the
+   slice's `exposedAPIs`, which `@r10c/slices` checks against what the shell
+   serves ([ADR 0071](adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)).
+   Storage comes from the `EntityRepositoryFactoryTag` the host's
+   `fleet*MongoLayer` provides, so the declaration names no database.
 5. **Config** — if it introduces a new service/URL, add a seed row in
    `apps/config-service/src/db.ts`; never hardcode a URL or connection string.
 6. **Check the catalogs** — `node tools/check-i18n.mjs`. A key present in `es`
@@ -614,10 +617,9 @@ and the scope of the slice that owns its domain.
   use the double rather than writing their own.
 - The helpers cell specs share are `@r10c/testing-cells`: `tokenClaims` and
   `crossingCall` at `.`, `mongoCellWorld` and `failNth` at `./mongo`.
-- ⚠️ A route answering a coded error writes the `{ error, code }` pair inline.
-  `@r10c/i18n-check` finds codes by that pair, so a helper taking
-  `(error, code)` hides them from the catalog check and drops the scan below
-  its floor.
+- ⚠️ A refusal is a registered failure, never a hand-written `{ error, code }`
+  body: `@r10c/i18n-check` reads the codes from the failure registry, so a code
+  that is not a failure's is one no gate can see.
 - Resolve runtime config from config-service at boot (`loadRemoteConfiguration`),
   never from ad-hoc `process.env` beyond a single bootstrap value (e.g.
   `CONFIG_API_URL`, `CONFIG_PG_URL`).

@@ -1,6 +1,4 @@
-import type {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import type { EntityRepositoryTag } from '@entifix/business';
 import type { Context } from 'effect';
 
 /**

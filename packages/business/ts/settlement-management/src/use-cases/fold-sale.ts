@@ -52,7 +52,7 @@ export const foldPlacedOrder = (consumer: string, event: DomainEvent) =>
     const join = yield* SaleJoinTag;
     const order = yield* readPlacedOrder(event.data);
     const agreements = yield* join.agreementsFor(vendorsOf(order.lines));
-    const { commissions, unpriced } = commissionsForOrder({
+    const { commissions, unpriced } = yield* commissionsForOrder({
       lines: order.lines,
       ...(order.channelType === undefined
         ? {}

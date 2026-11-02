@@ -16,6 +16,45 @@
     },
     {
       "path": "../../packages/shells/next/i18n-catalog"
+    },
+    {
+      "path": "../../packages/business/ts/stock-management"
+    },
+    {
+      "path": "../../packages/business/ts/settlement-management"
+    },
+    {
+      "path": "../../packages/business/ts/sales-management"
+    },
+    {
+      "path": "../../packages/business/ts/saga-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/product-configuration-management"
+    },
+    {
+      "path": "../../packages/business/ts/payment-management"
+    },
+    {
+      "path": "../../packages/business/ts/payment-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/order-management"
+    },
+    {
+      "path": "../../packages/business/ts/configuration"
+    },
+    {
+      "path": "../../packages/business/ts/common"
+    },
+    {
+      "path": "../../packages/business/ts/catalog-reference"
+    },
+    {
+      "path": "../../packages/business/ts/catalog-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/authn"
     }
   ]
 }

@@ -36,6 +36,9 @@
       "path": "../../packages/business/ts/sales-management"
     },
     {
+      "path": "../../packages/business/ts/marketplace-catalog"
+    },
+    {
       "path": "../../packages/business/ts/catalog-reference"
     },
     {

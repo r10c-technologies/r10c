@@ -1,5 +1,6 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { useCase } from '@entifix/core';
+import { InvalidBody } from '@r10c/business-ts-common';
 
 import { ProductBrand } from '../../entities/product-brand';
 import { retireReferences } from '../retire-reference';
@@ -34,6 +35,7 @@ import { retireReferences } from '../retire-reference';
     tone: 'destructive',
     messageKey: 'entity:product-brand.useCases.retireConfirm',
   },
+  errors: [InvalidBody],
 })
 export class RetireProductBrandUC {
   static run() {

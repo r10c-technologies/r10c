@@ -65,10 +65,10 @@ const remove = (id: string) =>
   service.client.delete(`/api/product-order/${id}`, { headers: crossing() });
 
 describe('placing an order', () => {
-  it('writes it with its lines and answers 201', async () => {
+  it('writes it with its lines and answers 200', async () => {
     const res = await place([line('offering-a'), line('offering-b', 2)]);
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.data.data.items).toHaveLength(2);
     expect(typeof res.data.data.id).toBe('string');
   });
@@ -144,7 +144,7 @@ describe('the write takes a crossing token and no session', () => {
     // The inverse of stock-service's crossing, which requires one: there is no
     // tenant handle to choose here, and demanding a header nothing consumes is
     // theatre a caller learns to satisfy with any value.
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
   });
 });
 
@@ -364,13 +364,12 @@ describe('a redelivered command writes one order, not two', () => {
       'idempotency-key': `"${commandId}"`,
     });
 
-    expect(first.status).toBe(201);
+    expect(first.status).toBe(200);
     // `200`, not `409`: a coordinator that could not tell a duplicate from a
     // refusal would compensate an order it believes was never written, and
-    // release holds that are still backing it.
-    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
-    expect(second.status).toBe(201);
-    expect(second.headers['idempotent-replayed']).toBe('true');
+    // release holds that are still backing it. Replayed from the unit of
+    // work's command claim, the one layer that records this write (ADR 0068).
+    expect(second.status).toBe(200);
     expect(second.data.data.id).toBe(first.data.data.id);
 
     const after: Page = await service.client.get('/api/product-order');
@@ -451,7 +450,7 @@ describe('the cancel capability an order carries', () => {
   it('stamps a window when the order brought a digest', async () => {
     const res = await placeWithDigest({ cancelDigest: 'a'.repeat(64) });
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.data.data.cancelDigest).toBe('a'.repeat(64));
 
     const placedAt = Date.parse(String(res.data.data.placedAt));
@@ -468,7 +467,7 @@ describe('the cancel capability an order carries', () => {
   it('stamps no window when the order brought none', async () => {
     const res = await placeWithDigest({});
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.data.data.cancelDigest).toBeUndefined();
     expect(res.data.data.cancelWindowEndsAt).toBeUndefined();
   });
@@ -597,6 +596,7 @@ describe('fulfilling an order', () => {
     );
 
     expect(res.status).toBe(409);
+    expect(res.headers['content-type']).toContain('application/problem+json');
     expect(res.data.code).toBe('orderNotFulfillable');
   });
 });
@@ -825,12 +825,13 @@ describe('a vendor or operator asking to cancel', () => {
     ]);
 
     const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/cancellation`,
+      `/api/product-order/${placed.data.data.id as string}/cancel`,
       {},
       { headers: await asVendorOf('vendor-va') },
     );
 
     expect(res.status).toBe(409);
+    expect(res.headers['content-type']).toContain('application/problem+json');
     expect(res.data.code).toBe('multiVendorOrder');
   });
 
@@ -838,7 +839,7 @@ describe('a vendor or operator asking to cancel', () => {
     const placed = await place([line('offering-ve')]);
 
     const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/cancellation`,
+      `/api/product-order/${placed.data.data.id as string}/cancel`,
       {},
       { headers: await asOperator() },
     );
@@ -853,7 +854,7 @@ describe('a vendor or operator asking to cancel', () => {
     ]);
 
     const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/cancellation`,
+      `/api/product-order/${placed.data.data.id as string}/cancel`,
       {},
       { headers: await asVendorOf('vendor-elsewhere') },
     );
@@ -865,7 +866,7 @@ describe('a vendor or operator asking to cancel', () => {
     const placed = await place([line('offering-vd')]);
 
     const res = await service.client.post(
-      `/api/product-order/${placed.data.data.id as string}/cancellation`,
+      `/api/product-order/${placed.data.data.id as string}/cancel`,
       {},
       { headers: crossing() },
     );

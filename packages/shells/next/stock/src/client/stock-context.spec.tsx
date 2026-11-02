@@ -1,9 +1,5 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
-import {
-  makeInMemoryEntityRepository,
-} from '@entifix/testing-unit';
+import { EntityRepositoryTag } from '@entifix/business';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
 import { Context } from 'effect';
 import type { PropsWithChildren } from 'react';

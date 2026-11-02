@@ -1,4 +1,3 @@
-import { EntifixLogicError } from '@entifix/core';
 import { DEFAULT_ROLE, type Role } from '@r10c/business-ts-authz-grants';
 import { Cause, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -8,6 +7,7 @@ import {
   UserIdentity,
   UserStatus,
 } from '../../entities/user-identity/index.js';
+import { IdentifierInUse } from '../../errors/index.js';
 import {
   AccountRepositoryTag,
   type CreateAccountInput,
@@ -36,8 +36,7 @@ const stubAccounts = (
       onCreate(input);
       return Effect.succeed(createdUser(input.role));
     },
-    updateUserAspects: () =>
-      Effect.fail(new EntifixLogicError('not used in register')),
+    updateUserAspects: () => Effect.die('unused'),
   });
 
 const runRegister = (
@@ -99,7 +98,7 @@ describe('registerUserUCFactory', () => {
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit) && Cause.hasFails(exit.cause)) {
       expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe(
-        'AuthnError',
+        'IdentifierRequired',
       );
     }
   });
@@ -111,10 +110,8 @@ describe('registerUserUCFactory', () => {
       findContactAddress: () => Effect.succeed(null),
       linkExternalSubject: () => Effect.void,
       projectIdentity: () => Effect.void,
-      createAccount: () =>
-        Effect.fail(new EntifixLogicError('identifier already taken')),
-      updateUserAspects: () =>
-        Effect.fail(new EntifixLogicError('not used in register')),
+      createAccount: () => Effect.fail(new IdentifierInUse()),
+      updateUserAspects: () => Effect.die('unused'),
     });
 
     const exit = await runRegister(conflicting, [
@@ -159,9 +156,9 @@ describe('registerUserUCFactory', () => {
 
       expect(Exit.isFailure(exit)).toBe(true);
       if (Exit.isFailure(exit) && Cause.hasFails(exit.cause)) {
-        // Not an AuthnError: the request is fine, the caller is not allowed.
+        // Not an invalid request: the request is fine, the caller is not allowed.
         expect(Option.getOrThrow(Cause.findErrorOption(exit.cause))._tag).toBe(
-          'ForbiddenError',
+          'RoleNotAllowed',
         );
       }
     });

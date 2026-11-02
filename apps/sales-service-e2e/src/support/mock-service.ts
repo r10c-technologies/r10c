@@ -26,7 +26,12 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
-import { router, seedSales, SERVICE_NAME } from '@r10c/sales-service';
+import {
+  endpoints,
+  policy,
+  seedSales,
+  SERVICE_NAME,
+} from '@r10c/sales-service';
 import {
   httpPublishedPriceReaderLayer,
   httpSagaStarterLayer,
@@ -128,7 +133,7 @@ const MockAppLayer = (() => {
   ).pipe(Layer.orDie);
 })();
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
@@ -138,6 +143,7 @@ export const startMockService = (): Promise<RunningTestService> =>
     // thing under test rather than a reduced version of it.
     slices: ['sales'],
     description: fleetToken,
-    router,
+    endpoints,
+    policy,
     appLayer: MockAppLayer,
   });

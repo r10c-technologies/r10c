@@ -21,6 +21,9 @@
     },
     {
       "path": "../order-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../common/tsconfig.lib.json"
     }
   ],
   "exclude": [

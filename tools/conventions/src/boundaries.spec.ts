@@ -59,6 +59,7 @@ describe('a next cell', () => {
       "import { verifiedContext } from '@entifix/business/verified';",
       'the context constructor',
     ],
+    ["import { FlowEngineLayer } from '@entifix/workflow';", 'the flow engine'],
   ])(
     'may not import %s (%s)',
     async source => {
@@ -100,6 +101,60 @@ describe('a next cell', () => {
 
     expect(errors.length).toBe(1);
   }, 60_000);
+});
+
+/** A file that does not exist, placed where a `tech:http` cell's source lives. */
+const IN_AN_HTTP_CELL = join(
+  REPO_ROOT,
+  'packages/implementation/order-management/http/src/planted.ts',
+);
+
+/**
+ * An http cell is descriptors only (ADR 0071): what serves them — the
+ * `HttpApi` builder, a hand response, the service shell — is the slice
+ * shell's. Before this ban a cell could mount a router of its own and lint
+ * clean, which is the hand router every slice migration removed.
+ */
+describe('an http cell', () => {
+  const errorsIn = async (code: string): Promise<string[]> => {
+    const eslint = new ESLint({ cwd: REPO_ROOT });
+    const [result] = await eslint.lintText(code, {
+      filePath: IN_AN_HTTP_CELL,
+    });
+    return (result?.messages ?? [])
+      .filter(message => message.ruleId === BOUNDARY_RULE)
+      .map(message => message.message);
+  };
+
+  it.each([
+    ["import { HttpApiBuilder } from 'effect/http-api';", 'the API builder'],
+    ["import { HttpServerResponse } from 'effect/http';", 'a hand response'],
+    ["import { buildApi } from '@entifix/service-shell';", 'the service shell'],
+  ])(
+    'may not import %s (%s)',
+    async source => {
+      expect(await errorsIn(`${source}\nexport {};\n`)).toHaveLength(1);
+    },
+    60_000,
+  );
+
+  it.each([
+    ["import { defineEndpoint } from '@entifix/core';", 'a descriptor'],
+    [
+      "import { defineEntityApi } from '@entifix/business';",
+      'an entity declaration',
+    ],
+    [
+      "import { ProductOrder } from '@r10c/business-ts-order-management';",
+      'its own domain',
+    ],
+  ])(
+    'may import %s (%s)',
+    async source => {
+      expect(await errorsIn(`${source}\nexport {};\n`)).toEqual([]);
+    },
+    60_000,
+  );
 });
 
 /**
@@ -291,4 +346,34 @@ describe('below the shell', () => {
       ),
     ).toEqual([]);
   }, 60_000);
+});
+
+/** A file that does not exist, placed where a Next app's source lives. */
+const IN_A_NEXT_APP = join(REPO_ROOT, 'apps/back-office-app/src/planted.ts');
+
+describe('a next app', () => {
+  it.each([
+    [
+      "import { MongoClientLayer } from '@entifix/mongo';",
+      'a datastore client',
+    ],
+    [
+      "import { SingleRunnerFlowEngineLayer } from '@entifix/workflow/postgres';",
+      'the flow engine',
+    ],
+  ])(
+    'may not import %s (%s)',
+    async source => {
+      const eslint = new ESLint({ cwd: REPO_ROOT });
+      const [result] = await eslint.lintText(`${source}\nexport {};\n`, {
+        filePath: IN_A_NEXT_APP,
+      });
+      const errors = (result?.messages ?? []).filter(
+        message => message.ruleId === BOUNDARY_RULE,
+      );
+
+      expect(errors.length).toBe(1);
+    },
+    60_000,
+  );
 });

@@ -11,6 +11,7 @@
   (its "the client re-queries its pending transaction ids and reconciles" is
   built here, and `ReactiveChannel` gains the connect signal that makes it
   possible).
+- Revised: 2026-10-29 — no back-office write answers `202` since the specification create became a unit of work (#463); the contract returns with flows (ADR 0066)
 
 ## Context
 

@@ -1,5 +1,3 @@
-import { TransactionStreamHubTag } from '@entifix/transactions';
-import { makeTransactionStreamHubEffect } from '@entifix/transactions/engine';
 import {
   crossingTokenLayer,
   fleetBusLayer,
@@ -24,17 +22,46 @@ import {
 } from './saga/resume.js';
 import { sagaStoresLayer } from './saga/stores.js';
 import {
-  SagaRecoveryIntervalMs,
-  SagaStaleTimeoutMs,
-  startTracking,
-} from './saga/tracking.js';
-import {
   ORDER_PARTICIPANT,
   PAYMENT_PARTICIPANT,
   STOCK_PARTICIPANT,
 } from './sagas/index.js';
+import {
+  type RunnerReplica,
+  workflowComposition,
+} from './workflow/workflow-layer.js';
 
 const SERVICE_NAME = 'transaction-service';
+
+/**
+ * Where each participant is reached, and the crossing token it takes.
+ *
+ * ⚠️ **A crossing token per participant, and each is that participant's
+ * own.** Reusing one across services — or reusing the fleet's
+ * `CONFIG_SERVICE_TOKEN` — would make a single leaked secret a tenant-data
+ * write capability everywhere at once. They are separate `is_secret` rows
+ * with separate rotations (ADR 0023), and holding several is the
+ * concentration ADR 0039 recorded rather than a new class of risk. The saga
+ * runner and the flow engine present the same ones.
+ */
+const readParticipants = ({ store }: FleetConfiguration) =>
+  Effect.gen(function* () {
+    const participant = store.in('participant');
+    return {
+      [STOCK_PARTICIPANT]: {
+        baseUrl: yield* participant.getString('stockUrl'),
+        crossingToken: yield* participant.getString('stockToken'),
+      },
+      [ORDER_PARTICIPANT]: {
+        baseUrl: yield* participant.getString('orderUrl'),
+        crossingToken: yield* participant.getString('orderToken'),
+      },
+      [PAYMENT_PARTICIPANT]: {
+        baseUrl: yield* participant.getString('paymentUrl'),
+        crossingToken: yield* participant.getString('paymentToken'),
+      },
+    } satisfies Readonly<Record<string, Participant>>;
+  });
 
 /**
  * The `transaction` slice's composition, mounted by its service alone (ADR 0064) — the `saga` store's only writer.
@@ -47,114 +74,105 @@ const SERVICE_NAME = 'transaction-service';
  * line of its logic changing (#229) — and since #376 the name is handed to
  * `sagaStoresLayer`, entifix's saga store and the `saga/mongo` cell alike.
  *
- * **No Redis, and that is a boundary rather than an omission.** The locks and
- * sequences live in the `saga-coordination` store, which
- * `docs/_shared/planes.md` gives to the **marketplace-admin** slice — a similar
- * name for a different store with a different writer. Opening a Redis handle
- * here would put two slices on one store.
- *
  * **No outbox either.** An outbox entry is a `catalog` collection, one per
  * `tenant_<id>` database, written in the same Mongo transaction as the entity it
  * announces (ADR 0028) — so it belongs to the catalog's writer and stayed
  * there.
  */
-export const transactionComposition = (configuration: FleetConfiguration) =>
-  Effect.gen(function* () {
-    const { store } = configuration;
+export const transactionComposition =
+  (runner: RunnerReplica) => (configuration: FleetConfiguration) =>
+    Effect.gen(function* () {
+      const { store } = configuration;
 
-    const sagaDbName = yield* store.in('saga').getString('db');
-    const sagaStaleTimeoutMs = yield* store
-      .in('saga')
-      .getNumber('staleTimeoutMs');
-    const sagaRecoveryIntervalMs = yield* store
-      .in('saga')
-      .getNumber('recoveryIntervalMs');
-    const sagaResumeIntervalMs = yield* store
-      .in('saga')
-      .getNumber('resumeIntervalMs');
-    const sagaStaleAfterMs = yield* store
-      .in('saga')
-      .getNumber('resumeStaleAfterMs');
-    const sagaMaxResumeAttempts = yield* store
-      .in('saga')
-      .getNumber('maxResumeAttempts');
+      const sagaDbName = yield* store.in('saga').getString('db');
+      const sagaResumeIntervalMs = yield* store
+        .in('saga')
+        .getNumber('resumeIntervalMs');
+      const sagaStaleAfterMs = yield* store
+        .in('saga')
+        .getNumber('resumeStaleAfterMs');
+      const sagaMaxResumeAttempts = yield* store
+        .in('saga')
+        .getNumber('maxResumeAttempts');
 
-    // ⚠️ **A crossing token per participant, and each is that participant's
-    // own.** Reusing one across services — or reusing the fleet's
-    // `CONFIG_SERVICE_TOKEN` — would make a single leaked secret a tenant-data
-    // write capability everywhere at once. They are separate `is_secret` rows
-    // with separate rotations (ADR 0023), and holding several is the
-    // concentration ADR 0039 recorded rather than a new class of risk.
-    const participants: Readonly<Record<string, Participant>> = {
-      [STOCK_PARTICIPANT]: {
-        baseUrl: yield* store.in('participant').getString('stockUrl'),
-        crossingToken: yield* store.in('participant').getString('stockToken'),
-      },
-      [ORDER_PARTICIPANT]: {
-        baseUrl: yield* store.in('participant').getString('orderUrl'),
-        crossingToken: yield* store.in('participant').getString('orderToken'),
-      },
-      [PAYMENT_PARTICIPANT]: {
-        baseUrl: yield* store.in('participant').getString('paymentUrl'),
-        crossingToken: yield* store.in('participant').getString('paymentToken'),
-      },
-    };
+      const participants = yield* readParticipants(configuration);
 
-    const connections = Layer.mergeAll(
-      // The pool: the `saga` store is a database this process names itself.
-      yield* fleetMongoPoolLayer(configuration, ['saga']),
-      // This slice's rows were named `amqp` before the rest of the fleet's.
-      yield* fleetBusLayer(configuration, 'amqp'),
-      yield* fleetSecurityLayer(configuration),
-      // ⚠️ **This service's own *inbound* token — what a caller presents to run
-      // a saga — and a different secret from the outbound ones above.** The
-      // coordinator is both a callee and a caller, and collapsing the two
-      // directions onto one value would mean anyone allowed to *start* a
-      // checkout held the key that *writes* a vendor's stock.
-      yield* crossingTokenLayer(configuration),
-      Layer.succeed(SagaStaleTimeoutMs, sagaStaleTimeoutMs),
-      Layer.succeed(SagaRecoveryIntervalMs, sagaRecoveryIntervalMs),
-      Layer.succeed(SagaResumeIntervalMs, sagaResumeIntervalMs),
-      Layer.succeed(SagaStaleAfterMs, sagaStaleAfterMs),
-      Layer.succeed(SagaMaxResumeAttempts, sagaMaxResumeAttempts),
-      Layer.succeed(ParticipantsTag, participants),
-    );
+      const connections = Layer.mergeAll(
+        // The pool: the `saga` store is a database this process names itself.
+        yield* fleetMongoPoolLayer(configuration, ['saga']),
+        // This slice's rows were named `amqp` before the rest of the fleet's.
+        yield* fleetBusLayer(configuration, 'amqp'),
+        yield* fleetSecurityLayer(configuration),
+        // ⚠️ **This service's own *inbound* token — what a caller presents to run
+        // a saga — and a different secret from the outbound ones above.** The
+        // coordinator is both a callee and a caller, and collapsing the two
+        // directions onto one value would mean anyone allowed to *start* a
+        // checkout held the key that *writes* a vendor's stock.
+        yield* crossingTokenLayer(configuration),
+        Layer.succeed(SagaResumeIntervalMs, sagaResumeIntervalMs),
+        Layer.succeed(SagaStaleAfterMs, sagaStaleAfterMs),
+        Layer.succeed(SagaMaxResumeAttempts, sagaMaxResumeAttempts),
+        Layer.succeed(ParticipantsTag, participants),
+      );
 
-    // A start's idempotency records live in the `saga` store's database.
-    const idempotency = yield* fleetIdempotencyLayer(configuration, sagaDbName);
+      // A start's idempotency records live in the `saga` store's database.
+      const idempotency = yield* fleetIdempotencyLayer(
+        configuration,
+        sagaDbName,
+      );
 
-    const infra = Layer.provideMerge(
-      Layer.mergeAll(
-        idempotency,
-        sagaStoresLayer(sagaDbName),
-        HttpSagaDispatcherLayer,
-        // The in-process fan-out behind `GET /api/transaction/events`. Scoped,
-        // so the connections it holds are released with the server, and shared
-        // by the whole process: one bus subscription feeds every browser rather
-        // than a broker queue per open tab, which would be a broker resource a
-        // client controls.
-        Layer.effect(TransactionStreamHubTag, makeTransactionStreamHubEffect),
-      ),
-      connections,
-    );
+      const infra = Layer.provideMerge(
+        Layer.mergeAll(
+          idempotency,
+          sagaStoresLayer(sagaDbName),
+          HttpSagaDispatcherLayer,
+        ),
+        connections,
+      );
 
-    // The tracker: it subscribes to the bus and forks the recovery sweep.
-    // Passive for a single-step write — it observes and recovers — while
-    // `POST /api/saga/:definition` beside it dispatches. Both read the same
-    // store, which is what makes "where did this stop, and what has been
-    // reversed" one query rather than a correlation across service logs.
-    const tracked = Layer.provideMerge(
-      Layer.effectDiscard(startTracking),
-      infra,
-    );
+      // The durable flow engine, beside the saga runner until #490 deletes the
+      // runner: replica 0's runner, on the bus this composition already opened.
+      const workflow = Layer.provide(
+        yield* workflowComposition(configuration, participants, runner),
+        connections,
+      );
 
-    // ⚠️ Chained after the tracker rather than merged beside it, so the
-    // resume sweep is built on a context that already has the store and the
-    // dispatcher. Merged, the two forks would race for the same services at
-    // boot.
-    return Layer.provideMerge(Layer.effectDiscard(startSagaResume), tracked);
-  });
+      // ⚠️ Chained after the stores rather than merged beside them, so the
+      // resume sweep is built on a context that already has the store and the
+      // dispatcher.
+      return Layer.merge(
+        Layer.provideMerge(Layer.effectDiscard(startSagaResume), infra),
+        workflow,
+      );
+    });
 
-/** The composition, booted against the configuration config-service serves. */
-export const makeAppLayer = () =>
-  makeFleetServiceLayer(SERVICE_NAME, transactionComposition);
+/**
+ * A runner that serves no HTTP: a further replica of the flow engine, whose
+ * shards are assigned in the `workflow` store the other runners registered
+ * in (ADR 0066). It opens only what the engine needs — the bus its relay
+ * publishes on — and none of the saga runner's stores, which replica 0 alone
+ * holds until #490 deletes them.
+ */
+export const runnerComposition =
+  (runner: RunnerReplica) => (configuration: FleetConfiguration) =>
+    Effect.gen(function* () {
+      const participants = yield* readParticipants(configuration);
+      return Layer.provide(
+        yield* workflowComposition(configuration, participants, runner),
+        yield* fleetBusLayer(configuration, 'amqp'),
+      );
+    });
+
+/**
+ * The composition, booted against the configuration config-service serves —
+ * replica 0, the one that serves HTTP.
+ */
+export const makeAppLayer = (servicePort: number) =>
+  makeFleetServiceLayer(
+    SERVICE_NAME,
+    transactionComposition({ servicePort, replica: 0 }),
+  );
+
+/** A runner-only replica, booted the same way. */
+export const makeRunnerLayer = (runner: RunnerReplica) =>
+  makeFleetServiceLayer(SERVICE_NAME, runnerComposition(runner));

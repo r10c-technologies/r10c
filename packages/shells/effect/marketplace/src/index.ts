@@ -9,9 +9,9 @@ export {
   marketplaceComposition,
   type MarketplaceShellOptions,
 } from './app-layer.js';
+export { endpoints, policy } from './endpoints.js';
 export { catalogSubscription, startProjecting } from './publish-catalog.js';
 export {
   startProjectingVendors,
   vendorSubscription,
 } from './publish-vendor.js';
-export { router } from './router.js';

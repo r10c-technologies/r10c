@@ -18,6 +18,12 @@
     },
     {
       "path": "../saga-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../payment-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../common/tsconfig.lib.json"
     }
   ],
   "exclude": [

@@ -56,7 +56,7 @@ export const describeConfigurationLookupContract = (
   ) => ConfigurationLookup | Promise<ConfigurationLookup>,
 ) => {
   describe(`${name} honours the ConfigurationLookup contract`, () => {
-    it("serves a service its own rows, grouped, with real values and the secret flag", async () => {
+    it('serves a service its own rows, grouped, with real values and the secret flag', async () => {
       const lookup = await make(CONTRACT_ROWS);
 
       expect(

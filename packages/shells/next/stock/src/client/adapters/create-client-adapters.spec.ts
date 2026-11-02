@@ -1,6 +1,4 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import {
   http,
   HttpResponse,
@@ -76,9 +74,7 @@ describe('createClientAdapters', () => {
     const adapters = createClientAdapters();
     const repository = Context.get(adapters.stockItemRest, EntityRepositoryTag);
 
-    await Effect.runPromise(
-      repository.load<StockItem>({}),
-    );
+    await Effect.runPromise(repository.load<StockItem>({}));
 
     expect(urls).toContain(`${SERVICE}/stock-item`);
   });
@@ -93,9 +89,7 @@ describe('createClientAdapters', () => {
       EntityRepositoryTag,
     );
 
-    await Effect.runPromise(
-      repository.load<StockMovement>({}),
-    );
+    await Effect.runPromise(repository.load<StockMovement>({}));
 
     expect(urls).toContain(`${SERVICE}/stock-movement`);
   });

@@ -1,4 +1,3 @@
-import { EntifixConnError } from '@entifix/core';
 import { makeFakeSqlClient } from '@entifix/testing-unit/drivers';
 import { ConfigurationLookupTag } from '@r10c/business-ts-configuration';
 import {
@@ -18,7 +17,9 @@ const lookupOver = (fake: ReturnType<typeof makeFakeSqlClient>) =>
     }).pipe(
       Effect.provide(
         ConfigurationLookupLayer.pipe(
-          Layer.provide(Layer.succeed(SqlClient.SqlClient, fake.client as never)),
+          Layer.provide(
+            Layer.succeed(SqlClient.SqlClient, fake.client as never),
+          ),
         ),
       ),
     ),
@@ -51,7 +52,9 @@ describe('the SQL lookup beyond the contract', () => {
   it('asks for the one service it was given', async () => {
     const fake = makeFakeSqlClient();
 
-    await Effect.runPromise((await lookupOver(fake)).forService('order-service'));
+    await Effect.runPromise(
+      (await lookupOver(fake)).forService('order-service'),
+    );
 
     expect(fake.lastExecution?.params).toEqual(['order-service']);
   });
@@ -77,6 +80,6 @@ describe('the SQL lookup beyond the contract', () => {
       ]),
     );
 
-    expect(errors.every(error => error instanceof EntifixConnError)).toBe(true);
+    expect(errors.every(error => error._tag === 'Unavailable')).toBe(true);
   });
 });

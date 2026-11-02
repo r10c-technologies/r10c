@@ -4,7 +4,6 @@ import {
   type EntityConstructor,
   envelopeEntityName,
   serializeEntity,
-  type TransitionalFailure,
   Unavailable,
 } from '@entifix/core';
 import { MongoDatabaseTag } from '@entifix/mongo';
@@ -12,9 +11,12 @@ import {
   drainOutboxNow,
   isDuplicateKey,
   MongoUnitOfWorkTag,
-  OutboxMaxAttempts,
 } from '@entifix/mongo/transactions';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   paymentCapturedEvent,
   paymentRefundedEvent,
@@ -94,7 +96,7 @@ export const MongoPaymentLedgerLayer = Layer.effect(
     ) =>
       deserializeSingleEntity(entity, document).pipe(
         Effect.mapError(() => new Unavailable({ dependency: 'mongo' })),
-      ) as Effect.Effect<T, TransitionalFailure>;
+      ) as Effect.Effect<T, Unavailable>;
 
     const findOne = <T extends Entity>(
       entity: EntityConstructor<T>,

@@ -1,17 +1,17 @@
-import { deserializeSingleEntity, EntifixBuildError } from '@entifix/core';
-import { readCommandEnvelope } from '@entifix/transactions';
 import { Effect } from 'effect';
 
-import { ProductSpecification } from '../entities/product-specification';
+import type { ProductSpecification } from '../entities/product-specification';
 import type {
   OfferingCatalog,
   SpecificationCommands,
 } from '../ports/offering-catalog';
-import { refuseSpecificationMedia } from '../values/specification-media';
 
 /** An organization's offerings, by id, as the status each one stands at. */
 export type OfferingSeed = Readonly<
-  Record<string, ReadonlyArray<{ readonly id: string; readonly status: string }>>
+  Record<
+    string,
+    ReadonlyArray<{ readonly id: string; readonly status: string }>
+  >
 >;
 
 /**
@@ -50,31 +50,28 @@ export const makeInMemoryOfferingCatalog = (
 };
 
 /**
- * A {@link SpecificationCommands} that accepts what the real one accepts and
- * writes nothing, for the specs of whatever consumes the port. It runs
- * `describeSpecificationCommandsContract`.
+ * A {@link SpecificationCommands} held in memory, for the specs of whatever
+ * consumes the port: a counter per organization and the records its keys
+ * wrote. It runs `describeSpecificationCommandsContract`.
  */
-export const makeInMemorySpecificationCommands = (): SpecificationCommands => ({
-  accept: (_organizationId, body) =>
-    Effect.gen(function* () {
-      const command = yield* readCommandEnvelope(body);
-      if (command.entity !== 'product-specification') {
-        return yield* Effect.fail(
-          new EntifixBuildError(
-            `command entity "${command.entity}" does not match "product-specification"`,
-          ),
-        );
-      }
-      const specification = (yield* deserializeSingleEntity(
-        ProductSpecification,
-        command.payload,
-      )) as ProductSpecification | undefined;
-      if (!specification?.name) {
-        return yield* Effect.fail(
-          new EntifixBuildError('entity "name" is required'),
-        );
-      }
-      yield* refuseSpecificationMedia(specification);
-      return { transactionId: command.transactionId };
-    }),
-});
+export const makeInMemorySpecificationCommands = (): SpecificationCommands => {
+  const counters = new Map<string, number>();
+  const byKey = new Map<string, ProductSpecification>();
+  return {
+    create: (organizationId, specification, idempotencyKey) =>
+      Effect.sync(() => {
+        const scoped =
+          idempotencyKey === undefined
+            ? undefined
+            : `${organizationId}:${idempotencyKey}`;
+        const known = scoped === undefined ? undefined : byKey.get(scoped);
+        if (known !== undefined) return known;
+        const next = (counters.get(organizationId) ?? 0) + 1;
+        counters.set(organizationId, next);
+        specification.id = globalThis.crypto.randomUUID();
+        specification.code = `product-${String(next).padStart(3, '0')}`;
+        if (scoped !== undefined) byKey.set(scoped, specification);
+        return specification;
+      }),
+  };
+};

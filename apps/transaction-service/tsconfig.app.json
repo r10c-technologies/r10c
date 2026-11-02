@@ -32,7 +32,7 @@
       "path": "../../packages/shells/effect/service/tsconfig.lib.json"
     },
     {
-      "path": "../../packages/implementation/saga/mongo/tsconfig.lib.json"
+      "path": "../../packages/shells/effect/flow-catalog/tsconfig.lib.json"
     },
     {
       "path": "../../packages/business/ts/saga-contracts/tsconfig.lib.json"

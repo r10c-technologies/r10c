@@ -95,9 +95,7 @@ export const describeLifecycleCursorContract = (
 
       const since = Date.parse(await run(cursor.read));
 
-      expect(since).toBeLessThanOrEqual(
-        Date.parse('2026-10-25T11:00:00.000Z'),
-      );
+      expect(since).toBeLessThanOrEqual(Date.parse('2026-10-25T11:00:00.000Z'));
       expect(since).toBeGreaterThan(Date.parse('2026-10-25T10:00:00.000Z'));
     });
   });

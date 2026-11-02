@@ -130,8 +130,11 @@ describe('ROLE_PERMISSIONS', () => {
    * vacuously for precisely the verbs only the operator holds.
    */
   it('still names the operator-only verbs it declares', () => {
-    expect(ROLE_PERMISSIONS['super-admin']).toContain(
-      `${CATALOG_REFERENCE_DOMAIN}:*:retire`,
+    expect(ROLE_PERMISSIONS['super-admin']).toEqual(
+      expect.arrayContaining([
+        `${CATALOG_REFERENCE_DOMAIN}:*:retire`,
+        `${CATALOG_REFERENCE_DOMAIN}:*:restore`,
+      ]),
     );
   });
 

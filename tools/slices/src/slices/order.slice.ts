@@ -61,7 +61,7 @@ export const orderSlice: SliceDeclaration = {
     'GET|DELETE /api/product-order/:id',
     'GET /api/product-order/$metadata',
     'POST /api/product-order/:id/fulfil',
-    'POST /api/product-order/:id/cancellation',
+    'POST /api/product-order/:id/cancel',
     'POST /api/product-order/:id/buyer-cancellation',
     'POST|DELETE /api/product-order/:id/cancelling',
     'POST /api/product-order/:id/cancelled',
@@ -75,7 +75,7 @@ export const orderSlice: SliceDeclaration = {
     // order-service the third holder of that inbound secret beside the
     // storefront and sales-service
     // ([ADR 0058](../../../docs/adr/0058-the-order-after-payment.md) §6).
-    'POST /api/saga/:definition',
+    'POST /api/saga/cancellation',
   ],
   publishedEvents: ['order.placed', 'order.cancelled'],
   subscriptions: [

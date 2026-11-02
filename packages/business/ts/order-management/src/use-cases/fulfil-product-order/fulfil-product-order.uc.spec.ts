@@ -1,4 +1,5 @@
-import { describeEntityUseCases, EntifixLogicError } from '@entifix/core';
+import { describeEntityUseCases } from '@entifix/core';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { ProductOrder } from '../../entities/product-order/index.js';
@@ -9,6 +10,9 @@ import {
 
 const AT = new Date('2026-09-11T12:00:00.000Z');
 const EARLIER = new Date('2026-09-10T08:00:00.000Z');
+
+const decide = (...args: Parameters<typeof FulfilProductOrderUC.run>) =>
+  Effect.runSync(FulfilProductOrderUC.run(...args));
 
 const line = (vendorId: string, fulfilledAt?: Date) => ({
   vendorId,
@@ -37,8 +41,8 @@ describe('FulfilProductOrderUC', () => {
   });
 
   it('stamps every line for an operator and reaches `fulfilled`', () => {
-    const result = FulfilProductOrderUC.run(
-      { status: 'paid' },
+    const result = decide(
+      { id: 'o-1', status: 'paid' },
       [line('alpha'), line('beta')],
       undefined,
       AT,
@@ -51,8 +55,8 @@ describe('FulfilProductOrderUC', () => {
   it('stamps one vendor’s lines and leaves the order `paid`', () => {
     // The asymmetry the verb exists for: an order-level `fulfilled` flipped by
     // one vendor states something about another's lines that is not true.
-    const result = FulfilProductOrderUC.run(
-      { status: 'paid' },
+    const result = decide(
+      { id: 'o-1', status: 'paid' },
       [line('alpha'), line('beta')],
       'alpha',
       AT,
@@ -64,8 +68,8 @@ describe('FulfilProductOrderUC', () => {
   });
 
   it('never rewrites a stamp that is already there', () => {
-    const result = FulfilProductOrderUC.run(
-      { status: 'paid' },
+    const result = decide(
+      { id: 'o-1', status: 'paid' },
       [line('alpha', EARLIER)],
       'alpha',
       AT,
@@ -74,16 +78,24 @@ describe('FulfilProductOrderUC', () => {
     expect(result.lines[0].fulfilledAt).toBe(EARLIER);
   });
 
-  it('refuses anything that is not paid', () => {
+  it('refuses anything that is not paid, naming the order and its status', () => {
     for (const status of ['pending', 'cancelling', 'cancelled', 'fulfilled']) {
-      expect(() =>
-        FulfilProductOrderUC.run(
-          { status: status as never },
-          [line('alpha')],
-          undefined,
-          AT,
+      const refused = Effect.runSync(
+        Effect.flip(
+          FulfilProductOrderUC.run(
+            { id: 'o-1', status: status as never },
+            [line('alpha')],
+            undefined,
+            AT,
+          ),
         ),
-      ).toThrow(EntifixLogicError);
+      );
+      expect(refused).toMatchObject({
+        _tag: 'OrderNotFulfillable',
+        code: 'orderNotFulfillable',
+        orderId: 'o-1',
+        reason: `an order in '${status}' cannot be fulfilled`,
+      });
     }
   });
 });

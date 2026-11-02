@@ -9,6 +9,7 @@
 - Area: entities
 - Read when: adding a package under `packages/implementation/`, or a UI file imports an adapter — a cell depends on entities, use cases and ports, never on another cell or an adapter
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — an http cell translates and never decides a status, a retry or a log line; composition moves out of the apps into one Effect shell per slice, and the coordinator exception below ends — it moves into `shells-effect-transaction` (#447)
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — an `http` cell exports descriptors, handlers and entity declarations, and the slice shell builds and serves the API; `entityApi` replaced `makeEntityRoutes`
 
 ## Context
 
@@ -41,11 +42,11 @@ Cells live at `packages/implementation/<key>/<tech>`, named
 `@r10c/implementation-<key>-<tech>`, and are **created on demand** — the first
 code that needs one creates it, and no cell exists for symmetry.
 
-| tech                    | keyed by   | why                                                                                                                                                 |
-| ----------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `react`, `next`         | **domain** | a screen renders a domain's entities, whichever stores they come from                                                                               |
-| `http`                  | **domain** | a route set serves a domain's use cases                                                                                                             |
-| `mongo`, `redis`, `sql` | **store**  | a persistence cell implements ports over **one** database handle, so its key is the thing the handle opens — the store, with its engine as the tech |
+| tech                    | keyed by   | why                                                                                                                                                                      |
+| ----------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `react`, `next`         | **domain** | a screen renders a domain's entities, whichever stores they come from                                                                                                    |
+| `http`                  | **domain** | descriptors and handlers serve a domain's use cases; the slice shell builds the API ([ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)) |
+| `mongo`, `redis`, `sql` | **store**  | a persistence cell implements ports over **one** database handle, so its key is the thing the handle opens — the store, with its engine as the tech                      |
 
 So the `auth` store's binding is one `mongo` cell even though it hosts three
 domains (the binding [ADR 0020](0020-stores-and-slices.md) records), and
@@ -97,7 +98,8 @@ which this record narrows to r10c's layering rather than restating.
 
 The default way to build a cell is to **bind a metadata-driven generic asset to
 an entity**, the way `makeEntityCrud` already derives a CRUD screen. Its backend
-twin is `makeEntityRoutes`, in `@entifix/service-shell` since 0.7.2; the seven
+twin was `makeEntityRoutes`, in `@entifix/service-shell` since 0.7.2, and is
+`defineEntityApi` served by `entityApi` since 0.12.0; the seven
 hand-rolled `entity-crud.ts` files are what it replaced. A hand-written component or route
 stays first-class wherever the generic one does not fit.
 

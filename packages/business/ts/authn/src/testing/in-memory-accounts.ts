@@ -5,7 +5,7 @@ import { Effect } from 'effect';
 import { IdentifierType } from '../entities/entity-identifier';
 import { UserDevice } from '../entities/user-device';
 import { UserIdentity, UserStatus } from '../entities/user-identity';
-import { AuthnError } from '../errors';
+import { IdentifierInUse, UserNotFound } from '../errors';
 import type { AccountRepository } from '../repository/account.repository';
 import type { MailboxNotice } from '../repository/identity-provider-ports';
 import type { UserDeviceRepository } from '../repository/user-device.repository';
@@ -55,9 +55,7 @@ export const makeInMemoryAccountRepository = (): AccountRepository => {
       Effect.suspend(() => {
         const user = users.get(String(userId));
         if (user === undefined) {
-          return Effect.fail(
-            new AuthnError('user not found', undefined, { userId }),
-          );
+          return Effect.fail(new UserNotFound({ userId: String(userId) }));
         }
         if (changes.role !== undefined) user.role = changes.role;
         if (changes.status !== undefined) user.status = changes.status;
@@ -73,11 +71,7 @@ export const makeInMemoryAccountRepository = (): AccountRepository => {
           identifiers.some(one => one.value === wanted.value),
         );
         if (taken !== undefined) {
-          return Effect.fail(
-            new AuthnError('identifier already in use', undefined, {
-              value: taken.value,
-            }),
-          );
+          return Effect.fail(new IdentifierInUse());
         }
         const user = Object.assign(new UserIdentity(), {
           id: globalThis.crypto.randomUUID(),
@@ -140,8 +134,7 @@ export const makeInMemoryUserDeviceRepository = (): UserDeviceRepository => {
         Array.from(devices.values())
           .filter(device => device.userId === userId)
           .sort(
-            (left, right) =>
-              Number(right.lastSeenAt) - Number(left.lastSeenAt),
+            (left, right) => Number(right.lastSeenAt) - Number(left.lastSeenAt),
           ),
       ),
   };

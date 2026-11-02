@@ -5,6 +5,7 @@
 - Area: business
 - Read when: a vendor sells somewhere other than the storefront, or a browser surface needs to start a flow that writes another slice's store — the sale is the same saga with a channel on it, and the decision is made where a session can actually be verified
 - Revised: 2026-10-28 by [ADR 0070](0070-fulfilment-and-cash-on-delivery.md) — the counter sale answers `202 { flowId }` with a flow capability, as the storefront does
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — the till's write is the derived `sell` verb, `POST /api/sales-channel/:id/sell`, no longer `POST /api/counter-sale`
 
 ## Context
 
@@ -52,7 +53,8 @@ vendor's takings, their returns and their buyer's history in two.
 
 ### 2. sales-service starts the flow; the till holds no crossing token
 
-`POST /api/counter-sale` is served by sales-service, takes a **session and no
+`POST /api/sales-channel/:id/sell` (the derived `sell` verb; `POST /api/counter-sale`
+until [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)) is served by sales-service, takes a **session and no
 token**, and does four things in an order that is what makes the fourth safe:
 
 1. `requireOrganization(SELL_AT_CHANNEL)` — a verified principal, an active

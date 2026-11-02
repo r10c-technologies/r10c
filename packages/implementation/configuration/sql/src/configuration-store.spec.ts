@@ -1,5 +1,4 @@
 import { EntityRepositoryFactoryTag } from '@entifix/business';
-import { EntifixConnError } from '@entifix/core';
 import { makeFakeSqlClient } from '@entifix/testing-unit/drivers';
 import { Configuration } from '@r10c/business-ts-configuration';
 import {
@@ -189,9 +188,7 @@ describe('saveConfiguration', () => {
       ),
     );
 
-    expect(refused).toEqual(
-      new ConfigurationWriteRefused('secretRequiresValue'),
-    );
+    expect(refused).toEqual(new ConfigurationWriteRefused());
     expect(audits(fake)).toHaveLength(0);
   });
 });
@@ -220,7 +217,7 @@ describe('the writer over a store that fails', () => {
       ]).pipe(Effect.provide(layer)),
     );
 
-    expect(errors.every(error => error instanceof EntifixConnError)).toBe(true);
+    expect(errors.every(error => error._tag === 'Unavailable')).toBe(true);
   });
 });
 

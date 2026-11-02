@@ -84,7 +84,7 @@ describe('auth-service user management', () => {
         await asUser('alan@example.com'),
       );
 
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(200);
       expect(res.data.roles).toEqual(['admin']);
     });
 
@@ -103,7 +103,8 @@ describe('auth-service user management', () => {
       );
 
       expect(res.status).toBe(403);
-      expect(res.data.error).toContain('not allowed to assign that role');
+      // A problem body naming the rule by its catalog code, never a sentence.
+      expect(res.data.code).toBe('roleNotAllowed');
     });
 
     it('lets a super-admin create a super-admin', async () => {
@@ -117,7 +118,7 @@ describe('auth-service user management', () => {
         await asUser('ada@example.com'),
       );
 
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(200);
       expect(res.data.roles).toEqual(['super-admin']);
     });
 
@@ -151,8 +152,8 @@ describe('auth-service user management', () => {
       const login = await signIn(service, 'grace@example.com');
       const sessionId = login.data.sessionId;
 
-      const res = await service.client.patch(
-        '/api/user-identity/user-3',
+      const res = await service.client.post(
+        '/api/user-identity/user-3/update-aspects',
         { role: 'admin' },
         await asUser('alan@example.com'),
       );
@@ -169,8 +170,8 @@ describe('auth-service user management', () => {
     });
 
     it('refuses an admin touching a super-admin', async () => {
-      const res = await service.client.patch(
-        '/api/user-identity/user-1',
+      const res = await service.client.post(
+        '/api/user-identity/user-1/update-aspects',
         { role: 'user' },
         await asUser('alan@example.com'),
       );
@@ -185,8 +186,8 @@ describe('auth-service user management', () => {
       const email = uniqueEmail('plain');
       await signIn(service, email);
 
-      const res = await service.client.patch(
-        '/api/user-identity/user-2',
+      const res = await service.client.post(
+        '/api/user-identity/user-2/update-aspects',
         { role: 'user' },
         await asUser(email),
       );
@@ -195,8 +196,8 @@ describe('auth-service user management', () => {
     });
 
     it('refuses self-demotion', async () => {
-      const res = await service.client.patch(
-        '/api/user-identity/user-1',
+      const res = await service.client.post(
+        '/api/user-identity/user-1/update-aspects',
         { role: 'admin' },
         await asUser('ada@example.com'),
       );

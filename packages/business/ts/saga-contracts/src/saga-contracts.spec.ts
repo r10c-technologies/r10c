@@ -63,8 +63,8 @@ describe('basketTotal', () => {
 });
 
 describe('sagaOutcomeFor', () => {
-  it('reads 201 as completed, 409 as compensated, and anything else as failed', () => {
-    expect(sagaOutcomeFor(201, 'r')).toEqual({
+  it('reads 200 as completed, 409 as compensated, and anything else as failed', () => {
+    expect(sagaOutcomeFor(200, 'r')).toEqual({
       _tag: 'completed',
       result: 'r',
     });

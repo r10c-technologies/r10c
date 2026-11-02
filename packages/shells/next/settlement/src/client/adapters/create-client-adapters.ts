@@ -1,6 +1,4 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import { Entity, EntityConstructor } from '@entifix/core';
 import {
   buildEntityRestAdapterDelete,
@@ -36,10 +34,8 @@ const configuration = new ConfigurationClientRestClient();
  * bundle and what carries the httpOnly cookie upstream — a cross-origin call
  * would answer `401`.
  *
- * ⚠️ **Plain REST, deliberately not `create: 'command'`.** Nothing here assigns
- * a server-side member anyone waits for, and this slice's own writes are folds
- * rather than requests. A `202` would buy a tracker record and an outbox row for
- * an agreement somebody is editing in a form.
+ * Plain REST: this slice's own writes are folds rather than requests, and an
+ * agreement is edited in a form that wants its answer.
  */
 const SETTLEMENT_SERVICE: BuildEntityRestOptions = {
   configuration,

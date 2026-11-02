@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ProductBrand } from '../../entities/product-brand/product-brand.entity.js';
 import {
+  AlreadyRetired,
   RETIRE_ALREADY,
   RETIRE_NOT_FOUND,
   RetireReferenceInputTag,
@@ -162,5 +163,19 @@ describe('retireReferences', () => {
       { id: '2', ok: true },
     ]);
     expect(saved.map(row => row.id)).toEqual(['2']);
+  });
+});
+
+describe('AlreadyRetired', () => {
+  it('registers the per-row code as a conflict', () => {
+    const already = new AlreadyRetired();
+
+    expect([already.code, already.category]).toEqual([
+      'alreadyRetired',
+      'conflict',
+    ]);
+    expect(already.message).toBe(
+      'the record is already in the state asked for',
+    );
   });
 });

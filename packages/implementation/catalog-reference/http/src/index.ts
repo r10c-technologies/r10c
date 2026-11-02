@@ -1,4 +1,1 @@
-export {
-  catalogReferenceRoutes,
-  type CatalogReferenceRouteServices,
-} from './catalog-reference-routes.js';
+export * from './catalog-reference-api.js';

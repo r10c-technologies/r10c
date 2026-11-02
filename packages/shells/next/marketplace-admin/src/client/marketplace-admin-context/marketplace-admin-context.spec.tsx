@@ -26,7 +26,9 @@ const adapters: MarketplaceAdminAdapters = {
   productOfferingPriceRest: repository(),
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,
-  transactionStatus: real.transactionStatus,
+  productBrandUseCases: real.productBrandUseCases,
+  productCategoryUseCases: real.productCategoryUseCases,
+  productOfferingUseCases: real.productOfferingUseCases,
 };
 
 describe('the marketplace-admin adapters context', () => {

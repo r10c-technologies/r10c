@@ -35,6 +35,7 @@ import {
 } from '@entifix/zitadel';
 import {
   AuthnHostLayer,
+  endpoints,
   entityIdentifierSeedData,
   IdTokenStoreTag,
   individualSeedData,
@@ -48,8 +49,8 @@ import {
   makeRedisProviderSessionIndex,
   makeSessionIdentityProvider,
   membershipSeedData,
+  policy,
   ProviderSessionIndexTag,
-  router,
   seedIdentityProvider,
   SERVICE_NAME,
   SessionScopeResolverTag,
@@ -240,13 +241,14 @@ export const markEmailUnverified = (email: string): void => {
   fakeZitadel.unverified.add(email.toLowerCase());
 };
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
     port: 0,
     slices: ['auth'],
     description: fleetToken,
-    router,
+    endpoints,
+    policy,
     appLayer: MockAppLayer,
   });

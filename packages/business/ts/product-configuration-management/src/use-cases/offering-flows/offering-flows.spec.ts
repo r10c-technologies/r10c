@@ -2,7 +2,7 @@ import {
   EntityRepositoryFactoryTag,
   TenantDirectoryTag,
 } from '@entifix/business';
-import { EntifixConnError, Unavailable } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import type { CatalogEvent } from '@r10c/business-ts-catalog-contracts';
 import { Effect, Layer } from 'effect';
@@ -53,11 +53,7 @@ interface Stores {
   readonly offerings?: ProductOffering[];
   readonly priced?: string[];
   readonly specifications?: ProductSpecification[];
-  /**
-   * `legacy` fails with the class tree's code-less error, which the catalog
-   * port still admits until entifix #126 removes it.
-   */
-  readonly commit?: 'committed' | 'changed' | 'legacy';
+  readonly commit?: 'committed' | 'changed';
   readonly reannounce?: 'announced' | 'revived' | 'alreadyAnnounced';
   readonly offeringsDown?: boolean;
   readonly organizations?: string[];
@@ -77,12 +73,10 @@ const world = (stores: Stores = {}) => {
   );
   const catalog: OfferingCatalog = {
     commitTransition: (organizationId, _offering, from) =>
-      stores.commit === 'legacy'
-        ? Effect.fail(new EntifixConnError('store down'))
-        : (Effect.sync(() => {
-            committed.push({ organizationId, from });
-            return stores.commit ?? 'committed';
-          }) as Effect.Effect<'committed' | 'changed'>),
+      Effect.sync(() => {
+        committed.push({ organizationId, from });
+        return stores.commit ?? 'committed';
+      }) as Effect.Effect<'committed' | 'changed'>,
     reannounce: (_organizationId, event) =>
       Effect.sync(() => {
         announced.push(event);
@@ -209,22 +203,6 @@ describe('transitionOfferingSelection', () => {
 
     expect(outcomes).toEqual([{ id: 'o-1', ok: true }]);
     expect(down).toEqual([{ id: 'o-9', ok: false, code: 'unavailable' }]);
-  });
-
-  it('names a failure that carries no code unexpected', async () => {
-    const down = await world({
-      offerings: [offering('o-9', 'draft')],
-      commit: 'legacy',
-    }).run(
-      transitionOfferingSelection({
-        organizationId: 'acme',
-        selection: { mode: 'ids', ids: new Set(['o-9']) },
-        transition: 'publish',
-        source: SOURCE,
-      }),
-    );
-
-    expect(down).toEqual([{ id: 'o-9', ok: false, code: 'unexpected' }]);
   });
 });
 

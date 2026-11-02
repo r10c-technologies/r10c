@@ -5,7 +5,7 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import { Context, Effect } from 'effect';
 
-import { AuthnError, ForbiddenError } from '../../errors';
+import { IdentifierRequired, RoleNotAllowed } from '../../errors';
 import {
   AccountRepositoryTag,
   type NewIdentifierInput,
@@ -65,12 +65,7 @@ export function registerUserUCFactory() {
     const accounts = yield* AccountRepositoryTag;
 
     if (input.identifiers.length === 0) {
-      return yield* Effect.fail(
-        new AuthnError(
-          'an account needs at least one identifier',
-          'identifierRequired',
-        ),
-      );
+      return yield* new IdentifierRequired();
     }
 
     // An explicitly requested role always has to be earned; an absent one is a
@@ -79,16 +74,7 @@ export function registerUserUCFactory() {
       input.role !== undefined &&
       !canAssignRole(input.actorRoles ?? [], input.role)
     ) {
-      return yield* Effect.fail(
-        new ForbiddenError(
-          'not allowed to assign that role',
-          'roleNotAllowed',
-          undefined,
-          {
-            role: input.role,
-          },
-        ),
-      );
+      return yield* new RoleNotAllowed({ role: String(input.role) });
     }
     const role = input.role ?? DEFAULT_ROLE;
 

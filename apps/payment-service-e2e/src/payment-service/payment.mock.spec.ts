@@ -48,10 +48,10 @@ const capture = (
   );
 
 describe('capturing a payment', () => {
-  it('writes it and answers 201', async () => {
+  it('writes it and answers 200', async () => {
     const res = await capture();
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.data.data.status).toBe('captured');
     expect(typeof res.data.data.id).toBe('string');
   });
@@ -64,7 +64,7 @@ describe('capturing a payment', () => {
   it('ignores a status and an id supplied by the caller', async () => {
     const res = await capture({ id: 'chosen', status: 'captured' });
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.data.data.id).not.toBe('chosen');
     // Still `captured`, but because the provider said so — the reference proves
     // the adapter ran rather than the body being echoed back.
@@ -87,8 +87,9 @@ describe('capturing a payment', () => {
       { headers: crossing() },
     );
 
+    // The request schema refuses it before the domain is reached.
     expect(res.status).toBe(400);
-    expect(res.data.code).toBe('invalidBody');
+    expect(res.data.code).toBe('invalid');
   });
 });
 
@@ -128,12 +129,12 @@ describe('a redelivered command', () => {
     const first = await capture({}, { 'idempotency-key': `"${commandId}"` });
     const second = await capture({}, { 'idempotency-key': `"${commandId}"` });
 
-    expect(first.status).toBe(201);
+    expect(first.status).toBe(200);
     // `200`, not `409`: a coordinator that could not tell a duplicate from a
     // refusal would compensate a flow whose payment did in fact succeed.
-    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
-    expect(second.status).toBe(201);
-    expect(second.headers['idempotent-replayed']).toBe('true');
+    // Replayed from the ledger's command claim, the one layer that records
+    // this write (ADR 0068).
+    expect(second.status).toBe(200);
     expect(second.data.data.id).toBe(first.data.data.id);
   });
 });
@@ -214,7 +215,7 @@ describe('refunding a payment', () => {
     const captured = await capture({ orderId });
     const res = await refund({ orderId });
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.data.meta.entity).toBe('refund');
     expect(res.data.data.status).toBe('refunded');
     // The record it reverses, resolved by the route rather than named by the
@@ -240,7 +241,7 @@ describe('refunding a payment', () => {
     await capture({ orderId, amount: 1999 });
     const res = await refund({ orderId, amount: 999_999 });
 
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(200);
     expect(res.data.data.amount).toBe(1999);
   });
 
@@ -276,8 +277,9 @@ describe('refunding a payment', () => {
       { headers: crossing() },
     );
 
+    // The request schema refuses it before the domain is reached.
     expect(res.status).toBe(400);
-    expect(res.data.code).toBe('invalidBody');
+    expect(res.data.code).toBe('invalid');
   });
 
   it('refuses a session, even super-admin', async () => {
@@ -318,10 +320,10 @@ describe('refunding a payment', () => {
       { 'idempotency-key': `"${commandId}"` },
     );
 
-    expect(first.status).toBe(201);
-    // Replayed at the edge: the first answer verbatim, marked (ADR 0068).
-    expect(second.status).toBe(201);
-    expect(second.headers['idempotent-replayed']).toBe('true');
+    expect(first.status).toBe(200);
+    // Replayed from the ledger's command claim, the one layer that records
+    // this write (ADR 0068).
+    expect(second.status).toBe(200);
     expect(second.data.data.id).toBe(first.data.data.id);
   });
 
@@ -338,7 +340,7 @@ describe('refunding a payment', () => {
     const first = await refund({ orderId }, { 'idempotency-key': '"cmd-a"' });
     const second = await refund({ orderId }, { 'idempotency-key': '"cmd-b"' });
 
-    expect(first.status).toBe(201);
+    expect(first.status).toBe(200);
     expect(second.status).toBe(200);
     expect(second.data.data.id).toBe(first.data.data.id);
   });

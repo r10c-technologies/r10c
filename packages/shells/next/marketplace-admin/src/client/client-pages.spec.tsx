@@ -82,7 +82,9 @@ const adapters = (): MarketplaceAdminAdapters => ({
   ),
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,
-  transactionStatus: real.transactionStatus,
+  productBrandUseCases: real.productBrandUseCases,
+  productCategoryUseCases: real.productCategoryUseCases,
+  productOfferingUseCases: real.productOfferingUseCases,
 });
 
 const renderPage = (page: ReactElement) =>

@@ -1,4 +1,4 @@
-import { accessor, EntifixBuildError } from '@entifix/core';
+import { accessor, Failure } from '@entifix/core';
 
 /**
  * One picture of a product: **a reference the vendor authored, never bytes we
@@ -107,19 +107,31 @@ export const mediaRefusal = (
   return undefined;
 };
 
-/**
- * A save refused by {@link mediaRefusal}. An `EntifixBuildError`, so it travels
- * through every port that admits one, and it carries the code the route answers
- * with — the i18n `errors` catalog has an entry for each.
- */
-export class MediaRefusedError extends EntifixBuildError {
-  readonly code: MediaRefusalCode;
+/** A media entry whose URL is not an absolute `https:` URL: the request is wrong. */
+export class MediaNotHttps extends Failure.invalid<MediaNotHttps>()(
+  'MediaNotHttps',
+  MEDIA_NOT_HTTPS,
+  {},
+  { message: () => 'every image URL must be an absolute https URL' },
+) {}
 
-  constructor(code: MediaRefusalCode) {
-    super(`media refused (${code})`, undefined, { code });
-    this.code = code;
-  }
-}
+/** A media entry with no text alternative. */
+export class MediaAltMissing extends Failure.invalid<MediaAltMissing>()(
+  'MediaAltMissing',
+  MEDIA_ALT_MISSING,
+  {},
+  { message: () => 'every image needs a text alternative' },
+) {}
+
+/**
+ * A save refused by {@link mediaRefusal}, as the typed failure of its code —
+ * the code the i18n `errors` catalog translates.
+ */
+export type MediaRefused = MediaNotHttps | MediaAltMissing;
+
+/** The failure for a refusal code. */
+export const mediaRefused = (code: MediaRefusalCode): MediaRefused =>
+  code === MEDIA_NOT_HTTPS ? new MediaNotHttps() : new MediaAltMissing();
 
 /**
  * Reads `media` off a bus payload or a stored document.

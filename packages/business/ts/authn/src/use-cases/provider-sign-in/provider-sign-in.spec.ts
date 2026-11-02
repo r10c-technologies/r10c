@@ -1,9 +1,9 @@
-import { EntifixConnError } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { UserStatus } from '../../entities/user-identity/index.js';
-import { AuthnError, UnauthenticatedError } from '../../errors/index.js';
+import { AccountInactive, IdentifierInUse } from '../../errors/index.js';
 import type { AccountRepository } from '../../repository/account.repository.js';
 import type {
   ProviderDirectory,
@@ -113,33 +113,36 @@ describe('resolveSignIn', () => {
       Effect.flip(resolveSignIn(accounts, 'zitadel', identity())),
     );
 
-    expect(refused).toBeInstanceOf(UnauthenticatedError);
+    expect(refused).toBeInstanceOf(AccountInactive);
     expect(refused).toMatchObject({ code: 'accountInactive' });
   });
 
-  it('reports a store that failed, or an account that will not read back, as a sign-in failure', async () => {
+  it('answers a refusal met while provisioning as a sign-in failure, and a fault as itself', async () => {
     const real = makeInMemoryAccountRepository();
+    const colliding: AccountRepository = {
+      ...real,
+      createAccount: () => Effect.fail(new IdentifierInUse()),
+    };
     const broken: AccountRepository = {
       ...real,
-      findByIdentifier: () => Effect.fail(new EntifixConnError('down')),
+      findByIdentifier: () =>
+        Effect.fail(new Unavailable({ dependency: 'mongo' })),
     };
     const forgetful: AccountRepository = {
       ...real,
       findById: () => Effect.succeed(null),
     };
 
-    const failures = await Promise.all(
-      [broken, forgetful].map(accounts =>
+    const [collided, down, unreadable] = await Promise.all(
+      [colliding, broken, forgetful].map(accounts =>
         run(Effect.flip(resolveSignIn(accounts, 'zitadel', identity()))),
       ),
     );
 
-    expect(
-      failures.every(
-        failure =>
-          failure instanceof AuthnError && failure.code === 'signInFailed',
-      ),
-    ).toBe(true);
+    // The visitor reads "sign-in failed", never the administrator's sentence.
+    expect(collided).toMatchObject({ code: 'signInFailed' });
+    expect(down).toMatchObject({ _tag: 'Unavailable' });
+    expect(unreadable).toMatchObject({ _tag: 'Internal' });
   });
 });
 
@@ -210,7 +213,8 @@ describe('provisionProviderHuman', () => {
           makeInMemoryAccountRepository(),
           {
             name: 'zitadel',
-            findUserIdByEmail: () => Effect.fail(new EntifixConnError('down')),
+            findUserIdByEmail: () =>
+              Effect.fail(new Unavailable({ dependency: 'zitadel' })),
             createHuman: () => Effect.die('unused'),
           },
           { userId: 'u-1', email: 'ada@example.com' },

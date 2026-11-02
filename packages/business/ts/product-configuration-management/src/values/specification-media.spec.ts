@@ -1,7 +1,6 @@
 import {
   MEDIA_ALT_MISSING,
   MEDIA_NOT_HTTPS,
-  MediaRefusedError,
 } from '@r10c/business-ts-catalog-contracts';
 import { Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -32,7 +31,6 @@ describe('refuseSpecificationMedia', () => {
   ])('refuses with %s', (code, entry) => {
     const error = refusal([entry]);
 
-    expect(error).toBeInstanceOf(MediaRefusedError);
-    expect((error as MediaRefusedError).code).toBe(code);
+    expect(error).toMatchObject({ code, category: 'invalid' });
   });
 });

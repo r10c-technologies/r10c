@@ -30,9 +30,13 @@ export const makeInMemoryPaymentLedger = (): PaymentLedger => {
 
   return {
     decidedPayment: commandId =>
-      Effect.sync(() => Option.fromUndefinedOr(firstDecision<Payment>(commandId))),
+      Effect.sync(() =>
+        Option.fromUndefinedOr(firstDecision<Payment>(commandId)),
+      ),
     decidedRefund: commandId =>
-      Effect.sync(() => Option.fromUndefinedOr(firstDecision<Refund>(commandId))),
+      Effect.sync(() =>
+        Option.fromUndefinedOr(firstDecision<Refund>(commandId)),
+      ),
     captureFor: orderId =>
       Effect.sync(() =>
         payments.find(

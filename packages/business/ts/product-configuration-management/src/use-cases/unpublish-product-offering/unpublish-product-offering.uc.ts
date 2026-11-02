@@ -1,8 +1,15 @@
 import { permissionForUseCase } from '@entifix/authz';
 import { useCase } from '@entifix/core';
+import { InvalidBody } from '@r10c/business-ts-common';
 
 import { ProductOffering } from '../../entities/product-offering';
-import { transitionOffering } from '../transition-offering';
+import { OfferingChanged } from '../offering-flows/offering-flows';
+import {
+  IllegalOfferingTransition,
+  OfferingHasNoPrice,
+  OfferingHasNoSpecification,
+  transitionOffering,
+} from '../transition-offering';
 
 /**
  * Take an offering off the storefront.
@@ -35,6 +42,13 @@ import { transitionOffering } from '../transition-offering';
     tone: 'destructive',
     messageKey: 'entity:product-offering.useCases.unpublishConfirm',
   },
+  errors: [
+    IllegalOfferingTransition,
+    OfferingHasNoPrice,
+    OfferingHasNoSpecification,
+    OfferingChanged,
+    InvalidBody,
+  ],
 })
 export class UnpublishProductOfferingUC {
   static run() {

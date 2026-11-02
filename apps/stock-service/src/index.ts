@@ -8,7 +8,7 @@ import { makeAppLayer } from '@r10c/shells-effect-stock';
 
 import { seedStock } from './seed';
 
-export { router } from '@r10c/shells-effect-stock';
+export { endpoints, policy } from '@r10c/shells-effect-stock';
 
 /** The slice's composition, as the service mounts it, with its seed. */
 export const AppLayer = makeAppLayer({ seed: seedStock });

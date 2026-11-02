@@ -24,8 +24,8 @@ const metadataSource = makeEntityMetadataSource({
  * End every session but this one.
  *
  * The route is `POST /api/auth/sessions` on this origin, which the auth shell
- * proxies to auth-service's `revoke-others`. It has existed since sessions were
- * built and had **no caller at all** — the account screen only revokes one row
+ * proxies to auth-service's derived `sign-out-others` verb. It existed since
+ * sessions were built and had **no caller at all** — the account screen only revokes one row
  * at a time — which is what made `sign-out-others` a real verb to declare rather
  * than one invented to fill ADR 0035's empty `unbound` cell.
  */

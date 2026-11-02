@@ -1,19 +1,18 @@
-import { EntifixConnError } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { Effect, Layer, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { Payment } from '../entities/payment/index.js';
 import { Refund } from '../entities/refund/index.js';
-import { type PaymentLedger, PaymentLedgerTag } from '../ports/payment-ledger.js';
+import {
+  type PaymentLedger,
+  PaymentLedgerTag,
+} from '../ports/payment-ledger.js';
 import {
   type PaymentProvider,
   PaymentProviderTag,
 } from '../ports/payment-provider.js';
-import {
-  capturePayment,
-  PaymentRefused,
-  refundPayment,
-} from './take-payment.js';
+import { capturePayment, refundPayment } from './take-payment.js';
 
 /** A ledger over two maps, recording what it was asked to write. */
 const ledgerOver = (options: { race?: boolean } = {}) => {
@@ -144,15 +143,32 @@ describe('capturePayment', () => {
   it('records a declined capture, and answers it declined', async () => {
     const { ledger, announced } = ledgerOver();
 
-    const result = await run(
-      capturePayment({ payment: aPayment(), commandId: undefined }),
+    const ledgerAgain = ledger;
+    const declined = await run(
+      Effect.flip(
+        capturePayment({ payment: aPayment(), commandId: 'cmd-declined' }),
+      ),
       ledger,
       provider(true),
     );
+    const redelivered = await run(
+      Effect.flip(
+        capturePayment({ payment: aPayment(), commandId: 'cmd-declined' }),
+      ),
+      ledgerAgain,
+      provider(),
+    );
 
-    expect(result).toMatchObject({
-      _tag: 'declined',
+    expect(declined).toMatchObject({
+      _tag: 'PaymentDeclined',
+      category: 'declined',
       reason: 'insufficient funds',
+      message: 'insufficient funds',
+    });
+    // A redelivery answers the refusal again, never success.
+    expect(redelivered).toMatchObject({
+      _tag: 'PaymentDeclined',
+      message: 'the payment was not captured',
     });
     expect(announced).toEqual(['failed order-1']);
   });
@@ -169,7 +185,11 @@ describe('capturePayment', () => {
       money,
     );
 
-    expect(refused).toBeInstanceOf(PaymentRefused);
+    expect(refused).toMatchObject({
+      _tag: 'InvalidBody',
+      code: 'invalidBody',
+      message: 'a payment must carry a positive amount',
+    });
     expect(money.calls).toBe(0);
   });
 
@@ -188,6 +208,27 @@ describe('capturePayment', () => {
     );
 
     expect(result._tag).toBe('replayed');
+  });
+
+  it('answers a declined capture a sibling recorded first with the refusal', async () => {
+    const { ledger } = ledgerOver();
+    const replaying: PaymentLedger = {
+      ...ledger,
+      recordCapture: payment =>
+        Effect.succeed({
+          _tag: 'replayed' as const,
+          record: Object.assign(payment, { status: 'failed' }),
+        }),
+    };
+
+    const refused = await run(
+      Effect.flip(capturePayment({ payment: aPayment(), commandId: 'cmd-4' })),
+      replaying,
+      provider(),
+    );
+
+    expect(refused).toMatchObject({ _tag: 'PaymentDeclined' });
+    expect(refused).not.toHaveProperty('reason');
   });
 });
 
@@ -252,19 +293,67 @@ describe('refundPayment', () => {
       provider(),
     );
 
-    expect(refused).toMatchObject({ code: 'noCapturedPayment' });
+    expect(refused).toMatchObject({
+      code: 'noCapturedPayment',
+      category: 'notFound',
+      message:
+        'nothing was captured for order order-unpaid, so nothing can go back',
+    });
   });
 
   it('records a declined refund, and answers it declined', async () => {
     const { ledger } = await paid();
 
-    const result = await run(
-      refundPayment({ orderId: 'order-1', commandId: undefined }),
+    const declined = await run(
+      Effect.flip(refundPayment({ orderId: 'order-1', commandId: 'r-d' })),
       ledger,
       provider(true),
     );
+    // The declined refund is recorded, so a redelivery and a second command
+    // both answer the refusal again rather than trying once more.
+    const redelivered = await run(
+      Effect.flip(refundPayment({ orderId: 'order-1', commandId: 'r-d' })),
+      ledger,
+      provider(),
+    );
+    const secondCommand = await run(
+      Effect.flip(refundPayment({ orderId: 'order-1', commandId: 'r-e' })),
+      ledger,
+      provider(),
+    );
 
-    expect(result).toMatchObject({ _tag: 'declined', reason: 'too late' });
+    expect(declined).toMatchObject({
+      _tag: 'RefundDeclined',
+      category: 'declined',
+      reason: 'too late',
+      message: 'too late',
+    });
+    expect(redelivered).toMatchObject({
+      _tag: 'RefundDeclined',
+      message: 'the refund was not made',
+    });
+    expect(secondCommand._tag).toBe('RefundDeclined');
+  });
+
+  it('answers a declined refund a sibling recorded first with the refusal', async () => {
+    const { ledger } = await paid();
+    const replaying: PaymentLedger = {
+      ...ledger,
+      recordRefund: refund =>
+        Effect.succeed({
+          _tag: 'replayed' as const,
+          record: Object.assign(refund, { status: 'failed' }),
+        }),
+    };
+
+    const refused = await run(
+      Effect.flip(refundPayment({ orderId: 'order-1', commandId: 'r-f' })),
+      replaying,
+      provider(),
+    );
+
+    expect(refused).toMatchObject({ _tag: 'RefundDeclined' });
+    expect(refused).not.toHaveProperty('reason');
   });
 
   it('answers a refund that lost a race to a sibling command as replayed', async () => {
@@ -288,7 +377,7 @@ describe('refundPayment', () => {
     const { ledger } = ledgerOver();
     const failing: PaymentLedger = {
       ...ledger,
-      captureFor: () => Effect.fail(new EntifixConnError('store down')),
+      captureFor: () => Effect.fail(new Unavailable({ dependency: 'mongo' })),
     };
 
     const error = await run(
@@ -297,6 +386,6 @@ describe('refundPayment', () => {
       provider(),
     );
 
-    expect(error).toBeInstanceOf(EntifixConnError);
+    expect(error).toBeInstanceOf(Unavailable);
   });
 });

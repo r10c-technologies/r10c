@@ -1,35 +1,14 @@
 import { permissionForUseCase } from '@entifix/authz';
-import { EntifixLogicError, useCase } from '@entifix/core';
+import { NotFound, useCase } from '@entifix/core';
+import { RefundDeclined } from '@r10c/business-ts-payment-contracts';
+import { Effect } from 'effect';
 
 import { ProductOrder } from '../../entities/product-order';
+import {
+  MultiVendorOrder,
+  OrderNotCancellable,
+} from '../../failures/order-failures';
 import { orderStatusAfter } from '../../values/order-transition';
-
-/**
- * The code a route renders when a vendor asks to cancel an order that is not
- * theirs alone.
- *
- * A **code, not a sentence**: the browser resolves it through the shared
- * `errors` catalog and `@r10c/i18n-check` fails the build on one the catalog
- * lacks. Neither types nor locale parity can see a missing code — the render
- * path casts the typed-key gate away, and a code absent from both locales is
- * symmetric — so that check is the only thing looking.
- */
-export const MULTI_VENDOR_ORDER = 'multiVendorOrder';
-
-/** The code a route renders when the order is no longer in a cancellable state. */
-export const ORDER_NOT_CANCELLABLE = 'orderNotCancellable';
-
-/**
- * The code a buyer's cancel renders while the order is still `pending`.
- *
- * Kept apart from {@link ORDER_NOT_CANCELLABLE} because the two ask for opposite
- * things. That one is "never": the order moved past the point a cancel can
- * reach. This one is "not yet": checkout captured the money, but the order turns
- * `paid` only when `payment.captured` is consumed off the bus, so a buyer who
- * clicks Cancel on the confirmation page can arrive first. Telling them it
- * failed would tell them to stop trying.
- */
-export const PAYMENT_PENDING = 'paymentPending';
 
 /**
  * Undo a paid order: refund the buyer, put the goods back, close the record.
@@ -47,7 +26,7 @@ export const PAYMENT_PENDING = 'paymentPending';
  * cancellation moves money that was taken once, for the whole basket, on one
  * capture. Partial cancellation of a multi-vendor order is out of scope and is a
  * decision rather than a gap — which is why a vendor cancelling an order that
- * also names somebody else gets {@link MULTI_VENDOR_ORDER} rather than a
+ * also names somebody else gets {@link MultiVendorOrder} rather than a
  * cancellation of their own share.
  *
  * **`entity`-bound and `context-independent`**: its subject is one order and the
@@ -67,6 +46,7 @@ export const PAYMENT_PENDING = 'paymentPending';
     tone: 'destructive',
     messageKey: 'entity:product-order.useCases.cancelConfirm',
   },
+  errors: [NotFound, MultiVendorOrder, OrderNotCancellable, RefundDeclined],
 })
 export class CancelProductOrderUC {
   /**
@@ -83,30 +63,28 @@ export class CancelProductOrderUC {
    * an order *all* of whose lines name their organization.
    */
   static run(
-    order: Pick<ProductOrder, 'status'>,
+    order: Pick<ProductOrder, 'id' | 'status'>,
     lines: readonly { vendorId: string }[],
     scope: string | undefined,
-  ): void {
+  ): Effect.Effect<void, MultiVendorOrder | OrderNotCancellable> {
+    const orderId = String(order.id);
     // ⚠️ **Who may act is decided before what the record is doing**, and the
     // order of these two is deliberate. A vendor who will never be allowed to
     // cancel a shared basket should be told that, not told to come back later —
     // "not cancellable right now" reads as a retry, and there is no moment at
     // which this one succeeds.
     if (scope !== undefined && lines.some(line => line.vendorId !== scope)) {
-      throw new EntifixLogicError(
-        'A vendor cannot cancel an order that names another vendor',
-        undefined,
-        { code: MULTI_VENDOR_ORDER },
-      );
+      return Effect.fail(new MultiVendorOrder({ orderId }));
     }
-
     if (orderStatusAfter(order.status, 'claim-cancel') === undefined) {
-      throw new EntifixLogicError(
-        'Only a paid order can be cancelled',
-        undefined,
-        { status: order.status, code: ORDER_NOT_CANCELLABLE },
+      return Effect.fail(
+        new OrderNotCancellable({
+          orderId,
+          reason: `an order in '${order.status}' cannot be cancelled`,
+        }),
       );
     }
+    return Effect.void;
   }
 }
 

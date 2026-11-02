@@ -1,9 +1,5 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
-import {
-  makeInMemoryEntityRepository,
-} from '@entifix/testing-unit';
+import { EntityRepositoryTag } from '@entifix/business';
+import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { render, screen } from '@testing-library/react';
 import { Context } from 'effect';
 import { describe, expect, it } from 'vitest';
@@ -41,9 +37,7 @@ describe('SalesProvider', () => {
     );
 
     expect(
-      screen.getByText(
-        'salesChannelRest,publishedOfferingRest,metadata',
-      ),
+      screen.getByText('salesChannelRest,publishedOfferingRest,metadata'),
     ).toBeInTheDocument();
   });
 

@@ -2,7 +2,6 @@ import { Failure } from '@entifix/core';
 import { R10C_RESOURCES as resources } from '@r10c/i18n-catalog';
 import { describe, expect, it } from 'vitest';
 
-import { emissions } from './error-codes.js';
 import {
   orphanKeys,
   registeredCodes,
@@ -14,34 +13,6 @@ const catalogs = {
   en: resources.en.errors as Record<string, unknown>,
   es: resources.es.errors as Record<string, unknown>,
 };
-
-/**
- * Keys a route still answers with by hand, through a shape the source scan
- * does not read — a domain refusal class, a code chosen at runtime. Each
- * becomes a registered failure when its slice migrates (wave 3, ADR 0064), and
- * this list may only shrink: a key that appears here newly is a code with
- * nothing behind it.
- */
-const LEGACY_UNSCANNED: ReadonlySet<string> = new Set([
-  'noCapturedPayment',
-  'multiVendorOrder',
-  'orderNotCancellable',
-  'categoryParentMissing',
-  'categoryParentRetired',
-  'categoryCycle',
-  'categoryTooDeep',
-  'categoryHasChildren',
-  'categoryTreeUnreadable',
-  'mediaNotHttps',
-  'mediaAltMissing',
-  'paymentPending',
-  'invalidCommand',
-  'alreadyRetired',
-  'inconsistentMovement',
-  'channelInactive',
-  'notYours',
-  'secretRequiresValue',
-]);
 
 describe('Every registered failure is cataloged', () => {
   it('reads the registry entifix and the fleet fill', () => {
@@ -80,12 +51,7 @@ describe('Every registered failure is cataloged', () => {
 });
 
 describe('Every catalog key has something behind it', () => {
-  const known = new Set([
-    ...registeredCodes(),
-    ...emissions().map(emission => emission.code),
-    ...SYNTHESIZED_CODES,
-    ...LEGACY_UNSCANNED,
-  ]);
+  const known = new Set([...registeredCodes(), ...SYNTHESIZED_CODES]);
 
   it.each(['en', 'es'] as const)(
     'names in %s only codes something answers with',
@@ -101,16 +67,5 @@ describe('Every catalog key has something behind it', () => {
     expect(orphanKeys({ ...catalogs.es, notAFailure: 'x' }, known)).toEqual([
       'notAFailure',
     ]);
-  });
-
-  it('still needs every legacy key it excuses', () => {
-    const stale = [...LEGACY_UNSCANNED].filter(
-      key => registeredCodes().includes(key) || !(key in catalogs.es),
-    );
-
-    expect(
-      stale,
-      'a migrated or deleted code: drop it from LEGACY_UNSCANNED',
-    ).toEqual([]);
   });
 });

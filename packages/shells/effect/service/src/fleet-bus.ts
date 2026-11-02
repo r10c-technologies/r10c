@@ -4,8 +4,7 @@ import {
   exponentialRedeliveryBackoff,
   RedeliveryBackoffTag,
 } from '@entifix/amqp/transactions';
-import { OutboxMaxAttempts } from '@entifix/mongo/transactions';
-import { EventSourceTag } from '@entifix/transactions';
+import { EventSourceTag, OutboxMaxAttempts } from '@entifix/transactions';
 import { Effect, Layer } from 'effect';
 
 import { readRetryDials } from './fleet-retry-budget.js';

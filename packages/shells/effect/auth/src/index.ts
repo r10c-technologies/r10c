@@ -13,6 +13,7 @@ export {
   reportSeedShortfalls,
   type SeedShortfall,
 } from './app-layer.js';
+export { endpoints, policy } from './endpoints.js';
 export {
   LifecycleSweepIntervalMs,
   reconcileOnce,
@@ -23,7 +24,6 @@ export {
   rebuildAndReport,
   startOrganizationRebuild,
 } from './organization-rebuild.js';
-export { router } from './router.js';
 export {
   DEV_SEED_PASSWORD,
   JWT_AUDIENCE,

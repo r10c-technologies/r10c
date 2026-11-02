@@ -238,6 +238,9 @@ const hostConstraints = [
       '@entifix/redis/*',
       '@entifix/amqp',
       '@entifix/amqp/*',
+      // A Next backend starts no flow; it calls the service that does.
+      '@entifix/workflow',
+      '@entifix/workflow/*',
     ],
   },
 ];
@@ -272,7 +275,14 @@ const DRIVERS = both(['mongodb', 'ioredis', 'amqplib', 'pg', '@effect/sql-pg']);
  * or a business package that imported these could build a slip the engine
  * would run, or forge the context a resolver trusts.
  */
-const SHELL_ONLY = ['@entifix/business/compose', '@entifix/business/verified'];
+const SHELL_ONLY = [
+  '@entifix/business/compose',
+  '@entifix/business/verified',
+  // The durable flow engine: `shells-effect-transaction` composes it, and
+  // nothing below a shell runs a workflow.
+  '@entifix/workflow',
+  '@entifix/workflow/*',
+];
 
 /**
  * Banned in every cell that is not persistence. `next-shell/server` holds the
@@ -337,10 +347,14 @@ const techConstraints = [
     bannedExternalImports: [...COMPOSITION_ONLY, ...both(['next'])],
   },
   { sourceTag: 'tech:next', bannedExternalImports: COMPOSITION_ONLY },
+  // An http cell holds descriptors and nothing that serves them (ADR 0071):
+  // the slice shell builds the API, so `effect/http*` and the service shell
+  // are its imports, never the cell's.
   {
     sourceTag: 'tech:http',
     bannedExternalImports: [
       ...COMPOSITION_ONLY,
+      ...both(['effect/http', 'effect/http-api', '@entifix/service-shell']),
       ...both(['react', 'react-dom', 'next']),
       ...both([
         '@entifix/react-controls',
@@ -406,7 +420,17 @@ const specConstraints = sourceConstraints.map(c =>
         },
 );
 
-const allowEslintConfig = ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'];
+/**
+ * The root's own build configuration, which a project's config file reaches by
+ * relative path because the root is no package to import by name: the shared
+ * ESLint config, and the externals every service's webpack config is built
+ * with (`tools/webpack-externals.cjs`). Named files, so nothing else under the
+ * root becomes reachable through this.
+ */
+const allowRootConfig = [
+  '^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$',
+  '^.*/tools/webpack-externals\\.cjs$',
+];
 
 /**
  * What an Effect service's `src/` may not import (ADR 0064): apps only mount.
@@ -563,7 +587,7 @@ export default [
         'error',
         {
           enforceBuildableLibDependency: true,
-          allow: allowEslintConfig,
+          allow: allowRootConfig,
           depConstraints: sourceConstraints,
         },
       ],
@@ -579,7 +603,7 @@ export default [
         'error',
         {
           enforceBuildableLibDependency: false,
-          allow: allowEslintConfig,
+          allow: allowRootConfig,
           depConstraints: specConstraints,
         },
       ],
@@ -743,7 +767,7 @@ export const serviceE2eConfig = {
       'error',
       {
         enforceBuildableLibDependency: false,
-        allow: [...allowEslintConfig, '^@r10c/[a-z-]+-service$'],
+        allow: [...allowRootConfig, '^@r10c/[a-z-]+-service$'],
         depConstraints: specConstraints,
       },
     ],

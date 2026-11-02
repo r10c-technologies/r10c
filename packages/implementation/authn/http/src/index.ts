@@ -1,4 +1,3 @@
-export * from './auth-flow-routes.js';
-export * from './authn-routes.js';
-export * from './session-routes.js';
-export * from './user-routes.js';
+export * from './flow-api.js';
+export * from './session-api.js';
+export * from './user-api.js';

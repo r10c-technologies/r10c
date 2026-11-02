@@ -1,9 +1,13 @@
-import type { EntityId } from '@entifix/core';
+import { type EntityId, Internal, type TechnicalFailure } from '@entifix/core';
 import { Effect } from 'effect';
 
 import { IdentifierType } from '../../entities/entity-identifier';
 import { UserStatus } from '../../entities/user-identity';
-import { AuthnError, UnauthenticatedError } from '../../errors';
+import {
+  AccountInactive,
+  ProviderUnavailable,
+  SignInFailed,
+} from '../../errors';
 import {
   type AccountRepository,
   AccountRepositoryTag,
@@ -36,7 +40,10 @@ export const resolveSignIn = (
   accounts: AccountRepository,
   provider: string,
   identity: ProviderIdentity,
-): Effect.Effect<AuthSubject, AuthnError | UnauthenticatedError> =>
+): Effect.Effect<
+  AuthSubject,
+  AccountInactive | SignInFailed | TechnicalFailure
+> =>
   Effect.gen(function* () {
     const existing = yield* accounts.findByIdentifier(identity.subject);
     const user =
@@ -46,12 +53,7 @@ export const resolveSignIn = (
     // is, and whether they may still hold a session is r10c's question. A
     // suspended user with a perfectly valid `id_token` gets nothing.
     if (user.status !== UserStatus.Active) {
-      return yield* Effect.fail(
-        new UnauthenticatedError(
-          'the account is not active',
-          'accountInactive',
-        ),
-      );
+      return yield* new AccountInactive();
     }
 
     // The email is projected **only when the provider says it is verified**.
@@ -74,16 +76,16 @@ export const resolveSignIn = (
     const refreshed = yield* accounts.findById(user.id);
     return authSubjectFromUser(refreshed ?? user);
   }).pipe(
-    Effect.catch(error =>
-      error instanceof UnauthenticatedError
-        ? Effect.fail(error)
-        : Effect.fail(
-            new AuthnError(
-              `sign-in could not be resolved: ${String(error)}`,
-              'signInFailed',
-              error,
-            ),
-          ),
+    // A refusal the domain made while provisioning — an identifier another
+    // account holds — is "sign-in failed" to the visitor, never the
+    // administrator's sentence. An inactive account says so, and a store or
+    // provider that is down fails as itself.
+    Effect.catch(failure =>
+      Effect.fail(
+        failure.family === 'business' && failure._tag !== 'AccountInactive'
+          ? new SignInFailed()
+          : (failure as AccountInactive | TechnicalFailure),
+      ),
     ),
   );
 
@@ -130,9 +132,9 @@ const provisionFromIdentity = (
 
     const user = yield* accounts.findById(subject.userId);
     if (user === null) {
-      return yield* Effect.fail(
-        new AuthnError('the provisioned account could not be read back'),
-      );
+      // Written a moment ago in the same store: an account that cannot be
+      // read back is a fault in the store, not a refusal.
+      return yield* new Internal();
     }
     return user;
   });
@@ -161,7 +163,7 @@ export const provisionProviderHuman = (
     readonly displayName?: string;
     readonly password?: string;
   },
-): Effect.Effect<string, AuthnError> =>
+): Effect.Effect<string, ProviderUnavailable> =>
   Effect.gen(function* () {
     const existing = yield* directory.findUserIdByEmail(input.email);
     const { givenName, familyName } = splitName(
@@ -188,17 +190,7 @@ export const provisionProviderHuman = (
       directory.name,
     );
     return providerUserId;
-  }).pipe(
-    Effect.catch(error =>
-      Effect.fail(
-        new AuthnError(
-          `the identity provider could not be provisioned: ${String(error)}`,
-          'providerUnavailable',
-          error,
-        ),
-      ),
-    ),
-  );
+  }).pipe(Effect.catch(() => Effect.fail(new ProviderUnavailable())));
 
 /**
  * A provider may require a given and a family name; r10c only holds a display

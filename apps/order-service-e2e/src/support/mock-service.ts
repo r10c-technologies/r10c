@@ -6,10 +6,7 @@ import {
 import { IdempotencyStoreTag, TokenServiceTag } from '@entifix/business';
 import { makeJoseTokenService } from '@entifix/jwt';
 import { MongoRepositoryFactoryLayer } from '@entifix/mongo';
-import {
-  MongoUnitOfWorkLayer,
-  OutboxMaxAttempts,
-} from '@entifix/mongo/transactions';
+import { MongoUnitOfWorkLayer } from '@entifix/mongo/transactions';
 import { ServiceCrossingTokenTag } from '@entifix/service-shell';
 import { LoadedConfigurationTag } from '@entifix/service-shell/runtime';
 import {
@@ -26,7 +23,11 @@ import {
   makeInMemoryIdempotencyStore,
   makeRecordingEventBus,
 } from '@entifix/testing-unit';
-import { EventBusTag, EventSourceTag } from '@entifix/transactions';
+import {
+  EventBusTag,
+  EventSourceTag,
+  OutboxMaxAttempts,
+} from '@entifix/transactions';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -37,7 +38,12 @@ import {
 } from '@r10c/business-ts-authz-grants';
 import { CancelWindowSeconds } from '@r10c/business-ts-order-management';
 import { MongoProductOrderStoreLayer } from '@r10c/implementation-order-mongo';
-import { ORDER_SLICE, router, SERVICE_NAME } from '@r10c/order-service';
+import {
+  endpoints,
+  ORDER_SLICE,
+  policy,
+  SERVICE_NAME,
+} from '@r10c/order-service';
 import { httpSagaStarterLayer } from '@r10c/shells-effect-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
@@ -140,13 +146,14 @@ const MockAppLayer = Layer.provideMerge(
   Layer.provideMerge(MongoUnitOfWorkLayer, connections),
 ).pipe(Layer.orDie);
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
     port: 0,
     slices: ['order'],
     description: fleetToken,
-    router,
+    endpoints,
+    policy,
     appLayer: MockAppLayer,
   });

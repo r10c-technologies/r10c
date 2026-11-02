@@ -78,7 +78,7 @@ export const describeOfferingCatalogContract = (
       expect([won, lost, next]).toEqual(['committed', 'changed', 'committed']);
     });
 
-    it("answers changed for an offering the organization does not hold", async () => {
+    it('answers changed for an offering the organization does not hold', async () => {
       const catalog = await make();
 
       expect(

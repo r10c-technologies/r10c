@@ -316,6 +316,43 @@ mongo_rs_ready() {
   fi
 }
 
+# The databases the fleet's own Postgres stores live in, beside the
+# `postgres` database config-service uses. `workflow` is the durable flow
+# engine's (ADR 0066): its journal, its runners' registrations and its outbox.
+PG_DATABASES=(workflow)
+
+# Run one psql statement inside the pod, as the user the pod runs with. Inside
+# rather than from the host: the host may have no psql, and the pod always does.
+pg_exec() {
+  kubectl -n "$NS" exec deploy/postgres -c postgres -- \
+    sh -c 'psql -q -t -A -U "$POSTGRES_USER" -d postgres -c "$1"' sh "$1" 2>/dev/null
+}
+
+pg_databases_ready() {
+  port_open 30432 || return 1
+  local database
+  for database in "${PG_DATABASES[@]}"; do
+    [[ "$(pg_exec "select 1 from pg_database where datname = '$database'")" == "1" ]] || return 1
+  done
+}
+
+# L5c proper. `CREATE DATABASE` has no `IF NOT EXISTS`, so each is created only
+# when the catalog says it is absent; a second run finds them and does nothing.
+ensure_pg_databases() {
+  pg_databases_ready && return 0
+  local database
+  for database in "${PG_DATABASES[@]}"; do
+    if [[ "$(pg_exec "select 1 from pg_database where datname = '$database'")" != "1" ]]; then
+      log_heal "postgres: creating the ${database} database"
+      pg_exec "create database ${database}" >/dev/null || {
+        log_err "postgres: could not create the ${database} database"
+        return 1
+      }
+    fi
+  done
+  pg_databases_ready
+}
+
 # L5b proper. Runs `rs.initiate()` once, then waits for the election.
 #
 # Ordered after L5 because it needs mongod answering, and it cannot be a

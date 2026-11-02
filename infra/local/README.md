@@ -63,6 +63,7 @@ rung; a healthy cluster costs ~0.1s (five TCP probes plus one `get deploy`).
 | L4 rollout      | each deployment has a Ready replica                      | delete the pod once, re-wait                            |
 | L5 probes       | TCP + protocol handshake                                 | back to L4                                              |
 | L5b mongo rs    | the replica set has a primary                            | `rs.initiate()`                                         |
+| L5c pg dbs      | Postgres holds every fleet database (`workflow`)         | `CREATE DATABASE` for each one missing                  |
 | L6 hosted login | v2 login answering on `:30081`                           | secret from the PAT + `apply -k`                        |
 | L6b dashboards  | Grafana serves `r10c-bus-outbox`                         | `apply.sh` (L3); warns if it did not                    |
 | L7 zitadel seed | seeded at the current rev, and Zitadel accepts its token | restore from the cluster, else `tools/zitadel-seed.mjs` |

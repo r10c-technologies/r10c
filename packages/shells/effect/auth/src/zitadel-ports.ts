@@ -1,5 +1,5 @@
 import { ConfigurationRepositoryTag } from '@entifix/business';
-import { EntifixConnError } from '@entifix/core';
+import { Internal } from '@entifix/core';
 import { publicJwks } from '@entifix/jwt';
 import {
   ACTION_SIGNATURE_HEADER,
@@ -22,6 +22,7 @@ import {
   type PublicKeySetDocument,
   PublicKeySetTag,
 } from '@r10c/business-ts-authn';
+import { categorised } from '@r10c/business-ts-common';
 import { DevMailboxLayer } from '@r10c/implementation-auth-mongo';
 import { DevSurfaceEnabledTag } from '@r10c/implementation-authn-http';
 import { Effect, Layer } from 'effect';
@@ -73,15 +74,17 @@ export const PublicKeySetLayer = Layer.effect(
   PublicKeySetTag,
   Effect.map(ConfigurationRepositoryTag, store => ({
     jwks: () =>
-      Effect.gen(function* () {
-        const publicKeyPem = yield* store.in('jwt').getString('publicKey');
-        const keyId = yield* store.in('jwt').getString('keyId');
-        return (yield* Effect.tryPromise({
-          try: () => publicJwks(publicKeyPem, keyId),
-          catch: error =>
-            new EntifixConnError('Failed to publish the key set', error),
-        })) as unknown as PublicKeySetDocument;
-      }),
+      categorised(
+        Effect.gen(function* () {
+          const publicKeyPem = yield* store.in('jwt').getString('publicKey');
+          const keyId = yield* store.in('jwt').getString('keyId');
+          return (yield* Effect.tryPromise({
+            try: () => publicJwks(publicKeyPem, keyId),
+            // The PEM is configuration: one that will not export is a fault.
+            catch: () => new Internal(),
+          })) as unknown as PublicKeySetDocument;
+        }),
+      ),
   })),
 );
 

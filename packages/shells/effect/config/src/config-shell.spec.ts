@@ -1,14 +1,33 @@
 import { generateKeyPairSync } from 'node:crypto';
 
-import { TokenServiceTag } from '@entifix/business';
+import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
+import {
+  EntityRepositoryFactoryTag,
+  InvalidToken,
+  type TokenClaims,
+  TokenServiceTag,
+} from '@entifix/business';
+import { serveTestService } from '@entifix/service-shell/testing';
 import { makeFakeSqlClient } from '@entifix/testing-unit/drivers';
-import { ConfigurationLookupTag } from '@r10c/business-ts-configuration';
+import {
+  ConfigurationLookupTag,
+  ConfigurationWriterTag,
+} from '@r10c/business-ts-configuration';
+import {
+  CONTRACT_ROWS,
+  CONTRACT_SECRET,
+  CONTRACT_SERVICE,
+  makeInMemoryConfigurationLookup,
+  makeInMemoryConfigurationWriter,
+} from '@r10c/business-ts-configuration/testing';
+import { ConfigurationStoreLocationTag } from '@r10c/implementation-configuration-http';
+import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/sql';
 import { describe, expect, it } from 'vitest';
 
 import { authLayer, migrateAndSeed } from './app-layer.js';
-import { makeAppLayer, router } from './index.js';
+import { endpoints, makeAppLayer, policy } from './index.js';
 
 const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const PUBLIC_KEY_PEM = publicKey
@@ -96,8 +115,98 @@ describe('the token verification config-service reads from its own rows', () => 
 });
 
 describe('the config shell', () => {
-  it('offers the composition and the routes as layers', () => {
+  it('offers the composition as a layer', () => {
     expect(Layer.isLayer(makeAppLayer({ seedRows: [] }))).toBe(true);
-    expect(Layer.isLayer(router)).toBe(true);
+  });
+});
+
+const operator: TokenClaims = {
+  userId: 'u-1',
+  subject: 'ops@example.com',
+  sessionId: 's-1',
+  roles: ['admin'],
+};
+
+/** The slice's endpoints over in-memory ports, served as config-service serves them. */
+const serveConfig = () =>
+  serveTestService({
+    name: '@r10c/config-service',
+    port: 0,
+    slices: ['config'],
+    description: fleetToken,
+    endpoints,
+    policy,
+    appLayer: Layer.mergeAll(
+      Layer.succeed(
+        ConfigurationWriterTag,
+        makeInMemoryConfigurationWriter(CONTRACT_SECRET),
+      ),
+      Layer.succeed(
+        ConfigurationLookupTag,
+        makeInMemoryConfigurationLookup(CONTRACT_ROWS),
+      ),
+      Layer.succeed(ConfigurationStoreLocationTag, 'postgres://***@db/config'),
+      Layer.succeed(TokenServiceTag, {
+        sign: () => Effect.succeed('token'),
+        verify: token =>
+          token === 'good'
+            ? Effect.succeed(operator)
+            : Effect.fail(new InvalidToken()),
+      }),
+      Layer.succeed(
+        PolicyDecisionTag,
+        makeStaticPolicyDecision({
+          admin: ['config:configuration:write', 'config:configuration:delete'],
+        }),
+      ),
+      // The generic reads are not exercised here; the writes are the cell's.
+      Layer.succeed(EntityRepositoryFactoryTag, {} as never),
+    ),
+  });
+
+const asOperator = { authorization: 'Bearer good' };
+
+describe('the config endpoints', () => {
+  it('answer a refused write, a missing row and a missing token as problems', async () => {
+    const service = await serveConfig();
+    try {
+      const refused = await fetch(
+        `${service.baseUrl}/api/configuration/${CONTRACT_SECRET.id}`,
+        {
+          method: 'PUT',
+          headers: { ...asOperator, 'content-type': 'application/json' },
+          body: JSON.stringify({
+            meta: { type: 'entity', entity: 'configuration' },
+            data: { is_secret: false, value: '' },
+          }),
+        },
+      );
+      const missing = await fetch(
+        `${service.baseUrl}/api/configuration/nobody`,
+        { method: 'DELETE', headers: asOperator },
+      );
+      const tokenless = await fetch(
+        `${service.baseUrl}/api/config/${CONTRACT_SERVICE}`,
+        { headers: { [fleetToken.header]: '' } },
+      );
+      const served = await fetch(
+        `${service.baseUrl}/api/config/${CONTRACT_SERVICE}`,
+        { headers: { [fleetToken.header]: fleetToken.token() } },
+      );
+
+      for (const response of [refused, missing, tokenless])
+        expect(response.headers.get('content-type')).toContain(
+          'application/problem+json',
+        );
+      expect([refused.status, missing.status, tokenless.status]).toEqual([
+        400, 404, 401,
+      ]);
+      expect(await refused.json()).toMatchObject({
+        code: 'secretRequiresValue',
+      });
+      expect(served.status).toBe(200);
+    } finally {
+      await service.close();
+    }
   });
 });

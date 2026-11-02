@@ -6,6 +6,7 @@
 - Revised: 2026-10-24 — the back office's parent picker now excludes the record and its subtree, through entifix 0.7.1's per-record link filter ([#400](https://github.com/r10c-technologies/r10c/issues/400)); the list holds 200 categories a page, so one page is the whole tree.
 - Read when: adding a category level, rendering breadcrumbs or category navigation, or retiring a category — any depth up to five, an offering may sit in any node, a category page lists its whole subtree, and a category with active children cannot be retired
 - Revised: 2026-10-28 by [ADR 0064](0064-failures-reach-the-slice-shell.md) — each refusal below becomes a tagged failure carrying that code, answered as a problem body; the catalog-reference slice migrates in wave 3, and until then the codes are unchanged
+- Revised: 2026-10-29 by [ADR 0071](0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md) — retiring and restoring a category are derived verbs — a `restore` use case was added — and a category with active children answers a `CategoryHasActiveChildren` conflict problem with the code `categoryHasChildren`
 
 ## Context
 
@@ -39,16 +40,18 @@ store, declared as the entity's parent through entifix's hierarchy metadata.
 
 ### The invariants, enforced at save
 
-The catalog-reference use cases that write a category refuse, with a `409` and
-a code the errors catalog carries:
+The catalog-reference use cases that write a category refuse with a typed
+failure whose code the errors catalog carries: `invalid` (`400`) for a save
+that is wrong as written, `conflict` (`409`) for one the tree as it stands
+refuses:
 
-| Refused                                              | Code                    |
-| ---------------------------------------------------- | ----------------------- |
-| a parent that does not exist                         | `categoryParentMissing` |
-| a parent that is retired                             | `categoryParentRetired` |
-| a parent that is the category itself or a descendant | `categoryCycle`         |
-| a tree deeper than five levels                       | `categoryTooDeep`       |
-| retiring a category that still has active children   | `categoryHasChildren`   |
+| Refused                                              | Code                    | Status |
+| ---------------------------------------------------- | ----------------------- | ------ |
+| a parent that does not exist                         | `categoryParentMissing` | `400`  |
+| a parent that is retired                             | `categoryParentRetired` | `409`  |
+| a parent that is the category itself or a descendant | `categoryCycle`         | `400`  |
+| a tree deeper than five levels                       | `categoryTooDeep`       | `400`  |
+| retiring a category that still has active children   | `categoryHasChildren`   | `409`  |
 
 **Five** is a sanity cap, not a product limit. No marketplace browse tree people
 navigate by hand is deeper, and the cap is what keeps an ancestor walk bounded

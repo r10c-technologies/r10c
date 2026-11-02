@@ -1,8 +1,14 @@
-import type { EntityId, TransitionalFailure } from '@entifix/core';
+import type {
+  EntityId,
+  NotFound,
+  StoreFailure,
+  StoreFault,
+} from '@entifix/core';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
 
 import type { UserIdentity } from '../entities/user-identity';
+import type { InvalidCredentials } from '../errors';
 import type { Principal } from '../values';
 
 /**
@@ -14,7 +20,7 @@ import type { Principal } from '../values';
  */
 export interface IdentityProvider {
   /** Resolve an opaque session id to the authenticated {@link Principal}. */
-  resolveSession(sessionId: string): Effect<Principal, TransitionalFailure>;
+  resolveSession(sessionId: string): Effect<Principal, StoreFailure | NotFound>;
 
   /**
    * Resolve a presented identifier (email / username / IdP subject) to its
@@ -23,7 +29,7 @@ export interface IdentityProvider {
   resolveIdentifier(
     type: string,
     value: string,
-  ): Effect<UserIdentity, TransitionalFailure>;
+  ): Effect<UserIdentity, StoreFault | InvalidCredentials>;
 }
 
 /** DI tag the composition root binds to a concrete {@link IdentityProvider}. */

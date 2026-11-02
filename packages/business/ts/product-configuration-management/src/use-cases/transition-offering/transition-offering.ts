@@ -1,5 +1,5 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import type { EntityId } from '@entifix/core';
+import { type EntityId, Failure } from '@entifix/core';
 import {
   type CatalogEvent,
   type CatalogPublication,
@@ -7,7 +7,7 @@ import {
   catalogUnpublishedEvent,
   readMedia,
 } from '@r10c/business-ts-catalog-contracts';
-import { Context, Data, Effect } from 'effect';
+import { Context, Effect, Schema } from 'effect';
 
 import type { ProductOffering } from '../../entities/product-offering';
 import type { ProductOfferingPrice } from '../../entities/product-offering-price';
@@ -98,15 +98,15 @@ export const OFFERING_HAS_NO_PRICE = 'offeringHasNoPrice';
 export const OFFERING_HAS_NO_SPECIFICATION = 'offeringHasNoSpecification';
 
 /** An offering that cannot make the move that was asked of it. */
-export class IllegalOfferingTransition extends Data.TaggedError(
+export class IllegalOfferingTransition extends Failure.conflict<IllegalOfferingTransition>()(
   'IllegalOfferingTransition',
-)<{
-  readonly id: EntityId;
-  readonly from: string;
-  readonly transition: OfferingTransition;
-}> {
-  readonly code = ILLEGAL_OFFERING_TRANSITION;
-}
+  ILLEGAL_OFFERING_TRANSITION,
+  { id: Schema.String, from: Schema.String, transition: Schema.String },
+  {
+    message: ({ from, transition }) =>
+      `an offering in '${from}' cannot be ${transition}ed`,
+  },
+) {}
 
 /**
  * An offering asked to reach the storefront with no `ProductOfferingPrice`.
@@ -119,11 +119,16 @@ export class IllegalOfferingTransition extends Data.TaggedError(
  * consumer must silently drop, which is a `200` for the vendor and a listing
  * that never appears, with the only evidence in another service's log.
  */
-export class OfferingHasNoPrice extends Data.TaggedError('OfferingHasNoPrice')<{
-  readonly id: EntityId;
-}> {
-  readonly code = OFFERING_HAS_NO_PRICE;
-}
+export class OfferingHasNoPrice extends Failure.conflict<OfferingHasNoPrice>()(
+  'OfferingHasNoPrice',
+  OFFERING_HAS_NO_PRICE,
+  { id: Schema.String },
+  {
+    message: () =>
+      'an offering needs a price before it can reach the storefront: the ' +
+      'published record carries an amount and a currency',
+  },
+) {}
 
 /**
  * An offering asked to reach the storefront while naming a specification that
@@ -143,14 +148,17 @@ export class OfferingHasNoPrice extends Data.TaggedError('OfferingHasNoPrice')<{
  * precondition; repeating it here would compound it. `specificationId` rides on
  * the failure so the operator knows which id dangles.
  */
-export class OfferingHasNoSpecification extends Data.TaggedError(
+export class OfferingHasNoSpecification extends Failure.conflict<OfferingHasNoSpecification>()(
   'OfferingHasNoSpecification',
-)<{
-  readonly id: EntityId;
-  readonly specificationId: string;
-}> {
-  readonly code = OFFERING_HAS_NO_SPECIFICATION;
-}
+  OFFERING_HAS_NO_SPECIFICATION,
+  { id: Schema.String, specificationId: Schema.String },
+  {
+    message: ({ specificationId }) =>
+      `this offering names specification '${specificationId}', which no ` +
+      'longer exists; the published record copies its name, description, ' +
+      'brand and category',
+  },
+) {}
 
 /** The members the snapshot copies off the pinned specification. */
 const MERCHANDISING = ['code', 'description', 'brandId', 'categoryId'] as const;
@@ -239,18 +247,15 @@ export const transitionOffering = Effect.gen(function* () {
 
   if (next === undefined) {
     return yield* new IllegalOfferingTransition({
-      id,
+      id: String(id),
       from: offering.status,
       transition,
     });
   }
 
-  // ⚠️ `load` with a filter, never `get`. `makeMongoRepository`'s `get` fails an
-  // absent row with `EntifixConnError` — the same class it raises when the
-  // driver itself fails, and core declares no `EntifixNotFoundError` — so the
-  // two are separable only by matching a message string. Mapping that failure to
-  // a `409` would tell every vendor in the fleet their data is broken during a
-  // Mongo outage. An empty page is unambiguous; a real failure still fails.
+  // ⚠️ `load` with a filter, never `get`: an absent specification is a value
+  // this decides on, and an empty page keeps it one — never a failure that
+  // could be confused with the store being down. A real failure still fails.
   const specifications = yield* OfferingSpecificationRepositoryTag;
   const specificationPage = yield* specifications.load<ProductSpecification>({
     filtering: [
@@ -265,7 +270,7 @@ export const transitionOffering = Effect.gen(function* () {
   // the wrong screen. Publication only — see `OfferingHasNoSpecification`.
   if (specification === undefined && next === 'published') {
     return yield* new OfferingHasNoSpecification({
-      id,
+      id: String(id),
       specificationId: offering.specificationId,
     });
   }
@@ -281,7 +286,7 @@ export const transitionOffering = Effect.gen(function* () {
   const price = page.items[0];
 
   if (price === undefined) {
-    return yield* new OfferingHasNoPrice({ id });
+    return yield* new OfferingHasNoPrice({ id: String(id) });
   }
 
   offering.status = next;

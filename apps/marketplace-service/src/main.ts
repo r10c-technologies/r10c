@@ -1,5 +1,9 @@
 import { makeService } from '@entifix/service-shell/runtime';
-import { makeAppLayer, router } from '@r10c/shells-effect-marketplace';
+import {
+  endpoints,
+  makeAppLayer,
+  policy,
+} from '@r10c/shells-effect-marketplace';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
 import { DEFAULT_PORT, SERVICE_NAME } from './index';
@@ -18,6 +22,7 @@ makeService({
   port: Number(process.env.PORT) || DEFAULT_PORT,
   slices: ['marketplace'],
   description: fleetToken,
-  router,
+  endpoints,
+  policy,
   appLayer: makeAppLayer({ seed: seedCatalogReference }),
 });

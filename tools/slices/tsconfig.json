@@ -12,6 +12,39 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../../packages/shells/effect/transaction"
+    },
+    {
+      "path": "../../packages/shells/effect/stock"
+    },
+    {
+      "path": "../../packages/shells/effect/settlement"
+    },
+    {
+      "path": "../../packages/shells/effect/service"
+    },
+    {
+      "path": "../../packages/shells/effect/sales"
+    },
+    {
+      "path": "../../packages/shells/effect/payment"
+    },
+    {
+      "path": "../../packages/shells/effect/order"
+    },
+    {
+      "path": "../../packages/shells/effect/marketplace-admin"
+    },
+    {
+      "path": "../../packages/shells/effect/marketplace"
+    },
+    {
+      "path": "../../packages/shells/effect/config"
+    },
+    {
+      "path": "../../packages/shells/effect/auth"
+    },
+    {
       "path": "../../packages/business/ts/payment-contracts"
     },
     {

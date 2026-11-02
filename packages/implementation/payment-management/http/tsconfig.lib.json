@@ -17,6 +17,12 @@
       "path": "../../../business/ts/payment-management/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/payment-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/common/tsconfig.lib.json"
+    },
+    {
       "path": "../../../testing/http"
     },
     {

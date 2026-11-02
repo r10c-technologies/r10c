@@ -9,7 +9,7 @@ export {
   PAYMENT_SLICE,
   paymentComposition,
 } from './app-layer.js';
-export { router } from './router.js';
+export { endpoints, policy } from './endpoints.js';
 export {
   DEFAULT_SIMULATED_SETTINGS,
   makeSimulatedPaymentProvider,

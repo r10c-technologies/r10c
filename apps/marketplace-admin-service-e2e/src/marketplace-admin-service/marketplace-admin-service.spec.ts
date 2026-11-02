@@ -162,16 +162,16 @@ describe('media on a product specification', () => {
       data: { id: 'product-2', ...specification(media) },
     });
 
+  // A create is claimed on its key in the unit of work, so it carries one.
   const post = (media: unknown) =>
-    service.client.post('/api/product-specification', {
-      meta: { type: 'command', entity: 'product-specification' },
-      data: {
-        transactionId: crypto.randomUUID(),
-        type: 'create',
-        entity: 'product-specification',
-        payload: specification(media),
+    service.client.post(
+      '/api/product-specification',
+      {
+        meta: { type: 'entity', entity: 'product-specification' },
+        data: specification(media),
       },
-    });
+      { headers: { 'idempotency-key': `"${crypto.randomUUID()}"` } },
+    );
 
   it.each([
     [
@@ -196,7 +196,7 @@ describe('media on a product specification', () => {
     expect(res.data.code).toBe(code);
   });
 
-  it('refuses an http URL on the POST command too', async () => {
+  it('refuses an http URL on the POST create too', async () => {
     const res = await post([{ url: 'http://cdn.example/a.jpg', alt: 'Front' }]);
 
     expect(res.status).toBe(400);

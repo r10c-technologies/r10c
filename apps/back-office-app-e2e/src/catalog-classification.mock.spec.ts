@@ -26,48 +26,23 @@ import { expect, PRODUCT_URL, test } from './support/fixtures';
  */
 
 /**
- * Captures the created entity and answers the way the real service does.
- *
- * A specification is created through the saga, so the `POST` carries a
- * **command** envelope whose `payload` is the entity, and the answer is a `202`
- * naming the transaction rather than an entity envelope to read back
- * ([ADR 0028](../../../docs/adr/0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)).
- * The client already knows the stored id — it minted it as the transaction id —
- * so what is asserted below is the `payload`, which is the part the picker
- * actually decides.
+ * Captures the created entity and answers the way the real service does: the
+ * record as stored, under the code it drew. What is asserted below is the
+ * record's members, which are the part the picker actually decides.
  */
-const captureCreate = (
-  network: NetworkFixture,
-): { body?: unknown; transactionId?: string } => {
-  const captured: { body?: unknown; transactionId?: string } = {};
+const captureCreate = (network: NetworkFixture): { body?: unknown } => {
+  const captured: { body?: unknown } = {};
   network.use(
     http.post(PRODUCT_URL, async ({ request }) => {
       const envelope = (await request.json()) as {
         meta: { entity: string };
-        data: { transactionId: string; payload: Record<string, unknown> };
+        data: Record<string, unknown>;
       };
-      captured.body = envelope.data.payload;
-      captured.transactionId = envelope.data.transactionId;
-      return HttpResponse.json(
-        {
-          meta: {
-            type: 'transactionAccepted',
-            entity: envelope.meta.entity,
-            links: [
-              {
-                rel: 'status',
-                href: `/api/transaction/${envelope.data.transactionId}`,
-                method: 'GET',
-              },
-            ],
-          },
-          data: {
-            transactionId: envelope.data.transactionId,
-            state: 'PENDING',
-          },
-        },
-        { status: 202 },
-      );
+      captured.body = envelope.data;
+      return HttpResponse.json({
+        meta: { type: 'entity', entity: envelope.meta.entity },
+        data: { ...envelope.data, id: 'spec-created', code: 'product-901' },
+      });
     }),
   );
   return captured;
@@ -75,8 +50,8 @@ const captureCreate = (
 
 const openCreateForm = async (page: Page) => {
   await page.goto('/catalog/product/new');
-  // `Nombre` and not `Código`: the create transaction assigns the code from a
-  // sequence, so the form does not ask for one.
+  // `Nombre` and not `Código`: the create draws the code from the
+  // organization's counter, so the form does not ask for one.
   await expect(page.getByLabel('Nombre')).toBeVisible();
 };
 
@@ -116,13 +91,6 @@ test('sends both classifications as scalar ids', async ({ page, network }) => {
       brandId: 'product-brand-1',
       categoryId: 'product-category-1',
     });
-
-  // The browser minted the transaction id, and it is the id the record will be
-  // stored under — which is what lets a create render before the write lands,
-  // and what makes a resend a retry rather than a second record (ADR 0028).
-  expect(captured.transactionId).toMatch(
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-  );
 });
 
 test('picks a brand through the browse dialog', async ({ page, network }) => {

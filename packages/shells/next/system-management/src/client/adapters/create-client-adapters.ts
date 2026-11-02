@@ -1,6 +1,4 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import {
   buildEntityRestAdapterDelete,
   buildEntityRestAdapterGet,

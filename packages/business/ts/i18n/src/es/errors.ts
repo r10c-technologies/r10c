@@ -47,8 +47,6 @@ export const errors = {
   categoryTooDeep: 'Las categorías pueden tener como máximo cinco niveles.',
   categoryHasChildren:
     'Esta categoría todavía tiene subcategorías activas. Retíralas o muévelas primero.',
-  categoryTreeUnreadable:
-    'No se pudo revisar el árbol de categorías en este momento. Inténtalo de nuevo en un momento.',
   mediaNotHttps: 'Cada URL de imagen debe ser una dirección https:// completa.',
   mediaAltMissing: 'Cada imagen necesita una descripción.',
   paymentPending:
@@ -56,7 +54,6 @@ export const errors = {
   cancelNotAuthorized:
     'Este pedido no se puede cancelar desde aquí. Puede que el plazo de cancelación haya terminado.',
   invalidQuery: 'La consulta no es válida.',
-  invalidCommand: 'El comando no es válido.',
   notFound: 'No se encontró el registro.',
   // Un fallo *por fila* de una acción masiva: el registro ya estaba en el
   // estado pedido, así que no se escribió nada. No es un error de la ejecución
@@ -94,11 +91,11 @@ export const errors = {
   // sigue nombrándolo — así que hay que rechazar la venta, no ocultar el canal.
   channelInactive: 'Ese canal de venta está inactivo.',
   notYours: 'Esa oferta pertenece a otro vendedor.',
-  resourceBusy: 'El recurso está ocupado, inténtalo de nuevo.',
   identifierRequired: 'Una cuenta necesita al menos un identificador.',
   emailRequired: 'Se requiere un identificador de correo electrónico.',
   roleNotAllowed: 'No puedes asignar ese rol.',
   userNotFound: 'No se encontró el usuario.',
+  identifierInUse: 'Otra cuenta ya usa ese correo o nombre de usuario.',
   userNotAllowed: 'No puedes modificar ese usuario.',
   selfRoleChange: 'No puedes cambiar tu propio rol ni tu estado.',
   nothingToUpdate: 'No hay nada que actualizar.',
@@ -117,6 +114,10 @@ export const errors = {
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
   stockUnavailable: 'No se pudo completar la venta. Revisa la existencia.',
+  sagaCompensated: 'No se pudo completar la operación y no se cambió nada.',
+  sagaStranded: 'La operación se detuvo a medias y se está revisando.',
+  mixedCurrencies:
+    'Los montos de un mismo vendedor están en más de una moneda.',
   unavailable:
     'Un servicio no está disponible en este momento. Inténtalo de nuevo en un momento.',
   invalid: 'Hay datos que no son válidos. Revisa el formulario.',
@@ -133,6 +134,13 @@ export const errors = {
     'Esa clave de idempotencia ya se usó con otra solicitud.',
   idempotencyKeyInFlight: 'Esa solicitud todavía se está procesando.',
   flowNotComposable: 'Esa operación no se puede armar para esta solicitud.',
+  breakerOpen:
+    'Ese servicio no está respondiendo ahora. Intente de nuevo en un momento.',
+  bulkheadFull:
+    'Ese servicio está ocupado ahora. Intente de nuevo en un momento.',
+  notReady: 'Ese servicio se está iniciando. Intente de nuevo en un momento.',
+  flowRequirementsUnmet:
+    'Su organización no está habilitada para esa operación.',
   variantUnavailable: 'Esa operación no está disponible para usted.',
   flowNotFound: 'No se encontró esa operación.',
   flowSignalRejected: 'Esa operación no está esperando este paso.',

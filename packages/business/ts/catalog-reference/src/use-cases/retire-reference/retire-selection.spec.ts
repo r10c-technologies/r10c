@@ -10,7 +10,7 @@ import {
   CATEGORY_PARENT_MISSING,
   categoryRetireGuard,
 } from '../../values/category-tree.js';
-import { categorySaveConflict, retireSelection } from './retire-selection.js';
+import { checkCategorySave, retireSelection } from './retire-selection.js';
 
 const brand = (id: string) =>
   Object.assign(new ProductBrand(id), { id, status: 'active' as const });
@@ -88,15 +88,20 @@ describe('retireSelection', () => {
   });
 });
 
-describe('categorySaveConflict', () => {
-  it('names where a category cannot sit, and allows where it can', async () => {
+describe('checkCategorySave', () => {
+  it('lets a category through where the tree allows it, and fails with the rule it breaks', async () => {
     const seeds = { categories: [category('root')] };
+    const leaf = category('leaf', 'root');
 
+    expect(await run(checkCategorySave(leaf), seeds)).toBe(leaf);
     expect(
-      await run(categorySaveConflict(category('leaf', 'root')), seeds),
-    ).toBeUndefined();
-    expect(
-      await run(categorySaveConflict(category('leaf', 'ghost')), seeds),
-    ).toBe(CATEGORY_PARENT_MISSING);
+      await run(
+        Effect.flip(checkCategorySave(category('leaf', 'ghost'))),
+        seeds,
+      ),
+    ).toMatchObject({
+      _tag: 'CategoryParentMissing',
+      code: CATEGORY_PARENT_MISSING,
+    });
   });
 });

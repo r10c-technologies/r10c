@@ -1,10 +1,11 @@
-import type { EntityId, TransitionalFailure } from '@entifix/core';
+import type { EntityId, StoreFailure, StoreFault } from '@entifix/core';
 import type { Role } from '@r10c/business-ts-authz-grants';
 import { Context } from 'effect';
 import { Effect } from 'effect/Effect';
 
 import type { IdentifierType } from '../entities/entity-identifier';
 import type { UserIdentity, UserStatus } from '../entities/user-identity';
+import type { IdentifierInUse, UserNotFound } from '../errors';
 
 /** One identifier to attach to a new account (email / username / phone …). */
 export interface NewIdentifierInput {
@@ -76,11 +77,9 @@ export interface IdentityProjection {
  */
 export interface AccountRepository {
   /** Resolve any identifier value (any type) to its canonical user, or null. */
-  findByIdentifier(
-    value: string,
-  ): Effect<UserIdentity | null, TransitionalFailure>;
+  findByIdentifier(value: string): Effect<UserIdentity | null, StoreFault>;
   /** Read a user by canonical id, or null. */
-  findById(userId: EntityId): Effect<UserIdentity | null, TransitionalFailure>;
+  findById(userId: EntityId): Effect<UserIdentity | null, StoreFault>;
   /**
    * Apply an aspect change to an existing account, returning the updated user.
    * Narrow on purpose: role and status are the only members an administrator
@@ -90,7 +89,7 @@ export interface AccountRepository {
   updateUserAspects(
     userId: EntityId,
     changes: UpdateUserAspects,
-  ): Effect<UserIdentity, TransitionalFailure>;
+  ): Effect<UserIdentity, StoreFault | UserNotFound>;
   /**
    * The address account notifications go to — the user's email identifier, or
    * null when they have none.
@@ -100,16 +99,14 @@ export interface AccountRepository {
    * UUID. The contact address is a different thing from the identity, and this
    * is the only place that mapping lives.
    */
-  findContactAddress(
-    userId: EntityId,
-  ): Effect<string | null, TransitionalFailure>;
+  findContactAddress(userId: EntityId): Effect<string | null, StoreFault>;
   /**
    * Provision user + identifiers atomically, returning the created user. Fails
    * when any identifier value is already taken.
    */
   createAccount(
     input: CreateAccountInput,
-  ): Effect<UserIdentity, TransitionalFailure>;
+  ): Effect<UserIdentity, StoreFailure | IdentifierInUse>;
   /**
    * Attach the provider's `sub` to an existing account, so the next sign-in
    * resolves straight to it.
@@ -125,7 +122,7 @@ export interface AccountRepository {
     userId: EntityId,
     subject: string,
     provider: string,
-  ): Effect<void, TransitionalFailure>;
+  ): Effect<void, StoreFault>;
   /**
    * Overwrite the projected identity attributes from the provider's own record.
    *
@@ -136,7 +133,7 @@ export interface AccountRepository {
   projectIdentity(
     userId: EntityId,
     projection: IdentityProjection,
-  ): Effect<void, TransitionalFailure>;
+  ): Effect<void, StoreFault>;
 }
 
 /** DI tag the composition root binds to a concrete {@link AccountRepository}. */

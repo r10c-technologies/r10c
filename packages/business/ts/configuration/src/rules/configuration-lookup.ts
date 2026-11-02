@@ -1,4 +1,4 @@
-import type { ConfigurationPlain, TransitionalFailure } from '@entifix/core';
+import type { ConfigurationPlain, StoreFault } from '@entifix/core';
 import { Context, type Effect } from 'effect';
 
 /** One stored configuration row, as the lookup reads it. */
@@ -27,8 +27,8 @@ export interface ConfigurationStats {
 export interface ConfigurationLookup {
   readonly forService: (
     service: string,
-  ) => Effect.Effect<ConfigurationPlain, TransitionalFailure>;
-  readonly stats: () => Effect.Effect<ConfigurationStats, TransitionalFailure>;
+  ) => Effect.Effect<ConfigurationPlain, StoreFault>;
+  readonly stats: () => Effect.Effect<ConfigurationStats, StoreFault>;
 }
 
 export class ConfigurationLookupTag extends Context.Service<

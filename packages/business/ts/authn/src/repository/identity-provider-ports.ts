@@ -1,5 +1,18 @@
-import type { TransitionalFailure } from '@entifix/core';
+import type { ExpiredToken, InvalidToken } from '@entifix/business';
+import type {
+  Declined,
+  Invalid,
+  TechnicalFailure,
+  Unauthenticated,
+} from '@entifix/core';
 import { Context, type Effect } from 'effect';
+
+/** What a call to the identity provider fails with: a refusal it gave, or no answer. */
+export type ProviderCallFailure = Declined | TechnicalFailure;
+
+/** A provider token that did not verify, beside a call that failed. */
+export type ProviderTokenFailure =
+  ProviderCallFailure | InvalidToken | ExpiredToken;
 
 /**
  * Who the provider says signed in, from a verified `id_token`. Provider-shaped
@@ -53,18 +66,18 @@ export interface OidcProvider {
     readonly nonce: string;
     readonly codeChallenge: string;
     readonly uiLocales?: string;
-  }) => Effect.Effect<string, TransitionalFailure>;
+  }) => Effect.Effect<string, ProviderCallFailure>;
   readonly exchangeCode: (input: {
     readonly code: string;
     readonly codeVerifier: string;
     readonly nonce: string;
-  }) => Effect.Effect<ProviderIdentity, TransitionalFailure>;
+  }) => Effect.Effect<ProviderIdentity, ProviderTokenFailure>;
   readonly endSessionUrl: (
     idToken: string | undefined,
-  ) => Effect.Effect<string, TransitionalFailure>;
+  ) => Effect.Effect<string, ProviderCallFailure>;
   readonly verifyLogoutToken: (
     logoutToken: string,
-  ) => Effect.Effect<ProviderLogout, TransitionalFailure>;
+  ) => Effect.Effect<ProviderLogout, ProviderTokenFailure>;
 }
 
 export class OidcProviderTag extends Context.Service<
@@ -88,7 +101,7 @@ export interface ProviderEventVerifier {
   readonly verify: (
     rawBody: string,
     headers: Readonly<Record<string, string | undefined>>,
-  ) => Effect.Effect<ProviderEvent, TransitionalFailure>;
+  ) => Effect.Effect<ProviderEvent, Unauthenticated | Invalid>;
 }
 
 export class ProviderEventVerifierTag extends Context.Service<
@@ -117,10 +130,10 @@ export interface ProviderDirectory {
   readonly name: string;
   readonly findUserIdByEmail: (
     email: string,
-  ) => Effect.Effect<string | undefined, TransitionalFailure>;
+  ) => Effect.Effect<string | undefined, ProviderCallFailure>;
   readonly createHuman: (
     human: ProviderHuman,
-  ) => Effect.Effect<string, TransitionalFailure>;
+  ) => Effect.Effect<string, ProviderCallFailure>;
 }
 
 export class ProviderDirectoryTag extends Context.Service<
@@ -138,7 +151,7 @@ export interface PublicKeySetDocument {
  * fleet configuration. Public by design; it must never carry a private member.
  */
 export interface PublicKeySet {
-  readonly jwks: () => Effect.Effect<PublicKeySetDocument, TransitionalFailure>;
+  readonly jwks: () => Effect.Effect<PublicKeySetDocument, TechnicalFailure>;
 }
 
 export class PublicKeySetTag extends Context.Service<
@@ -163,7 +176,7 @@ export interface MailboxNotice {
 export interface DevMailbox {
   readonly read: (
     to: string | undefined,
-  ) => Effect.Effect<readonly MailboxNotice[], TransitionalFailure>;
+  ) => Effect.Effect<readonly MailboxNotice[], TechnicalFailure>;
 }
 
 export class DevMailboxTag extends Context.Service<DevMailboxTag, DevMailbox>()(

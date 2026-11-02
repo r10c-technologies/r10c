@@ -1,8 +1,13 @@
-import { EntifixLogicError } from '@entifix/core';
+import { describeEntityUseCases, extractUseCase } from '@entifix/core';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { SalesChannel } from '../../entities/sales-channel/index.js';
-import { SELL_AT_CHANNEL, SellAtChannelUC } from './sell-at-channel.uc.js';
+import {
+  CounterSalePayload,
+  SELL_AT_CHANNEL,
+  SellAtChannelUC,
+} from './sell-at-channel.uc.js';
 
 const channel = (status: 'active' | 'inactive') => {
   const record = new SalesChannel('Mostrador principal', 'counter');
@@ -23,30 +28,37 @@ describe('SellAtChannelUC', () => {
   it('lets a sale through an active channel', () => {
     const active = channel('active');
 
-    expect(SellAtChannelUC.run(active)).toBe(active);
+    expect(Effect.runSync(SellAtChannelUC.run(active))).toBe(active);
   });
 
-  it('refuses a retired channel, which the UI hiding it would not', () => {
+  it('refuses a retired channel, which the UI hiding it would not, naming it', () => {
     // A channel is retired by state rather than deletion, because every order
     // placed through one keeps referring to it — so it stays readable, stays
     // pickable by anything that does not check, and would keep taking sales the
     // vendor believes are impossible.
-    expect(() => SellAtChannelUC.run(channel('inactive'))).toThrow(
-      EntifixLogicError,
-    );
+    expect(
+      Effect.runSync(Effect.flip(SellAtChannelUC.run(channel('inactive')))),
+    ).toMatchObject({
+      _tag: 'ChannelInactive',
+      code: 'channelInactive',
+      channelId: 'sales-channel-counter',
+    });
   });
 
-  it('names the channel and its state on the refusal', () => {
-    // The route answers `409 channelInactive` from this, and an operator
-    // reading the log needs to know which counter refused.
-    try {
-      SellAtChannelUC.run(channel('inactive'));
-      expect.unreachable('a retired channel must not take a sale');
-    } catch (error) {
-      expect((error as EntifixLogicError).details).toEqual({
-        channelId: 'sales-channel-counter',
-        status: 'inactive',
-      });
-    }
+  it('declares the till body it takes and every refusal its endpoint answers', () => {
+    const sell = describeEntityUseCases(SalesChannel).find(
+      useCase => useCase.key === 'sell',
+    );
+    const declared = extractUseCase(SellAtChannelUC);
+
+    expect(sell?.binding).toBe('entity');
+    expect(declared.payload).toBe(CounterSalePayload);
+    expect(declared.errors?.map(failure => failure.name)).toEqual([
+      'NotFound',
+      'ChannelInactive',
+      'OfferingNotYours',
+      'InvalidBody',
+      'StockUnavailable',
+    ]);
   });
 });

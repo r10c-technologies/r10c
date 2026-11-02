@@ -13,10 +13,9 @@ import {
   ensureOutboxIndexes,
   makeMongoOutbox,
   makeMongoUnitsOfWork,
-  OutboxMaxAttempts,
   reviveQuarantined,
 } from '@entifix/mongo/transactions';
-import { EventBusTag } from '@entifix/transactions';
+import { EventBusTag, OutboxMaxAttempts } from '@entifix/transactions';
 import {
   OfferingCatalogTag,
   ProductOffering,

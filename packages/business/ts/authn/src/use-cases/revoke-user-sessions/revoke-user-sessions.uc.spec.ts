@@ -2,7 +2,7 @@ import { SessionStoreTag } from '@entifix/business';
 import {
   type NotFound,
   type StoreFailure,
-  type TransitionalFailure,
+  type TechnicalFailure,
   Unavailable,
 } from '@entifix/core';
 import { Effect, Exit } from 'effect';
@@ -52,7 +52,7 @@ const stubSessions = (
 
 const stubNotifications = (
   onSend: (notification: Notification) => void,
-  outcome: Effect.Effect<void, TransitionalFailure> = Effect.void,
+  outcome: Effect.Effect<void, TechnicalFailure> = Effect.void,
 ) =>
   NotificationPortTag.of({
     send: notification => {

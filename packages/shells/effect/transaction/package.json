@@ -41,22 +41,26 @@
     }
   },
   "dependencies": {
-    "@entifix/amqp": "catalog:",
+    "@effect/platform-node": "4.0.6",
+    "@effect/sql-pg": "4.0.6",
     "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
     "@entifix/mongo": "catalog:",
+    "@entifix/rest": "catalog:",
     "@entifix/service-shell": "catalog:",
+    "@entifix/sql": "catalog:",
     "@entifix/transactions": "catalog:",
+    "@entifix/workflow": "catalog:",
+    "@r10c/business-ts-common": "workspace:*",
     "@r10c/business-ts-saga-contracts": "workspace:*",
-    "@r10c/implementation-saga-mongo": "workspace:*",
+    "@r10c/shells-effect-flow-catalog": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",
     "effect": "4.0.6"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",
-    "@r10c/shells-effect-flow-catalog": "workspace:*",
     "@r10c/testing-http": "workspace:*"
   }
 }

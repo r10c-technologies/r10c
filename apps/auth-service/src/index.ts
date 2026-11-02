@@ -1,7 +1,7 @@
 /**
  * The service as a *composable definition*, separate from `main.ts` which boots
  * it. `main.ts` stays the webpack entry point; this barrel is what lets the e2e
- * `mock` profile launch the SAME router in-process against driver fakes, rather
+ * `mock` profile launch the SAME endpoints in-process against driver fakes, rather
  * than re-declaring a stand-in that could drift from the real route surface.
  */
 import { makeAppLayer } from '@r10c/shells-effect-auth';
@@ -21,10 +21,11 @@ export { seedAuth, seedIdentityProvider } from './seed';
 export {
   AuthnHostLayer,
   DEV_SEED_PASSWORD,
+  endpoints,
   JWT_AUDIENCE,
   JWT_ISSUER,
+  policy,
   PROVIDER,
-  router,
   ZitadelProviderPortsLayer,
 } from '@r10c/shells-effect-auth';
 

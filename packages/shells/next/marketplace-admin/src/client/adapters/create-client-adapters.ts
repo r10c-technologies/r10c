@@ -1,6 +1,4 @@
-import {
-  EntityRepositoryTag,
-} from '@entifix/business';
+import { EntityRepositoryTag } from '@entifix/business';
 import { Entity, EntityConstructor } from '@entifix/core';
 import {
   buildEntityRestAdapterDelete,
@@ -8,9 +6,9 @@ import {
   buildEntityRestAdapterLoad,
   buildEntityRestAdapterSave,
   BuildEntityRestOptions,
-  buildTransactionStatusReader,
   ConfigurationClientRestClient,
   makeEntityMetadataSource,
+  makeEntityRestUseCaseRunner,
 } from '@entifix/rest';
 import {
   ProductBrand,
@@ -50,37 +48,10 @@ const restOptionsFor = (domainKey: string): BuildEntityRestOptions => ({
  * how the brand and category pages ended up requesting routes that no longer
  * existed — the host rewrites each key to its own same-origin proxy.
  */
-// `create: 'command'` because marketplace-admin-service writes a specification
-// through the saga: the POST carries a client-minted transaction id and answers
-// `202`, not a stored entity. The reference service below is a plain REST write.
-export const CATALOG_SERVICE: BuildEntityRestOptions = {
-  ...restOptionsFor('marketplace-admin-service-domain'),
-  create: 'command',
-};
-/**
- * The same backend as {@link CATALOG_SERVICE}, on the plain REST create path.
- *
- * `ProductSpecification` needs the command protocol because a Redis sequence
- * assigns its `code` server-side; an offering and its price have no
- * server-owned member, so a `202` here would buy nothing and cost a tracker
- * record per create. Same host, same proxy, different write contract — which is
- * exactly what `BuildEntityRestOptions.create` exists to say.
- */
-const CATALOG_SERVICE_REST = restOptionsFor('marketplace-admin-service-domain');
+/** marketplace-admin-service: a vendor's specifications, offerings and prices. */
+const CATALOG_SERVICE = restOptionsFor('marketplace-admin-service-domain');
 
 const REFERENCE_SERVICE = restOptionsFor('marketplace-service-domain');
-
-/**
- * transaction-service, which a catalog `202` hands the browser off to.
- *
- * ⚠️ **Its own domain key, not the catalog's.** The tracker used to answer on
- * marketplace-admin-service because the `transaction` slice was co-deployed
- * there; it took `:3103` when ADR 0039's stated trigger fired (#229). Composing
- * its URL from {@link CATALOG_SERVICE} would keep pointing the status read at
- * `/api/admin`, where nothing serves it any more — and the symptom is a write
- * that stays `PENDING` forever rather than an error anyone sees.
- */
-const TRANSACTION_SERVICE = restOptionsFor('transaction-service-domain');
 
 /**
  * Builds the full CRUD adapter set for one entity, backed by REST, under the
@@ -115,11 +86,11 @@ const productRest = createRestRepositoryContext(
 );
 const productOfferingRest = createRestRepositoryContext(
   ProductOffering,
-  CATALOG_SERVICE_REST,
+  CATALOG_SERVICE,
 );
 const productOfferingPriceRest = createRestRepositoryContext(
   ProductOfferingPrice,
-  CATALOG_SERVICE_REST,
+  CATALOG_SERVICE,
 );
 
 /**
@@ -150,11 +121,23 @@ const catalogMetadata = makeEntityMetadataSource({
 });
 
 /**
- * The tracker's status read, built once here so the component that settles
- * optimistic writes holds a port rather than assembling the adapter and its
- * configuration inline.
+ * Each entity's verbs, through the same proxy and `uri` composition as its
+ * adapters: a record's verb is `POST <entity>/:id/<key>` and a collection's
+ * `POST <entity>/<key>`, the paths the service derives from each
+ * `@useCase()`, and a refusal arrives decoded from its problem body.
  */
-const transactionStatus = buildTransactionStatusReader(TRANSACTION_SERVICE);
+const productBrandUseCases = makeEntityRestUseCaseRunner(
+  ProductBrand,
+  REFERENCE_SERVICE,
+);
+const productCategoryUseCases = makeEntityRestUseCaseRunner(
+  ProductCategory,
+  REFERENCE_SERVICE,
+);
+const productOfferingUseCases = makeEntityRestUseCaseRunner(
+  ProductOffering,
+  CATALOG_SERVICE,
+);
 
 export function createClientAdapters(): MarketplaceAdminAdapters {
   return {
@@ -165,6 +148,8 @@ export function createClientAdapters(): MarketplaceAdminAdapters {
     productOfferingPriceRest,
     referenceMetadata,
     catalogMetadata,
-    transactionStatus,
+    productBrandUseCases,
+    productCategoryUseCases,
+    productOfferingUseCases,
   };
 }

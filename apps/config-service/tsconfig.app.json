@@ -42,6 +42,9 @@
     },
     {
       "path": "../../packages/business/ts/authn/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/shells/effect/flow-catalog/tsconfig.lib.json"
     }
   ]
 }

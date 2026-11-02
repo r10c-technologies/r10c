@@ -18,8 +18,6 @@ import {
   fakeMongoLayer,
 } from '@entifix/testing-e2e/fixtures';
 import { makeInMemoryIdempotencyStore } from '@entifix/testing-unit';
-import { TransactionStreamHubTag } from '@entifix/transactions';
-import { makeTransactionStreamHubEffect } from '@entifix/transactions/engine';
 import {
   AUTH_TOKEN_AUDIENCE,
   AUTH_TOKEN_ISSUER,
@@ -29,9 +27,10 @@ import {
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
 import {
+  endpoints,
   HttpSagaDispatcherLayer,
   ParticipantsTag,
-  router,
+  policy,
   sagaStoresLayer,
   SERVICE_NAME,
 } from '@r10c/transaction-service';
@@ -50,11 +49,7 @@ import { E2E_CROSSING_TOKEN } from './tokens';
 const CONFIGURATION = {
   mongo: [{ key: 'uri', value: 'mongodb://mock/saga' }],
   amqp: [{ key: 'uri', value: 'amqp://mock' }],
-  saga: [
-    { key: 'db', value: 'transaction_manager' },
-    { key: 'staleTimeoutMs', value: '60000' },
-    { key: 'recoveryIntervalMs', value: '10000' },
-  ],
+  saga: [{ key: 'db', value: 'transaction_manager' }],
   jwt: [
     { key: 'publicKey', value: E2E_PUBLIC_KEY_PEM },
     { key: 'keyId', value: E2E_KEY_ID },
@@ -108,7 +103,7 @@ const SEEDED_SAGAS = {
  * ⚠️ **No AMQP layer and no tracker.** `startTracking` subscribes to the bus and
  * forks a recovery sweep; neither is reachable through the routes this suite
  * exercises, and a fake broker would only assert that the fake works. What runs
- * here is the real router over a fake Mongo — the guards, the organization
+ * here are the real endpoints over a fake Mongo — the guards, the organization
  * scoping and the SSE handshake, which is exactly what #194 and ADR 0036 are
  * about.
  *
@@ -117,7 +112,6 @@ const SEEDED_SAGAS = {
 const MockAppLayer = Layer.provideMerge(
   Layer.mergeAll(
     sagaStoresLayer('transaction_manager'),
-    Layer.effect(TransactionStreamHubTag, makeTransactionStreamHubEffect),
     // The dispatcher the run route resolves. Built over an empty participant
     // map: no spec here runs a saga — that needs two live participants — and a
     // definition naming a participant this map lacks fails the *effect* rather
@@ -152,13 +146,14 @@ const MockAppLayer = Layer.provideMerge(
   ),
 ).pipe(Layer.orDie);
 
-/** Boots the service's real router in-process, on an ephemeral port. */
+/** Boots the service's real endpoints in-process, on an ephemeral port. */
 export const startMockService = (): Promise<RunningTestService> =>
   serveTestService({
     name: SERVICE_NAME,
     port: 0,
     slices: ['transaction'],
     description: fleetToken,
-    router,
+    endpoints,
+    policy,
     appLayer: MockAppLayer,
   });

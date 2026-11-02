@@ -1,2 +1,2 @@
-export * from './configuration-routes.js';
-export * from './lookup-routes.js';
+export * from './configuration-api.js';
+export * from './lookup-endpoints.js';

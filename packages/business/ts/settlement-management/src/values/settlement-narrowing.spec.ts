@@ -3,7 +3,10 @@ import { verifiedContext } from '@entifix/business/verified';
 import type { Entity, EntityId } from '@entifix/core';
 import { describe, expect, it } from 'vitest';
 
-import { settlementNarrowing, type VendorScoped } from './settlement-narrowing.js';
+import {
+  settlementNarrowing,
+  type VendorScoped,
+} from './settlement-narrowing.js';
 
 type Ledger = Entity & VendorScoped & { id: EntityId };
 

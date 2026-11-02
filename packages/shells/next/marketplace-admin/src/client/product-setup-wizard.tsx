@@ -124,11 +124,7 @@ function pickersFor(
       entityConstructor: plan.entityConstructor,
       loadUc: loadUCFactory(),
       getUc: getUCFactory(),
-      ctx: mergeCrudContext(
-        adapters,
-        plan.repository,
-        pending,
-      ),
+      ctx: mergeCrudContext(adapters, plan.repository, pending),
     },
   }));
 }
@@ -136,8 +132,8 @@ function pickersFor(
 /**
  * Which members each form step owns. Their union is what the submit rebuilds.
  *
- * `code` is **not** among them: the create transaction assigns it from a
- * sequence, so asking for one would put a field on a step of its own, require
+ * `code` is **not** among them: the create draws it from the organization's
+ * counter, so asking for one would put a field on a step of its own, require
  * it, show it in the summary, and then discard it.
  */
 const IDENTITY_FIELDS = ['name', 'description'] as const;
@@ -265,11 +261,7 @@ export function ProductSetupWizard({
   const router = useRouter();
   const withLocale = useLocaleHref();
 
-  const ctx = mergeCrudContext(
-    adapters,
-    'productRest',
-    pending,
-  );
+  const ctx = mergeCrudContext(adapters, 'productRest', pending);
 
   const draft = useWizardDraft(wizardAddress(PRODUCT_SETUP_SURFACE));
 

@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 
-import { EntifixLogicError } from '@entifix/core';
+import { InvalidToken } from '@entifix/business';
+import { Unauthenticated } from '@entifix/core';
 import { Effect } from 'effect';
 
 import type {
@@ -27,8 +28,8 @@ export const makeScriptedOidcProvider = (
     readonly logouts?: Readonly<Record<string, ProviderLogout>>;
   } = {},
 ): OidcProvider => {
-  const refuse = (what: string) =>
-    Effect.fail(new EntifixLogicError(`the provider never issued ${what}`));
+  // A code or a logout token the provider never issued does not verify.
+  const refuse = () => Effect.fail(new InvalidToken());
   const withParams = (path: string, params: Record<string, string>) => {
     const url = new URL(path, ISSUER);
     for (const [name, value] of Object.entries(params)) {
@@ -62,9 +63,7 @@ export const makeScriptedOidcProvider = (
       ),
     exchangeCode: ({ code }) => {
       const identity = script.identities?.[code];
-      return identity === undefined
-        ? refuse('that code')
-        : Effect.succeed(identity);
+      return identity === undefined ? refuse() : Effect.succeed(identity);
     },
     endSessionUrl: idToken =>
       Effect.succeed(
@@ -75,9 +74,7 @@ export const makeScriptedOidcProvider = (
       ),
     verifyLogoutToken: token => {
       const logout = script.logouts?.[token];
-      return logout === undefined
-        ? refuse('that logout token')
-        : Effect.succeed(logout);
+      return logout === undefined ? refuse() : Effect.succeed(logout);
     },
   };
 };
@@ -102,9 +99,7 @@ export const makeInMemoryProviderEvents = (
       verify: (rawBody, headers) =>
         Effect.suspend(() => {
           if (headers[SIGNATURE_HEADER] !== macOf(rawBody)) {
-            return Effect.fail(
-              new EntifixLogicError('the provider event did not verify'),
-            );
+            return Effect.fail(new Unauthenticated());
           }
           const { subject, endsSessions } = JSON.parse(rawBody) as {
             subject: string;
@@ -140,6 +135,15 @@ export const makeInMemoryProviderDirectory = (): ProviderDirectory => {
  */
 export const makeStaticPublicKeySet = (
   document: PublicKeySetDocument = {
-    keys: [{ kty: 'RSA', kid: 'test-key', alg: 'RS256', use: 'sig', n: 'n', e: 'AQAB' }],
+    keys: [
+      {
+        kty: 'RSA',
+        kid: 'test-key',
+        alg: 'RS256',
+        use: 'sig',
+        n: 'n',
+        e: 'AQAB',
+      },
+    ],
   },
 ): PublicKeySet => ({ jwks: () => Effect.succeed(document) });

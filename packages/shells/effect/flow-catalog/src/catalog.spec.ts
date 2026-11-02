@@ -1,6 +1,5 @@
 import {
   compose,
-  type CompositionOutcome,
   enumerateCompositions,
   expectAllCompositionsValid,
 } from '@entifix/business/compose';
@@ -36,17 +35,6 @@ const checkoutInputs = PAYMENT_METHODS.flatMap(paymentMethod =>
   })),
 );
 
-/**
- * A combination refused only because the caller is not entitled to a step is
- * a caller offered nothing, not a defect in the recipe.
- */
-const notOffered = (outcome: CompositionOutcome) =>
-  outcome.outcome === 'refused' &&
-  outcome.violations.every(violation => violation.tag === 'UnmetRequirement');
-
-const defects = (outcomes: readonly CompositionOutcome[]) =>
-  outcomes.filter(outcome => !notOffered(outcome));
-
 describe('the flow catalog', () => {
   it('composes every checkout an entitled caller can ask for', () => {
     const outcomes = enumerateCompositions(checkoutRecipe, flowCatalog, {
@@ -55,10 +43,16 @@ describe('the flow catalog', () => {
     });
 
     expect(outcomes).toHaveLength(8);
-    expect(() => expectAllCompositionsValid(defects(outcomes))).not.toThrow();
-    // The unentitled half is exactly the combinations the entitlement gates.
-    expect(outcomes.filter(notOffered).map(outcome => outcome.context)).toEqual(
-      Array(4).fill('entitled to []'),
+    expect(() => expectAllCompositionsValid(outcomes)).not.toThrow();
+    // The unentitled half is exactly the combinations the entitlement gates:
+    // a caller who lacks what a step requires, not a recipe that is wrong.
+    expect(
+      outcomes
+        .filter(outcome => outcome.outcome === 'unmet')
+        .map(outcome => outcome.context),
+    ).toEqual(Array(4).fill('entitled to []'));
+    expect(outcomes.filter(outcome => outcome.outcome === 'refused')).toEqual(
+      [],
     );
   });
 
@@ -68,7 +62,7 @@ describe('the flow catalog', () => {
       inputs: [{ label: 'an order', value: { orderId: 'o-1' } }],
     });
 
-    expect(() => expectAllCompositionsValid(defects(outcomes))).not.toThrow();
+    expect(() => expectAllCompositionsValid(outcomes)).not.toThrow();
   });
 
   // The recipes reproduce today's sagas step for step until the engine runs

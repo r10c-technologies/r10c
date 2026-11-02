@@ -16,9 +16,17 @@ const service = defineServiceE2e({
   startMock: startMockService,
 });
 
+/**
+ * Read as a signed-in operator: the outbox is behind a session like every
+ * other development read, and it is served only while the surface is on.
+ */
 const outboxFor = async (email: string) => {
+  const reader = await signIn(service, 'ada@example.com');
   const res = await service.client.get(
     `/api/dev/outbox?to=${encodeURIComponent(email)}`,
+    {
+      headers: { Authorization: `Bearer ${reader.data.accessToken as string}` },
+    },
   );
   return res.data.items as Array<{
     kind: string;
@@ -105,8 +113,9 @@ describe('notifications', () => {
       headers: { Authorization: `Bearer ${session.data.accessToken}` },
     });
 
-    await service.client.delete(
-      `/api/user-identity/${me.data.userId}/sessions`,
+    await service.client.post(
+      `/api/user-identity/${me.data.userId}/revoke-sessions`,
+      {},
       {
         headers: { Authorization: `Bearer ${admin.data.accessToken}` },
       },

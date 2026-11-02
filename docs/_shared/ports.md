@@ -25,6 +25,15 @@ executor's default is `9229` for every process, so a fleet of three services lef
 only the first with a debugger and the other two logging `address already in use`.
 `@r10c/docs-check` fails a service that drops the option.
 
+A service that runs the durable flow engine also opens one **runner port per
+replica**, at its service port **+ 31000 + 1000 × the replica**
+([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)):
+transaction-service's replica 0, the process that serves HTTP, listens on
+`34103`, and its runner-only replica 1 (`dev-runner`, `WORKFLOW_REPLICA=1`) on
+`35103`. The offset clears every service port, inspector and NodePort above, and
+`@r10c/docs-check` fails a runner port that leaves the formula, `RUNNER_PORTS` in
+`tools/free-ports.sh`, or this table.
+
 **The index is per host, not per pair.** ADR 0008 allocated `300N`/`310N` to
 frontend/backend _pairs_, which stopped describing the fleet the moment one host
 began serving two domains. A domain still owns its `-service` index; what it no
@@ -77,11 +86,15 @@ made sayable: a deployment earns its existence by owning a store.
 ³ **transaction-service, bound — and this index is the one that proves the
 claim it was reserved on.**
 
-> **Decided, not yet built ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).**
-> Everything below describes the saga runner, which keeps running until wave 4
-> replaces it: flows on Effect Workflow over a Postgres `workflow` store, two
-> runner processes on `34103` and `35103`, a start answering `202 { flowId }`,
-> and the tracker, the `saga` store and `GET /api/saga/:id` deleted.
+> **The engine runs; the flows have not moved to it yet ([ADR 0066](../adr/0066-flows-run-on-a-durable-workflow-engine.md)).**
+> The durable flow engine is composed here over the Postgres `workflow` store,
+> on two runners at `34103` and `35103` with a breaker and a bulkhead per
+> participant (#462). Everything below describes the saga runner, which keeps
+> serving checkout and cancellation until wave 4 moves them onto the engine: a
+> start answering `202 { flowId }`, and the `saga` store and
+> `GET /api/saga/:id` deleted (#490). The single-step tracker is gone already:
+> its only producer, the specification create, became a plain unit of work
+> (#463).
 
 The `transaction` slice was **co-deployed** into
 marketplace-admin-service, and the note here said that ownership had not moved,
@@ -95,10 +108,7 @@ stock-service (`:3108`) and order-service (`:3105`). The trigger fired; the
 `saga` store's handle was already an explicit `client.db(name)`, so the module
 moved unchanged and no data moved at all.
 
-It serves `/api/transaction/:id` and `/api/transaction/events` — both
-authenticated and organization-scoped since
-[ADR 0036](../adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md) —
-plus `POST /api/saga/:definition`, the coordinator that walks a declarative flow
+It serves `POST /api/saga/:definition`, the coordinator that walks a declarative flow
 ([ADR 0052](../adr/0052-the-checkout-saga.md)). That route is generic rather than
 `/api/checkout` because this slice declares **no domain**, and a business verb
 here would put a domain name in a permission namespace nothing is provisioned
@@ -119,27 +129,13 @@ member on the record, because a basket spanning two vendors belongs to both — 
 for the same reason it carries no permission of its own
 ([ADR 0055](../adr/0055-a-coordinator-resumes-from-its-own-record.md)).
 
-It also runs a **second** sweep beside the tracker's. The recovery sweep labels
-stuck single-step transaction records `STALE`; the resume sweep finishes
-multi-step flows whose coordinator died, claiming each instance with a
-conditional write so two replicas cannot walk one flow together. Both are
-config-service dials and they are deliberately separate ones.
+It also runs the resume sweep, which finishes multi-step flows whose
+coordinator died, claiming each instance with a conditional write so two
+replicas cannot walk one flow together.
 
-⚠️ **The browser's path did not change, and could not.** Those two reads move
-from `:3101` to `:3103` behind the back office's own same-origin proxy, which
-gains a `transaction-service-domain` config row and an `/api/transaction`
-rewrite. The stream is same-origin by _necessity_ — the session cookie is
-`httpOnly` and an `EventSource` aimed at the service directly carries no
-credential — and the catalog's `202` link is relative, so no caller ever encoded
-either arrangement.
-
-⚠️ **`back-office:dev` starts it**, because that proxy is on every workspace
-load: the stream opens as the workspace mounts, and the optimistic-mutation
-contract ([ADR 0043](../adr/0043-the-optimistic-mutation-contract.md)) reconciles
-over it. Left unstarted, every back-office page logged a `500` from
-`/api/transaction/events` and the stream never connected (#283). It does **not**
-start order-service or payment-service, so a live checkout still needs those two
-by hand.
+⚠️ **`back-office:dev` starts it**, because the till's counter sale starts its
+checkout here through sales-service. It does **not** start order-service or
+payment-service, so a live checkout still needs those two by hand.
 
 It holds a **crossing token per participant**, which is the concentration
 ADR 0023 recorded a residual for and ADR 0039 restated: one process that can
@@ -293,10 +289,11 @@ credential, each way ([ADR 0052](../adr/0052-the-checkout-saga.md)).
 `DELETE /api/product-order/:id` is a **compensation**, not a customer-facing
 cancel: it undoes a step that should not have happened. A cancellation is a
 business event with its own record and its own money consequences, and it is
-`POST /api/product-order/:id/cancellation`.
+the derived verb `POST /api/product-order/:id/cancel`
+([ADR 0071](../adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)).
 
 ⚠️ **Three credentials on one surface, and each route still takes exactly one.**
-`fulfil` and `cancellation` are session-guarded by the permissions their own
+`fulfil` and `cancel` are session-guarded by the permissions their own
 `@useCase()` descriptors derive — there is still no `product-order:write` for any
 role, and these are verbs rather than saves. `buyer-cancellation` takes the nonce
 from a storefront receipt and **no session at all**: the order stores that
@@ -305,9 +302,9 @@ inert wherever else it travels. The saga's own `cancelling` and `cancelled` step
 take a crossing token
 ([ADR 0058](../adr/0058-the-order-after-payment.md)).
 
-⚠️ **`/cancelling` and `/cancellation` are one letter apart and are not the same
-thing.** The first takes the concurrency claim and is dispatched by the
-coordinator; the second is what a person reaches. A browser reaching the first
+⚠️ **`/cancelling` and `/cancel` look alike and are not the same thing.** The
+first takes the concurrency claim and is dispatched by the coordinator behind a
+crossing guard; the second is the verb a person reaches. A browser reaching the first
 would lock an order with no refund behind it.
 
 ⚠️ **Fulfilment is per line; cancellation is per order.** `OrderItem` carries
@@ -391,7 +388,8 @@ order-service — the same order the storefront produces, which is what keeps a
 vendor's takings one query rather than two
 ([ADR 0024](../adr/0024-selling-through-a-vendors-own-channel.md)).
 
-`POST /api/counter-sale` is the till's one write, and it persists nothing here.
+`POST /api/sales-channel/:id/sell`, the derived `sell` verb, is the till's one
+write, and it persists nothing here.
 It takes a **session and no token**, checks
 `sales-management:sales-channel:sell`, loads the channel from the caller's own
 tenant handle, re-prices every line from the published projection, and only then

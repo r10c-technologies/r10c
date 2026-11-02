@@ -10,7 +10,7 @@ describe('postSaga', () => {
   it('posts the inputs with the crossing token and answers the coordinator’s status and body', async () => {
     const fetchMock = vi.fn(() =>
       Promise.resolve(
-        new Response(JSON.stringify({ sagaId: 's-1' }), { status: 201 }),
+        new Response(JSON.stringify({ sagaId: 's-1' }), { status: 200 }),
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
@@ -24,7 +24,7 @@ describe('postSaga', () => {
       { cache: 'no-store' },
     );
 
-    expect(answer).toEqual({ status: 201, payload: { sagaId: 's-1' } });
+    expect(answer).toEqual({ status: 200, payload: { sagaId: 's-1' } });
     expect(fetchMock).toHaveBeenCalledWith(
       'http://coordinator/api/saga/checkout',
       {

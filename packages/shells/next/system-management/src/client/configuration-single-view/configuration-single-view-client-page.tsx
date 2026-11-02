@@ -36,8 +36,7 @@ export function ConfigurationSingleViewClientPage({
   onSaved,
   onDeleted,
 }: ConfigurationSingleViewClientPageProps = {}) {
-  const { configurationRest } =
-    useSystemManagementAdapters();
+  const { configurationRest } = useSystemManagementAdapters();
   const router = useRouter();
   // Every internal navigation carries the locale. Unprefixed, each one is
   // bounced by the proxy — and the form's back link is a plain `<a>`,

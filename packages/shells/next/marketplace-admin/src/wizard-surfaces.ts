@@ -56,9 +56,8 @@ export const wizardAddress = (surface: WizardSurface): string =>
 /**
  * The guided alta of a product specification.
  *
- * It writes the one entity the fleet tracks transactionally
- * (`create: 'command'`), which is what lets its ending exercise the hand-off
- * ADR 0045 is shaped around rather than only describing it.
+ * Its ending is the hand-off ADR 0045 is shaped around: one create carrying
+ * the merged draft, whose `code` the service draws.
  */
 export const PRODUCT_SETUP_SURFACE: WizardSurface<ProductSpecification> = {
   key: 'product-setup',

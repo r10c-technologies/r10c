@@ -9,8 +9,8 @@ export {
   stockComposition,
   type StockShellOptions,
 } from './app-layer.js';
+export { endpoints, policy } from './endpoints.js';
 export {
   startReservationSweep,
   sweepExpiredHolds,
 } from './reservation-sweep.js';
-export { router } from './router.js';

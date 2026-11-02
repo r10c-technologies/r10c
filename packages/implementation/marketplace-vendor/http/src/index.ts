@@ -1,4 +1,1 @@
-export {
-  publishedVendorRoutes,
-  type PublishedVendorRouteServices,
-} from './published-vendor-routes.js';
+export * from './published-vendor-api.js';

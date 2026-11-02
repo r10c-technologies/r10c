@@ -50,7 +50,10 @@ describeSessionScopeResolverContract(
   'the in-memory resolver',
   makeInMemorySessionScopeResolver,
 );
-describeIdTokenStoreContract('the in-memory id tokens', makeInMemoryIdTokenStore);
+describeIdTokenStoreContract(
+  'the in-memory id tokens',
+  makeInMemoryIdTokenStore,
+);
 describeProviderSessionIndexContract(
   'the in-memory provider sessions',
   makeInMemoryProviderSessionIndex,
@@ -61,9 +64,8 @@ describeLifecycleCursorContract('the in-memory cursor', () =>
 describeOidcProviderContract('the scripted provider', () =>
   makeScriptedOidcProvider(),
 );
-describeProviderEventVerifierContract(
-  'the in-memory provider events',
-  () => makeInMemoryProviderEvents(),
+describeProviderEventVerifierContract('the in-memory provider events', () =>
+  makeInMemoryProviderEvents(),
 );
 describeProviderDirectoryContract(
   'the in-memory directory',
@@ -84,7 +86,11 @@ describe('the scripted provider beyond the contract', () => {
 
     expect(
       await Effect.runPromise(
-        provider.exchangeCode({ code: 'code-1', codeVerifier: 'v', nonce: 'n' }),
+        provider.exchangeCode({
+          code: 'code-1',
+          codeVerifier: 'v',
+          nonce: 'n',
+        }),
       ),
     ).toMatchObject({ subject: 'sub-1' });
     expect(

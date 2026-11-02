@@ -10,9 +10,11 @@ import {
   type EntitySelection,
   loadRequestFor,
 } from '@entifix/core';
+import { categorised } from '@r10c/business-ts-common';
 import { Effect } from 'effect';
 
 import { ProductCategory } from '../../entities/product-category';
+import { categoryRefusal } from '../../failures/category-failures';
 import { categorySaveRefusal } from '../../values/category-tree';
 import {
   type RetirableReference,
@@ -95,13 +97,19 @@ export const retireSelection = <T extends RetirableReference>(
           ((record: RetirableReference) => string | undefined) | undefined,
       }),
     );
-  });
+  }).pipe(categorised);
 
 /**
  * Where a category would sit among the others, checked as it is saved: the
- * code a `409` answers with, or `undefined` when the tree allows it (ADR 0062).
+ * category itself when the tree allows it, or the rule it breaks (ADR 0062).
+ * A store that cannot be read fails as the store does — never as a save
+ * allowed past a rule nobody could check.
  */
-export const categorySaveConflict = (category: ProductCategory) =>
-  Effect.map(loadEveryReference(ProductCategory), all =>
-    categorySaveRefusal(all, category),
-  );
+export const checkCategorySave = (category: ProductCategory) =>
+  Effect.gen(function* () {
+    const all = yield* categorised(loadEveryReference(ProductCategory));
+    const refused = categorySaveRefusal(all, category);
+    return refused === undefined
+      ? category
+      : yield* categoryRefusal(refused, category.name);
+  });

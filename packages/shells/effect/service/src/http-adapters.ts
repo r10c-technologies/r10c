@@ -1,4 +1,4 @@
-import { EntifixConnError, Failure, UpstreamUnavailable } from '@entifix/core';
+import { Failure, UpstreamUnavailable } from '@entifix/core';
 import { On, RetryBudgetTag } from '@entifix/transactions';
 import {
   publishedPriceOf,
@@ -31,10 +31,8 @@ export const httpSagaStarterLayer = (coordinator: {
             inputs,
             idempotencyKey,
           ),
-        catch: error =>
-          new EntifixConnError('Failed to reach the saga coordinator', error, {
-            definition,
-          }),
+        catch: () =>
+          new UpstreamUnavailable({ upstream: 'transaction-service' }),
       }).pipe(
         Effect.map(({ status, payload }) => sagaOutcomeFor(status, payload)),
       ),
@@ -51,7 +49,8 @@ export const httpSagaStarterLayer = (coordinator: {
  * ([ADR 0064](../../../../../docs/adr/0064-failures-reach-the-slice-shell.md),
  * entifix ADR 0014) — this is the layer directly above it, and the read is a
  * `GET`, so asking twice cannot do anything twice. The coordinator's `POST`
- * above is **not** retried: it carries no `Idempotency-Key` until #456.
+ * above is **not** retried here: it carries the caller's `Idempotency-Key`,
+ * so asking again is the caller's to do, under that same key.
  */
 export const httpPublishedPriceReaderLayer = (catalogUrl: string) =>
   Layer.effect(

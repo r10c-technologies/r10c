@@ -64,8 +64,8 @@ export const stockSlice: SliceDeclaration = {
   exposedAPIs: [
     'GET /api/stock-item',
     'GET /api/stock-item/:id',
-    'GET /api/stock-movement',
-    'POST /api/stock-movement',
+    'GET|POST /api/stock-movement',
+    'GET /api/stock-movement/:id',
     'GET|POST /api/reservation',
     'GET|DELETE /api/reservation/:id',
     'POST /api/reservation/:id/conversion',

@@ -5,10 +5,10 @@ import {
 } from '@entifix/business';
 import {
   ancestorsOf,
+  type EntifixFailure,
   type Entity,
   type EntityLoadRequest,
   type EntityPage,
-  type TransitionalFailure,
 } from '@entifix/core';
 import {
   CATEGORY_KEYS,
@@ -16,6 +16,7 @@ import {
   type ProductBrand,
   type ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
+import { categorised } from '@r10c/business-ts-common';
 import { Context, Effect } from 'effect';
 
 /**
@@ -29,7 +30,7 @@ import { Context, Effect } from 'effect';
  */
 export type VocabularyRead<A> = Effect.Effect<
   A,
-  TransitionalFailure,
+  EntifixFailure,
   EntityRepositoryTag
 >;
 
@@ -56,8 +57,10 @@ export const VOCABULARY_PAGE_SIZE = 200;
 const load = <TEntity extends Entity>(
   request: EntityLoadRequest<Entity>,
 ): VocabularyRead<EntityPage<TEntity>> =>
-  loadUCFactory<TEntity>().pipe(
-    Effect.provide(Context.make(EntityLoadRequestTag, request)),
+  categorised(
+    loadUCFactory<TEntity>().pipe(
+      Effect.provide(Context.make(EntityLoadRequestTag, request)),
+    ),
   ) as VocabularyRead<EntityPage<TEntity>>;
 
 const BY_NAME = [{ 0: { property: 'name', type: 'asc' } }] as never;
@@ -183,9 +186,8 @@ export const getCategoryByCode = (
  *
  * ⚠️ Resolved out of the loaded vocabulary rather than with `repository.get`:
  * `id` is the one member that is neither `sortable` nor `filterable` by
- * default, so it cannot be queried — and `get` answers an absent row with
- * `EntifixConnError`, the same class a driver failure raises, so a dangling
- * reference and an outage would be one code path. `brandId` points into
+ * default, so it cannot be queried — and resolving it here keeps a dangling
+ * reference a display gap rather than a failure beside an outage's. `brandId` points into
  * another slice's store and nothing enforces it, so a miss is a display gap the
  * caller renders a fallback for.
  */

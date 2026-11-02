@@ -1,7 +1,31 @@
 import { permissionForUseCase } from '@entifix/authz';
-import { EntifixLogicError, useCase } from '@entifix/core';
+import { NotFound, useCase } from '@entifix/core';
+import { InvalidBody } from '@r10c/business-ts-common';
+import { Effect, Schema } from 'effect';
 
 import { SalesChannel } from '../../entities/sales-channel';
+import {
+  ChannelInactive,
+  OfferingNotYours,
+  StockUnavailable,
+} from '../../failures/sales-failures';
+
+/**
+ * What a till sends: the goods and how the buyer paid. The channel is the
+ * record the verb is bound to. **No price is read** — a price in the body
+ * would be the one input that must never be the caller's.
+ */
+export const CounterSalePayload = Schema.Struct({
+  lines: Schema.Array(
+    Schema.Struct({
+      offeringId: Schema.String.check(Schema.isMinLength(1)),
+      quantity: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
+    }),
+  ).check(Schema.isMinLength(1)),
+  paymentMethod: Schema.String.check(Schema.isMinLength(1)),
+});
+
+export type CounterSalePayload = typeof CounterSalePayload.Type;
 
 /**
  * Take a sale through this channel.
@@ -32,6 +56,14 @@ import { SalesChannel } from '../../entities/sales-channel';
   placement: 'context-independent',
   labelKey: 'entity:sales-channel.useCases.sell',
   recipe: 'checkout',
+  payload: CounterSalePayload,
+  errors: [
+    NotFound,
+    ChannelInactive,
+    OfferingNotYours,
+    InvalidBody,
+    StockUnavailable,
+  ],
 })
 export class SellAtChannelUC {
   /**
@@ -44,15 +76,12 @@ export class SellAtChannelUC {
    * stays pickable by anything that does not check, and would keep taking sales
    * that the vendor believes are impossible.
    */
-  static run(channel: SalesChannel): SalesChannel {
-    if (channel.status !== 'active') {
-      throw new EntifixLogicError(
-        'A retired sales channel cannot take a sale',
-        undefined,
-        { channelId: String(channel.id), status: channel.status },
-      );
-    }
-    return channel;
+  static run(
+    channel: SalesChannel,
+  ): Effect.Effect<SalesChannel, ChannelInactive> {
+    return channel.status === 'active'
+      ? Effect.succeed(channel)
+      : Effect.fail(new ChannelInactive({ channelId: String(channel.id) }));
   }
 }
 
