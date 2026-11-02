@@ -33,6 +33,8 @@ packages:
 # place a version is written. To see an unreleased entifix change here, use
 # `pnpm run entifix:local` (tools/entifix) — never a link or a file: specifier.
 catalog:
+  # Read by the @effect/platform-node-shared override below.
+  '@effect/platform-node-shared': 4.0.7
   '@entifix/amqp': 0.13.0
   '@entifix/authz': 0.13.0
   '@entifix/business': 0.13.0
@@ -83,9 +85,10 @@ overrides:
   '@opentelemetry/api': 1.9.1
   # The one @effect package r10c never names: @effect/platform-node asks for
   # it on a caret range, which floats it onto 4.1 while entifix holds the
-  # family on 4.0.6 — and 4.1's build imports modules effect 4.0 does not
-  # have. Moves with the rest of the family.
-  '@effect/platform-node-shared': 4.0.6
+  # family on the 4.0 line — and 4.1's build imports modules effect 4.0 does
+  # not have. The override reads the catalog, so the Dependabot effect group
+  # moves it with the rest of the family.
+  '@effect/platform-node-shared': 'catalog:'
 minimumReleaseAgeExclude:
   # Our own framework: a release is adopted the day it ships, and the age gate
   # exists for third-party supply chain, not for a scope this organization

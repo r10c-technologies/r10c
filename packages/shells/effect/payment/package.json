@@ -48,6 +48,6 @@
     "@r10c/implementation-payment-mongo": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.6"
+    "effect": "4.0.7"
   }
 }
