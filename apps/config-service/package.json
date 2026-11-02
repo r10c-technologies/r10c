@@ -121,9 +121,9 @@
     }
   },
   "dependencies": {
-    "@effect/opentelemetry": "4.0.6",
-    "@effect/platform-node": "4.0.6",
-    "@effect/sql-pg": "4.0.6",
+    "@effect/opentelemetry": "4.1.0",
+    "@effect/platform-node": "4.1.0",
+    "@effect/sql-pg": "4.1.0",
     "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
@@ -140,7 +140,7 @@
     "@opentelemetry/sdk-trace-base": "2.12.0",
     "@opentelemetry/sdk-trace-node": "2.12.0",
     "@opentelemetry/sdk-trace-web": "2.12.0",
-    "@opentelemetry/semantic-conventions": "1.43.0",
+    "@opentelemetry/semantic-conventions": "1.44.0",
     "@r10c/business-ts-authn": "workspace:*",
     "@r10c/business-ts-authz-grants": "workspace:*",
     "@r10c/business-ts-configuration": "workspace:*",
