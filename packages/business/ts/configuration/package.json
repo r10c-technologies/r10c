@@ -49,7 +49,7 @@
   "dependencies": {
     "@entifix/core": "catalog:",
     "@swc/helpers": "0.5.23",
-    "effect": "4.1.2"
+    "effect": "4.0.6"
   },
   "peerDependencies": {
     "vitest": "5.0.5"

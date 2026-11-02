@@ -41,8 +41,8 @@
     }
   },
   "dependencies": {
-    "@effect/opentelemetry": "4.1.2",
-    "@effect/sql-pg": "4.1.2",
+    "@effect/opentelemetry": "4.0.6",
+    "@effect/sql-pg": "4.0.6",
     "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:",
     "@entifix/core": "catalog:",
@@ -57,7 +57,7 @@
     "@r10c/implementation-configuration-sql": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.1.2"
+    "effect": "4.0.6"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",

@@ -33,31 +33,31 @@ packages:
 # place a version is written. To see an unreleased entifix change here, use
 # `pnpm run entifix:local` (tools/entifix) — never a link or a file: specifier.
 catalog:
-  '@entifix/amqp': 0.13.0-rc.1
-  '@entifix/authz': 0.13.0-rc.1
-  '@entifix/business': 0.13.0-rc.1
-  '@entifix/core': 0.13.0-rc.1
-  '@entifix/i18n': 0.13.0-rc.1
-  '@entifix/jwt': 0.13.0-rc.1
-  '@entifix/mongo': 0.13.0-rc.1
-  '@entifix/next-i18n': 0.13.0-rc.1
-  '@entifix/next-shell': 0.13.0-rc.1
-  '@entifix/posthog': 0.13.0-rc.1
-  '@entifix/react-controls': 0.13.0-rc.1
-  '@entifix/react-integration': 0.13.0-rc.1
-  '@entifix/redis': 0.13.0-rc.1
-  '@entifix/rest': 0.13.0-rc.1
-  '@entifix/service-shell': 0.13.0-rc.1
-  '@entifix/sql': 0.13.0-rc.1
-  '@entifix/static': 0.13.0-rc.1
-  '@entifix/style': 0.13.0-rc.1
-  '@entifix/testing-auth': 0.13.0-rc.1
-  '@entifix/testing-e2e': 0.13.0-rc.1
-  '@entifix/testing-unit': 0.13.0-rc.1
-  '@entifix/tooling': 0.13.0-rc.1
-  '@entifix/transactions': 0.13.0-rc.1
-  '@entifix/workflow': 0.13.0-rc.1
-  '@entifix/zitadel': 0.13.0-rc.1
+  '@entifix/amqp': 0.13.0-rc.2
+  '@entifix/authz': 0.13.0-rc.2
+  '@entifix/business': 0.13.0-rc.2
+  '@entifix/core': 0.13.0-rc.2
+  '@entifix/i18n': 0.13.0-rc.2
+  '@entifix/jwt': 0.13.0-rc.2
+  '@entifix/mongo': 0.13.0-rc.2
+  '@entifix/next-i18n': 0.13.0-rc.2
+  '@entifix/next-shell': 0.13.0-rc.2
+  '@entifix/posthog': 0.13.0-rc.2
+  '@entifix/react-controls': 0.13.0-rc.2
+  '@entifix/react-integration': 0.13.0-rc.2
+  '@entifix/redis': 0.13.0-rc.2
+  '@entifix/rest': 0.13.0-rc.2
+  '@entifix/service-shell': 0.13.0-rc.2
+  '@entifix/sql': 0.13.0-rc.2
+  '@entifix/static': 0.13.0-rc.2
+  '@entifix/style': 0.13.0-rc.2
+  '@entifix/testing-auth': 0.13.0-rc.2
+  '@entifix/testing-e2e': 0.13.0-rc.2
+  '@entifix/testing-unit': 0.13.0-rc.2
+  '@entifix/tooling': 0.13.0-rc.2
+  '@entifix/transactions': 0.13.0-rc.2
+  '@entifix/workflow': 0.13.0-rc.2
+  '@entifix/zitadel': 0.13.0-rc.2
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false
@@ -81,6 +81,11 @@ overrides:
   # (#426), not on its own. `.github/dependabot.yml` holds the same line, and
   # both are lifted together.
   '@opentelemetry/api': 1.9.1
+  # The one @effect package r10c never names: @effect/platform-node asks for
+  # it on a caret range, which floats it onto 4.1 while entifix holds the
+  # family on 4.0.6 — and 4.1's build imports modules effect 4.0 does not
+  # have. Moves with the rest of the family.
+  '@effect/platform-node-shared': 4.0.6
 minimumReleaseAgeExclude:
   # Our own framework: a release is adopted the day it ships, and the age gate
   # exists for third-party supply chain, not for a scope this organization
@@ -103,8 +108,3 @@ minimumReleaseAgeExclude:
   - '@posthog/core@1.45.0'
   - '@posthog/types@1.398.0'
   - posthog-js@1.407.0
-  - '@effect/opentelemetry@4.1.2'
-  - '@effect/platform-node-shared@4.1.2'
-  - '@effect/platform-node@4.1.2'
-  - '@effect/sql-pg@4.1.2'
-  - effect@4.1.2

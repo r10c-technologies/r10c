@@ -41,7 +41,7 @@
     }
   },
   "dependencies": {
-    "@effect/opentelemetry": "4.1.2",
+    "@effect/opentelemetry": "4.0.6",
     "@entifix/amqp": "catalog:",
     "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:",
@@ -57,7 +57,7 @@
     "@r10c/business-ts-saga-contracts": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.1.2",
+    "effect": "4.0.6",
     "mongodb": "7.8.0"
   },
   "devDependencies": {
