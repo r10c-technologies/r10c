@@ -28,17 +28,26 @@ updates:
       - dependency-name: 'nx'
       - dependency-name: '@nx/*'
       - dependency-name: 'verdaccio'
-      # Effect majors arrive through entifix, never here first. Every @entifix/*
-      # package peers on one `effect` major and pins the @effect/* line it was
-      # built against, so a major is a migration in entifix before it is a bump
-      # here. Effect 4 went that way: #285, #290, #291 and #293 offered 4.0.5
-      # while entifix still peered on `<4` and could not merge; r10c moved with
-      # entifix 0.2.0 instead. Patches and minors on the current line still come
-      # through.
+      # Effect majors and minors arrive through entifix, never here first. Every
+      # @entifix/* package peers on one `effect` line and pins the @effect/*
+      # packages it was built against, so leaving the line is a migration in
+      # entifix before it is a bump here. Effect 4 went that way (#285, #290,
+      # #291 and #293 could not merge; r10c moved with entifix 0.2.0), and so
+      # did 4.1: #496 offered effect 4.1.0 alone, `@effect/platform-node-shared`
+      # 4.0.6 still imported the removed `effect/Crypto`, and r10c moved with
+      # entifix 0.13.0 instead. Patches on the current line still come through.
       - dependency-name: 'effect'
-        update-types: ['version-update:semver-major']
+        update-types:
+          ['version-update:semver-major', 'version-update:semver-minor']
       - dependency-name: '@effect/*'
-        update-types: ['version-update:semver-major']
+        update-types:
+          ['version-update:semver-major', 'version-update:semver-minor']
+      # The drivers entifix pins exactly move with entifix too: a second
+      # `mongodb` beside @entifix/mongo's makes every `Db` handed across the
+      # seam a type error, which is what this repository's own catch-up found.
+      - dependency-name: 'mongodb'
+      - dependency-name: 'amqplib'
+      - dependency-name: 'jose'
       # OpenTelemetry 3 is held until it can move as one set (#426). The 2.12
       # SDK packages peer on `@opentelemetry/api` `<1.10.0`; `@effect/opentelemetry`
       # 4.0.6 and entifix's service shell both peer on the 2.x SDK and on the

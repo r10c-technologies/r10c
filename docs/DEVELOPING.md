@@ -1100,11 +1100,18 @@ can break the build.
 
 **entifix moves by the catalog, as one group.** Every `@entifix/*` dependency
 is written `catalog:`, and the version lives once, in `pnpm-workspace.yaml`.
-Dependabot's `entifix` group bumps all 23 together, which matters beyond
+Dependabot's `entifix` group bumps all 25 together, which matters beyond
 tidiness: [dependabot-core#14339](https://github.com/dependabot/dependabot-core/issues/14339)
 drops the catalog entries an update does not touch from the lock it writes, and
 a group that touches every entry leaves none to drop. The lock is regenerated
 before merge like any other.
+
+**What entifix pins moves with entifix.** An `effect` minor or major, and the
+drivers entifix pins exactly (`mongodb`, `amqplib`, `jose`), are held out of
+Dependabot here: a second copy beside the one entifix was built against breaks
+the seam between them, at the type level for a driver and at run time for
+effect. They arrive in the PR that adopts the entifix release built on them, as
+effect 4.1 did with 0.13.0 (#496).
 
 **A datastore driver major is not something CI can clear.** The e2e job runs
 `E2E_PROFILE: mock`, which replaces Redis, Mongo, RabbitMQ and config-service at
