@@ -37,10 +37,8 @@ them), and everything deep is a link — loaded only when a task needs it.
 
 ## Rules that override a default
 
-Short list on purpose. Everything here is a rule that contradicts what a
-reasonable person would otherwise do, and that lives in no single deep doc —
-which is why it is repeated in the one file always loaded. The reasoning behind
-each is one link away in the decision index below.
+Short on purpose: each rule contradicts a reasonable default and lives in no
+single deep doc. Its reasoning is one link away in the decision index below.
 
 - **Nothing runs in production.** Every environment is a local dev fleet, and
   infrastructure and data are recreated on demand (`pnpm run <app>:dev:reset`).
@@ -54,16 +52,10 @@ each is one link away in the decision index below.
   on a commit, a pull-request body or a document. Enforced in three places
   against one predicate (`tools/conventions/attribution.mjs`): `commitlint`
   refuses the commit, `@r10c/conventions` refuses the committed file, and a CI
-  step refuses the PR body, which is the one surface no git hook can see. It is
-  stated **here** rather than only in `DEVELOPING.md` for the reason the record
-  is about: a session-start reminder supplies those trailers and claims to
-  replace earlier guidance, it fires every session in the most privileged
-  position in the context, and against that a rule one hop away lost on **5 of
-  the last 40 merged pull requests** and **6 of the last 60 commits** on `main`.
-  ⚠️ The canonical casing is git's, not the documentation's: every real violation
-  reads lowercase `authored`, so a pattern written from the title-cased form in
-  the prose would have caught none of them while looking correct in review.
-  [ADR 0046](docs/adr/0046-conventions-are-checked-not-stated.md).
+  step refuses the PR body. It is stated **here** because a session-start
+  reminder supplies those trailers and claims to replace earlier guidance, and
+  a rule one hop away lost to it on real merges
+  ([ADR 0046](docs/adr/0046-conventions-are-checked-not-stated.md)).
 - **Boundaries are enforced; to make an edge legal, retag — never weaken the
   rule.** Imports point downward and stay in-scope, driven by each project's
   `nx.tags`, and `@nx/enforce-module-boundaries` fails the build otherwise. A new
@@ -84,24 +76,19 @@ each is one link away in the decision index below.
   via `Layer` — a missing dep is a compile error.
 - **Entities describe themselves.** Private `#field` + `@accessor()` getter/setter
   (a field without a getter is invisible to adapters). Pass `type`/`label` (and
-  `sortable`/`filterable`/`hidden` where they differ from defaults). A member's
-  `filterable`/`sortable` metadata is also the **server-side allowlist**: a query
-  naming a member without it is rejected `400`.
+  `sortable`/`filterable`/`hidden` where they differ from defaults).
+  `filterable`/`sortable` is also the **server-side allowlist**: a query naming
+  a member without it is rejected `400`.
   See [docs/ENTIFIX.md](docs/ENTIFIX.md).
-- **A server-owned but client-visible member must not be `@accessor({ readonly })`.**
-  That flag drops the member from serialization **and** deserialization, so a
-  read-only audit stamp would never reach the UI either. Leave it writable, have
-  the handler overwrite it from the verified principal (as a save owns the id),
-  and hide the input with an `<EntityField … hidden />` slot. The same applies to `required`: `hiddenFields`
-  hides the input and **not its validation rule**, so a hidden required member
-  fails validation with no field to show it on and Save does nothing and says
-  nothing.
+- **A server-owned but client-visible member must not be `@accessor({ readonly })`**,
+  which drops it from serialization both ways — leave it writable, overwrite it
+  in the handler, hide the input; and a hidden `required` member still
+  validates. See [ENTIFIX.md → Presentation metadata](docs/ENTIFIX.md#presentation-metadata).
 - **A permission is `<domain>:<entityKey>:<action>`**, derived from the entity's
   own `@entity({ domain, key })`. Guard an endpoint with its descriptor's `guard`
   — **hiding a nav item protects nothing** — and
   grants come from `ROLE_PERMISSIONS`, never from the token. `unverifiedClaims`
-  reads the cookie **without checking its signature**: nav filtering only, never a
-  decision.
+  skips the signature check: nav filtering only, never a decision.
 - **i18n is mandatory**, and three build gates enforce it: `react/jsx-no-literals`
   fails on a string written into JSX, catalog parity fails on a key present in one
   locale only, and `pnpm nx test @r10c/i18n-check` fails on a service answering
@@ -110,34 +97,24 @@ each is one link away in the decision index below.
   copy. Lint is blind to copy inside JSX expressions. See
   [docs/I18N.md](docs/I18N.md).
 - **Two documentation facts fail the build, and they fail differently.** A table
-  with a machine-readable source is **generated**: `ports-infra`,
-  `store-register`, `adr-index` and `adr-triggers` sit between
-  `<!-- docs:begin … -->` markers and are written by `node tools/sync-docs.mjs`
-  from `infra/local/lib.sh`, `tools/slices/` and the ADR files. Edit the source,
-  regenerate, stage — a hand-edit inside a fence fails `--check` in
-  `.husky/pre-commit` and in CI. Everything else stays prose and is **asserted**
-  by `pnpm nx test @r10c/docs-check` (links, router coverage, entity names,
-  ports, ADR headers, symmetric supersession). Both run **unconditionally** in
-  CI. See
+  between `<!-- docs:begin … -->` markers (`ports-infra`, `store-register`,
+  `adr-index`, `adr-triggers`) is **generated** by `node tools/sync-docs.mjs` —
+  edit its source, regenerate, stage; a hand-edit fails `--check`. Prose is **asserted** by `pnpm nx test @r10c/docs-check`.
+  Both run unconditionally in CI. See
   [DEVELOPING.md → Keeping the documentation true](docs/DEVELOPING.md#keeping-the-documentation-true).
-- **ADRs are corrected in place when they go stale.** An ADR's _reasoning_ is
-  immutable; its _factual claims_ are not. Fix or clarify in place, and supersede
-  only when the **decision** itself no longer holds. Accepted records gain a `- Revised: <date> by [ADR …]`
-  line so every edit is greppable, and **supersession is symmetric** — the target
-  gets the reciprocal line, or `@r10c/docs-check` fails the build. When a change
-  contradicts existing records, grep for the claim rather than guessing which
-  mention it. See [docs/adr/README.md](docs/adr/README.md).
+- **ADRs are corrected in place when they go stale.** Reasoning is immutable,
+  factual claims are not; supersede only when the **decision** no longer holds.
+  An edit adds a `- Revised: <date> by [ADR …]` line, and supersession is
+  symmetric or `@r10c/docs-check` fails. See [docs/adr/README.md](docs/adr/README.md).
 - **Four artifacts hold knowledge, one job each — do not merge them.** _How the
   business works_ lives in **Notion** (the `r10c` space, through the Notion MCP
   server); _what we decided and why_ is an **ADR**; _the contract_ is
   `BUSINESS-ARCHITECTURE.md` + `tools/slices/`; _what is next and whether it is
   done_ is a **GitHub issue under a milestone**. Business processes are **not**
-  put in `docs/`: a subdirectory gets zero checks, and a top-level process
-  document fails the check on undeclared names. And the repo is public now
-  and private later, which does **not** run backwards — exposure is decided per
-  commit, permanently: public law and our own mechanism are committable, our
-  commission rates, named vendors and negotiated courier terms are Notion-only.
-  [ADR 0025](docs/adr/0025-where-planning-and-business-knowledge-live.md).
+  put in `docs/`. The repo is public now and private later, so exposure is
+  decided per commit, permanently: commission rates, named vendors and courier
+  terms are Notion-only
+  ([ADR 0025](docs/adr/0025-where-planning-and-business-knowledge-live.md)).
 - **The business map is a separate document.** Which capability owns an entity,
   which plane it lives in, and the ODA/SID name for it are in
   [BUSINESS-ARCHITECTURE.md](docs/BUSINESS-ARCHITECTURE.md) — read it before
@@ -260,20 +237,20 @@ of these for itself, never loosen it
 link names the tag of the installed version, and `@r10c/docs-check` fails when
 the catalog moves and the links do not — adopting a release re-pins this list.
 
-- [entifix 0001](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0001-the-tier-contract-and-the-host-seam.md) **The tier contract, and the seam a host configures across** — read when an entifix import seems legal by direction but drags in a capability, or a host value seems to belong in the framework.
+- [entifix 0001](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0001-the-tier-contract-and-the-host-seam.md) **The tier contract, and the seam a host configures across** — read when an entifix import drags in a capability, or a host value seems to belong in the framework.
 - [entifix 0002](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0002-entifix-is-mit.md) **entifix is MIT** — read when the framework's licence matters to something r10c ships.
 - [entifix 0003](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0003-releasing-without-a-credential.md) **Releasing without a credential** — read when an entifix change merged and no version arrived to adopt.
 - [entifix 0004](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0004-the-examples-are-the-composability-proof.md) **The examples are the composability proof** — read when an entity class has to compile inside a Next application.
 - [entifix 0005](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0005-content-an-entity-describes.md) **Content an entity describes** — read when declaring locales, holding text in several languages, or publishing an entity narrower than it is stored.
-- [entifix 0006](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0006-the-public-contract-is-entities-use-cases-and-ports.md) **A package's public contract is entities, use cases and ports** — read when an entifix export makes its caller build a mechanism, or a ban cannot name one because it shares an entry point with a contract; [ADR 0060](docs/adr/0060-the-implementation-layer-cells.md) narrows it to r10c's cells.
-- [entifix 0007](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0007-the-host-supplies-the-role-ladder.md) **The host supplies the role ladder; the screen taxonomy is entifix's** — read when adding a role, changing who may assign whom, or about to add a fifth screen type; r10c's ladder is defined once, in `@r10c/business-ts-authz-grants`.
-- [entifix 0008](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0008-an-entity-can-declare-a-hierarchy.md) **An entity can declare a hierarchy** — read when records nest under one another (r10c's category tree, [ADR 0062](docs/adr/0062-categories-form-a-tree.md)), building breadcrumbs, or about to write a recursive query.
-- [entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md) **A unit of work the outbox, inbox and command claim join** — read when a write has to announce itself on the bus, a fold has to run exactly once, or a participant has to answer a redelivered saga command — never open a driver session by hand for it.
-- [entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md) **Entity routes are derived, and the repository comes from context** — read when adding an entity's list/read/save/delete routes to a service; they are `makeEntityRoutes`, bound to storage through `EntityRepositoryFactoryTag`.
-- [entifix 0011](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0011-like-ignores-accents.md) **`like` ignores accents** — read when a search for `cafe` does not find `Café`, or about to add a collation, a text index or a second search operator; the storefront's search and every back-office text filter go through it.
-- [entifix 0012](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0012-facet-counts-are-a-port-of-their-own.md) **Facet counts are a port of their own** — read when a filter choice shows how many results it would keep; the counter is `EntityFacetCounterTag`, mounted as `$facets` by `makeEntityFacetRoutes`, and the storefront counts each facet without its own choice.
-- [entifix 0013](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0013-failures-are-typed-values-decided-at-the-shell.md) **Failures are typed values with a family and a category, and the shell decides what they mean** — read when adding a refusal or an error type, mapping a failure to a status, writing an error body by hand, or about to `instanceof` an adapter's error; r10c's side is [ADR 0064](docs/adr/0064-failures-reach-the-slice-shell.md).
-- [entifix 0014](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0014-retry-once-at-the-layer-above-under-a-budget.md) **Retry once, at the layer directly above the failure, under a budget and a deadline** — read when adding a retry or a `Schedule`, sizing a queue's `maxAttempts`, or about to retry inside a bus consumer; the dials are config-service rows, group `retry`.
+- [entifix 0006](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0006-the-public-contract-is-entities-use-cases-and-ports.md) **A package's public contract is entities, use cases and ports** — read when an export makes its caller build a mechanism; [ADR 0060](docs/adr/0060-the-implementation-layer-cells.md) narrows it to r10c's cells.
+- [entifix 0007](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0007-the-host-supplies-the-role-ladder.md) **The host supplies the role ladder; the screen taxonomy is entifix's** — read when adding a role or a fifth screen type; r10c's ladder is `@r10c/business-ts-authz-grants`.
+- [entifix 0008](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0008-an-entity-can-declare-a-hierarchy.md) **An entity can declare a hierarchy** — read when records nest, as r10c's category tree does ([ADR 0062](docs/adr/0062-categories-form-a-tree.md)).
+- [entifix 0009](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0009-a-unit-of-work-the-outbox-inbox-and-command-claim-join.md) **A unit of work the outbox, inbox and command claim join** — read when a write announces itself, a fold runs once, or a participant answers a redelivery — never open a driver session by hand.
+- [entifix 0010](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0010-entity-routes-are-derived-and-the-repository-comes-from-context.md) **Entity routes are derived, and the repository comes from context** — read when binding an entity's routes to storage through `EntityRepositoryFactoryTag`.
+- [entifix 0011](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0011-like-ignores-accents.md) **`like` ignores accents** — read when `cafe` does not find `Café`, or before adding a collation or a second search operator.
+- [entifix 0012](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0012-facet-counts-are-a-port-of-their-own.md) **Facet counts are a port of their own** — read when a filter choice shows how many results it would keep (`EntityFacetCounterTag`, `$facets`).
+- [entifix 0013](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0013-failures-are-typed-values-decided-at-the-shell.md) **Failures are typed values with a family and a category, and the shell decides what they mean** — read when adding a refusal, mapping a status or about to `instanceof` an error; r10c's side is [ADR 0064](docs/adr/0064-failures-reach-the-slice-shell.md).
+- [entifix 0014](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0014-retry-once-at-the-layer-above-under-a-budget.md) **Retry once, at the layer directly above the failure, under a budget and a deadline** — read when adding a retry or a `Schedule`, or sizing `maxAttempts`; the dials are config rows, group `retry`.
 - [entifix 0015](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0015-composed-flows-and-use-case-resolution.md) **Composed flows and use-case resolution** — read when adding a step to a flow or choosing an implementation from who is calling; r10c's side is [ADR 0065](docs/adr/0065-use-case-resolution-and-the-routing-slip.md).
 - [entifix 0016](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0016-a-flow-engine-port-and-a-durable-workflow-adapter.md) **A flow engine port and a durable workflow adapter** — read when a flow must survive its process dying.
 - [entifix 0017](https://github.com/r10c-technologies/entifix/blob/v0.12.1/docs/adr/0017-circuit-breaker-and-bulkhead-ports.md) **Circuit breaker and bulkhead ports** — read when a failing dependency drags its callers down.

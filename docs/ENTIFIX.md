@@ -82,6 +82,16 @@ empty, `readonly` disables its input (the member still shows). On a relation,
 `required` means "a key must be held" — the format of a foreign key is the
 service's business, not the form's.
 
+⚠️ **A server-owned but client-visible member must not be
+`@accessor({ readonly })`.** The flag drops the member from serialization
+**and** deserialization, so a read-only audit stamp would never reach the UI
+either. Leave it writable, have the handler overwrite it from the verified
+principal (as a save owns the id), and hide the input with an
+`<EntityField … hidden />` slot. The same applies to `required`: `hiddenFields`
+hides the input and **not its validation rule**, so a hidden required member
+fails validation with no field to show it on, and Save does nothing and says
+nothing.
+
 The three `link*` options are what make a relation editable without bespoke code:
 `linkLabelProperty` (default `name`) is what a target reads as,
 `linkSearchProperty` (default: the label one) is what a picker filters on — it
