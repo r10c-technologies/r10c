@@ -29,7 +29,7 @@
     "@entifix/testing-unit": "catalog:",
     "@entifix/transactions": "catalog:",
     "@r10c/testing-http": "workspace:*",
-    "effect": "4.0.6",
-    "mongodb": "7.7.0"
+    "effect": "4.1.2",
+    "mongodb": "7.8.0"
   }
 }

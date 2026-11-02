@@ -33,31 +33,31 @@ packages:
 # place a version is written. To see an unreleased entifix change here, use
 # `pnpm run entifix:local` (tools/entifix) — never a link or a file: specifier.
 catalog:
-  '@entifix/amqp': 0.12.1
-  '@entifix/authz': 0.12.1
-  '@entifix/business': 0.12.1
-  '@entifix/core': 0.12.1
-  '@entifix/i18n': 0.12.1
-  '@entifix/jwt': 0.12.1
-  '@entifix/mongo': 0.12.1
-  '@entifix/next-i18n': 0.12.1
-  '@entifix/next-shell': 0.12.1
-  '@entifix/posthog': 0.12.1
-  '@entifix/react-controls': 0.12.1
-  '@entifix/react-integration': 0.12.1
-  '@entifix/redis': 0.12.1
-  '@entifix/rest': 0.12.1
-  '@entifix/service-shell': 0.12.1
-  '@entifix/sql': 0.12.1
-  '@entifix/static': 0.12.1
-  '@entifix/style': 0.12.1
-  '@entifix/testing-auth': 0.12.1
-  '@entifix/testing-e2e': 0.12.1
-  '@entifix/testing-unit': 0.12.1
-  '@entifix/tooling': 0.12.1
-  '@entifix/transactions': 0.12.1
-  '@entifix/workflow': 0.12.1
-  '@entifix/zitadel': 0.12.1
+  '@entifix/amqp': 0.13.0-rc.1
+  '@entifix/authz': 0.13.0-rc.1
+  '@entifix/business': 0.13.0-rc.1
+  '@entifix/core': 0.13.0-rc.1
+  '@entifix/i18n': 0.13.0-rc.1
+  '@entifix/jwt': 0.13.0-rc.1
+  '@entifix/mongo': 0.13.0-rc.1
+  '@entifix/next-i18n': 0.13.0-rc.1
+  '@entifix/next-shell': 0.13.0-rc.1
+  '@entifix/posthog': 0.13.0-rc.1
+  '@entifix/react-controls': 0.13.0-rc.1
+  '@entifix/react-integration': 0.13.0-rc.1
+  '@entifix/redis': 0.13.0-rc.1
+  '@entifix/rest': 0.13.0-rc.1
+  '@entifix/service-shell': 0.13.0-rc.1
+  '@entifix/sql': 0.13.0-rc.1
+  '@entifix/static': 0.13.0-rc.1
+  '@entifix/style': 0.13.0-rc.1
+  '@entifix/testing-auth': 0.13.0-rc.1
+  '@entifix/testing-e2e': 0.13.0-rc.1
+  '@entifix/testing-unit': 0.13.0-rc.1
+  '@entifix/tooling': 0.13.0-rc.1
+  '@entifix/transactions': 0.13.0-rc.1
+  '@entifix/workflow': 0.13.0-rc.1
+  '@entifix/zitadel': 0.13.0-rc.1
 allowBuilds:
   '@nestjs/core': false
   '@parcel/watcher': false
@@ -103,3 +103,8 @@ minimumReleaseAgeExclude:
   - '@posthog/core@1.45.0'
   - '@posthog/types@1.398.0'
   - posthog-js@1.407.0
+  - '@effect/opentelemetry@4.1.2'
+  - '@effect/platform-node-shared@4.1.2'
+  - '@effect/platform-node@4.1.2'
+  - '@effect/sql-pg@4.1.2'
+  - effect@4.1.2

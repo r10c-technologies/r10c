@@ -52,8 +52,8 @@
     "@r10c/implementation-settlement-mongo": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.6",
-    "mongodb": "7.7.0"
+    "effect": "4.1.2",
+    "mongodb": "7.8.0"
   },
   "devDependencies": {
     "@entifix/core": "catalog:",
