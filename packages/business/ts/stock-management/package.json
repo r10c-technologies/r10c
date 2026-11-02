@@ -52,7 +52,7 @@
     "@r10c/business-ts-common": "workspace:*",
     "@r10c/business-ts-saga-contracts": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.6"
+    "effect": "4.0.7"
   },
   "peerDependencies": {
     "vitest": "5.0.5"

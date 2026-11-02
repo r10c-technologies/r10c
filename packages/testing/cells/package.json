@@ -21,7 +21,7 @@
     "@entifix/mongo": "catalog:",
     "@entifix/testing-unit": "catalog:",
     "@entifix/transactions": "catalog:",
-    "effect": "4.0.6",
+    "effect": "4.0.7",
     "mongodb": "7.8.0"
   }
 }
