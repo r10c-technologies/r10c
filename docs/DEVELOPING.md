@@ -1111,8 +1111,11 @@ drivers entifix pins exactly (`mongodb`, `amqplib`, `jose`), are held out of
 Dependabot here: a second copy beside the one entifix was built against breaks
 the seam between them, at the type level for a driver and at run time for
 effect. They arrive in the PR that adopts the entifix release built on them —
-which for effect 4.1 has not happened: entifix holds 4.0.6 because 4.1's
-cluster engine resumes a signalled wait late (#496).
+which for effect 4.1 has not happened: entifix holds the 4.0 line because
+4.1's cluster engine resumes a signalled wait late (#496). A patch on that
+line is the one effect move that comes here directly, because entifix peers on
+a caret: the Dependabot effect group carries the family and the catalog entry
+the `@effect/platform-node-shared` override reads, as one PR.
 
 **A datastore driver major is not something CI can clear.** The e2e job runs
 `E2E_PROFILE: mock`, which replaces Redis, Mongo, RabbitMQ and config-service at

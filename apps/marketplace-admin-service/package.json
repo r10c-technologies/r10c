@@ -132,8 +132,8 @@
     }
   },
   "dependencies": {
-    "@effect/opentelemetry": "4.0.6",
-    "@effect/platform-node": "4.0.6",
+    "@effect/opentelemetry": "4.0.7",
+    "@effect/platform-node": "4.0.7",
     "@entifix/amqp": "catalog:",
     "@entifix/authz": "catalog:",
     "@entifix/business": "catalog:",
@@ -162,7 +162,7 @@
     "@r10c/shells-effect-service": "workspace:*",
     "@r10c/utils-ts-fleet": "workspace:*",
     "amqplib": "2.2.1",
-    "effect": "4.0.6",
+    "effect": "4.0.7",
     "jose": "6.2.14",
     "mongodb": "7.8.0",
     "tslib": "2.9.1"
