@@ -82,12 +82,37 @@ updates:
       # Majors are deliberately excluded: a grouped major PR cannot be bisected,
       # so one dead member hides every healthy one (#63 was 55 updates behind a
       # single broken bump). Ungrouped, a red check names the package.
+      #
+      # The named groups above are excluded by pattern too: otherwise a type
+      # group can take some of a family before its own group does, as entifix's
+      # first Dependabot run did, splitting effect 4.0.7 across three pull
+      # requests that each mismatched the family when merged alone.
       dev-dependencies:
         dependency-type: 'development'
         update-types: ['minor', 'patch']
+        exclude-patterns:
+          [
+            '@entifix/*',
+            'effect',
+            '@effect/*',
+            'react',
+            'react-dom',
+            '@types/react',
+            '@types/react-dom',
+          ]
       production-dependencies:
         dependency-type: 'production'
         update-types: ['minor', 'patch']
+        exclude-patterns:
+          [
+            '@entifix/*',
+            'effect',
+            '@effect/*',
+            'react',
+            'react-dom',
+            '@types/react',
+            '@types/react-dom',
+          ]
     commit-message:
       prefix: 'chore(deps)'
       prefix-development: 'chore(deps-dev)'
