@@ -46,8 +46,8 @@
     "@r10c/business-ts-catalog-contracts": "workspace:*",
     "@r10c/business-ts-marketplace-catalog": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.6",
-    "mongodb": "7.7.0"
+    "effect": "4.1.0",
+    "mongodb": "7.8.0"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:"
