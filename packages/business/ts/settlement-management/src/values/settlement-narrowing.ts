@@ -29,20 +29,23 @@ export const settlementNarrowing = <
     name: 'operator',
     impl: () => 'unscoped',
   }),
-  When(
-    context =>
-      context.partyRole === 'vendor' && context.organizationId !== undefined,
-  ).use({
+  When(context => context.partyRole === 'vendor').use({
     name: 'vendor',
-    impl: context => ({
-      operator: 'and',
-      values: [
-        {
-          property: 'vendorId',
-          operator: 'eq',
-          value: context.organizationId as never,
-        },
-      ],
-    }),
+    // A vendor session with no organization owns nothing to be shown.
+    impl: ({ organizationId }): SettlementNarrowing<TEntity> =>
+      organizationId === undefined
+        ? 'nothing'
+        : {
+            operator: 'and',
+            values: [
+              {
+                property: 'vendorId',
+                operator: 'eq',
+                // `VendorScoped` makes it a string, but TypeScript will not
+                // assign a string to a generic entity's indexed member.
+                value: organizationId as TEntity['vendorId'],
+              },
+            ],
+          },
   }),
 ];

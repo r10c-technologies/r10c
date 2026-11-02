@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { Reservation } from '../entities/reservation';
 import { StockMovement } from '../entities/stock-movement';
 import type { StockLedger } from '../ports/stock-ledger';
+import type { MovementReason } from '../values/movement-reason';
 
 /** Two organizations every subject must keep apart. */
 export const CONTRACT_ORGANIZATIONS = ['org-a', 'org-b'] as const;
@@ -23,8 +24,11 @@ const hold = (
     expiresAt,
   });
 
-const movement = (id: string, quantity: number, reason = 'receipt') =>
-  Object.assign(new StockMovement('o-1', quantity, reason as never), { id });
+const movement = (
+  id: string,
+  quantity: number,
+  reason: MovementReason = 'receipt',
+) => Object.assign(new StockMovement('o-1', quantity, reason), { id });
 
 /**
  * What every {@link StockLedger} must guarantee, observed through the port

@@ -111,6 +111,11 @@ const CONFIGURATION = {
  * for.
  */
 const fakeRedis = makeFakeRedis();
+// The fake implements the commands these stores call, not ioredis's whole
+// surface, so it is typed as the stores' client by assertion.
+const redis = fakeRedis.redis as unknown as Parameters<
+  typeof makeRedisSessionStore
+>[0];
 const fakeZitadel = makeFakeZitadel();
 
 const AccountRepositoryLayer = Layer.effect(
@@ -188,22 +193,10 @@ const base = Layer.mergeAll(
   // The fake ioredis honours set/get/expire/sadd/smembers/del/getdel — enough
   // for the session store, the pending-authorization tokens, the id-token store
   // and the provider-session index.
-  Layer.succeed(
-    SessionStoreTag,
-    makeRedisSessionStore(fakeRedis.redis as never),
-  ),
-  Layer.succeed(
-    OneTimeTokenStoreTag,
-    makeRedisOneTimeTokenStore(fakeRedis.redis as never),
-  ),
-  Layer.succeed(
-    IdTokenStoreTag,
-    makeRedisIdTokenStore(fakeRedis.redis as never),
-  ),
-  Layer.succeed(
-    ProviderSessionIndexTag,
-    makeRedisProviderSessionIndex(fakeRedis.redis as never),
-  ),
+  Layer.succeed(SessionStoreTag, makeRedisSessionStore(redis)),
+  Layer.succeed(OneTimeTokenStoreTag, makeRedisOneTimeTokenStore(redis)),
+  Layer.succeed(IdTokenStoreTag, makeRedisIdTokenStore(redis)),
+  Layer.succeed(ProviderSessionIndexTag, makeRedisProviderSessionIndex(redis)),
 );
 
 const withAccounts = Layer.provideMerge(

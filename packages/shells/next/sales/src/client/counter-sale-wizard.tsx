@@ -1,6 +1,6 @@
 'use client';
 
-import { loadUCFactory } from '@entifix/business';
+import { type EntityRepositoryTag, loadUCFactory } from '@entifix/business';
 import {
   assertWizardDefinition,
   emptyWizardState,
@@ -201,16 +201,16 @@ export function CounterSaleWizard({
     goTo(step);
   }, [step, goTo]);
 
-  const channels = useDataLoading<SalesChannel, unknown>({
+  const channels = useDataLoading<SalesChannel, EntityRepositoryTag>({
     uc: loadUCFactory<SalesChannel>(),
-    ctx: adapters.salesChannelRest as never,
+    ctx: adapters.salesChannelRest,
     initialPageSize: 50,
     queryKey: ['sales-channel', 'counter-sale'],
   });
 
-  const offerings = useDataLoading<PublishedOffering, unknown>({
+  const offerings = useDataLoading<PublishedOffering, EntityRepositoryTag>({
     uc: loadUCFactory<PublishedOffering>(),
-    ctx: adapters.publishedOfferingRest as never,
+    ctx: adapters.publishedOfferingRest,
     initialPageSize: 50,
     queryKey: ['published-offering', 'counter-sale'],
   });
