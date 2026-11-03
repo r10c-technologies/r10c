@@ -29,7 +29,7 @@
         "executor": "nx:run-commands",
         "continuous": true,
         "options": {
-          "command": "next dev -p 3000",
+          "command": "next dev -p 3200",
           "cwd": "apps/marketplace-app"
         },
         "dependsOn": [
@@ -45,6 +45,12 @@
           },
           {
             "projects": [
+              "@r10c/edge"
+            ],
+            "target": "serve"
+          },
+          {
+            "projects": [
               "@r10c/source"
             ],
             "target": "watch-libs"
@@ -54,7 +60,7 @@
       "start": {
         "executor": "nx:run-commands",
         "options": {
-          "command": "next start -p 3000",
+          "command": "next start -p 3200",
           "cwd": "apps/marketplace-app"
         }
       },
@@ -62,7 +68,7 @@
         "executor": "nx:run-commands",
         "cache": false,
         "options": {
-          "command": "bash tools/free-ports.sh 3000"
+          "command": "bash tools/free-ports.sh 3200"
         }
       }
     }

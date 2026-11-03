@@ -4156,9 +4156,18 @@ importers:
 
   tools/docs:
     devDependencies:
+      '@r10c/edge':
+        specifier: workspace:*
+        version: link:../edge
       '@r10c/slices':
         specifier: workspace:*
         version: link:../slices
+
+  tools/edge:
+    devDependencies:
+      prettier:
+        specifier: 3.9.10
+        version: 3.9.10
 
   tools/entifix: {}
 

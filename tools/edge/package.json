@@ -1,0 +1,57 @@
+{
+  "name": "@r10c/edge",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "nx": {
+    "tags": [
+      "layer:app",
+      "scope:shared",
+      "type:testing"
+    ],
+    "sourceRoot": "tools/edge/src",
+    "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.mts",
+          "cwd": "tools/edge"
+        }
+      },
+      "generate": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node --import ./tools/ts-source-resolver.mjs tools/edge/src/generate.ts"
+        }
+      },
+      "serve": {
+        "executor": "nx:run-commands",
+        "continuous": true,
+        "options": {
+          "command": "bash tools/edge/serve.sh"
+        }
+      },
+      "free-ports": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/free-ports.sh 3000 3001"
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}

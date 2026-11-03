@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-11-02
+- Revised: 2026-11-02 — the edge is built (#475). Locally Envoy runs in a
+  container pinned by digest rather than as a host binary, because Envoy
+  publishes Linux builds only; the route table is `tools/edge/src/routes.ts`.
 - Area: messaging
 - Read when: pushing anything to a browser, asking where a flow stands, or putting a listener on 3000/3001 — one realtime slice owns the stream and the flow-status projection, the audience filter fails closed, and the edge owns the origins
 
@@ -130,8 +133,10 @@ direction that matters — ADR 0036's rule, kept.
 A stream cannot cross Next, so the browser stops reaching Next directly.
 
 - **One route table**, generated into a local Envoy config and into Envoy
-  Gateway manifests for the cluster. Locally Envoy runs as a host process; in a
-  cluster it is Envoy Gateway. ingress-nginx is retired and not an option.
+  Gateway manifests for the cluster. Locally Envoy runs in a container
+  (`tools/edge/serve.sh`, the image pinned by digest — Envoy publishes no macOS
+  build, and Docker is already required by minikube's driver) owning the
+  host's ports; in a cluster it is Envoy Gateway. ingress-nginx is retired and not an option.
 - The edge owns **3000** and **3001**. `next dev` moves to **3200** and
   **3201** — `320N` is the origin plus 200 — and every origin routes
   `/api/realtime/*` to 3191. Zitadel's redirects, config-service's origin rows

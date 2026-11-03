@@ -1,6 +1,10 @@
 import { join } from 'node:path';
 
-import { defineEntifixE2eConfig } from '@entifix/testing-e2e/playwright';
+import {
+  defineEntifixE2eConfig,
+  resolveE2eProfile,
+} from '@entifix/testing-e2e/playwright';
+import { workspaceRoot } from '@nx/devkit';
 
 /**
  * ⚠️ Absolute, because `NODE_OPTIONS` is inherited by **every** node process
@@ -46,9 +50,73 @@ const PRELOAD = join(__dirname, 'src/support/server-mocks.mjs');
  * reached. The Next binary is still relative to `cwd`, which the preset sets
  * to the app's directory; the preload is not — see `PRELOAD` above.
  */
-export default defineEntifixE2eConfig({
+const MOCK_SERVER = `NODE_OPTIONS='--import ${PRELOAD}' node ./node_modules/next/dist/bin/next start -p 3200`;
+
+/**
+ * ⚠️ **Two servers, replacing the preset's one.** The browser reaches the
+ * storefront through the edge on :3000, and Next listens behind it on :3200
+ * (ADR 0072), so the preset's single `next start -p 3000` would bind the port
+ * the edge owns. The edge is probed through to Next, so "ready" means the whole
+ * path answers rather than just Envoy's socket. `mockServerCommand` is
+ * therefore passed here rather than to the preset, which only reads it for the
+ * server it builds itself.
+ */
+/**
+ * ⚠️ **The fixtures' pictures are never fetched.** The catalog fixtures name
+ * their media on `picsum.photos`, as a vendor names a real host, and the
+ * storefront renders them as plain `<img>`s — so the browser, not Next, fetches
+ * them, and `page.goto` waits for every one before `load`. When that host
+ * stalls, every product page times out and the suite fails on someone else's
+ * network. Chromium is told the name does not resolve, so each picture errors
+ * at once and `load` fires; a spec asserts the reference a page renders, never
+ * the pixels. The flag is Chromium's, so it goes on that project only, and the
+ * preset's config is extended rather than overridden — `overrides` merges
+ * shallowly, and a `use` passed there would drop the preset's `baseURL`.
+ */
+const UNRESOLVED_MEDIA_HOSTS = ['picsum.photos'];
+
+const config = defineEntifixE2eConfig({
   configFile: __filename,
   appDir: 'apps/marketplace-app',
   port: 3000,
-  mockServerCommand: `NODE_OPTIONS='--import ${PRELOAD}' node ./node_modules/next/dist/bin/next start -p 3000`,
+  overrides: {
+    webServer: [
+      {
+        command:
+          resolveE2eProfile() === 'mock'
+            ? MOCK_SERVER
+            : 'pnpm exec next start -p 3200',
+        cwd: join(workspaceRoot, 'apps/marketplace-app'),
+        url: 'http://localhost:3200',
+        reuseExistingServer: true,
+      },
+      {
+        command: 'bash tools/edge/serve.sh',
+        cwd: workspaceRoot,
+        url: 'http://localhost:3000',
+        reuseExistingServer: true,
+      },
+    ],
+  },
 });
+
+export default {
+  ...config,
+  projects: config.projects?.map(project =>
+    project.name === 'chromium'
+      ? {
+          ...project,
+          use: {
+            ...project.use,
+            launchOptions: {
+              ...project.use?.launchOptions,
+              args: [
+                ...(project.use?.launchOptions?.args ?? []),
+                `--host-resolver-rules=${UNRESOLVED_MEDIA_HOSTS.map(host => `MAP ${host} ~NOTFOUND`).join(', ')}`,
+              ],
+            },
+          },
+        }
+      : project,
+  ),
+};
