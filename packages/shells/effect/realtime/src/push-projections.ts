@@ -1,3 +1,10 @@
+// Loaded for their registrations. Every pushed event is decoded off the bus and
+// encoded onto the stream through the message registry, so the schema of each
+// projected event has to be registered in this process — and nothing else here
+// would import the contracts that own them.
+import '@r10c/business-ts-catalog-contracts';
+import '@r10c/business-ts-order-contracts';
+
 import type { DomainEvent, EntityChangeEvent } from '@entifix/core';
 import { entityHint } from '@r10c/business-ts-flow-contracts';
 

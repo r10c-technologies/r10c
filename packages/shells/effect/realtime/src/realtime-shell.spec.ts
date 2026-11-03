@@ -1,7 +1,3 @@
-import '@r10c/business-ts-order-contracts';
-import '@r10c/business-ts-catalog-contracts';
-import '@entifix/transactions';
-
 import { makeStaticPolicyDecision, PolicyDecisionTag } from '@entifix/authz';
 import {
   InvalidToken,

@@ -8,32 +8,28 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "forceConsistentCasingInFileNames": true,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "ignoreDeprecations": "6.0"
   },
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../service/tsconfig.lib.json"
     },
     {
-      "path": "../../../business/ts/flow-contracts/tsconfig.lib.json"
+      "path": "../../../implementation/flow-status/mongo/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/order-contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../../../business/ts/flow-contracts/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/catalog-contracts/tsconfig.lib.json"
     },
     {
       "path": "../../../business/ts/authz-grants/tsconfig.lib.json"
-    },
-    {
-      "path": "../../../implementation/flow-status/mongo/tsconfig.lib.json"
     }
   ],
   "exclude": [

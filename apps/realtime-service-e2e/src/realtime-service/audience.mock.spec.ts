@@ -1,6 +1,3 @@
-import '@r10c/business-ts-order-contracts';
-import '@r10c/business-ts-catalog-contracts';
-
 import type { DomainEvent } from '@entifix/core';
 import type { RunningTestService } from '@entifix/service-shell/testing';
 import { digestFlowCapability } from '@entifix/transactions';

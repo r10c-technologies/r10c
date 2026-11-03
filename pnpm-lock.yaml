@@ -3735,9 +3735,15 @@ importers:
       '@entifix/transactions':
         specifier: 'catalog:'
         version: 0.14.0(effect@4.0.7)
+      '@r10c/business-ts-catalog-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/catalog-contracts
       '@r10c/business-ts-flow-contracts':
         specifier: workspace:*
         version: link:../../../business/ts/flow-contracts
+      '@r10c/business-ts-order-contracts':
+        specifier: workspace:*
+        version: link:../../../business/ts/order-contracts
       '@r10c/implementation-flow-status-mongo':
         specifier: workspace:*
         version: link:../../../implementation/flow-status/mongo
@@ -3757,12 +3763,6 @@ importers:
       '@r10c/business-ts-authz-grants':
         specifier: workspace:*
         version: link:../../../business/ts/authz-grants
-      '@r10c/business-ts-catalog-contracts':
-        specifier: workspace:*
-        version: link:../../../business/ts/catalog-contracts
-      '@r10c/business-ts-order-contracts':
-        specifier: workspace:*
-        version: link:../../../business/ts/order-contracts
 
   packages/shells/effect/sales:
     dependencies:
