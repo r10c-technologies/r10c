@@ -4,6 +4,7 @@ import { openStruct } from '@entifix/core';
 import { ORDER_FRAGMENTS } from '@r10c/business-ts-order-management';
 import { PAYMENT_FRAGMENTS } from '@r10c/business-ts-payment-management';
 import { OrderTenders } from '@r10c/business-ts-sales-vocabulary';
+import { FULFILMENT_FRAGMENTS } from '@r10c/business-ts-shipping-order-management';
 import { STOCK_FRAGMENTS } from '@r10c/business-ts-stock-management';
 import { Schema } from 'effect';
 
@@ -16,6 +17,7 @@ export const flowCatalog = defineCatalog([
   ...STOCK_FRAGMENTS,
   ...ORDER_FRAGMENTS,
   ...PAYMENT_FRAGMENTS,
+  ...FULFILMENT_FRAGMENTS,
   flowCommit,
 ]);
 

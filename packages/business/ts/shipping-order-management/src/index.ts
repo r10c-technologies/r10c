@@ -18,6 +18,7 @@
  */
 export { SHIPPING_ORDER_DOMAIN } from './domain';
 export * from './entities/shipping-order';
+export * from './events';
 export * from './failures';
 export * from './fragments';
 export * from './ports';

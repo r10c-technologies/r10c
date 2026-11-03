@@ -44,6 +44,9 @@ const SERVICE_NAME = 'transaction-service';
  * concentration ADR 0039 recorded rather than a new class of risk. The saga
  * runner and the flow engine present the same ones.
  */
+/** The participant every fulfilment fragment calls. */
+const FULFILMENT_PARTICIPANT = 'fulfilment-service';
+
 const readParticipants = ({ store }: FleetConfiguration) =>
   Effect.gen(function* () {
     const participant = store.in('participant');
@@ -59,6 +62,12 @@ const readParticipants = ({ store }: FleetConfiguration) =>
       [PAYMENT_PARTICIPANT]: {
         baseUrl: yield* participant.getString('paymentUrl'),
         crossingToken: yield* participant.getString('paymentToken'),
+      },
+      // The delivery flow's participant (ADR 0070): opening, holding and
+      // dispatching a vendor's shipment, on its own crossing token.
+      [FULFILMENT_PARTICIPANT]: {
+        baseUrl: yield* participant.getString('fulfilmentUrl'),
+        crossingToken: yield* participant.getString('fulfilmentToken'),
       },
     } satisfies Readonly<Record<string, Participant>>;
   });

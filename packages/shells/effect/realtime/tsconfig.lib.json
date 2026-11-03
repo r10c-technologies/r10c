@@ -23,6 +23,9 @@
       "path": "../../../business/ts/stock-management/tsconfig.lib.json"
     },
     {
+      "path": "../../../business/ts/shipping-order-management/tsconfig.lib.json"
+    },
+    {
       "path": "../../../business/ts/order-contracts/tsconfig.lib.json"
     },
     {

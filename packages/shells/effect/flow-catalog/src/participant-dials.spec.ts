@@ -6,6 +6,7 @@ import { flowParticipants, participantDialKey } from './participant-dials.js';
 describe('the participants a flow calls', () => {
   it('names each service a registered fragment calls, once, and never the commit point', () => {
     expect(flowParticipants()).toEqual([
+      'fulfilment-service',
       'order-service',
       'payment-service',
       'stock-service',

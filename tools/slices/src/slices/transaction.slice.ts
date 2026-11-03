@@ -83,6 +83,14 @@ export const transactionSlice: SliceDeclaration = {
     'POST /api/refund',
     'POST /api/collection',
     'POST /api/cod-eligibility',
+    // The delivery flow's shipment steps (ADR 0070). The two waits name the
+    // shipment's read as their call: a wait makes none, and is completed by
+    // the `shipping-order.*` event it waits on.
+    'POST /api/shipping-order',
+    'POST|DELETE /api/shipping-order/:id/hold',
+    'POST /api/shipping-order/:id/withdrawal',
+    'POST /api/shipping-order/:id/dispatch-step',
+    'GET /api/shipping-order/:id',
   ],
   // What the durable engine announces through the `workflow` store's outbox
   // (ADR 0066): a flow's outcome, which the realtime slice pushes to the flow's

@@ -42,6 +42,9 @@
       "path": "../../packages/shells/effect/marketplace"
     },
     {
+      "path": "../../packages/shells/effect/fulfilment"
+    },
+    {
       "path": "../../packages/shells/effect/config"
     },
     {
@@ -49,6 +52,9 @@
     },
     {
       "path": "../../packages/business/ts/stock-management"
+    },
+    {
+      "path": "../../packages/business/ts/shipping-order-management"
     },
     {
       "path": "../../packages/business/ts/payment-contracts"

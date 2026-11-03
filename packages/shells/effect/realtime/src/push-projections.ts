@@ -4,6 +4,7 @@
 // would import the contracts that own them.
 import '@r10c/business-ts-catalog-contracts';
 import '@r10c/business-ts-order-contracts';
+import '@r10c/business-ts-shipping-order-management';
 import '@r10c/business-ts-stock-management';
 
 import type { DomainEvent, EntityChangeEvent } from '@entifix/core';
@@ -29,6 +30,11 @@ export const PRODUCT_OFFERING: PushEntity = {
   key: 'product-offering',
 };
 
+export const SHIPPING_ORDER: PushEntity = {
+  domain: 'shipping-order-management',
+  key: 'shipping-order',
+};
+
 export const STOCK_ITEM: PushEntity = {
   domain: 'stock-management',
   key: 'stock-item',
@@ -39,6 +45,7 @@ export const PUSH_ENTITIES: readonly PushEntity[] = [
   PRODUCT_ORDER,
   PRODUCT_OFFERING,
   STOCK_ITEM,
+  SHIPPING_ORDER,
 ];
 
 /**
@@ -141,6 +148,19 @@ export const PUSH_PROJECTIONS: Readonly<Record<string, PushProjection>> = {
     snapshot: false,
   }),
   'stock-item.changed': recordChange(STOCK_ITEM, 'updated', {
+    snapshot: true,
+  }),
+  // A shipment's moves past dispatch carry the shipment itself, to its vendor.
+  'shipping-order.dispatched': recordChange(SHIPPING_ORDER, 'updated', {
+    snapshot: true,
+  }),
+  'shipping-order.delivered': recordChange(SHIPPING_ORDER, 'updated', {
+    snapshot: true,
+  }),
+  'shipping-order.refused': recordChange(SHIPPING_ORDER, 'updated', {
+    snapshot: true,
+  }),
+  'shipping-order.returned': recordChange(SHIPPING_ORDER, 'updated', {
     snapshot: true,
   }),
   'flow.completed': flowOutcome,

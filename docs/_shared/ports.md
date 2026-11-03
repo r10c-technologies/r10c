@@ -17,7 +17,7 @@ canonical port.
 | settlement (7)          | —      | 3107⁵               |
 | stock (8)               | —      | 3108⁶               |
 | sales (9)               | —      | 3109⁹               |
-| fulfilment (10)         | —      | 3110¹⁰ reserved     |
+| fulfilment (10)         | —      | 3110¹⁰              |
 | — platform —            |        | config-service 3190 |
 | — platform —            |        | realtime 3191¹¹     |
 
@@ -493,9 +493,33 @@ open `EventSource` kills it for good; a stream nearing its token's `exp` is sent
 `event: reauth` instead. The SSE dials — the jittered `retry:` range, the reauth
 margin and the drain window — are configuration rows.
 
-¹⁰ **Reserved for fulfilment-service** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)),
-inspector `9110`. The `fulfilment` slice is declared `planned`, so nothing binds
-the port until the commit that writes its store promotes it (#483).
+¹⁰ **fulfilment-service, bound** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)),
+inspector `9110`, promoted by the commit that wrote its store (#483). It owns the
+`fulfilment` store — **tenant** plane, one Mongo database per organization
+(`fulfilment_<organizationId>`), a fourth beside the catalog's, stock's and
+sales'. Same plane, same partitioning, a different writing slice, so a different
+handle.
+
+⚠️ **Two credentials on one surface, and each route takes exactly one.** A
+vendor reads their own `ShippingOrder`s and moves them — `dispatch`,
+`record-delivery`, `record-refusal`, `record-return` — behind their session and
+the permission each `@useCase()` derives. A flow's steps are crossings with the
+vendor named in `x-organization-id` and **no session**: `POST
+/api/shipping-order` opens one, `POST|DELETE …/:id/hold` holds and releases it,
+`…/:id/withdrawal` withdraws it, and `…/:id/dispatch-step` is the delivery flow's
+pivot — each on its own crossing permission, so `dispatch-step` never carries the
+vendor's `dispatch`.
+
+⚠️ **Every move is one conditional write on the status it leaves**, so a dispatch
+and a cancellation's hold racing on one shipment leave exactly one winner. A move
+past dispatch announces `shipping-order.*` from the organization's own outbox,
+drained at commit and walked by the tenant relay; the realtime slice pushes it to
+the vendor, and the delivery flow (#488) waits on it.
+
+**It holds its own crossing token and accepts the coordinator's** —
+`participant.fulfilmentToken` on transaction-service, `service.token` here — and
+nothing else. No dev target starts it yet: the dispatch worklist that gives it a
+back-office surface is #489.
 
 Adding a domain = next index → `300N` / `310N`, plus a seed row in config-service's
 `configuration` table (`apps/config-service/src/db.ts`). Services resolve runtime

@@ -30,7 +30,9 @@ const refusal = async <A, E>(effect: Effect.Effect<A, E>) =>
  * - Opening answers its redelivery with the first shipment.
  * - Every move is conditional on the status it is legal from, and stamps its
  *   moment; an illegal move is refused and changes nothing.
- * - A dispatch and a hold racing on one shipment leave exactly one winner.
+ * - A dispatch and a hold on one shipment leave exactly one winner, whichever
+ *   lands first. Deliberately sequential: two truly concurrent writes are the
+ *   conditional write against a real server, proved in the live pass (ADR 0063).
  * - A repeated command answers the record as its first delivery left it.
  *
  * `make` returns a fresh, empty store.
@@ -114,28 +116,40 @@ export const describeShippingOrderStoreContract = (
       expect(dispatched.status).toBe('dispatched');
     });
 
-    it('leaves exactly one winner when a dispatch and a hold race', async () => {
-      const store = await make();
-      await run(store.open(ORG, aShipment('s-1'), undefined));
+    it('leaves exactly one winner of a dispatch and a hold, whichever lands first', async () => {
+      for (const [first, second] of [
+        ['dispatch', 'hold'],
+        ['hold', 'dispatch'],
+      ] as const) {
+        const store = await make();
+        await run(store.open(ORG, aShipment('s-1'), undefined));
 
-      const outcomes = await Promise.allSettled([
-        run(store.transition(ORG, 's-1', 'dispatch', AT, 'd-1')),
-        run(store.transition(ORG, 's-1', 'hold', AT, 'h-1')),
-      ]);
+        const outcomes = await Promise.allSettled([
+          run(store.transition(ORG, 's-1', first, AT, `${first}-1`)),
+        ]).then(async won => [
+          ...won,
+          ...(await Promise.allSettled([
+            run(store.transition(ORG, 's-1', second, AT, `${second}-1`)),
+          ])),
+        ]);
 
-      expect(
-        outcomes.filter(outcome => outcome.status === 'fulfilled'),
-      ).toHaveLength(1);
-      const after = await run(store.get(ORG, 's-1'));
-      expect(['dispatched', 'held']).toContain(after?.status);
+        expect(outcomes.map(outcome => outcome.status)).toEqual([
+          'fulfilled',
+          'rejected',
+        ]);
+      }
     });
 
     it('answers a repeated command with the record its first delivery left', async () => {
       const store = await make();
       await run(store.open(ORG, aShipment('s-1'), undefined));
 
-      const first = await run(store.transition(ORG, 's-1', 'withdraw', AT, 'w-1'));
-      const again = await run(store.transition(ORG, 's-1', 'withdraw', AT, 'w-1'));
+      const first = await run(
+        store.transition(ORG, 's-1', 'withdraw', AT, 'w-1'),
+      );
+      const again = await run(
+        store.transition(ORG, 's-1', 'withdraw', AT, 'w-1'),
+      );
 
       expect(first.status).toBe('withdrawn');
       expect(again.status).toBe('withdrawn');

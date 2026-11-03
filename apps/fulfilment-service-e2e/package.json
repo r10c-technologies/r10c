@@ -1,0 +1,45 @@
+{
+  "name": "@r10c/fulfilment-service-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "tags": [
+      "type:e2e",
+      "scope:fulfilment"
+    ],
+    "implicitDependencies": [
+      "@r10c/fulfilment-service"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.mts --passWithNoTests",
+          "cwd": "apps/fulfilment-service-e2e"
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@entifix/business": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/testing-e2e": "catalog:",
+    "@entifix/testing-unit": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/business-ts-party-management": "workspace:*",
+    "@r10c/business-ts-shipping-order-management": "workspace:*",
+    "@r10c/fulfilment-service": "workspace:*",
+    "@r10c/implementation-fulfilment-mongo": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*"
+  },
+  "dependencies": {
+    "@entifix/authz": "catalog:",
+    "@r10c/business-ts-authz-grants": "workspace:*"
+  }
+}
