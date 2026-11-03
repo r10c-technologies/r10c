@@ -146,4 +146,6 @@ export const errors = {
   flowSignalRejected: 'Esa operación no está esperando este paso.',
   invalidToken: 'Tu sesión no es válida. Inicia sesión de nuevo.',
   expiredToken: 'Tu sesión ha expirado. Inicia sesión de nuevo.',
+  shippingOrderNotTransitionable:
+    'Este envío no puede hacer ese movimiento desde su estado actual.',
 };

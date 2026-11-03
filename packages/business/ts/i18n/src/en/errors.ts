@@ -118,4 +118,6 @@ export const errors: EsErrors = {
   flowSignalRejected: 'That operation is not waiting for this step.',
   invalidToken: 'Your session is not valid. Sign in again.',
   expiredToken: 'Your session has expired. Sign in again.',
+  shippingOrderNotTransitionable:
+    'This shipment cannot make that move from where it stands.',
 };

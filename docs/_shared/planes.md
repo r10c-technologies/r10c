@@ -50,7 +50,7 @@ declaration as `bindingReason`.
 | `catalog`           | tenant   | `marketplace-admin` | active       | —                | `product-configuration-management`                            | per-organization | system-of-record         |
 | `configuration`     | control  | `config`            | active       | —                | `config`                                                      | single           | system-of-record         |
 | `flow-status`       | platform | `realtime`          | active       | —                | —                                                             | single           | `projection-of:workflow` |
-| `fulfilment`        | tenant   | `fulfilment`        | **planned**  | —                | —                                                             | per-organization | system-of-record         |
+| `fulfilment`        | tenant   | `fulfilment`        | **planned**  | —                | `shipping-order-management`                                   | per-organization | system-of-record         |
 | `order`             | platform | `order`             | active       | —                | `order-management`                                            | single           | system-of-record         |
 | `payment`           | platform | `payment`           | active       | —                | `payment-management`                                          | single           | system-of-record         |
 | `published-catalog` | platform | `marketplace`       | active       | —                | `marketplace-catalog`                                         | single           | `projection-of:catalog`  |

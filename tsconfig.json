@@ -76,6 +76,9 @@
       "path": "./packages/business/ts/stock-management"
     },
     {
+      "path": "./packages/business/ts/shipping-order-management"
+    },
+    {
       "path": "./tools/slices"
     },
     {

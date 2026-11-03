@@ -14,6 +14,7 @@ export const STOCK_DOMAIN = 'stock-management';
 export const ORDER_DOMAIN = 'order-management';
 export const PAYMENT_DOMAIN = 'payment-management';
 export const SETTLEMENT_DOMAIN = 'settlement-management';
+export const SHIPPING_ORDER_DOMAIN = 'shipping-order-management';
 export const AUTHN_DOMAIN = 'authn';
 
 /**
@@ -165,6 +166,19 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // and the `@useCase()` declarations from drifting apart.
     `${ORDER_DOMAIN}:product-order:fulfil`,
     `${ORDER_DOMAIN}:product-order:cancel`,
+    // A vendor's shipments: reading them, handing a parcel to a courier, and
+    // recording what the courier reported. Four verbs rather than a `write`,
+    // because each is a different act with a different consequence — a
+    // dispatch is the delivery flow's pivot, a delivery may record cash taken,
+    // a refusal and a return put stock back
+    // ([ADR 0070](../../../../../docs/adr/0070-fulfilment-and-cash-on-delivery.md)).
+    // Opening, holding and withdrawing a shipment are a flow's, behind a
+    // crossing token, and granted to no role.
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:read`,
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:dispatch`,
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:record-delivery`,
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:record-refusal`,
+    `${SHIPPING_ORDER_DOMAIN}:shipping-order:record-return`,
     // Reading payments — reconciliation, and answering "did this actually go
     // through?". Granted here and **not** to `user`: the read is unscoped, so
     // this is a platform-wide view of every payment taken, which is an

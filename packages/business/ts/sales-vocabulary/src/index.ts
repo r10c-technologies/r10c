@@ -1,5 +1,6 @@
 /**
- * **sales-vocabulary** — the channel types, and nothing else.
+ * **sales-vocabulary** — the channel types and the order tenders, and nothing
+ * else.
  *
  * `business:policy`, the role `@entifix/authz` plays for permissions: a
  * vocabulary several domains express themselves in, depended on by any of them
@@ -22,6 +23,11 @@
  * type added in one list and not the other silently became unpriceable and fell
  * through to the agreement's default rate, which is a wrong invoice rather than
  * an error ([ADR 0056](../../../../docs/adr/0056-the-counter-sale-is-the-checkout-saga.md)).
+ *
+ * The tenders (`card | cash | cod`) joined later for the same reason: a
+ * checkout group's orders, their payments, their shipping orders and the flow
+ * catalog all carry the buyer's choice, and no two of them may see each other
+ * ([ADR 0070](../../../../docs/adr/0070-fulfilment-and-cash-on-delivery.md)).
  *
  * ⚠️ **Vocabulary only — it declares no `*_DOMAIN` constant and never will.** A
  * domain constant here would have to be claimed by a slice, and this package

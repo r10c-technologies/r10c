@@ -164,6 +164,11 @@ export const entitlementSeedData = (
       // means — and the reads are scoped to the caller, so a vendor sees their
       // own agreement and nobody else's.
       'settlement-management',
+      // `shipping-order-management` is what makes a vendor ship: the delivery
+      // flow's fragments require it, payment's cash-on-delivery check refuses
+      // without it, and the storefront offers cash on delivery only for a
+      // seller who holds it (ADR 0070).
+      'shipping-order-management',
     ],
   },
 ];

@@ -623,4 +623,55 @@ export const entity: EsEntity = {
       },
     },
   },
+  'shipping-order': {
+    // Opened by a flow once a checkout commits, never by a person — so this
+    // titles a record being read; the vendor moves it with the verbs below.
+    form: {
+      editTitle: 'Shipment',
+      newTitle: 'Shipment',
+    },
+    label: 'Shipment',
+    plural: 'Shipments',
+    fields: {
+      id: 'ID',
+      orderId: 'Order',
+      groupId: 'Checkout',
+      flowId: 'Flow',
+      paymentMethod: 'Payment',
+      amountDue: 'Due on delivery',
+      currency: 'Currency',
+      lines: 'Lines',
+      line: {
+        offeringId: 'Offering ID',
+        quantity: 'Quantity',
+      },
+      status: 'Status',
+      dispatchedAt: 'Dispatched at',
+      deliveredAt: 'Delivered at',
+      refusedAt: 'Refused at',
+      returnedAt: 'Returned at',
+    },
+    values: {
+      status: {
+        'awaiting-dispatch': 'Awaiting dispatch',
+        held: 'Held',
+        dispatched: 'Dispatched',
+        delivered: 'Delivered',
+        refused: 'Refused',
+        returned: 'Returned',
+        withdrawn: 'Withdrawn',
+      },
+      paymentMethod: {
+        card: 'Card',
+        cash: 'Cash',
+        cod: 'Cash on delivery',
+      },
+    },
+    useCases: {
+      dispatch: 'Dispatch',
+      'record-delivery': 'Record delivery',
+      'record-refusal': 'Record refusal',
+      'record-return': 'Record return',
+    },
+  },
 };

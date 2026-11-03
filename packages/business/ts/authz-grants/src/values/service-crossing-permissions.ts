@@ -3,7 +3,12 @@ import {
   type Permission,
 } from '@entifix/authz';
 
-import { ORDER_DOMAIN, PAYMENT_DOMAIN, STOCK_DOMAIN } from './role-permissions';
+import {
+  ORDER_DOMAIN,
+  PAYMENT_DOMAIN,
+  SHIPPING_ORDER_DOMAIN,
+  STOCK_DOMAIN,
+} from './role-permissions';
 
 /**
  * What a **service** may do when it crosses into another party's tenant storage
@@ -89,6 +94,20 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // is charging a customer again
   // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
   `${PAYMENT_DOMAIN}:refund:write`,
+  // A shipment's flow-driven life, each move its own line: opening it once the
+  // checkout commits, holding it while a cancellation runs (and releasing the
+  // hold, under the same permission, since a release only gives the lock
+  // back), withdrawing it for good, and the delivery flow's dispatch step
+  // ([ADR 0070](../../../../../docs/adr/0070-fulfilment-and-cash-on-delivery.md)).
+  //
+  // ⚠️ **`dispatch-step` is not the vendor's `dispatch`.** The vendor's verb is
+  // a session act on their own shipment; this is the coordinator dispatching
+  // the pivot of a flow it runs. One name for both would let a crossing token
+  // carry a vendor's authority, or the reverse.
+  `${SHIPPING_ORDER_DOMAIN}:shipping-order:open`,
+  `${SHIPPING_ORDER_DOMAIN}:shipping-order:hold`,
+  `${SHIPPING_ORDER_DOMAIN}:shipping-order:withdraw`,
+  `${SHIPPING_ORDER_DOMAIN}:shipping-order:dispatch-step`,
 ];
 
 /**

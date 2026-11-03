@@ -668,4 +668,55 @@ export const entity = {
       },
     },
   },
+  'shipping-order': {
+    // Lo abre un flujo cuando un checkout se confirma, nunca una persona; el
+    // vendedor lo mueve con los verbos de abajo.
+    form: {
+      editTitle: 'Envío',
+      newTitle: 'Envío',
+    },
+    label: 'Envío',
+    plural: 'Envíos',
+    fields: {
+      id: 'ID',
+      orderId: 'Pedido',
+      groupId: 'Compra',
+      flowId: 'Flujo',
+      paymentMethod: 'Pago',
+      amountDue: 'A cobrar en la entrega',
+      currency: 'Moneda',
+      lines: 'Líneas',
+      line: {
+        offeringId: 'ID de la oferta',
+        quantity: 'Cantidad',
+      },
+      status: 'Estado',
+      dispatchedAt: 'Despachado el',
+      deliveredAt: 'Entregado el',
+      refusedAt: 'Rechazado el',
+      returnedAt: 'Devuelto el',
+    },
+    values: {
+      status: {
+        'awaiting-dispatch': 'Por despachar',
+        held: 'Retenido',
+        dispatched: 'Despachado',
+        delivered: 'Entregado',
+        refused: 'Rechazado',
+        returned: 'Devuelto',
+        withdrawn: 'Retirado',
+      },
+      paymentMethod: {
+        card: 'Tarjeta',
+        cash: 'Efectivo',
+        cod: 'Contra entrega',
+      },
+    },
+    useCases: {
+      dispatch: 'Despachar',
+      'record-delivery': 'Registrar entrega',
+      'record-refusal': 'Registrar rechazo',
+      'record-return': 'Registrar devolución',
+    },
+  },
 };
