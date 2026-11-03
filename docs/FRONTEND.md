@@ -300,9 +300,9 @@ string[]`, never a `Set`: a `Set` serializes to `{}` silently.
   the wrong precedent — a tablist says the panels are siblings you may choose
   between, and a wizard's steps are ordered and gated.
 - **The submit hands off, and does not resolve.** `onFinish` returns before the
-  write is terminal; the pending set and the SSE settlement carry it
-  (ADR 0043). That is the shape that does not change when ADR 0039's
-  orchestrator lands and one command becomes a saga.
+  write is terminal; the pending-flow store and the push settlement carry it
+  (ADR 0073). That is the shape that does not change when one command becomes
+  a flow.
 
 A wizard is reached from its **Asistentes** nav item, from the palette (free —
 the nav source produces a command per visible nav item), and from a toolbar
@@ -750,17 +750,11 @@ client-only cache/orchestration jacket over `Effect.runPromise`.
   issue carries a message and a path and nothing else. An issue with no path becomes `formError`,
   which `EntityForm` renders above the actions. Schemas are synchronous; an async one throws, so
   asynchronous checks (a uniqueness lookup) go in `validate`.
-- **Mutations** (`save`/`delete` UCs) do **not** go through TanStack at all. `useEntityMutation`
-  is `useReducer` + `Effect.runPromise`; it holds no `QueryClient`, so a save invalidates
-  nothing by itself. That is deliberate rather than missing: a transactional create settles
-  **out of band**, on a `transaction.completed` frame that may arrive seconds later or in
-  another tab, which `onMutate`/`onError` — scoped to one promise — cannot express. The
-  optimistic patch and its reconciliation are therefore ours, and live in the settlement
-  contract of [ADR 0043](adr/0043-the-optimistic-mutation-contract.md): the pending write is
-  registered from the save adapter, the row is patched onto the **default** list key only, and
-  settling is an `invalidateQueries` driven by the event or by a re-query on reconnect.
-  (This bullet previously described an `onMutate`/`onError`/`onSettled` rollback that was never
-  written.)
+- **Mutations** (`save`/`delete` UCs and verbs) go through `useOptimisticMutation`, a TanStack
+  `useMutation` underneath: `apply` on mutate, `rollback` when the write fails. A `202` hands the
+  write to a flow, which settles **out of band** — on a `flow.*` push that may arrive seconds
+  later or in another tab — so its settlement is the pending-flow store's, not the mutation's
+  promise. See §7 and [ADR 0073](adr/0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md).
 
 ### Editing a relation
 
@@ -927,46 +921,51 @@ type declares `isLoading` and fails the build unless each ships a `Loading`
 Storybook story — and `nx build-storybook` proves that story renders (in the
 entifix repository, whose CI does not run it yet).
 
-## 7. Reactive updates (the reactive stream)
+## 7. Reactive updates and the optimistic contract
 
-A framework-free **`ReactiveChannel` port** (a `Context.Service`, mirroring the entifix adapter
-philosophy) emits entity-change events. Its transport is **server-sent events** on a plain `GET`
-through the app's own same-origin proxy, scoped per connection to the principal's organization
-([ADR 0036](adr/0036-the-reactive-stream-is-server-sent-and-same-origin.md)). Not a WebSocket:
-`entifix_at` is `httpOnly` and the `WebSocket` constructor accepts no headers, so a socket would
-need a second class of bearer token in client JavaScript — and a duplex frame has no caller here
-anyway.
+A tab opens **one** push stream, and every write settles through **one** mutation API.
+The decisions are [ADR 0072](adr/0072-the-realtime-slice-flow-status-and-the-edge.md) (where
+the stream lives and who hears what) and
+[ADR 0073](adr/0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md)
+(how a write settles); the mechanism is entifix's `PushChannel` and `useOptimisticMutation`
+([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.14.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
 
-`makeEventSourceReactiveChannel(url)` is the browser end. It opens **one** `EventSource` on the
-first subscriber and closes it with the last, decodes each frame with `decodeEnvelope`, and
-hands listeners the whole `DomainEvent<EntityChangeEvent>` — the correlation id, timestamp and
-sequence live on `meta.event`, not duplicated onto the payload. A frame it cannot read is
-dropped rather than thrown: `onmessage` runs in the browser's event loop, where a throw reaches
-no caller and would take the rest of that delivery's listeners with it. `makeInMemoryReactiveChannel`
-survives, but only as spec material — it is no longer what the workspace runs on.
+> **Decided, and built by #475–#478.** Until #478 lands, the back office still mounts ADR 0043's
+> `TransactionSettlement` over `/api/transaction`, which entifix keeps until its #127. Nothing
+> below is mounted yet.
 
-> **No back-office surface mounts it today.** Its only feed was the single-step tracker, which
-> left with the specification create's `202` (#463); the mechanism below is the contract the
-> push of flow outcomes returns to ([ADR 0066](adr/0066-flows-run-on-a-durable-workflow-engine.md)).
+**The stream.** `makeEventSourcePushChannel` opens one `EventSource` per tab at
+`/api/realtime/stream`, through the edge to realtime-service. Topics — `entity:<key>`,
+`record:<key>:<id>`, `flow:<flowId>` — travel in the URL; a change of interest reopens the
+stream with `Last-Event-ID`. The server closes with `event: reauth` before the token expires and
+the browser refreshes before reopening, because a reconnect answered `401` kills an
+`EventSource` for good. `useReactiveCache` turns a snapshot into a version-guarded
+`setQueryData` and a hint into `invalidateQueries`. What a connection may hear is decided
+server-side, per connection, and an event with no audience reaches nobody.
 
-Mounted, events feed the query client:
+**Two settle modes, chosen by the server.**
 
 ```
-create → save UC → 202 (the client already minted the id)
-       → adapter announces the pending write through the TransactionSink port
-       → the record is held in the pending set; the list prepends it to its own rows
-         (NOT a cache patch — the list refetches on mount and the server has no record yet,
-          so a patched page is replaced and the row vanishes a moment after appearing)
-       → transaction.completed  → settle + invalidateQueries (server truth replaces the patch)
-         transaction.failed     → re-read GET /api/transaction/:id for the reason, then settle
-         stream was down        → onConnect re-queries every pending id
+save / delete / verb ─▶ 200 + entity     ─▶ settled   (apply on mutate, rollback on failure)
+                     └▶ 202 flowAccepted ─▶ pending   ─▶ flow.completed ─▶ confirmed
+                                                       └▶ flow.failed   ─▶ failed + rollback + one toast
+                         stream was down / resync     ─▶ re-read GET /api/realtime/flow/:id
 ```
 
-The pending set is **session-scoped, not workspace-scoped** — a create happens on the plain
-route, outside any `WorkspaceShell` — so its store is provided at the `(authenticated)` layout
-and the sink is a `Noop` wherever no provider is mounted. ⚠️ A `404` from the by-id read means
-_not tracked yet_, never _failed_: with the broker down the write commits and no `accepted`
-event ever reaches the tracker. See [ADR 0043](adr/0043-the-optimistic-mutation-contract.md).
+- `makeEntityCrud` routes saves, deletes and verbs through `useOptimisticMutation`, so a
+  generated screen never branches on a status code.
+- ⚠️ **The money rule:** a pending result never renders as captured, paid or placed. The status
+  set is `pending`/`confirmed`/`failed` and nothing finer.
+- Pending flows live in `PendingFlowsProvider`, over IndexedDB, keyed by the workspace scope —
+  JSON only, an id and an intent, never an instance (ADR 0032). The storefront's scope is
+  anonymous and keeps flow ids only.
+- ⚠️ A `404` from flow-status means _not projected yet_, never _failed_. The flow stays pending up
+  to `PENDING_FLOW_MAX_AGE_MS` (30 min), then is dropped silently.
+- A failure arrives with a `code` that is its `errors` key and is toasted through
+  `useErrorMessage`; the toast stays until dismissed.
+- ⚠️ A pending create **stays on its form** until it settles, and keeps its input on failure. It
+  is never patched into a list: the list refetches on mount and the row vanishes (measured in
+  ADR 0043, kept by 0073).
 
 ## 8. Design-system fit
 
@@ -1210,10 +1209,9 @@ bundle-size budget.
 # Deferred (workspace)
 
 Making a create **addressable** — `master:<key>:new`, or re-addressing the tab to
-`master:<key>:<id>` once the `202` mints one — which is what would give a create an autosaved
+`master:<key>:<id>` once it has an id — which is what would give a create an autosaved
 draft and let the tab strip finally write `TabState`'s `'saving'` and `'error'`
-([ADR 0043](adr/0043-the-optimistic-mutation-contract.md)); an error **code** on the failure
-event, so a failed transaction's reason is translatable rather than free text;
+([ADR 0073](adr/0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md));
 cross-browser-tab collision sync (BroadcastChannel vs last-write-wins);
 stale-draft-vs-server conflict resolution on Save; whole-workspace share link; operations/wizards
 tab kinds; server-side TanStack dehydration/prefetch; the to-many link editor

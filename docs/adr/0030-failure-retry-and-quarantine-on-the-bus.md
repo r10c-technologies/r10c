@@ -29,6 +29,7 @@
 - Revised: 2026-10-28 — the broker does not count a requeued nack, so the adapter counts attempts itself and quarantines at `maxAttempts` (entifix #130, 0.10.1); its backoff is sized from the `retry` dials, and every quarantine is counted
 - Revised: 2026-10-28 by [ADR 0067](0067-a-breaker-and-bulkhead-per-participant.md) — a consumer pauses its prefetch while the breaker of a participant its handler calls is open
 - Revised: 2026-10-29 — the envelope reader is `decodeEnvelope` since entifix 0.11.0, and it decodes `data` through the registry; the poison rule is unchanged
+- Revised: 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md) — the `broadcast` consumer is realtime-service, one queue per replica, not the transaction slice's stream
 
 ## Context
 

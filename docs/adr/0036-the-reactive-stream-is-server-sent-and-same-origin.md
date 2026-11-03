@@ -3,13 +3,14 @@
 - Status: Accepted
 - Date: 2026-09-02
 - Area: messaging
-- Read when: pushing anything to a browser — SSE and not a socket, because the cookie is `httpOnly` and the `WebSocket` constructor accepts no headers
+- Read when: pushing anything to a browser — SSE and not a socket, because Next cannot upgrade a route handler and every consumer reads one way; where the stream lives is ADR 0072's
 - Amended by: [ADR 0043](0043-the-optimistic-mutation-contract.md) — "on reconnect
   the client re-queries its pending transaction ids and reconciles" is built, and
   `ReactiveChannel` gains an `onConnect` signal (which replays for a listener
   registered while the stream is already open) to drive it. Declining replay, and
   every other decision here, stands.
 - Revised: 2026-10-29 — `/api/transaction/events` left with the tracker that fed it (#463); the decision stands for the push of flow outcomes ADR 0066 builds
+- Revised: 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md) — partly superseded: the stream's placement in the publishing slice, the rejection of a stream deployment and "the server does not replay"; and corrected in place, since a same-origin WebSocket handshake does carry the `Lax` cookie
 
 ## Context
 
@@ -24,17 +25,21 @@ reactive story exists except the one that would make it observable, and a reader
 of the workspace cannot tell the difference between "the transport is missing"
 and "nothing changed".
 
-**A browser WebSocket would be this repo's first cross-origin browser
-connection.** `rewriteServiceDomains` exists for one reason: `entifix_at` is
-`httpOnly` and `sameSite: 'lax'`, so a browser pointed at `:3101` sends no
-session and gets a `401`. Every service address the browser sees is rewritten to
-a same-origin proxy path before it leaves `GET /api/config`, and
-`createServiceProxyRoute` turns the cookie into a bearer token server-side. A
-WebSocket cannot participate in that: the `WebSocket` constructor accepts no
-headers, so the cookie is the only credential available and a `Lax` cookie is not
-sent on a cross-site handshake. The transport would therefore need a second class
-of bearer token, minted for handshakes, handed to client JavaScript — which is
-the one thing `httpOnly` was protecting against.
+> **Corrected 2026-11-02.** This paragraph first argued that a WebSocket could
+> not carry the session, because a `Lax` cookie is not sent on a cross-site
+> handshake. That is true and beside the point: a handshake to the page's own
+> origin is same-site, and the browser sends the cookie with it exactly as it
+> does with a `fetch`. A same-origin WebSocket needs no second bearer class. What
+> it does need is an **exact `Origin` allowlist**, because a handshake is not
+> CORS-checked and a hostile page can open one to any address.
+
+**A browser cannot reach a service directly with its session.**
+`rewriteServiceDomains` exists for one reason: `entifix_at` is `httpOnly` and
+`sameSite: 'lax'`, so a browser pointed at `:3101` sends no session and gets a
+`401`. Every service address the browser sees is rewritten to a same-origin
+proxy path before it leaves `GET /api/config`, and `createServiceProxyRoute`
+turns the cookie into a bearer token server-side. Whatever transport the push
+uses has to arrive on the page's own origin too.
 
 **`TransactionEvent` carries no organization.** Its members are
 `transactionId`, `entity`, `state`, `step`, `code`, `entityId`, `error`, `at`.
@@ -72,13 +77,24 @@ id it saw as `Last-Event-ID`. Reconnect is the requirement #137 names as the one
 whose absence is "worse than no optimism at all", and it arrives as browser
 behaviour rather than as our retry loop.
 
-**Rejected: a WebSocket at the service behind a minted handshake ticket.** The
-plumbing is genuinely available — `HttpServerRequest.upgrade` yields a
-`Socket.Socket`, `NodeHttpServer` already registers an upgrade handler that
-routes through the same `HttpRouter` and the same middleware, and `ws` is already
-a transitive dependency. The cost is not the transport, it is the token: a
-short-lived credential in client JavaScript, in a URL or a subprotocol, is a new
-authentication surface added for a capability nothing needs.
+**Rejected: a WebSocket.** The plumbing is genuinely available —
+`HttpServerRequest.upgrade` yields a `Socket.Socket`, and `NodeHttpServer`
+already registers an upgrade handler that routes through the same `HttpRouter`.
+The reasons against it are three, and none is the cookie (see the correction
+above):
+
+- **Next cannot upgrade a route handler** (Next 16.4.2, vercel/next.js#95514),
+  and the browser reaches the services only through Next, so a socket has no
+  same-origin path to its service;
+- **every consumer reads one way**, so the duplex frame has no caller;
+- **SSE keeps HTTP semantics** — a plain `GET`, the same middleware, status
+  codes, caching headers and access logs — and `EventSource` reconnects with
+  `Last-Event-ID` on its own.
+
+⚠️ One property of `EventSource` shapes everything that follows: a reconnect
+answered `401` closes it for good, with no further retry. A stream bounded by
+the token must therefore close _before_ the token expires, never let the
+reconnect fail.
 
 **Rejected: terminating in Next.** An App Router route handler receives a
 `Request` and can never upgrade a connection. Replacing the server to get one
@@ -90,6 +106,11 @@ every browser is the tidiest diagram and owns no store. ADR 0021 deleted
 `marketplace-service` for precisely that shape, and ADR 0020 gave the rule it was
 deleted under: a deployment earns its existence by owning a store.
 
+> **Superseded 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md).** The rule holds and the premise moved: the
+> stream now lives in a `realtime` slice that owns the `flow-status` projection,
+> so it is a deployment with a store, and one stream per tab replaces one per
+> publishing slice.
+
 ### It terminates in the service, behind `requirePrincipal`
 
 A route on the same `HttpRouter` and the same port as the service's REST surface,
@@ -99,6 +120,10 @@ no second authentication path to keep in step, which is the property the
 handshake-ticket design could not have.
 
 ### The `transaction` slice owns it, at `GET /api/transaction/events`
+
+> **Superseded 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md)** — the stream is
+> `GET /api/realtime/stream` on realtime-service, reached through the edge rather
+> than a Next proxy.
 
 Not `marketplace-admin`, and the reason is enforced rather than stylistic:
 `slices.spec.ts` asserts no slice subscribes to its own events, and
@@ -163,6 +188,11 @@ failure is silent in the direction that matters.
 
 ### ⚠️ The connection is bounded by the token, not by the session
 
+> **Revised 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md)** — the bound stands, but the stream now closes
+> with `event: reauth` before the token expires and the browser refreshes before
+> it reopens. A reconnect answered `401` closes an `EventSource` permanently, so
+> "a reconnect that fails `401`" below is a dead stream, not a second signal.
+
 The stream closes when the verified access token expires. `EventSource`
 reconnects, the browser sends the cookie the app refreshed in the meantime, and
 the new connection is authenticated from a new token.
@@ -185,6 +215,11 @@ surface. It is what #53 should build, and the trigger for building it is the fir
 requirement that a specific person's access stop in seconds rather than minutes.
 
 ### The server does not replay
+
+> **Superseded 2026-11-02 by [ADR 0072](0072-the-realtime-slice-flow-status-and-the-edge.md)** — a reopen replays from the `flow-status`
+> projection for `flow:` topics and sends `resync` for entity topics. The
+> objection below, to a per-connection backlog, still stands; the replay is not
+> one.
 
 `Last-Event-ID` is accepted and ignored. On reconnect the client re-queries its
 pending transaction ids and reconciles — #137's work, and the thing it has to do
