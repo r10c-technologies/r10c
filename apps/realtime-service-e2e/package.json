@@ -1,0 +1,45 @@
+{
+  "name": "@r10c/realtime-service-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "tags": [
+      "type:e2e",
+      "scope:realtime"
+    ],
+    "implicitDependencies": [
+      "@r10c/realtime-service"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/test-output/vitest"
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.mts --passWithNoTests",
+          "cwd": "apps/realtime-service-e2e"
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/testing-e2e": "catalog:",
+    "@entifix/testing-unit": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/business-ts-catalog-contracts": "workspace:*",
+    "@r10c/business-ts-flow-contracts": "workspace:*",
+    "@r10c/business-ts-order-contracts": "workspace:*",
+    "@r10c/realtime-service": "workspace:*",
+    "@r10c/shells-effect-realtime": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*",
+    "effect": "4.0.7"
+  }
+}

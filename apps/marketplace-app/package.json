@@ -39,7 +39,8 @@
             "projects": [
               "@r10c/marketplace-service",
               "@r10c/marketplace-admin-service",
-              "@r10c/auth-service"
+              "@r10c/auth-service",
+              "@r10c/realtime-service"
             ],
             "target": "dev"
           },

@@ -765,6 +765,7 @@ pnpm nx e2e marketplace-admin-service-e2e                   # mock
 pnpm nx e2e stock-service-e2e                               # mock
 pnpm nx e2e sales-service-e2e                               # mock
 pnpm nx e2e settlement-service-e2e                          # mock
+pnpm nx e2e realtime-service-e2e                            # mock
 
 pnpm run back-office:dev                                    # then, in another shell:
 E2E_PROFILE=live \

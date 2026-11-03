@@ -1,0 +1,170 @@
+{
+  "name": "@r10c/realtime-service",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "nx": {
+    "tags": [
+      "layer:app",
+      "scope:realtime",
+      "host:effect"
+    ],
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [],
+        "options": {
+          "command": "webpack-cli build",
+          "args": [
+            "--config-node-env=production"
+          ],
+          "cwd": "apps/realtime-service"
+        },
+        "configurations": {
+          "development": {
+            "args": [
+              "--config-node-env=development"
+            ]
+          }
+        }
+      },
+      "prune-lockfile": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "executor": "@nx/js:prune-lockfile",
+        "outputs": [
+          "{workspaceRoot}/apps/realtime-service/dist/package.json",
+          "{workspaceRoot}/apps/realtime-service/dist/pnpm-lock.yaml",
+          "{workspaceRoot}/apps/realtime-service/dist/pnpm-workspace.yaml",
+          "{workspaceRoot}/apps/realtime-service/dist/patches",
+          "{workspaceRoot}/apps/realtime-service/dist/local_path_modules"
+        ],
+        "options": {
+          "buildTarget": "build"
+        },
+        "inputs": [
+          "default",
+          "^default",
+          "{workspaceRoot}/pnpm-workspace.yaml",
+          "{workspaceRoot}/package.json",
+          {
+            "runtime": "node -e \"try{console.log('pnpm major '+require('child_process').execSync('pnpm --version',{stdio:['ignore','pipe','ignore']}).toString().trim().split('.')[0])}catch{console.log('pnpm major unavailable')}\""
+          }
+        ]
+      },
+      "copy-workspace-modules": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "outputs": [
+          "{workspaceRoot}/apps/realtime-service/dist/workspace_modules"
+        ],
+        "executor": "@nx/js:copy-workspace-modules",
+        "options": {
+          "buildTarget": "build"
+        }
+      },
+      "prune": {
+        "dependsOn": [
+          "prune-lockfile",
+          "copy-workspace-modules"
+        ],
+        "executor": "nx:noop"
+      },
+      "ensure-infra": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash infra/local/ensure.sh"
+        }
+      },
+      "dev": {
+        "continuous": true,
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": [
+          "free-ports",
+          "build",
+          "ensure-infra",
+          {
+            "projects": "@r10c/config-service",
+            "target": "dev"
+          }
+        ],
+        "options": {
+          "buildTarget": "@r10c/realtime-service:build",
+          "runBuildTargetDependencies": false,
+          "port": 9191,
+          "runtimeArgs": [
+            "--disable-warning=DEP0205"
+          ]
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "@r10c/realtime-service:build:development"
+          },
+          "production": {
+            "buildTarget": "@r10c/realtime-service:build:production"
+          }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
+        }
+      },
+      "free-ports": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "bash tools/free-ports.sh 3191 9191"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@effect/opentelemetry": "4.0.7",
+    "@effect/platform-node": "4.0.7",
+    "@entifix/amqp": "catalog:",
+    "@entifix/authz": "catalog:",
+    "@entifix/business": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/jwt": "catalog:",
+    "@entifix/mongo": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/tooling": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/context-async-hooks": "2.12.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.223.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.223.0",
+    "@opentelemetry/resources": "2.12.0",
+    "@opentelemetry/sdk-metrics": "2.12.0",
+    "@opentelemetry/sdk-trace-base": "2.12.0",
+    "@opentelemetry/sdk-trace-node": "2.12.0",
+    "@opentelemetry/sdk-trace-web": "2.12.0",
+    "@opentelemetry/semantic-conventions": "1.44.0",
+    "@r10c/business-ts-authn": "workspace:*",
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/business-ts-flow-contracts": "workspace:*",
+    "@r10c/shells-effect-realtime": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*",
+    "@r10c/utils-ts-fleet": "workspace:*",
+    "effect": "4.0.7",
+    "jose": "6.2.14",
+    "mongodb": "7.8.0",
+    "tslib": "2.9.1"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:"
+  }
+}

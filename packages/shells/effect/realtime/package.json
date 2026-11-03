@@ -1,0 +1,59 @@
+{
+  "name": "@r10c/shells-effect-realtime",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@r10c/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "tags": [
+      "layer:shell",
+      "scope:realtime",
+      "shell:platform"
+    ],
+    "sourceRoot": "packages/shells/effect/realtime/src",
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "options": {
+          "outputPath": "packages/shells/effect/realtime/dist",
+          "main": "packages/shells/effect/realtime/src/index.ts",
+          "tsConfig": "packages/shells/effect/realtime/tsconfig.lib.json",
+          "stripLeadingPaths": true
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@entifix/authz": "catalog:",
+    "@entifix/core": "catalog:",
+    "@entifix/service-shell": "catalog:",
+    "@entifix/transactions": "catalog:",
+    "@r10c/business-ts-flow-contracts": "workspace:*",
+    "@r10c/shells-effect-service": "workspace:*",
+    "@swc/helpers": "0.5.23",
+    "effect": "4.0.7"
+  },
+  "devDependencies": {
+    "@entifix/testing-unit": "catalog:",
+    "@r10c/business-ts-authz-grants": "workspace:*",
+    "@r10c/business-ts-catalog-contracts": "workspace:*",
+    "@r10c/business-ts-order-contracts": "workspace:*"
+  }
+}

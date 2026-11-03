@@ -124,6 +124,7 @@ const FLEET_SERVICES = [
   'settlement-service',
   'stock-service',
   'sales-service',
+  'realtime-service',
 ] as const;
 
 /**
@@ -1214,6 +1215,102 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   },
   {
     service: 'settlement-service',
+    group_name: 'otel',
+    key: 'metricIntervalMs',
+    value: '60000',
+  },
+  // realtime-service — the push stream every tab opens through the edge, and
+  // the `flow-status` projection a pending write catches up from (ADR 0072).
+  // Platform plane, single: one database named at boot, written by this slice
+  // alone.
+  {
+    service: 'realtime-service',
+    group_name: 'mongo',
+    key: 'uri',
+    value: MONGO_URI,
+    is_secret: true,
+  },
+  {
+    service: 'realtime-service',
+    group_name: 'mongo',
+    key: 'db',
+    value: 'flow_status',
+  },
+  // Every replica binds its own `broadcast` queues for what it pushes, so the
+  // broker is the stream's only input besides the flow-status store.
+  {
+    service: 'realtime-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
+  {
+    service: 'realtime-service',
+    group_name: 'jwt',
+    key: 'publicKey',
+    value: DEV_PUBLIC_KEY_PEM,
+  },
+  {
+    service: 'realtime-service',
+    group_name: 'jwt',
+    key: 'keyId',
+    value: DEV_KEY_ID,
+  },
+  // ⚠️ **No `service.token` row.** Nothing dispatches into this slice and it
+  // dispatches nowhere: the stream and the flow reads answer the caller's own
+  // session, or a flow capability compared by digest (ADR 0023).
+  //
+  // The SSE adapter's dials (ADR 0072). A drain sends each open stream a
+  // `retry:` drawn from [retryMinMs, retryMaxMs], so a rolling restart spreads
+  // its reconnects instead of landing them on one replica; a stream asks to
+  // reauthenticate `reauthMarginMs` before its token's `exp`, which must stay
+  // well inside the 15-minute access-token lifetime; a shutdown waits up to
+  // `drainWindowMs` for the last frames to leave.
+  {
+    service: 'realtime-service',
+    group_name: 'realtime',
+    key: 'retryMinMs',
+    value: '1000',
+  },
+  {
+    service: 'realtime-service',
+    group_name: 'realtime',
+    key: 'retryMaxMs',
+    value: '5000',
+  },
+  {
+    service: 'realtime-service',
+    group_name: 'realtime',
+    key: 'reauthMarginMs',
+    value: '30000',
+  },
+  {
+    service: 'realtime-service',
+    group_name: 'realtime',
+    key: 'drainWindowMs',
+    value: '5000',
+  },
+  {
+    service: 'realtime-service',
+    group_name: 'logging',
+    key: 'level',
+    value: 'debug',
+  },
+  {
+    service: 'realtime-service',
+    group_name: 'logging',
+    key: 'sink',
+    value: 'otlp',
+  },
+  {
+    service: 'realtime-service',
+    group_name: 'otel',
+    key: 'endpoint',
+    value: 'http://127.0.0.1:30318',
+  },
+  {
+    service: 'realtime-service',
     group_name: 'otel',
     key: 'metricIntervalMs',
     value: '60000',

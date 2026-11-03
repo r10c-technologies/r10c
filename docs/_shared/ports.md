@@ -417,10 +417,33 @@ secret, beside the storefront — which holds it for the opposite reason, having
 session to check at all
 ([ADR 0056](../adr/0056-the-counter-sale-is-the-checkout-saga.md)).
 
-¹¹ **Reserved for realtime-service** ([ADR 0072](../adr/0072-the-realtime-slice-flow-status-and-the-edge.md)),
-inspector `9191`. The edge already routes `/api/realtime/*` on every origin to
-it, and both are freed by `free-ports`, but nothing binds the port until #476
-writes the service; until then the route answers Envoy's `503`.
+¹¹ **realtime-service, bound** ([ADR 0072](../adr/0072-the-realtime-slice-flow-status-and-the-edge.md)),
+inspector `9191`. It owns the `flow-status` store — platform plane, single, a
+projection of the `workflow` journal — and serves the one push stream every tab
+opens, `GET /api/realtime/stream`, which the edge routes to it on every origin.
+Every app's `dev` starts it, because a fleet without it is a back office whose
+stream answers Envoy's `503`.
+
+⚠️ **Every push subscription is a `broadcast`.** Each replica holds different
+connections, so each binds its own exclusive queue for every pushable event, and
+a message missed while a replica was down is caught up by the browser's
+`resync` on reopen rather than redelivered. What a browser hears is decided by
+a **push projection** in `@r10c/shells-effect-realtime`: a member whose role
+grants the entity's read permission receives an `order.*` record itself, anyone
+else a hint `{entity, change, id}` under its own registered name
+(`entity.changed`); a publication is always a hint.
+
+⚠️ **The audience filter fails closed.** Organization entries match the
+session's `activeOrganizationId`, party entries its `partyId`, flow entries a
+presented capability by SHA-256 digest; an event with no audience reaches
+nobody. That is why `payment.*` is not pushed: it is registered with no
+audience, and a capture names no vendor until it is allocated per order (#480).
+
+It holds no crossing token and accepts none. A caller with neither a session nor
+a capability is refused `401` **before** the stream opens, because a `401` on an
+open `EventSource` kills it for good; a stream nearing its token's `exp` is sent
+`event: reauth` instead. The SSE dials — the jittered `retry:` range, the reauth
+margin and the drain window — are configuration rows.
 
 ¹⁰ **Reserved for fulfilment-service** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)),
 inspector `9110`. The `fulfilment` slice is declared `planned`, so nothing binds

@@ -78,6 +78,9 @@ export const transactionSlice: SliceDeclaration = {
     'POST /api/payment',
     'POST /api/refund',
   ],
-  publishedEvents: [],
+  // What the durable engine announces through the `workflow` store's outbox
+  // (ADR 0066): a flow's outcome, which the realtime slice pushes to the flow's
+  // audience.
+  publishedEvents: ['flow.completed', 'flow.failed'],
   subscriptions: [],
 };

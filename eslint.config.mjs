@@ -13,7 +13,8 @@ import { r10cPlugin } from './tools/eslint/no-foreign-app-namespace.mjs';
 //              layer here: `@entifix/*` is installed from the registry, and an
 //              external package carries no tags — any layer may import it.
 //   scope:*    a domain scope (marketplace / marketplace-admin / auth /
-//              transaction / config) may only depend on itself or `scope:shared`;
+//              transaction / realtime / config) may only depend on itself or
+//              `scope:shared`;
 //              `scope:shared` is the reusable core and is dependable by anyone.
 //   business:* internal ordering INSIDE the business layer: policy ‹ domain
 //              (a domain may use the shared authorization vocabulary; it may
@@ -124,6 +125,14 @@ const scopeConstraints = [
     sourceTag: 'scope:transaction',
     onlyDependOnLibsWithTags: ['scope:transaction', 'scope:shared'],
   },
+  // The `realtime` slice (ADR 0072): the push stream and the flow-status
+  // projection. Like `transaction` it hosts no domain, so it reaches nothing
+  // but the shared core — what a browser may hear is decided by its own push
+  // projections, never by importing the domains whose events it carries.
+  {
+    sourceTag: 'scope:realtime',
+    onlyDependOnLibsWithTags: ['scope:realtime', 'scope:shared'],
+  },
   {
     sourceTag: 'scope:config',
     onlyDependOnLibsWithTags: ['scope:config', 'scope:shared'],
@@ -184,7 +193,8 @@ const businessConstraints = [
 //   (`@r10c/shells-effect-service`), beside the installed base shells
 //   (`@entifix/service-shell`, `@entifix/next-shell`, `@entifix/next-i18n`).
 // - `shell:domain` — one slice that owns a domain, mounted onto the base.
-// - `shell:platform` — one slice that declares no domain (`transaction`).
+// - `shell:platform` — one slice that declares no domain (`transaction`,
+//   `realtime`).
 //
 // A domain or platform shell may reach down to the base and never sideways
 // into another shell, of either kind; the base reaches neither, so it can

@@ -70,7 +70,8 @@
               "@r10c/stock-service",
               "@r10c/sales-service",
               "@r10c/settlement-service",
-              "@r10c/transaction-service"
+              "@r10c/transaction-service",
+              "@r10c/realtime-service"
             ],
             "target": "dev"
           }

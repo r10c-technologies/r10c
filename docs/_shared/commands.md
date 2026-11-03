@@ -44,20 +44,24 @@ pnpm nx run marketplace-app:dev            # :3000 (auto-starts marketplace-serv
                                            #        former, but what fills its
                                            #        projection on a fresh lab is
                                            #        the rebuild walk in the latter;
-                                           #        and auth-service, whose
+                                           #        auth-service, whose
                                            #        announcements fill the
-                                           #        sellers' names)
+                                           #        sellers' names; and
+                                           #        realtime-service, the stream
+                                           #        the edge routes to)
 pnpm nx run back-office-app:dev            # :3001 (catalog + system management +
                                            #        users + account, one origin;
                                            #        auto-starts admin-service,
                                            #        auth-service, config-service,
                                            #        marketplace-, stock-, sales-,
-                                           #        settlement- and
-                                           #        transaction-service)
+                                           #        settlement-, transaction-
+                                           #        and realtime-service)
 pnpm nx run config-service:dev             # :3190 (Postgres; runs ensure-infra first)
 pnpm nx run marketplace-admin-service:dev  # :3101 (Mongo + RabbitMQ;
                                            #        +config-service)
 pnpm nx run auth-service:dev               # :3102 (Mongo; +config-service)
+pnpm nx run realtime-service:dev           # :3191 (Mongo + RabbitMQ; the push
+                                           #        stream behind the edge)
 
 # A library edit reloads by itself while any app/service runs: every app `dev`
 # starts the single root `watch-libs` watcher, which rebuilds the changed library
