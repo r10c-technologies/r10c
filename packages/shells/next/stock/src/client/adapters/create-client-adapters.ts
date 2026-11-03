@@ -5,6 +5,7 @@ import {
   buildEntityRestAdapterGet,
   buildEntityRestAdapterLoad,
   buildEntityRestAdapterSave,
+  buildEntityRestAdapterWrite,
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
   makeEntityMetadataSource,
@@ -82,8 +83,22 @@ const metadata = makeEntityMetadataSource({
   url: name => `/api/stock/${name}/$metadata`,
 });
 
+/**
+ * The writers the generated forms save and delete through. Each answers both
+ * settle modes (ADR 0073): a write that commits in one unit returns the entity,
+ * one the server hands to a flow returns a pending flow the form waits on. The
+ * server picks; the screen never branches on a status.
+ */
+const stockItemWriter = buildEntityRestAdapterWrite(StockItem, STOCK_SERVICE);
+const stockMovementWriter = buildEntityRestAdapterWrite(
+  StockMovement,
+  STOCK_SERVICE,
+);
+
 export function createClientAdapters(): StockAdapters {
   return {
+    stockItemWriter,
+    stockMovementWriter,
     stockItemRest,
     stockMovementRest,
     reservationRest,

@@ -78,6 +78,7 @@ const generatedAgreementCrud = makeEntityCrud(Agreement, {
   basePath: AGREEMENT_SURFACE.basePath,
   catalogKey: AGREEMENT_SURFACE.entityKey,
   repository: 'agreementRest',
+  write: 'agreementWriter',
   // The rate map is a column the table renders as an object. Hiding it from the
   // list is cosmetic rather than load-bearing — unlike hiding it from the form,
   // which stops a save writing `NaN` over it.

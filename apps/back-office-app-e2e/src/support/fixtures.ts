@@ -358,6 +358,32 @@ const createHandlers = [
  * any entity request, so stubbing only the entity endpoint leaves the page
  * stuck and the spec passing vacuously.
  */
+/**
+ * The push stream every signed-in page opens (ADR 0072), answered as an idle
+ * stream: the opening frame and a long `retry:`, so a spec that is not about
+ * push never sees a frame, and nothing reaches the edge, where nothing serves
+ * `/api/realtime/*` under `mock`. A spec about push replaces it.
+ */
+export const STREAM_URL = `${APP_URL}/api/realtime/stream`;
+
+export const idleStream = () =>
+  new HttpResponse('retry: 60000\n: open\n\n', {
+    headers: { 'content-type': 'text/event-stream' },
+  });
+
+/** Where a pending flow catches up from (ADR 0073); `404` means still pending. */
+export const FLOW_STATUS_URL = `${APP_URL}/api/realtime/flow/:id`;
+
+const realtimeHandlers = [
+  http.get(STREAM_URL, idleStream),
+  http.get(FLOW_STATUS_URL, () =>
+    HttpResponse.json(
+      { type: 'about:blank', code: 'notFound', status: 404 },
+      { status: 404, headers: { 'content-type': 'application/problem+json' } },
+    ),
+  ),
+];
+
 const base = defineEntifixE2eTest({
   handlers: [
     configurationHandler(`${APP_URL}/api/config`, CONFIGURATION),
@@ -381,6 +407,7 @@ const base = defineEntifixE2eTest({
     ...bulkPublishHandlers,
     ...sellHandlers,
     ...createHandlers,
+    ...realtimeHandlers,
   ],
   // The app serves its own documents, RSC payloads and dev-tooling endpoints;
   // only unstubbed *service* traffic should fail a test.

@@ -13,7 +13,6 @@ import { workspaceRegistry } from './workspace-registry';
  *
  * `scope` is resolved by the server page from the session; it keys the persisted
  * tabs and drafts so two accounts on one browser profile never share them.
-
  */
 export function WorkspaceView({ scope }: { scope: string }) {
   const t = useT('app');

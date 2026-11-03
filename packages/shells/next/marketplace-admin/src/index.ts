@@ -1,3 +1,4 @@
+export * from './catalog-push-topics';
 export * from './catalog-surfaces';
 export * from './client/adapters/create-client-adapters';
 export * from './client/catalog-crud';

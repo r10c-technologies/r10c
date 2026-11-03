@@ -1,8 +1,17 @@
 import type { EntityRepositoryTag } from '@entifix/business';
-import type { EntityMetadataSource, EntityUseCaseRunner } from '@entifix/core';
+import type {
+  EntityMetadataSource,
+  EntityUseCaseRunner,
+  EntityWriter,
+} from '@entifix/core';
 import type { Context } from 'effect/Context';
 
 export interface MarketplaceAdminAdapters {
+  productBrandWriter: EntityWriter;
+  productCategoryWriter: EntityWriter;
+  productWriter: EntityWriter;
+  productOfferingWriter: EntityWriter;
+  productOfferingPriceWriter: EntityWriter;
   productCategoryRest: Context<EntityRepositoryTag>;
   productBrandRest: Context<EntityRepositoryTag>;
   productRest: Context<EntityRepositoryTag>;

@@ -248,8 +248,7 @@ export interface ProductSetupWizardProps {
  *
  * Dual-host like every generated page: as a route it returns to the product
  * list, in a workspace tab the host says where to go. Both inherit the pending
- * set and the SSE settlement from `providers.tsx`, which is why the ending needs
- * nothing of its own.
+ * set from `providers.tsx`, which is why the ending needs nothing of its own.
  */
 export function ProductSetupWizard({
   step,

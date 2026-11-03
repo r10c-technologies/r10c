@@ -1,0 +1,44 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/@r10c/realtime-service-e2e",
+    "esModuleInterop": true,
+    "noUnusedLocals": false,
+    "noImplicitAny": false,
+    "types": [
+      "node",
+      "vitest/globals"
+    ],
+    "ignoreDeprecations": "6.0",
+    "rootDir": "."
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/business/ts/authz-grants"
+    },
+    {
+      "path": "../../packages/business/ts/authn"
+    },
+    {
+      "path": "../../packages/business/ts/flow-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/order-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/catalog-contracts"
+    },
+    {
+      "path": "../../packages/shells/effect/realtime"
+    },
+    {
+      "path": "../../packages/utils/ts/fleet"
+    },
+    {
+      "path": "../realtime-service"
+    }
+  ]
+}

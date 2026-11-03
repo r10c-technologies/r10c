@@ -293,6 +293,7 @@ Four rows worth their reasoning:
 | `payment`           | active | payment                                                | payment-service `:3106`           |
 | `settlement`        | active | settlement                                             | settlement-service `:3107`        |
 | `sales`             | active | sales                                                  | sales-service `:3109`             |
+| `realtime`          | active | flow-status                                            | realtime-service `:3191`          |
 
 **Co-deployment is reversible; merging stores is not.** Two slices sharing a
 process keeps ownership where it was — splitting back out means pointing a

@@ -46,6 +46,7 @@ export const stockItemCrud: EntityCrud<StockItem> = makeEntityCrud(StockItem, {
   basePath: STOCK_ITEM_SURFACE.basePath,
   catalogKey: STOCK_ITEM_SURFACE.entityKey,
   repository: 'stockItemRest',
+  write: 'stockItemWriter',
   // `id` only. Both counters stay visible — a stock screen that hid the
   // quantities would have nothing left to show — they are simply not editable,
   // and the metadata is what says so.
@@ -73,6 +74,7 @@ export const stockMovementCrud: EntityCrud<StockMovement> = makeEntityCrud(
     basePath: STOCK_MOVEMENT_SURFACE.basePath,
     catalogKey: STOCK_MOVEMENT_SURFACE.entityKey,
     repository: 'stockMovementRest',
+    write: 'stockMovementWriter',
     // Server-owned: `record-movement.ts` assigns it with `randomUUID()`, so
     // asking an operator to type one would be asking for a value the service
     // overwrites.

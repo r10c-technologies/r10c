@@ -1,5 +1,6 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import { type Entity,Unavailable } from '@entifix/core';
+import { type EntityWriter, settled } from '@entifix/core';
+import { type Entity, Unavailable } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
@@ -24,6 +25,21 @@ import {
 } from './catalog-crud.js';
 import type { MarketplaceAdminAdapters } from './client-types.js';
 import { MarketplaceAdminAdaptersProvider } from './marketplace-admin-context/marketplace-admin-context.js';
+
+/**
+ * A writer that settles every write through the spec's own in-memory
+ * repository, as a write that commits in one unit does (ADR 0073).
+ */
+const settledWriter = (
+  context: Context.Context<EntityRepositoryTag>,
+): EntityWriter => {
+  const repository = Context.get(context, EntityRepositoryTag);
+  return {
+    save: entity => Effect.map(repository.save(entity), settled),
+    delete: entityOrId =>
+      Effect.as(repository.delete(entityOrId), settled(undefined)),
+  };
+};
 
 /** The transports the shell really composes, so metadata reads behave as in production. */
 const real = createClientAdapters();
@@ -71,14 +87,29 @@ let repositories: {
 
 const adapters = (): MarketplaceAdminAdapters => ({
   productRest: Context.make(EntityRepositoryTag, repositories.product),
+  productWriter: settledWriter(
+    Context.make(EntityRepositoryTag, repositories.product),
+  ),
   productBrandRest: Context.make(EntityRepositoryTag, repositories.brand),
+  productBrandWriter: settledWriter(
+    Context.make(EntityRepositoryTag, repositories.brand),
+  ),
   productCategoryRest: Context.make(EntityRepositoryTag, repositories.category),
+  productCategoryWriter: settledWriter(
+    Context.make(EntityRepositoryTag, repositories.category),
+  ),
   // Neither page under test reads an offering; the keys exist because the
   // adapter set is one object and a partial one would not type.
   productOfferingRest: Context.make(EntityRepositoryTag, repositories.product),
+  productOfferingWriter: settledWriter(
+    Context.make(EntityRepositoryTag, repositories.product),
+  ),
   productOfferingPriceRest: Context.make(
     EntityRepositoryTag,
     repositories.product,
+  ),
+  productOfferingPriceWriter: settledWriter(
+    Context.make(EntityRepositoryTag, repositories.product),
   ),
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,

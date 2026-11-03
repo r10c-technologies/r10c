@@ -930,9 +930,14 @@ the stream lives and who hears what) and
 (how a write settles); the mechanism is entifix's `PushChannel` and `useOptimisticMutation`
 ([entifix ADR 0022](https://github.com/r10c-technologies/entifix/blob/v0.14.0/docs/adr/0022-two-settle-modes-and-the-pending-flow-store.md)).
 
-> **Decided, and built by #475–#478.** Until #478 lands, the back office still mounts ADR 0043's
-> `TransactionSettlement` over `/api/transaction`, which entifix keeps until its #127. Nothing
-> below is mounted yet.
+> **Built by #475–#478.** The back office mounts all of it in `apps/back-office-app/src/app/providers.tsx`:
+> the `ToastProvider` and its `ToastRegion`, one module-level push channel, `PendingFlowsProvider`
+> reading flow-status through `buildFlowStatusReader`, and one `useReactiveCache` over the topics
+> each domain shell exports (`CATALOG_PUSH_TOPICS`, `ORDER_PUSH_TOPICS`). Every generated form with
+> a save writes through `buildEntityRestAdapterWrite`, so a `202` keeps it open. No back-office
+> write answers `202` yet — checkout at the till and cancellation do once they run on the engine
+> (#486, #487) — so the `202` path is proven in `back-office-app-e2e` with the stream's frames
+> stubbed. `PendingTransactionsProvider` stays mounted beside it until entifix #127 removes it.
 
 **The stream.** `makeEventSourcePushChannel` opens one `EventSource` per tab at
 `/api/realtime/stream`, through the edge to realtime-service. Topics — `entity:<key>`,
@@ -959,6 +964,9 @@ save / delete / verb ─▶ 200 + entity     ─▶ settled   (apply on mutate, 
 - Pending flows live in `PendingFlowsProvider`, over IndexedDB, keyed by the workspace scope —
   JSON only, an id and an intent, never an instance (ADR 0032). The storefront's scope is
   anonymous and keeps flow ids only.
+- ⚠️ A reopened stream is sent `resync` for every topic, flow topics included, and the browser
+  re-reads each pending flow from flow-status. The server never replays a flow's state onto the
+  stream: the push adapter's resume hook is not told who is listening (ADR 0072, revised).
 - ⚠️ A `404` from flow-status means _not projected yet_, never _failed_. The flow stays pending up
   to `PENDING_FLOW_MAX_AGE_MS` (30 min), then is dropped silently.
 - A failure arrives with a `code` that is its `errors` key and is toasted through

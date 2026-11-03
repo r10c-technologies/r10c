@@ -2,6 +2,11 @@
 
 - Status: Accepted
 - Date: 2026-11-02
+- Revised: 2026-11-03 — built for the back office (#478). `TransactionSettlement`
+  had already left with #499, so nothing ran ADR 0043's settlement in between.
+  Every generated form with a save writes through `buildEntityRestAdapterWrite`,
+  and the push topics are declared by each domain shell and subscribed once by
+  the app.
 - Area: frontend
 - Read when: a write answers `202`, a screen shows a write before the server has it, or a failure has to reach the user — the server picks the mode, a pending flow is keyed by `flowId`, and a pending result never shows money taken
 
@@ -93,8 +98,8 @@ and resend rather than retype.
 ## Consequences
 
 - **Built by #478** for the back office, and by #485/#486 for the storefront's
-  and the till's checkout. Until #478, the back office still runs ADR 0043's
-  `TransactionSettlement`, which entifix keeps until #127.
+  and the till's checkout. `PendingTransactionsProvider`, ADR 0043's pending
+  set, stays mounted beside it until entifix #127 removes it.
 - The tab strip is still not wired to pending state: a flow is not a tab, and
   this record adds no address for one.
 - A pending flow dropped at the age bound is not announced. The record is still

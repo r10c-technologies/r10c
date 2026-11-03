@@ -5,6 +5,7 @@ import {
   resolveE2eProfile,
 } from '@entifix/testing-e2e/playwright';
 import { workspaceRoot } from '@nx/devkit';
+import type { PlaywrightTestConfig } from '@playwright/test';
 
 /**
  * ⚠️ Absolute, because `NODE_OPTIONS` is inherited by **every** node process
@@ -100,7 +101,11 @@ const config = defineEntifixE2eConfig({
   },
 });
 
-export default {
+/**
+ * Typed by name: the inferred type reaches Playwright's unexported
+ * `TestConfigWebServer`, which a declaration emit cannot name (TS4082).
+ */
+const withUnresolvedMedia: PlaywrightTestConfig = {
   ...config,
   projects: config.projects?.map(project =>
     project.name === 'chromium'
@@ -120,3 +125,5 @@ export default {
       : project,
   ),
 };
+
+export default withUnresolvedMedia;

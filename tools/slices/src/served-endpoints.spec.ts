@@ -5,6 +5,10 @@ import { endpoints as marketplaceEndpoints } from '@r10c/shells-effect-marketpla
 import { endpoints as marketplaceAdminEndpoints } from '@r10c/shells-effect-marketplace-admin';
 import { endpoints as orderEndpoints } from '@r10c/shells-effect-order';
 import { endpoints as paymentEndpoints } from '@r10c/shells-effect-payment';
+import {
+  endpoints as realtimeEndpoints,
+  REALTIME_ROUTES,
+} from '@r10c/shells-effect-realtime';
 import { endpoints as salesEndpoints } from '@r10c/shells-effect-sales';
 import { serviceBaseGroup } from '@r10c/shells-effect-service';
 import { endpoints as settlementEndpoints } from '@r10c/shells-effect-settlement';
@@ -27,10 +31,19 @@ const SERVED: Readonly<Record<string, readonly AnyEndpointGroup[]>> = {
   'marketplace-admin': marketplaceAdminEndpoints,
   order: orderEndpoints,
   payment: paymentEndpoints,
+  realtime: realtimeEndpoints,
   sales: salesEndpoints,
   settlement: settlementEndpoints,
   stock: stockEndpoints,
   transaction: transactionEndpoints,
+};
+
+/**
+ * Routes a shell serves beside its `HttpApi` — a held-open stream, and reads
+ * answered to a session or a capability — held to the declaration all the same.
+ */
+const ROUTED: Readonly<Record<string, readonly string[]>> = {
+  realtime: REALTIME_ROUTES,
 };
 
 /**
@@ -55,9 +68,12 @@ describe('the endpoints a slice declares', () => {
       const slice = SLICES.find(candidate => candidate.name === name);
 
       expect(slice, `no slice is declared as '${name}'`).toBeDefined();
-      expect(endpointDrift(slice?.exposedAPIs ?? [], servedBy(groups))).toEqual(
-        { missing: [], extra: [] },
-      );
+      expect(
+        endpointDrift(slice?.exposedAPIs ?? [], [
+          ...servedBy(groups),
+          ...(ROUTED[name] ?? []),
+        ]),
+      ).toEqual({ missing: [], extra: [] });
     },
   );
 

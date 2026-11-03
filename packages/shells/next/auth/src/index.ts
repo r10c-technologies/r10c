@@ -10,6 +10,7 @@ export { SecurityView } from './client/account-security-view';
 export { SessionsPage } from './client/account-sessions-page';
 export { type SessionRow, SessionsView } from './client/account-sessions-view';
 export { AccountView } from './client/account-view';
+export { refreshSession } from './client/refresh-session';
 export { useAsyncResource } from './client/use-async-resource';
 export { useUsers } from './client/use-users';
 export { UsersPage } from './client/user-list-page';

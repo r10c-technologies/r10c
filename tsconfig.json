@@ -124,7 +124,13 @@
       "path": "./apps/payment-service"
     },
     {
+      "path": "./apps/realtime-service"
+    },
+    {
       "path": "./apps/settlement-service"
+    },
+    {
+      "path": "./apps/realtime-service-e2e"
     },
     {
       "path": "./apps/settlement-service-e2e"
@@ -205,6 +211,9 @@
       "path": "./packages/shells/effect/service"
     },
     {
+      "path": "./packages/business/ts/flow-contracts"
+    },
+    {
       "path": "./packages/business/ts/saga-contracts"
     },
     {
@@ -244,6 +253,9 @@
       "path": "./packages/implementation/published-catalog/mongo"
     },
     {
+      "path": "./packages/implementation/flow-status/mongo"
+    },
+    {
       "path": "./packages/implementation/published-vendor/mongo"
     },
     {
@@ -272,6 +284,9 @@
     },
     {
       "path": "./packages/testing/cells"
+    },
+    {
+      "path": "./packages/shells/effect/realtime"
     },
     {
       "path": "./packages/shells/effect/settlement"

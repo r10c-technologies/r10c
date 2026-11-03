@@ -5,12 +5,21 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "forceConsistentCasingInFileNames": true,
-    "types": ["node", "vitest/globals", "vitest/importMeta"],
+    "types": [
+      "node",
+      "vitest/globals",
+      "vitest/importMeta"
+    ],
     "ignoreDeprecations": "6.0",
     "rootDir": "."
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts"
+  ],
   "references": [
+    {
+      "path": "../../packages/shells/effect/realtime"
+    },
     {
       "path": "../../packages/shells/effect/transaction"
     },
@@ -55,6 +64,9 @@
     },
     {
       "path": "../../packages/business/ts/catalog-contracts"
+    },
+    {
+      "path": "../../packages/business/ts/flow-contracts"
     }
   ]
 }

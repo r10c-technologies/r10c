@@ -55,6 +55,7 @@ export const productBrandCrud = makeEntityCrud(ProductBrand, {
   basePath: PRODUCT_BRAND_SURFACE.basePath,
   catalogKey: PRODUCT_BRAND_SURFACE.entityKey,
   repository: 'productBrandRest',
+  write: 'productBrandWriter',
   // `code` is the seed's vocabulary, not the operator's to type. Hiding it keeps
   // it out of the form without keeping it out of the draft, so an update
   // carries it back.
@@ -112,6 +113,7 @@ export const productCategoryCrud = makeEntityCrud(ProductCategory, {
   basePath: PRODUCT_CATEGORY_SURFACE.basePath,
   catalogKey: PRODUCT_CATEGORY_SURFACE.entityKey,
   repository: 'productCategoryRest',
+  write: 'productCategoryWriter',
   hiddenFields: ['id'],
   metadata: 'referenceMetadata',
   useCases: 'productCategoryUseCases',
@@ -159,6 +161,7 @@ export const productCrud = makeEntityCrud(ProductSpecification, {
   basePath: PRODUCT_SURFACE.basePath,
   catalogKey: PRODUCT_SURFACE.entityKey,
   repository: 'productRest',
+  write: 'productWriter',
   // `code` is drawn by the create from the organization's counter.
   // Hiding it keeps it out of the form without keeping it out of the draft, so
   // an update carries it back — and the operator is not asked to type a value
@@ -227,6 +230,7 @@ export const productOfferingCrud = makeEntityCrud(ProductOffering, {
   basePath: PRODUCT_OFFERING_SURFACE.basePath,
   catalogKey: PRODUCT_OFFERING_SURFACE.entityKey,
   repository: 'productOfferingRest',
+  write: 'productOfferingWriter',
   // Without these two the form renders `publish`/`unpublish` nowhere: absent
   // metadata keeps the pre-ADR-0026 behaviour, and a metadata source with no
   // handler renders buttons that do nothing.
@@ -268,6 +272,7 @@ export const productOfferingPriceCrud = makeEntityCrud(ProductOfferingPrice, {
   basePath: PRODUCT_OFFERING_PRICE_SURFACE.basePath,
   catalogKey: PRODUCT_OFFERING_PRICE_SURFACE.entityKey,
   repository: 'productOfferingPriceRest',
+  write: 'productOfferingPriceWriter',
   hiddenFields: ['id'],
   links: [
     {

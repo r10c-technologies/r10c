@@ -61,7 +61,7 @@ describe('the service bundle externals', () => {
   });
 
   it('is what every service webpack config hands to its externals', () => {
-    expect(SERVICE_CONFIGS).toHaveLength(10);
+    expect(SERVICE_CONFIGS).toHaveLength(11);
     const unwired = SERVICE_CONFIGS.filter(file => {
       const text = readFileSync(file, 'utf8');
       return !(
