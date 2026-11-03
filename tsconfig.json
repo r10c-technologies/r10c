@@ -253,6 +253,9 @@
       "path": "./packages/implementation/published-catalog/mongo"
     },
     {
+      "path": "./packages/implementation/flow-status/mongo"
+    },
+    {
       "path": "./packages/implementation/published-vendor/mongo"
     },
     {

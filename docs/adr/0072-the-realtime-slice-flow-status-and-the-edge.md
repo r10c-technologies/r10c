@@ -5,6 +5,15 @@
 - Revised: 2026-11-02 — the edge is built (#475). Locally Envoy runs in a
   container pinned by digest rather than as a host binary, because Envoy
   publishes Linux builds only; the route table is `tools/edge/src/routes.ts`.
+- Revised: 2026-11-03 — realtime-service and the flow-status store are built
+  (#476, #477). A reopened stream is sent `resync` for **every** topic, flow
+  topics included, rather than a replay of flow-status: entifix's resume hook
+  is given the cursor and the topics but not the connection, and what it
+  returns bypasses the audience filter, so a replay there would hand a flow's
+  state to anyone who names its topic. The browser re-reads each pending flow
+  from flow-status on that `resync`, through the guarded read. The two flow
+  reads are router routes beside the `HttpApi`, like the stream, because a
+  read answered to a session **or** a capability fits no endpoint guard kind.
 - Area: messaging
 - Read when: pushing anything to a browser, asking where a flow stands, or putting a listener on 3000/3001 — one realtime slice owns the stream and the flow-status projection, the audience filter fails closed, and the edge owns the origins
 
@@ -117,11 +126,13 @@ direction that matters — ADR 0036's rule, kept.
   interest reopens the stream with `Last-Event-ID`; there is **no control POST**
   and no per-connection state shared across replicas, so any replica can serve
   any reopen.
-- On a reopen, the resume hook replays flow-status for `flow:` topics newer than
-  the cursor and sends `resync` for entity topics, on which the browser
-  re-queries. This replaces ADR 0036's "the server does not replay": the replay
-  is from a projection the slice already owns, not from a per-connection
-  backlog.
+- On a reopen with a cursor, the stream sends `resync` for every topic it
+  names, on which the browser re-queries its entity topics and re-reads each
+  pending flow from flow-status (`GET /api/realtime/flow/:id`). This replaces
+  ADR 0036's "the server does not replay": the catch-up is from a projection
+  the slice already owns, not from a per-connection backlog — and it goes
+  through the flow read's own audience check, because the push adapter's
+  resume hook is not told who is listening and its output skips the filter.
 - The stream closes with `event: reauth` before the token expires, and the
   browser refreshes before it reopens. A `401` on reconnect is never the
   mechanism: it kills an `EventSource` for good.

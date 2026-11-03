@@ -1291,6 +1291,15 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'drainWindowMs',
     value: '5000',
   },
+  // How long a flow's status stays readable after its last event — well past
+  // the browser's 30-minute pending bound (ADR 0073), so a catch-up never
+  // misses a flow that settled while its tab was closed.
+  {
+    service: 'realtime-service',
+    group_name: 'realtime',
+    key: 'flowStatusTtlS',
+    value: '86400',
+  },
   {
     service: 'realtime-service',
     group_name: 'logging',

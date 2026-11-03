@@ -80,7 +80,12 @@ export const transactionSlice: SliceDeclaration = {
   ],
   // What the durable engine announces through the `workflow` store's outbox
   // (ADR 0066): a flow's outcome, which the realtime slice pushes to the flow's
-  // audience.
-  publishedEvents: ['flow.completed', 'flow.failed'],
+  // audience, and every step of it into the flow-status projection.
+  publishedEvents: [
+    'flow.started',
+    'flow.suspended',
+    'flow.completed',
+    'flow.failed',
+  ],
   subscriptions: [],
 };

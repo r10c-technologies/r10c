@@ -420,7 +420,13 @@ session to check at all
 ¹¹ **realtime-service, bound** ([ADR 0072](../adr/0072-the-realtime-slice-flow-status-and-the-edge.md)),
 inspector `9191`. It owns the `flow-status` store — platform plane, single, a
 projection of the `workflow` journal — and serves the one push stream every tab
-opens, `GET /api/realtime/stream`, which the edge routes to it on every origin.
+opens, `GET /api/realtime/stream`, which the edge routes to it on every origin,
+and the catch-up a pending write settles from, `GET /api/realtime/flow/:id` and
+`GET /api/realtime/flow?ids=…` — answered to the flow's organizations and
+parties or to a capability by digest, and `404` to anyone else exactly as to a
+flow not yet projected. The projection is its one `work` subscription, on
+`flow.*` with an inbox claim, and an older version never overwrites a newer
+one.
 Every app's `dev` starts it, because a fleet without it is a back office whose
 stream answers Envoy's `503`.
 

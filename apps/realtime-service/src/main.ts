@@ -3,7 +3,7 @@ import {
   endpoints,
   makeAppLayer,
   policy,
-  streamRoutes,
+  realtimeRoutes,
 } from '@r10c/shells-effect-realtime';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 
@@ -31,6 +31,6 @@ makeService({
   description: fleetToken,
   endpoints,
   policy,
-  router: streamRoutes,
+  router: realtimeRoutes,
   appLayer: makeAppLayer(),
 });

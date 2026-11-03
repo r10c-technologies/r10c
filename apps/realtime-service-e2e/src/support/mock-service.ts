@@ -18,14 +18,17 @@ import {
   AUTH_TOKEN_ISSUER,
 } from '@r10c/business-ts-authn';
 import { ROLE_PERMISSIONS } from '@r10c/business-ts-authz-grants';
+import { FlowStatusStoreTag } from '@r10c/business-ts-flow-contracts';
+import { makeInMemoryFlowStatusStore } from '@r10c/business-ts-flow-contracts/testing';
 import {
   endpoints,
   policy,
+  realtimeRoutes,
   SERVICE_NAME,
-  streamRoutes,
 } from '@r10c/realtime-service';
 import {
   RealtimePushLayer,
+  startFlowStatusProjection,
   startPushSubscriptions,
 } from '@r10c/shells-effect-realtime';
 import { fleetToken } from '@r10c/utils-ts-fleet';
@@ -56,14 +59,25 @@ const CONFIGURATION = {
 export const MOCK_BUS = makeRecordingEventBus();
 
 /**
- * The `mock` composition root: the service's real stream route, push hub,
- * projections and broadcast subscriptions, with the token verified by the real
- * jose adapter and grants from the real `ROLE_PERMISSIONS`. Only the broker and
- * the config-service fetch are replaced.
+ * The `flow-status` store, as the contract-tested double. The Mongo cell
+ * answers the same suite one level below, against a driver fake.
+ */
+export const MOCK_FLOW_STATUS = makeInMemoryFlowStatusStore();
+
+/**
+ * The `mock` composition root: the service's real routes, push hub,
+ * projections, broadcast subscriptions and flow-status projection, with the
+ * token verified by the real jose adapter and grants from the real
+ * `ROLE_PERMISSIONS`. Only the broker, the store's driver and the
+ * config-service fetch are replaced.
  */
 const MockAppLayer = Layer.provideMerge(
-  Layer.effectDiscard(startPushSubscriptions),
   Layer.mergeAll(
+    Layer.effectDiscard(startPushSubscriptions),
+    Layer.effectDiscard(startFlowStatusProjection),
+  ),
+  Layer.mergeAll(
+    Layer.succeed(FlowStatusStoreTag, MOCK_FLOW_STATUS),
     RealtimePushLayer({
       dials: {
         retryMs: { min: 10, max: 20 },
@@ -96,6 +110,6 @@ export const startMockService = (): Promise<RunningTestService> =>
     description: fleetToken,
     endpoints,
     policy,
-    router: streamRoutes,
+    router: realtimeRoutes,
     appLayer: MockAppLayer,
   });

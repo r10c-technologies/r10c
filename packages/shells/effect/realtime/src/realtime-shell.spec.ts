@@ -17,25 +17,36 @@ import {
 import { makeRecordingEventBus } from '@entifix/testing-unit';
 import { digestFlowCapability, EventBusTag } from '@entifix/transactions';
 import { ROLE_PERMISSIONS } from '@r10c/business-ts-authz-grants';
-import { ENTITY_CHANGED } from '@r10c/business-ts-flow-contracts';
+import {
+  ENTITY_CHANGED,
+  FlowStatusStoreTag,
+} from '@r10c/business-ts-flow-contracts';
+import { makeInMemoryFlowStatusStore } from '@r10c/business-ts-flow-contracts/testing';
 import {
   configurationRows,
   fleetConfigurationOf,
 } from '@r10c/shells-effect-service';
-import { Effect, Layer, Stream } from 'effect';
+import { Effect, Layer, Logger, References, Stream } from 'effect';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   admitsVariant,
+  FLOW_PATH,
+  FLOW_STATUS_SUBSCRIPTION,
+  logFlowStatus,
   makeAppLayer,
   makeRealtimePush,
+  MAX_CAPABILITIES,
+  MAX_FLOW_IDS,
   MAX_TOPICS,
   PUSH_PROJECTIONS,
   type Pushed,
   readPushDials,
   realtimeComposition,
   RealtimePushLayer,
+  realtimeRoutes,
   routedTopics,
+  startFlowStatusProjection,
   startPushSubscriptions,
   STREAM_PATH,
   streamRoutes,
@@ -53,6 +64,7 @@ const CONFIGURATION = fleetConfigurationOf({
     retryMaxMs: 20,
     reauthMarginMs: 0,
     drainWindowMs: 100,
+    flowStatusTtlS: 86_400,
   }),
 });
 
@@ -491,5 +503,192 @@ describe('GET /api/realtime/stream', () => {
     expect(await listen(response).until(has('event: reauth'), 3000)).toContain(
       'event: reauth',
     );
+  });
+});
+
+describe('the flow-status projection and its reads', () => {
+  const bus = makeRecordingEventBus();
+  const store = makeInMemoryFlowStatusStore();
+  let running: RunningTestService | undefined;
+
+  beforeAll(async () => {
+    running = await serveTestService({
+      name: 'realtime-flow-spec',
+      port: 0,
+      slices: ['realtime'],
+      router: realtimeRoutes,
+      appLayer: Layer.provideMerge(
+        Layer.mergeAll(
+          Layer.effectDiscard(startFlowStatusProjection),
+          Layer.effectDiscard(startPushSubscriptions),
+        ),
+        Layer.mergeAll(
+          RealtimePushLayer({
+            dials: { retryMs: { min: 10, max: 20 }, reauthMarginMs: 0 },
+          }),
+          Layer.succeed(FlowStatusStoreTag, store),
+          Layer.succeed(EventBusTag, bus),
+          Layer.succeed(TokenServiceTag, tokenService),
+          Layer.succeed(
+            PolicyDecisionTag,
+            makeStaticPolicyDecision(ROLE_PERMISSIONS),
+          ),
+        ),
+      ) as never,
+    });
+  });
+
+  afterAll(async () => {
+    await running?.close();
+  });
+
+  const NONCE = 'flow-read-nonce';
+
+  const deliver = (event: DomainEvent) =>
+    Effect.runPromise(Effect.exit(bus.deliver(event)));
+
+  const get = (path: string, token?: string) =>
+    fetch(`${running?.baseUrl}${path}`, {
+      headers:
+        token === undefined ? {} : { authorization: `Bearer ${token}` },
+    });
+
+  beforeAll(async () => {
+    const digest = await Effect.runPromise(digestFlowCapability(NONCE));
+    await deliver(
+      flowCompleted('f-read', [
+        { kind: 'flow', id: 'f-read' },
+        { kind: 'flow', id: 'f-read', digest },
+        { kind: 'organization', id: 'org-a' },
+      ]),
+    );
+  });
+
+  it('subscribes as one work queue on flow.*', () => {
+    expect(FLOW_STATUS_SUBSCRIPTION).toMatchObject({
+      pattern: 'flow.*',
+      mode: 'work',
+    });
+  });
+
+  it('keeps one record when the same message is delivered twice', async () => {
+    const event = flowCompleted('f-twice', [
+      { kind: 'organization', id: 'org-a' },
+    ]);
+    await deliver(event);
+    await deliver(event);
+
+    expect(
+      store.records().filter(record => record.flowId === 'f-twice'),
+    ).toHaveLength(1);
+  });
+
+  it('never lets an older version overwrite a newer one', async () => {
+    const audience = [{ kind: 'organization' as const, id: 'org-a' }];
+    await deliver(flowCompleted('f-order', audience));
+    await deliver({
+      ...flowCompleted('f-order', audience),
+      name: 'flow.started',
+      id: 'f-order:flow.started:started',
+      version: 0,
+    });
+
+    expect(
+      store.records().find(record => record.flowId === 'f-order')?.state,
+    ).toBe('completed');
+  });
+
+  it('fails a payload that is not a flow event, so redelivery quarantines it', async () => {
+    const exit = await deliver({
+      ...flowCompleted('f-bad', [{ kind: 'organization', id: 'org-a' }]),
+      data: { nonsense: true },
+    });
+
+    expect(exit._tag).toBe('Failure');
+  });
+
+  it('answers a member of the flow’s organization with its status', async () => {
+    const response = await get(`${FLOW_PATH}/f-read`, 'org-a||user|');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      meta: { type: 'flowStatus' },
+      data: { flowId: 'f-read', state: 'completed' },
+    });
+  });
+
+  it('answers the holder of the capability, with no session at all', async () => {
+    const response = await get(`${FLOW_PATH}/f-read?capability=${NONCE}`);
+
+    expect(response.status).toBe(200);
+  });
+
+  it.each([
+    ['a member of another organization', `${FLOW_PATH}/f-read`, 'org-b||user|'],
+    [
+      'a capability that does not hash to the digest',
+      `${FLOW_PATH}/f-read?capability=wrong`,
+      undefined,
+    ],
+    ['no credential at all', `${FLOW_PATH}/f-read`, undefined],
+    ['a flow not yet projected', `${FLOW_PATH}/f-unknown`, 'org-a||user|'],
+  ])('answers %s with 404', async (_label, path, token) => {
+    const response = await get(path, token);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('lists only the flows the caller may read', async () => {
+    const mine = await get(
+      `${FLOW_PATH}?ids=f-read,f-unknown, f-read`,
+      'org-a||user|',
+    );
+    const theirs = await get(`${FLOW_PATH}?ids=f-read`, 'org-b||user|');
+    const nobody = await get(`${FLOW_PATH}?ids=f-read`);
+
+    expect(await mine.json()).toMatchObject({
+      meta: { type: 'flowStatusList' },
+      data: [{ flowId: 'f-read', state: 'completed' }],
+    });
+    expect(((await theirs.json()) as { data: unknown }).data).toEqual([]);
+    expect(((await nobody.json()) as { data: unknown }).data).toEqual([]);
+  });
+
+  it.each([
+    ['an empty ids', `${FLOW_PATH}?ids=`],
+    ['no ids', FLOW_PATH],
+    [
+      'too many ids',
+      `${FLOW_PATH}?ids=${Array.from({ length: MAX_FLOW_IDS + 1 }, (_, index) => `f-${index}`).join(',')}`,
+    ],
+    [
+      'too many capabilities',
+      `${FLOW_PATH}/f-read?${Array.from({ length: MAX_CAPABILITIES + 1 }, (_, index) => `capability=${index}`).join('&')}`,
+    ],
+  ])('refuses %s', async (_label, path) => {
+    const response = await get(path, 'org-a||user|');
+
+    expect(response.status).toBe(400);
+  });
+
+  it('logs an apply at info and a redelivery or an older version at debug', async () => {
+    const levels: string[] = [];
+    await Effect.runPromise(
+      Effect.forEach(
+        ['applied', 'stale', 'duplicate'] as const,
+        outcome => logFlowStatus('flow.completed', 'f-1', outcome),
+      ).pipe(
+        Effect.provide(
+          Logger.layer([
+            Logger.make(({ logLevel }) => {
+              levels.push(logLevel);
+            }),
+          ]),
+        ),
+        Effect.provideService(References.MinimumLogLevel, 'All'),
+      ),
+    );
+
+    expect(levels).toEqual(['Info', 'Debug', 'Debug']);
   });
 });

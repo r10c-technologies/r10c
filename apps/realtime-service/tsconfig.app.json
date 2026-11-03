@@ -43,6 +43,9 @@
     },
     {
       "path": "../../packages/business/ts/authn/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/implementation/flow-status/mongo/tsconfig.lib.json"
     }
   ]
 }

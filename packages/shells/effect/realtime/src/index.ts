@@ -4,7 +4,26 @@
  * browser may hear. realtime-service only mounts it (ADR 0064, ADR 0072).
  */
 export { makeAppLayer, readPushDials, realtimeComposition } from './app-layer.js';
+export {
+  type Caller,
+  CAPABILITY_PARAM,
+  identifies,
+  MAX_CAPABILITIES,
+  resolveCaller,
+} from './caller.js';
 export { endpoints, policy } from './endpoints.js';
+export {
+  FLOW_PATH,
+  flowRoutes,
+  flowStatusHandler,
+  flowStatusListHandler,
+  MAX_FLOW_IDS,
+} from './flow-routes.js';
+export {
+  FLOW_STATUS_SUBSCRIPTION,
+  logFlowStatus,
+  startFlowStatusProjection,
+} from './flow-status-subscription.js';
 export {
   PRODUCT_OFFERING,
   PRODUCT_ORDER,
@@ -30,11 +49,10 @@ export {
   RealtimePushTag,
   routedTopics,
 } from './realtime-push.js';
+export { REALTIME_ROUTES, realtimeRoutes } from './routes.js';
 export {
-  MAX_CAPABILITIES,
   MAX_TOPICS,
   STREAM_PATH,
-  STREAM_ROUTES,
   streamHandler,
   streamRoutes,
 } from './stream-route.js';

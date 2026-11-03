@@ -7,7 +7,7 @@ import { endpoints as orderEndpoints } from '@r10c/shells-effect-order';
 import { endpoints as paymentEndpoints } from '@r10c/shells-effect-payment';
 import {
   endpoints as realtimeEndpoints,
-  STREAM_ROUTES,
+  REALTIME_ROUTES,
 } from '@r10c/shells-effect-realtime';
 import { endpoints as salesEndpoints } from '@r10c/shells-effect-sales';
 import { serviceBaseGroup } from '@r10c/shells-effect-service';
@@ -39,11 +39,11 @@ const SERVED: Readonly<Record<string, readonly AnyEndpointGroup[]>> = {
 };
 
 /**
- * Routes a shell serves beside its `HttpApi` — a held-open stream, which an
- * `HttpApi` does not describe — held to the declaration all the same.
+ * Routes a shell serves beside its `HttpApi` — a held-open stream, and reads
+ * answered to a session or a capability — held to the declaration all the same.
  */
 const ROUTED: Readonly<Record<string, readonly string[]>> = {
-  realtime: STREAM_ROUTES,
+  realtime: REALTIME_ROUTES,
 };
 
 /**

@@ -41,14 +41,18 @@
     }
   },
   "dependencies": {
+    "@entifix/amqp": "catalog:",
     "@entifix/authz": "catalog:",
     "@entifix/core": "catalog:",
+    "@entifix/mongo": "catalog:",
     "@entifix/service-shell": "catalog:",
     "@entifix/transactions": "catalog:",
     "@r10c/business-ts-flow-contracts": "workspace:*",
+    "@r10c/implementation-flow-status-mongo": "workspace:*",
     "@r10c/shells-effect-service": "workspace:*",
     "@swc/helpers": "0.5.23",
-    "effect": "4.0.7"
+    "effect": "4.0.7",
+    "@entifix/business": "catalog:"
   },
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",

@@ -35,6 +35,10 @@ export const realtimeSlice: SliceDeclaration = {
     // The one stream per tab: topics and flow capabilities in the URL, no
     // control route, so any replica can serve any reopen.
     'GET /api/realtime/stream',
+    // Where a flow stands, from the flow-status projection: answered to the
+    // flow's organizations and parties, or to a capability by digest, and 404
+    // to anyone else exactly as to a flow not yet projected.
+    'GET /api/realtime/flow{,/:id}',
   ],
   dependantAPIs: ['GET /api/config/:service'],
   publishedEvents: [],
@@ -56,5 +60,13 @@ export const realtimeSlice: SliceDeclaration = {
         'version-guarded in the browser cache, a redelivered hint re-reads ' +
         'what is already current, and a flow settles once per flowId',
     })),
+    // The projection is written once, whichever replica receives the message,
+    // and claimed in the same unit: a write must not happen per replica.
+    {
+      event: 'flow.*',
+      mode: 'work' as const,
+      maxAttempts: 5,
+      dedupe: 'inbox' as const,
+    },
   ],
 };

@@ -1,31 +1,24 @@
 import { permissionFor } from '@entifix/authz';
 import { Invalid, Unauthenticated } from '@entifix/core';
-import {
-  permits,
-  resolveRequestPrincipal,
-  respond,
-} from '@entifix/service-shell';
-import { digestFlowCapability } from '@entifix/transactions';
+import { permits, respond } from '@entifix/service-shell';
 import { fleetFailurePolicy } from '@r10c/shells-effect-service';
-import { Effect, Option } from 'effect';
+import { Effect } from 'effect';
 import { HttpRouter, HttpServerRequest } from 'effect/http';
 
+import {
+  CAPABILITY_PARAM,
+  identifies,
+  MAX_CAPABILITIES,
+  resolveCaller,
+} from './caller.js';
 import { PUSH_ENTITIES } from './push-projections.js';
 import { RealtimePushTag } from './realtime-push.js';
 
 /** Where the stream is served, behind the edge on every origin (ADR 0072). */
 export const STREAM_PATH = '/api/realtime/stream';
 
-/**
- * The routes served beside the `HttpApi`: a held-open stream, which an
- * `HttpApi` does not describe. Listed so `@r10c/slices` can hold them to the
- * declaration exactly as it holds the endpoints.
- */
-export const STREAM_ROUTES = [`GET ${STREAM_PATH}`] as const;
-
 /** The browser's parameter names (`@entifix/react-integration/event-source`). */
 const TOPIC = 'topic';
-const CAPABILITY = 'capability';
 const CURSOR = 'lastEventId';
 
 /**
@@ -34,7 +27,6 @@ const CURSOR = 'lastEventId';
  * the work a single request can ask for without ever being reached by one.
  */
 export const MAX_TOPICS = 256;
-export const MAX_CAPABILITIES = 64;
 
 const LEGAL_TOPIC = /^(entity:[a-z0-9-]+|record:[a-z0-9-]+:[^\s:]+|flow:\S+)$/;
 
@@ -60,19 +52,17 @@ export const streamHandler = Effect.gen(function* () {
   const query = new URL(request.url, 'http://realtime.invalid').searchParams;
 
   const topics = distinct(query.getAll(TOPIC));
-  const capabilities = distinct(query.getAll(CAPABILITY));
+  const capabilities = distinct(query.getAll(CAPABILITY_PARAM));
   if (topics.length === 0) return yield* invalid('name at least one topic');
   if (topics.length > MAX_TOPICS || capabilities.length > MAX_CAPABILITIES)
     return yield* invalid('too many topics or capabilities');
   if (!topics.every(topic => LEGAL_TOPIC.test(topic)))
     return yield* invalid('a topic is not entity:, record: or flow:');
 
-  const principal = yield* resolveRequestPrincipal;
-  const flowDigests = yield* Effect.forEach(capabilities, digestFlowCapability);
-  if (Option.isNone(principal) && flowDigests.length === 0)
-    return yield* new Unauthenticated();
+  const caller = yield* resolveCaller(capabilities);
+  if (!identifies(caller)) return yield* new Unauthenticated();
 
-  const member = Option.getOrUndefined(principal);
+  const { member } = caller;
   const readable = new Set<string>();
   if (member !== undefined) {
     for (const entity of PUSH_ENTITIES) {
@@ -86,13 +76,7 @@ export const streamHandler = Effect.gen(function* () {
   const cursor = query.get(CURSOR) ?? request.headers['last-event-id'];
   const push = yield* RealtimePushTag;
   return push.respond({
-    recipient: {
-      ...(member?.organizationId === undefined
-        ? {}
-        : { organizationId: member.organizationId }),
-      ...(member?.partyId === undefined ? {} : { partyId: member.partyId }),
-      flowDigests,
-    },
+    recipient: caller.recipient,
     topics,
     readable,
     ...(cursor === undefined || cursor === '' ? {} : { cursor }),

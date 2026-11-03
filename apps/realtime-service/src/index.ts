@@ -4,7 +4,7 @@ export {
   endpoints,
   policy,
   REALTIME_SLICE,
-  streamRoutes,
+  realtimeRoutes,
 } from '@r10c/shells-effect-realtime';
 
 /** The slice's composition, as the service mounts it. */
