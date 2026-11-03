@@ -1,5 +1,6 @@
 import { EntityRepositoryTag } from '@entifix/business';
 import type { Entity } from '@entifix/core';
+import { type EntityWriter, settled } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
@@ -8,7 +9,7 @@ import {
   StockMovement,
 } from '@r10c/business-ts-stock-management';
 import { render, screen, waitFor } from '@testing-library/react';
-import { Context } from 'effect';
+import { Context, Effect } from 'effect';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +27,21 @@ import {
   StockMovementListClientPage,
   StockMovementSingleViewClientPage,
 } from './stock-crud.js';
+
+/**
+ * A writer that settles every write through the spec's own in-memory
+ * repository, as a write that commits in one unit does (ADR 0073).
+ */
+const settledWriter = (
+  context: Context.Context<EntityRepositoryTag>,
+): EntityWriter => {
+  const repository = Context.get(context, EntityRepositoryTag);
+  return {
+    save: entity => Effect.map(repository.save(entity), settled),
+    delete: entityOrId =>
+      Effect.as(repository.delete(entityOrId), settled(undefined)),
+  };
+};
 
 /** The transports the shell really composes, so metadata reads behave as in production. */
 const real = createClientAdapters();
@@ -71,7 +87,13 @@ let repositories: {
 
 const adapters = (): StockAdapters => ({
   stockItemRest: Context.make(EntityRepositoryTag, repositories.item),
+  stockItemWriter: settledWriter(
+    Context.make(EntityRepositoryTag, repositories.item),
+  ),
   stockMovementRest: Context.make(EntityRepositoryTag, repositories.movement),
+  stockMovementWriter: settledWriter(
+    Context.make(EntityRepositoryTag, repositories.movement),
+  ),
   reservationRest: Context.make(EntityRepositoryTag, repositories.reservation),
   metadata: real.metadata,
 });

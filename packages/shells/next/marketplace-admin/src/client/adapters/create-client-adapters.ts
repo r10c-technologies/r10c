@@ -5,6 +5,7 @@ import {
   buildEntityRestAdapterGet,
   buildEntityRestAdapterLoad,
   buildEntityRestAdapterSave,
+  buildEntityRestAdapterWrite,
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
   makeEntityMetadataSource,
@@ -139,8 +140,40 @@ const productOfferingUseCases = makeEntityRestUseCaseRunner(
   CATALOG_SERVICE,
 );
 
+/**
+ * The writers the generated forms save and delete through. Each answers both
+ * settle modes (ADR 0073): a write that commits in one unit returns the entity,
+ * one the server hands to a flow returns a pending flow the form waits on. The
+ * server picks; the screen never branches on a status.
+ */
+const productBrandWriter = buildEntityRestAdapterWrite(
+  ProductBrand,
+  REFERENCE_SERVICE,
+);
+const productCategoryWriter = buildEntityRestAdapterWrite(
+  ProductCategory,
+  REFERENCE_SERVICE,
+);
+const productWriter = buildEntityRestAdapterWrite(
+  ProductSpecification,
+  CATALOG_SERVICE,
+);
+const productOfferingWriter = buildEntityRestAdapterWrite(
+  ProductOffering,
+  CATALOG_SERVICE,
+);
+const productOfferingPriceWriter = buildEntityRestAdapterWrite(
+  ProductOfferingPrice,
+  CATALOG_SERVICE,
+);
+
 export function createClientAdapters(): MarketplaceAdminAdapters {
   return {
+    productBrandWriter,
+    productCategoryWriter,
+    productWriter,
+    productOfferingWriter,
+    productOfferingPriceWriter,
     productCategoryRest,
     productBrandRest,
     productRest,

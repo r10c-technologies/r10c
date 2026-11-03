@@ -1,8 +1,9 @@
 import type { EntityRepositoryTag } from '@entifix/business';
-import type { EntityMetadataSource } from '@entifix/core';
+import type { EntityMetadataSource, EntityWriter } from '@entifix/core';
 import type { Context } from 'effect/Context';
 
 export interface SalesAdapters {
+  salesChannelWriter: EntityWriter;
   salesChannelRest: Context<EntityRepositoryTag>;
   /**
    * The published projection the till prices from, read through the host's

@@ -4,22 +4,36 @@
 import '@r10c/i18n-catalog';
 
 import type { Locale } from '@entifix/core';
-import { PendingTransactionsProvider } from '@entifix/next-shell';
+import {
+  ANONYMOUS_WORKSPACE_SCOPE,
+  PendingFlowsProvider,
+  PendingTransactionsProvider,
+} from '@entifix/next-shell';
 import {
   makeIndexedDbUiPreferencesState,
   type ThemeOption,
   type ThemePalette,
   ThemeProvider,
+  ToastProvider,
+  ToastRegion,
   UiPreferencesProvider,
   useT,
 } from '@entifix/react-controls';
 import { I18nProvider } from '@entifix/react-controls/i18next';
-import { EntifixQueryProvider } from '@entifix/react-integration';
 import {
+  EntifixQueryProvider,
+  type PushTopic,
+  useReactiveCache,
+} from '@entifix/react-integration';
+import { makeEventSourcePushChannel } from '@entifix/react-integration/event-source';
+import { buildFlowStatusReader } from '@entifix/rest';
+import { refreshSession } from '@r10c/shells-next-auth';
+import {
+  CATALOG_PUSH_TOPICS,
   createClientAdapters,
   MarketplaceAdminAdaptersProvider,
 } from '@r10c/shells-next-marketplace-admin';
-import { OrderProvider } from '@r10c/shells-next-order';
+import { ORDER_PUSH_TOPICS, OrderProvider } from '@r10c/shells-next-order';
 import { SalesProvider } from '@r10c/shells-next-sales';
 import { SettlementProvider } from '@r10c/shells-next-settlement';
 import { StockProvider } from '@r10c/shells-next-stock';
@@ -44,6 +58,39 @@ const RUNTIME_PALETTES: Record<string, ThemePalette> = {
 // the database). Unifies all persisted client UI state in IndexedDB alongside
 // the tab workspace, replacing the localStorage backend.
 const uiPreferencesStore = makeIndexedDbUiPreferencesState();
+
+/**
+ * The tab's one push stream (ADR 0072), through the edge at
+ * `/api/realtime/stream` — never through Next, which cannot hold a stream
+ * open. Module-level for the same reason as the store above: one
+ * `EventSource` per tab, opened only once something subscribes. A stream told
+ * to reauthenticate is reopened after the session refresh resolves.
+ */
+const pushChannel = makeEventSourcePushChannel({
+  url: '/api/realtime/stream',
+  refresh: refreshSession,
+});
+
+/** A pending flow's catch-up, from the `status` link its `202` carried. */
+const readFlowStatus = buildFlowStatusReader();
+
+/** Every entity a back-office screen can be pushed about, from each shell. */
+const PUSHED_TOPICS: readonly PushTopic[] = [
+  ...CATALOG_PUSH_TOPICS,
+  ...ORDER_PUSH_TOPICS,
+];
+
+/**
+ * Keeps the query cache in step with what the stream pushes: a snapshot is
+ * written into it, a hint invalidates the entity's queries, and a `resync`
+ * re-queries what may have changed while the stream was down. Mounted only
+ * for a signed-in scope — an anonymous page would open a stream the service
+ * refuses, which is not a decision, only a wasted request.
+ */
+function PushedEntities() {
+  useReactiveCache(pushChannel, PUSHED_TOPICS);
+  return null;
+}
 
 /**
  * Split out so the theme captions resolve against the locale `I18nProvider`
@@ -79,27 +126,42 @@ function ThemedProviders({
         palettes={RUNTIME_PALETTES}
       >
         <UiPreferencesProvider store={uiPreferencesStore}>
-          <MarketplaceAdminAdaptersProvider adapters={adapters}>
-            {/* Above every route, not inside the workspace: the wizard hands
+          <ToastProvider>
+            <MarketplaceAdminAdaptersProvider adapters={adapters}>
+              {/* Above every route, not inside the workspace: the wizard hands
                 its write off to this pending set at `/<basePath>/new` on the
-                plain route, which no `WorkspaceShell` encloses (ADR 0045). */}
-            <PendingTransactionsProvider scope={scope}>
-              {/* Each shell builds its own adapters against its own backend —
+                plain route, which no `WorkspaceShell` encloses (ADR 0045).
+                The pending-flow store sits beside it for the same reason: a
+                create handed to a flow waits on its form at `/new`, and its
+                failure is toasted once by the region below (ADR 0073). */}
+              <PendingTransactionsProvider scope={scope}>
+                <PendingFlowsProvider
+                  scope={scope}
+                  channel={pushChannel}
+                  readStatus={readFlowStatus}
+                >
+                  {scope === ANONYMOUS_WORKSPACE_SCOPE ? null : (
+                    <PushedEntities />
+                  )}
+                  {/* Each shell builds its own adapters against its own backend —
                   config-service here, stock-service below — so they are
                   provided beside the catalog's rather than through it. Three
                   backends, three composition roots, and nesting them is only
                   how React contexts stack. */}
-              <SystemManagementProvider>
-                <StockProvider>
-                  <OrderProvider>
-                    <SalesProvider>
-                      <SettlementProvider>{children}</SettlementProvider>
-                    </SalesProvider>
-                  </OrderProvider>
-                </StockProvider>
-              </SystemManagementProvider>
-            </PendingTransactionsProvider>
-          </MarketplaceAdminAdaptersProvider>
+                  <SystemManagementProvider>
+                    <StockProvider>
+                      <OrderProvider>
+                        <SalesProvider>
+                          <SettlementProvider>{children}</SettlementProvider>
+                        </SalesProvider>
+                      </OrderProvider>
+                    </StockProvider>
+                  </SystemManagementProvider>
+                </PendingFlowsProvider>
+              </PendingTransactionsProvider>
+            </MarketplaceAdminAdaptersProvider>
+            <ToastRegion />
+          </ToastProvider>
         </UiPreferencesProvider>
       </ThemeProvider>
     </EntifixQueryProvider>

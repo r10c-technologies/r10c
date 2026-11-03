@@ -1,7 +1,8 @@
 import { EntityRepositoryTag } from '@entifix/business';
+import { type EntityWriter, settled } from '@entifix/core';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { renderHook } from '@testing-library/react';
-import { Context } from 'effect';
+import { Context, Effect } from 'effect';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it } from 'vitest';
 
@@ -12,6 +13,21 @@ import {
   useMarketplaceAdminAdapters,
 } from './marketplace-admin-context.js';
 
+/**
+ * A writer that settles every write through the spec's own in-memory
+ * repository, as a write that commits in one unit does (ADR 0073).
+ */
+const settledWriter = (
+  context: Context.Context<EntityRepositoryTag>,
+): EntityWriter => {
+  const repository = Context.get(context, EntityRepositoryTag);
+  return {
+    save: entity => Effect.map(repository.save(entity), settled),
+    delete: entityOrId =>
+      Effect.as(repository.delete(entityOrId), settled(undefined)),
+  };
+};
+
 /** The transports the shell really composes, so metadata reads behave as in production. */
 const real = createClientAdapters();
 
@@ -20,10 +36,15 @@ const repository = () =>
 
 const adapters: MarketplaceAdminAdapters = {
   productRest: repository(),
+  productWriter: settledWriter(repository()),
   productBrandRest: repository(),
+  productBrandWriter: settledWriter(repository()),
   productCategoryRest: repository(),
+  productCategoryWriter: settledWriter(repository()),
   productOfferingRest: repository(),
+  productOfferingWriter: settledWriter(repository()),
   productOfferingPriceRest: repository(),
+  productOfferingPriceWriter: settledWriter(repository()),
   referenceMetadata: real.referenceMetadata,
   catalogMetadata: real.catalogMetadata,
   productBrandUseCases: real.productBrandUseCases,

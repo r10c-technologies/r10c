@@ -5,6 +5,7 @@ import {
   buildEntityRestAdapterGet,
   buildEntityRestAdapterLoad,
   buildEntityRestAdapterSave,
+  buildEntityRestAdapterWrite,
   BuildEntityRestOptions,
   ConfigurationClientRestClient,
   makeEntityMetadataSource,
@@ -88,8 +89,20 @@ const metadata = makeEntityMetadataSource({
   url: name => `/api/settlement/${name}/$metadata`,
 });
 
+/**
+ * The writers the generated forms save and delete through. Each answers both
+ * settle modes (ADR 0073): a write that commits in one unit returns the entity,
+ * one the server hands to a flow returns a pending flow the form waits on. The
+ * server picks; the screen never branches on a status.
+ */
+const agreementWriter = buildEntityRestAdapterWrite(
+  Agreement,
+  SETTLEMENT_SERVICE,
+);
+
 export function createClientAdapters(): SettlementAdapters {
   return {
+    agreementWriter,
     agreementRest,
     commissionEntryRest,
     settlementRunRest,

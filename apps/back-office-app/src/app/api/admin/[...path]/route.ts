@@ -10,10 +10,7 @@ import { MARKETPLACE_ADMIN_SERVICE_URL } from '@r10c/shells-next-marketplace-adm
  * It grants nothing: the service still verifies the forwarded token and applies
  * `requirePermission('product-configuration-management:…')`.
  */
-/**
- * `GET /api/admin/transaction/events` is an open `text/event-stream`, so this
- * handler must never be treated as a static or cached response.
- */
+/** A proxied answer is per session, so never a static or cached response. */
 export const dynamic = 'force-dynamic';
 
 const forward = createServiceProxyRoute({
