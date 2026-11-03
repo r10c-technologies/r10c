@@ -16,12 +16,13 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# The fleet: frontends 300N, backends 310N, platform 319x (docs/_shared/ports.md).
-ALL_PORTS=(3000 3001 3100 3101 3102 3103 3105 3106 3107 3108 3109 3190)
+# The fleet (docs/_shared/ports.md): the edge's origins 300N, the Next apps
+# behind them on 320N (the origin + 200), backends 310N, platform 319x.
+ALL_PORTS=(3000 3001 3200 3201 3100 3101 3102 3103 3105 3106 3107 3108 3109 3190 3191)
 # The Node inspector each `@nx/js:node` dev target opens, at its service port
 # + 6000. One shared 9229 meant only the first service of a fleet got a debugger
 # and every other one logged "address already in use".
-INSPECT_PORTS=(9100 9101 9102 9103 9105 9106 9107 9108 9109 9190)
+INSPECT_PORTS=(9100 9101 9102 9103 9105 9106 9107 9108 9109 9190 9191)
 # The flow engine's runners (ADR 0066): the service port + 31000 + 1000 × the
 # replica, so transaction-service's two land on 34103 and 35103 — clear of
 # every service port, inspector and minikube NodePort.
@@ -40,6 +41,23 @@ if ! command -v lsof >/dev/null 2>&1; then
   echo "${C_YELLOW}==>${C_OFF} lsof not available — skipping port cleanup" >&2
   exit 0
 fi
+
+# The edge's origins are published by a container (tools/edge/serve.sh), and
+# the process holding a published port is Docker's own backend — outside this
+# workspace, so the loop below would refuse it rather than free it. Freeing an
+# origin therefore removes the container by name, and the lsof pass that
+# follows only confirms the port is clear.
+EDGE_CONTAINER='r10c-edge'
+for port in "${PORTS[@]}"; do
+  if [[ "$port" == 3000 || "$port" == 3001 ]]; then
+    if command -v docker >/dev/null 2>&1 &&
+      [[ -n "$(docker ps -q --filter "name=^${EDGE_CONTAINER}$" 2>/dev/null)" ]]; then
+      echo "${C_YELLOW}==> free-ports:${C_OFF} :$port held by the edge — removing ${EDGE_CONTAINER}"
+      docker rm -f "$EDGE_CONTAINER" >/dev/null 2>&1 || true
+    fi
+    break
+  fi
+done
 
 listeners() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null | sort -u; }
 

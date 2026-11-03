@@ -13,8 +13,8 @@ project here, and it changes through the swap commands below.
 # walks the infra health ladder and fixes the broken rung (starts minikube,
 # applies missing manifests, restarts a wedged pod), then starts the app.
 # ~0.1s when everything is already up. One pair per frontend:
-pnpm run mp:dev              # marketplace-app       :3000
-pnpm run back-office:dev     # back-office-app       :3001
+pnpm run mp:dev              # marketplace-app       :3000 (edge) → Next :3200
+pnpm run back-office:dev     # back-office-app       :3001 (edge) → Next :3201
 
 # `<app>:dev:reset` recreates the datastores first — WIPES local
 # Mongo/Postgres/Redis data (including every per-organization tenant database),
@@ -26,7 +26,16 @@ pnpm run mp:dev:reset
 pnpm run back-office:dev:reset
 pnpm run dev-infra:doctor    # read-only ladder view + the command that fixes it
 pnpm run dev-ports:free      # kill leftover listeners on every fleet port (each
-                             # dev target already frees its own port first)
+                             # dev target already frees its own port first) and
+                             # remove the edge's container
+
+# The edge (ADR 0072): Envoy in a container on 3000/3001, in front of Next on
+# 3200/3201 and realtime-service on 3191. Every app's `dev` starts it; Docker
+# must be running (minikube needs it anyway).
+pnpm nx run @r10c/edge:serve        # alone, against apps started some other way
+pnpm nx run @r10c/edge:free-ports   # remove the container, free 3000/3001
+pnpm nx run @r10c/edge:generate     # re-render envoy.yaml + infra/cluster/edge/
+                                    # after editing tools/edge/src/routes.ts
 
 # Dev — unified convention for EVERY app/service (each starts its own deps)
 pnpm nx run marketplace-app:dev            # :3000 (auto-starts marketplace-service

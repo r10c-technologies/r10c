@@ -43,7 +43,7 @@
         "executor": "nx:run-commands",
         "continuous": true,
         "options": {
-          "command": "next dev -p 3001",
+          "command": "next dev -p 3201",
           "cwd": "apps/back-office-app"
         },
         "dependsOn": [
@@ -54,6 +54,12 @@
               "@r10c/source"
             ],
             "target": "watch-libs"
+          },
+          {
+            "projects": [
+              "@r10c/edge"
+            ],
+            "target": "serve"
           },
           {
             "projects": [
@@ -73,7 +79,7 @@
       "start": {
         "executor": "nx:run-commands",
         "options": {
-          "command": "next start -p 3001",
+          "command": "next start -p 3201",
           "cwd": "apps/back-office-app"
         }
       },
@@ -81,7 +87,7 @@
         "executor": "nx:run-commands",
         "cache": false,
         "options": {
-          "command": "bash tools/free-ports.sh 3001"
+          "command": "bash tools/free-ports.sh 3201"
         }
       }
     }

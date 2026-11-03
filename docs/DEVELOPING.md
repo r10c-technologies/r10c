@@ -90,6 +90,48 @@ pnpm nx show projects | graph         # explore the workspace
 - An inferred `serve` target still exists on the webpack apps (from the
   `@nx/webpack` plugin) but `dev` is the canonical one used everywhere.
 
+### The edge owns 3000 and 3001
+
+The browser never reaches Next directly
+([ADR 0072](adr/0072-the-realtime-slice-flow-status-and-the-edge.md)): a
+server-sent stream cannot cross a Next route handler, so a local Envoy owns the
+origins and Next moves to the origin + 200. Each frontend's `dev` depends on
+`@r10c/edge:serve`, which runs `tools/edge/serve.sh`:
+
+- **A container, pinned by digest.** Envoy publishes Linux builds only, and
+  Docker is already required by minikube's driver. The digest in `serve.sh` is
+  the checksum, and `@r10c/docs-check` fails an image without one.
+- **`host.docker.internal`** is how the container reaches Next on `320N` and
+  realtime-service on `3191`; `--add-host=…:host-gateway` makes the same name
+  work on a Linux runner.
+- **The Host header is preserved**, so Next, the auth proxy and the session
+  cookie all see `localhost:300N` — the origin the browser named.
+- **WebSocket upgrades are on**: Turbopack's HMR socket is one, and without it
+  the dev client reloads in a loop.
+- **Every timeout is chosen.** The stream route and the Next route have no
+  request timeout (Envoy's default is 15 s, which a cold compile exceeds), and
+  every idle timeout is 45 s, over twice the push heartbeat.
+- **The access log never writes a query string**, on any route: the stream URL
+  carries flow capabilities.
+
+**One container, shared by every fleet.** `serve.sh` starts it detached only
+when it is missing or stale (another image, or another `envoy.yaml`, recorded
+as a label), and otherwise just follows its log. Both frontends' `dev` depend on
+it, and nx ends a whole run when one continuous task exits, so a serve that
+replaced or stopped the container would tear down the _other_ terminal's fleet.
+Ctrl-C therefore leaves the edge running. An app's `free-ports` frees its `320N`
+only, so restarting one app never kills the edge. `free-ports` on `3000`/`3001` — `@r10c/edge:free-ports`, or a bare
+`pnpm run dev-ports:free` — removes the container by name first, because the
+process holding a published port is Docker's own and would otherwise be refused
+as foreign.
+
+The route table is `tools/edge/src/routes.ts`. `pnpm nx run @r10c/edge:generate`
+renders it into `tools/edge/envoy.yaml` and the cluster's Envoy Gateway
+manifests under `infra/cluster/edge/`, which nothing applies yet and CI
+validates with `kubeconform -strict`; a hand-edit to either fails
+`@r10c/docs-check`. Both Playwright configs start the edge beside `next start`
+(reusing a running one) and probe through it, so an e2e run exercises the same path the browser takes.
+
 ### Library edits reload everywhere (two mechanisms)
 
 Edit anything under `packages/**/src` while an app or service is running and the

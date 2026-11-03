@@ -1,8 +1,9 @@
 <!-- Single source imported by CLAUDE.md and docs/ARCHITECTURE.md. Edit here only. -->
 
-`-app` frontends bind **300N**, `-service` backends bind **310N**, cross-cutting
-platform services use **319x**; the domain index `N` is shared per frontend/backend
-pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
+`-app` frontends are reached on **300N**, `-service` backends bind **310N**,
+cross-cutting platform services use **319x**; the domain index `N` is shared per
+frontend/backend pair. Infra exposes minikube NodePorts at `30000 +` the
+canonical port.
 
 | Domain (`N`)            | `-app` | `-service`          |
 | ----------------------- | ------ | ------------------- |
@@ -18,6 +19,23 @@ pair. Infra exposes minikube NodePorts at `30000 +` the canonical port.
 | sales (9)               | —      | 3109⁹               |
 | fulfilment (10)         | —      | 3110¹⁰ reserved     |
 | — platform —            |        | config-service 3190 |
+| — platform —            |        | realtime 3191¹¹     |
+
+⚠️ **A `300N` is an origin, and the edge owns it — Next listens on `320N`, the
+origin + 200** ([ADR 0072](../adr/0072-the-realtime-slice-flow-status-and-the-edge.md)).
+A server-sent stream cannot cross a Next route handler, so the browser no longer
+reaches Next directly: a local Envoy (`@r10c/edge:serve`, a container pinned by
+digest) listens on `3000` and `3001`, routes `/api/realtime/*` on both to `3191`
+and everything else to `3200` / `3201`. Zitadel's redirects, config-service's
+origin rows and the e2e base URLs keep naming `3000`/`3001`, unchanged. Each
+app's `free-ports` frees its `320N` only, so restarting an app never kills the
+edge; `pnpm run dev-ports:free` removes the edge's container too. The route
+table is `tools/edge/src/routes.ts`, rendered into `tools/edge/envoy.yaml` and
+the cluster's Envoy Gateway manifests in `infra/cluster/edge/`, and
+`@r10c/docs-check` fails a listener that is not a `300N` origin, an upstream that
+is not the origin + 200 or is missing from `ALL_PORTS`, an origin that does not
+route the realtime prefix, a stream route with a timeout, an idle timeout under
+twice the push heartbeat, or an access log that writes a query string.
 
 A `-service`'s `dev` also opens the Node inspector at its service port **+ 6000**
 (`3100` → `9100`, `3190` → `9190`), set as the `@nx/js:node` `port` option. The
@@ -398,6 +416,11 @@ presents the coordinator's inbound crossing token to
 secret, beside the storefront — which holds it for the opposite reason, having no
 session to check at all
 ([ADR 0056](../adr/0056-the-counter-sale-is-the-checkout-saga.md)).
+
+¹¹ **Reserved for realtime-service** ([ADR 0072](../adr/0072-the-realtime-slice-flow-status-and-the-edge.md)),
+inspector `9191`. The edge already routes `/api/realtime/*` on every origin to
+it, and both are freed by `free-ports`, but nothing binds the port until #476
+writes the service; until then the route answers Envoy's `503`.
 
 ¹⁰ **Reserved for fulfilment-service** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)),
 inspector `9110`. The `fulfilment` slice is declared `planned`, so nothing binds

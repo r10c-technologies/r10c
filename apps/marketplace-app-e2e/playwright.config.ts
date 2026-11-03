@@ -1,6 +1,10 @@
 import { join } from 'node:path';
 
-import { defineEntifixE2eConfig } from '@entifix/testing-e2e/playwright';
+import {
+  defineEntifixE2eConfig,
+  resolveE2eProfile,
+} from '@entifix/testing-e2e/playwright';
+import { workspaceRoot } from '@nx/devkit';
 
 /**
  * ⚠️ Absolute, because `NODE_OPTIONS` is inherited by **every** node process
@@ -46,9 +50,38 @@ const PRELOAD = join(__dirname, 'src/support/server-mocks.mjs');
  * reached. The Next binary is still relative to `cwd`, which the preset sets
  * to the app's directory; the preload is not — see `PRELOAD` above.
  */
+const MOCK_SERVER = `NODE_OPTIONS='--import ${PRELOAD}' node ./node_modules/next/dist/bin/next start -p 3200`;
+
+/**
+ * ⚠️ **Two servers, replacing the preset's one.** The browser reaches the
+ * storefront through the edge on :3000, and Next listens behind it on :3200
+ * (ADR 0072), so the preset's single `next start -p 3000` would bind the port
+ * the edge owns. The edge is probed through to Next, so "ready" means the whole
+ * path answers rather than just Envoy's socket. `mockServerCommand` is
+ * therefore passed here rather than to the preset, which only reads it for the
+ * server it builds itself.
+ */
 export default defineEntifixE2eConfig({
   configFile: __filename,
   appDir: 'apps/marketplace-app',
   port: 3000,
-  mockServerCommand: `NODE_OPTIONS='--import ${PRELOAD}' node ./node_modules/next/dist/bin/next start -p 3000`,
+  overrides: {
+    webServer: [
+      {
+        command:
+          resolveE2eProfile() === 'mock'
+            ? MOCK_SERVER
+            : 'pnpm exec next start -p 3200',
+        cwd: join(workspaceRoot, 'apps/marketplace-app'),
+        url: 'http://localhost:3200',
+        reuseExistingServer: true,
+      },
+      {
+        command: 'bash tools/edge/serve.sh',
+        cwd: workspaceRoot,
+        url: 'http://localhost:3000',
+        reuseExistingServer: true,
+      },
+    ],
+  },
 });

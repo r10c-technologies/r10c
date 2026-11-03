@@ -27,6 +27,9 @@ packages:
   # the release and put back again (docs/DEVELOPING.md → "Working on entifix from
   # r10c").
   - 'tools/entifix'
+  # `edge` is the route table the local Envoy and the cluster's Envoy Gateway
+  # manifests are rendered from (ADR 0072).
+  - 'tools/edge'
 # entifix is installed from the registry, at one version for every package: it
 # releases on fixed versioning, so two @entifix/* at different versions is a
 # combination nobody tested. Every manifest says `catalog:` and this is the only

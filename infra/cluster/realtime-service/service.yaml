@@ -1,0 +1,15 @@
+# The `realtime-service:3191` backend the edge's HTTPRoutes name
+# (infra/cluster/edge/httproutes.yaml).
+apiVersion: v1
+kind: Service
+metadata:
+  name: realtime-service
+  labels:
+    app: realtime-service
+spec:
+  selector:
+    app: realtime-service
+  ports:
+    - name: http
+      port: 3191
+      targetPort: http

@@ -14,6 +14,16 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
 import {
+  ENVOY_FILE,
+  envoyConfig,
+  gatewayManifests,
+  HEARTBEAT_S,
+  REALTIME,
+  renderEdge,
+  UPSTREAM_OFFSET,
+  type Yaml,
+} from '@r10c/edge';
+import {
   declaredEntityClasses,
   declaredEntityDomains,
   SLICES,
@@ -1535,5 +1545,352 @@ describe('The dashboard charts the metrics the fleet declares', () => {
       `${grafted} reaches into the image's provisioning tree, so it must be a ` +
         '`subPath` mount of one file.',
     ).toHaveLength(1);
+  });
+});
+
+/* ------------------------------------------------------------------ edge */
+
+type Tree = { readonly [key: string]: Yaml };
+const asTree = (value: Yaml | undefined): Tree =>
+  (value ?? {}) as unknown as Tree;
+const asList = (value: Yaml | undefined): readonly Yaml[] =>
+  (value ?? []) as readonly Yaml[];
+const clone = <T>(value: T): T => structuredClone(value);
+const seconds = (value: Yaml | undefined): number =>
+  Number(String(value).replace(/s$/, ''));
+
+/** Every value under a key named `key`, anywhere in a tree. */
+const valuesOf = (tree: Yaml, key: string): Yaml[] => {
+  if (typeof tree !== 'object') return [];
+  if (Array.isArray(tree))
+    return (tree as readonly Yaml[]).flatMap(item => valuesOf(item, key));
+  return Object.entries(tree as Tree).flatMap(([name, value]) => [
+    ...(name === key ? [value] : []),
+    ...valuesOf(value, key),
+  ]);
+};
+
+/**
+ * What is wrong with the local edge (ADR 0072): every listener is a `300N`
+ * origin whose Next upstream is the origin + 200, every upstream is a port
+ * `free-ports` knows, every origin routes the realtime prefix and its stream to
+ * the realtime port, the stream never times out, every idle timeout is over
+ * twice the push heartbeat, and no access log writes a query string.
+ */
+const edgeProblems = (input: {
+  readonly config: Yaml;
+  readonly allPorts: ReadonlySet<string>;
+  readonly heartbeat: number;
+}): string[] => {
+  const problems: string[] = [];
+  const statics = asTree(asTree(input.config)['static_resources']);
+
+  const clusterPort = new Map<string, number>();
+  for (const cluster of asList(statics['clusters'])) {
+    const { name } = asTree(cluster);
+    const [port] = valuesOf(cluster, 'port_value');
+    clusterPort.set(String(name), Number(port));
+    if (!input.allPorts.has(String(port)))
+      problems.push(
+        `cluster ${String(name)}: ${String(port)} not in ALL_PORTS`,
+      );
+  }
+
+  for (const listener of asList(statics['listeners'])) {
+    const [origin] = valuesOf(asTree(listener)['address'] ?? {}, 'port_value');
+    const where = `listener ${String(origin)}`;
+    if (!/^300\d$/.test(String(origin)))
+      problems.push(`${where}: not a 300N origin`);
+
+    const routes = valuesOf(listener, 'routes').flatMap(asList).map(asTree);
+    const target = (match: Tree) =>
+      routes.find(
+        route => JSON.stringify(route['match']) === JSON.stringify(match),
+      );
+    const portOf = (route: Tree | undefined) =>
+      clusterPort.get(String(asTree(route?.['route'])['cluster']));
+
+    const next = target({ prefix: '/' });
+    if (portOf(next) !== Number(origin) + UPSTREAM_OFFSET)
+      problems.push(
+        `${where}: / goes to ${String(portOf(next))}, not ${String(Number(origin) + UPSTREAM_OFFSET)}`,
+      );
+
+    const prefix = target({ path_separated_prefix: REALTIME.prefix });
+    if (portOf(prefix) !== REALTIME.port)
+      problems.push(
+        `${where}: ${REALTIME.prefix} does not reach ${String(REALTIME.port)}`,
+      );
+
+    const stream = target({ path: REALTIME.stream });
+    if (portOf(stream) !== REALTIME.port)
+      problems.push(
+        `${where}: ${REALTIME.stream} does not reach ${String(REALTIME.port)}`,
+      );
+    else if (asTree(stream?.['route'])['timeout'] !== '0s')
+      problems.push(`${where}: the stream route times out`);
+
+    for (const format of valuesOf(listener, 'inline_string'))
+      if (
+        !String(format).includes('%REQ_WITHOUT_QUERY(:PATH)%') ||
+        String(format).includes('%REQ(:PATH)%')
+      )
+        problems.push(`${where}: an access log writes the query string`);
+  }
+
+  for (const key of ['idle_timeout', 'stream_idle_timeout'])
+    for (const value of valuesOf(input.config, key))
+      if (!(seconds(value) > 2 * input.heartbeat))
+        problems.push(
+          `${key} ${String(value)} is not over twice the ${String(input.heartbeat)}s heartbeat`,
+        );
+
+  return problems;
+};
+
+/** The cluster rendering of the same rules, over the Envoy Gateway resources. */
+const gatewayProblems = (input: {
+  readonly manifests: Readonly<Record<string, readonly Yaml[]>>;
+  readonly heartbeat: number;
+}): string[] => {
+  const problems: string[] = [];
+  const documents = Object.values(input.manifests).flat().map(asTree);
+  const kind = (name: string) => documents.filter(doc => doc['kind'] === name);
+
+  const listeners = kind('Gateway').flatMap(gateway =>
+    asList(asTree(gateway['spec'])['listeners']).map(asTree),
+  );
+  for (const listener of listeners)
+    if (!/^300\d$/.test(String(listener['port'])))
+      problems.push(
+        `gateway listener ${String(listener['port'])}: not a 300N origin`,
+      );
+
+  const routes = kind('HTTPRoute');
+  if (routes.length !== listeners.length)
+    problems.push(
+      `${String(listeners.length)} listeners but ${String(routes.length)} HTTPRoutes`,
+    );
+
+  for (const route of routes) {
+    const name = String(asTree(route['metadata'])['name']);
+    const rules = asList(asTree(route['spec'])['rules']).map(asTree);
+    const rule = (type: string, value: string) =>
+      rules.find(candidate =>
+        asList(candidate['matches']).some(match => {
+          const path = asTree(asTree(match)['path']);
+          return path['type'] === type && path['value'] === value;
+        }),
+      );
+    const reachesRealtime = (candidate: Tree | undefined) =>
+      asList(candidate?.['backendRefs']).some(ref => {
+        const tree = asTree(ref);
+        return tree['name'] === REALTIME.app && tree['port'] === REALTIME.port;
+      });
+
+    if (!reachesRealtime(rule('PathPrefix', REALTIME.prefix)))
+      problems.push(
+        `HTTPRoute ${name}: ${REALTIME.prefix} does not reach ${REALTIME.app}:${String(REALTIME.port)}`,
+      );
+    const stream = rule('Exact', REALTIME.stream);
+    if (!reachesRealtime(stream))
+      problems.push(
+        `HTTPRoute ${name}: ${REALTIME.stream} does not reach ${REALTIME.app}:${String(REALTIME.port)}`,
+      );
+    else if (asTree(stream?.['timeouts'])['request'] !== '0s')
+      problems.push(`HTTPRoute ${name}: the stream rule times out`);
+  }
+
+  for (const key of ['idleTimeout', 'connectionIdleTimeout'])
+    for (const value of valuesOf(documents as unknown as Yaml, key))
+      if (!(seconds(value) > 2 * input.heartbeat))
+        problems.push(
+          `${key} ${String(value)} is not over twice the ${String(input.heartbeat)}s heartbeat`,
+        );
+
+  return problems;
+};
+
+describe('The edge owns the origins, and every hop holds a quiet stream', () => {
+  const freePorts = read('tools/free-ports.sh');
+  const allPorts = new Set(
+    (freePorts.match(/^ALL_PORTS=\(([^)]*)\)/m)?.[1] ?? '').trim().split(/\s+/),
+  );
+  const config = envoyConfig();
+  const manifests = gatewayManifests();
+
+  it('finds the listeners, clusters and routes it is meant to check', () => {
+    const statics = asTree(asTree(config)['static_resources']);
+    expect(asList(statics['listeners'])).toHaveLength(2);
+    expect(asList(statics['clusters'])).toHaveLength(3);
+    expect(Object.values(manifests).flat()).toHaveLength(6);
+  });
+
+  it('mirrors the push heartbeat the installed release sends', () => {
+    const sse = readFileSync(
+      join(installedEntifixDist('service-shell'), 'push', 'sse.js'),
+      'utf8',
+    );
+    const installed = sse.match(
+      /PUSH_HEARTBEAT\s*=\s*Duration\.seconds\((\d+)\)/,
+    )?.[1];
+    expect(
+      installed,
+      'PUSH_HEARTBEAT not found in @entifix/service-shell',
+    ).toBeDefined();
+    expect(HEARTBEAT_S).toBe(Number(installed));
+  });
+
+  it('routes every origin by the convention, locally and in the cluster', () => {
+    const problems = [
+      ...edgeProblems({ config, allPorts, heartbeat: HEARTBEAT_S }),
+      ...gatewayProblems({ manifests, heartbeat: HEARTBEAT_S }),
+    ];
+    expect(
+      problems,
+      `the edge is out of convention:\n  ${problems.join('\n  ')}`,
+    ).toEqual([]);
+  });
+
+  it('runs an Envoy image pinned by digest', () => {
+    const image = read('tools/edge/serve.sh').match(/^IMAGE='([^']+)'/m)?.[1];
+    expect(image, 'IMAGE not found in tools/edge/serve.sh').toBeDefined();
+    expect(image).toMatch(/^envoyproxy\/envoy:v[\d.]+@sha256:[0-9a-f]{64}$/);
+  });
+
+  it('keeps every rendered file equal to its generator', async () => {
+    const files = await renderEdge(REPO_ROOT);
+    expect(Object.keys(files)).toContain(ENVOY_FILE);
+    const stale = Object.entries(files)
+      .filter(
+        ([path, text]) =>
+          !existsSync(join(REPO_ROOT, path)) || read(path) !== text,
+      )
+      .map(([path]) => path);
+    expect(
+      stale,
+      `stale, or edited by hand — run \`pnpm nx run @r10c/edge:generate\`:\n  ${stale.join('\n  ')}`,
+    ).toEqual([]);
+  });
+
+  /** The plants: each rule above must fail the config that breaks it. */
+  describe('fails an edge that breaks a rule', () => {
+    const statics = (tree: Yaml) =>
+      asTree(asTree(tree)['static_resources']) as Record<string, Yaml>;
+    const listenerOf = (tree: Yaml, index: number) =>
+      asList(statics(tree)['listeners'])[index] as Yaml;
+    const routesOf = (tree: Yaml) =>
+      valuesOf(listenerOf(tree, 1), 'routes').flatMap(asList) as Record<
+        string,
+        Yaml
+      >[];
+    const check = (tree: Yaml, ports: ReadonlySet<string> = allPorts) =>
+      edgeProblems({ config: tree, allPorts: ports, heartbeat: HEARTBEAT_S });
+
+    it('an upstream that is not the origin + 200', () => {
+      const planted = clone(config);
+      const clusters = asList(statics(planted)['clusters']) as Record<
+        string,
+        Yaml
+      >[];
+      const [next] = clusters;
+      const socket = valuesOf(next, 'socket_address')[0] as Record<
+        string,
+        Yaml
+      >;
+      socket['port_value'] = 3300;
+      expect(check(planted, new Set([...allPorts, '3300']))).toEqual([
+        'listener 3000: / goes to 3300, not 3200',
+      ]);
+    });
+
+    it('an upstream free-ports does not know', () => {
+      const ports = new Set([...allPorts].filter(port => port !== '3191'));
+      expect(check(config, ports)).toEqual([
+        'cluster realtime: 3191 not in ALL_PORTS',
+      ]);
+    });
+
+    it('a listener that is not a 300N origin', () => {
+      const planted = clone(config);
+      const socket = valuesOf(
+        asTree(listenerOf(planted, 0))['address'] ?? {},
+        'socket_address',
+      )[0] as Record<string, Yaml>;
+      socket['port_value'] = 8080;
+      expect(check(planted)).toEqual(
+        expect.arrayContaining(['listener 8080: not a 300N origin']),
+      );
+    });
+
+    it('an origin that does not route the realtime prefix', () => {
+      const planted = clone(config);
+      const realtime = routesOf(planted).find(
+        route => route['name'] === 'realtime',
+      );
+      if (!realtime) throw new Error('no realtime route to plant against');
+      realtime['route'] = { cluster: 'next_3201' };
+      expect(check(planted)).toEqual([
+        'listener 3001: /api/realtime does not reach 3191',
+      ]);
+    });
+
+    it('a stream route with a timeout', () => {
+      const planted = clone(config);
+      const stream = routesOf(planted).find(
+        route => route['name'] === 'realtime-stream',
+      );
+      if (!stream) throw new Error('no stream route to plant against');
+      (stream['route'] as Record<string, Yaml>)['timeout'] = '15s';
+      expect(check(planted)).toEqual([
+        'listener 3001: the stream route times out',
+      ]);
+    });
+
+    it('an idle timeout under twice the heartbeat', () => {
+      const planted = clone(config);
+      const stream = routesOf(planted).find(
+        route => route['name'] === 'realtime-stream',
+      );
+      if (!stream) throw new Error('no stream route to plant against');
+      (stream['route'] as Record<string, Yaml>)['idle_timeout'] = '30s';
+      expect(check(planted)).toEqual([
+        'idle_timeout 30s is not over twice the 15s heartbeat',
+      ]);
+    });
+
+    it('an access log that writes the query string', () => {
+      const planted = clone(config);
+      const source = valuesOf(
+        listenerOf(planted, 0),
+        'text_format_source',
+      )[0] as Record<string, Yaml>;
+      source['inline_string'] = '%REQ(:PATH)%\n';
+      expect(check(planted)).toEqual([
+        'listener 3000: an access log writes the query string',
+      ]);
+    });
+
+    it('a cluster stream rule with a timeout, or a route that skips realtime', () => {
+      const planted = clone(manifests) as Record<
+        string,
+        Record<string, Yaml>[]
+      >;
+      const [route] = planted['httproutes.yaml'] ?? [];
+      const rules = asList(asTree(route?.['spec'])['rules']) as Record<
+        string,
+        Yaml
+      >[];
+      const [stream, prefix] = rules;
+      if (!stream || !prefix) throw new Error('no rules to plant against');
+      stream['timeouts'] = { request: '30s' };
+      prefix['backendRefs'] = [{ name: 'marketplace-app', port: 3200 }];
+      expect(
+        gatewayProblems({ manifests: planted, heartbeat: HEARTBEAT_S }),
+      ).toEqual([
+        'HTTPRoute marketplace-app: /api/realtime does not reach realtime-service:3191',
+        'HTTPRoute marketplace-app: the stream rule times out',
+      ]);
+    });
   });
 });

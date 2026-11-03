@@ -146,6 +146,29 @@ jobs:
         if: always()
         run: pnpm nx test @r10c/slices
 
+      # The cluster manifests nothing applies yet (infra/cluster/README.md),
+      # checked against their schemas so the shape is right the day one is:
+      # core Kubernetes from kubeconform's default location, Gateway API and
+      # Envoy Gateway CRDs from the datree catalog at a pinned commit. `-strict`
+      # rejects an unknown field, which is how a misspelt timeout would
+      # otherwise pass as silently ignored. The binary is checked against the
+      # release's own SHA-256 before it runs.
+      - name: Validate cluster manifests
+        if: always()
+        env:
+          KUBECONFORM_VERSION: v0.8.0
+          KUBECONFORM_SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
+          CRDS_CATALOG_REF: 63669a570e231d4f1f8396d229a1de512bcf0a34
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/kubeconform.tar.gz" \
+            "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
+          echo "$KUBECONFORM_SHA256  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/kubeconform.tar.gz" -C "$RUNNER_TEMP" kubeconform
+          "$RUNNER_TEMP/kubeconform" -strict -summary \
+            -schema-location default \
+            -schema-location "https://raw.githubusercontent.com/datreeio/CRDs-catalog/$CRDS_CATALOG_REF/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json" \
+            infra/cluster
+
       # The repository's own working conventions. Attribution is the first one,
       # and it is here because prose could not hold it: it was written in three
       # places and skipped anyway, in five pull requests and six commits.

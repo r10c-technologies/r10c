@@ -308,6 +308,9 @@
     },
     {
       "path": "./packages/shells/effect/flow-catalog"
+    },
+    {
+      "path": "./tools/edge"
     }
   ],
   "compilerOptions": {
