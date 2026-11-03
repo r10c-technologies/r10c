@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { isOrderStatus, OrderStatuses } from './order-status.js';
 
 describe('OrderStatuses', () => {
-  it('describes money and promises, not logistics', () => {
-    // No `shipped`: fulfillment is out of v1 scope, and adding it later is a
-    // member here rather than a second status field.
+  it('follows one vendor order from checkout to delivery or cancellation', () => {
     expect(OrderStatuses).toEqual([
       'pending',
       'paid',
+      'confirmed',
       'cancelling',
+      'dispatched',
       'fulfilled',
       'cancelled',
     ]);

@@ -1,4 +1,5 @@
 export * from './cancel-capability';
+export * from './group-total';
 export * from './order-item';
 export * from './order-scope';
 export * from './order-status';

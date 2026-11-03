@@ -37,9 +37,11 @@ const paysNow = (_context: unknown, start: CheckoutStart) =>
   start.paymentMethod !== 'cod';
 
 /**
- * Checkout: hold each line, write the receipt, take the money, convert the
- * holds. A cash-on-delivery basket takes no money, so its commit point is
- * `flow.commit@1` and its conversions still run after one (ADR 0070).
+ * Checkout: open the buyer's group, hold each vendor's lines and write that
+ * vendor's order, take the money for the whole group, then confirm each order
+ * and convert its holds. A cash-on-delivery basket takes no money, so its
+ * commit point is `flow.commit@1` and its confirmations and conversions still
+ * run after one (ADR 0069, ADR 0070).
  *
  * ⚠️ **No longer the saga runner's flow, step for step.** The capture and
  * refund moved to per-order allocations (#480) and the runner's definitions
@@ -55,8 +57,9 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
       paymentMethod: start.paymentMethod,
     })),
   stages: [
+    { name: 'group', steps: [{ ref: 'order.open-group@1' }] },
     { name: 'hold', perSegment: true, steps: [{ ref: 'stock.reserve@1' }] },
-    { name: 'order', steps: [{ ref: 'order.write@1' }] },
+    { name: 'order', perSegment: true, steps: [{ ref: 'order.write@2' }] },
     {
       name: 'pay',
       steps: [
@@ -67,6 +70,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
         },
       ],
     },
+    { name: 'confirm', perSegment: true, steps: [{ ref: 'order.confirm@1' }] },
     { name: 'convert', perSegment: true, steps: [{ ref: 'stock.convert@1' }] },
   ],
 };
@@ -86,10 +90,10 @@ export const cancellationRecipe: Recipe<CancellationStart> = {
   input: CancellationStart,
   requiresCommitPoint: true,
   stages: [
-    { name: 'claim', steps: [{ ref: 'order.claim-cancel@1' }] },
+    { name: 'claim', steps: [{ ref: 'order.claim-cancel@2' }] },
     { name: 'refund', steps: [{ ref: 'payment.refund@2' }] },
     { name: 'restore', steps: [{ ref: 'stock.restore@1' }] },
-    { name: 'close', steps: [{ ref: 'order.close-cancelled@1' }] },
+    { name: 'close', steps: [{ ref: 'order.close@1' }] },
   ],
 };
 

@@ -31,6 +31,7 @@
  * that key until it becomes `ProductSpecification`.
  */
 export { ORDER_DOMAIN } from './domain';
+export * from './entities/checkout-group';
 export * from './entities/product-order';
 export * from './failures/order-failures';
 export * from './ports';

@@ -5,285 +5,254 @@ import {
 } from '@entifix/mongo/transactions';
 import { makeFakeMongoDb } from '@entifix/testing-unit/drivers';
 import {
+  CheckoutGroup,
+  CheckoutGroupStoreTag,
   OrderItem,
   ProductOrder,
-  type ProductOrderStore,
   ProductOrderStoreTag,
 } from '@r10c/business-ts-order-management';
-import { describeProductOrderStoreContract } from '@r10c/business-ts-order-management/testing';
+import {
+  describeProductOrderStoreContract,
+  type OrderStores,
+} from '@r10c/business-ts-order-management/testing';
 import { mongoCellWorld } from '@r10c/testing-cells/mongo';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import {
-  MongoProductOrderStoreLayer,
+  GROUP_COLLECTION,
+  MongoOrderStoresLayer,
   ORDER_COLLECTION,
 } from './product-order-store.js';
 
-const stored = (id: string, status: string) => ({
-  id,
-  status,
-  buyerId: 'buyer-1',
-  items: [
-    {
-      offeringId: 'o-1',
-      vendorId: 'v-1',
-      quantity: 2,
-      amount: 10,
-      currency: 'GTQ',
-    },
-  ],
-});
+type Fake = ReturnType<typeof makeFakeMongoDb>;
 
 const world = (seed: Record<string, Record<string, unknown>[]> = {}) => {
-  const cell = mongoCellWorld(MongoProductOrderStoreLayer, {
-    source: 'order',
-    seed,
-  });
-  const run = <A, E>(use: (store: ProductOrderStore) => Effect.Effect<A, E>) =>
-    cell.run(Effect.flatMap(ProductOrderStoreTag, use));
+  const cell = mongoCellWorld(MongoOrderStoresLayer, { source: 'order', seed });
+  const run = <A, E>(use: (stores: OrderStores) => Effect.Effect<A, E>) =>
+    cell.run(
+      Effect.flatMap(
+        Effect.all({
+          orders: ProductOrderStoreTag,
+          groups: CheckoutGroupStoreTag,
+        }),
+        use,
+      ),
+    );
   return { fake: cell.fake, bus: cell.bus, run };
 };
 
-describeProductOrderStoreContract('the Mongo store', () =>
-  world().run(store => Effect.succeed(store)),
+describeProductOrderStoreContract('the Mongo stores', () =>
+  world().run(stores => Effect.succeed(stores)),
 );
+
+const GROUP = 'grp-1';
+
+const aGroup = () =>
+  Object.assign(new CheckoutGroup(), { id: GROUP, buyerId: 'buyer-1' });
 
 const anOrder = (id: string) =>
   Object.assign(new ProductOrder('buyer-1'), {
     id,
+    vendorId: 'v-1',
+    groupId: GROUP,
+    paymentMethod: 'card',
     status: 'pending',
-    items: [new OrderItem('o-1', 'v-1', 2, 10, 'GTQ')],
+    items: [new OrderItem('o-1', 2, 10, 'GTQ')],
   });
 
-const statusOf = (fake: ReturnType<typeof makeFakeMongoDb>, id: string) =>
+const eventsOf = (fake: Fake) =>
+  fake
+    .read(OUTBOX_COLLECTION)
+    .map(entry => entry['event'] as { name: string; audience: unknown });
+
+const statusOf = (fake: Fake, id: string) =>
   fake.read(ORDER_COLLECTION).find(doc => doc['id'] === id)?.['status'];
 
+/** A group with one pending order in it. */
+const placed = async (run: ReturnType<typeof world>['run']) => {
+  await run(({ groups }) => groups.open(aGroup(), undefined));
+  await run(({ orders }) => orders.place(anOrder('ord-1'), undefined));
+};
+
 describe('placing an order', () => {
-  it('writes it, announces order.placed and drains it at once', async () => {
+  it('writes it, announces order.placed to its buyer and its one vendor, and drains it', async () => {
     const { fake, bus, run } = world();
 
-    const placed = await run(store => store.place(anOrder('ord-1'), 'c-1'));
+    await placed(run);
 
-    expect(placed._tag).toBe('placed');
     expect(statusOf(fake, 'ord-1')).toBe('pending');
-    expect(bus.published.map(event => event.id)).toEqual(['ord-1:placed']);
+    expect(eventsOf(fake)).toEqual([
+      expect.objectContaining({
+        name: 'order.placed',
+        audience: [
+          { kind: 'party', id: 'buyer-1' },
+          { kind: 'organization', id: 'v-1' },
+        ],
+      }),
+    ]);
+    expect(bus.published.map(event => event.name)).toEqual(['order.placed']);
   });
 
-  it('answers a redelivered command with the order it first wrote', async () => {
-    const { fake, run } = world();
-    await run(store => store.place(anOrder('ord-2'), 'c-2'));
-
-    const again = await run(store => store.place(anOrder('ord-other'), 'c-2'));
-
-    expect(again).toMatchObject({ _tag: 'replayed', order: { id: 'ord-2' } });
-    expect(fake.read(ORDER_COLLECTION)).toHaveLength(1);
-  });
-
-  it('refuses a duplicate that remembers no order', async () => {
+  it('refuses a duplicate that remembers no order, and a group duplicate that remembers none', async () => {
     const { run } = world({
-      [COMMAND_INBOX_COLLECTION]: [{ commandId: 'c-3', claimedAt: 'then' }],
+      [COMMAND_INBOX_COLLECTION]: [
+        { commandId: 'c-ghost', claimedAt: 'then' },
+        { commandId: 'g-ghost', claimedAt: 'then' },
+      ],
+      [GROUP_COLLECTION]: [{ id: GROUP }],
     });
 
-    const error = await run(store =>
-      Effect.flip(store.place(anOrder('ord-3'), 'c-3')),
+    const order = await run(({ orders }) =>
+      Effect.flip(orders.place(anOrder('ord-1'), 'c-ghost')),
+    );
+    const group = await run(({ groups }) =>
+      Effect.flip(groups.open(aGroup(), 'g-ghost')),
     );
 
-    expect(isStoreFault(error)).toBe(true);
+    expect(isStoreFault(order)).toBe(true);
+    expect(isStoreFault(group)).toBe(true);
   });
 
-  it('reports a write the driver failed as a store failure', async () => {
-    const { fake, run } = world();
-    fake.failOn('insertOne', new Error('disk full'));
+  it('reports writes and reads the driver failed as store failures', async () => {
+    const writes = world();
+    await writes.run(({ groups }) => groups.open(aGroup(), undefined));
+    writes.fake.failOn('insertOne', new Error('disk full'));
+    const reads = world();
+    reads.fake.failOn('findOne', new Error('network down'));
+    const lists = world();
+    lists.fake.failOn('find', new Error('network down'));
 
-    const error = await run(store =>
-      Effect.flip(store.place(anOrder('ord-4'), undefined)),
+    const write = await writes.run(({ orders }) =>
+      Effect.flip(orders.place(anOrder('ord-1'), undefined)),
+    );
+    const open = await writes.run(({ groups }) =>
+      Effect.flip(groups.open(aGroup(), undefined)),
+    );
+    const read = await reads.run(({ orders }) => Effect.flip(orders.get('x')));
+    const group = await reads.run(({ groups }) => Effect.flip(groups.get('x')));
+    const placeFails = world();
+    placeFails.fake.failOn('updateOne', new Error('network down'));
+    const place = await placeFails.run(({ orders }) =>
+      Effect.flip(orders.place(anOrder('ord-1'), undefined)),
+    );
+    const list = await lists.run(({ orders }) =>
+      Effect.flip(orders.forGroup(GROUP)),
     );
 
-    expect(isStoreFault(error)).toBe(true);
-  });
-});
-
-describe('reading and removing', () => {
-  it('reads an order back, answers nothing for an absent one, and removes one as compensation', async () => {
-    const { fake, run } = world({
-      [ORDER_COLLECTION]: [stored('ord-5', 'pending')],
-    });
-
-    const found = await run(store => store.get('ord-5'));
-    const absent = await run(store => store.get('ord-404'));
-    const removed = await run(store => store.remove('ord-5'));
-    const again = await run(store => store.remove('ord-5'));
-
-    expect(found?.items[0]?.quantity).toBe(2);
-    expect(absent).toBeUndefined();
-    expect([removed, again]).toEqual([true, false]);
-    expect(fake.read(ORDER_COLLECTION)).toEqual([]);
+    for (const failure of [write, open, read, group, place, list]) {
+      expect(isStoreFault(failure)).toBe(true);
+    }
   });
 
-  it('reports a read the driver failed, and a record that will not read back, as store failures', async () => {
-    const broken = world();
-    broken.fake.failOn('findOne', new Error('network down'));
-    const failedRead = await broken.run(store =>
-      Effect.flip(store.get('ord-x')),
-    );
-    expect(isStoreFault(failedRead)).toBe(true);
-
-    const corrupt = world({
+  it('reports a stored record that will not read back as a store failure', async () => {
+    const { run } = world({
       [COMMAND_INBOX_COLLECTION]: [
         { commandId: 'c-bad', claimedAt: 'then', replay: { record: 'nope' } },
+        { commandId: 'g-bad', claimedAt: 'then', replay: { record: 'nope' } },
       ],
+      [GROUP_COLLECTION]: [{ id: GROUP }],
     });
-    const unreadable = await corrupt.run(store =>
-      Effect.flip(store.place(anOrder('ord-z'), 'c-bad')),
+
+    const order = await run(({ orders }) =>
+      Effect.flip(orders.place(anOrder('ord-z'), 'c-bad')),
     );
-    expect(isStoreFault(unreadable)).toBe(true);
+    const group = await run(({ groups }) =>
+      Effect.flip(groups.open(aGroup(), 'g-bad')),
+    );
+
+    expect(isStoreFault(order)).toBe(true);
+    expect(isStoreFault(group)).toBe(true);
   });
 });
 
-describe('fulfilling', () => {
-  it('stamps the lines and moves the status, only while the order is paid', async () => {
-    const { fake, run } = world({
-      [ORDER_COLLECTION]: [
-        stored('ord-6', 'paid'),
-        stored('ord-7', 'cancelling'),
-      ],
-    });
-    const items = [
-      Object.assign(new OrderItem('o-1', 'v-1', 2, 10, 'GTQ'), {
-        fulfilledAt: new Date(),
-      }),
-    ];
+describe('moving an order', () => {
+  it('announces order.cancelled when a dispatched parcel is closed cancelled', async () => {
+    const { fake, run } = world();
+    await placed(run);
 
-    const fulfilled = await run(store =>
-      store.fulfil('ord-6', items, 'fulfilled'),
+    await run(({ orders }) => orders.move('ord-1', 'confirm', undefined));
+    await run(({ orders }) =>
+      orders.move('ord-1', 'mark-dispatched', undefined),
     );
-    const claimed = await run(store =>
-      store.fulfil('ord-7', items, 'fulfilled'),
+    const closed = await run(({ orders }) =>
+      orders.move('ord-1', 'close-cancelled', 'cmd-1'),
     );
 
-    expect(fulfilled?.status).toBe('fulfilled');
-    expect(fulfilled?.items[0]?.quantity).toBe(2);
-    expect(claimed).toBeUndefined();
-    expect(statusOf(fake, 'ord-7')).toBe('cancelling');
+    expect(closed?.status).toBe('cancelled');
+    expect(eventsOf(fake).map(event => event.name)).toEqual([
+      'order.placed',
+      'order.cancelled',
+    ]);
   });
 
-  it('reports a fulfilment the driver failed as a store failure', async () => {
-    const { fake, run } = world({
-      [ORDER_COLLECTION]: [stored('ord-8', 'paid')],
-    });
+  it('reports a move the driver failed as a store failure', async () => {
+    const { fake, run } = world();
+    await placed(run);
     fake.failOn('findOneAndUpdate', new Error('network down'));
 
-    const error = await run(store =>
-      Effect.flip(store.fulfil('ord-8', [], 'paid')),
+    const error = await run(({ orders }) =>
+      Effect.flip(orders.move('ord-1', 'confirm', undefined)),
     );
 
     expect(isStoreFault(error)).toBe(true);
   });
 });
 
-describe('the cancellation transitions', () => {
-  it('claims a paid order once, answers a redelivery as replayed, and refuses one not paid', async () => {
-    const { fake, run } = world({
-      [ORDER_COLLECTION]: [
-        stored('ord-9', 'paid'),
-        stored('ord-10', 'pending'),
-      ],
-    });
-
-    const claimed = await run(store => store.claimCancellation('ord-9', 'k-1'));
-    const again = await run(store => store.claimCancellation('ord-9', 'k-1'));
-    const refused = await run(store =>
-      store.claimCancellation('ord-10', undefined),
-    );
-
-    expect(claimed).toMatchObject({
-      _tag: 'claimed',
-      order: { status: 'cancelling' },
-    });
-    expect(again).toEqual({ _tag: 'replayed' });
-    expect(refused).toEqual({ _tag: 'notClaimable' });
-    expect(statusOf(fake, 'ord-10')).toBe('pending');
-  });
-
-  it('releases a claim back to paid, and reports when there was none', async () => {
-    const { fake, run } = world({
-      [ORDER_COLLECTION]: [stored('ord-11', 'cancelling')],
-    });
-
-    const released = await run(store => store.releaseCancellation('ord-11'));
-    const none = await run(store => store.releaseCancellation('ord-11'));
-
-    expect([released, none]).toEqual([true, false]);
-    expect(statusOf(fake, 'ord-11')).toBe('paid');
-  });
-
-  it('settles a claimed order, announcing order.cancelled, and settles nothing twice', async () => {
-    const { fake, bus, run } = world({
-      [ORDER_COLLECTION]: [stored('ord-12', 'cancelling')],
-    });
-
-    const settled = await run(store =>
-      store.settleCancellation('ord-12', 's-1'),
-    );
-    const again = await run(store => store.settleCancellation('ord-12', 's-1'));
-    const notClaimed = await run(store =>
-      store.settleCancellation('ord-12', undefined),
-    );
-
-    expect(settled?.status).toBe('cancelled');
-    expect(again).toBeUndefined();
-    expect(notClaimed).toBeUndefined();
-    expect(bus.published.map(event => event.id)).toEqual(['ord-12:cancelled']);
-    expect(fake.read(OUTBOX_COLLECTION)).toHaveLength(1);
-  });
-
-  it('reports a release the driver failed as a store failure', async () => {
+describe('a cancellation', () => {
+  it('releases a claim from a confirmed order back to confirmed', async () => {
     const { fake, run } = world();
-    fake.failOn('findOneAndUpdate', new Error('network down'));
+    await placed(run);
+    await run(({ orders }) => orders.move('ord-1', 'confirm', undefined));
+    await run(({ orders }) => orders.claimCancellation('ord-1', undefined));
 
-    const errors = await Promise.all([
-      run(store => Effect.flip(store.releaseCancellation('ord-13'))),
-      run(store => Effect.flip(store.claimCancellation('ord-13', undefined))),
-    ]);
-
-    expect(errors.every(isStoreFault)).toBe(true);
-  });
-});
-
-describe('folding a capture', () => {
-  it('moves a pending order to paid once, however often the event arrives', async () => {
-    const { fake, run } = world({
-      [ORDER_COLLECTION]: [stored('ord-14', 'pending')],
-    });
-    const claim = { consumer: 'order.payment.captured', eventId: 'pay-1:t' };
-
-    const first = await run(store =>
-      store.markPaid(claim, 'ord-14', '2026-10-25T00:00:00.000Z'),
+    expect(await run(({ orders }) => orders.releaseCancellation('ord-1'))).toBe(
+      true,
     );
-    const again = await run(store =>
-      store.markPaid(claim, 'ord-14', '2026-10-25T00:00:00.000Z'),
-    );
-
-    expect([first, again]).toEqual(['claimed', 'duplicate']);
-    expect(statusOf(fake, 'ord-14')).toBe('paid');
+    expect(statusOf(fake, 'ord-1')).toBe('confirmed');
   });
 
-  it('reports a fold the driver failed as a store failure', async () => {
+  it('settles a claimed order, announcing order.cancelled', async () => {
     const { fake, run } = world();
-    fake.failOn('updateOne', new Error('network down'));
-
-    const error = await run(store =>
-      Effect.flip(
-        store.markPaid({ consumer: 'c', eventId: 'e' }, 'ord-15', 'now'),
+    await placed(run);
+    await run(({ orders }) =>
+      orders.markPaid(
+        { consumer: 'c', eventId: 'e' },
+        'ord-1',
+        '2026-10-26T10:00:00.000Z',
       ),
     );
+    await run(({ orders }) => orders.claimCancellation('ord-1', undefined));
 
-    expect(isStoreFault(error)).toBe(true);
+    await run(({ orders }) => orders.settleCancellation('ord-1', 's-1'));
+
+    expect(statusOf(fake, 'ord-1')).toBe('cancelled');
+    expect(eventsOf(fake).map(event => event.name)).toContain(
+      'order.cancelled',
+    );
+  });
+
+  it('reports a release, a removal and a group removal the driver failed as store failures', async () => {
+    const { fake, run } = world();
+    await placed(run);
+    fake.failOn('updateOne', new Error('network down'));
+    fake.failOn('deleteOne', new Error('network down'));
+
+    const release = await run(({ orders }) =>
+      Effect.flip(orders.releaseCancellation('ord-1')),
+    );
+    const remove = await run(({ orders }) =>
+      Effect.flip(orders.remove('ord-1')),
+    );
+    const group = await run(({ groups }) => Effect.flip(groups.remove(GROUP)));
+
+    for (const failure of [release, remove, group]) {
+      expect(isStoreFault(failure)).toBe(true);
+    }
   });
 });
 
-describe('MongoProductOrderStoreLayer', () => {
+describe('MongoOrderStoresLayer', () => {
   it('fails to build when its indexes cannot be ensured', async () => {
     const { fake, run } = world();
     fake.failOn('createIndex', new Error('not primary'));

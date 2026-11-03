@@ -11,8 +11,8 @@ import { ORDER_SERVICE_URL } from '@r10c/shells-next-order/server';
  * handing a secret to every signed-in tab or forwarding a session the route
  * refuses anyway.
  *
- * `fulfil` and `cancellation` are what changed it. They are session-guarded by
- * the permissions their own `@useCase()` descriptors derive, so what this
+ * The `cancel` verb is what changed it. It is session-guarded by the
+ * permission its own `@useCase()` descriptor derives, so what this
  * carries upstream is exactly the credential they want — and this proxy still
  * grants nothing: order-service verifies the forwarded token and applies its own
  * `requirePermission`

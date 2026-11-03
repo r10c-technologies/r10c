@@ -275,6 +275,29 @@ export const entity: EsEntity = {
       media: 'Images',
     },
   },
+  'checkout-group': {
+    // Opened by the checkout flow, never by a person; a buyer reads it as their
+    // receipt across sellers, and a vendor never reads it at all.
+    form: {
+      editTitle: 'Checkout',
+      newTitle: 'Checkout',
+    },
+    label: 'Checkout',
+    plural: 'Checkouts',
+    fields: {
+      id: 'ID',
+      buyerId: 'Buyer ID',
+      orderIds: 'Orders',
+      totals: 'Totals',
+      total: {
+        amount: 'Amount',
+        currency: 'Currency',
+      },
+      placedAt: 'Placed at',
+      cancelDigest: 'Cancel digest',
+      cancelWindowEndsAt: 'Cancel window ends at',
+    },
+  },
   'product-order': {
     // ⚠️ A form title for a record nobody creates by hand, exactly as
     // `stock-item` carries one. `newTitle` is the catalog gate
@@ -290,6 +313,9 @@ export const entity: EsEntity = {
     fields: {
       id: 'ID',
       buyerId: 'Buyer ID',
+      vendorId: 'Vendor ID',
+      groupId: 'Checkout ID',
+      paymentMethod: 'Payment',
       status: 'Status',
       items: 'Lines',
       /**
@@ -300,30 +326,32 @@ export const entity: EsEntity = {
        */
       item: {
         offeringId: 'Offering ID',
-        vendorId: 'Vendor ID',
         quantity: 'Quantity',
         amount: 'Amount',
         currency: 'Currency',
         reservationId: 'Reservation ID',
-        fulfilledAt: 'Fulfilled at',
       },
       channel: 'Sales channel',
       placedAt: 'Placed at',
       paidAt: 'Paid at',
-      cancelDigest: 'Cancel digest',
-      cancelWindowEndsAt: 'Cancel window ends at',
     },
     values: {
       status: {
         pending: 'Pending',
         paid: 'Paid',
+        confirmed: 'Confirmed',
         cancelling: 'Cancelling',
+        dispatched: 'Dispatched',
         fulfilled: 'Fulfilled',
         cancelled: 'Cancelled',
       },
+      paymentMethod: {
+        card: 'Card',
+        cash: 'Cash',
+        cod: 'Cash on delivery',
+      },
     },
     useCases: {
-      fulfil: 'Mark as delivered',
       cancel: 'Cancel order',
       cancelConfirm:
         'The buyer will be refunded and the units will go back into your stock. This cannot be undone: charging again is a new purchase.',

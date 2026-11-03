@@ -37,7 +37,7 @@ import {
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
 import { CancelWindowSeconds } from '@r10c/business-ts-order-management';
-import { MongoProductOrderStoreLayer } from '@r10c/implementation-order-mongo';
+import { MongoOrderStoresLayer } from '@r10c/implementation-order-mongo';
 import {
   endpoints,
   ORDER_SLICE,
@@ -142,7 +142,7 @@ const connections = Layer.mergeAll(
 
 /** The store's own layers over the fake driver, as the shell composes them. */
 const MockAppLayer = Layer.provideMerge(
-  Layer.mergeAll(MongoProductOrderStoreLayer, MongoRepositoryFactoryLayer),
+  Layer.mergeAll(MongoOrderStoresLayer, MongoRepositoryFactoryLayer),
   Layer.provideMerge(MongoUnitOfWorkLayer, connections),
 ).pipe(Layer.orDie);
 

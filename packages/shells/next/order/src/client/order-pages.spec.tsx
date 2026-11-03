@@ -38,9 +38,9 @@ const makeOrder = () => {
   const order = new ProductOrder('party-user-2');
   order.id = 'product-order-1';
   order.status = 'pending';
-  order.items = [
-    new OrderItem('product-offering-1', 'demo-organization', 2, 1999, 'GTQ'),
-  ];
+  order.vendorId = 'demo-organization';
+  order.groupId = 'group-1';
+  order.items = [new OrderItem('product-offering-1', 2, 1999, 'GTQ')];
   return order;
 };
 

@@ -23,10 +23,8 @@ export const errors: EsErrors = {
   // by omission — the money was taken once, for the whole basket, on one capture
   // (ADR 0058 §1) — so the message says who can do it instead of implying a
   // retry would work.
-  multiVendorOrder:
-    'This order also covers another vendor, so only an operator can cancel it.',
-  orderNotFulfillable:
-    'This order can no longer be marked as delivered. It may have been cancelled.',
+  orderNotTransitionable:
+    'This order cannot make that move from where it stands.',
   orderNotCancellable:
     'This order can no longer be cancelled. It may already be on its way, or a cancellation may be in progress.',
   categoryParentMissing: 'The parent category does not exist.',

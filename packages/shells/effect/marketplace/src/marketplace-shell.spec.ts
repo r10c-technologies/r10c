@@ -96,6 +96,7 @@ describe('the two projections', () => {
       organizationId: 'org-1',
       displayName: 'Demo Vendor',
       announcedAt: '2026-10-23T10:00:00.000Z',
+      acceptsCod: false,
     };
 
     await Effect.runPromise(

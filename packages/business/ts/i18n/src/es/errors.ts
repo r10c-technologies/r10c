@@ -33,10 +33,8 @@ export const errors = {
   refundDeclined: 'No se pudo procesar el reembolso. Contacta a soporte.',
   noCapturedPayment:
     'No se cobró este pedido, así que no hay nada que devolver.',
-  multiVendorOrder:
-    'Este pedido también incluye a otro vendedor, así que solo un operador puede cancelarlo.',
-  orderNotFulfillable:
-    'Este pedido ya no se puede marcar como entregado. Puede que se haya cancelado.',
+  orderNotTransitionable:
+    'Este pedido no puede hacer ese movimiento desde su estado actual.',
   orderNotCancellable:
     'Este pedido ya no se puede cancelar. Puede que ya vaya en camino o que la cancelación esté en curso.',
   categoryParentMissing: 'La categoría superior no existe.',

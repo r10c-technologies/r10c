@@ -310,10 +310,12 @@ against an address nothing is listening on.
 ⁷ **order-service, bound.** It owns the `order` store — **platform** plane and
 single, one named database, which is the opposite of stock's per-request tenant
 handle beside it. That is forced rather than chosen: a basket can span several
-vendors, so one order cannot live in any one of their tenant databases. The
-multi-vendor case rides on vendor-tagged embedded lines instead, so the buyer
-gets one receipt and settlement still aggregates per vendor
-([ADR 0022](../adr/0022-v1-marketplace-module-boundaries.md)).
+vendors, so its receipt cannot live in any one of their tenant databases. A
+checkout writes one `CheckoutGroup` — the buyer's receipt, opened under the
+flow's own id — and one `ProductOrder` per vendor in it, so each vendor reads,
+ships, cancels and is refunded for their own order alone
+([ADR 0069](../adr/0069-a-checkout-group-of-per-vendor-orders.md)). A vendor
+never reads a group: it would show them the other sellers in the basket.
 
 ⚠️ **It reserves nothing itself.** ADR 0023's crossing into stock is dispatched
 by transaction-service, which holds both halves of the checkout flow; this
@@ -329,13 +331,14 @@ the derived verb `POST /api/product-order/:id/cancel`
 ([ADR 0071](../adr/0071-http-cells-hold-descriptors-and-the-slice-shell-builds-the-api.md)).
 
 ⚠️ **Three credentials on one surface, and each route still takes exactly one.**
-`fulfil` and `cancel` are session-guarded by the permissions their own
-`@useCase()` descriptors derive — there is still no `product-order:write` for any
-role, and these are verbs rather than saves. `buyer-cancellation` takes the nonce
-from a storefront receipt and **no session at all**: the order stores that
-nonce's SHA-256 digest, so the record is the authority and the credential is
-inert wherever else it travels. The saga's own `cancelling` and `cancelled` steps
-take a crossing token
+`cancel` is session-guarded by the permission its own `@useCase()` descriptor
+derives — there is still no `product-order:write` for any role, and it is a verb
+rather than a save. `buyer-cancellation` and `GET
+/api/checkout-group/:id/buyer-receipt` take the nonce from a storefront receipt
+and **no session at all**: the group stores that nonce's SHA-256 digest, so the
+record is the authority and the credential is inert wherever else it travels. The
+flows' own steps — the group's opening, an order's write, its `cancelling` claim
+and its `confirmed`, `dispatched` and `closed` moves — take a crossing token
 ([ADR 0058](../adr/0058-the-order-after-payment.md)).
 
 ⚠️ **`/cancelling` and `/cancel` look alike and are not the same thing.** The
@@ -343,11 +346,12 @@ first takes the concurrency claim and is dispatched by the coordinator behind a
 crossing guard; the second is the verb a person reaches. A browser reaching the first
 would lock an order with no refund behind it.
 
-⚠️ **Fulfilment is per line; cancellation is per order.** `OrderItem` carries
-`fulfilledAt` and the order reaches `fulfilled` only once every line has one, so
-one vendor cannot state something true about another's lines. A vendor may cancel
-only an order that is theirs alone and gets `409 multiVendorOrder` otherwise —
-the money was taken once, for the whole basket, on one capture.
+⚠️ **Delivery is the shipment's; an order only follows it.** There is no
+`fulfil` verb any more: a vendor dispatches and records delivery on their
+`ShippingOrder` in fulfilment-service, and the delivery flow moves the order
+`confirmed → dispatched → fulfilled` (or `cancelled` for a parcel refused or
+returned) behind a crossing token
+([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)).
 
 ⚠️ **It holds the coordinator's inbound token and is a participant in the flow it
 starts**, making it the third holder of that secret beside the storefront and

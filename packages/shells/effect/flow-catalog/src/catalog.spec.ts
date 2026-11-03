@@ -78,9 +78,11 @@ describe('the flow catalog', () => {
     );
 
     expect(slipSteps(slip).map(step => step.ref)).toEqual([
+      'order.open-group@1',
       'stock.reserve@1',
-      'order.write@1',
+      'order.write@2',
       'payment.capture@2',
+      'order.confirm@1',
       'stock.convert@1',
     ]);
   });

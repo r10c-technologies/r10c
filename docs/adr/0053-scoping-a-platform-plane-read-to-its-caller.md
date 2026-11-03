@@ -7,6 +7,7 @@
 - Revised: 2026-09-11 by [ADR 0058](0058-the-order-after-payment.md) — the receipt gains a capability, and the rejected "receipt token on the order" is corrected as being about a read
 - Revised: 2026-10-28 by [ADR 0065](0065-use-case-resolution-and-the-routing-slip.md) — the scope is a resolver narrowing over the verified context, and the by-id read is a narrowed load rather than an in-memory `includes`
 - Revised: 2026-10-28 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — the receipt is the checkout group, and a flow capability is a third nonce credential
+- Revised: 2026-11-03 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — a vendor's predicate is the order's top-level `vendorId`, and a storefront that waited on a flow reads the group back once by its cancel capability, since flow-status carries no order
 
 ## Context
 
@@ -93,10 +94,11 @@ codebase does nowhere. And not by trusting a filter the client sent: the scope i
 added regardless of what arrived, so `rsql=buyerId==<another party>` answers an
 empty page rather than that party's orders.
 
-The vendor predicate names `items.vendorId`, a path into a `composition`. The
-member allowlist runs at parse time and nothing re-checks downstream, which is
-exactly what lets _server_ code reach an embedded path that a query string
-cannot — `items` stays unqueryable to every client.
+The vendor predicate named `items.vendorId`, a path into a `composition`, while
+one order spanned vendors; since ADR 0069 it is the order's own top-level
+`vendorId`. The member allowlist runs at parse time and nothing re-checks
+downstream, which is what let _server_ code reach an embedded path that a query
+string cannot — `items` stays unqueryable to every client.
 
 ### Three predicates, chosen by `partyRole`, gated by the permission
 

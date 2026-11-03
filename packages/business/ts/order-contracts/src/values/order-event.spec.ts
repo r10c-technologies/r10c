@@ -8,47 +8,63 @@ import {
   readPlacedOrder,
 } from './order-event.js';
 
-const line = { vendorId: 'v-1', amount: 10, quantity: 2, currency: 'GTQ' };
+const line = { amount: 10, quantity: 2, currency: 'GTQ' };
+
+const order = {
+  id: 'o-1',
+  vendorId: 'v-1',
+  groupId: 'g-1',
+  paymentMethod: 'card',
+  items: [line],
+};
 
 const refused = (data: unknown) =>
   Effect.runPromise(Effect.flip(readPlacedOrder(data)));
 
 describe('readPlacedOrder', () => {
-  it('reads the order, its vendor-tagged lines and the channel type the receipt carries', async () => {
-    const order = await Effect.runPromise(
-      readPlacedOrder({
-        id: 'o-1',
-        items: [line],
-        channel: { type: 'counter' },
-      }),
+  it('reads the vendor order, its group and tender, its lines and the channel type', async () => {
+    const placed = await Effect.runPromise(
+      readPlacedOrder({ ...order, channel: { type: 'counter' } }),
     );
 
-    expect(order).toEqual({
+    expect(placed).toEqual({
       orderId: 'o-1',
-      lines: [line],
+      vendorId: 'v-1',
+      groupId: 'g-1',
+      paymentMethod: 'card',
+      // Each line carries the order's vendor for a reader pricing per line.
+      lines: [{ ...line, vendorId: 'v-1' }],
       channelType: 'counter',
     });
   });
 
   it('reads an order with no channel — the storefront’s — as having none', async () => {
-    const order = await Effect.runPromise(
-      readCancelledOrder({ id: 'o-2', items: [line], channel: null }),
+    const cancelled = await Effect.runPromise(
+      readCancelledOrder({ ...order, id: 'o-2', channel: null }),
     );
 
-    expect(order).toEqual({ orderId: 'o-2', lines: [line] });
+    expect(cancelled).toEqual({
+      orderId: 'o-2',
+      vendorId: 'v-1',
+      groupId: 'g-1',
+      paymentMethod: 'card',
+      lines: [{ ...line, vendorId: 'v-1' }],
+    });
   });
 
   it('refuses a payload a fold could only get wrong', async () => {
     const payloads: unknown[] = [
       'not an object',
-      { items: [line] },
-      { id: 'o', items: [] },
-      { id: 'o', items: [line], channel: { name: 'no type' } },
-      { id: 'o', items: [null] },
-      { id: 'o', items: [{ ...line, vendorId: '' }] },
-      { id: 'o', items: [{ ...line, amount: Number.NaN }] },
-      { id: 'o', items: [{ ...line, quantity: 'two' }] },
-      { id: 'o', items: [{ ...line, currency: '' }] },
+      { ...order, id: undefined },
+      { ...order, vendorId: '' },
+      { ...order, groupId: undefined },
+      { ...order, paymentMethod: '' },
+      { ...order, items: [] },
+      { ...order, channel: { name: 'no type' } },
+      { ...order, items: [null] },
+      { ...order, items: [{ ...line, amount: Number.NaN }] },
+      { ...order, items: [{ ...line, quantity: 'two' }] },
+      { ...order, items: [{ ...line, currency: '' }] },
     ];
 
     for (const payload of payloads) {
@@ -58,23 +74,18 @@ describe('readPlacedOrder', () => {
 });
 
 describe('orderAudience', () => {
-  it('addresses the buyer and every vendor on the order, once each', () => {
-    expect(
-      orderAudience({
-        buyerId: 'p-1',
-        items: [{ vendorId: 'v-1' }, { vendorId: 'v-2' }, { vendorId: 'v-1' }],
-      }),
-    ).toEqual([
+  it('addresses the buyer and the order’s one vendor', () => {
+    expect(orderAudience({ buyerId: 'p-1', vendorId: 'v-1' })).toEqual([
       { kind: 'party', id: 'p-1' },
       { kind: 'organization', id: 'v-1' },
-      { kind: 'organization', id: 'v-2' },
     ]);
   });
 
-  it('addresses only the vendors of an anonymous buyer, and nobody for no lines', () => {
-    expect(orderAudience({ items: [{ vendorId: 'v-1' }] })).toEqual([
+  it('addresses only the vendor of an anonymous buyer, and nobody for neither', () => {
+    expect(orderAudience({ vendorId: 'v-1' })).toEqual([
       { kind: 'organization', id: 'v-1' },
     ]);
+    expect(orderAudience({ vendorId: '' })).toEqual([]);
     expect(orderAudience({})).toEqual([]);
   });
 });

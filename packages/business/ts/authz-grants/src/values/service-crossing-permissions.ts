@@ -73,6 +73,11 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // consequences; this undoes a step that should not have happened.
   `${ORDER_DOMAIN}:product-order:write`,
   `${ORDER_DOMAIN}:product-order:delete`,
+  // Opening the buyer's checkout group before any vendor's order, and deleting
+  // it as that step's compensation. The group is the buyer's receipt across
+  // sellers, written on their behalf exactly as an order is (ADR 0069).
+  `${ORDER_DOMAIN}:checkout-group:write`,
+  `${ORDER_DOMAIN}:checkout-group:delete`,
   // Taking the money the order above was placed for — the checkout saga's
   // **pivot**, and the one crossing on this list that cannot be undone.
   //

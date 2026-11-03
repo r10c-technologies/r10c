@@ -8,8 +8,8 @@ import { Schema } from 'effect';
 export const ORDER_NOT_CANCELLABLE = 'orderNotCancellable';
 
 /**
- * An order a flow refuses because of where it stands: no longer `paid`, or
- * already claimed by another cancellation. "Never", not "not yet" — compare
+ * An order a flow refuses because of where it stands: no longer `paid` or
+ * `confirmed`, or already claimed by another cancellation. "Never", not "not yet" — compare
  * {@link PaymentPending}.
  */
 export class OrderNotCancellable extends Failure.conflict<OrderNotCancellable>()(
@@ -19,24 +19,23 @@ export class OrderNotCancellable extends Failure.conflict<OrderNotCancellable>()
   { message: ({ reason }) => reason },
 ) {}
 
-/** An order that is not `paid`, or changed while its lines were stamped. */
-export class OrderNotFulfillable extends Failure.conflict<OrderNotFulfillable>()(
-  'OrderNotFulfillable',
-  'orderNotFulfillable',
-  { orderId: Schema.String, reason: Schema.String },
-  { message: ({ reason }) => reason },
-) {}
-
 /**
- * A vendor cancelling a basket that also names somebody else. The money was
- * taken once, for the whole basket, on one capture — so there is no share of
- * it that is theirs to send back, and no moment at which this succeeds.
+ * A move the order's status does not allow: confirming an order already
+ * dispatched, closing one that never left. A conflict with the record as it
+ * stands, never a malformed request.
  */
-export class MultiVendorOrder extends Failure.conflict<MultiVendorOrder>()(
-  'MultiVendorOrder',
-  'multiVendorOrder',
-  { orderId: Schema.String },
-  { message: () => 'a vendor cannot cancel an order that names another' },
+export class OrderNotTransitionable extends Failure.conflict<OrderNotTransitionable>()(
+  'OrderNotTransitionable',
+  'orderNotTransitionable',
+  {
+    orderId: Schema.String,
+    standing: Schema.String,
+    transition: Schema.String,
+  },
+  {
+    message: ({ standing, transition }) =>
+      `an order in '${standing}' cannot ${transition}`,
+  },
 ) {}
 
 /**

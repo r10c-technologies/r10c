@@ -36,10 +36,10 @@ const payment = {
 
 const order = {
   id: 'o-1',
-  items: [
-    { vendorId: 'v-1', amount: 10, quantity: 2, currency: 'GTQ' },
-    { vendorId: 'v-2', amount: 5, quantity: 1, currency: 'GTQ' },
-  ],
+  vendorId: 'v-1',
+  groupId: 'g-1',
+  paymentMethod: 'card',
+  items: [{ amount: 10, quantity: 2, currency: 'GTQ' }],
 };
 
 const joinThat = (outcome: FoldOutcome) => {
@@ -63,7 +63,7 @@ const joinThat = (outcome: FoldOutcome) => {
 };
 
 describe('the four folds', () => {
-  it('prices a placed order through each vendor’s agreement, and names a vendor with none', async () => {
+  it('prices a vendor’s order through their agreement, and names a vendor with none', async () => {
     const { run, contributed } = joinThat({
       kind: 'written',
       folded: 1,
@@ -76,12 +76,18 @@ describe('the four folds', () => {
         eventOf('order.placed', order),
       ),
     );
+    const unpriced = await run(
+      foldPlacedOrder(
+        'settlement.order.placed',
+        eventOf('order.placed', { ...order, id: 'o-2', vendorId: 'v-2' }),
+      ),
+    );
 
     expect(report).toMatchObject([
       {
         event: 'order.placed',
         outcome: { kind: 'written', folded: 1 },
-        unpriced: ['v-2'],
+        unpriced: [],
       },
     ]);
     expect(contributed[0]?.half).toEqual({
@@ -93,8 +99,9 @@ describe('the four folds', () => {
           currency: 'GTQ',
         },
       ],
-      unpriced: ['v-2'],
+      unpriced: [],
     });
+    expect(unpriced).toMatchObject([{ unpriced: ['v-2'] }]);
   });
 
   it('prices a counter sale at its channel’s rate', async () => {
@@ -105,7 +112,6 @@ describe('the four folds', () => {
         'c',
         eventOf('order.placed', {
           ...order,
-          items: [order.items[0]],
           channel: { type: 'counter' },
         }),
       ),

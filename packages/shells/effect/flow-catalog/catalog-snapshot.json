@@ -36,9 +36,9 @@
       "fingerprint": "0f76b9eb1662e5"
     },
     {
-      "ref": "order.claim-cancel@1",
+      "ref": "order.claim-cancel@2",
       "id": "order.claim-cancel",
-      "version": 1,
+      "version": 2,
       "module": "order-management",
       "kind": "compensatable",
       "cardinality": "one",
@@ -117,8 +117,8 @@
       "fingerprint": "10257f025035a0"
     },
     {
-      "ref": "order.close-cancelled@1",
-      "id": "order.close-cancelled",
+      "ref": "order.close@1",
+      "id": "order.close",
       "version": 1,
       "module": "order-management",
       "kind": "retriable",
@@ -126,7 +126,180 @@
       "participant": "order-service",
       "call": {
         "method": "POST",
-        "path": "/api/product-order/:id/cancelled"
+        "path": "/api/product-order/:id/closed"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "outcome": {
+                "type": "string",
+                "enum": ["fulfilled", "cancelled"]
+              }
+            },
+            "required": ["outcome"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "status"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": ["notFound", "orderNotTransitionable"]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "category"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "05fba2ee7297c9"
+    },
+    {
+      "ref": "order.confirm@1",
+      "id": "order.confirm",
+      "version": 1,
+      "module": "order-management",
+      "kind": "retriable",
+      "cardinality": "perVendor",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order/:id/confirmed"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "status"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": ["notFound", "orderNotTransitionable"]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "category"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "0bd1c2ef37352e"
+    },
+    {
+      "ref": "order.mark-dispatched@1",
+      "id": "order.mark-dispatched",
+      "version": 1,
+      "module": "order-management",
+      "kind": "retriable",
+      "cardinality": "one",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order/:id/dispatched"
       },
       "readOnly": false,
       "irreversible": false,
@@ -173,12 +346,8 @@
             "type": "object",
             "properties": {
               "code": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": ["notFound"]
-                  }
-                ]
+                "type": "string",
+                "enum": ["notFound", "orderNotTransitionable"]
               },
               "category": {
                 "type": "string"
@@ -195,11 +364,11 @@
           "definitions": {}
         }
       },
-      "fingerprint": "188c59be0aa7a2"
+      "fingerprint": "185236d439f485"
     },
     {
-      "ref": "order.write@1",
-      "id": "order.write",
+      "ref": "order.open-group@1",
+      "id": "order.open-group",
       "version": 1,
       "module": "order-management",
       "kind": "compensatable",
@@ -207,11 +376,11 @@
       "participant": "order-service",
       "call": {
         "method": "POST",
-        "path": "/api/product-order"
+        "path": "/api/checkout-group"
       },
       "compensation": {
         "method": "DELETE",
-        "path": "/api/product-order/:id"
+        "path": "/api/checkout-group/:id"
       },
       "readOnly": false,
       "irreversible": false,
@@ -220,7 +389,7 @@
       "excludedFrom": {},
       "consumes": {},
       "provides": {
-        "orderId": {
+        "groupId": {
           "dialect": "draft-2020-12",
           "schema": {
             "type": "string"
@@ -234,11 +403,15 @@
           "schema": {
             "type": "object",
             "properties": {
-              "items": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "totals": {
                 "type": "array"
               }
             },
-            "required": ["items"],
+            "required": ["id", "totals"],
             "allOf": [
               {
                 "type": "object",
@@ -255,12 +428,9 @@
             "properties": {
               "id": {
                 "type": "string"
-              },
-              "status": {
-                "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": ["id"],
             "allOf": [
               {
                 "type": "object",
@@ -298,7 +468,122 @@
           "definitions": {}
         }
       },
-      "fingerprint": "1ff1170df6da40"
+      "fingerprint": "050fb4a7d174f2"
+    },
+    {
+      "ref": "order.write@2",
+      "id": "order.write",
+      "version": 2,
+      "module": "order-management",
+      "kind": "compensatable",
+      "cardinality": "perVendor",
+      "participant": "order-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/product-order"
+      },
+      "compensation": {
+        "method": "DELETE",
+        "path": "/api/product-order/:id"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "none",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {
+        "groupId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "provides": {
+        "orderId": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "string"
+          },
+          "definitions": {}
+        }
+      },
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "vendorId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "paymentMethod": {
+                "type": "string",
+                "minLength": 1
+              },
+              "items": {
+                "type": "array"
+              }
+            },
+            "required": ["vendorId", "paymentMethod", "items"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "status"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": ["invalidBody", "notFound"]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "category"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "191a69ec46a995"
     },
     {
       "ref": "payment.capture@2",
