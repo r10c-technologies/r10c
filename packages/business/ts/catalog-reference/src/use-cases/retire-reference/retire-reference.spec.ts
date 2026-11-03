@@ -1,5 +1,5 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import { type Entity, type EntityId } from '@entifix/core';
+import { type Entity, type EntityId, NotFound } from '@entifix/core';
 import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -11,9 +11,6 @@ import {
   RetireReferenceInputTag,
   retireReferences,
 } from './retire-reference.js';
-
-/** `EntifixError` is abstract, so a double needs a concrete failure of its own. */
-class NotFound extends Error {}
 
 const brand = (id: string, status: 'active' | 'retired'): ProductBrand => {
   const one = new ProductBrand(`Brand ${id}`);
@@ -36,7 +33,7 @@ const repositoryOf = (...rows: ProductBrand[]) => {
       const row = byId.get(String(id));
       return row
         ? Effect.succeed(row as unknown as TEntity)
-        : Effect.fail(new NotFound('not found'));
+        : Effect.fail(new NotFound({ entity: 'reference' }));
     },
     load: vi.fn(),
     save: <TEntity extends Entity>(entity: TEntity) => {

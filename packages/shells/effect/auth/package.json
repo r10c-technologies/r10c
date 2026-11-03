@@ -52,7 +52,6 @@
     "@entifix/zitadel": "catalog:",
     "@opentelemetry/sdk-trace-web": "2.12.0",
     "@r10c/business-ts-authn": "workspace:*",
-    "@r10c/business-ts-common": "workspace:*",
     "@r10c/implementation-auth-mongo": "workspace:*",
     "@r10c/implementation-authn-http": "workspace:*",
     "@r10c/implementation-session-redis": "workspace:*",

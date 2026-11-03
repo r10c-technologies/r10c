@@ -8,8 +8,8 @@ export type OutcomeLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export const failureFacts = (failure: unknown) =>
   isFailure(failure)
     ? { code: failure.code, category: failure.category }
-    : // A legacy class or a defect carries no registered code; its text may
-      // carry anything, so it is named `internal` and left out.
+    : // A defect carries no registered code; its text may carry anything, so
+      // it is named `internal` and left out.
       { code: 'internal', category: 'internal' };
 
 /**

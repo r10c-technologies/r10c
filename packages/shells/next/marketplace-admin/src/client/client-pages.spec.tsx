@@ -1,5 +1,5 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import { EntifixConnError, type Entity } from '@entifix/core';
+import { type Entity,Unavailable } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
@@ -240,9 +240,15 @@ describe('the single-record pages', () => {
       await waitFor(() =>
         expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
       );
-      repositories.product.failNext(new EntifixConnError('unreachable'));
-      repositories.brand.failNext(new EntifixConnError('unreachable'));
-      repositories.category.failNext(new EntifixConnError('unreachable'));
+      repositories.product.failNext(
+        new Unavailable({ dependency: 'unreachable' }),
+      );
+      repositories.brand.failNext(
+        new Unavailable({ dependency: 'unreachable' }),
+      );
+      repositories.category.failNext(
+        new Unavailable({ dependency: 'unreachable' }),
+      );
 
       await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
@@ -262,9 +268,15 @@ describe('the single-record pages', () => {
       await waitFor(() =>
         expect(screen.getByLabelText(/nombre/i)).not.toHaveValue(''),
       );
-      repositories.product.failNext(new EntifixConnError('unreachable'));
-      repositories.brand.failNext(new EntifixConnError('unreachable'));
-      repositories.category.failNext(new EntifixConnError('unreachable'));
+      repositories.product.failNext(
+        new Unavailable({ dependency: 'unreachable' }),
+      );
+      repositories.brand.failNext(
+        new Unavailable({ dependency: 'unreachable' }),
+      );
+      repositories.category.failNext(
+        new Unavailable({ dependency: 'unreachable' }),
+      );
 
       await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
@@ -277,13 +289,15 @@ describe('the single-record pages', () => {
 
   it.each(cases)('surfaces a %s load failure', async (_label, page, id) => {
     slug = id;
-    repositories.product.failNext(new EntifixConnError('unreachable'));
-    repositories.brand.failNext(new EntifixConnError('unreachable'));
+    repositories.product.failNext(
+      new Unavailable({ dependency: 'unreachable' }),
+    );
+    repositories.brand.failNext(new Unavailable({ dependency: 'unreachable' }));
     // Aimed at `get`, the record load under test, rather than "the next call":
     // the category form also searches this repository for its parent picker
     // (ADR 0062), and that query can arrive first.
     vi.spyOn(repositories.category, 'get').mockReturnValueOnce(
-      Effect.fail(new EntifixConnError('unreachable')),
+      Effect.fail(new Unavailable({ dependency: 'unreachable' })),
     );
 
     renderPage(page);

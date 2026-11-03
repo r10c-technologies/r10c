@@ -1,7 +1,4 @@
-import {
-  type ConfigurationClientInMemory,
-  EntifixBuildError,
-} from '@entifix/core';
+import type { ConfigurationClientInMemory } from '@entifix/core';
 import type { BreakerDials } from '@entifix/transactions';
 import type { FlowDials } from '@entifix/workflow';
 import {
@@ -26,14 +23,14 @@ const oneOf = <A extends string>(
   allowed: readonly A[],
   key: string,
   value: string,
-): Effect.Effect<A, EntifixBuildError> =>
+): Effect.Effect<A> =>
+  // A row outside its vocabulary is a misconfiguration, so it is a defect at
+  // boot — the same answer entifix gives a missing key.
   (allowed as readonly string[]).includes(value)
     ? Effect.succeed(value as A)
-    : Effect.fail(
-        new EntifixBuildError(
+    : Effect.die(
+        new Error(
           `Configuration key "${key}" cannot be "${value}": it takes ${allowed.join(', ')}`,
-          undefined,
-          { key, value },
         ),
       );
 

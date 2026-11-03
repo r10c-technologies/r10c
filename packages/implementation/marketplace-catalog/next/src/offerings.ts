@@ -5,7 +5,6 @@ import type {
   EntityLoadRequest,
   EntityPage,
 } from '@entifix/core';
-import { categorised } from '@r10c/business-ts-common';
 import type { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { Effect } from 'effect';
 
@@ -64,12 +63,10 @@ export interface OfferingQuery {
 const load = (
   request: EntityLoadRequest<PublishedOffering>,
 ): OfferingRead<EntityPage<PublishedOffering>> =>
-  categorised(
-    Effect.gen(function* () {
-      const repository = yield* EntityRepositoryTag;
-      return yield* repository.load<PublishedOffering>(request);
-    }),
-  );
+  Effect.gen(function* () {
+    const repository = yield* EntityRepositoryTag;
+    return yield* repository.load<PublishedOffering>(request);
+  });
 
 /** The published catalog, filtered the way the query asks. */
 export const loadOfferings = (

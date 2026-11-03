@@ -54,6 +54,14 @@ describe('a next cell', () => {
       "import { makeService } from '@entifix/service-shell/runtime';",
       'the service runtime',
     ],
+    [
+      "import { ServerPushTag } from '@entifix/service-shell/push';",
+      'server push',
+    ],
+    [
+      "import { makeSsePush } from '@entifix/service-shell/push/sse';",
+      'the SSE push adapter',
+    ],
     ["import { compose } from '@entifix/business/compose';", 'the composer'],
     [
       "import { verifiedContext } from '@entifix/business/verified';",

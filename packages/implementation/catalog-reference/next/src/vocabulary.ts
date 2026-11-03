@@ -14,7 +14,6 @@ import {
   type ProductBrand,
   type ProductCategory,
 } from '@r10c/business-ts-catalog-reference';
-import { categorised } from '@r10c/business-ts-common';
 import { Effect } from 'effect';
 
 /**
@@ -55,12 +54,10 @@ export const VOCABULARY_PAGE_SIZE = 200;
 const load = <TEntity extends Entity>(
   request: EntityLoadRequest<TEntity>,
 ): VocabularyRead<EntityPage<TEntity>> =>
-  categorised(
-    Effect.gen(function* () {
-      const repository = yield* EntityRepositoryTag;
-      return yield* repository.load<TEntity>(request);
-    }),
-  );
+  Effect.gen(function* () {
+    const repository = yield* EntityRepositoryTag;
+    return yield* repository.load<TEntity>(request);
+  });
 
 /** Both vocabularies list by name. */
 const byName = <TEntity extends ProductBrand | ProductCategory>(): Array<

@@ -5,7 +5,7 @@ import {
   type ScreenType,
 } from '@entifix/authz';
 import type { Entity, EntityConstructor } from '@entifix/core';
-import { EntifixBuildError, extractMetaEntity } from '@entifix/core';
+import { extractMetaEntity } from '@entifix/core';
 import type { EntityCatalogKey } from '@entifix/next-shell';
 import {
   Agreement,
@@ -111,7 +111,7 @@ export const settlementSurface = <TEntity extends Entity>(
 ): SettlementSurface<TEntity> => {
   const { pluralKey } = extractMetaEntity(entityConstructor);
   if (pluralKey === undefined) {
-    throw new EntifixBuildError(
+    throw new Error(
       `${entityConstructor.name} must declare pluralKey on @entity() to be a settlement surface`,
     );
   }

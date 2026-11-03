@@ -61,7 +61,7 @@ describe('a participant’s dials', () => {
     });
   });
 
-  it('refuses a word its dial does not take, naming the row and the words it does', async () => {
+  it('dies on a word its dial does not take, naming the row and the words it does', async () => {
     expect(
       await failureOf(
         readParticipantDials(
@@ -77,7 +77,7 @@ describe('a participant’s dials', () => {
     ).toContain('closed, forcedOpen, disabled');
   });
 
-  it('reads every participant, and fails on one with no rows at all', async () => {
+  it('reads every participant, and dies on one with no rows at all', async () => {
     expect(
       Object.keys(
         await Effect.runPromise(

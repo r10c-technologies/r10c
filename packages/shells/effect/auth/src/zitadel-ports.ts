@@ -22,7 +22,6 @@ import {
   type PublicKeySetDocument,
   PublicKeySetTag,
 } from '@r10c/business-ts-authn';
-import { categorised } from '@r10c/business-ts-common';
 import { DevMailboxLayer } from '@r10c/implementation-auth-mongo';
 import { DevSurfaceEnabledTag } from '@r10c/implementation-authn-http';
 import { Effect, Layer } from 'effect';
@@ -74,17 +73,15 @@ export const PublicKeySetLayer = Layer.effect(
   PublicKeySetTag,
   Effect.map(ConfigurationRepositoryTag, store => ({
     jwks: () =>
-      categorised(
-        Effect.gen(function* () {
-          const publicKeyPem = yield* store.in('jwt').getString('publicKey');
-          const keyId = yield* store.in('jwt').getString('keyId');
-          return (yield* Effect.tryPromise({
-            try: () => publicJwks(publicKeyPem, keyId),
-            // The PEM is configuration: one that will not export is a fault.
-            catch: () => new Internal(),
-          })) as unknown as PublicKeySetDocument;
-        }),
-      ),
+      Effect.gen(function* () {
+        const publicKeyPem = yield* store.in('jwt').getString('publicKey');
+        const keyId = yield* store.in('jwt').getString('keyId');
+        return (yield* Effect.tryPromise({
+          try: () => publicJwks(publicKeyPem, keyId),
+          // The PEM is configuration: one that will not export is a fault.
+          catch: () => new Internal(),
+        })) as unknown as PublicKeySetDocument;
+      }),
   })),
 );
 

@@ -1,5 +1,5 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import { EntifixConnError, type Entity } from '@entifix/core';
+import { type Entity,Unavailable } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import {
@@ -285,7 +285,7 @@ describe('saving an agreement', () => {
     await waitFor(() =>
       expect(screen.getByDisplayValue('800')).toBeInTheDocument(),
     );
-    repositories.agreement.failNext(new EntifixConnError('refused'));
+    repositories.agreement.failNext(new Unavailable({ dependency: 'refused' }));
     fireEvent.click(screen.getByRole('button', { name: /guardar/i }));
 
     await waitFor(() =>

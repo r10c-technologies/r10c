@@ -1,9 +1,9 @@
 # 43. The optimistic mutation contract, and reconciliation is a re-query
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-09-06
 - Area: frontend
-- Read when: a write answers `202` — the browser keeps watching, and a `404` from the tracker means not-tracked-yet, never failed
+- Read when: only for its reasoning — superseded by ADR 0073
 - Amends: [ADR 0028](0028-the-transaction-id-is-the-clients-and-its-event-ships-with-the-write.md)
   (the client-minted id becomes something the browser keeps, not only something
   it sends; every decision there stands).
@@ -12,6 +12,12 @@
   built here, and `ReactiveChannel` gains the connect signal that makes it
   possible).
 - Revised: 2026-10-29 — no back-office write answers `202` since the specification create became a unit of work (#463); the contract returns with flows (ADR 0066)
+- Revised: 2026-11-02 by [ADR 0073](0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md) — superseded: a `202` is a flow keyed by `flowId`, settled by push and caught up from flow-status; the tracker this record watched is gone
+
+> **Superseded 2026-11-02 by [ADR 0073](0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md).** The tracker, the `TransactionSink`
+> and `GET /api/transaction/:id` this record settles against are gone. The
+> render-time-merge finding below is kept there, as a pending create staying on
+> its form.
 
 ## Context
 

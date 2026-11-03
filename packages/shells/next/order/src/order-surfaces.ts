@@ -4,7 +4,7 @@ import {
   screenAddress,
 } from '@entifix/authz';
 import type { Entity, EntityConstructor } from '@entifix/core';
-import { EntifixBuildError, extractMetaEntity } from '@entifix/core';
+import { extractMetaEntity } from '@entifix/core';
 import type { EntityCatalogKey } from '@entifix/next-shell';
 import { ProductOrder } from '@r10c/business-ts-order-management';
 
@@ -99,7 +99,7 @@ export const orderSurface = <TEntity extends Entity>(
 ): OrderSurface<TEntity> => {
   const { pluralKey } = extractMetaEntity(entityConstructor);
   if (pluralKey === undefined) {
-    throw new EntifixBuildError(
+    throw new Error(
       `${entityConstructor.name} must declare pluralKey on @entity() to be an order surface`,
     );
   }

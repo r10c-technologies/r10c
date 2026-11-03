@@ -4,7 +4,6 @@ import type {
   EntityLoadRequest,
   EntityPage,
 } from '@entifix/core';
-import { categorised } from '@r10c/business-ts-common';
 import type { PublishedVendor } from '@r10c/business-ts-marketplace-vendor';
 import { Effect } from 'effect';
 
@@ -33,12 +32,10 @@ export const VENDOR_PAGE_SIZE = 200;
 const load = (
   request: EntityLoadRequest<PublishedVendor>,
 ): VendorRead<EntityPage<PublishedVendor>> =>
-  categorised(
-    Effect.gen(function* () {
-      const repository = yield* EntityRepositoryTag;
-      return yield* repository.load<PublishedVendor>(request);
-    }),
-  );
+  Effect.gen(function* () {
+    const repository = yield* EntityRepositoryTag;
+    return yield* repository.load<PublishedVendor>(request);
+  });
 
 /**
  * The sellers named by `vendorIds`, or every seller when none are given —

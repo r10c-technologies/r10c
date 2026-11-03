@@ -4,6 +4,7 @@
 - Date: 2026-09-01
 - Area: frontend
 - Read when: putting anything into an autosaved draft — JSON round-trippable only, ids in the draft with instances beside it, and the key is scoped per principal
+- Revised: 2026-11-02 by [ADR 0073](0073-the-optimistic-contract-settles-by-push-and-catches-up-from-flow-status.md) — pending flows are a second persisted shape, held to the same JSON-only, scoped-per-principal rules
 
 ## Context
 

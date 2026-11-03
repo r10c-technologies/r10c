@@ -1,7 +1,7 @@
 import {
-  EntifixConnError,
   formatIdempotencyKey,
   IDEMPOTENCY_KEY_HEADER,
+  Unavailable,
 } from '@entifix/core';
 import {
   CROSSING_TOKEN_HEADER,
@@ -57,7 +57,7 @@ export const makeHttpSagaDispatcher = (
 ) => ({
   dispatch: (
     dispatch: SagaDispatch,
-  ): Effect.Effect<SagaResponse, EntifixConnError> =>
+  ): Effect.Effect<SagaResponse, Unavailable> =>
     Effect.gen(function* () {
       const participant = participants[dispatch.participant];
       if (!participant) {
@@ -66,11 +66,7 @@ export const makeHttpSagaDispatcher = (
         // the effect and is retried after the configuration is fixed, instead
         // of compensating a saga that never got to run.
         return yield* Effect.fail(
-          new EntifixConnError(
-            'saga names a participant this coordinator has no address for',
-            undefined,
-            { participant: dispatch.participant },
-          ),
+          new Unavailable({ dependency: dispatch.participant }),
         );
       }
 
@@ -93,19 +89,12 @@ export const makeHttpSagaDispatcher = (
                 ? undefined
                 : JSON.stringify(dispatch.body),
           }),
-        catch: error =>
-          new EntifixConnError('saga step could not be delivered', error, {
-            participant: dispatch.participant,
-            path: dispatch.call.path,
-          }),
+        catch: () => new Unavailable({ dependency: dispatch.participant }),
       });
 
       if (response.status >= 500) {
         return yield* Effect.fail(
-          new EntifixConnError('saga step participant failed', undefined, {
-            participant: dispatch.participant,
-            status: response.status,
-          }),
+          new Unavailable({ dependency: dispatch.participant }),
         );
       }
 
@@ -117,8 +106,8 @@ export const makeHttpSagaDispatcher = (
         // Not every participant answers with a body — a `204` has none — and a
         // step that succeeded must not be turned into a failure by an empty
         // one.
-        catch: () => new EntifixConnError('unreadable participant body'),
-      }).pipe(Effect.catch(() => Effect.succeed(undefined)));
+        catch: () => undefined,
+      }).pipe(Effect.orElseSucceed(() => undefined));
 
       return { ok: response.ok, status: response.status, body };
     }),

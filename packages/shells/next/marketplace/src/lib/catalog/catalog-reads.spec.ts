@@ -257,9 +257,9 @@ describe('the offering reads, on the wire', () => {
   });
 
   /**
-   * ⚠️ A filtered `load`, never `get` (ADR 0049): `get` answers an absent row
-   * with `EntifixConnError`, the same class a driver failure raises, so a 404
-   * page and a datastore outage would be one code path.
+   * ⚠️ A filtered `load`, never `get` (ADR 0049): an absent offering is an
+   * empty page, which the product page answers as its 404, while an outage
+   * stays a failure.
    */
   it('looks one offering up by an offeringId filter', async () => {
     const { runRead, getOffering } = load();

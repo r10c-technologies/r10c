@@ -4,7 +4,7 @@ import {
   screenAddress,
 } from '@entifix/authz';
 import type { Entity, EntityConstructor } from '@entifix/core';
-import { EntifixBuildError, extractMetaEntity } from '@entifix/core';
+import { extractMetaEntity } from '@entifix/core';
 import type { EntityCatalogKey } from '@entifix/next-shell';
 import { SalesChannel } from '@r10c/business-ts-sales-management';
 
@@ -83,7 +83,7 @@ export const salesSurface = <TEntity extends Entity>(
 ): SalesSurface<TEntity> => {
   const { pluralKey } = extractMetaEntity(entityConstructor);
   if (pluralKey === undefined) {
-    throw new EntifixBuildError(
+    throw new Error(
       `${entityConstructor.name} must declare pluralKey on @entity() to be a sales surface`,
     );
   }

@@ -1,5 +1,5 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import { EntifixConnError, type Entity } from '@entifix/core';
+import { type Entity,Unavailable } from '@entifix/core';
 import { EntifixQueryProvider } from '@entifix/react-integration';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { Configuration } from '@r10c/business-ts-configuration';
@@ -276,7 +276,7 @@ describe('a write that fails', () => {
 
     // Armed after the record loads, so the failure lands on the save rather than
     // being consumed by the initial read.
-    repository.failNext(new EntifixConnError('service unreachable', undefined));
+    repository.failNext(new Unavailable({ dependency: 'service unreachable' }));
     await userEvent.click(
       screen.getByRole('button', { name: /Guardar|Save/i }),
     );
@@ -302,7 +302,7 @@ describe('a delete that fails', () => {
       expect(screen.getByDisplayValue('auth')).toBeInTheDocument(),
     );
 
-    repository.failNext(new EntifixConnError('service unreachable', undefined));
+    repository.failNext(new Unavailable({ dependency: 'service unreachable' }));
     await userEvent.click(
       screen.getByRole('button', { name: /Eliminar|Delete/i }),
     );
