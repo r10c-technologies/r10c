@@ -1047,7 +1047,7 @@ the catalog is baked in at build time (below), and past the first request each
 entry is reused. A cache entry may hold only plain data or rendered output,
 never an entity instance, which is why the cached pieces are components and
 functions returning plain values (`findCategory`, `isPublished`) rather than
-the cells' reads themselves. `/search`, `/cart` and `/order/confirmation` read
+the cells' reads themselves. `/search`, `/cart` and `/order/status/[flowId]` read
 the query or a cookie behind their own `loading.tsx`.
 
 ⚠️ **A status is sent with the first byte, so no page decides a `404`.** The

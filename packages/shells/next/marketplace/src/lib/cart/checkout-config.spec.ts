@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   checkoutServiceUrl,
   orderServiceUrl,
+  realtimeServiceUrl,
   sagaCrossingToken,
 } from './checkout-config';
 
@@ -10,6 +11,7 @@ const VARIABLES = [
   'TRANSACTION_SERVICE_URL',
   'SAGA_CROSSING_TOKEN',
   'ORDER_SERVICE_URL',
+  'REALTIME_SERVICE_URL',
 ] as const;
 
 afterEach(() => {
@@ -61,5 +63,11 @@ describe('checkout-config', () => {
    */
   it('falls back to the local order-service', () => {
     expect(orderServiceUrl()).toBe('http://localhost:3105/api');
+  });
+
+  it('reads realtime-service’s address from the environment, or the local one', () => {
+    expect(realtimeServiceUrl()).toBe('http://localhost:3191/api');
+    process.env['REALTIME_SERVICE_URL'] = 'http://realtime:3191/api';
+    expect(realtimeServiceUrl()).toBe('http://realtime:3191/api');
   });
 });

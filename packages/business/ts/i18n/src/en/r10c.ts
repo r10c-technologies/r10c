@@ -150,13 +150,22 @@ export const r10c: EsR10c = {
       checkout: 'Check out',
     },
     checkout: {
-      placed: 'Your order is placed. The vendor has been notified.',
-      unavailable:
-        'One of these is no longer available in the quantity you asked for. Nothing was charged, and every hold has been released.',
       empty: 'Nothing here is still on sale.',
-      failed: 'Checkout could not be completed. Please try again.',
+      failed: 'Checkout could not be started. Please try again.',
+      // A tender per seller (ADR 0070). Cash on delivery is offered only where
+      // the seller ships it.
+      method: {
+        card: 'Card',
+        cod: 'Cash on delivery',
+      },
     },
     order: {
+      statusHeading: 'Placing your order',
+      pending:
+        'We are confirming your order with each seller. This page updates on its own.',
+      failed:
+        'Your order could not be placed, and nothing was charged. Your cart is still here.',
+      retry: 'Try again',
       heading: 'Thank you for your purchase',
       placed: 'Your order is placed, and the vendor has been notified.',
       reference: 'Order number',

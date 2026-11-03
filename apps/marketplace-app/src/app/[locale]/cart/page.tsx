@@ -30,12 +30,7 @@ export default async function CartRoute({
       // reaches a translation key, and an arbitrary query param must not be
       // able to name one.
       outcome={
-        outcome === 'placed' ||
-        outcome === 'unavailable' ||
-        outcome === 'empty' ||
-        outcome === 'failed'
-          ? outcome
-          : undefined
+        outcome === 'empty' || outcome === 'failed' ? outcome : undefined
       }
     />
   );

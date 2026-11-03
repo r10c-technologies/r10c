@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { storePaths } from '../routing/paths';
 import { cancelOutcomeOf } from './cancel-outcome';
 import { orderServiceUrl } from './checkout-config';
 import { readReceipt } from './receipt-cookie';
@@ -10,42 +11,33 @@ import {
   RECEIPT_COOKIE,
   RECEIPT_TTL_SECONDS,
   serializeReceipt,
+  withCancelled,
 } from './receipt-state';
 
 /**
- * Cancel the order this browser holds a receipt for.
- *
- * ⚠️ **The order id comes from the cookie, never from the form.** A hidden input
- * naming the order would be a field the browser's owner can edit, and the nonce
- * they hold authorizes exactly one order — so reading both from the same place
- * keeps them a pair rather than two values that might disagree.
- *
- * ⚠️ **No token, and no session.** The nonce in the receipt is the whole
- * authority: order-service stores its SHA-256 digest and compares against that.
- * It is read here and never reaches the browser, which `'use server'`
- * guarantees, and the cookie it lives in is `httpOnly` so no script can read it
- * either ([ADR 0058](../../../../../../docs/adr/0058-the-order-after-payment.md) §5).
- *
- * ⚠️ **On success the receipt is rewritten rather than cleared.** The page reads
- * nothing back — the storefront holds no session and order-service's reads take
- * one — so the cookie *is* the page's state. Clearing it would replace a
- * cancelled order with the "there is no order to show" screen, which reads as
- * the cancel having lost the receipt.
+ * The buyer cancelling **one vendor order** from their receipt, with the
+ * group's capability and no session (ADR 0069): the other sellers' orders in
+ * the checkout are untouched. The nonce stays on the receipt, because it still
+ * opens the orders not cancelled.
  */
 export async function cancelOrder(formData: FormData) {
   const locale = String(formData.get('locale') ?? '');
+  const orderId = String(formData.get('orderId') ?? '');
   const receipt = await readReceipt();
+  const back = (outcome: string) =>
+    `/${locale}${storePaths.orderStatus(receipt?.groupId ?? '')}?cancel=${outcome}`;
 
-  if (!receipt?.cancelNonce) {
-    // No capability to present. The page does not render the button in this
-    // state, so arriving here means the receipt lapsed between the render and
-    // the submit.
-    redirect(`/${locale}/order/confirmation?cancel=failed`);
+  const order = receipt?.orders.find(entry => entry.orderId === orderId);
+  if (!receipt?.cancelNonce || order === undefined) {
+    // No capability to present, or an order this receipt does not name. The
+    // page renders no button in either state, so arriving here means the
+    // receipt lapsed between the render and the submit.
+    redirect(back('failed'));
   }
 
   const response = await fetch(
     `${orderServiceUrl()}/product-order/${encodeURIComponent(
-      receipt.orderId,
+      order.orderId,
     )}/buyer-cancellation`,
     {
       method: 'POST',
@@ -66,26 +58,14 @@ export async function cancelOrder(formData: FormData) {
 
   if (outcome === 'cancelled') {
     const jar = await cookies();
-    // The capability is spent, so it is dropped from the cookie: a nonce that
-    // opens nothing is a Cancel button the page would have to explain. What
-    // stays is the receipt itself, now marked cancelled.
-    const {
-      cancelNonce: _spent,
-      cancelWindowEndsAt: _closed,
-      ...rest
-    } = receipt;
-    jar.set(RECEIPT_COOKIE, serializeReceipt({ ...rest, cancelled: true }), {
+    jar.set(RECEIPT_COOKIE, serializeReceipt(withCancelled(receipt, orderId)), {
       path: '/',
       sameSite: 'lax',
       httpOnly: true,
       maxAge: RECEIPT_TTL_SECONDS,
     });
-    redirect(`/${locale}/order/confirmation?cancel=cancelled`);
   }
 
-  // `pending` keeps the receipt as it is: the nonce is unspent and the window
-  // still open, so the button stays and the next click is the retry.
-  //
   // `redirect` throws to unwind the action, so it comes last on every path.
-  redirect(`/${locale}/order/confirmation?cancel=${outcome}`);
+  redirect(back(outcome));
 }

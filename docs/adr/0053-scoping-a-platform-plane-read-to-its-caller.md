@@ -148,6 +148,16 @@ tenant store cannot.
 A successful checkout writes an `httpOnly` `r10c_receipt` cookie from the order
 the saga already returned, and redirects to `/{locale}/order/confirmation`.
 
+> **2026-11-03 — the checkout no longer answers with its outcome.** It answers
+> `202` and a flow id (ADR 0073), and the buyer waits at
+> `/{locale}/order/status/<flowId>`. That address names a flow, but it is still
+> not a capability: the page renders nothing about the flow without this
+> browser's own `httpOnly` flow ticket or receipt. Once the flow completed, the
+> settle action reads the checkout group back **once**, server side, by the
+> cancel nonce it already held (`GET /api/checkout-group/:id/buyer-receipt`,
+> nonce in `x-cancel-nonce`), and writes the cookie from that. Flow-status
+> carries no order, so there was nothing else to carry it from (ADR 0069).
+
 ⚠️ **The address identifies no order.** It is the same path for every visitor, so
 there is no capability to leak, nothing to guess and nothing to share by
 accident. The three alternatives were each worse:

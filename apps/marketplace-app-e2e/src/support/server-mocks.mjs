@@ -112,24 +112,31 @@ const collections = [
 ];
 
 /**
- * The checkout coordinator.
+ * The checkout coordinator, as the composed checkout answers it (ADR 0073):
+ * `202` and a `flowAccepted` envelope naming the flow, never the outcome. The
+ * outcome is the stream's, which the browser-side fixture scripts.
  *
- * ⚠️ **Not an entity backend**, and not a bare `201` either: the storefront's
- * confirmation page renders the order out of the saga's *own* answer, so a stub
- * that omitted the outcomes would exercise the degraded path while the spec
- * claimed to test a receipt. The shape here is transaction-service's, one
- * outcome per step, each carrying the participant's response body verbatim.
- *
- * It echoes the lines it was sent, so the receipt shows what the browser
- * actually put in the cart rather than a fixture that cannot disagree with it.
+ * ⚠️ **Each start mints its own flow id**, because this process serves every
+ * worker at once: two specs sharing an id would read each other's basket back.
+ * The id's prefix is how the rest of this file knows which journey it is in —
+ * what is in the basket is the only thing a server action lets through.
  */
 const CHECKOUT_URL = 'http://localhost:3103/api/saga/checkout';
 
+/** Where the settle action verifies a flow completed, server to server. */
+const FLOW_STATUS_URL = 'http://localhost:3191/api/realtime/flow/:id';
+
 /**
- * Where the buyer's own cancel is presented, matching `orderServiceUrl()`'s dev
- * default. Stubbed here rather than with `page.route()` for the same reason the
- * coordinator is: the cancel is a server action, so an interceptor in the
- * browser would never see the call.
+ * Where the settle action reads the group back by its cancel nonce (ADR 0053),
+ * matching `orderServiceUrl()`'s dev default.
+ */
+const BUYER_RECEIPT_URL =
+  'http://localhost:3105/api/checkout-group/:id/buyer-receipt';
+
+/**
+ * Where the buyer's own cancel is presented. Stubbed here rather than with
+ * `page.route()` for the same reason the coordinator is: the cancel is a server
+ * action, so an interceptor in the browser would never see the call.
  */
 const BUYER_CANCEL_URL =
   'http://localhost:3105/api/product-order/:id/buyer-cancellation';
@@ -145,26 +152,19 @@ const BUYER_CANCEL_URL =
 const CANCEL_WINDOW_ENDS_AT = '2099-01-01T00:30:00.000Z';
 
 /**
- * The basket whose cancel arrives before its payment was confirmed (#387).
- *
- * Checkout captures the money synchronously, but the order turns `paid` only
- * once `payment.captured` is consumed off the bus, and until then order-service
- * answers a buyer's cancel with `409 paymentPending`. Keyed on what is in the
- * basket because the cancel is a server action: nothing the browser sends
- * reaches this process except the cart it built.
+ * The basket whose cancel arrives before its payment was confirmed (#387): an
+ * order turns `paid` only once `payment.captured` is consumed off the bus, and
+ * until then order-service answers a buyer's cancel with `409 paymentPending`.
  */
 const PAYMENT_PENDING_OFFERING = 'offering-terra-ceramic-mug';
-const PAYMENT_PENDING_ORDER = 'e2e-order-payment-pending';
 
-/**
- * A buyer cancelling their own order.
- *
- * It checks the nonce is *present* and nothing more: what the digest comparison
- * protects is the service's own decision, and asserting it here would be
- * asserting a fixture. What this suite is for is the half only a browser can
- * show — that the button appears exactly when the receipt says it may, and that
- * the page afterwards says the order was cancelled.
- */
+/** The basket whose flow ends badly: flow-status says `failed` for it. */
+const FAILING_OFFERING = 'offering-aurora-floor-lamp';
+
+/** What each started flow was asked to check out, by flow id. */
+const baskets = new Map();
+let started = 0;
+
 /**
  * A refusal as the fleet answers one: an `application/problem+json` body whose
  * `code` is the `errors` catalog key (ADR 0064).
@@ -182,6 +182,115 @@ const problem = (tag, code, category, status, fields = {}) =>
     { status, headers: { 'content-type': 'application/problem+json' } },
   );
 
+const notFound = () => problem('NotFound', 'notFound', 'notFound', 404);
+
+const holds = (vendors, offeringId) =>
+  vendors.some(part =>
+    (part?.lines ?? []).some(line => line?.offeringId === offeringId),
+  );
+
+const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
+  const body = await request.json().catch(() => undefined);
+  const vendors = body?.inputs?.vendors;
+  if (!Array.isArray(vendors) || vendors.length === 0) {
+    return problem('InvalidBody', 'invalidBody', 'invalid', 400);
+  }
+  started += 1;
+  const kind = holds(vendors, FAILING_OFFERING)
+    ? 'failing'
+    : holds(vendors, PAYMENT_PENDING_OFFERING)
+      ? 'payment-pending'
+      : 'placed';
+  const flowId = `e2e-flow-${kind}-${String(started)}`;
+  baskets.set(flowId, vendors);
+  return HttpResponse.json(
+    {
+      meta: { type: 'flowAccepted' },
+      data: {
+        flowId,
+        links: [
+          { rel: 'status', href: `/api/realtime/flow/${flowId}` },
+          { rel: 'stream', href: '/api/realtime/stream' },
+        ],
+      },
+    },
+    { status: 202 },
+  );
+});
+
+/**
+ * Where a flow stands, as realtime-service answers it. It checks the
+ * capability is *present* and nothing more — the digest comparison is the
+ * service's own decision — and `404` is a flow it never started.
+ */
+const flowStatusHandler = http.get(FLOW_STATUS_URL, ({ request, params }) => {
+  const capability = new URL(request.url).searchParams.get('capability');
+  if (!capability || !baskets.has(params.id)) return notFound();
+  return HttpResponse.json({
+    meta: { type: 'flowStatus', entity: 'flow' },
+    data: {
+      flowId: params.id,
+      state: params.id.startsWith('e2e-flow-failing-') ? 'failed' : 'completed',
+    },
+  });
+});
+
+/** The vendor order a flow wrote for one seller's part of its basket. */
+const orderIdOf = (flowId, vendorId) =>
+  flowId.startsWith('e2e-flow-payment-pending-')
+    ? `${flowId}-${vendorId}-payment-pending`
+    : `${flowId}-${vendorId}`;
+
+/**
+ * The group read back by its capability: one envelope for the group and one
+ * per vendor order, each echoing the lines the checkout was sent, so the
+ * receipt shows what the browser put in the cart rather than a fixture that
+ * cannot disagree with it. No nonce, or a flow never started, is a `404`.
+ */
+const buyerReceiptHandler = http.get(
+  BUYER_RECEIPT_URL,
+  ({ request, params }) => {
+    const vendors = baskets.get(params.id);
+    if (!request.headers.get('x-cancel-nonce') || vendors === undefined) {
+      return notFound();
+    }
+    return HttpResponse.json({
+      group: {
+        meta: { type: 'entity', entity: 'checkout-group' },
+        data: {
+          id: params.id,
+          placedAt: '2026-11-03T00:00:00.000Z',
+          // ⚠️ Server-stamped, and only for a group that brought a digest. It
+          // is what turns the nonce the action minted into a capability the
+          // receipt may offer.
+          cancelWindowEndsAt: CANCEL_WINDOW_ENDS_AT,
+          orderIds: vendors.map(part => orderIdOf(params.id, part.vendorId)),
+        },
+      },
+      orders: vendors.map(part => ({
+        meta: { type: 'entity', entity: 'product-order' },
+        data: {
+          id: orderIdOf(params.id, part.vendorId),
+          groupId: params.id,
+          vendorId: part.vendorId,
+          paymentMethod: part.paymentMethod,
+          status: 'paid',
+          items: part.lines,
+        },
+      })),
+    });
+  },
+);
+
+/**
+ * A buyer cancelling one of their vendor orders.
+ *
+ * It checks the nonce is *present* and nothing more: what the digest comparison
+ * protects is the service's own decision, and asserting it here would be
+ * asserting a fixture. What this suite is for is the half only a browser can
+ * show — that the button appears exactly when the receipt says it may, and that
+ * the page afterwards says the order was cancelled.
+ */
 const buyerCancelHandler = http.post(
   BUYER_CANCEL_URL,
   async ({ request, params }) => {
@@ -194,78 +303,27 @@ const buyerCancelHandler = http.post(
         401,
       );
     }
-    if (params.id === PAYMENT_PENDING_ORDER) {
+    if (params.id.endsWith('-payment-pending')) {
       return problem('PaymentPending', 'paymentPending', 'conflict', 409, {
-        orderId: PAYMENT_PENDING_ORDER,
+        orderId: params.id,
       });
     }
     return HttpResponse.json({
       meta: { type: 'entity', entity: 'product-order' },
-      data: { id: 'e2e-order-1', status: 'cancelled' },
+      data: { id: params.id, status: 'cancelled' },
     });
   },
 );
 
-const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
-  const body = await request.json();
-  const items = body?.inputs?.['write-order']?.[0]?.body?.data?.items ?? [];
-  const orderId = items.some(
-    item => item?.offeringId === PAYMENT_PENDING_OFFERING,
-  )
-    ? PAYMENT_PENDING_ORDER
-    : 'e2e-order-1';
-
-  return HttpResponse.json(
-    {
-      meta: { type: 'sagaResult', entity: 'checkout' },
-      data: {
-        sagaId: 'e2e-saga',
-        state: 'COMPLETED',
-        outcomes: [
-          {
-            stepId: 'reserve',
-            calls: items.map((_line, index) => ({
-              index,
-              status: 201,
-              body: {},
-            })),
-          },
-          {
-            stepId: 'write-order',
-            calls: [
-              {
-                index: 0,
-                status: 201,
-                body: {
-                  meta: { type: 'entity', entity: 'product-order' },
-                  data: {
-                    id: orderId,
-                    status: 'pending',
-                    placedAt: '2026-09-09T00:00:00.000Z',
-                    // ⚠️ Server-stamped, and only for an order that brought a
-                    // digest. It is what turns the nonce the action minted into
-                    // a capability the confirmation page may offer.
-                    cancelWindowEndsAt: CANCEL_WINDOW_ENDS_AT,
-                    items,
-                  },
-                },
-              },
-            ],
-          },
-        ],
-      },
-    },
-    { status: 200 },
-  );
-});
-
 setupServer(
   buyerCancelHandler,
+  buyerReceiptHandler,
   configurationHandler(CONFIG_URL, CONFIGURATION),
   checkoutHandler,
+  flowStatusHandler,
   ...collections.flatMap(({ handlers }) => handlers),
 ).listen({
   // Next serves its own documents, RSC payloads and static assets over this
-  // same `fetch`. Only the two service origins above are ours to answer.
+  // same `fetch`. Only the service origins above are ours to answer.
   onUnhandledRequest: 'bypass',
 });
