@@ -11,7 +11,6 @@ import {
   isFailure,
   loadRequestFor,
 } from '@entifix/core';
-import { categorised } from '@r10c/business-ts-common';
 import { Effect, Option, Schema } from 'effect';
 
 import { ProductOffering } from '../../entities/product-offering';
@@ -90,22 +89,20 @@ export const transitionOfferingFor = (input: {
   readonly transition: OfferingTransition;
   readonly source: string;
 }) =>
-  categorised(
-    Effect.gen(function* () {
-      const decision = yield* decide({ ...input, at: new Date() });
-      const catalog = yield* OfferingCatalogTag;
-      const committed = yield* catalog.commitTransition(
-        input.organizationId,
-        decision.offering,
-        decision.from,
-        decision.event,
-      );
-      if (committed === 'changed') {
-        return yield* new OfferingChanged({ id: String(input.id) });
-      }
-      return decision.offering;
-    }),
-  );
+  Effect.gen(function* () {
+    const decision = yield* decide({ ...input, at: new Date() });
+    const catalog = yield* OfferingCatalogTag;
+    const committed = yield* catalog.commitTransition(
+      input.organizationId,
+      decision.offering,
+      decision.from,
+      decision.event,
+    );
+    if (committed === 'changed') {
+      return yield* new OfferingChanged({ id: String(input.id) });
+    }
+    return decision.offering;
+  });
 
 /**
  * The same verb over a selection (#216). One row's refusal never ends the
@@ -117,49 +114,47 @@ export const transitionOfferingSelection = (input: {
   readonly transition: OfferingTransition;
   readonly source: string;
 }) =>
-  categorised(
-    Effect.gen(function* () {
-      const { selection } = input;
-      // `Array.from`, never a spread: SWC's loose helper wraps a `Set`.
-      const ids: readonly EntityId[] =
-        selection.mode === 'ids'
-          ? Array.from(selection.ids)
-          : yield* Effect.gen(function* () {
-              const factory = yield* EntityRepositoryFactoryTag;
-              const offerings = yield* factory.for(ProductOffering, {
-                organizationId: input.organizationId,
-              });
-              const page = yield* offerings.load<ProductOffering>(
-                loadRequestFor(selection, {
-                  page: 1,
-                  pageSize: BULK_SELECTION_CAP,
-                }),
-              );
-              const excluded = Array.from(selection.excluded).map(String);
-              return page.items
-                .map(item => item.id)
-                .filter(id => excluded.indexOf(String(id)) === -1);
+  Effect.gen(function* () {
+    const { selection } = input;
+    // `Array.from`, never a spread: SWC's loose helper wraps a `Set`.
+    const ids: readonly EntityId[] =
+      selection.mode === 'ids'
+        ? Array.from(selection.ids)
+        : yield* Effect.gen(function* () {
+            const factory = yield* EntityRepositoryFactoryTag;
+            const offerings = yield* factory.for(ProductOffering, {
+              organizationId: input.organizationId,
             });
-
-      const outcomes: BulkOutcome[] = [];
-      for (const id of ids) {
-        outcomes.push(
-          yield* transitionOfferingFor({ ...input, id }).pipe(
-            Effect.as<BulkOutcome>({ id, ok: true }),
-            // Each row answers its own failure's code; one row never ends the run.
-            Effect.catch(failure =>
-              Effect.succeed<BulkOutcome>({
-                id,
-                ok: false,
-                code: failure.code,
+            const page = yield* offerings.load<ProductOffering>(
+              loadRequestFor(selection, {
+                page: 1,
+                pageSize: BULK_SELECTION_CAP,
               }),
-            ),
+            );
+            const excluded = Array.from(selection.excluded).map(String);
+            return page.items
+              .map(item => item.id)
+              .filter(id => excluded.indexOf(String(id)) === -1);
+          });
+
+    const outcomes: BulkOutcome[] = [];
+    for (const id of ids) {
+      outcomes.push(
+        yield* transitionOfferingFor({ ...input, id }).pipe(
+          Effect.as<BulkOutcome>({ id, ok: true }),
+          // Each row answers its own failure's code; one row never ends the run.
+          Effect.catch(failure =>
+            Effect.succeed<BulkOutcome>({
+              id,
+              ok: false,
+              code: failure.code,
+            }),
           ),
-        );
-      }
-      return outcomes;
-    }),
-  );
+        ),
+      );
+    }
+    return outcomes;
+  });
 
 /**
  * ⚠️ **`status` is server-owned** (ADR 0047): a save carries the stored
@@ -171,34 +166,32 @@ export const preserveOfferingLifecycle = (
   offering: ProductOffering,
   organizationId: string,
 ) =>
-  categorised(
-    Effect.gen(function* () {
-      const fresh = () => {
-        offering.status = 'draft';
-        offering.statusChangedAt = undefined;
-        return offering;
-      };
-      if (offering.id == null) return fresh();
-      const factory = yield* EntityRepositoryFactoryTag;
-      const repository = yield* factory.for(ProductOffering, {
-        organizationId,
-      });
-      // Only an absent row makes this a new offering. A store that cannot be
-      // read fails the save — reading it as absent would let the body's
-      // `status` through, which is the bypass this rule exists to close.
-      const stored = yield* repository.get<ProductOffering>(offering.id).pipe(
-        Effect.map(Option.some),
-        Effect.catchIf(
-          failure => isFailure(failure) && failure.category === 'notFound',
-          () => Effect.succeed(Option.none<ProductOffering>()),
-        ),
-      );
-      if (Option.isNone(stored)) return fresh();
-      offering.status = stored.value.status;
-      offering.statusChangedAt = stored.value.statusChangedAt;
+  Effect.gen(function* () {
+    const fresh = () => {
+      offering.status = 'draft';
+      offering.statusChangedAt = undefined;
       return offering;
-    }),
-  );
+    };
+    if (offering.id == null) return fresh();
+    const factory = yield* EntityRepositoryFactoryTag;
+    const repository = yield* factory.for(ProductOffering, {
+      organizationId,
+    });
+    // Only an absent row makes this a new offering. A store that cannot be
+    // read fails the save — reading it as absent would let the body's
+    // `status` through, which is the bypass this rule exists to close.
+    const stored = yield* repository.get<ProductOffering>(offering.id).pipe(
+      Effect.map(Option.some),
+      Effect.catchIf(
+        failure => isFailure(failure) && failure.category === 'notFound',
+        () => Effect.succeed(Option.none<ProductOffering>()),
+      ),
+    );
+    if (Option.isNone(stored)) return fresh();
+    offering.status = stored.value.status;
+    offering.statusChangedAt = stored.value.statusChangedAt;
+    return offering;
+  });
 
 export type RebuildOutcome =
   'announced' | 'revived' | 'alreadyAnnounced' | 'unannounceable' | 'unstamped';

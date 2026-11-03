@@ -3,8 +3,8 @@ import 'fake-indexeddb/auto';
 import { EntityRepositoryTag } from '@entifix/business';
 import {
   assertWizardDefinition,
-  EntifixConnError,
   type Entity,
+  Unavailable,
 } from '@entifix/core';
 import { useDraftsState } from '@entifix/next-shell';
 import { EntifixQueryProvider } from '@entifix/react-integration';
@@ -329,7 +329,7 @@ describe('a write the service refuses', () => {
     await click('Continuar');
     await click('Continuar');
 
-    repositories.product.failNext(new EntifixConnError('nope'));
+    repositories.product.failNext(new Unavailable({ dependency: 'nope' }));
     await click('Finalizar');
 
     // The step pushes are the address sync; what must not happen is leaving.

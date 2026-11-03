@@ -13,9 +13,7 @@ import { type MediaReferenceValue, readMedia } from './media-reference';
 /**
  * A payload this process cannot read, as a typed `invalid` failure. Business
  * family, so the bus quarantines it at once rather than redelivering a message
- * no retry will fix (ADR 0030, ADR 0064) — the legacy `EntifixBuildError` it
- * replaces is not a typed failure, and since entifix 0.10.0 the adapter reads
- * anything untyped as transient.
+ * no retry will fix (ADR 0030, ADR 0064).
  */
 const invalidPayload = (detail: string) =>
   new Invalid({ errors: [{ pointer: '/data', detail, code: 'malformed' }] });

@@ -1,5 +1,5 @@
 import { EntityRepositoryTag } from '@entifix/business';
-import type { Entity, EntityId } from '@entifix/core';
+import { type Entity, type EntityId, NotFound } from '@entifix/core';
 import {
   CATALOG_PUBLISHED,
   CATALOG_UNPUBLISHED,
@@ -26,9 +26,6 @@ import {
   transitionOffering,
   TransitionOfferingInputTag,
 } from './transition-offering.js';
-
-/** `EntifixError` is abstract, so a double needs a concrete failure of its own. */
-class NotFound extends Error {}
 
 const AT = new Date('2026-09-07T10:00:00.000Z');
 const VENDOR = 'org-1';
@@ -90,7 +87,7 @@ const repositoryOf = (...rows: ProductOffering[]) => {
       const row = byId.get(String(id));
       return row
         ? Effect.succeed(row as unknown as TEntity)
-        : Effect.fail(new NotFound('not found'));
+        : Effect.fail(new NotFound({ entity: 'offering' }));
     },
     load: vi.fn(),
     save: <TEntity extends Entity>(entity: TEntity) => {
@@ -453,10 +450,9 @@ describe('what a transition announces', () => {
 
 describe('the specification the snapshot copies from', () => {
   it('reads it by id, one row, the shape the price is read with', () => {
-    // ⚠️ `load` with a filter and never `get`. `makeMongoRepository`'s `get`
-    // fails an absent row with `EntifixConnError` — the same class a driver
-    // failure raises — so mapping that failure to a `409` would tell every
-    // vendor in the fleet their data is broken during a Mongo outage.
+    // `load` with a filter and never `get`: the one read shape the price is
+    // read with too, so an absent specification is an empty page rather than a
+    // `NotFound` about a record the caller never addressed.
     const { specificationQueries } = run(
       [offering('1', 'draft')],
       '1',

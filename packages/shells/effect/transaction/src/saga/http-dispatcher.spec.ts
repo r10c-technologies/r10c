@@ -1,4 +1,4 @@
-import { EntifixConnError, IDEMPOTENCY_KEY_HEADER } from '@entifix/core';
+import { IDEMPOTENCY_KEY_HEADER } from '@entifix/core';
 import {
   CROSSING_TOKEN_HEADER,
   ORGANIZATION_HEADER,
@@ -93,8 +93,10 @@ describe('the HTTP saga dispatcher', () => {
       Effect.flip(dispatcher.dispatch(dispatch({ participant: 'nobody' }))),
     );
 
-    for (const error of [failed5xx, undelivered, unknown]) {
-      expect(error).toBeInstanceOf(EntifixConnError);
-    }
+    expect([failed5xx, undelivered, unknown]).toMatchObject([
+      { _tag: 'Unavailable', dependency: 'stock-service' },
+      { _tag: 'Unavailable', dependency: 'stock-service' },
+      { _tag: 'Unavailable', dependency: 'nobody' },
+    ]);
   });
 });

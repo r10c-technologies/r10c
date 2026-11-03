@@ -1,4 +1,4 @@
-import { type TransitionalFailure, Unavailable } from '@entifix/core';
+import { type EntifixFailure, Unavailable } from '@entifix/core';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   drainOutboxNow,
@@ -74,7 +74,7 @@ export const writeOrganization = (
   now: Date,
 ): Effect.Effect<
   'written' | 'unchanged',
-  TransitionalFailure,
+  EntifixFailure,
   EventBusTag | OutboxMaxAttempts
 > =>
   Effect.gen(function* () {
@@ -182,7 +182,7 @@ export const rebuildOrganizationAnnouncements = (
   db: Db,
   bus: EventBus,
   source: string,
-): Effect.Effect<OrganizationRebuildReport, TransitionalFailure> =>
+): Effect.Effect<OrganizationRebuildReport, EntifixFailure> =>
   Effect.gen(function* () {
     const report: OrganizationRebuildReport = {
       announced: 0,

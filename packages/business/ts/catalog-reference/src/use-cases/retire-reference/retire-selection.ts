@@ -10,7 +10,6 @@ import {
   type EntitySelection,
   loadRequestFor,
 } from '@entifix/core';
-import { categorised } from '@r10c/business-ts-common';
 import { Effect } from 'effect';
 
 import { ProductCategory } from '../../entities/product-category';
@@ -97,7 +96,7 @@ export const retireSelection = <T extends RetirableReference>(
           ((record: RetirableReference) => string | undefined) | undefined,
       }),
     );
-  }).pipe(categorised);
+  });
 
 /**
  * Where a category would sit among the others, checked as it is saved: the
@@ -107,7 +106,7 @@ export const retireSelection = <T extends RetirableReference>(
  */
 export const checkCategorySave = (category: ProductCategory) =>
   Effect.gen(function* () {
-    const all = yield* categorised(loadEveryReference(ProductCategory));
+    const all = yield* loadEveryReference(ProductCategory);
     const refused = categorySaveRefusal(all, category);
     return refused === undefined
       ? category

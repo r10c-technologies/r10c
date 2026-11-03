@@ -1,6 +1,6 @@
 'use client';
 
-import { readDraftString, type TransitionalFailure } from '@entifix/core';
+import { type EntifixFailure,readDraftString } from '@entifix/core';
 import {
   EntityField,
   EntityForm,
@@ -15,7 +15,7 @@ export interface ConfigurationFormProps {
   isLoading?: boolean;
   isSaving?: boolean;
   isDeleting?: boolean;
-  error?: TransitionalFailure;
+  error?: EntifixFailure;
   onSave: (entity: Configuration) => void;
   onDelete?: () => void;
   backHref?: string;

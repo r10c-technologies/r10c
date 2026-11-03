@@ -1,5 +1,5 @@
 import { IdempotencyStoreTag } from '@entifix/business';
-import type { EntifixBuildError, StoreFailure } from '@entifix/core';
+import type { StoreFailure, Unavailable } from '@entifix/core';
 import { MongoClientTag, MongoDatabaseTag } from '@entifix/mongo';
 import {
   ensureIdempotencyIndexes,
@@ -37,14 +37,14 @@ export function fleetIdempotencyLayer(
   configuration: FleetConfiguration,
 ): Effect.Effect<
   Layer.Layer<IdempotencyStoreTag, StoreFailure, MongoDatabaseTag>,
-  EntifixBuildError
+  Unavailable
 >;
 export function fleetIdempotencyLayer(
   configuration: FleetConfiguration,
   dbName: string,
 ): Effect.Effect<
   Layer.Layer<IdempotencyStoreTag, StoreFailure, MongoClientTag>,
-  EntifixBuildError
+  Unavailable
 >;
 export function fleetIdempotencyLayer(
   { store }: FleetConfiguration,

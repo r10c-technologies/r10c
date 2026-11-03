@@ -1,5 +1,5 @@
 import { RequestPrincipalTag } from '@entifix/business';
-import { EntifixConnError, Unavailable } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { makeInMemorySagaStore } from '@entifix/testing-unit';
 import {
   SagaDispatcherTag,
@@ -48,7 +48,7 @@ const world = async (options: WorldOptions = {}) => {
           options.answer?.(dispatched.call.path) ??
           ({ ok: true, status: 200, body: { data: { id: 'x-1' } } } as const);
         return answer === 'unreachable'
-          ? Effect.fail(new EntifixConnError('participant down'))
+          ? Effect.fail(new Unavailable({ dependency: 'stock-service' }))
           : Effect.succeed(answer);
       },
     }),
@@ -157,7 +157,7 @@ describe('starting a flow', () => {
     });
   });
 
-  it('refuses malformed inputs, and dies on an uncategorised engine failure', async () => {
+  it('refuses malformed inputs, and fails unavailable while a participant is down', async () => {
     const run = await world({ answer: () => 'unreachable' });
 
     const malformed = await run(
@@ -168,7 +168,9 @@ describe('starting a flow', () => {
     expect(failureOf(malformed)).toMatchObject({
       value: { _tag: 'InvalidBody' },
     });
-    expect(Exit.isFailure(broken) && Cause.hasDies(broken.cause)).toBe(true);
+    expect(failureOf(broken)).toMatchObject({
+      value: { _tag: 'Unavailable', dependency: 'stock-service' },
+    });
   });
 });
 

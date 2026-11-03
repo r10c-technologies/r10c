@@ -3,7 +3,7 @@ import {
   type ConfigurationPlain,
 } from '@entifix/core';
 import { DEFAULT_RETRY_DIALS, RetryBudgetTag } from '@entifix/transactions';
-import { Effect } from 'effect';
+import { Cause, Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { fleetRetryBudgetLayer, readRetryDials } from './fleet-retry-budget.js';
@@ -52,12 +52,15 @@ describe('readRetryDials', () => {
     expect(dials).toEqual({ ...DEFAULT_RETRY_DIALS, maxAttempts: 2 });
   });
 
-  it('keeps the default for a dial that is not a number, rather than failing the boot', async () => {
-    const dials = await Effect.runPromise(
+  it('dies at boot on a dial that is not a number, naming it', async () => {
+    const exit = await Effect.runPromiseExit(
       readRetryDials(storeOf(retryRows({ backoffCapMs: 'soon' }))),
     );
 
-    expect(dials.backoffCapMs).toBe(DEFAULT_RETRY_DIALS.backoffCapMs);
+    expect(Exit.isFailure(exit) && Cause.hasDies(exit.cause)).toBe(true);
+    expect(String(Exit.isFailure(exit) && exit.cause)).toContain(
+      '"backoffCapMs" is not a number',
+    );
   });
 });
 

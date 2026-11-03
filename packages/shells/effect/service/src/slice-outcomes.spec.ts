@@ -1,4 +1,4 @@
-import { EntifixConnError, Unavailable } from '@entifix/core';
+import { Unavailable } from '@entifix/core';
 import { Effect, Logger, References } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -44,7 +44,7 @@ describe('failureFacts', () => {
   });
 
   it('names anything else internal, and carries none of its text', () => {
-    const facts = failureFacts(new EntifixConnError('password hunter2'));
+    const facts = failureFacts(new Error('password hunter2'));
 
     expect(facts).toEqual({ code: 'internal', category: 'internal' });
     expect(JSON.stringify(facts)).not.toContain('hunter2');

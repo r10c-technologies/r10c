@@ -18,7 +18,7 @@ import {
   SagaStoreTag,
 } from '@entifix/transactions';
 import { runSaga } from '@entifix/transactions/engine';
-import { categorised, InvalidBody } from '@r10c/business-ts-common';
+import { InvalidBody } from '@r10c/business-ts-common';
 import {
   SagaCompensated,
   SagaStranded,
@@ -112,9 +112,7 @@ const runEndpoint = (definition: SagaDefinition) =>
         // Server-minted: a caller that could choose it could resume — or
         // overwrite — somebody else's flow.
         const sagaId = randomUUID();
-        const result = yield* categorised(
-          runSaga({ sagaId, definition, inputs }),
-        );
+        const result = yield* runSaga({ sagaId, definition, inputs });
         if (result.state === 'COMPENSATED') {
           return yield* new SagaCompensated({
             sagaId,
@@ -175,7 +173,7 @@ export const sagaInstanceEndpoint = implement(
     Effect.gen(function* () {
       const principal = yield* RequestPrincipalTag;
       const store = yield* SagaStoreTag;
-      const instance = yield* categorised(store.get(params.id));
+      const instance = yield* store.get(params.id);
       if (
         instance === undefined ||
         principal.organizationId === undefined ||

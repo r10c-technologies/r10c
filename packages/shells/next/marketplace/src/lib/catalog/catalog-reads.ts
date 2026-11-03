@@ -1,9 +1,9 @@
 import { EntityFacetCounterTag, EntityRepositoryTag } from '@entifix/business';
 import type {
+  EntifixFailure,
   Entity,
   EntityConstructor,
   EntityPage,
-  TransitionalFailure,
 } from '@entifix/core';
 import {
   buildEntityRestAdapterDelete,
@@ -130,7 +130,7 @@ export const makeRunRead = () => {
     entityConstructor: EntityConstructor<TEntity>,
     read: Effect.Effect<
       A,
-      TransitionalFailure,
+      EntifixFailure,
       EntityRepositoryTag | EntityFacetCounterTag
     >,
     fallback: A,
