@@ -204,6 +204,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     // here would be inert against the route that exists and would suggest a save
     // route ought to.
     `${PAYMENT_DOMAIN}:refund:read`,
+    // Each vendor order's share of a payment — what was taken for it and what
+    // has gone back. Reconciliation's view, on the terms of the two reads
+    // above: unscoped, so administrative (ADR 0069).
+    `${PAYMENT_DOMAIN}:payment-allocation:read`,
     // What the platform charges this vendor, what it has taken, and what it
     // owes. Granted where `payment:read` could not be, and the difference is
     // the scope: every settlement record carries a `vendorId`, so the routes

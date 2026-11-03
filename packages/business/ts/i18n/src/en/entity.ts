@@ -253,6 +253,7 @@ export const entity: EsEntity = {
       vendorId: 'Vendor ID',
       displayName: 'Seller',
       announcedAt: 'Announced at',
+      acceptsCod: 'Accepts cash on delivery',
     },
   },
   'published-offering': {
@@ -333,7 +334,7 @@ export const entity: EsEntity = {
     plural: 'Payments',
     fields: {
       id: 'ID',
-      orderId: 'Order ID',
+      groupId: 'Checkout ID',
       amount: 'Amount',
       currency: 'Currency',
       status: 'Status',
@@ -353,7 +354,24 @@ export const entity: EsEntity = {
         card: 'Card',
         voucher: 'Voucher',
         transfer: 'Transfer',
+        cod: 'Cash on delivery',
       },
+    },
+  },
+  'payment-allocation': {
+    label: 'Payment allocation',
+    plural: 'Payment allocations',
+    fields: {
+      id: 'ID',
+      paymentId: 'Payment ID',
+      groupId: 'Checkout ID',
+      orderId: 'Order ID',
+      vendorId: 'Vendor ID',
+      authorized: 'Authorized',
+      captured: 'Captured',
+      refunded: 'Refunded',
+      currency: 'Currency',
+      paymentMethod: 'Payment method',
     },
   },
   refund: {
@@ -361,7 +379,7 @@ export const entity: EsEntity = {
     plural: 'Refunds',
     fields: {
       id: 'ID',
-      paymentId: 'Payment ID',
+      allocationId: 'Allocation ID',
       orderId: 'Order ID',
       amount: 'Amount',
       currency: 'Currency',

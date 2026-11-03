@@ -28,24 +28,30 @@ const crossing = (extra: Record<string, string> = {}) => ({
   ...extra,
 });
 
+/**
+ * One charge for a checkout group, allocated to one vendor order — a fresh
+ * order unless the case names one, because an order is paid for once and the
+ * store refuses a second allocation naming it.
+ */
 const capture = (
   body: Record<string, unknown> = {},
   extra: Record<string, string> = {},
-) =>
-  service.client.post(
+) => {
+  const { orderId = `order-${crypto.randomUUID()}`, ...rest } = body;
+  const amount = (rest['amount'] as number | undefined) ?? 1999;
+  return service.client.post(
     '/api/payment',
     {
-      meta: { type: 'entity', entity: 'payment' },
-      data: {
-        orderId: 'order-1',
-        amount: 1999,
-        currency: 'GTQ',
-        paymentMethod: 'card',
-        ...body,
-      },
+      groupId: `group-${crypto.randomUUID()}`,
+      amount,
+      currency: 'GTQ',
+      paymentMethod: 'card',
+      allocations: [{ orderId, vendorId: 'vendor-1', amount }],
+      ...rest,
     },
     { headers: crossing(extra) },
   );
+};
 
 describe('capturing a payment', () => {
   it('writes it and answers 200', async () => {
@@ -54,6 +60,43 @@ describe('capturing a payment', () => {
     expect(res.status).toBe(200);
     expect(res.data.data.status).toBe('captured');
     expect(typeof res.data.data.id).toBe('string');
+  });
+
+  it('takes one charge for a group and allocates a share to each vendor order', async () => {
+    const [first, second] = [crypto.randomUUID(), crypto.randomUUID()];
+    const res = await capture({
+      amount: 3000,
+      allocations: [
+        { orderId: first, vendorId: 'vendor-1', amount: 2000 },
+        { orderId: second, vendorId: 'vendor-2', amount: 1000 },
+      ],
+    });
+
+    expect(res.status).toBe(200);
+    const shares = await service.client.get('/api/payment-allocation', {
+      params: { rsql: `orderId==${second}` },
+    });
+    expect(shares.status).toBe(200);
+    expect(shares.data.data.items).toEqual([
+      expect.objectContaining({
+        orderId: second,
+        vendorId: 'vendor-2',
+        captured: 1000,
+        refunded: 0,
+      }),
+    ]);
+  });
+
+  it('refuses shares that do not add up to the charge', async () => {
+    const res = await capture({
+      amount: 3000,
+      allocations: [
+        { orderId: crypto.randomUUID(), vendorId: 'vendor-1', amount: 1 },
+      ],
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.data.code).toBe('invalidBody');
   });
 
   /**
@@ -80,10 +123,10 @@ describe('capturing a payment', () => {
     expect(res.data.code).toBe('invalidBody');
   });
 
-  it('refuses a body with no envelope', async () => {
+  it('refuses a body that allocates the money to no order', async () => {
     const res = await service.client.post(
       '/api/payment',
-      { orderId: 'order-1', amount: 1 },
+      { groupId: 'group-1', amount: 1, currency: 'GTQ' },
       { headers: crossing() },
     );
 
@@ -218,9 +261,9 @@ describe('refunding a payment', () => {
     expect(res.status).toBe(200);
     expect(res.data.meta.entity).toBe('refund');
     expect(res.data.data.status).toBe('refunded');
-    // The record it reverses, resolved by the route rather than named by the
-    // caller.
-    expect(res.data.data.paymentId).toBe(captured.data.data.id);
+    // The share it gives back from, resolved by the route rather than named by
+    // the caller.
+    expect(typeof res.data.data.allocationId).toBe('string');
 
     const after = await service.client.get(
       `/api/payment/${String(captured.data.data.id)}`,
@@ -232,14 +275,30 @@ describe('refunding a payment', () => {
   });
 
   /**
-   * ⚠️ The amount is copied off the resolved capture, never read from the
-   * request. A body that can name its own amount can refund more than was ever
-   * charged.
+   * ⚠️ A refund may be part of the share, never more than what is left of it:
+   * the ledger takes it off the allocation with a guarded `$inc` before the
+   * provider is called (ADR 0069).
    */
-  it('refunds what was captured, not what the caller says', async () => {
+  it('refunds in parts, and refuses the part past what was captured', async () => {
     const orderId = `order-amount-${String(Date.now())}`;
     await capture({ orderId, amount: 1999 });
-    const res = await refund({ orderId, amount: 999_999 });
+
+    const part = await refund({ orderId, amount: 999 });
+    const rest = await refund({ orderId, amount: 1000 });
+    const more = await refund({ orderId, amount: 1 });
+
+    expect(part.status).toBe(200);
+    expect(part.data.data.amount).toBe(999);
+    expect(rest.status).toBe(200);
+    expect(more.status).toBe(409);
+    expect(more.data.code).toBe('refundExceedsCapture');
+  });
+
+  it('refunds what is left when no amount is named', async () => {
+    const orderId = `order-whole-${String(Date.now())}`;
+    await capture({ orderId, amount: 1999 });
+
+    const res = await refund({ orderId });
 
     expect(res.status).toBe(200);
     expect(res.data.data.amount).toBe(1999);
@@ -329,11 +388,10 @@ describe('refunding a payment', () => {
 
   /**
    * ⚠️ The other half of the guard, and a different question: two *distinct*
-   * commands aimed at one capture. The unique index on `paymentId` is what
-   * refuses the second, and the pre-read is what keeps it from moving money at
-   * the provider first.
+   * commands aimed at one share. The guarded `$inc` is what refuses the second,
+   * before the provider moves any money.
    */
-  it('refunds one capture once, however many commands ask', async () => {
+  it('gives a share back once, however many commands ask for all of it', async () => {
     const orderId = `order-twice-${String(Date.now())}`;
     await capture({ orderId });
 
@@ -341,8 +399,43 @@ describe('refunding a payment', () => {
     const second = await refund({ orderId }, { 'idempotency-key': '"cmd-b"' });
 
     expect(first.status).toBe(200);
-    expect(second.status).toBe(200);
-    expect(second.data.data.id).toBe(first.data.data.id);
+    expect(second.status).toBe(409);
+    expect(second.data.code).toBe('refundExceedsCapture');
+  });
+});
+
+describe('cash on delivery', () => {
+  it('records a courier’s collection as a cod payment for the one order', async () => {
+    const orderId = `order-cod-${String(Date.now())}`;
+    const res = await service.client.post(
+      '/api/collection',
+      {
+        groupId: 'group-cod',
+        orderId,
+        vendorId: 'vendor-1',
+        amount: 2500,
+        currency: 'GTQ',
+      },
+      { headers: crossing() },
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.data.data).toMatchObject({
+      paymentMethod: 'cod',
+      status: 'captured',
+      amount: 2500,
+    });
+  });
+
+  it('refuses an order over the limit before anything is held', async () => {
+    const res = await service.client.post(
+      '/api/cod-eligibility',
+      { vendorId: 'vendor-1', amount: 150_001 },
+      { headers: crossing() },
+    );
+
+    expect(res.status).toBe(422);
+    expect(res.data.code).toBe('codOverLimit');
   });
 });
 

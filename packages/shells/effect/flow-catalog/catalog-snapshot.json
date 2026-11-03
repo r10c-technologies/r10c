@@ -80,10 +80,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id",
-              "status"
-            ],
+            "required": ["id", "status"],
             "allOf": [
               {
                 "type": "object",
@@ -100,19 +97,13 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": [
-                  "notFound",
-                  "orderNotCancellable"
-                ]
+                "enum": ["notFound", "orderNotCancellable"]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "category"
-            ],
+            "required": ["code", "category"],
             "allOf": [
               {
                 "type": "object",
@@ -166,10 +157,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id",
-              "status"
-            ],
+            "required": ["id", "status"],
             "allOf": [
               {
                 "type": "object",
@@ -188,9 +176,7 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "enum": [
-                      "notFound"
-                    ]
+                    "enum": ["notFound"]
                   }
                 ]
               },
@@ -198,10 +184,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "category"
-            ],
+            "required": ["code", "category"],
             "allOf": [
               {
                 "type": "object",
@@ -255,9 +238,7 @@
                 "type": "array"
               }
             },
-            "required": [
-              "items"
-            ],
+            "required": ["items"],
             "allOf": [
               {
                 "type": "object",
@@ -279,10 +260,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id",
-              "status"
-            ],
+            "required": ["id", "status"],
             "allOf": [
               {
                 "type": "object",
@@ -301,9 +279,7 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "enum": [
-                      "invalidBody"
-                    ]
+                    "enum": ["invalidBody"]
                   }
                 ]
               },
@@ -311,10 +287,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "category"
-            ],
+            "required": ["code", "category"],
             "allOf": [
               {
                 "type": "object",
@@ -328,9 +301,9 @@
       "fingerprint": "1ff1170df6da40"
     },
     {
-      "ref": "payment.capture@1",
+      "ref": "payment.capture@2",
       "id": "payment.capture",
-      "version": 1,
+      "version": 2,
       "module": "payment-management",
       "kind": "pivot",
       "cardinality": "one",
@@ -344,9 +317,7 @@
       "isolation": "none",
       "requires": {},
       "excludedFrom": {
-        "paymentMethod": [
-          "cashOnDelivery"
-        ]
+        "paymentMethod": ["cod"]
       },
       "consumes": {},
       "provides": {},
@@ -356,7 +327,7 @@
           "schema": {
             "type": "object",
             "properties": {
-              "orderId": {
+              "groupId": {
                 "type": "string",
                 "minLength": 1
               },
@@ -367,11 +338,248 @@
                   },
                   {
                     "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
+                    "enum": ["Infinity", "-Infinity", "NaN"]
+                  }
+                ]
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 1
+              },
+              "allocations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "vendorId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "amount": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["Infinity", "-Infinity", "NaN"]
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["orderId", "vendorId", "amount"],
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["groupId", "amount", "currency", "allocations"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "status"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": ["invalidBody", "paymentDeclined"]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "category"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "03375155d1d5e3"
+    },
+    {
+      "ref": "payment.cod-eligible@1",
+      "id": "payment.cod-eligible",
+      "version": 1,
+      "module": "payment-management",
+      "kind": "compensatable",
+      "cardinality": "perVendor",
+      "participant": "payment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/cod-eligibility"
+      },
+      "readOnly": true,
+      "irreversible": false,
+      "isolation": "reRead",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "vendorId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["Infinity", "-Infinity", "NaN"]
+                  }
+                ]
+              }
+            },
+            "required": ["vendorId", "amount"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "output": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "vendorId": {
+                "type": "string"
+              }
+            },
+            "required": ["vendorId"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        },
+        "failure": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": ["invalidBody", "codOverLimit", "codNotEntitled"]
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "category"],
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            ]
+          },
+          "definitions": {}
+        }
+      },
+      "fingerprint": "13b9bbb4650965"
+    },
+    {
+      "ref": "payment.record-collection@1",
+      "id": "payment.record-collection",
+      "version": 1,
+      "module": "payment-management",
+      "kind": "retriable",
+      "cardinality": "one",
+      "participant": "payment-service",
+      "call": {
+        "method": "POST",
+        "path": "/api/collection"
+      },
+      "readOnly": false,
+      "irreversible": false,
+      "isolation": "commutative",
+      "requires": {},
+      "excludedFrom": {},
+      "consumes": {},
+      "provides": {},
+      "contract": {
+        "input": {
+          "dialect": "draft-2020-12",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "groupId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "orderId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vendorId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["Infinity", "-Infinity", "NaN"]
                   }
                 ]
               },
@@ -381,7 +589,9 @@
               }
             },
             "required": [
+              "groupId",
               "orderId",
+              "vendorId",
               "amount",
               "currency"
             ],
@@ -406,10 +616,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id",
-              "status"
-            ],
+            "required": ["id", "status"],
             "allOf": [
               {
                 "type": "object",
@@ -425,20 +632,18 @@
             "type": "object",
             "properties": {
               "code": {
-                "type": "string",
-                "enum": [
-                  "invalidBody",
-                  "paymentDeclined"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["invalidBody"]
+                  }
                 ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "category"
-            ],
+            "required": ["code", "category"],
             "allOf": [
               {
                 "type": "object",
@@ -449,12 +654,12 @@
           "definitions": {}
         }
       },
-      "fingerprint": "0f2082c625224a"
+      "fingerprint": "01d132e382c7d6"
     },
     {
-      "ref": "payment.refund@1",
+      "ref": "payment.refund@2",
       "id": "payment.refund",
-      "version": 1,
+      "version": 2,
       "module": "payment-management",
       "kind": "pivot",
       "cardinality": "one",
@@ -479,11 +684,23 @@
               "orderId": {
                 "type": "string",
                 "minLength": 1
+              },
+              "amount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["Infinity", "-Infinity", "NaN"]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
-            "required": [
-              "orderId"
-            ],
+            "required": ["orderId"],
             "allOf": [
               {
                 "type": "object",
@@ -505,10 +722,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id",
-              "status"
-            ],
+            "required": ["id", "status"],
             "allOf": [
               {
                 "type": "object",
@@ -528,17 +742,15 @@
                 "enum": [
                   "invalidBody",
                   "noCapturedPayment",
-                  "refundDeclined"
+                  "refundDeclined",
+                  "refundExceedsCapture"
                 ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "category"
-            ],
+            "required": ["code", "category"],
             "allOf": [
               {
                 "type": "object",
@@ -549,7 +761,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "18dbccc9efb120"
+      "fingerprint": "0e059779e57d19"
     },
     {
       "ref": "stock.convert@1",
@@ -567,9 +779,7 @@
       "irreversible": false,
       "isolation": "commutative",
       "requires": {
-        "entitlements": [
-          "stock-management"
-        ]
+        "entitlements": ["stock-management"]
       },
       "excludedFrom": {},
       "consumes": {
@@ -604,10 +814,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id",
-              "status"
-            ],
+            "required": ["id", "status"],
             "allOf": [
               {
                 "type": "object",
@@ -629,10 +836,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "category"
-            ],
+            "required": ["code", "category"],
             "allOf": [
               {
                 "type": "object",
@@ -665,9 +869,7 @@
       "irreversible": false,
       "isolation": "commutative",
       "requires": {
-        "entitlements": [
-          "stock-management"
-        ]
+        "entitlements": ["stock-management"]
       },
       "excludedFrom": {},
       "consumes": {},
@@ -697,19 +899,12 @@
                   },
                   {
                     "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
+                    "enum": ["Infinity", "-Infinity", "NaN"]
                   }
                 ]
               }
             },
-            "required": [
-              "offeringId",
-              "quantity"
-            ],
+            "required": ["offeringId", "quantity"],
             "allOf": [
               {
                 "type": "object",
@@ -728,9 +923,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id"
-            ],
+            "required": ["id"],
             "allOf": [
               {
                 "type": "object",
@@ -747,19 +940,13 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": [
-                  "invalidBody",
-                  "insufficientStock"
-                ]
+                "enum": ["invalidBody", "insufficientStock"]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "category"
-            ],
+            "required": ["code", "category"],
             "allOf": [
               {
                 "type": "object",
@@ -788,9 +975,7 @@
       "irreversible": false,
       "isolation": "commutative",
       "requires": {
-        "entitlements": [
-          "stock-management"
-        ]
+        "entitlements": ["stock-management"]
       },
       "excludedFrom": {},
       "consumes": {},
@@ -812,19 +997,12 @@
                   },
                   {
                     "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
+                    "enum": ["Infinity", "-Infinity", "NaN"]
                   }
                 ]
               }
             },
-            "required": [
-              "offeringId",
-              "quantity"
-            ],
+            "required": ["offeringId", "quantity"],
             "allOf": [
               {
                 "type": "object",
@@ -843,9 +1021,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "id"
-            ],
+            "required": ["id"],
             "allOf": [
               {
                 "type": "object",
@@ -862,19 +1038,13 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": [
-                  "invalidBody",
-                  "inconsistentMovement"
-                ]
+                "enum": ["invalidBody", "inconsistentMovement"]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": [
-              "code",
-              "category"
-            ],
+            "required": ["code", "category"],
             "allOf": [
               {
                 "type": "object",

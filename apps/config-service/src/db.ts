@@ -1102,6 +1102,29 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
     key: 'declineReason',
     value: 'simulated decline',
   },
+  // Cash on delivery (ADR 0070). The most a courier is trusted to carry for one
+  // vendor order — GTQ 1,500 in minor units, a business default seeded as a
+  // dial — and the kill switch: `'true'` is the only value that turns it on.
+  {
+    service: 'payment-service',
+    group_name: 'cod',
+    key: 'maxAmount',
+    value: '150000',
+  },
+  {
+    service: 'payment-service',
+    group_name: 'cod',
+    key: 'enabled',
+    value: 'true',
+  },
+  // The published vendor projection, read for whether a seller ships cash on
+  // delivery: the same record the storefront offers it from.
+  {
+    service: 'payment-service',
+    group_name: 'marketplace',
+    key: 'url',
+    value: 'http://localhost:3100/api',
+  },
   {
     service: 'payment-service',
     group_name: 'logging',

@@ -14,7 +14,11 @@ import {
 
 const captured: PaymentOutcome = {
   paymentId: 'pay-1',
-  orderId: 'order-1',
+  groupId: 'group-1',
+  allocations: [
+    { orderId: 'order-1', vendorId: 'vendor-1', amount: 10_000 },
+    { orderId: 'order-2', vendorId: 'vendor-2', amount: 2_500 },
+  ],
   amount: 12_500,
   currency: 'GTQ',
   paymentMethod: 'card',
@@ -74,10 +78,10 @@ describe('the two event builders', () => {
     expect(paymentEventId(refunded)).not.toBe(paymentEventId(captured));
   });
 
-  /** The order, not the payment — it is what ties the whole flow together. */
-  it('correlates on the order', () => {
+  /** The group, not the payment — it is what ties the whole flow together. */
+  it('correlates on the checkout group', () => {
     expect(paymentCapturedEvent(captured, 'payment').correlationId).toBe(
-      'order-1',
+      'group-1',
     );
   });
 });
@@ -93,6 +97,15 @@ describe('readPaymentOutcome', () => {
       failureReason: undefined,
       refundId: undefined,
     });
+  });
+
+  it('rejects an outcome that allocates the money to no order', () => {
+    expect(Result.isFailure(read({ ...captured, allocations: [] }))).toBe(true);
+    expect(
+      Result.isFailure(
+        read({ ...captured, allocations: [{ orderId: 'order-1' }] }),
+      ),
+    ).toBe(true);
   });
 
   it('rejects a payload that is not an object', () => {
@@ -111,7 +124,8 @@ describe('readPaymentOutcome', () => {
         ? failure.errors.map(error => error.detail).join(' ')
         : '';
     expect(message).toContain('paymentId');
-    expect(message).toContain('orderId');
+    expect(message).toContain('groupId');
+    expect(message).toContain('allocations');
     expect(message).toContain('currency');
     expect(message).toContain('paymentMethod');
     expect(message).toContain('decidedAt');

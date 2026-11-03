@@ -36,6 +36,10 @@ import {
   r10cServiceCrossingPolicy,
   ROLE_PERMISSIONS,
 } from '@r10c/business-ts-authz-grants';
+import {
+  CodAcceptanceTag,
+  CodPolicyTag,
+} from '@r10c/business-ts-payment-management';
 import { MongoPaymentLedgerLayer } from '@r10c/implementation-payment-mongo';
 import {
   endpoints,
@@ -45,7 +49,7 @@ import {
   SimulatedPaymentProviderLayer,
 } from '@r10c/payment-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
-import { Layer } from 'effect';
+import { Effect, Layer } from 'effect';
 
 import { E2E_CROSSING_TOKEN } from './tokens';
 
@@ -95,10 +99,13 @@ const CONFIGURATION = {
  * saga's pivot commits, and asserting it against a stub would assert the stub.
  *
  * ⚠️ **The store's indexes are ensured here too**, which is not decoration: the
- * unique index on a refund's `paymentId` is a correctness guard rather than a
- * speed-up, and the driver fake enforces a unique index it has been told about.
- * Omitting it would leave the one assertion about refunding a capture twice
- * passing for the wrong reason.
+ * unique index on an allocation's `orderId` is a correctness guard rather than
+ * a speed-up, and the driver fake enforces a unique index it has been told
+ * about.
+ *
+ * Cash on delivery is the real policy over a scripted acceptance: every seller
+ * ships it under the seeded limit, so the eligibility route's refusal is the
+ * limit's and never a projection nobody started.
  */
 const connections = Layer.mergeAll(
   fakeMongoLayer().layer,
@@ -125,6 +132,8 @@ const connections = Layer.mergeAll(
     outcome: 'capture',
     declineReason: 'simulated decline',
   }),
+  Layer.succeed(CodPolicyTag, { enabled: true, maxAmount: 150_000 }),
+  Layer.succeed(CodAcceptanceTag, { acceptsCod: () => Effect.succeed(true) }),
 ).pipe(Layer.orDie);
 
 /**

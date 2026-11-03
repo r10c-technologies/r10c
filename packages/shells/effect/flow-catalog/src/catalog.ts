@@ -3,6 +3,7 @@ import { defineCatalog, flowCommit } from '@entifix/business/flow';
 import { openStruct } from '@entifix/core';
 import { ORDER_FRAGMENTS } from '@r10c/business-ts-order-management';
 import { PAYMENT_FRAGMENTS } from '@r10c/business-ts-payment-management';
+import { OrderTenders } from '@r10c/business-ts-sales-vocabulary';
 import { STOCK_FRAGMENTS } from '@r10c/business-ts-stock-management';
 import { Schema } from 'effect';
 
@@ -18,8 +19,11 @@ export const flowCatalog = defineCatalog([
   flowCommit,
 ]);
 
-/** The payment methods a checkout can be composed for. */
-export const PAYMENT_METHODS = ['card', 'cashOnDelivery'] as const;
+/**
+ * The tenders a checkout can be composed for — the one set the order, payment
+ * and shipping records carry, `cod` included (ADR 0070).
+ */
+export const PAYMENT_METHODS = OrderTenders;
 
 /** What a checkout starts from: how the buyer pays, and whose lines are in it. */
 export const CheckoutStart = openStruct({
@@ -28,14 +32,18 @@ export const CheckoutStart = openStruct({
 });
 export type CheckoutStart = typeof CheckoutStart.Type;
 
-const paysByCard = (_context: unknown, start: CheckoutStart) =>
-  start.paymentMethod === 'card';
+/** Money taken at checkout — card online, cash at a counter — rather than on delivery. */
+const paysNow = (_context: unknown, start: CheckoutStart) =>
+  start.paymentMethod !== 'cod';
 
 /**
- * Checkout, step for step as `checkout.saga.ts` runs it today: hold each
- * line, write the receipt, take the money, convert the holds. A
- * cash-on-delivery basket takes no money, so its commit point is
+ * Checkout: hold each line, write the receipt, take the money, convert the
+ * holds. A cash-on-delivery basket takes no money, so its commit point is
  * `flow.commit@1` and its conversions still run after one (ADR 0070).
+ *
+ * ⚠️ **No longer the saga runner's flow, step for step.** The capture and
+ * refund moved to per-order allocations (#480) and the runner's definitions
+ * did not; #486 moves checkout onto the engine from this recipe.
  */
 export const checkoutRecipe: Recipe<CheckoutStart> = {
   name: 'checkout',
@@ -52,10 +60,10 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
     {
       name: 'pay',
       steps: [
-        { ref: 'payment.capture@1', when: paysByCard },
+        { ref: 'payment.capture@2', when: paysNow },
         {
           ref: 'flow.commit@1',
-          when: (context, start) => !paysByCard(context, start),
+          when: (context, start) => !paysNow(context, start),
         },
       ],
     },
@@ -70,8 +78,8 @@ export const CancellationStart = openStruct({
 export type CancellationStart = typeof CancellationStart.Type;
 
 /**
- * Cancellation, step for step as `cancellation.saga.ts` runs it today: claim
- * the order, refund — the pivot — put the goods back, close the record.
+ * Cancellation: claim the order, refund — the pivot — put the goods back,
+ * close the record. #487 moves it onto the engine from this recipe.
  */
 export const cancellationRecipe: Recipe<CancellationStart> = {
   name: 'cancellation',
@@ -79,7 +87,7 @@ export const cancellationRecipe: Recipe<CancellationStart> = {
   requiresCommitPoint: true,
   stages: [
     { name: 'claim', steps: [{ ref: 'order.claim-cancel@1' }] },
-    { name: 'refund', steps: [{ ref: 'payment.refund@1' }] },
+    { name: 'refund', steps: [{ ref: 'payment.refund@2' }] },
     { name: 'restore', steps: [{ ref: 'stock.restore@1' }] },
     { name: 'close', steps: [{ ref: 'order.close-cancelled@1' }] },
   ],

@@ -97,7 +97,9 @@ export const startSettlementFold = Effect.gen(function* () {
     const consumer = queueNameFor(consumes);
     yield* bus.subscribe(consumes, event =>
       fold(consumer, event).pipe(
-        Effect.flatMap(logFoldReport),
+        Effect.flatMap(reports =>
+          Effect.forEach(reports, logFoldReport, { discard: true }),
+        ),
         Effect.provideService(SaleJoinTag, join),
         Effect.withSpan(`settlement.${pattern}`),
       ),

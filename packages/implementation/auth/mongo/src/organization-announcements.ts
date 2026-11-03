@@ -22,12 +22,26 @@ import type { Db, Document, MongoClient } from 'mongodb';
 /** Where an organization lives — its entity key, as every collection name is. */
 export const ORGANIZATION_COLLECTION = 'organization';
 
+/** Where an organization's provisioning lives (ADR 0007). */
+export const ENTITLEMENT_COLLECTION = 'entitlement';
+
+/** The domain whose entitlement makes a seller ship cash on delivery. */
+const SHIPPING_DOMAIN = 'shipping-order-management';
+
+/** Whether an entitlement row provisions shipping, and so cash on delivery. */
+export const shipsCod = (entitlement: Document | null | undefined) => {
+  const domains = entitlement?.['domains'];
+  return Array.isArray(domains) && domains.includes(SHIPPING_DOMAIN);
+};
+
 /**
  * What an organization says about itself in public, or `undefined` when the
  * stored row cannot be announced: no name, or no stamp to order it by.
+ * `acceptsCod` comes from its entitlement, read beside it in the same store.
  */
 export const announcementOf = (
   row: Document,
+  acceptsCod = false,
 ): OrganizationAnnouncement | undefined => {
   const { id, name, updatedAt } = row;
   if (typeof id !== 'string' || id === '') return undefined;
@@ -39,8 +53,11 @@ export const announcementOf = (
     organizationId: id,
     displayName: name,
     announcedAt: updatedAt.toISOString(),
+    acceptsCod,
   };
 };
+
+const storeUnavailable = () => new Unavailable({ dependency: 'mongo' });
 
 /** The unit's abort when the stored row already says what the seed says. */
 class Unchanged {
@@ -90,7 +107,7 @@ export const writeOrganization = (
             const organizations = handle.collection(ORGANIZATION_COLLECTION);
             const stored = yield* Effect.tryPromise({
               try: () => organizations.findOne({ id: row['id'] }, { session }),
-              catch: () => new Unavailable({ dependency: 'mongo' }),
+              catch: storeUnavailable,
             });
             if (
               stored !== null &&
@@ -100,6 +117,13 @@ export const writeOrganization = (
               return yield* Effect.fail(new Unchanged());
             }
 
+            const entitlement = yield* Effect.tryPromise({
+              try: () =>
+                handle
+                  .collection(ENTITLEMENT_COLLECTION)
+                  .findOne({ organizationId: row['id'] }, { session }),
+              catch: storeUnavailable,
+            });
             const written = { ...row, updatedAt: now };
             yield* Effect.tryPromise({
               try: () =>
@@ -108,9 +132,9 @@ export const writeOrganization = (
                   { $set: written },
                   { upsert: true, session },
                 ),
-              catch: () => new Unavailable({ dependency: 'mongo' }),
+              catch: storeUnavailable,
             });
-            const announcement = announcementOf(written);
+            const announcement = announcementOf(written, shipsCod(entitlement));
             if (announcement !== undefined) {
               unit.emit(organizationAnnouncedEvent(announcement, source));
             }
@@ -194,11 +218,23 @@ export const rebuildOrganizationAnnouncements = (
 
     const rows = yield* Effect.tryPromise({
       try: () => db.collection(ORGANIZATION_COLLECTION).find({}).toArray(),
-      catch: () => new Unavailable({ dependency: 'mongo' }),
+      catch: storeUnavailable,
     });
+    // ⚠️ **Entitlements re-stated at the organization's own stamp.** A
+    // provisioning change moves no organization stamp, so the walk is what
+    // carries it out: the projector's equal-stamp case rewrites the record.
+    const entitlements = yield* Effect.tryPromise({
+      try: () => db.collection(ENTITLEMENT_COLLECTION).find({}).toArray(),
+      catch: storeUnavailable,
+    });
+    const codSellers = new Set(
+      entitlements
+        .filter(entitlement => shipsCod(entitlement))
+        .map(entitlement => entitlement['organizationId'] as unknown),
+    );
 
     for (const row of rows) {
-      const announcement = announcementOf(row);
+      const announcement = announcementOf(row, codSellers.has(row['id']));
       if (announcement === undefined) {
         report.unannounceable += 1;
         continue;

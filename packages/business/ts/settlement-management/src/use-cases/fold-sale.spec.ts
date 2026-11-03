@@ -26,7 +26,8 @@ const eventOf = (name: string, data: unknown): DomainEvent => ({
 
 const payment = {
   paymentId: 'pay-1',
-  orderId: 'o-1',
+  groupId: 'g-1',
+  allocations: [{ orderId: 'o-1', vendorId: 'v-1', amount: 40 }],
   amount: 40,
   currency: 'GTQ',
   paymentMethod: 'card',
@@ -76,11 +77,13 @@ describe('the four folds', () => {
       ),
     );
 
-    expect(report).toMatchObject({
-      event: 'order.placed',
-      outcome: { kind: 'written', folded: 1 },
-      unpriced: ['v-2'],
-    });
+    expect(report).toMatchObject([
+      {
+        event: 'order.placed',
+        outcome: { kind: 'written', folded: 1 },
+        unpriced: ['v-2'],
+      },
+    ]);
     expect(contributed[0]?.half).toEqual({
       commissions: [
         {
@@ -137,6 +140,29 @@ describe('the four folds', () => {
     ]);
   });
 
+  it('folds a capture into every order it allocated, each on its own claim', async () => {
+    const { run, contributed } = joinThat({ kind: 'waiting' });
+
+    const reports = await run(
+      foldCapture(
+        'c',
+        eventOf('payment.captured', {
+          ...payment,
+          allocations: [
+            { orderId: 'o-1', vendorId: 'v-1', amount: 30 },
+            { orderId: 'o-2', vendorId: 'v-2', amount: 10 },
+          ],
+        }),
+      ),
+    );
+
+    expect(reports.map(entry => entry.orderId)).toEqual(['o-1', 'o-2']);
+    expect(contributed.map(entry => entry.eventId)).toEqual([
+      'payment.captured:1#o-1',
+      'payment.captured:1#o-2',
+    ]);
+  });
+
   it('answers a redelivery and a half still waiting without writing', async () => {
     const duplicate = joinThat({ kind: 'duplicate' });
     const waiting = joinThat({ kind: 'waiting' });
@@ -145,9 +171,9 @@ describe('the four folds', () => {
       await duplicate.run(
         foldCapture('c', eventOf('payment.captured', payment)),
       ),
-    ).toMatchObject({ outcome: { kind: 'duplicate' }, unpriced: [] });
+    ).toMatchObject([{ outcome: { kind: 'duplicate' }, unpriced: [] }]);
     expect(
       await waiting.run(foldCapture('c', eventOf('payment.captured', payment))),
-    ).toMatchObject({ outcome: { kind: 'waiting' }, unpriced: [] });
+    ).toMatchObject([{ outcome: { kind: 'waiting' }, unpriced: [] }]);
   });
 });

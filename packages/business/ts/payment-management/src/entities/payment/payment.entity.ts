@@ -11,7 +11,15 @@ import {
 } from '../../values/payment-status';
 
 /**
- * One attempt to take money for an order, and how it went.
+ * One attempt to take money for a checkout group, and how it went.
+ *
+ * ⚠️ **One capture for every vendor order in the group, allocated per order.**
+ * A basket spanning three vendors is three orders and one card charge, so the
+ * charge is keyed on the group and split by {@link PaymentAllocation} rows, one
+ * per order — which is what a partial refund, a vendor's cancellation and
+ * settlement all address ([ADR 0069](../../../../../../docs/adr/0069-a-checkout-group-of-per-vendor-orders.md)).
+ * A cash-on-delivery order is collected later, on its own: a `cod` payment for
+ * that one order, recorded when the courier's cash is.
  *
  * The provider itself is a **port** — `PaymentProviderTag`, with a simulated
  * adapter in v1 — because payment service provider integration is deliberately
@@ -48,7 +56,7 @@ import {
 export class Payment implements Entity {
   // #region properties
   #id?: EntityId;
-  #orderId: string;
+  #groupId: string;
   #amount: number;
   #currency: string;
   #status: PaymentStatus = 'pending';
@@ -58,8 +66,8 @@ export class Payment implements Entity {
   // #endregion
 
   // #region constructors
-  constructor(orderId = '', amount = 0, currency = '') {
-    this.#orderId = orderId;
+  constructor(groupId = '', amount = 0, currency = '') {
+    this.#groupId = groupId;
     this.#amount = amount;
     this.#currency = currency;
   }
@@ -75,21 +83,21 @@ export class Payment implements Entity {
   }
 
   /**
-   * The order being paid for. A plain id, not a `link`: the target is another
-   * slice's store, and a link would invite the storage-layer join the
+   * The checkout group being paid for. A plain id, not a `link`: the target is
+   * another slice's store, and a link would invite the storage-layer join the
    * one-writer rule forbids.
    */
   @accessor({
     type: 'string',
-    labelKey: 'entity:payment.fields.orderId',
+    labelKey: 'entity:payment.fields.groupId',
     required: true,
     filterable: true,
   })
-  get orderId(): string {
-    return this.#orderId;
+  get groupId(): string {
+    return this.#groupId;
   }
-  set orderId(value: string) {
-    this.#orderId = value;
+  set groupId(value: string) {
+    this.#groupId = value;
   }
 
   /** Minor units. See `ProductOfferingPrice.amount`. */

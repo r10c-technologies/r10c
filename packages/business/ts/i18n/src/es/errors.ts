@@ -148,4 +148,8 @@ export const errors = {
   expiredToken: 'Tu sesión ha expirado. Inicia sesión de nuevo.',
   shippingOrderNotTransitionable:
     'Este envío no puede hacer ese movimiento desde su estado actual.',
+  refundExceedsCapture: 'Es más de lo que queda por reembolsar en este pedido.',
+  codOverLimit:
+    'Este pedido supera el límite de pago contra entrega. Paga a este vendedor con tarjeta.',
+  codNotEntitled: 'Este vendedor no acepta pago contra entrega.',
 };

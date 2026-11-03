@@ -16,9 +16,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   announcementOf,
+  ENTITLEMENT_COLLECTION,
   ORGANIZATION_COLLECTION,
   rebuildOrganizationAnnouncements,
   seedOrganizations,
+  shipsCod,
   writeOrganization,
 } from './organization-announcements.js';
 
@@ -54,7 +56,14 @@ describe('announcementOf', () => {
       organizationId: 'org-1',
       displayName: 'Demo Vendor',
       announcedAt: FIRST.toISOString(),
+      acceptsCod: false,
     });
+  });
+
+  it('says the seller ships cash on delivery when it is provisioned to ship', () => {
+    expect(
+      announcementOf({ ...SEED, updatedAt: FIRST }, true)?.acceptsCod,
+    ).toBe(true);
   });
 
   it.each([
@@ -71,7 +80,29 @@ describe('announcementOf', () => {
   });
 });
 
+describe('shipsCod', () => {
+  it('reads cash on delivery off the shipping entitlement, and nothing else', () => {
+    expect(shipsCod({ domains: ['shipping-order-management'] })).toBe(true);
+    expect(shipsCod({ domains: ['stock-management'] })).toBe(false);
+    expect(shipsCod({ domains: 'shipping-order-management' })).toBe(false);
+    expect(shipsCod(null)).toBe(false);
+  });
+});
+
 describe('writeOrganization', () => {
+  it('announces a seller provisioned to ship as accepting cash on delivery', async () => {
+    const store = await storeWith({
+      [ENTITLEMENT_COLLECTION]: [
+        { organizationId: 'org-1', domains: ['shipping-order-management'] },
+      ],
+    });
+
+    await write(store, SEED, FIRST);
+
+    const [entry] = store.fake.read(OUTBOX_COLLECTION);
+    expect(entry?.['event']).toMatchObject({ data: { acceptsCod: true } });
+  });
+
   it('writes a new organization and its announcement together', async () => {
     const store = await storeWith();
 
@@ -89,6 +120,7 @@ describe('writeOrganization', () => {
         organizationId: 'org-1',
         displayName: 'Demo Vendor',
         announcedAt: FIRST.toISOString(),
+        acceptsCod: false,
       },
     });
   });
@@ -181,6 +213,10 @@ describe('rebuildOrganizationAnnouncements', () => {
   it('re-announces at the stored stamp, never at now', async () => {
     const store = await storeWith({
       [ORGANIZATION_COLLECTION]: [{ ...SEED, updatedAt: FIRST }],
+      // A provisioning change moves no stamp: the walk is what carries it.
+      [ENTITLEMENT_COLLECTION]: [
+        { organizationId: 'org-1', domains: ['shipping-order-management'] },
+      ],
     });
 
     const report = await rebuild(store.db);
@@ -192,6 +228,7 @@ describe('rebuildOrganizationAnnouncements', () => {
     expect((entry?.['event'] as { id: string }).id).toBe(
       `org-1:${FIRST.toISOString()}`,
     );
+    expect(entry?.['event']).toMatchObject({ data: { acceptsCod: true } });
   });
 
   it('re-states what was already sent on the bus, and adds nothing to the outbox', async () => {

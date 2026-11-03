@@ -64,23 +64,30 @@ export const foldPlacedOrder = (consumer: string, event: DomainEvent) =>
       order.orderId,
       { commissions, unpriced },
     );
-    return report(event, order.orderId, outcome, unpriced);
+    return [report(event, order.orderId, outcome, unpriced)];
   });
 
-/** `payment.captured`: the money moved, so the sale is a sale. */
+/**
+ * Fold a capture into the join of every order it paid for: one contribution
+ * per allocation, each claimed on `<eventId>#<orderId>` so a redelivery — or a
+ * retry after one order's fold failed — folds each order exactly once.
+ */
 export const foldCapture = (consumer: string, event: DomainEvent) =>
   Effect.gen(function* () {
     const join = yield* SaleJoinTag;
     const payment = yield* readPaymentOutcome(event.data);
-    const outcome = yield* join.contribute(
-      { consumer, eventId: event.id },
-      payment.orderId,
-      { decidedAt: payment.decidedAt },
-    );
-    return report(event, payment.orderId, outcome);
+    const reports: FoldReport[] = [];
+    for (const { orderId } of payment.allocations) {
+      const outcome = yield* join.contribute(
+        { consumer, eventId: `${event.id}#${orderId}` },
+        orderId,
+        { decidedAt: payment.decidedAt },
+      );
+      reports.push(report(event, orderId, outcome));
+    }
+    return reports;
   });
 
-/** `order.cancelled`: the sale is off — half of its reversal. */
 export const foldCancellation = (consumer: string, event: DomainEvent) =>
   Effect.gen(function* () {
     const join = yield* SaleJoinTag;
@@ -90,7 +97,7 @@ export const foldCancellation = (consumer: string, event: DomainEvent) =>
       order.orderId,
       { cancelledAt: event.at },
     );
-    return report(event, order.orderId, outcome);
+    return [report(event, order.orderId, outcome)];
   });
 
 /**
@@ -102,10 +109,12 @@ export const foldRefund = (consumer: string, event: DomainEvent) =>
   Effect.gen(function* () {
     const join = yield* SaleJoinTag;
     const payment = yield* readPaymentOutcome(event.data);
+    // A refund gives money back for exactly one order.
+    const { orderId } = payment.allocations[0] as { readonly orderId: string };
     const outcome = yield* join.contribute(
       { consumer, eventId: event.id },
-      payment.orderId,
+      orderId,
       { refundedAt: payment.decidedAt },
     );
-    return report(event, payment.orderId, outcome);
+    return [report(event, orderId, outcome)];
   });

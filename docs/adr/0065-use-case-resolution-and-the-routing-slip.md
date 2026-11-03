@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Revised: 2026-11-03 by [ADR 0069](0069-a-checkout-group-of-per-vendor-orders.md) — the recipes moved to allocated payments and the recipe-equals-saga check went with them
 - Area: messaging
 - Read when: adding a step to a flow, a variant to a use case, or a narrowing to a read — a domain declares its own fragments, and CI enumerates every combination a recipe can produce
 
@@ -85,8 +86,10 @@ Every `defineVariants(` has a spec that runs its use case's contract through
   the enumeration and the register checks are #458, and the narrowings and
   `$metadata` are #459.
 - The coordinator's `sagas/*.saga.ts` stay until the flow engine replaces them
-  (#486, #487); until then the recipes reproduce them step for step, and
-  the transaction shell's `recipes.spec.ts` fails the build when they part.
+  (#486, #487). The recipes reproduced them step for step, checked by the
+  transaction shell's `recipes.spec.ts`, until the commerce domain moved the
+  recipes to per-vendor orders and allocated payments (#479–#485); the check
+  went with that move, and the runner is left behind until #486 and #487.
 - **Revises in place:** [ADR 0026](0026-the-use-case-descriptor-and-served-entity-metadata.md)
   (`$metadata.composition`, and an unreachable verb is omitted),
   [ADR 0053](0053-scoping-a-platform-plane-read-to-its-caller.md) (the scope is

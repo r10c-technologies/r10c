@@ -287,6 +287,7 @@ export const entity = {
       vendorId: 'ID del vendedor',
       displayName: 'Vendedor',
       announcedAt: 'Anunciado el',
+      acceptsCod: 'Acepta pago contra entrega',
     },
   },
   'published-offering': {
@@ -368,7 +369,7 @@ export const entity = {
     plural: 'Pagos',
     fields: {
       id: 'ID',
-      orderId: 'ID de pedido',
+      groupId: 'ID de la compra',
       amount: 'Importe',
       currency: 'Moneda',
       status: 'Estado',
@@ -388,7 +389,24 @@ export const entity = {
         card: 'Tarjeta',
         voucher: 'Vale',
         transfer: 'Transferencia',
+        cod: 'Contra entrega',
       },
+    },
+  },
+  'payment-allocation': {
+    label: 'Asignación de pago',
+    plural: 'Asignaciones de pago',
+    fields: {
+      id: 'ID',
+      paymentId: 'ID del pago',
+      groupId: 'ID de la compra',
+      orderId: 'ID del pedido',
+      vendorId: 'ID del vendedor',
+      authorized: 'Autorizado',
+      captured: 'Cobrado',
+      refunded: 'Reembolsado',
+      currency: 'Moneda',
+      paymentMethod: 'Método de pago',
     },
   },
   refund: {
@@ -396,7 +414,7 @@ export const entity = {
     plural: 'Reembolsos',
     fields: {
       id: 'ID',
-      paymentId: 'ID de pago',
+      allocationId: 'ID de la asignación',
       orderId: 'ID de pedido',
       amount: 'Importe',
       currency: 'Moneda',

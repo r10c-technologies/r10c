@@ -3565,6 +3565,9 @@ importers:
       '@r10c/business-ts-payment-management':
         specifier: workspace:*
         version: link:../../../business/ts/payment-management
+      '@r10c/business-ts-sales-vocabulary':
+        specifier: workspace:*
+        version: link:../../../business/ts/sales-vocabulary
       '@r10c/business-ts-stock-management':
         specifier: workspace:*
         version: link:../../../business/ts/stock-management
@@ -3715,12 +3718,18 @@ importers:
 
   packages/shells/effect/payment:
     dependencies:
+      '@entifix/core':
+        specifier: 'catalog:'
+        version: 0.14.0(effect@4.0.7)
       '@entifix/mongo':
         specifier: 'catalog:'
         version: 0.14.0(@entifix/transactions@0.14.0(effect@4.0.7))(effect@4.0.7)
       '@entifix/service-shell':
         specifier: 'catalog:'
         version: 0.14.0(f4781d14a0ebe25f9bdf47cf21df8f16)
+      '@entifix/transactions':
+        specifier: 'catalog:'
+        version: 0.14.0(effect@4.0.7)
       '@r10c/business-ts-payment-management':
         specifier: workspace:*
         version: link:../../../business/ts/payment-management

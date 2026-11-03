@@ -1,391 +1,494 @@
-import { Unavailable } from '@entifix/core';
 import { Effect, Layer, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { Payment } from '../entities/payment/index.js';
+import { PaymentAllocation } from '../entities/payment-allocation/index.js';
 import { Refund } from '../entities/refund/index.js';
+import { CodAcceptanceTag, CodPolicyTag } from '../ports/cod.js';
 import {
   type PaymentLedger,
   PaymentLedgerTag,
 } from '../ports/payment-ledger.js';
+import { PaymentProviderTag } from '../ports/payment-provider.js';
+import { makeInMemoryPaymentLedger } from '../testing/in-memory-payment-ledger.js';
 import {
-  type PaymentProvider,
-  PaymentProviderTag,
-} from '../ports/payment-provider.js';
-import { capturePayment, refundPayment } from './take-payment.js';
+  type DeclineRule,
+  makeScriptedPaymentProvider,
+} from '../testing/scripted-payment-provider.js';
+import {
+  capturePayment,
+  checkCodEligibility,
+  recordCollection,
+  refundPayment,
+  sharesProblem,
+} from './take-payment.js';
 
-/** A ledger over two maps, recording what it was asked to write. */
-const ledgerOver = (options: { race?: boolean } = {}) => {
-  const payments = new Map<string, Payment>();
-  const refunds = new Map<string, Refund>();
-  const byCommand = new Map<string, Payment | Refund>();
-  const announced: string[] = [];
-  const ledger: PaymentLedger = {
-    decidedPayment: commandId =>
-      Effect.succeed(
-        Option.fromUndefinedOr(byCommand.get(commandId) as Payment | undefined),
-      ),
-    decidedRefund: commandId =>
-      Effect.succeed(
-        Option.fromUndefinedOr(byCommand.get(commandId) as Refund | undefined),
-      ),
-    captureFor: orderId =>
-      Effect.succeed(
-        [...payments.values()].find(
-          payment =>
-            payment.orderId === orderId && payment.status === 'captured',
-        ),
-      ),
-    refundFor: paymentId =>
-      Effect.succeed(
-        [...refunds.values()].find(refund => refund.paymentId === paymentId),
-      ),
-    recordCapture: (payment, outcome, commandId) =>
-      Effect.sync(() => {
-        payments.set(String(payment.id), payment);
-        if (commandId) byCommand.set(commandId, payment);
-        announced.push(`${payment.status} ${outcome.orderId}`);
-        return { _tag: 'recorded' as const, record: payment };
-      }),
-    recordRefund: (refund, outcome, commandId) =>
-      Effect.sync(() => {
-        if (options.race) {
-          return { _tag: 'replayed' as const, record: refund };
-        }
-        refunds.set(String(refund.id), refund);
-        if (commandId) byCommand.set(commandId, refund);
-        announced.push(`refund ${refund.status} ${outcome.paymentId}`);
-        return { _tag: 'recorded' as const, record: refund };
-      }),
-  };
-  return { ledger, payments, announced };
-};
+const SHARES = [
+  { orderId: 'order-1', vendorId: 'vendor-1', amount: 30 },
+  { orderId: 'order-2', vendorId: 'vendor-2', amount: 10 },
+];
 
-const provider = (declines = false): PaymentProvider & { calls: number } => {
-  const calls = { calls: 0 };
-  return Object.assign(calls, {
-    authorize: () => Effect.die('unused'),
-    capture: () =>
-      Effect.sync(() => {
-        calls.calls += 1;
-        return declines
-          ? { status: 'failed' as const, failureReason: 'insufficient funds' }
-          : { status: 'captured' as const, providerReference: 'ref-1' };
-      }),
-    refund: () =>
-      Effect.sync(() => {
-        calls.calls += 1;
-        return declines
-          ? { status: 'failed' as const, failureReason: 'too late' }
-          : { status: 'refunded' as const, providerReference: 'ref-2' };
-      }),
-  });
-};
+const aPayment = () => new Payment('group-1', 40, 'GTQ');
 
-const aPayment = (amount = 40) =>
-  Object.assign(new Payment(), {
-    orderId: 'order-1',
-    amount,
-    currency: 'GTQ',
-    paymentMethod: 'card',
-  });
-
+/** Run against a ledger (the in-memory double unless given) and a provider. */
 const run = <A, E>(
-  effect: Effect.Effect<A, E, PaymentLedgerTag | PaymentProviderTag>,
-  ledger: PaymentLedger,
-  money: PaymentProvider,
+  effect: Effect.Effect<
+    A,
+    E,
+    PaymentLedgerTag | PaymentProviderTag | CodPolicyTag | CodAcceptanceTag
+  >,
+  options: {
+    readonly ledger?: PaymentLedger;
+    readonly declines?: DeclineRule;
+    readonly cod?: { enabled: boolean; maxAmount: number };
+    readonly accepts?: boolean;
+  } = {},
 ) =>
   Effect.runPromise(
-    effect.pipe(
-      Effect.provide(
-        Layer.mergeAll(
-          Layer.succeed(PaymentLedgerTag, ledger),
-          Layer.succeed(PaymentProviderTag, money),
+    Effect.provide(
+      effect,
+      Layer.mergeAll(
+        Layer.succeed(
+          PaymentLedgerTag,
+          options.ledger ?? makeInMemoryPaymentLedger(),
         ),
+        Layer.succeed(
+          PaymentProviderTag,
+          makeScriptedPaymentProvider(options.declines),
+        ),
+        Layer.succeed(
+          CodPolicyTag,
+          options.cod ?? { enabled: true, maxAmount: 150_000 },
+        ),
+        Layer.succeed(CodAcceptanceTag, {
+          acceptsCod: () => Effect.succeed(options.accepts ?? true),
+        }),
       ),
     ),
   );
 
-describe('capturePayment', () => {
-  it('captures, records the decision and announces it', async () => {
-    const { ledger, announced } = ledgerOver();
-    const money = provider();
+const refusalOf = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  Effect.map(Effect.flip(effect), failure => failure as { code: string });
 
-    const result = await run(
-      capturePayment({ payment: aPayment(), commandId: 'cmd-1' }),
-      ledger,
-      money,
-    );
-
-    expect(result._tag).toBe('captured');
-    expect(announced).toEqual(['captured order-1']);
+describe('sharesProblem', () => {
+  it.each([
+    [0, SHARES, 'a payment must carry a positive amount'],
+    [40, [], 'a payment must pay for at least one order'],
+    [
+      40,
+      [{ orderId: 'o', vendorId: 'v', amount: 0 }],
+      'every order share must be positive',
+    ],
+    [
+      40,
+      [SHARES[0], { ...SHARES[0], amount: 10 }],
+      'an order may be paid for once per payment',
+    ],
+    [41, SHARES, 'the order shares must sum to the amount charged'],
+  ] as const)('refuses %s split as %j', (amount, shares, problem) => {
+    expect(sharesProblem(amount, shares as never)).toBe(problem);
   });
 
-  it('answers a redelivered command with the first decision, and never charges again', async () => {
-    const { ledger } = ledgerOver();
-    const money = provider();
-    await run(
-      capturePayment({ payment: aPayment(), commandId: 'cmd-2' }),
-      ledger,
-      money,
+  it('accepts shares that split the amount exactly', () => {
+    expect(sharesProblem(40, SHARES)).toBeUndefined();
+  });
+});
+
+describe('capturePayment', () => {
+  it('captures once for the group and allocates a share to each order', async () => {
+    const ledger = makeInMemoryPaymentLedger();
+
+    const result = await run(
+      capturePayment({ payment: aPayment(), shares: SHARES, commandId: 'c-1' }),
+      { ledger },
+    );
+
+    expect(result).toMatchObject({
+      _tag: 'captured',
+      payment: { groupId: 'group-1', status: 'captured' },
+    });
+    expect(
+      await Effect.runPromise(ledger.allocationFor('order-2')),
+    ).toMatchObject({ vendorId: 'vendor-2', captured: 10, refunded: 0 });
+  });
+
+  it('refuses shares that do not split the amount, before the provider', async () => {
+    const refused = await run(
+      refusalOf(
+        capturePayment({
+          payment: aPayment(),
+          shares: [],
+          commandId: undefined,
+        }),
+      ),
+    );
+
+    expect(refused.code).toBe('invalidBody');
+  });
+
+  it('answers a redelivered command with the first capture', async () => {
+    const ledger = makeInMemoryPaymentLedger();
+    const first = await run(
+      capturePayment({ payment: aPayment(), shares: SHARES, commandId: 'c-1' }),
+      { ledger },
     );
 
     const again = await run(
-      capturePayment({ payment: aPayment(), commandId: 'cmd-2' }),
-      ledger,
-      money,
+      capturePayment({ payment: aPayment(), shares: SHARES, commandId: 'c-1' }),
+      { ledger },
     );
 
-    expect(again._tag).toBe('replayed');
-    expect(money.calls).toBe(1);
+    expect(again).toEqual({ _tag: 'replayed', payment: first.payment });
   });
 
-  it('records a declined capture, and answers it declined', async () => {
-    const { ledger, announced } = ledgerOver();
-
-    const ledgerAgain = ledger;
-    const declined = await run(
-      Effect.flip(
-        capturePayment({ payment: aPayment(), commandId: 'cmd-declined' }),
-      ),
-      ledger,
-      provider(true),
-    );
-    const redelivered = await run(
-      Effect.flip(
-        capturePayment({ payment: aPayment(), commandId: 'cmd-declined' }),
-      ),
-      ledgerAgain,
-      provider(),
-    );
-
-    expect(declined).toMatchObject({
-      _tag: 'PaymentDeclined',
-      category: 'declined',
-      reason: 'insufficient funds',
-      message: 'insufficient funds',
-    });
-    // A redelivery answers the refusal again, never success.
-    expect(redelivered).toMatchObject({
-      _tag: 'PaymentDeclined',
-      message: 'the payment was not captured',
-    });
-    expect(announced).toEqual(['failed order-1']);
-  });
-
-  it('refuses a payment for nothing before any money moves', async () => {
-    const { ledger } = ledgerOver();
-    const money = provider();
+  it('records a declined capture, answers the reason, and repeats the refusal', async () => {
+    const ledger = makeInMemoryPaymentLedger();
+    const declines = () => true;
 
     const refused = await run(
-      Effect.flip(
-        capturePayment({ payment: aPayment(0), commandId: undefined }),
+      refusalOf(
+        capturePayment({
+          payment: aPayment(),
+          shares: SHARES,
+          commandId: 'c-1',
+        }),
       ),
-      ledger,
-      money,
+      { ledger, declines },
+    );
+    const again = await run(
+      refusalOf(
+        capturePayment({
+          payment: aPayment(),
+          shares: SHARES,
+          commandId: 'c-1',
+        }),
+      ),
+      { ledger },
     );
 
     expect(refused).toMatchObject({
-      _tag: 'InvalidBody',
-      code: 'invalidBody',
-      message: 'a payment must carry a positive amount',
+      code: 'paymentDeclined',
+      reason: 'declined',
     });
-    expect(money.calls).toBe(0);
-  });
-
-  it('answers a capture the ledger found already recorded as replayed', async () => {
-    const { ledger } = ledgerOver();
-    const replaying: PaymentLedger = {
-      ...ledger,
-      recordCapture: payment =>
-        Effect.succeed({ _tag: 'replayed' as const, record: payment }),
-    };
-
-    const result = await run(
-      capturePayment({ payment: aPayment(), commandId: 'cmd-3' }),
-      replaying,
-      provider(),
+    expect((refused as unknown as Error).message).toBe('declined');
+    expect((again as unknown as Error).message).toBe(
+      'the payment was not captured',
     );
-
-    expect(result._tag).toBe('replayed');
+    expect(again).toMatchObject({ code: 'paymentDeclined' });
+    expect((again as { reason?: string }).reason).toBeUndefined();
   });
 
-  it('answers a declined capture a sibling recorded first with the refusal', async () => {
-    const { ledger } = ledgerOver();
-    const replaying: PaymentLedger = {
-      ...ledger,
-      recordCapture: payment =>
-        Effect.succeed({
-          _tag: 'replayed' as const,
-          record: Object.assign(payment, { status: 'failed' }),
+  it('answers a capture that lost a race to its own command with the winner', async () => {
+    const inner = makeInMemoryPaymentLedger();
+    const winner = Object.assign(aPayment(), {
+      id: 'pay-0',
+      status: 'captured',
+    });
+    const declined = Object.assign(aPayment(), {
+      id: 'pay-0',
+      status: 'failed',
+    });
+
+    const won = await run(
+      capturePayment({ payment: aPayment(), shares: SHARES, commandId: 'c-1' }),
+      {
+        ledger: {
+          ...inner,
+          recordCapture: () =>
+            Effect.succeed({ _tag: 'replayed', record: winner }),
+        },
+      },
+    );
+    const lost = await run(
+      refusalOf(
+        capturePayment({
+          payment: aPayment(),
+          shares: SHARES,
+          commandId: 'c-1',
         }),
-    };
-
-    const refused = await run(
-      Effect.flip(capturePayment({ payment: aPayment(), commandId: 'cmd-4' })),
-      replaying,
-      provider(),
+      ),
+      {
+        ledger: {
+          ...inner,
+          recordCapture: () =>
+            Effect.succeed({ _tag: 'replayed', record: declined }),
+        },
+      },
     );
 
-    expect(refused).toMatchObject({ _tag: 'PaymentDeclined' });
-    expect(refused).not.toHaveProperty('reason');
+    expect(won).toEqual({ _tag: 'replayed', payment: winner });
+    expect(lost.code).toBe('paymentDeclined');
+  });
+});
+
+describe('recordCollection', () => {
+  const collect = (commandId: string | undefined, amount = 25) =>
+    recordCollection({
+      groupId: 'group-1',
+      share: { orderId: 'order-3', vendorId: 'vendor-3', amount },
+      currency: 'GTQ',
+      commandId,
+    });
+
+  it('records the courier’s cash as a captured cod payment for the one order', async () => {
+    const ledger = makeInMemoryPaymentLedger();
+
+    const result = await run(collect('k-1'), { ledger });
+
+    expect(result).toMatchObject({
+      _tag: 'captured',
+      payment: { paymentMethod: 'cod', status: 'captured', amount: 25 },
+    });
+    expect(
+      await Effect.runPromise(ledger.allocationFor('order-3')),
+    ).toMatchObject({ captured: 25, paymentMethod: 'cod' });
+  });
+
+  it('answers a repeated report with the first collection', async () => {
+    const ledger = makeInMemoryPaymentLedger();
+    const first = await run(collect('k-1'), { ledger });
+
+    expect(await run(collect('k-1'), { ledger })).toEqual({
+      _tag: 'replayed',
+      payment: first.payment,
+    });
+  });
+
+  it('answers a collection that lost a race to its own command with the winner', async () => {
+    const winner = Object.assign(aPayment(), { id: 'pay-0' });
+    const result = await run(collect(undefined), {
+      ledger: {
+        ...makeInMemoryPaymentLedger(),
+        recordCapture: () =>
+          Effect.succeed({ _tag: 'replayed', record: winner }),
+      },
+    });
+
+    expect(result).toEqual({ _tag: 'replayed', payment: winner });
+  });
+
+  it('refuses a collection of nothing', async () => {
+    expect((await run(refusalOf(collect(undefined, 0)))).code).toBe(
+      'invalidBody',
+    );
   });
 });
 
 describe('refundPayment', () => {
-  const paid = async () => {
-    const state = ledgerOver();
+  const captured = async (ledger = makeInMemoryPaymentLedger()) => {
     await run(
-      capturePayment({ payment: aPayment(), commandId: undefined }),
-      state.ledger,
-      provider(),
+      capturePayment({
+        payment: aPayment(),
+        shares: SHARES,
+        commandId: undefined,
+      }),
+      { ledger },
     );
-    return state;
+    return ledger;
   };
 
-  it('refunds the capture behind an order, for the capture’s amount', async () => {
-    const { ledger, announced } = await paid();
+  it('refunds what is left of the order’s share by default', async () => {
+    const ledger = await captured();
 
     const result = await run(
       refundPayment({ orderId: 'order-1', commandId: 'r-1' }),
-      ledger,
-      provider(),
+      { ledger },
     );
 
-    expect(result._tag).toBe('refunded');
-    expect(result.refund.amount).toBe(40);
-    expect(announced.at(-1)).toMatch(/^refund refunded /);
+    expect(result).toMatchObject({
+      _tag: 'refunded',
+      refund: { orderId: 'order-1', amount: 30, status: 'refunded' },
+    });
   });
 
-  it('never refunds twice: a redelivery and a second command both replay, and the provider is not called', async () => {
-    const { ledger } = await paid();
-    const money = provider();
+  it('refunds in parts until the share is spent, and refuses the part past it', async () => {
+    const ledger = await captured();
+
     await run(
-      refundPayment({ orderId: 'order-1', commandId: 'r-2' }),
-      ledger,
-      money,
+      refundPayment({ orderId: 'order-1', amount: 20, commandId: 'r-1' }),
+      {
+        ledger,
+      },
+    );
+    await run(
+      refundPayment({ orderId: 'order-1', amount: 10, commandId: 'r-2' }),
+      {
+        ledger,
+      },
+    );
+    const third = await run(
+      refusalOf(
+        refundPayment({ orderId: 'order-1', amount: 1, commandId: 'r-3' }),
+      ),
+      { ledger },
     );
 
-    const redelivered = await run(
-      refundPayment({ orderId: 'order-1', commandId: 'r-2' }),
-      ledger,
-      money,
-    );
-    const secondCommand = await run(
-      refundPayment({ orderId: 'order-1', commandId: 'r-3' }),
-      ledger,
-      money,
-    );
-
-    expect(redelivered._tag).toBe('replayed');
-    expect(secondCommand._tag).toBe('replayed');
-    expect(money.calls).toBe(1);
+    expect(third).toMatchObject({
+      code: 'refundExceedsCapture',
+      requested: 1,
+      remaining: 0,
+    });
   });
 
-  it('refuses an order nobody paid for', async () => {
-    const { ledger } = ledgerOver();
+  it('refuses a refund of nothing or of more than was taken', async () => {
+    const ledger = await captured();
+
+    const none = await run(
+      refusalOf(
+        refundPayment({ orderId: 'order-2', amount: 0, commandId: undefined }),
+      ),
+      { ledger },
+    );
+    const more = await run(
+      refusalOf(
+        refundPayment({ orderId: 'order-2', amount: 11, commandId: undefined }),
+      ),
+      { ledger },
+    );
+
+    expect(none.code).toBe('refundExceedsCapture');
+    expect(more).toMatchObject({ code: 'refundExceedsCapture', remaining: 10 });
+  });
+
+  it('refuses an order nothing was captured for', async () => {
+    const empty = await run(
+      refusalOf(refundPayment({ orderId: 'order-1', commandId: undefined })),
+    );
+    const zero = await run(
+      refusalOf(refundPayment({ orderId: 'order-1', commandId: undefined })),
+      {
+        ledger: {
+          ...makeInMemoryPaymentLedger(),
+          allocationFor: () =>
+            Effect.succeed(Object.assign(new PaymentAllocation(), { id: 'a' })),
+        },
+      },
+    );
+
+    expect(empty.code).toBe('noCapturedPayment');
+    expect((empty as unknown as Error).message).toBe(
+      'nothing was captured for order order-1, so nothing can go back',
+    );
+    expect(zero.code).toBe('noCapturedPayment');
+  });
+
+  it('answers a repeated command with its refund, and a declined one with the refusal', async () => {
+    const ledger = await captured();
+    await run(
+      refundPayment({ orderId: 'order-1', amount: 5, commandId: 'r-1' }),
+      {
+        ledger,
+      },
+    );
+    await run(
+      refusalOf(
+        refundPayment({ orderId: 'order-2', amount: 5, commandId: 'r-2' }),
+      ),
+      { ledger, declines: () => true },
+    );
+
+    const replayed = await run(
+      refundPayment({ orderId: 'order-1', amount: 5, commandId: 'r-1' }),
+      { ledger },
+    );
+    const declined = await run(
+      refusalOf(
+        refundPayment({ orderId: 'order-2', amount: 5, commandId: 'r-2' }),
+      ),
+      { ledger },
+    );
+
+    expect(replayed).toMatchObject({ _tag: 'replayed', refund: { amount: 5 } });
+    expect(declined.code).toBe('refundDeclined');
+    // The declined refund gave its share back.
+    expect(
+      await Effect.runPromise(ledger.allocationFor('order-2')),
+    ).toMatchObject({ refunded: 0 });
+  });
+
+  it('gives a declined refund’s share back and answers the provider’s reason', async () => {
+    const ledger = await captured();
 
     const refused = await run(
-      Effect.flip(
-        refundPayment({ orderId: 'order-unpaid', commandId: undefined }),
-      ),
-      ledger,
-      provider(),
+      refusalOf(refundPayment({ orderId: 'order-1', commandId: undefined })),
+      { ledger, declines: () => true },
     );
 
     expect(refused).toMatchObject({
-      code: 'noCapturedPayment',
-      category: 'notFound',
-      message:
-        'nothing was captured for order order-unpaid, so nothing can go back',
+      code: 'refundDeclined',
+      reason: 'declined',
     });
+    expect(
+      await Effect.runPromise(ledger.allocationFor('order-1')),
+    ).toMatchObject({ refunded: 0 });
   });
 
-  it('records a declined refund, and answers it declined', async () => {
-    const { ledger } = await paid();
-
-    const declined = await run(
-      Effect.flip(refundPayment({ orderId: 'order-1', commandId: 'r-d' })),
-      ledger,
-      provider(true),
-    );
-    // The declined refund is recorded, so a redelivery and a second command
-    // both answer the refusal again rather than trying once more.
-    const redelivered = await run(
-      Effect.flip(refundPayment({ orderId: 'order-1', commandId: 'r-d' })),
-      ledger,
-      provider(),
-    );
-    const secondCommand = await run(
-      Effect.flip(refundPayment({ orderId: 'order-1', commandId: 'r-e' })),
-      ledger,
-      provider(),
-    );
-
-    expect(declined).toMatchObject({
-      _tag: 'RefundDeclined',
-      category: 'declined',
-      reason: 'too late',
-      message: 'too late',
+  it('answers what a racing refund left, when the guarded take loses', async () => {
+    const ledger = await captured();
+    const pending = Object.assign(new Refund('order-1', 'a', 5, 'GTQ'), {
+      status: 'pending' as const,
     });
-    expect(redelivered).toMatchObject({
-      _tag: 'RefundDeclined',
-      message: 'the refund was not made',
+    const done = Object.assign(new Refund('order-1', 'a', 5, 'GTQ'), {
+      status: 'refunded' as const,
     });
-    expect(secondCommand._tag).toBe('RefundDeclined');
-  });
-
-  it('answers a declined refund a sibling recorded first with the refusal', async () => {
-    const { ledger } = await paid();
-    const replaying: PaymentLedger = {
+    const on = (
+      reservation: Awaited<ReturnType<typeof Effect.runPromise>>,
+    ) => ({
       ...ledger,
-      recordRefund: refund =>
-        Effect.succeed({
-          _tag: 'replayed' as const,
-          record: Object.assign(refund, { status: 'failed' }),
-        }),
-    };
+      decidedRefund: () => Effect.succeed(Option.none()),
+      reserveRefund: () => Effect.succeed(reservation as never),
+    });
 
-    const refused = await run(
-      Effect.flip(refundPayment({ orderId: 'order-1', commandId: 'r-f' })),
-      replaying,
-      provider(),
+    const exceeds = await run(
+      refusalOf(refundPayment({ orderId: 'order-1', commandId: 'r-1' })),
+      { ledger: on({ _tag: 'exceeds', remaining: 3 }) },
+    );
+    const replayedDone = await run(
+      refundPayment({ orderId: 'order-1', commandId: 'r-1' }),
+      { ledger: on({ _tag: 'replayed', refund: done }) },
+    );
+    const replayedPending = await run(
+      refusalOf(refundPayment({ orderId: 'order-1', commandId: 'r-1' })),
+      { ledger: on({ _tag: 'replayed', refund: pending }) },
     );
 
-    expect(refused).toMatchObject({ _tag: 'RefundDeclined' });
-    expect(refused).not.toHaveProperty('reason');
+    expect(exceeds).toMatchObject({
+      code: 'refundExceedsCapture',
+      remaining: 3,
+    });
+    expect(replayedDone).toEqual({ _tag: 'replayed', refund: done });
+    expect(replayedPending.code).toBe('refundDeclined');
+  });
+});
+
+describe('checkCodEligibility', () => {
+  const check = (amount = 1_000) =>
+    checkCodEligibility({ vendorId: 'vendor-1', amount });
+
+  it('admits a seller who ships it, under the limit', async () => {
+    expect(await run(check())).toEqual({
+      vendorId: 'vendor-1',
+      eligible: true,
+    });
   });
 
-  it('answers a refund that lost a race to a sibling command as replayed', async () => {
-    const state = ledgerOver({ race: true });
-    await run(
-      capturePayment({ payment: aPayment(), commandId: undefined }),
-      state.ledger,
-      provider(),
-    );
+  it('refuses everyone while cash on delivery is switched off', async () => {
+    const refused = await run(refusalOf(check()), {
+      cod: { enabled: false, maxAmount: 150_000 },
+    });
 
-    const result = await run(
-      refundPayment({ orderId: 'order-1', commandId: 'r-4' }),
-      state.ledger,
-      provider(),
-    );
-
-    expect(result._tag).toBe('replayed');
+    expect(refused.code).toBe('codNotEntitled');
   });
 
-  it('lets a store failure through as the error it is', async () => {
-    const { ledger } = ledgerOver();
-    const failing: PaymentLedger = {
-      ...ledger,
-      captureFor: () => Effect.fail(new Unavailable({ dependency: 'mongo' })),
-    };
+  it('refuses an order over the limit, naming the limit', async () => {
+    const refused = await run(refusalOf(check(150_001)));
 
-    const error = await run(
-      Effect.flip(refundPayment({ orderId: 'order-1', commandId: undefined })),
-      failing,
-      provider(),
-    );
+    expect(refused).toMatchObject({ code: 'codOverLimit', limit: 150_000 });
+  });
 
-    expect(error).toBeInstanceOf(Unavailable);
+  it('refuses a seller who does not ship cash on delivery', async () => {
+    const refused = await run(refusalOf(check()), { accepts: false });
+
+    expect(refused.code).toBe('codNotEntitled');
   });
 });

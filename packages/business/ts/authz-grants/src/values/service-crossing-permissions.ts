@@ -94,6 +94,15 @@ export const SERVICE_CROSSING_PERMISSIONS: readonly Permission[] = [
   // is charging a customer again
   // ([ADR 0058](../../../../../docs/adr/0058-the-order-after-payment.md)).
   `${PAYMENT_DOMAIN}:refund:write`,
+  // Recording the cash a courier collected for a cash-on-delivery order, which
+  // the delivery flow dispatches after the delivery. A new money movement — a
+  // `cod` payment for one order — with no reversal beside it, for the reason a
+  // capture has none (ADR 0070).
+  `${PAYMENT_DOMAIN}:collection:write`,
+  // Asking whether a seller's order may be paid cash on delivery: a read the
+  // checkout makes before its commit point, behind a crossing because the buyer
+  // asking holds no grant over a vendor's terms. Read-only, so nothing to pair.
+  `${PAYMENT_DOMAIN}:cod-eligibility:read`,
   // A shipment's flow-driven life, each move its own line: opening it once the
   // checkout commits, holding it while a cancellation runs (and releasing the
   // hold, under the same permission, since a release only gives the lock

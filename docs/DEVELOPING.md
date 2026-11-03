@@ -922,10 +922,11 @@ checks keep them honest, and each fails the build:
   `defineVariants(` with no spec beside it calling `forEachVariant(`.
 - **A variant is chosen from verified facts.** `@r10c/conventions` fails a
   `When(` predicate that names the request, its body, params, query or input.
-- **A recipe is the saga it describes.** Until the flow engine retires
-  `sagas/*.saga.ts` (#486, #487), `recipes.spec.ts` in
-  `@r10c/shells-effect-transaction` fails a recipe whose card path calls,
-  compensates or classifies a step differently from the saga that actually runs.
+- **The recipes lead; the saga runner lags.** The commerce domain (#479–#485)
+  moved the recipes to per-vendor orders and per-order payment allocations, and
+  the saga runner's `sagas/*.saga.ts` were deliberately left behind: a live
+  checkout or counter sale fails until #486 and #487 move both flows onto the
+  engine from the recipes. Nothing checks the two against each other any more.
 
 A verb that starts a flow names its recipe on its `@useCase()`, and the cell's
 route builder takes the shell's `MetadataCompositions`, so `$metadata` reports

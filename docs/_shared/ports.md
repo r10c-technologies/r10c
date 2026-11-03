@@ -262,17 +262,35 @@ movement, not the absence of this one
 ([ADR 0054](../adr/0054-capture-is-the-pivot-and-the-bus-carries-what-follows.md)).
 It was the **only** such entry until the refund below became the second.
 
+⚠️ **One capture per checkout group, allocated per vendor order.** `POST
+/api/payment` takes the group's total and its `allocations[]`, and writes a
+`PaymentAllocation` per order — unique on the order, because an order is paid
+for once ([ADR 0069](../adr/0069-a-checkout-group-of-per-vendor-orders.md)).
+`payment.captured` carries the allocations, so order-service advances every
+order a capture paid for and settlement folds each one.
+
 ⚠️ **`POST /api/refund` is the _cancellation_ saga's pivot**, and the second
 write here that cannot be compensated. It takes a crossing token and no session
 for the same reason the capture does, and it is addressed by **order id** — the
-saga holds an order and has never seen a payment — resolving the capture itself
-and copying the amount off it rather than reading one from the request. A
-`Refund` is its own record: ADR 0054 protects the capture row as the evidence a
-customer was charged, so a `'refunded'` status written over it would erase that
-evidence by another route ([ADR 0058](../adr/0058-the-order-after-payment.md)).
-Two guards stop a double refund and they answer different questions —
-`Idempotency-Key` covers a redelivery of one command, a unique index on the refund's
-`paymentId` covers two different commands aimed at one capture.
+saga holds an order and has never seen a payment — resolving that order's
+allocation itself. Without an `amount` it gives back all that is left of the
+share; with one, that part of it. A `Refund` is its own record: ADR 0054
+protects the capture row as the evidence a customer was charged, so a
+`'refunded'` status written over it would erase that evidence by another route
+([ADR 0058](../adr/0058-the-order-after-payment.md)). Two guards stop an
+over-refund and they answer different questions — `Idempotency-Key` covers a
+redelivery of one command, and a guarded `$inc` on the allocation
+(`refunded + amount <= captured`), taken **before** the provider is called,
+covers any number of commands aimed at one share.
+
+⚠️ **Cash on delivery is two crossing routes** ([ADR 0070](../adr/0070-fulfilment-and-cash-on-delivery.md)).
+`POST /api/cod-eligibility` refuses a seller's order over `cod.maxAmount` (GTQ
+1,500 per vendor order, seeded) or from a seller the published vendor
+projection says does not ship it, and `cod.enabled` switches it off fleet-wide.
+`POST /api/collection` records the cash a courier collected as a `cod` payment
+for that one order, announced as `payment.captured`. Their permissions,
+`collection:write` and `cod-eligibility:read`, are this slice's third and fourth
+entries in `SERVICE_CROSSING_PERMISSIONS`, neither paired with a reversal.
 
 ⚠️ **`payment-management:refund:write` is therefore a _second_ unpaired crossing
 permission, not the pairing the note above says `payment:write` lacks.** Filing
