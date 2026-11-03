@@ -71,7 +71,7 @@ export const checkoutRecipe: Recipe<CheckoutStart> = {
       ],
     },
     { name: 'confirm', perSegment: true, steps: [{ ref: 'order.confirm@1' }] },
-    { name: 'convert', perSegment: true, steps: [{ ref: 'stock.convert@1' }] },
+    { name: 'convert', perSegment: true, steps: [{ ref: 'stock.convert@2' }] },
   ],
 };
 
@@ -92,7 +92,7 @@ export const cancellationRecipe: Recipe<CancellationStart> = {
   stages: [
     { name: 'claim', steps: [{ ref: 'order.claim-cancel@2' }] },
     { name: 'refund', steps: [{ ref: 'payment.refund@2' }] },
-    { name: 'restore', steps: [{ ref: 'stock.restore@1' }] },
+    { name: 'restore', steps: [{ ref: 'stock.restore@2' }] },
     { name: 'close', steps: [{ ref: 'order.close@1' }] },
   ],
 };

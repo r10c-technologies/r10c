@@ -83,7 +83,7 @@ describe('the flow catalog', () => {
       'order.write@2',
       'payment.capture@2',
       'order.confirm@1',
-      'stock.convert@1',
+      'stock.convert@2',
     ]);
   });
 

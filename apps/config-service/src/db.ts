@@ -1423,6 +1423,21 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // How long a crossing write's `Idempotency-Key` replays its first answer
   // (ADR 0068): past it the key is free again. A day outlasts every redelivery
   // and every coordinator retry.
+  // The broker and the outbox's dial: every counter move announces
+  // `stock-item.changed` from its organization's own outbox (#481).
+  {
+    service: 'stock-service',
+    group_name: 'rabbitmq',
+    key: 'uri',
+    value: 'amqp://admin:password@127.0.0.1:30672',
+    is_secret: true,
+  },
+  {
+    service: 'stock-service',
+    group_name: 'outbox',
+    key: 'maxAttempts',
+    value: '5',
+  },
   {
     service: 'stock-service',
     group_name: 'idempotency',

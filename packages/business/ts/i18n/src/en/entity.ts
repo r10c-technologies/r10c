@@ -646,6 +646,7 @@ export const entity: EsEntity = {
         receipt: 'Receipt',
         sale: 'Sale',
         cancellation: 'Cancellation',
+        return: 'Return',
         adjustment: 'Adjustment',
       },
     },

@@ -1,10 +1,14 @@
 import type { MongoClientTag } from '@entifix/mongo';
+import { startTenantOutboxRelay } from '@entifix/mongo/transactions';
+import { logMechanismOutcome } from '@entifix/service-shell';
 import { ReservationTtlSecondsTag } from '@r10c/business-ts-stock-management';
 import { MongoStockLedgerLayer } from '@r10c/implementation-stock-mongo';
 import {
   crossingTokenLayer,
+  fleetBusLayer,
   type FleetConfiguration,
   fleetIdempotencyLayer,
+  fleetOutboxLayer,
   fleetSecurityLayer,
   fleetTenantMongoLayer,
   makeFleetServiceLayer,
@@ -14,6 +18,9 @@ import { Effect, Layer } from 'effect';
 import { startReservationSweep } from './reservation-sweep.js';
 
 const SERVICE_NAME = 'stock-service';
+
+/** The **slice** this service publishes as — never the deployment (ADR 0029). */
+export const STOCK_SLICE = 'stock';
 
 /**
  * The `stock` slice's composition, mounted by its service alone (ADR 0064) — the `stock` store's only writer.
@@ -31,10 +38,14 @@ const SERVICE_NAME = 'stock-service';
  * merge the catalog and the stock store silently: every read would work, every
  * write would land, and two domains would own one database.
  *
- * No Redis, no AMQP. This slice takes no distributed lock — ADR 0010 prohibits
- * one per decrement, because it would serialize every purchase of a popular
- * item through a single key — draws from no sequence, and declares no published
- * event, so there is no outbox to commit alongside a write.
+ * No Redis. This slice takes no distributed lock — ADR 0010 prohibits one per
+ * decrement, because it would serialize every purchase of a popular item
+ * through a single key — and draws from no sequence.
+ *
+ * AMQP and an outbox per `stock_<organizationId>`, because every counter move
+ * announces `stock-item.changed` in the unit that made it (#481): the ledger
+ * drains each outbox the moment its unit commits, and the tenant relay walks
+ * every `stock_*` database for what a drain left behind.
  */
 /**
  * What the service brings to its slice's composition: the demo seed is the
@@ -80,6 +91,8 @@ export const stockComposition =
         // Reusing the fleet's shared token would turn one leaked secret into a
         // tenant-data *write* capability across every organization (ADR 0023).
         yield* crossingTokenLayer(configuration),
+        yield* fleetBusLayer(configuration),
+        yield* fleetOutboxLayer(configuration, STOCK_SLICE),
         Layer.succeed(ReservationTtlSecondsTag, reservationTtlSeconds),
       );
 
@@ -113,7 +126,12 @@ export const stockComposition =
       // timestamp nothing reads: every abandoned basket promises a vendor's stock
       // permanently (ADR 0010's reaper, #227).
       return Layer.provideMerge(
-        Layer.effectDiscard(startReservationSweep),
+        Layer.mergeAll(
+          Layer.effectDiscard(startReservationSweep),
+          Layer.effectDiscard(
+            startTenantOutboxRelay({ onOutcome: logMechanismOutcome }),
+          ),
+        ),
         seeded,
       );
     });

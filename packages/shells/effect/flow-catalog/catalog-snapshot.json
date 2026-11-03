@@ -1049,9 +1049,9 @@
       "fingerprint": "0e059779e57d19"
     },
     {
-      "ref": "stock.convert@1",
+      "ref": "stock.convert@2",
       "id": "stock.convert",
-      "version": 1,
+      "version": 2,
       "module": "stock-management",
       "kind": "retriable",
       "cardinality": "perLine",
@@ -1245,9 +1245,9 @@
       "fingerprint": "1bb2ba0ee1a7c5"
     },
     {
-      "ref": "stock.restore@1",
+      "ref": "stock.restore@2",
       "id": "stock.restore",
-      "version": 1,
+      "version": 2,
       "module": "stock-management",
       "kind": "retriable",
       "cardinality": "perLine",
@@ -1285,9 +1285,13 @@
                     "enum": ["Infinity", "-Infinity", "NaN"]
                   }
                 ]
+              },
+              "cause": {
+                "type": "string",
+                "enum": ["cancellation", "return"]
               }
             },
-            "required": ["offeringId", "quantity"],
+            "required": ["offeringId", "quantity", "cause"],
             "allOf": [
               {
                 "type": "object",
@@ -1340,7 +1344,7 @@
           "definitions": {}
         }
       },
-      "fingerprint": "053fae4707be81"
+      "fingerprint": "1fb5b487b86c0f"
     }
   ]
 }

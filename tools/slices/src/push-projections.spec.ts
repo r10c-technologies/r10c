@@ -4,6 +4,7 @@
 import '@r10c/business-ts-catalog-contracts';
 import '@r10c/business-ts-order-contracts';
 import '@r10c/business-ts-payment-contracts';
+import '@r10c/business-ts-stock-management';
 import '@r10c/business-ts-flow-contracts';
 import '@entifix/transactions';
 

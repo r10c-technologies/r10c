@@ -691,6 +691,7 @@ export const entity = {
         receipt: 'Recepción',
         sale: 'Venta',
         cancellation: 'Cancelación',
+        return: 'Devolución',
         adjustment: 'Ajuste',
       },
     },

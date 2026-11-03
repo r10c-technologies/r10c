@@ -79,6 +79,8 @@ export const stockSlice: SliceDeclaration = {
     'GET /api/reservation/$metadata',
   ],
   dependantAPIs: ['GET /api/config/:service'],
-  publishedEvents: [],
+  // Every counter move, from the outbox of the organization's own `stock_<id>`
+  // database, so an open back-office tab sees availability move (#481).
+  publishedEvents: ['stock-item.changed'],
   subscriptions: [],
 };

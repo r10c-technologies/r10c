@@ -176,7 +176,11 @@ export const cancellationInputs = (order: ProductOrder) => ({
     organizationId: order.vendorId,
     body: {
       meta: { type: 'entity', entity: 'stock-movement' },
-      data: { offeringId: line.offeringId, quantity: line.quantity },
+      data: {
+        offeringId: line.offeringId,
+        quantity: line.quantity,
+        cause: 'cancellation',
+      },
     },
   })),
   settle: [{ body: { orderId: order.id } }],

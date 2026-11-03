@@ -403,6 +403,19 @@ cancellation makes and not that vendor's whole ledger
 and the route is idempotent on `Idempotency-Key` because the cancellation saga
 dispatches it **after** its pivot.
 
+⚠️ **A restoration names its cause, and a return is not a cancellation.** The
+body carries a closed `cause: 'cancellation' | 'return'`, mapped server-side to
+the movement's `reason`, so a parcel refused or returned goes back as a
+`return` movement the ledger can tell apart (ADR 0070).
+
+⚠️ **Every counter move announces `stock-item.changed`.** A movement, a hold
+taken, released or converted, goods put back — each bumps the item's `version`
+and emits the change at that version into the organization's own
+`stock_<organizationId>` outbox in the same unit, drained at commit; the tenant
+relay walks every `stock_*` database for what a drain left behind. The realtime
+slice pushes it to the vendor's own open tabs, so availability moves without a
+reload (#481).
+
 Ending a hold is a **verb**, and there are two: `DELETE /api/reservation/:id`
 releases one and `POST /api/reservation/:id/conversion` converts it to a sale.
 Each carries its own crossing permission, and there is deliberately no `PUT` — a

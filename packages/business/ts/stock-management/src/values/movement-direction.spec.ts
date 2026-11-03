@@ -18,6 +18,7 @@ describe('movementDirection', () => {
   it('points goods arriving in and goods sold out', () => {
     expect(movementDirection('receipt')).toBe('in');
     expect(movementDirection('cancellation')).toBe('in');
+    expect(movementDirection('return')).toBe('in');
     expect(movementDirection('sale')).toBe('out');
   });
 

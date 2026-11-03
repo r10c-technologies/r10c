@@ -51,7 +51,12 @@ const restore = (
     '/api/stock-restoration',
     {
       meta: { type: 'entity', entity: 'stock-movement' },
-      data: { offeringId: OFFERING, quantity: 2, ...body },
+      data: {
+        offeringId: OFFERING,
+        quantity: 2,
+        cause: 'cancellation',
+        ...body,
+      },
     },
     { headers: crossing(extra) },
   );
@@ -113,7 +118,7 @@ describe('restoring stock after a cancellation', () => {
       '/api/stock-restoration',
       {
         meta: { type: 'entity', entity: 'stock-movement' },
-        data: { offeringId, quantity: 5 },
+        data: { offeringId, quantity: 5, cause: 'cancellation' },
       },
       { headers: crossing() },
     );
@@ -137,7 +142,12 @@ describe('restoring stock after a cancellation', () => {
       '/api/stock-restoration',
       {
         meta: { type: 'entity', entity: 'stock-movement' },
-        data: { offeringId, quantity: 3, reason: 'receipt' },
+        data: {
+          offeringId,
+          quantity: 3,
+          reason: 'receipt',
+          cause: 'cancellation',
+        },
       },
       { headers: crossing() },
     );
@@ -161,7 +171,7 @@ describe('restoring stock after a cancellation', () => {
         '/api/stock-restoration',
         {
           meta: { type: 'entity', entity: 'stock-movement' },
-          data: { offeringId, quantity: 4 },
+          data: { offeringId, quantity: 4, cause: 'cancellation' },
         },
         { headers: crossing({ 'idempotency-key': `"${commandId}"` }) },
       );
@@ -181,6 +191,22 @@ describe('restoring stock after a cancellation', () => {
     expect((await ledgerFor(offeringId)).length).toBe(1);
   });
 
+  it('puts a returned parcel back as a return, by the cause it names', async () => {
+    const res = await restore({ cause: 'return', quantity: 1 });
+
+    expect(res.status).toBe(200);
+    expect(res.data.data.reason).toBe('return');
+  });
+
+  it('refuses a restoration that names no cause, or one outside the two', async () => {
+    const none = await restore({ cause: undefined });
+    const gift = await restore({ cause: 'gift' });
+
+    expect(none.status).toBe(400);
+    expect(gift.status).toBe(400);
+    expect(none.data.code).toBe('invalidBody');
+  });
+
   it('refuses a quantity that is not going back', async () => {
     for (const quantity of [0, -1]) {
       const res = await restore({ quantity });
@@ -195,7 +221,7 @@ describe('restoring stock after a cancellation', () => {
       '/api/stock-restoration',
       {
         meta: { type: 'entity', entity: 'stock-movement' },
-        data: { offeringId: OFFERING, quantity: 1 },
+        data: { offeringId: OFFERING, quantity: 1, cause: 'cancellation' },
       },
       { headers: { Authorization: await bearerFor(['super-admin']) } },
     );
@@ -216,7 +242,7 @@ describe('restoring stock after a cancellation', () => {
       '/api/stock-restoration',
       {
         meta: { type: 'entity', entity: 'stock-movement' },
-        data: { offeringId: OFFERING, quantity: 1 },
+        data: { offeringId: OFFERING, quantity: 1, cause: 'cancellation' },
       },
       {
         headers: {

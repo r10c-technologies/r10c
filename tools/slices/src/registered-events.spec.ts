@@ -6,6 +6,7 @@ import '@r10c/business-ts-catalog-contracts';
 import '@r10c/business-ts-order-contracts';
 import '@r10c/business-ts-party-contracts';
 import '@r10c/business-ts-payment-contracts';
+import '@r10c/business-ts-stock-management';
 import '@entifix/transactions';
 
 import { registeredEvents } from '@entifix/core';

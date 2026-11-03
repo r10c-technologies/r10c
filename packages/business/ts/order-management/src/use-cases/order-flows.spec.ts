@@ -252,7 +252,7 @@ describe('cancellationInputs', () => {
           organizationId: 'v-9',
           body: {
             meta: { type: 'entity', entity: 'stock-movement' },
-            data: { offeringId: 'o-1', quantity: 2 },
+            data: { offeringId: 'o-1', quantity: 2, cause: 'cancellation' },
           },
         },
       ],
