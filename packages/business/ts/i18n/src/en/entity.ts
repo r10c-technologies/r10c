@@ -446,6 +446,7 @@ export const entity: EsEntity = {
     label: 'Commission entry',
     plural: 'Commission entries',
     fields: {
+      collectedBy: 'Collected by',
       id: 'ID',
       orderId: 'Order ID',
       vendorId: 'Vendor ID',
@@ -457,6 +458,10 @@ export const entity: EsEntity = {
       kind: 'Kind',
     },
     values: {
+      collectedBy: {
+        platform: 'Platform',
+        vendor: 'Vendor',
+      },
       kind: {
         sale: 'Sale',
         reversal: 'Reversal',

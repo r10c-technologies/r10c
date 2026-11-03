@@ -62,7 +62,7 @@ export const foldPlacedOrder = (consumer: string, event: DomainEvent) =>
     const outcome = yield* join.contribute(
       { consumer, eventId: event.id },
       order.orderId,
-      { commissions, unpriced },
+      { commissions, unpriced, paymentMethod: order.paymentMethod },
     );
     return [report(event, order.orderId, outcome, unpriced)];
   });
@@ -77,11 +77,13 @@ export const foldCapture = (consumer: string, event: DomainEvent) =>
     const join = yield* SaleJoinTag;
     const payment = yield* readPaymentOutcome(event.data);
     const reports: FoldReport[] = [];
-    for (const { orderId } of payment.allocations) {
+    // Cash a courier collected is in the vendor's hand, not the platform's.
+    const collectedBy = payment.paymentMethod === 'cod' ? 'vendor' : 'platform';
+    for (const { orderId, amount } of payment.allocations) {
       const outcome = yield* join.contribute(
         { consumer, eventId: `${event.id}#${orderId}` },
         orderId,
-        { decidedAt: payment.decidedAt },
+        { decidedAt: payment.decidedAt, captured: amount, collectedBy },
       );
       reports.push(report(event, orderId, outcome));
     }
@@ -109,12 +111,15 @@ export const foldRefund = (consumer: string, event: DomainEvent) =>
   Effect.gen(function* () {
     const join = yield* SaleJoinTag;
     const payment = yield* readPaymentOutcome(event.data);
-    // A refund gives money back for exactly one order.
-    const { orderId } = payment.allocations[0] as { readonly orderId: string };
+    // A refund gives money back for exactly one order, all of it or a part.
+    const { orderId, amount } = payment.allocations[0] as {
+      readonly orderId: string;
+      readonly amount: number;
+    };
     const outcome = yield* join.contribute(
       { consumer, eventId: event.id },
       orderId,
-      { refundedAt: payment.decidedAt },
+      { refundedAt: payment.decidedAt, refunded: amount },
     );
     return [report(event, orderId, outcome)];
   });

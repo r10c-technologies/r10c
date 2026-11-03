@@ -309,3 +309,40 @@ describe('reversalOf on a sale of nothing', () => {
     expect(Object.is(reversed.commissionAmount, 0)).toBe(true);
   });
 });
+
+describe('reversalOf for a partial refund', () => {
+  it('mirrors the share refunded, rounded to the minor unit', () => {
+    expect(
+      reversalOf(
+        {
+          vendorId: 'v',
+          saleAmount: 101,
+          commissionAmount: 13,
+          currency: 'GTQ',
+        },
+        0.5,
+      ),
+    ).toEqual({
+      vendorId: 'v',
+      saleAmount: -51,
+      commissionAmount: -7,
+      currency: 'GTQ',
+    });
+  });
+});
+
+describe('payoutFor a vendor holding cash on delivery', () => {
+  it('debits only the cut, which may take the payout below zero', () => {
+    expect(
+      payout('acme', [
+        {
+          saleAmount: 1000,
+          commissionAmount: 100,
+          currency: 'GTQ',
+          collectedBy: 'vendor',
+        },
+        { saleAmount: 50, commissionAmount: 5, currency: 'GTQ' },
+      ]),
+    ).toEqual({ amount: -55, currency: 'GTQ' });
+  });
+});

@@ -143,37 +143,54 @@ export const commissionsForOrder = ({
   });
 
 /**
- * Turn one priced line into the line that reverses it.
- *
- * The *storno* shape: both amounts flip sign and everything else is carried
- * across unchanged, so the pair sums to zero and {@link payoutFor} needs no sign
- * handling at all.
- *
- * ⚠️ **The reversal mirrors what was *recorded*, never a fresh pricing pass.**
- * Re-reading the vendor's agreement at cancellation time would price the mirror
- * at whatever rate is in force now, so an agreement re-negotiated between the
- * sale and the cancel would leave a pair that does not cancel — the rate-drift
- * ADR 0022 §8 captures commission per sale to close, arriving through the back
- * door. The recorded row is the only defensible input.
- *
- * ⚠️ **Zero is negated to zero, not to `-0`.** A commission of exactly zero is
- * ordinary rather than exotic — `counter: 0` is the whole term the per-channel
- * rate map exists for — and `-0` would travel into BSON, out through the API and
- * onto a vendor's statement as a signed nothing.
+ * Who holds the money a sale took: the platform, for a card captured at
+ * checkout, or the vendor, for cash a courier collected on delivery and handed
+ * over (ADR 0070). It decides what a payout does with the line.
  */
-export const reversalOf = (entry: VendorCommission): VendorCommission => ({
-  vendorId: entry.vendorId,
-  saleAmount: entry.saleAmount === 0 ? 0 : -entry.saleAmount,
-  commissionAmount: entry.commissionAmount === 0 ? 0 : -entry.commissionAmount,
-  currency: entry.currency,
-});
+export const CollectedBy = ['platform', 'vendor'] as const;
+export type CollectedBy = (typeof CollectedBy)[number];
+
+/**
+ * The mirror of a sale entry, for a cancelled and refunded order — a share of
+ * it when only part of the money went back.
+ *
+ * ⚠️ **Mirrored from the ledger, never re-priced.** Re-reading the agreement at
+ * cancellation time would price the mirror at whatever rate is in force now,
+ * and terms re-negotiated since the sale would leave a pair that does not
+ * cancel (ADR 0058 §9). A partial refund scales the recorded amounts by the
+ * share refunded, rounded to the minor unit (ADR 0069).
+ */
+export const reversalOf = (
+  entry: VendorCommission,
+  share = 1,
+): VendorCommission => {
+  const mirror = (amount: number) => {
+    const scaled = Math.round(amount * share);
+    return scaled === 0 ? 0 : -scaled;
+  };
+  return {
+    vendorId: entry.vendorId,
+    saleAmount: mirror(entry.saleAmount),
+    commissionAmount: mirror(entry.commissionAmount),
+    currency: entry.currency,
+  };
+};
 
 /** One ledger line a payout sums. */
 interface PayoutEntry {
   readonly saleAmount: number;
   readonly commissionAmount: number;
   readonly currency: string;
+  readonly collectedBy?: CollectedBy;
 }
+
+/** What one line moves a vendor's payout by. */
+const owedFor = (entry: PayoutEntry) =>
+  // Cash the vendor already holds is not paid out again: only the cut is owed
+  // back, as a debit that may take the payout below zero.
+  entry.collectedBy === 'vendor'
+    ? -entry.commissionAmount
+    : entry.saleAmount - entry.commissionAmount;
 
 /**
  * What one vendor is owed for a set of ledger lines: the gross less the cut.
@@ -200,7 +217,7 @@ export const payoutFor = (
 ): Effect.Effect<{ amount: number; currency: string }, MixedCurrencies> => {
   const [first, ...rest] = entries;
   const currency = first.currency;
-  let amount = first.saleAmount - first.commissionAmount;
+  let amount = owedFor(first);
   for (const entry of rest) {
     if (entry.currency !== currency) {
       return Effect.fail(
@@ -210,7 +227,7 @@ export const payoutFor = (
         }),
       );
     }
-    amount += entry.saleAmount - entry.commissionAmount;
+    amount += owedFor(entry);
   }
   return Effect.succeed({ amount, currency });
 };

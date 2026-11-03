@@ -8,6 +8,7 @@ import { MongoDatabaseTag } from '@entifix/mongo';
 import { MongoUnitOfWorkTag } from '@entifix/mongo/transactions';
 import {
   Agreement,
+  type CollectedBy,
   CommissionEntry,
   type CommissionEntryKind,
   type FoldOutcome,
@@ -33,11 +34,16 @@ export const PENDING_SALE_COLLECTION = 'settlement_pending_sale';
 interface PendingSale {
   readonly orderId: string;
   readonly commissions?: readonly VendorCommission[];
+  readonly paymentMethod?: string;
   readonly decidedAt?: string;
+  readonly captured?: number;
+  readonly collectedBy?: CollectedBy;
   readonly folded: boolean;
   readonly cancelledAt?: string;
   readonly refundedAt?: string;
+  readonly refunded?: number;
   readonly reversed?: boolean;
+  readonly voided?: boolean;
 }
 
 interface LedgerLine {
@@ -46,6 +52,7 @@ interface LedgerLine {
   readonly commissionAmount: number;
   readonly currency: string;
   readonly occurredAt: Date;
+  readonly collectedBy?: CollectedBy;
 }
 
 /**
@@ -94,6 +101,7 @@ const entryDocuments = (
   commissions: readonly VendorCommission[],
   occurredAt: string,
   kind: CommissionEntryKind,
+  collectedBy: CollectedBy,
 ) =>
   commissions.map(commission => {
     const entry = new CommissionEntry(
@@ -106,6 +114,7 @@ const entryDocuments = (
       kind,
     );
     entry.id = globalThis.crypto.randomUUID();
+    entry.collectedBy = collectedBy;
     return { ...serializeEntity(CommissionEntry, entry), id: entry.id };
   });
 
@@ -169,7 +178,12 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             { orderId },
             {
               $set: half,
-              $setOnInsert: { orderId, folded: false, reversed: false },
+              $setOnInsert: {
+                orderId,
+                folded: false,
+                reversed: false,
+                voided: false,
+              },
             },
             {
               upsert: true,
@@ -180,9 +194,29 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           ),
         )) as PendingSale;
 
+        // A cash-on-delivery order cancelled before its cash was collected:
+        // nothing to settle and nothing to reverse, ever.
+        if (
+          merged.voided === true ||
+          (!merged.folded &&
+            merged.paymentMethod === 'cod' &&
+            merged.cancelledAt !== undefined &&
+            merged.decidedAt === undefined)
+        ) {
+          yield* promise(() =>
+            sales.updateOne(
+              { orderId },
+              { $set: { voided: true } },
+              { session },
+            ),
+          );
+          return { kind: 'voided' } as FoldOutcome;
+        }
+
         let folded = 0;
         let reversed = 0;
         let saleFolded = merged.folded;
+        const collectedBy = merged.collectedBy ?? 'platform';
 
         // The sale: its priced lines and the capture, both present.
         if (
@@ -203,6 +237,7 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
             merged.commissions,
             merged.decidedAt,
             'sale',
+            collectedBy,
           );
           if (documents.length > 0) {
             yield* promise(() => ledger.insertMany(documents, { session }));
@@ -229,11 +264,15 @@ export const MongoSettlementStoreLayer = Layer.unwrap(
           const lines = (yield* promise(() =>
             ledger.find({ orderId, kind: 'sale' }, { session }).toArray(),
           )) as unknown as LedgerLine[];
+          // A refund half carries its amount, and a folded sale its capture.
+          const share =
+            (merged.refunded as number) / (merged.captured as number);
           const documents = entryDocuments(
             orderId,
-            lines.map(reversalOf),
+            lines.map(line => reversalOf(line, share)),
             refundedAt,
             'reversal',
+            collectedBy,
           );
           if (documents.length > 0) {
             yield* promise(() => ledger.insertMany(documents, { session }));

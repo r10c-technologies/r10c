@@ -100,6 +100,7 @@ describe('the four folds', () => {
         },
       ],
       unpriced: [],
+      paymentMethod: 'card',
     });
     expect(unpriced).toMatchObject([{ unpriced: ['v-2'] }]);
   });
@@ -139,10 +140,27 @@ describe('the four folds', () => {
       ),
     );
 
+    await run(
+      foldCapture(
+        'c',
+        eventOf('payment.captured', { ...payment, paymentMethod: 'cod' }),
+      ),
+    );
+
     expect(contributed.map(entry => entry.half)).toEqual([
-      { decidedAt: '2026-10-25T12:00:00.000Z' },
+      {
+        decidedAt: '2026-10-25T12:00:00.000Z',
+        captured: 40,
+        collectedBy: 'platform',
+      },
       { cancelledAt: '2026-10-25T12:00:00.000Z' },
-      { refundedAt: '2026-10-26T00:00:00.000Z' },
+      { refundedAt: '2026-10-26T00:00:00.000Z', refunded: 40 },
+      // A courier's collection is cash the vendor holds.
+      {
+        decidedAt: '2026-10-25T12:00:00.000Z',
+        captured: 40,
+        collectedBy: 'vendor',
+      },
     ]);
   });
 

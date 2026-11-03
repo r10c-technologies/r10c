@@ -49,6 +49,14 @@ export const logFoldReport = (report: FoldReport): Effect.Effect<void> =>
       });
       return;
     }
+    if (outcome.kind === 'voided') {
+      yield* logSliceOutcome('Info', 'settlement fold', {
+        outcome: 'voided',
+        event,
+        orderId,
+      });
+      return;
+    }
     if (outcome.kind === 'waiting') {
       yield* logSliceOutcome('Debug', 'settlement fold', {
         outcome: 'awaitingPair',

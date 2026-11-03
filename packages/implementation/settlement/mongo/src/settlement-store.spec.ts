@@ -62,24 +62,47 @@ const priced: SaleHalf = {
     { vendorId: 'v-2', saleAmount: 50, commissionAmount: 5, currency: 'GTQ' },
   ],
   unpriced: [],
+  paymentMethod: 'card',
 };
-const captured: SaleHalf = { decidedAt: '2026-10-25T12:00:00.000Z' };
+const captured: SaleHalf = {
+  decidedAt: '2026-10-25T12:00:00.000Z',
+  captured: 150,
+  collectedBy: 'platform',
+};
 const cancelled: SaleHalf = { cancelledAt: '2026-10-26T00:00:00.000Z' };
-const refunded: SaleHalf = { refundedAt: '2026-10-26T01:00:00.000Z' };
+const refunded: SaleHalf = {
+  refundedAt: '2026-10-26T01:00:00.000Z',
+  refunded: 150,
+};
 
 const entriesOf = (fake: ReturnType<typeof makeFakeMongoDb>, kind: string) =>
   fake
     .read(COMMISSION_ENTRY_COLLECTION)
     .filter(entry => entry['kind'] === kind);
 
-describeSettlementStoreContract('the Mongo store', () =>
-  world({
+describeSettlementStoreContract('the Mongo store', async () => {
+  const subject = world({
     [AGREEMENT_COLLECTION]: CONTRACT_AGREEMENTS.map(agreement => ({
       ...serializeEntity(Agreement, agreement),
       id: agreement.id,
     })),
-  }).run(ports => Effect.succeed(ports)),
-);
+  });
+  const ports = await subject.run(found => Effect.succeed(found));
+  return {
+    ...ports,
+    entries: () =>
+      Effect.sync(() =>
+        subject.fake.read(COMMISSION_ENTRY_COLLECTION).map(entry => ({
+          orderId: entry['orderId'] as string,
+          vendorId: entry['vendorId'] as string,
+          kind: entry['kind'] as string,
+          saleAmount: entry['saleAmount'] as number,
+          commissionAmount: entry['commissionAmount'] as number,
+          collectedBy: entry['collectedBy'] as string,
+        })),
+      ),
+  };
+});
 
 describe('the sale join', () => {
   it('holds a priced order until its capture arrives, then writes one entry per vendor', async () => {
@@ -136,7 +159,11 @@ describe('the sale join', () => {
 
   it('writes nothing for a sale no vendor could be priced for', async () => {
     const { fake, contribute } = world();
-    await contribute('o-5', { commissions: [], unpriced: ['v-9'] });
+    await contribute('o-5', {
+      commissions: [],
+      unpriced: ['v-9'],
+      paymentMethod: 'card',
+    });
     const sale = await contribute('o-5', captured);
     await contribute('o-5', cancelled);
     const reversal = await contribute('o-5', refunded);
@@ -211,6 +238,33 @@ describe('settleOnce', () => {
     );
     // A completed run announces nothing: no slice subscribes to it.
     expect(bus.published).toEqual([]);
+  });
+
+  it('debits only the cut for cash a vendor collected on delivery', async () => {
+    const { fake, contribute, run } = world();
+    await contribute('o-cod', {
+      commissions: [
+        {
+          vendorId: 'v-1',
+          saleAmount: 100,
+          commissionAmount: 10,
+          currency: 'GTQ',
+        },
+      ],
+      unpriced: [],
+      paymentMethod: 'cod',
+    });
+    await contribute('o-cod', {
+      ...captured,
+      captured: 100,
+      collectedBy: 'vendor',
+    });
+
+    await run(({ runs }) => runs.settleOnce());
+
+    expect(
+      fake.read(VENDOR_PAYOUT_COLLECTION).map(payout => payout['amount']),
+    ).toEqual([-10]);
   });
 
   it('records an empty attempt when a sibling sweep took the lines first', async () => {

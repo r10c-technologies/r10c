@@ -202,6 +202,13 @@ and a run may legitimately produce a **negative** `VendorPayout` — a claw-back
 against the vendor's next period, allowed rather than clamped
 ([ADR 0058](../adr/0058-the-order-after-payment.md) §9).
 
+⚠️ **One join per vendor order** ([ADR 0069](../adr/0069-a-checkout-group-of-per-vendor-orders.md)).
+A capture contributes each of its allocations to its own order's join, a partial
+refund mirrors only its share of the sale, and cash a vendor collected on delivery
+is written `collectedBy: 'vendor'` — the payout debits only the cut, since the
+vendor already holds the gross. A cash-on-delivery order cancelled before its cash
+was collected voids its join: nothing settles and nothing reverses.
+
 ⚠️ **Both halves of both pairs land on one join record**, and the second pair's
 fold refuses to run until the first has. A reversal cannot precede the sale it
 mirrors, and a placement that arrives after its order was already cancelled and

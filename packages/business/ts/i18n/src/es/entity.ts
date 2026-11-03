@@ -487,6 +487,7 @@ export const entity = {
     label: 'Apunte de comisión',
     plural: 'Apuntes de comisión',
     fields: {
+      collectedBy: 'Cobrado por',
       id: 'ID',
       orderId: 'ID de pedido',
       vendorId: 'ID de vendedor',
@@ -498,6 +499,10 @@ export const entity = {
       kind: 'Tipo',
     },
     values: {
+      collectedBy: {
+        platform: 'Plataforma',
+        vendor: 'Vendedor',
+      },
       kind: {
         sale: 'Venta',
         reversal: 'Reverso',

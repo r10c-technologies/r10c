@@ -2,22 +2,32 @@ import { Effect } from 'effect';
 
 import type { Agreement } from '../entities/agreement';
 import type { FoldOutcome, SaleHalf } from '../ports/settlement-ports';
-import { reversalOf, type VendorCommission } from '../values/commission';
+import {
+  type CollectedBy,
+  reversalOf,
+  type VendorCommission,
+} from '../values/commission';
 import type { SettlementPorts } from './settlement-store.contract';
 
 interface Join {
   commissions?: readonly VendorCommission[];
+  paymentMethod?: string;
   decidedAt?: string;
+  captured?: number;
+  collectedBy?: CollectedBy;
   cancelledAt?: string;
   refundedAt?: string;
+  refunded?: number;
   folded: boolean;
   reversed: boolean;
+  voided: boolean;
 }
 
 interface Line extends VendorCommission {
   readonly orderId: string;
   readonly kind: 'sale' | 'reversal';
   readonly occurredAt: string;
+  readonly collectedBy: CollectedBy;
   runId?: string;
 }
 
@@ -39,28 +49,47 @@ export const makeInMemorySettlementStore = (
     commissions: readonly VendorCommission[],
     occurredAt: string,
     kind: Line['kind'],
+    collectedBy: CollectedBy,
   ) => {
     for (const commission of commissions) {
-      ledger.push({ ...commission, orderId, kind, occurredAt });
+      ledger.push({ ...commission, orderId, kind, occurredAt, collectedBy });
     }
     return commissions.length;
   };
 
   const fold = (orderId: string, half: SaleHalf): FoldOutcome => {
-    const join = Object.assign(
-      joins.get(orderId) ?? { folded: false, reversed: false },
+    const join: Join = Object.assign(
+      joins.get(orderId) ?? { folded: false, reversed: false, voided: false },
       half,
     );
     joins.set(orderId, join);
+    // A cash-on-delivery order cancelled before its cash was collected: there
+    // is nothing to settle and nothing to reverse, ever.
+    if (
+      !join.folded &&
+      join.paymentMethod === 'cod' &&
+      join.cancelledAt !== undefined &&
+      join.decidedAt === undefined
+    ) {
+      join.voided = true;
+    }
+    if (join.voided) return { kind: 'voided' };
     let folded = 0;
     let reversed = 0;
+    const collectedBy = join.collectedBy ?? 'platform';
     if (
       !join.folded &&
       join.commissions !== undefined &&
       join.decidedAt !== undefined
     ) {
       join.folded = true;
-      folded = linesFor(orderId, join.commissions, join.decidedAt, 'sale');
+      folded = linesFor(
+        orderId,
+        join.commissions,
+        join.decidedAt,
+        'sale',
+        collectedBy,
+      );
     }
     if (
       join.folded &&
@@ -69,14 +98,17 @@ export const makeInMemorySettlementStore = (
       join.refundedAt !== undefined
     ) {
       join.reversed = true;
+      // A refund half always carries its amount, and a folded sale its capture.
+      const share = (join.refunded as number) / (join.captured as number);
       const sold = ledger.filter(
         line => line.orderId === orderId && line.kind === 'sale',
       );
       reversed = linesFor(
         orderId,
-        sold.map(reversalOf),
+        sold.map(line => reversalOf(line, share)),
         join.refundedAt,
         'reversal',
+        collectedBy,
       );
     }
     return folded > 0 || reversed > 0
@@ -110,6 +142,26 @@ export const makeInMemorySettlementStore = (
           return fold(orderId, half);
         }),
     },
+    entries: () =>
+      Effect.sync(() =>
+        ledger.map(
+          ({
+            orderId,
+            vendorId,
+            kind,
+            saleAmount,
+            commissionAmount,
+            collectedBy,
+          }) => ({
+            orderId,
+            vendorId,
+            kind,
+            saleAmount,
+            commissionAmount,
+            collectedBy,
+          }),
+        ),
+      ),
     runs: {
       settleOnce: () =>
         Effect.sync(() => {
