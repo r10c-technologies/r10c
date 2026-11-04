@@ -88,7 +88,6 @@ export const errors: EsErrors = {
   unexpected: 'Something went wrong.',
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
-  stockUnavailable: 'The sale could not be completed. Check the stock on hand.',
   sagaCompensated:
     'The operation could not be completed, and nothing was changed.',
   sagaStranded: 'The operation stopped partway and is being reviewed.',

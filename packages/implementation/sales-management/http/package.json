@@ -50,7 +50,7 @@
   "devDependencies": {
     "@entifix/testing-unit": "catalog:",
     "@r10c/business-ts-catalog-contracts": "workspace:*",
-    "@r10c/business-ts-saga-contracts": "workspace:*",
+    "@r10c/business-ts-flow-contracts": "workspace:*",
     "@r10c/testing-cells": "workspace:*"
   }
 }

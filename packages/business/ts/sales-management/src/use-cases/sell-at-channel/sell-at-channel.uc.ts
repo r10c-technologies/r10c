@@ -7,7 +7,6 @@ import { SalesChannel } from '../../entities/sales-channel';
 import {
   ChannelInactive,
   OfferingNotYours,
-  StockUnavailable,
 } from '../../failures/sales-failures';
 
 /**
@@ -22,7 +21,8 @@ export const CounterSalePayload = Schema.Struct({
       quantity: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
     }),
   ).check(Schema.isMinLength(1)),
-  paymentMethod: Schema.String.check(Schema.isMinLength(1)),
+  /** Card or cash: what a counter takes. Cash on delivery is the storefront's. */
+  paymentMethod: Schema.Literals(['card', 'cash']),
 });
 
 export type CounterSalePayload = typeof CounterSalePayload.Type;
@@ -57,13 +57,7 @@ export type CounterSalePayload = typeof CounterSalePayload.Type;
   labelKey: 'entity:sales-channel.useCases.sell',
   recipe: 'checkout',
   payload: CounterSalePayload,
-  errors: [
-    NotFound,
-    ChannelInactive,
-    OfferingNotYours,
-    InvalidBody,
-    StockUnavailable,
-  ],
+  errors: [NotFound, ChannelInactive, OfferingNotYours, InvalidBody],
 })
 export class SellAtChannelUC {
   /**

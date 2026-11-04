@@ -254,6 +254,7 @@ export const entity: EsEntity = {
       displayName: 'Seller',
       announcedAt: 'Announced at',
       acceptsCod: 'Accepts cash on delivery',
+      holdsStock: 'Holds stock',
     },
   },
   'published-offering': {

@@ -46,9 +46,11 @@ pnpm nx run marketplace-app:dev            # :3000 (auto-starts marketplace-serv
                                            #        the rebuild walk in the latter;
                                            #        auth-service, whose
                                            #        announcements fill the
-                                           #        sellers' names; and
+                                           #        sellers' names;
                                            #        realtime-service, the stream
-                                           #        the edge routes to)
+                                           #        the edge routes to; and
+                                           #        transaction-service, which
+                                           #        a checkout starts on)
 pnpm nx run back-office-app:dev            # :3001 (catalog + system management +
                                            #        users + account, one origin;
                                            #        auto-starts admin-service,

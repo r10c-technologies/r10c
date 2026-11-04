@@ -243,11 +243,15 @@ export const ringUps: Array<{
   readonly body: unknown;
 }> = [];
 
+/** The checkout every mocked till sale starts, and a spec settles. */
+export const TILL_FLOW_ID = 'till-flow-1';
+
 /**
  * The till's write, the channel's derived `sell` verb, on the app's own
- * proxy path. It answers as sales-service does once the checkout completed;
- * whether a sale happens is the live journey's question, and this one is
- * which endpoint the till reaches and what it sends.
+ * proxy path. It answers as sales-service does: `202` with the checkout to
+ * follow, whose outcome the push stream brings (ADR 0073). Whether a sale
+ * happens is the live journey's question; this one is which endpoint the
+ * till reaches, what it sends, and that it waits on the flow.
  */
 const sellHandlers = [
   http.post(
@@ -258,10 +262,19 @@ const sellHandlers = [
         idempotencyKey: request.headers.get('idempotency-key'),
         body: await request.json(),
       });
-      return HttpResponse.json({
-        meta: { type: 'sagaResult', entity: 'counter-sale' },
-        data: {},
-      });
+      return HttpResponse.json(
+        {
+          meta: { type: 'flowAccepted', entity: 'counter-sale' },
+          data: {
+            flowId: TILL_FLOW_ID,
+            links: [
+              { rel: 'status', href: `/api/realtime/flow/${TILL_FLOW_ID}` },
+              { rel: 'stream', href: '/api/realtime/stream' },
+            ],
+          },
+        },
+        { status: 202 },
+      );
     },
   ),
 ];

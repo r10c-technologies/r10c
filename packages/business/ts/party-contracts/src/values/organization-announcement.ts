@@ -49,6 +49,12 @@ export interface OrganizationAnnouncement {
    * `cod-eligible` check is what a checkout is refused by (ADR 0070).
    */
   readonly acceptsCod: boolean;
+  /**
+   * Whether the organization is provisioned for `stock-management` — whether a
+   * checkout may hold its stock. What the coordinator verifies a vendor's
+   * segment against, rather than trusting what the caller said (ADR 0066).
+   */
+  readonly holdsStock: boolean;
 }
 
 /**
@@ -105,6 +111,7 @@ export const OrganizationAnnouncementSchema = openStruct({
   // Optional as a safety property: a reader rejecting a payload quarantines it,
   // and absent reads as a seller who does not ship cash on delivery.
   acceptsCod: Schema.optional(Schema.Boolean),
+  holdsStock: Schema.optional(Schema.Boolean),
 });
 
 // Audience-free: an announcement is folded into the published-vendor
@@ -129,10 +136,11 @@ export const readOrganizationAnnouncement = (
         ),
       ),
     ),
-    ({ organizationId, displayName, announcedAt, acceptsCod }) => ({
+    ({ organizationId, displayName, announcedAt, acceptsCod, holdsStock }) => ({
       organizationId,
       displayName,
       announcedAt,
       acceptsCod: acceptsCod === true,
+      holdsStock: holdsStock === true,
     }),
   );

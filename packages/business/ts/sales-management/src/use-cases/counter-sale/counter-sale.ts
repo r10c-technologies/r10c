@@ -4,21 +4,14 @@ import {
   EntityRepositoryTag,
   getUCFactory,
 } from '@entifix/business';
-import { NotFound, UpstreamUnavailable } from '@entifix/core';
+import { NotFound } from '@entifix/core';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
 import { InvalidBody } from '@r10c/business-ts-common';
-import {
-  checkoutInputs,
-  type CheckoutLineInput,
-  SagaStarterTag,
-} from '@r10c/business-ts-saga-contracts';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
 import { Effect } from 'effect';
 
 import { SalesChannel } from '../../entities/sales-channel';
-import {
-  OfferingNotYours,
-  StockUnavailable,
-} from '../../failures/sales-failures';
+import { OfferingNotYours } from '../../failures/sales-failures';
 import { isSalesChannelStatus, isSalesChannelType } from '../../values';
 import { type CounterSalePayload, SellAtChannelUC } from '../sell-at-channel';
 
@@ -44,12 +37,35 @@ export const validateSalesChannel = (
         )
       : Effect.succeed(channel);
 
+/** One priced counter line, as a checkout's start input carries it. */
+interface PricedLine {
+  readonly offeringId: string;
+  readonly quantity: number;
+  readonly amount: number;
+  readonly currency: string;
+}
+
+/** The sale's totals, one per currency: unit price times quantity. */
+const totalsOf = (lines: readonly PricedLine[]) => {
+  const byCurrency = new Map<string, number>();
+  for (const line of lines)
+    byCurrency.set(
+      line.currency,
+      (byCurrency.get(line.currency) ?? 0) + line.amount * line.quantity,
+    );
+  return Array.from(byCurrency, ([currency, amount]) => ({ currency, amount }));
+};
+
 /**
- * Sell at the counter: **the same checkout saga the storefront starts**, with
- * a channel on it (ADR 0056). This process presents a crossing token on the
+ * Sell at the counter: **the same checkout the storefront starts**, with a
+ * channel on it (ADR 0056). This process presents a crossing token on the
  * seller's behalf, so everything a token could abuse is decided here first —
  * the channel is the caller's own and active, every price comes from the
  * published projection, and every offering is the caller's to sell.
+ *
+ * It answers the flow it started, never the sale's outcome: the till follows
+ * the flow to `flow.completed`, or to the refusal a line's hold met
+ * (ADR 0066, ADR 0073).
  *
  * A channel this organization does not have is **not found** rather than
  * forbidden: the id is the store's key, and a 403 would make the route an
@@ -78,7 +94,7 @@ export const sellAtCounter = (input: {
     const channel = yield* SellAtChannelUC.run(found);
 
     const prices = yield* PublishedPriceReaderTag;
-    const priced: CheckoutLineInput[] = [];
+    const priced: PricedLine[] = [];
     for (const line of sale.lines) {
       const price = yield* prices.priceOf(line.offeringId);
       if (price === undefined) {
@@ -91,41 +107,35 @@ export const sellAtCounter = (input: {
       if (price.vendorId !== organizationId) {
         return yield* new OfferingNotYours({ offeringId: line.offeringId });
       }
-      priced.push({ ...price, quantity: line.quantity });
+      priced.push({
+        offeringId: line.offeringId,
+        quantity: line.quantity,
+        amount: price.amount,
+        currency: price.currency,
+      });
     }
 
-    const sagas = yield* SagaStarterTag;
-    const outcome = yield* sagas.start(
+    const flows = yield* FlowStarterTag;
+    return yield* flows.start(
       'checkout',
-      checkoutInputs({
-        lines: priced,
-        order: {
-          // No `buyerId`: a walk-in has no account, and `channel` explains
-          // the absence. Copied, never linked — the receipt's reader holds no
-          // tenant handle, and renaming a channel must not rewrite history.
-          channel: {
-            id: String(channel.id),
-            name: channel.name,
-            type: channel.type,
+      {
+        // No `buyerId`: a walk-in has no account, and `channel` explains the
+        // absence. Copied, never linked — the receipt's reader holds no
+        // tenant handle, and renaming a channel must not rewrite history.
+        channel: {
+          type: channel.type,
+          id: String(channel.id),
+          name: channel.name,
+        },
+        vendors: [
+          {
+            vendorId: organizationId,
+            paymentMethod: sale.paymentMethod,
+            lines: priced,
           },
-        },
-        payment: {
-          paymentMethod: sale.paymentMethod,
-          fallbackCurrency: 'GTQ',
-          channelId: String(channel.id),
-        },
-      }),
+        ],
+        totals: totalsOf(priced),
+      },
       idempotencyKey,
     );
-
-    switch (outcome._tag) {
-      case 'completed':
-        return outcome.result;
-      case 'compensated':
-        return yield* new StockUnavailable({ channelId });
-      case 'failed':
-        return yield* new UpstreamUnavailable({
-          upstream: 'transaction-service',
-        });
-    }
   });

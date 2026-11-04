@@ -33,8 +33,8 @@ import {
   SERVICE_NAME,
 } from '@r10c/sales-service';
 import {
+  httpFlowStarterLayer,
   httpPublishedPriceReaderLayer,
-  httpSagaStarterLayer,
 } from '@r10c/shells-effect-service';
 import { fleetToken } from '@r10c/utils-ts-fleet';
 import { Layer } from 'effect';
@@ -110,7 +110,7 @@ const MockAppLayer = (() => {
     // The shipped layer reads these addresses from config-service; here they
     // are literals beside the other resolved values, and the matching entries
     // in `CONFIGURATION` are what `GET /api/config` reports.
-    httpSagaStarterLayer({
+    httpFlowStarterLayer({
       url: 'http://mock-coordinator/api',
       crossingToken: E2E_CROSSING_TOKEN,
     }),

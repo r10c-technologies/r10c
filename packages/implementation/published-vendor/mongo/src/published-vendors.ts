@@ -52,6 +52,7 @@ const applyAnnouncement = (db: Db, announcement: OrganizationAnnouncement) =>
       vendor.id = announcement.organizationId;
       vendor.announcedAt = at;
       vendor.acceptsCod = announcement.acceptsCod;
+      vendor.holdsStock = announcement.holdsStock;
       try {
         await db.collection(VENDOR_COLLECTION).updateOne(
           {

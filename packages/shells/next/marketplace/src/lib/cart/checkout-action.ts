@@ -8,7 +8,7 @@ import {
 } from '@entifix/transactions';
 import { PublishedOffering } from '@r10c/business-ts-marketplace-catalog';
 import { getOffering } from '@r10c/implementation-marketplace-catalog-next';
-import { postSaga } from '@r10c/utils-ts-fleet';
+import { postFlow } from '@r10c/utils-ts-fleet';
 import { Effect } from 'effect';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -98,7 +98,7 @@ export async function checkout(formData: FormData) {
   const parts = sellerParts(priced, vendorId =>
     tenderOf(formData.get(tenderField(vendorId))),
   );
-  const response = await postSaga(
+  const response = await postFlow(
     checkoutServiceUrl(),
     sagaCrossingToken(),
     'checkout',

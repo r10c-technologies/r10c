@@ -58,6 +58,8 @@ export const sellerParts = (
 
 /** What the storefront asks the coordinator to start a checkout with. */
 export interface CheckoutStartBody {
+  /** Where the sale was made: always the storefront, from here. */
+  readonly channel: { readonly type: 'storefront' };
   readonly vendors: readonly SellerPart[];
   readonly totals: readonly MoneyTotal[];
   /** The digest of the nonce the buyer's receipt cookie keeps for cancelling. */
@@ -71,6 +73,7 @@ export const checkoutStartBody = (input: {
   readonly cancelDigest: string;
   readonly capabilityDigest: string;
 }): CheckoutStartBody => ({
+  channel: { type: 'storefront' },
   vendors: input.parts,
   totals: totalsByCurrency(input.parts.flatMap(part => part.lines)),
   cancelDigest: input.cancelDigest,

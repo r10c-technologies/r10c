@@ -9,6 +9,7 @@ import {
 } from '@r10c/shells-effect-service';
 import { Effect, Layer } from 'effect';
 
+import { httpVendorFactsLayer } from './flow/vendor-facts.js';
 import {
   HttpSagaDispatcherLayer,
   type Participant,
@@ -105,6 +106,9 @@ export const transactionComposition =
         .getNumber('maxResumeAttempts');
 
       const participants = yield* readParticipants(configuration);
+      // The published vendor projection, read for what each vendor a flow
+      // acts for is provisioned for (ADR 0066).
+      const catalogUrl = yield* store.in('marketplace').getString('url');
 
       const connections = Layer.mergeAll(
         // The pool: the `saga` store is a database this process names itself.
@@ -140,9 +144,13 @@ export const transactionComposition =
       );
 
       // The durable flow engine, beside the saga runner until #490 deletes the
-      // runner: replica 0's runner, on the bus this composition already opened.
+      // runner: replica 0's runner, on the bus this composition already opened,
+      // and what its start routes verify a vendor against.
       const workflow = Layer.provide(
-        yield* workflowComposition(configuration, participants, runner),
+        Layer.merge(
+          yield* workflowComposition(configuration, participants, runner),
+          httpVendorFactsLayer(catalogUrl),
+        ),
         connections,
       );
 

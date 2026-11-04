@@ -61,9 +61,16 @@ export const transactionSlice: SliceDeclaration = {
     // a domain name in a permission namespace (ADR 0039, ADR 0052).
     'POST /api/saga/checkout',
     'POST /api/saga/cancellation',
+    // The flow engine's starts, one per recipe, each answered `202` with the
+    // flow to follow (ADR 0066). The saga starts above go with #490.
+    'POST /api/flow/checkout',
+    'POST /api/flow/cancellation',
   ],
   dependantAPIs: [
     'GET /api/config/:service',
+    // What each vendor a flow acts for is provisioned for, read from the
+    // published vendor projection rather than taken from the caller.
+    'GET /api/published-vendor',
     // Every call a flow's fragments make, each behind ADR 0023's crossing with
     // that participant's own token. Checked against the fragment catalog's
     // snapshot, so a flow cannot dispatch to a route this list omits (ADR 0065).

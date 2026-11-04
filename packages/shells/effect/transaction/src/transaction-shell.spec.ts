@@ -62,6 +62,7 @@ const CONFIGURATION = fleetConfigurationOf({
     runnerHost: '127.0.0.1',
   }),
   flow: configurationRows({ concurrency: 4 }),
+  marketplace: configurationRows({ url: 'http://marketplace.invalid/api' }),
   outbox: configurationRows({ maxAttempts: 5 }),
   breaker: flowParticipants().flatMap(participant =>
     PARTICIPANT_DIALS.map(dial => ({

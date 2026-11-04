@@ -121,7 +121,7 @@ const collections = [
  * The id's prefix is how the rest of this file knows which journey it is in —
  * what is in the basket is the only thing a server action lets through.
  */
-const CHECKOUT_URL = 'http://localhost:3103/api/saga/checkout';
+const CHECKOUT_URL = 'http://localhost:3103/api/flow/checkout';
 
 /** Where the settle action verifies a flow completed, server to server. */
 const FLOW_STATUS_URL = 'http://localhost:3191/api/realtime/flow/:id';
@@ -191,7 +191,7 @@ const holds = (vendors, offeringId) =>
 
 const checkoutHandler = http.post(CHECKOUT_URL, async ({ request }) => {
   const body = await request.json().catch(() => undefined);
-  const vendors = body?.inputs?.vendors;
+  const vendors = body?.vendors;
   if (!Array.isArray(vendors) || vendors.length === 0) {
     return problem('InvalidBody', 'invalidBody', 'invalid', 400);
   }

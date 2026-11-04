@@ -111,7 +111,6 @@ export const errors = {
   unexpected: 'Algo salió mal.',
   // The failures entifix and the fleet register (ADR 0064): a code is the
   // failure's own, permanent, and the gate reads the registry for it.
-  stockUnavailable: 'No se pudo completar la venta. Revisa la existencia.',
   sagaCompensated: 'No se pudo completar la operación y no se cambió nada.',
   sagaStranded: 'La operación se detuvo a medias y se está revisando.',
   mixedCurrencies:

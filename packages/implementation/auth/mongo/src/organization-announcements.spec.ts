@@ -16,11 +16,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   announcementOf,
+  commerceOf,
   ENTITLEMENT_COLLECTION,
   ORGANIZATION_COLLECTION,
   rebuildOrganizationAnnouncements,
   seedOrganizations,
-  shipsCod,
   writeOrganization,
 } from './organization-announcements.js';
 
@@ -57,13 +57,17 @@ describe('announcementOf', () => {
       displayName: 'Demo Vendor',
       announcedAt: FIRST.toISOString(),
       acceptsCod: false,
+      holdsStock: false,
     });
   });
 
   it('says the seller ships cash on delivery when it is provisioned to ship', () => {
     expect(
-      announcementOf({ ...SEED, updatedAt: FIRST }, true)?.acceptsCod,
-    ).toBe(true);
+      announcementOf(
+        { ...SEED, updatedAt: FIRST },
+        { acceptsCod: true, holdsStock: true },
+      ),
+    ).toMatchObject({ acceptsCod: true, holdsStock: true });
   });
 
   it.each([
@@ -80,12 +84,21 @@ describe('announcementOf', () => {
   });
 });
 
-describe('shipsCod', () => {
-  it('reads cash on delivery off the shipping entitlement, and nothing else', () => {
-    expect(shipsCod({ domains: ['shipping-order-management'] })).toBe(true);
-    expect(shipsCod({ domains: ['stock-management'] })).toBe(false);
-    expect(shipsCod({ domains: 'shipping-order-management' })).toBe(false);
-    expect(shipsCod(null)).toBe(false);
+describe('commerceOf', () => {
+  it('reads cash on delivery off shipping and holding stock off stock, and nothing else', () => {
+    expect(commerceOf({ domains: ['shipping-order-management'] })).toEqual({
+      acceptsCod: true,
+      holdsStock: false,
+    });
+    expect(commerceOf({ domains: ['stock-management'] })).toEqual({
+      acceptsCod: false,
+      holdsStock: true,
+    });
+    expect(commerceOf({ domains: 'shipping-order-management' })).toEqual({
+      acceptsCod: false,
+      holdsStock: false,
+    });
+    expect(commerceOf(null)).toEqual({ acceptsCod: false, holdsStock: false });
   });
 });
 
@@ -121,6 +134,7 @@ describe('writeOrganization', () => {
         displayName: 'Demo Vendor',
         announcedAt: FIRST.toISOString(),
         acceptsCod: false,
+        holdsStock: false,
       },
     });
   });

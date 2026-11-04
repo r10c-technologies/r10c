@@ -688,6 +688,15 @@ export const SEED_ROWS: ReadonlyArray<ConfigurationRow> = [
   // How long a crossing write's `Idempotency-Key` replays its first answer
   // (ADR 0068): past it the key is free again. A day outlasts every redelivery
   // and every coordinator retry.
+  // The published vendor projection, read for what each vendor a flow acts
+  // for is provisioned for: the coordinator states a vendor segment's
+  // entitlements itself rather than take the caller's word for them.
+  {
+    service: 'transaction-service',
+    group_name: 'marketplace',
+    key: 'url',
+    value: 'http://localhost:3100/api',
+  },
   {
     service: 'transaction-service',
     group_name: 'idempotency',

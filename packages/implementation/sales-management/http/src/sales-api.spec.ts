@@ -5,8 +5,11 @@ import {
 } from '@entifix/business';
 import { makeInMemoryEntityRepository } from '@entifix/testing-unit';
 import { PublishedPriceReaderTag } from '@r10c/business-ts-catalog-contracts';
-import { SagaStarterTag } from '@r10c/business-ts-saga-contracts';
-import { makeScriptedSagaStarter } from '@r10c/business-ts-saga-contracts/testing';
+import { FlowStarterTag } from '@r10c/business-ts-flow-contracts';
+import {
+  acceptedAnswer,
+  makeScriptedFlowStarter,
+} from '@r10c/business-ts-flow-contracts/testing';
 import {
   SalesChannel,
   validateSalesChannel,
@@ -37,9 +40,10 @@ describe('the sales-channel declaration', () => {
   it('serves the till’s sale as the channel’s own verb, keyed for the checkout', () => {
     expect(sell.useCase.key).toBe('sell');
     expect(sell.idempotent).toBe('unit');
+    expect(sell.accepted).toBe(true);
   });
 
-  it('starts the checkout under the till’s key and answers what the flow returned', async () => {
+  it('starts the checkout under the till’s key and answers the flow to follow', async () => {
     const keys: string[] = [];
     const layer = Layer.mergeAll(
       Layer.succeed(EntityRepositoryFactoryTag, {
@@ -55,10 +59,10 @@ describe('the sales-channel declaration', () => {
           }),
       }),
       Layer.succeed(
-        SagaStarterTag,
-        makeScriptedSagaStarter((_definition, _inputs, key) => {
+        FlowStarterTag,
+        makeScriptedFlowStarter((_recipe, _input, key) => {
           keys.push(key);
-          return { status: 200, body: { flow: 'done' } };
+          return acceptedAnswer('flow-1');
         }),
       ),
       Layer.succeed(IdempotencyKeyTag, 'sale-key-1'),
@@ -81,8 +85,8 @@ describe('the sales-channel declaration', () => {
 
     expect(keys).toEqual(['sale-key-1']);
     expect(answer).toMatchObject({
-      meta: { type: 'sagaResult', entity: 'counter-sale' },
-      data: { flow: 'done' },
+      meta: { type: 'flowAccepted', entity: 'counter-sale' },
+      data: { flowId: 'flow-1' },
     });
   });
 });
