@@ -51,7 +51,9 @@
       "irreversible": false,
       "isolation": "none",
       "requires": {
-        "entitlements": ["shipping-order-management"]
+        "entitlements": [
+          "shipping-order-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {
@@ -86,7 +88,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -108,7 +113,10 @@
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -137,7 +145,9 @@
       "irreversible": false,
       "isolation": "none",
       "requires": {
-        "entitlements": ["shipping-order-management"]
+        "entitlements": [
+          "shipping-order-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {
@@ -172,7 +182,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -194,7 +207,10 @@
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -223,7 +239,9 @@
       "irreversible": true,
       "isolation": "semanticLock",
       "requires": {
-        "entitlements": ["shipping-order-management"]
+        "entitlements": [
+          "shipping-order-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {
@@ -258,7 +276,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -275,13 +296,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["notFound", "shippingOrderNotTransitionable"]
+                "enum": [
+                  "notFound",
+                  "shippingOrderNotTransitionable"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -314,7 +341,9 @@
       "irreversible": false,
       "isolation": "semanticLock",
       "requires": {
-        "entitlements": ["shipping-order-management"]
+        "entitlements": [
+          "shipping-order-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {
@@ -349,7 +378,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -366,13 +398,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["notFound", "shippingOrderNotTransitionable"]
+                "enum": [
+                  "notFound",
+                  "shippingOrderNotTransitionable"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -401,7 +439,9 @@
       "irreversible": false,
       "isolation": "none",
       "requires": {
-        "entitlements": ["shipping-order-management"]
+        "entitlements": [
+          "shipping-order-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {},
@@ -439,7 +479,11 @@
                   },
                   {
                     "type": "string",
-                    "enum": ["Infinity", "-Infinity", "NaN"]
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
                   }
                 ]
               },
@@ -480,7 +524,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -499,7 +546,9 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "enum": ["invalidBody"]
+                    "enum": [
+                      "invalidBody"
+                    ]
                   }
                 ]
               },
@@ -507,7 +556,10 @@
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -540,7 +592,9 @@
       "irreversible": false,
       "isolation": "semanticLock",
       "requires": {
-        "entitlements": ["shipping-order-management"]
+        "entitlements": [
+          "shipping-order-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {
@@ -575,7 +629,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -592,13 +649,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["notFound", "shippingOrderNotTransitionable"]
+                "enum": [
+                  "notFound",
+                  "shippingOrderNotTransitionable"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -627,7 +690,9 @@
       "irreversible": false,
       "isolation": "reRead",
       "requires": {
-        "entitlements": ["shipping-order-management"]
+        "entitlements": [
+          "shipping-order-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {
@@ -662,7 +727,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -679,13 +747,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["notFound", "shippingOrderNotTransitionable"]
+                "enum": [
+                  "notFound",
+                  "shippingOrderNotTransitionable"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -743,7 +817,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -760,13 +837,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["notFound", "orderNotCancellable"]
+                "enum": [
+                  "notFound",
+                  "orderNotCancellable"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -806,10 +889,15 @@
             "properties": {
               "outcome": {
                 "type": "string",
-                "enum": ["fulfilled", "cancelled"]
+                "enum": [
+                  "fulfilled",
+                  "cancelled"
+                ]
               }
             },
-            "required": ["outcome"],
+            "required": [
+              "outcome"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -831,7 +919,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -848,13 +939,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["notFound", "orderNotTransitionable"]
+                "enum": [
+                  "notFound",
+                  "orderNotTransitionable"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -916,7 +1013,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -933,13 +1033,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["notFound", "orderNotTransitionable"]
+                "enum": [
+                  "notFound",
+                  "orderNotTransitionable"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -993,7 +1099,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1010,13 +1119,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["notFound", "orderNotTransitionable"]
+                "enum": [
+                  "notFound",
+                  "orderNotTransitionable"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1074,7 +1189,10 @@
                 "type": "array"
               }
             },
-            "required": ["id", "totals"],
+            "required": [
+              "id",
+              "totals"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1093,7 +1211,9 @@
                 "type": "string"
               }
             },
-            "required": ["id"],
+            "required": [
+              "id"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1112,7 +1232,9 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "enum": ["invalidBody"]
+                    "enum": [
+                      "invalidBody"
+                    ]
                   }
                 ]
               },
@@ -1120,7 +1242,10 @@
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1190,7 +1315,11 @@
                 "type": "array"
               }
             },
-            "required": ["vendorId", "paymentMethod", "items"],
+            "required": [
+              "vendorId",
+              "paymentMethod",
+              "items"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1212,7 +1341,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1229,13 +1361,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["invalidBody", "notFound"]
+                "enum": [
+                  "invalidBody",
+                  "notFound"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1265,7 +1403,9 @@
       "isolation": "none",
       "requires": {},
       "excludedFrom": {
-        "paymentMethod": ["cod"]
+        "paymentMethod": [
+          "cod"
+        ]
       },
       "consumes": {},
       "provides": {},
@@ -1286,7 +1426,11 @@
                   },
                   {
                     "type": "string",
-                    "enum": ["Infinity", "-Infinity", "NaN"]
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
                   }
                 ]
               },
@@ -1314,12 +1458,20 @@
                         },
                         {
                           "type": "string",
-                          "enum": ["Infinity", "-Infinity", "NaN"]
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
                         }
                       ]
                     }
                   },
-                  "required": ["orderId", "vendorId", "amount"],
+                  "required": [
+                    "orderId",
+                    "vendorId",
+                    "amount"
+                  ],
                   "allOf": [
                     {
                       "type": "object",
@@ -1329,7 +1481,12 @@
                 }
               }
             },
-            "required": ["groupId", "amount", "currency", "allocations"],
+            "required": [
+              "groupId",
+              "amount",
+              "currency",
+              "allocations"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1351,7 +1508,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1368,13 +1528,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["invalidBody", "paymentDeclined"]
+                "enum": [
+                  "invalidBody",
+                  "paymentDeclined"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1423,12 +1589,19 @@
                   },
                   {
                     "type": "string",
-                    "enum": ["Infinity", "-Infinity", "NaN"]
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
                   }
                 ]
               }
             },
-            "required": ["vendorId", "amount"],
+            "required": [
+              "vendorId",
+              "amount"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1447,7 +1620,9 @@
                 "type": "string"
               }
             },
-            "required": ["vendorId"],
+            "required": [
+              "vendorId"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1464,13 +1639,20 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["invalidBody", "codOverLimit", "codNotEntitled"]
+                "enum": [
+                  "invalidBody",
+                  "codOverLimit",
+                  "codNotEntitled"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1527,7 +1709,11 @@
                   },
                   {
                     "type": "string",
-                    "enum": ["Infinity", "-Infinity", "NaN"]
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
                   }
                 ]
               },
@@ -1564,7 +1750,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1583,7 +1772,9 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "enum": ["invalidBody"]
+                    "enum": [
+                      "invalidBody"
+                    ]
                   }
                 ]
               },
@@ -1591,7 +1782,10 @@
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1640,7 +1834,11 @@
                   },
                   {
                     "type": "string",
-                    "enum": ["Infinity", "-Infinity", "NaN"]
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
                   },
                   {
                     "type": "null"
@@ -1648,7 +1846,9 @@
                 ]
               }
             },
-            "required": ["orderId"],
+            "required": [
+              "orderId"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1670,7 +1870,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1698,7 +1901,10 @@
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1727,7 +1933,9 @@
       "irreversible": false,
       "isolation": "commutative",
       "requires": {
-        "entitlements": ["stock-management"]
+        "entitlements": [
+          "stock-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {
@@ -1762,7 +1970,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "status"],
+            "required": [
+              "id",
+              "status"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1784,7 +1995,10 @@
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1817,7 +2031,9 @@
       "irreversible": false,
       "isolation": "commutative",
       "requires": {
-        "entitlements": ["stock-management"]
+        "entitlements": [
+          "stock-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {},
@@ -1847,12 +2063,19 @@
                   },
                   {
                     "type": "string",
-                    "enum": ["Infinity", "-Infinity", "NaN"]
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
                   }
                 ]
               }
             },
-            "required": ["offeringId", "quantity"],
+            "required": [
+              "offeringId",
+              "quantity"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1871,7 +2094,9 @@
                 "type": "string"
               }
             },
-            "required": ["id"],
+            "required": [
+              "id"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1888,13 +2113,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["invalidBody", "insufficientStock"]
+                "enum": [
+                  "invalidBody",
+                  "insufficientStock"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1923,7 +2154,9 @@
       "irreversible": false,
       "isolation": "commutative",
       "requires": {
-        "entitlements": ["stock-management"]
+        "entitlements": [
+          "stock-management"
+        ]
       },
       "excludedFrom": {},
       "consumes": {},
@@ -1945,16 +2178,27 @@
                   },
                   {
                     "type": "string",
-                    "enum": ["Infinity", "-Infinity", "NaN"]
+                    "enum": [
+                      "Infinity",
+                      "-Infinity",
+                      "NaN"
+                    ]
                   }
                 ]
               },
               "cause": {
                 "type": "string",
-                "enum": ["cancellation", "return"]
+                "enum": [
+                  "cancellation",
+                  "return"
+                ]
               }
             },
-            "required": ["offeringId", "quantity", "cause"],
+            "required": [
+              "offeringId",
+              "quantity",
+              "cause"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1973,7 +2217,9 @@
                 "type": "string"
               }
             },
-            "required": ["id"],
+            "required": [
+              "id"
+            ],
             "allOf": [
               {
                 "type": "object",
@@ -1990,13 +2236,19 @@
             "properties": {
               "code": {
                 "type": "string",
-                "enum": ["invalidBody", "inconsistentMovement"]
+                "enum": [
+                  "invalidBody",
+                  "inconsistentMovement"
+                ]
               },
               "category": {
                 "type": "string"
               }
             },
-            "required": ["code", "category"],
+            "required": [
+              "code",
+              "category"
+            ],
             "allOf": [
               {
                 "type": "object",
